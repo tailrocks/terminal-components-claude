@@ -18,6 +18,7 @@ case "$cmd" in
     tmux -f /dev/null new-session -d -s $S -x "$cols" -y "$rows" \
       "env -u NO_COLOR TERM=xterm-256color COLORTERM=truecolor ${BIN} ${ARGS:-} 2>shots/stderr.log; sleep 30"
     tmux set-option -t $S status off
+    tmux set-option -s escape-time 0
     tmux set-option -g default-terminal "tmux-256color"
     tmux set-option -ga terminal-overrides ",*:Tc"
     sleep 0.6

@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Accounts › Claude › Work       ⠏ refreshing 1  u Usage  s Settings  ? help
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │  Claude · Work                                         account · exhausted
+ │ ▎   Overview                        │ │
+ │ ▎ ▾ Claude                      !   │ │  Provider            Anthropic / Claude
+ │ ▎   ★ Personal                      │ │  Agent runtime       Claude Code
+ │ ▎     Archived contractor laptop …  │ │  Usage surface       Claude
+ │ ▎     Work                      !   │ │  Identity            alexey@chainargos.com
+ │ ▎ ▾ Codex                           │ │  Plan                Team
+ │ ▎   ★ Primary                       │ │  Credential          1Password · Engineering › Anthropic · Work ›
+ │ ▎     Experiments                   │ │                      credential
+ │ ▎ ▾ Amp                         ▲   │ │                      chainargos.1password.com ·
+ │ ▎     discovered                ▲   │ │                      op://v_eng01/it_ant01/credential · ••••••••…3c9e
+ │ ▎ ▾ Grok                            │ │  Provenance          configured source · confidence authoritative ·
+ │ ▎   ★ Team                          │ │                      registered
+ │ ▎ ▾ Z.AI                        ▲   │ │  Lifecycle           available
+ │ ▎     discovered                ▲   │ │  Default             no
+ │ ▎ ▾ Kimi                        !   │ │  Enabled             yes
+ │ ▎     discovered                !   │ │  Purpose             work
+ │ ▎ ▾ MiniMax                     !   │ │  Used by             Workspace choice in payments-platform
+ │ ▎     discovered                !   │ │
+ │ ▎ ▾ OpenCode                    !   │ │  Quota                                        stale · last good 47 min ago
+ │ ▎   ★ Go subscription           !   │ │  Session · 5-hour    ━━━━━━━━━━━━━━━━━━━━━━───────  76%    resets in 1 h …
+ │ ▎     ci-bot · discovered           │ │  Weekly · all models ━━━━━━━━━━━━━━━━━━━━━━━━━━───  88%    resets Sun 19:…
+ │ ▎   Unsupported                     │ │  Weekly · Opus       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%    resets Sun 19:…
+ │ ▎   + Add account…                  │ │  Extra usage credits ━━━━━━━━─────────────────────  28%    1,420 / 5,000 …
+ │                                     │ │
+ │                                     │ │  Validation          ✓ material   ✓ identity   ✓ quota access · quota
+ │                                     │ │                      readable
+ │                                     │ │  Status              Usage stale · last good 47 min ago · retry  in 12 min
+ │                                     │ │                      59 s · retryable
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │ ▎Refresh   ▎Validate   ▎Edit…   ▎Set default   ▎Disable   ▎Remove…
+ ╰─────────────────────────────────────╯ │
+
+ Enter Details  r Refresh  e Edit…  Space Default  d Disable  v Validate  x Remove…  a Add…  / Filter  m Usage

@@ -1,0 +1,24 @@
+ ▪  Jackin  inside the Construct  2 running  Accounts › Claude › Personal
+
+ ╭─ Accounts ─────────────────────────────────── 12 · 4 ▲ · 4 ! · 1–11 of 23 ─╮
+ │ ▎   Overview                                                             ┃ │
+ │ ▎ ▾ Claude                                                         !   3 ┃ │
+ │ ▎   ★ Personal                                             current 4 min ┃ │
+ │ ▎     Archived contractor laptop profile — do not use for pro…  disabled ┃ │
+ │ ▎     Work                                              !   stale 47 min ┃ │
+ │ ▎ ▾ Codex                                                              2 │ │
+ │ ▎   ★ Primary                                              current 2 min │ │
+ │ ▎     Experiments                                           ⠦ refreshing │ │
+ │ ▎ ▾ Amp                                                            ▲   1 │ │
+ │ ▎     discovered                                       ▲   current 1 min │ │
+ │ ▎ ▾ Grok                                                               1 │ │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+   Claude · Personal                               account · ok · Tab details
+
+   Provider  Anthropic / Claude
+   Agent runtime  Claude Code
+   Usage surface  Claude
+
+
+ Enter Details  r Refresh  e Edit…  Space Default  d Disable  v Validate

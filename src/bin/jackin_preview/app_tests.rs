@@ -65,6 +65,16 @@ impl H {
         self.app.handle(Input::Resize(w, h));
         self.draw();
     }
+    /// Tab until `id` has focus (bounded), panicking with the ring on failure.
+    pub fn tab_to(&mut self, id: junie_tui::core::id::WidgetId) {
+        for _ in 0..24 {
+            if self.app.focus.current() == Some(id) {
+                return;
+            }
+            self.key(KeyCode::Tab);
+        }
+        panic!("focus never reached {id:?}: at {:?}", self.app.focus.current());
+    }
     pub fn text(&self) -> String {
         let buf = self.term.backend().buffer();
         let mut s = String::new();
@@ -224,3 +234,118 @@ fn too_small_state_and_resize_recover() {
     h.resize(80, 24);
     assert!(h.text().contains("Workspaces"));
 }
+
+#[test]
+fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Accounts);
+    assert!(h.text().contains("Overview"));
+    h.key(KeyCode::Char('a'));
+    assert!(h.text().contains("New account"));
+    h.key(KeyCode::Enter);
+    h.type_str("Team");
+    for _ in 0..4 {
+        h.key(KeyCode::Tab);
+    }
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    assert!(h.text().contains("chainargos"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    assert!(h.text().contains("Engineering"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    h.type_str("Anthropic");
+    h.ticks(4);
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    assert!(h.text().contains("credential"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    h.ticks(2);
+    assert!(h.text().contains("Anthropic · Work › credential"), "{}", h.text());
+    assert!(!h.text().contains("valid-ant01"), "secret leaked into the frame");
+    // the same reference already backs Claude · Work: duplicate protection refuses
+    h.tab_to(crate::screens::accounts::FORM.sub("save"));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Already registered: this source is used by Claude · Work"), "{}", h.text());
+    assert!(h.app.world.accounts.get("acct-anthropic-team").is_none());
+    // switch to Codex and pick the throttled sandbox item instead
+    h.tab_to(crate::screens::accounts::FORM.sub("provider"));
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("Codex · OpenAI"), "{}", h.text());
+    h.tab_to(crate::screens::accounts::FORM.sub("op"));
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    h.type_str("Throttled");
+    h.ticks(4);
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    h.key(KeyCode::Enter);
+    h.ticks(2);
+    assert!(h.text().contains("OpenAI · Throttled sandbox"), "{}", h.text());
+    h.tab_to(crate::screens::accounts::FORM.sub("save"));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Saved Codex · Team"), "{}", h.text());
+    assert!(h.text().contains("Rate limited"), "{}", h.text());
+    assert!(!h.text().contains("throttled-thr01"));
+    assert!(h.app.world.accounts.get("acct-openai-team").is_some());
+    // refresh the new account: the job completes and the status reports it honestly
+    h.key(KeyCode::Char('r'));
+    assert!(h.text().contains("Refreshing"), "{}", h.text());
+    h.ticks(60);
+    assert!(h.text().contains("Refreshed Codex · Team · still rate limited"), "{}", h.text());
+}
+
+#[test]
+fn accounts_plain_key_is_masked_everywhere_and_remove_asks_first() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Char('a'));
+    h.key(KeyCode::Enter);
+    h.type_str("Spare");
+    for _ in 0..3 {
+        h.key(KeyCode::Tab);
+    }
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("API key"), "{}", h.text());
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+    h.type_str("sk-ant-valid-abcdef1234");
+    assert!(!h.text().contains("sk-ant-valid"), "raw key rendered while typing");
+    h.key(KeyCode::Tab);
+    let t = h.text();
+    assert!(!t.contains("sk-ant-valid"), "raw key rendered: {t}");
+    assert!(t.contains("1234"), "tail hint missing: {t}");
+    h.tab_to(crate::screens::accounts::FORM.sub("save"));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Saved Claude · Spare"), "{}", h.text());
+    assert!(!h.text().contains("abcdef"));
+    let a = h.app.world.accounts.get("acct-anthropic-spare").unwrap();
+    assert!(matches!(&a.source, crate::domain::account::CredentialSource::PlainApiKey { tail, .. } if tail == "1234"));
+    assert!(!format!("{:?}", a.source).contains("abcdef"), "fingerprint must not embed the key");
+    h.key(KeyCode::Char('x'));
+    assert!(h.text().contains("Remove account Spare?"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(h.app.world.accounts.get("acct-anthropic-spare").is_some());
+}
+
+#[test]
+fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
+    let mut h = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app.route, Route::Usage);
+    assert!(h.text().contains("Usage · read-only"));
+    assert!(h.text().contains("Overview"));
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("Limits"), "{}", h.text());
+    h.key(KeyCode::Char('m'));
+    assert_eq!(h.app.route, Route::Accounts);
+    assert!(h.text().contains("Accounts › "));
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.route, Route::Manager);
+}
+

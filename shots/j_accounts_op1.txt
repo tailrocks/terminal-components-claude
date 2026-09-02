@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Accounts › Claude › Work       ⠧ refreshing 1  u Usage  s Settings  ? help
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │  Claude · Work                                         account · exhausted
+ │ ▎   Overview                        │ │
+ │ ▎ ▾ Claude                      !   │ │  Provider            Anthropic / Claude
+ │ ▎   ★ Personal        ╭─ New account ───────────────────────────────────── form · unsaved ─╮
+ │ ▎     Archived contrac│   Display name *                                                   │
+ │ ▎     Work            │ ▎ Personal, Work, Team…                                            │
+ │ ▎ ▾ Codex             │                                                                    │
+ │ ▎   ★ Primary         │                                                                    │opic · Work ›
+ │ ▎     Experiments     │   Purpose label  optional                                          │
+ │ ▎ ▾ Amp               │ ▎ personal · work · experiments                                    │
+ │ ▎     discovered      │                                                                    │l · ••••••••…3c9e
+ │ ▎ ▾ Grok              │                                                                    │authoritative ·
+ │ ▎   ★ Team            │   Provider                                                         │
+ │ ▎ ▾ Z.AI              │ ▎ Claude Code · Anthropic / Claude                             ▾   │
+ │ ▎     discovered      │                                                                    │
+ │ ▎ ▾ Kimi              │                                                                    │
+ │ ▎     discovered      │   Agent runtime Claude Code · provider Anthropic / Claude · usa…   │
+ │ ▎ ▾ MiniMax           │                                                                    │atform
+ │ ▎     discovered      │   Credential source                                                │
+ │ ▎ ▾ OpenCode          │ ▎( ) 1Password item / field  (recommended)                         │· last good 47 min ago
+ │ ▎   ★ Go subscription │ ▎( ) Local agent folder                                            │76%    resets in 1 h …
+ │ ▎     ci-bot · discove│ ▎(●) Plain-text API key                                            │88%    resets Sun 19:…
+ │ ▎   Unsupported       │                                                                    │00%    resets Sun 19:…
+ │ ▎   + Add account…    │   Anthropic API key  optional                                      │28%    1,420 / 5,000 …
+ │                       │ ▎ paste the key · shown masked                                     │
+ │                       │   Typed once; only a fingerprint and a four-character tail are s…  │ta access · quota
+ │                       │                                                                    │
+ │                       │                                                                    │ago · retry  in 12 min
+ │                       │                                                                    │
+ │                       │                                                                    │
+ │                       │                                                                    │
+ │                       │             ▎Enter plain text instead  ▎Validate  ▎Cancel  ▎Save   │
+ │                       ╰────────────────────────────────────────────────────────────────────╯
+ │                                     │ │
+ │                                     │ │ ▎Refresh   ▎Validate   ▎Edit…   ▎Set default   ▎Disable   ▎Remove…
+ ╰─────────────────────────────────────╯ │
+
+ Tab Next field  Enter Edit / Save  Esc Cancel                   Plain text chosen · the key is masked and never stored

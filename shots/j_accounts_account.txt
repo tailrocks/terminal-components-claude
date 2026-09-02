@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Accounts › Claude › Personal            ⠹ refreshing 1  s Settings  ? help
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │  Claude · Personal                                            account · ok
+ │ ▎   Overview                        │ │
+ │ ▎ ▾ Claude                      !   │ │  Provider            Anthropic / Claude
+ │ ▎   ★ Personal                      │ │  Agent runtime       Claude Code
+ │ ▎     Archived contractor laptop …  │ │  Usage surface       Claude
+ │ ▎     Work                      !   │ │  Identity            alexey@donbeave.dev
+ │ ▎ ▾ Codex                           │ │  Plan                Max 5x
+ │ ▎   ★ Primary                       │ │  Credential          Local folder · ~/.claude
+ │ ▎     Experiments                   │ │                      detected Claude OAuth profile
+ │ ▎ ▾ Amp                         ▲   │ │  Provenance          configured source · confidence authoritative ·
+ │ ▎     discovered                ▲   │ │                      registered
+ │ ▎ ▾ Grok                            │ │  Lifecycle           available
+ │ ▎   ★ Team                          │ │  Default             ★ for Anthropic
+ │ ▎ ▾ Z.AI                        ▲   │ │  Enabled             yes
+ │ ▎     discovered                ▲   │ │  Purpose             personal
+ │ ▎ ▾ Kimi                        !   │ │
+ │ ▎     discovered                !   │ │  Quota                                       current · refreshed 4 min ago
+ │ ▎ ▾ MiniMax                     !   │ │  Session · 5-hour    ━━━━━━━━━━━──────────────────  38%    resets in 3 h …
+ │ ▎     discovered                !   │ │  Weekly · all models ━━━━━━━━━━───────────────────  33%    resets Sun 19:…
+ │ ▎ ▾ OpenCode                    !   │ │  Weekly · Sonnet     ━━━━━━───────────────────────  21%    resets Sun 19:…
+ │ ▎   ★ Go subscription           !   │ │  Weekly · Opus       ━━━━━━━━━━━━━━━━─────────────  54%    resets Sun 19:…
+ │ ▎     ci-bot · discovered           │ │
+ │ ▎   Unsupported                     │ │  Validation          ✓ material   ✓ identity   ✓ quota access · quota
+ │ ▎   + Add account…                  │ │                      readable
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │ ▎Refresh   ▎Validate   ▎Edit…   ▎Set default   ▎Disable   ▎Remove…
+ ╰─────────────────────────────────────╯ │
+
+ Enter Details  r Refresh  e Edit…  Space Default  d Disable  v Validate  x Remove…  a Add…  / Filter  m Usage

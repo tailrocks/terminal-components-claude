@@ -1,0 +1,24 @@
+ ▪  Jackin  inside the Construct  2 running  Usage › Claude › Personal
+
+ ╭─ Usage · read-only ─────────────────────────────────────── ⠏ refreshing 1 ─╮
+ │  ▎  Overview                                                             ┃ │
+ │    Anthropic                                                             ┃ │
+ │  ▎›   Personal  ★                                                        ┃ │
+ │  ▎    Archived contractor laptop profile — do not use for prod… disabled ┃ │
+ │  ▎    Work                                                             ! ┃ │
+ │    OpenAI                                                                ┃ │
+ │  ▎    Primary  ★                                                         ┃ │
+ │  ▎    Experiments                                                      ⠏ ┃ │
+ │    Amp                                                                   ┃ │
+ │  ▎    discovered                                                       ▲ ┃ │
+ │    xAI                                                                   ┃ │
+ │  ▎    Team  ★                                                            ┃ │
+ │    Z.AI                                                                  ┃ │
+ │  ▎    discovered                                                       ▲ ┃ │
+ │    Kimi                                                                  │ │
+ │  ▎    discovered                                          ! needs secret │ │
+ │    MiniMax                                                               │ │
+ │  ▎    discovered                                           ! unavailable │ │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ Move  Enter Detail  r Refresh  m Manage in Accounts  Esc Close

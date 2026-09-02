@@ -177,6 +177,8 @@ pub enum Request {
     Help,
     /// Refresh the top picker's items (owner changed its data).
     RefreshPicker,
+    /// Mutate the form that is the top modal (after a nested picker).
+    WithForm(Box<dyn FnOnce(&mut FormDialog)>),
 }
 
 pub struct Cx<'a> {
@@ -215,6 +217,9 @@ impl Cx<'_> {
     }
     pub fn help(&mut self) {
         self.requests.push(Request::Help);
+    }
+    pub fn with_form(&mut self, f: impl FnOnce(&mut FormDialog) + 'static) {
+        self.requests.push(Request::WithForm(Box::new(f)));
     }
 }
 
