@@ -1,0 +1,36 @@
+  jackin❯    File   Edit   View   Session   Help
+
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ──────────────────────────╭───────────────────────────╮───────────────────────────────────────────────────────────────
+Amp 1.9.3 · ~/payments-plat│  docs                     │
+                           │  Change title…    2×click │
+› Why is the controller rec│  Split right     Ctrl+B % │
+                           │ ───────────────────────── │
+⠿ Searching kube/controller│  Close tab       Ctrl+B & │
+⠿ Read kube/controllers/nod╰───────────────────────────╯
+
+The loop re-queues every object on every informer resync
+(resyncPeriod = 30s) instead of only on spec changes.
+
+Suggested change:
+  - .WithEventFilter(predicate.ResourceVersionChangedPredicate{})
+  + .WithEventFilter(predicate.GenerationChangedPredicate{})
+
+Apply this edit? [Y/n]
+›
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ payments-platform › the-architect                     Amp · needs input                      Session 38% · Weekly 33%
+ ↑↓ Move  Enter Choose  Esc Close                               Attached to payments-platform · tabs and panes restored

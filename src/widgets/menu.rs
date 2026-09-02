@@ -1,6 +1,6 @@
 //! Anchored menus: a context menu popover that opens at a position or under
 //! an anchor rectangle, and a menu bar whose labels open the same popover
-//! beneath them. Rows are list rows (bar gutter, `accent_bg` on the cursor,
+//! beneath them. Rows are commands (a solid `highlight` fill on the cursor,
 //! hover lifts); shortcuts sit right-aligned in the muted tone; danger rows
 //! use the error tone; disabled rows are faint and cannot be chosen.
 
@@ -246,9 +246,9 @@ impl ContextMenu {
         {
             self.cursor = i;
         }
-        // an anchored popup is an elevated surface, the same plane as the
-        // menu-bar label it hangs from
-        let bg = t.surface_elevated;
+        // the popover plane: the strongest neutral, so a menu reads as a
+        // floating command list over the page
+        let bg = t.popover;
         fill(buf, area, Style::new().bg(bg));
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
@@ -289,15 +289,15 @@ impl ContextMenu {
                 s.hovered = false;
             }
             let row = Rect::new(inner.x, y, inner.width, 1);
-            // one highlight only: the cursor row is a solid tint with bold
-            // text (a menu row is a command, not a focus stop, so it draws
-            // no `▎` bar); hover merely lifts the plane
+            // one highlight only: the cursor row is a solid blue fill with
+            // bold white text (a menu row is a command, not a focus stop, so
+            // it draws no `▎` bar and never the accent); hover lifts the plane
             let mut st = if item.disabled {
                 Style::new().fg(t.disabled).bg(bg)
             } else if s.selected {
                 Style::new()
                     .fg(t.text_primary)
-                    .bg(t.accent_bg)
+                    .bg(t.highlight)
                     .add_modifier(Modifier::BOLD)
             } else if s.hovered {
                 Style::new().fg(t.text_primary).bg(t.lift(bg))
@@ -545,9 +545,11 @@ impl MenuBar {
             let is_cursor = focused && self.cursor == i && open.is_none();
             let mut st = Style::new().fg(t.text_secondary).bg(bg);
             if is_open {
+                // the open label shares the popover plane so label and
+                // dropdown read as one shape
                 st = st
                     .fg(t.text_primary)
-                    .bg(t.surface_elevated)
+                    .bg(t.popover)
                     .add_modifier(Modifier::BOLD);
             } else if hovered {
                 st = st.fg(t.text_primary).bg(t.lift(bg));
