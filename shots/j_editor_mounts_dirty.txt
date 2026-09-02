@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Workspaces › payments-platform › edit                  • 2 changes  ? help
+
+
+  ▎General   ▎Mounts •   ▎Roles   ▎Environments   ▎Auth
+  ────────────━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────
+
+         Destination                           Mode  Isolation  Kind    Source
+  ▎› •  /workspace/payments-platform          ro    clone      host    ~/src/payments-platform
+  ▎     /workspace/libs                       ro    shared     host    ~/src/shared-libs
+  ▎     + Add mount
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Enter Edit…  r Read-only  i Isolation  o Open source  d Remove          /workspace/payments-platform · isolation clone

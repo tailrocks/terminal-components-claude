@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Workspaces › payments-platform › edit      • 2 changes  c Accounts  ? help
+
+
+  ▎General   ▎Mounts •   ▎Roles   ▎Environments   ▎Auth
+  ────────────────────────━━━━━━──────────────────────────────────────────────────────────────────────────────────────
+
+    Allowed roles  3 of 6                                                                    default ★ the-architect
+  ▎›   [✓] the-architect ★  registry · trusted · Full-stack design and refactoring; Claude Code default
+  ▎    [✓] backend          registry · trusted · Rust and Postgres services
+  ▎    [✓] reviewer         registry · trusted · Read-mostly code review with limited write scope
+  ▎    [ ] sre              registry · trusted · Infrastructure, Terraform, Kubernetes
+  ▎    [ ] data-eng         ! load error · trust required
+  ▎    [ ] writer           ~/roles/writer · not in registry
+  ▎   + Load role…
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Space Allow  Enter Set default  a Load role…  [ ] Switch tab            /workspace/payments-platform · isolation clone

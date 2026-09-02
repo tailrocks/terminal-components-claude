@@ -4,6 +4,7 @@
 pub mod accounts;
 pub mod capsule;
 pub mod cockpit;
+pub mod config;
 pub mod editor;
 pub mod manager;
 pub mod modals;
