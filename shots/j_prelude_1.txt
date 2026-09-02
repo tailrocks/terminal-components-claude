@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Workspaces › new workspace         u Usage  c Accounts  s Settings  ? help
+
+
+
+
+
+
+
+
+                  ╭─ New workspace · step 1 of 5 · Source ───────────────────────────────────────────╮
+                  │  Source · Destination · Edit · Working dir · Name                                │
+                  │                                                                                  │
+                  │   Path                                                                           │
+                  │ ▎ ~/src/payments-platform                                                        │
+                  │                                                                                  │
+                  │ ▎  ..                                                                   parent   │
+                  │ ▎  crates/                                                             6 items   │
+                  │ ▎  docs/                                                                   adr   │
+                  │ ▎  scripts/                                                            3 items   │
+                  │ ▎  Cargo.toml                                                              1 h   │
+                  │ ▎  README.md                                                               3 d   │
+                  │                                                                                  │
+                  │                                                                                  │
+                  │                                                                                  │
+                  │                                                                                  │
+                  │                                                                                  │
+                  │ ▎[ ] Mount read-only                                                             │
+                  │                                                                                  │
+                  │                                                                                  │
+                  │                                                    ▎Git URL…  ▎Cancel  ▎Choose   │
+                  ╰──────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+ Enter Open  Space Choose  g Git URL  Tab Next  Esc Cancel
