@@ -1,0 +1,40 @@
+    │V           │              O                     c     │      │   j Y                R
+    │            │       H      J                     3     │      │   u 8      h         │
+    │            T       │      B                     <     │      │   │ a      F         │
+    Q            4       │                            q     │      >   │ Q      u         │          O                C
+    C            9       │                            D     │      i   │ f      v     │   │          │                │
+    Y                    │                            ]     │      X   │ A      8     │   │   n      │ │              │
+                         │          d               │ w     /          │ │      g     │   │   [      │ │              │
+                         │          n               │ │     7          │ │      z     │   │   *      │ │              │
+                         │          3               │ │     r          │ │      F     │   *   u│     │ │              │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │                    Create a workspace from this directory.
+ │                                   │ │
+ │                                   │ │         ~/src/payments-platform is mounted at its own path inside the
+ │                                   │ │     Construct. Enter launches with defaults; n creates a saved workspace.
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+   h        &     a     │                   S        │  q                           │  K         │             │  8  x d
+   │        0     │     b                   F        │  x                           │  \         │             │  ~  o #
+   │        u     │     s                   h        │  W      C                    @       N    │             <     [ E
+   │        p     │     ~                            │  T      X                    ]       *    │             H     Y
+   │        2     │                                  3  f      7                    G       W    │             0     A
+   │   │    │     │                                  &  │      X                            7    Q                   │
+   │   │    │     │                                  \  │      {                            Sd   d                   │
+   │   │    │ │   │                                     │      7                            >1   s                   │
+   Y   │    │ │   42                                    │      Q                            B[                      r│
+   J   │    │ │   s/             t                      │      K                            │%             qEnter Skip

@@ -41,11 +41,11 @@ pub const fn pct(h: u64) -> u64 {
     h % 100
 }
 
-const POOL: &[u8; 77] =
+const POOL: &[u8; 78] =
     b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@#$%&*<>{}[]|/\\~";
 
 pub fn glyph(x: u64, y: u64, epoch: u64) -> char {
-    POOL[(mix(x, y, epoch) % 77) as usize] as char
+    POOL[(mix(x, y, epoch) % 78) as usize] as char
 }
 
 // ------------------------------------------------------------------ tones
@@ -249,24 +249,20 @@ fn paint_glitch(buf: &mut Buffer, cells: &[GlitchCell], bbox: Rect, j: u64, tick
 
 // ----------------------------------------------------------------- mark
 
-pub const MARK_ART: [&str; 5] = [
-    " ████  ███   ████ ██ ██ ████ ██  ██  ██  ",
-    "   ██ ██ ██ ██    ██ █   ██  ███ ██   ██ ",
-    "   ██ █████ ██    ███    ██  ██████    ██",
-    "██ ██ ██ ██ ██    ██ █   ██  ██ ███   ██ ",
-    " ███  ██ ██  ████ ██ ██ ████ ██  ██  ██  ",
-];
-pub const MARK_W: u16 = 41;
+/// The identity mark is the terminal pill, never large art: the current
+/// product's brand rule, kept.
 pub const PILL: &str = " jackin❯ ";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MarkVariant {
+    /// The pill with the caption two rows below (roomy terminals).
     Full,
+    /// The pill with the caption directly below.
     Compact,
 }
 
 pub fn mark_variant(area: Rect) -> MarkVariant {
-    if area.width >= 100 && area.height >= 24 {
+    if area.height >= 30 {
         MarkVariant::Full
     } else {
         MarkVariant::Compact
@@ -292,31 +288,12 @@ fn pill_cells(x0: u16, y: u16) -> Vec<GlitchCell> {
 /// Cells of the identity mark and its bounding box.
 pub fn mark_cells(area: Rect, variant: MarkVariant) -> (Vec<GlitchCell>, Rect) {
     let (cx, cy) = center(area);
-    match variant {
-        MarkVariant::Full => {
-            let x0 = cx.saturating_sub(MARK_W / 2);
-            let y0 = cy.saturating_sub(4);
-            let mut cells = vec![];
-            for (row, line) in MARK_ART.iter().enumerate() {
-                for (col, ch) in line.chars().enumerate() {
-                    if ch == '█' {
-                        cells.push(GlitchCell {
-                            x: x0 + col as u16,
-                            y: y0 + row as u16,
-                            target: '█',
-                            tone: if col >= 37 { Tone::Accent } else { Tone::Ladder(4) },
-                        });
-                    }
-                }
-            }
-            (cells, Rect::new(x0, y0, MARK_W, 5))
-        }
-        MarkVariant::Compact => {
-            let x0 = cx.saturating_sub(4);
-            let y = cy.saturating_sub(1);
-            (pill_cells(x0, y), Rect::new(x0, y, PILL.chars().count() as u16, 1))
-        }
-    }
+    let x0 = cx.saturating_sub(4);
+    let y = match variant {
+        MarkVariant::Full => cy.saturating_sub(2),
+        MarkVariant::Compact => cy.saturating_sub(1),
+    };
+    (pill_cells(x0, y), Rect::new(x0, y, PILL.chars().count() as u16, 1))
 }
 
 fn caption_cells(area: Rect, text: &str, y: u16) -> (Vec<GlitchCell>, Rect) {
@@ -1050,10 +1027,7 @@ mod tests {
                 .count();
             assert!(n <= 4, "column {x} has {n} accent cells");
         }
-        assert_eq!(mark_variant(Rect::new(0, 0, 99, 30)), MarkVariant::Compact);
+        assert_eq!(mark_variant(Rect::new(0, 0, 80, 24)), MarkVariant::Compact);
         assert_eq!(mark_variant(Rect::new(0, 0, 100, 30)), MarkVariant::Full);
-        for row in MARK_ART {
-            assert_eq!(row.chars().count(), MARK_W as usize);
-        }
     }
 }

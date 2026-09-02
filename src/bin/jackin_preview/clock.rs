@@ -4,7 +4,7 @@
 //! renders the same picture every time.
 
 /// Fixed epoch for fixture timestamps: 2026-09-03 09:14:00 local (UTC+7).
-pub const EPOCH_SECS: i64 = 1_756_865_640;
+pub const EPOCH_SECS: i64 = 1_788_401_640;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Clock {
