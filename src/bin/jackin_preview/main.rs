@@ -6,6 +6,8 @@
 mod app;
 #[cfg(test)]
 mod app_tests;
+#[cfg(test)]
+mod app_tests_chrome;
 mod arbiter;
 mod clock;
 mod domain;

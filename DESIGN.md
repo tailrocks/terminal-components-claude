@@ -349,7 +349,7 @@ its whole hierarchy from those.
 
 | Role | Treatment |
 |---|---|
-| Screen identity | `▪` mark, product name bold, breadcrumb in text-secondary, one line |
+| Screen identity | the brand lockup (` jackin❯ ` on the accent fill), state word, breadcrumb in text-secondary, one line |
 | Panel or card title | bold text-primary when focused, text-secondary otherwise; meta right-aligned in text-faint on the same row |
 | Section heading (sidebar groups) | text-faint, sentence case, one blank row before |
 | Field label | text-secondary; bold text-primary when its field has focus; required `*` in primary; `optional` suffix in text-faint only when it fits whole |
@@ -486,6 +486,22 @@ grids keep column widths and expose the hidden columns rather than squeezing
 every column; the next column is drawn clipped so the pane never ends in blank
 space.
 
+**Wheel and keyboard ownership**
+
+- **Routing**: the wheel goes to the scrollable region under the pointer,
+  found by the hit registry; focus is not required. A modal takes the wheel
+  when the pointer is over it and nothing behind it moves.
+- **Semantics**: the wheel moves the viewport and leaves the selection where
+  it is; a render never pulls the cursor back into view on its own. The next
+  keyboard step moves the cursor and only then ensures it is visible, so a
+  wheel scroll followed by `↓` lands one row below the old cursor, in view.
+  A wheel at a boundary is consumed without a repaint.
+- **Ownership**: every list, tree, table, picker, viewport, scroll panel and
+  step rail registers its own scroll region; nested regions win by draw
+  order (the innermost registers last). Tables also scroll columns on the
+  horizontal wheel. Thumbs follow the viewport; `PgUp`/`PgDn`, `Home`/`End`
+  keep working alongside the wheel.
+
 ## Elevation & Depth
 
 There are no shadows. Depth is tonal, structural and modal:
@@ -549,7 +565,7 @@ Shape is glyph vocabulary on a character grid.
 | `▸` / `▾` | collapsed / expanded | tree disclosure; a spinner replaces it while children load |
 | `▴` / `▾` | sort ascending / descending | header suffix; `▾` / `▴` also closed / open on a select |
 | `∇` | filter applied to this column | header suffix |
-| `▪` | identity mark; primary key | the product mark in the header and strip; the pk header prefix |
+| `▪` | primary key; list bullet | the pk header prefix; agent rows in pickers (the product mark is the brand lockup, never a glyph) |
 | `→` | follows a reference | trailing cell of a foreign-key column |
 | `↓` | more rows available | the fetch-more virtual row |
 | `‹` `›` | hidden content in that direction | tab strip overflow; `‹N` / `N›` hidden-column counts |
@@ -755,15 +771,25 @@ Tab still reaches them.
 
 #### Tabs
 
-- **Anatomy**: two rows; each tab is `▎ prefix label ✕`, where the state slot
-  after the label holds one of spinner, `!` or `•`; a `─` baseline; `━` under
-  the active tab in primary for document tabs, in border-strong for secondary
-  levels (Data / Structure, structure sections); `‹ ›` when the strip
-  overflows; `+` for new.
-- **Keys**: `←→`/`h l` move and activate; `1–9` jump; `x`/`Delete` close;
-  `n` new. **Mouse**: tab, `×`, `‹ ›`, `+`.
-- **Rule**: one accent underline per screen. Nested tab levels use the quiet
-  white rule. Labels never shrink; the strip scrolls.
+- **Anatomy**: two rows; each tab is ` prefix label suffix •/!/⠋ ✕ `. There is
+  no `▎` gutter in a tab strip: the bar belongs to rows and fields. The state
+  slot after the label carries dirty `•` (warning), error `!`, or the busy
+  spinner; a `suffix` slot before it carries a muted state glyph (`▶ ● ○ ◆`)
+  that turns text-secondary on the active tab.
+- **Selected (active)**: one plane up from the strip (`lift(bg)`), bold,
+  text-primary, and the accent `━` rule under the label — the single accent
+  underline of the screen. Nested strips (`quiet`) keep the plane and the
+  bold but draw the rule in border-strong so a screen still has one accent
+  rule.
+- **Hover** (inactive tab): two planes up (`lift(lift(bg))`), text-primary,
+  not bold, no rule. **Keyboard cursor** on an inactive tab: two planes up
+  and bold, no rule. Selected, hover and cursor therefore never share a look:
+  the rule marks selection, the plane marks pointer or cursor presence, bold
+  marks the keyboard.
+- **Keys**: `←→`/`h l` move the cursor and activate; `1–9` jump; `x`/`Delete`
+  close; `n` new when allowed. **Mouse**: click activates, `×` closes,
+  `‹N`/`N›` scroll the strip. **Rule**: every tab strip in the product uses
+  this widget so the treatment cannot drift.
 
 #### Panel (card and frame) and scroll panel
 
@@ -823,14 +849,24 @@ Tab still reaches them.
 
 #### Quota meter
 
-- **Purpose**: a used-share bar for a resource with a hard limit.
-- **Anatomy**: `━` used run and `─` remaining run, then a fixed `NNN%`.
-- **Tones**: never green. Normal = text-secondary run; warning (≥ 75 %) =
-  warning run and value; exhausted (100 %) = error run and value; stale =
-  the last good value with both runs faint.
-- **Usage**: provider usage windows, storage, rate limits. **Avoid**: a
-  progress bar for consumption (that reads as work completing) and any
-  accent in the run.
+- **Purpose**: the used share of a capacity with a hard limit. Never green:
+  a quota is not a completion.
+- **Levels**: one shared threshold table classifies a value — low (0–59 %)
+  on the white ladder, medium (60–84 %) in the warning tone, high (85–100 %)
+  in the error tone (`METER_LOW_MAX`, `METER_MEDIUM_MAX`). When the domain
+  already carries a status the owner passes it and the level table is not
+  consulted: warning (`▲`), exhausted (bold `!`), stale (faint run, muted
+  text), refreshing (spinner in place of the value), error (no run, `!` and
+  the message in the error tone), unknown (no run, faint `—`).
+- **Visuals**: `Line` — `━━━━────  38%` the compact run followed by the
+  value and a two-cell marker column. `Block` — the used share is a filled
+  background block in the level colour with the value inside it in dark
+  bold text, the remaining share is one plane up, the marker column follows;
+  the bar reads as a filled region rather than a thin rule. Both are the same
+  widget (`Meter … .visual(MeterVisual::Block)`), never two renderers.
+- **Usage**: Usage surfaces prefer `Block`; dense tables and chips use
+  `Line`. A generic task bar (`render_bar`) keeps completion-green and is a
+  different concept.
 
 #### Masked input
 
@@ -841,6 +877,82 @@ Tab still reaches them.
   the short tail; the raw value never reaches a status line, a log or a
   fixture. **Avoid**: revealing the tail while typing, echoing the value in
   a confirmation dialog.
+
+#### Brand lockup
+
+- **Purpose**: the one place a screen says which product it is.
+- **Anatomy**: `Lockup` — the mark text on an accent fill (`bg accent`,
+  `fg on-accent`, bold) with one cell of padding each side; `compact` drops
+  the padding for tight strips and changes nothing else. The application
+  supplies the mark (`jackin❯`); the widget never carries product strings.
+- **Rule**: the lockup is the only accent-filled control besides the primary
+  button, so it reads as identity, not as an action. Every surface that shows
+  the product — host strip, Capsule menu bar, intro/outro pill, too-small
+  state — draws this same lockup; no `▪ Name`, plain-text titles, or alternate
+  glyphs. Clickable lockups (a menu bar's app menu) lift to `accent-hover`
+  and register a hit. **Avoid**: colouring anything else with the accent fill
+  to "match" the brand; scaling the mark into block art.
+
+#### Status bar
+
+- **Purpose**: the state of one surface — context, activity, capacity — in a
+  row that is visibly not content.
+- **Anatomy**: `StatusBar` — one full-width row on the elevated plane
+  (`surface_elevated` across the whole width), three groups: left
+  (identity/context, first item `Strong`), center (activity), right (quotas
+  and runtime facts). Items are `Plain` text in a tone, `Strong` (bold) or
+  `Chip` (` text ` one plane up on `surface_overlay`). Groups and items are
+  separated by three cells of the plane, never by `│` or `·` separators.
+- **Priorities**: every item carries 0–9. When the row is narrow, items leave
+  by ascending priority — the center group first, then the right, then the
+  left; the strongest left item never leaves, it truncates with `…`.
+- **Interaction**: clickable items register a hit and lift one plane on
+  hover; there is no focus stop (the bar reports, it is not a control).
+- **Usage**: Capsule bottom chrome (branch/PR, session activity, usage chip,
+  container, run id). **Avoid**: more than one strong item; chips for every
+  fact (a chip means "a fact with its own edge"); mixing hints into the bar
+  (hints live in the hint bar).
+
+#### Hint bar
+
+- **Purpose**: the single key-hint surface, pinned to the bottom row of the
+  application, so the operator can always see what keys mean.
+- **Anatomy**: `HintLayer` — hints, an optional leading badge (`EDIT`), an
+  optional status on the right. `HintBar::resolve` picks the first present
+  layer in precedence order: topmost modal or menu › temporary mode (prefix,
+  selection, zoom) › active screen › global fallback. `HintBar::render` draws
+  it with `keyhint`; hints that do not fit drop from the right and a faint
+  `…` marks the cut, the status keeps the right edge.
+- **Rule**: modals, pickers and menus never draw their own hint rows; they
+  contribute a layer and the shell renders it in the same place. The footer
+  never moves or disappears while navigating. **Avoid**: sentence-long hints
+  (a hint is `key Action`), two hint rows on screen at once.
+
+#### Menu bar and context menus
+
+- **Purpose**: anchored lists of actions — a desktop-style menu bar for a
+  surface's command groups, and a context menu for one object (a tab, a row).
+- **Anatomy**: `ContextMenu` — a popover (`popover` plane, rounded
+  `border_subtle` frame) anchored `Below`, `Above` or `Right` of a rectangle
+  or at a pointer position, clamped to the screen and flipped above when
+  there is no room below. Rows are list rows: `▎` gutter, bar-and-`accent_bg`
+  on the cursor row, hover lifts and moves the cursor, shortcuts right-aligned
+  and muted, `danger` rows in the error tone, disabled rows faint and
+  unchoosable, `separator` draws a `─` rule after the row, an optional muted
+  title names the object. `MenuBar` — one row of ` Label ` cells after an
+  optional brand lockup; the open label sits on `surface_elevated` in bold,
+  hover lifts, the keyboard cursor shows the `▎` bar when the bar is focused
+  and closed.
+- **Keys**: menu `↑↓ j k Home End Enter Esc`; bar `←→ h l` move (and switch
+  the open menu), `Enter ↓ Space` open, `Esc` close. **Mouse**: a label click
+  opens or closes, hovering another label while open switches, a row click
+  chooses, a click outside dismisses, the secondary button (right click)
+  opens a context menu on objects that have one.
+- **Rule**: one anchored-menu primitive everywhere — tab menus, row menus and
+  the bar's dropdowns are all `ContextMenu`. A menu is drawn last so it sits
+  on top, and while it is open the hint bar shows the menu layer. **Avoid**:
+  centred dialogs for object actions; menus of one item; items that are not
+  real commands.
 
 #### Table
 
@@ -968,6 +1080,32 @@ Tab still reaches them.
   stop; click and drag map to the container offset.
 
 ### Composed patterns
+
+#### Scoped configuration at scale
+
+- **Rule**: a list scoped by a large registry (Roles, providers) shows only
+  the scopes that carry entries, a summary row for the rest
+  (`Role overrides · 4 configured · 126 in the registry`) and one
+  `+ Add <scope> override…` row that opens a searchable picker of the
+  registry. A scope appears as a foldable section only once it has an entry;
+  empty sections are never rendered "to be complete".
+- **Usage**: Workspace and global Environments, any per-Role override list.
+  **Avoid**: one section per registry item, pagination of empty groups.
+
+#### Registry, policy, session
+
+- **Rule**: accounts are registered once, globally (credential source,
+  validation, default per provider). A Workspace carries a *policy* over the
+  registry — inherited defaults it can switch off, extra accounts it enables,
+  a preference per provider — and shows the effective set with its origin
+  (`inherited default` · `enabled here` · `available`) and usability. A
+  session chooses only among the Workspace's effective accounts: zero usable
+  accounts hide the agent, one starts it, several open the account picker
+  with the preferred one first.
+- **Avoid**: credential fields inside a Workspace, a single
+  provider → account override standing in for availability, listing agents
+  that cannot start.
+
 
 - **Form**: inputs, selects, radio groups, checkboxes and toggles in one or
   two columns (`form-gap` 4), a section break per group, an action row of

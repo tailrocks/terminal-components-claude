@@ -1,0 +1,24 @@
+  jackin❯    File   Edit   View   Session   Help
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ───────────────────────────━━━━━━━━━──────────────────────────────────────────
+Amp 1.9.3 · ~/payments-platform
+
+› Why is the controller reconcile loop hot?
+
+⠿ Searching kube/controllers/**/*.go
+⠿ Read kube/controllers/node_pool.go:118-164
+
+The loop re-queues every object on every informer resync
+(resyncPeriod = 30s) instead of only on spec changes.
+
+Suggested change:
+  - .WithEventFilter(predicate.ResourceVersionChangedPredicate{})
+  + .WithEventFilter(predicate.GenerationChangedPredicate{})
+
+Apply this edit? [Y/n]
+›
+
+
+
+ payments-platform › the-architect                    Session 38% · Weekly 33%
+ Ctrl+B Prefix  …       Attached to payments-platform · tabs and panes restored

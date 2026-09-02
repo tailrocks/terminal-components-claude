@@ -1,9 +1,10 @@
-//! Workspace Editor: General · Mounts · Roles · Environments · Auth, with a
+//! Workspace Editor: General · Mounts · Roles · Environments · Accounts, with a
 //! separate original and pending state, `• N changes` in the strip, a save
 //! preview and an asynchronous save that returns to the manager.
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, width};
@@ -15,6 +16,7 @@ use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::progress::spinner_frame;
 use junie_tui::widgets::props::Prop;
+use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::Segment;
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
@@ -26,8 +28,11 @@ use ratatui::style::Modifier;
 use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab};
 use super::modals::InfoDialog;
 use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
+use crate::domain::account::AccountId;
+use crate::domain::agent::Provider;
 use crate::domain::workspace::{
-    AllowedRoles, DirtyExitPolicy, RoleEntry, RoleName, RoleSource, Workspace, WorkspaceId,
+    AllowedRoles, DirtyExitPolicy, Effective, RoleEntry, RoleName, RoleSource, Workspace,
+    WorkspaceId,
 };
 use crate::sim::world::{Msg, World};
 
@@ -38,11 +43,12 @@ pub const KEEP_AWAKE: WidgetId = WidgetId::of("editor.keep_awake");
 pub const GIT_PULL: WidgetId = WidgetId::of("editor.git_pull");
 pub const DIRTY_POLICY: WidgetId = WidgetId::of("editor.dirty_policy");
 pub const ROLES: WidgetId = WidgetId::of("editor.roles");
+pub const ACCOUNTS: WidgetId = WidgetId::of("editor.accounts");
 pub const CANCEL: WidgetId = WidgetId::of("editor.cancel");
 pub const SAVE: WidgetId = WidgetId::of("editor.save");
 const BASE: WidgetId = WidgetId::of("editor.cfg");
 
-const TAB_NAMES: [&str; 5] = ["General", "Mounts", "Roles", "Environments", "Auth"];
+const TAB_NAMES: [&str; 5] = ["General", "Mounts", "Roles", "Environments", "Accounts"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum EdTab {
@@ -50,7 +56,7 @@ enum EdTab {
     Mounts,
     Roles,
     Environments,
-    Auth,
+    Accounts,
 }
 
 impl EdTab {
@@ -59,16 +65,31 @@ impl EdTab {
         EdTab::Mounts,
         EdTab::Roles,
         EdTab::Environments,
-        EdTab::Auth,
+        EdTab::Accounts,
     ];
     fn cfg(self) -> Option<CfgTab> {
         match self {
             EdTab::Mounts => Some(CfgTab::Mounts),
             EdTab::Environments => Some(CfgTab::Environments),
-            EdTab::Auth => Some(CfgTab::Auth),
             _ => None,
         }
     }
+}
+
+/// One row of the Accounts tab: a provider heading or a registry account.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum AcctRow {
+    Provider(Provider),
+    Account(AccountId),
+}
+
+#[derive(Default)]
+struct AcctState {
+    rows: Vec<AcctRow>,
+    cursor: usize,
+    scroll: ScrollState,
+    filter: Option<String>,
+    area: Rect,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,6 +113,9 @@ pub struct EditorScreen {
     role_rows: Vec<RoleRow>,
     role_cursor: usize,
     role_area: Rect,
+    role_scroll: ScrollState,
+    role_filter: Option<String>,
+    acct: AcctState,
     cancel: Button,
     save: Button,
     saving: bool,
@@ -100,23 +124,6 @@ pub struct EditorScreen {
     row_status: Option<String>,
     /// Names of the other workspaces, for uniqueness checks.
     taken: Vec<(String, WorkspaceId)>,
-    taken_roles: Vec<RoleName>,
-}
-
-/// Roles that get their own Environments / Auth section: the allowed set
-/// (explicit list, or the whole registry when all roles are allowed) plus
-/// the default.
-fn allowed_sections(ws: &Workspace, registry: &[RoleName]) -> Vec<RoleName> {
-    let mut v: Vec<RoleName> = match &ws.roles.allowed {
-        AllowedRoles::All => registry.to_vec(),
-        AllowedRoles::Custom(l) => l.clone(),
-    };
-    if let Some(d) = &ws.roles.default
-        && !v.contains(d)
-    {
-        v.push(d.clone());
-    }
-    v
 }
 
 impl EditorScreen {
@@ -137,13 +144,11 @@ impl EditorScreen {
             .or_else(|| workspace.and_then(|id| w.workspace(id)).cloned())
             .unwrap_or_else(|| Workspace::new(0, "new", "/workspace"));
         let registry: Vec<RoleName> = w.roles.iter().map(|r| r.name.clone()).collect();
-        let sections = allowed_sections(&pending, &registry);
         let cfg = ConfigTabs::new(
             Scope::Workspace,
             Doc::from_workspace(&original),
             Doc::from_workspace(&pending),
             BASE,
-            sections,
             registry,
         );
         let policy_idx = match pending.dirty_policy {
@@ -188,6 +193,9 @@ impl EditorScreen {
             role_rows: vec![],
             role_cursor: 0,
             role_area: Rect::ZERO,
+            role_scroll: ScrollState::default(),
+            role_filter: None,
+            acct: AcctState::default(),
             cancel: Button::subtle(CANCEL, "Cancel"),
             save: Button::primary(SAVE, "Save…"),
             saving: false,
@@ -195,7 +203,6 @@ impl EditorScreen {
             picker_targets: vec![],
             row_status: None,
             taken: vec![],
-            taken_roles: w.roles.iter().map(|r| r.name.clone()).collect(),
         };
         let _ = create;
         s.build_roles(w);
@@ -207,9 +214,6 @@ impl EditorScreen {
     }
 
     fn sync_pending(&mut self) {
-        let registry: Vec<RoleName> = self.taken_roles.clone();
-        self.cfg
-            .set_sections(allowed_sections(&self.pending, &registry));
         self.pending.name = self.name.text().trim().to_owned();
         self.pending.keep_awake = self.keep_awake.checked;
         self.pending.git_pull = self.git_pull.checked;
@@ -219,37 +223,6 @@ impl EditorScreen {
             _ => DirtyExitPolicy::Ask,
         };
         self.cfg.pending.apply_to_workspace(&mut self.pending);
-        // the Auth tab is the single source of the Workspace account choice:
-        // an `account` source becomes the provider override, any other source
-        // clears it, an untouched provider keeps what it had
-        for e in &self.pending.auth {
-            match &e.source {
-                crate::domain::workspace::AuthSource::Account(id) => {
-                    self.pending
-                        .account_overrides
-                        .insert(e.agent.provider(), id.clone());
-                }
-                _ => {
-                    self.pending.account_overrides.remove(&e.agent.provider());
-                }
-            }
-        }
-        for (role, entries) in &self.pending.role_auth {
-            for e in entries {
-                match &e.source {
-                    crate::domain::workspace::AuthSource::Account(id) => {
-                        self.pending
-                            .role_account_overrides
-                            .insert((role.clone(), e.agent.provider()), id.clone());
-                    }
-                    _ => {
-                        self.pending
-                            .role_account_overrides
-                            .remove(&(role.clone(), e.agent.provider()));
-                    }
-                }
-            }
-        }
     }
 
     pub fn change_count(&self) -> usize {
@@ -268,10 +241,20 @@ impl EditorScreen {
         self.pending.roles != self.original.roles
     }
 
+    fn accounts_dirty(&self) -> bool {
+        self.pending.accounts != self.original.accounts
+    }
+
     fn build_roles(&mut self, w: &World) {
+        let q = self.role_filter.as_ref().map(|f| f.to_lowercase());
         let mut rows: Vec<RoleRow> = w
             .roles
             .iter()
+            .filter(|r| {
+                q.as_ref().is_none_or(|q| {
+                    r.name.to_lowercase().contains(q) || r.description.to_lowercase().contains(q)
+                })
+            })
             .map(|r| RoleRow::Role(r.name.clone()))
             .collect();
         if let AllowedRoles::Custom(list) = &self.pending.roles.allowed {
@@ -303,6 +286,7 @@ impl EditorScreen {
         match self.tab {
             EdTab::General => NAME,
             EdTab::Roles => ROLES,
+            EdTab::Accounts => ACCOUNTS,
             t => self.cfg.list_id(t.cfg().unwrap()),
         }
     }
@@ -598,12 +582,16 @@ impl EditorScreen {
             AllowedRoles::Custom(list) => (list.len(), w.roles.len()),
         };
         let head = format!(
-            "Allowed roles  {}",
+            "Allowed roles  {}{}",
             if matches!(self.pending.roles.allowed, AllowedRoles::All) {
                 "all".to_owned()
             } else {
                 format!("{allowed_n} of {total}")
-            }
+            },
+            self.role_filter
+                .as_deref()
+                .map(|f| format!("  · filter {f}"))
+                .unwrap_or_default()
         );
         buf.set_string(
             area.x + 2,
@@ -634,6 +622,11 @@ impl EditorScreen {
         );
         self.role_area = body;
         ctx.control(ROLES, body, false);
+        ctx.scrollable(ROLES, body);
+        self.role_scroll.set_content(self.role_rows.len());
+        self.role_scroll.set_viewport(body.height as usize);
+        self.role_scroll.ensure_visible(self.role_cursor);
+        let has_sb = self.role_scroll.overflows();
         let name_w = self
             .role_rows
             .iter()
@@ -644,8 +637,9 @@ impl EditorScreen {
             .max()
             .unwrap_or(8)
             .clamp(8, 24) as u16;
-        for (i, row) in self.role_rows.iter().enumerate() {
-            let y = body.y + i as u16;
+        for (k, i) in self.role_scroll.visible_range().enumerate() {
+            let row = &self.role_rows[i];
+            let y = body.y + k as u16;
             if y >= body.bottom() {
                 break;
             }
@@ -654,7 +648,7 @@ impl EditorScreen {
             s.focused = focused && i == self.role_cursor;
             s.selected = i == self.role_cursor;
             let st = t.row(s, bg);
-            let rect = Rect::new(body.x, y, body.width, 1);
+            let rect = Rect::new(body.x, y, body.width.saturating_sub(u16::from(has_sb)), 1);
             fill(buf, rect, st);
             buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
             buf.set_string(
@@ -758,6 +752,403 @@ impl EditorScreen {
             }
             ctx.clickable(rid, rect);
         }
+        if has_sb {
+            scrollbar::render_vertical(
+                Rect::new(body.right() - 1, body.y, 1, body.height),
+                buf,
+                ctx,
+                ROLES,
+                &self.role_scroll,
+                focused,
+            );
+        }
+    }
+
+    // ---------------------------------------------------------- accounts
+
+    /// Registry accounts grouped by provider; the Workspace decides which of
+    /// them are active. Only providers that have accounts appear.
+    fn build_accounts(&mut self, w: &World) {
+        let q = self.acct.filter.as_ref().map(|f| f.to_lowercase());
+        let mut rows = vec![];
+        let mut providers: Vec<Provider> = w.accounts.accounts.iter().map(|a| a.provider).collect();
+        providers.sort();
+        providers.dedup();
+        for p in providers {
+            let ids: Vec<AccountId> = w
+                .accounts
+                .sorted()
+                .into_iter()
+                .filter(|a| a.provider == p)
+                .filter(|a| {
+                    q.as_ref().is_none_or(|q| {
+                        a.display_name.to_lowercase().contains(q)
+                            || a.provider.label().to_lowercase().contains(q)
+                            || a.status_word().contains(q.as_str())
+                    })
+                })
+                .map(|a| a.id.clone())
+                .collect();
+            if ids.is_empty() {
+                continue;
+            }
+            rows.push(AcctRow::Provider(p));
+            rows.extend(ids.into_iter().map(AcctRow::Account));
+        }
+        self.acct.rows = rows;
+        if self.acct.cursor >= self.acct.rows.len() {
+            self.acct.cursor = self.acct.rows.len().saturating_sub(1);
+        }
+        while matches!(
+            self.acct.rows.get(self.acct.cursor),
+            Some(AcctRow::Provider(_))
+        ) && self.acct.cursor + 1 < self.acct.rows.len()
+        {
+            self.acct.cursor += 1;
+        }
+        self.acct.scroll.set_content(self.acct.rows.len());
+    }
+
+    fn acct_move(&mut self, delta: isize) {
+        let n = self.acct.rows.len();
+        if n == 0 {
+            return;
+        }
+        let step = if delta < 0 { -1 } else { 1 };
+        let mut remaining = delta.unsigned_abs();
+        let mut i = self.acct.cursor as isize;
+        let mut last_account = i;
+        while remaining > 0 {
+            let next = i + step;
+            if next < 0 || next >= n as isize {
+                break;
+            }
+            i = next;
+            if matches!(self.acct.rows[i as usize], AcctRow::Account(_)) {
+                last_account = i;
+                remaining -= 1;
+            }
+        }
+        self.acct.cursor = last_account as usize;
+        self.acct.scroll.ensure_visible(self.acct.cursor);
+    }
+
+    fn render_accounts(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
+        self.build_accounts(w);
+        let t = ctx.theme;
+        let bg = t.canvas;
+        let focused = ctx.interaction.focused(ACCOUNTS);
+        let effective = self.pending.effective_accounts(&w.accounts);
+        let inherited = effective
+            .iter()
+            .filter(|e| e.origin == Effective::InheritedDefault)
+            .count();
+        let enabled = effective.len() - inherited;
+        let head = format!(
+            "Active accounts  {} effective · {inherited} inherited · {enabled} enabled here{}",
+            effective.len(),
+            self.acct
+                .filter
+                .as_deref()
+                .map(|f| format!("  · filter {f}"))
+                .unwrap_or_default()
+        );
+        buf.set_string(
+            area.x + 2,
+            area.y,
+            truncate(&head, area.width.saturating_sub(4) as usize),
+            t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+        );
+        let hint_txt = "registry in Accounts (c)";
+        if area.width > width(&head) as u16 + width(hint_txt) as u16 + 8 {
+            buf.set_string(
+                area.right().saturating_sub(width(hint_txt) as u16 + 2),
+                area.y,
+                hint_txt,
+                t.faint().bg(bg),
+            );
+        }
+        let body = Rect::new(
+            area.x,
+            area.y + 1,
+            area.width,
+            area.height.saturating_sub(1),
+        );
+        self.acct.area = body;
+        ctx.control(ACCOUNTS, body, false);
+        ctx.scrollable(ACCOUNTS, body);
+        self.acct.scroll.set_viewport(body.height as usize);
+        self.acct.scroll.ensure_visible(self.acct.cursor);
+        let has_sb = self.acct.scroll.overflows();
+        let row_w = body.width.saturating_sub(u16::from(has_sb));
+        if self.acct.rows.is_empty() {
+            buf.set_string(
+                body.x + 2,
+                body.y,
+                "No accounts in the registry · c opens the Account & Usage Center",
+                t.muted().bg(bg),
+            );
+        }
+        let name_w = w
+            .accounts
+            .accounts
+            .iter()
+            .map(|a| width(&a.display_name))
+            .max()
+            .unwrap_or(8)
+            .clamp(8, 28) as u16;
+        let original_effective = self.original.effective_accounts(&w.accounts);
+        for (k, i) in self.acct.scroll.visible_range().enumerate() {
+            let y = body.y + k as u16;
+            if y >= body.bottom() {
+                break;
+            }
+            let rid = ACCOUNTS.child(i);
+            match &self.acct.rows[i] {
+                AcctRow::Provider(p) => {
+                    let n = effective.iter().filter(|e| e.provider == *p).count();
+                    buf.set_string(
+                        body.x + 2,
+                        y,
+                        p.label(),
+                        t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+                    );
+                    let meta = match n {
+                        0 => "none active".to_owned(),
+                        1 => "1 active".to_owned(),
+                        n => format!("{n} active · picker at session start"),
+                    };
+                    let mw = width(&meta) as u16;
+                    if row_w > mw + 20 {
+                        buf.set_string(
+                            body.x + row_w.saturating_sub(mw + 1),
+                            y,
+                            &meta,
+                            t.faint().bg(bg),
+                        );
+                    }
+                }
+                AcctRow::Account(id) => {
+                    let Some(a) = w.accounts.get(id) else {
+                        continue;
+                    };
+                    let eff = effective.iter().find(|e| &e.id == id);
+                    let mut s = ctx.state(rid);
+                    s.focused = focused && i == self.acct.cursor;
+                    s.selected = i == self.acct.cursor;
+                    let st = t.row(s, bg);
+                    let rect = Rect::new(body.x, y, row_w, 1);
+                    fill(buf, rect, st);
+                    buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+                    buf.set_string(
+                        rect.x + 1,
+                        y,
+                        if s.selected { "›" } else { " " },
+                        st.fg(if s.focused {
+                            t.accent
+                        } else {
+                            t.text_secondary
+                        }),
+                    );
+                    let was_active = original_effective.iter().any(|e| &e.id == id);
+                    let changed = was_active != eff.is_some()
+                        || self.original.accounts.preferred.get(&a.provider)
+                            != self.pending.accounts.preferred.get(&a.provider);
+                    buf.set_string(
+                        rect.x + 3,
+                        y,
+                        if changed { "•" } else { " " },
+                        st.fg(t.warning),
+                    );
+                    let active = eff.is_some();
+                    buf.set_string(
+                        rect.x + 5,
+                        y,
+                        if active { "[✓]" } else { "[ ]" },
+                        st.fg(if active { t.text_primary } else { t.text_muted }),
+                    );
+                    let label_style = if !a.enabled {
+                        st.fg(t.text_faint)
+                    } else if s.selected {
+                        st.add_modifier(Modifier::BOLD)
+                    } else {
+                        st
+                    };
+                    // a discovered host login carries no operator-given name
+                    let label = if a.origin == crate::domain::account::AccountOrigin::Discovered
+                        && a.display_name == "discovered"
+                    {
+                        "host login".to_owned()
+                    } else {
+                        a.display_name.clone()
+                    };
+                    buf.set_string(rect.x + 9, y, fit(&label, name_w as usize), label_style);
+                    let sx = rect.x + 10 + name_w;
+                    buf.set_string(
+                        sx,
+                        y,
+                        if eff.is_some_and(|e| e.preferred) {
+                            "★"
+                        } else {
+                            " "
+                        },
+                        st.fg(if s.focused {
+                            t.text_primary
+                        } else {
+                            t.text_secondary
+                        }),
+                    );
+                    let origin = match eff.map(|e| e.origin) {
+                        Some(o) => o.label().to_owned(),
+                        None if a.default_for_provider => "disabled here".to_owned(),
+                        None if a.origin == crate::domain::account::AccountOrigin::Discovered => {
+                            "discovered on host".to_owned()
+                        }
+                        None => "available".to_owned(),
+                    };
+                    let status = crate::domain::workspace::usability_of(a).label();
+                    let status_tone = if a.enabled && status == "ready" {
+                        t.text_muted
+                    } else {
+                        t.warning
+                    };
+                    let ox = sx + 3;
+                    buf.set_string(ox, y, fit(&origin, 22), st.fg(t.text_muted));
+                    let stx = ox + 24;
+                    if stx < rect.right() {
+                        buf.set_string(
+                            stx,
+                            y,
+                            truncate(&status, rect.right().saturating_sub(stx + 1) as usize),
+                            st.fg(status_tone),
+                        );
+                    }
+                    ctx.clickable(rid, rect);
+                }
+            }
+        }
+        if has_sb {
+            scrollbar::render_vertical(
+                Rect::new(body.right() - 1, body.y, 1, body.height),
+                buf,
+                ctx,
+                ACCOUNTS,
+                &self.acct.scroll,
+                focused,
+            );
+        }
+    }
+
+    fn accounts_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
+        self.build_accounts(w);
+        let n = self.acct.rows.len();
+        let vp = self.acct.scroll.viewport_len.max(1) as isize;
+        match key.code {
+            KeyCode::Up | KeyCode::Char('k') => self.acct_move(-1),
+            KeyCode::Down | KeyCode::Char('j') => self.acct_move(1),
+            KeyCode::PageUp => self.acct_move(-vp),
+            KeyCode::PageDown => self.acct_move(vp),
+            KeyCode::Home | KeyCode::Char('g') => self.acct_move(-(n as isize)),
+            KeyCode::End | KeyCode::Char('G') => self.acct_move(n as isize),
+            KeyCode::Char('/') => {
+                let input = TextInput::new(WidgetId::of("editor.acct.filter.input"), "Filter")
+                    .placeholder("name, provider, status")
+                    .value(self.acct.filter.as_deref().unwrap_or(""))
+                    .plain_label();
+                let d = Dialog::prompt(
+                    WidgetId::of("editor.acct.filter"),
+                    "Filter accounts",
+                    input,
+                    "Apply",
+                );
+                cx.open(Modal::Dialog(d), ModalTag::new("acct.filter"));
+            }
+            KeyCode::Char(' ') | KeyCode::Enter => {
+                let Some(AcctRow::Account(id)) = self.acct.rows.get(self.acct.cursor).cloned()
+                else {
+                    return Outcome::Ignored;
+                };
+                let Some(a) = w.accounts.get(&id).cloned() else {
+                    return Outcome::Ignored;
+                };
+                let active = self
+                    .pending
+                    .effective_accounts(&w.accounts)
+                    .iter()
+                    .any(|e| e.id == id);
+                let policy = &mut self.pending.accounts;
+                if active {
+                    if a.default_for_provider {
+                        policy.disabled_defaults.insert(id.clone());
+                    }
+                    policy.enabled.remove(&id);
+                    policy.preferred.retain(|_, v| *v != id);
+                    policy.role_preferred.retain(|_, v| *v != id);
+                    cx.status(format!(
+                        "{} · off for this Workspace{}",
+                        a.title(),
+                        if a.default_for_provider {
+                            " · the global default stays registered"
+                        } else {
+                            ""
+                        }
+                    ));
+                } else {
+                    if a.default_for_provider {
+                        policy.disabled_defaults.remove(&id);
+                    } else {
+                        policy.enabled.insert(id.clone());
+                    }
+                    cx.status(format!(
+                        "{} · active for this Workspace{}",
+                        a.title(),
+                        if !a.enabled {
+                            " · disabled globally, usable once re-enabled in Accounts"
+                        } else {
+                            ""
+                        }
+                    ));
+                }
+            }
+            KeyCode::Char('p') => {
+                let Some(AcctRow::Account(id)) = self.acct.rows.get(self.acct.cursor).cloned()
+                else {
+                    return Outcome::Ignored;
+                };
+                let Some(a) = w.accounts.get(&id).cloned() else {
+                    return Outcome::Ignored;
+                };
+                let active = self
+                    .pending
+                    .effective_accounts(&w.accounts)
+                    .iter()
+                    .any(|e| e.id == id);
+                if !active {
+                    cx.error(format!(
+                        "{} must be active before it can be preferred",
+                        a.title()
+                    ));
+                } else if self.pending.accounts.preferred.get(&a.provider) == Some(&id) {
+                    self.pending.accounts.preferred.remove(&a.provider);
+                    cx.status(format!(
+                        "{} · no longer preferred · the default order applies",
+                        a.title()
+                    ));
+                } else {
+                    self.pending
+                        .accounts
+                        .preferred
+                        .insert(a.provider, id.clone());
+                    cx.status(format!(
+                        "Preferred for {} ★ {}",
+                        a.provider.short(),
+                        a.title()
+                    ));
+                }
+            }
+            _ => return Outcome::Ignored,
+        }
+        Outcome::Changed
     }
 
     fn roles_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -774,6 +1165,28 @@ impl EditorScreen {
             }
             KeyCode::Home | KeyCode::Char('g') => self.role_cursor = 0,
             KeyCode::End | KeyCode::Char('G') => self.role_cursor = n - 1,
+            KeyCode::PageUp => {
+                self.role_cursor = self
+                    .role_cursor
+                    .saturating_sub(self.role_scroll.viewport_len.max(1))
+            }
+            KeyCode::PageDown => {
+                self.role_cursor =
+                    (self.role_cursor + self.role_scroll.viewport_len.max(1)).min(n - 1)
+            }
+            KeyCode::Char('/') => {
+                let input = TextInput::new(WidgetId::of("editor.roles.filter.input"), "Filter")
+                    .placeholder("name or description")
+                    .value(self.role_filter.as_deref().unwrap_or(""))
+                    .plain_label();
+                let d = Dialog::prompt(
+                    WidgetId::of("editor.roles.filter"),
+                    "Filter roles",
+                    input,
+                    "Apply",
+                );
+                cx.open(Modal::Dialog(d), ModalTag::new("roles.filter"));
+            }
             KeyCode::Char(' ') => {
                 if let RoleRow::Role(name) = &row {
                     let all: Vec<RoleName> = w.roles.iter().map(|r| r.name.clone()).collect();
@@ -1258,6 +1671,7 @@ impl Screen for EditorScreen {
                 self.general_key(key, w, cx)
             }
             EdTab::Roles if focus == Some(ROLES) => self.roles_key(key, w, cx),
+            EdTab::Accounts if focus == Some(ACCOUNTS) => self.accounts_key(key, w, cx),
             t if t.cfg().is_some() && focus == Some(self.cfg.list_id(t.cfg().unwrap())) => {
                 let o = self.cfg.on_key(t.cfg().unwrap(), key, w, cx);
                 if o.consumed() {
@@ -1281,8 +1695,12 @@ impl Screen for EditorScreen {
                 cx.focus.focus(TABS);
                 Outcome::Changed
             }
-            KeyCode::Char('c') if key.plain() && self.tab == EdTab::Auth => {
-                cx.go(Go::Accounts { select: None });
+            KeyCode::Char('c') if key.plain() && self.tab == EdTab::Accounts => {
+                let sel = match self.acct.rows.get(self.acct.cursor) {
+                    Some(AcctRow::Account(id)) => Some(id.clone()),
+                    _ => None,
+                };
+                cx.go(Go::Accounts { select: sel });
                 Outcome::Changed
             }
             _ => Outcome::Ignored,
@@ -1349,7 +1767,45 @@ impl Screen for EditorScreen {
                 }
                 Outcome::Ignored
             }
+            EdTab::Accounts => {
+                for i in 0..self.acct.rows.len() {
+                    if ACCOUNTS.child(i) == id {
+                        let same = self.acct.cursor == i;
+                        self.acct.cursor = i;
+                        cx.focus.focus(ACCOUNTS);
+                        if same {
+                            let k = Key {
+                                code: KeyCode::Char(' '),
+                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+                            };
+                            return self.accounts_key(&k, w, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                if id == scrollbar::id_for(ACCOUNTS) {
+                    let a = self.acct.area;
+                    let track = Rect::new(a.right() - 1, a.y, 1, a.height);
+                    self.acct.scroll.scroll_to(scrollbar::offset_for_click(
+                        track,
+                        pos,
+                        &self.acct.scroll,
+                    ));
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
             EdTab::Roles => {
+                if id == scrollbar::id_for(ROLES) {
+                    let a = self.role_area;
+                    let track = Rect::new(a.right() - 1, a.y, 1, a.height);
+                    self.role_scroll.scroll_to(scrollbar::offset_for_click(
+                        track,
+                        pos,
+                        &self.role_scroll,
+                    ));
+                    return Outcome::Changed;
+                }
                 for i in 0..self.role_rows.len() {
                     if ROLES.child(i) == id {
                         let same = self.role_cursor == i;
@@ -1378,6 +1834,14 @@ impl Screen for EditorScreen {
     }
 
     fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
+        if id == ROLES || id == scrollbar::id_for(ROLES) {
+            self.role_scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
+        if id == ACCOUNTS || id == scrollbar::id_for(ACCOUNTS) {
+            self.acct.scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
         match self.tab.cfg() {
             Some(t) => self.cfg.on_wheel(t, id, delta),
             None => Outcome::Ignored,
@@ -1398,6 +1862,9 @@ impl Screen for EditorScreen {
             self.picker_targets = targets;
             return Some(items);
         }
+        if tag.kind == "cfg.role" {
+            return Some(self.cfg.role_picker_items(query));
+        }
         None
     }
 
@@ -1417,6 +1884,31 @@ impl Screen for EditorScreen {
             return o;
         }
         match (tag.kind, result) {
+            (
+                "roles.filter",
+                ModalResult::Dialog {
+                    action: Some(1),
+                    text,
+                },
+            ) => {
+                self.role_filter = text.filter(|t| !t.trim().is_empty());
+                self.role_cursor = 0;
+                self.build_roles(w);
+                Outcome::Changed
+            }
+            (
+                "acct.filter",
+                ModalResult::Dialog {
+                    action: Some(1),
+                    text,
+                },
+            ) => {
+                self.acct.filter = text.filter(|t| !t.trim().is_empty());
+                self.acct.cursor = 0;
+                self.build_accounts(w);
+                Outcome::Changed
+            }
+            ("roles.filter" | "acct.filter", _) => Outcome::Changed,
             (
                 "preview",
                 ModalResult::Dialog {
@@ -1536,11 +2028,12 @@ impl Screen for EditorScreen {
                 it.dirty = match tab {
                     EdTab::General => self.general_dirty(),
                     EdTab::Roles => self.roles_dirty(),
+                    EdTab::Accounts => self.accounts_dirty(),
                     t => self.cfg.tab_dirty(t.cfg().unwrap()),
                 };
                 it.error = match tab {
                     EdTab::General => self.name.error.is_some(),
-                    EdTab::Roles => false,
+                    EdTab::Roles | EdTab::Accounts => false,
                     t => self.cfg.tab_error(t.cfg().unwrap()),
                 };
                 it
@@ -1566,6 +2059,7 @@ impl Screen for EditorScreen {
         match self.tab {
             EdTab::General => self.render_general(body, buf, ctx, w),
             EdTab::Roles => self.render_roles(body, buf, ctx, w),
+            EdTab::Accounts => self.render_accounts(body, buf, ctx, w),
             t => {
                 self.row_status = self.cfg.render(t.cfg().unwrap(), body, buf, ctx, w);
             }
@@ -1627,6 +2121,19 @@ impl Screen for EditorScreen {
                         v.push(hint("Space", "Allow"));
                         v.push(hint("Enter", "Set default"));
                         v.push(hint("a", "Load role…"));
+                        v.push(hint("/", "Filter"));
+                    }
+                },
+                EdTab::Accounts => match self.acct.rows.get(self.acct.cursor) {
+                    Some(AcctRow::Account(_)) => {
+                        v.push(hint("Space", "Enable / disable"));
+                        v.push(hint("p", "Prefer"));
+                        v.push(hint("/", "Filter"));
+                        v.push(hint("c", "Manage accounts"));
+                    }
+                    _ => {
+                        v.push(hint("↑↓", "Move"));
+                        v.push(hint("c", "Manage accounts"));
                     }
                 },
                 t => v.extend(self.cfg.hints(t.cfg().unwrap())),

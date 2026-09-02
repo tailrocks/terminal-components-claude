@@ -10,7 +10,9 @@ use junie_tui::core::scroll::ScrollState;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::text::{fit, truncate, truncate_middle, width};
-use junie_tui::widgets::diff::{DiffMode, DiffView};
+#[cfg(test)]
+use junie_tui::widgets::diff::DiffMode;
+use junie_tui::widgets::diff::DiffView;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::splitter::Splitter;
@@ -127,17 +129,20 @@ impl InspectChanges {
         self
     }
 
+    #[cfg(test)]
     pub fn diff_mode(&self) -> DiffMode {
         self.diff.mode
     }
 
     /// The file whose diff is shown, if any.
+    #[cfg(test)]
     pub fn selected_file(&self) -> Option<&ChangedFile> {
         self.diff
             .file()
             .and_then(|f| self.changes.files.iter().find(|x| x.path == f.path))
     }
 
+    #[cfg(test)]
     pub fn is_open(&self) -> bool {
         self.open
     }
@@ -690,21 +695,12 @@ impl CustomModal for InspectChanges {
         }
     }
 
-    fn on_wheel(&mut self, delta: i32) -> Outcome {
-        match self.mode {
-            InspectMode::Advanced => match self.region {
-                Region::Tree => self.tree.on_wheel(delta),
-                Region::Diff => self.diff.on_wheel(delta),
-            },
-            InspectMode::Compact => {
-                if self.open {
-                    self.diff.on_wheel(delta)
-                } else {
-                    self.list_scroll.scroll_by(delta as isize);
-                    Outcome::Changed
-                }
-            }
-        }
+    fn on_wheel(&mut self, delta: i32, pos: Position) -> Outcome {
+        self.on_wheel_at(delta, pos)
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        InspectChanges::on_drag(self, pressed, pos)
     }
 
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _w: &World) {
@@ -942,10 +938,25 @@ mod tests {
         rig.key(&mut m, KeyCode::Down);
         let _ = before;
         // wheel by position: over the tree scrolls the tree, over the diff the diff
+        rig.key(&mut m, KeyCode::Tab);
+        let big: Vec<String> = (0..30)
+            .map(|i| format!("crates/ledger/src/mod{}/file{i}.rs", i % 4))
+            .collect();
+        let mut m = InspectChanges::new(
+            WidgetId::of("t.inspect2"),
+            "Inspect changes",
+            changes_for("jk-9b02", &big, 30, 0),
+            InspectMode::Advanced,
+        );
+        rig.h = 24;
+        rig.focus.focus(m.initial_focus());
+        rig.draw(&mut m);
+        assert!(
+            m.tree.scroll.overflows(),
+            "30 files overflow a 24-row dialog"
+        );
         let tree_pos = Position::new(m.tree_area.x + 1, m.tree_area.y + 1);
         let diff_pos = Position::new(m.diff_area.x + 1, m.diff_area.y + 1);
-        m.tree.scroll.set_content(40);
-        m.tree.scroll.set_viewport(5);
         assert_eq!(m.on_wheel_at(2, tree_pos), Outcome::Changed);
         assert_eq!(m.tree.scroll.offset, 2);
         let d0 = m.diff.term.scroll.offset;
@@ -953,6 +964,7 @@ mod tests {
         assert!(m.diff.term.scroll.offset >= d0);
         rig.draw(&mut m);
         assert_eq!(m.tree.scroll.offset, 2, "render keeps the wheel position");
+        rig.h = 40;
         // switch to compact and back
         rig.key(&mut m, KeyCode::Char('m'));
         assert_eq!(m.mode, InspectMode::Compact);

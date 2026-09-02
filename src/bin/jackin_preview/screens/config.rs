@@ -1,4 +1,4 @@
-//! Shared Mounts / Environments / Auth tabs for the Workspace Editor and the
+//! Shared Mounts / Environments tabs for the Workspace Editor and the
 //! Global Settings. Both screens keep an original and a pending `Doc`; rows
 //! carry `+ • −` change slots, child modals edit one row at a time and the
 //! save preview is built from the diff.
@@ -16,6 +16,7 @@ use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::select::Select;
@@ -29,13 +30,11 @@ use super::modals::{
     FormValues, OpFlow,
 };
 use super::{Cx, Modal, ModalResult, ModalTag};
-use crate::domain::account::CredentialSource;
-use crate::domain::agent::{Agent, AuthMode};
-use crate::domain::fixtures::{PrecedenceLevel, resolve_account};
+use crate::domain::agent::AuthMode;
 use crate::domain::onepassword::OpReference;
 use crate::domain::workspace::{
-    AuthEntry, AuthSource, EnvValue, EnvVar, Isolation, Mount, MountKind, MountScope, MountSource,
-    RoleName, Workspace, env_key_error, mask,
+    EnvValue, EnvVar, Isolation, Mount, MountKind, MountScope, MountSource, RoleName, Workspace,
+    env_key_error, mask,
 };
 use crate::sim::world::{GlobalConfig, World};
 
@@ -225,11 +224,10 @@ impl ConfigTabs {
         original: Doc,
         pending: Doc,
         base: WidgetId,
-        sections: Vec<RoleName>,
         registry: Vec<RoleName>,
     ) -> Self {
-        let mut roles = sections;
-        for r in original.roles().into_iter().chain(pending.roles()) {
+        let mut roles = original.roles();
+        for r in pending.roles() {
             if !roles.contains(&r) {
                 roles.push(r);
             }
@@ -247,17 +245,16 @@ impl ConfigTabs {
             removed_mounts: vec![],
             mounts: ListState::default(),
             envs: ListState::default(),
-            auth: ListState::default(),
             folded: HashSet::new(),
             unmasked: HashSet::new(),
             editing: None,
             op_ref: None,
             roles,
             registry,
+            role_targets: vec![],
             ids: Ids {
                 mounts: base.sub("mounts"),
                 envs: base.sub("envs"),
-                auth: base.sub("auth"),
                 form: base.sub("form"),
             },
         }
@@ -267,7 +264,6 @@ impl ConfigTabs {
         match tab {
             Tab::Mounts => self.ids.mounts,
             Tab::Environments => self.ids.envs,
-            Tab::Auth => self.ids.auth,
         }
     }
 
@@ -275,7 +271,6 @@ impl ConfigTabs {
         match tab {
             Tab::Mounts => &mut self.mounts,
             Tab::Environments => &mut self.envs,
-            Tab::Auth => &mut self.auth,
         }
     }
 
@@ -283,7 +278,6 @@ impl ConfigTabs {
         match tab {
             Tab::Mounts => &self.mounts,
             Tab::Environments => &self.envs,
-            Tab::Auth => &self.auth,
         }
     }
 
@@ -295,10 +289,6 @@ impl ConfigTabs {
             Tab::Environments => {
                 self.pending.env != self.original.env
                     || self.pending.role_env != self.original.role_env
-            }
-            Tab::Auth => {
-                self.pending.auth != self.original.auth
-                    || self.pending.role_auth != self.original.role_auth
             }
         }
     }
@@ -315,7 +305,6 @@ impl ConfigTabs {
                 .iter()
                 .chain(self.pending.role_env.values().flatten())
                 .any(|e| env_key_error(&e.key).is_some()),
-            Tab::Auth => false,
         }
     }
 
@@ -409,32 +398,6 @@ impl ConfigTabs {
                     v.push(format!("− env {}{sc}", o.key));
                 }
             }
-            let a = self.pending.auth_of(s.as_deref());
-            let b = self.original.auth_of(s.as_deref());
-            for e in a {
-                match b.iter().find(|o| o.agent == e.agent) {
-                    None => v.push(format!(
-                        "+ auth {}{sc}  {} · {}",
-                        e.agent.label(),
-                        mode_label(e.mode),
-                        source_kind(&e.source)
-                    )),
-                    Some(o) if o != e => v.push(format!(
-                        "~ auth {}{sc}  {} · {} → {} · {}",
-                        e.agent.label(),
-                        mode_label(o.mode),
-                        source_kind(&o.source),
-                        mode_label(e.mode),
-                        source_kind(&e.source)
-                    )),
-                    _ => {}
-                }
-            }
-            for o in b {
-                if !a.iter().any(|e| e.agent == o.agent) {
-                    v.push(format!("− auth {}{sc}", o.agent.label()));
-                }
-            }
         }
         v
     }
@@ -453,9 +416,6 @@ impl ConfigTabs {
         let mut ea = 0;
         let mut em = 0;
         let mut er = 0;
-        let mut aa = 0;
-        let mut am = 0;
-        let mut ar = 0;
         let scopes: Vec<Option<RoleName>> = std::iter::once(None)
             .chain(self.roles.iter().cloned().map(Some))
             .collect();
@@ -468,14 +428,6 @@ impl ConfigTabs {
             ea += a;
             em += m;
             er += r;
-            let (a, m, r) = counts(
-                self.pending.auth_of(s.as_deref()),
-                self.original.auth_of(s.as_deref()),
-                |e| e.agent.label().to_owned(),
-            );
-            aa += a;
-            am += m;
-            ar += r;
         }
         if ea + em + er > 0 {
             v.push(Prop::new(
@@ -483,43 +435,24 @@ impl ConfigTabs {
                 format!("{ea} added · {em} modified · {er} removed"),
             ));
         }
-        if aa + am + ar > 0 {
-            v.push(Prop::new(
-                "Auth",
-                format!("{aa} added · {am} modified · {ar} removed"),
-            ));
-        }
         v
     }
 
     // ------------------------------------------------------------- rows
 
-    /// Owners call this when their allowed-role set changes.
-    pub fn set_sections(&mut self, sections: Vec<RoleName>) {
-        let mut roles = sections;
-        for r in self
-            .original
-            .roles()
-            .into_iter()
-            .chain(self.pending.roles())
-        {
+    fn build_rows(&mut self, tab: Tab, w: &World) {
+        // a Role section exists while the Role carries entries in either the
+        // original or the pending document; nothing else earns one
+        let mut roles = self.original.roles();
+        for r in self.pending.roles() {
             if !roles.contains(&r) {
                 roles.push(r);
             }
         }
         self.roles = roles;
-    }
-
-    fn build_rows(&mut self, tab: Tab, w: &World) {
-        for r in self.pending.roles() {
-            if !self.roles.contains(&r) {
-                self.roles.push(r);
-            }
-        }
         let rows = match tab {
             Tab::Mounts => self.mount_rows(w),
             Tab::Environments => self.env_rows(),
-            Tab::Auth => self.auth_rows(w),
         };
         let st = self.state(tab);
         st.rows = rows;
@@ -639,13 +572,14 @@ impl ConfigTabs {
         let scopes: Vec<Option<RoleName>> = std::iter::once(None)
             .chain(self.roles.iter().cloned().map(Some))
             .collect();
+        let configured = self.roles.len();
         for s in scopes {
             let vars = self.pending.env_of(s.as_deref());
             let orig = self.original.env_of(s.as_deref());
             let folded = self.folded.contains(&s);
             let in_registry = s
                 .as_deref()
-                .is_none_or(|r| self.roles.iter().any(|x| x == r));
+                .is_none_or(|r| self.registry.iter().any(|x| x == r));
             let title = match &s {
                 None => self
                     .scope
@@ -766,171 +700,39 @@ impl ConfigTabs {
                 folded: None,
                 meta: String::new(),
             });
-        }
-        rows
-    }
-
-    fn auth_rows(&self, w: &World) -> Vec<Row> {
-        let mut rows = vec![];
-        let scopes: Vec<Option<RoleName>> = std::iter::once(None)
-            .chain(self.roles.iter().cloned().map(Some))
-            .collect();
-        for s in scopes {
-            let entries = self.pending.auth_of(s.as_deref());
-            let orig = self.original.auth_of(s.as_deref());
-            let folded = self.folded.contains(&s);
-            let title = match &s {
-                None => match self.scope {
-                    Scope::Workspace => "Workspace".to_owned(),
-                    Scope::Global => "Global auth per agent runtime".to_owned(),
-                },
-                Some(r) => format!("Role: {r}"),
-            };
-            let meta = if s.is_none() {
-                match self.scope {
-                    Scope::Workspace => "inherits global".into(),
-                    Scope::Global => "defaults from Accounts (c)".into(),
-                }
-            } else if entries.is_empty() {
-                format!("inherits {}", self.scope.label())
-            } else {
-                format!(
-                    "{} override{}",
-                    entries.len(),
-                    if entries.len() == 1 { "" } else { "s" }
-                )
-            };
-            rows.push(Row {
-                key: RowKey::Section(s.clone()),
-                change: Change::None,
-                cells: vec![(title, Tone::Normal)],
-                problem: None,
-                faint: false,
-                header: true,
-                folded: if s.is_some() { Some(folded) } else { None },
-                meta,
-            });
-            if s.is_some() && folded {
-                continue;
-            }
-            let agents: Vec<Agent> = if s.is_none() {
-                Agent::ALL.to_vec()
-            } else {
-                entries.iter().map(|e| e.agent).collect()
-            };
-            for agent in agents {
-                let entry = entries.iter().find(|e| e.agent == agent);
-                let change = match (entry, orig.iter().find(|o| o.agent == agent)) {
-                    (Some(e), Some(o)) if e != o => Change::Modified,
-                    (Some(_), None) => Change::Added,
-                    _ => Change::None,
-                };
-                let (mode, source, detail, tone) = match entry {
-                    Some(e) => (
-                        mode_label(e.mode).to_owned(),
-                        source_kind(&e.source).to_owned(),
-                        if e.mode == AuthMode::Ignore {
-                            "no credentials".to_owned()
-                        } else {
-                            source_detail(&e.source, w)
-                        },
-                        Tone::Normal,
-                    ),
-                    None => {
-                        // inherited: the global entry, else the built-in default
-                        let g = w.global.auth.iter().find(|e| e.agent == agent);
-                        match (self.scope, g) {
-                            (Scope::Workspace, Some(e)) => (
-                                mode_label(e.mode).to_owned(),
-                                "global".to_owned(),
-                                if e.mode == AuthMode::Ignore {
-                                    "no credentials".to_owned()
-                                } else {
-                                    format!(
-                                        "{} · {}",
-                                        source_kind(&e.source),
-                                        source_detail(&e.source, w)
-                                    )
-                                },
-                                Tone::Muted,
-                            ),
-                            _ => (
-                                "inherit".to_owned(),
-                                "".to_owned(),
-                                builtin_default(agent, w),
-                                Tone::Muted,
-                            ),
-                        }
-                    }
-                };
-                let mut cells = vec![
-                    (agent.label().to_owned(), tone),
-                    (mode, tone),
-                    (source, tone),
-                    (
-                        detail,
-                        if tone == Tone::Normal {
-                            Tone::Muted
-                        } else {
-                            Tone::Faint
-                        },
-                    ),
-                ];
-                if self.scope == Scope::Global && s.is_some() {
-                    cells.insert(
-                        1,
-                        (format!("role {}", s.as_deref().unwrap_or("")), Tone::Muted),
-                    );
-                } else if self.scope == Scope::Global {
-                    cells.insert(1, ("global".into(), Tone::Muted));
-                }
+            if s.is_none() {
+                // Role scopes follow, but only the ones that carry entries:
+                // a registry of hundreds of Roles stays one summary row
                 rows.push(Row {
-                    key: RowKey::Auth(s.clone(), agent),
-                    change,
-                    cells,
+                    key: RowKey::RoleSummary,
+                    change: Change::None,
+                    cells: vec![("Role overrides".into(), Tone::Normal)],
                     problem: None,
-                    faint: entry.is_none(),
-                    header: false,
+                    faint: false,
+                    header: true,
                     folded: None,
-                    meta: String::new(),
+                    meta: if configured == 0 {
+                        format!("none · {} in the registry", self.registry.len())
+                    } else {
+                        format!(
+                            "{} configured · {} in the registry",
+                            configured,
+                            self.registry.len()
+                        )
+                    },
                 });
             }
-            for o in orig {
-                if !entries.iter().any(|e| e.agent == o.agent) && s.is_some() {
-                    rows.push(Row {
-                        key: RowKey::Auth(s.clone(), o.agent),
-                        change: Change::Removed,
-                        cells: vec![
-                            (o.agent.label().to_owned(), Tone::Faint),
-                            (mode_label(o.mode).to_owned(), Tone::Faint),
-                            (source_kind(&o.source).to_owned(), Tone::Faint),
-                            (String::new(), Tone::Faint),
-                        ],
-                        problem: None,
-                        faint: true,
-                        header: false,
-                        folded: None,
-                        meta: "u restores".into(),
-                    });
-                }
-            }
-            rows.push(Row {
-                key: RowKey::AddAuth(s.clone()),
-                change: Change::None,
-                cells: vec![(
-                    match &s {
-                        None => "+ Add provider override".into(),
-                        Some(r) => format!("+ Add {r} override"),
-                    },
-                    Tone::Secondary,
-                )],
-                problem: None,
-                faint: false,
-                header: false,
-                folded: None,
-                meta: String::new(),
-            });
         }
+        rows.push(Row {
+            key: RowKey::AddRoleOverride,
+            change: Change::None,
+            cells: vec![("+ Add role override…".into(), Tone::Secondary)],
+            problem: None,
+            faint: false,
+            header: false,
+            folded: None,
+            meta: String::new(),
+        });
         rows
     }
 
@@ -980,16 +782,6 @@ impl ConfigTabs {
             ],
             (Tab::Environments, Scope::Workspace) => vec!["Key", "Value", "Source"],
             (Tab::Environments, Scope::Global) => vec!["Key", "Scope", "Value", "Source"],
-            (Tab::Auth, Scope::Workspace) => {
-                vec!["Agent", "Mode", "Source", "Account · folder · reference"]
-            }
-            (Tab::Auth, Scope::Global) => vec![
-                "Agent",
-                "Scope",
-                "Mode",
-                "Source",
-                "Account · folder · reference",
-            ],
         };
         let widths = column_widths(tab, scope, list_area.width.saturating_sub(7));
         let hidden = widths.iter().filter(|w| **w == 0).count();
@@ -1118,7 +910,7 @@ impl ConfigTabs {
             let mut x = rect.x + 6;
             let is_add = matches!(
                 row.key,
-                RowKey::AddMount | RowKey::AddEnv(_) | RowKey::AddAuth(_)
+                RowKey::AddMount | RowKey::AddEnv(_) | RowKey::AddRoleOverride
             );
             if is_add {
                 buf.set_string(
@@ -1165,7 +957,7 @@ impl ConfigTabs {
             }
             ctx.clickable(rid, rect);
             if s.selected {
-                status = self.row_status(tab, &row.key, hidden > 0, w);
+                status = self.row_status(&row.key, hidden > 0, w);
             }
         }
         let st = self.state(tab);
@@ -1202,12 +994,12 @@ impl ConfigTabs {
             }
         }
         if let Some(card) = card_area {
-            self.render_inspector(tab, card, buf, ctx, w);
+            self.render_inspector(tab, card, buf, ctx);
         }
         status
     }
 
-    fn row_status(&self, tab: Tab, key: &RowKey, hidden: bool, w: &World) -> Option<String> {
+    fn row_status(&self, key: &RowKey, hidden: bool, w: &World) -> Option<String> {
         match key {
             RowKey::Mount(d) => {
                 let m = self.pending.mounts.iter().find(|m| &m.destination == d)?;
@@ -1246,157 +1038,17 @@ impl ConfigTabs {
                     _ => None,
                 }
             }
-            RowKey::Auth(role, agent) => {
-                let o = self
-                    .original
-                    .auth_of(role.as_deref())
-                    .iter()
-                    .find(|e| e.agent == *agent);
-                let p = self
-                    .pending
-                    .auth_of(role.as_deref())
-                    .iter()
-                    .find(|e| e.agent == *agent);
-                match (o, p) {
-                    (Some(o), Some(p)) if o != p => Some(format!(
-                        "was {} · {} · {}",
-                        mode_label(o.mode),
-                        source_kind(&o.source),
-                        source_detail(&o.source, w)
-                    )),
-                    (None, Some(_)) => Some("new override".into()),
-                    (Some(_), None) => Some("removed · u restores".into()),
-                    (None, None) if tab == Tab::Auth => {
-                        Some(format!("inherited · {}", builtin_default(*agent, w)))
-                    }
-                    _ => None,
-                }
-            }
             _ => None,
         }
     }
 
-    fn render_inspector(
-        &mut self,
-        tab: Tab,
-        area: Rect,
-        buf: &mut Buffer,
-        ctx: &mut RenderCtx,
-        w: &World,
-    ) {
+    fn render_inspector(&mut self, tab: Tab, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let st = self.state_ref(tab);
         let Some(row) = st.rows.get(st.cursor) else {
             return;
         };
         let (title, meta, lines): (String, String, Vec<(String, String, Tone)>) = match &row.key {
-            RowKey::Auth(role, agent) => {
-                let scope = role
-                    .as_deref()
-                    .map(|r| format!("role {r} scope"))
-                    .unwrap_or(format!("{} scope", self.scope.label()));
-                let mut lines = vec![];
-                let p = self
-                    .pending
-                    .auth_of(role.as_deref())
-                    .iter()
-                    .find(|e| e.agent == *agent);
-                let o = self
-                    .original
-                    .auth_of(role.as_deref())
-                    .iter()
-                    .find(|e| e.agent == *agent);
-                lines.push((
-                    "Pending".into(),
-                    p.map(|e| format!("{} · {}", mode_label(e.mode), source_detail(&e.source, w)))
-                        .unwrap_or("inherited".into()),
-                    Tone::Normal,
-                ));
-                lines.push((
-                    "Original".into(),
-                    o.map(|e| format!("{} · {}", mode_label(e.mode), source_detail(&e.source, w)))
-                        .unwrap_or("inherited".into()),
-                    Tone::Muted,
-                ));
-                {
-                    let provider = agent.provider();
-                    let ws = w.workspaces.first();
-                    let r = resolve_account(provider, ws, role.as_deref(), None, &w.accounts);
-                    lines.push(("Precedence".into(), String::new(), Tone::Muted));
-                    for lvl in [
-                        PrecedenceLevel::Session,
-                        PrecedenceLevel::Role,
-                        PrecedenceLevel::Workspace,
-                        PrecedenceLevel::ProviderDefault,
-                        PrecedenceLevel::Discovered,
-                    ] {
-                        let here = r.level == lvl;
-                        let value = match lvl {
-                            PrecedenceLevel::Session => "none".to_owned(),
-                            PrecedenceLevel::Workspace => ws
-                                .and_then(|x| x.account_overrides.get(&provider))
-                                .and_then(|id| w.accounts.get(id))
-                                .map(|a| a.display_name.clone())
-                                .unwrap_or("none".into()),
-                            PrecedenceLevel::Role => role
-                                .as_deref()
-                                .and_then(|rn| {
-                                    ws.and_then(|x| {
-                                        x.role_account_overrides.get(&(rn.to_owned(), provider))
-                                    })
-                                })
-                                .and_then(|id| w.accounts.get(id))
-                                .map(|a| a.display_name.clone())
-                                .unwrap_or("none".into()),
-                            PrecedenceLevel::ProviderDefault => w
-                                .accounts
-                                .default_for(provider)
-                                .map(|a| a.display_name.clone())
-                                .unwrap_or("none".into()),
-                            PrecedenceLevel::Discovered => w
-                                .accounts
-                                .discovered_current(provider)
-                                .map(|a| a.source.safe_detail())
-                                .unwrap_or("none".into()),
-                            PrecedenceLevel::None => "none".into(),
-                        };
-                        lines.push((
-                            format!("  {} {}", if here { "›" } else { " " }, lvl.label()),
-                            value,
-                            if here { Tone::Normal } else { Tone::Muted },
-                        ));
-                    }
-                    if let Some(a) = r.account.as_ref().and_then(|id| w.accounts.get(id)) {
-                        lines.push((
-                            "Health".into(),
-                            format!(
-                                "{} · {}",
-                                a.status_word(),
-                                a.last_refresh_secs
-                                    .map(|s| w.clock.ago(s))
-                                    .unwrap_or("never".into())
-                            ),
-                            Tone::Normal,
-                        ));
-                        lines.push((
-                            "Credential".into(),
-                            format!("{} · {}", a.source.origin_label(), a.source.safe_detail()),
-                            Tone::Normal,
-                        ));
-                    }
-                }
-                lines.push((
-                    "Modes".into(),
-                    agent
-                        .auth_modes()
-                        .iter()
-                        .map(|m| mode_label(*m))
-                        .collect::<Vec<_>>()
-                        .join(" · "),
-                    Tone::Muted,
-                ));
-                (format!("Effective auth · {}", agent.label()), scope, lines)
-            }
             RowKey::Env(role, key) => {
                 let p = self
                     .pending
@@ -1497,30 +1149,12 @@ impl ConfigTabs {
                 v.push(hint("← →", "Fold role"));
                 v.push(hint("a", "Add…"));
             }
+            (Tab::Environments, Some(RowKey::AddRoleOverride | RowKey::RoleSummary)) => {
+                v.push(hint("Enter", "Add role override…"));
+            }
             (Tab::Environments, _) => {
                 v.push(hint("Enter", "Add…"));
             }
-            (Tab::Auth, Some(RowKey::Auth(..))) => {
-                v.push(hint("Enter", "Edit auth…"));
-                v.push(hint("Space", "Mode"));
-                v.push(hint(
-                    "d",
-                    if self.scope == Scope::Global {
-                        "Reset"
-                    } else {
-                        "Reset to inherited"
-                    },
-                ));
-                v.push(hint("a", "Add override…"));
-                if self.scope == Scope::Global {
-                    v.push(hint("c", "Manage accounts"));
-                }
-            }
-            (Tab::Auth, Some(RowKey::Section(Some(_)))) => {
-                v.push(hint("← →", "Fold role"));
-                v.push(hint("a", "Add override…"));
-            }
-            (Tab::Auth, _) => v.push(hint("Enter", "Add override…")),
         }
         v
     }
@@ -1595,17 +1229,16 @@ impl ConfigTabs {
             }
             KeyCode::Char('a') if key.plain() => {
                 let role = match &row.key {
-                    RowKey::Section(r)
-                    | RowKey::Env(r, _)
-                    | RowKey::AddEnv(r)
-                    | RowKey::Auth(r, _)
-                    | RowKey::AddAuth(r) => r.clone(),
+                    RowKey::Section(r) | RowKey::Env(r, _) | RowKey::AddEnv(r) => r.clone(),
+                    RowKey::RoleSummary | RowKey::AddRoleOverride => {
+                        self.open_role_picker(cx);
+                        return Outcome::Changed;
+                    }
                     _ => None,
                 };
                 match tab {
                     Tab::Mounts => self.open_mount_form(None, w, cx),
                     Tab::Environments => self.open_env_form(role, None, w, cx),
-                    Tab::Auth => self.open_auth_form(role, None, w, cx),
                 }
                 return Outcome::Changed;
             }
@@ -1617,7 +1250,9 @@ impl ConfigTabs {
         match (&row.key, key.code) {
             (RowKey::AddMount, KeyCode::Enter) => self.open_mount_form(None, w, cx),
             (RowKey::AddEnv(r), KeyCode::Enter) => self.open_env_form(r.clone(), None, w, cx),
-            (RowKey::AddAuth(r), KeyCode::Enter) => self.open_auth_form(r.clone(), None, w, cx),
+            (RowKey::AddRoleOverride | RowKey::RoleSummary, KeyCode::Enter) => {
+                self.open_role_picker(cx)
+            }
             (RowKey::Section(Some(r)), KeyCode::Enter | KeyCode::Char(' ')) => {
                 let s = Some(r.clone());
                 if !self.folded.remove(&s) {
@@ -1755,50 +1390,6 @@ impl ConfigTabs {
                     )),
                 );
             }
-            (RowKey::Auth(r, agent), KeyCode::Enter | KeyCode::Char('e')) => {
-                if row.change == Change::Removed {
-                    return self.undo(tab, &row.key, w, cx);
-                }
-                self.open_auth_form(r.clone(), Some(*agent), w, cx);
-            }
-            (RowKey::Auth(r, agent), KeyCode::Char(' ')) => {
-                let modes = agent.auth_modes();
-                let entries = self.pending.auth_of_mut(r.as_deref());
-                match entries.iter_mut().find(|e| e.agent == *agent) {
-                    Some(e) => {
-                        let i = modes.iter().position(|m| *m == e.mode).unwrap_or(0);
-                        e.mode = modes[(i + 1) % modes.len()];
-                        if e.mode == AuthMode::Ignore {
-                            e.source = AuthSource::None;
-                        } else if e.source == AuthSource::None {
-                            e.source = AuthSource::HostProfile;
-                        }
-                        cx.status(format!("{} · mode {}", agent.label(), mode_label(e.mode)));
-                    }
-                    None => {
-                        entries.push(AuthEntry {
-                            agent: *agent,
-                            mode: modes[0],
-                            source: AuthSource::HostProfile,
-                        });
-                        cx.status(format!(
-                            "{} · override added · mode {}",
-                            agent.label(),
-                            mode_label(modes[0])
-                        ));
-                    }
-                }
-            }
-            (RowKey::Auth(r, agent), KeyCode::Char('d') | KeyCode::Delete) => {
-                let entries = self.pending.auth_of_mut(r.as_deref());
-                let before = entries.len();
-                entries.retain(|e| e.agent != *agent);
-                if entries.len() < before {
-                    cx.status(format!("{} · reset to inherited", agent.label()));
-                } else {
-                    cx.status(format!("{} already inherits", agent.label()));
-                }
-            }
             _ => return Outcome::Ignored,
         }
         Outcome::Changed
@@ -1849,30 +1440,6 @@ impl ConfigTabs {
                         cx.status(format!("Restored {k}"));
                     }
                     None => cx.status("Nothing to undo"),
-                }
-                Outcome::Changed
-            }
-            (Tab::Auth, RowKey::Auth(r, a)) => {
-                let o = self
-                    .original
-                    .auth_of(r.as_deref())
-                    .iter()
-                    .find(|e| e.agent == *a)
-                    .cloned();
-                let list = self.pending.auth_of_mut(r.as_deref());
-                match o {
-                    Some(o) => {
-                        if let Some(e) = list.iter_mut().find(|e| e.agent == *a) {
-                            *e = o;
-                        } else {
-                            list.push(o);
-                        }
-                        cx.status(format!("Restored {}", a.label()));
-                    }
-                    None => {
-                        list.retain(|e| e.agent != *a);
-                        cx.status(format!("{} · back to inherited", a.label()));
-                    }
                 }
                 Outcome::Changed
             }
@@ -1996,6 +1563,51 @@ impl ConfigTabs {
             _ => String::new(),
         };
         cx.open(Modal::Choice(d), ModalTag::new("cfg.scope").key(&k));
+    }
+
+    /// Searchable Role picker for `+ Add role override…`: every registry
+    /// Role, the configured ones tagged, so hundreds of Roles cost one row
+    /// on the main surface.
+    fn open_role_picker(&mut self, cx: &mut Cx) {
+        let mut p = Picker::new(self.ids.form.sub("rolepick"), "Add role override");
+        p.width = 72;
+        p.scope = Some(format!("{} roles", self.registry.len()));
+        let items = self.role_picker_items("");
+        p.set_items(items);
+        cx.open(Modal::Picker(p), ModalTag::new("cfg.role"));
+    }
+
+    /// Rows for the Role picker filtered by `query`; owners route their
+    /// `picker_items` hook here for the `cfg.role` tag.
+    pub fn role_picker_items(&mut self, query: &str) -> Vec<PickerItem> {
+        let q = query.to_lowercase();
+        let mut items = vec![];
+        let mut targets = vec![];
+        for r in &self.registry {
+            if !q.is_empty() && !r.to_lowercase().contains(&q) {
+                continue;
+            }
+            let n = self.pending.env_of(Some(r)).len();
+            items.push(PickerItem {
+                label: r.clone(),
+                detail: if n > 0 {
+                    format!(
+                        "{} · Enter adds another",
+                        super::plural(n, "override", "overrides")
+                    )
+                } else {
+                    "no overrides yet".into()
+                },
+                glyph: if n > 0 { "▪" } else { "·" },
+                group: "roles",
+                tag: if n > 0 { Some("configured") } else { None },
+                matched: vec![],
+                disabled: false,
+            });
+            targets.push(r.clone());
+        }
+        self.role_targets = targets;
+        items
     }
 
     fn open_mount_form(&mut self, original: Option<String>, w: &World, cx: &mut Cx) {
@@ -2234,151 +1846,6 @@ impl ConfigTabs {
         cx.open(Modal::Form(form), ModalTag::new("cfg.env"));
     }
 
-    fn open_auth_form(
-        &mut self,
-        role: Option<RoleName>,
-        original: Option<Agent>,
-        w: &World,
-        cx: &mut Cx,
-    ) {
-        let e = original
-            .and_then(|a| {
-                self.pending
-                    .auth_of(role.as_deref())
-                    .iter()
-                    .find(|e| e.agent == a)
-            })
-            .cloned();
-        let agent = original.unwrap_or(Agent::ClaudeCode);
-        let title = match (&e, original) {
-            (Some(e), _) => format!("Edit auth · {}", e.agent.label()),
-            (None, Some(a)) => format!("Auth override · {}", a.label()),
-            (None, None) => "New auth override".into(),
-        };
-        let agents: Vec<&str> = Agent::ALL.iter().map(|a| a.label()).collect();
-        let agent_idx = Agent::ALL.iter().position(|a| *a == agent).unwrap_or(0);
-        let modes = agent.auth_modes();
-        let mode_labels: Vec<&str> = modes.iter().map(|m| mode_label(*m)).collect();
-        let mode_idx = e
-            .as_ref()
-            .and_then(|e| modes.iter().position(|m| *m == e.mode))
-            .unwrap_or(0);
-        let has_account = w.accounts.by_provider(agent.provider()).any(|a| a.enabled);
-        let src_idx = match e.as_ref().map(|e| &e.source) {
-            Some(AuthSource::Account(_)) => 0,
-            Some(AuthSource::Folder(_)) => 1,
-            Some(AuthSource::OnePassword(_)) => 2,
-            Some(AuthSource::Plain { .. }) => 3,
-            Some(_) => 4,
-            // a new override starts on the registry when it has an account
-            None => {
-                if has_account {
-                    0
-                } else {
-                    4
-                }
-            }
-        };
-        let f = self.ids.form;
-        let accounts: Vec<String> = w
-            .accounts
-            .by_provider(agent.provider())
-            .filter(|a| a.enabled)
-            .map(|a| {
-                format!(
-                    "{}{}",
-                    a.display_name,
-                    if a.default_for_provider { " ★" } else { "" }
-                )
-            })
-            .collect();
-        let acc_refs: Vec<&str> = if accounts.is_empty() {
-            vec!["no registered account · add one in Accounts (c)"]
-        } else {
-            accounts.iter().map(String::as_str).collect()
-        };
-        let acc_idx = match e.as_ref().map(|e| &e.source) {
-            Some(AuthSource::Account(id)) => w
-                .accounts
-                .by_provider(agent.provider())
-                .filter(|a| a.enabled)
-                .position(|a| &a.id == id)
-                .unwrap_or(0),
-            _ => 0,
-        };
-        self.op_ref = match e.as_ref().map(|e| &e.source) {
-            Some(AuthSource::OnePassword(r)) => Some(r.clone()),
-            _ => None,
-        };
-        let scope_opts = self.scope_options();
-        let scope_refs: Vec<&str> = scope_opts.iter().map(String::as_str).collect();
-        let fields = vec![
-            FormField::select("agent", Select::new(f.sub("agent"), "Agent runtime", &agents, agent_idx).disabled(original.is_some())),
-            FormField::note(
-                "link",
-                vec![(
-                    format!("Provider {} · usage surface {}", agent.provider().label(), agent.usage_surface().surface_name()),
-                    Tone::Muted,
-                )],
-            ),
-            FormField::select("mode", Select::new(f.sub("mode"), "Mode", &mode_labels, mode_idx).help("sync mirrors the host profile · api key and oauth token take material from the source")),
-            FormField::radio("src", RadioGroup::new(f.sub("src"), "Credential source", &["Registered account  (Accounts)", "Local agent folder", "1Password item / field", "Plain-text key  (masked)", "Host profile"], src_idx)),
-            FormField::select("account", Select::new(f.sub("account"), "Account", &acc_refs, acc_idx).disabled(accounts.is_empty())),
-            FormField::input(
-                "folder",
-                TextInput::new(f.sub("folder"), "Folder").placeholder("~/.claude").value(match e.as_ref().map(|e| &e.source) {
-                    Some(AuthSource::Folder(p)) => p.as_str(),
-                    _ => "",
-                }),
-            )
-            .hidden(),
-            FormField::chooser("browse", f.sub("browse"), "", "", "Browse…").hidden(),
-            FormField::chooser("op", f.sub("op"), "1Password reference", &self.op_ref.as_ref().map(|r| r.display_path()).unwrap_or("not chosen".into()), "Choose…").hidden(),
-            FormField::input("key", TextInput::new(f.sub("key"), "API key").masked().reveal_tail(4).placeholder("paste the key · shown masked").help("Only a fingerprint is stored")).hidden(),
-            FormField::select("scope", Select::new(f.sub("scope"), "Scope", &scope_refs, self.scope_index(role.as_deref()))),
-            FormField::note("note", vec![]),
-        ];
-        let mut form = FormDialog::new(f, &title, fields).width(70).meta(
-            role.as_deref()
-                .map(|r| format!("role {r}"))
-                .unwrap_or(self.scope.label().into())
-                .as_str(),
-        );
-        Self::reveal_auth(&mut form);
-        self.editing = Some(Editing::Auth { role, original });
-        cx.open(Modal::Form(form), ModalTag::new("cfg.auth"));
-    }
-
-    fn reveal_auth(form: &mut FormDialog) {
-        let src = form.choice("src");
-        let mode_ignore = form
-            .field("mode")
-            .map(|f| matches!(&f.kind, FieldKindW::Select(s) if s.value() == "ignore"))
-            .unwrap_or(false);
-        form.set_visible("src", !mode_ignore);
-        form.set_visible("account", !mode_ignore && src == 0);
-        form.set_visible("folder", !mode_ignore && src == 1);
-        form.set_visible("browse", !mode_ignore && src == 1);
-        form.set_visible("op", !mode_ignore && src == 2);
-        form.set_visible("key", !mode_ignore && src == 3);
-        form.set_note(
-            "note",
-            if mode_ignore {
-                vec![(
-                    "ignore: the agent starts without credentials".into(),
-                    Tone::Muted,
-                )]
-            } else if src == 4 {
-                vec![(
-                    "host profile: the host's own agent login is mirrored in".into(),
-                    Tone::Muted,
-                )]
-            } else {
-                vec![]
-            },
-        );
-    }
-
     pub fn form_changed(&mut self, tag: &ModalTag, form: &mut FormDialog, _w: &World) {
         match tag.kind {
             "cfg.mount" => {
@@ -2392,10 +1859,6 @@ impl ConfigTabs {
                 form.set_visible("value", src == 0);
                 form.set_visible("op", src == 1);
                 form.set_visible("host", src == 2);
-                form.error = None;
-            }
-            "cfg.auth" => {
-                Self::reveal_auth(form);
                 form.error = None;
             }
             _ => {}
@@ -2522,49 +1985,12 @@ impl ConfigTabs {
                 cx.status(format!("Removed {key} · u restores until save"));
                 Outcome::Changed
             }
-            ("cfg.auth", ModalResult::FormAction(name, _)) => {
-                match name.as_str() {
-                    "choose:op" => {
-                        let flow = OpFlow::new(self.ids.form.sub("op"), &w.op, w.now_ms());
-                        cx.open(Modal::Op(flow), ModalTag::new("cfg.auth.op"));
-                    }
-                    "choose:browse" => {
-                        let b = FileBrowser::new(
-                            self.ids.form.sub("browser"),
-                            "Choose the agent folder",
-                            &w.home,
-                            false,
-                            true,
-                            w,
-                        );
-                        cx.open(Modal::Browser(b), ModalTag::new("cfg.auth.browse"));
-                    }
-                    _ => {}
+            ("cfg.role", ModalResult::Picked(i)) => {
+                if let Some(role) = self.role_targets.get(i).cloned() {
+                    self.open_env_form(Some(role), None, w, cx);
                 }
                 Outcome::Changed
             }
-            ("cfg.auth.op", ModalResult::Op(Some(r))) => {
-                let path = r.display_path();
-                let masked =
-                    w.op.describe(&r)
-                        .map(|d| d.masked)
-                        .unwrap_or("••••••••".into());
-                self.op_ref = Some(r);
-                cx.with_form(move |f| {
-                    f.set_chooser(
-                        "op",
-                        &path,
-                        Some(&format!("value {masked} · resolved at launch")),
-                    )
-                });
-                Outcome::Changed
-            }
-            ("cfg.auth.browse", ModalResult::Browser(BrowserResult::Chosen { path, .. })) => {
-                let tilde = w.tilde(&path);
-                cx.with_form(move |f| f.set_text("folder", &tilde));
-                Outcome::Changed
-            }
-            ("cfg.auth", ModalResult::Form(Some(values))) => self.save_auth(values, w, cx),
             ("cfg.scope", ModalResult::Choice(Some(i))) => {
                 let scope = self.scope_at(i);
                 let parts: Vec<&str> = tag.key.split('\u{1}').collect();
@@ -2782,99 +2208,6 @@ impl ConfigTabs {
         cx.close();
         Outcome::Changed
     }
-
-    fn save_auth(&mut self, values: FormValues, w: &World, cx: &mut Cx) -> Outcome {
-        let agent = Agent::ALL[choice(&values, "agent").min(Agent::ALL.len() - 1)];
-        let modes = agent.auth_modes();
-        let mode = modes[choice(&values, "mode").min(modes.len() - 1)];
-        let source = if mode == AuthMode::Ignore {
-            AuthSource::None
-        } else {
-            match choice(&values, "src") {
-                0 => {
-                    let accounts: Vec<String> = w
-                        .accounts
-                        .by_provider(agent.provider())
-                        .filter(|a| a.enabled)
-                        .map(|a| a.id.clone())
-                        .collect();
-                    match accounts.get(choice(&values, "account")) {
-                        Some(id) => AuthSource::Account(id.clone()),
-                        None => {
-                            cx.with_form(|f| f.error = Some("No registered account for this agent · add one in Accounts (c) or pick another source".into()));
-                            return Outcome::Changed;
-                        }
-                    }
-                }
-                1 => {
-                    let p = text(&values, "folder").trim().to_owned();
-                    if p.is_empty() {
-                        cx.with_form(|f| f.error = Some("Choose or type the agent folder".into()));
-                        return Outcome::Changed;
-                    }
-                    AuthSource::Folder(p)
-                }
-                2 => match self.op_ref.clone() {
-                    Some(r) => AuthSource::OnePassword(r),
-                    None => {
-                        cx.with_form(|f| {
-                            f.error = Some("Choose a 1Password item and field first".into())
-                        });
-                        return Outcome::Changed;
-                    }
-                },
-                3 => {
-                    let k = text(&values, "key");
-                    if k.trim().is_empty() {
-                        cx.with_form(|f| f.error = Some("API key required".into()));
-                        return Outcome::Changed;
-                    }
-                    AuthSource::Plain {
-                        fingerprint: crate::domain::account::fingerprint(&k),
-                    }
-                }
-                _ => AuthSource::HostProfile,
-            }
-        };
-        let Some(Editing::Auth {
-            role: from,
-            original,
-        }) = self.editing.clone()
-        else {
-            return Outcome::Changed;
-        };
-        let role = self.scope_at(choice(&values, "scope"));
-        if original.is_some() && from != role {
-            self.pending
-                .auth_of_mut(from.as_deref())
-                .retain(|e| e.agent != agent);
-        }
-        let list = self.pending.auth_of_mut(role.as_deref());
-        if original.is_none() && list.iter().any(|e| e.agent == agent) {
-            cx.with_form(move |f| {
-                f.error = Some(format!(
-                    "{} already has an override in this scope · edit that row",
-                    agent.label()
-                ))
-            });
-            return Outcome::Changed;
-        }
-        list.retain(|e| e.agent != agent);
-        list.push(AuthEntry {
-            agent,
-            mode,
-            source,
-        });
-        self.editing = None;
-        self.op_ref = None;
-        cx.status(format!(
-            "{} · {} · save to apply",
-            agent.label(),
-            mode_label(mode)
-        ));
-        cx.close();
-        Outcome::Changed
-    }
 }
 
 // ------------------------------------------------------------------ util
@@ -2937,14 +2270,6 @@ fn column_widths(tab: Tab, scope: Scope, avail: u16) -> Vec<u16> {
             let value = if avail >= 100 { 22 } else { 16 };
             vec![key, 14, value, avail.saturating_sub(key + 14 + value + 6)]
         }
-        (Tab::Auth, Scope::Workspace) => {
-            let (a, m, s) = (13, 11, 12);
-            vec![a, m, s, avail.saturating_sub(a + m + s + 6)]
-        }
-        (Tab::Auth, Scope::Global) => {
-            let (a, sc, m, s) = (13, 14, 11, 12);
-            vec![a, sc, m, s, avail.saturating_sub(a + sc + m + s + 8)]
-        }
     }
 }
 
@@ -2996,59 +2321,6 @@ pub fn mode_label(m: AuthMode) -> &'static str {
         AuthMode::OAuthToken => "oauth token",
         AuthMode::Ignore => "ignore",
     }
-}
-
-pub fn source_kind(s: &AuthSource) -> &'static str {
-    match s {
-        AuthSource::HostProfile => "host profile",
-        AuthSource::Folder(_) => "folder",
-        AuthSource::Account(_) => "account",
-        AuthSource::OnePassword(_) => "1Password",
-        AuthSource::Plain { .. } => "plain",
-        AuthSource::None => "",
-    }
-}
-
-pub fn source_detail(s: &AuthSource, w: &World) -> String {
-    match s {
-        AuthSource::HostProfile => "host login mirrored".into(),
-        AuthSource::Folder(p) => w.tilde(p),
-        AuthSource::Account(id) => match w.accounts.get(id) {
-            Some(a) => {
-                let mut t = a.title();
-                if a.default_for_provider {
-                    t.push_str(" ★");
-                }
-                if let Some(e) = &a.endpoint {
-                    t.push_str(&format!(" · endpoint {}", e.host));
-                }
-                t
-            }
-            None => format!("account {id} · not in registry"),
-        },
-        AuthSource::OnePassword(r) => r.display_path(),
-        AuthSource::Plain { fingerprint } => format!("fingerprint {fingerprint}"),
-        AuthSource::None => String::new(),
-    }
-}
-
-/// What an agent uses when nothing overrides it: the provider default in
-/// the registry, else the discovered host login, else nothing.
-pub fn builtin_default(agent: Agent, w: &World) -> String {
-    let p = agent.provider();
-    if let Some(a) = w.accounts.default_for(p) {
-        return format!("default ★ {}", a.title());
-    }
-    if let Some(a) = w.accounts.discovered_current(p) {
-        return format!(
-            "discovered · {}",
-            match &a.source {
-                CredentialSource::LocalFolder { path, .. } => w.tilde(path),
-                s => s.safe_detail(),
-            }
-        );
-    }
-    "no credentials found".into()
 }
 
 fn mask_len(n: usize) -> String {

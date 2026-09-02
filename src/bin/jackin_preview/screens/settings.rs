@@ -1,4 +1,4 @@
-//! Global Settings: General · Mounts · Environments · Auth · Trust with the
+//! Global Settings: General · Mounts · Environments · Agents · Trust with the
 //! Editor's stage grammar, a `global` scope column on every scoped row and
 //! the same preview → async save flow.
 
@@ -11,6 +11,7 @@ use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::picker::PickerItem;
 use junie_tui::widgets::progress::spinner_frame;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::Segment;
@@ -20,9 +21,10 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Modifier;
 
-use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab};
+use super::config::{ConfigTabs, Doc, Scope, Tab as CfgTab, mode_label};
 use super::modals::InfoDialog;
 use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
+use crate::domain::agent::{Agent, AuthMode};
 use crate::domain::workspace::RoleName;
 use crate::sim::world::{GlobalConfig, Msg, World};
 
@@ -30,18 +32,19 @@ pub const TABS: WidgetId = WidgetId::of("settings.tabs");
 pub const COAUTHOR: WidgetId = WidgetId::of("settings.coauthor");
 pub const DCO: WidgetId = WidgetId::of("settings.dco");
 pub const TRUST: WidgetId = WidgetId::of("settings.trust");
+pub const AGENTS: WidgetId = WidgetId::of("settings.agents");
 pub const CANCEL: WidgetId = WidgetId::of("settings.cancel");
 pub const SAVE: WidgetId = WidgetId::of("settings.save");
 const BASE: WidgetId = WidgetId::of("settings.cfg");
 
-const TAB_NAMES: [&str; 5] = ["General", "Mounts", "Environments", "Auth", "Trust"];
+const TAB_NAMES: [&str; 5] = ["General", "Mounts", "Environments", "Agents", "Trust"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StTab {
     General,
     Mounts,
     Environments,
-    Auth,
+    Agents,
     Trust,
 }
 
@@ -50,14 +53,13 @@ impl StTab {
         StTab::General,
         StTab::Mounts,
         StTab::Environments,
-        StTab::Auth,
+        StTab::Agents,
         StTab::Trust,
     ];
     fn cfg(self) -> Option<CfgTab> {
         match self {
             StTab::Mounts => Some(CfgTab::Mounts),
             StTab::Environments => Some(CfgTab::Environments),
-            StTab::Auth => Some(CfgTab::Auth),
             _ => None,
         }
     }
@@ -72,6 +74,7 @@ pub struct SettingsScreen {
     coauthor: Checkbox,
     dco: Checkbox,
     trust_cursor: usize,
+    agents_cursor: usize,
     cancel: Button,
     save: Button,
     saving: bool,
@@ -88,7 +91,6 @@ impl SettingsScreen {
             Doc::from_global(&original),
             Doc::from_global(&pending),
             BASE,
-            vec![],
             registry,
         );
         Self {
@@ -104,6 +106,7 @@ impl SettingsScreen {
             tabs: Tabs::new(TABS, &TAB_NAMES),
             tab: StTab::General,
             trust_cursor: 0,
+            agents_cursor: 0,
             cancel: Button::subtle(CANCEL, "Cancel"),
             save: Button::primary(SAVE, "Save…"),
             saving: false,
@@ -130,6 +133,10 @@ impl SettingsScreen {
         self.pending.trust != self.original.trust
     }
 
+    fn agents_dirty(&self) -> bool {
+        self.pending.agent_modes != self.original.agent_modes
+    }
+
     fn set_tab(&mut self, i: usize, cx: &mut Cx) {
         self.tab = StTab::ALL[i.min(4)];
         self.tabs.set_active(i);
@@ -140,6 +147,7 @@ impl SettingsScreen {
         match self.tab {
             StTab::General => COAUTHOR,
             StTab::Trust => TRUST,
+            StTab::Agents => AGENTS,
             t => self.cfg.list_id(t.cfg().unwrap()),
         }
     }
@@ -186,6 +194,26 @@ impl SettingsScreen {
             ));
         }
         facts.extend(self.cfg.summary_facts());
+        if self.agents_dirty() {
+            let changed: Vec<String> = Agent::ALL
+                .iter()
+                .filter(|a| self.pending.agent_modes.get(a) != self.original.agent_modes.get(a))
+                .map(|a| {
+                    format!(
+                        "{} → {}",
+                        a.label(),
+                        mode_label(
+                            self.pending
+                                .agent_modes
+                                .get(a)
+                                .copied()
+                                .unwrap_or(AuthMode::Sync)
+                        )
+                    )
+                })
+                .collect();
+            facts.push(Prop::new("Agents", changed.join(" · ")));
+        }
         if self.trust_dirty() {
             let changed: Vec<String> = self
                 .pending
@@ -216,6 +244,28 @@ impl SettingsScreen {
             facts.push(Prop::new("Blocker", b.clone()).tone(Tone::Error));
         }
         let mut code = self.cfg.diff_lines();
+        for a in Agent::ALL {
+            let (o, p) = (
+                self.original
+                    .agent_modes
+                    .get(&a)
+                    .copied()
+                    .unwrap_or(AuthMode::Sync),
+                self.pending
+                    .agent_modes
+                    .get(&a)
+                    .copied()
+                    .unwrap_or(AuthMode::Sync),
+            );
+            if o != p {
+                code.push(format!(
+                    "~ agent_mode {} {} → {}",
+                    a.label(),
+                    mode_label(o),
+                    mode_label(p)
+                ));
+            }
+        }
         if self.pending.coauthor_trailer != self.original.coauthor_trailer {
             code.push(format!(
                 "~ coauthor_trailer {} → {}",
@@ -509,6 +559,177 @@ impl SettingsScreen {
         }
     }
 
+    /// Agent runtime modes: how each agent is handed credentials inside the
+    /// container. Which account backs it is read-only here — the registry
+    /// (Account & Usage Center) owns that.
+    fn render_agents(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
+        let t = ctx.theme;
+        let bg = t.canvas;
+        let focused = ctx.interaction.focused(AGENTS);
+        buf.set_string(
+            area.x + 2,
+            area.y,
+            "Agent runtime mode",
+            t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+        );
+        let meta = "accounts are registered in Accounts (c)";
+        if area.width > 50 {
+            buf.set_string(
+                area.right().saturating_sub(width(meta) as u16 + 2),
+                area.y,
+                meta,
+                t.faint().bg(bg),
+            );
+        }
+        let head = format!("{:<14}{:<13}{}", "Agent", "Mode", "Registry default");
+        buf.set_string(area.x + 5, area.y + 1, &head, t.muted().bg(bg));
+        let body = Rect::new(
+            area.x,
+            area.y + 2,
+            area.width,
+            area.height.saturating_sub(2),
+        );
+        ctx.control(AGENTS, body, false);
+        for (i, a) in Agent::ALL.iter().enumerate() {
+            let y = body.y + i as u16;
+            if y >= body.bottom() {
+                break;
+            }
+            let rid = AGENTS.child(i);
+            let mut s = ctx.state(rid);
+            s.focused = focused && i == self.agents_cursor;
+            s.selected = i == self.agents_cursor;
+            let st = t.row(s, bg);
+            let rect = Rect::new(body.x, y, body.width, 1);
+            fill(buf, rect, st);
+            buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                rect.x + 1,
+                y,
+                if s.selected { "›" } else { " " },
+                st.fg(if s.focused {
+                    t.accent
+                } else {
+                    t.text_secondary
+                }),
+            );
+            let mode = self
+                .pending
+                .agent_modes
+                .get(a)
+                .copied()
+                .unwrap_or(AuthMode::Sync);
+            let changed = self
+                .original
+                .agent_modes
+                .get(a)
+                .copied()
+                .unwrap_or(AuthMode::Sync)
+                != mode;
+            buf.set_string(
+                rect.x + 3,
+                y,
+                if changed { "•" } else { " " },
+                st.fg(t.warning),
+            );
+            buf.set_string(
+                rect.x + 5,
+                y,
+                fit(a.label(), 13),
+                if s.selected {
+                    st.add_modifier(Modifier::BOLD)
+                } else {
+                    st
+                },
+            );
+            buf.set_string(
+                rect.x + 19,
+                y,
+                fit(mode_label(mode), 12),
+                st.fg(t.text_secondary),
+            );
+            let default = match w.accounts.default_for(a.provider()) {
+                Some(acc) => format!("★ {}", acc.title()),
+                None => match w.accounts.discovered_current(a.provider()) {
+                    Some(acc) => format!("discovered · {}", acc.source.safe_detail()),
+                    None => "no account registered".into(),
+                },
+            };
+            let dx = rect.x + 32;
+            let detail = if mode == AuthMode::Ignore {
+                "no credentials handed to the container".to_owned()
+            } else {
+                default
+            };
+            buf.set_string(
+                dx,
+                y,
+                truncate(&detail, rect.right().saturating_sub(dx + 1) as usize),
+                st.fg(t.text_muted),
+            );
+            ctx.clickable(rid, rect);
+        }
+        let ny = body.y + Agent::ALL.len() as u16 + 1;
+        if ny + 1 < body.bottom() {
+            buf.set_string(
+                area.x + 2,
+                ny,
+                truncate(
+                    "sync mirrors the host login · api key and oauth token take material from the registry account",
+                    area.width.saturating_sub(4) as usize,
+                ),
+                t.faint().bg(bg),
+            );
+            buf.set_string(
+                area.x + 2,
+                ny + 1,
+                truncate(
+                    "ignore starts the agent without credentials and removes it from session pickers",
+                    area.width.saturating_sub(4) as usize,
+                ),
+                t.faint().bg(bg),
+            );
+        }
+    }
+
+    fn agents_key(&mut self, key: &Key, _w: &mut World, cx: &mut Cx) -> Outcome {
+        let n = Agent::ALL.len();
+        let a = Agent::ALL[self.agents_cursor.min(n - 1)];
+        match key.code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.agents_cursor = self.agents_cursor.saturating_sub(1)
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.agents_cursor = (self.agents_cursor + 1).min(n - 1)
+            }
+            KeyCode::Home | KeyCode::Char('g') => self.agents_cursor = 0,
+            KeyCode::End | KeyCode::Char('G') => self.agents_cursor = n - 1,
+            KeyCode::Char(' ') | KeyCode::Enter => {
+                let modes = a.auth_modes();
+                let cur = self
+                    .pending
+                    .agent_modes
+                    .get(&a)
+                    .copied()
+                    .unwrap_or(AuthMode::Sync);
+                let i = modes.iter().position(|m| *m == cur).unwrap_or(0);
+                let next = modes[(i + 1) % modes.len()];
+                self.pending.agent_modes.insert(a, next);
+                cx.status(format!(
+                    "{} · {} · save to apply",
+                    a.label(),
+                    mode_label(next)
+                ));
+            }
+            KeyCode::Char('d') => {
+                self.pending.agent_modes.insert(a, AuthMode::Sync);
+                cx.status(format!("{} · sync · save to apply", a.label()));
+            }
+            _ => return Outcome::Ignored,
+        }
+        Outcome::Changed
+    }
+
     fn trust_key(&mut self, key: &Key, cx: &mut Cx) -> Outcome {
         let n = self.pending.trust.len();
         if n == 0 {
@@ -707,6 +928,7 @@ impl Screen for SettingsScreen {
                 }
             }
             StTab::Trust if focus == Some(TRUST) => self.trust_key(key, cx),
+            StTab::Agents if focus == Some(AGENTS) => self.agents_key(key, w, cx),
             t if t.cfg().is_some() && focus == Some(self.cfg.list_id(t.cfg().unwrap())) => {
                 let o = self.cfg.on_key(t.cfg().unwrap(), key, w, cx);
                 if o.consumed() {
@@ -724,8 +946,12 @@ impl Screen for SettingsScreen {
                 cx.focus.focus(TABS);
                 Outcome::Changed
             }
-            KeyCode::Char('c') if key.plain() && self.tab == StTab::Auth => {
-                cx.go(Go::Accounts { select: None });
+            KeyCode::Char('c') if key.plain() && self.tab == StTab::Agents => {
+                let sel = Agent::ALL
+                    .get(self.agents_cursor)
+                    .and_then(|a| w.accounts.default_for(a.provider()))
+                    .map(|a| a.id.clone());
+                cx.go(Go::Accounts { select: sel });
                 Outcome::Changed
             }
             _ => Outcome::Ignored,
@@ -774,6 +1000,24 @@ impl Screen for SettingsScreen {
                 }
                 Outcome::Ignored
             }
+            StTab::Agents => {
+                for i in 0..Agent::ALL.len() {
+                    if AGENTS.child(i) == id {
+                        let same = self.agents_cursor == i;
+                        self.agents_cursor = i;
+                        cx.focus.focus(AGENTS);
+                        if same {
+                            let k = Key {
+                                code: KeyCode::Char(' '),
+                                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+                            };
+                            return self.agents_key(&k, w, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                Outcome::Ignored
+            }
             StTab::Trust => {
                 for i in 0..self.pending.trust.len() {
                     if TRUST.child(i) == id {
@@ -807,6 +1051,13 @@ impl Screen for SettingsScreen {
             Some(t) => self.cfg.on_wheel(t, id, delta),
             None => Outcome::Ignored,
         }
+    }
+
+    fn picker_items(&mut self, tag: &ModalTag, query: &str, _w: &World) -> Option<Vec<PickerItem>> {
+        if tag.kind == "cfg.role" {
+            return Some(self.cfg.role_picker_items(query));
+        }
+        None
     }
 
     fn form_changed(&mut self, tag: &ModalTag, form: &mut super::modals::FormDialog, w: &World) {
@@ -892,10 +1143,11 @@ impl Screen for SettingsScreen {
                 it.dirty = match tab {
                     StTab::General => self.general_dirty(),
                     StTab::Trust => self.trust_dirty(),
+                    StTab::Agents => self.agents_dirty(),
                     t => self.cfg.tab_dirty(t.cfg().unwrap()),
                 };
                 it.error = match tab {
-                    StTab::General | StTab::Trust => false,
+                    StTab::General | StTab::Trust | StTab::Agents => false,
                     t => self.cfg.tab_error(t.cfg().unwrap()),
                 };
                 it
@@ -921,6 +1173,7 @@ impl Screen for SettingsScreen {
         match self.tab {
             StTab::General => self.render_general(body, buf, ctx),
             StTab::Trust => self.render_trust(body, buf, ctx),
+            StTab::Agents => self.render_agents(body, buf, ctx, w),
             t => {
                 self.row_status = self.cfg.render(t.cfg().unwrap(), body, buf, ctx, w);
             }
@@ -968,6 +1221,11 @@ impl Screen for SettingsScreen {
                 StTab::Trust => {
                     v.push(hint("Space", "Toggle trust"));
                     v.push(hint("o", "Open source"));
+                }
+                StTab::Agents => {
+                    v.push(hint("Space", "Cycle mode"));
+                    v.push(hint("d", "Reset to sync"));
+                    v.push(hint("c", "Manage accounts"));
                 }
                 t => v.extend(self.cfg.hints(t.cfg().unwrap())),
             }

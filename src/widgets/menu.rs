@@ -272,7 +272,8 @@ impl ContextMenu {
             );
             y += 1;
         }
-        let focused = ctx.interaction.focused(self.id) || ctx.interaction.focus.is_none();
+        // an open menu is always the active control: its cursor row carries
+        // the selection tint whoever holds keyboard focus
         for (i, item) in self.items.iter().enumerate() {
             if y >= inner.bottom() {
                 break;
@@ -280,7 +281,7 @@ impl ContextMenu {
             let rid = self.row_id(i);
             let mut s = ctx.state(rid);
             s.selected = i == self.cursor;
-            s.focused = focused && i == self.cursor;
+            s.focused = i == self.cursor;
             s.disabled = item.disabled;
             if item.disabled {
                 s.hovered = false;

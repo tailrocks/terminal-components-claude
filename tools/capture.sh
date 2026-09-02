@@ -32,6 +32,7 @@ case "$cmd" in
     case "$kind" in
       move)      seq=$(printf '\e[<35;%d;%dM' "$x" "$y") ;;
       click)     seq=$(printf '\e[<0;%d;%dM\e[<0;%d;%dm' "$x" "$y" "$x" "$y") ;;
+      rclick)    seq=$(printf '\e[<2;%d;%dM\e[<2;%d;%dm' "$x" "$y" "$x" "$y") ;;
       down)      seq=$(printf '\e[<0;%d;%dM' "$x" "$y") ;;
       up)        seq=$(printf '\e[<0;%d;%dm' "$x" "$y") ;;
       drag)      seq=$(printf '\e[<32;%d;%dM' "$x" "$y") ;;

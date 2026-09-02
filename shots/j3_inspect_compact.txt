@@ -1,0 +1,36 @@
+  jackin❯    File   Edit   View   Session   Help
+  1 Mi╭─ Inspect changes · payments-platform ────────────────────────────────────────────────── m advanced view ─╮
+ ─────│  2 files · +9 −4                                                                      compact · unified  │─────
+Amp 1.│                                                                                                          │
+      │  ▎ M src/settlement/mod.rs                                                                       +2 −1   │
+› Why │  ▎ M src/settlement/retry.rs                                                                     +7 −3   │
+      │  ▎ ↑ 1 commit not pushed                                                                                 │
+⠿ Sear│                                                                                                          │
+⠿ Read│                                                                                                          │
+      │                                                                                                          │
+The lo│                                                                                                          │
+(resyn│                                                                                                          │
+      │                                                                                                          │
+Sugges│                                                                                                          │
+  - .W│                                                                                                          │
+  + .W│                                                                                                          │
+      │                                                                                                          │
+Apply │                                                                                                          │
+›     │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      │                                                                                                          │
+      ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ payments-platform › the-architect   PR #482 · Settlement retry backoff                       Session 38% · Weekly 33%
+ ↑↓ Move  Enter Open diff  d Unified / review  m Advanced  Esc Close

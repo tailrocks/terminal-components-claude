@@ -1,0 +1,36 @@
+  jackin❯    File   Edit   View   Session   Help
+  1 Mi╭─ Inspect changes · payments-platform ────────────────────────────────────────────────── Tab tree / diff ─╮
+ ─────│  2 files · +9 −4                                             advanced · review · d switches · m compact  │─────
+Amp 1.│                                                                                                          │
+      │  ▎▾ src                  2 changed │M src/settlement/mod.rs  +2 −1 · 1 hunk · review                     │
+› Why │  ▎  ▾ settlement         2 changed │@@ -28,4 +28,5 @@                                                    │
+      │  ▎      M mod.rs             +2 −1 │ 28 pub mod config;              │  28 pub mod config;               │
+⠿ Sear│  ▎      M retry.rs           +7 −3 │ 29 pub mod retry;               │  29 pub mod retry;                │
+⠿ Read│                                    │                                 │  30 pub mod backoff;              │
+      │                                    │ 30                              │  31                               │
+The lo│                                    │ 31 pub use retry::RetryPolicy;  │  32 pub use retry::{RetryPolicy…  │
+(resyn│                                    │                                                                     │
+      │                                    │                                                                     │
+Sugges│                                    │                                                                     │
+  - .W│                                    │                                                                     │
+  + .W│                                    │                                                                     │
+      │                                    │                                                                     │
+Apply │                                    │                                                                     │
+›     │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                                                     │
+      │                                    │                                              ↑ 1 commit not pushed  │
+      ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ payments-platform › the-architect   PR #482 · Settlement retry backoff                       Session 38% · Weekly 33%
+ ↑↓ Move  ←→ Fold  Tab Diff  d Unified / review  m Compact  Esc Close

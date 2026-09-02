@@ -176,7 +176,7 @@ impl ChromePage {
             self.zoomed = !self.zoomed;
         }
         self.last = format!("{} › {label}", self.bar.labels[menu]);
-        cx.status(format!("{label}"));
+        cx.status(label);
     }
 }
 

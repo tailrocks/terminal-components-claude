@@ -987,8 +987,9 @@ impl AccountsScreen {
             .workspaces
             .iter()
             .filter(|ws| {
-                ws.account_overrides.values().any(|v| v == id)
-                    || ws.role_account_overrides.values().any(|v| v == id)
+                ws.accounts.enabled.contains(id)
+                    || ws.accounts.preferred.values().any(|v| v == id)
+                    || ws.accounts.role_preferred.values().any(|v| v == id)
             })
             .count();
         let body = format!(
@@ -1436,7 +1437,7 @@ impl AccountsScreen {
                 let ws_users: Vec<String> = w
                     .workspaces
                     .iter()
-                    .filter(|ws| ws.account_overrides.values().any(|v| v == id))
+                    .filter(|ws| ws.effective_accounts(&w.accounts).iter().any(|e| &e.id == id))
                     .map(|ws| ws.name.clone())
                     .collect();
                 lines.push(Line::Prop("Provider".into(), a.provider.label().into(), Tone::Normal));
@@ -2419,8 +2420,10 @@ impl Screen for AccountsScreen {
             ) => {
                 if let Some(a) = w.accounts.remove(&tag.key) {
                     for ws in w.workspaces.iter_mut() {
-                        ws.account_overrides.retain(|_, v| *v != a.id);
-                        ws.role_account_overrides.retain(|_, v| *v != a.id);
+                        ws.accounts.enabled.remove(&a.id);
+                        ws.accounts.disabled_defaults.remove(&a.id);
+                        ws.accounts.preferred.retain(|_, v| *v != a.id);
+                        ws.accounts.role_preferred.retain(|_, v| *v != a.id);
                     }
                     self.selected = Sel::Provider(a.surface);
                     cx.status(format!("Removed {}", a.title()));

@@ -807,16 +807,31 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Esc);
     h.key(KeyCode::Char(']'));
     h.key(KeyCode::Enter);
-    // 16 a non-default account for Claude Code on this Workspace
-    h.key(KeyCode::Enter);
+    // 16 activate and prefer the non-default Claude account for this Workspace
+    assert!(h.text().contains("Active accounts"), "{}", h.text());
+    let (_, py) = h.find("Personal").expect("Personal row");
+    let (_, wy) = h.find("Work").expect("Work row");
+    assert!(h.text().contains("inherited default"), "{}", h.text());
+    // move onto the Personal row (rows are provider-grouped; the default sorts first)
+    if py > wy {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("enabled here"), "{}", h.text());
     assert!(
-        h.text().contains("Auth override · Claude Code"),
+        h.text()
+            .contains("Claude · Personal · active for this Workspace"),
         "{}",
         h.text()
     );
-    h.tab_to(cfg_save);
-    h.key(KeyCode::Enter);
-    assert!(h.text().contains("Claude · Personal"), "{}", h.text());
+    h.key(KeyCode::Char('p'));
+    assert!(h.text().contains("Preferred for"), "{}", h.text());
+    assert!(
+        h.text()
+            .contains("5 effective · 4 inherited · 1 enabled here"),
+        "{}",
+        h.text()
+    );
     // 17 preview and save
     h.ctrl('s');
     assert!(h.text().contains("Create workspace"), "{}", h.text());
@@ -1006,4 +1021,217 @@ fn complete_jackin_flow_keyboard_first() {
     );
     h.key(KeyCode::Enter);
     assert!(h.app.quit);
+}
+
+#[test]
+fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Active accounts"), "{t}");
+    assert!(t.contains("inherited default"), "{t}");
+    assert!(t.contains("enabled here"), "{t}");
+    // the first account row is the Anthropic default: switch it off here
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("off for this Workspace"), "{}", h.text());
+    assert!(h.text().contains("disabled here"), "{}", h.text());
+    {
+        let ed = h.app.screens.editor.as_ref().unwrap();
+        assert!(
+            ed.pending
+                .accounts
+                .disabled_defaults
+                .contains("acct-claude-personal")
+        );
+        let set = ed.pending.effective_accounts(&h.app.world.accounts);
+        assert!(set.iter().all(|e| e.id != "acct-claude-personal"));
+        assert!(
+            set.iter()
+                .any(|e| e.id == "acct-claude-work" && e.preferred)
+        );
+    }
+    // and back on
+    h.key(KeyCode::Char(' '));
+    assert!(
+        h.text().contains("active for this Workspace"),
+        "{}",
+        h.text()
+    );
+    // enable a second Codex account: two accounts of one provider coexist
+    let (x, y) = h.find("Experiments").expect("Experiments row");
+    h.click(x, y);
+    h.key(KeyCode::Char(' '));
+    assert!(
+        h.text()
+            .contains("Codex · Experiments · active for this Workspace"),
+        "{}",
+        h.text()
+    );
+    {
+        let ed = h.app.screens.editor.as_ref().unwrap();
+        let codex: Vec<_> = ed
+            .pending
+            .effective_accounts(&h.app.world.accounts)
+            .into_iter()
+            .filter(|e| e.provider == crate::domain::agent::Provider::OpenAi)
+            .collect();
+        assert_eq!(codex.len(), 2);
+    }
+    assert!(h.text().contains("• 1 change"), "{}", h.text());
+    // prefer it, then save
+    h.key(KeyCode::Char('p'));
+    assert!(h.text().contains("Preferred for OpenAI"), "{}", h.text());
+    h.ctrl('s');
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    h.ticks(20);
+    assert_eq!(h.app.route, Route::Manager);
+    let ws = h.app.world.workspace(1).unwrap();
+    assert!(ws.accounts.enabled.contains("acct-codex-experiments"));
+    assert_eq!(
+        ws.accounts
+            .preferred
+            .get(&crate::domain::agent::Provider::OpenAi)
+            .map(String::as_str),
+        Some("acct-codex-experiments")
+    );
+    let r = h
+        .app
+        .world
+        .account_for(crate::domain::agent::Provider::OpenAi, Some(ws), None, None);
+    assert_eq!(r.account.as_deref(), Some("acct-codex-experiments"));
+}
+
+#[test]
+fn manager_launch_picker_hides_agents_without_an_account() {
+    let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
+    h.ticks(3);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Manager);
+    let mut a = crate::domain::account::Account::registered(
+        "acct-only",
+        "Only",
+        crate::domain::agent::Provider::Anthropic,
+        crate::domain::account::CredentialSource::LocalFolder {
+            path: "~/.claude".into(),
+            detected: crate::domain::account::DetectedKind::ClaudeOAuthProfile,
+        },
+    );
+    a.default_for_provider = true;
+    h.app.world.accounts.insert(a);
+    h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Launch · choose Agent"), "{t}");
+    assert!(t.contains("Claude Code"), "{t}");
+    assert!(!t.contains("Codex"), "unconfigured agent offered: {t}");
+    assert!(!t.contains("Grok Build"), "unconfigured agent offered: {t}");
+    assert!(!t.contains("needs account"), "{t}");
+    assert!(!t.contains("no account"), "{t}");
+}
+
+#[test]
+fn environments_stay_readable_with_a_hundred_roles() {
+    let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 120, 40);
+    for _ in 0..8 {
+        h.ticks(3);
+        if h.app.route == Route::Manager {
+            break;
+        }
+        h.key(KeyCode::Enter);
+    }
+    assert!(h.app.world.roles.len() > 100);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char('4'));
+    h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Role overrides"), "{t}");
+    assert!(t.contains("1 configured · "), "{t}");
+    assert!(t.contains("Role: backend"), "{t}");
+    assert!(
+        !t.contains("Role: svc-"),
+        "empty role sections rendered: {t}"
+    );
+    assert!(
+        t.lines().filter(|l| l.contains("Role: ")).count() <= 2,
+        "{t}"
+    );
+    assert!(t.contains("+ Add role override…"), "{t}");
+    // add an override for a Role that has none through the searchable picker
+    h.key(KeyCode::End);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Add role override"), "{}", h.text());
+    h.type_str("svc-01");
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("New svc-010 environment key"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    h.type_str("SVC_FLAG");
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+    h.type_str("on");
+    h.key(KeyCode::Tab);
+    h.tab_to(
+        junie_tui::core::id::WidgetId::of("editor.cfg")
+            .sub("form")
+            .sub("save"),
+    );
+    h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Role: svc-010"), "{t}");
+    assert!(t.contains("SVC_FLAG"), "{t}");
+    assert!(t.contains("2 configured · "), "{t}");
+    // the Roles tab scrolls and filters instead of overflowing
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Char('3'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::End);
+    assert!(h.text().contains("+ Load role…"), "{}", h.text());
+}
+
+#[test]
+fn cockpit_resolves_every_effective_account_for_the_container() {
+    let mut h = H::new(Scenario::LaunchRunning, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Cockpit);
+    let c = h.app.screens.cockpit.as_ref().unwrap();
+    assert!(c.accounts.contains(&"acct-claude-personal".to_owned()));
+    assert!(c.accounts.contains(&"acct-claude-work".to_owned()));
+    let mut seen = false;
+    for _ in 0..80 {
+        h.ticks(5);
+        let t = h.text();
+        if t.contains("accounts · Claude ·")
+            && t.contains("Claude · Work")
+            && t.contains("Claude · Personal")
+        {
+            seen = true;
+            break;
+        }
+        if h.app.route != Route::Cockpit {
+            break;
+        }
+    }
+    assert!(
+        seen,
+        "credentials line never listed the second account: {}",
+        h.text()
+    );
+    for _ in 0..60 {
+        h.ticks(10);
+        if h.app.route != Route::Cockpit {
+            break;
+        }
+    }
+    h.ticks(15);
+    assert_eq!(h.app.route, Route::Capsule);
+    let inst = h.app.screens.capsule.as_ref().unwrap().instance.clone();
+    let i = h.app.world.instance(&inst).unwrap();
+    assert!(i.accounts.len() >= 2, "{:?}", i.accounts);
 }

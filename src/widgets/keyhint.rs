@@ -95,7 +95,7 @@ pub fn render_toned(
         x += w;
         drawn += 1;
     }
-    if drawn < hints.len() && x + 1 <= limit {
+    if drawn < hints.len() && x < limit {
         buf.set_string(x, area.y, "…", t.faint());
     }
     drawn
