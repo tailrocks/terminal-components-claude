@@ -789,27 +789,49 @@ impl TableTab {
                 // status line
                 let sy = body.bottom().saturating_sub(1);
                 // state first (sort, filter), position second, reason last
-                let mut parts: Vec<String> = vec![];
+                // (text, priority): lower priorities are dropped first when narrow
+                let mut parts: Vec<(String, u8)> = vec![];
                 if let Some((c, d)) = self.sort {
-                    parts.push(format!(
-                        "sort {} {}",
-                        self.columns[c].0,
-                        if d == SortDir::Asc { "▴" } else { "▾" }
+                    parts.push((
+                        format!(
+                            "sort {} {}",
+                            self.columns[c].0,
+                            if d == SortDir::Asc { "▴" } else { "▾" }
+                        ),
+                        4,
                     ));
                 }
                 let active = self.filters.iter().filter(|f| f.enabled).count();
                 if active > 0 {
-                    parts.push(format!("filtered ({active})"));
+                    parts.push((format!("filtered ({active})"), 4));
                 }
-                parts.push(self.grid.position_label());
+                parts.push((self.grid.rows_label(), 5));
+                if let Some(c) = self.grid.cols_label() {
+                    parts.push((c, 2));
+                }
                 if let Some(r) = &self.grid.read_only_reason {
-                    parts.push(format!("read-only: {r}"));
+                    parts.push((format!("read-only: {r}"), 3));
                 }
-                let status = parts.join(" · ");
+                let avail = body.width.saturating_sub(2) as usize;
+                let joined = |parts: &[(String, u8)]| {
+                    parts
+                        .iter()
+                        .map(|p| p.0.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" · ")
+                };
+                while parts.len() > 1 && junie_tui::ui::text::width(&joined(&parts)) > avail {
+                    let (i, _) = parts
+                        .iter()
+                        .enumerate()
+                        .min_by_key(|(_, p)| p.1)
+                        .expect("non-empty");
+                    parts.remove(i);
+                }
                 buf.set_string(
                     body.x + 1,
                     sy,
-                    junie_tui::ui::text::truncate(&status, body.width.saturating_sub(2) as usize),
+                    junie_tui::ui::text::truncate(&joined(&parts), avail),
                     t.muted().bg(bg),
                 );
             }
@@ -1631,245 +1653,270 @@ impl QueryTab {
                     .hint("Ctrl+R runs the statement under the cursor · Alt+R runs all"),
                 bg,
             );
-            return;
-        }
-        let tick = ctx.interaction.tick;
-        if let Some(rs) = self.results.get_mut(self.active_result) {
-            match &mut rs.body {
-                ResultBody::Rows(g) => g.render(body, buf, ctx, bg),
-                ResultBody::Affected { rows, verb } => {
-                    let card = Panel::card(Some("Statement executed"));
-                    let cbg = card.bg(t);
-                    let inner = card.render(
-                        Rect::new(body.x, body.y, body.width.min(60), body.height.min(6)),
-                        buf,
-                        t,
-                    );
-                    props::render(
-                        inner,
-                        buf,
-                        t,
-                        &[
-                            Prop::new("Statement", verb.clone()),
-                            Prop::new("Rows affected", junie_tui::ui::text::thousands(*rows)),
-                            Prop::new("Duration", duration_label(rs.duration_ms)).tone(Tone::Muted),
-                        ],
-                        cbg,
-                    );
-                }
-                ResultBody::Error {
-                    message,
-                    detail,
-                    at,
-                } => {
-                    let card = Panel::card(Some("Error"));
-                    let cbg = card.bg(t);
-                    let inner = card.render(
-                        Rect::new(body.x, body.y, body.width.min(90), body.height.min(8)),
-                        buf,
-                        t,
-                    );
-                    buf.set_string(
-                        inner.x,
-                        inner.y,
-                        "!",
-                        t.error_fg().bg(cbg).add_modifier(Modifier::BOLD),
-                    );
-                    let lines =
-                        junie_tui::ui::text::wrap(message, inner.width.saturating_sub(2) as usize);
-                    for (i, l) in lines.iter().take(2).enumerate() {
-                        buf.set_string(inner.x + 2, inner.y + i as u16, l, t.error_fg().bg(cbg));
+        } else {
+            let tick = ctx.interaction.tick;
+            if let Some(rs) = self.results.get_mut(self.active_result) {
+                match &mut rs.body {
+                    ResultBody::Rows(g) => g.render(body, buf, ctx, bg),
+                    ResultBody::Affected { rows, verb } => {
+                        let card = Panel::card(Some("Statement executed"));
+                        let cbg = card.bg(t);
+                        let inner = card.render(
+                            Rect::new(body.x, body.y, body.width.min(60), body.height.min(6)),
+                            buf,
+                            t,
+                        );
+                        props::render(
+                            inner,
+                            buf,
+                            t,
+                            &[
+                                Prop::new("Statement", verb.clone()),
+                                Prop::new("Rows affected", junie_tui::ui::text::thousands(*rows)),
+                                Prop::new("Duration", duration_label(rs.duration_ms))
+                                    .tone(Tone::Muted),
+                            ],
+                            cbg,
+                        );
                     }
-                    let mut yy = inner.y + lines.len().min(2) as u16;
-                    if let Some(d) = detail {
-                        for l in
-                            junie_tui::ui::text::wrap(d, inner.width.saturating_sub(2) as usize)
-                                .iter()
-                                .take(2)
-                        {
-                            if yy < inner.bottom() {
-                                buf.set_string(inner.x + 2, yy, l, t.secondary().bg(cbg));
-                                yy += 1;
+                    ResultBody::Error {
+                        message,
+                        detail,
+                        at,
+                    } => {
+                        let card = Panel::card(Some("Error"));
+                        let cbg = card.bg(t);
+                        let inner = card.render(
+                            Rect::new(body.x, body.y, body.width.min(90), body.height.min(8)),
+                            buf,
+                            t,
+                        );
+                        buf.set_string(
+                            inner.x,
+                            inner.y,
+                            "!",
+                            t.error_fg().bg(cbg).add_modifier(Modifier::BOLD),
+                        );
+                        let lines = junie_tui::ui::text::wrap(
+                            message,
+                            inner.width.saturating_sub(2) as usize,
+                        );
+                        for (i, l) in lines.iter().take(2).enumerate() {
+                            buf.set_string(
+                                inner.x + 2,
+                                inner.y + i as u16,
+                                l,
+                                t.error_fg().bg(cbg),
+                            );
+                        }
+                        let mut yy = inner.y + lines.len().min(2) as u16;
+                        if let Some(d) = detail {
+                            let w = inner.width.saturating_sub(2) as usize;
+                            let wrapped = junie_tui::ui::text::wrap(d, w);
+                            for (i, l) in wrapped.iter().take(2).enumerate() {
+                                if yy < inner.bottom() {
+                                    // mark the cut when the detail runs longer than shown
+                                    let l = if i == 1 && wrapped.len() > 2 {
+                                        junie_tui::ui::text::truncate(&format!("{l} …"), w)
+                                    } else {
+                                        l.clone()
+                                    };
+                                    buf.set_string(inner.x + 2, yy, &l, t.secondary().bg(cbg));
+                                    yy += 1;
+                                }
                             }
                         }
-                    }
-                    if yy < inner.bottom() {
-                        let pos = match at {
-                            Some(_) => {
-                                "Enter on the result tab jumps to the statement · the offending token is underlined in the editor"
-                            }
-                            None => "Enter on the result tab jumps to the statement",
-                        };
-                        buf.set_string(
-                            inner.x + 2,
-                            yy,
-                            junie_tui::ui::text::truncate(
-                                pos,
-                                inner.width.saturating_sub(2) as usize,
-                            ),
-                            t.muted().bg(cbg),
-                        );
-                    }
-                }
-                ResultBody::Plan {
-                    tree,
-                    raw,
-                    show_raw,
-                    nodes,
-                    ..
-                } => {
-                    if *show_raw {
-                        let focused = ctx.interaction.focused(raw.id);
-                        let card = Panel::card(Some("EXPLAIN · raw"))
-                            .focused(focused)
-                            .meta("r Tree");
-                        let cbg = card.bg(t);
-                        let inner = card.render(body, buf, t);
-                        raw.render(inner, buf, ctx, cbg, |t, _| t.secondary());
-                    } else {
-                        // tree + detail card on wide layouts
-                        let detail_w = if body.width >= 110 { 40 } else { 0 };
-                        let tree_area = Rect::new(
-                            body.x,
-                            body.y,
-                            body.width
-                                .saturating_sub(detail_w + if detail_w > 0 { 2 } else { 0 }),
-                            body.height,
-                        );
-                        // header row for the tree columns
-                        let cols_x = tree_area.right().saturating_sub(38);
-                        buf.set_string(tree_area.x + 3, tree_area.y, "Operation", t.muted().bg(bg));
-                        if cols_x > tree_area.x + 20 {
+                        if yy < inner.bottom() {
+                            let pos = match at {
+                                Some(_) => {
+                                    "Enter on the result tab jumps to the statement · the offending token is underlined in the editor"
+                                }
+                                None => "Enter on the result tab jumps to the statement",
+                            };
                             buf.set_string(
-                                cols_x,
+                                inner.x + 2,
+                                yy,
+                                junie_tui::ui::text::truncate(
+                                    pos,
+                                    inner.width.saturating_sub(2) as usize,
+                                ),
+                                t.muted().bg(cbg),
+                            );
+                        }
+                    }
+                    ResultBody::Plan {
+                        tree,
+                        raw,
+                        show_raw,
+                        nodes,
+                        ..
+                    } => {
+                        if *show_raw {
+                            let focused = ctx.interaction.focused(raw.id);
+                            let card = Panel::card(Some("EXPLAIN · raw"))
+                                .focused(focused)
+                                .meta("r Tree");
+                            let cbg = card.bg(t);
+                            let inner = card.render(body, buf, t);
+                            raw.render(inner, buf, ctx, cbg, |t, _| t.secondary());
+                        } else {
+                            // tree + detail card on wide layouts
+                            let detail_w = if body.width >= 110 { 40 } else { 0 };
+                            let tree_area = Rect::new(
+                                body.x,
+                                body.y,
+                                body.width
+                                    .saturating_sub(detail_w + if detail_w > 0 { 2 } else { 0 }),
+                                body.height,
+                            );
+                            // header row for the tree columns
+                            let cols_x = tree_area.right().saturating_sub(38);
+                            buf.set_string(
+                                tree_area.x + 3,
                                 tree_area.y,
-                                format!("{:>13} {:>8} {:>10} {:>4}", "cost", "rows", "actual", "%"),
+                                "Operation",
                                 t.muted().bg(bg),
                             );
-                        }
-                        tree.render(
-                            Rect::new(
-                                tree_area.x,
-                                tree_area.y + 1,
-                                tree_area.width,
-                                tree_area.height.saturating_sub(1),
-                            ),
-                            buf,
-                            ctx,
-                            bg,
-                        );
-                        // overlay metric columns on each visible row
-                        let rows = tree.rows().to_vec();
-                        for (i, ri) in tree.scroll.visible_range().enumerate() {
-                            let y = tree_area.y + 1 + i as u16;
-                            let Some(row) = rows.get(ri) else { continue };
-                            let idx = row.meta.as_deref().and_then(|m| m.parse::<usize>().ok());
-                            let Some(info) = idx.and_then(|k| nodes.get(k)) else {
-                                continue;
-                            };
-                            if cols_x <= tree_area.x + 20 {
-                                continue;
+                            if cols_x > tree_area.x + 20 {
+                                buf.set_string(
+                                    cols_x,
+                                    tree_area.y,
+                                    format!(
+                                        "{:>13} {:>8} {:>10} {:>4}",
+                                        "cost", "rows", "actual", "%"
+                                    ),
+                                    t.muted().bg(bg),
+                                );
                             }
-                            let focused_row = ctx.interaction.focused(tree.id) && ri == tree.cursor;
-                            let base = if focused_row {
-                                t.primary().add_modifier(Modifier::BOLD)
-                            } else {
-                                t.secondary()
-                            };
-                            let share = info.share * 100.0;
-                            let share_style = if share > 50.0 {
-                                t.primary().fg(t.warning).add_modifier(Modifier::BOLD)
-                            } else if share > 20.0 {
-                                t.primary().add_modifier(Modifier::BOLD)
-                            } else if share > 5.0 {
-                                t.secondary()
-                            } else {
-                                t.muted()
-                            };
-                            let actual = info
-                                .actual_ms
-                                .map(|m| format!("{m:.1} ms"))
-                                .unwrap_or("—".into());
-                            let text = format!(
-                                "{:>13} {:>8} {:>10}",
-                                format!("{:.0}..{:.0}", info.cost.0, info.cost.1),
-                                sql::fmt_rows(info.rows),
-                                actual
+                            tree.render(
+                                Rect::new(
+                                    tree_area.x,
+                                    tree_area.y + 1,
+                                    tree_area.width,
+                                    tree_area.height.saturating_sub(1),
+                                ),
+                                buf,
+                                ctx,
+                                bg,
                             );
-                            // clear the meta column drawn by the tree (the numeric index)
-                            let bgc = buf[(cols_x, y)].bg;
-                            buf.set_string(cols_x, y, &text, base.bg(bgc));
-                            let sh = format!(
-                                "{:>3}{}",
-                                share.round() as u32,
-                                if share > 50.0 { "▲" } else { " " }
-                            );
-                            buf.set_string(cols_x + 34, y, &sh, share_style.bg(bgc));
-                        }
-                        if detail_w > 0 {
-                            let d = Rect::new(tree_area.right() + 2, body.y, detail_w, body.height);
-                            let rows = tree.rows();
-                            if let Some(row) = rows.get(tree.cursor) {
+                            // overlay metric columns on each visible row
+                            let rows = tree.rows().to_vec();
+                            for (i, ri) in tree.scroll.visible_range().enumerate() {
+                                let y = tree_area.y + 1 + i as u16;
+                                let Some(row) = rows.get(ri) else { continue };
                                 let idx = row.meta.as_deref().and_then(|m| m.parse::<usize>().ok());
-                                if let Some(info) = idx.and_then(|k| nodes.get(k)) {
-                                    let card = Panel::card(Some(&info.op));
-                                    let cbg = card.bg(t);
-                                    let inner = card.render(
-                                        Rect::new(d.x, d.y, d.width, d.height.min(16)),
-                                        buf,
-                                        t,
-                                    );
-                                    let mut facts = vec![];
-                                    if let Some(r) = &info.relation {
-                                        facts.push(Prop::new("Relation", r.clone()));
-                                    }
-                                    facts.push(
-                                        Prop::new(
-                                            "Cost",
-                                            format!("{:.2}..{:.2}", info.cost.0, info.cost.1),
-                                        )
-                                        .tone(Tone::Secondary),
-                                    );
-                                    facts.push(
-                                        Prop::new(
-                                            "Rows",
-                                            format!(
-                                                "{} est.",
-                                                junie_tui::ui::text::thousands(info.rows)
-                                            ),
-                                        )
-                                        .tone(Tone::Secondary),
-                                    );
-                                    if let Some(a) = info.actual_ms {
+                                let Some(info) = idx.and_then(|k| nodes.get(k)) else {
+                                    continue;
+                                };
+                                if cols_x <= tree_area.x + 20 {
+                                    continue;
+                                }
+                                let focused_row =
+                                    ctx.interaction.focused(tree.id) && ri == tree.cursor;
+                                let base = if focused_row {
+                                    t.primary().add_modifier(Modifier::BOLD)
+                                } else {
+                                    t.secondary()
+                                };
+                                let share = info.share * 100.0;
+                                let share_style = if share > 50.0 {
+                                    t.primary().fg(t.warning).add_modifier(Modifier::BOLD)
+                                } else if share > 20.0 {
+                                    t.primary().add_modifier(Modifier::BOLD)
+                                } else if share > 5.0 {
+                                    t.secondary()
+                                } else {
+                                    t.muted()
+                                };
+                                let actual = info
+                                    .actual_ms
+                                    .map(|m| format!("{m:.1} ms"))
+                                    .unwrap_or("—".into());
+                                let text = format!(
+                                    "{:>13} {:>8} {:>10}",
+                                    format!("{:.0}..{:.0}", info.cost.0, info.cost.1),
+                                    sql::fmt_rows(info.rows),
+                                    actual
+                                );
+                                // clear the meta column drawn by the tree (the numeric index)
+                                let bgc = buf[(cols_x, y)].bg;
+                                buf.set_string(cols_x, y, &text, base.bg(bgc));
+                                let sh = format!(
+                                    "{:>3}{}",
+                                    share.round() as u32,
+                                    if share > 50.0 { "▲" } else { " " }
+                                );
+                                buf.set_string(cols_x + 34, y, &sh, share_style.bg(bgc));
+                            }
+                            if detail_w > 0 {
+                                let d =
+                                    Rect::new(tree_area.right() + 2, body.y, detail_w, body.height);
+                                let rows = tree.rows();
+                                if let Some(row) = rows.get(tree.cursor) {
+                                    let idx =
+                                        row.meta.as_deref().and_then(|m| m.parse::<usize>().ok());
+                                    if let Some(info) = idx.and_then(|k| nodes.get(k)) {
+                                        let card = Panel::card(Some(&info.op));
+                                        let cbg = card.bg(t);
+                                        let inner = card.render(
+                                            Rect::new(d.x, d.y, d.width, d.height.min(16)),
+                                            buf,
+                                            t,
+                                        );
+                                        let mut facts = vec![];
+                                        if let Some(r) = &info.relation {
+                                            facts.push(Prop::new("Relation", r.clone()));
+                                        }
                                         facts.push(
                                             Prop::new(
-                                                "Actual",
+                                                "Cost",
+                                                format!("{:.2}..{:.2}", info.cost.0, info.cost.1),
+                                            )
+                                            .tone(Tone::Secondary),
+                                        );
+                                        facts.push(
+                                            Prop::new(
+                                                "Rows",
                                                 format!(
-                                                    "{a:.3} ms · {} loop{}",
-                                                    info.loops,
-                                                    if info.loops == 1 { "" } else { "s" }
+                                                    "{} est.",
+                                                    junie_tui::ui::text::thousands(info.rows)
                                                 ),
                                             )
                                             .tone(Tone::Secondary),
                                         );
+                                        if let Some(a) = info.actual_ms {
+                                            facts.push(
+                                                Prop::new(
+                                                    "Actual",
+                                                    format!(
+                                                        "{a:.3} ms · {} loop{}",
+                                                        info.loops,
+                                                        if info.loops == 1 { "" } else { "s" }
+                                                    ),
+                                                )
+                                                .tone(Tone::Secondary),
+                                            );
+                                        }
+                                        for (k, v) in &info.detail {
+                                            facts.push(
+                                                Prop::new(k, v.clone()).tone(Tone::Muted).wrap(),
+                                            );
+                                        }
+                                        if let Some(w) = &info.warning {
+                                            facts.push(
+                                                Prop::new("Note", w.clone())
+                                                    .tone(Tone::Warning)
+                                                    .wrap(),
+                                            );
+                                        }
+                                        props::render(inner, buf, t, &facts, cbg);
                                     }
-                                    for (k, v) in &info.detail {
-                                        facts
-                                            .push(Prop::new(k, v.clone()).tone(Tone::Muted).wrap());
-                                    }
-                                    if let Some(w) = &info.warning {
-                                        facts.push(
-                                            Prop::new("Note", w.clone()).tone(Tone::Warning).wrap(),
-                                        );
-                                    }
-                                    props::render(inner, buf, t, &facts, cbg);
                                 }
                             }
                         }
                     }
-                }
-                ResultBody::Cancelled => {
-                    junie_tui::widgets::empty::render(
+                    ResultBody::Cancelled => {
+                        junie_tui::widgets::empty::render(
                         body,
                         buf,
                         t,
@@ -1878,10 +1925,11 @@ impl QueryTab {
                         ),
                         bg,
                     );
+                    }
                 }
             }
+            let _ = tick;
         }
-        let _ = tick;
         // completion popup last (on top of everything in the tab)
         if self.completion.is_open() {
             let screen = *buf.area();
@@ -1971,7 +2019,7 @@ fn execute(
             entry.error = Some(e.message.clone());
             return (
                 ResultSet {
-                    label: format!("! Error {n}"),
+                    label: format!("Error {n}"),
                     pinned: false,
                     anchor: range,
                     duration_ms: 1,
@@ -2056,7 +2104,7 @@ fn execute(
                 entry.error = Some(e.message.clone());
                 (
                     ResultSet {
-                        label: format!("! Error {n}"),
+                        label: format!("Error {n}"),
                         pinned: false,
                         anchor: range,
                         duration_ms: 2,
@@ -2114,7 +2162,7 @@ fn execute(
                     entry.error = Some(e.message.clone());
                     (
                         ResultSet {
-                            label: format!("! Error {n}"),
+                            label: format!("Error {n}"),
                             pinned: false,
                             anchor: range,
                             duration_ms: 1,
@@ -2136,7 +2184,7 @@ fn execute(
                 entry.error = Some(msg.clone());
                 (
                     ResultSet {
-                        label: format!("! Error {n}"),
+                        label: format!("Error {n}"),
                         pinned: false,
                         anchor: range,
                         duration_ms: 1,
@@ -2181,7 +2229,7 @@ fn execute(
                 entry.error = Some(msg.clone());
                 return (
                     ResultSet {
-                        label: format!("! Error {n}"),
+                        label: format!("Error {n}"),
                         pinned: false,
                         anchor: range,
                         duration_ms: 1,
@@ -2344,12 +2392,6 @@ impl HistoryTab {
     ) {
         let t = ctx.theme;
         // toolbar: search + scope/status
-        self.search.render(
-            Rect::new(area.x, area.y, area.width.min(60), 2),
-            buf,
-            ctx,
-            bg,
-        );
         let scope = format!(
             "scope: {}  ·  status: {}  ·  c / s to change",
             if self.scope_all {
@@ -2359,7 +2401,17 @@ impl HistoryTab {
             },
             if self.failed_only { "failed" } else { "any" }
         );
-        let sx = area.x + area.width.min(60) + 2;
+        // the search field yields to the scope readout before either truncates
+        let scope_w = junie_tui::ui::text::width(&scope) as u16;
+        let search_w = area
+            .width
+            .min(60)
+            .min(area.width.saturating_sub(scope_w + 2))
+            .max(30)
+            .min(area.width);
+        self.search
+            .render(Rect::new(area.x, area.y, search_w, 2), buf, ctx, bg);
+        let sx = area.x + search_w + 2;
         if sx + 20 < area.right() {
             buf.set_string(
                 sx,

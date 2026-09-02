@@ -333,7 +333,12 @@ impl Picker {
             let reserve = if detail_w > 0 { detail_w + 2 } else { 0 }
                 + if tag_w > 0 { tag_w + 2 } else { 0 }
                 + if show_group { width(it.group) + 2 } else { 0 };
-            let avail = (row.width as usize).saturating_sub(3 + reserve).max(6);
+            // the label is what people scan; it keeps up to 45% of the row
+            // before the detail column starts giving way
+            let avail = (row.width as usize)
+                .saturating_sub(3 + reserve)
+                .max(width(&it.label).min(row.width as usize * 45 / 100))
+                .max(6);
             let label = truncate(&it.label, avail);
             for (bi, ch) in label.char_indices() {
                 let mut cs = st;
@@ -375,7 +380,7 @@ impl Picker {
                         st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
                     );
                 } else {
-                    let room = rx.saturating_sub(x + 2) as usize;
+                    let room = rx.saturating_sub(x + 3) as usize;
                     if room > 6 {
                         buf.set_string(
                             x + 2,
