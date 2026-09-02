@@ -248,7 +248,7 @@ impl CockpitScreen {
                         .and_then(|i| w.workspace(i))
                         .map(|x| x.name.clone())
                         .unwrap_or(wsname);
-                    let mut d = crate::sim::pty::Daemon::new(&id, &wsname, now);
+                    let mut d = crate::sim::pty::Daemon::new(&wsname);
                     d.new_tab(Some(self.agent), self.account.clone(), now, false);
                     w.daemons.insert(id.clone(), d);
                     crate::domain::fixtures::refresh_snapshots(w);

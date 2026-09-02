@@ -47,6 +47,11 @@ impl InputsPage {
             TextInput::new(ID.child(4), "Search files")
                 .placeholder("Type a path or symbol…")
                 .help("Selection: Shift+← →  ·  words: Ctrl+← →  ·  clear: Ctrl+U"),
+            TextInput::new(ID.child(5), "API key")
+                .masked()
+                .reveal_tail(4)
+                .value("sk-live-0f3a91c2e7d4b6a8c1f2")
+                .help("Masked while typing; the last four characters show once committed"),
         ];
         Self { fields }
     }
@@ -110,7 +115,7 @@ impl Page for InputsPage {
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[13, 1, 0]);
+        let rows = crate::pages::layout::rows(area, &[17, 1, 0]);
         let panel =
             Panel::card(Some("Playground")).meta("Enter Edit · Esc Cancel · Tab Commit + next");
         let bg = panel.bg(t);
@@ -122,7 +127,8 @@ impl Page for InputsPage {
             Rect::new(r.x, r.y, r.width, fh),
             Rect::new(l.x, l.y + fh, l.width, fh),
             Rect::new(r.x, r.y + fh, r.width, fh),
-            Rect::new(inner.x, inner.y + fh * 2, inner.width, fh),
+            Rect::new(l.x, l.y + fh * 2, l.width, fh),
+            Rect::new(r.x, r.y + fh * 2, r.width, fh),
         ];
         for (f, slot) in self.fields.iter_mut().zip(slots) {
             if slot.bottom() <= inner.bottom() {

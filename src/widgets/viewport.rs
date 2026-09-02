@@ -233,6 +233,29 @@ impl TextViewport {
         Some((a.min(b), a.max(b)))
     }
 
+    /// Lay the text out for `area` without drawing: owners that render a
+    /// copy of the viewport call this before routing mouse or key events to
+    /// the original so positions and page sizes match the last frame.
+    pub fn set_area(&mut self, area: Rect) {
+        self.area = area;
+        let mut text_w = area.width;
+        self.ensure_layout(text_w);
+        self.scroll.set_viewport(area.height as usize);
+        if self.scroll.overflows() {
+            text_w = area.width.saturating_sub(1);
+            self.ensure_layout(text_w);
+            self.scroll.set_viewport(area.height as usize);
+        }
+        if self.follow {
+            self.scroll.jump_end();
+        }
+    }
+
+    /// True after a press anchored a selection and before it was cleared.
+    pub fn has_anchor(&self) -> bool {
+        self.drag_anchor.is_some()
+    }
+
     pub fn has_selection(&self) -> bool {
         self.selection().is_some()
     }

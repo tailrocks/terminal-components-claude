@@ -31,6 +31,7 @@ use crate::sim::world::{FsEntry, World};
 
 /// Dim the page (footer excluded), start the modal barrier and draw an
 /// elevated rounded frame. Returns the inner content area.
+#[allow(clippy::too_many_arguments)]
 pub fn modal_frame(
     screen: Rect,
     buf: &mut Buffer,
@@ -113,7 +114,6 @@ pub enum BrowserResult {
 }
 
 pub struct FileBrowser {
-    pub id: WidgetId,
     pub title: String,
     pub cwd: String,
     pub path: TextInput,
@@ -142,7 +142,6 @@ impl FileBrowser {
         w: &World,
     ) -> Self {
         let mut b = Self {
-            id,
             title: title.to_owned(),
             cwd: cwd.to_owned(),
             path: TextInput::new(id.sub("path"), "Path").plain_label(),
@@ -560,14 +559,6 @@ impl FileBrowser {
     pub fn initial_focus(&self) -> WidgetId {
         self.list.id
     }
-
-    pub fn hints(&self) -> &'static str {
-        if self.url_mode {
-            "Enter Resolve · Tab Next · Esc Cancel"
-        } else {
-            "Enter Open · Backspace Up · Space Choose · g Git URL · Tab Next · Esc Cancel"
-        }
-    }
 }
 
 // ---------------------------------------------------------------- choice
@@ -575,7 +566,6 @@ impl FileBrowser {
 /// A question with radio options and buttons (mount destination choice,
 /// dirty-exit branches, split direction…).
 pub struct ChoiceDialog {
-    pub id: WidgetId,
     pub title: String,
     pub lines: Vec<(String, Tone)>,
     pub radio: RadioGroup,
@@ -595,7 +585,6 @@ pub struct ChoiceDialog {
 impl ChoiceDialog {
     pub fn new(id: WidgetId, title: &str, label: &str, options: &[&str], selected: usize) -> Self {
         Self {
-            id,
             title: title.to_owned(),
             lines: vec![],
             radio: RadioGroup::new(id.sub("radio"), label, options, selected),
@@ -1009,13 +998,6 @@ impl FormDialog {
             Some(FieldValue::Choice(i)) => i,
             _ => 0,
         }
-    }
-
-    pub fn checked(&self, name: &str) -> bool {
-        matches!(
-            self.field(name).map(|f| f.value()),
-            Some(FieldValue::Bool(true))
-        )
     }
 
     pub fn set_text(&mut self, name: &str, v: &str) {
@@ -1570,7 +1552,6 @@ pub enum OpStep {
 /// Account → vault → item → field, each stage a searchable picker fed by
 /// the simulated service; only reference metadata leaves the flow.
 pub struct OpFlow {
-    pub id: WidgetId,
     pub step: OpStep,
     pub account: Option<String>,
     pub vault: Option<(String, String)>,
@@ -1586,7 +1567,6 @@ pub struct OpFlow {
 impl OpFlow {
     pub fn new(id: WidgetId, op: &SimOnePassword, now_ms: i64) -> Self {
         let mut f = Self {
-            id,
             step: OpStep::Account,
             account: None,
             vault: None,
@@ -1685,10 +1665,6 @@ impl OpFlow {
             OpError::PermissionDenied { vault } => (
                 format!("No access to vault {vault}"),
                 Some("Choose another vault".into()),
-            ),
-            OpError::NotInstalled => (
-                "1Password CLI not found".to_owned(),
-                Some("Install op or choose Enter plain text instead".into()),
             ),
             other => (other.message(), None),
         };

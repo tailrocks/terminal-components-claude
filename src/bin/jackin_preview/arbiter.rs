@@ -14,15 +14,12 @@
 pub enum DiscoveryError {
     /// The daemon index could not be read.
     IndexUnreadable,
-    /// The runtime backend did not answer in time.
-    BackendTimeout,
 }
 
 impl DiscoveryError {
     pub fn label(self) -> &'static str {
         match self {
             DiscoveryError::IndexUnreadable => "instance index unreadable",
-            DiscoveryError::BackendTimeout => "runtime backend timed out",
         }
     }
 }
@@ -74,6 +71,7 @@ impl Arbiter {
         }
     }
 
+    #[cfg(test)]
     pub fn pending_entry(&self) -> bool {
         self.pending_entry
     }
@@ -137,11 +135,7 @@ impl Arbiter {
         }
     }
 
-    /// Simulate a concurrent exit that won the token first.
-    pub fn consume_exit_externally(&mut self) {
-        self.exit_consumed = true;
-    }
-
+    #[cfg(test)]
     pub fn exit_consumed(&self) -> bool {
         self.exit_consumed
     }

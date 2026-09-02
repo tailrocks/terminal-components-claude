@@ -778,6 +778,70 @@ Tab still reaches them.
 - **Avoid**: a frame around a card, a card inside a card, a bar on both a
   container and its child.
 
+#### Text viewport
+
+- **Purpose**: terminal-style output — agent transcripts, build logs, shell
+  scrollback — with a bounded history, follow-tail, mouse selection and copy.
+- **Anatomy**: styled spans per line (tone, bold, italic, underline,
+  reversed), an optional caret cell, a scrollbar when the history overflows,
+  a `▲ N` scrollback cue in the owner's meta while not at the tail.
+- **States**: following (new lines keep the tail in view), paused (a scroll
+  up leaves the tail; `f`/`End` return), selection (reversed cells; `y`
+  copies, `Esc` clears), empty.
+- **Keys**: `↑↓`/`j k`, `PgUp PgDn`, `Home End`/`g G`, `f` follow, `y` copy,
+  `Esc` clear selection. **Mouse**: click places the anchor, drag selects,
+  double-click selects a word, wheel scrolls, the thumb drags.
+- **Usage**: any live text stream. Wrap on for prose logs, off for terminal
+  panes. **Avoid**: colouring lines with the accent (the accent marks the
+  focused pane, not the text) and unbounded histories (set `max_lines`).
+
+#### Splitter
+
+- **Purpose**: a draggable seam between two panes that share one container.
+- **Anatomy**: a one-cell `│` (horizontal split) or `─` (vertical) run on the
+  container's canvas; hover lifts it to `┃`/`━` in text-secondary, the drag
+  shows it in text-primary. Keyboard resizing belongs to the owner (the Capsule
+  uses `Alt+Shift` arrows and refuses a resize that would starve a pane).
+- **Behaviour**: `Split` keeps a percentage clamped to both minimum widths and
+  5–95 %; a drag moves the seam under the pointer and a release keeps it.
+- **Usage**: sidebars, terminal splits, inspector columns. **Avoid**: a seam
+  narrower than the two-cell gap it lives in, and seams between cards (cards
+  already carry their own inset).
+
+#### Step rail
+
+- **Purpose**: the progress of one multi-stage job as an ordered list.
+- **Anatomy**: `NN` number, state glyph, label, right-aligned meta (elapsed,
+  `cached`, `exit 1`). States: queued (muted `·`), running (spinner in the
+  accent — the one live-activity use of green), done (`✓` secondary),
+  skipped (`–` faint), failed (`✗` error, bold label), blocked (`·` faint,
+  label faint). The frontier row is the running or failed one; a failed rail
+  blocks every later row.
+- **Keys**: `↑↓`/`j k` move a selection when the rail is selectable; wheel
+  scrolls. **Usage**: launch cockpits, deploy pipelines, imports. **Avoid**:
+  reordering rows, hiding skipped rows, colouring done rows green.
+
+#### Quota meter
+
+- **Purpose**: a used-share bar for a resource with a hard limit.
+- **Anatomy**: `━` used run and `─` remaining run, then a fixed `NNN%`.
+- **Tones**: never green. Normal = text-secondary run; warning (≥ 75 %) =
+  warning run and value; exhausted (100 %) = error run and value; stale =
+  the last good value with both runs faint.
+- **Usage**: provider usage windows, storage, rate limits. **Avoid**: a
+  progress bar for consumption (that reads as work completing) and any
+  accent in the run.
+
+#### Masked input
+
+- **Anatomy**: a text input whose value renders as `•` cells while editing;
+  once committed the last `reveal_tail` characters show so two secrets can be
+  told apart. The buffer is cleared with `clear()` when the owner is done.
+- **Usage**: keys and tokens typed once. Owners keep only a fingerprint and
+  the short tail; the raw value never reaches a status line, a log or a
+  fixture. **Avoid**: revealing the tail while typing, echoing the value in
+  a confirmation dialog.
+
 #### Table
 
 - **Purpose**: general in-memory table with sorting and optional inline

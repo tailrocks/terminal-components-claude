@@ -268,8 +268,18 @@ impl Picker {
             t.title().bg(bg),
         );
         if let Some(scope) = &self.scope {
-            let sw = width(scope) as u16;
-            buf.set_string(inner.right().saturating_sub(sw), y, scope, t.muted().bg(bg));
+            // the scope never overwrites the title: it takes the room that is left
+            let room = inner.width.saturating_sub(width(&self.title) as u16 + 3) as usize;
+            if room >= 6 {
+                let scope = truncate(scope, room);
+                let sw = width(&scope) as u16;
+                buf.set_string(
+                    inner.right().saturating_sub(sw),
+                    y,
+                    &scope,
+                    t.muted().bg(bg),
+                );
+            }
         }
         y += 1;
         if self.searchable {

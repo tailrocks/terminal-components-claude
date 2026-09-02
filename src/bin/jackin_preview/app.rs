@@ -452,9 +452,6 @@ impl App {
         if !o.consumed() && route != Route::Accounts {
             o = self.screens.accounts.on_msg(&m, &mut self.world, &mut cx);
         }
-        if let Msg::ForeignExit = m {
-            self.world.arbiter.consume_exit_externally();
-        }
         let reqs = std::mem::take(&mut cx.requests);
         o.or(self.apply_requests(reqs, route))
     }
@@ -1347,6 +1344,20 @@ impl App {
                 if self.modals.is_empty() && self.ring.contains(id) {
                     self.focus.focus(id);
                 }
+                if self.modals.is_empty() {
+                    let route = self.route;
+                    let mut cx = Cx {
+                        focus: &mut self.focus,
+                        ring: &self.ring,
+                        requests: vec![],
+                    };
+                    let o = match self.screens.get_mut(route) {
+                        Some(s) => s.on_press(id, m.pos, &mut self.world, &mut cx),
+                        None => Outcome::Ignored,
+                    };
+                    let reqs = std::mem::take(&mut cx.requests);
+                    let _ = o.or(self.apply_requests(reqs, route));
+                }
                 Outcome::Changed
             }
             MouseKind::Up => {
@@ -1666,10 +1677,6 @@ impl App {
                 Request::Status(s) => self.set_status(&s, Tone::Secondary),
                 Request::Error(s) => self.set_status(&s, Tone::Error),
                 Request::Open(m, tag) => self.push_modal(*m, tag, owner),
-                Request::Replace(m, tag) => {
-                    self.pop_modal();
-                    self.push_modal(*m, tag, owner);
-                }
                 Request::Close => {
                     self.pop_modal();
                 }
@@ -1679,8 +1686,6 @@ impl App {
                     self.clipboard_gen += 1;
                     self.set_status("Copied to the preview clipboard", Tone::Secondary);
                 }
-                Request::Help => self.open_help(),
-                Request::RefreshPicker => self.refresh_picker(),
                 Request::WithForm(f) => {
                     if let Some(top) = self.modals.last_mut()
                         && let Modal::Form(form) = &mut top.modal
@@ -2197,14 +2202,8 @@ impl App {
             Ok(n) => left.push(Segment::new(format!("{n} running"), Tone::Secondary).priority(8)),
             Err(e) => left.push(Segment::new(format!("! {}", e.label()), Tone::Error).priority(8)),
         }
-        match self.world.daemon_health {
-            crate::sim::world::DaemonHealth::Stale => {
-                left.push(Segment::new("▲ daemon stale", Tone::Warning).priority(8))
-            }
-            crate::sim::world::DaemonHealth::Unavailable => {
-                left.push(Segment::new("! daemon unavailable", Tone::Error).priority(8))
-            }
-            _ => {}
+        if self.world.daemon_health == crate::sim::world::DaemonHealth::Stale {
+            left.push(Segment::new("▲ daemon stale", Tone::Warning).priority(8))
         }
         if let Some(s) = self.screens.get(route) {
             left.push(Segment::new(s.crumb(&self.world), Tone::Secondary).priority(7));

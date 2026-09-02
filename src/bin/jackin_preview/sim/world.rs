@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use crate::arbiter::Arbiter;
 use crate::clock::Clock;
 use crate::domain::account::{AccountId, AccountRegistry};
-use crate::domain::agent::{Agent, Provider};
+use crate::domain::agent::Provider;
 use crate::domain::instance::{Instance, InstanceId, InstanceStatus};
 use crate::domain::workspace::{
     AuthEntry, EnvVar, Mount, RoleEntry, RoleName, Workspace, WorkspaceId,
@@ -123,24 +123,11 @@ pub enum Msg {
         ok: bool,
         error: Option<String>,
     },
-    GithubResolved {
-        url: String,
-        ok: bool,
-    },
-    Attached {
-        instance: InstanceId,
-    },
     /// Another client attached to this instance and displaced us.
     Takeover {
         instance: InstanceId,
         by: String,
     },
-    HostAction {
-        label: String,
-        ok: bool,
-    },
-    /// A second client ended the Construct first.
-    ForeignExit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,7 +140,6 @@ pub struct Job {
 pub enum DaemonHealth {
     Healthy,
     Stale,
-    Unavailable,
 }
 
 pub struct World {
@@ -255,10 +241,6 @@ impl World {
         self.workspaces.iter_mut().find(|w| w.id == id)
     }
 
-    pub fn workspace_by_name(&self, name: &str) -> Option<&Workspace> {
-        self.workspaces.iter().find(|w| w.name == name)
-    }
-
     /// The saved Workspace whose workdir is the current directory.
     pub fn cwd_workspace(&self) -> Option<&Workspace> {
         self.workspaces.iter().find(|w| {
@@ -298,12 +280,6 @@ impl World {
             .collect()
     }
 
-    pub fn role(&self, name: &str) -> Option<&RoleEntry> {
-        self.roles
-            .iter()
-            .find(|r| r.name == name || r.full_name() == name)
-    }
-
     /// Sync the arbiter's discovery with the live instance count.
     pub fn sync_arbiter(&mut self) {
         if self.arbiter.discovery.is_ok() {
@@ -339,11 +315,6 @@ impl World {
         session: Option<&AccountId>,
     ) -> crate::domain::fixtures::ResolvedAccount {
         crate::domain::fixtures::resolve_account(provider, ws, role, session, &self.accounts)
-    }
-
-    /// Default agent for a launch: the Workspace's last role agent, else Claude Code.
-    pub fn default_agent(&self) -> Agent {
-        Agent::ClaudeCode
     }
 }
 

@@ -69,15 +69,6 @@ impl Clock {
         }
     }
 
-    /// `in 2 h 14 min` for a future instant, `now` when passed.
-    pub fn until(&self, then_secs: i64) -> String {
-        let delta = then_secs - self.now_secs();
-        if delta <= 0 {
-            return "now".into();
-        }
-        format!("in {}", format_duration(delta as u64))
-    }
-
     /// `resets in 2 h 14 min` / `resets Mon 09:00` for far instants.
     pub fn reset_label(&self, then_secs: i64) -> String {
         let delta = then_secs - self.now_secs();
@@ -171,7 +162,6 @@ mod tests {
         assert_eq!(Clock::stamp(EPOCH_SECS), "2026-09-03 09:14");
         assert_eq!(Clock::weekday(EPOCH_SECS), "Thu");
         assert_eq!(c.ago(EPOCH_SECS - 3 * 60), "3 min ago");
-        assert_eq!(c.until(EPOCH_SECS + 8_040), "in 2 h 14 min");
         assert_eq!(c.reset_label(EPOCH_SECS + 8_040), "resets in 2 h 14 min");
         c.running = false;
         c.advance(33);

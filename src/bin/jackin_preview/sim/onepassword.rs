@@ -4,7 +4,7 @@
 //! preview can observe it.
 
 use crate::domain::agent::Provider;
-use crate::domain::onepassword::{OpReference, OpReferenceError};
+use crate::domain::onepassword::OpReference;
 
 /// Opaque secret handle. Not `Clone`, not `Debug`; constructible only here.
 pub struct Secret {
@@ -78,7 +78,6 @@ impl SecretFree for bool {}
 pub enum OpSession {
     SignedIn,
     Locked,
-    NotInstalled,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,7 +128,6 @@ pub struct OpItem {
     pub title: String,
     pub category: &'static str,
     pub fields: Vec<OpField>,
-    pub updated_secs: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -150,7 +148,6 @@ pub struct OpAccount {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpError {
-    NotInstalled,
     Locked,
     AuthorizationRequired { account: String },
     PermissionDenied { vault: String },
@@ -158,7 +155,6 @@ pub enum OpError {
     MissingVault { vault: String },
     MissingItem { item: String, vault: String },
     MissingField { field: String, item: String },
-    Malformed(OpReferenceError),
     EmptyMaterial { field: String },
     WrongFieldShape { field: String },
 }
@@ -167,7 +163,6 @@ impl OpError {
     /// Operator-facing message (sentence case, colon introduces the reason).
     pub fn message(&self) -> String {
         match self {
-            OpError::NotInstalled => "1Password unavailable: the CLI was not found".into(),
             OpError::Locked => "1Password locked: unlock the app and retry".into(),
             OpError::AuthorizationRequired { account } => {
                 format!("1Password authorization required: sign in to {account}")
@@ -185,7 +180,6 @@ impl OpError {
             OpError::MissingField { field, item } => {
                 format!("1Password field not found: {field} in {item}")
             }
-            OpError::Malformed(e) => e.message().to_owned(),
             OpError::EmptyMaterial { field } => format!("API key required: field {field} is empty"),
             OpError::WrongFieldShape { field } => {
                 format!("Field {field} is not a credential: choose a concealed field")
@@ -200,11 +194,7 @@ impl OpError {
 
 #[derive(Debug, Clone)]
 pub struct FieldDescriptor {
-    pub reference: OpReference,
-    pub kind: FieldKind,
     pub masked: String,
-    pub item_category: &'static str,
-    pub updated_secs: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -230,14 +220,13 @@ fn item(
     title: &str,
     category: &'static str,
     fields: Vec<OpField>,
-    updated: i64,
+    _updated: i64,
 ) -> OpItem {
     OpItem {
         id: id.into(),
         title: title.into(),
         category,
         fields,
-        updated_secs: updated,
     }
 }
 
@@ -444,7 +433,6 @@ impl SimOnePassword {
 
     fn gate(&self) -> Result<(), OpError> {
         match self.session {
-            OpSession::NotInstalled => Err(OpError::NotInstalled),
             OpSession::Locked => Err(OpError::Locked),
             OpSession::SignedIn => Ok(()),
         }
@@ -571,11 +559,7 @@ impl SimOnePassword {
             });
         }
         Ok(FieldDescriptor {
-            reference: self.reference(&r.account, &r.vault_id, &r.item_id, &r.field_id)?,
-            kind: f.kind,
             masked: crate::domain::account::masked(&f.tail),
-            item_category: it.category,
-            updated_secs: it.updated_secs,
         })
     }
 

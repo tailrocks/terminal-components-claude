@@ -189,22 +189,6 @@ pub enum DaemonSnapshot {
     Tabs(Vec<TabSnapshot>),
 }
 
-impl DaemonSnapshot {
-    pub fn tab_count(&self) -> usize {
-        match self {
-            DaemonSnapshot::Tabs(t) => t.len(),
-            _ => 0,
-        }
-    }
-
-    pub fn pane_count(&self) -> usize {
-        match self {
-            DaemonSnapshot::Tabs(t) => t.iter().map(|t| t.panes.len()).sum(),
-            _ => 0,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TabSnapshot {
     pub label: String,
@@ -231,16 +215,6 @@ pub enum AgentState {
 }
 
 impl AgentState {
-    pub fn glyph(self) -> &'static str {
-        match self {
-            AgentState::Blocked => "●",
-            AgentState::Done => "○",
-            AgentState::Working => "▶",
-            AgentState::Idle => "◆",
-            AgentState::Unknown => " ",
-        }
-    }
-
     pub fn label(self) -> &'static str {
         match self {
             AgentState::Idle => "idle",

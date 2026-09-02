@@ -638,3 +638,372 @@ fn hard_cases_refresh_keeps_last_good_and_help_opens_everywhere() {
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Reading meters"));
 }
+
+/// Section 34 of the goal: the connected keyboard-first journey from a
+/// fresh Construct with zero instances to the final outro.
+#[test]
+fn complete_jackin_flow_keyboard_first() {
+    use junie_tui::core::id::WidgetId;
+    let form_save = crate::screens::accounts::FORM.sub("save");
+    let cfg_save = WidgetId::of("editor.cfg").sub("form").sub("save");
+    let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
+    // 1–3 intro → manager with zero instances
+    assert_eq!(h.app.route, Route::Intro);
+    h.ticks(3);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.world.running_count(), 0);
+    // 4 Account & Usage Center
+    h.key(KeyCode::Char('c'));
+    assert_eq!(h.app.route, Route::Accounts);
+    // 5–6 two Claude Code local-folder accounts
+    for (name, folder) in [("Personal", "~/.claude"), ("Work", "~/.claude-work")] {
+        h.key(KeyCode::Char('a'));
+        h.key(KeyCode::Enter);
+        h.type_str(name);
+        for _ in 0..3 {
+            h.key(KeyCode::Tab);
+        }
+        h.key(KeyCode::Down);
+        assert!(h.text().contains("Local agent folder"), "{}", h.text());
+        h.key(KeyCode::Tab);
+        h.key(KeyCode::Enter);
+        h.type_str(folder);
+        h.key(KeyCode::Tab);
+        h.tab_to(form_save);
+        h.key(KeyCode::Enter);
+        assert!(
+            h.text().contains(&format!("Saved Claude · {name}")),
+            "{}",
+            h.text()
+        );
+    }
+    // 7–8 Codex and Grok Build through 1Password references
+    for (name, provider_steps, item) in [("Primary", 1, "Codex Primary"), ("Team", 2, "Grok Team")]
+    {
+        h.key(KeyCode::Char('a'));
+        h.key(KeyCode::Enter);
+        h.type_str(name);
+        h.key(KeyCode::Tab);
+        h.key(KeyCode::Tab);
+        for _ in 0..provider_steps {
+            h.key(KeyCode::Down);
+        }
+        h.key(KeyCode::Tab);
+        h.key(KeyCode::Tab);
+        h.key(KeyCode::Enter);
+        h.ticks(4);
+        h.key(KeyCode::Enter);
+        h.ticks(4);
+        h.key(KeyCode::Enter);
+        h.ticks(4);
+        h.type_str(item);
+        h.ticks(4);
+        h.key(KeyCode::Enter);
+        h.ticks(4);
+        h.key(KeyCode::Enter);
+        h.ticks(2);
+        assert!(h.text().contains(item), "{}", h.text());
+        h.tab_to(form_save);
+        h.key(KeyCode::Enter);
+        assert!(h.text().contains(&format!("· {name}")), "{}", h.text());
+        assert!(!h.text().contains("valid-"), "secret leaked: {}", h.text());
+    }
+    assert!(
+        h.app
+            .world
+            .accounts
+            .get("acct-xai-team")
+            .is_some_and(|a| a.endpoint.is_some()),
+        "Grok keeps its endpoint"
+    );
+    // 9 OpenCode through the masked plain-text fallback
+    h.key(KeyCode::Char('a'));
+    h.key(KeyCode::Enter);
+    h.type_str("Go");
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Tab);
+    for _ in 0..3 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+    h.type_str("oc_valid_abcdefghijklmn1234");
+    h.key(KeyCode::Tab);
+    assert!(!h.text().contains("abcdefghijklmn"), "{}", h.text());
+    h.tab_to(form_save);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Saved OpenCode · Go"), "{}", h.text());
+    assert_eq!(h.app.world.accounts.accounts.len(), 5);
+    // 10 validate one, set a provider default
+    h.key(KeyCode::Char('v'));
+    h.ticks(20);
+    assert!(
+        h.text().contains("fingerprint") && h.text().contains("matches"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Home);
+    for _ in 0..3 {
+        h.key(KeyCode::Down);
+    }
+    assert!(
+        h.text().contains("Accounts › Claude › Work"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("Default set"), "{}", h.text());
+    // 11–12 overview, one provider, one account
+    h.key(KeyCode::Home);
+    assert!(h.text().contains("Health"));
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("Registration"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("Quota"), "{}", h.text());
+    // 13 back to the manager, focus on the tree
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.focus.current(), Some(crate::screens::manager::TREE));
+    // 14 create a workspace through the prelude (current directory as source)
+    h.key(KeyCode::End);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Prelude);
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("step 2 of 5"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("step 5 of 5"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    assert!(h.text().contains("new workspace › edit"));
+    // 15 configure every tab
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char('i'));
+    assert!(h.text().contains("worktree"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Default role ★"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char('a'));
+    h.key(KeyCode::Enter);
+    h.type_str("API_BASE");
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+    h.type_str("https://api.internal");
+    h.key(KeyCode::Tab);
+    h.tab_to(cfg_save);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("API_BASE"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Enter);
+    // 16 a non-default account for Claude Code on this Workspace
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("Auth override · Claude Code"),
+        "{}",
+        h.text()
+    );
+    h.tab_to(cfg_save);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Claude · Personal"), "{}", h.text());
+    // 17 preview and save
+    h.ctrl('s');
+    assert!(h.text().contains("Create workspace"), "{}", h.text());
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    h.ticks(20);
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.world.workspaces.len(), 1);
+    // 18–20 launch: already inside the Construct, straight to the cockpit
+    h.key(KeyCode::Home);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Cockpit, "{}", h.text());
+    h.ticks(40);
+    // 21 build log
+    h.key(KeyCode::Char('b'));
+    assert!(h.text().contains("Docker build"), "{}", h.text());
+    h.key(KeyCode::PageUp);
+    h.key(KeyCode::End);
+    h.key(KeyCode::Esc);
+    for _ in 0..60 {
+        h.ticks(10);
+        if h.app.route != Route::Cockpit {
+            break;
+        }
+    }
+    h.ticks(15);
+    // 22–23 capsule, typing
+    assert_eq!(h.app.route, Route::Capsule, "{}", h.text());
+    h.ticks(40);
+    h.type_str("hello");
+    assert!(h.text().contains("hello"));
+    let inst = h.app.screens.capsule.as_ref().unwrap().instance.clone();
+    // 24 second session with a different account
+    h.ctrl('b');
+    h.key(KeyCode::Char('c'));
+    assert!(h.text().contains("New tab"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Account for Claude Code"), "{}", h.text());
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.world.daemons[&inst].tabs.len(), 2);
+    assert!(h.text().contains("(Work)"), "{}", h.text());
+    // 25–27 split, focus, resize, zoom
+    h.ctrl('b');
+    h.key(KeyCode::Char('%'));
+    h.key(KeyCode::Enter);
+    if h.text().contains("Account for") {
+        h.key(KeyCode::Enter);
+    }
+    assert_eq!(h.app.world.daemons[&inst].panes.len(), 3);
+    h.ctrl('b');
+    h.key(KeyCode::Char('h'));
+    h.app.handle(Input::Key(Key {
+        code: KeyCode::Right,
+        mods: KeyModifiers::ALT | KeyModifiers::SHIFT,
+    }));
+    h.draw();
+    h.ctrl('b');
+    h.key(KeyCode::Char('z'));
+    assert!(h.text().contains("zoom"), "{}", h.text());
+    h.ctrl('b');
+    h.key(KeyCode::Char('z'));
+    // 28 scrollback, selection by mouse, copy, live again
+    h.ticks(60);
+    h.key(KeyCode::PageUp);
+    h.key(KeyCode::End);
+    let (x, y) = h.find("Refactor").expect("transcript line visible");
+    h.mouse(MouseKind::Down, x, y);
+    h.mouse(MouseKind::Drag, x + 8, y);
+    h.mouse(MouseKind::Up, x + 8, y);
+    assert_eq!(
+        h.app.world.clipboard.as_deref(),
+        Some("Refactor"),
+        "{}",
+        h.text()
+    );
+    // a second press within the double-click window selects the word
+    h.app.world.clipboard = None;
+    h.mouse(MouseKind::Down, x + 2, y);
+    h.mouse(MouseKind::Up, x + 2, y);
+    assert_eq!(
+        h.app.world.clipboard.as_deref(),
+        Some("Refactor"),
+        "{}",
+        h.text()
+    );
+    h.app.world.clipboard = None;
+    h.key(KeyCode::Char('y'));
+    assert_eq!(
+        h.app.world.clipboard.as_deref(),
+        Some("Refactor"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::End);
+    // 29 palette
+    h.ctrl('\\');
+    assert!(
+        h.text().contains("palette") || h.text().contains("Palette"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Esc);
+    // 30–31 capsule Usage
+    h.ctrl('b');
+    h.key(KeyCode::Char('u'));
+    assert!(h.text().contains("Usage"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    // 32–33 detach, reconnect with retained tabs
+    h.ctrl('b');
+    h.key(KeyCode::Char('d'));
+    assert_eq!(h.app.route, Route::Manager);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.world.daemons[&inst].tabs.len(), 2);
+    // 34 a second instance of the same Workspace
+    h.ctrl('b');
+    h.key(KeyCode::Char('d'));
+    h.key(KeyCode::Home);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Cockpit, "{}", h.text());
+    for _ in 0..80 {
+        h.ticks(10);
+        if h.app.route == Route::Capsule {
+            break;
+        }
+    }
+    h.ticks(15);
+    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.world.running_count(), 2);
+    // 35–36 exit this one, stay inside
+    h.ctrl('q');
+    if h.text().contains("Unsaved work") {
+        h.key(KeyCode::Down);
+        h.key(KeyCode::Down);
+        h.key(KeyCode::Enter);
+    } else {
+        h.key(KeyCode::Right);
+        h.key(KeyCode::Enter);
+    }
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert!(
+        h.text().contains("Still inside the Construct"),
+        "{}",
+        h.text()
+    );
+    assert_eq!(h.app.world.running_count(), 1);
+    // 37 reconnect the first (still running) instance and leave through the exit flow
+    h.key(KeyCode::Home);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Right);
+    for _ in 0..4 {
+        if h.text().contains("instance · running") {
+            break;
+        }
+        h.key(KeyCode::Down);
+    }
+    assert!(h.text().contains("instance · running"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Capsule, "{}", h.text());
+    h.ctrl('q');
+    if h.text().contains("Unsaved work") {
+        h.key(KeyCode::Down);
+        h.key(KeyCode::Down);
+        h.key(KeyCode::Enter);
+    } else {
+        h.key(KeyCode::Right);
+        h.key(KeyCode::Enter);
+    }
+    // 38–40 outro with the elapsed caption, then the terminal is restored
+    assert_eq!(h.app.route, Route::Outro, "{}", h.text());
+    h.ticks(5);
+    if !h.text().contains("You were in the Construct for") {
+        // full motion: skip the warp to reach the caption
+        h.key(KeyCode::Enter);
+        h.ticks(25);
+    }
+    assert!(
+        h.text().contains("You were in the Construct for"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert!(h.app.quit);
+}

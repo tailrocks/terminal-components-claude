@@ -381,6 +381,7 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
     v
 }
 
+#[allow(clippy::too_many_arguments)]
 fn instance(
     id: &str,
     ws: Option<u32>,
@@ -1460,7 +1461,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     }
     // daemons for running instances
     let now_ms = w.now_ms();
-    let mut d1 = Daemon::new("jk-7f3a", "payments-platform", now_ms - 2 * 3600 * 1000);
+    let mut d1 = Daemon::new("payments-platform");
     d1.new_tab(
         Some(Agent::ClaudeCode),
         Some("acct-claude-work".into()),
@@ -1522,7 +1523,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
         p.term.set_lines(p.term.lines.clone());
     }
     w.daemons.insert("jk-7f3a".into(), d1);
-    let mut d3 = Daemon::new("jk-9b02", "infra-control-plane", now_ms - 40 * 60 * 1000);
+    let mut d3 = Daemon::new("infra-control-plane");
     d3.new_tab(
         Some(Agent::Codex),
         Some("acct-codex-experiments".into()),
@@ -1531,7 +1532,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     );
     w.daemons.insert("jk-9b02".into(), d3);
     if rich {
-        let d10 = Daemon::new("jk-e0e0", "data-pipeline", now_ms);
+        let d10 = Daemon::new("data-pipeline");
         w.daemons.insert("jk-e0e0".into(), d10);
         // its daemon never answers
         if let Some(i) = w.instance_mut("jk-e0e0") {

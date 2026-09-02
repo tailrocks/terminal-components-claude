@@ -33,14 +33,6 @@ pub enum CheckRow {
     Skipped(String),
 }
 
-impl CheckRow {
-    pub fn text(&self) -> &str {
-        match self {
-            CheckRow::Ok(s) | CheckRow::Failed(s) | CheckRow::Skipped(s) => s,
-        }
-    }
-}
-
 /// Simulated local folder inventory for folder-backed sources.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FolderProbe {
@@ -209,7 +201,6 @@ pub fn validate(
         Ok(v) => v,
         Err(e) => {
             let code = match &e {
-                OpError::NotInstalled => IssueCode::OpUnavailable,
                 OpError::Locked => IssueCode::OpLocked,
                 OpError::AuthorizationRequired { .. } => IssueCode::OpAuthorizationRequired,
                 OpError::PermissionDenied { .. } => IssueCode::OpPermissionDenied,
@@ -219,7 +210,6 @@ pub fn validate(
                 OpError::MissingField { .. } | OpError::WrongFieldShape { .. } => {
                     IssueCode::OpFieldMissing
                 }
-                OpError::Malformed(_) => IssueCode::OpReferenceMalformed,
                 OpError::EmptyMaterial { .. } => IssueCode::ApiKeyEmpty,
             };
             let rec = if e.retryable() {

@@ -179,7 +179,6 @@ pub enum RowKey {
     AddEnv(Option<RoleName>),
     Auth(Option<RoleName>, Agent),
     AddAuth(Option<RoleName>),
-    Blocker,
 }
 
 #[derive(Debug, Clone)]
@@ -237,7 +236,6 @@ pub struct ConfigTabs {
     /// Every registry role, for scope selectors.
     registry: Vec<RoleName>,
     ids: Ids,
-    pub status_hint: Option<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -289,7 +287,6 @@ impl ConfigTabs {
                 auth: base.sub("auth"),
                 form: base.sub("form"),
             },
-            status_hint: None,
         }
     }
 
@@ -318,16 +315,6 @@ impl ConfigTabs {
     }
 
     // ------------------------------------------------------------ dirty
-
-    pub fn change_count(&self) -> usize {
-        let a = &self.pending;
-        let b = &self.original;
-        crate::sim::world::keyed_diff(&a.mounts, &b.mounts, |m| m.destination.clone())
-            + crate::sim::world::keyed_diff(&a.env, &b.env, |e| e.key.clone())
-            + crate::sim::world::keyed_diff(&a.auth, &b.auth, |e| e.agent.label().to_owned())
-            + usize::from(a.role_env != b.role_env)
-            + usize::from(a.role_auth != b.role_auth)
-    }
 
     pub fn tab_dirty(&self, tab: Tab) -> bool {
         match tab {
@@ -695,7 +682,7 @@ impl ConfigTabs {
                     .replace("global", "Global"),
                 Some(r) => format!("Role: {r}"),
             };
-            let mut meta = format!("{} vars", vars.len());
+            let mut meta = super::plural(vars.len(), "var", "vars");
             if !in_registry {
                 meta = format!("not in registry · {meta}");
             }
@@ -1487,8 +1474,8 @@ impl ConfigTabs {
         let inner = Panel::card(Some(&title)).meta(&meta).render(area, buf, t);
         let bg = t.surface;
         let lw = 14u16;
-        let mut y = inner.y;
-        for (k, v, tone) in lines {
+        for (i, (k, v, tone)) in lines.into_iter().enumerate() {
+            let y = inner.y + i as u16;
             if y >= inner.bottom() {
                 break;
             }
@@ -1499,7 +1486,6 @@ impl ConfigTabs {
                 truncate(&v, inner.width.saturating_sub(lw) as usize),
                 Style::new().fg(t.tone(tone)).bg(bg),
             );
-            y += 1;
         }
     }
 
@@ -2304,12 +2290,21 @@ impl ConfigTabs {
             .as_ref()
             .and_then(|e| modes.iter().position(|m| *m == e.mode))
             .unwrap_or(0);
+        let has_account = w.accounts.by_provider(agent.provider()).any(|a| a.enabled);
         let src_idx = match e.as_ref().map(|e| &e.source) {
             Some(AuthSource::Account(_)) => 0,
             Some(AuthSource::Folder(_)) => 1,
             Some(AuthSource::OnePassword(_)) => 2,
             Some(AuthSource::Plain { .. }) => 3,
-            _ => 4,
+            Some(_) => 4,
+            // a new override starts on the registry when it has an account
+            None => {
+                if has_account {
+                    0
+                } else {
+                    4
+                }
+            }
         };
         let f = self.ids.form;
         let accounts: Vec<String> = w
