@@ -143,7 +143,7 @@ impl ConnForm {
             engine: Select::new(f.sub("engine"), "Engine", &engines, eng),
             host: TextInput::new(f.sub("host"), "Host")
                 .value(c.map(|c| c.host.as_str()).unwrap_or("localhost"))
-                .help("Empty means the driver default"),
+                .help("Blank: driver default"),
             port: TextInput::new(f.sub("port"), "Port")
                 .value(&c.map(|c| c.port.to_string()).unwrap_or("5432".into()))
                 .validator(port_validator),

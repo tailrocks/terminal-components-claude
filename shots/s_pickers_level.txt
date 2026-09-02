@@ -7,17 +7,17 @@
 ▎  Buttons                  ▎Open quickly   ▎Switch tab   ▎Choose a level
 ▎  Inputs
 ▎  Text areas               Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the alternate actio…
-▎  Forms                 ╭────────────────────────────────────────────────────────────────────╮
-▎  Lists                 │ Safe Mode · this connection                                        │
-▎  Trees                 │ ▎  Silent  Writes run without asking. DROP, TRUNCATE and … Levels  │
-▎  Tables                │ ▎  Alert       Every write asks for confirmation before it runs.   │
-▎  Editable tables       │ ▎  Alert (Full)  Every statement, reads included, asks for confi…  │
-▎  Panels                │ ▎  Safe Mode  Writes ask for confirmation and a deliber… current   │
-▎  Sidebars              │ ▎  Safe Mode (Full)  Every statement asks for confirmation and a…  │
-▎  Dialogs               │ ▎  Read-Only   Writes are refused. Reads and exports still work.   │
-▎  Progress              │                                                                    │
-▎  Scrolling             │ ↑↓ Move · Enter Set level · Esc Keep                               │
-▎  Code editor           ╰────────────────────────────────────────────────────────────────────╯
+▎  F╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+▎  L│ Safe Mode · this connection                                                                                  │
+▎  T│ ▎  Silent            Writes run without asking. Destructive statements still confirm.                        │
+▎  T│ ▎  Alert             Every write asks for confirmation before it runs.                                       │
+▎  E│ ▎  Alert (Full)      Every statement, reads included, asks for confirmation.                                 │
+▎  P│ ▎  Safe Mode         Writes ask for confirmation and a deliberate acknowledgement.                 current   │
+▎  S│ ▎  Safe Mode (Full)  Every statement asks for confirmation and a deliberate acknowledgement.                 │
+▎  D│ ▎  Read-Only         Writes are refused. Reads and exports still work.                                       │
+▎  P│                                                                                                              │
+▎  S│ ↑↓ Move · Enter Set level · Esc Keep                                                                         │
+▎  C╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ▎  Data grid
 ▎  Chips & selects
 ▎› Pickers

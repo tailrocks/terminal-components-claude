@@ -631,7 +631,7 @@ impl CodeEditor {
         self.scroll.set_content(line_count);
         self.scroll.set_viewport(rows);
         let num_w = (line_count.to_string().len() as u16).max(2);
-        // gutter: bar(1) marker(1) numbers(num_w) diag(1) space(1)
+        // gutter: bar(1) marker(1) space(1) numbers(num_w) space(1)
         let gutter_w = 1 + 1 + num_w + 1 + 1;
         self.gutter_w = gutter_w;
         let has_sb = self.scroll.overflows();
@@ -714,7 +714,7 @@ impl CodeEditor {
                 ns
             };
             buf.set_string(
-                area.x + 2,
+                area.x + 3,
                 y,
                 crate::ui::text::fit_right(&(li + 1).to_string(), num_w as usize),
                 ns,
