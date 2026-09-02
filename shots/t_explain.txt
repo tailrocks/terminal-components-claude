@@ -8,21 +8,21 @@
  │ ▎▾ D acme_prod            │ │  ▎                                                                                   │
  │ ▎  ▾ S public             │ │  ▎                                                                                   │
  │ ▎    ▾ Tables          7  │ │  ▎                                                                                   │
- │ ▎      ▸ T organizations1.2 │  ▎                                                                                   │
- │ ▎      ▸ T customers    48.9│  ▎                                                                                   │
+ │ ▎      ▸ T organizations  │ │  ▎                                                                                   │
+ │ ▎      ▸ T customers      │ │  ▎                                                                                   │
  │ ▎      ▸ T products  312  │ │  ▎                                                                                   │
- │ ▎      ▸ T orders       1.2 │  ▎                                                                                   │
- │ ▎      ▸ T order_items  3.8 │  ▎                                                                                   │
- │ ▎      ▸ T payments     1.2 │                                                                                      │
- │ ▎      ▸ T subscriptions1.1 │                                                                                      │
+ │ ▎      ▸ T orders         │ │  ▎                                                                                   │
+ │ ▎      ▸ T order_items    │ │  ▎                                                                                   │
+ │ ▎      ▸ T payments       │ │                                                                                      │
+ │ ▎      ▸ T subscriptions  │ │                                                                                      │
  │ ▎    ▸ Views           2  │ │  ▎EXPLAIN ANALYZE ×                                                                  │
  │ ▎    ▸ Functions       1  │ │  ─━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── │
  │ ▎    ▸ Sequences       1  │ │   Planning 0.300 ms · Execution 401.701 ms                                           │
  │ ▎  ▸ S analytics          │ │     Operation                                          cost     rows     actual    % │
  │ ▎  ▸ S audit              │ │  ▎▾ Limit                                      18179..18179       10   401.3 ms   0  │
  │                           │ │  ▎  ▾ ▲ Sort                                   18179..18660   96.3 k   401.3 ms  13  │
- │                           │ │  ▎    ▾ Gather                                  1000..16254   96.3 k   256.9 ms   7  │
- │                           │ │  ▎        ▲ Parallel Seq Scan on public.orders     0..15054   96.3 k   252.7 ms  83▲ │
+ │                           │ │  ▎    ▾ Gather                                  1000..16254   96.3 k   256.9 ms   6  │
+ │                           │ │  ▎        ▲ Parallel Seq Scan on public.orders     0..15054   96.3 k   252.7 ms  81▲ │
  │                           │ │                                                                                      │
  │                           │ │                                                                                      │
  │                           │ │                                                                                      │

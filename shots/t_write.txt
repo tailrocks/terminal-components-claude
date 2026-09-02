@@ -8,7 +8,7 @@
  │ ▎▾ D acme_prod            │ │  ▎                                                                                   │
  │ ▎  ▾ S public             │ │  ▎                                                                                   │
  │ ▎    ▾ Tables          7  │ │  ▎                                                                                   │
- │ ▎      ▸ T organizations1.2 │  ▎                                                                                   │
+ │ ▎      ▸ T organizations  │ │  ▎                                                                                   │
  │ ▎      ▸ T customers╭────────────────────────────────────────────────────────────────────────╮                     │
  │ ▎      ▸ T products │                                                                        │                     │
  │ ▎      ▸ T orders   │  Execute write query?                                                  │                     │

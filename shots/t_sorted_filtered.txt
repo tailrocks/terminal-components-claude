@@ -6,35 +6,35 @@
  │                           │ │  ▎Data   ▎Structure                                                                  │
  │ ▎ Filter objects          │ │  ─━━━━━───────────────────────────────────────────────────────────────────────────── │
  │ ▎▾ D acme_prod            │ │                                                                                      │
- │ ▎  ▾ S public             │ │   match all ▾  ▎status = 'cancelled' ×   ▎+ Add filter                               │
+ │ ▎  ▾ S public             │ │   match all ▾  ▎status = 'pending' ×   ▎+ Add filter                                 │
  │ ▎    ▾ Tables          7  │ │                                                                                      │
- │ ▎      ▸ T organizations1.2 │   ‹4    stat… ∇ ▴    total_amount  currency                                     7›   │
- │ ▎      ▸ T customers    48.9│  ▎    1 cancelled         1050.75  USD                                             ┃ │
- │ ▎      ▸ T products  312  │ │  ▎    2 cancelled         2402.17  USD                                             │ │
- │ ▎      ▸ T orders       1.2 │  ▎    3 cancelled         1103.87  USD                                             │ │
- │ ▎      ▸ T order_items  3.8 │  ▎    4 cancelled         1524.94  GBP                                             │ │
- │ ▎      ▸ T payments     1.2 │  ▎    5 cancelled         1778.07  GBP                                             │ │
- │ ▎      ▸ T subscriptions1.1 │  ▎    6 cancelled         2247.25  USD                                             │ │
- │ ▎    ▸ Views           2  │ │  ▎    7 cancelled         1072.29  GBP                                             │ │
- │ ▎    ▸ Functions       1  │ │  ▎    8 cancelled          364.02  USD                                             │ │
- │ ▎    ▸ Sequences       1  │ │  ▎    9 cancelled          402.72  EUR                                             │ │
- │ ▎  ▸ S analytics          │ │  ▎   10 cancelled          231.74  GBP                                             │ │
- │ ▎  ▸ S audit              │ │  ▎   11 cancelled          259.15  USD                                             │ │
- │                           │ │  ▎   12 cancelled         1062.40  GBP                                             │ │
- │                           │ │  ▎   13 cancelled         1965.61  USD                                             │ │
- │                           │ │  ▎   14 cancelled         2034.41  EUR                                             │ │
- │                           │ │  ▎   15 cancelled          364.55  USD                                             │ │
- │                           │ │  ▎   16 cancelled          940.54  USD                                             │ │
- │                           │ │  ▎   17 cancelled         1177.41  USD                                             │ │
- │                           │ │  ▎   18 cancelled         1820.83  GBP                                             │ │
- │                           │ │  ▎   19 cancelled         2426.95  USD                                             │ │
- │                           │ │  ▎   20 cancelled          584.52  USD                                             │ │
- │                           │ │  ▎   21 cancelled         1659.46  GBP                                             │ │
- │                           │ │  ▎   22 cancelled         2292.35  USD                                             │ │
- │                           │ │  ▎   23 cancelled         1664.38  EUR                                             │ │
- │                           │ │  ▎   24 cancelled         2156.41  USD                                             │ │
- │                           │ │  ▎   25 cancelled          247.81  USD                                             │ │
- │                           │ │   rows 1–25 of 346 loaded · ~208,177 total · cols 5–7 of 14 · sort status ▴ · filt…  │
+ │ ▎      ▸ T organizations  │ │   ‹4    status ∇ ▴     total_amount  currency                                   7›   │
+ │ ▎      ▸ T customers      │ │  ▎    1 pending             1617.64  USD                                           ┃ │
+ │ ▎      ▸ T products  312  │ │  ▎    2 pending             2236.65  EUR                                           │ │
+ │ ▎      ▸ T orders         │ │  ▎    3 pending             2376.57  EUR                                           │ │
+ │ ▎      ▸ T order_items    │ │  ▎    4 pending              550.69  USD                                           │ │
+ │ ▎      ▸ T payments       │ │  ▎    5 pending              290.26  EUR                                           │ │
+ │ ▎      ▸ T subscriptions  │ │  ▎    6 pending             2326.75  USD                                           │ │
+ │ ▎    ▸ Views           2  │ │  ▎    7 pending             2392.98  USD                                           │ │
+ │ ▎    ▸ Functions       1  │ │  ▎    8 pending              497.22  EUR                                           │ │
+ │ ▎    ▸ Sequences       1  │ │  ▎    9 pending             1326.92  USD                                           │ │
+ │ ▎  ▸ S analytics          │ │  ▎   10 pending             1960.35  EUR                                           │ │
+ │ ▎  ▸ S audit              │ │  ▎   11 pending             1301.77  USD                                           │ │
+ │                           │ │  ▎   12 pending             1237.89  GBP                                           │ │
+ │                           │ │  ▎   13 pending              801.07  GBP                                           │ │
+ │                           │ │  ▎   14 pending               78.01  EUR                                           │ │
+ │                           │ │  ▎   15 pending             1063.27  USD                                           │ │
+ │                           │ │  ▎   16 pending             2449.11  USD                                           │ │
+ │                           │ │  ▎   17 pending             1906.29  USD                                           │ │
+ │                           │ │  ▎   18 pending              618.67  USD                                           │ │
+ │                           │ │  ▎   19 pending              576.42  EUR                                           │ │
+ │                           │ │  ▎   20 pending              886.59  EUR                                           │ │
+ │                           │ │  ▎   21 pending              942.71  USD                                           │ │
+ │                           │ │  ▎   22 pending              446.60  EUR                                           │ │
+ │                           │ │  ▎   23 pending             1081.02  EUR                                           │ │
+ │                           │ │  ▎   24 pending             1023.54  USD                                           │ │
+ │                           │ │  ▎   25 pending             2231.00  EUR                                           │ │
+ │                           │ │   sort status ▴ · filtered (1) · rows 1–25 of 335 loaded · ~201,559 total · cols 5…  │
  ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
 
- ↑↓←→ Cell  Enter Edit  s Sort  f Filter  Space Select row         Safe Mode set to Safe Mode · saved to the connection
+ ↑↓←→ Cell  Enter Edit  s Sort  f Filter  Space Select row  Tab Next                                   1 filter applied

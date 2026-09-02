@@ -8,16 +8,16 @@
  │ ▎▾ D acme_prod            │ │  ▎                                                                                   │
  │ ▎  ▾ S public             │ │  ▎                                                                                   │
  │ ▎    ▾ Tables          7  │ │  ▎                                                                                   │
- │ ▎      ▸ T organizations1.2 │  ▎                                                                                   │
- │ ▎      ▸ T customers    48.9│  ▎                                                                                   │
+ │ ▎      ▸ T organizations  │ │  ▎                                                                                   │
+ │ ▎      ▸ T customers      │ │  ▎                                                                                   │
  │ ▎      ▸ T products  312  │ │  ▎                                                                                   │
- │ ▎      ▸ T orders       1.2 │  ▎                                                                                   │
- │ ▎      ▸ T order_items  3.8 │  ▎                                                                                   │
- │ ▎      ▸ T payments     1.2 │                                                                     ln 1/1 · col 82  │
- │ ▎      ▸ T subscriptions1.1 │                                                                                      │
+ │ ▎      ▸ T orders         │ │  ▎                                                                                   │
+ │ ▎      ▸ T order_items    │ │  ▎                                                                                   │
+ │ ▎      ▸ T payments       │ │                                                                     ln 1/1 · col 82  │
+ │ ▎      ▸ T subscriptions  │ │                                                                                      │
  │ ▎    ▸ Views           2  │ │  ▎SELECT orders (40) ×                                                               │
  │ ▎    ▸ Functions       1  │ │  ─━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────── │
- │ ▎    ▸ Sequences       1  │ │   201,559 rows · 15 ms                                                               │
+ │ ▎    ▸ Sequences       1  │ │   40 rows · 15 ms                                                                    │
  │ ▎  ▸ S analytics          │ │        ⚷ id                                    order_number                     12›  │
  │ ▎  ▸ S audit              │ │  ▎   1 e15b910c-bef0-471b-9e16-75dc09b5a823           11389                        ┃ │
  │                           │ │  ▎   2 9471eb35-d99c-44a5-93b7-3601ef5ee1e2           10590                        ┃ │

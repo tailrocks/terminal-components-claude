@@ -1637,7 +1637,7 @@ impl App {
                     }
                 }
                 self.set_status(format!(
-                    "Safe Mode set to {} · saved to the connection",
+                    "Safety level set to {} · saved to the connection",
                     level.label()
                 ));
                 Outcome::Changed
