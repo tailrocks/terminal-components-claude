@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+ ▎≡ Query 1 ×                                                                                                       +
+ ─━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────────────  ─╮
+ │                           │ │  ▎  1  Type SQL. Ctrl+R runs the statement under the cursor.                         │
+ │ ▎ Filter objects          │ │  ▎                                                                                   │
+ │ ▎▾ D acme_prod            │ │  ▎                                                                                   │
+ │ ▎  ▾ S public             │ │  ▎                                                                                   │
+ │ ▎    ▾ Tables       ╭────────────────────────────────────────────────────────────────────────╮                     │
+ │ ▎      ▸ T organizat│ Safe Mode · this connection                                            │                     │
+ │ ▎      ▸ T customers│ ▎  Silent  Writes run without asking. DROP, TRUNCATE and DELETE with…  │                     │
+ │ ▎      ▸ T products │ ▎  Alert           Every write asks for confirmation before it runs.   │                     │
+ │ ▎      ▸ T orders   │ ▎  Alert (Full)  Every statement, reads included, asks for confirmat…  │                     │
+ │ ▎      ▸ T order_ite│ ▎› Safe Mode  Writes ask for confirmation and a deliberate … current   │                     │
+ │ ▎      ▸ T payments │ ▎  Safe Mode (Full)  Every statement asks for confirmation and a del…  │                     │
+ │ ▎      ▸ T subscript│ ▎  Read-Only       Writes are refused. Reads and exports still work.   │                     │
+ │ ▎    ▸ Views        │                                                                        │                     │
+ │ ▎    ▸ Functions    │ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connec… │                     │
+ │ ▎    ▸ Sequences    ╰────────────────────────────────────────────────────────────────────────╯                     │
+ │ ▎  ▸ S analytics          │ │                                                                                      │
+ │ ▎  ▸ S audit              │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                    No results yet                                    │
+ │                           │ │                                                                                      │
+ │                           │ │              Ctrl+R runs the statement under the cursor · Alt+R runs all             │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                Connected to Production

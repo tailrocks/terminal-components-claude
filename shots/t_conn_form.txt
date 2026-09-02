@@ -11,7 +11,7 @@
  │ ▎    ◇ Staging                  pg  │      Engine                              ▎( ) staging
  │ ▎    ◆ Analytics             mysql  │    ▎ PostgreSQL                    ▾     ▎( ) production
  │ ▎    ◆ Production               pg  │
- │                                     │      Host  optional          Port  optionalGroup
+ │                                     │      Host  optional          Port  o…      Group
  │                                     │    ▎ localhost             ▎ 5432        ▎ Personal                       ▾
  │                                     │      Empty means the dri…
  │                                     │      Database  optional                    Safe Mode

@@ -241,9 +241,16 @@ impl TextInput {
 
         // label row
         let mut label = self.label.clone();
+        let name_w = width(&self.label);
+        // the "optional" suffix only appears when the field is wide enough to
+        // hold it whole; a clipped suffix reads worse than none
+        let show_optional = !self.required
+            && !self.label.is_empty()
+            && !self.plain_label
+            && name_w as u16 + 2 + 2 + 8 <= area.width;
         if self.required {
             label.push_str(" *");
-        } else if !self.label.is_empty() && !self.plain_label {
+        } else if show_optional {
             label.push_str("  optional");
         }
         let label_style = if self.disabled {
@@ -251,7 +258,6 @@ impl TextInput {
         } else {
             t.label(s.focused).bg(bg)
         };
-        let name_w = width(&self.label);
         buf.set_string(
             area.x + 2,
             area.y,
@@ -265,7 +271,7 @@ impl TextInput {
                 "*",
                 t.accent_fg().bg(bg),
             );
-        } else if !self.required && !self.plain_label && !self.label.is_empty() {
+        } else if show_optional {
             buf.set_string(
                 area.x + 2 + name_w as u16 + 2,
                 area.y,

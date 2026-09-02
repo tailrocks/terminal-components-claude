@@ -2393,7 +2393,7 @@ impl HistoryTab {
         let t = ctx.theme;
         // toolbar: search + scope/status
         let scope = format!(
-            "scope: {}  ·  status: {}  ·  c / s to change",
+            "scope: {}  ·  status: {}",
             if self.scope_all {
                 "all connections"
             } else {
