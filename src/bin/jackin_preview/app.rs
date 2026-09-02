@@ -21,7 +21,7 @@ use ratatui::layout::{Position, Rect};
 
 use crate::arbiter::{EntryDecision, ExitDecision};
 use crate::domain::instance::InstanceStatus;
-use crate::rain::{self, Curve, HANDOFF_LEN, IntroState, OutroState, handoff_stage};
+use crate::rain::{self, HANDOFF_LEN, IntroState, OutroState, handoff_stage};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::accounts::AccountsScreen;
 use crate::screens::capsule::CapsuleScreen;
@@ -148,7 +148,6 @@ pub struct App {
     pub size: (u16, u16),
     pub quit: bool,
     too_small: bool,
-    curves: (Curve, Curve),
     last_click: Option<(WidgetId, i64)>,
     intro_guard: u8,
     pub clipboard_gen: u32,
@@ -182,7 +181,6 @@ impl App {
             size: (0, 0),
             quit: false,
             too_small: false,
-            curves: (Curve::intro(), Curve::outro()),
             last_click: None,
             intro_guard: 3,
             clipboard_gen: 0,
@@ -2070,57 +2068,20 @@ impl App {
         }
         match self.route {
             Route::Intro => {
-                let state = self.intro.unwrap_or(IntroState::new(self.motion, 0));
-                let curve = std::mem::replace(
-                    &mut self.curves.0,
-                    Curve {
-                        w: vec![],
-                        s: vec![],
-                    },
-                );
-                ctx.inert = true;
-                let theme = self.theme;
-                {
-                    let mut manager = |b: &mut Buffer, a: Rect| {
-                        let mut hits2 = HitRegistry::default();
-                        let mut ring2 = FocusRing::default();
-                        let mut ctx2 =
-                            RenderCtx::new(&theme, Interaction::default(), &mut hits2, &mut ring2);
-                        ctx2.inert = true;
-                        self.draw_frame(a, b, &mut ctx2, Route::Manager);
-                    };
-                    rain::render_intro(buf, area, &state, &theme, &curve, &mut manager);
-                }
-                self.curves.0 = curve;
-                ctx.inert = false;
+                let mut state = self
+                    .intro
+                    .take()
+                    .unwrap_or_else(|| IntroState::new(self.motion, 0));
+                rain::render_intro(buf, area, &mut state, &t);
+                self.intro = Some(state);
             }
             Route::Outro => {
-                let state = self.outro.unwrap_or(OutroState::new(self.motion, None, 0));
-                let curve = std::mem::replace(
-                    &mut self.curves.1,
-                    Curve {
-                        w: vec![],
-                        s: vec![],
-                    },
-                );
-                let theme = self.theme;
-                {
-                    let mut origin = |b: &mut Buffer, a: Rect| {
-                        let mut hits2 = HitRegistry::default();
-                        let mut ring2 = FocusRing::default();
-                        let mut ctx2 =
-                            RenderCtx::new(&theme, Interaction::default(), &mut hits2, &mut ring2);
-                        ctx2.inert = true;
-                        let r = if self.screens.capsule.is_some() {
-                            Route::Capsule
-                        } else {
-                            Route::Manager
-                        };
-                        self.draw_frame(a, b, &mut ctx2, r);
-                    };
-                    rain::render_outro(buf, area, &state, &theme, &curve, &mut origin);
-                }
-                self.curves.1 = curve;
+                let mut state = self
+                    .outro
+                    .take()
+                    .unwrap_or_else(|| OutroState::new(self.motion, None, 0));
+                rain::render_outro(buf, area, &mut state, &t);
+                self.outro = Some(state);
             }
             Route::Handoff => {
                 let h = self.handoff.unwrap_or(0);
