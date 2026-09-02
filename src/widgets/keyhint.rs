@@ -26,7 +26,14 @@ pub fn render(
     badge: Option<(&str, BadgeKind)>,
     right: Option<&str>,
 ) {
-    render_toned(area, buf, t, hints, badge, right.map(|r| (r, Tone::Secondary)));
+    render_toned(
+        area,
+        buf,
+        t,
+        hints,
+        badge,
+        right.map(|r| (r, Tone::Secondary)),
+    );
 }
 
 /// Like [`render`], with a toned status: an error status is drawn as

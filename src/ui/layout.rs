@@ -75,7 +75,10 @@ impl Split {
     pub fn drag_to(&mut self, dir: SplitDir, area: Rect, gap: u16, pos: Position) -> bool {
         let (usable, offset) = match dir {
             SplitDir::Horizontal => (area.width.saturating_sub(gap), pos.x.saturating_sub(area.x)),
-            SplitDir::Vertical => (area.height.saturating_sub(gap), pos.y.saturating_sub(area.y)),
+            SplitDir::Vertical => (
+                area.height.saturating_sub(gap),
+                pos.y.saturating_sub(area.y),
+            ),
         };
         if usable < self.min_first + self.min_second || usable == 0 {
             return false;
@@ -169,7 +172,10 @@ mod tests {
     fn drag_moves_the_seam_and_respects_minima() {
         let mut s = Split::new(50, 10, 10);
         let area = Rect::new(0, 0, 101, 20);
-        assert_eq!(s.handle(SplitDir::Horizontal, area, 1), Rect::new(50, 0, 1, 20));
+        assert_eq!(
+            s.handle(SplitDir::Horizontal, area, 1),
+            Rect::new(50, 0, 1, 20)
+        );
         assert!(s.drag_to(SplitDir::Horizontal, area, 1, Position::new(70, 3)));
         let (a, _) = s.horizontal(area, 1);
         assert_eq!(a.width, 70);

@@ -9,7 +9,9 @@ use crate::clock::Clock;
 use crate::domain::account::{AccountId, AccountRegistry};
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{Instance, InstanceId, InstanceStatus};
-use crate::domain::workspace::{AuthEntry, EnvVar, Mount, RoleEntry, RoleName, Workspace, WorkspaceId};
+use crate::domain::workspace::{
+    AuthEntry, EnvVar, Mount, RoleEntry, RoleName, Workspace, WorkspaceId,
+};
 use crate::scenario::Scenario;
 use crate::sim::onepassword::SimOnePassword;
 use crate::sim::pty::Daemon;
@@ -32,18 +34,32 @@ impl GlobalConfig {
         let mut n = 0;
         n += usize::from(self.coauthor_trailer != other.coauthor_trailer);
         n += usize::from(self.dco_signoff != other.dco_signoff);
-        n += diff(&self.mounts, &other.mounts);
-        n += diff(&self.env, &other.env);
-        n += diff(&self.auth, &other.auth);
+        n += keyed_diff(&self.mounts, &other.mounts, |m| m.destination.clone());
+        n += keyed_diff(&self.env, &other.env, |e| e.key.clone());
+        n += keyed_diff(&self.auth, &other.auth, |a| a.agent.label().to_owned());
         n += usize::from(self.role_env != other.role_env);
         n += usize::from(self.role_auth != other.role_auth);
-        n += diff(&self.trust, &other.trust);
+        n += keyed_diff(&self.trust, &other.trust, |t| t.source.clone());
         n
     }
 }
 
-fn diff<T: PartialEq>(a: &[T], b: &[T]) -> usize {
-    a.iter().filter(|x| !b.contains(x)).count() + b.iter().filter(|x| !a.contains(x)).count()
+/// Added + modified + removed rows, matching rows by identity so an edited
+/// row counts once rather than as a removal plus an addition.
+pub fn keyed_diff<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
+    let mut n = 0;
+    for x in a {
+        match b.iter().find(|y| key(y) == key(x)) {
+            None => n += 1,
+            Some(y) if y != x => n += 1,
+            _ => {}
+        }
+    }
+    n += b
+        .iter()
+        .filter(|y| !a.iter().any(|x| key(x) == key(y)))
+        .count();
+    n
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -76,21 +92,53 @@ pub struct GithubRepo {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
     /// Config write finished.
-    WorkspaceSaved { id: WorkspaceId, ok: bool },
-    GlobalSaved { ok: bool },
+    WorkspaceSaved {
+        id: WorkspaceId,
+        ok: bool,
+    },
+    GlobalSaved {
+        ok: bool,
+    },
     /// Instance refresh cycle finished.
-    Refreshed { ok: bool },
-    Prewarmed { workspace: WorkspaceId },
-    Stopped { instance: InstanceId },
-    Purged { instance: InstanceId },
-    AccountRefreshed { account: AccountId },
-    AccountValidated { account: AccountId },
-    RoleLoaded { role: String, ok: bool, error: Option<String> },
-    GithubResolved { url: String, ok: bool },
-    Attached { instance: InstanceId },
+    Refreshed {
+        ok: bool,
+    },
+    Prewarmed {
+        workspace: WorkspaceId,
+    },
+    Stopped {
+        instance: InstanceId,
+    },
+    Purged {
+        instance: InstanceId,
+    },
+    AccountRefreshed {
+        account: AccountId,
+    },
+    AccountValidated {
+        account: AccountId,
+    },
+    RoleLoaded {
+        role: String,
+        ok: bool,
+        error: Option<String>,
+    },
+    GithubResolved {
+        url: String,
+        ok: bool,
+    },
+    Attached {
+        instance: InstanceId,
+    },
     /// Another client attached to this instance and displaced us.
-    Takeover { instance: InstanceId, by: String },
-    HostAction { label: String, ok: bool },
+    Takeover {
+        instance: InstanceId,
+        by: String,
+    },
+    HostAction {
+        label: String,
+        ok: bool,
+    },
     /// A second client ended the Construct first.
     ForeignExit,
 }
@@ -185,7 +233,11 @@ impl World {
             && now >= at
         {
             self.takeover_at_ms = None;
-            if let Some(i) = self.instances.iter().find(|i| i.status == InstanceStatus::Running) {
+            if let Some(i) = self
+                .instances
+                .iter()
+                .find(|i| i.status == InstanceStatus::Running)
+            {
                 due.push(Msg::Takeover {
                     instance: i.id.clone(),
                     by: "tty004 · MacBook".into(),
@@ -210,9 +262,9 @@ impl World {
     /// The saved Workspace whose workdir is the current directory.
     pub fn cwd_workspace(&self) -> Option<&Workspace> {
         self.workspaces.iter().find(|w| {
-            w.mounts
-                .iter()
-                .any(|m| m.source_label() == self.cwd || expand(&self.home, m.source_label()) == self.cwd)
+            w.mounts.iter().any(|m| {
+                m.source_label() == self.cwd || expand(&self.home, m.source_label()) == self.cwd
+            })
         })
     }
 
@@ -279,7 +331,13 @@ impl World {
         format!("jk-{:04x}", n & 0xffff)
     }
 
-    pub fn account_for(&self, provider: Provider, ws: Option<&Workspace>, role: Option<&str>, session: Option<&AccountId>) -> crate::domain::fixtures::ResolvedAccount {
+    pub fn account_for(
+        &self,
+        provider: Provider,
+        ws: Option<&Workspace>,
+        role: Option<&str>,
+        session: Option<&AccountId>,
+    ) -> crate::domain::fixtures::ResolvedAccount {
         crate::domain::fixtures::resolve_account(provider, ws, role, session, &self.accounts)
     }
 
@@ -321,7 +379,10 @@ mod tests {
 
     #[test]
     fn masks_private_paths() {
-        assert_eq!(mask_path("/Users/x", "/Users/x/src/acme/api-gateway"), "~/…/api-gateway");
+        assert_eq!(
+            mask_path("/Users/x", "/Users/x/src/acme/api-gateway"),
+            "~/…/api-gateway"
+        );
         assert_eq!(mask_path("/Users/x", "/Users/x/src"), "~/src");
         assert_eq!(mask_path("/Users/x", "/opt/build/cache"), "…/cache");
     }

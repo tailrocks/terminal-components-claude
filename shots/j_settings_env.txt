@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Settings › global › Environments               u Usage  c Accounts  ? help
+
+
+  ▎General   ▎Mounts   ▎Environments   ▎Auth   ▎Trust
+  ──────────────────────━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────
+
+      Global                                                                                                   3 vars
+  ▎›    GH_TOKEN            global          ****************        [op] Engineering › GitHub · CLI token › credenti…
+  ▎     EDITOR              global          ****                    plain
+  ▎     CARGO_NET_GIT_FET…  global          ****                    plain
+  ▎     + Add environment variable
+    ▾ Role: backend                                                                                            0 vars
+  ▎     + Add backend environment variable
+    ▾ Role: sre                                                                                                1 vars
+  ▎     KUBECONFIG          role sre        ****************        plain
+  ▎     + Add sre environment variable
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Enter Edit  m Show  p 1Password…  s Scope…  d Remove…  a Add…  [ ] Switch tab  Ctrl+S Save  Esc Back

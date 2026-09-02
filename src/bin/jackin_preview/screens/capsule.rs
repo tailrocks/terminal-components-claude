@@ -26,12 +26,14 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use super::modals::{ChoiceDialog, InfoDialog, InfoResult, modal_frame};
-use super::{Cx, CustomModal, Go, Modal, ModalResult, ModalTag, Screen, plural};
+use super::{CustomModal, Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
 use crate::domain::instance::AgentState;
 use crate::domain::usage::{Freshness, QuotaStatus};
-use crate::sim::pty::{Daemon, Direction, MAX_LABEL, MIN_PANE_COLS, MIN_PANE_ROWS, PaneId, PaneNode, Seam, nearest};
+use crate::sim::pty::{
+    Daemon, Direction, MAX_LABEL, MIN_PANE_COLS, MIN_PANE_ROWS, PaneId, PaneNode, Seam, nearest,
+};
 use crate::sim::world::{Msg, World};
 
 pub const STRIP: WidgetId = WidgetId::of("capsule.strip");
@@ -190,7 +192,9 @@ impl CapsuleScreen {
     }
 
     fn framed(&self, w: &World) -> bool {
-        self.daemon(w).and_then(|d| d.active_tab()).is_some_and(|t| t.leaves().len() > 1 || t.zoomed.is_some())
+        self.daemon(w)
+            .and_then(|d| d.active_tab())
+            .is_some_and(|t| t.leaves().len() > 1 || t.zoomed.is_some())
     }
 
     fn inner_of(&self, w: &World, r: Rect) -> Rect {
@@ -218,13 +222,20 @@ impl CapsuleScreen {
         };
         let mut p = Picker::new(WidgetId::of("capsule.agent"), &title);
         p.width = 72;
-        let ws = w.instance(&self.instance).and_then(|i| i.workspace).and_then(|x| w.workspace(x));
+        let ws = w
+            .instance(&self.instance)
+            .and_then(|i| i.workspace)
+            .and_then(|x| w.workspace(x));
         let role = w.instance(&self.instance).map(|i| i.role.clone());
         let mut items = vec![];
         for a in Agent::ALL {
             let r = w.account_for(a.provider(), ws, role.as_deref(), None);
             let detail = match &r.account {
-                Some(id) => w.accounts.get(id).map(|x| format!("{} · {}", x.display_name, r.level.label())).unwrap_or_default(),
+                Some(id) => w
+                    .accounts
+                    .get(id)
+                    .map(|x| format!("{} · {}", x.display_name, r.level.label()))
+                    .unwrap_or_default(),
                 None => "needs account".into(),
             };
             items.push(PickerItem {
@@ -254,13 +265,23 @@ impl CapsuleScreen {
         match agent {
             None => self.spawn(None, None, w, cx),
             Some(a) => {
-                let accounts: Vec<&crate::domain::account::Account> = w.accounts.by_provider(a.provider()).filter(|x| x.origin == crate::domain::account::AccountOrigin::Registered).collect();
+                let accounts: Vec<&crate::domain::account::Account> = w
+                    .accounts
+                    .by_provider(a.provider())
+                    .filter(|x| x.origin == crate::domain::account::AccountOrigin::Registered)
+                    .collect();
                 if accounts.len() >= 2 {
                     self.pending_agent = Some(a);
-                    let ws = w.instance(&self.instance).and_then(|i| i.workspace).and_then(|x| w.workspace(x));
+                    let ws = w
+                        .instance(&self.instance)
+                        .and_then(|i| i.workspace)
+                        .and_then(|x| w.workspace(x));
                     let role = w.instance(&self.instance).map(|i| i.role.clone());
                     let resolved = w.account_for(a.provider(), ws, role.as_deref(), None);
-                    let mut p = Picker::new(WidgetId::of("capsule.provider"), &format!("Account for {}", a.label()));
+                    let mut p = Picker::new(
+                        WidgetId::of("capsule.provider"),
+                        &format!("Account for {}", a.label()),
+                    );
                     p.searchable = false;
                     p.width = 72;
                     p.scope = Some("session choice › Role › Workspace › provider default".into());
@@ -278,7 +299,16 @@ impl CapsuleScreen {
                         }
                         items.push(PickerItem {
                             label: acc.display_name.clone(),
-                            detail: format!("{} · {}{}", acc.source.origin_label(), acc.status_word(), if tags.is_empty() { String::new() } else { format!(" · {}", tags.join(" · ")) }),
+                            detail: format!(
+                                "{} · {}{}",
+                                acc.source.origin_label(),
+                                acc.status_word(),
+                                if tags.is_empty() {
+                                    String::new()
+                                } else {
+                                    format!(" · {}", tags.join(" · "))
+                                }
+                            ),
                             glyph: if acc.default_for_provider { "★" } else { " " },
                             group: "",
                             tag: if acc.enabled { None } else { Some("disabled") },
@@ -291,14 +321,20 @@ impl CapsuleScreen {
                     p.cursor = cursor;
                     cx.open(Modal::Picker(p), ModalTag::new("provider"));
                 } else {
-                    let ws = w.instance(&self.instance).and_then(|i| i.workspace).and_then(|x| w.workspace(x));
+                    let ws = w
+                        .instance(&self.instance)
+                        .and_then(|i| i.workspace)
+                        .and_then(|x| w.workspace(x));
                     let role = w.instance(&self.instance).map(|i| i.role.clone());
                     let r = w.account_for(a.provider(), ws, role.as_deref(), None);
                     if r.account.is_none() && a.registerable() {
                         let d = Dialog::confirm(
                             WidgetId::of("capsule.spawnfail"),
                             &format!("{} could not start", a.label()),
-                            &format!("No {} account is registered. Add one in Account & Usage Center, then try again.", a.provider().short()),
+                            &format!(
+                                "No {} account is registered. Add one in Account & Usage Center, then try again.",
+                                a.provider().short()
+                            ),
                             "OK",
                         );
                         let mut d = d;
@@ -317,7 +353,10 @@ impl CapsuleScreen {
     fn spawn(&mut self, agent: Option<Agent>, account: Option<AccountId>, w: &World, cx: &mut Cx) {
         let intent = self.pending_intent.take().unwrap_or(Intent::NewTab);
         let now = w.now_ms();
-        let ws = self.daemon(w).map(|d| d.workspace.clone()).unwrap_or_default();
+        let ws = self
+            .daemon(w)
+            .map(|d| d.workspace.clone())
+            .unwrap_or_default();
         // split refusal by minimum pane size
         if let Intent::Split(dir, _) = intent
             && let Some(f) = self.focused_pane(w)
@@ -325,15 +364,29 @@ impl CapsuleScreen {
         {
             let inner = self.inner_of(w, *r);
             let (need_c, need_r, have_c, have_r) = match dir {
-                SplitDir::Horizontal => (MIN_PANE_COLS, MIN_PANE_ROWS, inner.width / 2 - 2, inner.height.saturating_sub(2)),
-                SplitDir::Vertical => (MIN_PANE_COLS, MIN_PANE_ROWS, inner.width.saturating_sub(2), inner.height / 2 - 2),
+                SplitDir::Horizontal => (
+                    MIN_PANE_COLS,
+                    MIN_PANE_ROWS,
+                    inner.width / 2 - 2,
+                    inner.height.saturating_sub(2),
+                ),
+                SplitDir::Vertical => (
+                    MIN_PANE_COLS,
+                    MIN_PANE_ROWS,
+                    inner.width.saturating_sub(2),
+                    inner.height / 2 - 2,
+                ),
             };
             if have_c < need_c {
-                cx.error(format!("Cannot split: pane would be {have_c} columns, needs {need_c}"));
+                cx.error(format!(
+                    "Cannot split: pane would be {have_c} columns, needs {need_c}"
+                ));
                 return;
             }
             if have_r < need_r {
-                cx.error(format!("Cannot split: pane would be {have_r} rows, needs {need_r}"));
+                cx.error(format!(
+                    "Cannot split: pane would be {have_r} rows, needs {need_r}"
+                ));
                 return;
             }
         }
@@ -357,19 +410,25 @@ impl CapsuleScreen {
 
 impl CapsuleScreen {
     fn apply_pending_spawn(&mut self, w: &mut World, cx: &mut Cx) {
-        let Some((intent, agent, account, _ws, now)) = self.pending_spawn.take() else { return };
+        let Some((intent, agent, account, _ws, now)) = self.pending_spawn.take() else {
+            return;
+        };
         let Some(d) = self.daemon_mut(w) else { return };
         match intent {
             Intent::NewTab => {
                 d.new_tab(agent, account.clone(), now, false);
             }
             Intent::Split(dir, first) => {
-                if d.split(dir, first, agent, account.clone(), now, false).is_none() {
+                if d.split(dir, first, agent, account.clone(), now, false)
+                    .is_none()
+                {
                     cx.error("Cannot split: focused pane not found");
                 }
             }
         }
-        let label = agent.map(|a| a.label().to_owned()).unwrap_or("Shell".into());
+        let label = agent
+            .map(|a| a.label().to_owned())
+            .unwrap_or("Shell".into());
         match account.and_then(|id| w.accounts.get(&id).map(|a| a.display_name.clone())) {
             Some(acc) => cx.status(format!("Started {label} · account {acc}")),
             None => cx.status(format!("Started {label}")),
@@ -391,8 +450,14 @@ impl CapsuleScreen {
     }
 
     fn move_focus(&mut self, dir: Direction, w: &mut World, cx: &mut Cx) {
-        let Some(from) = self.focused_pane(w) else { return };
-        if self.daemon(w).and_then(|d| d.active_tab()).is_some_and(|t| t.zoomed.is_some()) {
+        let Some(from) = self.focused_pane(w) else {
+            return;
+        };
+        if self
+            .daemon(w)
+            .and_then(|d| d.active_tab())
+            .is_some_and(|t| t.zoomed.is_some())
+        {
             cx.status("Unzoom to move focus");
             return;
         }
@@ -404,9 +469,13 @@ impl CapsuleScreen {
     }
 
     fn resize(&mut self, dir: Direction, w: &mut World, cx: &mut Cx) {
-        let Some(from) = self.focused_pane(w) else { return };
+        let Some(from) = self.focused_pane(w) else {
+            return;
+        };
         let Some(d) = self.daemon_mut(w) else { return };
-        let Some(tab) = d.active_tab_mut() else { return };
+        let Some(tab) = d.active_tab_mut() else {
+            return;
+        };
         if tab.zoomed.is_some() {
             cx.status("Unzoom to resize");
             return;
@@ -444,8 +513,12 @@ impl CapsuleScreen {
             if let Some(s) = seam {
                 let (a, b) = split.layout(*sd, s.container, 1);
                 let too_small = match sd {
-                    SplitDir::Horizontal => a.width < MIN_PANE_COLS + 2 || b.width < MIN_PANE_COLS + 2,
-                    SplitDir::Vertical => a.height < MIN_PANE_ROWS + 2 || b.height < MIN_PANE_ROWS + 2,
+                    SplitDir::Horizontal => {
+                        a.width < MIN_PANE_COLS + 2 || b.width < MIN_PANE_COLS + 2
+                    }
+                    SplitDir::Vertical => {
+                        a.height < MIN_PANE_ROWS + 2 || b.height < MIN_PANE_ROWS + 2
+                    }
                 };
                 if too_small {
                     split.percent = before;
@@ -456,7 +529,9 @@ impl CapsuleScreen {
     }
 
     fn toggle_zoom(&mut self, w: &mut World, cx: &mut Cx) {
-        let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) else { return };
+        let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) else {
+            return;
+        };
         if t.zoomed.is_some() {
             t.zoomed = None;
             cx.status("Unzoomed");
@@ -480,13 +555,23 @@ impl CapsuleScreen {
     }
 
     fn palette_items(&mut self, query: &str, w: &World) -> Vec<PickerItem> {
-        let single = self.daemon(w).and_then(|d| d.active_tab()).is_some_and(|t| t.leaves().len() == 1);
-        let has_sel = self.focused_pane(w).and_then(|p| self.daemon(w).and_then(|d| d.pane(p))).is_some_and(|p| p.term.has_selection());
+        let single = self
+            .daemon(w)
+            .and_then(|d| d.active_tab())
+            .is_some_and(|t| t.leaves().len() == 1);
+        let has_sel = self
+            .focused_pane(w)
+            .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
+            .is_some_and(|p| p.term.has_selection());
         let q = query.to_lowercase();
         let mut out = vec![];
         self.palette_cmds.clear();
         for c in PALETTE {
-            let label = if c == "Close" && single { "Close tab" } else { c };
+            let label = if c == "Close" && single {
+                "Close tab"
+            } else {
+                c
+            };
             if !q.is_empty() && !label.to_lowercase().contains(&q) {
                 continue;
             }
@@ -494,9 +579,17 @@ impl CapsuleScreen {
                 "New tab" => ("Ctrl+B c", false),
                 "Split pane" => ("Ctrl+B \" %", false),
                 "Zoom / unzoom pane" => ("Ctrl+B z", false),
-                "Export file under cursor" | "Export file under cursor and reveal" | "Export file under cursor and open" => ("no file under cursor", true),
-                "Export selected file" | "Export selected file and reveal" | "Export selected file and open" => {
-                    if has_sel { ("selection", false) } else { ("no selection", true) }
+                "Export file under cursor"
+                | "Export file under cursor and reveal"
+                | "Export file under cursor and open" => ("no file under cursor", true),
+                "Export selected file"
+                | "Export selected file and reveal"
+                | "Export selected file and open" => {
+                    if has_sel {
+                        ("selection", false)
+                    } else {
+                        ("no selection", true)
+                    }
                 }
                 "Open link under cursor" => ("no link under cursor", true),
                 "Clear pane" => ("Ctrl+B Ctrl+L", false),
@@ -508,7 +601,11 @@ impl CapsuleScreen {
             let matched: Vec<usize> = if q.is_empty() {
                 vec![]
             } else {
-                label.to_lowercase().find(&q).map(|p| (p..p + q.len()).collect()).unwrap_or_default()
+                label
+                    .to_lowercase()
+                    .find(&q)
+                    .map(|p| (p..p + q.len()).collect())
+                    .unwrap_or_default()
             };
             out.push(PickerItem {
                 label: label.into(),
@@ -559,14 +656,24 @@ impl CapsuleScreen {
                 let d = Dialog::prompt(WidgetId::of("capsule.export"), cmd, input, "Export");
                 cx.open(Modal::Dialog(d), ModalTag::new("export"));
             }
-            "Export selected file" | "Export selected file and reveal" | "Export selected file and open" => {
-                let text = self.focused_pane(w).and_then(|p| self.daemon(w).and_then(|d| d.pane(p))).and_then(|p| p.term.selected_text()).unwrap_or_default();
+            "Export selected file"
+            | "Export selected file and reveal"
+            | "Export selected file and open" => {
+                let text = self
+                    .focused_pane(w)
+                    .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
+                    .and_then(|p| p.term.selected_text())
+                    .unwrap_or_default();
                 let path = text.lines().next().unwrap_or("").trim().to_owned();
                 self.export_kind = Some((cmd.ends_with("reveal"), cmd.ends_with("open")));
                 self.finish_export(&path, cx);
             }
-            "Stage image from clipboard path" | "Paste image from host clipboard" | "Stage image without pasting" => {
-                cx.status(format!("{cmd}: host clipboard has no image · nothing staged"));
+            "Stage image from clipboard path"
+            | "Paste image from host clipboard"
+            | "Stage image without pasting" => {
+                cx.status(format!(
+                    "{cmd}: host clipboard has no image · nothing staged"
+                ));
             }
             "Clear pane" => {
                 if let Some(p) = self.focused_pane(w)
@@ -577,7 +684,10 @@ impl CapsuleScreen {
             }
             "Usage" => self.open_usage(w, cx),
             "Close" | "Close tab" => {
-                let single = self.daemon(w).and_then(|d| d.active_tab()).is_some_and(|t| t.leaves().len() == 1);
+                let single = self
+                    .daemon(w)
+                    .and_then(|d| d.active_tab())
+                    .is_some_and(|t| t.leaves().len() == 1);
                 if single {
                     self.confirm_close(true, w, cx);
                 } else {
@@ -624,7 +734,10 @@ impl CapsuleScreen {
             cx.status("Export cancelled");
             return;
         }
-        let mut s = format!("Exported to ~/Downloads/jackin/payments-platform/{}", path.trim_start_matches('/'));
+        let mut s = format!(
+            "Exported to ~/Downloads/jackin/payments-platform/{}",
+            path.trim_start_matches('/')
+        );
         if reveal {
             s.push_str(" · revealed in Finder");
         }
@@ -651,29 +764,55 @@ impl CapsuleScreen {
             )
         };
         let _ = w;
-        cx.open(Modal::Dialog(d), ModalTag::new(if tab { "closetab" } else { "closepane" }));
+        cx.open(
+            Modal::Dialog(d),
+            ModalTag::new(if tab { "closetab" } else { "closepane" }),
+        );
     }
 
     fn is_dirty(&self, w: &World) -> bool {
-        w.instance(&self.instance).is_some_and(|i| i.is_dirty()) || self.daemon(w).is_some_and(|d| !d.touched_files().is_empty())
+        w.instance(&self.instance).is_some_and(|i| i.is_dirty())
+            || self
+                .daemon(w)
+                .is_some_and(|d| !d.touched_files().is_empty())
     }
 
     fn request_exit(&mut self, w: &World, cx: &mut Cx) {
         if self.is_dirty(w) {
             let inst = w.instance(&self.instance);
-            let touched = self.daemon(w).map(|d| d.touched_files()).unwrap_or_default();
+            let touched = self
+                .daemon(w)
+                .map(|d| d.touched_files())
+                .unwrap_or_default();
             let changed = inst.map(|i| i.uncommitted).unwrap_or(0) + touched.len();
             let unpushed = inst.map(|i| i.unpushed).unwrap_or(0);
-            let ws = self.daemon(w).map(|d| d.workspace.clone()).unwrap_or_default();
+            let ws = self
+                .daemon(w)
+                .map(|d| d.workspace.clone())
+                .unwrap_or_default();
             let c = ChoiceDialog::new(
                 WidgetId::of("capsule.exitdirty"),
                 "Unsaved work — exit?",
                 "",
-                &["Start a new agent", "Inspect changes", "Exit & keep changes", "Exit & discard changes"],
+                &[
+                    "Start a new agent",
+                    "Inspect changes",
+                    "Exit & keep changes",
+                    "Exit & discard changes",
+                ],
                 0,
             )
-            .line(format!("{ws}   • {changed} changed · {unpushed} unpushed"), Tone::Warning)
-            .buttons(vec![Button::subtle(WidgetId::of("capsule.exitdirty").sub("cancel"), "Cancel"), Button::primary(WidgetId::of("capsule.exitdirty").sub("ok"), "Choose")], 0)
+            .line(
+                format!("{ws}   • {changed} changed · {unpushed} unpushed"),
+                Tone::Warning,
+            )
+            .buttons(
+                vec![
+                    Button::subtle(WidgetId::of("capsule.exitdirty").sub("cancel"), "Cancel"),
+                    Button::primary(WidgetId::of("capsule.exitdirty").sub("ok"), "Choose"),
+                ],
+                0,
+            )
             .option_tones(vec![Tone::Normal, Tone::Normal, Tone::Normal, Tone::Error]);
             cx.open(Modal::Choice(c), ModalTag::new("exitdirty"));
         } else {
@@ -706,7 +845,10 @@ impl CapsuleScreen {
                 }
             }
         }
-        let focused = self.focused_pane(w).and_then(|p| self.daemon(w).and_then(|d| d.pane(p))).and_then(|p| p.proc.account.clone());
+        let focused = self
+            .focused_pane(w)
+            .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
+            .and_then(|p| p.proc.account.clone());
         let mut dlg = UsageDialog::new(accounts.clone(), w);
         if let Some(f) = focused
             && let Some(i) = accounts.iter().position(|a| *a == f)
@@ -717,15 +859,24 @@ impl CapsuleScreen {
     }
 
     fn open_container_info(&mut self, w: &World, cx: &mut Cx) {
-        let Some(i) = w.instance(&self.instance) else { return };
+        let Some(i) = w.instance(&self.instance) else {
+            return;
+        };
         let ws = i.workspace.and_then(|x| w.workspace(x));
-        let focused = self.focused_pane(w).and_then(|p| self.daemon(w).and_then(|d| d.pane(p)));
+        let focused = self
+            .focused_pane(w)
+            .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)));
         let agent = match focused {
             Some(p) => match p.proc.agent {
                 Some(a) => format!(
                     "{} ({})",
                     a.short(),
-                    p.proc.account.as_ref().and_then(|id| w.accounts.get(id)).map(|x| x.title()).unwrap_or(a.label().into())
+                    p.proc
+                        .account
+                        .as_ref()
+                        .and_then(|id| w.accounts.get(id))
+                        .map(|x| x.title())
+                        .unwrap_or(a.label().into())
                 ),
                 None => "(shell)".into(),
             },
@@ -733,23 +884,36 @@ impl CapsuleScreen {
         };
         let props = vec![
             Prop::new("Container", i.container_id()).copyable(),
-            Prop::new("Container ID", format!("3f9c{}e21a", &i.run_id.replace('-', "")[..8])).copyable(),
+            Prop::new(
+                "Container ID",
+                format!("3f9c{}e21a", &i.run_id.replace('-', "")[..8]),
+            )
+            .copyable(),
             Prop::new("Role", i.role.clone()),
             Prop::new("Agent", agent),
             Prop::new("Workdir", i.workdir.clone()),
             Prop::new("Instance", i.id.trim_start_matches("jk-").to_owned()),
             Prop::new("Capsule", "0.9.2"),
             Prop::new("Invocation ID", format!("{}-4f11", i.run_id)).copyable(),
-            Prop::new("Host log", format!("file:///Users/alexey/.jackin/logs/{}.log", i.run_id)),
+            Prop::new(
+                "Host log",
+                format!("file:///Users/alexey/.jackin/logs/{}.log", i.run_id),
+            ),
         ];
         let _ = ws;
-        let d = InfoDialog::new(WidgetId::of("capsule.info"), "Debug info", props).meta("Enter copies the row · y copies");
+        let d = InfoDialog::new(WidgetId::of("capsule.info"), "Debug info", props)
+            .meta("Enter copies the row · y copies");
         cx.open(Modal::Info(d), ModalTag::new("info"));
     }
 
     fn open_github(&mut self, w: &World, cx: &mut Cx) {
-        let Some(i) = w.instance(&self.instance) else { return };
-        let repo = w.github.iter().find(|r| r.full_name.ends_with(&i.workdir.trim_start_matches("/workspace/").to_owned()));
+        let Some(i) = w.instance(&self.instance) else {
+            return;
+        };
+        let repo = w.github.iter().find(|r| {
+            r.full_name
+                .ends_with(&i.workdir.trim_start_matches("/workspace/").to_owned())
+        });
         let branch = i.branch.clone().unwrap_or(i.default_branch.clone());
         let mut props = vec![Prop::new("Branch", branch.clone())];
         match &i.pr {
@@ -764,13 +928,18 @@ impl CapsuleScreen {
             None => {
                 props.push(Prop::new("Pull Request", "(none)").tone(Tone::Muted));
                 if let Some(r) = repo {
-                    props.push(Prop::new("GitHub URL", format!("{}/tree/{branch}", r.url)).copyable());
+                    props.push(
+                        Prop::new("GitHub URL", format!("{}/tree/{branch}", r.url)).copyable(),
+                    );
                 }
                 props.push(Prop::new("CI Status", "(unknown)").tone(Tone::Muted));
             }
         }
         let d = InfoDialog::new(WidgetId::of("capsule.github"), "GitHub context", props)
-            .action(Button::secondary(WidgetId::of("capsule.github").sub("open"), "Open PR…"))
+            .action(Button::secondary(
+                WidgetId::of("capsule.github").sub("open"),
+                "Open PR…",
+            ))
             .meta("open uses a gated host action");
         cx.open(Modal::Info(d), ModalTag::new("github"));
     }
@@ -805,12 +974,17 @@ impl CapsuleScreen {
             KeyCode::Char('n') => self.next_tab(w, 1),
             KeyCode::Char('p') => self.next_tab(w, -1),
             KeyCode::Char('x') => {
-                let single = self.daemon(w).and_then(|d| d.active_tab()).is_some_and(|t| t.leaves().len() == 1);
+                let single = self
+                    .daemon(w)
+                    .and_then(|d| d.active_tab())
+                    .is_some_and(|t| t.leaves().len() == 1);
                 self.confirm_close(single, w, cx);
             }
             KeyCode::Char('&') => self.confirm_close(true, w, cx),
             KeyCode::Char('"') => self.spawn_flow(Intent::Split(SplitDir::Vertical, false), w, cx),
-            KeyCode::Char('%') => self.spawn_flow(Intent::Split(SplitDir::Horizontal, false), w, cx),
+            KeyCode::Char('%') => {
+                self.spawn_flow(Intent::Split(SplitDir::Horizontal, false), w, cx)
+            }
             KeyCode::Char('z') => self.toggle_zoom(w, cx),
             KeyCode::Char('h') => self.move_focus(Direction::Left, w, cx),
             KeyCode::Char('j') => self.move_focus(Direction::Down, w, cx),
@@ -824,7 +998,11 @@ impl CapsuleScreen {
                 cx.status("Redrawn");
             }
             KeyCode::Char(c) if c.is_ascii_digit() => {
-                let n = if c == '0' { 10 } else { c as usize - '0' as usize };
+                let n = if c == '0' {
+                    10
+                } else {
+                    c as usize - '0' as usize
+                };
                 let count = self.daemon(w).map(|d| d.tabs.len()).unwrap_or(0);
                 if n >= 1 && n <= count {
                     if let Some(d) = self.daemon_mut(w) {
@@ -855,7 +1033,10 @@ impl CapsuleScreen {
             return Outcome::Consumed;
         };
         let now = w.now_ms();
-        let ws = self.daemon(w).map(|d| d.workspace.clone()).unwrap_or_default();
+        let ws = self
+            .daemon(w)
+            .map(|d| d.workspace.clone())
+            .unwrap_or_default();
         let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(p)) else {
             return Outcome::Consumed;
         };
@@ -895,11 +1076,12 @@ impl CapsuleScreen {
                 pane.term.clear_selection();
                 return Outcome::Changed;
             }
-            if key.is_char('y') && key.plain() {
-                if let Some(t) = pane.term.selected_text() {
-                    w.clipboard = Some(t);
-                    return Outcome::Changed;
-                }
+            if key.is_char('y')
+                && key.plain()
+                && let Some(t) = pane.term.selected_text()
+            {
+                w.clipboard = Some(t);
+                return Outcome::Changed;
             }
         }
         match key.code {
@@ -918,7 +1100,10 @@ impl CapsuleScreen {
     }
 
     fn pane_at(&self, pos: Position) -> Option<PaneId> {
-        self.pane_rects.iter().find(|(_, r)| r.contains(pos)).map(|(id, _)| *id)
+        self.pane_rects
+            .iter()
+            .find(|(_, r)| r.contains(pos))
+            .map(|(id, _)| *id)
     }
 
     fn seam_at(&self, pos: Position) -> Option<usize> {
@@ -943,7 +1128,11 @@ impl CapsuleScreen {
         buf.set_string(x + 2, y, "jackin❯", t.title().bg(bg));
         x += 12;
         // menu button on the right
-        let menu = if self.mode() == Mode::PrefixAwait { " prefix… " } else { " ☰Menu " };
+        let menu = if self.mode() == Mode::PrefixAwait {
+            " prefix… "
+        } else {
+            " ☰Menu "
+        };
         let mw = width(menu) as u16;
         let menu_x = area.right().saturating_sub(mw + 1);
         let hovered = ctx.interaction.hovered(MENU);
@@ -960,10 +1149,21 @@ impl CapsuleScreen {
         let labels: Vec<(String, AgentState)> = d
             .tabs
             .iter()
-            .map(|tab| (d.tab_label(tab, &|p| Self::account_suffix(w, p)), d.tab_state(tab)))
+            .map(|tab| {
+                (
+                    d.tab_label(tab, &|p| Self::account_suffix(w, p)),
+                    d.tab_state(tab),
+                )
+            })
             .collect();
         let cell_w = |i: usize, l: &str| -> u16 {
-            let idx = if i < 9 { 2 } else if i == 9 { 2 } else { 0 };
+            let idx = if i < 9 {
+                2
+            } else if i == 9 {
+                2
+            } else {
+                0
+            };
             (idx + width(l) + 4) as u16
         };
         let avail_right = menu_x.saturating_sub(5);
@@ -1003,7 +1203,11 @@ impl CapsuleScreen {
                 let tid = STRIP.child(i);
                 let active = i == d.active;
                 let hov = ctx.interaction.hovered(tid);
-                let mut style = Style::new().bg(bg).fg(if active || hov { t.text_primary } else { t.text_secondary });
+                let mut style = Style::new().bg(bg).fg(if active || hov {
+                    t.text_primary
+                } else {
+                    t.text_secondary
+                });
                 if hov && !active {
                     style = style.bg(t.lift(bg));
                 }
@@ -1013,8 +1217,17 @@ impl CapsuleScreen {
                 fill(buf, r, style);
                 let mut cx_ = x + 1;
                 if i < 10 {
-                    let idx = if i == 9 { "0".to_owned() } else { (i + 1).to_string() };
-                    buf.set_string(cx_, y, &idx, style.fg(t.text_muted).remove_modifier(Modifier::BOLD));
+                    let idx = if i == 9 {
+                        "0".to_owned()
+                    } else {
+                        (i + 1).to_string()
+                    };
+                    buf.set_string(
+                        cx_,
+                        y,
+                        &idx,
+                        style.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                    );
                     cx_ += 2;
                 }
                 buf.set_string(cx_, y, l, style);
@@ -1039,7 +1252,10 @@ impl CapsuleScreen {
             if hidden_right > 0 {
                 let s = format!("{hidden_right:>2}›");
                 buf.set_string(menu_x.saturating_sub(4), y, &s, t.muted().bg(bg));
-                ctx.clickable(STRIP.sub("right"), Rect::new(menu_x.saturating_sub(4), y, 3, 1));
+                ctx.clickable(
+                    STRIP.sub("right"),
+                    Rect::new(menu_x.saturating_sub(4), y, 3, 1),
+                );
             }
             break;
         }
@@ -1051,7 +1267,8 @@ impl CapsuleScreen {
         self.layout(body, w);
         let Some(d) = self.daemon(w) else { return };
         if d.tabs.is_empty() {
-            let e = EmptyState::new("No sessions").hint("Ctrl+B c starts an agent · Ctrl+B d detaches");
+            let e =
+                EmptyState::new("No sessions").hint("Ctrl+B c starts an agent · Ctrl+B d detaches");
             empty::render(body, buf, t, &e, t.canvas);
             return;
         }
@@ -1062,7 +1279,11 @@ impl CapsuleScreen {
         for (pid, r) in &rects {
             let Some(pane) = d.pane(*pid) else { continue };
             let focused = tab.focused == *pid;
-            let inner = if framed { r.inner(ratatui::layout::Margin::new(1, 1)) } else { *r };
+            let inner = if framed {
+                r.inner(ratatui::layout::Margin::new(1, 1))
+            } else {
+                *r
+            };
             if framed {
                 let hovered = ctx.interaction.hovered(PANES.child(*pid as usize));
                 let block = ratatui::widgets::Block::new()
@@ -1090,30 +1311,58 @@ impl CapsuleScreen {
                     t.secondary().bg(t.canvas)
                 };
                 if r.width > 6 {
-                    buf.set_string(r.x + 2, r.y, truncate(&title, r.width.saturating_sub(6) as usize), ts);
+                    buf.set_string(
+                        r.x + 2,
+                        r.y,
+                        truncate(&title, r.width.saturating_sub(6) as usize),
+                        ts,
+                    );
                     if !g.is_empty() {
-                        buf.set_string(r.x + 2 + width(&title) as u16, r.y, g, Style::new().fg(gt).bg(t.canvas));
+                        buf.set_string(
+                            r.x + 2 + width(&title) as u16,
+                            r.y,
+                            g,
+                            Style::new().fg(gt).bg(t.canvas),
+                        );
                     }
                 }
                 let mut meta = String::new();
                 if !pane.term.follow {
                     let range = pane.term.scroll.visible_range();
-                    meta = format!("{}–{} of {}", junie_tui::ui::text::thousands(range.start + 1), junie_tui::ui::text::thousands(range.end), junie_tui::ui::text::thousands(pane.term.scroll.content_len));
+                    meta = format!(
+                        "{}–{} of {}",
+                        junie_tui::ui::text::thousands(range.start + 1),
+                        junie_tui::ui::text::thousands(range.end),
+                        junie_tui::ui::text::thousands(pane.term.scroll.content_len)
+                    );
                 }
                 if tab.zoomed.is_some() {
-                    meta = if meta.is_empty() { "zoomed".into() } else { format!("{meta} · zoomed") };
+                    meta = if meta.is_empty() {
+                        "zoomed".into()
+                    } else {
+                        format!("{meta} · zoomed")
+                    };
                 }
                 if !meta.is_empty() {
                     let m = format!(" {meta} ");
                     let mw = width(&m) as u16;
                     if r.width > mw + width(&title) as u16 + 6 {
-                        buf.set_string(r.right().saturating_sub(mw + 2), r.y, &m, t.faint().bg(t.canvas));
+                        buf.set_string(
+                            r.right().saturating_sub(mw + 2),
+                            r.y,
+                            &m,
+                            t.faint().bg(t.canvas),
+                        );
                     }
                 }
             }
             // the terminal body
             let mut term = pane.term.clone();
-            term.caret_visible = pane.term.caret_visible && !dialog && focused && self.selecting.is_none() && self.drag.is_none();
+            term.caret_visible = pane.term.caret_visible
+                && !dialog
+                && focused
+                && self.selecting.is_none()
+                && self.drag.is_none();
             let saved_focus = ctx.interaction.focus;
             // the viewport is not a ring stop: the pane is
             ctx.inert = true;
@@ -1133,7 +1382,14 @@ impl CapsuleScreen {
             // scrollbar while scrolled back
             if !pane.term.follow {
                 let sb = Rect::new(inner.right().saturating_sub(1), inner.y, 1, inner.height);
-                scrollbar::render_vertical(sb, buf, ctx, PANES.child(*pid as usize), &pane.term.scroll, focused);
+                scrollbar::render_vertical(
+                    sb,
+                    buf,
+                    ctx,
+                    PANES.child(*pid as usize),
+                    &pane.term.scroll,
+                    focused,
+                );
             }
             ctx.clickable(PANES.child(*pid as usize), *r);
             ctx.scrollable(PANES.child(*pid as usize), *r);
@@ -1142,7 +1398,8 @@ impl CapsuleScreen {
         let seams = self.seams.clone();
         for (i, s) in seams.iter().enumerate() {
             let sid = PANES.sub("seam").child(i);
-            let hovered = ctx.interaction.hovered(sid) || self.drag.as_ref().is_some_and(|(p, _)| *p == s.path);
+            let hovered = ctx.interaction.hovered(sid)
+                || self.drag.as_ref().is_some_and(|(p, _)| *p == s.path);
             let glyph = match (s.dir, hovered) {
                 (SplitDir::Horizontal, false) => "│",
                 (SplitDir::Horizontal, true) => "┃",
@@ -1159,7 +1416,9 @@ impl CapsuleScreen {
 
     fn draw_context(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
-        let Some(i) = w.instance(&self.instance) else { return };
+        let Some(i) = w.instance(&self.instance) else {
+            return;
+        };
         let mut left = vec![];
         let branch = i.branch.clone().unwrap_or(i.default_branch.clone());
         if branch != i.default_branch {
@@ -1167,7 +1426,11 @@ impl CapsuleScreen {
                 Some((n, title)) => format!("PR #{n} · {title}"),
                 None => format!("Branch · {branch}"),
             };
-            left.push(Segment::new(text, Tone::Secondary).clickable(CONTEXT).priority(9));
+            left.push(
+                Segment::new(text, Tone::Secondary)
+                    .clickable(CONTEXT)
+                    .priority(9),
+            );
         }
         let mut right = vec![];
         // usage chip for the focused pane's account
@@ -1176,7 +1439,11 @@ impl CapsuleScreen {
             .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
             .and_then(|p| p.proc.account.clone())
             .and_then(|id| w.accounts.get(&id).cloned())
-            .or_else(|| w.accounts.default_for(crate::domain::agent::Provider::Anthropic).cloned());
+            .or_else(|| {
+                w.accounts
+                    .default_for(crate::domain::agent::Provider::Anthropic)
+                    .cloned()
+            });
         if let Some(a) = acc {
             let mut parts = vec![];
             for win in a.usage.windows.iter().take(2) {
@@ -1191,7 +1458,11 @@ impl CapsuleScreen {
                 Freshness::Refreshing => " · refreshing",
                 Freshness::Current => "",
             };
-            let full = if parts.is_empty() { format!("usage · {}", a.status_word()) } else { format!("{}{state}", parts.join(" · ")) };
+            let full = if parts.is_empty() {
+                format!("usage · {}", a.status_word())
+            } else {
+                format!("{}{state}", parts.join(" · "))
+            };
             let compact = parts.first().cloned().unwrap_or("usage".into());
             let tone = match a.usage.worst_status() {
                 Some(QuotaStatus::Exhausted) => Tone::Error,
@@ -1201,7 +1472,11 @@ impl CapsuleScreen {
             right.push(Segment::new(full, tone).clickable(USAGE_CHIP).priority(7));
             let _ = compact;
         }
-        right.push(Segment::new(truncate_middle(&i.container_id(), 28), Tone::Muted).clickable(CONTAINER_CHIP).priority(6));
+        right.push(
+            Segment::new(truncate_middle(&i.container_id(), 28), Tone::Muted)
+                .clickable(CONTAINER_CHIP)
+                .priority(6),
+        );
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 }
@@ -1241,7 +1516,7 @@ impl Screen for CapsuleScreen {
         let now_secs = w.clock.now_secs();
         if let Some(i) = w.instance_mut(&self.instance) {
             i.last_seen_secs = now_secs;
-            if touched as usize > 0 {
+            if touched > 0 {
                 i.uncommitted = i.uncommitted.max(touched);
             }
         }
@@ -1377,18 +1652,34 @@ impl Screen for CapsuleScreen {
         Outcome::Consumed
     }
 
-    fn on_double_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_double_click(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         for (i, _) in &self.tab_areas {
             if STRIP.child(*i) == id {
                 let d = self.daemon(w);
-                let current = d.and_then(|d| d.tabs.get(*i)).and_then(|t| t.custom_label.clone()).unwrap_or_default();
-                let auto = d.and_then(|d| d.tabs.get(*i).map(|t| d.tab_label(t, &|_| None))).unwrap_or_default();
+                let current = d
+                    .and_then(|d| d.tabs.get(*i))
+                    .and_then(|t| t.custom_label.clone())
+                    .unwrap_or_default();
+                let auto = d
+                    .and_then(|d| d.tabs.get(*i).map(|t| d.tab_label(t, &|_| None)))
+                    .unwrap_or_default();
                 let input = TextInput::new(WidgetId::of("capsule.rename.input"), "Label")
                     .value(&current)
                     .placeholder(&auto)
                     .help("Empty restores the automatic name · 16 max")
                     .plain_label();
-                let dlg = Dialog::prompt(WidgetId::of("capsule.rename"), "Rename tab", input, "Rename");
+                let dlg = Dialog::prompt(
+                    WidgetId::of("capsule.rename"),
+                    "Rename tab",
+                    input,
+                    "Rename",
+                );
                 cx.open(Modal::Dialog(dlg), ModalTag::new("rename").n(*i));
                 return Outcome::Changed;
             }
@@ -1430,7 +1721,13 @@ impl Screen for CapsuleScreen {
         Outcome::Ignored
     }
 
-    fn on_release(&mut self, _pressed: WidgetId, _pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_release(
+        &mut self,
+        _pressed: WidgetId,
+        _pos: Position,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         if self.drag.take().is_some() {
             cx.status("Split resized");
             return Outcome::Changed;
@@ -1460,7 +1757,10 @@ impl Screen for CapsuleScreen {
 
     fn on_paste(&mut self, text: &str, w: &mut World) -> Outcome {
         let now = w.now_ms();
-        let ws = self.daemon(w).map(|d| d.workspace.clone()).unwrap_or_default();
+        let ws = self
+            .daemon(w)
+            .map(|d| d.workspace.clone())
+            .unwrap_or_default();
         if let Some(p) = self.focused_pane(w)
             && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(p))
         {
@@ -1479,7 +1779,13 @@ impl Screen for CapsuleScreen {
         None
     }
 
-    fn on_modal(&mut self, tag: &ModalTag, result: ModalResult, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         self.dialog_open = false;
         match (tag.kind, result) {
             ("palette", ModalResult::Picked(i)) => {
@@ -1498,7 +1804,8 @@ impl Screen for CapsuleScreen {
                 if let (Some(a), Some(acc)) = (agent, account.clone()) {
                     // a session choice mutates only session scope
                     let next_id = self.daemon(w).map(|d| d.next_id).unwrap_or(0);
-                    w.session_accounts.insert((self.instance.clone(), next_id), acc.clone());
+                    w.session_accounts
+                        .insert((self.instance.clone(), next_id), acc.clone());
                     self.spawn(Some(a), Some(acc), w, cx);
                     self.apply_pending_spawn(w, cx);
                 }
@@ -1513,7 +1820,12 @@ impl Screen for CapsuleScreen {
                 self.spawn_flow(intent, w, cx);
             }
             ("closetarget", ModalResult::Picked(i)) => self.confirm_close(i == 1, w, cx),
-            ("closepane", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "closepane",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 if let Some(p) = self.focused_pane(w)
                     && let Some(d) = self.daemon_mut(w)
                 {
@@ -1524,11 +1836,20 @@ impl Screen for CapsuleScreen {
                         cx.status("Last session ended · the Capsule shuts down");
                         self.end_instance(false, cx);
                     } else {
-                        cx.status(if tab_closed { "Tab closed" } else { "Pane closed" });
+                        cx.status(if tab_closed {
+                            "Tab closed"
+                        } else {
+                            "Pane closed"
+                        });
                     }
                 }
             }
-            ("closetab", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "closetab",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 if let Some(d) = self.daemon_mut(w) {
                     let i = d.active;
                     d.close_tab(i);
@@ -1542,25 +1863,57 @@ impl Screen for CapsuleScreen {
                     }
                 }
             }
-            ("exit", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "exit",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 self.end_instance(false, cx);
             }
             ("exitdirty", ModalResult::Choice(Some(row))) => match row {
                 0 => self.spawn_flow(Intent::NewTab, w, cx),
                 1 => {
-                    let touched = self.daemon(w).map(|d| d.touched_files()).unwrap_or_default();
-                    let ws = self.daemon(w).map(|d| d.workspace.clone()).unwrap_or_default();
+                    let touched = self
+                        .daemon(w)
+                        .map(|d| d.touched_files())
+                        .unwrap_or_default();
+                    let ws = self
+                        .daemon(w)
+                        .map(|d| d.workspace.clone())
+                        .unwrap_or_default();
                     let inst = w.instance(&self.instance);
-                    let mut props = vec![Prop::new(ws.as_str(), format!("{} changed · {} unpushed", inst.map(|i| i.uncommitted).unwrap_or(0) + touched.len(), inst.map(|i| i.unpushed).unwrap_or(0))).tone(Tone::Warning)];
+                    let mut props = vec![
+                        Prop::new(
+                            ws.as_str(),
+                            format!(
+                                "{} changed · {} unpushed",
+                                inst.map(|i| i.uncommitted).unwrap_or(0) + touched.len(),
+                                inst.map(|i| i.unpushed).unwrap_or(0)
+                            ),
+                        )
+                        .tone(Tone::Warning),
+                    ];
                     props.push(Prop::new("M", "src/settlement/retry.rs"));
                     props.push(Prop::new("M", "src/settlement/mod.rs"));
                     for f in touched {
                         props.push(Prop::new("A", f));
                     }
                     if inst.map(|i| i.unpushed).unwrap_or(0) > 0 {
-                        props.push(Prop::new("↑", format!("{} commit not pushed", inst.map(|i| i.unpushed).unwrap_or(0))).tone(Tone::Warning));
+                        props.push(
+                            Prop::new(
+                                "↑",
+                                format!(
+                                    "{} commit not pushed",
+                                    inst.map(|i| i.unpushed).unwrap_or(0)
+                                ),
+                            )
+                            .tone(Tone::Warning),
+                        );
                     }
-                    let d = InfoDialog::new(WidgetId::of("capsule.inspect"), "Inspect changes", props).meta("Esc returns to the exit choices");
+                    let d =
+                        InfoDialog::new(WidgetId::of("capsule.inspect"), "Inspect changes", props)
+                            .meta("Esc returns to the exit choices");
                     cx.open(Modal::Info(d), ModalTag::new("inspect"));
                 }
                 2 => {
@@ -1568,10 +1921,23 @@ impl Screen for CapsuleScreen {
                     self.end_instance(false, cx);
                 }
                 _ => {
-                    let ws = self.daemon(w).map(|d| d.workspace.clone()).unwrap_or_default();
+                    let ws = self
+                        .daemon(w)
+                        .map(|d| d.workspace.clone())
+                        .unwrap_or_default();
                     let facts = vec![
-                        Prop::new("Action", "discard every uncommitted change and unpushed commit").tone(Tone::Error),
-                        Prop::new("Target", format!("{ws} · instance {}", self.instance.trim_start_matches("jk-"))),
+                        Prop::new(
+                            "Action",
+                            "discard every uncommitted change and unpushed commit",
+                        )
+                        .tone(Tone::Error),
+                        Prop::new(
+                            "Target",
+                            format!(
+                                "{ws} · instance {}",
+                                self.instance.trim_start_matches("jk-")
+                            ),
+                        ),
                         Prop::new("Reversible", "no").tone(Tone::Secondary),
                     ];
                     let d = Dialog::facts(
@@ -1588,7 +1954,12 @@ impl Screen for CapsuleScreen {
             ("inspect", _) => {
                 self.request_exit(w, cx);
             }
-            ("discard", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "discard",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 if let Some(i) = w.instance_mut(&self.instance) {
                     i.uncommitted = 0;
                     i.unpushed = 0;
@@ -1596,25 +1967,53 @@ impl Screen for CapsuleScreen {
                 cx.status("Changes discarded");
                 self.end_instance(false, cx);
             }
-            ("rename", ModalResult::Dialog { action: Some(1), text }) => {
+            (
+                "rename",
+                ModalResult::Dialog {
+                    action: Some(1),
+                    text,
+                },
+            ) => {
                 let label: String = text.unwrap_or_default().chars().take(MAX_LABEL).collect();
                 if let Some(t) = self.daemon_mut(w).and_then(|d| d.tabs.get_mut(tag.n)) {
-                    t.custom_label = if label.trim().is_empty() { None } else { Some(label.clone()) };
+                    t.custom_label = if label.trim().is_empty() {
+                        None
+                    } else {
+                        Some(label.clone())
+                    };
                 }
-                cx.status(if label.trim().is_empty() { "Tab name reset" } else { "Tab renamed" });
+                cx.status(if label.trim().is_empty() {
+                    "Tab name reset"
+                } else {
+                    "Tab renamed"
+                });
             }
-            ("export", ModalResult::Dialog { action: Some(1), text }) => {
+            (
+                "export",
+                ModalResult::Dialog {
+                    action: Some(1),
+                    text,
+                },
+            ) => {
                 let p = text.unwrap_or_default();
                 self.finish_export(&p, cx);
             }
-            ("info", ModalResult::Info(InfoResult::Copy(v))) | ("github", ModalResult::Info(InfoResult::Copy(v))) => {
+            ("info", ModalResult::Info(InfoResult::Copy(v)))
+            | ("github", ModalResult::Info(InfoResult::Copy(v))) => {
                 cx.copy(v);
             }
             ("github", ModalResult::Info(InfoResult::Action(0))) => {
                 cx.status("Opened the pull request on the host (gated host action)");
             }
             ("usage", _) => {}
-            (_, ModalResult::Cancelled) | (_, ModalResult::Dialog { action: Some(0), .. }) | (_, ModalResult::Choice(None)) => {
+            (_, ModalResult::Cancelled)
+            | (
+                _,
+                ModalResult::Dialog {
+                    action: Some(0), ..
+                },
+            )
+            | (_, ModalResult::Choice(None)) => {
                 self.pending_intent = None;
                 self.pending_agent = None;
             }
@@ -1631,10 +2030,22 @@ impl Screen for CapsuleScreen {
             let lines = [
                 ("Attach taken over", t.title()),
                 ("", t.base()),
-                (&*format!("{by} attached to {} {}.", self.daemon(w).map(|d| d.workspace.as_str()).unwrap_or("this instance"), w.clock.ago(w.now_secs() - 3)), t.secondary()),
+                (
+                    &*format!(
+                        "{by} attached to {} {}.",
+                        self.daemon(w)
+                            .map(|d| d.workspace.as_str())
+                            .unwrap_or("this instance"),
+                        w.clock.ago(w.now_secs() - 3)
+                    ),
+                    t.secondary(),
+                ),
                 ("The instance, tabs and panes keep running.", t.secondary()),
                 ("", t.base()),
-                ("Enter Reconnect (take it back)   Esc Workspace manager", t.muted()),
+                (
+                    "Enter Reconnect (take it back)   Esc Workspace manager",
+                    t.muted(),
+                ),
             ];
             let y0 = area.y + area.height.saturating_sub(lines.len() as u16) / 2;
             for (i, (text, style)) in lines.iter().enumerate() {
@@ -1646,13 +2057,23 @@ impl Screen for CapsuleScreen {
         }
         let strip = Rect::new(area.x, area.y, area.width, 2);
         let context = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
-        let body = Rect::new(area.x, area.y + 2, area.width, area.height.saturating_sub(3));
+        let body = Rect::new(
+            area.x,
+            area.y + 2,
+            area.width,
+            area.height.saturating_sub(3),
+        );
         self.body = body;
         self.draw_strip(strip, buf, ctx, w);
         self.draw_panes(body, buf, ctx, w);
         self.draw_context(context, buf, ctx, w);
         if self.redraw_flash > 0 {
-            buf.set_string(area.right().saturating_sub(10), area.y, " redrawn ", t.faint().bg(t.canvas));
+            buf.set_string(
+                area.right().saturating_sub(10),
+                area.y,
+                " redrawn ",
+                t.faint().bg(t.canvas),
+            );
         }
     }
 
@@ -1675,7 +2096,10 @@ impl Screen for CapsuleScreen {
             Mode::Select => vec![hint("drag", "Select"), hint("release", "Copy")],
             Mode::Drag => vec![hint("drag", "Resize"), hint("release", "Done")],
             _ => {
-                let scrolled = self.focused_pane(w).and_then(|p| self.daemon(w).and_then(|d| d.pane(p))).is_some_and(|p| !p.term.follow);
+                let scrolled = self
+                    .focused_pane(w)
+                    .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
+                    .is_some_and(|p| !p.term.follow);
                 if scrolled {
                     vec![
                         hint("↑↓", "Scroll"),
@@ -1807,7 +2231,13 @@ impl CustomModal for UsageDialog {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, _focus: &mut Focus, _w: &World) -> Outcome {
+    fn on_click(
+        &mut self,
+        id: WidgetId,
+        _pos: Position,
+        _focus: &mut Focus,
+        _w: &World,
+    ) -> Outcome {
         for (i, _) in self.tab_areas.iter().enumerate() {
             if WidgetId::of("capsule.usage.tab").child(i) == id {
                 self.tab = i;
@@ -1845,13 +2275,27 @@ impl CustomModal for UsageDialog {
     }
 
     fn hints(&self) -> Vec<Hint> {
-        vec![hint("r", "Refresh"), hint("Tab", "Tabs / body"), hint("← →", "Provider"), hint("Esc", "Close")]
+        vec![
+            hint("r", "Refresh"),
+            hint("Tab", "Tabs / body"),
+            hint("← →", "Provider"),
+            hint("Esc", "Close"),
+        ]
     }
 
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let wdt = 66u16.min(screen.width.saturating_sub(4));
         let h = screen.height.saturating_sub(4).min(24);
-        let (area, inner) = modal_frame(screen, buf, ctx, wdt, h, "Usage", Some("read-only projection"), false);
+        let (area, inner) = modal_frame(
+            screen,
+            buf,
+            ctx,
+            wdt,
+            h,
+            "Usage",
+            Some("read-only projection"),
+            false,
+        );
         self.area = area;
         let t: &Theme = ctx.theme;
         let bg = t.surface_elevated;
@@ -1859,7 +2303,11 @@ impl CustomModal for UsageDialog {
         let mut labels = vec!["Overview".to_owned()];
         for id in &self.accounts {
             if let Some(a) = w.accounts.get(id) {
-                labels.push(format!("{} · {}", a.agent.map(|x| x.label()).unwrap_or(a.provider.short()), a.display_name));
+                labels.push(format!(
+                    "{} · {}",
+                    a.agent.map(|x| x.label()).unwrap_or(a.provider.short()),
+                    a.display_name
+                ));
             }
         }
         self.tab_areas.clear();
@@ -1874,7 +2322,11 @@ impl CustomModal for UsageDialog {
                 break;
             }
             let active = i == self.tab;
-            let mut st = Style::new().bg(bg).fg(if active { t.text_primary } else { t.text_secondary });
+            let mut st = Style::new().bg(bg).fg(if active {
+                t.text_primary
+            } else {
+                t.text_secondary
+            });
             if active {
                 st = st.add_modifier(Modifier::BOLD);
             }
@@ -1892,7 +2344,12 @@ impl CustomModal for UsageDialog {
             self.tab_areas.push(r);
             x += lw + 1;
         }
-        let body = Rect::new(inner.x, y + 3, inner.width, inner.bottom().saturating_sub(y + 5));
+        let body = Rect::new(
+            inner.x,
+            y + 3,
+            inner.width,
+            inner.bottom().saturating_sub(y + 5),
+        );
         // build body lines
         enum Line {
             Text(String, Tone),
@@ -1903,41 +2360,94 @@ impl CustomModal for UsageDialog {
         if self.tab == 0 {
             for id in &self.accounts {
                 if let Some(a) = w.accounts.get(id) {
-                    let name = format!("{} · {}", a.agent.map(|x| x.label()).unwrap_or(a.provider.short()), a.display_name);
-                    let state = if refreshing { "refreshing…".to_owned() } else { a.usage.freshness.phase.label().to_owned() };
+                    let name = format!(
+                        "{} · {}",
+                        a.agent.map(|x| x.label()).unwrap_or(a.provider.short()),
+                        a.display_name
+                    );
+                    let state = if refreshing {
+                        "refreshing…".to_owned()
+                    } else {
+                        a.usage.freshness.phase.label().to_owned()
+                    };
                     match a.usage.windows.iter().find(|w| w.used_pct.is_some()) {
                         Some(win) => lines.push(Line::Meter(
                             name,
                             win.used_pct.unwrap_or(0),
                             format!("{} · {}", win.label, state),
-                            Self::meter_tone(win, if refreshing { Freshness::Refreshing } else { a.usage.freshness.phase }),
+                            Self::meter_tone(
+                                win,
+                                if refreshing {
+                                    Freshness::Refreshing
+                                } else {
+                                    a.usage.freshness.phase
+                                },
+                            ),
                         )),
-                        None => lines.push(Line::Text(format!("{name}   {}", a.status_word()), Tone::Muted)),
+                        None => lines.push(Line::Text(
+                            format!("{name}   {}", a.status_word()),
+                            Tone::Muted,
+                        )),
                     }
                 }
             }
             if lines.is_empty() {
-                lines.push(Line::Text("Providers   usage unavailable".into(), Tone::Muted));
+                lines.push(Line::Text(
+                    "Providers   usage unavailable".into(),
+                    Tone::Muted,
+                ));
             }
-        } else if let Some(a) = self.accounts.get(self.tab - 1).and_then(|id| w.accounts.get(id)) {
-            lines.push(Line::Text(format!("Identity provider   {}", a.provider.label()), Tone::Normal));
-            lines.push(Line::Text(format!("Identity account    {} ({})", a.display_name, a.identity.label()), Tone::Normal));
+        } else if let Some(a) = self
+            .accounts
+            .get(self.tab - 1)
+            .and_then(|id| w.accounts.get(id))
+        {
             lines.push(Line::Text(
-                format!("Identity activity   last request {}", a.last_refresh_secs.map(|s| w.clock.ago(s)).unwrap_or("never".into())),
+                format!("Identity provider   {}", a.provider.label()),
+                Tone::Normal,
+            ));
+            lines.push(Line::Text(
+                format!(
+                    "Identity account    {} ({})",
+                    a.display_name,
+                    a.identity.label()
+                ),
+                Tone::Normal,
+            ));
+            lines.push(Line::Text(
+                format!(
+                    "Identity activity   last request {}",
+                    a.last_refresh_secs
+                        .map(|s| w.clock.ago(s))
+                        .unwrap_or("never".into())
+                ),
                 Tone::Normal,
             ));
             lines.push(Line::Text(String::new(), Tone::Normal));
             for win in &a.usage.windows {
                 if win.has_meter() {
-                    let reset = win.reset_secs.map(|r| w.clock.reset_label(r)).unwrap_or_default();
+                    let reset = win
+                        .reset_secs
+                        .map(|r| w.clock.reset_label(r))
+                        .unwrap_or_default();
                     lines.push(Line::Meter(
                         win.label.clone(),
                         win.used_pct.unwrap_or(0),
                         format!("{} · {reset}", win.value_label()),
-                        Self::meter_tone(win, if refreshing { Freshness::Refreshing } else { a.usage.freshness.phase }),
+                        Self::meter_tone(
+                            win,
+                            if refreshing {
+                                Freshness::Refreshing
+                            } else {
+                                a.usage.freshness.phase
+                            },
+                        ),
                     ));
                 } else {
-                    lines.push(Line::Text(format!("{}   {}", win.label, win.value_label()), Tone::Muted));
+                    lines.push(Line::Text(
+                        format!("{}   {}", win.label, win.value_label()),
+                        Tone::Muted,
+                    ));
                 }
             }
             lines.push(Line::Text(String::new(), Tone::Normal));
@@ -1945,13 +2455,36 @@ impl CustomModal for UsageDialog {
                 format!("{} refreshing…", spinner_frame(w.now_ms() as u64 / 80))
             } else {
                 match a.usage.freshness.phase {
-                    Freshness::Current => format!("current · refreshed {}", a.last_refresh_secs.map(|s| w.clock.ago(s)).unwrap_or("just now".into())),
-                    Freshness::Stale => format!("stale · refreshed {}", a.last_refresh_secs.map(|s| w.clock.ago(s)).unwrap_or("?".into())),
-                    Freshness::Failed => format!("! error: {}", a.issue.as_ref().map(|i| i.message.clone()).unwrap_or("refresh failed".into())),
+                    Freshness::Current => format!(
+                        "current · refreshed {}",
+                        a.last_refresh_secs
+                            .map(|s| w.clock.ago(s))
+                            .unwrap_or("just now".into())
+                    ),
+                    Freshness::Stale => format!(
+                        "stale · refreshed {}",
+                        a.last_refresh_secs
+                            .map(|s| w.clock.ago(s))
+                            .unwrap_or("?".into())
+                    ),
+                    Freshness::Failed => format!(
+                        "! error: {}",
+                        a.issue
+                            .as_ref()
+                            .map(|i| i.message.clone())
+                            .unwrap_or("refresh failed".into())
+                    ),
                     Freshness::Refreshing => "refreshing…".into(),
                 }
             };
-            lines.push(Line::Text(fresh, if a.usage.freshness.phase == Freshness::Failed && !refreshing { Tone::Error } else { Tone::Muted }));
+            lines.push(Line::Text(
+                fresh,
+                if a.usage.freshness.phase == Freshness::Failed && !refreshing {
+                    Tone::Error
+                } else {
+                    Tone::Muted
+                },
+            ));
         }
         self.scroll.set_content(lines.len());
         self.scroll.set_viewport(body.height as usize);
@@ -1960,23 +2493,48 @@ impl CustomModal for UsageDialog {
         for (k, i) in self.scroll.visible_range().enumerate() {
             let yy = body.y + k as u16;
             match &lines[i] {
-                Line::Text(s, tone) => buf.set_string(body.x, yy, truncate(s, body.width as usize), Style::new().fg(t.tone(*tone)).bg(bg)),
+                Line::Text(s, tone) => buf.set_string(
+                    body.x,
+                    yy,
+                    truncate(s, body.width as usize),
+                    Style::new().fg(t.tone(*tone)).bg(bg),
+                ),
                 Line::Meter(label, pct, value, tone) => {
                     let lw = if narrow { body.width.min(20) } else { 20 };
                     buf.set_string(body.x, yy, truncate(label, lw as usize), t.primary().bg(bg));
                     let mx = body.x + lw + 1;
                     if body.width > lw + 12 {
-                        render_meter(Rect::new(mx, yy, body.right().saturating_sub(mx), 1), buf, ctx, *pct, &format!("{pct}%"), *tone, bg);
+                        render_meter(
+                            Rect::new(mx, yy, body.right().saturating_sub(mx), 1),
+                            buf,
+                            ctx,
+                            *pct,
+                            &format!("{pct}%"),
+                            *tone,
+                            bg,
+                        );
                     }
                     let _ = value;
                 }
             }
         }
         if self.scroll.overflows() {
-            scrollbar::render_vertical(Rect::new(area.right() - 2, body.y, 1, body.height), buf, ctx, WidgetId::of("capsule.usage"), &self.scroll, true);
+            scrollbar::render_vertical(
+                Rect::new(area.right() - 2, body.y, 1, body.height),
+                buf,
+                ctx,
+                WidgetId::of("capsule.usage"),
+                &self.scroll,
+                true,
+            );
         }
         let hint = "r refresh  Tab tabs/body  ←→ provider  Esc close";
-        buf.set_string(inner.x, inner.bottom().saturating_sub(1), truncate(hint, inner.width as usize), t.faint().bg(bg));
+        buf.set_string(
+            inner.x,
+            inner.bottom().saturating_sub(1),
+            truncate(hint, inner.width as usize),
+            t.faint().bg(bg),
+        );
         let _ = props::render;
     }
 }

@@ -56,7 +56,12 @@ impl UsageScreen {
     fn build_rows(&mut self, w: &World) {
         let mut rows = vec![Row::Overview];
         for s in UsageSurface::ALL {
-            let accounts: Vec<&Account> = w.accounts.sorted().into_iter().filter(|a| a.surface == s).collect();
+            let accounts: Vec<&Account> = w
+                .accounts
+                .sorted()
+                .into_iter()
+                .filter(|a| a.surface == s)
+                .collect();
             if accounts.is_empty() && s != UsageSurface::Unsupported {
                 continue;
             }
@@ -67,7 +72,10 @@ impl UsageScreen {
         }
         self.rows = rows;
         if let Some(id) = &self.selected
-            && !self.rows.iter().any(|r| matches!(r, Row::Account(x) if x == id))
+            && !self
+                .rows
+                .iter()
+                .any(|r| matches!(r, Row::Account(x) if x == id))
         {
             self.selected = None;
         }
@@ -76,7 +84,11 @@ impl UsageScreen {
 
     fn cursor(&self) -> usize {
         match &self.selected {
-            Some(id) => self.rows.iter().position(|r| matches!(r, Row::Account(x) if x == id)).unwrap_or(0),
+            Some(id) => self
+                .rows
+                .iter()
+                .position(|r| matches!(r, Row::Account(x) if x == id))
+                .unwrap_or(0),
             None => 0,
         }
     }
@@ -112,14 +124,25 @@ impl UsageScreen {
 
     fn refresh(&mut self, w: &mut World, cx: &mut Cx) {
         let mut n = 0;
-        let ids: Vec<AccountId> = w.accounts.accounts.iter().filter(|a| a.enabled).map(|a| a.id.clone()).collect();
+        let ids: Vec<AccountId> = w
+            .accounts
+            .accounts
+            .iter()
+            .filter(|a| a.enabled)
+            .map(|a| a.id.clone())
+            .collect();
         for (i, id) in ids.iter().enumerate() {
             if let Some(a) = w.accounts.get_mut(id)
                 && a.usage.freshness.phase != Freshness::Refreshing
             {
                 a.usage.freshness.phase = Freshness::Refreshing;
                 let d = provider::refresh_duration_ms(a) + i as i64 * 120;
-                w.schedule(d, Msg::AccountRefreshed { account: id.clone() });
+                w.schedule(
+                    d,
+                    Msg::AccountRefreshed {
+                        account: id.clone(),
+                    },
+                );
                 n += 1;
             }
         }
@@ -127,24 +150,72 @@ impl UsageScreen {
             cx.status("Nothing to refresh");
         } else {
             self.refreshing = true;
-            cx.status(format!("Reloading the broker projection · {}", plural(n, "account", "accounts")));
+            cx.status(format!(
+                "Reloading the broker projection · {}",
+                plural(n, "account", "accounts")
+            ));
         }
     }
 
     fn account_lines(a: &Account, w: &World) -> Vec<(String, Tone, Option<(u8, MeterTone)>)> {
         let mut v: Vec<(String, Tone, Option<(u8, MeterTone)>)> = vec![];
-        v.push((format!("Provider     {} · surface {}", a.provider.label(), a.surface.surface_name()), Tone::Normal, None));
         v.push((
-            format!("Account      {} · {}", a.identity.label(), a.identity.plan.clone().unwrap_or("plan unknown".into())),
-            if a.identity.subject.is_some() { Tone::Normal } else { Tone::Muted },
+            format!(
+                "Provider     {} · surface {}",
+                a.provider.label(),
+                a.surface.surface_name()
+            ),
+            Tone::Normal,
             None,
         ));
-        v.push((format!("Credential   {} · {}", a.source.origin_label(), a.source.safe_detail()), Tone::Normal, None));
+        v.push((
+            format!(
+                "Account      {} · {}",
+                a.identity.label(),
+                a.identity.plan.clone().unwrap_or("plan unknown".into())
+            ),
+            if a.identity.subject.is_some() {
+                Tone::Normal
+            } else {
+                Tone::Muted
+            },
+            None,
+        ));
+        v.push((
+            format!(
+                "Credential   {} · {}",
+                a.source.origin_label(),
+                a.source.safe_detail()
+            ),
+            Tone::Normal,
+            None,
+        ));
         let status = match a.usage.freshness.phase {
-            Freshness::Current => format!("{} · current · refreshed {}", a.lifecycle.label(), a.last_refresh_secs.map(|s| w.clock.ago(s)).unwrap_or("never".into())),
-            Freshness::Stale => format!("{} · stale · last good {}", a.lifecycle.label(), a.usage.freshness.last_good_secs.map(|s| w.clock.ago(s)).unwrap_or("?".into())),
+            Freshness::Current => format!(
+                "{} · current · refreshed {}",
+                a.lifecycle.label(),
+                a.last_refresh_secs
+                    .map(|s| w.clock.ago(s))
+                    .unwrap_or("never".into())
+            ),
+            Freshness::Stale => format!(
+                "{} · stale · last good {}",
+                a.lifecycle.label(),
+                a.usage
+                    .freshness
+                    .last_good_secs
+                    .map(|s| w.clock.ago(s))
+                    .unwrap_or("?".into())
+            ),
             Freshness::Refreshing => format!("{} · refreshing…", a.lifecycle.label()),
-            Freshness::Failed => format!("{} · error: {}", a.lifecycle.label(), a.issue.as_ref().map(|i| i.message.clone()).unwrap_or("refresh failed".into())),
+            Freshness::Failed => format!(
+                "{} · error: {}",
+                a.lifecycle.label(),
+                a.issue
+                    .as_ref()
+                    .map(|i| i.message.clone())
+                    .unwrap_or("refresh failed".into())
+            ),
         };
         v.push((
             format!("Status       {status}"),
@@ -160,9 +231,15 @@ impl UsageScreen {
         if a.usage.windows.is_empty() {
             v.push((
                 match a.lifecycle {
-                    Lifecycle::NeedsLogin => "  needs login · no quota until the agent signs in".into(),
-                    Lifecycle::NeedsSecret => "  needs secret · no quota until a key is present".into(),
-                    Lifecycle::Unsupported => "  unsupported · this provider exposes no usage".into(),
+                    Lifecycle::NeedsLogin => {
+                        "  needs login · no quota until the agent signs in".into()
+                    }
+                    Lifecycle::NeedsSecret => {
+                        "  needs secret · no quota until a key is present".into()
+                    }
+                    Lifecycle::Unsupported => {
+                        "  unsupported · this provider exposes no usage".into()
+                    }
                     _ => "  not started".into(),
                 },
                 Tone::Muted,
@@ -187,8 +264,20 @@ impl UsageScreen {
                 v.push((text, Tone::Normal, Some((win.used_pct.unwrap_or(0), tone))));
             } else {
                 let value = win.value_label();
-                let text = if value.to_lowercase().starts_with(&win.label.to_lowercase()) { format!("  {value}") } else { format!("  {}   {value}", win.label) };
-                v.push((text, if win.status == QuotaStatus::Error { Tone::Error } else { Tone::Muted }, None));
+                let text = if value.to_lowercase().starts_with(&win.label.to_lowercase()) {
+                    format!("  {value}")
+                } else {
+                    format!("  {}   {value}", win.label)
+                };
+                v.push((
+                    text,
+                    if win.status == QuotaStatus::Error {
+                        Tone::Error
+                    } else {
+                        Tone::Muted
+                    },
+                    None,
+                ));
             }
         }
         if a.usage.freshness.phase != Freshness::Current && !a.usage.windows.is_empty() {
@@ -196,8 +285,16 @@ impl UsageScreen {
             v.push((
                 format!(
                     "Last good    kept from {}{}",
-                    a.usage.freshness.last_good_secs.map(|s| w.clock.ago(s)).unwrap_or("?".into()),
-                    a.issue.as_ref().filter(|i| i.code == IssueCode::QuotaUnsupported).map(|_| " · quota not visible").unwrap_or("")
+                    a.usage
+                        .freshness
+                        .last_good_secs
+                        .map(|s| w.clock.ago(s))
+                        .unwrap_or("?".into()),
+                    a.issue
+                        .as_ref()
+                        .filter(|i| i.code == IssueCode::QuotaUnsupported)
+                        .map(|_| " · quota not visible")
+                        .unwrap_or("")
                 ),
                 Tone::Muted,
                 None,
@@ -209,24 +306,62 @@ impl UsageScreen {
     fn overview_lines(w: &World) -> Vec<(String, Tone)> {
         let s = OverallSummary::compute(&w.accounts.accounts);
         let mut v = vec![
-            (format!("Health       {} · {}", s.health.label(), s.issues_line()), match s.health {
-                crate::domain::usage::HealthWord::Degraded | crate::domain::usage::HealthWord::Blocked => Tone::Error,
-                crate::domain::usage::HealthWord::Attention => Tone::Warning,
-                _ => Tone::Normal,
-            }),
-            (format!("Freshness    {} of {} current · broker projection {}", s.counts.enabled - s.counts.stale - s.counts.failed - s.counts.refreshing, s.counts.enabled, w.clock.ago(w.last_refresh_secs)), Tone::Normal),
+            (
+                format!("Health       {} · {}", s.health.label(), s.issues_line()),
+                match s.health {
+                    crate::domain::usage::HealthWord::Degraded
+                    | crate::domain::usage::HealthWord::Blocked => Tone::Error,
+                    crate::domain::usage::HealthWord::Attention => Tone::Warning,
+                    _ => Tone::Normal,
+                },
+            ),
+            (
+                format!(
+                    "Freshness    {} of {} current · broker projection {}",
+                    s.counts.enabled - s.counts.stale - s.counts.failed - s.counts.refreshing,
+                    s.counts.enabled,
+                    w.clock.ago(w.last_refresh_secs)
+                ),
+                Tone::Normal,
+            ),
             (format!("Registry     {}", s.counts_line()), Tone::Normal),
             (String::new(), Tone::Normal),
-            (format!("{:<12} {:<9} {:<26} {}", "Provider", "Accounts", "Worst window", "Status"), Tone::Muted),
+            (
+                format!(
+                    "{:<12} {:<9} {:<26} {}",
+                    "Provider", "Accounts", "Worst window", "Status"
+                ),
+                Tone::Muted,
+            ),
         ];
         for surface in UsageSurface::ALL {
-            let accounts: Vec<&Account> = w.accounts.accounts.iter().filter(|a| a.surface == surface && a.enabled).collect();
+            let accounts: Vec<&Account> = w
+                .accounts
+                .accounts
+                .iter()
+                .filter(|a| a.surface == surface && a.enabled)
+                .collect();
             if surface == UsageSurface::Unsupported {
-                v.push((format!("{:<12} {:<9} {:<26} {}", "—", "—", "—", "unsupported sentinel"), Tone::Muted));
+                v.push((
+                    format!(
+                        "{:<12} {:<9} {:<26} {}",
+                        "—", "—", "—", "unsupported sentinel"
+                    ),
+                    Tone::Muted,
+                ));
                 continue;
             }
             if accounts.is_empty() {
-                v.push((format!("{:<12} {:<9} {:<26} {}", surface.label(), "—", "—", "not discovered"), Tone::Faint));
+                v.push((
+                    format!(
+                        "{:<12} {:<9} {:<26} {}",
+                        surface.label(),
+                        "—",
+                        "—",
+                        "not discovered"
+                    ),
+                    Tone::Faint,
+                ));
                 continue;
             }
             let worst = accounts
@@ -238,25 +373,65 @@ impl UsageScreen {
                 Some((a, win)) => {
                     let st = match (win.status, a.usage.freshness.phase) {
                         (QuotaStatus::Exhausted, _) => ("! exhausted".to_owned(), Tone::Error),
-                        (_, Freshness::Failed) => (format!("! {}", a.issue.as_ref().map(|i| i.message.split(':').next().unwrap_or("error").to_lowercase()).unwrap_or("error".into())), Tone::Error),
+                        (_, Freshness::Failed) => (
+                            format!(
+                                "! {}",
+                                a.issue
+                                    .as_ref()
+                                    .map(|i| i
+                                        .message
+                                        .split(':')
+                                        .next()
+                                        .unwrap_or("error")
+                                        .to_lowercase())
+                                    .unwrap_or("error".into())
+                            ),
+                            Tone::Error,
+                        ),
                         (QuotaStatus::Warning, _) => ("▲ warning".to_owned(), Tone::Warning),
                         (_, Freshness::Stale) => ("▲ stale".to_owned(), Tone::Warning),
                         _ => ("current".to_owned(), Tone::Normal),
                     };
-                    (format!("{} {}%", win.label, win.used_pct.unwrap_or(0)), st.0, st.1)
+                    (
+                        format!("{} {}%", win.label, win.used_pct.unwrap_or(0)),
+                        st.0,
+                        st.1,
+                    )
                 }
                 None => {
                     let a = accounts[0];
                     ("—".to_owned(), a.status_word().to_owned(), Tone::Muted)
                 }
             };
-            v.push((format!("{:<12} {:<9} {:<26} {}", surface.label(), accounts.len(), truncate(&win_text, 26), status), tone));
+            v.push((
+                format!(
+                    "{:<12} {:<9} {:<26} {}",
+                    surface.label(),
+                    accounts.len(),
+                    truncate(&win_text, 26),
+                    status
+                ),
+                tone,
+            ));
         }
-        let unresolved: Vec<&Account> = w.accounts.accounts.iter().filter(|a| a.enabled && a.identity.subject.is_none()).collect();
+        let unresolved: Vec<&Account> = w
+            .accounts
+            .accounts
+            .iter()
+            .filter(|a| a.enabled && a.identity.subject.is_none())
+            .collect();
         if !unresolved.is_empty() {
             v.push((String::new(), Tone::Normal));
             for a in unresolved {
-                v.push((format!("Unresolved   {} · {} ({}) — not an authenticated account", a.surface.label(), a.source.safe_detail(), a.confidence.label()), Tone::Muted));
+                v.push((
+                    format!(
+                        "Unresolved   {} · {} ({}) — not an authenticated account",
+                        a.surface.label(),
+                        a.source.safe_detail(),
+                        a.confidence.label()
+                    ),
+                    Tone::Muted,
+                ));
             }
         }
         v.push((String::new(), Tone::Normal));
@@ -264,7 +439,17 @@ impl UsageScreen {
         if !s.comparable.is_empty() {
             v.push((String::new(), Tone::Normal));
             for c in &s.comparable {
-                v.push((format!("Comparable   {} · {} · {} · {}–{}% remaining", c.surface.label(), c.label, plural(c.accounts, "account", "accounts"), c.min_remaining_pct, c.max_remaining_pct), Tone::Secondary));
+                v.push((
+                    format!(
+                        "Comparable   {} · {} · {} · {}–{}% remaining",
+                        c.surface.label(),
+                        c.label,
+                        plural(c.accounts, "account", "accounts"),
+                        c.min_remaining_pct,
+                        c.max_remaining_pct
+                    ),
+                    Tone::Secondary,
+                ));
             }
         }
         v
@@ -298,21 +483,32 @@ impl UsageScreen {
                     fill(buf, r, st);
                     buf.set_string(r.x, y, "▎", t.gutter(st8, st.bg.unwrap_or(bg), false));
                     if st8.selected {
-                        buf.set_string(r.x + 1, y, "›", st.fg(if focused { t.accent } else { t.text_secondary }));
+                        buf.set_string(
+                            r.x + 1,
+                            y,
+                            "›",
+                            st.fg(if focused { t.accent } else { t.text_secondary }),
+                        );
                     }
                     match &self.rows[i] {
                         Row::Overview => buf.set_string(r.x + 3, y, "Overview", st),
                         Row::Account(id) => {
-                            let Some(a) = w.accounts.get(id) else { continue };
+                            let Some(a) = w.accounts.get(id) else {
+                                continue;
+                            };
                             let mut label = a.display_name.clone();
                             if a.default_for_provider {
                                 label.push_str("  ★");
                             }
                             let health = if !a.enabled {
                                 ""
-                            } else if a.is_error_state() || matches!(a.usage.worst_status(), Some(QuotaStatus::Exhausted)) {
+                            } else if a.is_error_state()
+                                || matches!(a.usage.worst_status(), Some(QuotaStatus::Exhausted))
+                            {
                                 "!"
-                            } else if matches!(a.usage.worst_status(), Some(QuotaStatus::Warning)) || a.usage.freshness.phase == Freshness::Stale {
+                            } else if matches!(a.usage.worst_status(), Some(QuotaStatus::Warning))
+                                || a.usage.freshness.phase == Freshness::Stale
+                            {
                                 "▲"
                             } else {
                                 ""
@@ -328,16 +524,31 @@ impl UsageScreen {
                             };
                             let mw = width(&meta) as u16 + if health.is_empty() { 0 } else { 2 };
                             let lw = r.width.saturating_sub(5 + mw + 2) as usize;
-                            buf.set_string(r.x + 5, y, fit(&truncate(&label, lw), lw), if a.enabled { st } else { st.fg(t.text_faint) });
+                            buf.set_string(
+                                r.x + 5,
+                                y,
+                                fit(&truncate(&label, lw), lw),
+                                if a.enabled { st } else { st.fg(t.text_faint) },
+                            );
                             let mut rx = r.right().saturating_sub(1);
                             if !meta.is_empty() {
                                 rx = rx.saturating_sub(width(&meta) as u16);
-                                buf.set_string(rx, y, &meta, st.fg(t.text_muted).remove_modifier(Modifier::BOLD));
+                                buf.set_string(
+                                    rx,
+                                    y,
+                                    &meta,
+                                    st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                                );
                                 rx = rx.saturating_sub(1);
                             }
                             if !health.is_empty() {
                                 rx = rx.saturating_sub(1);
-                                buf.set_string(rx, y, health, st.fg(if health == "!" { t.error } else { t.warning }));
+                                buf.set_string(
+                                    rx,
+                                    y,
+                                    health,
+                                    st.fg(if health == "!" { t.error } else { t.warning }),
+                                );
                             }
                         }
                         _ => {}
@@ -347,7 +558,14 @@ impl UsageScreen {
             }
         }
         if has_sb {
-            scrollbar::render_vertical(Rect::new(area.right() - 1, area.y, 1, area.height), buf, ctx, LIST, &self.scroll, focused);
+            scrollbar::render_vertical(
+                Rect::new(area.right() - 1, area.y, 1, area.height),
+                buf,
+                ctx,
+                LIST,
+                &self.scroll,
+                focused,
+            );
         }
     }
 
@@ -359,27 +577,60 @@ impl UsageScreen {
         ctx.control(DETAIL, area, false);
         ctx.scrollable(DETAIL, area);
         let title_row = area.y;
-        let body = Rect::new(area.x, area.y + 2, area.width, area.height.saturating_sub(2));
+        let body = Rect::new(
+            area.x,
+            area.y + 2,
+            area.width,
+            area.height.saturating_sub(2),
+        );
         let meter_w = if body.width >= 70 { 24 } else { 16 };
-        match self.selected.clone().and_then(|id| w.accounts.get(&id).cloned()) {
+        match self
+            .selected
+            .clone()
+            .and_then(|id| w.accounts.get(&id).cloned())
+        {
             None => {
                 let s = OverallSummary::compute(&w.accounts.accounts);
                 buf.set_string(area.x, title_row, "Overview", t.title().bg(bg));
-                let meta = format!("{} · {}", plural(s.counts.accounts, "account", "accounts"), plural(s.counts.providers, "provider", "providers"));
-                buf.set_string(area.right().saturating_sub(width(&meta) as u16), title_row, &meta, t.faint().bg(bg));
+                let meta = format!(
+                    "{} · {}",
+                    plural(s.counts.accounts, "account", "accounts"),
+                    plural(s.counts.providers, "provider", "providers")
+                );
+                buf.set_string(
+                    area.right().saturating_sub(width(&meta) as u16),
+                    title_row,
+                    &meta,
+                    t.faint().bg(bg),
+                );
                 let lines = Self::overview_lines(w);
                 self.detail_scroll.set_content(lines.len());
                 self.detail_scroll.set_viewport(body.height as usize);
                 for (k, i) in self.detail_scroll.visible_range().enumerate() {
                     let (text, tone) = &lines[i];
-                    buf.set_string(body.x, body.y + k as u16, truncate(text, body.width as usize), Style::new().fg(t.tone(*tone)).bg(bg));
+                    buf.set_string(
+                        body.x,
+                        body.y + k as u16,
+                        truncate(text, body.width as usize),
+                        Style::new().fg(t.tone(*tone)).bg(bg),
+                    );
                 }
             }
             Some(a) => {
                 let title = a.title();
-                buf.set_string(area.x, title_row, truncate(&title, area.width.saturating_sub(20) as usize), t.title().bg(bg));
+                buf.set_string(
+                    area.x,
+                    title_row,
+                    truncate(&title, area.width.saturating_sub(20) as usize),
+                    t.title().bg(bg),
+                );
                 let meta = a.status_word();
-                buf.set_string(area.right().saturating_sub(width(meta) as u16), title_row, meta, t.faint().bg(bg));
+                buf.set_string(
+                    area.right().saturating_sub(width(meta) as u16),
+                    title_row,
+                    meta,
+                    t.faint().bg(bg),
+                );
                 let lines = Self::account_lines(&a, w);
                 self.detail_scroll.set_content(lines.len());
                 self.detail_scroll.set_viewport(body.height as usize);
@@ -391,22 +642,51 @@ impl UsageScreen {
                             let (label, rest) = text.split_once('\u{1}').unwrap_or((text, ""));
                             buf.set_string(body.x, y, fit(label, 15), t.primary().bg(bg));
                             let mx = body.x + 16;
-                            render_meter(Rect::new(mx, y, meter_w + 6, 1), buf, ctx, *pct, &format!("{pct:>3}%"), *mt, bg);
+                            render_meter(
+                                Rect::new(mx, y, meter_w + 6, 1),
+                                buf,
+                                ctx,
+                                *pct,
+                                &format!("{pct:>3}%"),
+                                *mt,
+                                bg,
+                            );
                             let vx = mx + meter_w + 8;
                             if vx < body.right() {
-                                buf.set_string(vx, y, truncate(rest, body.right().saturating_sub(vx) as usize), t.muted().bg(bg));
+                                buf.set_string(
+                                    vx,
+                                    y,
+                                    truncate(rest, body.right().saturating_sub(vx) as usize),
+                                    t.muted().bg(bg),
+                                );
                             }
                         }
                         None => {
-                            let style = if text == "Limits" { t.secondary().add_modifier(Modifier::BOLD) } else { Style::new().fg(t.tone(*tone)) };
-                            buf.set_string(body.x, y, truncate(text, body.width as usize), style.bg(bg));
+                            let style = if text == "Limits" {
+                                t.secondary().add_modifier(Modifier::BOLD)
+                            } else {
+                                Style::new().fg(t.tone(*tone))
+                            };
+                            buf.set_string(
+                                body.x,
+                                y,
+                                truncate(text, body.width as usize),
+                                style.bg(bg),
+                            );
                         }
                     }
                 }
             }
         }
         if self.detail_scroll.overflows() {
-            scrollbar::render_vertical(Rect::new(area.right() - 1, body.y, 1, body.height), buf, ctx, DETAIL, &self.detail_scroll, focused);
+            scrollbar::render_vertical(
+                Rect::new(area.right() - 1, body.y, 1, body.height),
+                buf,
+                ctx,
+                DETAIL,
+                &self.detail_scroll,
+                focused,
+            );
         }
     }
 }
@@ -423,7 +703,10 @@ impl Screen for UsageScreen {
     }
 
     fn animating(&self, w: &World) -> bool {
-        w.accounts.accounts.iter().any(|a| a.usage.freshness.phase == Freshness::Refreshing)
+        w.accounts
+            .accounts
+            .iter()
+            .any(|a| a.usage.freshness.phase == Freshness::Refreshing)
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
@@ -433,7 +716,11 @@ impl Screen for UsageScreen {
             w.last_refresh_secs = w.now_secs();
             return Outcome::Changed;
         }
-        if self.animating(w) { Outcome::Changed } else { Outcome::Ignored }
+        if self.animating(w) {
+            Outcome::Changed
+        } else {
+            Outcome::Ignored
+        }
     }
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -511,13 +798,28 @@ impl Screen for UsageScreen {
             return Outcome::Changed;
         }
         if id == scrollbar::id_for(LIST) {
-            let track = Rect::new(self.list_area.right() - 1, self.list_area.y, 1, self.list_area.height);
-            self.scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            let track = Rect::new(
+                self.list_area.right() - 1,
+                self.list_area.y,
+                1,
+                self.list_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
             return Outcome::Changed;
         }
         if id == scrollbar::id_for(DETAIL) {
-            let track = Rect::new(self.detail_area.right() - 1, self.detail_area.y + 2, 1, self.detail_area.height.saturating_sub(2));
-            self.detail_scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.detail_scroll));
+            let track = Rect::new(
+                self.detail_area.right() - 1,
+                self.detail_area.y + 2,
+                1,
+                self.detail_area.height.saturating_sub(2),
+            );
+            self.detail_scroll.scroll_to(scrollbar::offset_for_click(
+                track,
+                pos,
+                &self.detail_scroll,
+            ));
             return Outcome::Changed;
         }
         Outcome::Ignored
@@ -539,14 +841,21 @@ impl Screen for UsageScreen {
         if let Msg::AccountRefreshed { account } = msg {
             // the projection reloads in place; the Center owns the outcome table
             let now = w.now_secs();
-            if let Some(a) = w.accounts.get_mut(account) {
-                if a.usage.freshness.phase == Freshness::Refreshing {
-                    a.usage.freshness = match a.issue.as_ref().map(|i| i.code) {
-                        Some(IssueCode::RateLimited) | Some(IssueCode::ProviderUnavailable) | Some(IssueCode::CredentialFileMissing) => crate::domain::usage::FreshnessInfo::failed(a.usage.freshness.last_good_secs, a.usage.freshness.retry_secs),
-                        _ => crate::domain::usage::FreshnessInfo::current(now),
-                    };
-                    a.last_refresh_secs = Some(now);
-                }
+            if let Some(a) = w.accounts.get_mut(account)
+                && a.usage.freshness.phase == Freshness::Refreshing
+            {
+                a.usage.freshness = match a.issue.as_ref().map(|i| i.code) {
+                    Some(IssueCode::RateLimited)
+                    | Some(IssueCode::ProviderUnavailable)
+                    | Some(IssueCode::CredentialFileMissing) => {
+                        crate::domain::usage::FreshnessInfo::failed(
+                            a.usage.freshness.last_good_secs,
+                            a.usage.freshness.retry_secs,
+                        )
+                    }
+                    _ => crate::domain::usage::FreshnessInfo::current(now),
+                };
+                a.last_refresh_secs = Some(now);
             }
             return Outcome::Changed;
         }
@@ -556,16 +865,25 @@ impl Screen for UsageScreen {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         self.build_rows(w);
         let t = ctx.theme;
-        let n = w.accounts.accounts.iter().filter(|a| a.usage.freshness.phase == Freshness::Refreshing).count();
+        let n = w
+            .accounts
+            .accounts
+            .iter()
+            .filter(|a| a.usage.freshness.phase == Freshness::Refreshing)
+            .count();
         let meta = if n > 0 {
             format!("{} refreshing {n}", spinner_frame(w.now_ms() as u64 / 80))
         } else {
             format!("broker · {}", w.clock.ago(w.last_refresh_secs))
         };
         let focused_any = ctx.interaction.focused(LIST) || ctx.interaction.focused(DETAIL);
-        let inner = Panel::framed(Some("Usage · read-only")).focused(focused_any).meta(&meta).render(area, buf, t);
+        let inner = Panel::framed(Some("Usage · read-only"))
+            .focused(focused_any)
+            .meta(&meta)
+            .render(area, buf, t);
         if w.accounts.accounts.is_empty() {
-            let e = EmptyState::new("No providers configured.").hint("Press R to refresh. · c registers an account");
+            let e = EmptyState::new("No providers configured.")
+                .hint("Press R to refresh. · c registers an account");
             empty::render(inner, buf, t, &e, t.canvas);
             ctx.control(LIST, Rect::new(inner.x, inner.y, 1, 1), false);
             return;
@@ -582,16 +900,32 @@ impl Screen for UsageScreen {
         }
         let list_w = (inner.width * 34 / 100).clamp(28, 40);
         let list = Rect::new(inner.x, inner.y, list_w, inner.height);
-        let detail = Rect::new(inner.x + list_w + 2, inner.y, inner.width.saturating_sub(list_w + 2), inner.height);
+        let detail = Rect::new(
+            inner.x + list_w + 2,
+            inner.y,
+            inner.width.saturating_sub(list_w + 2),
+            inner.height,
+        );
         self.draw_list(list, buf, ctx, w);
         self.draw_detail(detail, buf, ctx, w);
     }
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if focus == Some(DETAIL) {
-            return vec![hint("↑↓", "Scroll"), hint("r", "Refresh"), hint("m", "Manage in Accounts"), hint("Esc", "Back to list")];
+            return vec![
+                hint("↑↓", "Scroll"),
+                hint("r", "Refresh"),
+                hint("m", "Manage in Accounts"),
+                hint("Esc", "Back to list"),
+            ];
         }
-        vec![hint("↑↓", "Move"), hint("Enter", "Detail"), hint("r", "Refresh"), hint("m", "Manage in Accounts"), hint("Esc", "Close")]
+        vec![
+            hint("↑↓", "Move"),
+            hint("Enter", "Detail"),
+            hint("r", "Refresh"),
+            hint("m", "Manage in Accounts"),
+            hint("Esc", "Close"),
+        ]
     }
 
     fn crumb(&self, w: &World) -> String {

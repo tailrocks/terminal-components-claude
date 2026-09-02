@@ -62,9 +62,9 @@ impl Workspace {
         n += usize::from(self.git_pull != other.git_pull);
         n += usize::from(self.roles != other.roles);
         n += usize::from(self.dirty_policy != other.dirty_policy);
-        n += diff_len(&self.mounts, &other.mounts);
-        n += diff_len(&self.env, &other.env);
-        n += diff_len(&self.auth, &other.auth);
+        n += keyed(&self.mounts, &other.mounts, |m| m.destination.clone());
+        n += keyed(&self.env, &other.env, |e| e.key.clone());
+        n += keyed(&self.auth, &other.auth, |a| a.agent.label().to_owned());
         n += usize::from(self.role_env != other.role_env);
         n += usize::from(self.role_auth != other.role_auth);
         n += usize::from(self.account_overrides != other.account_overrides);
@@ -77,10 +77,21 @@ impl Workspace {
     }
 }
 
-fn diff_len<T: PartialEq>(a: &[T], b: &[T]) -> usize {
-    let added = a.iter().filter(|x| !b.contains(x)).count();
-    let removed = b.iter().filter(|x| !a.contains(x)).count();
-    added + removed
+/// Added + modified + removed rows by identity (an edit counts once).
+fn keyed<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
+    let mut n = 0;
+    for x in a {
+        match b.iter().find(|y| key(y) == key(x)) {
+            None => n += 1,
+            Some(y) if y != x => n += 1,
+            _ => {}
+        }
+    }
+    n += b
+        .iter()
+        .filter(|y| !a.iter().any(|x| key(x) == key(y)))
+        .count();
+    n
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -371,17 +382,27 @@ impl EnvValue {
     }
 }
 
-/// `********` plus a short synthetic tail so two masked values differ.
 /// Asterisk runs, never `•` (which marks modified rows in the tables).
+/// API-key-shaped values keep their last four characters so two keys can
+/// be told apart; anything with path or URL structure is fully masked.
 pub fn mask(v: &str) -> String {
     if v.is_empty() {
         return "(empty)".into();
     }
-    let tail: String = v.chars().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect();
-    if v.chars().count() <= 6 {
-        "*".repeat(v.chars().count())
-    } else {
+    let n = v.chars().count();
+    let key_shaped = n >= 16 && !v.contains("://") && !v.contains('/') && !v.contains(' ');
+    if key_shaped {
+        let tail: String = v
+            .chars()
+            .rev()
+            .take(4)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect();
         format!("************{tail}")
+    } else {
+        "*".repeat(n.min(16))
     }
 }
 
@@ -391,12 +412,12 @@ pub fn env_key_error(key: &str) -> Option<String> {
     if k.is_empty() {
         return Some("Key is required".into());
     }
-    if !k
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    if !k.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
         || k.chars().next().is_some_and(|c| c.is_ascii_digit())
     {
-        return Some("Key must be letters, digits and underscores, not starting with a digit".into());
+        return Some(
+            "Key must be letters, digits and underscores, not starting with a digit".into(),
+        );
     }
     const RESERVED: [&str; 6] = [
         "PATH",
@@ -432,7 +453,9 @@ pub enum AuthSource {
     /// A direct 1Password reference (API key / token).
     OnePassword(super::onepassword::OpReference),
     /// Masked plain-text secret material (fingerprint only).
-    Plain { fingerprint: String },
+    Plain {
+        fingerprint: String,
+    },
     None,
 }
 
@@ -457,6 +480,10 @@ mod tests {
     fn masking_never_reveals_the_value() {
         assert_eq!(mask("sk-ant-api03-verysecretvalue"), "************alue");
         assert_eq!(mask("abc"), "***");
+        assert_eq!(
+            mask("postgres://payments:pw@db.internal:5432/payments"),
+            "****************"
+        );
         assert_eq!(mask(""), "(empty)");
         assert!(env_key_error("PATH").is_some());
         assert!(env_key_error("1ABC").is_some());
@@ -469,7 +496,8 @@ mod tests {
         let mut b = a.clone();
         assert_eq!(a.change_count(&b), 0);
         b.name = "payments-platform".into();
-        b.mounts.push(Mount::host("/Users/op/src/x", "/workspace/x"));
+        b.mounts
+            .push(Mount::host("/Users/op/src/x", "/workspace/x"));
         b.git_pull = false;
         assert_eq!(a.change_count(&b), 3);
         assert_eq!(Isolation::Clone.next(), Isolation::Shared);

@@ -27,7 +27,9 @@ pub enum OpReferenceError {
 impl OpReferenceError {
     pub fn message(&self) -> &'static str {
         match self {
-            OpReferenceError::MissingScheme => "Reference malformed: expected op://vault/item/field",
+            OpReferenceError::MissingScheme => {
+                "Reference malformed: expected op://vault/item/field"
+            }
             OpReferenceError::MissingVault => "Reference malformed: vault is missing",
             OpReferenceError::MissingItem => "Reference malformed: item is missing",
             OpReferenceError::MissingField => "Reference malformed: field is missing",

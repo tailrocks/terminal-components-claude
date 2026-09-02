@@ -47,13 +47,19 @@ impl Source {
     fn default_destination(&self) -> String {
         match self {
             Source::Host { path, .. } => path.clone(),
-            Source::Git { url } => format!("/work/{}", basename(url.trim_end_matches('/').trim_end_matches(".git"))),
+            Source::Git { url } => format!(
+                "/work/{}",
+                basename(url.trim_end_matches('/').trim_end_matches(".git"))
+            ),
         }
     }
 }
 
 fn basename(path: &str) -> &str {
-    path.trim_end_matches('/').rsplit('/').next().unwrap_or(path)
+    path.trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or(path)
 }
 
 pub struct PreludeScreen {
@@ -89,7 +95,13 @@ impl PreludeScreen {
 
     /// `✓ Source · Destination · Edit skipped · Working dir · Name`
     pub fn stepper_line(&self) -> String {
-        let order = [Step::Source, Step::Destination, Step::Edit, Step::Workdir, Step::Name];
+        let order = [
+            Step::Source,
+            Step::Destination,
+            Step::Edit,
+            Step::Workdir,
+            Step::Name,
+        ];
         let idx = |s: Step| order.iter().position(|x| *x == s).unwrap_or(0);
         let cur = idx(self.step);
         let parts: Vec<String> = order
@@ -137,16 +149,35 @@ impl PreludeScreen {
                 let default = src.default_destination();
                 let (source_line, same) = match src {
                     Source::Host { path, readonly } => (
-                        format!("Source  {}{}", w.tilde(path), if *readonly { " · read-only" } else { "" }),
+                        format!(
+                            "Source  {}{}",
+                            w.tilde(path),
+                            if *readonly { " · read-only" } else { "" }
+                        ),
                         format!("Same path   {default}"),
                     ),
-                    Source::Git { url } => (format!("Source  {url} · git"), format!("Default   {default}")),
+                    Source::Git { url } => (
+                        format!("Source  {url} · git"),
+                        format!("Default   {default}"),
+                    ),
                 };
-                let c = ChoiceDialog::new(DEST, Self::title(step), "Mount destination", &[&same, "Edit destination…"], self.dest_choice)
-                    .line(source_line, Tone::Secondary)
-                    .stepper(&self.stepper_line())
-                    .buttons(vec![Button::subtle(DEST.sub("back"), "Back"), Button::primary(DEST.sub("ok"), "Next")], 0)
-                    .width(58);
+                let c = ChoiceDialog::new(
+                    DEST,
+                    Self::title(step),
+                    "Mount destination",
+                    &[&same, "Edit destination…"],
+                    self.dest_choice,
+                )
+                .line(source_line, Tone::Secondary)
+                .stepper(&self.stepper_line())
+                .buttons(
+                    vec![
+                        Button::subtle(DEST.sub("back"), "Back"),
+                        Button::primary(DEST.sub("ok"), "Next"),
+                    ],
+                    0,
+                )
+                .width(58);
                 cx.open(Modal::Choice(c), ModalTag::new("prelude.dest"));
             }
             Step::Edit => {
@@ -163,14 +194,19 @@ impl PreludeScreen {
                 input.error = error;
                 input.begin_edit();
                 let mut d = Dialog::prompt(EDIT, Self::title(step), input, "Next").with_actions(
-                    vec![Button::subtle(EDIT.sub("back"), "Back"), Button::primary(EDIT.sub("ok"), "Next")],
+                    vec![
+                        Button::subtle(EDIT.sub("back"), "Back"),
+                        Button::primary(EDIT.sub("ok"), "Next"),
+                    ],
                     Some(0),
                 );
                 d.width = 62;
                 cx.open(Modal::Dialog(d), ModalTag::new("prelude.edit"));
             }
             Step::Workdir => {
-                let Some(dest) = self.destination.clone() else { return };
+                let Some(dest) = self.destination.clone() else {
+                    return;
+                };
                 let mut p = Picker::new(WORKDIR, Self::title(step));
                 p.placeholder = "Search folders…".into();
                 p.width = 72;
@@ -179,7 +215,11 @@ impl PreludeScreen {
                 self.workdir_rows = self.workdir_candidates(w);
                 let rows = self.workdir_rows.clone();
                 p.set_items(self.workdir_items(&rows, "", w));
-                if let Some(cur) = self.workdir.as_ref().and_then(|wd| rows.iter().position(|r| r == wd)) {
+                if let Some(cur) = self
+                    .workdir
+                    .as_ref()
+                    .and_then(|wd| rows.iter().position(|r| r == wd))
+                {
                     p.cursor = cur;
                     p.scroll.ensure_visible(cur);
                 }
@@ -200,7 +240,10 @@ impl PreludeScreen {
                 input.error = error;
                 input.begin_edit();
                 let mut d = Dialog::prompt(NAME, Self::title(step), input, "Create").with_actions(
-                    vec![Button::subtle(NAME.sub("back"), "Back"), Button::primary(NAME.sub("ok"), "Create")],
+                    vec![
+                        Button::subtle(NAME.sub("back"), "Back"),
+                        Button::primary(NAME.sub("ok"), "Create"),
+                    ],
                     Some(0),
                 );
                 d.width = 62;
@@ -212,16 +255,22 @@ impl PreludeScreen {
     /// Destination first, then its first-level subdirectories mapped from the
     /// source folder onto the destination.
     fn workdir_candidates(&self, w: &World) -> Vec<String> {
-        let Some(dest) = self.destination.clone() else { return vec![] };
+        let Some(dest) = self.destination.clone() else {
+            return vec![];
+        };
         let mut rows = vec![dest.clone()];
         if let Some(Source::Host { path, .. }) = &self.source {
             let src = path.trim_end_matches('/');
-            let mut subs: Vec<String> = w
-                .fs
-                .iter()
-                .filter(|e| e.dir && e.path.rsplit_once('/').is_some_and(|(parent, _)| parent == src))
-                .map(|e| format!("{}/{}", dest.trim_end_matches('/'), basename(&e.path)))
-                .collect();
+            let mut subs: Vec<String> =
+                w.fs.iter()
+                    .filter(|e| {
+                        e.dir
+                            && e.path
+                                .rsplit_once('/')
+                                .is_some_and(|(parent, _)| parent == src)
+                    })
+                    .map(|e| format!("{}/{}", dest.trim_end_matches('/'), basename(&e.path)))
+                    .collect();
             subs.sort();
             rows.extend(subs);
         }
@@ -299,13 +348,16 @@ impl PreludeScreen {
     }
 
     fn create(&mut self, w: &World, cx: &mut Cx) {
-        let (Some(src), Some(dest), Some(name)) = (&self.source, &self.destination, &self.name) else {
+        let (Some(src), Some(dest), Some(name)) = (&self.source, &self.destination, &self.name)
+        else {
             return;
         };
         let workdir = self.workdir.clone().unwrap_or_else(|| dest.clone());
         let mut ws = Workspace::new(w.next_workspace_id, name, &workdir);
         ws.mounts = vec![match src {
-            Source::Host { path, readonly } => Mount::host(&w.tilde(path), dest).readonly(*readonly),
+            Source::Host { path, readonly } => {
+                Mount::host(&w.tilde(path), dest).readonly(*readonly)
+            }
             Source::Git { url } => Mount::git(url, dest),
         }];
         cx.status(format!("Workspace {name} · review and save in the editor"));
@@ -337,7 +389,13 @@ impl Screen for PreludeScreen {
         Some(self.workdir_items(&self.workdir_rows.clone(), query, w))
     }
 
-    fn on_modal(&mut self, tag: &ModalTag, result: ModalResult, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         match (tag.kind, result) {
             ("prelude.source", ModalResult::Browser(r)) => match r {
                 BrowserResult::Chosen { path, readonly } => {
@@ -366,7 +424,13 @@ impl Screen for PreludeScreen {
                 }
             }
             ("prelude.dest", ModalResult::Choice(None)) => self.rewind(w, cx),
-            ("prelude.edit", ModalResult::Dialog { action: Some(1), text }) => {
+            (
+                "prelude.edit",
+                ModalResult::Dialog {
+                    action: Some(1),
+                    text,
+                },
+            ) => {
                 let text = text.unwrap_or_default();
                 self.dest_text = Some(text.clone());
                 match Self::validate_destination(&text) {
@@ -387,7 +451,13 @@ impl Screen for PreludeScreen {
                 self.open(Step::Name, w, cx, None);
             }
             ("prelude.workdir", ModalResult::Cancelled) => self.rewind(w, cx),
-            ("prelude.name", ModalResult::Dialog { action: Some(1), text }) => {
+            (
+                "prelude.name",
+                ModalResult::Dialog {
+                    action: Some(1),
+                    text,
+                },
+            ) => {
                 let text = text.unwrap_or_default();
                 self.name = Some(text.clone());
                 match Self::validate_name(&text, w) {
@@ -417,15 +487,39 @@ impl Screen for PreludeScreen {
             let y = area.y + area.height / 2;
             buf.set_string(x, y, line, t.faint().bg(t.canvas));
         }
-        ctx.control(WidgetId::of("prelude"), Rect::new(area.x, area.y, 1, 1), false);
+        ctx.control(
+            WidgetId::of("prelude"),
+            Rect::new(area.x, area.y, 1, 1),
+            false,
+        );
     }
 
     fn hints(&self, _focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         match self.step {
-            Step::Source => vec![hint("Enter", "Open"), hint("Backspace", "Up"), hint("Space", "Choose"), hint("g", "Git URL"), hint("Tab", "Next"), hint("Esc", "Cancel")],
-            Step::Destination => vec![hint("↑↓", "Choose"), hint("Enter", "Next"), hint("Esc", "Back")],
-            Step::Edit | Step::Name => vec![hint("Enter", "Next"), hint("Tab", "Buttons"), hint("Esc", "Back")],
-            Step::Workdir => vec![hint("↑↓", "Move"), hint("Type", "Filter"), hint("Enter", "Next"), hint("Esc", "Back")],
+            Step::Source => vec![
+                hint("Enter", "Open"),
+                hint("Backspace", "Up"),
+                hint("Space", "Choose"),
+                hint("g", "Git URL"),
+                hint("Tab", "Next"),
+                hint("Esc", "Cancel"),
+            ],
+            Step::Destination => vec![
+                hint("↑↓", "Choose"),
+                hint("Enter", "Next"),
+                hint("Esc", "Back"),
+            ],
+            Step::Edit | Step::Name => vec![
+                hint("Enter", "Next"),
+                hint("Tab", "Buttons"),
+                hint("Esc", "Back"),
+            ],
+            Step::Workdir => vec![
+                hint("↑↓", "Move"),
+                hint("Type", "Filter"),
+                hint("Enter", "Next"),
+                hint("Esc", "Back"),
+            ],
         }
     }
 

@@ -204,7 +204,10 @@ impl QuotaWindow {
                 self.unit.label()
             ),
             (_, _, Some(p), _) => format!("{p}% used"),
-            _ => self.note.clone().unwrap_or_else(|| self.status.label().to_owned()),
+            _ => self
+                .note
+                .clone()
+                .unwrap_or_else(|| self.status.label().to_owned()),
         }
     }
 
@@ -401,8 +404,7 @@ impl OverallSummary {
             }
             let last_good = a.usage.freshness.phase != Freshness::Current;
             let all_unsupported = !a.usage.windows.is_empty()
-                && a
-                    .usage
+                && a.usage
                     .windows
                     .iter()
                     .all(|w| w.status == QuotaStatus::Unsupported);
@@ -438,7 +440,10 @@ impl OverallSummary {
             }
             let unit = ws[0].0.unit;
             let category = ws[0].0.category;
-            if ws.iter().any(|(w, _)| w.unit != unit || w.category != category) {
+            if ws
+                .iter()
+                .any(|(w, _)| w.unit != unit || w.category != category)
+            {
                 not_comparable.push(NotComparableNote {
                     surface: *surface,
                     reason: "different units",
@@ -447,7 +452,9 @@ impl OverallSummary {
             }
             let rem: Vec<u8> = ws.iter().filter_map(|(w, _)| w.remaining_pct()).collect();
             let summed = if unit != WindowUnit::Percent
-                && ws.iter().all(|(w, lg)| !lg && w.used.is_some() && w.limit.is_some())
+                && ws
+                    .iter()
+                    .all(|(w, lg)| !lg && w.used.is_some() && w.limit.is_some())
             {
                 Some((
                     ws.iter().map(|(w, _)| w.used.unwrap_or(0)).sum(),
@@ -546,7 +553,11 @@ impl OverallSummary {
             parts.push(format!(
                 "{} identit{} unresolved",
                 c.unresolved_identity,
-                if c.unresolved_identity == 1 { "y" } else { "ies" }
+                if c.unresolved_identity == 1 {
+                    "y"
+                } else {
+                    "ies"
+                }
             ));
         }
         if parts.is_empty() {
@@ -565,7 +576,10 @@ pub fn plural(n: usize) -> &'static str {
 pub fn retains_last_good(code: IssueCode) -> bool {
     matches!(
         code,
-        IssueCode::RateLimited | IssueCode::ProviderUnavailable | IssueCode::Stale | IssueCode::OpLocked
+        IssueCode::RateLimited
+            | IssueCode::ProviderUnavailable
+            | IssueCode::Stale
+            | IssueCode::OpLocked
     )
 }
 
@@ -578,7 +592,14 @@ mod tests {
         assert_eq!(QuotaStatus::from_pct(10), QuotaStatus::Available);
         assert_eq!(QuotaStatus::from_pct(75), QuotaStatus::Warning);
         assert_eq!(QuotaStatus::from_pct(100), QuotaStatus::Exhausted);
-        let w = QuotaWindow::counted("credits", "Credits", WindowCategory::Other, WindowUnit::Credits, 1240, 5000);
+        let w = QuotaWindow::counted(
+            "credits",
+            "Credits",
+            WindowCategory::Other,
+            WindowUnit::Credits,
+            1240,
+            5000,
+        );
         assert_eq!(w.value_label(), "1,240 / 5,000 credits");
         assert_eq!(w.used_pct, Some(24));
     }

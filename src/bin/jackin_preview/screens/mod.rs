@@ -31,7 +31,10 @@ use crate::domain::onepassword::OpReference;
 use crate::domain::workspace::{Workspace, WorkspaceId};
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
-use modals::{BrowserResult, ChoiceDialog, FileBrowser, FormDialog, FormValues, HelpOverlay, InfoDialog, InfoResult, OpFlow};
+use modals::{
+    BrowserResult, ChoiceDialog, FileBrowser, FormDialog, FormValues, HelpOverlay, InfoDialog,
+    InfoResult, OpFlow,
+};
 
 /// Identifies a modal's purpose and target for its owning screen.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -62,7 +65,13 @@ impl ModalTag {
 /// A screen-specific modal that still lives on the shared modal stack.
 pub trait CustomModal {
     fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing, w: &World) -> Outcome;
-    fn on_click(&mut self, _id: WidgetId, _pos: Position, _focus: &mut Focus, _w: &World) -> Outcome {
+    fn on_click(
+        &mut self,
+        _id: WidgetId,
+        _pos: Position,
+        _focus: &mut Focus,
+        _w: &World,
+    ) -> Outcome {
         Outcome::Consumed
     }
     fn on_wheel(&mut self, _delta: i32) -> Outcome {
@@ -231,14 +240,26 @@ pub trait Screen {
     fn on_click(&mut self, _id: WidgetId, _pos: Position, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
-    fn on_double_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_double_click(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         let _ = (id, pos, w, cx);
         Outcome::Ignored
     }
     fn on_drag(&mut self, _pressed: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
         Outcome::Ignored
     }
-    fn on_release(&mut self, _pressed: WidgetId, _pos: Position, _w: &mut World, _cx: &mut Cx) -> Outcome {
+    fn on_release(
+        &mut self,
+        _pressed: WidgetId,
+        _pos: Position,
+        _w: &mut World,
+        _cx: &mut Cx,
+    ) -> Outcome {
         Outcome::Ignored
     }
     fn on_wheel(&mut self, _id: WidgetId, _delta: i32, _pos: Position, _w: &mut World) -> Outcome {
@@ -253,11 +274,22 @@ pub trait Screen {
     fn on_msg(&mut self, _msg: &Msg, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
-    fn on_modal(&mut self, _tag: &ModalTag, _result: ModalResult, _w: &mut World, _cx: &mut Cx) -> Outcome {
+    fn on_modal(
+        &mut self,
+        _tag: &ModalTag,
+        _result: ModalResult,
+        _w: &mut World,
+        _cx: &mut Cx,
+    ) -> Outcome {
         Outcome::Ignored
     }
     /// Rows for a picker this screen opened; `None` keeps the current rows.
-    fn picker_items(&mut self, _tag: &ModalTag, _query: &str, _w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(
+        &mut self,
+        _tag: &ModalTag,
+        _query: &str,
+        _w: &World,
+    ) -> Option<Vec<PickerItem>> {
         None
     }
     /// A form field changed: reveal/hide dependent fields.

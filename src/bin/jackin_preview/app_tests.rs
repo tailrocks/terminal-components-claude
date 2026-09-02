@@ -28,7 +28,10 @@ impl H {
         self.term.draw(|f| self.app.render(f)).unwrap();
     }
     pub fn key(&mut self, code: KeyCode) -> Outcome {
-        let o = self.app.handle(Input::Key(Key { code, mods: KeyModifiers::NONE }));
+        let o = self.app.handle(Input::Key(Key {
+            code,
+            mods: KeyModifiers::NONE,
+        }));
         self.draw();
         o
     }
@@ -52,7 +55,10 @@ impl H {
         self.draw();
     }
     pub fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Outcome {
-        let o = self.app.handle(Input::Mouse(Mouse { kind, pos: Position::new(x, y) }));
+        let o = self.app.handle(Input::Mouse(Mouse {
+            kind,
+            pos: Position::new(x, y),
+        }));
         self.draw();
         o
     }
@@ -73,7 +79,10 @@ impl H {
             }
             self.key(KeyCode::Tab);
         }
-        panic!("focus never reached {id:?}: at {:?}", self.app.focus.current());
+        panic!(
+            "focus never reached {id:?}: at {:?}",
+            self.app.focus.current()
+        );
     }
     pub fn text(&self) -> String {
         let buf = self.term.backend().buffer();
@@ -88,7 +97,8 @@ impl H {
     }
     pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
-        let want: Vec<&str> = unicode_segmentation::UnicodeSegmentation::graphemes(needle, true).collect();
+        let want: Vec<&str> =
+            unicode_segmentation::UnicodeSegmentation::graphemes(needle, true).collect();
         for y in 0..buf.area.height {
             let cells: Vec<&str> = (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect();
             for x in 0..cells.len().saturating_sub(want.len() - 1) {
@@ -116,7 +126,11 @@ fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
     assert!(h.text().contains("Current directory"));
     assert!(h.text().contains("+ New workspace"));
     let r = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
-    assert_eq!(r.app.route, Route::Manager, "an active Construct joins without replay");
+    assert_eq!(
+        r.app.route,
+        Route::Manager,
+        "an active Construct joins without replay"
+    );
     assert!(r.text().contains("2 running"));
 }
 
@@ -133,7 +147,10 @@ fn reduced_motion_and_paused_frames_are_deterministic() {
     assert_eq!(a.text(), b.text());
     let mut p = H::new(Scenario::FirstUse, Motion::Paused, 20, 80, 24);
     p.ticks(5);
-    assert!(p.text().contains("Stand up, operator"), "paused frames never advance");
+    assert!(
+        p.text().contains("Stand up, operator"),
+        "paused frames never advance"
+    );
 }
 
 #[test]
@@ -142,7 +159,10 @@ fn manager_navigation_expand_and_detail_focus() {
     h.key(KeyCode::Down);
     assert!(h.text().contains("payments-platform"));
     h.key(KeyCode::Right);
-    assert!(h.text().contains("7f3a"), "instance children visible after expand");
+    assert!(
+        h.text().contains("7f3a"),
+        "instance children visible after expand"
+    );
     h.key(KeyCode::Down);
     h.key(KeyCode::Tab);
     assert!(h.text().contains("Live topology"));
@@ -164,7 +184,11 @@ fn launch_runs_all_stages_and_hands_off_to_the_capsule() {
             break;
         }
     }
-    assert!(matches!(h.app.route, Route::Handoff | Route::Capsule), "route {:?}", h.app.route);
+    assert!(
+        matches!(h.app.route, Route::Handoff | Route::Capsule),
+        "route {:?}",
+        h.app.route
+    );
     h.ticks(15);
     assert_eq!(h.app.route, Route::Capsule);
     assert!(h.text().contains("jackin❯"));
@@ -199,7 +223,11 @@ fn detach_reconnect_and_final_exit_plays_one_outro() {
     assert_eq!(h.app.route, Route::Manager);
     assert!(h.text().contains("Detached"));
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Capsule, "reconnect restores the Capsule");
+    assert_eq!(
+        h.app.route,
+        Route::Capsule,
+        "reconnect restores the Capsule"
+    );
     h.ctrl('q');
     assert!(h.text().contains("Unsaved work"));
     h.key(KeyCode::Down);
@@ -208,7 +236,12 @@ fn detach_reconnect_and_final_exit_plays_one_outro() {
     assert_eq!(h.app.route, Route::Outro);
     h.key(KeyCode::Enter);
     h.ticks(25);
-    assert!(h.text().contains("You were in the Construct for 2 h 14 min"), "{}", h.text());
+    assert!(
+        h.text()
+            .contains("You were in the Construct for 2 h 14 min"),
+        "{}",
+        h.text()
+    );
     h.key(KeyCode::Enter);
     assert!(h.app.quit);
 }
@@ -262,12 +295,24 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     assert!(h.text().contains("credential"), "{}", h.text());
     h.key(KeyCode::Enter);
     h.ticks(2);
-    assert!(h.text().contains("Anthropic · Work › credential"), "{}", h.text());
-    assert!(!h.text().contains("valid-ant01"), "secret leaked into the frame");
+    assert!(
+        h.text().contains("Anthropic · Work › credential"),
+        "{}",
+        h.text()
+    );
+    assert!(
+        !h.text().contains("valid-ant01"),
+        "secret leaked into the frame"
+    );
     // the same reference already backs Claude · Work: duplicate protection refuses
     h.tab_to(crate::screens::accounts::FORM.sub("save"));
     h.key(KeyCode::Enter);
-    assert!(h.text().contains("Already registered: this source is used by Claude · Work"), "{}", h.text());
+    assert!(
+        h.text()
+            .contains("Already registered: this source is used by Claude · Work"),
+        "{}",
+        h.text()
+    );
     assert!(h.app.world.accounts.get("acct-anthropic-team").is_none());
     // switch to Codex and pick the throttled sandbox item instead
     h.tab_to(crate::screens::accounts::FORM.sub("provider"));
@@ -286,7 +331,11 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     h.ticks(4);
     h.key(KeyCode::Enter);
     h.ticks(2);
-    assert!(h.text().contains("OpenAI · Throttled sandbox"), "{}", h.text());
+    assert!(
+        h.text().contains("OpenAI · Throttled sandbox"),
+        "{}",
+        h.text()
+    );
     h.tab_to(crate::screens::accounts::FORM.sub("save"));
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Saved Codex · Team"), "{}", h.text());
@@ -297,7 +346,12 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     h.key(KeyCode::Char('r'));
     assert!(h.text().contains("Refreshing"), "{}", h.text());
     h.ticks(60);
-    assert!(h.text().contains("Refreshed Codex · Team · still rate limited"), "{}", h.text());
+    assert!(
+        h.text()
+            .contains("Refreshed Codex · Team · still rate limited"),
+        "{}",
+        h.text()
+    );
 }
 
 #[test]
@@ -315,7 +369,10 @@ fn accounts_plain_key_is_masked_everywhere_and_remove_asks_first() {
     h.key(KeyCode::Tab);
     h.key(KeyCode::Enter);
     h.type_str("sk-ant-valid-abcdef1234");
-    assert!(!h.text().contains("sk-ant-valid"), "raw key rendered while typing");
+    assert!(
+        !h.text().contains("sk-ant-valid"),
+        "raw key rendered while typing"
+    );
     h.key(KeyCode::Tab);
     let t = h.text();
     assert!(!t.contains("sk-ant-valid"), "raw key rendered: {t}");
@@ -325,8 +382,13 @@ fn accounts_plain_key_is_masked_everywhere_and_remove_asks_first() {
     assert!(h.text().contains("Saved Claude · Spare"), "{}", h.text());
     assert!(!h.text().contains("abcdef"));
     let a = h.app.world.accounts.get("acct-anthropic-spare").unwrap();
-    assert!(matches!(&a.source, crate::domain::account::CredentialSource::PlainApiKey { tail, .. } if tail == "1234"));
-    assert!(!format!("{:?}", a.source).contains("abcdef"), "fingerprint must not embed the key");
+    assert!(
+        matches!(&a.source, crate::domain::account::CredentialSource::PlainApiKey { tail, .. } if tail == "1234")
+    );
+    assert!(
+        !format!("{:?}", a.source).contains("abcdef"),
+        "fingerprint must not embed the key"
+    );
     h.key(KeyCode::Char('x'));
     assert!(h.text().contains("Remove account Spare?"), "{}", h.text());
     h.key(KeyCode::Esc);
@@ -349,7 +411,6 @@ fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
     assert_eq!(h.app.route, Route::Manager);
 }
 
-
 #[test]
 fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -365,7 +426,12 @@ fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     h.key(KeyCode::Down);
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("step 2 of 5"), "{}", h.text());
-    assert!(h.text().contains("Same path   /Users/alexey/src/data-pipeline"), "{}", h.text());
+    assert!(
+        h.text()
+            .contains("Same path   /Users/alexey/src/data-pipeline"),
+        "{}",
+        h.text()
+    );
     assert!(h.text().contains("✓ Source"));
     // Esc rewinds to the browser at the same folder, Space re-chooses
     h.key(KeyCode::Esc);
@@ -386,7 +452,10 @@ fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     assert_eq!(ed.pending.name, "data-pipeline");
     assert_eq!(ed.pending.workdir, "/Users/alexey/src/data-pipeline");
     assert_eq!(ed.pending.mounts.len(), 1);
-    assert_eq!(ed.pending.mounts[0].destination, "/Users/alexey/src/data-pipeline");
+    assert_eq!(
+        ed.pending.mounts[0].destination,
+        "/Users/alexey/src/data-pipeline"
+    );
 }
 
 #[test]
@@ -401,7 +470,12 @@ fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("step 5 of 5"), "{}", h.text());
     h.key(KeyCode::Enter);
-    assert!(h.text().contains("A workspace named customer-portal already exists"), "{}", h.text());
+    assert!(
+        h.text()
+            .contains("A workspace named customer-portal already exists"),
+        "{}",
+        h.text()
+    );
     assert_eq!(h.app.route, Route::Prelude);
     // rewind all the way out
     for _ in 0..8 {
@@ -411,5 +485,156 @@ fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
         }
     }
     assert_eq!(h.app.route, Route::Manager);
-    assert!(h.text().contains("Cancelled · nothing created"), "{}", h.text());
+    assert!(
+        h.text().contains("Cancelled · nothing created"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_edits_count_once_preview_then_saves_and_returns() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('e'));
+    assert_eq!(h.app.route, Route::Editor);
+    assert!(h.text().contains("payments-platform › edit"));
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char('r'));
+    h.key(KeyCode::Char('i'));
+    assert!(h.text().contains("• 1 change"), "{}", h.text());
+    assert!(h.text().contains("Mounts •"));
+    // leaving asks first
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Esc);
+    assert!(
+        h.text().contains("Save changes before leaving?"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.route, Route::Editor);
+    // preview lists the modified mount, then the save job completes
+    h.ctrl('s');
+    assert!(h.text().contains("Save workspace"));
+    assert!(h.text().contains("1 modified"));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Saving"), "{}", h.text());
+    h.ticks(20);
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert!(h.text().contains("Workspace payments-platform saved"));
+    let ws = h.app.world.workspace(1).unwrap();
+    assert!(ws.mounts[0].readonly);
+    assert_eq!(
+        ws.mounts[0].isolation,
+        crate::domain::workspace::Isolation::Clone
+    );
+}
+
+#[test]
+fn editor_env_plain_value_stays_masked_and_can_be_shown() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char('4'));
+    h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("DATABASE_URL"));
+    assert!(!t.contains("pw-fixture-only"), "plain value leaked: {t}");
+    h.key(KeyCode::Char('m'));
+    assert!(h.text().contains("postgres://"), "{}", h.text());
+    assert!(h.text().contains("plain · shown"));
+    h.key(KeyCode::Char('m'));
+    assert!(!h.text().contains("pw-fixture-only"));
+    // add a variable through the form
+    h.key(KeyCode::Char('a'));
+    assert!(
+        h.text().contains("New workspace environment key"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    h.type_str("NEW_SECRET");
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+    h.type_str("sk-live-abcdefghijklmnop1234");
+    h.key(KeyCode::Tab);
+    assert!(!h.text().contains("abcdefghijklmnop"), "{}", h.text());
+    h.tab_to(
+        junie_tui::core::id::WidgetId::of("editor.cfg")
+            .sub("form")
+            .sub("save"),
+    );
+    h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("NEW_SECRET"), "{t}");
+    assert!(t.contains("************1234"), "{t}");
+    assert!(!t.contains("abcdefghijklmnop"));
+    assert!(t.contains("• 1 change"), "{t}");
+}
+
+#[test]
+fn settings_trust_toggle_and_failed_save_keep_edits() {
+    let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 120, 40);
+    for _ in 0..8 {
+        h.ticks(3);
+        if h.app.route == Route::Manager {
+            break;
+        }
+        h.key(KeyCode::Enter);
+    }
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app.route, Route::Settings);
+    h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("• 1 change"), "{}", h.text());
+    h.ctrl('s');
+    assert!(h.text().contains("Save settings"));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    h.ticks(20);
+    assert!(h.text().contains("Settings error"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.route, Route::Settings);
+    assert!(h.text().contains("• 1 change"));
+    // second attempt succeeds
+    h.ctrl('s');
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    h.ticks(20);
+    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    // the manager's own refresh may overwrite the status in the hard cases;
+    // the persisted config is the proof
+    assert!(!h.app.world.global.trust[0].trusted);
+}
+
+#[test]
+fn hard_cases_refresh_keeps_last_good_and_help_opens_everywhere() {
+    let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 120, 40);
+    for _ in 0..8 {
+        h.ticks(3);
+        if h.app.route == Route::Manager {
+            break;
+        }
+        h.key(KeyCode::Enter);
+    }
+    h.key(KeyCode::Char('c'));
+    assert_eq!(h.app.route, Route::Accounts);
+    h.key(KeyCode::Char('?'));
+    assert!(h.text().contains("Credential sources"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('r'));
+    h.ticks(60);
+    assert!(h.text().contains("broker unreachable"), "{}", h.text());
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app.route, Route::Usage);
+    h.key(KeyCode::Char('?'));
+    assert!(h.text().contains("Reading meters"));
 }

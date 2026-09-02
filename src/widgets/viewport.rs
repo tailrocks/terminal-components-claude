@@ -273,7 +273,9 @@ impl TextViewport {
             .map(|line| {
                 let mut out = vec![];
                 for sp in line {
-                    for g in unicode_segmentation::UnicodeSegmentation::graphemes(sp.text.as_str(), true) {
+                    for g in
+                        unicode_segmentation::UnicodeSegmentation::graphemes(sp.text.as_str(), true)
+                    {
                         let w = width(g).max(if g == "\t" { 4 } else { 0 });
                         if g == "\t" {
                             for _ in 0..4 {
@@ -386,7 +388,11 @@ impl TextViewport {
         let mut out = String::new();
         for li in a.line..=b.line {
             let Some(cs) = self.cells.get(li) else { break };
-            let from = if li == a.line { self.cell_at(li, a.col) } else { 0 };
+            let from = if li == a.line {
+                self.cell_at(li, a.col)
+            } else {
+                0
+            };
             let to = if li == b.line {
                 self.cell_at(li, b.col)
             } else {
@@ -416,7 +422,10 @@ impl TextViewport {
         if cs.is_empty() {
             return Outcome::Ignored;
         }
-        let is_word = |c: &Cell| c.g.chars().all(|ch| ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == '/' || ch == '.');
+        let is_word = |c: &Cell| {
+            c.g.chars()
+                .all(|ch| ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == '/' || ch == '.')
+        };
         if !is_word(&cs[ci]) {
             return Outcome::Consumed;
         }
@@ -446,7 +455,11 @@ impl TextViewport {
         let had = self.selection.is_some();
         self.selection = None;
         self.drag_anchor = self.pos_at(pos);
-        if had { Outcome::Changed } else { Outcome::Consumed }
+        if had {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
     /// Drag: extend the selection from the anchor; auto-scroll at the
@@ -462,8 +475,10 @@ impl TextViewport {
             self.scroll.scroll_by(1);
         }
         let clamped = Position::new(
-            pos.x.clamp(self.area.x, self.area.right().saturating_sub(1)),
-            pos.y.clamp(self.area.y, self.area.bottom().saturating_sub(1)),
+            pos.x
+                .clamp(self.area.x, self.area.right().saturating_sub(1)),
+            pos.y
+                .clamp(self.area.y, self.area.bottom().saturating_sub(1)),
         );
         let Some(head) = self.pos_at(clamped) else {
             return Outcome::Consumed;
@@ -587,10 +602,7 @@ impl TextViewport {
                 if c.reversed {
                     st = Style::new().fg(t.canvas).bg(t.text_primary);
                 }
-                let p = CellPos {
-                    line: vr.line,
-                    col,
-                };
+                let p = CellPos { line: vr.line, col };
                 if let Some((a, b)) = sel
                     && p >= a
                     && p < b
@@ -615,12 +627,15 @@ impl TextViewport {
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
-        if self.follow && focused && self.caret_visible
+        if self.follow
+            && focused
+            && self.caret_visible
             && let Some(c) = self.caret
             && let Some(vi) = self.visual.iter().position(|v| {
                 v.line == c.line
                     && self.col_of(v.line, v.start) <= c.col
-                    && (c.col < self.col_of(v.line, v.end) || v.end == self.cells.get(v.line).map_or(0, Vec::len))
+                    && (c.col < self.col_of(v.line, v.end)
+                        || v.end == self.cells.get(v.line).map_or(0, Vec::len))
             })
             && self.scroll.visible_range().contains(&vi)
         {
@@ -680,7 +695,10 @@ mod tests {
         render(&mut v, 40, 10);
         v.on_click(Position::new(0, 1));
         v.on_drag(Position::new(6, 2));
-        assert_eq!(v.selected_text().as_deref(), Some("line 1 alpha beta\nline 2"));
+        assert_eq!(
+            v.selected_text().as_deref(),
+            Some("line 1 alpha beta\nline 2")
+        );
         let (_, ev) = v.on_key(&Key {
             code: KeyCode::Char('y'),
             mods: ratatui::crossterm::event::KeyModifiers::NONE,

@@ -1,11 +1,11 @@
- ▪  Jackin  inside the Construct  2 running  Workspaces › payments-platform › edit      • 2 changes  c Accounts  ? help
+ ▪  Jackin  inside the Construct  2 running  Workspaces › payments-platform › edit       c Accounts  s Settings  ? help
 
 
-  ▎General   ▎Mounts •   ▎Roles   ▎Environments   ▎Auth
-  ─────────────────────────────────━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────
+  ▎General   ▎Mounts   ▎Roles   ▎Environments   ▎Auth
+  ───────────────────────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────
 
-  ▎   Workspace                                                                                                4 vars
-  ▎     DATABASE_URL        ************ents          plain
+      Workspace                                                                                                4 vars
+  ▎›    DATABASE_URL        ****************          plain
   ▎     STRIPE_KEY          ****************          [op] Engineering › Stripe · sandbox › credential
   ▎     LOG_LEVEL           *****                     plain
   ▎     GH_TOKEN            $GH_TOKEN                 host env
@@ -17,12 +17,12 @@
   ▎     + Add backend environment variable
     ▾ Role: reviewer                                                                                           0 vars
   ▎     + Add reviewer environment variable
-    ▾ Role: sre                                                                                                0 vars
-  ▎     + Add sre environment variable
-    ▾ Role: data-eng                                                                                           0 vars
-  ▎     + Add data-eng environment variable
-    ▾ Role: writer                                                                                             0 vars
-  ▎     + Add writer environment variable
+
+
+
+
+
+
 
 
 
@@ -37,4 +37,4 @@
 
                                                                                                  ▎Cancel    ▎Save…
 
- Enter Add…  [ ] Switch tab  Ctrl+S Save  Esc Back                       /workspace/payments-platform · isolation clone
+ Enter Edit  m Show  p 1Password…  s Scope…  d Remove…  a Add…  [ ] Switch tab  Ctrl+S Save  Esc Back

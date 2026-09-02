@@ -42,7 +42,12 @@ pub fn modal_frame(
     center: bool,
 ) -> (Rect, Rect) {
     let t = ctx.theme;
-    let dim = Rect::new(screen.x, screen.y, screen.width, screen.height.saturating_sub(1));
+    let dim = Rect::new(
+        screen.x,
+        screen.y,
+        screen.width,
+        screen.height.saturating_sub(1),
+    );
     for pos in dim.positions() {
         if let Some(c) = buf.cell_mut(pos) {
             let st = t.backdrop(c.style());
@@ -71,7 +76,10 @@ pub fn modal_frame(
         .border_style(t.border(true).bg(bg));
     ratatui::widgets::Widget::render(block, area, buf);
     if area.width > 6 {
-        let tt = format!(" {} ", truncate(title, area.width.saturating_sub(6) as usize));
+        let tt = format!(
+            " {} ",
+            truncate(title, area.width.saturating_sub(6) as usize)
+        );
         buf.set_string(area.x + 2, area.y, &tt, t.title().bg(bg));
         if let Some(m) = meta {
             let mt = format!(" {m} ");
@@ -125,13 +133,21 @@ pub struct FileBrowser {
 }
 
 impl FileBrowser {
-    pub fn new(id: WidgetId, title: &str, cwd: &str, with_readonly: bool, dirs_only: bool, w: &World) -> Self {
+    pub fn new(
+        id: WidgetId,
+        title: &str,
+        cwd: &str,
+        with_readonly: bool,
+        dirs_only: bool,
+        w: &World,
+    ) -> Self {
         let mut b = Self {
             id,
             title: title.to_owned(),
             cwd: cwd.to_owned(),
             path: TextInput::new(id.sub("path"), "Path").plain_label(),
-            list: ListBox::new(id.sub("list"), vec![], SelectMode::Single).empty_text("Empty folder"),
+            list: ListBox::new(id.sub("list"), vec![], SelectMode::Single)
+                .empty_text("Empty folder"),
             entries: vec![],
             readonly: with_readonly.then(|| Checkbox::new(id.sub("ro"), "Mount read-only", false)),
             git_url: Button::secondary(id.sub("git"), "Git URL…"),
@@ -150,17 +166,16 @@ impl FileBrowser {
 
     pub fn load(&mut self, w: &World) {
         let cwd = self.cwd.trim_end_matches('/').to_owned();
-        let mut items: Vec<FsEntry> = w
-            .fs
-            .iter()
-            .filter(|e| {
-                e.path
-                    .rsplit_once('/')
-                    .map(|(parent, _)| parent == cwd)
-                    .unwrap_or(false)
-            })
-            .cloned()
-            .collect();
+        let mut items: Vec<FsEntry> =
+            w.fs.iter()
+                .filter(|e| {
+                    e.path
+                        .rsplit_once('/')
+                        .map(|(parent, _)| parent == cwd)
+                        .unwrap_or(false)
+                })
+                .cloned()
+                .collect();
         items.sort_by(|a, b| b.dir.cmp(&a.dir).then(a.path.cmp(&b.path)));
         let mut rows = vec![ListItem::new("..").meta("parent")];
         for e in &items {
@@ -182,7 +197,9 @@ impl FileBrowser {
         let cur = self.list.cursor.min(rows.len().saturating_sub(1));
         self.list = ListBox::new(self.list.id, rows, SelectMode::Single).empty_text("Empty folder");
         self.list.cursor = cur;
-        self.path = TextInput::new(self.path.id, "Path").plain_label().value(&w.tilde(&self.cwd));
+        self.path = TextInput::new(self.path.id, "Path")
+            .plain_label()
+            .value(&w.tilde(&self.cwd));
         self.error = None;
     }
 
@@ -297,7 +314,9 @@ impl FileBrowser {
         }
         if cur == Some(self.list.id) {
             match key.code {
-                KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') if key.plain() => return self.open_cursor(w),
+                KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') if key.plain() => {
+                    return self.open_cursor(w);
+                }
                 KeyCode::Left | KeyCode::Char('h') | KeyCode::Backspace if key.plain() => {
                     self.list.cursor = 0;
                     return self.open_cursor(w);
@@ -373,7 +392,13 @@ impl FileBrowser {
         }
     }
 
-    pub fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus, w: &World) -> Outcome {
+    pub fn on_click(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        focus: &mut Focus,
+        w: &World,
+    ) -> Outcome {
         if id == self.path.id {
             let was = focus.is(id);
             focus.focus(id);
@@ -441,9 +466,18 @@ impl FileBrowser {
         Outcome::Ignored
     }
 
-    pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, stepper: Option<&str>) {
+    pub fn render(
+        &mut self,
+        screen: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        stepper: Option<&str>,
+    ) {
         let (w, h) = if screen.width < 100 {
-            (screen.width.saturating_sub(4).min(76), screen.height.saturating_sub(4).min(20))
+            (
+                screen.width.saturating_sub(4).min(76),
+                screen.height.saturating_sub(4).min(20),
+            )
         } else {
             (84, 22)
         };
@@ -453,10 +487,16 @@ impl FileBrowser {
         let bg = t.surface_elevated;
         let mut y = inner.y;
         if let Some(s) = stepper {
-            buf.set_string(inner.x, y, truncate(s, inner.width as usize), t.muted().bg(bg));
+            buf.set_string(
+                inner.x,
+                y,
+                truncate(s, inner.width as usize),
+                t.muted().bg(bg),
+            );
             y += 2;
         }
-        self.path.render(Rect::new(inner.x - 1, y, inner.width + 1, 2), buf, ctx, bg);
+        self.path
+            .render(Rect::new(inner.x - 1, y, inner.width + 1, 2), buf, ctx, bg);
         y += 3;
         let extra: u16 = 2 + u16::from(self.readonly.is_some()) + 1;
         let list_h = inner.bottom().saturating_sub(y + extra + 1);
@@ -469,10 +509,21 @@ impl FileBrowser {
                 buf.set_string(inner.x + 1, y + i as u16, l, t.muted().bg(bg));
             }
             if let Some((url, _)) = &self.resolving {
-                render_spinner(Rect::new(inner.x + 1, y + 3, inner.width, 1), buf, ctx, &format!("Resolving {url}…"), bg);
+                render_spinner(
+                    Rect::new(inner.x + 1, y + 3, inner.width, 1),
+                    buf,
+                    ctx,
+                    &format!("Resolving {url}…"),
+                    bg,
+                );
             }
         } else {
-            self.list.render(Rect::new(inner.x - 1, y, inner.width + 1, list_h), buf, ctx, bg);
+            self.list.render(
+                Rect::new(inner.x - 1, y, inner.width + 1, list_h),
+                buf,
+                ctx,
+                bg,
+            );
         }
         y += list_h + 1;
         if let Some(c) = self.readonly.as_mut() {
@@ -480,10 +531,19 @@ impl FileBrowser {
             y += 1;
         }
         if let Some(e) = &self.error {
-            buf.set_string(inner.x, y, truncate(&format!("! {e}"), inner.width as usize), t.error_fg().bg(bg));
+            buf.set_string(
+                inner.x,
+                y,
+                truncate(&format!("! {e}"), inner.width as usize),
+                t.error_fg().bg(bg),
+            );
         }
         let ay = inner.bottom().saturating_sub(1);
-        let widths = [self.git_url.width(), self.cancel.width(), self.choose.width()];
+        let widths = [
+            self.git_url.width(),
+            self.cancel.width(),
+            self.choose.width(),
+        ];
         let rects = row_layout_right(Rect::new(inner.x, ay, inner.width, 1), &widths, 1);
         self.git_url.render(rects[0], buf, ctx, bg);
         self.cancel.render(rects[1], buf, ctx, bg);
@@ -675,7 +735,12 @@ impl ChoiceDialog {
         let bg = t.surface_elevated;
         let mut y = inner.y;
         if let Some(s) = &self.stepper {
-            buf.set_string(inner.x, y, truncate(s, inner.width as usize), t.muted().bg(bg));
+            buf.set_string(
+                inner.x,
+                y,
+                truncate(s, inner.width as usize),
+                t.muted().bg(bg),
+            );
             y += 2;
         }
         for (l, tone) in &self.lines {
@@ -690,15 +755,24 @@ impl ChoiceDialog {
         if !self.lines.is_empty() {
             y += 1;
         }
-        self.radio
-            .render(Rect::new(inner.x - 1, y, inner.width + 1, self.radio.height()), buf, ctx, bg);
+        self.radio.render(
+            Rect::new(inner.x - 1, y, inner.width + 1, self.radio.height()),
+            buf,
+            ctx,
+            bg,
+        );
         // re-tone options (e.g. a destructive last row)
         for (i, tone) in self.option_tones.iter().enumerate() {
             if let Some(r) = self.radio.areas.get(i)
                 && *tone != Tone::Normal
                 && i != self.radio.cursor
             {
-                buf.set_string(r.x + 5, r.y, &self.radio.options[i], Style::new().fg(t.tone(*tone)).bg(bg));
+                buf.set_string(
+                    r.x + 5,
+                    r.y,
+                    &self.radio.options[i],
+                    Style::new().fg(t.tone(*tone)).bg(bg),
+                );
             }
         }
         let ay = inner.bottom().saturating_sub(1);
@@ -938,13 +1012,20 @@ impl FormDialog {
     }
 
     pub fn checked(&self, name: &str) -> bool {
-        matches!(self.field(name).map(|f| f.value()), Some(FieldValue::Bool(true)))
+        matches!(
+            self.field(name).map(|f| f.value()),
+            Some(FieldValue::Bool(true))
+        )
     }
 
     pub fn set_text(&mut self, name: &str, v: &str) {
         if let Some(f) = self.field_mut(name) {
             match &mut f.kind {
-                FieldKindW::Input(i) => *i = TextInput::new(i.id, &i.label.clone()).value(v).placeholder(&i.placeholder.clone()),
+                FieldKindW::Input(i) => {
+                    *i = TextInput::new(i.id, &i.label.clone())
+                        .value(v)
+                        .placeholder(&i.placeholder.clone())
+                }
                 FieldKindW::Chooser { value, .. } => *value = v.to_owned(),
                 _ => {}
             }
@@ -954,7 +1035,9 @@ impl FormDialog {
     pub fn set_chooser(&mut self, name: &str, value: &str, detail: Option<&str>) {
         if let Some(f) = self.field_mut(name)
             && let FieldKindW::Chooser {
-                value: v, detail: d, ..
+                value: v,
+                detail: d,
+                ..
             } = &mut f.kind
         {
             *v = value.to_owned();
@@ -971,7 +1054,10 @@ impl FormDialog {
     }
 
     pub fn values(&self) -> FormValues {
-        self.fields.iter().map(|f| (f.name.clone(), f.value())).collect()
+        self.fields
+            .iter()
+            .map(|f| (f.name.clone(), f.value()))
+            .collect()
     }
 
     pub fn initial_focus(&self) -> WidgetId {
@@ -983,7 +1069,9 @@ impl FormDialog {
     }
 
     pub fn is_editing(&self) -> bool {
-        self.fields.iter().any(|f| matches!(&f.kind, FieldKindW::Input(i) if i.editing))
+        self.fields
+            .iter()
+            .any(|f| matches!(&f.kind, FieldKindW::Input(i) if i.editing))
     }
 
     fn save_event(&self) -> FormEvent {
@@ -995,7 +1083,9 @@ impl FormDialog {
     }
 
     fn any_open_select(&self) -> bool {
-        self.fields.iter().any(|f| matches!(&f.kind, FieldKindW::Select(s) if s.open))
+        self.fields
+            .iter()
+            .any(|f| matches!(&f.kind, FieldKindW::Select(s) if s.open))
     }
 
     pub fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing) -> Outcome {
@@ -1146,7 +1236,11 @@ impl FormDialog {
                     .collect();
                 if let Some(i) = ids.iter().position(|id| Some(*id) == cur) {
                     let n = ids.len();
-                    let j = if key.code == KeyCode::Left { (i + n - 1) % n } else { (i + 1) % n };
+                    let j = if key.code == KeyCode::Left {
+                        (i + n - 1) % n
+                    } else {
+                        (i + 1) % n
+                    };
                     focus.focus(ids[j]);
                 }
                 Outcome::Changed
@@ -1260,7 +1354,16 @@ impl FormDialog {
         let content = self.content_height();
         let err = u16::from(self.error.is_some());
         let h = 2 + 2 + content + err + 2;
-        let (area, inner) = modal_frame(screen, buf, ctx, self.width, h, &self.title, self.meta.as_deref(), true);
+        let (area, inner) = modal_frame(
+            screen,
+            buf,
+            ctx,
+            self.width,
+            h,
+            &self.title,
+            self.meta.as_deref(),
+            true,
+        );
         self.area = area;
         let t = ctx.theme;
         let bg = t.surface_elevated;
@@ -1277,7 +1380,8 @@ impl FormDialog {
                 if top < self.scroll.offset {
                     self.scroll.scroll_to(top);
                 } else if bottom > self.scroll.offset + body_h as usize {
-                    self.scroll.scroll_to(bottom.saturating_sub(body_h as usize));
+                    self.scroll
+                        .scroll_to(bottom.saturating_sub(body_h as usize));
                 }
             }
             y_off += f.height() + 1;
@@ -1294,7 +1398,12 @@ impl FormDialog {
                 let yy = y.max(body.y as i32) as u16;
                 let clip_top = (body.y as i32 - y).max(0) as u16;
                 let avail = (body.bottom() as i32 - y.max(body.y as i32)).max(0) as u16;
-                let r = Rect::new(inner.x - 1, yy, inner.width + 1, avail.min(fh as u16 - clip_top));
+                let r = Rect::new(
+                    inner.x - 1,
+                    yy,
+                    inner.width + 1,
+                    avail.min(fh as u16 - clip_top),
+                );
                 if clip_top == 0 && !r.is_empty() {
                     match &mut f.kind {
                         FieldKindW::Input(i) => i.render(r, buf, ctx, bg),
@@ -1318,11 +1427,28 @@ impl FormDialog {
                             if r.height >= 2 {
                                 let bw = button.width();
                                 let vw = r.width.saturating_sub(bw + 4) as usize;
-                                buf.set_string(r.x + 2, r.y + 1, truncate(value, vw), t.primary().bg(bg));
-                                button.render(Rect::new(r.right().saturating_sub(bw + 1), r.y + 1, bw, 1), buf, ctx, bg);
+                                buf.set_string(
+                                    r.x + 2,
+                                    r.y + 1,
+                                    truncate(value, vw),
+                                    t.primary().bg(bg),
+                                );
+                                button.render(
+                                    Rect::new(r.right().saturating_sub(bw + 1), r.y + 1, bw, 1),
+                                    buf,
+                                    ctx,
+                                    bg,
+                                );
                             }
-                            if r.height >= 3 && let Some(d) = detail {
-                                buf.set_string(r.x + 2, r.y + 2, truncate(d, r.width.saturating_sub(3) as usize), t.muted().bg(bg));
+                            if r.height >= 3
+                                && let Some(d) = detail
+                            {
+                                buf.set_string(
+                                    r.x + 2,
+                                    r.y + 2,
+                                    truncate(d, r.width.saturating_sub(3) as usize),
+                                    t.muted().bg(bg),
+                                );
                             }
                         }
                         FieldKindW::Note(lines) => {
@@ -1343,12 +1469,29 @@ impl FormDialog {
             y += fh + 1;
         }
         if self.scroll.overflows() {
-            scrollbar::render_vertical(Rect::new(area.right() - 2, body.y, 1, body.height), buf, ctx, self.id, &self.scroll, true);
+            scrollbar::render_vertical(
+                Rect::new(area.right() - 2, body.y, 1, body.height),
+                buf,
+                ctx,
+                self.id,
+                &self.scroll,
+                true,
+            );
         }
         if let Some(e) = &self.error {
             let ey = inner.bottom().saturating_sub(2);
-            buf.set_string(inner.x, ey, truncate(&format!("! {e}"), inner.width as usize), t.error_fg().bg(bg));
-            buf.set_string(inner.x, ey, "!", t.error_fg().bg(bg).add_modifier(Modifier::BOLD));
+            buf.set_string(
+                inner.x,
+                ey,
+                truncate(&format!("! {e}"), inner.width as usize),
+                t.error_fg().bg(bg),
+            );
+            buf.set_string(
+                inner.x,
+                ey,
+                "!",
+                t.error_fg().bg(bg).add_modifier(Modifier::BOLD),
+            );
         }
         let ay = inner.bottom().saturating_sub(1);
         let mut widths: Vec<u16> = self.actions.iter().map(|(_, b)| b.width()).collect();
@@ -1394,7 +1537,12 @@ impl FormDialog {
                 if i == fi
                     && let FieldKindW::Select(s) = &mut f.kind
                 {
-                    let r = Rect::new(inner.x - 1, y.max(body.y as i32) as u16, inner.width + 1, Select::HEIGHT);
+                    let r = Rect::new(
+                        inner.x - 1,
+                        y.max(body.y as i32) as u16,
+                        inner.width + 1,
+                        Select::HEIGHT,
+                    );
                     s.render(r, buf, ctx, bg);
                     ctx.hits.register(s.id, s.area);
                     for k in 0..s.options.len() {
@@ -1497,8 +1645,14 @@ impl OpFlow {
         self.picker.status = PickerStatus::Loading(match self.step {
             OpStep::Account => "loading accounts…".into(),
             OpStep::Vault => "loading vaults…".into(),
-            OpStep::Item => format!("loading items from {}…", self.vault.as_ref().map(|v| v.1.as_str()).unwrap_or("vault")),
-            OpStep::Field => format!("loading {}…", self.item.as_ref().map(|i| i.1.as_str()).unwrap_or("item")),
+            OpStep::Item => format!(
+                "loading items from {}…",
+                self.vault.as_ref().map(|v| v.1.as_str()).unwrap_or("vault")
+            ),
+            OpStep::Field => format!(
+                "loading {}…",
+                self.item.as_ref().map(|i| i.1.as_str()).unwrap_or("item")
+            ),
         });
         self.picker.set_items(vec![]);
         self.loading_until = Some(now_ms + op.latency_ms);
@@ -1518,16 +1672,30 @@ impl OpFlow {
 
     fn set_error(&mut self, e: OpError) {
         let (msg, detail) = match &e {
-            OpError::Locked => ("1Password is locked".to_owned(), Some("Unlock it in the 1Password app, then press r to retry".to_owned())),
+            OpError::Locked => (
+                "1Password is locked".to_owned(),
+                Some("Unlock it in the 1Password app, then press r to retry".to_owned()),
+            ),
             OpError::AuthorizationRequired { account } => (
                 "Jackin is not authorized for 1Password CLI".to_owned(),
-                Some(format!("Approve the request for {account} in 1Password, then press r to retry")),
+                Some(format!(
+                    "Approve the request for {account} in 1Password, then press r to retry"
+                )),
             ),
-            OpError::PermissionDenied { vault } => (format!("No access to vault {vault}"), Some("Choose another vault".into())),
-            OpError::NotInstalled => ("1Password CLI not found".to_owned(), Some("Install op or choose Enter plain text instead".into())),
+            OpError::PermissionDenied { vault } => (
+                format!("No access to vault {vault}"),
+                Some("Choose another vault".into()),
+            ),
+            OpError::NotInstalled => (
+                "1Password CLI not found".to_owned(),
+                Some("Install op or choose Enter plain text instead".into()),
+            ),
             other => (other.message(), None),
         };
-        self.picker.status = PickerStatus::Error { message: msg, detail };
+        self.picker.status = PickerStatus::Error {
+            message: msg,
+            detail,
+        };
         self.last_error = Some(e);
     }
 
@@ -1550,7 +1718,9 @@ impl OpFlow {
                         tag: Some(match a.state {
                             crate::sim::onepassword::OpAccountState::Available => "signed in",
                             crate::sim::onepassword::OpAccountState::Locked => "locked",
-                            crate::sim::onepassword::OpAccountState::AuthorizationRequired => "authorize",
+                            crate::sim::onepassword::OpAccountState::AuthorizationRequired => {
+                                "authorize"
+                            }
                         }),
                         matched: vec![],
                         disabled: false,
@@ -1616,7 +1786,11 @@ impl OpFlow {
                         .map(|f| PickerItem {
                             label: f.label.clone(),
                             detail: f.kind.label().to_owned(),
-                            glyph: if f.kind == FieldKind::Concealed { "•" } else { " " },
+                            glyph: if f.kind == FieldKind::Concealed {
+                                "•"
+                            } else {
+                                " "
+                            },
                             group: "",
                             tag: None,
                             matched: vec![],
@@ -1677,7 +1851,11 @@ impl OpFlow {
                 let vid = op
                     .list_vaults(self.account.as_deref().unwrap_or(""))
                     .ok()
-                    .and_then(|vs| vs.iter().find(|v| v.name == row.label).map(|v| v.id.clone()))
+                    .and_then(|vs| {
+                        vs.iter()
+                            .find(|v| v.name == row.label)
+                            .map(|v| v.id.clone())
+                    })
                     .unwrap_or_default();
                 self.vault = Some((vid, row.label));
                 self.step = OpStep::Item;
@@ -1687,7 +1865,11 @@ impl OpFlow {
                 let iid = op
                     .list_items(self.account.as_deref().unwrap_or(""), &vid)
                     .ok()
-                    .and_then(|is| is.iter().find(|i| i.title == row.label).map(|i| i.id.clone()))
+                    .and_then(|is| {
+                        is.iter()
+                            .find(|i| i.title == row.label)
+                            .map(|i| i.id.clone())
+                    })
                     .unwrap_or_default();
                 self.item = Some((iid, row.label));
                 self.step = OpStep::Field;
@@ -1695,7 +1877,12 @@ impl OpFlow {
             OpStep::Field => {
                 let (vid, _) = self.vault.clone().unwrap_or_default();
                 let (iid, _) = self.item.clone().unwrap_or_default();
-                match op.reference(self.account.as_deref().unwrap_or(""), &vid, &iid, &row.label) {
+                match op.reference(
+                    self.account.as_deref().unwrap_or(""),
+                    &vid,
+                    &iid,
+                    &row.label,
+                ) {
                     Ok(r) => match op.describe(&r) {
                         Ok(_) => self.result = Some(Some(r)),
                         Err(e) => self.set_error(e),
@@ -1710,7 +1897,10 @@ impl OpFlow {
     }
 
     pub fn on_key(&mut self, key: &Key, now_ms: i64, op: &SimOnePassword) -> Outcome {
-        if key.is_char('r') && self.picker.status != PickerStatus::Ready && self.picker.query.is_empty() {
+        if key.is_char('r')
+            && self.picker.status != PickerStatus::Ready
+            && self.picker.query.is_empty()
+        {
             self.begin_load(now_ms, op);
             return Outcome::Changed;
         }
@@ -1720,14 +1910,17 @@ impl OpFlow {
         let (o, ev) = self.picker.on_key(key);
         match ev {
             Some(PickerEvent::QueryChanged) => {
-                if self.picker.status == PickerStatus::Ready || matches!(self.picker.status, PickerStatus::Error { .. }) {
-                    if self.last_error.is_none() {
-                        self.refresh(op);
-                    }
+                if (self.picker.status == PickerStatus::Ready
+                    || matches!(self.picker.status, PickerStatus::Error { .. }))
+                    && self.last_error.is_none()
+                {
+                    self.refresh(op);
                 }
                 Outcome::Changed
             }
-            Some(PickerEvent::Chosen(i)) | Some(PickerEvent::ChosenAlt(i)) => self.choose(i, now_ms, op),
+            Some(PickerEvent::Chosen(i)) | Some(PickerEvent::ChosenAlt(i)) => {
+                self.choose(i, now_ms, op)
+            }
             Some(PickerEvent::Back) | Some(PickerEvent::Cancelled) => self.back(now_ms, op),
             _ => o.or(Outcome::Consumed),
         }
@@ -1747,7 +1940,9 @@ impl OpFlow {
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let hints = match (self.step, &self.picker.status) {
             (_, PickerStatus::Error { .. }) => "r Retry · Esc Back",
-            (OpStep::Field, _) => "↑↓ Move · Enter Save reference · Esc Back to items · only the reference is saved",
+            (OpStep::Field, _) => {
+                "↑↓ Move · Enter Save reference · Esc Back to items · only the reference is saved"
+            }
             (OpStep::Account, _) => "↑↓ Move · Enter Choose · Esc Cancel",
             _ => "↑↓ Move · Enter Choose · Backspace Back · Esc Back",
         };
@@ -1952,8 +2147,17 @@ impl InfoDialog {
             return self.props.on_scrollbar(pos);
         }
         if id == scrollbar::id_for(self.id) {
-            let track = Rect::new(self.area.right() - 2, self.area.y + 1, 1, self.area.height.saturating_sub(2));
-            self.detail_scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.detail_scroll));
+            let track = Rect::new(
+                self.area.right() - 2,
+                self.area.y + 1,
+                1,
+                self.area.height.saturating_sub(2),
+            );
+            self.detail_scroll.scroll_to(scrollbar::offset_for_click(
+                track,
+                pos,
+                &self.detail_scroll,
+            ));
             return Outcome::Changed;
         }
         for i in 0..self.actions.len() {
@@ -1987,23 +2191,46 @@ impl InfoDialog {
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let intro_h = self.intro.len() as u16 + u16::from(!self.intro.is_empty());
         let props_h = self.props.props.len() as u16;
-        let detail_h = if self.detail.is_empty() { 0 } else { (self.detail.len() as u16).min(8) + 1 };
+        let detail_h = if self.detail.is_empty() {
+            0
+        } else {
+            (self.detail.len() as u16).min(8) + 1
+        };
         let h = 2 + 2 + intro_h + props_h + detail_h + 2;
         let title = if self.error_title {
             format!("! {}", self.title)
         } else {
             self.title.clone()
         };
-        let (area, inner) = modal_frame(screen, buf, ctx, self.width, h, &title, self.meta.as_deref(), true);
+        let (area, inner) = modal_frame(
+            screen,
+            buf,
+            ctx,
+            self.width,
+            h,
+            &title,
+            self.meta.as_deref(),
+            true,
+        );
         self.area = area;
         let t = ctx.theme;
         let bg = t.surface_elevated;
         if self.error_title {
-            buf.set_string(area.x + 3, area.y, "!", t.error_fg().bg(bg).add_modifier(Modifier::BOLD));
+            buf.set_string(
+                area.x + 3,
+                area.y,
+                "!",
+                t.error_fg().bg(bg).add_modifier(Modifier::BOLD),
+            );
         }
         let mut y = inner.y;
         for (l, tone) in &self.intro {
-            buf.set_string(inner.x, y, truncate(l, inner.width as usize), Style::new().fg(t.tone(*tone)).bg(bg));
+            buf.set_string(
+                inner.x,
+                y,
+                truncate(l, inner.width as usize),
+                Style::new().fg(t.tone(*tone)).bg(bg),
+            );
             y += 1;
         }
         if !self.intro.is_empty() {
@@ -2012,7 +2239,8 @@ impl InfoDialog {
         let avail = inner.bottom().saturating_sub(y + 2);
         let ph = props_h.min(avail);
         if ph > 0 {
-            self.props.render(Rect::new(inner.x - 1, y, inner.width + 1, ph), buf, ctx, bg);
+            self.props
+                .render(Rect::new(inner.x - 1, y, inner.width + 1, ph), buf, ctx, bg);
             y += ph;
         }
         if !self.detail.is_empty() {
@@ -2029,7 +2257,14 @@ impl InfoDialog {
                 buf.set_string(inner.x, y + k as u16, &wrapped[i], t.secondary().bg(bg));
             }
             if self.detail_scroll.overflows() {
-                scrollbar::render_vertical(Rect::new(area.right() - 2, y, 1, dh), buf, ctx, self.id, &self.detail_scroll, true);
+                scrollbar::render_vertical(
+                    Rect::new(area.right() - 2, y, 1, dh),
+                    buf,
+                    ctx,
+                    self.id,
+                    &self.detail_scroll,
+                    true,
+                );
             }
         }
         let ay = inner.bottom().saturating_sub(1);
@@ -2070,7 +2305,14 @@ impl HelpOverlay {
             scope: scope.to_owned(),
             sections: sections
                 .into_iter()
-                .map(|(t, rows)| (t.to_owned(), rows.into_iter().map(|(k, a)| (k.to_owned(), a.to_owned())).collect()))
+                .map(|(t, rows)| {
+                    (
+                        t.to_owned(),
+                        rows.into_iter()
+                            .map(|(k, a)| (k.to_owned(), a.to_owned()))
+                            .collect(),
+                    )
+                })
                 .collect(),
             scroll: ScrollState::default(),
             area: Rect::ZERO,
@@ -2112,7 +2354,16 @@ impl HelpOverlay {
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let w = screen.width.saturating_sub(4);
         let h = screen.height.saturating_sub(3);
-        let (area, inner) = modal_frame(screen, buf, ctx, w, h, "Keyboard shortcuts", Some(&self.scope), true);
+        let (area, inner) = modal_frame(
+            screen,
+            buf,
+            ctx,
+            w,
+            h,
+            "Keyboard shortcuts",
+            Some(&self.scope),
+            true,
+        );
         self.area = area;
         let t = ctx.theme;
         let bg = t.surface_elevated;
@@ -2142,21 +2393,40 @@ impl HelpOverlay {
         for (ci, col) in columns.iter().enumerate() {
             let x = inner.x + ci as u16 * col_w;
             for (k, i) in self.scroll.visible_range().enumerate() {
-                let Some((key, action, heading)) = col.get(i) else { continue };
+                let Some((key, action, heading)) = col.get(i) else {
+                    continue;
+                };
                 let y = inner.y + k as u16;
                 if *heading {
                     buf.set_string(x, y, key, t.secondary().bg(bg).add_modifier(Modifier::BOLD));
                 } else {
                     buf.set_string(x, y, truncate(key, 12), t.key_hint_key().bg(bg));
-                    buf.set_string(x + 13, y, truncate(action, (col_w - 15) as usize), t.key_hint_action().bg(bg));
+                    buf.set_string(
+                        x + 13,
+                        y,
+                        truncate(action, (col_w - 15) as usize),
+                        t.key_hint_action().bg(bg),
+                    );
                 }
             }
         }
         if self.scroll.overflows() {
-            scrollbar::render_vertical(Rect::new(area.right() - 2, inner.y, 1, body_h), buf, ctx, self.id, &self.scroll, true);
+            scrollbar::render_vertical(
+                Rect::new(area.right() - 2, inner.y, 1, body_h),
+                buf,
+                ctx,
+                self.id,
+                &self.scroll,
+                true,
+            );
             let pos = scrollbar::position_label(&self.scroll);
             let pw = width(&pos) as u16;
-            buf.set_string(area.right().saturating_sub(pw + 4), area.y, &format!(" {pos} "), t.faint().bg(bg));
+            buf.set_string(
+                area.right().saturating_sub(pw + 4),
+                area.y,
+                format!(" {pos} "),
+                t.faint().bg(bg),
+            );
         }
         hint_row(buf, inner, t, "↑↓ Scroll · Esc Close");
     }

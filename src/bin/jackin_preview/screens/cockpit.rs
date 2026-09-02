@@ -78,7 +78,13 @@ impl CockpitScreen {
         let instance_id = w.new_instance_id();
         let suffix = instance_id.trim_start_matches("jk-").to_owned();
         let container = format!("jackin-{wsname}-{suffix}");
-        let run_id = format!("run-{}-{suffix}", crate::clock::Clock::stamp(w.now_secs()).replace([' ', ':'], "-").replace('-', "")[..12].to_owned());
+        let run_id = format!(
+            "run-{}-{suffix}",
+            crate::clock::Clock::stamp(w.now_secs())
+                .replace([' ', ':'], "-")
+                .replace('-', "")[..12]
+                .to_owned()
+        );
         let run = LaunchRun::new(plan, agent, &container, &run_id);
         let steps = Stage::ALL.iter().map(|s| Step::new(s.label())).collect();
         let mut log = TextViewport::new(LOG).wrap(true).max_lines(5_000);
@@ -123,12 +129,25 @@ impl CockpitScreen {
         match self.account.as_ref().and_then(|id| w.accounts.get(id)) {
             Some(a) => {
                 let why = w
-                    .account_for(a.provider, self.workspace.and_then(|id| w.workspace(id)), Some(&self.role), None)
+                    .account_for(
+                        a.provider,
+                        self.workspace.and_then(|id| w.workspace(id)),
+                        Some(&self.role),
+                        None,
+                    )
                     .level;
-                let origin = format!("{} · {} · {}", a.title(), a.source.origin_label(), a.source.safe_detail());
+                let origin = format!(
+                    "{} · {} · {}",
+                    a.title(),
+                    a.source.origin_label(),
+                    a.source.safe_detail()
+                );
                 let (val, tone) = match a.validation.level() {
                     Some(l) => (format!("{} · {}", l.label(), why.label()), Tone::Secondary),
-                    None => (format!("{} · {}", a.validation.label(), why.label()), Tone::Warning),
+                    None => (
+                        format!("{} · {}", a.validation.label(), why.label()),
+                        Tone::Warning,
+                    ),
                 };
                 (origin, val, tone)
             }
@@ -152,7 +171,13 @@ impl CockpitScreen {
                 LaunchEvent::StageChanged(stage, state) => {
                     self.rail.set_state(stage.index(), state);
                     if state == StepState::Done {
-                        self.rail.set_meta(stage.index(), Some(format!("{:.1} s", self.run.durations[stage.index()] as f64 * 0.033 * 3.0)));
+                        self.rail.set_meta(
+                            stage.index(),
+                            Some(format!(
+                                "{:.1} s",
+                                self.run.durations[stage.index()] as f64 * 0.033 * 3.0
+                            )),
+                        );
                     }
                     if state == StepState::Running && stage == Stage::Credentials {
                         let (o, v, tone) = self.credential_origin(w);
@@ -177,12 +202,17 @@ impl CockpitScreen {
                     let mut d = Dialog::destructive(
                         WidgetId::of("cockpit.cred"),
                         "Credential source unavailable",
-                        &format!("{message}. The launch is paused at the Credentials stage; nothing was injected."),
+                        &format!(
+                            "{message}. The launch is paused at the Credentials stage; nothing was injected."
+                        ),
                         "Cancel launch",
                     );
                     d.actions = vec![
                         Button::secondary(WidgetId::of("cockpit.cred").sub("retry"), "Retry"),
-                        Button::secondary(WidgetId::of("cockpit.cred").sub("plain"), "Enter plain text instead"),
+                        Button::secondary(
+                            WidgetId::of("cockpit.cred").sub("plain"),
+                            "Enter plain text instead",
+                        ),
                         Button::danger(WidgetId::of("cockpit.cred").sub("cancel"), "Cancel launch"),
                     ];
                     d.cancel_index = Some(2);
@@ -206,7 +236,13 @@ impl CockpitScreen {
                     let id = record.id.clone();
                     w.instances.push(record);
                     let now = w.now_ms();
-                    let wsname = self.target_label.rsplit(' ').next().unwrap_or("workspace").trim_start_matches("~/").to_owned();
+                    let wsname = self
+                        .target_label
+                        .rsplit(' ')
+                        .next()
+                        .unwrap_or("workspace")
+                        .trim_start_matches("~/")
+                        .to_owned();
                     let wsname = self
                         .workspace
                         .and_then(|i| w.workspace(i))
@@ -262,13 +298,18 @@ impl CockpitScreen {
     }
 
     fn open_failure(&mut self, w: &World, cx: &mut Cx) {
-        let Some(f) = self.run.failure.clone() else { return };
+        let Some(f) = self.run.failure.clone() else {
+            return;
+        };
         self.failure_shown = true;
         let props = vec![
             Prop::new("Stage", f.stage.label()).tone(Tone::Error),
             Prop::new("Run id", self.run.run_id.clone()).copyable(),
             Prop::new("Next step", f.next_step.clone()).wrap(),
-            Prop::new("Container", self.container.clone().unwrap_or("not created".into())),
+            Prop::new(
+                "Container",
+                self.container.clone().unwrap_or("not created".into()),
+            ),
         ];
         let title = match f.stage {
             Stage::DerivedImage => "Docker build failed".to_owned(),
@@ -277,7 +318,13 @@ impl CockpitScreen {
         };
         let d = InfoDialog::new(WidgetId::of("cockpit.failure"), &title, props)
             .error()
-            .intro(vec![(f.summary.clone(), Tone::Normal), (format!("Loading {} {}", self.role, self.target_label), Tone::Muted)])
+            .intro(vec![
+                (f.summary.clone(), Tone::Normal),
+                (
+                    format!("Loading {} {}", self.role, self.target_label),
+                    Tone::Muted,
+                ),
+            ])
             .detail(f.detail.clone())
             .meta("run id is the only copyable value")
             .width(70);
@@ -289,7 +336,18 @@ impl CockpitScreen {
         let mut props = vec![
             Prop::new("Target", format!("{} {}", self.role, self.target_label)),
             Prop::new("Role", self.role.clone()),
-            Prop::new("Agent", format!("{} · account {}", self.agent.label(), self.account.as_ref().and_then(|id| w.accounts.get(id)).map(|a| a.title()).unwrap_or("host profile".into()))),
+            Prop::new(
+                "Agent",
+                format!(
+                    "{} · account {}",
+                    self.agent.label(),
+                    self.account
+                        .as_ref()
+                        .and_then(|id| w.accounts.get(id))
+                        .map(|a| a.title())
+                        .unwrap_or("host profile".into())
+                ),
+            ),
             Prop::new("Run id", self.run.run_id.clone()).copyable(),
             Prop::new("jackin", "0.6.4 · preview"),
         ];
@@ -297,9 +355,13 @@ impl CockpitScreen {
             props.insert(0, Prop::new("Container", c.clone()).copyable());
         }
         if self.debug {
-            props.push(Prop::new("Telemetry", format!("run {} -> otlp://collector.internal:4317", self.run.run_id)));
+            props.push(Prop::new(
+                "Telemetry",
+                format!("run {} -> otlp://collector.internal:4317", self.run.run_id),
+            ));
         }
-        let d = InfoDialog::new(WidgetId::of("cockpit.info"), "Debug info", props).meta("read-only");
+        let d =
+            InfoDialog::new(WidgetId::of("cockpit.info"), "Debug info", props).meta("read-only");
         cx.open(Modal::Info(d), ModalTag::new("info"));
     }
 
@@ -330,26 +392,56 @@ impl CockpitScreen {
     }
 
     fn draw_log(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let active = !self.run.is_terminal() && self.rail.frontier().is_some_and(|i| i <= Stage::DerivedImage.index());
-        let title = if active { "Docker build · building…" } else { "Docker build" };
+        let active = !self.run.is_terminal()
+            && self
+                .rail
+                .frontier()
+                .is_some_and(|i| i <= Stage::DerivedImage.index());
+        let title = if active {
+            "Docker build · building…"
+        } else {
+            "Docker build"
+        };
         let n = self.log.len();
-        let meta = if self.log.follow { format!("{n} lines · following") } else { format!("{n} lines") };
+        let meta = if self.log.follow {
+            format!("{n} lines · following")
+        } else {
+            format!("{n} lines")
+        };
         let w = screen.width.saturating_sub(6).min(110);
         let h = screen.height.saturating_sub(4);
         let (_, inner) = modal_frame(screen, buf, ctx, w, h, title, Some(&meta), true);
         let t = ctx.theme;
         let bg = t.surface_elevated;
-        let body = Rect::new(inner.x, inner.y, inner.width, inner.height.saturating_sub(2));
+        let body = Rect::new(
+            inner.x,
+            inner.y,
+            inner.width,
+            inner.height.saturating_sub(2),
+        );
         self.log_area = body;
         if self.log.is_empty() {
-            buf.set_string(body.x, body.y, "(waiting for docker build output…)", t.muted().bg(bg));
+            buf.set_string(
+                body.x,
+                body.y,
+                "(waiting for docker build output…)",
+                t.muted().bg(bg),
+            );
         } else {
             self.log.render(body, buf, ctx, bg);
         }
         let hint = "↑↓ Scroll · PgUp PgDn Page · End Follow · Esc Close";
-        buf.set_string(inner.x, inner.bottom() - 1, truncate(hint, inner.width as usize), t.faint().bg(bg));
+        buf.set_string(
+            inner.x,
+            inner.bottom() - 1,
+            truncate(hint, inner.width as usize),
+            t.faint().bg(bg),
+        );
         ctx.hits.register(LOG, body);
-        ctx.hits.register(junie_tui::widgets::scrollbar::id_for(LOG), Rect::new(body.right() - 1, body.y, 1, body.height));
+        ctx.hits.register(
+            junie_tui::widgets::scrollbar::id_for(LOG),
+            Rect::new(body.right() - 1, body.y, 1, body.height),
+        );
     }
 }
 
@@ -406,7 +498,11 @@ impl Screen for CockpitScreen {
             for _ in 0..3 {
                 changed |= self.step(w, cx);
             }
-            return if changed { Outcome::Changed } else { Outcome::Consumed };
+            return if changed {
+                Outcome::Changed
+            } else {
+                Outcome::Consumed
+            };
         }
         let changed = self.step(w, cx);
         if changed || self.frozen_at.is_none() {
@@ -448,7 +544,12 @@ impl Screen for CockpitScreen {
         }
         match key.code {
             KeyCode::Char('b') | KeyCode::Enter if key.plain() => {
-                if self.log.is_empty() && self.rail.frontier().is_some_and(|i| i < Stage::DerivedImage.index()) {
+                if self.log.is_empty()
+                    && self
+                        .rail
+                        .frontier()
+                        .is_some_and(|i| i < Stage::DerivedImage.index())
+                {
                     cx.status("No build output yet · the derived image stage has not started");
                     return Outcome::Changed;
                 }
@@ -520,13 +621,23 @@ impl Screen for CockpitScreen {
     }
 
     fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if self.log_open && (id == LOG || id == junie_tui::widgets::scrollbar::id_for(LOG) || id == WidgetId::of("modal.surface")) {
+        if self.log_open
+            && (id == LOG
+                || id == junie_tui::widgets::scrollbar::id_for(LOG)
+                || id == WidgetId::of("modal.surface"))
+        {
             return self.log.on_wheel(delta);
         }
         Outcome::Ignored
     }
 
-    fn on_modal(&mut self, tag: &ModalTag, result: ModalResult, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         match (tag.kind, result) {
             ("failure", ModalResult::Info(InfoResult::Copy(v))) => {
                 cx.copy(v);
@@ -545,7 +656,12 @@ impl Screen for CockpitScreen {
                 cx.copy(v);
                 Outcome::Changed
             }
-            ("quit", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "quit",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 self.run.cancel();
                 let record = self.instance_record(w, InstanceStatus::FailedSetup);
                 w.instances.push(record);
@@ -553,7 +669,12 @@ impl Screen for CockpitScreen {
                 cx.go(Go::Quit);
                 Outcome::Changed
             }
-            ("cancel", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "cancel",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 self.cancel(w, cx);
                 Outcome::Changed
             }
@@ -575,7 +696,10 @@ impl Screen for CockpitScreen {
                     self.account = None;
                     self.run.retry_credentials();
                     if let Some((o, v, tone)) = self.credentials.as_mut() {
-                        *o = format!("plain text · masked API key · {}", crate::domain::account::masked("Q1zx"));
+                        *o = format!(
+                            "plain text · masked API key · {}",
+                            crate::domain::account::masked("Q1zx")
+                        );
                         *v = "typed once for this launch · never stored".into();
                         *tone = Tone::Secondary;
                     }
@@ -603,7 +727,12 @@ impl Screen for CockpitScreen {
         let rail = Rect::new(rail_x, rail_y, rail_w, rail_h);
         // atmosphere behind everything, excluding the rail and identity block
         let exclude = [
-            Rect::new(rail_x.saturating_sub(2), ident_y, rail_w + 4, rail_h + 5 + 1),
+            Rect::new(
+                rail_x.saturating_sub(2),
+                ident_y,
+                rail_w + 4,
+                rail_h + 5 + 1,
+            ),
             Rect::new(area.x, area.bottom().saturating_sub(3), area.width, 3),
         ];
         let running = !self.run.is_terminal() && self.frozen_at.is_none();
@@ -611,7 +740,15 @@ impl Screen for CockpitScreen {
             Motion::Reduced => 60,
             _ => self.frozen_at.unwrap_or(self.tick),
         };
-        crate::rain::paint_atmosphere(buf, area, &exclude, t_local, running, self.frozen_at.is_some(), t);
+        crate::rain::paint_atmosphere(
+            buf,
+            area,
+            &exclude,
+            t_local,
+            running,
+            self.frozen_at.is_some(),
+            t,
+        );
         // identity
         let ws_name = self.target_label.clone();
         let head = if self.rail.frontier().is_none() && self.tick == 0 {
@@ -624,7 +761,15 @@ impl Screen for CockpitScreen {
             let x = area.x + area.width.saturating_sub(n) / 2;
             buf.set_string(x, y, truncate(text, area.width as usize), style);
         };
-        center(buf, ident_y, " jackin❯ ", Style::new().fg(t.text_on_accent).bg(t.accent).add_modifier(Modifier::BOLD));
+        center(
+            buf,
+            ident_y,
+            " jackin❯ ",
+            Style::new()
+                .fg(t.text_on_accent)
+                .bg(t.accent)
+                .add_modifier(Modifier::BOLD),
+        );
         center(buf, ident_y + 1, &head, t.title());
         let acc = self
             .account
@@ -636,20 +781,46 @@ impl Screen for CockpitScreen {
             .account
             .as_ref()
             .and_then(|id| w.accounts.get(id))
-            .map(|a| w.account_for(a.provider, self.workspace.and_then(|i| w.workspace(i)), Some(&self.role), None).level.label())
+            .map(|a| {
+                w.account_for(
+                    a.provider,
+                    self.workspace.and_then(|i| w.workspace(i)),
+                    Some(&self.role),
+                    None,
+                )
+                .level
+                .label()
+            })
             .unwrap_or("no registered account");
         center(
             buf,
             ident_y + 2,
-            &format!("{} · {} · account {acc} ({why})", self.agent.label(), self.agent.provider().label()),
+            &format!(
+                "{} · {} · account {acc} ({why})",
+                self.agent.label(),
+                self.agent.provider().label()
+            ),
             t.secondary(),
         );
         let (done, skipped) = self.run.counts();
         let frontier = self
             .rail
             .frontier()
-            .map(|i| format!("stage {} of {} · {}", i + 1, Stage::ALL.len(), Stage::ALL[i].label()))
-            .unwrap_or_else(|| if self.run.done { "all stages complete".into() } else { "stopped".into() });
+            .map(|i| {
+                format!(
+                    "stage {} of {} · {}",
+                    i + 1,
+                    Stage::ALL.len(),
+                    Stage::ALL[i].label()
+                )
+            })
+            .unwrap_or_else(|| {
+                if self.run.done {
+                    "all stages complete".into()
+                } else {
+                    "stopped".into()
+                }
+            });
         center(
             buf,
             ident_y + 3,
@@ -657,7 +828,11 @@ impl Screen for CockpitScreen {
             t.muted(),
         );
         // rail on a canvas strip so rain never shows through
-        fill(buf, Rect::new(rail.x - 1, rail.y, rail.width + 2, rail.height), t.base());
+        fill(
+            buf,
+            Rect::new(rail.x - 1, rail.y, rail.width + 2, rail.height),
+            t.base(),
+        );
         self.rail.render(rail, buf, ctx, t.canvas);
         // credentials line under the rail when relevant
         let mut y = rail.bottom() + 1;
@@ -669,21 +844,46 @@ impl Screen for CockpitScreen {
             let wdt = area.right().saturating_sub(x + 2) as usize;
             fill(buf, Rect::new(area.x, y, area.width, 2), t.base());
             buf.set_string(x, y, truncate(&line, wdt), t.muted());
-            buf.set_string(x + 13, y + 1, truncate(val, wdt.saturating_sub(13)), Style::new().fg(t.tone(*tone)));
+            buf.set_string(
+                x + 13,
+                y + 1,
+                truncate(val, wdt.saturating_sub(13)),
+                Style::new().fg(t.tone(*tone)),
+            );
             y += 3;
         }
         let _ = y;
         // bottom chrome: activity chip (clickable → build log), container, run id
         let ay = area.bottom().saturating_sub(2);
         fill(buf, Rect::new(area.x, ay - 1, area.width, 3), t.base());
-        let spinner = if running { format!("{} ", spinner_frame(self.tick)) } else if self.run.failure.is_some() { "! ".into() } else { "".into() };
+        let spinner = if running {
+            format!("{} ", spinner_frame(self.tick))
+        } else if self.run.failure.is_some() {
+            "! ".into()
+        } else {
+            "".into()
+        };
         let activity = format!("{spinner}{}", self.activity);
-        let act_style = if self.run.failure.is_some() { t.error_fg() } else { t.secondary() };
+        let act_style = if self.run.failure.is_some() {
+            t.error_fg()
+        } else {
+            t.secondary()
+        };
         let ax = area.x + 1;
-        buf.set_string(ax, ay, truncate(&activity, area.width.saturating_sub(2) as usize), act_style);
+        buf.set_string(
+            ax,
+            ay,
+            truncate(&activity, area.width.saturating_sub(2) as usize),
+            act_style,
+        );
         if !self.log.is_empty() {
             let lines = format!("{} lines · b build log", self.log.len());
-            buf.set_string(ax, ay + 1, truncate(&lines, area.width.saturating_sub(2) as usize), t.faint());
+            buf.set_string(
+                ax,
+                ay + 1,
+                truncate(&lines, area.width.saturating_sub(2) as usize),
+                t.faint(),
+            );
             ctx.clickable(CHIP_ACTIVITY, Rect::new(ax, ay, width(&activity) as u16, 2));
         }
         let mut rx = area.right().saturating_sub(1);
@@ -701,7 +901,16 @@ impl Screen for CockpitScreen {
             if rx > cw + width(&activity) as u16 + 4 {
                 rx = rx.saturating_sub(cw);
                 let hovered = ctx.interaction.hovered(CHIP_CONTAINER);
-                buf.set_string(rx, ay, &chip, if hovered { t.primary().bg(t.surface_elevated) } else { t.secondary() });
+                buf.set_string(
+                    rx,
+                    ay,
+                    &chip,
+                    if hovered {
+                        t.primary().bg(t.surface_elevated)
+                    } else {
+                        t.secondary()
+                    },
+                );
                 ctx.clickable(CHIP_CONTAINER, Rect::new(rx, ay, cw, 1));
             }
         }
@@ -714,7 +923,11 @@ impl Screen for CockpitScreen {
 
     fn hints(&self, _focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if self.log_open {
-            return vec![hint("↑↓", "Scroll"), hint("End", "Follow"), hint("Esc", "Close log")];
+            return vec![
+                hint("↑↓", "Scroll"),
+                hint("End", "Follow"),
+                hint("Esc", "Close log"),
+            ];
         }
         let mut v = vec![];
         if !self.log.is_empty() {
@@ -730,7 +943,11 @@ impl Screen for CockpitScreen {
     }
 
     fn crumb(&self, _w: &World) -> String {
-        format!("Launch › {} › {}", self.target_label.rsplit(' ').next().unwrap_or(""), self.role)
+        format!(
+            "Launch › {} › {}",
+            self.target_label.rsplit(' ').next().unwrap_or(""),
+            self.role
+        )
     }
 
     fn strip_right(&self, _w: &World) -> Vec<Segment> {

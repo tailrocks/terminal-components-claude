@@ -46,7 +46,13 @@ enum StTab {
 }
 
 impl StTab {
-    const ALL: [StTab; 5] = [StTab::General, StTab::Mounts, StTab::Environments, StTab::Auth, StTab::Trust];
+    const ALL: [StTab; 5] = [
+        StTab::General,
+        StTab::Mounts,
+        StTab::Environments,
+        StTab::Auth,
+        StTab::Trust,
+    ];
     fn cfg(self) -> Option<CfgTab> {
         match self {
             StTab::Mounts => Some(CfgTab::Mounts),
@@ -76,10 +82,21 @@ impl SettingsScreen {
     pub fn new(w: &World) -> Self {
         let original = w.global.clone();
         let pending = original.clone();
-        let roles: Vec<RoleName> = w.roles.iter().map(|r| r.name.clone()).collect();
-        let cfg = ConfigTabs::new(Scope::Global, Doc::from_global(&original), Doc::from_global(&pending), BASE, roles);
+        let registry: Vec<RoleName> = w.roles.iter().map(|r| r.name.clone()).collect();
+        let cfg = ConfigTabs::new(
+            Scope::Global,
+            Doc::from_global(&original),
+            Doc::from_global(&pending),
+            BASE,
+            vec![],
+            registry,
+        );
         Self {
-            coauthor: Checkbox::new(COAUTHOR, "Add Co-authored-by trailer", pending.coauthor_trailer),
+            coauthor: Checkbox::new(
+                COAUTHOR,
+                "Add Co-authored-by trailer",
+                pending.coauthor_trailer,
+            ),
             dco: Checkbox::new(DCO, "Sign off commits (DCO)", pending.dco_signoff),
             original,
             pending,
@@ -105,7 +122,8 @@ impl SettingsScreen {
     }
 
     fn general_dirty(&self) -> bool {
-        self.pending.coauthor_trailer != self.original.coauthor_trailer || self.pending.dco_signoff != self.original.dco_signoff
+        self.pending.coauthor_trailer != self.original.coauthor_trailer
+            || self.pending.dco_signoff != self.original.dco_signoff
     }
 
     fn trust_dirty(&self) -> bool {
@@ -139,42 +157,109 @@ impl SettingsScreen {
             return;
         }
         let blockers = self.cfg.blockers();
-        let sensitive: Vec<String> = self.cfg.pending.mounts.iter().filter(|m| is_sensitive(m.source_label())).map(|m| m.source_label().to_owned()).collect();
-        let mut facts = vec![Prop::new("Scope", format!("global config · {}", w.tilde(&format!("{}/.jackin/config.toml", w.home)))), Prop::new("Changes", plural(n, "change", "changes"))];
+        let sensitive: Vec<String> = self
+            .cfg
+            .pending
+            .mounts
+            .iter()
+            .filter(|m| is_sensitive(m.source_label()))
+            .map(|m| m.source_label().to_owned())
+            .collect();
+        let mut facts = vec![
+            Prop::new(
+                "Scope",
+                format!(
+                    "global config · {}",
+                    w.tilde(&format!("{}/.jackin/config.toml", w.home))
+                ),
+            ),
+            Prop::new("Changes", plural(n, "change", "changes")),
+        ];
         if self.general_dirty() {
-            facts.push(Prop::new("Commits", format!("co-author trailer {} · DCO sign-off {}", on_off(self.pending.coauthor_trailer), on_off(self.pending.dco_signoff))));
+            facts.push(Prop::new(
+                "Commits",
+                format!(
+                    "co-author trailer {} · DCO sign-off {}",
+                    on_off(self.pending.coauthor_trailer),
+                    on_off(self.pending.dco_signoff)
+                ),
+            ));
         }
         facts.extend(self.cfg.summary_facts());
         if self.trust_dirty() {
-            let changed: Vec<String> = self.pending.trust.iter().zip(&self.original.trust).filter(|(a, b)| a.trusted != b.trusted).map(|(a, _)| format!("{} → {}", a.source, if a.trusted { "trusted" } else { "untrusted" })).collect();
+            let changed: Vec<String> = self
+                .pending
+                .trust
+                .iter()
+                .zip(&self.original.trust)
+                .filter(|(a, b)| a.trusted != b.trusted)
+                .map(|(a, _)| {
+                    format!(
+                        "{} → {}",
+                        a.source,
+                        if a.trusted { "trusted" } else { "untrusted" }
+                    )
+                })
+                .collect();
             facts.push(Prop::new("Trust", changed.join(" · ")));
         }
         for s in &sensitive {
-            facts.push(Prop::new("Sensitive", format!("{s} · sensitive global mount path detected")).tone(Tone::Warning));
+            facts.push(
+                Prop::new(
+                    "Sensitive",
+                    format!("{s} · sensitive global mount path detected"),
+                )
+                .tone(Tone::Warning),
+            );
         }
         for b in &blockers {
             facts.push(Prop::new("Blocker", b.clone()).tone(Tone::Error));
         }
         let mut code = self.cfg.diff_lines();
         if self.pending.coauthor_trailer != self.original.coauthor_trailer {
-            code.push(format!("~ coauthor_trailer {} → {}", self.original.coauthor_trailer, self.pending.coauthor_trailer));
+            code.push(format!(
+                "~ coauthor_trailer {} → {}",
+                self.original.coauthor_trailer, self.pending.coauthor_trailer
+            ));
         }
         if self.pending.dco_signoff != self.original.dco_signoff {
-            code.push(format!("~ dco_signoff {} → {}", self.original.dco_signoff, self.pending.dco_signoff));
+            code.push(format!(
+                "~ dco_signoff {} → {}",
+                self.original.dco_signoff, self.pending.dco_signoff
+            ));
         }
         for (a, b) in self.pending.trust.iter().zip(&self.original.trust) {
             if a.trusted != b.trusted {
-                code.push(format!("~ trust {} {} → {}", a.source, b.trusted, a.trusted));
+                code.push(format!(
+                    "~ trust {} {} → {}",
+                    a.source, b.trusted, a.trusted
+                ));
             }
         }
         let (confirm, tag) = if !blockers.is_empty() {
-            (Button::primary(WidgetId::of("settings.preview.cleanup"), "Clean up & save…"), "preview.cleanup")
+            (
+                Button::primary(WidgetId::of("settings.preview.cleanup"), "Clean up & save…"),
+                "preview.cleanup",
+            )
         } else if !sensitive.is_empty() {
-            (Button::primary(WidgetId::of("settings.preview.save"), "Save anyway"), "preview")
+            (
+                Button::primary(WidgetId::of("settings.preview.save"), "Save anyway"),
+                "preview",
+            )
         } else {
-            (Button::primary(WidgetId::of("settings.preview.save"), "Save"), "preview")
+            (
+                Button::primary(WidgetId::of("settings.preview.save"), "Save"),
+                "preview",
+            )
         };
-        let d = Dialog::facts(WidgetId::of("settings.preview"), "Save settings", facts, code, None, confirm);
+        let d = Dialog::facts(
+            WidgetId::of("settings.preview"),
+            "Save settings",
+            facts,
+            code,
+            None,
+            confirm,
+        );
         cx.open(Modal::Dialog(d), ModalTag::new(tag));
     }
 
@@ -197,7 +282,10 @@ impl SettingsScreen {
                 WidgetId::of("settings.savefail"),
                 "Settings error",
                 vec![
-                    Prop::new("Error", "write failed: ~/.jackin/config.toml is not writable (EACCES)"),
+                    Prop::new(
+                        "Error",
+                        "write failed: ~/.jackin/config.toml is not writable (EACCES)",
+                    ),
                     Prop::new("State", "your edits are intact · nothing was written"),
                     Prop::new("Next", "fix the permission and Save again"),
                 ],
@@ -210,7 +298,9 @@ impl SettingsScreen {
         w.global = self.pending.clone();
         for t in &self.pending.trust {
             for r in w.roles.iter_mut() {
-                if r.source.label().starts_with(&t.source) || t.source.trim_start_matches("~/").is_empty() {
+                if r.source.label().starts_with(&t.source)
+                    || t.source.trim_start_matches("~/").is_empty()
+                {
                     continue;
                 }
                 if r.source.label().contains(&t.source) {
@@ -226,8 +316,21 @@ impl SettingsScreen {
     fn leave(&mut self, cx: &mut Cx) {
         self.sync_pending();
         if self.change_count() > 0 {
-            let d = Dialog::confirm(WidgetId::of("settings.exit"), "Unsaved changes", &format!("Save changes before leaving? {} would be lost.", plural(self.change_count(), "change", "changes")), "Save").with_actions(
-                vec![Button::subtle(WidgetId::of("settings.exit.cancel"), "Cancel"), Button::danger(WidgetId::of("settings.exit.discard"), "Discard"), Button::primary(WidgetId::of("settings.exit.save"), "Save")],
+            let d = Dialog::confirm(
+                WidgetId::of("settings.exit"),
+                "Unsaved changes",
+                &format!(
+                    "Save changes before leaving? {} would be lost.",
+                    plural(self.change_count(), "change", "changes")
+                ),
+                "Save",
+            )
+            .with_actions(
+                vec![
+                    Button::subtle(WidgetId::of("settings.exit.cancel"), "Cancel"),
+                    Button::danger(WidgetId::of("settings.exit.discard"), "Discard"),
+                    Button::primary(WidgetId::of("settings.exit.save"), "Save"),
+                ],
                 Some(0),
             );
             cx.open(Modal::Dialog(d), ModalTag::new("exit"));
@@ -241,21 +344,46 @@ impl SettingsScreen {
         let bg = t.canvas;
         let x = area.x + 2;
         let mut y = area.y;
-        buf.set_string(x, y, "Commits", t.secondary().bg(bg).add_modifier(Modifier::BOLD));
+        buf.set_string(
+            x,
+            y,
+            "Commits",
+            t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+        );
         y += 1;
         self.coauthor.render(Rect::new(x, y, 40, 1), buf, ctx, bg);
         if self.pending.coauthor_trailer != self.original.coauthor_trailer {
-            buf.set_string(x + 41, y, "•", ratatui::style::Style::new().fg(t.warning).bg(bg));
+            buf.set_string(
+                x + 41,
+                y,
+                "•",
+                ratatui::style::Style::new().fg(t.warning).bg(bg),
+            );
         }
         y += 1;
         self.dco.render(Rect::new(x, y, 40, 1), buf, ctx, bg);
         if self.pending.dco_signoff != self.original.dco_signoff {
-            buf.set_string(x + 41, y, "•", ratatui::style::Style::new().fg(t.warning).bg(bg));
+            buf.set_string(
+                x + 41,
+                y,
+                "•",
+                ratatui::style::Style::new().fg(t.warning).bg(bg),
+            );
         }
         y += 2;
-        buf.set_string(x, y, "Two independent flags; both apply to every Workspace.", t.faint().bg(bg));
+        buf.set_string(
+            x,
+            y,
+            "Two independent flags; both apply to every Workspace.",
+            t.faint().bg(bg),
+        );
         y += 2;
-        buf.set_string(x, y, "Trailers", t.secondary().bg(bg).add_modifier(Modifier::BOLD));
+        buf.set_string(
+            x,
+            y,
+            "Trailers",
+            t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+        );
         y += 1;
         buf.set_string(x, y, truncate("Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>", area.width.saturating_sub(4) as usize), t.muted().bg(bg));
     }
@@ -266,10 +394,29 @@ impl SettingsScreen {
         let focused = ctx.interaction.focused(TRUST);
         let trusted = self.pending.trust.iter().filter(|r| r.trusted).count();
         let untrusted = self.pending.trust.len() - trusted;
-        buf.set_string(area.x + 2, area.y, "Role sources", t.secondary().bg(bg).add_modifier(Modifier::BOLD));
-        let meta = format!("{} · {}", plural(trusted, "trusted", "trusted"), plural(untrusted, "untrusted", "untrusted"));
-        buf.set_string(area.right().saturating_sub(width(&meta) as u16 + 2), area.y, &meta, t.faint().bg(bg));
-        let body = Rect::new(area.x, area.y + 1, area.width, area.height.saturating_sub(1));
+        buf.set_string(
+            area.x + 2,
+            area.y,
+            "Role sources",
+            t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+        );
+        let meta = format!(
+            "{} · {}",
+            plural(trusted, "trusted", "trusted"),
+            plural(untrusted, "untrusted", "untrusted")
+        );
+        buf.set_string(
+            area.right().saturating_sub(width(&meta) as u16 + 2),
+            area.y,
+            &meta,
+            t.faint().bg(bg),
+        );
+        let body = Rect::new(
+            area.x,
+            area.y + 1,
+            area.width,
+            area.height.saturating_sub(1),
+        );
         ctx.control(TRUST, body, false);
         let src_w = area.width.saturating_sub(30).clamp(16, 40) as usize;
         for (i, row) in self.pending.trust.iter().enumerate() {
@@ -285,14 +432,54 @@ impl SettingsScreen {
             let rect = Rect::new(body.x, y, body.width, 1);
             fill(buf, rect, st);
             buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
-            buf.set_string(rect.x + 1, y, if s.selected { "›" } else { " " }, st.fg(if s.focused { t.accent } else { t.text_secondary }));
-            let changed = self.original.trust.get(i).is_some_and(|o| o.trusted != row.trusted);
-            buf.set_string(rect.x + 3, y, if changed { "•" } else { " " }, st.fg(t.warning));
-            buf.set_string(rect.x + 5, y, fit(&truncate(&row.source, src_w), src_w), if s.selected { st.add_modifier(Modifier::BOLD) } else { st });
+            buf.set_string(
+                rect.x + 1,
+                y,
+                if s.selected { "›" } else { " " },
+                st.fg(if s.focused {
+                    t.accent
+                } else {
+                    t.text_secondary
+                }),
+            );
+            let changed = self
+                .original
+                .trust
+                .get(i)
+                .is_some_and(|o| o.trusted != row.trusted);
+            buf.set_string(
+                rect.x + 3,
+                y,
+                if changed { "•" } else { " " },
+                st.fg(t.warning),
+            );
+            buf.set_string(
+                rect.x + 5,
+                y,
+                fit(&truncate(&row.source, src_w), src_w),
+                if s.selected {
+                    st.add_modifier(Modifier::BOLD)
+                } else {
+                    st
+                },
+            );
             let x = rect.x + 7 + src_w as u16;
             buf.set_string(x, y, fit(row.kind, 5), st.fg(t.text_muted));
-            let mark = if row.trusted { "[✓] trusted" } else { "[ ] untrusted" };
-            buf.set_string(x + 6, y, mark, st.fg(if row.trusted { t.text_primary } else { t.warning }));
+            let mark = if row.trusted {
+                "[✓] trusted"
+            } else {
+                "[ ] untrusted"
+            };
+            buf.set_string(
+                x + 6,
+                y,
+                mark,
+                st.fg(if row.trusted {
+                    t.text_primary
+                } else {
+                    t.warning
+                }),
+            );
             let roles = plural(row.roles, "role", "roles");
             if x + 22 + (width(&roles) as u16) < rect.right() {
                 buf.set_string(x + 21, y, &roles, st.fg(t.text_faint));
@@ -301,8 +488,24 @@ impl SettingsScreen {
         }
         let ny = body.y + self.pending.trust.len() as u16 + 1;
         if ny + 1 < body.bottom() {
-            buf.set_string(area.x + 2, ny, truncate("An untrusted source blocks + Load role until it is trusted here or", area.width.saturating_sub(4) as usize), t.faint().bg(bg));
-            buf.set_string(area.x + 2, ny + 1, truncate("in the trust dialog that the load opens.", area.width.saturating_sub(4) as usize), t.faint().bg(bg));
+            buf.set_string(
+                area.x + 2,
+                ny,
+                truncate(
+                    "An untrusted source blocks + Load role until it is trusted here or",
+                    area.width.saturating_sub(4) as usize,
+                ),
+                t.faint().bg(bg),
+            );
+            buf.set_string(
+                area.x + 2,
+                ny + 1,
+                truncate(
+                    "in the trust dialog that the load opens.",
+                    area.width.saturating_sub(4) as usize,
+                ),
+                t.faint().bg(bg),
+            );
         }
     }
 
@@ -312,14 +515,22 @@ impl SettingsScreen {
             return Outcome::Ignored;
         }
         match key.code {
-            KeyCode::Up | KeyCode::Char('k') => self.trust_cursor = self.trust_cursor.saturating_sub(1),
-            KeyCode::Down | KeyCode::Char('j') => self.trust_cursor = (self.trust_cursor + 1).min(n - 1),
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.trust_cursor = self.trust_cursor.saturating_sub(1)
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.trust_cursor = (self.trust_cursor + 1).min(n - 1)
+            }
             KeyCode::Home | KeyCode::Char('g') => self.trust_cursor = 0,
             KeyCode::End | KeyCode::Char('G') => self.trust_cursor = n - 1,
             KeyCode::Char(' ') | KeyCode::Enter => {
                 let r = &mut self.pending.trust[self.trust_cursor];
                 r.trusted = !r.trusted;
-                cx.status(format!("{} · {} · save to apply", r.source, if r.trusted { "trusted" } else { "untrusted" }));
+                cx.status(format!(
+                    "{} · {} · save to apply",
+                    r.source,
+                    if r.trusted { "trusted" } else { "untrusted" }
+                ));
             }
             KeyCode::Char('o') => {
                 let r = &self.pending.trust[self.trust_cursor];
@@ -341,7 +552,13 @@ fn on_off(b: bool) -> &'static str {
 
 fn is_sensitive(path: &str) -> bool {
     let p = path.trim_start_matches('~');
-    p == "/" || p.starts_with("/.ssh") || p.starts_with("/.aws") || p.starts_with("/.gnupg") || p.starts_with("/etc") || p == "" || p.starts_with("/.config/op")
+    p == "/"
+        || p.starts_with("/.ssh")
+        || p.starts_with("/.aws")
+        || p.starts_with("/.gnupg")
+        || p.starts_with("/etc")
+        || p.is_empty()
+        || p.starts_with("/.config/op")
 }
 
 impl Screen for SettingsScreen {
@@ -358,7 +575,11 @@ impl Screen for SettingsScreen {
     }
 
     fn on_tick(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        if self.saving { Outcome::Changed } else { Outcome::Ignored }
+        if self.saving {
+            Outcome::Changed
+        } else {
+            Outcome::Ignored
+        }
     }
 
     fn on_msg(&mut self, msg: &Msg, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -394,7 +615,10 @@ impl Screen for SettingsScreen {
             _ => {}
         }
         if focus == Some(TABS) {
-            if matches!(key.code, KeyCode::Enter | KeyCode::Down | KeyCode::Char('j')) {
+            if matches!(
+                key.code,
+                KeyCode::Enter | KeyCode::Down | KeyCode::Char('j')
+            ) {
                 cx.focus.focus(self.body_focus());
                 return Outcome::Changed;
             }
@@ -589,17 +813,33 @@ impl Screen for SettingsScreen {
         self.cfg.form_changed(tag, form, w);
     }
 
-    fn on_modal(&mut self, tag: &ModalTag, result: ModalResult, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         if let Some(o) = self.cfg.on_modal(tag, result.clone(), w, cx) {
             self.sync_pending();
             return o;
         }
         match (tag.kind, result) {
-            ("preview", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "preview",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 self.start_save(w, cx);
                 Outcome::Changed
             }
-            ("preview.cleanup", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "preview.cleanup",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 self.cfg.clean_up();
                 cx.status("Cleaned up isolated state · saving");
                 self.start_save(w, cx);
@@ -610,12 +850,25 @@ impl Screen for SettingsScreen {
                 cx.focus.focus(SAVE);
                 Outcome::Changed
             }
-            ("exit", ModalResult::Dialog { action: Some(2), .. }) => {
+            (
+                "exit",
+                ModalResult::Dialog {
+                    action: Some(2), ..
+                },
+            ) => {
                 self.open_preview(w, cx);
                 Outcome::Changed
             }
-            ("exit", ModalResult::Dialog { action: Some(1), .. }) => {
-                cx.status(format!("Discarded {}", plural(self.change_count(), "change", "changes")));
+            (
+                "exit",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
+                cx.status(format!(
+                    "Discarded {}",
+                    plural(self.change_count(), "change", "changes")
+                ));
                 cx.go(Go::Manager);
                 Outcome::Changed
             }
@@ -652,8 +905,18 @@ impl Screen for SettingsScreen {
         self.tabs = Tabs::with_items(TABS, items);
         self.tabs.set_active(active);
         self.tabs.quiet = false;
-        self.tabs.render(Rect::new(area.x + 1, area.y + 1, area.width.saturating_sub(2), 2), buf, ctx, bg);
-        let body = Rect::new(area.x + 1, area.y + 4, area.width.saturating_sub(2), area.height.saturating_sub(6));
+        self.tabs.render(
+            Rect::new(area.x + 1, area.y + 1, area.width.saturating_sub(2), 2),
+            buf,
+            ctx,
+            bg,
+        );
+        let body = Rect::new(
+            area.x + 1,
+            area.y + 4,
+            area.width.saturating_sub(2),
+            area.height.saturating_sub(6),
+        );
         self.row_status = None;
         match self.tab {
             StTab::General => self.render_general(body, buf, ctx),
@@ -664,9 +927,22 @@ impl Screen for SettingsScreen {
         }
         let n = self.change_count();
         self.save.disabled = n == 0 && !self.saving;
-        self.save.label = if self.saving { format!("{} Saving…", spinner_frame(w.now_ms() as u64 / 80)) } else { "Save…".into() };
+        self.save.label = if self.saving {
+            format!("{} Saving…", spinner_frame(w.now_ms() as u64 / 80))
+        } else {
+            "Save…".into()
+        };
         let widths = [self.cancel.width(), self.save.width()];
-        let rects = row_layout_right(Rect::new(area.x, area.bottom().saturating_sub(1), area.width.saturating_sub(4), 1), &widths, 3);
+        let rects = row_layout_right(
+            Rect::new(
+                area.x,
+                area.bottom().saturating_sub(1),
+                area.width.saturating_sub(4),
+                1,
+            ),
+            &widths,
+            3,
+        );
         self.cancel.render(rects[0], buf, ctx, bg);
         self.save.render(rects[1], buf, ctx, bg);
     }
@@ -709,11 +985,23 @@ impl Screen for SettingsScreen {
     fn strip_right(&self, w: &World) -> Vec<Segment> {
         let mut v = vec![];
         if self.saving {
-            v.push(Segment::new(format!("{} saving…", spinner_frame(w.now_ms() as u64 / 80)), Tone::Secondary).priority(9));
+            v.push(
+                Segment::new(
+                    format!("{} saving…", spinner_frame(w.now_ms() as u64 / 80)),
+                    Tone::Secondary,
+                )
+                .priority(9),
+            );
         }
         let n = self.change_count();
         if n > 0 {
-            v.push(Segment::new(format!("• {}", plural(n, "change", "changes")), Tone::Warning).priority(8));
+            v.push(
+                Segment::new(
+                    format!("• {}", plural(n, "change", "changes")),
+                    Tone::Warning,
+                )
+                .priority(8),
+            );
         }
         if let Some(s) = &self.row_status {
             v.push(Segment::new(s.clone(), Tone::Muted).priority(3));

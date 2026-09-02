@@ -86,7 +86,11 @@ impl Clock {
         } else if delta < 86_400 {
             format!("resets in {}", format_duration(delta as u64))
         } else {
-            format!("resets {} {}", Self::weekday(then_secs), Self::hhmm(then_secs))
+            format!(
+                "resets {} {}",
+                Self::weekday(then_secs),
+                Self::hhmm(then_secs)
+            )
         }
     }
 }
