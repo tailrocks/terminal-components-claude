@@ -8,7 +8,7 @@ The target is:
 
 Build a real interactive product preview whose screens, transitions, controls, and simulated workflows can be experienced directly.
 
-Add a runnable application binary named `jackin` in this repository.
+Add a runnable application binary named `jackin-preview` in this repository. Keep the product name and all on-screen branding as Jackin. The distinct executable name separates this design preview from the real Jackin CLI installed on the machine.
 
 The complete current Jackin experience must be represented:
 
@@ -35,17 +35,21 @@ Compose everything above into one continuous Jackin application.
 
 # 1. AUTHORITATIVE REFERENCES AND BOUNDARIES
 
-Use these local artifacts as the authority:
+Use these local artifacts in this order:
 
+- `JACKIN_REFERENCE.md` — first and default authority for current-product semantics, surfaces, workflows, states, terminology, and redesign obligations
 - `JUNIE_PROMPT1.md` — original visual, component, interaction, and quality principles
-- `JACKIN_REFERENCE.md` — canonical current-product semantics, surfaces, workflows, states, terminology, and redesign obligations
 - `DESIGN.md`, `README.md`, `src/theme.rs`, `src/widgets/`, and the shared runtime — approved implementation foundations
 
 `JACKIN_REFERENCE.md` defines the complete current Jackin product scope. Implement its operator-visible capabilities and interaction semantics through the approved Junie design language.
 
+When `JACKIN_REFERENCE.md` does not contain enough detail for a required design decision, inspect the cited, pinned Jackin source code read-only. Use that source only to clarify behavior and semantics for the preview.
+
+The installed or otherwise available real Jackin CLI is outside this goal. Do not run, launch, install, update, build, test, or invoke it. Do not use its runtime output as design evidence. Every executable command in this goal must target only the local `jackin-preview` binary built from this repository. Simulate external systems and runtime behavior in memory.
+
 Implement the preview in this component-library repository, primarily under:
 
-- `src/bin/jackin/`
+- `src/bin/jackin_preview/`
 - generic library files only when a real reusable component gap exists
 - `Cargo.toml`, `README.md`, `DESIGN.md` when reusable conventions change, and Jackin capture artifacts
 
@@ -1049,8 +1053,8 @@ Follow the established application pattern.
 
 Add:
 
-- a `jackin` binary in `Cargo.toml`
-- `src/bin/jackin/main.rs`
+- a `jackin-preview` binary in `Cargo.toml`
+- `src/bin/jackin_preview/main.rs`
 - an application shell and route model
 - deterministic domain fixtures
 - focused screen modules
@@ -1252,8 +1256,8 @@ Inspect Capsule with real-looking terminal content and several pane layouts.
 Use deterministic scenario/frame controls with the existing capture harness. Example pattern:
 
 ```bash
-rtk cargo build --bin jackin
-BIN=target/debug/jackin ARGS='--scenario first-use --motion paused --frame 0' tools/capture.sh start 120 40
+rtk cargo build --bin jackin-preview
+BIN=target/debug/jackin-preview ARGS='--scenario first-use --motion paused --frame 0' tools/capture.sh start 120 40
 tools/capture.sh shot j_intro_phrase
 tools/capture.sh stop
 ```
@@ -1389,7 +1393,7 @@ Implement and visually review:
 
 Run this connected experience:
 
-1. Launch `jackin` with deterministic state containing zero running instances.
+1. Launch the local `jackin-preview` binary from this repository with deterministic state containing zero running instances.
 2. See and complete the Construct intro.
 3. Arrive at the Host Workspace Manager.
 4. Open Account & Usage Center.
@@ -1465,11 +1469,11 @@ The quality target is:
 
 > This feels like entering a precise digital Construct built for orchestrating AI coding agents, their Workspaces, sessions, accounts, and capacity.
 
-Build and run the `jackin` binary:
+Build and run the local preview binary:
 
 ```bash
-rtk cargo build --bin jackin
-rtk cargo run --bin jackin
+rtk cargo build --bin jackin-preview
+rtk cargo run --bin jackin-preview
 ```
 
 Build the world.
