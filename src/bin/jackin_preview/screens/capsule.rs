@@ -23,7 +23,7 @@ use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::segments::Segment;
+use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
 use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
 use ratatui::buffer::Buffer;
@@ -1624,33 +1624,87 @@ impl CapsuleScreen {
         ctx.control(PANES, Rect::new(body.x, body.y, 1, 1), false);
     }
 
+    /// Right side of the menu-bar row: where the operator is (Workspace and
+    /// Role), the container, and how many instances share the Construct.
+    fn draw_identity(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
+        let t = ctx.theme;
+        let Some(i) = w.instance(&self.instance) else {
+            return;
+        };
+        let used = self
+            .menubar
+            .areas
+            .iter()
+            .map(|r| r.right())
+            .max()
+            .unwrap_or(area.x)
+            .max(self.menubar.brand_area.right());
+        let rest = Rect::new(used + 2, area.y, area.right().saturating_sub(used + 2), 1);
+        let ws = self
+            .daemon(w)
+            .map(|d| d.workspace.clone())
+            .unwrap_or_default();
+        let mut right = vec![];
+        if self.mode() == Mode::PrefixAwait {
+            right.push(Segment::new("prefix…", Tone::Normal).bold().priority(10));
+        }
+        right.push(
+            Segment::new(format!("{ws} › {}", i.role), Tone::Normal)
+                .bold()
+                .priority(9),
+        );
+        right.push(
+            Segment::new(truncate_middle(&i.container_id(), 28), Tone::Muted)
+                .clickable(CONTAINER_CHIP)
+                .priority(6),
+        );
+        let n = w.running_count();
+        if n > 1 {
+            right.push(Segment::new(plural(n, "instance", "instances"), Tone::Faint).priority(3));
+        }
+        segments::render(rest, buf, ctx, &[], &right, t.canvas);
+    }
+
+    /// Bottom chrome: the work (branch or PR and its dirty state) on the
+    /// left, the focused session in the middle, the focused account's
+    /// capacity as live meters on the right.
     fn draw_status(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let Some(i) = w.instance(&self.instance) else {
             return;
         };
         let d = self.daemon(w);
         let mut bar = StatusBar::new();
-        // left: where we are
-        let ws = d.map(|d| d.workspace.clone()).unwrap_or_default();
+        // left: the work
+        let branch = i.branch.clone().unwrap_or(i.default_branch.clone());
+        let work = match &i.pr {
+            Some((n, title)) => format!("PR #{n} · {}", truncate(title, 32)),
+            None => truncate_middle(&branch, 36).to_string(),
+        };
         bar.left.push(
-            StatusItem::new(format!("{ws} › {}", i.role), Tone::Normal)
+            StatusItem::new(work, Tone::Normal)
                 .strong()
+                .clickable(CONTEXT)
                 .priority(10),
         );
-        let branch = i.branch.clone().unwrap_or(i.default_branch.clone());
-        if branch != i.default_branch {
-            let text = match &i.pr {
-                Some((n, title)) => format!("PR #{n} · {}", truncate(title, 28)),
-                None => format!("branch · {}", truncate_middle(&branch, 32)),
-            };
-            bar.left.push(
-                StatusItem::new(text, Tone::Secondary)
-                    .clickable(CONTEXT)
-                    .priority(6),
-            );
+        let touched = d.map(|d| d.touched_files().len()).unwrap_or(0);
+        let changed = i.uncommitted + touched;
+        if changed > 0 || i.unpushed > 0 {
+            let mut parts = vec![];
+            if changed > 0 {
+                parts.push(format!("• {changed} changed"));
+            }
+            if i.unpushed > 0 {
+                parts.push(format!("{} unpushed", i.unpushed));
+            }
+            bar.left
+                .push(StatusItem::new(parts.join(" · "), Tone::Warning).priority(6));
+        } else {
+            bar.left
+                .push(StatusItem::new("clean", Tone::Muted).priority(4));
         }
         // center: the focused session
-        if let Some(pane) = self.focused_pane(w).and_then(|p| d.and_then(|d| d.pane(p))) {
+        let pane = self.focused_pane(w).and_then(|p| d.and_then(|d| d.pane(p)));
+        if let Some(pane) = pane {
             let agent = pane.proc.agent.map(|a| a.label()).unwrap_or("shell");
             let account = pane
                 .proc
@@ -1659,23 +1713,15 @@ impl CapsuleScreen {
                 .and_then(|id| w.accounts.get(id))
                 .map(|a| format!(" · {}", a.display_name))
                 .unwrap_or_default();
-            let state = match pane.state() {
-                AgentState::Working => "working",
-                AgentState::Blocked => "needs input",
-                AgentState::Done => "done",
-                AgentState::Idle => "idle",
-                AgentState::Unknown => "",
+            let (state, tone) = match pane.state() {
+                AgentState::Working => (" · working", Tone::Secondary),
+                AgentState::Blocked => (" · needs input", Tone::Warning),
+                AgentState::Done => (" · done", Tone::Secondary),
+                AgentState::Idle => (" · idle", Tone::Muted),
+                AgentState::Unknown => ("", Tone::Secondary),
             };
-            let tone = match pane.state() {
-                AgentState::Blocked => Tone::Warning,
-                _ => Tone::Secondary,
-            };
-            let label = if state.is_empty() {
-                format!("{agent}{account}")
-            } else {
-                format!("{agent}{account} · {state}")
-            };
-            bar.center.push(StatusItem::new(label, tone).priority(7));
+            bar.center
+                .push(StatusItem::new(format!("{agent}{account}{state}"), tone).priority(8));
         }
         if let Some(d) = d {
             let panes = d.active_tab().map(|t| t.leaves().len()).unwrap_or(0);
@@ -1686,73 +1732,72 @@ impl CapsuleScreen {
                         plural(d.tabs.len(), "tab", "tabs"),
                         plural(panes, "pane", "panes")
                     ),
-                    Tone::Muted,
+                    Tone::Faint,
                 )
-                .priority(3),
+                .priority(2),
             );
         }
-        // right: capacity, runtime, mode
-        if self.mode() == Mode::PrefixAwait {
-            bar.right.push(
-                StatusItem::new("prefix…", Tone::Normal)
-                    .strong()
-                    .priority(11),
-            );
-        }
-        let acc = self
-            .focused_pane(w)
-            .and_then(|p| d.and_then(|d| d.pane(p)))
+        // right: capacity of the focused account, as meters
+        let acc = pane
             .and_then(|p| p.proc.account.clone())
-            .and_then(|id| w.accounts.get(&id).cloned())
-            .or_else(|| {
-                w.accounts
-                    .default_for(crate::domain::agent::Provider::Anthropic)
-                    .cloned()
-            });
-        if let Some(a) = acc {
-            let mut parts = vec![];
-            for win in a.usage.windows.iter().take(2) {
-                if let Some(p) = win.used_pct {
-                    let name = win.label.split(' ').next().unwrap_or("Usage");
-                    parts.push(format!("{name} {p}%"));
+            .and_then(|id| w.accounts.get(&id).cloned());
+        match acc {
+            Some(a) => {
+                let fresh = a.usage.freshness.phase;
+                let mut any = false;
+                for (k, win) in a
+                    .usage
+                    .windows
+                    .iter()
+                    .filter(|w| w.has_meter())
+                    .take(2)
+                    .enumerate()
+                {
+                    let tone = match fresh {
+                        Freshness::Refreshing => MeterTone::Refreshing,
+                        Freshness::Stale | Freshness::Failed => MeterTone::Stale,
+                        Freshness::Current => match win.status {
+                            QuotaStatus::Exhausted => MeterTone::Exhausted,
+                            QuotaStatus::Warning => MeterTone::Warning,
+                            _ => MeterTone::Normal,
+                        },
+                    };
+                    let label = win.label.split(' ').next().unwrap_or("Usage").to_owned();
+                    bar.right.push(
+                        StatusItem::new(label, Tone::Muted)
+                            .meter(win.used_pct, tone)
+                            .clickable(USAGE_CHIP)
+                            .priority(if k == 0 { 9 } else { 7 }),
+                    );
+                    any = true;
+                }
+                match fresh {
+                    Freshness::Stale => bar
+                        .right
+                        .push(StatusItem::new("stale", Tone::Warning).chip().priority(5)),
+                    Freshness::Failed => bar.right.push(
+                        StatusItem::new("usage error", Tone::Error)
+                            .chip()
+                            .priority(5),
+                    ),
+                    _ => {}
+                }
+                if !any {
+                    bar.right.push(
+                        StatusItem::new(
+                            format!("{} · {}", a.display_name, a.status_word()),
+                            Tone::Muted,
+                        )
+                        .clickable(USAGE_CHIP)
+                        .priority(8),
+                    );
                 }
             }
-            let state = match a.usage.freshness.phase {
-                Freshness::Stale => " · stale",
-                Freshness::Failed => " · error",
-                Freshness::Refreshing => " · refreshing",
-                Freshness::Current => "",
-            };
-            let text = if parts.is_empty() {
-                format!("usage · {}", a.status_word())
-            } else {
-                format!("{}{state}", parts.join(" · "))
-            };
-            let tone = match a.usage.worst_status() {
-                Some(QuotaStatus::Exhausted) => Tone::Error,
-                Some(QuotaStatus::Warning) => Tone::Warning,
-                _ => Tone::Secondary,
-            };
-            bar.right.push(
-                StatusItem::new(text, tone)
-                    .chip()
+            None => bar.right.push(
+                StatusItem::new("no account · shell", Tone::Faint)
                     .clickable(USAGE_CHIP)
-                    .priority(7),
-            );
-        }
-        bar.right.push(
-            StatusItem::new(truncate_middle(&i.container_id(), 28), Tone::Muted)
-                .clickable(CONTAINER_CHIP)
-                .priority(4),
-        );
-        if !i.run_id.is_empty() {
-            bar.right
-                .push(StatusItem::new(format!("run {}", i.run_id), Tone::Faint).priority(2));
-        }
-        let n = w.running_count();
-        if n > 1 {
-            bar.right
-                .push(StatusItem::new(plural(n, "instance", "instances"), Tone::Faint).priority(1));
+                    .priority(5),
+            ),
         }
         bar.render(area, buf, ctx);
         ctx.clickable(STATUS, area);
@@ -2395,6 +2440,7 @@ impl Screen for CapsuleScreen {
         self.body = body;
         self.menubar.on_hover(ctx.interaction.hover);
         self.menubar.render(menu, buf, ctx, t.canvas);
+        self.draw_identity(menu, buf, ctx, w);
         self.draw_strip(strip, buf, ctx, w);
         self.draw_panes(body, buf, ctx, w);
         self.draw_status(status, buf, ctx, w);
