@@ -676,7 +676,10 @@ impl CodeEditor {
         for row in 0..rows {
             let li = self.scroll.offset + row;
             let y = area.y + row as u16;
-            buf.set_string(area.x, y, "▎", gutter_bar);
+            // the bar marks the line the cursor is on, like a row in a list
+            if li == cur.line {
+                buf.set_string(area.x, y, "▎", gutter_bar);
+            }
             if li >= line_count {
                 continue;
             }
@@ -697,6 +700,19 @@ impl CodeEditor {
                     marker = "›";
                     marker_style = fs.fg(if focused { t.accent } else { t.text_secondary });
                 }
+            }
+            // a diagnostic owns the marker slot
+            let diag_here = diags
+                .iter()
+                .find(|d| d.range.start >= ls && d.range.start <= le);
+            if let Some(d) = diag_here {
+                let c = if d.severity == Severity::Error {
+                    t.error
+                } else {
+                    t.warning
+                };
+                marker = "!";
+                marker_style = fs.fg(c).add_modifier(Modifier::BOLD);
             }
             buf.set_string(area.x + 1, y, marker, marker_style);
             // line number
@@ -719,23 +735,6 @@ impl CodeEditor {
                 crate::ui::text::fit_right(&(li + 1).to_string(), num_w as usize),
                 ns,
             );
-            // diagnostic glyph
-            if let Some(d) = diags
-                .iter()
-                .find(|d| d.range.start >= ls && d.range.start <= le)
-            {
-                let c = if d.severity == Severity::Error {
-                    t.error
-                } else {
-                    t.warning
-                };
-                buf.set_string(
-                    area.x + 2 + num_w,
-                    y,
-                    "!",
-                    fs.fg(c).add_modifier(Modifier::BOLD),
-                );
-            }
             // text
             let mut x = text_area.x;
             let mut col = 0usize;

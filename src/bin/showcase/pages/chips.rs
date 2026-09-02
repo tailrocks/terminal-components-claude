@@ -195,7 +195,9 @@ impl Page for ChipsPage {
         let left = [
             Segment::new("▪", Tone::Success).priority(9),
             Segment::new("Acme", Tone::Normal).bold().priority(9),
-            Segment::new("◆ production", Tone::Warning).priority(8),
+            Segment::new("◆ production", Tone::Normal)
+                .bold()
+                .priority(8),
             Segment::new("acme_prod › public", Tone::Secondary).priority(6),
             Segment::new("safe", Tone::Normal).bold().priority(7),
         ];
@@ -242,7 +244,7 @@ impl Page for ChipsPage {
         let props = vec![
             Prop::new("Engine", "PostgreSQL 16.3"),
             Prop::new("Host", "prod-db-1.acme.io:5432"),
-            Prop::new("Environment", "production").tone(Tone::Warning),
+            Prop::new("Environment", "production"),
             Prop::new(
                 "Safe Mode",
                 "Writes ask for confirmation and a deliberate acknowledgement.",

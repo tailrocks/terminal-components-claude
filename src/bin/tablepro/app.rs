@@ -2242,15 +2242,14 @@ impl App {
                         s = s.bold();
                     }
                     left.push(s);
-                    if let Some(ms) = w.running() {
+                    if w.running().is_some() {
                         right.push(
                             Segment::new(
                                 format!(
-                                    "{} running {}",
+                                    "{} running",
                                     junie_tui::widgets::progress::spinner_frame(
                                         ctx.interaction.tick
                                     ),
-                                    crate::tabs::duration_label(ms)
                                 ),
                                 Tone::Secondary,
                             )

@@ -118,9 +118,7 @@ impl Dialog {
         let cancel = Button::secondary(id.sub("cancel"), "Cancel");
         let cancel_id = cancel.id;
         let ack = token.map(|tok| AckInput {
-            input: TextInput::new(id.sub("ack"), &format!("Type {tok} to confirm"))
-                .placeholder(tok)
-                .plain_label(),
+            input: TextInput::new(id.sub("ack"), &format!("Type {tok} to confirm")).plain_label(),
             token: tok.to_owned(),
         });
         let initial = ack.as_ref().map(|a| a.input.id).unwrap_or(cancel_id);
