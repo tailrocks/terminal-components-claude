@@ -1220,7 +1220,7 @@ impl Workbench {
         );
         // Below 100 columns the explorer becomes a drawer: it takes the whole
         // body while it has focus and steps aside as soon as focus leaves.
-        let narrow = body.width < 100;
+        let narrow = area.width < 100;
         let explorer_focused = ctx.interaction.focused(self.explorer.id)
             || ctx.interaction.focused(self.explorer_filter.id);
         let show_explorer =
@@ -1269,6 +1269,11 @@ impl Workbench {
         }
         // tab body pane
         if main.is_empty() {
+            // the drawer covers the tab; keep its primary control in the ring so
+            // Tab leaves the drawer and lands where work continues
+            if let Some(pf) = self.primary_focus() {
+                ctx.control(pf, Rect::ZERO, false);
+            }
             return;
         }
         let Some(active) = self.tabs.get(self.active) else {

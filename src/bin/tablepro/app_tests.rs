@@ -648,3 +648,29 @@ impl H {
         }
     }
 }
+
+#[test]
+fn narrow_terminals_turn_the_explorer_into_a_drawer() {
+    let mut h = H::connected(80, 24);
+    // the explorer has focus after connecting, so the drawer is open
+    assert!(h.text().contains("Filter objects"));
+    assert!(!h.text().contains("Type SQL"));
+    // Tab leaves the drawer and lands in the query editor
+    h.key(KeyCode::Tab);
+    assert!(!h.text().contains("Filter objects"));
+    assert_eq!(h.focus(), Some(h.wb_query().editor.id));
+    h.key(KeyCode::Char('i'));
+    h.type_str("SELECT 1");
+    assert!(h.wb_query().editor.text().contains("SELECT 1"));
+    h.key(KeyCode::Esc);
+    // `0` reopens the drawer; opening a table closes it again
+    h.key(KeyCode::Char('0'));
+    assert!(h.text().contains("Filter objects"));
+    for _ in 0..5 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    assert!(!h.text().contains("Filter objects"));
+    assert!(h.text().contains("public › orders"));
+}
