@@ -320,6 +320,12 @@ impl Theme {
         if s.hovered {
             st = st.bg(self.lift(bg));
         }
+        if s.error {
+            st = st.fg(self.error);
+        }
+        if s.busy {
+            st = st.fg(self.text_secondary);
+        }
         if s.focused {
             st = st.add_modifier(Modifier::BOLD);
         }
@@ -463,6 +469,35 @@ impl Theme {
         })
     }
 
+    pub fn tone(&self, tone: Tone) -> Color {
+        match tone {
+            Tone::Normal => self.text_primary,
+            Tone::Secondary => self.text_secondary,
+            Tone::Muted => self.text_muted,
+            Tone::Faint => self.text_faint,
+            Tone::Error => self.error,
+            Tone::Warning => self.warning,
+            Tone::Success => self.success,
+        }
+    }
+
+    /// Restrained syntax palette: structure through weight and the text
+    /// ladder, not hue.
+    pub fn syntax(&self, tone: SyntaxTone) -> Style {
+        match tone {
+            SyntaxTone::Keyword => Style::new()
+                .fg(self.text_primary)
+                .add_modifier(Modifier::BOLD),
+            SyntaxTone::Ident | SyntaxTone::Plain => Style::new().fg(self.text_primary),
+            SyntaxTone::Str => Style::new().fg(self.text_secondary),
+            SyntaxTone::Number => Style::new().fg(self.text_secondary),
+            SyntaxTone::Operator | SyntaxTone::Punct => Style::new().fg(self.text_muted),
+            SyntaxTone::Comment => Style::new()
+                .fg(self.text_faint)
+                .add_modifier(Modifier::ITALIC),
+        }
+    }
+
     pub fn badge(&self, kind: BadgeKind) -> Style {
         match kind {
             BadgeKind::Edit => Style::new()
@@ -471,6 +506,33 @@ impl Theme {
                 .add_modifier(Modifier::BOLD),
         }
     }
+}
+
+/// Text tone for values, segments, cells. Maps to the alpha ladder plus the
+/// three semantic colours; never to the accent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Tone {
+    #[default]
+    Normal,
+    Secondary,
+    Muted,
+    Faint,
+    Error,
+    Warning,
+    Success,
+}
+
+/// Language-agnostic syntax classes for the code editor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SyntaxTone {
+    Keyword,
+    Ident,
+    Number,
+    Str,
+    Operator,
+    Punct,
+    Comment,
+    Plain,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

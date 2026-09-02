@@ -18,6 +18,19 @@ use crate::widgets::panel::Panel;
 pub enum DialogBody {
     Text(String),
     Input(TextInput),
+    /// Label/value facts, an optional preformatted block (SQL), and an
+    /// optional typed acknowledgement that arms the confirming action.
+    Facts {
+        facts: Vec<crate::widgets::props::Prop>,
+        code: Vec<String>,
+        ack: Option<AckInput>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct AckInput {
+    pub input: TextInput,
+    pub token: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,6 +106,44 @@ impl Dialog {
         }
     }
 
+    /// Safety-style dialog: facts, code preview, optional typed token.
+    pub fn facts(
+        id: WidgetId,
+        title: &str,
+        facts: Vec<crate::widgets::props::Prop>,
+        code: Vec<String>,
+        token: Option<&str>,
+        confirm: Button,
+    ) -> Self {
+        let cancel = Button::secondary(id.sub("cancel"), "Cancel");
+        let cancel_id = cancel.id;
+        let ack = token.map(|tok| AckInput {
+            input: TextInput::new(id.sub("ack"), &format!("Type {tok} to confirm"))
+                .placeholder(tok),
+            token: tok.to_owned(),
+        });
+        let initial = ack.as_ref().map(|a| a.input.id).unwrap_or(cancel_id);
+        Self {
+            id,
+            title: title.to_owned(),
+            body: DialogBody::Facts { facts, code, ack },
+            actions: vec![cancel, confirm],
+            cancel_index: Some(0),
+            width: 66,
+            area: Rect::ZERO,
+            result: None,
+            initial_focus: initial,
+        }
+    }
+
+    /// True when a typed acknowledgement is required and not yet matched.
+    pub fn armed(&self) -> bool {
+        match &self.body {
+            DialogBody::Facts { ack: Some(a), .. } => a.input.text().trim() == a.token,
+            _ => true,
+        }
+    }
+
     pub fn with_actions(mut self, actions: Vec<Button>, cancel_index: Option<usize>) -> Self {
         self.actions = actions;
         self.cancel_index = cancel_index;
@@ -100,7 +151,19 @@ impl Dialog {
     }
 
     pub fn is_editing(&self) -> bool {
-        matches!(&self.body, DialogBody::Input(i) if i.editing)
+        match &self.body {
+            DialogBody::Input(i) => i.editing,
+            DialogBody::Facts { ack: Some(a), .. } => a.input.editing,
+            _ => false,
+        }
+    }
+
+    fn input_mut(&mut self) -> Option<&mut TextInput> {
+        match &mut self.body {
+            DialogBody::Input(i) => Some(i),
+            DialogBody::Facts { ack: Some(a), .. } => Some(&mut a.input),
+            _ => None,
+        }
     }
 
     pub fn height(&self, width: u16) -> u16 {
@@ -108,6 +171,19 @@ impl Dialog {
         let body_h = match &self.body {
             DialogBody::Text(t) => crate::ui::text::wrap(t, inner_w).len() as u16,
             DialogBody::Input(_) => TextInput::HEIGHT,
+            DialogBody::Facts { facts, code, ack } => {
+                facts.len() as u16
+                    + if code.is_empty() {
+                        0
+                    } else {
+                        code.len().min(6) as u16 + 1
+                    }
+                    + if ack.is_some() {
+                        TextInput::HEIGHT + 1
+                    } else {
+                        0
+                    }
+            }
         };
         // border(2) + pad(1) + title(1) + gap(1) + body + gap(1) + actions(1) + pad(1)
         2 + 1 + 1 + 1 + body_h + 1 + 1 + 1
@@ -137,7 +213,8 @@ impl Dialog {
     ) -> Outcome {
         let cur = focus.current();
         // input editing captures first
-        if let DialogBody::Input(inp) = &mut self.body
+        let is_facts = matches!(self.body, DialogBody::Facts { .. });
+        if let Some(inp) = self.input_mut()
             && cur == Some(inp.id)
         {
             let (o, ev) = inp.on_key(key);
@@ -151,7 +228,12 @@ impl Dialog {
                     return Outcome::Changed;
                 }
                 Some(InputEvent::Committed) => {
-                    // Enter in the field submits the dialog
+                    // Enter submits a prompt; for a typed acknowledgement it only
+                    // moves on, so the confirming button is reached deliberately
+                    if is_facts {
+                        focus.next(ring);
+                        return Outcome::Changed;
+                    }
                     let primary = self
                         .actions
                         .iter()
@@ -233,9 +315,9 @@ impl Dialog {
     }
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
-        match &mut self.body {
-            DialogBody::Input(inp) => inp.on_paste(text).or(Outcome::Consumed),
-            DialogBody::Text(_) => Outcome::Consumed,
+        match self.input_mut() {
+            Some(inp) => inp.on_paste(text).or(Outcome::Consumed),
+            None => Outcome::Consumed,
         }
     }
 
@@ -335,6 +417,57 @@ impl Dialog {
                 );
                 inp.render(r, buf, ctx, bg);
             }
+            DialogBody::Facts { facts, code, ack } => {
+                let mut y = body_y;
+                let used = crate::widgets::props::render(
+                    Rect::new(inner.x, y, inner.width, actions_y.saturating_sub(y + 1)),
+                    buf,
+                    t,
+                    facts,
+                    bg,
+                );
+                y += used;
+                if !code.is_empty() {
+                    y += 1;
+                    let max = code.len().min(6);
+                    for (i, line) in code.iter().take(max).enumerate() {
+                        if y + (i as u16) >= actions_y.saturating_sub(1) {
+                            break;
+                        }
+                        let shown = if i == max - 1 && code.len() > max {
+                            format!(
+                                "{} … {} more",
+                                crate::ui::text::truncate(
+                                    line,
+                                    inner.width.saturating_sub(12) as usize
+                                ),
+                                code.len() - max
+                            )
+                        } else {
+                            crate::ui::text::truncate(line, inner.width as usize)
+                        };
+                        buf.set_string(inner.x, y + i as u16, &shown, t.secondary().bg(bg));
+                    }
+                    y += max as u16;
+                }
+                if let Some(a) = ack {
+                    y += 1;
+                    let r = Rect::new(
+                        inner.x.saturating_sub(1),
+                        y,
+                        inner.width + 1,
+                        TextInput::HEIGHT,
+                    );
+                    a.input.render(r, buf, ctx, bg);
+                }
+            }
+        }
+        // the confirming action stays disabled until the acknowledgement matches
+        if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
+            let armed = a.input.text().trim() == a.token;
+            if let Some(last) = self.actions.last_mut() {
+                last.disabled = !armed;
+            }
         }
         // actions, right aligned
         let widths: Vec<u16> = self.actions.iter().map(|b| b.width()).collect();
@@ -345,8 +478,10 @@ impl Dialog {
         // the dialog surface itself blocks clicks from falling through
         ctx.hits.register(self.id, area);
         // re-register the controls on top of the surface
-        if let DialogBody::Input(inp) = &self.body {
-            ctx.hits.register(inp.id, inp.area);
+        match &self.body {
+            DialogBody::Input(inp) => ctx.hits.register(inp.id, inp.area),
+            DialogBody::Facts { ack: Some(a), .. } => ctx.hits.register(a.input.id, a.input.area),
+            _ => {}
         }
         for b in &self.actions {
             ctx.hits.register(b.id, b.area);

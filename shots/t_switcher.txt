@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+ ▎≡ Query 1 ×                                                                                                       +
+ ─━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────────────  ─╮
+ │                           │ │  ▎  1  Type SQL. Ctrl+R runs the statement under the cursor.                         │
+ │ ▎ Filter objects          │ │  ▎                                                                                   │
+ │ ▎▾ D acme_prod       ╭──────────────────────────────────────────────────────────────────────╮                      │
+ │ ▎  ▾ S public        │ Open Quickly                                         All · Tab scope │                      │
+ │ ▎    ▾ Tables        │ ▎ ord                                                                │                      │
+ │ ▎      ▸ T organizati│                                                                      │                      │
+ │ ▎      ▸ T customers │ ▎T order_items                         public · Production  Tables ┃ │                      │
+ │ ▎      ▸ T products  │ ▎T orders                                     public · Production  ┃ │                      │
+ │ ▎      ▸ T orders    │ ▎V order_totals_by_day                  public · Production  Views ┃ │                      │
+ │ ▎      ▸ T order_item│ ▎↻ ALTER TABLE orders ADD C…  Development · 1 d ago Recent queries ┃ │                      │
+ │ ▎      ▸ T payments  │ ▎↻ EXPLAIN ANALYZE SELECT * FROM orders W…  Production · 15 min ago┃ │                      │
+ │ ▎      ▸ T subscripti│ ▎↻ SELECT * FROM customers ORDER BY creat…  Production · 40 min ago┃ │                      │
+ │ ▎    ▸ Views         │ ▎↻ SELECT * FROM orders WHERE status = 'pe…  Production · 4 min ago┃ │                      │
+ │ ▎    ▸ Functions     │ ▎↻ SELECT * FROM ordres                      Production · 1 h ago  ┃ │                      │
+ │ ▎    ▸ Sequences     │ ▎↻ SELECT count(*) FROM orders WHERE crea…  Production · 12 min ago┃ │                      │
+ │ ▎  ▸ S analytics     │ ▎↻ SELECT day, revenue, refunds FROM analyti…  Production · 3 h ago┃ │                      │
+ │ ▎  ▸ S audit         │ ▎↻ UPDATE orders SET status = 'shipped' W…  Production · 58 min ago┃ │                      │
+ │                      │ ▎↻ SELECT * FROM payments WHERE status = 'fa…  Production · 1 d ago┃ │                      │
+ │                      │ ▎↻ DELETE FROM audit.login_attempts WHERE a…  Development · 5 h ago│ │                      │
+ │                      │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / … │                      │
+ │                      ╰──────────────────────────────────────────────────────────────────────╯                      │
+ │                           │ │                                                                                      │
+ │                           │ │              Ctrl+R runs the statement under the cursor · Alt+R runs all             │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                Connected to Production

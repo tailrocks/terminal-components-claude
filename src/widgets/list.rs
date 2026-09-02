@@ -220,7 +220,11 @@ impl ListBox {
         if self.items.is_empty() {
             let msg = crate::ui::text::truncate(&self.empty_text, area.width as usize);
             let y = area.y + area.height / 2;
-            let x = area.x + (area.width.saturating_sub(msg.len() as u16)) / 2;
+            let x = area.x
+                + (area
+                    .width
+                    .saturating_sub(crate::ui::text::width(&msg) as u16))
+                    / 2;
             buf.set_string(x, y, &msg, t.muted().bg(bg));
             return;
         }
