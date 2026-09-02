@@ -86,6 +86,10 @@ mod palette {
     pub const ON_GREEN: Color = rgb(0x19191c);
     pub const RED: Color = rgb(0xe44545);
     pub const RED_20: Color = rgb(0x2e0f0f);
+    /// Soft rose: a destructive label at rest on a neutral plane.
+    pub const RED_SOFT: Color = rgb(0xd98a8a);
+    /// Deep red: the highlight of a destructive menu row under the cursor.
+    pub const RED_45: Color = rgb(0x7a2a2a);
     pub const AMBER: Color = rgb(0xf59e09);
     pub const PURPLE: Color = rgb(0x8787ff);
 }
@@ -105,6 +109,11 @@ pub struct Theme {
     /// The cursor row of an anchored menu: a hue reserved for transient
     /// command lists so the accent keeps its meaning.
     pub highlight: Color,
+    /// The cursor row of a destructive menu item: a deep red fill.
+    pub highlight_danger: Color,
+    /// A destructive label at rest on a neutral plane: desaturated so it
+    /// sits in tone with grey rather than shouting.
+    pub error_soft: Color,
 
     pub border_subtle: Color,
     pub border_strong: Color,
@@ -145,6 +154,8 @@ impl Theme {
             field_hover: INPUT_HOVER,
             popover: POPOVER,
             highlight: HIGHLIGHT,
+            highlight_danger: RED_45,
+            error_soft: RED_SOFT,
             border_subtle: WHITE_15,
             border_strong: WHITE_30,
             text_primary: WHITE,
@@ -187,6 +198,8 @@ impl Theme {
             field_hover,
             popover,
             highlight,
+            highlight_danger,
+            error_soft,
             border_subtle,
             border_strong,
             text_primary,

@@ -19,6 +19,8 @@ colors:
   surface-overlay: "#27272a"
   popover: "#3f3f46"
   highlight: "#2f5aa8"
+  highlight-danger: "#7a2a2a"
+  error-soft: "#d98a8a"
   field: "#1e1e22"
   field-hover: "#232328"
   border-subtle: "#262626"
@@ -229,7 +231,10 @@ a style given their state and never spell an RGB value.
   anchored menu (dropdown, context menu), white bold text on it. Menus are
   transient command lists, so their selection must not read as focus or as
   the primary action; a cool blue keeps the accent's meaning intact. It
-  appears nowhere else.
+  appears nowhere else. Its destructive sibling **highlight-danger
+  (`#7a2a2a`)** fills a destructive menu row under the cursor, and
+  **error-soft (`#d98a8a`)** is the resting label of such a row: the alarm
+  red belongs on the black canvas, a rose belongs on grey.
 - **Field (`#1e1e22`)** is the body of every text entry; **field hover
   (`#232328`)** is its hover, applied only while not editing.
 
