@@ -783,8 +783,8 @@ Tab still reaches them.
   spinner; a `suffix` slot before it carries a muted state glyph (`▶ ● ○ ◆`)
   that turns text-secondary on the active tab.
 - **Selected (active)**: one plane up from the strip (`lift(bg)`), bold,
-  text-primary, and the accent `━` rule under the label — the single accent
-  underline of the screen. Nested strips (`quiet`) keep the plane and the
+  text-primary, and the accent `━` rule under it spanning exactly the tab's
+  plane, edge to edge — the single accent underline of the screen. Nested strips (`quiet`) keep the plane and the
   bold but draw the rule in border-strong so a screen still has one accent
   rule.
 - **Hover** (inactive tab): two planes up (`lift(lift(bg))`), text-primary,

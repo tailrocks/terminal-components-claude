@@ -18,7 +18,7 @@
 120x40 Chips & selects 413ae8c3ca5ad623
 120x40 Pickers ace5fe00f3a4a62a
 120x40 Chrome a61da4379e3c35fa
-120x40 Settings 6f7f177eb6375d68
+120x40 Settings ab295c6a3e044916
 120x40 Task runner 0468df522518fa30
 80x24 Overview cb8993b1157c0954
 80x24 Buttons 36a3b4aa110d92b9
@@ -40,5 +40,5 @@
 80x24 Chips & selects 49deab017ca721da
 80x24 Pickers fc6087d6db6a983f
 80x24 Chrome 3062ab9079f81e83
-80x24 Settings 8f51488be656a625
+80x24 Settings d011e826bf479453
 80x24 Task runner fcf67baf412d2c93
