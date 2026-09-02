@@ -287,12 +287,28 @@ mod tests {
 
     fn bar() -> StatusBar {
         let mut b = StatusBar::new();
-        b.left.push(StatusItem::new("payments-platform", Tone::Normal).strong().priority(9));
-        b.left.push(StatusItem::new("PR #482 · settlement backoff", Tone::Secondary).priority(7));
-        b.center.push(StatusItem::new("Claude Code · working", Tone::Secondary).priority(4));
-        b.right.push(StatusItem::new("Weekly 59%", Tone::Warning).chip().priority(6).clickable(WidgetId::of("usage")));
-        b.right.push(StatusItem::new("jackin-payments-7f3a", Tone::Muted).chip().priority(3));
-        b.right.push(StatusItem::new("run 9c41", Tone::Faint).priority(2));
+        b.left.push(
+            StatusItem::new("payments-platform", Tone::Normal)
+                .strong()
+                .priority(9),
+        );
+        b.left
+            .push(StatusItem::new("PR #482 · settlement backoff", Tone::Secondary).priority(7));
+        b.center
+            .push(StatusItem::new("Claude Code · working", Tone::Secondary).priority(4));
+        b.right.push(
+            StatusItem::new("Weekly 59%", Tone::Warning)
+                .chip()
+                .priority(6)
+                .clickable(WidgetId::of("usage")),
+        );
+        b.right.push(
+            StatusItem::new("jackin-payments-7f3a", Tone::Muted)
+                .chip()
+                .priority(3),
+        );
+        b.right
+            .push(StatusItem::new("run 9c41", Tone::Faint).priority(2));
         b
     }
 
@@ -315,13 +331,16 @@ mod tests {
     fn narrow_rows_drop_center_then_right_then_left_and_keep_the_name() {
         let b = bar();
         let p = b.layout(Rect::new(0, 0, 80, 1));
-        assert!(p.iter().all(|x| x.group != Group::Center), "center leaves first");
+        assert!(
+            p.iter().all(|x| x.group != Group::Center),
+            "center leaves first"
+        );
         assert!(p.iter().any(|x| x.group == Group::Left && x.index == 0));
-        let p = b.layout(Rect::new(0, 0, 24, 1));
+        let p = b.layout(Rect::new(0, 0, 16, 1));
         assert_eq!(p.len(), 1);
         assert_eq!(p[0].group, Group::Left);
-        assert!(p[0].text.ends_with('…'));
-        assert!(p[0].width <= 22);
+        assert!(p[0].text.ends_with('…'), "{:?}", p[0].text);
+        assert!(p[0].width <= 14);
     }
 
     #[test]
@@ -342,10 +361,16 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 120, 1));
         bar().render(Rect::new(0, 0, 120, 1), &mut buf, &mut ctx);
         for x in 0..120u16 {
-            assert_eq!(buf[(x, 0)].bg, t.surface_elevated, "cell {x} keeps the plane");
+            assert_eq!(
+                buf[(x, 0)].bg,
+                t.surface_elevated,
+                "cell {x} keeps the plane"
+            );
         }
         // the hovered chip is lifted and hit-tested
-        let chip_x = (0..120u16).find(|x| hits.hit(Position::new(*x, 0)) == Some(id)).unwrap();
+        let chip_x = (0..120u16)
+            .find(|x| hits.hit(Position::new(*x, 0)) == Some(id))
+            .unwrap();
         assert_eq!(buf[(chip_x + 1, 0)].bg, t.lift(t.surface_overlay));
         assert!(buf[(1, 0)].modifier.contains(Modifier::BOLD));
     }

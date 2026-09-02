@@ -87,13 +87,20 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
         let n = HintBar::render(Rect::new(0, 0, 30, 1), &mut buf, &t, &layer);
         assert!(n < 5 && n >= 2, "{n}");
-        let row: String = (0..30u16).map(|x| buf[(x, 0)].symbol().to_owned()).collect();
+        let row: String = (0..30u16)
+            .map(|x| buf[(x, 0)].symbol().to_owned())
+            .collect();
         assert!(row.contains("Enter Open"));
         assert!(row.contains('…'), "{row:?}");
         assert!(!row.contains("Cancel"));
         let mut wide = Buffer::empty(Rect::new(0, 0, 120, 1));
-        assert_eq!(HintBar::render(Rect::new(0, 0, 120, 1), &mut wide, &t, &layer), 5);
-        let row: String = (0..120u16).map(|x| wide[(x, 0)].symbol().to_owned()).collect();
+        assert_eq!(
+            HintBar::render(Rect::new(0, 0, 120, 1), &mut wide, &t, &layer),
+            5
+        );
+        let row: String = (0..120u16)
+            .map(|x| wide[(x, 0)].symbol().to_owned())
+            .collect();
         assert!(!row.contains('…'));
     }
 }

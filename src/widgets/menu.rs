@@ -375,7 +375,9 @@ impl MenuBar {
     }
 
     pub fn open_index(&self) -> Option<usize> {
-        self.open.as_ref().and_then(|m| (0..self.labels.len()).find(|i| m.id == self.label_id(*i).sub("menu")))
+        self.open
+            .as_ref()
+            .and_then(|m| (0..self.labels.len()).find(|i| m.id == self.label_id(*i).sub("menu")))
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
@@ -527,13 +529,21 @@ impl MenuBar {
             let is_cursor = focused && self.cursor == i && open.is_none();
             let mut st = Style::new().fg(t.text_secondary).bg(bg);
             if is_open {
-                st = st.fg(t.text_primary).bg(t.surface_elevated).add_modifier(Modifier::BOLD);
+                st = st
+                    .fg(t.text_primary)
+                    .bg(t.surface_elevated)
+                    .add_modifier(Modifier::BOLD);
             } else if hovered {
                 st = st.fg(t.text_primary).bg(t.lift(bg));
             }
             if is_cursor {
                 st = st.fg(t.text_primary).add_modifier(Modifier::BOLD);
-                buf.set_string(x.saturating_sub(1), area.y, "▎", Style::new().fg(t.focus).bg(bg));
+                buf.set_string(
+                    x.saturating_sub(1),
+                    area.y,
+                    "▎",
+                    Style::new().fg(t.focus).bg(bg),
+                );
             }
             buf.set_string(x, area.y, &text, st);
             let r = Rect::new(x, area.y, w, 1);
@@ -605,7 +615,8 @@ mod tests {
     #[test]
     fn placement_is_clamped_to_the_screen_and_flips_up() {
         let screen = Rect::new(0, 0, 40, 12);
-        let m = ContextMenu::new(WidgetId::of("m"), items()).anchor(Rect::new(34, 9, 4, 1), Placement::Below);
+        let m = ContextMenu::new(WidgetId::of("m"), items())
+            .anchor(Rect::new(34, 9, 4, 1), Placement::Below);
         let r = m.placed(screen);
         assert!(r.right() <= 40 && r.bottom() <= 12, "{r:?}");
         assert!(r.y < 9, "flipped above the anchor: {r:?}");
@@ -628,7 +639,10 @@ mod tests {
         assert_eq!(hits.hit(Position::new(area.x + 2, area.y)), Some(row3));
         assert_eq!(m.on_click(row3), Some(MenuEvent::Chosen(3)));
         assert_eq!(m.on_click(m.row_id(1)), None, "disabled rows do nothing");
-        assert_eq!(m.on_click(WidgetId::of("elsewhere")), Some(MenuEvent::Dismissed));
+        assert_eq!(
+            m.on_click(WidgetId::of("elsewhere")),
+            Some(MenuEvent::Dismissed)
+        );
         // danger row is drawn in the error tone, shortcut right-aligned
         assert_eq!(buf[(area.x + 2, area.y)].fg, t.error);
         let sc_x = area.right() - 2;

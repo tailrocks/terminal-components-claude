@@ -347,9 +347,10 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
     // two Anthropic accounts at once: Work is the inherited registry default,
     // Personal is switched on here; Codex Primary is inherited
     w.accounts.enabled.insert("acct-claude-personal".into());
-    w.accounts
-        .role_preferred
-        .insert(("reviewer".into(), Provider::Anthropic), "acct-claude-personal".into());
+    w.accounts.role_preferred.insert(
+        ("reviewer".into(), Provider::Anthropic),
+        "acct-claude-personal".into(),
+    );
     w.keep_awake = true;
     v.push(w);
 

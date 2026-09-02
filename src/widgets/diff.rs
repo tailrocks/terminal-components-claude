@@ -551,7 +551,7 @@ mod tests {
 
     #[test]
     fn review_pairs_columns_and_emphasises_the_change() {
-        let lines = review_lines(&sample(), 80);
+        let lines = review_lines(&sample(), 120);
         let texts: Vec<String> = lines.iter().map(|l| line_text(l)).collect();
         let paired = &texts[3];
         assert!(paired.contains("│"));
@@ -585,6 +585,7 @@ mod tests {
         assert_eq!(v.term.scroll.offset, 2, "render must not undo the wheel");
         v.toggle_mode();
         assert_eq!(v.mode, DiffMode::Review);
+        v.term.scroll.jump_start();
         v.render(area, &mut buf, &mut ctx, theme.canvas);
         let row0: String = (0..60).map(|x| buf[(x, 0)].symbol().to_owned()).collect();
         assert!(row0.contains("review"));

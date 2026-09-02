@@ -59,7 +59,6 @@ impl Scope {
 pub enum Tab {
     Mounts,
     Environments,
-    Auth,
 }
 
 /// The parts of a Workspace or the global config that the shared tabs edit.
@@ -68,8 +67,6 @@ pub struct Doc {
     pub mounts: Vec<Mount>,
     pub env: Vec<EnvVar>,
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
-    pub auth: Vec<AuthEntry>,
-    pub role_auth: BTreeMap<RoleName, Vec<AuthEntry>>,
 }
 
 impl Doc {
@@ -78,8 +75,6 @@ impl Doc {
             mounts: w.mounts.clone(),
             env: w.env.clone(),
             role_env: w.role_env.clone(),
-            auth: w.auth.clone(),
-            role_auth: w.role_auth.clone(),
         }
     }
 
@@ -87,8 +82,6 @@ impl Doc {
         w.mounts = self.mounts.clone();
         w.env = self.env.clone();
         w.role_env = self.role_env.clone();
-        w.auth = self.auth.clone();
-        w.role_auth = self.role_auth.clone();
     }
 
     pub fn from_global(g: &GlobalConfig) -> Self {
@@ -96,8 +89,6 @@ impl Doc {
             mounts: g.mounts.clone(),
             env: g.env.clone(),
             role_env: g.role_env.clone(),
-            auth: g.auth.clone(),
-            role_auth: g.role_auth.clone(),
         }
     }
 
@@ -105,8 +96,6 @@ impl Doc {
         g.mounts = self.mounts.clone();
         g.env = self.env.clone();
         g.role_env = self.role_env.clone();
-        g.auth = self.auth.clone();
-        g.role_auth = self.role_auth.clone();
     }
 
     fn env_of(&self, role: Option<&str>) -> &[EnvVar] {
@@ -123,26 +112,13 @@ impl Doc {
         }
     }
 
-    fn auth_of(&self, role: Option<&str>) -> &[AuthEntry] {
-        match role {
-            None => &self.auth,
-            Some(r) => self.role_auth.get(r).map(Vec::as_slice).unwrap_or(&[]),
-        }
-    }
-
-    fn auth_of_mut(&mut self, role: Option<&str>) -> &mut Vec<AuthEntry> {
-        match role {
-            None => &mut self.auth,
-            Some(r) => self.role_auth.entry(r.to_owned()).or_default(),
-        }
-    }
-
+    /// Roles that carry configuration (and therefore get a section).
     fn roles(&self) -> Vec<RoleName> {
         let mut v: Vec<RoleName> = self
             .role_env
-            .keys()
-            .chain(self.role_auth.keys())
-            .cloned()
+            .iter()
+            .filter(|(_, vars)| !vars.is_empty())
+            .map(|(r, _)| r.clone())
             .collect();
         v.sort();
         v.dedup();
@@ -177,8 +153,10 @@ pub enum RowKey {
     Section(Option<RoleName>),
     Env(Option<RoleName>, String),
     AddEnv(Option<RoleName>),
-    Auth(Option<RoleName>, Agent),
-    AddAuth(Option<RoleName>),
+    /// `Role overrides · N configured` summary header.
+    RoleSummary,
+    /// `+ Add role override…` — opens the searchable Role picker.
+    AddRoleOverride,
 }
 
 #[derive(Debug, Clone)]
@@ -212,10 +190,6 @@ enum Editing {
         role: Option<RoleName>,
         original: Option<String>,
     },
-    Auth {
-        role: Option<RoleName>,
-        original: Option<Agent>,
-    },
 }
 
 pub struct ConfigTabs {
@@ -225,16 +199,16 @@ pub struct ConfigTabs {
     removed_mounts: Vec<Mount>,
     mounts: ListState,
     envs: ListState,
-    auth: ListState,
     folded: HashSet<Option<RoleName>>,
     unmasked: HashSet<(Option<RoleName>, String)>,
     editing: Option<Editing>,
     op_ref: Option<OpReference>,
-    /// Roles that get a section: scoped by the owner (allowed roles) plus
-    /// any role that already carries entries.
+    /// Roles that get a section: only those that carry entries.
     roles: Vec<RoleName>,
-    /// Every registry role, for scope selectors.
+    /// Every registry role, for scope selectors and the role picker.
     registry: Vec<RoleName>,
+    /// Picker rows → Role names for the last role picker.
+    role_targets: Vec<RoleName>,
     ids: Ids,
 }
 
@@ -242,7 +216,6 @@ pub struct ConfigTabs {
 struct Ids {
     mounts: WidgetId,
     envs: WidgetId,
-    auth: WidgetId,
     form: WidgetId,
 }
 

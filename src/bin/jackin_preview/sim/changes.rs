@@ -3,7 +3,9 @@
 //! turned into realistic hunks from a fixed snippet library; the same
 //! instance id and touched paths always produce the same diff.
 
-pub use junie_tui::widgets::diff::{DiffFile as ChangedFile, DiffHunk as Hunk, DiffLine, DiffLineKind, DiffStatus};
+pub use junie_tui::widgets::diff::{
+    DiffFile as ChangedFile, DiffHunk as Hunk, DiffLine, DiffStatus,
+};
 
 /// Everything the inspector shows for one instance.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,9 +38,9 @@ impl ChangeSet {
 }
 
 fn seed(instance_id: &str) -> u64 {
-    instance_id
-        .bytes()
-        .fold(0xcbf2_9ce4_8422_2325u64, |h, b| (h ^ b as u64).wrapping_mul(0x0100_0000_01b3))
+    instance_id.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
+        (h ^ b as u64).wrapping_mul(0x0100_0000_01b3)
+    })
 }
 
 fn ext(path: &str) -> &str {
@@ -267,7 +269,12 @@ fn renamed_file() -> ChangedFile {
 /// The change set of an instance. Touched paths become modified files;
 /// when the instance's uncommitted count exceeds them, an added file, a
 /// deleted file and a rename fill the gap in that order.
-pub fn changes_for(instance_id: &str, touched: &[String], uncommitted: usize, unpushed: usize) -> ChangeSet {
+pub fn changes_for(
+    instance_id: &str,
+    touched: &[String],
+    uncommitted: usize,
+    unpushed: usize,
+) -> ChangeSet {
     let k = seed(instance_id);
     let mut files: Vec<ChangedFile> = vec![];
     let mut seen = std::collections::BTreeSet::new();
@@ -299,7 +306,10 @@ mod tests {
 
     #[test]
     fn deterministic_and_realistic() {
-        let touched = vec!["src/settlement/retry.rs".to_owned(), "src/settlement/mod.rs".to_owned()];
+        let touched = vec![
+            "src/settlement/retry.rs".to_owned(),
+            "src/settlement/mod.rs".to_owned(),
+        ];
         let a1 = changes_for("jk-7f3a", &touched, 5, 1);
         let a2 = changes_for("jk-7f3a", &touched, 5, 1);
         assert_eq!(a1, a2);
@@ -322,22 +332,37 @@ mod tests {
     fn fewer_uncommitted_than_touched_keeps_every_touched_file() {
         let touched = vec!["a.rs".to_owned(), "b.toml".to_owned(), "a.rs".to_owned()];
         let s = changes_for("x", &touched, 1, 0);
-        assert_eq!(s.files.len(), 2, "duplicates collapse, touched files always show");
+        assert_eq!(
+            s.files.len(),
+            2,
+            "duplicates collapse, touched files always show"
+        );
         assert!(changes_for("x", &[], 0, 0).is_empty());
     }
 
     #[test]
     fn no_secret_shaped_content() {
-        let touched = ["src/settlement/retry.rs", "Cargo.toml", "README.md", "x.tsx", "ci.yml", "main.tf", "other.txt"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<_>>();
+        let touched = [
+            "src/settlement/retry.rs",
+            "Cargo.toml",
+            "README.md",
+            "x.tsx",
+            "ci.yml",
+            "main.tf",
+            "other.txt",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<_>>();
         let s = changes_for("jk-5e5e", &touched, 12, 2);
         for f in &s.files {
             for h in &f.hunks {
                 for l in &h.lines {
                     let t = l.text.to_lowercase();
-                    assert!(!t.contains("sk-") && !t.contains("api_key") && !t.contains("secret"), "{t}");
+                    assert!(
+                        !t.contains("sk-") && !t.contains("api_key") && !t.contains("secret"),
+                        "{t}"
+                    );
                 }
             }
         }

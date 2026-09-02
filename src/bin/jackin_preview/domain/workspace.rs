@@ -160,7 +160,8 @@ impl Workspace {
     pub fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
         let mut out: Vec<EffectiveAccount> = vec![];
         for a in &registry.accounts {
-            let inherited = a.default_for_provider && !self.accounts.disabled_defaults.contains(&a.id);
+            let inherited =
+                a.default_for_provider && !self.accounts.disabled_defaults.contains(&a.id);
             let enabled = self.accounts.enabled.contains(&a.id);
             let origin = if inherited {
                 Effective::InheritedDefault
@@ -216,8 +217,16 @@ impl Workspace {
     }
 
     /// The effective account a Role prefers, if it is in the effective set.
-    pub fn role_preference(&self, role: &str, provider: Provider, registry: &AccountRegistry) -> Option<AccountId> {
-        let id = self.accounts.role_preferred.get(&(role.to_owned(), provider))?;
+    pub fn role_preference(
+        &self,
+        role: &str,
+        provider: Provider,
+        registry: &AccountRegistry,
+    ) -> Option<AccountId> {
+        let id = self
+            .accounts
+            .role_preferred
+            .get(&(role.to_owned(), provider))?;
         self.effective_accounts(registry)
             .iter()
             .find(|e| &e.id == id)

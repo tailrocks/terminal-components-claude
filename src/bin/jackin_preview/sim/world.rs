@@ -347,7 +347,12 @@ impl World {
     /// Everything the session picker needs for one agent. `None` when the
     /// agent has no configured account at all (it must not be offered);
     /// `blocked` when every configured account is temporarily unusable.
-    pub fn offer_for(&self, agent: Agent, ws: Option<&Workspace>, role: Option<&str>) -> AgentOffer {
+    pub fn offer_for(
+        &self,
+        agent: Agent,
+        ws: Option<&Workspace>,
+        role: Option<&str>,
+    ) -> AgentOffer {
         let provider = agent.provider();
         let mut ready: Vec<AccountId> = vec![];
         let mut blocked: Vec<(AccountId, String)> = vec![];
@@ -424,7 +429,11 @@ impl World {
     /// agents are absent; agents whose only accounts are temporarily unusable
     /// come back with `blocked` set so the picker can show a disabled row.
     /// Shell is never in this list.
-    pub fn offered_agents(&self, ws: Option<&Workspace>, role: Option<&str>) -> Vec<(Agent, AgentOffer)> {
+    pub fn offered_agents(
+        &self,
+        ws: Option<&Workspace>,
+        role: Option<&str>,
+    ) -> Vec<(Agent, AgentOffer)> {
         Agent::ALL
             .iter()
             .map(|a| (*a, self.offer_for(*a, ws, role)))
