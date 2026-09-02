@@ -432,7 +432,8 @@ impl Tabs {
                 } else {
                     t.accent
                 };
-                for xx in x + 1..x + w - 1 {
+                // the rule spans exactly the tab's plane, edge to edge
+                for xx in x..x + w {
                     buf.set_string(xx, y + 1, "━", ratatui::style::Style::new().fg(rule).bg(bg));
                 }
             }
