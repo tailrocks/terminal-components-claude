@@ -324,31 +324,35 @@ impl FileBrowser {
                 return o;
             }
         }
-        for (b, act) in [
-            (&mut self.git_url, 0),
-            (&mut self.cancel, 1),
-            (&mut self.choose, 2),
-        ] {
-            if cur == Some(b.id) {
-                let (o, fired) = b.on_key(key);
-                if fired {
-                    return match act {
-                        0 => {
-                            self.toggle_url_mode(w);
-                            focus.focus(self.path.id);
-                            self.path.begin_edit();
-                            Outcome::Changed
-                        }
-                        1 => {
-                            self.result = Some(BrowserResult::Cancelled);
-                            Outcome::Changed
-                        }
-                        _ => self.choose(w),
-                    };
-                }
-                if o.consumed() {
-                    return o;
-                }
+        if cur == Some(self.git_url.id) {
+            let (o, fired) = self.git_url.on_key(key);
+            if fired {
+                self.toggle_url_mode(w);
+                focus.focus(self.path.id);
+                self.path.begin_edit();
+                return Outcome::Changed;
+            }
+            if o.consumed() {
+                return o;
+            }
+        }
+        if cur == Some(self.cancel.id) {
+            let (o, fired) = self.cancel.on_key(key);
+            if fired {
+                self.result = Some(BrowserResult::Cancelled);
+                return Outcome::Changed;
+            }
+            if o.consumed() {
+                return o;
+            }
+        }
+        if cur == Some(self.choose.id) {
+            let (o, fired) = self.choose.on_key(key);
+            if fired {
+                return self.choose(w);
+            }
+            if o.consumed() {
+                return o;
             }
         }
         match key.code {

@@ -1,0 +1,40 @@
+ m *Y2    z  ││                 84        ││   $        [  │   │ │                   │                  │           │
+ Y  &b    P  9│      │          T         ││   ]           i   │ │                   │  │               │           │
+ 8  Af    r  L│      │          v  m    8 O│   h           K   │ │                   j  │           x   │           │
+ %  sK    /  p│      │          }  7    3 \│               s   │ │                   t  │           x   │           │
+ v  │v    z   T      │          f  r    @ L│                   │ │                   H  │           D   c           │
+ 5  │e    0   3      │          c  │    R  │                3  │ │ │    T               │           G   I           │
+ │  │q    │   1      │          P  │    V  │             r  b  H L │    @Z              │           g   w           a
+ │  ││    │      k   │          q  │    <  &             Q  │  D % │    w|              │           P               /
+ │  ││  8 │      o   y J  @     o  │    5  #             1  │  $ 5 │    BJ              j           ~               /
+ │  ││  0 │      l   4 o >\     │  │    ~  M             3  │      │%   ]2              w           │
+ │  ││  c │      >   R │ ││     │  │    │                W  │      ││   &v              e           │
+ │  B│  { │      │     │ ││     │  │    │                M  │      @│   8T                          │S                6
+ │  M│  3 │      │     │ ││     │  w    │                @  │      J│   [M            │             ││                │
+ f  a│  8 @      │     │ ││     │  k    │                y  │      Q│   ]t            │             ││ │              │
+ J   l  7 s      │     │ ││     │  i    │             y  │  h       │   p│            │             ││ │              │
+ @   n  f C      │     │ │││  G │       │             [  │  X       │   ││ >          │             ││ │              │
+     0  B        │     │ │││  a n       │             W  │  i       │   ││ ]          │             1│ │              │
+        A        │     \ pZ│  1 y       [             K  │          q   ││ [          │           & d│ │              │
+        │        L     m |A│  │ |       *             t  │          W   ││ C          e           @ d│ B              │
+        │        &     i s9│  │         3             P  │          P  6││ J     y    {           │  I f              U
+        │        A         S  │                       %  │             B││ g     r │  <   w       │  * o              h
+        │                  U  │                       L  h             c│9 F     │ │     Y[       │  s                ]
+        │                  0  │     f                 %  t             E#p │     │ │     {4       │                │
+        │                     │     s                 │  h             iUu │     │ │     iO       │                │
+        │                     │     #                 │                P{  │     │ │     KE       │                │
+        [                     q     r                 │                @   │    d│ │     >│       │           │    │
+        P                     H     q            E    │           \  │ │   │    &│ │     3│       [           │    │
+        B                     %     K            #S  E│           y  │ │   │    W│ v     ││       a           │    │
+                             /      s            y*│ >│           s  │ │   ││   Jj f     ││       H           │  │ │
+                             %      x            J││ 8│           p  │ │   [│   6F C     ││   P               │  │ 4
+                             │      │       m    b│││\I         q O  │ │   o│   &q       ││   {               │  │ \
+                             │      │       │    5│││\d         │ z  │ │   5│   2        ││   x          >    S  │ >
+                             │      │       │    d│││wQ         │ k  * │    │   K        │r   L│         B    6  │
+                        │    │      │       │    2│V│2          │ y  S T    │   /        │R   K│         7  { q  │
+                        │    │      │       │    ││8│k          │ z  K B    │   │        WU   >│         $  {    4
+                        │    │      │       │    ││t9│          │ │    e    2   │        l    h│      $  J  F    %
+X                       │    │      │       │    │A f│          │ │         S   │        y    j│      3  o  x    g
+│           *           │    o      <       │    │L h│          │ │         i   │             V│ <    }  │  *
+│           7           │    B      L       d    │5  │          c │             │             h│ 0    E  │  Y        [
+│           G           d    q      e       $    │   │        │ < │             │      │      │g B    #  │  Enter Skip

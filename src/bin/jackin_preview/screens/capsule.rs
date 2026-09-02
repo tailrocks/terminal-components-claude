@@ -78,6 +78,7 @@ pub struct CapsuleScreen {
     exec_pending: bool,
     pub redraw_flash: u8,
     zoom_hint: bool,
+    pending_spawn: Option<(Intent, Option<Agent>, Option<AccountId>, String, i64)>,
 }
 
 const PALETTE: [&str; 20] = [
@@ -125,6 +126,7 @@ impl CapsuleScreen {
             exec_pending: false,
             redraw_flash: 0,
             zoom_hint: false,
+            pending_spawn: None,
         };
         let _ = w;
         if let Some(p) = pane {
@@ -373,6 +375,7 @@ impl CapsuleScreen {
             None => cx.status(format!("Started {label}")),
         }
         crate::domain::fixtures::refresh_snapshots(w);
+        let now_secs = w.clock.now_secs();
         if let Some(i) = w.instance_mut(&self.instance)
             && let Ok(s) = i.sessions.as_mut()
         {
@@ -382,7 +385,7 @@ impl CapsuleScreen {
                 agent,
                 label: label.to_lowercase(),
                 status: crate::domain::instance::SessionStatus::Active,
-                started_secs: w.clock.now_secs(),
+                started_secs: now_secs,
             });
         }
     }
@@ -1235,8 +1238,9 @@ impl Screen for CapsuleScreen {
         }
         // agent output touches the repo state
         let touched = self.daemon(w).map(|d| d.touched_files().len()).unwrap_or(0);
+        let now_secs = w.clock.now_secs();
         if let Some(i) = w.instance_mut(&self.instance) {
-            i.last_seen_secs = w.clock.now_secs();
+            i.last_seen_secs = now_secs;
             if touched as usize > 0 {
                 i.uncommitted = i.uncommitted.max(touched);
             }

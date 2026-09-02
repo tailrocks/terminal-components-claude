@@ -93,6 +93,7 @@ pub struct ManagerScreen {
     last_refresh_error: bool,
     body_narrow: bool,
     wide: bool,
+    seam_container: Rect,
 }
 
 impl Default for ManagerScreen {
@@ -125,6 +126,7 @@ impl ManagerScreen {
             last_refresh_error: false,
             body_narrow: false,
             wide: false,
+            seam_container: Rect::ZERO,
         }
     }
 
@@ -394,9 +396,10 @@ impl ManagerScreen {
                 // restore: the container restarts; a fresh daemon with one shell
                 let wsname = i.workdir.trim_start_matches("/workspace/").to_owned();
                 let agent = i.agent;
+                let now_secs = w.clock.now_secs();
                 if let Some(inst) = w.instance_mut(id) {
                     inst.status = InstanceStatus::Running;
-                    inst.last_seen_secs = w.clock.now_secs();
+                    inst.last_seen_secs = now_secs;
                 }
                 let now = w.now_ms();
                 let mut d = crate::sim::pty::Daemon::new(id, &wsname, now);
@@ -1208,9 +1211,10 @@ impl Screen for ManagerScreen {
             Msg::Stopped { instance } => {
                 self.busy_rows.retain(|(k, _)| *k != RowKey::Instance(instance.clone()));
                 let dirty = w.instance(instance).is_some_and(|i| i.is_dirty());
+                let now_secs = w.clock.now_secs();
                 if let Some(i) = w.instance_mut(instance) {
                     i.status = if dirty { InstanceStatus::PreservedDirty } else { InstanceStatus::RestoreAvailable };
-                    i.last_seen_secs = w.clock.now_secs();
+                    i.last_seen_secs = now_secs;
                 }
                 w.daemons.remove(instance);
                 crate::domain::fixtures::refresh_snapshots(w);

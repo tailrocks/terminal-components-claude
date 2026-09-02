@@ -222,9 +222,11 @@ pub struct AgentProcess {
     pub script: Vec<Step>,
     pub pc: usize,
     pub next_at_ms: i64,
+    /// The current Emit step's delay has been scheduled into `next_at_ms`.
+    scheduled: bool,
     pub reply_queue: VecDeque<(i64, Line)>,
     pub reply_cursor: usize,
-    pub prompt: &'static str,
+    pub prompt: String,
     pub cursor_hidden: bool,
     pub awaiting_permission: bool,
     pub touched: Vec<String>,
@@ -462,11 +464,11 @@ fn replies(agent: Option<Agent>) -> Vec<Vec<Line>> {
 impl AgentProcess {
     pub fn new(agent: Option<Agent>, account: Option<AccountId>, workspace: &str, start_ms: i64) -> Self {
         let prompt = match agent {
-            Some(Agent::ClaudeCode) => "❯ ",
-            Some(Agent::Codex) => "❯ ",
-            Some(Agent::OpenCode) | Some(Agent::GrokBuild) => "> ",
-            Some(_) => "› ",
-            None => "$ ",
+            Some(Agent::ClaudeCode) => "❯ ".to_owned(),
+            Some(Agent::Codex) => "❯ ".to_owned(),
+            Some(Agent::OpenCode) | Some(Agent::GrokBuild) => "> ".to_owned(),
+            Some(_) => "› ".to_owned(),
+            None => format!("{workspace} ❯ "),
         };
         Self {
             agent,
@@ -475,6 +477,7 @@ impl AgentProcess {
             script: script(agent, workspace),
             pc: 0,
             next_at_ms: start_ms,
+            scheduled: false,
             reply_queue: VecDeque::new(),
             reply_cursor: 0,
             prompt,
@@ -521,14 +524,17 @@ impl AgentProcess {
             // reply finished
             self.state = AgentState::Done;
         }
-        while self.pc < self.script.len() && now_ms >= self.next_at_ms {
+        while self.pc < self.script.len() {
             match self.script[self.pc].clone() {
                 Step::Emit(delay, l) => {
-                    if delay > 0 && self.next_at_ms + delay > now_ms {
+                    if !self.scheduled {
                         self.next_at_ms += delay;
+                        self.scheduled = true;
+                    }
+                    if now_ms < self.next_at_ms {
                         break;
                     }
-                    self.next_at_ms += delay;
+                    self.scheduled = false;
                     out.push(l);
                     self.pc += 1;
                 }
@@ -559,7 +565,7 @@ impl AgentProcess {
         let mut out = vec![];
         let is_shell = self.agent.is_none();
         if !is_shell {
-            out.push(mixed(&[(self.prompt, Tone::Secondary), (input, Tone::Normal)]));
+            out.push(mixed(&[(&self.prompt, Tone::Secondary), (input, Tone::Normal)]));
             if self.awaiting_permission {
                 self.awaiting_permission = false;
                 let yes = input.trim().eq_ignore_ascii_case("y") || input.trim().eq_ignore_ascii_case("yes");
@@ -594,7 +600,7 @@ impl AgentProcess {
             }
             return out;
         }
-        let p = format!("{workspace} ❯ ");
+        let p = self.prompt.clone();
         out.push(mixed(&[(&p, Tone::Secondary), (input, Tone::Normal)]));
         let cmd = input.trim();
         let mut words = cmd.split_whitespace();
@@ -670,13 +676,13 @@ impl Pane {
     }
 
     fn prompt_line(&self) -> Line {
-        let p = self.proc.prompt;
-        vec![sp(p, Tone::Secondary), sp(&self.input, Tone::Normal)]
+        vec![sp(&self.proc.prompt, Tone::Secondary), sp(&self.input, Tone::Normal)]
     }
 
-    /// The live prompt row is always the last line while the process waits.
+    /// The live prompt row is always the last line while the process waits,
+    /// and while the operator has typed ahead.
     fn refresh_prompt(&mut self) {
-        let waiting = self.proc.awaiting();
+        let waiting = self.proc.awaiting() || !self.input.is_empty();
         if waiting {
             let last_is_prompt = self
                 .term
@@ -690,7 +696,7 @@ impl Pane {
                 self.term.push(pl);
             }
             let n = self.term.lines.len().saturating_sub(1);
-            let col = junie_tui::ui::text::width(self.proc.prompt) + junie_tui::ui::text::width(&self.input);
+            let col = junie_tui::ui::text::width(&self.proc.prompt) + junie_tui::ui::text::width(&self.input);
             self.term.caret = Some(junie_tui::widgets::viewport::CellPos { line: n, col });
         } else {
             self.term.caret = None;
