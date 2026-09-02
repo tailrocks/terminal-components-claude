@@ -349,3 +349,67 @@ fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
     assert_eq!(h.app.route, Route::Manager);
 }
 
+
+#[test]
+fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::End);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Prelude);
+    assert!(h.text().contains("step 1 of 5"), "{}", h.text());
+    assert!(h.text().contains("~/src/payments-platform"));
+    // up to ~/src, choose data-pipeline (second folder)
+    h.key(KeyCode::Backspace);
+    assert!(h.text().contains("customer-portal/"), "{}", h.text());
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("step 2 of 5"), "{}", h.text());
+    assert!(h.text().contains("Same path   /Users/alexey/src/data-pipeline"), "{}", h.text());
+    assert!(h.text().contains("✓ Source"));
+    // Esc rewinds to the browser at the same folder, Space re-chooses
+    h.key(KeyCode::Esc);
+    assert!(h.text().contains("step 1 of 5"), "{}", h.text());
+    assert!(h.text().contains("~/src"), "{}", h.text());
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("step 4 of 5"), "{}", h.text());
+    assert!(h.text().contains("destination"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("step 5 of 5"), "{}", h.text());
+    assert!(h.text().contains("data-pipeline"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    let ed = h.app.screens.editor.as_ref().unwrap();
+    assert_eq!(ed.pending.name, "data-pipeline");
+    assert_eq!(ed.pending.workdir, "/Users/alexey/src/data-pipeline");
+    assert_eq!(ed.pending.mounts.len(), 1);
+    assert_eq!(ed.pending.mounts[0].destination, "/Users/alexey/src/data-pipeline");
+}
+
+#[test]
+fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::End);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Backspace);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' ')); // customer-portal: an existing workspace name
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("step 5 of 5"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("A workspace named customer-portal already exists"), "{}", h.text());
+    assert_eq!(h.app.route, Route::Prelude);
+    // rewind all the way out
+    for _ in 0..8 {
+        h.key(KeyCode::Esc);
+        if h.app.route != Route::Prelude {
+            break;
+        }
+    }
+    assert_eq!(h.app.route, Route::Manager);
+    assert!(h.text().contains("Cancelled · nothing created"), "{}", h.text());
+}
