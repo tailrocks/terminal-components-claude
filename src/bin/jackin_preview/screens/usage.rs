@@ -11,7 +11,7 @@ use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::progress::{MeterTone, render_meter, spinner_frame};
+use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
 use junie_tui::widgets::scrollbar;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -251,14 +251,14 @@ impl UsageScreen {
         }
         for win in &a.usage.windows {
             if win.has_meter() {
-                let tone = if a.usage.freshness.phase != Freshness::Current {
-                    MeterTone::Stale
-                } else {
-                    match win.status {
+                let tone = match a.usage.freshness.phase {
+                    Freshness::Refreshing => MeterTone::Refreshing,
+                    Freshness::Stale | Freshness::Failed => MeterTone::Stale,
+                    Freshness::Current => match win.status {
                         QuotaStatus::Exhausted => MeterTone::Exhausted,
                         QuotaStatus::Warning => MeterTone::Warning,
                         _ => MeterTone::Normal,
-                    }
+                    },
                 };
                 let mut text = format!("  {}", win.label);
                 let rest = super::accounts::meter_detail(win, w);
@@ -645,15 +645,11 @@ impl UsageScreen {
                             let (label, rest) = text.split_once('\u{1}').unwrap_or((text, ""));
                             buf.set_string(body.x, y, fit(label, 15), t.primary().bg(bg));
                             let mx = body.x + 16;
-                            render_meter(
-                                Rect::new(mx, y, meter_w + 6, 1),
-                                buf,
-                                ctx,
-                                *pct,
-                                &format!("{pct:>3}%"),
-                                *mt,
-                                bg,
-                            );
+                            Meter::new(Some(*pct))
+                                .value(format!("{pct:>3}%"))
+                                .tone(*mt)
+                                .visual(MeterVisual::Block)
+                                .render(Rect::new(mx, y, meter_w + 6, 1), buf, ctx, bg);
                             let vx = mx + meter_w + 8;
                             if vx < body.right() {
                                 buf.set_string(

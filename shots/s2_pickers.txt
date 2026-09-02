@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Pickers                                truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
+▎  Overview
+                            Open a picker
+   Components
+▎  Buttons                  ▎Open quickly   ▎Switch tab   ▎Choose a level
+▎  Inputs           ╭──────────────────────────────────────────────────────────────────────────────╮
+▎  Text areas       │ Open quickly                                                 All · Tab scope │e alternate actio…
+▎  Forms            │ ▎ Files and tasks…                                                           │
+▎  Lists            │                                                                              │
+▎  Trees            │ ▎F lib.rs                             src/lib.rs                     Files │ │
+▎  Tables           │ ▎F mailer.rs                          src/workers/mailer.rs                │ │
+▎  Editable tables  │ ▎F main.rs                            src/main.rs                          │ │
+▎  Panels           │ ▎F migrations.rs                      src/db/migrations.rs                 │ │
+▎  Sidebars         │ ▎F mod.rs                             src/api/mod.rs                       ┃ │
+▎  Dialogs          │ ▎F mod.rs                             src/api/webhooks/mod.rs              ┃ │
+▎  Progress         │ ▎F orders.json                        tests/fixtures/orders.json           ┃ │
+▎  Scrolling        │ ▎F pool.rs                            src/db/pool.rs                       ┃ │
+▎  Terminal         │ ▎F retry.rs                           src/api/webhooks/retry.rs            │ │
+▎  Code editor      │ ▎F scheduler.rs                       src/workers/scheduler.rs             │ │
+▎  Data grid        │ ▎F schema.rs                          src/db/schema.rs                     │ │
+▎  Chips & selects  │ ▎F users.json                         tests/fixtures/users.json            │ │
+▎› Pickers          │ ▎F webhooks.md                        docs/webhooks.md                     │ │
+                    │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close     │
+   Screens          ╰──────────────────────────────────────────────────────────────────────────────╯
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+
+ Esc Close  Tab Next

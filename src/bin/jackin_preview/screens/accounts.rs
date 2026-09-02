@@ -19,7 +19,7 @@ use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::progress::{MeterTone, render_meter, spinner_frame};
+use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::Segment;
 use junie_tui::widgets::select::Select;
@@ -1647,15 +1647,11 @@ impl AccountsScreen {
                     let mx = body.x + label_w;
                     let mw = meter_w.min(body.width.saturating_sub(label_w + 8));
                     let pct_text = format!("{pct:>3}%");
-                    render_meter(
-                        Rect::new(mx, y, mw + 6, 1),
-                        buf,
-                        ctx,
-                        *pct,
-                        &pct_text,
-                        *tone,
-                        bg,
-                    );
+                    Meter::new(Some(*pct))
+                        .value(pct_text.clone())
+                        .tone(*tone)
+                        .visual(MeterVisual::Block)
+                        .render(Rect::new(mx, y, mw + 6, 1), buf, ctx, bg);
                     let vx = mx + mw + 8;
                     if vx < body.right() {
                         buf.set_string(
@@ -1708,15 +1704,11 @@ impl AccountsScreen {
                 }
                 Line::Meter(label, pct, value, tone) => {
                     buf.set_string(inner.x, y, truncate(label, 12), t.primary().bg(bg));
-                    render_meter(
-                        Rect::new(inner.x + 13, y, 22, 1),
-                        buf,
-                        ctx,
-                        *pct,
-                        &format!("{pct:>3}%"),
-                        *tone,
-                        bg,
-                    );
+                    Meter::new(Some(*pct))
+                        .value(format!("{pct:>3}%"))
+                        .tone(*tone)
+                        .visual(MeterVisual::Block)
+                        .render(Rect::new(inner.x + 13, y, 22, 1), buf, ctx, bg);
                     buf.set_string(
                         inner.x + 37,
                         y,
@@ -1778,13 +1770,14 @@ pub fn meter_detail(win: &QuotaWindow, w: &World) -> String {
 }
 
 fn meter_tone(win: &QuotaWindow, a: &Account) -> MeterTone {
-    if a.usage.freshness.phase != Freshness::Current {
-        return MeterTone::Stale;
-    }
-    match win.status {
-        QuotaStatus::Exhausted => MeterTone::Exhausted,
-        QuotaStatus::Warning => MeterTone::Warning,
-        _ => MeterTone::Normal,
+    match a.usage.freshness.phase {
+        Freshness::Refreshing => MeterTone::Refreshing,
+        Freshness::Stale | Freshness::Failed => MeterTone::Stale,
+        Freshness::Current => match win.status {
+            QuotaStatus::Exhausted => MeterTone::Exhausted,
+            QuotaStatus::Warning => MeterTone::Warning,
+            _ => MeterTone::Normal,
+        },
     }
 }
 

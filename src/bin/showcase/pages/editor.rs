@@ -539,7 +539,7 @@ impl Page for EditorPage {
                     Outcome::Ignored
                 }
             }
-            PageEvent::DialogClosed { .. } => Outcome::Ignored,
+            PageEvent::DialogClosed { .. } | PageEvent::Secondary { .. } => Outcome::Ignored,
         }
     }
 
