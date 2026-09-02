@@ -1462,7 +1462,29 @@ impl DataGrid {
         }
     }
 
+    /// Widen a column so its header keeps room for the sort/filter marks.
+    fn fit_header_marks(&mut self) {
+        for ci in 0..self.columns.len() {
+            let sorted = self.sort.is_some_and(|(c, _)| c == ci);
+            let filtered = self.filtered_cols.contains(&ci);
+            if !sorted && !filtered {
+                continue;
+            }
+            let col = &self.columns[ci];
+            let need = width(&col.name)
+                + if col.primary { 2 } else { 0 }
+                + if filtered { 2 } else { 0 }
+                + if sorted { 2 } else { 0 }
+                + 1;
+            let need = (need as u16).min(col.max_width.max(col.min_width));
+            if let Some(w) = self.widths.get_mut(ci) {
+                *w = (*w).max(need);
+            }
+        }
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.fit_header_marks();
         let area = area.intersection(*buf.area());
         if area.is_empty() || area.height < 2 {
             return;

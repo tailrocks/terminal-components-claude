@@ -8,13 +8,13 @@
  │ ▎▾ D acme_prod            │ │                                                                                      │
  │ ▎  ▾ S public             │ │   ‹1      order_number  customer_id                                             11›  │
  │ ▎    ▾ Tables          7  │ │  ▎    1          10000  f92c5e53-3ebb-4a35-a2f7-d55b014ba7e→                       ┃ │
- │ ▎      ▸ T organizations1.2 │  ▎    2          10001  1b3a6759-b804-4ed8-b95a-9b742856481→                       │ │
- │ ▎      ▸ T customers    48.9│  ▎    3          10002  64e6f4de-3e02-4ca0-9a5a-c2456513255→                       │ │
+ │ ▎      ▸ T organizations  │ │  ▎    2          10001  1b3a6759-b804-4ed8-b95a-9b742856481→                       │ │
+ │ ▎      ▸ T customers      │ │  ▎    3          10002  64e6f4de-3e02-4ca0-9a5a-c2456513255→                       │ │
  │ ▎      ▸ T products  312  │ │  ▎    4          10003  32143a01-1da3-4ac1-b997-7c607525437→                       │ │
- │ ▎      ▸ T orders       1.2 │  ▎    5          10004  1c78fd05-5f61-47a4-97b4-333a34f15f6→                       │ │
- │ ▎      ▸ T order_items  3.8 │  ▎    6          10005  59fec2d8-1726-43b9-b976-21a2ad2f9ee→                       │ │
- │ ▎      ▸ T payments     1.2 │  ▎    7          10006  ede350f8-5b4f-43c6-affd-58400f9c14b→                       │ │
- │ ▎      ▸ T subscriptions1.1 │  ▎    8          10007  0f9c14bd-5840-4ffd-b63e-6603b51d60b→                       │ │
+ │ ▎      ▸ T orders         │ │  ▎    5          10004  1c78fd05-5f61-47a4-97b4-333a34f15f6→                       │ │
+ │ ▎      ▸ T order_items    │ │  ▎    6          10005  59fec2d8-1726-43b9-b976-21a2ad2f9ee→                       │ │
+ │ ▎      ▸ T payments       │ │  ▎    7          10006  ede350f8-5b4f-43c6-affd-58400f9c14b→                       │ │
+ │ ▎      ▸ T subscriptions  │ │  ▎    8          10007  0f9c14bd-5840-4ffd-b63e-6603b51d60b→                       │ │
  │ ▎    ▸ Views           2  │ │  ▎    9          10008  fb78dd25-a96f-4296-b51a-61c3440148c→                       │ │
  │ ▎    ▸ Functions       1  │ │  ▎   10          10009  dd2c444c-7d3a-4a51-94f3-9e11c0218d6→                       │ │
  │ ▎    ▸ Sequences       1  │ │  ▎   11          10010  d8755486-2a99-4a4c-8da3-be8cf504ad9→                       │ │

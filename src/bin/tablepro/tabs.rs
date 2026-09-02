@@ -1890,11 +1890,20 @@ impl QueryTab {
     }
 }
 
+/// LIMIT nodes report a smaller total than their inputs, so cost share is
+/// measured against the most expensive node rather than the root.
+fn max_total_cost(node: &PlanNode) -> f64 {
+    node.children
+        .iter()
+        .map(max_total_cost)
+        .fold(node.cost.1, f64::max)
+}
+
 fn plan_to_tree(node: &PlanNode, nodes: &mut Vec<PlanInfo>, root_total: f64) -> TreeNode {
     let children_total: f64 = node.children.iter().map(|c| c.cost.1).sum();
     let exclusive = (node.cost.1 - children_total).max(0.0);
     let share = if root_total > 0.0 {
-        exclusive / root_total
+        (exclusive / root_total).min(1.0)
     } else {
         0.0
     };
@@ -2065,7 +2074,7 @@ fn execute(
             Statement::Select(sel) => match sql::explain(cat, &sel, analyze) {
                 Ok(plan) => {
                     let mut nodes = vec![];
-                    let root = plan_to_tree(&plan, &mut nodes, plan.cost.1);
+                    let root = plan_to_tree(&plan, &mut nodes, max_total_cost(&plan));
                     let mut tree = TreeView::new(WidgetId::of("plan").child(n), vec![root]);
                     tree.expand_all();
                     let mut raw_lines = vec![];

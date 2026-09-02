@@ -8,13 +8,13 @@
  │ ▎▾ D acme_prod            │ │  ▎                                                                                   │
  │ ▎  ▾ S public             │ │  ▎                                                                                   │
  │ ▎    ▾ Tables          7  │ │  ▎                                                                                   │
- │ ▎      ▸ T organizations1.2 │  ▎                                                                                   │
- │ ▎      ▸ T customers    48.9│  ▎                                                                                   │
+ │ ▎      ▸ T organizations  │ │  ▎                                                                                   │
+ │ ▎      ▸ T customers      │ │  ▎                                                                                   │
  │ ▎      ▸ T products  312  │ │  ▎                                                                                   │
- │ ▎      ▸ T orders       1.2 │  ▎                                                                                   │
- │ ▎      ▸ T order_items  3.8 │  ▎                                                                                   │
- │ ▎      ▸ T payments     1.2 │                                                                                      │
- │ ▎      ▸ T subscriptions1.1 │                                                                                      │
+ │ ▎      ▸ T orders         │ │  ▎                                                                                   │
+ │ ▎      ▸ T order_items    │ │  ▎                                                                                   │
+ │ ▎      ▸ T payments       │ │                                                                                      │
+ │ ▎      ▸ T subscriptions  │ │                                                                                      │
  │ ▎    ▸ Views           2  │ │                                                                                      │
  │ ▎    ▸ Functions       1  │ │                                                                                      │
  │ ▎    ▸ Sequences       1  │ │                                                                                      │

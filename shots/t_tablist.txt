@@ -8,13 +8,13 @@
  │ ▎▾ D acme_prod            │ │                                                                                      │
  │ ▎  ▾ S public             │ │         ⚷ id                                                                    6›   │
  │ ▎    ▾ Tables          7  │ │  ▎    1 139f9a93-4558-4d53-bb36-b349e0dd66ff                                       ┃ │
- │ ▎      ▸ T organizations1╭──────────────────────────────────────────────────────────────╮                        │ │
- │ ▎      ▸ T customers    4│ Open tabs                                                    │                        │ │
+ │ ▎      ▸ T organizations ╭──────────────────────────────────────────────────────────────╮                        │ │
+ │ ▎      ▸ T customers     │ Open tabs                                                    │                        │ │
  │ ▎      ▸ T products  312 │ ▎ Filter tabs…                                               │                        │ │
- │ ▎      ▸ T orders       1│                                                              │                        │ │
- │ ▎      ▸ T order_items  3│ ▎≡ Query 1                                           query   │                        │ │
- │ ▎      ▸ T payments     1│ ▎T orders                             public.orders · data   │                        │ │
- │ ▎      ▸ T subscriptions1│ ▎T order_items           public.order_items · data  active   │                        │ │
+ │ ▎      ▸ T orders        │                                                              │                        │ │
+ │ ▎      ▸ T order_items   │ ▎≡ Query 1                                           query   │                        │ │
+ │ ▎      ▸ T payments      │ ▎T orders                             public.orders · data   │                        │ │
+ │ ▎      ▸ T subscriptions │ ▎T order_items           public.order_items · data  active   │                        │ │
  │ ▎    ▸ Views           2 │                                                              │                        │ │
  │ ▎    ▸ Functions       1 │ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        │                        │ │
  │ ▎    ▸ Sequences       1 ╰──────────────────────────────────────────────────────────────╯                        │ │

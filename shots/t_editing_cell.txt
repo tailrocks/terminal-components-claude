@@ -7,17 +7,17 @@
  │ ▎ Filter objects          │ │  ─━━━━━───────────────────────────────────────────────────────────────────────────── │
  │ ▎▾ D acme_prod            │ │                                                                                      │
  │ ▎  ▾ S public             │ │   ‹4    status       total_amount  currency                                     7›   │
- │ ▎    ▾ Tables       ╭────────────────────────────────────────────────────────────────────────╮                   ┃ │
- │ ▎      ▸ T organizat│ Safe Mode · this connection                                            │                   │ │
- │ ▎      ▸ T customers│ ▎  Silent  Writes run without asking. DROP, TRUNCATE and DELETE witho… │                   │ │
- │ ▎      ▸ T products │ ▎  Alert           Every write asks for confirmation before it runs.   │                   │ │
- │ ▎      ▸ T orders   │ ▎  Alert (Fu…  Every statement, reads included, asks for confirmation. │                   │ │
- │ ▎      ▸ T order_ite│ ▎› Safe …  Writes ask for confirmation and a deliberate ackn…current   │                   │ │
- │ ▎      ▸ T payments │ ▎  Safe …  Every statement asks for confirmation and a deliberate ack… │                   │ │
- │ ▎      ▸ T subscript│ ▎  Read-Only       Writes are refused. Reads and exports still work.   │                   │ │
- │ ▎    ▸ Views        │                                                                        │                   │ │
- │ ▎    ▸ Functions    │ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connec… │                   │ │
- │ ▎    ▸ Sequences    ╰────────────────────────────────────────────────────────────────────────╯                   │ │
+ │ ▎    ▾ Tables          7  │ │  ▎    1 delivered           25.90  EUR                                             ┃ │
+ │ ▎      ▸ T organizations  │ │  ▎    2 pending           1617.64  USD                                             │ │
+ │ ▎      ▸ T customers      │ │  ▎    3 pending           2236.65  EUR                                             │ │
+ │ ▎      ▸ T products  312  │ │  ▎    4 pending           2376.57  EUR                                             │ │
+ │ ▎      ▸ T orders         │ │  ▎    5 refunded          2067.52  USD                                             │ │
+ │ ▎      ▸ T order_items    │ │  ▎    6 shipped            675.78  GBP                                             │ │
+ │ ▎      ▸ T payments       │ │  ▎    7 delivered         2397.83  GBP                                             │ │
+ │ ▎      ▸ T subscriptions  │ │  ▎    8 refunded          1677.55  EUR                                             │ │
+ │ ▎    ▸ Views           2  │ │  ▎    9 pending            550.69  USD                                             │ │
+ │ ▎    ▸ Functions       1  │ │  ▎   10 pending            290.26  EUR                                             │ │
+ │ ▎    ▸ Sequences       1  │ │  ▎   11 cancelled         1050.75  USD                                             │ │
  │ ▎  ▸ S analytics          │ │  ▎   12 refunded          1219.88  USD                                             │ │
  │ ▎  ▸ S audit              │ │  ▎   13 refunded          1421.90  USD                                             │ │
  │                           │ │  ▎   14 paid              1814.34  GBP                                             │ │
@@ -37,4 +37,4 @@
  │                           │ │   rows 1–27 of 500 loaded · 1,203,338 total · cols 5–7 of 14                         │
  ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
 
-                                                                                                Connected to Production
+  EDIT   Enter Commit  Esc Cancel  Tab Next cell                                                Connected to Production

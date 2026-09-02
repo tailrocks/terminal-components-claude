@@ -24,7 +24,7 @@
  │                                     │ │   Planning 0.300 ms · Execution 385.768 ms                                                                         │
  │                                     │ │     Operation                              cost     rows     actual    %    Limit                                  │
  │                                     │ │  ▎▾ Limit                                  1..1       30   385.4 ms   0                                            │
- │                                     │ │  ▎    Index Scan on public.orders       1..1164   96.3 k   385.4 ms 126144  Cost    0.56..0.92                     │
+ │                                     │ │  ▎    Index Scan on public.orders       1..1164   96.3 k   385.4 ms 100▲    Cost    0.56..0.92                     │
  │                                     │ │                                                                             Rows    30 est.                        │
  │                                     │ │                                                                             Actual  385.368 ms · 1 loop            │
  │                                     │ │                                                                             Rows    30                             │
