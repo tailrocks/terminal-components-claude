@@ -12,9 +12,9 @@
 120x40 Dialogs e09b283545a8d73a
 120x40 Progress 86580f1c2616a411
 120x40 Scrolling d45aedcd9335295a
-120x40 Code editor 650cf820df17bea9
-120x40 Data grid 8f301f1a360d4409
-120x40 Chips & selects c0cf9ebfb8663f7f
+120x40 Code editor 2542d155b55576a4
+120x40 Data grid 28acdae7c15b0090
+120x40 Chips & selects 413ae8c3ca5ad623
 120x40 Pickers ace5fe00f3a4a62a
 120x40 Settings f2966d3082f2fd43
 120x40 Task runner 0468df522518fa30
@@ -32,9 +32,9 @@
 80x24 Dialogs 5cd51d3031c0d61a
 80x24 Progress 6b2f76f41f72e65b
 80x24 Scrolling 4ef60ea15d8a20f0
-80x24 Code editor fe57b7b79173b815
-80x24 Data grid d04a478b3b02a024
-80x24 Chips & selects 35956c7b68b7ffca
+80x24 Code editor 0948a7a507953c19
+80x24 Data grid bc760094e4026bba
+80x24 Chips & selects 49deab017ca721da
 80x24 Pickers fc6087d6db6a983f
 80x24 Settings a0636efe1fc1f756
 80x24 Task runner fcf67baf412d2c93

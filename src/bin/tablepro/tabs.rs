@@ -405,6 +405,7 @@ impl TableTab {
         let mut chips = ChipBar::new(id.sub("chips"));
         chips.lead = Some("match all ▾".into());
         let mut mode_tabs = Tabs::new(id.sub("mode"), &["Data", "Structure"]);
+        mode_tabs.quiet = true;
         mode_tabs.active = 0;
         let mut structure_tabs = Tabs::new(
             id.sub("structure-tabs"),
@@ -417,6 +418,7 @@ impl TableTab {
                 "DDL",
             ],
         );
+        structure_tabs.quiet = true;
         structure_tabs.active = 0;
         let mut t = Self {
             id,
@@ -1597,7 +1599,7 @@ impl QueryTab {
                     if *rows == 1 { "" } else { "s" },
                     duration_label(rs.duration_ms)
                 ),
-                ResultBody::Error { message, .. } => format!("ERROR: {message}"),
+                ResultBody::Error { .. } => format!("failed · {}", duration_label(rs.duration_ms)),
                 ResultBody::Plan {
                     planning_ms,
                     execution_ms,
@@ -1842,7 +1844,7 @@ impl QueryTab {
                                 let bgc = buf[(cols_x, y)].bg;
                                 buf.set_string(cols_x, y, &text, base.bg(bgc));
                                 let sh = format!(
-                                    "{:>3}{}",
+                                    "{:>3} {}",
                                     share.round() as u32,
                                     if share > 50.0 { "▲" } else { " " }
                                 );
@@ -1876,11 +1878,8 @@ impl QueryTab {
                                         );
                                         facts.push(
                                             Prop::new(
-                                                "Rows",
-                                                format!(
-                                                    "{} est.",
-                                                    junie_tui::ui::text::thousands(info.rows)
-                                                ),
+                                                "Est. rows",
+                                                junie_tui::ui::text::thousands(info.rows),
                                             )
                                             .tone(Tone::Secondary),
                                         );
@@ -1976,14 +1975,11 @@ fn plan_to_tree(node: &PlanNode, nodes: &mut Vec<PlanInfo>, root_total: f64) -> 
         .iter()
         .map(|c| plan_to_tree(c, nodes, root_total))
         .collect();
-    let mut n = if children.is_empty() {
+    let n = if children.is_empty() {
         TreeNode::leaf(&label)
     } else {
         TreeNode::dir(&label, children)
     };
-    if node.warning.is_some() {
-        n = n.glyph("▲");
-    }
     n.meta(&idx.to_string())
 }
 
@@ -2456,7 +2452,18 @@ impl HistoryTab {
         let card = Panel::card(Some("Query")).focused(focused).meta(&meta);
         let cbg = card.bg(t);
         let inner = card.render(r, buf, t);
-        let editor_h = inner.height.saturating_sub(8).max(4);
+        // the query is read-only here, so it can be re-flowed to the pane
+        let wrapped = e
+            .sql
+            .lines()
+            .flat_map(|l| junie_tui::ui::text::wrap(l, inner.width.saturating_sub(8) as usize))
+            .collect::<Vec<_>>()
+            .join("\n");
+        if self.detail.text() != wrapped {
+            self.detail.set_text(&wrapped);
+        }
+        let editor_h =
+            (wrapped.lines().count() as u16 + 1).clamp(3, inner.height.saturating_sub(8).max(3));
         self.detail.render(
             Rect::new(
                 inner.x.saturating_sub(1),
@@ -2487,7 +2494,7 @@ impl HistoryTab {
             facts.push(Prop::new("Error", err.clone()).tone(Tone::Error).wrap());
         }
         let fy = inner.y + editor_h + 1;
-        props::render(
+        let used = props::render(
             Rect::new(
                 inner.x,
                 fy,
@@ -2499,7 +2506,8 @@ impl HistoryTab {
             &facts,
             cbg,
         );
-        let ay = inner.bottom().saturating_sub(1);
+        // actions follow the facts instead of sinking to the bottom of the pane
+        let ay = (fy + used + 1).min(inner.bottom().saturating_sub(1));
         let widths = [
             self.open_btn.width(),
             self.rerun_btn.width(),

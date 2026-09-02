@@ -1140,7 +1140,7 @@ impl ConnectionsScreen {
             inner.width,
             inner.height.saturating_sub(5),
         );
-        let (lc, rc) = junie_tui::ui::layout::Split::new(50, 24, 24).horizontal(body, 4);
+        let (lc, rc) = junie_tui::ui::layout::Split::new(58, 30, 24).horizontal(body, 4);
         let fh = TextInput::HEIGHT;
         if form.tabs.active == 0 {
             let mut y = lc.y;

@@ -492,7 +492,9 @@ impl DataGrid {
                 ws.sort_unstable();
                 let p95 = ws.get(ws.len() * 95 / 100).copied().unwrap_or(0) as u16;
                 let header = width(&c.name) as u16 + if c.primary { 2 } else { 0 } + 2;
-                p95.max(header).clamp(c.min_width, c.max_width)
+                // a header never ellipsises below its own name (up to a sane cap)
+                let max = c.max_width.max(header.min(24));
+                p95.max(header).clamp(c.min_width.min(max), max)
             })
             .collect();
     }
@@ -1472,6 +1474,15 @@ impl DataGrid {
             self.col_rects.push(Rect::new(x, area.y, w, area.height));
             x += w + gap;
         }
+        // the next column shows clipped rather than leaving the pane blank;
+        // it is not part of the viewport, so moving onto it scrolls
+        let next = self.hscroll.offset + fit;
+        if next < n && x < area.right() {
+            let rest = area.right() - x;
+            if rest >= 6 {
+                self.col_rects.push(Rect::new(x, area.y, rest, area.height));
+            }
+        }
     }
 
     /// Widen a column so its header keeps room for the sort/filter marks.
@@ -1807,9 +1818,8 @@ impl DataGrid {
                         st = st.bg(t.popover);
                     }
                     if dirty {
-                        st = st
-                            .add_modifier(Modifier::UNDERLINED)
-                            .underline_color(t.warning);
+                        // changed values read in the warning tone; underline stays the editing token
+                        st = st.fg(t.warning).remove_modifier(Modifier::ITALIC);
                     }
                     if err.is_some() {
                         st = st.fg(t.error).remove_modifier(Modifier::ITALIC);
@@ -1829,11 +1839,6 @@ impl DataGrid {
                             .add_modifier(Modifier::BOLD);
                         if err.is_some() {
                             st = st.fg(t.text_primary);
-                        }
-                        if dirty {
-                            st = st
-                                .add_modifier(Modifier::UNDERLINED)
-                                .underline_color(t.warning);
                         }
                     } else if hovered_cell == Some(ci)
                         && self.editable
@@ -1887,12 +1892,24 @@ impl DataGrid {
             let count = u + i + d;
             let text = format!("• {count} pending");
             buf.set_string(area.x + 1, by, &text, t.primary().fg(t.warning).bg(bg));
-            let detail = self.pending_label().unwrap_or_default();
+            // the row under the cursor explains its own rejection; otherwise the breakdown
+            let cursor_src = self.order.get(self.cursor.0).copied();
+            let (detail, ds) = match cursor_src.and_then(|r| self.row_errors.get(&r)) {
+                Some(msg) => (format!("· {msg}"), t.error_fg().bg(bg)),
+                None => (
+                    self.pending_label()
+                        .map(|d| format!("· {d}"))
+                        .unwrap_or_default(),
+                    t.muted().bg(bg),
+                ),
+            };
+            let bw: u16 = self.bar.iter().map(|b| b.width() + 1).sum();
+            let room = area.width.saturating_sub(width(&text) as u16 + 4 + bw) as usize;
             buf.set_string(
                 area.x + 2 + width(&text) as u16,
                 by,
-                &detail,
-                t.muted().bg(bg),
+                truncate(&detail, room),
+                ds,
             );
             let widths: Vec<u16> = self.bar.iter().map(|b| b.width()).collect();
             let rects = row_layout_right(

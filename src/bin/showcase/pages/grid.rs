@@ -9,7 +9,7 @@ use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::Button;
-use junie_tui::widgets::dialog::Dialog;
+use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::grid::{
     CellKind, CellValue, ColumnSpec, DataGrid, GridEvent, GridRows, RowTotal,
 };
@@ -239,7 +239,7 @@ impl GridPage {
                     ],
                     code,
                     None,
-                    Button::primary(PREVIEW.sub("ok"), "Close"),
+                    Button::primary(PREVIEW.sub("ok"), "Copy SQL"),
                 ));
             }
             Some(GridEvent::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
@@ -319,19 +319,7 @@ impl Page for GridPage {
         let h = area.height.min(30);
         let inner = panel.render(Rect::new(area.x, area.y, area.width, h), buf, t);
         self.grid.render(inner, buf, ctx, bg);
-        let y = area.y + h + 1;
-        if y < area.bottom() {
-            let line = format!(
-                "p previews SQL · Ctrl+S saves · seats over 500 are rejected on save · saved so far: {}",
-                self.saved
-            );
-            buf.set_string(
-                area.x + 2,
-                y,
-                junie_tui::ui::text::truncate(&line, area.width.saturating_sub(2) as usize),
-                t.muted().bg(t.canvas),
-            );
-        }
+        let _ = h;
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
@@ -381,6 +369,12 @@ impl Page for GridPage {
             }
             PageEvent::Wheel { id, delta } if self.grid.owns(*id) => {
                 self.grid.on_wheel(*delta, false)
+            }
+            PageEvent::DialogClosed { id, result, .. }
+                if *id == PREVIEW && *result == DialogResult::Action(1) =>
+            {
+                cx.status(format!("Copied {} statements", self.statements().len()));
+                Outcome::Changed
             }
             _ => Outcome::Ignored,
         }

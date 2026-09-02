@@ -51,6 +51,9 @@ pub struct Tabs {
     pub areas: Vec<Rect>,
     /// Show a trailing `+` that emits `TabEvent::New`.
     pub allow_new: bool,
+    /// Secondary level: the active rule is white, so one screen keeps one
+    /// accent underline (the document tabs).
+    pub quiet: bool,
     /// Number of tabs that fit in the last render.
     fit: usize,
 }
@@ -72,6 +75,7 @@ impl Tabs {
             first: 0,
             areas: vec![],
             allow_new: false,
+            quiet: false,
             fit: 0,
         }
     }
@@ -85,6 +89,7 @@ impl Tabs {
             first: 0,
             areas: vec![],
             allow_new: false,
+            quiet: false,
             fit: 0,
         }
     }
@@ -378,13 +383,13 @@ impl Tabs {
                 ctx.clickable(cid, Rect::new(cx + 1, y, 1, 1));
             }
             if active && area.height >= 2 {
+                let rule = if self.quiet {
+                    t.border_strong
+                } else {
+                    t.accent
+                };
                 for xx in x + 1..x + w - 1 {
-                    buf.set_string(
-                        xx,
-                        y + 1,
-                        "━",
-                        ratatui::style::Style::new().fg(t.accent).bg(bg),
-                    );
+                    buf.set_string(xx, y + 1, "━", ratatui::style::Style::new().fg(rule).bg(bg));
                 }
             }
             ctx.clickable(tid, r);

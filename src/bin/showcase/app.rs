@@ -1025,7 +1025,12 @@ impl App {
             buf.set_string(x, area.y, badge, t.badge(BadgeKind::Edit));
             x += badge.len() as u16 + 2;
         }
-        let right_reserved = 14u16;
+        // hints yield to the status message on the right, with a clear gap
+        let right_reserved = self
+            .status
+            .as_ref()
+            .map(|(s, _)| junie_tui::ui::text::width(s) as u16 + 3)
+            .unwrap_or(14);
         for (k, v) in &hints {
             let kw = junie_tui::ui::text::width(k) as u16;
             let w = kw + 1 + junie_tui::ui::text::width(v) as u16 + 2;

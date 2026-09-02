@@ -1273,7 +1273,7 @@ pub fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, E
         root = PlanNode {
             op: "Limit".into(),
             relation: None,
-            detail: vec![("Rows".into(), l.to_string())],
+            detail: vec![("Actual rows".into(), l.to_string())],
             cost: (
                 root.cost.0,
                 root.cost.0

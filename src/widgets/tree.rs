@@ -470,6 +470,20 @@ impl TreeView {
         ctx.scrollable(self.id, area);
         let has_sb = self.scroll.overflows();
         let row_w = area.width.saturating_sub(if has_sb { 1 } else { 0 });
+        // metadata is a column: either every visible row shows it or none does
+        let show_meta = self.scroll.visible_range().all(|ri| {
+            let row = &self.rows[ri];
+            let Some(m) = &row.meta else { return true };
+            let need = 1
+                + (row.depth * 2) as u16
+                + 2
+                + if row.glyph.is_some() { 2 } else { 0 }
+                + crate::ui::text::width(&row.label) as u16
+                + 2
+                + crate::ui::text::width(m) as u16
+                + 1;
+            need <= row_w
+        });
         for (i, ri) in self.scroll.visible_range().enumerate() {
             let y = area.y + i as u16;
             let row = &self.rows[ri];
@@ -516,7 +530,7 @@ impl TreeView {
                 .unwrap_or(0) as u16;
             let avail = rect.right().saturating_sub(x);
             // hide metadata rather than starve the label
-            let meta_w = if avail.saturating_sub(meta_w + 2) < 10 {
+            let meta_w = if !show_meta || avail.saturating_sub(meta_w + 2) < 10 {
                 0
             } else {
                 meta_w
