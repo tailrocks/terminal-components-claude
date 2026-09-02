@@ -38,10 +38,11 @@ Compose everything above into one continuous Jackin application.
 Use these local artifacts in this order:
 
 - `JACKIN_REFERENCE.md` — first and default authority for current-product semantics, surfaces, workflows, states, terminology, and redesign obligations
-- `JUNIE_PROMPT1.md` — original visual, component, interaction, and quality principles
 - `DESIGN.md`, `README.md`, `src/theme.rs`, `src/widgets/`, and the shared runtime — approved implementation foundations
 
 `JACKIN_REFERENCE.md` defines the complete current Jackin product scope. Implement its operator-visible capabilities and interaction semantics through the approved Junie design language.
+
+This goal contains the visual, interaction, architecture, and delivery requirements needed for the preview. It does not depend on earlier prompt files.
 
 When `JACKIN_REFERENCE.md` does not contain enough detail for a required design decision, inspect the cited, pinned Jackin source code read-only. Use that source only to clarify behavior and semantics for the preview.
 
@@ -87,6 +88,10 @@ Jackin may require new composition and new generic primitives. Any new generic c
 - live in the reusable library rather than contain Jackin domain knowledge
 
 Translate current Jackin product meaning and workflows into this visual system with terminal-native composition.
+
+Create terminal hierarchy through weight, color, spacing, casing, alignment, and composition. Reserve green for meaningful signal, focus, and action. Group content through layout and spacing first, with restrained borders where they clarify structure. Use recognizable, high-signal glyphs.
+
+Keep working surfaces calm, precise, and readable. Concentrate digital rain, glitch, and spatial effects at the lifecycle boundaries defined below. The result must avoid generic Ratatui, ncurses, box-dashboard, uniformly green, noisy-footer, and decorative-Unicode styling.
 
 ---
 
@@ -287,6 +292,8 @@ An operator must always understand:
 
 Use progressive disclosure so each surface emphasizes its current task and context.
 
+Compose related capabilities within persistent regions, contextual detail, panes, overlays, tabs, inspectors, and the command palette. Keep the Workspace or instance tree alongside its detail when space permits, keep launch diagnostics inside the cockpit, and keep terminal content primary in Capsule. Use modal presentation for bounded decisions and confirmations.
+
 ---
 
 # 8. HOST WORKSPACE MANAGER
@@ -328,6 +335,8 @@ Keep selection identity stable while background fixture updates occur. Distingui
 The selected Workspace or instance exposes a focused detail projection from the same underlying state.
 
 Large trees, long paths, long labels, missing daemon data, missing manifest data, and many instances must remain usable.
+
+Render only visible collection content plus small overscan where practical. Preserve stable selection and expose scroll position, overflow direction, and additional off-screen content.
 
 Purged and superseded instance records remain hidden from the normal tree, matching current Jackin. Their meaning may appear only in the action result, confirmation, or a clearly separate historical fixture.
 
@@ -439,6 +448,8 @@ The new account registry integrates with Auth controls while retaining global, W
 This is the major deliberate extension.
 
 Build one singular interface where an operator can register, inspect, edit, disable, remove, validate, and select multiple AI coding-agent accounts.
+
+Present account forms progressively: show common identity and provider fields first, reveal folder or API-key controls after credential-source selection, reveal endpoint/deployment only for the supported Grok fixture, and keep detected provenance and account metadata in validation or detail views.
 
 Manual account registration is limited to these current Jackin provider families:
 
@@ -647,6 +658,8 @@ Rules:
 - nested flows restore the exact parent and target focus
 - help has explicit top-level priority
 - destructive actions use explicit labels and safe default focus
+- destructive confirmations communicate the relevant action, target, scope, risk, reversibility, and required confirmation with emphasis proportional to severity
+- stronger typed confirmation is reserved for high-destruction actions so routine choices remain clear
 - errors remain explicit and recoverable
 - bodies scroll and shrink for small terminals
 - modal barriers capture background input
@@ -778,6 +791,8 @@ Support:
 - detach
 - close pane/tab
 - exit
+
+Tab overflow keeps the active tab visible and labels identifiable. Show the direction or count of hidden tabs, and preserve coherent next, previous, and indexed keyboard navigation.
 
 Use believable deterministic terminal transcripts for Claude Code, Codex, Amp, Kimi Code, Grok Build, OpenCode, shells, and mixed sessions.
 
@@ -925,6 +940,8 @@ Pair important state with copy, glyph, shape, position, or another non-color sig
 
 Use restrained visual treatment with immediate state clarity.
 
+Every interactive control communicates that it is actionable, shows where input will land, and exposes disabled or error state clearly. Disabled controls never activate.
+
 ---
 
 # 23. KEYBOARD-FIRST
@@ -942,6 +959,8 @@ Use current Jackin shortcuts where they remain terminal-appropriate, including f
 - palette
 - split/zoom/close
 - detach/exit
+
+Audit the current keymap action set from `JACKIN_REFERENCE.md`. Every operator action remains keyboard-reachable through a mapped preview action; document the rationale only when a current binding cannot carry into the redesigned interaction.
 
 Support:
 
@@ -980,6 +999,8 @@ Hover remains distinct from keyboard focus. Switching between input methods reta
 
 Modal and overlay hit regions must block background actions.
 
+Every scrollable region signals additional content and current position. Scrollbars and overflow cues use the same semantic visual system as the surrounding surface.
+
 ---
 
 # 25. RESPONSIVE TERMINAL DESIGN
@@ -1010,6 +1031,8 @@ At larger sizes:
 Define a minimum supported size and render a polished too-small state below it.
 
 Intro, outro, cockpit, dialogs, file browser, Account & Usage Center, and Capsule must all respond to resize.
+
+Use truecolor as the primary visual target and provide a graceful capability fallback that preserves hierarchy and state clarity.
 
 ---
 
@@ -1108,6 +1131,8 @@ Keep clear boundaries between:
 - intro/outro choreography
 
 Render functions are pure over current state. Provider, filesystem, Docker, daemon, and PTY simulations update through deterministic messages and ticks.
+
+Centralize semantic tokens and keep raw RGB values and one-off style decisions out of application screens. Use stable Rust, the repository's current Ratatui stack, and only dependencies required by the preview.
 
 Start with app-specific composition, extracting only mechanics that serve multiple Jackin surfaces or reusable library needs.
 
@@ -1230,6 +1255,8 @@ Inspect actual rendered output and recommend precise improvements to hierarchy, 
 
 The primary agent owns synthesis and resolves conflicting recommendations against the approved design and product goal.
 
+Resolve ordinary design and implementation choices autonomously by inspecting the reference, comparing rendered options, choosing the strongest fit, and continuing.
+
 ---
 
 # 31. VISUAL REVIEW LOOP
@@ -1282,6 +1309,8 @@ Core qualities:
 - complete keyboard and mouse operation
 - coherent layouts at every supported size
 - modeled loading, success, failure, and recovery states
+
+Routine success feedback stays quiet. Failures remain highly legible and retain clear recovery actions.
 
 The operator feels the special world most strongly at entry, launch, Capsule handoff, and exit. During work, clarity and control dominate spectacle.
 
