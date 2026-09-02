@@ -371,16 +371,17 @@ impl EnvValue {
     }
 }
 
-/// `••••••••` plus a short synthetic tail so two masked values differ.
+/// `********` plus a short synthetic tail so two masked values differ.
+/// Asterisk runs, never `•` (which marks modified rows in the tables).
 pub fn mask(v: &str) -> String {
     if v.is_empty() {
         return "(empty)".into();
     }
     let tail: String = v.chars().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect();
     if v.chars().count() <= 6 {
-        "•".repeat(v.chars().count())
+        "*".repeat(v.chars().count())
     } else {
-        format!("••••••••…{tail}")
+        format!("************{tail}")
     }
 }
 
@@ -454,8 +455,8 @@ mod tests {
 
     #[test]
     fn masking_never_reveals_the_value() {
-        assert_eq!(mask("sk-ant-api03-verysecretvalue"), "••••••••…alue");
-        assert_eq!(mask("abc"), "•••");
+        assert_eq!(mask("sk-ant-api03-verysecretvalue"), "************alue");
+        assert_eq!(mask("abc"), "***");
         assert_eq!(mask(""), "(empty)");
         assert!(env_key_error("PATH").is_some());
         assert!(env_key_error("1ABC").is_some());
