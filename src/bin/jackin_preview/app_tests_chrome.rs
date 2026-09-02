@@ -29,9 +29,13 @@ fn capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line() {
         "{top}"
     );
     assert!(row(&h, 2).contains("Shell"), "{}", row(&h, 2));
+    assert!(top.contains("payments-platform ›"), "{top}");
     let status = row(&h, 38);
-    assert!(status.contains("payments-platform ›"), "{status}");
-    assert!(status.contains('%'), "usage chip missing: {status}");
+    assert!(status.contains("PR #482"), "{status}");
+    assert!(
+        status.contains('%') && status.contains("━"),
+        "usage meter missing: {status}"
+    );
     assert!(last_row(&h).contains("Ctrl+B"), "{}", last_row(&h));
 }
 
@@ -122,7 +126,7 @@ fn hint_bar_stays_on_the_last_row_across_layers() {
     let mut c = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     c.ctrl('b');
     assert!(last_row(&c).contains("New tab"), "{}", last_row(&c));
-    assert!(row(&c, 38).contains("prefix…"), "{}", row(&c, 38));
+    assert!(row(&c, 0).contains("prefix…"), "{}", row(&c, 0));
 }
 
 #[test]

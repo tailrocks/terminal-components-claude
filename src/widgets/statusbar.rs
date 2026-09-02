@@ -13,6 +13,7 @@ use crate::core::id::WidgetId;
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{truncate, width};
+use crate::widgets::progress::{Meter, MeterTone, MeterVisual};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Emphasis {
@@ -33,7 +34,12 @@ pub struct StatusItem {
     pub priority: u8,
     pub id: Option<WidgetId>,
     pub emphasis: Emphasis,
+    /// A compact line meter after the text: `(used %, tone)`.
+    pub meter: Option<(Option<u8>, MeterTone)>,
 }
+
+/// Track cells of an inline status meter.
+pub const STATUS_METER_TRACK: u16 = 10;
 
 impl StatusItem {
     pub fn new(text: impl Into<String>, tone: Tone) -> Self {
@@ -43,7 +49,13 @@ impl StatusItem {
             priority: 5,
             id: None,
             emphasis: Emphasis::Plain,
+            meter: None,
         }
+    }
+    /// Append a compact line meter (label, then `━━━━──── 76%`).
+    pub fn meter(mut self, used_pct: Option<u8>, tone: MeterTone) -> Self {
+        self.meter = Some((used_pct, tone));
+        self
     }
     pub fn priority(mut self, p: u8) -> Self {
         self.priority = p;
@@ -65,9 +77,15 @@ impl StatusItem {
     /// Cells the item occupies (chips carry their own padding).
     pub fn width(&self) -> u16 {
         let w = width(&self.text) as u16;
-        match self.emphasis {
+        let base = match self.emphasis {
             Emphasis::Chip => w + 2,
             _ => w,
+        };
+        if self.meter.is_some() {
+            // label, a space, the track, the value and its marker column
+            base + 1 + STATUS_METER_TRACK + 7
+        } else {
+            base
         }
     }
 }
@@ -269,6 +287,17 @@ impl StatusBar {
                 p.text.clone()
             };
             buf.set_string(p.x, area.y, &text, st);
+            if let Some((pct, tone)) = it.meter {
+                let label_w = width(&text) as u16;
+                let mx = p.x + label_w + 1;
+                let mw = p.width.saturating_sub(label_w + 1);
+                let value = pct.map(|v| format!("{v}%")).unwrap_or_else(|| "—".into());
+                Meter::new(pct)
+                    .value(value)
+                    .tone(tone)
+                    .visual(MeterVisual::Line)
+                    .render(Rect::new(mx, area.y, mw, 1), buf, ctx, st.bg.unwrap_or(bg));
+            }
             if let Some(id) = it.id {
                 ctx.clickable(id, Rect::new(p.x, area.y, p.width, 1));
             }

@@ -15,6 +15,8 @@ pub struct HintLayer {
     pub hints: Vec<Hint>,
     pub badge: Option<(&'static str, BadgeKind)>,
     pub status: Option<(String, Tone)>,
+    /// Centre the hints in the row instead of leading from the left.
+    pub centered: bool,
 }
 
 impl HintLayer {
@@ -23,7 +25,12 @@ impl HintLayer {
             hints,
             badge: None,
             status: None,
+            centered: false,
         }
+    }
+    pub fn centered(mut self) -> Self {
+        self.centered = true;
+        self
     }
     pub fn badge(mut self, text: &'static str, kind: BadgeKind) -> Self {
         self.badge = Some((text, kind));
@@ -47,13 +54,14 @@ impl HintBar {
     /// Draws the layer on `area` (one row). Returns how many hints fit;
     /// dropped hints leave a `…` marker so the operator knows there is more.
     pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, layer: &HintLayer) -> usize {
-        keyhint::render_toned(
+        keyhint::render_aligned(
             area,
             buf,
             t,
             &layer.hints,
             layer.badge,
             layer.status.as_ref().map(|(s, tone)| (s.as_str(), *tone)),
+            layer.centered,
         )
     }
 }

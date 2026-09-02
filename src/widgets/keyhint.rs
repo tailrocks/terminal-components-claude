@@ -48,6 +48,20 @@ pub fn render_toned(
     badge: Option<(&str, BadgeKind)>,
     right: Option<(&str, Tone)>,
 ) -> usize {
+    render_aligned(area, buf, t, hints, badge, right, false)
+}
+
+/// Like [`render_toned`]; `centered` places the hints that fit in the
+/// middle of the row (the status keeps the right edge and wins the space).
+pub fn render_aligned(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<(&str, Tone)>,
+    centered: bool,
+) -> usize {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
         return 0;
@@ -81,6 +95,30 @@ pub fn render_toned(
         x += crate::ui::text::width(&b) as u16 + 2;
     }
     let limit = area.right().saturating_sub(right_w);
+    if centered {
+        // measure what fits, then start so the block sits mid-row
+        let hint_w = |h: &Hint| {
+            crate::ui::text::width(h.key) as u16 + 1 + crate::ui::text::width(h.action) as u16 + 2
+        };
+        let mut used = 0u16;
+        let mut n = 0usize;
+        for (i, h) in hints.iter().enumerate() {
+            let reserve = if i + 1 < hints.len() { 2 } else { 0 };
+            if x + used + hint_w(h) + reserve > limit {
+                break;
+            }
+            used += hint_w(h);
+            n += 1;
+        }
+        if n < hints.len() {
+            used += 2;
+        }
+        let free = area.width.saturating_sub(used);
+        let mid = area.x + free / 2;
+        // never past the badge, never under the status
+        let start = mid.max(x).min(limit.saturating_sub(used).max(x));
+        x = start;
+    }
     let mut drawn = 0usize;
     for (i, h) in hints.iter().enumerate() {
         let kw = crate::ui::text::width(h.key) as u16;

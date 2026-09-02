@@ -919,10 +919,18 @@ Tab still reaches them.
   left; the strongest left item never leaves, it truncates with `…`.
 - **Interaction**: clickable items register a hit and lift one plane on
   hover; there is no focus stop (the bar reports, it is not a control).
-- **Usage**: Capsule bottom chrome (branch/PR, session activity, usage chip,
-  container, run id). **Avoid**: more than one strong item; chips for every
-  fact (a chip means "a fact with its own edge"); mixing hints into the bar
-  (hints live in the hint bar).
+- **Meters**: an item may carry a compact line meter after its label
+  (`Session ━━━━━━━━─── 76%`) in the quota-meter tones, so capacity reads as
+  a gauge rather than a number; the item stays clickable as a whole.
+- **Usage**: Capsule bottom chrome — left the work (`PR #482 · title` or the
+  branch, strong, then `• 4 changed · 1 unpushed` in warning), centre the
+  focused session (`Claude Code · Work · needs input`), right the focused
+  account's capacity as meters with a `stale`/`usage error` chip when the
+  numbers are old. Identity (Workspace › Role, container, instance count)
+  lives at the right end of the menu-bar row, not in the status bar.
+  **Avoid**: more than one strong item; chips for every fact (a chip means "a
+  fact with its own edge"); mixing hints into the bar (hints live in the hint
+  bar).
 
 #### Hint bar
 
@@ -933,7 +941,9 @@ Tab still reaches them.
   layer in precedence order: topmost modal or menu › temporary mode (prefix,
   selection, zoom) › active screen › global fallback. `HintBar::render` draws
   it with `keyhint`; hints that do not fit drop from the right and a faint
-  `…` marks the cut, the status keeps the right edge.
+  `…` marks the cut, the status keeps the right edge. The layer can be
+  `centered`: the hints that fit sit in the middle of the row (the product
+  shell does this) so the eye finds them in the same place on every screen.
 - **Rule**: modals, pickers and menus never draw their own hint rows; they
   contribute a layer and the shell renders it in the same place. The footer
   never moves or disappears while navigating. **Avoid**: sentence-long hints

@@ -2637,6 +2637,7 @@ impl App {
         let mut layer = HintBar::resolve(&[modal_layer, menu_layer, screen_layer, Some(fallback)]);
         layer.badge = badge;
         layer.status = status;
+        layer.centered = true;
         HintBar::render(area, buf, &t, &layer);
     }
 }
