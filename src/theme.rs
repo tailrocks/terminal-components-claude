@@ -71,6 +71,8 @@ mod palette {
     pub const INPUT_HOVER: Color = rgb(0x232328);
     pub const OVERLAY: Color = rgb(0x27272a);
     pub const POPOVER: Color = rgb(0x3f3f46);
+    /// Menu selection: a cool blue that does not compete with the accent.
+    pub const HIGHLIGHT: Color = rgb(0x2f5aa8);
     pub const WHITE: Color = rgb(0xffffff);
     pub const WHITE_70: Color = rgb(0xb3b3b3);
     pub const WHITE_50: Color = rgb(0x808080);
@@ -100,6 +102,9 @@ pub struct Theme {
     pub field: Color,
     pub field_hover: Color,
     pub popover: Color,
+    /// The cursor row of an anchored menu: a hue reserved for transient
+    /// command lists so the accent keeps its meaning.
+    pub highlight: Color,
 
     pub border_subtle: Color,
     pub border_strong: Color,
@@ -139,6 +144,7 @@ impl Theme {
             field: INPUT,
             field_hover: INPUT_HOVER,
             popover: POPOVER,
+            highlight: HIGHLIGHT,
             border_subtle: WHITE_15,
             border_strong: WHITE_30,
             text_primary: WHITE,
@@ -180,6 +186,7 @@ impl Theme {
             field,
             field_hover,
             popover,
+            highlight,
             border_subtle,
             border_strong,
             text_primary,

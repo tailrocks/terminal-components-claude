@@ -18,6 +18,7 @@ colors:
   surface-elevated: "#18181b"
   surface-overlay: "#27272a"
   popover: "#3f3f46"
+  highlight: "#2f5aa8"
   field: "#1e1e22"
   field-hover: "#232328"
   border-subtle: "#262626"
@@ -222,8 +223,13 @@ a style given their state and never spell an RGB value.
 - **Surface overlay (`#27272a`)** is the rest fill of secondary, toggle and
   danger buttons, and the hover lift of a surface or elevated row.
 - **Popover (`#3f3f46`)** is the strongest neutral: text selection, range
-  selection in grids, the current find match, and the hover fill of a
-  secondary button.
+  selection in grids, the current find match, the hover fill of a secondary
+  button, and the plane of anchored menus.
+- **Highlight (`#2f5aa8`)** is the one non-green fill: the cursor row of an
+  anchored menu (dropdown, context menu), white bold text on it. Menus are
+  transient command lists, so their selection must not read as focus or as
+  the primary action; a cool blue keeps the accent's meaning intact. It
+  appears nowhere else.
 - **Field (`#1e1e22`)** is the body of every text entry; **field hover
   (`#232328`)** is its hover, applied only while not editing.
 
@@ -932,17 +938,16 @@ Tab still reaches them.
 
 - **Purpose**: anchored lists of actions — a desktop-style menu bar for a
   surface's command groups, and a context menu for one object (a tab, a row).
-- **Anatomy**: `ContextMenu` — an elevated popover (`surface_elevated`, the
-  same plane as the menu-bar label it hangs from, rounded `border_subtle`
-  frame) anchored `Below`, `Above` or `Right` of a rectangle or at a pointer
-  position, clamped to the screen and flipped above when there is no room
-  below. Rows are commands, not focus stops: the cursor row is one solid
-  `accent-tint` fill with bold text and no `▎` bar, hover lifts the plane and
-  moves the cursor, shortcuts right-aligned and muted, `danger` rows in the
+- **Anatomy**: `ContextMenu` — a popover on the `popover` plane with a
+  rounded `border_subtle` frame, anchored `Below`, `Above` or `Right` of a
+  rectangle or at a pointer position, clamped to the screen and flipped
+  above when there is no room below. Rows are commands, not focus stops: the
+  cursor row is one solid `highlight` (blue) fill with bold white text and
+  no `▎` bar, hover lifts the plane and moves the cursor, shortcuts right-aligned and muted, `danger` rows in the
   error tone, disabled rows faint and unchoosable, `separator` draws a `─`
   rule after the row, an optional muted title names the object. `MenuBar` —
   one row of ` Label ` cells after the brand lockup; the open label sits on
-  `surface_elevated` in bold, hover lifts, the keyboard cursor shows the `▎`
+  the `popover` plane in bold so it joins its dropdown, hover lifts, the keyboard cursor shows the `▎`
   bar when the bar is focused and closed.
 - **Application bar**: every screen's first row is this bar, starting with
   the lockup (its own menu: About, Quit). The Capsule's groups are
