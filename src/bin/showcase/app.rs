@@ -45,6 +45,7 @@ pub enum PageId {
     Editor,
     Grid,
     Chips,
+    Chrome,
     Pickers,
     Settings,
     TaskRunner,
@@ -153,6 +154,11 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         section: "Components",
     },
     NavEntry {
+        id: PageId::Chrome,
+        label: "Chrome",
+        section: "Components",
+    },
+    NavEntry {
         id: PageId::Settings,
         label: "Settings",
         section: "Screens",
@@ -254,6 +260,7 @@ impl App {
                     PageId::Grid => Box::new(grid::GridPage::new()),
                     PageId::Chips => Box::new(chips::ChipsPage::new()),
                     PageId::Pickers => Box::new(pickers::PickersPage::new()),
+                    PageId::Chrome => Box::new(chrome::ChromePage::new()),
                     PageId::Settings => Box::new(settings::SettingsPage::new()),
                     PageId::TaskRunner => Box::new(taskrunner::TaskRunnerPage::new()),
                 }
@@ -657,6 +664,17 @@ impl App {
                 self.flash(id);
                 self.dispatch(PageEvent::Click { id, pos: m.pos })
                     .or(Outcome::Changed)
+            }
+            MouseKind::Secondary => {
+                let hit = self.hits.hit(m.pos);
+                self.hover = hit;
+                if self.dialog.is_some() {
+                    return Outcome::Consumed;
+                }
+                let Some(id) = hit else {
+                    return Outcome::Ignored;
+                };
+                self.dispatch(PageEvent::Secondary { id, pos: m.pos })
             }
             MouseKind::WheelLeft | MouseKind::WheelRight => Outcome::Ignored,
             MouseKind::WheelUp | MouseKind::WheelDown => {

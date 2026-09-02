@@ -302,3 +302,55 @@ impl ListBox {
         }
     }
 }
+
+#[cfg(test)]
+mod scroll_tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    fn render(l: &mut ListBox) -> String {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
+        l.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
+        (0..6)
+            .map(|y| {
+                (0..40)
+                    .map(|x| buf[(x, y)].symbol().to_owned())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn wheel_moves_the_viewport_and_keeps_the_cursor() {
+        let items = (0..40)
+            .map(|i| ListItem::new(&format!("Row {i:02}")))
+            .collect();
+        let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
+        let a = render(&mut l);
+        assert!(a.contains("Row 00"));
+        l.on_wheel(4);
+        let b = render(&mut l);
+        assert!(!b.contains("Row 00"));
+        assert!(b.contains("Row 04"));
+        assert_eq!(l.scroll.offset, 4);
+        assert_eq!(render(&mut l), b, "render does not reset a wheel scroll");
+        assert_eq!(l.cursor, 0);
+        let key = Key {
+            code: KeyCode::Down,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        l.on_key(&key);
+        render(&mut l);
+        assert!(l.scroll.visible_range().contains(&l.cursor));
+        l.on_wheel(-40);
+        assert_eq!(l.scroll.offset, 0);
+    }
+}

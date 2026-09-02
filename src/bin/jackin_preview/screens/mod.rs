@@ -6,6 +6,7 @@ pub mod capsule;
 pub mod cockpit;
 pub mod config;
 pub mod editor;
+pub mod inspect;
 pub mod manager;
 pub mod modals;
 pub mod prelude;

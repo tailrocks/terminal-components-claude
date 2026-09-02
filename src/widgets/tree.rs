@@ -579,3 +579,52 @@ impl TreeView {
         }
     }
 }
+
+#[cfg(test)]
+mod scroll_tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    fn render(t: &mut TreeView) -> String {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
+        t.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
+        (0..6)
+            .map(|y| {
+                (0..40)
+                    .map(|x| buf[(x, y)].symbol().to_owned())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn wheel_moves_the_viewport_and_keeps_the_cursor() {
+        let nodes = (0..40)
+            .map(|i| TreeNode::leaf(&format!("Node {i:02}")))
+            .collect();
+        let mut t = TreeView::new(WidgetId::of("t"), nodes);
+        let a = render(&mut t);
+        assert!(a.contains("Node 00"));
+        t.on_wheel(5);
+        let b = render(&mut t);
+        assert!(!b.contains("Node 00"));
+        assert!(b.contains("Node 05"));
+        assert_eq!(render(&mut t), b, "render does not reset a wheel scroll");
+        assert_eq!(t.cursor, 0);
+        let key = Key {
+            code: KeyCode::Down,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        t.on_key(&key);
+        render(&mut t);
+        assert!(t.scroll.visible_range().contains(&t.cursor));
+    }
+}

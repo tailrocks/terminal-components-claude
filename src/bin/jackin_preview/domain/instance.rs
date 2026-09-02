@@ -118,6 +118,9 @@ pub struct Instance {
     /// Uncommitted / unpushed simulated git state.
     pub uncommitted: usize,
     pub unpushed: usize,
+    /// The Workspace's effective account set at launch: every account the
+    /// container can hand to a session, not just the one that started it.
+    pub accounts: Vec<super::account::AccountId>,
 }
 
 impl Instance {

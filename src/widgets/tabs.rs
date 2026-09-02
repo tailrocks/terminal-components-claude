@@ -1,7 +1,10 @@
 //! Horizontal tab strip. One focus stop; ← → move the cursor and switch.
-//! Active tab: white bold with an accent underline. Focus cursor: bar.
-//! Tabs carry state glyphs (dirty, busy, error) and a close affordance; the
-//! strip scrolls with `‹ ›` indicators instead of shrinking labels.
+//! Active tab: one plane up with the accent underline. Keyboard cursor on
+//! another tab: two planes up and bold. Hover: two planes up. Tabs never
+//! carry the `▎` gutter — that glyph belongs to rows and fields.
+//! Tabs carry state glyphs (dirty, busy, error, a trailing state suffix) and
+//! a close affordance; the strip scrolls with `‹ ›` indicators instead of
+//! shrinking labels.
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -21,6 +24,8 @@ pub struct TabItem {
     pub closable: bool,
     /// Muted prefix such as a type glyph or a schema.
     pub prefix: Option<String>,
+    /// Trailing state glyph (`▶ ● ○ ◆`), muted unless the tab is active.
+    pub suffix: Option<String>,
 }
 
 impl TabItem {
@@ -36,6 +41,10 @@ impl TabItem {
     }
     pub fn prefix(mut self, p: &str) -> Self {
         self.prefix = Some(p.to_owned());
+        self
+    }
+    pub fn suffix(mut self, s: &str) -> Self {
+        self.suffix = Some(s.to_owned());
         self
     }
 }
@@ -233,6 +242,9 @@ impl Tabs {
         if let Some(p) = &it.prefix {
             w += crate::ui::text::width(p) as u16 + 1;
         }
+        if let Some(x) = &it.suffix {
+            w += crate::ui::text::width(x) as u16 + 1;
+        }
         if it.dirty || it.busy || it.error {
             w += 2;
         }
@@ -341,21 +353,27 @@ impl Tabs {
             let mut s = ctx.state(tid);
             s.focused = focused && i == self.cursor;
             let active = i == self.active;
-            let mut st = ratatui::style::Style::new()
-                .bg(bg)
-                .fg(if active || s.hovered {
-                    t.text_primary
-                } else {
-                    t.text_secondary
-                });
-            if s.hovered && !active {
-                st = st.bg(t.lift(bg));
-            }
+            // active: one plane up; cursor or hover on another tab: two planes
+            // up (bold marks the keyboard cursor); no gutter glyph ever
+            let plane = if active {
+                t.lift(bg)
+            } else if s.focused || s.hovered {
+                t.lift(t.lift(bg))
+            } else {
+                bg
+            };
+            let mut st =
+                ratatui::style::Style::new()
+                    .bg(plane)
+                    .fg(if active || s.focused || s.hovered {
+                        t.text_primary
+                    } else {
+                        t.text_secondary
+                    });
             if active || s.focused {
                 st = st.add_modifier(Modifier::BOLD);
             }
             crate::ui::ctx::fill(buf, r, st);
-            buf.set_string(x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
             let mut cx = x + 1;
             if let Some(p) = &it.prefix {
                 buf.set_string(
@@ -368,6 +386,20 @@ impl Tabs {
             }
             buf.set_string(cx, y, &it.label, st);
             cx += crate::ui::text::width(&it.label) as u16;
+            if let Some(x) = &it.suffix {
+                buf.set_string(
+                    cx + 1,
+                    y,
+                    x,
+                    st.fg(if active {
+                        t.text_secondary
+                    } else {
+                        t.text_muted
+                    })
+                    .remove_modifier(Modifier::BOLD),
+                );
+                cx += crate::ui::text::width(x) as u16 + 1;
+            }
             if it.busy {
                 buf.set_string(
                     cx + 1,
@@ -455,5 +487,113 @@ impl Tabs {
         if !ctx.inert {
             ctx.ring.register(self.id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    fn render_with(tabs: &mut Tabs, inter: Interaction) -> Buffer {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 2));
+        tabs.render(Rect::new(0, 0, 60, 2), &mut buf, &mut ctx, theme.canvas);
+        buf
+    }
+
+    fn row(buf: &Buffer, y: u16) -> String {
+        (0..buf.area.width)
+            .map(|x| buf[(x, y)].symbol().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn active_tab_has_a_plane_and_the_only_accent_underline_and_no_gutter() {
+        let t = Theme::junie();
+        let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
+        tabs.set_active(1);
+        let buf = render_with(&mut tabs, Interaction::default());
+        assert!(
+            !row(&buf, 0).contains('▎'),
+            "no gutter glyph in a tab strip"
+        );
+        let a = tabs.areas[1];
+        let b = tabs.areas[0];
+        assert_eq!(
+            buf[(a.x + 1, 0)].bg,
+            t.lift(t.canvas),
+            "active tab sits one plane up"
+        );
+        assert_eq!(
+            buf[(b.x + 1, 0)].bg,
+            t.canvas,
+            "inactive tab stays on the strip plane"
+        );
+        let under_active = &buf[(a.x + 1, 1)];
+        assert_eq!(under_active.symbol(), "━");
+        assert_eq!(under_active.fg, t.accent);
+        let under_inactive = &buf[(b.x + 1, 1)];
+        assert_eq!(
+            under_inactive.symbol(),
+            "─",
+            "only the active tab carries the rule"
+        );
+    }
+
+    #[test]
+    fn hover_and_cursor_differ_from_active() {
+        let t = Theme::junie();
+        let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
+        tabs.set_active(1);
+        // hover on an inactive tab: two planes up, not bold, no underline
+        let hover = Interaction {
+            hover: Some(tabs.tab_id(0)),
+            ..Default::default()
+        };
+        let buf = render_with(&mut tabs, hover);
+        let b = tabs.areas[0];
+        let a = tabs.areas[1];
+        assert_eq!(buf[(b.x + 1, 0)].bg, t.lift(t.lift(t.canvas)));
+        assert_ne!(
+            buf[(b.x + 1, 0)].bg,
+            buf[(a.x + 1, 0)].bg,
+            "hover plane differs from active"
+        );
+        assert!(!buf[(b.x + 1, 0)].modifier.contains(Modifier::BOLD));
+        assert_eq!(buf[(b.x + 1, 1)].symbol(), "─");
+        // keyboard cursor on an inactive tab: two planes up and bold, still no underline
+        tabs.cursor = 2;
+        let focus = Interaction {
+            focus: Some(tabs.id),
+            ..Default::default()
+        };
+        let buf = render_with(&mut tabs, focus);
+        let c = tabs.areas[2];
+        assert_eq!(buf[(c.x + 1, 0)].bg, t.lift(t.lift(t.canvas)));
+        assert!(buf[(c.x + 1, 0)].modifier.contains(Modifier::BOLD));
+        assert_eq!(buf[(c.x + 1, 1)].symbol(), "─");
+        assert_ne!(
+            buf[(c.x + 1, 0)].bg,
+            buf[(a.x + 1, 0)].bg,
+            "cursor plane differs from active"
+        );
+    }
+
+    #[test]
+    fn suffix_state_glyph_renders_after_the_label() {
+        let mut tabs = Tabs::with_items(
+            WidgetId::of("t"),
+            vec![TabItem::new("Claude").suffix("▶"), TabItem::new("Shell")],
+        );
+        tabs.set_active(0);
+        let buf = render_with(&mut tabs, Interaction::default());
+        assert!(row(&buf, 0).contains("Claude ▶"));
     }
 }

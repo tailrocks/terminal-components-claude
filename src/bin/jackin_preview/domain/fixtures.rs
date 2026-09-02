@@ -19,8 +19,8 @@ use crate::domain::usage::{
     AccountUsage, FreshnessInfo, QuotaStatus, QuotaWindow, WindowCategory, WindowUnit,
 };
 use crate::domain::workspace::{
-    AllowedRoles, AuthEntry, AuthSource, EnvVar, Isolation, Mount, MountScope, RoleEntry,
-    RolePolicy, RoleSource, Workspace,
+    AllowedRoles, EnvVar, Isolation, Mount, MountScope, RoleEntry, RolePolicy, RoleSource,
+    Workspace,
 };
 use crate::scenario::Scenario;
 use crate::sim::onepassword::{OpSession, SimOnePassword};
@@ -76,8 +76,11 @@ impl ResolvedAccount {
     }
 }
 
-/// session choice › Role choice › Workspace choice › provider default ›
-/// discovered current source. Disabled hits are skipped and recorded.
+/// session choice › Role preference › Workspace preference › provider
+/// default › discovered current source. With a Workspace every candidate
+/// must be in its effective set; an account the Workspace enabled without
+/// preferring it is the final fallback. Disabled hits are skipped and
+/// recorded.
 pub fn resolve_account(
     provider: Provider,
     ws: Option<&Workspace>,
@@ -85,8 +88,16 @@ pub fn resolve_account(
     session: Option<&AccountId>,
     registry: &AccountRegistry,
 ) -> ResolvedAccount {
+    let effective = ws.map(|w| w.effective_accounts(registry));
+    let in_set = |id: &AccountId| -> bool {
+        effective
+            .as_ref()
+            .is_none_or(|e| e.iter().any(|x| &x.id == id))
+    };
     let mut candidates: Vec<(PrecedenceLevel, AccountId, String)> = vec![];
-    if let Some(s) = session {
+    if let Some(s) = session
+        && in_set(s)
+    {
         candidates.push((
             PrecedenceLevel::Session,
             s.clone(),
@@ -94,31 +105,36 @@ pub fn resolve_account(
         ));
     }
     if let (Some(w), Some(r)) = (ws, role)
-        && let Some(id) = w.role_account_overrides.get(&(r.to_owned(), provider))
+        && let Some(id) = w.role_preference(r, provider, registry)
     {
         candidates.push((
             PrecedenceLevel::Role,
-            id.clone(),
-            format!("Role choice · set on Role {r} in {}", w.name),
+            id,
+            format!("Role preference · set on Role {r} in {}", w.name),
         ));
     }
     if let Some(w) = ws
-        && let Some(id) = w.account_overrides.get(&provider)
+        && let Some(id) = w.accounts.preferred.get(&provider)
+        && in_set(id)
     {
         candidates.push((
             PrecedenceLevel::Workspace,
             id.clone(),
-            format!("Workspace choice · set in {} › Auth", w.name),
+            format!("Workspace preference · set in {} › Accounts", w.name),
         ));
     }
-    if let Some(a) = registry.default_for(provider) {
+    if let Some(a) = registry.default_for(provider)
+        && in_set(&a.id)
+    {
         candidates.push((
             PrecedenceLevel::ProviderDefault,
             a.id.clone(),
             "Provider default · set in Account & Usage Center".into(),
         ));
     }
-    if let Some(a) = registry.discovered_current(provider) {
+    if let Some(a) = registry.discovered_current(provider)
+        && in_set(&a.id)
+    {
         candidates.push((
             PrecedenceLevel::Discovered,
             a.id.clone(),
@@ -127,6 +143,18 @@ pub fn resolve_account(
                 provider.short()
             ),
         ));
+    }
+    if let (Some(w), Some(set)) = (ws, effective.as_ref()) {
+        for e in set
+            .iter()
+            .filter(|e| e.provider == provider && !candidates.iter().any(|(_, id, _)| id == &e.id))
+        {
+            candidates.push((
+                PrecedenceLevel::Workspace,
+                e.id.clone(),
+                format!("Enabled in {} › Accounts", w.name),
+            ));
+        }
     }
     let mut shadowed = vec![];
     let mut chosen: Option<(PrecedenceLevel, AccountId, String)> = None;
@@ -165,7 +193,13 @@ pub fn resolve_account(
         None => ResolvedAccount {
             account: None,
             level: PrecedenceLevel::None,
-            why: "No account: register one in Account & Usage Center".into(),
+            why: match ws {
+                Some(w) => format!(
+                    "No account: enable one in {} › Accounts or register one in Account & Usage Center",
+                    w.name
+                ),
+                None => "No account: register one in Account & Usage Center".into(),
+            },
             shadowed,
         },
     }
@@ -242,6 +276,27 @@ fn roles() -> Vec<RoleEntry> {
     ]
 }
 
+/// A large, deterministic Role registry (`svc-001` …) so the scoped-config
+/// screens prove they scale: every Role is trusted, in the registry, and
+/// carries no configuration until an operator adds some.
+fn generated_roles(n: usize) -> Vec<RoleEntry> {
+    const AREAS: [&str; 6] = ["billing", "ledger", "search", "notify", "ingest", "auth"];
+    (1..=n)
+        .map(|i| RoleEntry {
+            namespace: "chainargos".into(),
+            name: format!("svc-{i:03}"),
+            source: RoleSource::Git {
+                url: "github.com/chainargos/roles".into(),
+                branch: "main".into(),
+            },
+            trusted: true,
+            in_registry: true,
+            description: format!("{} service agent #{i}", AREAS[i % AREAS.len()]),
+            load_error: None,
+        })
+        .collect()
+}
+
 fn workspaces(rich: bool) -> Vec<Workspace> {
     let mut v = vec![];
     let mut w = Workspace::new(1, "payments-platform", "/workspace/payments-platform");
@@ -289,13 +344,12 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
             ),
         )],
     );
-    w.auth = vec![AuthEntry {
-        agent: Agent::ClaudeCode,
-        mode: AuthMode::ApiKey,
-        source: AuthSource::Account("acct-claude-work".into()),
-    }];
-    w.account_overrides
-        .insert(Provider::Anthropic, "acct-claude-work".into());
+    // two Anthropic accounts at once: Work is the inherited registry default,
+    // Personal is switched on here; Codex Primary is inherited
+    w.accounts.enabled.insert("acct-claude-personal".into());
+    w.accounts
+        .role_preferred
+        .insert(("reviewer".into(), Provider::Anthropic), "acct-claude-personal".into());
     w.keep_awake = true;
     v.push(w);
 
@@ -324,7 +378,14 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
         ),
         EnvVar::plain("TF_LOG", "WARN"),
     ];
-    w.account_overrides
+    // the inherited Codex default is switched off here; Experiments is
+    // enabled and therefore the only (and preferred) Codex account
+    w.accounts
+        .disabled_defaults
+        .insert("acct-codex-primary".into());
+    w.accounts.enabled.insert("acct-codex-experiments".into());
+    w.accounts
+        .preferred
         .insert(Provider::OpenAi, "acct-codex-experiments".into());
     v.push(w);
 
@@ -410,6 +471,7 @@ fn instance(
         default_branch: "main".into(),
         uncommitted: 0,
         unpushed: 0,
+        accounts: vec![],
     }
 }
 
@@ -458,53 +520,17 @@ fn global(rich: bool) -> GlobalConfig {
         } else {
             BTreeMap::new()
         },
-        auth: if rich {
-            vec![
-                AuthEntry {
-                    agent: Agent::ClaudeCode,
-                    mode: AuthMode::Sync,
-                    source: AuthSource::Account("acct-claude-personal".into()),
-                },
-                AuthEntry {
-                    agent: Agent::Codex,
-                    mode: AuthMode::ApiKey,
-                    source: AuthSource::Account("acct-codex-primary".into()),
-                },
-                AuthEntry {
-                    agent: Agent::GrokBuild,
-                    mode: AuthMode::ApiKey,
-                    source: AuthSource::Account("acct-grok-team".into()),
-                },
-                AuthEntry {
-                    agent: Agent::OpenCode,
-                    mode: AuthMode::Sync,
-                    source: AuthSource::Folder("~/.local/share/opencode".into()),
-                },
-                AuthEntry {
-                    agent: Agent::Amp,
-                    mode: AuthMode::Sync,
-                    source: AuthSource::HostProfile,
-                },
-                AuthEntry {
-                    agent: Agent::KimiCode,
-                    mode: AuthMode::Ignore,
-                    source: AuthSource::None,
-                },
+        agent_modes: if rich {
+            [
+                (Agent::ClaudeCode, AuthMode::Sync),
+                (Agent::Codex, AuthMode::ApiKey),
+                (Agent::GrokBuild, AuthMode::ApiKey),
+                (Agent::OpenCode, AuthMode::Sync),
+                (Agent::Amp, AuthMode::Sync),
+                (Agent::KimiCode, AuthMode::Ignore),
             ]
-        } else {
-            vec![]
-        },
-        role_auth: if rich {
-            let mut m = BTreeMap::new();
-            m.insert(
-                "backend".to_owned(),
-                vec![AuthEntry {
-                    agent: Agent::ClaudeCode,
-                    mode: AuthMode::ApiKey,
-                    source: AuthSource::Account("acct-claude-work".into()),
-                }],
-            );
-            m
+            .into_iter()
+            .collect()
         } else {
             BTreeMap::new()
         },

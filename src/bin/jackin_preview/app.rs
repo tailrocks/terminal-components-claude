@@ -1441,6 +1441,7 @@ impl App {
                 let reqs = std::mem::take(&mut cx.requests);
                 o.or(self.apply_requests(reqs, route)).or(Outcome::Changed)
             }
+            MouseKind::Secondary => Outcome::Ignored,
             MouseKind::WheelUp
             | MouseKind::WheelDown
             | MouseKind::WheelLeft

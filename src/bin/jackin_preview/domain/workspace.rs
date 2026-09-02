@@ -2,9 +2,10 @@
 //! Auth, policies. Everything here is durable host data, distinct from
 //! instance records and live daemon snapshots.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use super::agent::{Agent, AuthMode, Provider};
+use super::account::{AccountId, AccountRegistry, Lifecycle};
+use super::agent::Provider;
 
 pub type WorkspaceId = u32;
 pub type RoleName = String;
@@ -20,17 +21,118 @@ pub struct Workspace {
     pub env: Vec<EnvVar>,
     /// Role-scope environment variables keyed by Role name.
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
-    /// Workspace-scope Auth overrides per Agent.
-    pub auth: Vec<AuthEntry>,
-    /// Role-scope Auth overrides.
-    pub role_auth: BTreeMap<RoleName, Vec<AuthEntry>>,
     pub keep_awake: bool,
     pub git_pull: bool,
-    /// Workspace-level provider account choice (overrides provider default).
-    pub account_overrides: BTreeMap<Provider, super::account::AccountId>,
-    /// Role-level provider account choice (overrides the Workspace choice).
-    pub role_account_overrides: BTreeMap<(RoleName, Provider), super::account::AccountId>,
+    /// Which registry accounts this Workspace activates, and which it prefers.
+    pub accounts: AccountPolicy,
     pub dirty_policy: DirtyExitPolicy,
+}
+
+/// The Workspace's view of the global account registry: inherited defaults
+/// can be switched off, further accounts switched on, and one account per
+/// provider marked preferred. Credentials never live here.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct AccountPolicy {
+    /// Global defaults (registry `default_for_provider`) this Workspace turns off.
+    pub disabled_defaults: BTreeSet<AccountId>,
+    /// Registry accounts explicitly enabled here in addition to the inherited defaults.
+    pub enabled: BTreeSet<AccountId>,
+    /// Preferred account per provider among the effective set.
+    pub preferred: BTreeMap<Provider, AccountId>,
+    /// Per-Role preference (a Role may prefer another effective account).
+    pub role_preferred: BTreeMap<(RoleName, Provider), AccountId>,
+}
+
+impl AccountPolicy {
+    pub fn is_empty(&self) -> bool {
+        self.disabled_defaults.is_empty()
+            && self.enabled.is_empty()
+            && self.preferred.is_empty()
+            && self.role_preferred.is_empty()
+    }
+
+    /// Number of activation / preference decisions that differ from `other`.
+    pub fn change_count(&self, other: &AccountPolicy) -> usize {
+        self.disabled_defaults
+            .symmetric_difference(&other.disabled_defaults)
+            .count()
+            + self.enabled.symmetric_difference(&other.enabled).count()
+            + usize::from(self.preferred != other.preferred)
+            + usize::from(self.role_preferred != other.role_preferred)
+    }
+}
+
+/// Why an account is part of the Workspace's effective set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Effective {
+    /// The registry's provider default, inherited because it is not disabled here.
+    InheritedDefault,
+    /// Explicitly enabled in this Workspace.
+    Enabled,
+}
+
+impl Effective {
+    pub fn label(self) -> &'static str {
+        match self {
+            Effective::InheritedDefault => "inherited default",
+            Effective::Enabled => "enabled here",
+        }
+    }
+}
+
+/// Whether an effective account can actually back a session right now.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Usability {
+    Ready,
+    /// Switched off in the registry (kept in the policy so it comes back when re-enabled).
+    Disabled(String),
+    NeedsLogin,
+    Invalid(String),
+}
+
+impl Usability {
+    pub fn label(&self) -> String {
+        match self {
+            Usability::Ready => "ready".into(),
+            Usability::Disabled(r) => r.clone(),
+            Usability::NeedsLogin => "needs login".into(),
+            Usability::Invalid(r) => r.clone(),
+        }
+    }
+
+    pub fn is_ready(&self) -> bool {
+        matches!(self, Usability::Ready)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EffectiveAccount {
+    pub id: AccountId,
+    pub provider: Provider,
+    pub origin: Effective,
+    pub preferred: bool,
+    pub usable: Usability,
+}
+
+/// How usable a registry account is, independent of any Workspace.
+pub fn usability_of(a: &super::account::Account) -> Usability {
+    if !a.enabled {
+        return Usability::Disabled("disabled globally".into());
+    }
+    match a.lifecycle {
+        Lifecycle::Available => Usability::Ready,
+        Lifecycle::NeedsLogin => Usability::NeedsLogin,
+        Lifecycle::NeedsSecret => Usability::Invalid("needs secret".into()),
+        Lifecycle::AgentUninitialized => Usability::Invalid("agent uninitialized".into()),
+        Lifecycle::Unsupported => Usability::Invalid("unsupported".into()),
+        Lifecycle::Unavailable => Usability::Invalid("unavailable".into()),
+        Lifecycle::Error => Usability::Invalid(
+            a.issue
+                .as_ref()
+                .map(|i| i.message.clone())
+                .unwrap_or("error".into()),
+        ),
+    }
 }
 
 impl Workspace {
@@ -43,14 +145,83 @@ impl Workspace {
             roles: RolePolicy::default(),
             env: vec![],
             role_env: BTreeMap::new(),
-            auth: vec![],
-            role_auth: BTreeMap::new(),
             keep_awake: false,
             git_pull: true,
-            account_overrides: BTreeMap::new(),
-            role_account_overrides: BTreeMap::new(),
+            accounts: AccountPolicy::default(),
             dirty_policy: DirtyExitPolicy::Ask,
         }
+    }
+
+    /// The accounts this Workspace can hand to a container: every registry
+    /// provider default that is not disabled here, plus every account enabled
+    /// here. Sorted by provider, then preferred first, then display order of
+    /// the registry. Nothing is invented: an account absent from the registry
+    /// is dropped from the set.
+    pub fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
+        let mut out: Vec<EffectiveAccount> = vec![];
+        for a in &registry.accounts {
+            let inherited = a.default_for_provider && !self.accounts.disabled_defaults.contains(&a.id);
+            let enabled = self.accounts.enabled.contains(&a.id);
+            let origin = if inherited {
+                Effective::InheritedDefault
+            } else if enabled {
+                Effective::Enabled
+            } else {
+                continue;
+            };
+            out.push(EffectiveAccount {
+                id: a.id.clone(),
+                provider: a.provider,
+                origin,
+                preferred: false,
+                usable: usability_of(a),
+            });
+        }
+        // one preferred per provider: the explicit preference when it is in
+        // the set, else the inherited default, else the first ready account
+        let providers: Vec<Provider> = {
+            let mut v: Vec<Provider> = out.iter().map(|e| e.provider).collect();
+            v.dedup();
+            v
+        };
+        for p in providers {
+            let pick = self
+                .accounts
+                .preferred
+                .get(&p)
+                .filter(|id| out.iter().any(|e| &e.id == *id))
+                .cloned()
+                .or_else(|| {
+                    out.iter()
+                        .find(|e| e.provider == p && e.origin == Effective::InheritedDefault)
+                        .map(|e| e.id.clone())
+                })
+                .or_else(|| {
+                    out.iter()
+                        .find(|e| e.provider == p && e.usable.is_ready())
+                        .map(|e| e.id.clone())
+                });
+            if let Some(id) = pick
+                && let Some(e) = out.iter_mut().find(|e| e.id == id)
+            {
+                e.preferred = true;
+            }
+        }
+        out.sort_by(|a, b| {
+            a.provider
+                .cmp(&b.provider)
+                .then(b.preferred.cmp(&a.preferred))
+        });
+        out
+    }
+
+    /// The effective account a Role prefers, if it is in the effective set.
+    pub fn role_preference(&self, role: &str, provider: Provider, registry: &AccountRegistry) -> Option<AccountId> {
+        let id = self.accounts.role_preferred.get(&(role.to_owned(), provider))?;
+        self.effective_accounts(registry)
+            .iter()
+            .find(|e| &e.id == id)
+            .map(|e| e.id.clone())
     }
 
     /// Number of fields that differ from `other` (dirty count).
@@ -64,11 +235,8 @@ impl Workspace {
         n += usize::from(self.dirty_policy != other.dirty_policy);
         n += keyed(&self.mounts, &other.mounts, |m| m.destination.clone());
         n += keyed(&self.env, &other.env, |e| e.key.clone());
-        n += keyed(&self.auth, &other.auth, |a| a.agent.label().to_owned());
         n += usize::from(self.role_env != other.role_env);
-        n += usize::from(self.role_auth != other.role_auth);
-        n += usize::from(self.account_overrides != other.account_overrides);
-        n += usize::from(self.role_account_overrides != other.role_account_overrides);
+        n += self.accounts.change_count(&other.accounts);
         n
     }
 
@@ -407,32 +575,6 @@ pub fn env_key_error(key: &str) -> Option<String> {
         return Some(format!("{k} is reserved by the runtime"));
     }
     None
-}
-
-// ------------------------------------------------------------------- auth
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AuthEntry {
-    pub agent: Agent,
-    pub mode: AuthMode,
-    pub source: AuthSource,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AuthSource {
-    /// The host's own agent profile (sync mode).
-    HostProfile,
-    /// A specific local profile folder.
-    Folder(String),
-    /// A registered account from the Account & Usage Center.
-    Account(super::account::AccountId),
-    /// A direct 1Password reference (API key / token).
-    OnePassword(super::onepassword::OpReference),
-    /// Masked plain-text secret material (fingerprint only).
-    Plain {
-        fingerprint: String,
-    },
-    None,
 }
 
 #[cfg(test)]

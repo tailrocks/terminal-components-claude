@@ -81,6 +81,8 @@ pub enum MouseKind {
     Down,
     Up,
     Drag,
+    /// Secondary (right) button pressed: a context action.
+    Secondary,
     WheelUp,
     WheelDown,
     WheelLeft,
@@ -113,6 +115,7 @@ impl Input {
                     MouseEventKind::Down(MouseButton::Left) => MouseKind::Down,
                     MouseEventKind::Up(MouseButton::Left) => MouseKind::Up,
                     MouseEventKind::Drag(MouseButton::Left) => MouseKind::Drag,
+                    MouseEventKind::Down(MouseButton::Right) => MouseKind::Secondary,
                     MouseEventKind::ScrollUp => MouseKind::WheelUp,
                     MouseEventKind::ScrollDown => MouseKind::WheelDown,
                     MouseEventKind::ScrollLeft => MouseKind::WheelLeft,

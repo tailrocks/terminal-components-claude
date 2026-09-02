@@ -58,6 +58,10 @@ pub struct Picker {
     pub area: Rect,
     /// Show the query field (false for fixed-choice pickers).
     pub searchable: bool,
+    /// The cursor moved since the last render: the next render pulls it
+    /// into view. Wheel scrolling leaves it alone so the viewport and the
+    /// selection never fight.
+    cursor_dirty: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,6 +96,7 @@ impl Picker {
             empty_text: "No matches".into(),
             area: Rect::ZERO,
             searchable: true,
+            cursor_dirty: true,
         }
     }
 
@@ -99,6 +104,14 @@ impl Picker {
         self.items = items;
         self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
         self.scroll = ScrollState::new(self.items.len());
+        self.cursor_dirty = true;
+    }
+
+    /// Move the cursor and ask the next render to keep it in view.
+    pub fn set_cursor(&mut self, i: usize) {
+        self.cursor = i.min(self.items.len().saturating_sub(1));
+        self.cursor_dirty = true;
+        self.scroll.ensure_visible(self.cursor);
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
@@ -127,6 +140,7 @@ impl Picker {
             }
         }
         self.cursor = c as usize;
+        self.cursor_dirty = true;
         self.scroll.ensure_visible(self.cursor);
     }
 
@@ -212,12 +226,19 @@ impl Picker {
             return None;
         }
         self.cursor = i;
+        self.cursor_dirty = true;
         Some(PickerEvent::Chosen(i))
     }
 
+    /// Wheel scrolls the viewport and keeps the selection where it is.
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+        let before = self.scroll.offset;
         self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
+        if self.scroll.offset == before {
+            Outcome::Consumed
+        } else {
+            Outcome::Changed
+        }
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
@@ -326,7 +347,11 @@ impl Picker {
         );
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(list.height as usize);
-        self.scroll.ensure_visible(self.cursor);
+        // only a cursor move pulls the viewport; a wheel scroll must survive
+        if self.cursor_dirty {
+            self.scroll.ensure_visible(self.cursor);
+            self.cursor_dirty = false;
+        }
         match &self.status {
             PickerStatus::Loading(label) => {
                 crate::widgets::progress::render_spinner(
@@ -492,5 +517,99 @@ impl Picker {
             truncate(hints, inner.width as usize),
             t.faint().bg(bg),
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    fn picker(n: usize) -> Picker {
+        let mut p = Picker::new(WidgetId::of("p"), "Palette");
+        p.max_rows = 6;
+        p.set_items(
+            (0..n)
+                .map(|i| PickerItem {
+                    label: format!("Item {i:02}"),
+                    detail: String::new(),
+                    glyph: "·",
+                    group: "",
+                    tag: None,
+                    matched: vec![],
+                    disabled: false,
+                })
+                .collect(),
+        );
+        p
+    }
+
+    fn render(p: &mut Picker) -> String {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
+        p.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx, "");
+        let mut out = String::new();
+        for y in 0..24 {
+            for x in 0..80 {
+                out.push_str(buf[(x, y)].symbol());
+            }
+            out.push('\n');
+        }
+        out
+    }
+
+    #[test]
+    fn wheel_scrolls_the_rows_and_survives_the_next_render() {
+        let mut p = picker(30);
+        let before = render(&mut p);
+        assert!(before.contains("Item 00"));
+        assert!(!before.contains("Item 10"));
+        p.on_wheel(3);
+        let after = render(&mut p);
+        assert!(!after.contains("Item 00"), "wheel moved the viewport");
+        assert!(after.contains("Item 03"));
+        assert_eq!(p.scroll.offset, 3);
+        // a second render keeps the offset
+        let again = render(&mut p);
+        assert_eq!(again, after);
+        assert_eq!(p.scroll.offset, 3);
+        assert_eq!(p.cursor, 0, "selection is preserved while wheel scrolling");
+        p.on_wheel(-3);
+        let back = render(&mut p);
+        assert_eq!(back, before);
+    }
+
+    #[test]
+    fn keyboard_navigation_pulls_the_cursor_back_into_view() {
+        let mut p = picker(30);
+        render(&mut p);
+        p.on_wheel(10);
+        render(&mut p);
+        assert_eq!(p.scroll.offset, 10);
+        let key = Key {
+            code: KeyCode::Down,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        p.on_key(&key);
+        let s = render(&mut p);
+        assert_eq!(p.cursor, 1);
+        assert!(p.scroll.visible_range().contains(&p.cursor));
+        assert!(s.contains("Item 01"));
+    }
+
+    #[test]
+    fn wheel_at_the_boundary_is_consumed_not_changed() {
+        let mut p = picker(3);
+        render(&mut p);
+        assert_eq!(p.on_wheel(1), Outcome::Consumed);
+        let mut p = picker(30);
+        render(&mut p);
+        assert_eq!(p.on_wheel(1), Outcome::Changed);
     }
 }
