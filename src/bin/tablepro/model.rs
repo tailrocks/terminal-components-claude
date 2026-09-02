@@ -3,6 +3,7 @@
 
 use crate::db::{Catalog, ColType, Table, Value};
 use crate::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
+use junie_tui::ui::text::fuzzy;
 
 // ------------------------------------------------------------ pending edits
 
@@ -560,37 +561,6 @@ pub fn tables_in_statement<'a>(cat: &'a Catalog, stmt: &str) -> Vec<(&'a Table, 
         i += 1;
     }
     out
-}
-
-fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
-    if word.is_empty() {
-        return Some((0, vec![]));
-    }
-    let l = label.to_lowercase();
-    let w = word.to_lowercase();
-    if l.starts_with(&w) {
-        return Some((0, (0..w.len()).collect()));
-    }
-    if let Some(p) = l.find(&w) {
-        // word-boundary bonus
-        let boundary = p == 0 || matches!(l.as_bytes()[p - 1], b'_' | b'.');
-        return Some((if boundary { 10 } else { 30 }, (p..p + w.len()).collect()));
-    }
-    // subsequence
-    let mut matched = Vec::new();
-    let mut li = 0;
-    let lb = l.as_bytes();
-    for wc in w.bytes() {
-        while li < lb.len() && lb[li] != wc {
-            li += 1;
-        }
-        if li >= lb.len() {
-            return None;
-        }
-        matched.push(li);
-        li += 1;
-    }
-    Some((60 + (matched.last().copied().unwrap_or(0) as u32), matched))
 }
 
 /// Suggestions for the cursor position, ranked.

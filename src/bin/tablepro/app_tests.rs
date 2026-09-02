@@ -674,3 +674,147 @@ fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     assert!(!h.text().contains("Filter objects"));
     assert!(h.text().contains("public › orders"));
 }
+
+/// The end-to-end flow from GOAL2, keyboard only.
+#[test]
+fn acceptance_flow_keyboard_only() {
+    let mut h = H::new(120, 40);
+    // connect to Production
+    for _ in 0..8 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    h.ticks(14);
+    assert_eq!(h.app.screen, Screen::Workbench);
+    assert_eq!(h.wb().connection.name, "Production");
+    // explorer → orders
+    for _ in 0..5 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    h.ticks(3);
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "orders"));
+    // grid: sort by created_at, then filter status = pending
+    for _ in 0..12 {
+        h.key(KeyCode::Right);
+    }
+    h.key(KeyCode::Char('s'));
+    assert!(h.text().contains("sort created_at ▴"));
+    h.key(KeyCode::Home);
+    for _ in 0..4 {
+        h.key(KeyCode::Right);
+    }
+    h.key(KeyCode::Char('f'));
+    assert!(matches!(h.app.modal, Some(Modal::Filter(_))));
+    h.key(KeyCode::BackTab);
+    h.key(KeyCode::BackTab);
+    h.key(KeyCode::Enter);
+    h.ctrl('l');
+    h.type_str("pending");
+    h.key(KeyCode::Enter);
+    assert!(h.app.modal.is_none());
+    assert!(h.text().contains("status = 'pending'"));
+    assert!(h.text().contains("filtered (1)"));
+    // structure and back
+    h.ctrl('d');
+    assert!(h.text().contains("Foreign keys"));
+    h.ctrl('d');
+    // a new query with completion, run, result tab
+    h.ctrl('t');
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Query(_))));
+    assert_eq!(
+        h.focus(),
+        Some(h.wb_query().editor.id),
+        "new query focuses its editor"
+    );
+    h.key(KeyCode::Char('i'));
+    h.type_str("SELECT * FROM ord");
+    assert!(h.wb_query().completion.is_open());
+    h.key(KeyCode::Enter);
+    assert!(h.wb_query().editor.text().ends_with("orders"));
+    h.type_str(" WHERE status = 'pending' LIMIT 25");
+    h.key(KeyCode::Esc);
+    h.ctrl('r');
+    h.ticks(10);
+    assert!(h.text().contains("SELECT orders (25)"));
+    // EXPLAIN as a second result tab (pin the first so it survives)
+    h.key(KeyCode::Tab); // result tabs
+    h.key(KeyCode::Char('p'));
+    h.key(KeyCode::BackTab);
+    h.alt('x');
+    h.ticks(10);
+    assert!(h.text().contains("EXPLAIN ANALYZE"));
+    assert!(h.text().contains("Seq Scan") || h.text().contains("Index Scan"));
+    assert_eq!(
+        h.wb_query().results.len(),
+        2,
+        "pinned result kept beside the plan"
+    );
+    // history reopens a query
+    h.ctrl('y');
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::History(_))));
+    h.key(KeyCode::Enter);
+    assert!(
+        matches!(h.wb().active_tab(), Some(WorkTab::Query(q)) if q.editor.text().contains("status = 'pending' LIMIT 25")),
+        "the newest entry is the query just run"
+    );
+    // quick switcher
+    h.ctrl('o');
+    h.type_str("cust");
+    h.key(KeyCode::Enter);
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "customers"));
+    // a dangerous query is intercepted and cancelled
+    h.ctrl('t');
+    h.key(KeyCode::Char('i'));
+    h.type_str("DELETE FROM orders");
+    h.key(KeyCode::Esc);
+    h.ctrl('r');
+    assert!(matches!(h.app.modal, Some(Modal::Dialog(_))));
+    assert!(h.text().contains("Type orders to confirm"));
+    h.key(KeyCode::Esc);
+    assert!(h.app.modal.is_none());
+    assert!(!h.wb_query().is_running());
+    assert!(h.text().contains("Cancelled · nothing was executed"));
+}
+
+/// The same journey driven by the mouse where the mouse has a role.
+#[test]
+fn acceptance_flow_mouse() {
+    let mut h = H::new(120, 40);
+    let (x, y) = h.find("Production").expect("connection row");
+    h.click(x, y);
+    let (x, y) = h.find("Connect ").expect("connect button");
+    h.click(x + 1, y);
+    h.ticks(14);
+    assert_eq!(h.app.screen, Screen::Workbench);
+    // explorer row → table tab
+    let (x, y) = h.find("T orders").expect("orders row");
+    h.click(x + 2, y);
+    h.ticks(3);
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "orders"));
+    // header click sorts
+    let (x, y) = h.find("order_number").expect("header");
+    h.click(x, y);
+    assert!(h.text().contains("sort order_number ▴"));
+    // mode tab
+    let (x, y) = h.find("Structure").expect("mode tab");
+    h.click(x, y);
+    assert!(h.text().contains("Foreign keys"));
+    // `+` opens a new query, clicking the editor focuses it
+    let (x, y) = h.find("+").expect("new tab button");
+    h.click(x, y);
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Query(_))));
+    let (x, y) = h.find("Type SQL").expect("editor placeholder");
+    h.click(x, y);
+    assert_eq!(h.focus(), Some(h.wb_query().editor.id));
+    // wheel over the explorer scrolls it, not the editor
+    let (ex, ey) = h.find("Filter objects").expect("explorer");
+    let before = h.wb().explorer.scroll.offset;
+    h.mouse(MouseKind::WheelDown, ex, ey + 3);
+    assert!(h.wb().explorer.scroll.offset >= before);
+    assert_eq!(
+        h.focus(),
+        Some(h.wb_query().editor.id),
+        "wheel does not move focus"
+    );
+}

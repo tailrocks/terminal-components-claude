@@ -628,9 +628,17 @@ fn showcase_visual_baseline() {
         for entry in crate::app::NAV_ENTRIES {
             let mut h = Harness::new(w, hgt, entry.id);
             h.key(tab());
+            // the navigation sidebar grows whenever a page is added, so the
+            // digest covers everything except it
+            let sidebar = h.app.sidebar_area();
             let buf = h.term.backend().buffer();
             let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-            for cell in &buf.content {
+            for (i, cell) in buf.content.iter().enumerate() {
+                let x = (i % buf.area.width as usize) as u16;
+                let y = (i / buf.area.width as usize) as u16;
+                if sidebar.contains(Position::new(x, y)) {
+                    continue;
+                }
                 let s = format!(
                     "{}|{:?}|{:?}|{:?};",
                     cell.symbol(),

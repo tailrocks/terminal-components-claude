@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Pickers                                truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
+▎  Overview
+                            Open a picker
+   Components
+▎  Buttons                  ▎Open quickly   ▎Switch tab   ▎Choose a level
+▎  Inputs
+▎  Text areas               Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the alternate actio…
+▎  Forms                 ╭────────────────────────────────────────────────────────────────────╮
+▎  Lists                 │ Safe Mode · this connection                                        │
+▎  Trees                 │ ▎  Silent  Writes run without asking. DROP, TRUNCATE and … Levels  │
+▎  Tables                │ ▎  Alert       Every write asks for confirmation before it runs.   │
+▎  Editable tables       │ ▎  Alert (Full)  Every statement, reads included, asks for confi…  │
+▎  Panels                │ ▎  Safe Mode  Writes ask for confirmation and a deliber… current   │
+▎  Sidebars              │ ▎  Safe Mode (Full)  Every statement asks for confirmation and a…  │
+▎  Dialogs               │ ▎  Read-Only   Writes are refused. Reads and exports still work.   │
+▎  Progress              │                                                                    │
+▎  Scrolling             │ ↑↓ Move · Enter Set level · Esc Keep                               │
+▎  Code editor           ╰────────────────────────────────────────────────────────────────────╯
+▎  Data grid
+▎  Chips & selects
+▎› Pickers
+
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+ Esc Close  Tab Next
