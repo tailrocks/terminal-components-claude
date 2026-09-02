@@ -54,9 +54,6 @@ pub enum Tone {
     /// 4 primary · 3 secondary · 2 muted · 1 faint · 0 ghost.
     Ladder(u8),
     Accent,
-    /// On-accent text on the accent fill (the ` jackin❯ ` pill).
-    Pill,
-    PillChevron,
 }
 
 fn ladder_color(t: &Theme, i: u8) -> Color {
@@ -85,43 +82,6 @@ pub fn style(t: &Theme, tone: Tone, dim: u8) -> Option<Style> {
             2 => Some(Style::new().fg(t.accent_pressed).bg(t.canvas)),
             _ => None,
         },
-        Tone::Pill => {
-            if dim == 0 {
-                // the one brand treatment: the same lockup the shell shows
-                return Some(junie_tui::widgets::brand::Lockup::style(t));
-            }
-            let bg = match dim {
-                1 | 2 => t.accent_bg,
-                _ => return None,
-            };
-            Some(
-                Style::new()
-                    .fg(if dim == 0 {
-                        t.text_on_accent
-                    } else {
-                        t.text_muted
-                    })
-                    .bg(bg)
-                    .add_modifier(Modifier::BOLD),
-            )
-        }
-        Tone::PillChevron => {
-            let bg = match dim {
-                0 => t.accent,
-                1 | 2 => t.accent_bg,
-                _ => return None,
-            };
-            Some(
-                Style::new()
-                    .fg(if dim == 0 {
-                        t.text_primary
-                    } else {
-                        t.text_secondary
-                    })
-                    .bg(bg)
-                    .add_modifier(Modifier::BOLD),
-            )
-        }
     }
 }
 
@@ -211,98 +171,7 @@ pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, t: &Theme) {
     }
 }
 
-// --------------------------------------------------------------- glitch
-
-/// A cell that resolves from noise into its final glyph.
-#[derive(Debug, Clone, Copy)]
-pub struct GlitchCell {
-    pub x: u16,
-    pub y: u16,
-    pub target: char,
-    pub tone: Tone,
-}
-
-/// Resolve tick for a cell: 2..=15.
-fn resolve_at(x: u16, y: u16) -> u64 {
-    2 + mix(x as u64, y as u64, 3) % 14
-}
-
-/// Glyph and tone at local tick `j` of a resolve that lasts `len` ticks.
-fn resolve(cell: &GlitchCell, j: u64, tick: u64, len: u64) -> (char, Tone) {
-    let r = resolve_at(cell.x, cell.y);
-    let scramble_tone = match cell.tone {
-        Tone::Pill | Tone::PillChevron => Tone::Pill,
-        _ => Tone::Ladder(2),
-    };
-    if j < r || (j < len && pct(mix(cell.x as u64, cell.y as u64, tick)) < 8) {
-        (glyph(cell.x as u64, cell.y as u64, tick), scramble_tone)
-    } else {
-        (cell.target, cell.tone)
-    }
-}
-
-/// Paint a set of cells resolving over `len` ticks; blank cells inside the
-/// bounding box show sparse noise while resolving. `dim` dims the result.
-#[allow(clippy::too_many_arguments)]
-fn paint_glitch(
-    buf: &mut Buffer,
-    cells: &[GlitchCell],
-    bbox: Rect,
-    j: u64,
-    tick: u64,
-    len: u64,
-    dim: u8,
-    t: &Theme,
-) {
-    for c in cells {
-        let (ch, tone) = resolve(c, j, tick, len);
-        if let Some(st) = style(t, tone, dim) {
-            put(buf, c.x, c.y, ch, st);
-        }
-    }
-    if j < len {
-        for pos in bbox.positions() {
-            if cells.iter().any(|c| c.x == pos.x && c.y == pos.y) {
-                continue;
-            }
-            let r = resolve_at(pos.x, pos.y);
-            if j < r
-                && pct(mix(pos.x as u64, pos.y as u64, 5)) < 35
-                && let Some(st) = style(t, Tone::Ladder(1), dim)
-            {
-                put(
-                    buf,
-                    pos.x,
-                    pos.y,
-                    glyph(pos.x as u64, pos.y as u64, tick),
-                    st,
-                );
-            }
-        }
-    }
-}
-
-// ----------------------------------------------------------------- mark
-
-/// The identity mark is the terminal pill, never large art: the current
-/// product's brand rule, kept.
-pub const PILL: &str = " jackin❯ ";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MarkVariant {
-    /// The pill with the caption two rows below (roomy terminals).
-    Full,
-    /// The pill with the caption directly below.
-    Compact,
-}
-
-pub fn mark_variant(area: Rect) -> MarkVariant {
-    if area.height >= 30 {
-        MarkVariant::Full
-    } else {
-        MarkVariant::Compact
-    }
-}
+// --------------------------------------------------------------- text
 
 fn center(area: Rect) -> (u16, u16) {
     (
@@ -311,60 +180,13 @@ fn center(area: Rect) -> (u16, u16) {
     )
 }
 
-fn pill_cells(x0: u16, y: u16) -> Vec<GlitchCell> {
-    PILL.chars()
-        .enumerate()
-        .map(|(i, ch)| GlitchCell {
-            x: x0 + i as u16,
-            y,
-            target: ch,
-            tone: if ch == '❯' {
-                Tone::PillChevron
-            } else {
-                Tone::Pill
-            },
-        })
-        .collect()
-}
-
-/// Cells of the identity mark and its bounding box.
-pub fn mark_cells(area: Rect, variant: MarkVariant) -> (Vec<GlitchCell>, Rect) {
-    let (cx, cy) = center(area);
-    let x0 = cx.saturating_sub(4);
-    let y = match variant {
-        MarkVariant::Full => cy.saturating_sub(2),
-        MarkVariant::Compact => cy.saturating_sub(1),
-    };
-    (
-        pill_cells(x0, y),
-        Rect::new(x0, y, PILL.chars().count() as u16, 1),
-    )
-}
-
-fn caption_cells(area: Rect, text: &str, y: u16) -> (Vec<GlitchCell>, Rect) {
-    let (cx, _) = center(area);
-    let n = text.chars().count() as u16;
-    let x0 = cx.saturating_sub(n / 2);
-    let cells = text
-        .chars()
-        .enumerate()
-        .map(|(i, ch)| GlitchCell {
-            x: x0 + i as u16,
-            y,
-            target: ch,
-            tone: Tone::Ladder(4),
-        })
-        .collect();
-    (cells, Rect::new(x0, y, n, 1))
-}
-
 fn draw_text(buf: &mut Buffer, area: Rect, text: &str, y: u16, tone: Tone, t: &Theme) {
-    let Some(st) = style(t, tone, 0) else { return };
-    let (cx, _) = center(area);
     let n = text.chars().count() as u16;
-    let x0 = cx.saturating_sub(n / 2);
-    for (i, ch) in text.chars().enumerate() {
-        put(buf, x0 + i as u16, y, ch, st);
+    let x0 = area.x + area.width.saturating_sub(n) / 2;
+    if let Some(st) = style(t, tone, 0) {
+        for (i, ch) in text.chars().enumerate() {
+            put(buf, x0 + i as u16, y, ch, st);
+        }
     }
 }
 
@@ -376,6 +198,10 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
     }
     let x = area.right().saturating_sub(n + 2);
     let y = area.bottom().saturating_sub(1);
+    // the hint owns its cells: nothing from the field shows through it
+    for xx in x.saturating_sub(1)..area.right() {
+        put(buf, xx, y, ' ', Style::new().bg(t.canvas));
+    }
     let ks = Style::new()
         .fg(t.text_muted)
         .bg(t.canvas)
@@ -395,173 +221,290 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
     }
 }
 
-// ----------------------------------------------------------------- rain
-
-pub struct Curve {
-    pub w: Vec<u32>,
-    pub s: Vec<u32>,
+/// The brand lockup two rows above the bottom edge: the host's boundary
+/// marker during the phrases and the closing caption, exactly as the
+/// original ritual placed it.
+fn draw_pill_bottom(buf: &mut Buffer, area: Rect, t: &Theme) {
+    let lockup = junie_tui::widgets::brand::Lockup::new(crate::app::BRAND_MARK);
+    let w = lockup.width();
+    if area.height < 4 || area.width < w + 2 {
+        return;
+    }
+    let x = area.x + area.width.saturating_sub(w) / 2;
+    let y = area.bottom().saturating_sub(2);
+    lockup.render(x, y, buf, t);
 }
 
-impl Curve {
-    fn build(len: usize, f: impl Fn(u32) -> u32) -> Self {
-        let mut w = Vec::with_capacity(len);
-        let mut s = Vec::with_capacity(len);
-        let mut acc = 0u32;
-        for k in 0..len as u32 {
-            let v = f(k);
-            acc += v;
-            w.push(v);
-            s.push(acc);
+/// Typewriter reveal of a centred phrase: `shown` characters in text-primary.
+fn draw_typed(buf: &mut Buffer, area: Rect, text: &str, y: u16, shown: usize, t: &Theme) {
+    let n = text.chars().count() as u16;
+    let x0 = area.x + area.width.saturating_sub(n) / 2;
+    if let Some(st) = style(t, Tone::Ladder(4), 0) {
+        for (i, ch) in text.chars().take(shown).enumerate() {
+            put(buf, x0 + i as u16, y, ch, st);
         }
-        Self { w, s }
-    }
-
-    /// Intro: 0.25 → 4.0 rows per tick, accelerating.
-    pub fn intro() -> Self {
-        Self::build(110, |k| 250 + 3750 * k * k / (109 * 109))
-    }
-
-    /// Outro: 4.0 → 0.25 rows per tick, decelerating.
-    pub fn outro() -> Self {
-        Self::build(100, |k| 4000 - 3750 * k * k / (99 * 99))
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct ColumnParams {
-    speed: u64,
-    trail: u64,
-    gap: u64,
-    period: u64,
-    phase: u64,
-    signal: bool,
-    order: u64,
-}
-
-fn column_params(x: u16, rows: u16) -> ColumnParams {
-    let m = mix(x as u64, 1, 0);
-    let speed = 1 + m % 3;
-    let trail = 8 + (m >> 8) % 13;
-    let gap = 4 + (m >> 16) % 12;
-    let period = rows as u64 + trail + gap;
-    ColumnParams {
-        speed,
-        trail,
-        gap,
-        period,
-        phase: (m >> 24) % period,
-        signal: (m >> 40).is_multiple_of(8),
-        order: (m >> 48) % 100,
+/// Five glitch passes (one every two ticks, a third of the characters
+/// scrambled), then the resolved phrase. `j` is the local tick.
+fn draw_glitched(buf: &mut Buffer, area: Rect, text: &str, y: u16, j: u64, tone: Tone, t: &Theme) {
+    let n = text.chars().count() as u16;
+    let x0 = area.x + area.width.saturating_sub(n) / 2;
+    let Some(st) = style(t, tone, 0) else { return };
+    let pass = j / GLITCH_PASS_TICKS;
+    for (i, ch) in text.chars().enumerate() {
+        let x = x0 + i as u16;
+        let shown = if pass < GLITCH_PASSES && mix(x as u64, y as u64, pass).is_multiple_of(3) {
+            glyph(x as u64, y as u64, pass)
+        } else {
+            ch
+        };
+        put(buf, x, y, shown, st);
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct RainSpec {
-    /// Percent of columns active.
-    pub density: u8,
-    /// Cumulative distance in milli-rows.
-    pub s_milli: u32,
-    pub streak: bool,
-    pub dim_steps: u8,
-    pub epoch: u64,
+// ------------------------------------------------------------ starfield
+
+/// Ticks per glitch pass and passes per glitch reveal (5 × 70 ms).
+pub const GLITCH_PASS_TICKS: u64 = 2;
+pub const GLITCH_PASSES: u64 = 5;
+/// Warp length: 104 frames of 30 ms expressed in 33 ms ticks.
+pub const WARP_TICKS: u64 = 95;
+
+/// Xorshift step, the original ritual's generator.
+const fn xorshift(seed: &mut u64) -> u64 {
+    if *seed == 0 {
+        *seed = 0xDEAD_BEEF_CAFE_1337;
+    }
+    *seed ^= *seed << 13;
+    *seed ^= *seed >> 7;
+    *seed ^= *seed << 17;
+    *seed
 }
 
-fn rain_cell(spec: RainSpec, cp: ColumnParams, area: Rect, x: u16, y: u16) -> Option<(char, Tone)> {
-    if cp.order >= spec.density as u64 {
-        return None;
-    }
-    let head = (cp.phase + cp.speed * spec.s_milli as u64 / 1000) % cp.period;
-    let head_y = head as i64 - cp.gap as i64;
-    let age = head_y - (y - area.y) as i64;
-    if age < 0 || age >= cp.trail as i64 {
-        return None;
-    }
-    let ch = if spec.streak && (3..=9).contains(&age) {
-        '│'
-    } else {
-        glyph(x as u64, y as u64, spec.epoch)
-    };
-    let signal_len = if cp.signal { 4 } else { 2 };
-    let tone = match age {
-        0 => Tone::Ladder(4),
-        a if a <= signal_len => Tone::Accent,
-        3..=5 => Tone::Ladder(3),
-        6..=9 => Tone::Ladder(2),
-        10..=14 => Tone::Ladder(1),
-        _ => Tone::Ladder(0),
-    };
-    Some((ch, tone))
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Star {
+    angle: f32,
+    radius: f32,
+    speed: f32,
 }
 
-/// Paint column streams over `area`, skipping `exclude` rectangles and,
-/// when given, the row band `band` (inclusive) where the underlying screen
-/// stays visible.
-pub fn paint_rain(
-    buf: &mut Buffer,
+/// One painted cell of the warp: glyph, white-ladder level (0 ghost … 4
+/// primary) and whether it is a fast streak drawn in the accent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WarpCell {
+    pub ch: char,
+    pub level: u8,
+    pub accent: bool,
+}
+
+/// The radial hyperspace field of the original ritual: stars fly outwards
+/// from the centre, faster and brighter as the warp factor climbs, and
+/// respawn near the centre when they leave the screen. Stateful, seeded and
+/// stepped exactly once per tick, so every frame is reproducible.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Starfield {
+    seed: u64,
+    stars: Vec<Star>,
+    cols: u16,
+    rows: u16,
+    cells: Vec<Option<WarpCell>>,
+    /// Frames stepped so far.
+    pub frame: u64,
+}
+
+fn edge_radius(angle: f32, cx: f32, cy: f32) -> f32 {
+    let dx = (angle.cos() * 2.0).abs();
+    let dy = angle.sin().abs();
+    let rx = if dx > 1e-3 { cx / dx } else { f32::MAX };
+    let ry = if dy > 1e-3 { cy / dy } else { f32::MAX };
+    rx.min(ry).max(1.0)
+}
+
+impl Starfield {
+    pub fn new(cols: u16, rows: u16, salt: u64) -> Self {
+        use std::f32::consts::PI;
+        let rows = rows.max(1);
+        let mut seed: u64 = 0x9E37_79B9_7F4A_7C15 ^ salt;
+        let (cx, cy) = (cols as f32 / 2.0, rows as f32 / 2.0);
+        let n = (cols as usize * rows as usize / 4).clamp(80, 2400);
+        let stars = (0..n)
+            .map(|_| {
+                let angle = (xorshift(&mut seed) % 36000) as f32 / 36000.0 * 2.0 * PI;
+                Star {
+                    angle,
+                    radius: (xorshift(&mut seed) % 1000) as f32 / 1000.0
+                        * edge_radius(angle, cx, cy),
+                    speed: 0.5 + (xorshift(&mut seed) % 100) as f32 / 100.0,
+                }
+            })
+            .collect();
+        Self {
+            seed,
+            stars,
+            cols,
+            rows,
+            cells: vec![None; cols as usize * rows as usize],
+            frame: 0,
+        }
+    }
+
+    /// Advance one frame. `accelerating` is the entry, otherwise the exit;
+    /// `f` is the frame index within `WARP_TICKS`.
+    pub fn advance(&mut self, accelerating: bool, f: u64) {
+        use std::f32::consts::PI;
+        let (cols, rows) = (self.cols as usize, self.rows as usize);
+        self.cells.iter_mut().for_each(|c| *c = None);
+        let cx = cols as f32 / 2.0;
+        let cy = rows as f32 / 2.0;
+        let max_r = (cx / 2.0).hypot(cy).max(1.0);
+        let t = f as f32 / WARP_TICKS as f32;
+        let warp_factor = if accelerating {
+            0.2 + t * t * 5.0
+        } else {
+            0.2 + (1.0 - t).powi(2) * 5.0
+        };
+        let entry_fade = (f as f32 / 8.0).min(1.0);
+        for i in 0..self.stars.len() {
+            let mut star = self.stars[i];
+            let prev = star.radius;
+            star.radius += star.speed * warp_factor;
+            let (dx, dy) = (star.angle.cos() * 2.0, star.angle.sin());
+            let head_x = cx + dx * star.radius;
+            let head_y = cy + dy * star.radius;
+            if head_x < 0.0 || head_x >= cols as f32 || head_y < 0.0 || head_y >= rows as f32 {
+                star.angle = (xorshift(&mut self.seed) % 36000) as f32 / 36000.0 * 2.0 * PI;
+                star.radius = (xorshift(&mut self.seed) % 60) as f32 / 100.0;
+                star.speed = 0.5 + (xorshift(&mut self.seed) % 100) as f32 / 100.0;
+                self.stars[i] = star;
+                continue;
+            }
+            let steps = ((1.0 + warp_factor * 1.4) as usize).max(1);
+            for s in 0..=steps {
+                let rr = prev + (star.radius - prev) * (s as f32 / steps as f32);
+                let x = (cx + dx * rr).round();
+                let y = (cy + dy * rr).round();
+                if x < 0.0 || y < 0.0 {
+                    continue;
+                }
+                let (xu, yu) = (x as usize, y as usize);
+                if xu >= cols || yu >= rows {
+                    continue;
+                }
+                let frac = (rr / max_r).clamp(0.0, 1.0);
+                let streak = frac > 0.66 && warp_factor > 2.5;
+                let ch = if frac > 0.66 {
+                    if streak { '─' } else { '*' }
+                } else if frac > 0.33 {
+                    '+'
+                } else {
+                    '·'
+                };
+                let bright = (frac * 0.7 + warp_factor / 5.2 * 0.3).clamp(0.0, 1.0) * entry_fade;
+                let level = (bright * 4.999) as u8;
+                // only the head of a fast streak takes the accent, so the
+                // green stays a trace across the field rather than its colour
+                self.cells[yu * cols + xu] = Some(WarpCell {
+                    ch,
+                    level,
+                    accent: streak && s == steps && bright > 0.7,
+                });
+            }
+            self.stars[i] = star;
+        }
+        self.frame = f + 1;
+    }
+
+    pub fn size(&self) -> (u16, u16) {
+        (self.cols, self.rows)
+    }
+
+    /// Paint the last stepped frame into `area`; ghost cells are skipped so
+    /// the canvas shows through, `dim` steps every cell down the ladder.
+    pub fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, t: &Theme) {
+        for y in 0..self.rows.min(area.height) {
+            for x in 0..self.cols.min(area.width) {
+                let Some(c) = self.cells[y as usize * self.cols as usize + x as usize] else {
+                    continue;
+                };
+                let tone = if c.accent {
+                    Tone::Accent
+                } else {
+                    Tone::Ladder(c.level)
+                };
+                if c.level == 0 && !c.accent {
+                    continue;
+                }
+                if let Some(st) = style(t, tone, dim) {
+                    put(buf, area.x + x, area.y + y, c.ch, st);
+                }
+            }
+        }
+    }
+}
+
+/// Keep a field in step with the tick: (re)create it for the area, then
+/// step every frame the tick has passed but the field has not painted.
+fn sync_field(
+    field: &mut Option<Starfield>,
     area: Rect,
-    spec: RainSpec,
-    exclude: &[Rect],
-    band: Option<(u16, u16)>,
-    t: &Theme,
+    salt: u64,
+    accelerating: bool,
+    frame: u64,
 ) {
-    for x in area.left()..area.right() {
-        let cp = column_params(x, area.height);
-        if cp.order >= spec.density as u64 {
-            continue;
+    let fresh = !matches!(field, Some(f) if f.size() == (area.width, area.height));
+    if fresh {
+        *field = Some(Starfield::new(area.width, area.height, salt));
+    }
+    if let Some(f) = field.as_mut() {
+        if f.frame > frame + 1 {
+            *f = Starfield::new(area.width, area.height, salt);
         }
-        for y in area.top()..area.bottom() {
-            if let Some((lo, hi)) = band
-                && y >= lo
-                && y <= hi
-            {
-                continue;
-            }
-            if exclude.iter().any(|r| r.contains((x, y).into())) {
-                continue;
-            }
-            if let Some((ch, tone)) = rain_cell(spec, cp, area, x, y)
-                && let Some(st) = style(t, tone, spec.dim_steps)
-            {
-                put(buf, x, y, ch, st);
-            }
+        while f.frame <= frame {
+            let step = f.frame;
+            f.advance(accelerating, step);
         }
     }
 }
 
 // ---------------------------------------------------------------- intro
 
-pub const P_START: [u64; 3] = [0, 46, 92];
-pub const P_LEN: [u64; 3] = [46, 46, 42];
-pub const P_HOLD: [u64; 3] = [20, 20, 16];
-pub const PHRASES: [&str; 3] = [
-    "Stand up, operator…",
-    "The host stays outside…",
-    "Follow the green.",
+/// Phrase texts and their original pacing: milliseconds per character and
+/// hold after the last one.
+pub const PHRASES: [(&str, u64, u64); 3] = [
+    ("Stand up, operator…", 60, 950),
+    ("Host stays outside…", 55, 950),
+    ("Follow the green.", 50, 850),
 ];
 pub const CAPTION: &str = "Knock, knock, operator.";
-pub const MARK_START: u64 = 134;
-pub const MARK_RESOLVE: u64 = 18;
-pub const CAPTION_IN: u64 = 152;
-pub const WARP_START: u64 = 206;
-pub const INTRO_END: u64 = 316;
+pub const CAPTION_HOLD_MS: u64 = 850;
+
+/// Tick at which each phrase starts, the knock starts, the warp starts, and
+/// the intro ends (33 ms ticks).
+pub const fn phrase_ticks(chars: u64, char_ms: u64, hold_ms: u64) -> u64 {
+    (chars * char_ms + hold_ms).div_ceil(TICK_MS)
+}
+pub const P1_LEN: u64 = phrase_ticks(19, 60, 950);
+pub const P2_LEN: u64 = phrase_ticks(19, 55, 950);
+pub const P3_LEN: u64 = phrase_ticks(17, 50, 850);
+pub const KNOCK_START: u64 = P1_LEN + P2_LEN + P3_LEN;
+pub const KNOCK_LEN: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + CAPTION_HOLD_MS.div_ceil(TICK_MS);
+pub const WARP_START: u64 = KNOCK_START + KNOCK_LEN;
+pub const INTRO_END: u64 = WARP_START + WARP_TICKS;
 pub const REDUCED_HOLD: u64 = 45;
-/// Reduced motion shows the resolved mark at this local tick.
-const REDUCED_MARK_TICK: u64 = MARK_START + 40;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntroPhase {
     Phrases,
-    Mark,
     Warp,
     Done,
 }
 
 impl IntroPhase {
     pub fn of(tick: u64) -> Self {
-        if tick < MARK_START {
+        if tick < WARP_START {
             IntroPhase::Phrases
-        } else if tick < WARP_START {
-            IntroPhase::Mark
         } else if tick < INTRO_END {
             IntroPhase::Warp
         } else {
@@ -570,22 +513,27 @@ impl IntroPhase {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IntroState {
     pub tick: u64,
     pub mode: Motion,
+    field: Option<Starfield>,
 }
 
 impl IntroState {
     pub fn new(mode: Motion, frame: u64) -> Self {
-        Self { tick: frame, mode }
+        Self {
+            tick: frame,
+            mode,
+            field: None,
+        }
     }
 
     pub fn phase(&self) -> IntroPhase {
         match self.mode {
             Motion::Reduced => {
                 if self.tick < REDUCED_HOLD {
-                    IntroPhase::Mark
+                    IntroPhase::Phrases
                 } else {
                     IntroPhase::Done
                 }
@@ -607,7 +555,8 @@ impl IntroState {
         true
     }
 
-    /// Enter/Esc: phrases jump to the warp, anything else finishes.
+    /// Enter/Esc: the phrases jump to the warp, the warp finishes — the
+    /// original ritual's skip.
     pub fn skip(&mut self) {
         match self.mode {
             Motion::Reduced => self.tick = REDUCED_HOLD,
@@ -621,164 +570,80 @@ impl IntroState {
     }
 }
 
-fn phrase_tone(k: u64, hold: u64) -> Option<Tone> {
-    if k < 12 {
-        Some(Tone::Ladder((k / 3) as u8))
-    } else if k < 12 + hold {
-        Some(Tone::Ladder(4))
-    } else if k < 12 + hold + 8 {
-        Some(Tone::Ladder((3 - (k - 12 - hold) / 2) as u8))
-    } else {
-        None
+/// Which phrase is on screen at `tick` and how many characters of it.
+fn phrase_at(tick: u64) -> Option<(usize, usize)> {
+    let mut start = 0;
+    for (i, (text, char_ms, hold_ms)) in PHRASES.iter().enumerate() {
+        let n = text.chars().count() as u64;
+        let len = phrase_ticks(n, *char_ms, *hold_ms);
+        if tick < start + len {
+            let k = tick - start;
+            let shown = ((k * TICK_MS) / char_ms).min(n) as usize;
+            return Some((i, shown));
+        }
+        start += len;
     }
+    None
 }
 
-fn intro_density(k: u64) -> u8 {
-    (if k < 30 {
-        35 * k / 30
-    } else if k < 80 {
-        35 + 50 * (k - 30) / 50
-    } else {
-        85 * (109u64.saturating_sub(k)) / 30
-    }) as u8
-}
-
-/// Render the intro at `state.tick`. `manager` paints the destination
-/// screen (used during the collapse and at the end).
-pub fn render_intro(
-    buf: &mut Buffer,
-    area: Rect,
-    state: &IntroState,
-    t: &Theme,
-    curve: &Curve,
-    manager: &mut dyn FnMut(&mut Buffer, Rect),
-) {
+/// Render the intro at `state.tick`.
+pub fn render_intro(buf: &mut Buffer, area: Rect, state: &mut IntroState, t: &Theme) {
     if area.is_empty() {
         return;
     }
-    let (cx, cy) = center(area);
-    let _ = cx;
-    let variant = mark_variant(area);
-    let tick = match state.mode {
-        Motion::Reduced => REDUCED_MARK_TICK,
-        _ => state.tick,
-    };
+    let (_, cy) = center(area);
+    let cy = cy + 1;
+    match state.mode {
+        Motion::Reduced => {
+            fill_canvas(buf, area, t);
+            draw_text(buf, area, CAPTION, cy, Tone::Ladder(4), t);
+            draw_pill_bottom(buf, area, t);
+            draw_hint(buf, area, "Enter", "Continue", t);
+            return;
+        }
+        Motion::Full | Motion::Paused => {}
+    }
+    let tick = state.tick;
     match IntroPhase::of(tick) {
         IntroPhase::Phrases => {
             fill_canvas(buf, area, t);
-            for i in 0..3 {
-                if tick >= P_START[i]
-                    && tick < P_START[i] + P_LEN[i]
-                    && let Some(tone) = phrase_tone(tick - P_START[i], P_HOLD[i])
-                {
-                    draw_text(buf, area, PHRASES[i], cy, tone, t);
+            if tick < KNOCK_START {
+                if let Some((i, shown)) = phrase_at(tick) {
+                    draw_typed(buf, area, PHRASES[i].0, cy, shown, t);
                 }
+            } else {
+                draw_glitched(
+                    buf,
+                    area,
+                    CAPTION,
+                    cy,
+                    tick - KNOCK_START,
+                    Tone::Ladder(4),
+                    t,
+                );
             }
-            // bottom pill, the boundary marker of the host
-            let py = area.bottom().saturating_sub(2);
-            for c in pill_cells(cx.saturating_sub(4), py) {
-                if let Some(st) = style(t, c.tone, 0) {
-                    put(buf, c.x, c.y, c.target, st);
-                }
-            }
+            draw_pill_bottom(buf, area, t);
             draw_hint(buf, area, "Enter", "Skip", t);
-        }
-        IntroPhase::Mark => {
-            fill_canvas(buf, area, t);
-            let j = tick - MARK_START;
-            let (cells, bbox) = mark_cells(area, variant);
-            paint_glitch(buf, &cells, bbox, j, tick, MARK_RESOLVE, 0, t);
-            if tick >= CAPTION_IN {
-                let cj = tick - CAPTION_IN;
-                let cap_y = match variant {
-                    MarkVariant::Full => cy + 2,
-                    MarkVariant::Compact => cy + 1,
-                };
-                let (mut cap, cbox) = caption_cells(area, CAPTION, cap_y);
-                let ladder = (cj / 3).min(4) as u8;
-                for c in &mut cap {
-                    c.tone = Tone::Ladder(ladder);
-                }
-                paint_glitch(buf, &cap, cbox, cj, tick, 12, 0, t);
-            }
-            match state.mode {
-                Motion::Reduced => draw_hint(buf, area, "Enter", "Continue", t),
-                _ => draw_hint(buf, area, "Enter", "Skip", t),
-            }
         }
         IntroPhase::Warp => {
-            let k = tick - WARP_START;
-            let density = intro_density(k);
-            let spec = RainSpec {
-                density,
-                s_milli: curve.s[(k as usize).min(curve.s.len() - 1)],
-                streak: curve.w[(k as usize).min(curve.w.len() - 1)] > 2000,
-                dim_steps: if k < 12 { ((12 - k) / 3) as u8 } else { 0 },
-                epoch: tick >> 2,
-            };
-            if k >= 80 {
-                // collapse: the manager is revealed from the centre outwards
-                manager(buf, area);
-                let half = ((k - 80 + 1) * (area.height as u64 / 2 + 1) / 30) as u16;
-                let lo = cy.saturating_sub(half);
-                let hi = (cy + half).min(area.bottom().saturating_sub(1));
-                // paint canvas outside the band
-                for y in area.top()..area.bottom() {
-                    if y < lo || y > hi {
-                        fill_canvas(buf, Rect::new(area.x, y, area.width, 1), t);
-                    }
-                }
-                paint_rain(buf, area, spec, &[], Some((lo, hi)), t);
-            } else {
-                fill_canvas(buf, area, t);
-                let (cells, bbox) = mark_cells(area, variant);
-                let halo = Rect::new(
-                    bbox.x.saturating_sub(3),
-                    bbox.y.saturating_sub(1),
-                    bbox.width + 6,
-                    bbox.height + 2,
-                );
-                let exclude: &[Rect] = if k < 30 {
-                    std::slice::from_ref(&halo)
-                } else {
-                    &[]
-                };
-                paint_rain(buf, area, spec, exclude, None, t);
-                if k < 30 {
-                    // the mark dissolves cell by cell during ignition
-                    let dim = if k >= 24 {
-                        3
-                    } else if k >= 16 {
-                        2
-                    } else if k >= 8 {
-                        1
-                    } else {
-                        0
-                    };
-                    for c in &cells {
-                        if mix(c.x as u64, c.y as u64, 7) % 30 >= k {
-                            let tone_dim = match c.tone {
-                                Tone::Pill | Tone::PillChevron => dim,
-                                _ => 0,
-                            };
-                            if let Some(st) = style(t, c.tone, tone_dim) {
-                                put(buf, c.x, c.y, c.target, st);
-                            }
-                        }
-                    }
-                }
+            fill_canvas(buf, area, t);
+            let f = tick - WARP_START;
+            sync_field(&mut state.field, area, 0, true, f);
+            if let Some(field) = &state.field {
+                field.paint(buf, area, 0, t);
             }
             draw_hint(buf, area, "Enter", "Skip", t);
         }
-        IntroPhase::Done => manager(buf, area),
+        IntroPhase::Done => fill_canvas(buf, area, t),
     }
 }
 
 // ---------------------------------------------------------------- outro
 
-pub const OUT_WARP: u64 = 100;
-pub const OUT_CAPTION: u64 = 90;
-pub const OUTRO_EPOCH: u64 = 100_000;
+pub const OUT_WARP: u64 = WARP_TICKS;
+/// Glitch reveal plus the original 2 400 ms hold.
+pub const OUT_CAPTION: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + 2_400u64.div_ceil(TICK_MS);
+const OUTRO_SALT: u64 = 0x5F5F_4F55_5452_4F5F;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutroPhase {
@@ -787,11 +652,33 @@ pub enum OutroPhase {
     Done,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OutroState {
     pub tick: u64,
     pub elapsed_secs: Option<u64>,
     pub mode: Motion,
+    field: Option<Starfield>,
+}
+
+/// `2 hours 14 minutes`, `7 minutes 30 seconds`, `45 seconds`: the two
+/// largest units, worded, as the original caption reads them.
+pub fn format_universe_duration(secs: u64) -> String {
+    fn unit(n: u64, name: &str) -> String {
+        format!("{n} {name}{}", if n == 1 { "" } else { "s" })
+    }
+    let days = secs / 86_400;
+    let hours = (secs % 86_400) / 3600;
+    let minutes = (secs % 3600) / 60;
+    let seconds = secs % 60;
+    if days > 0 {
+        format!("{} {}", unit(days, "day"), unit(hours, "hour"))
+    } else if hours > 0 {
+        format!("{} {}", unit(hours, "hour"), unit(minutes, "minute"))
+    } else if minutes > 0 {
+        format!("{} {}", unit(minutes, "minute"), unit(seconds, "second"))
+    } else {
+        unit(seconds, "second")
+    }
 }
 
 impl OutroState {
@@ -800,6 +687,7 @@ impl OutroState {
             tick: frame,
             elapsed_secs,
             mode,
+            field: None,
         }
     }
 
@@ -849,7 +737,7 @@ impl OutroState {
         true
     }
 
-    /// Enter/Esc: warp jumps to the caption; the caption finishes.
+    /// Enter/Esc: the warp jumps to the caption; the caption finishes.
     pub fn skip(&mut self) {
         self.tick = match self.phase() {
             OutroPhase::Warp => OUT_WARP,
@@ -861,62 +749,31 @@ impl OutroState {
         self.elapsed_secs.map(|s| {
             format!(
                 "You were in the Construct for {}",
-                crate::clock::format_duration(s)
+                format_universe_duration(s)
             )
         })
     }
 }
 
-fn outro_density(k: u64) -> u8 {
-    (if k < 40 {
-        85
-    } else {
-        85 * (99u64.saturating_sub(k)) / 60
-    }) as u8
-}
-
-pub fn render_outro(
-    buf: &mut Buffer,
-    area: Rect,
-    state: &OutroState,
-    t: &Theme,
-    curve: &Curve,
-    origin: &mut dyn FnMut(&mut Buffer, Rect),
-) {
+pub fn render_outro(buf: &mut Buffer, area: Rect, state: &mut OutroState, t: &Theme) {
     if area.is_empty() {
         return;
     }
     let (_, cy) = center(area);
+    let cy = cy + 1;
     match state.phase() {
         OutroPhase::Warp => {
-            let k = state.tick;
-            let spec = RainSpec {
-                density: outro_density(k),
-                s_milli: curve.s[(k as usize).min(curve.s.len() - 1)],
-                streak: curve.w[(k as usize).min(curve.w.len() - 1)] > 2000,
-                dim_steps: if k >= 70 { (1 + (k - 70) / 8) as u8 } else { 0 },
-                epoch: (OUTRO_EPOCH + k) >> 2,
-            };
-            if k < 10 {
-                origin(buf, area);
-                let half = ((k + 1) * (area.height as u64 / 2 + 1) / 10) as u16;
-                let lo = cy.saturating_sub(half);
-                let hi = (cy + half).min(area.bottom().saturating_sub(1));
-                for y in lo..=hi {
-                    fill_canvas(buf, Rect::new(area.x, y, area.width, 1), t);
-                }
-                // rain only inside the consumed band
-                let above = Rect::new(area.x, area.y, area.width, lo.saturating_sub(area.y));
-                let below = Rect::new(
-                    area.x,
-                    hi + 1,
-                    area.width,
-                    area.bottom().saturating_sub(hi + 1),
-                );
-                paint_rain(buf, area, spec, &[above, below], None, t);
-            } else {
-                fill_canvas(buf, area, t);
-                paint_rain(buf, area, spec, &[], None, t);
+            fill_canvas(buf, area, t);
+            let f = state.tick;
+            sync_field(&mut state.field, area, OUTRO_SALT, false, f);
+            if let Some(field) = &state.field {
+                // the field thins out as the warp decelerates
+                let dim = if f >= OUT_WARP - 12 {
+                    ((f - (OUT_WARP - 12)) / 4) as u8
+                } else {
+                    0
+                };
+                field.paint(buf, area, dim, t);
             }
             draw_hint(buf, area, "Enter", "Skip", t);
         }
@@ -926,24 +783,14 @@ pub fn render_outro(
                 (Motion::Reduced, Some(text)) => {
                     draw_text(buf, area, &text, cy, Tone::Ladder(4), t)
                 }
-                (Motion::Reduced, None) => {
-                    draw_text(buf, area, PILL.trim(), cy, Tone::Ladder(1), t)
-                }
+                (Motion::Reduced, None) => {}
                 (_, Some(text)) => {
-                    let c = state.tick - OUT_WARP;
-                    let (mut cells, bbox) = caption_cells(area, &text, cy);
-                    let tone = if c >= 78 {
-                        Tone::Ladder((3u64.saturating_sub((c - 78) / 3)) as u8)
-                    } else {
-                        Tone::Ladder(4)
-                    };
-                    for cell in &mut cells {
-                        cell.tone = tone;
-                    }
-                    paint_glitch(buf, &cells, bbox, c, state.tick, MARK_RESOLVE, 0, t);
+                    let j = state.tick - OUT_WARP;
+                    draw_glitched(buf, area, &text, cy, j, Tone::Ladder(4), t);
                 }
                 (_, None) => {}
             }
+            draw_pill_bottom(buf, area, t);
             draw_hint(buf, area, "Enter", "Close", t);
         }
         OutroPhase::Done => fill_canvas(buf, area, t),
@@ -1027,88 +874,78 @@ mod tests {
     use super::*;
 
     #[test]
-    fn phase_boundaries() {
-        assert_eq!(IntroPhase::of(0), IntroPhase::Phrases);
-        assert_eq!(IntroPhase::of(133), IntroPhase::Phrases);
-        assert_eq!(IntroPhase::of(134), IntroPhase::Mark);
-        assert_eq!(IntroPhase::of(205), IntroPhase::Mark);
-        assert_eq!(IntroPhase::of(206), IntroPhase::Warp);
-        assert_eq!(IntroPhase::of(315), IntroPhase::Warp);
-        assert_eq!(IntroPhase::of(316), IntroPhase::Done);
+    fn intro_timeline_follows_the_original_pacing() {
+        // 19 chars × 60 ms + 950 ms hold ≈ 2.1 s
+        assert_eq!(P1_LEN, 64);
+        assert_eq!(phrase_at(0), Some((0, 0)));
+        assert_eq!(phrase_at(P1_LEN - 1).map(|p| p.0), Some(0));
+        assert_eq!(phrase_at(P1_LEN).map(|p| p.0), Some(1));
+        assert_eq!(phrase_at(KNOCK_START), None);
+        let mut st = IntroState::new(Motion::Full, 10);
+        assert_eq!(st.phase(), IntroPhase::Phrases);
+        st.skip();
+        assert_eq!(st.tick, WARP_START);
+        st.skip();
+        assert!(st.is_done());
+        assert_eq!(
+            IntroState::new(Motion::Reduced, 0).phase(),
+            IntroPhase::Phrases
+        );
     }
 
     #[test]
-    fn skip_targets() {
-        let mut s = IntroState::new(Motion::Full, 20);
-        s.skip();
-        assert_eq!(s.tick, WARP_START);
-        s.tick = 150;
-        s.skip();
-        assert_eq!(s.tick, INTRO_END);
-        let mut p = IntroState::new(Motion::Paused, 300);
-        assert!(!p.on_tick());
-        p.skip();
-        assert!(p.is_done());
-        let mut r = IntroState::new(Motion::Reduced, 0);
-        assert_eq!(r.phase(), IntroPhase::Mark);
-        r.skip();
-        assert!(r.is_done());
-        let mut o = OutroState::new(Motion::Full, Some(8040), 30);
+    fn outro_skips_and_captions_like_the_original() {
+        let mut o = OutroState::new(Motion::Full, Some(8040), 5);
+        assert_eq!(o.phase(), OutroPhase::Warp);
         o.skip();
         assert_eq!(o.tick, OUT_WARP);
         assert_eq!(o.phase(), OutroPhase::Caption);
         o.skip();
         assert!(o.is_done());
-        let mut n = OutroState::new(Motion::Full, None, 30);
-        n.skip();
-        assert!(n.is_done());
         assert_eq!(
-            OutroState::new(Motion::Full, Some(8040), 0)
-                .caption()
-                .as_deref(),
-            Some("You were in the Construct for 2 h 14 min")
+            o.caption().as_deref(),
+            Some("You were in the Construct for 2 hours 14 minutes")
         );
+        assert_eq!(format_universe_duration(45), "45 seconds");
+        assert_eq!(format_universe_duration(450), "7 minutes 30 seconds");
+        assert_eq!(format_universe_duration(97_200), "1 day 3 hours");
     }
 
     #[test]
-    fn curves_and_density() {
-        let c = Curve::intro();
-        assert_eq!(c.w[0], 250);
-        assert_eq!(c.w[109], 4000);
-        assert_eq!(*c.s.last().unwrap(), 165_578);
-        let o = Curve::outro();
-        assert_eq!(o.w[0], 4000);
-        assert_eq!(o.w[99], 250);
-        assert_eq!(intro_density(0), 0);
-        assert_eq!(intro_density(30), 35);
-        assert_eq!(intro_density(109), 0);
-        assert_eq!(outro_density(39), 85);
-        assert_eq!(outro_density(99), 0);
-        assert_eq!(phrase_tone(0, 20), Some(Tone::Ladder(0)));
-        assert_eq!(phrase_tone(12, 20), Some(Tone::Ladder(4)));
-        assert_eq!(phrase_tone(45, 20), None);
-    }
-
-    #[test]
-    fn rain_is_deterministic_and_restrained() {
+    fn starfield_is_deterministic_and_restrained() {
         let t = Theme::junie();
-        let curve = Curve::intro();
         let area = Rect::new(0, 0, 80, 24);
         let mut a = Buffer::empty(area);
         let mut b = Buffer::empty(area);
-        let st = IntroState::new(Motion::Paused, 282);
-        let mut noop = |_: &mut Buffer, _: Rect| {};
-        render_intro(&mut a, area, &st, &t, &curve, &mut noop);
-        render_intro(&mut b, area, &st, &t, &curve, &mut noop);
+        let mut s1 = IntroState::new(Motion::Paused, WARP_START + 60);
+        let mut s2 = IntroState::new(Motion::Paused, WARP_START + 60);
+        render_intro(&mut a, area, &mut s1, &t);
+        render_intro(&mut b, area, &mut s2, &t);
         assert_eq!(a, b);
-        // at most four accent cells per column
-        for x in 0..80u16 {
-            let n = (0..24u16)
-                .filter(|&y| a[(x, y)].style().fg == Some(t.accent))
-                .count();
-            assert!(n <= 4, "column {x} has {n} accent cells");
-        }
-        assert_eq!(mark_variant(Rect::new(0, 0, 80, 24)), MarkVariant::Compact);
-        assert_eq!(mark_variant(Rect::new(0, 0, 100, 30)), MarkVariant::Full);
+        // a second render of the same tick repaints the same field
+        let mut c = Buffer::empty(area);
+        render_intro(&mut c, area, &mut s1, &t);
+        assert_eq!(a, c);
+        let lit = area
+            .positions()
+            .filter(|p| a[(p.x, p.y)].symbol() != " ")
+            .count();
+        assert!(lit > 40, "the field is visible: {lit}");
+        let green = area
+            .positions()
+            .filter(|p| a[(p.x, p.y)].style().fg == Some(t.accent))
+            .count();
+        assert!(
+            green < lit / 2,
+            "green stays the minority: {green} of {lit}"
+        );
+        // the pill sits two rows above the bottom during the phrases
+        let mut d = Buffer::empty(area);
+        let mut s3 = IntroState::new(Motion::Paused, 40);
+        render_intro(&mut d, area, &mut s3, &t);
+        let row: String = (0..80u16).map(|x| d[(x, 22)].symbol().to_owned()).collect();
+        assert!(row.contains("jackin❯"), "{row}");
+        let mid: String = (0..80u16).map(|x| d[(x, 12)].symbol().to_owned()).collect();
+        assert!(mid.contains("Stand up, operator"), "{mid}");
     }
 }

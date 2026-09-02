@@ -1081,6 +1081,30 @@ Tab still reaches them.
 
 ### Composed patterns
 
+#### Boundary rituals
+
+- **Rule**: entering and leaving the Construct is the one animated moment of
+  the product, and it is the original Jackin ritual on this system's tokens:
+  centred phrases typed one character at a time in text-primary
+  (`Stand up, operator…`, `Host stays outside…`, `Follow the green.`), a
+  glitch reveal (`Knock, knock, operator.`, five passes, a third of the
+  characters scrambled) and the brand lockup two rows above the bottom edge;
+  then the radial starfield — stars fly out from the centre, `·` near it, `+`
+  further out, `*` at the edge, `─` streaks once the warp is fast — on the
+  white ladder, brightening with distance and speed, fading in over eight
+  frames. The exit runs the same field decelerating, then glitches the caption
+  `You were in the Construct for 2 hours 14 minutes` and holds it.
+- **Colour**: the field is the white ladder; only the fast edge streaks take
+  the accent (`Follow the green` is literal), and never more than the minority
+  of lit cells. `text-ghost` is used as the field's faintest step — the one
+  sanctioned use outside a backdrop.
+- **Motion**: 33 ms ticks, ≈ 7 s of phrases and ≈ 3 s of warp; `Enter`/`Esc`
+  skip the phrases to the warp and the warp to the product; reduced motion
+  shows the knock phrase and the lockup as one static frame with
+  `Enter Continue`; paused motion freezes a given tick for captures. Every
+  frame is a function of the tick and a seeded generator, so a frame can be
+  reproduced with `--motion paused --frame N`.
+
 #### Scoped configuration at scale
 
 - **Rule**: a list scoped by a large registry (Roles, providers) shows only

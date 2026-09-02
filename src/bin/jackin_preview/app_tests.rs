@@ -115,8 +115,9 @@ impl H {
 fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
     let mut h = H::new(Scenario::FirstUse, Motion::Full, 0, 120, 40);
     assert_eq!(h.app.route, Route::Intro);
-    h.ticks(30);
-    assert!(h.text().contains("Stand up, operator"));
+    h.ticks(45);
+    assert!(h.text().contains("Stand up, operator…"), "{}", h.text());
+    assert!(h.text().contains("jackin❯"));
     // skip during phrases jumps to the warp, then finishes into the manager
     h.ticks(3);
     h.key(KeyCode::Enter);
@@ -145,10 +146,10 @@ fn reduced_motion_and_paused_frames_are_deterministic() {
     let a = H::new(Scenario::FirstUse, Motion::Paused, 282, 100, 30);
     let b = H::new(Scenario::FirstUse, Motion::Paused, 282, 100, 30);
     assert_eq!(a.text(), b.text());
-    let mut p = H::new(Scenario::FirstUse, Motion::Paused, 20, 80, 24);
+    let mut p = H::new(Scenario::FirstUse, Motion::Paused, 45, 80, 24);
     p.ticks(5);
     assert!(
-        p.text().contains("Stand up, operator"),
+        p.text().contains("Stand up, operator…"),
         "paused frames never advance"
     );
 }
@@ -238,7 +239,7 @@ fn detach_reconnect_and_final_exit_plays_one_outro() {
     h.ticks(25);
     assert!(
         h.text()
-            .contains("You were in the Construct for 2 h 14 min"),
+            .contains("You were in the Construct for 2 hours 14 minutes"),
         "{}",
         h.text()
     );
