@@ -20,6 +20,10 @@ path = "src/bin/showcase/main.rs"
 name = "tablepro"
 path = "src/bin/tablepro/main.rs"
 
+[[bin]]
+name = "jackin-preview"
+path = "src/bin/jackin_preview/main.rs"
+
 [dependencies]
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }
 unicode-width = "0.2"

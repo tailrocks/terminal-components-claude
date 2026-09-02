@@ -1517,7 +1517,7 @@ impl App {
                         self.close_modal();
                         Outcome::Changed
                     }
-                    None => o.or(Outcome::Consumed),
+                    Some(PickerEvent::Back) | None => o.or(Outcome::Consumed),
                 }
             }
             Modal::Filter(f) => {

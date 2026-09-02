@@ -36,6 +36,12 @@ pub struct TextInput {
     pub validator: Option<fn(&str) -> Option<String>>,
     /// Hide the "optional" suffix on non-required fields.
     pub plain_label: bool,
+    /// Draw every grapheme as `•`. `text()` still returns the raw value,
+    /// which is transient edit state only: never log or render it.
+    pub masked: bool,
+    /// While not editing, show the last N graphemes in clear after the
+    /// mask (`••••••••k7Qz`). Editing always masks everything.
+    pub reveal_tail: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +73,8 @@ impl TextInput {
             text_area: Rect::ZERO,
             validator: None,
             plain_label: false,
+            masked: false,
+            reveal_tail: 0,
         }
     }
 
@@ -97,6 +105,44 @@ impl TextInput {
     pub fn validator(mut self, v: fn(&str) -> Option<String>) -> Self {
         self.validator = Some(v);
         self
+    }
+    pub fn masked(mut self) -> Self {
+        self.masked = true;
+        self
+    }
+    pub fn reveal_tail(mut self, n: u8) -> Self {
+        self.reveal_tail = n;
+        self
+    }
+
+    /// Overwrite and drop the value (owners clear secrets this way).
+    pub fn clear(&mut self) {
+        self.buffer.set_text("");
+        self.snapshot.clear();
+        self.error = None;
+    }
+
+    /// Graphemes as they will be drawn: raw, or `•` per grapheme when masked
+    /// (the tail stays in clear while not editing).
+    fn display_graphemes(&self, editing: bool) -> Vec<(usize, String, usize)> {
+        let text = self.buffer.text();
+        let gs: Vec<(usize, &str)> =
+            unicode_segmentation::UnicodeSegmentation::grapheme_indices(text, true).collect();
+        let n = gs.len();
+        gs.into_iter()
+            .enumerate()
+            .map(|(i, (bi, g))| {
+                let reveal = self.masked
+                    && !editing
+                    && self.reveal_tail > 0
+                    && i + (self.reveal_tail as usize) >= n;
+                if self.masked && !reveal {
+                    (bi, "•".to_owned(), 1)
+                } else {
+                    (bi, g.to_owned(), width(g))
+                }
+            })
+            .collect()
     }
 
     pub fn text(&self) -> &str {
@@ -304,7 +350,14 @@ impl TextInput {
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
         } else {
             // horizontal scroll so the cursor stays visible
-            let cursor_col = self.buffer.cursor_pos().col;
+            let glyphs = self.display_graphemes(s.editing);
+            let cursor_off = self.buffer.cursor_offset();
+            let cursor_col: usize = glyphs
+                .iter()
+                .filter(|(bi, _, _)| *bi < cursor_off)
+                .map(|(_, _, w)| *w)
+                .sum();
+            let total: usize = glyphs.iter().map(|(_, _, w)| *w).sum();
             let w = inner.width as usize;
             if w > 0 {
                 if cursor_col < self.scroll {
@@ -312,7 +365,6 @@ impl TextInput {
                 } else if cursor_col >= self.scroll + w {
                     self.scroll = cursor_col + 1 - w;
                 }
-                let total = self.buffer.width();
                 if !s.editing {
                     self.scroll = 0;
                 }
@@ -322,8 +374,8 @@ impl TextInput {
             let mut col = 0usize;
             let mut x = inner.x;
             let mut shown_left = false;
-            for (bi, g) in unicode_segmentation::UnicodeSegmentation::grapheme_indices(text, true) {
-                let gw = width(g);
+            for (bi, g, gw) in &glyphs {
+                let gw = *gw;
                 if col + gw <= self.scroll {
                     col += gw;
                     continue;
@@ -333,7 +385,7 @@ impl TextInput {
                 }
                 let mut st = fs;
                 if let Some(r) = &sel
-                    && r.contains(&bi)
+                    && r.contains(bi)
                 {
                     st = t.selection();
                 }
@@ -353,7 +405,7 @@ impl TextInput {
                 x += gw as u16;
                 col += gw;
             }
-            if col < self.buffer.width() && inner.width > 0 {
+            if col < total && inner.width > 0 {
                 buf.set_string(inner.right() - 1, inner.y, "…", fs.fg(t.text_muted));
             }
             if s.editing {

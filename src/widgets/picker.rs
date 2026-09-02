@@ -27,9 +27,23 @@ pub struct PickerItem {
     pub disabled: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum PickerStatus {
+    #[default]
+    Ready,
+    /// Spinner row in the list area; Enter is refused.
+    Loading(String),
+    /// `! message` with an optional faint detail; Enter is refused.
+    Error {
+        message: String,
+        detail: Option<String>,
+    },
+}
+
 #[derive(Debug, Clone)]
 pub struct Picker {
     pub id: WidgetId,
+    pub status: PickerStatus,
     pub title: String,
     pub placeholder: String,
     pub query: String,
@@ -57,12 +71,15 @@ pub enum PickerEvent {
     Secondary(usize),
     NextScope,
     Cancelled,
+    /// Backspace on an empty query: the owner rewinds one step.
+    Back,
 }
 
 impl Picker {
     pub fn new(id: WidgetId, title: &str) -> Self {
         Self {
             id,
+            status: PickerStatus::Ready,
             title: title.to_owned(),
             placeholder: "Type to search…".into(),
             query: String::new(),
@@ -123,7 +140,9 @@ impl Picker {
                 (Outcome::Changed, Some(PickerEvent::Cancelled))
             }
             KeyCode::Enter => {
-                if self.items.get(self.cursor).is_some_and(|i| !i.disabled) {
+                if self.status == PickerStatus::Ready
+                    && self.items.get(self.cursor).is_some_and(|i| !i.disabled)
+                {
                     let ev = if key.alt() {
                         PickerEvent::ChosenAlt(self.cursor)
                     } else {
@@ -160,6 +179,9 @@ impl Picker {
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerEvent::NextScope)),
             KeyCode::Delete => (Outcome::Changed, Some(PickerEvent::Secondary(self.cursor))),
+            KeyCode::Backspace if self.query.is_empty() => {
+                (Outcome::Changed, Some(PickerEvent::Back))
+            }
             KeyCode::Backspace if self.searchable => {
                 self.query.pop();
                 (Outcome::Changed, Some(PickerEvent::QueryChanged))
@@ -186,7 +208,7 @@ impl Picker {
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerEvent> {
         let i = self.locate(id)?;
-        if self.items[i].disabled {
+        if self.items[i].disabled || self.status != PickerStatus::Ready {
             return None;
         }
         self.cursor = i;
@@ -215,7 +237,11 @@ impl Picker {
             }
         }
         ctx.begin_modal();
-        let rows = (self.items.len() as u16).clamp(1, self.max_rows);
+        let rows = if self.status == PickerStatus::Ready {
+            (self.items.len() as u16).clamp(1, self.max_rows)
+        } else {
+            (self.items.len() as u16).clamp(2, self.max_rows)
+        };
         let query_rows = if self.searchable { 2 } else { 0 };
         let h = (2 + 1 + query_rows + rows + 2).min(screen.height.saturating_sub(2));
         let w = self.width.min(screen.width.saturating_sub(4));
@@ -291,6 +317,42 @@ impl Picker {
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(list.height as usize);
         self.scroll.ensure_visible(self.cursor);
+        match &self.status {
+            PickerStatus::Loading(label) => {
+                crate::widgets::progress::render_spinner(
+                    Rect::new(list.x + 1, list.y, list.width.saturating_sub(1), 1),
+                    buf,
+                    ctx,
+                    label,
+                    bg,
+                );
+                // hints row still applies
+                let hy = inner.bottom().saturating_sub(1);
+                buf.set_string(
+                    inner.x,
+                    hy,
+                    truncate(hints, inner.width as usize),
+                    t.faint().bg(bg),
+                );
+                return;
+            }
+            PickerStatus::Error { message, detail } => {
+                let mut e = crate::widgets::empty::EmptyState::error(message);
+                if let Some(d) = detail {
+                    e = e.hint(d);
+                }
+                crate::widgets::empty::render(list, buf, t, &e, bg);
+                let hy = inner.bottom().saturating_sub(1);
+                buf.set_string(
+                    inner.x,
+                    hy,
+                    truncate(hints, inner.width as usize),
+                    t.faint().bg(bg),
+                );
+                return;
+            }
+            PickerStatus::Ready => {}
+        }
         if self.items.is_empty() {
             crate::widgets::empty::render(
                 list,

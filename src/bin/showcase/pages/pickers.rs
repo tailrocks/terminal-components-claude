@@ -292,7 +292,7 @@ impl PickersPage {
             Some(PickerEvent::Cancelled) => {
                 self.picker = None;
             }
-            None => {}
+            Some(PickerEvent::Back) | None => {}
         }
     }
 }

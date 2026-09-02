@@ -123,6 +123,12 @@ impl Tabs {
             || (0..self.items.len()).any(|i| self.close_id(i) == id)
     }
 
+    /// Tabs hidden before the window and after it.
+    pub fn hidden(&self) -> (usize, usize) {
+        let after = self.items.len().saturating_sub(self.first + self.fit);
+        (self.first, after)
+    }
+
     pub fn set_active(&mut self, i: usize) {
         if self.items.is_empty() {
             self.active = 0;
@@ -263,8 +269,9 @@ impl Tabs {
         let widths: Vec<u16> = self.items.iter().map(|it| self.tab_width(it)).collect();
         let total: u16 = widths.iter().map(|w| w + 1).sum();
         let overflow = total + new_w > area.width;
-        let left_w: u16 = if overflow { 3 } else { 0 };
-        let right_w: u16 = if overflow { 3 } else { 0 };
+        // `‹N` / `N›` hidden counts (the grid idiom); N is at most two digits
+        let left_w: u16 = if overflow { 4 } else { 0 };
+        let right_w: u16 = if overflow { 4 } else { 0 };
         let avail = area.width.saturating_sub(left_w + right_w + new_w);
         // make sure the active tab is within the window
         let mut fit;
@@ -300,10 +307,15 @@ impl Tabs {
                 t.faint().bg(bg)
             };
             let hovered = ctx.interaction.hovered(self.left_id());
+            let text = if more_left {
+                format!("‹{:<3}", self.first.min(99))
+            } else {
+                "    ".into()
+            };
             buf.set_string(
                 x,
                 y,
-                if more_left { " ‹ " } else { "   " },
+                &text,
                 if hovered && more_left {
                     st.bg(t.lift(bg))
                 } else {
@@ -311,9 +323,9 @@ impl Tabs {
                 },
             );
             if more_left {
-                ctx.clickable(self.left_id(), Rect::new(x, y, 3, 1));
+                ctx.clickable(self.left_id(), Rect::new(x, y, 4, 1));
             }
-            x += 3;
+            x += 4;
         }
         // index is needed for ids and the parallel `widths` vector
         #[allow(clippy::needless_range_loop)]
@@ -400,7 +412,8 @@ impl Tabs {
             x += w + 1;
         }
         if overflow {
-            let more_right = self.first + fit < self.items.len();
+            let hidden_right = self.items.len().saturating_sub(self.first + fit);
+            let more_right = hidden_right > 0;
             let rx = area.right().saturating_sub(right_w + new_w);
             let st = if more_right {
                 t.secondary().bg(bg)
@@ -408,10 +421,15 @@ impl Tabs {
                 t.faint().bg(bg)
             };
             let hovered = ctx.interaction.hovered(self.right_id());
+            let text = if more_right {
+                format!("{:>3}›", hidden_right.min(99))
+            } else {
+                "    ".into()
+            };
             buf.set_string(
                 rx,
                 y,
-                if more_right { " › " } else { "   " },
+                &text,
                 if hovered && more_right {
                     st.bg(t.lift(bg))
                 } else {
@@ -419,7 +437,7 @@ impl Tabs {
                 },
             );
             if more_right {
-                ctx.clickable(self.right_id(), Rect::new(rx, y, 3, 1));
+                ctx.clickable(self.right_id(), Rect::new(rx, y, 4, 1));
             }
         }
         if self.allow_new {

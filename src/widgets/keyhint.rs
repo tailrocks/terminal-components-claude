@@ -4,7 +4,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use crate::theme::{BadgeKind, Theme};
+use crate::theme::{BadgeKind, Theme, Tone};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Hint {
@@ -26,16 +26,43 @@ pub fn render(
     badge: Option<(&str, BadgeKind)>,
     right: Option<&str>,
 ) {
+    render_toned(area, buf, t, hints, badge, right.map(|r| (r, Tone::Secondary)));
+}
+
+/// Like [`render`], with a toned status: an error status is drawn as
+/// `! message` in the error tone.
+pub fn render_toned(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<(&str, Tone)>,
+) {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
         return;
     }
     let mut x = area.x + 1;
     let mut right_w = 0u16;
-    if let Some(r) = right {
-        let w = crate::ui::text::width(r) as u16;
+    if let Some((r, tone)) = right {
+        let text = if tone == Tone::Error {
+            format!("! {r}")
+        } else {
+            r.to_owned()
+        };
+        let w = crate::ui::text::width(&text) as u16;
         if area.width > w + 2 {
-            buf.set_string(area.right() - w - 1, area.y, r, t.secondary());
+            let st = ratatui::style::Style::new().fg(t.tone(tone));
+            buf.set_string(area.right() - w - 1, area.y, &text, st);
+            if tone == Tone::Error {
+                buf.set_string(
+                    area.right() - w - 1,
+                    area.y,
+                    "!",
+                    st.add_modifier(ratatui::style::Modifier::BOLD),
+                );
+            }
             right_w = w + 3;
         }
     }
