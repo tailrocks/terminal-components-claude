@@ -1,0 +1,36 @@
+  jackin❯    File   Edit   View   Session   Help
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ───────────────────────────━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────
+Amp 1.9.3 · ~/payments-platform
+
+› Why is the controller reconcile loop hot?
+
+⠿ Searching kube/controllers/**/*.go
+⠿ Read kube/controllers/node_pool.go:118-164
+                        ╭──────────────────────────────────────────────────────────────────────╮
+The loop re-queues every│ Account for Claude Code                    active for this Workspace │
+(resyncPeriod = 30s) ins│ ▎★ Personal  Local folder · ok · global default · preselected        │
+                        │ ▎  Work      1Password · exhausted                                   │
+Suggested change:       │                                                                      │
+  - .WithEventFilter(pre│                                                                      │
+  + .WithEventFilter(pre╰──────────────────────────────────────────────────────────────────────╯
+
+Apply this edit? [Y/n]
+›
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ payments-platform › the-architect   PR #482 · Settlement retry backoff                       Session 38% · Weekly 33%
+ ↑↓ Move  Enter Choose  Esc Cancel                              Attached to payments-platform · tabs and panes restored

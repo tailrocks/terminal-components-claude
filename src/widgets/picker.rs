@@ -362,13 +362,15 @@ impl Picker {
                     bg,
                 );
                 // hints row still applies
-                let hy = inner.bottom().saturating_sub(1);
-                buf.set_string(
-                    inner.x,
-                    hy,
-                    truncate(hints, inner.width as usize),
-                    t.faint().bg(bg),
-                );
+                if !hints.is_empty() {
+                    let hy = inner.bottom().saturating_sub(1);
+                    buf.set_string(
+                        inner.x,
+                        hy,
+                        truncate(hints, inner.width as usize),
+                        t.faint().bg(bg),
+                    );
+                }
                 return;
             }
             PickerStatus::Error { message, detail } => {
@@ -377,13 +379,15 @@ impl Picker {
                     e = e.hint(d);
                 }
                 crate::widgets::empty::render(list, buf, t, &e, bg);
-                let hy = inner.bottom().saturating_sub(1);
-                buf.set_string(
-                    inner.x,
-                    hy,
-                    truncate(hints, inner.width as usize),
-                    t.faint().bg(bg),
-                );
+                if !hints.is_empty() {
+                    let hy = inner.bottom().saturating_sub(1);
+                    buf.set_string(
+                        inner.x,
+                        hy,
+                        truncate(hints, inner.width as usize),
+                        t.faint().bg(bg),
+                    );
+                }
                 return;
             }
             PickerStatus::Ready => {}
@@ -509,14 +513,16 @@ impl Picker {
                 true,
             );
         }
-        // hints row
-        let hy = inner.bottom().saturating_sub(1);
-        buf.set_string(
-            inner.x,
-            hy,
-            truncate(hints, inner.width as usize),
-            t.faint().bg(bg),
-        );
+        // hints row: owners with a shell-level hint bar pass an empty string
+        if !hints.is_empty() {
+            let hy = inner.bottom().saturating_sub(1);
+            buf.set_string(
+                inner.x,
+                hy,
+                truncate(hints, inner.width as usize),
+                t.faint().bg(bg),
+            );
+        }
     }
 }
 

@@ -10,14 +10,15 @@
 120x40 Panels 9aea511d9039b6e6
 120x40 Sidebars 4094789175983da9
 120x40 Dialogs e09b283545a8d73a
-120x40 Progress 650684c36769eab7
+120x40 Progress cf927c2f75905702
 120x40 Scrolling d45aedcd9335295a
 120x40 Terminal 8ca53a3be5ea9399
 120x40 Code editor 2542d155b55576a4
 120x40 Data grid 28acdae7c15b0090
 120x40 Chips & selects 413ae8c3ca5ad623
 120x40 Pickers ace5fe00f3a4a62a
-120x40 Settings f2966d3082f2fd43
+120x40 Chrome a61da4379e3c35fa
+120x40 Settings 6f7f177eb6375d68
 120x40 Task runner 0468df522518fa30
 80x24 Overview cb8993b1157c0954
 80x24 Buttons 36a3b4aa110d92b9
@@ -38,5 +39,6 @@
 80x24 Data grid bc760094e4026bba
 80x24 Chips & selects 49deab017ca721da
 80x24 Pickers fc6087d6db6a983f
-80x24 Settings a0636efe1fc1f756
+80x24 Chrome 3062ab9079f81e83
+80x24 Settings 8f51488be656a625
 80x24 Task runner fcf67baf412d2c93

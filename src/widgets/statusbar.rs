@@ -141,30 +141,30 @@ impl StatusBar {
             let gaps = present.saturating_sub(1) * GAP;
             ws.iter().sum::<u16>() + gaps + 2 * EDGE
         };
-        // drop by priority: center, then right, then left; the strongest
-        // left item never leaves
+        // drop the lowest priority anywhere first; ties leave the center,
+        // then the right, then the left; the strongest left item never
+        // leaves (it truncates instead)
         while needed(&keep) > total_w {
-            let mut dropped = false;
+            let mut victim: Option<(u8, usize, usize)> = None;
             for g in [1usize, 2, 0] {
                 let items = self.group(groups[g]);
                 let alive: Vec<usize> = (0..items.len()).filter(|i| keep[g][*i]).collect();
-                if alive.is_empty() {
+                if alive.is_empty() || (g == 0 && alive.len() == 1) {
                     continue;
                 }
-                if g == 0 && alive.len() == 1 {
-                    continue;
-                }
-                let victim = alive
+                let i = alive
                     .iter()
                     .copied()
                     .min_by_key(|i| (items[*i].priority, usize::MAX - *i))
                     .unwrap();
-                keep[g][victim] = false;
-                dropped = true;
-                break;
+                let p = items[i].priority;
+                if victim.is_none_or(|(vp, _, _)| p < vp) {
+                    victim = Some((p, g, i));
+                }
             }
-            if !dropped {
-                break;
+            match victim {
+                Some((_, g, i)) => keep[g][i] = false,
+                None => break,
             }
         }
         let mut placed = vec![];
@@ -360,12 +360,17 @@ mod tests {
         );
         let mut buf = Buffer::empty(Rect::new(0, 0, 120, 1));
         bar().render(Rect::new(0, 0, 120, 1), &mut buf, &mut ctx);
+        // every cell outside an item keeps the plane; chips sit one plane up
+        let placed = bar().layout(Rect::new(0, 0, 120, 1));
         for x in 0..120u16 {
-            assert_eq!(
-                buf[(x, 0)].bg,
-                t.surface_elevated,
-                "cell {x} keeps the plane"
-            );
+            let inside = placed.iter().any(|p| x >= p.x && x < p.x + p.width);
+            if !inside {
+                assert_eq!(
+                    buf[(x, 0)].bg,
+                    t.surface_elevated,
+                    "cell {x} keeps the plane"
+                );
+            }
         }
         // the hovered chip is lifted and hit-tested
         let chip_x = (0..120u16)

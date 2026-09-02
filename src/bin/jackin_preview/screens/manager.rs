@@ -1130,30 +1130,29 @@ impl ManagerScreen {
                                 ),
                             ),
                         ];
-                        let mut auth_lines = vec![];
-                        for a in Agent::ALL {
-                            let r = w.account_for(
-                                a.provider(),
-                                Some(ws),
-                                ws.roles.default.as_deref(),
-                                None,
-                            );
-                            if r.account.is_some()
-                                && (ws.account_overrides.contains_key(&a.provider())
-                                    || ws.auth.iter().any(|x| x.agent == a))
-                            {
-                                auth_lines.push(format!(
-                                    "{} · {} ({})",
-                                    a.label(),
-                                    r.label(&w.accounts),
-                                    r.level.label()
-                                ));
-                            }
+                        let effective = ws.effective_accounts(&w.accounts);
+                        let mut acct_lines: Vec<String> = effective
+                            .iter()
+                            .map(|e| {
+                                let name = w
+                                    .accounts
+                                    .get(&e.id)
+                                    .map(|a| a.title())
+                                    .unwrap_or_else(|| e.id.clone());
+                                let mut line = name;
+                                if e.preferred {
+                                    line.push_str(" ★");
+                                }
+                                if !e.usable.is_ready() {
+                                    line.push_str(&format!(" · {}", e.usable.label()));
+                                }
+                                line
+                            })
+                            .collect();
+                        if acct_lines.is_empty() {
+                            acct_lines.push("none active · enable one in the editor".into());
                         }
-                        if auth_lines.is_empty() {
-                            auth_lines.push("provider defaults".into());
-                        }
-                        facts.push(Prop::new("Auth", auth_lines.join("\n")).wrap());
+                        facts.push(Prop::new("Accounts", acct_lines.join(" · ")).wrap());
                         facts.push(Prop::new(
                             "Policies",
                             format!(
@@ -1607,41 +1606,41 @@ fn agent_rows(
     let wsr = ws.and_then(|id| w.workspace(id));
     let mut items = vec![];
     let mut targets = vec![];
-    for a in Agent::ALL {
-        let r = w.account_for(a.provider(), wsr, role, None);
-        let (detail, disabled) = match &r.account {
-            Some(id) => {
+    // agents without any configured account are not offered at all
+    for (a, offer) in w.offered_agents(wsr, role) {
+        let (detail, disabled, tag) = match (&offer.preselected, &offer.blocked) {
+            (Some(id), _) => {
                 let acc = w.accounts.get(id);
-                let health = acc.map(|x| x.status_word()).unwrap_or("?");
+                let r = w.account_for(a.provider(), wsr, role, None);
+                let more = w.eligible_accounts(a, wsr, role).len().saturating_sub(1);
                 (
                     format!(
-                        "account {} · {} · {}",
+                        "account {} · {}{}",
                         acc.map(|x| x.title()).unwrap_or(id.clone()),
                         r.level.label(),
-                        health
+                        if more > 0 {
+                            format!(" · +{more} more available")
+                        } else {
+                            String::new()
+                        }
                     ),
                     false,
+                    Some(if more > 0 { "choose at start" } else { "ready" }),
                 )
             }
-            None => (
-                "no account · register one in Accounts (c) or launch with the host profile".into(),
-                false,
-            ),
+            (None, Some(why)) => (why.clone(), true, Some("unavailable")),
+            (None, None) => ("no usable account".to_owned(), true, Some("unavailable")),
         };
         items.push(PickerItem {
             label: a.label().into(),
             detail,
             glyph: if a.registerable() { "▪" } else { "·" },
             group: "agents",
-            tag: if r.account.is_some() {
-                Some(r.level.label())
-            } else {
-                Some("host profile")
-            },
+            tag,
             matched: vec![],
             disabled,
         });
-        targets.push((a, r.account.clone()));
+        targets.push((a, offer.preselected.clone()));
     }
     (items, targets)
 }

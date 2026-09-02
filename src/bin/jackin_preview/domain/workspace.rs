@@ -44,13 +44,6 @@ pub struct AccountPolicy {
 }
 
 impl AccountPolicy {
-    pub fn is_empty(&self) -> bool {
-        self.disabled_defaults.is_empty()
-            && self.enabled.is_empty()
-            && self.preferred.is_empty()
-            && self.role_preferred.is_empty()
-    }
-
     /// Number of activation / preference decisions that differ from `other`.
     pub fn change_count(&self, other: &AccountPolicy) -> usize {
         self.disabled_defaults

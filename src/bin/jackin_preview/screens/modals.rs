@@ -14,6 +14,7 @@ use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup};
 use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::picker::{Picker, PickerEvent, PickerItem, PickerStatus};
 use junie_tui::widgets::progress::render_spinner;
@@ -1913,16 +1914,31 @@ impl OpFlow {
         self.picker.on_wheel(delta)
     }
 
+    /// Footer hints for the current step (the shell's hint bar shows them).
+    pub fn hints(&self) -> Vec<Hint> {
+        match (self.step, &self.picker.status) {
+            (_, PickerStatus::Error { .. }) => vec![hint("r", "Retry"), hint("Esc", "Back")],
+            (OpStep::Field, _) => vec![
+                hint("↑↓", "Move"),
+                hint("Enter", "Save reference"),
+                hint("Esc", "Back to items"),
+            ],
+            (OpStep::Account, _) => vec![
+                hint("↑↓", "Move"),
+                hint("Enter", "Choose"),
+                hint("Esc", "Cancel"),
+            ],
+            _ => vec![
+                hint("↑↓", "Move"),
+                hint("Enter", "Choose"),
+                hint("Backspace", "Back"),
+                hint("Esc", "Back"),
+            ],
+        }
+    }
+
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let hints = match (self.step, &self.picker.status) {
-            (_, PickerStatus::Error { .. }) => "r Retry · Esc Back",
-            (OpStep::Field, _) => {
-                "↑↓ Move · Enter Save reference · Esc Back to items · only the reference is saved"
-            }
-            (OpStep::Account, _) => "↑↓ Move · Enter Choose · Esc Cancel",
-            _ => "↑↓ Move · Enter Choose · Backspace Back · Esc Back",
-        };
-        self.picker.render(screen, buf, ctx, hints);
+        self.picker.render(screen, buf, ctx, "");
     }
 }
 

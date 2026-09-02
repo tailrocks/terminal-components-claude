@@ -56,17 +56,6 @@ impl Agent {
         }
     }
 
-    pub fn usage_surface(self) -> UsageSurface {
-        match self {
-            Agent::ClaudeCode => UsageSurface::Claude,
-            Agent::Codex => UsageSurface::Codex,
-            Agent::Amp => UsageSurface::Amp,
-            Agent::KimiCode => UsageSurface::Kimi,
-            Agent::OpenCode => UsageSurface::OpenCode,
-            Agent::GrokBuild => UsageSurface::Grok,
-        }
-    }
-
     /// Auth modes the core registry exposes for this agent.
     pub fn auth_modes(self) -> &'static [AuthMode] {
         match self {

@@ -10,14 +10,14 @@ use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
-use junie_tui::widgets::keyhint::{self, Hint, hint};
+use junie_tui::widgets::hintbar::{HintBar, HintLayer};
+use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::picker::PickerEvent;
 use junie_tui::widgets::segments::{self, Segment};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
-use ratatui::style::{Modifier, Style};
 
 use crate::arbiter::{EntryDecision, ExitDecision};
 use crate::domain::instance::InstanceStatus;
@@ -39,6 +39,8 @@ use crate::sim::world::{Msg, World};
 pub const MIN_WIDTH: u16 = 72;
 pub const MIN_HEIGHT: u16 = 20;
 
+/// The canonical product mark; every brand lockup renders exactly this.
+pub const BRAND_MARK: &str = "jackin❯";
 const STRIP_HELP: WidgetId = WidgetId::of("strip.help");
 const STRIP_USAGE: WidgetId = WidgetId::of("strip.usage");
 const STRIP_ACCOUNTS: WidgetId = WidgetId::of("strip.accounts");
@@ -670,6 +672,8 @@ impl App {
                 (
                     "Capsule",
                     vec![
+                        ("F10", "menu bar"),
+                        ("right-click", "tab / pane menu"),
                         ("Ctrl+B", "prefix"),
                         ("Ctrl+\\", "command palette"),
                         ("Ctrl+Q", "exit"),
@@ -694,8 +698,20 @@ impl App {
                         ("Ctrl+L", "clear pane"),
                         ("d", "detach"),
                         ("u", "Usage"),
+                        (",", "change tab title"),
+                        ("m", "tab menu"),
                         ("Space :", "palette"),
                         ("r", "redraw"),
+                    ],
+                ),
+                (
+                    "Inspect changes",
+                    vec![
+                        ("View › Inspect changes", "open"),
+                        ("Enter", "open a file's diff"),
+                        ("m F2", "compact / advanced"),
+                        ("d", "unified / review"),
+                        ("Tab", "tree / diff"),
                     ],
                 ),
                 (
@@ -1321,6 +1337,7 @@ impl App {
                         {
                             i.on_click(pressed, m.pos, &mut self.focus)
                         }
+                        Modal::Custom(c) => c.on_drag(pressed, m.pos),
                         _ => Outcome::Consumed,
                     };
                 }
@@ -1441,7 +1458,28 @@ impl App {
                 let reqs = std::mem::take(&mut cx.requests);
                 o.or(self.apply_requests(reqs, route)).or(Outcome::Changed)
             }
-            MouseKind::Secondary => Outcome::Ignored,
+            MouseKind::Secondary => {
+                let hit = self.hits.hit(m.pos);
+                self.hover = hit;
+                if !self.modals.is_empty() {
+                    return Outcome::Consumed;
+                }
+                let Some(id) = hit else {
+                    return Outcome::Ignored;
+                };
+                let route = self.route;
+                let mut cx = Cx {
+                    focus: &mut self.focus,
+                    ring: &self.ring,
+                    requests: vec![],
+                };
+                let o = match self.screens.get_mut(route) {
+                    Some(s) => s.on_secondary(id, m.pos, &mut self.world, &mut cx),
+                    None => Outcome::Ignored,
+                };
+                let reqs = std::mem::take(&mut cx.requests);
+                o.or(self.apply_requests(reqs, route))
+            }
             MouseKind::WheelUp
             | MouseKind::WheelDown
             | MouseKind::WheelLeft
@@ -1458,7 +1496,7 @@ impl App {
                         Modal::Op(o) => o.on_wheel(delta),
                         Modal::Info(i) => i.on_wheel(delta),
                         Modal::Help(h) => h.on_wheel(delta),
-                        Modal::Custom(c) => c.on_wheel(delta),
+                        Modal::Custom(c) => c.on_wheel(delta, m.pos),
                         Modal::Dialog(_) | Modal::Choice(_) => Outcome::Consumed,
                     };
                 }
@@ -1682,6 +1720,7 @@ impl App {
                     self.pop_modal();
                 }
                 Request::Go(g) => self.go(g),
+                Request::Help => self.open_help(),
                 Request::Copy(s) => {
                     self.world.clipboard = Some(s);
                     self.clipboard_gen += 1;
@@ -2005,11 +2044,8 @@ impl App {
         if self.too_small {
             let lines = [
                 (
-                    " jackin❯ ",
-                    Style::new()
-                        .fg(t.text_on_accent)
-                        .bg(t.accent)
-                        .add_modifier(Modifier::BOLD),
+                    &*format!(" {BRAND_MARK} "),
+                    junie_tui::widgets::brand::Lockup::style(&t),
                 ),
                 ("Terminal too small", t.secondary()),
                 (
@@ -2131,17 +2167,10 @@ impl App {
         }
     }
 
-    fn modal_hints(&self, m: &Modal) -> String {
-        match m {
-            Modal::Picker(p) => {
-                if p.searchable {
-                    "↑↓ Move · Enter Choose · Esc Clear / Cancel".into()
-                } else {
-                    "↑↓ Move · Enter Choose · Esc Cancel".into()
-                }
-            }
-            _ => String::new(),
-        }
+    /// Pickers draw no hint row of their own: the shell's hint bar is the
+    /// one hint surface.
+    fn modal_hints(&self, _m: &Modal) -> String {
+        String::new()
     }
 
     /// Strip + body + footer for a route (no modals).
@@ -2156,18 +2185,21 @@ impl App {
             area.width.saturating_sub(2),
             area.height.saturating_sub(4),
         );
-        // Capsule and cockpit use the full width for their own chrome
-        let body = if matches!(route, Route::Capsule | Route::Cockpit) {
-            Rect::new(
+        // the Capsule owns its chrome: menu bar, tabs, status bar; the
+        // cockpit keeps the identity strip but uses the full width
+        let body = match route {
+            Route::Capsule => Rect::new(area.x, area.y, area.width, area.height.saturating_sub(1)),
+            Route::Cockpit => Rect::new(
                 area.x,
                 area.y + 2,
                 area.width,
                 area.height.saturating_sub(4),
-            )
-        } else {
-            body
+            ),
+            _ => body,
         };
-        self.draw_strip(header, buf, ctx, route);
+        if route != Route::Capsule {
+            self.draw_strip(header, buf, ctx, route);
+        }
         if let Some(s) = self.screens.get_mut(route) {
             s.render(body, buf, ctx, &self.world);
         }
@@ -2193,11 +2225,15 @@ impl App {
     fn draw_strip(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, route: Route) {
         let t = self.theme;
         let (state, tone) = self.construct_state(route);
-        let mut left = vec![
-            Segment::new("▪", Tone::Success).priority(9),
-            Segment::new("Jackin", Tone::Normal).bold().priority(9),
-            Segment::new(state, tone).priority(9),
-        ];
+        let lockup = junie_tui::widgets::brand::Lockup::new(BRAND_MARK);
+        let pill_w = lockup.render(area.x + 1, area.y, buf, &t);
+        let area = Rect::new(
+            area.x + 1 + pill_w,
+            area.y,
+            area.width.saturating_sub(1 + pill_w),
+            area.height,
+        );
+        let mut left = vec![Segment::new(state, tone).priority(9)];
         match self.world.arbiter.running() {
             Ok(0) => left.push(Segment::new("no instances", Tone::Muted).priority(8)),
             Ok(n) => left.push(Segment::new(format!("{n} running"), Tone::Secondary).priority(8)),
@@ -2276,6 +2312,21 @@ impl App {
         fill(buf, area, t.base());
         let hints: Vec<Hint> = if modal {
             match self.modals.last().map(|m| &m.modal) {
+                Some(Modal::Picker(p)) => {
+                    let mut v = vec![];
+                    if p.searchable {
+                        v.push(hint("Type", "Filter"));
+                    }
+                    v.push(hint("↑↓", "Move"));
+                    v.push(hint("Enter", "Choose"));
+                    v.push(if p.searchable && !p.query.is_empty() {
+                        hint("Esc", "Clear")
+                    } else {
+                        hint("Esc", "Cancel")
+                    });
+                    v
+                }
+                Some(Modal::Op(o)) => o.hints(),
                 Some(Modal::Dialog(d)) => {
                     if d.is_editing() {
                         vec![hint("Enter", "Next"), hint("Esc", "Cancel")]
@@ -2362,14 +2413,14 @@ impl App {
         };
         let status =
             status.map(|(s, tone)| (truncate(s, area.width.saturating_sub(4) as usize), tone));
-        keyhint::render_toned(
-            area,
-            buf,
-            &t,
-            &hints,
-            badge,
-            status.as_ref().map(|(s, tone)| (s.as_str(), *tone)),
-        );
+        // one hint surface: topmost modal › the screen's own context › fallback
+        let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
+        let screen_layer = (!modal && !hints.is_empty()).then(|| HintLayer::new(hints.clone()));
+        let fallback = HintLayer::new(vec![hint("?", "Help"), hint("Esc", "Back")]);
+        let mut layer = HintBar::resolve(&[modal_layer, screen_layer, Some(fallback)]);
+        layer.badge = badge;
+        layer.status = status;
+        HintBar::render(area, buf, &t, &layer);
     }
 }
 

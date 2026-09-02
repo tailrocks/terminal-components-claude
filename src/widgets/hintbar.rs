@@ -86,7 +86,7 @@ mod tests {
         ]);
         let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
         let n = HintBar::render(Rect::new(0, 0, 30, 1), &mut buf, &t, &layer);
-        assert!(n < 5 && n >= 2, "{n}");
+        assert!((2..5).contains(&n), "{n}");
         let row: String = (0..30u16)
             .map(|x| buf[(x, 0)].symbol().to_owned())
             .collect();

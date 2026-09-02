@@ -1,0 +1,40 @@
+  jackin❯  inside the Construct  ! instance index unreadable  ▲ daemon stale  Workspaces › payments-platform › edit
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ───────────────────────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────
+
+      Workspace                                                                                                4 vars
+  ▎     DATABASE_URL    ╭──────────────────────────────────────────────────────────────────────╮
+  ▎     STRIPE_KEY      │ Add role override                                          126 roles │ential
+  ▎     LOG_LEVEL       │ ▎ svc                                                                │
+  ▎     GH_TOKEN        │                                                                      │
+  ▎     + Add environmen│ ▎· svc-001  no overrides yet                                 roles ┃ │
+      Role overrides    │ ▎· svc-002  no overrides yet                                       │ │· 126 in the registry
+    ▾ Role: backend     │ ▎· svc-003  no overrides yet                                       │ │                1 var
+  ▎     OPENAI_API_KEY  │ ▎· svc-004  no overrides yet                                       │ │› credential
+  ▎     + Add backend en│ ▎· svc-005  no overrides yet                                       │ │
+  ▎›    + Add role overr│ ▎· svc-006  no overrides yet                                       │ │
+                        │ ▎· svc-007  no overrides yet                                       │ │
+                        │ ▎· svc-008  no overrides yet                                       │ │
+                        │ ▎· svc-009  no overrides yet                                       │ │
+                        │ ▎· svc-010  no overrides yet                                       │ │
+                        │ ▎· svc-011  no overrides yet                                       │ │
+                        │ ▎· svc-012  no overrides yet                                       │ │
+                        │ ▎· svc-013  no overrides yet                                       │ │
+                        │                                                                      │
+                        ╰──────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Type Filter  ↑↓ Move  Enter Choose  Esc Clear

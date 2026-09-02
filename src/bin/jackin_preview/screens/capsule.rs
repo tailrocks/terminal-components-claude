@@ -10,16 +10,22 @@ use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layout::SplitDir;
 use junie_tui::ui::text::{truncate, truncate_middle, width};
+use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::menu::{
+    ContextMenu, MenuBar, MenuBarEvent, MenuEvent, MenuItem, Placement,
+};
 use junie_tui::widgets::picker::{Picker, PickerItem};
-use junie_tui::widgets::progress::{MeterTone, render_meter, spinner_frame};
+use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual, spinner_frame};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::segments::{self, Segment};
+use junie_tui::widgets::segments::Segment;
+use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
+use junie_tui::widgets::tabs::{TabEvent, TabItem, Tabs};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -37,7 +43,9 @@ use crate::sim::pty::{
 use crate::sim::world::{Msg, World};
 
 pub const STRIP: WidgetId = WidgetId::of("capsule.strip");
-pub const MENU: WidgetId = WidgetId::of("capsule.menu");
+pub const MENUBAR: WidgetId = WidgetId::of("capsule.menubar");
+pub const TAB_MENU: WidgetId = WidgetId::of("capsule.tabmenu");
+pub const STATUS: WidgetId = WidgetId::of("capsule.status");
 pub const CONTEXT: WidgetId = WidgetId::of("capsule.context");
 pub const USAGE_CHIP: WidgetId = WidgetId::of("capsule.chip.usage");
 pub const CONTAINER_CHIP: WidgetId = WidgetId::of("capsule.chip.container");
@@ -67,12 +75,18 @@ pub struct CapsuleScreen {
     selecting: Option<PaneId>,
     pub pane_rects: Vec<(PaneId, Rect)>,
     seams: Vec<Seam>,
-    tab_areas: Vec<(usize, Rect)>,
-    strip_first: usize,
+    /// Shared tab strip; rebuilt from the daemon every frame, keeps its window.
+    tabs: Tabs,
+    /// Application menu bar (row one of the Capsule).
+    menubar: MenuBar,
+    /// Context menu anchored to one agent tab.
+    tab_menu: Option<(usize, ContextMenu)>,
     pub body: Rect,
     pending_intent: Option<Intent>,
     pending_agent: Option<Agent>,
     picker_accounts: Vec<AccountId>,
+    /// Agents behind the spawn picker rows (offered ones only).
+    picker_agents: Vec<Option<Agent>>,
     palette_cmds: Vec<&'static str>,
     pub dialog_open: bool,
     pub takeover: Option<String>,
@@ -117,12 +131,14 @@ impl CapsuleScreen {
             selecting: None,
             pane_rects: vec![],
             seams: vec![],
-            tab_areas: vec![],
-            strip_first: 0,
+            tabs: Tabs::with_items(STRIP, vec![]),
+            menubar: Self::build_menubar(),
+            tab_menu: None,
             body: Rect::ZERO,
             pending_intent: None,
             pending_agent: None,
             picker_accounts: vec![],
+            picker_agents: vec![],
             palette_cmds: vec![],
             dialog_open: false,
             takeover: None,
@@ -207,6 +223,285 @@ impl CapsuleScreen {
 
     // -------------------------------------------------------- commands
 
+    // ------------------------------------------------------------ chrome
+
+    fn build_menubar() -> MenuBar {
+        let entries: Vec<(&str, Vec<MenuItem>)> = vec![
+            (
+                "File",
+                vec![
+                    MenuItem::new("New tab").shortcut("Ctrl+B c"),
+                    MenuItem::new("Split right").shortcut("Ctrl+B %"),
+                    MenuItem::new("Split below")
+                        .shortcut("Ctrl+B \"")
+                        .separator(),
+                    MenuItem::new("Export selected file…"),
+                    MenuItem::new("Export selected file and reveal…").separator(),
+                    MenuItem::new("Close pane").shortcut("Ctrl+B x"),
+                ],
+            ),
+            (
+                "Edit",
+                vec![
+                    MenuItem::new("Copy selection").shortcut("y"),
+                    MenuItem::new("Paste clipboard"),
+                    MenuItem::new("Clear selection").shortcut("Esc").separator(),
+                    MenuItem::new("Clear pane").shortcut("Ctrl+B Ctrl+L"),
+                ],
+            ),
+            (
+                "View",
+                vec![
+                    MenuItem::new("Zoom pane").shortcut("Ctrl+B z"),
+                    MenuItem::new("Redraw").shortcut("Ctrl+B r").separator(),
+                    MenuItem::new("Usage").shortcut("Ctrl+B u"),
+                    MenuItem::new("Container info").shortcut("Ctrl+B i"),
+                    MenuItem::new("GitHub context"),
+                    MenuItem::new("Inspect changes"),
+                ],
+            ),
+            (
+                "Session",
+                vec![
+                    MenuItem::new("New tab with account…"),
+                    MenuItem::new("Change tab title…")
+                        .shortcut("Ctrl+B ,")
+                        .separator(),
+                    MenuItem::new("Detach").shortcut("Ctrl+B d"),
+                    MenuItem::new("Close tab")
+                        .shortcut("Ctrl+B &")
+                        .danger()
+                        .separator(),
+                    MenuItem::new("Exit").shortcut("Ctrl+Q").danger(),
+                ],
+            ),
+            (
+                "Help",
+                vec![
+                    MenuItem::new("Key reference").shortcut("?"),
+                    MenuItem::new("Command palette").shortcut("Ctrl+\\"),
+                ],
+            ),
+        ];
+        MenuBar::new(MENUBAR, entries).brand(Lockup::new(crate::app::BRAND_MARK))
+    }
+
+    /// The brand lockup opens the application menu.
+    fn open_brand_menu(&mut self) {
+        let anchor = self.menubar.brand_area;
+        let items = vec![
+            MenuItem::new("About jackin-preview"),
+            MenuItem::new("Usage").shortcut("Ctrl+B u").separator(),
+            MenuItem::new("Workspace manager").shortcut("Ctrl+B d"),
+        ];
+        self.tab_menu = Some((
+            usize::MAX,
+            ContextMenu::new(TAB_MENU, items).anchor(anchor, Placement::Below),
+        ));
+    }
+
+    fn open_tab_menu(&mut self, tab: usize, w: &World) {
+        let Some(area) = self.tabs.areas.get(tab).copied().filter(|r| !r.is_empty()) else {
+            return;
+        };
+        let title = self
+            .daemon(w)
+            .and_then(|d| d.tabs.get(tab).map(|t| d.tab_label(t, &|_| None)))
+            .unwrap_or_default();
+        let items = vec![
+            MenuItem::new("Change title…").shortcut("2×click"),
+            MenuItem::new("Split right")
+                .shortcut("Ctrl+B %")
+                .separator(),
+            MenuItem::new("Close tab").shortcut("Ctrl+B &").danger(),
+        ];
+        self.tab_menu = Some((
+            tab,
+            ContextMenu::new(TAB_MENU, items)
+                .anchor(area, Placement::Below)
+                .title(title),
+        ));
+    }
+
+    fn open_rename(&mut self, tab: usize, w: &World, cx: &mut Cx) {
+        let d = self.daemon(w);
+        let current = d
+            .and_then(|d| d.tabs.get(tab))
+            .and_then(|t| t.custom_label.clone())
+            .unwrap_or_default();
+        let auto = d
+            .and_then(|d| d.tabs.get(tab).map(|t| d.tab_label(t, &|_| None)))
+            .unwrap_or_default();
+        let input = TextInput::new(WidgetId::of("capsule.rename.input"), "Label")
+            .value(&current)
+            .placeholder(&auto)
+            .help("Empty restores the automatic name · 16 max")
+            .plain_label();
+        let dlg = Dialog::prompt(
+            WidgetId::of("capsule.rename"),
+            "Change tab title",
+            input,
+            "Rename",
+        );
+        cx.open(Modal::Dialog(dlg), ModalTag::new("rename").n(tab));
+    }
+
+    fn open_about(&mut self, w: &World, cx: &mut Cx) {
+        let props = vec![
+            Prop::new("Product", "jackin-preview · deterministic redesign preview"),
+            Prop::new("Scenario", w.scenario.name()),
+            Prop::new(
+                "Construct",
+                "simulated · nothing here touches a real container",
+            ),
+            Prop::new(
+                "Design system",
+                "Junie-inspired Ratatui components (junie_tui)",
+            ),
+        ];
+        let d =
+            super::modals::InfoDialog::new(WidgetId::of("capsule.about"), "About", props).width(64);
+        cx.open(Modal::Info(d), ModalTag::new("about"));
+    }
+
+    /// Runs a menu action by label so menus stay data, not code.
+    fn run_menu(&mut self, label: &str, tab: Option<usize>, w: &mut World, cx: &mut Cx) {
+        match label {
+            "New tab" => self.spawn_flow(Intent::NewTab, w, cx),
+            "New tab with account…" => self.spawn_flow(Intent::NewTab, w, cx),
+            "Split right" => self.spawn_flow(Intent::Split(SplitDir::Horizontal, false), w, cx),
+            "Split below" => self.spawn_flow(Intent::Split(SplitDir::Vertical, false), w, cx),
+            "Export selected file…" | "Export selected file and reveal…" => {
+                let sel = self
+                    .focused_pane(w)
+                    .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
+                    .and_then(|p| p.term.selected_text());
+                match sel {
+                    Some(text) => {
+                        let path = text.lines().next().unwrap_or("").trim().to_owned();
+                        self.export_kind = Some((label.contains("reveal"), false));
+                        self.finish_export(&path, cx);
+                    }
+                    None => cx.status("Select a path in a pane first"),
+                }
+            }
+            "Close pane" => {
+                let single = self
+                    .daemon(w)
+                    .and_then(|d| d.active_tab())
+                    .is_some_and(|t| t.leaves().len() == 1);
+                self.confirm_close(single, w, cx);
+            }
+            "Copy selection" => {
+                let sel = self
+                    .focused_pane(w)
+                    .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
+                    .and_then(|p| p.term.selected_text());
+                match sel {
+                    Some(t) => {
+                        w.clipboard = Some(t);
+                        cx.status("Selection copied");
+                    }
+                    None => cx.status("Nothing selected"),
+                }
+            }
+            "Paste clipboard" => {
+                let text = w.clipboard.clone();
+                match text {
+                    Some(t) => {
+                        let now = w.now_ms();
+                        let ws = self
+                            .daemon(w)
+                            .map(|d| d.workspace.clone())
+                            .unwrap_or_default();
+                        if let Some(p) = self.focused_pane(w)
+                            && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(p))
+                        {
+                            for c in t.chars().take(200) {
+                                pane.type_char(c, now, &ws);
+                            }
+                        }
+                        cx.status("Pasted into the focused pane");
+                    }
+                    None => cx.status("Preview clipboard is empty"),
+                }
+            }
+            "Clear selection" => {
+                if let Some(p) = self.focused_pane(w)
+                    && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(p))
+                {
+                    pane.term.clear_selection();
+                }
+            }
+            "Clear pane" => {
+                if let Some(p) = self.focused_pane(w)
+                    && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(p))
+                {
+                    pane.clear();
+                    cx.status("Pane cleared");
+                }
+            }
+            "Zoom pane" => self.toggle_zoom(w, cx),
+            "Redraw" => {
+                self.redraw_flash = 3;
+                cx.status("Redrawn");
+            }
+            "Usage" => self.open_usage(w, cx),
+            "Container info" => self.open_container_info(w, cx),
+            "GitHub context" => self.open_github(w, cx),
+            "Inspect changes" => self.open_inspect(w, cx, false),
+            "Change title…" | "Change tab title…" => {
+                let t = tab.unwrap_or(self.daemon(w).map(|d| d.active).unwrap_or(0));
+                self.open_rename(t, w, cx);
+            }
+            "Detach" | "Workspace manager" => self.detach(cx),
+            "Close tab" => {
+                if let Some(t) = tab
+                    && let Some(d) = self.daemon_mut(w)
+                {
+                    d.active = t.min(d.tabs.len().saturating_sub(1));
+                }
+                self.confirm_close(true, w, cx);
+            }
+            "Exit" => self.request_exit(w, cx),
+            "Key reference" => cx.help(),
+            "Command palette" => self.open_palette(w, cx),
+            "About jackin-preview" => self.open_about(w, cx),
+            _ => cx.status(format!("{label}: not available in the preview")),
+        }
+    }
+
+    /// The change inspector for this instance.
+    fn open_inspect(&mut self, w: &World, cx: &mut Cx, from_exit: bool) {
+        let touched = self
+            .daemon(w)
+            .map(|d| d.touched_files())
+            .unwrap_or_default();
+        let inst = w.instance(&self.instance);
+        let changes = crate::sim::changes::changes_for(
+            &self.instance,
+            &touched,
+            inst.map(|i| i.uncommitted).unwrap_or(0),
+            inst.map(|i| i.unpushed).unwrap_or(0),
+        );
+        if changes.is_empty() {
+            cx.status("Nothing changed in this instance");
+            return;
+        }
+        let ws = self
+            .daemon(w)
+            .map(|d| d.workspace.clone())
+            .unwrap_or_default();
+        let d = super::inspect::InspectChanges::new(
+            WidgetId::of("capsule.inspect"),
+            &format!("Inspect changes · {ws}"),
+            changes,
+            super::inspect::InspectMode::Compact,
+        )
+        .returns_to_exit(from_exit);
+        cx.open(Modal::Custom(Box::new(d)), ModalTag::new("inspect"));
+    }
+
     fn enter_prefix(&mut self, w: &World) {
         self.prefix_until = Some(w.now_ms() + PREFIX_TIMEOUT_MS);
     }
@@ -228,25 +523,30 @@ impl CapsuleScreen {
             .and_then(|x| w.workspace(x));
         let role = w.instance(&self.instance).map(|i| i.role.clone());
         let mut items = vec![];
-        for a in Agent::ALL {
-            let r = w.account_for(a.provider(), ws, role.as_deref(), None);
-            let detail = match &r.account {
-                Some(id) => w
+        self.picker_agents.clear();
+        // only agents with a usable account for this Workspace are offered;
+        // a configured-but-blocked agent shows its reason, disabled
+        for (a, offer) in w.offered_agents(ws, role.as_deref()) {
+            let detail = match (&offer.blocked, offer.accounts.len()) {
+                (Some(why), _) => why.clone(),
+                (None, 1) => offer
                     .accounts
-                    .get(id)
-                    .map(|x| format!("{} · {}", x.display_name, r.level.label()))
+                    .first()
+                    .and_then(|id| w.accounts.get(id))
+                    .map(|x| x.display_name.clone())
                     .unwrap_or_default(),
-                None => "needs account".into(),
+                (None, n) => format!("{n} accounts · choose at start"),
             };
             items.push(PickerItem {
                 label: a.label().into(),
                 detail,
                 glyph: "▪",
                 group: "agents",
-                tag: None,
+                tag: offer.blocked.as_ref().map(|_| "blocked"),
                 matched: vec![],
-                disabled: false,
+                disabled: offer.blocked.is_some(),
             });
+            self.picker_agents.push(Some(a));
         }
         items.push(PickerItem {
             label: "Shell".into(),
@@ -257,95 +557,89 @@ impl CapsuleScreen {
             matched: vec![],
             disabled: false,
         });
+        self.picker_agents.push(None);
         p.set_items(items);
         cx.open(Modal::Picker(p), ModalTag::new("agent"));
     }
 
     fn continue_spawn(&mut self, agent: Option<Agent>, w: &World, cx: &mut Cx) {
-        match agent {
-            None => self.spawn(None, None, w, cx),
-            Some(a) => {
-                let accounts: Vec<&crate::domain::account::Account> = w
-                    .accounts
-                    .by_provider(a.provider())
-                    .filter(|x| x.origin == crate::domain::account::AccountOrigin::Registered)
-                    .collect();
-                if accounts.len() >= 2 {
-                    self.pending_agent = Some(a);
-                    let ws = w
-                        .instance(&self.instance)
-                        .and_then(|i| i.workspace)
-                        .and_then(|x| w.workspace(x));
-                    let role = w.instance(&self.instance).map(|i| i.role.clone());
-                    let resolved = w.account_for(a.provider(), ws, role.as_deref(), None);
-                    let mut p = Picker::new(
-                        WidgetId::of("capsule.provider"),
-                        &format!("Account for {}", a.label()),
-                    );
-                    p.searchable = false;
-                    p.width = 72;
-                    p.scope = Some("session choice › Role › Workspace › provider default".into());
-                    let mut items = vec![];
-                    self.picker_accounts.clear();
-                    let mut cursor = 0;
-                    for (i, acc) in accounts.iter().enumerate() {
-                        let mut tags = vec![];
-                        if acc.default_for_provider {
-                            tags.push("provider default");
-                        }
-                        if resolved.account.as_deref() == Some(acc.id.as_str()) {
-                            tags.push(resolved.level.label());
-                            cursor = i;
-                        }
-                        items.push(PickerItem {
-                            label: acc.display_name.clone(),
-                            detail: format!(
-                                "{} · {}{}",
-                                acc.source.origin_label(),
-                                acc.status_word(),
-                                if tags.is_empty() {
-                                    String::new()
-                                } else {
-                                    format!(" · {}", tags.join(" · "))
-                                }
-                            ),
-                            glyph: if acc.default_for_provider { "★" } else { " " },
-                            group: "",
-                            tag: if acc.enabled { None } else { Some("disabled") },
-                            matched: vec![],
-                            disabled: !acc.enabled,
-                        });
-                        self.picker_accounts.push(acc.id.clone());
+        let Some(a) = agent else {
+            self.spawn(None, None, w, cx);
+            return;
+        };
+        let ws = w
+            .instance(&self.instance)
+            .and_then(|i| i.workspace)
+            .and_then(|x| w.workspace(x));
+        let role = w.instance(&self.instance).map(|i| i.role.clone());
+        let offer = w.offer_for(a, ws, role.as_deref());
+        match offer.accounts.len() {
+            0 => {
+                let why = offer.blocked.unwrap_or_else(|| {
+                    format!(
+                        "No {} account is active for this Workspace. Enable one in the Workspace's Accounts tab or register one in Account & Usage Center.",
+                        a.provider().short()
+                    )
+                });
+                let mut d = Dialog::confirm(
+                    WidgetId::of("capsule.spawnfail"),
+                    &format!("{} could not start", a.label()),
+                    &why,
+                    "OK",
+                );
+                d.actions.remove(0);
+                d.cancel_index = Some(0);
+                d.initial_focus = d.actions[0].id;
+                cx.open(Modal::Dialog(d), ModalTag::new("spawnfail"));
+            }
+            1 => self.spawn(Some(a), offer.accounts.first().cloned(), w, cx),
+            _ => {
+                self.pending_agent = Some(a);
+                let mut p = Picker::new(
+                    WidgetId::of("capsule.provider"),
+                    &format!("Account for {}", a.label()),
+                );
+                p.searchable = false;
+                p.width = 72;
+                p.scope = Some("active for this Workspace".into());
+                let mut items = vec![];
+                self.picker_accounts.clear();
+                for (i, id) in offer.accounts.iter().enumerate() {
+                    let Some(acc) = w.accounts.get(id) else {
+                        continue;
+                    };
+                    let mut tags = vec![];
+                    if acc.default_for_provider {
+                        tags.push("global default");
                     }
-                    p.set_items(items);
-                    p.cursor = cursor;
-                    cx.open(Modal::Picker(p), ModalTag::new("provider"));
-                } else {
-                    let ws = w
-                        .instance(&self.instance)
-                        .and_then(|i| i.workspace)
-                        .and_then(|x| w.workspace(x));
-                    let role = w.instance(&self.instance).map(|i| i.role.clone());
-                    let r = w.account_for(a.provider(), ws, role.as_deref(), None);
-                    if r.account.is_none() && a.registerable() {
-                        let d = Dialog::confirm(
-                            WidgetId::of("capsule.spawnfail"),
-                            &format!("{} could not start", a.label()),
-                            &format!(
-                                "No {} account is registered. Add one in Account & Usage Center, then try again.",
-                                a.provider().short()
-                            ),
-                            "OK",
-                        );
-                        let mut d = d;
-                        d.actions.remove(0);
-                        d.cancel_index = Some(0);
-                        d.initial_focus = d.actions[0].id;
-                        cx.open(Modal::Dialog(d), ModalTag::new("spawnfail"));
-                        return;
+                    if ws.is_some_and(|x| x.accounts.preferred.get(&a.provider()) == Some(id)) {
+                        tags.push("Workspace preference");
                     }
-                    self.spawn(Some(a), r.account, w, cx);
+                    if i == 0 {
+                        tags.push("preselected");
+                    }
+                    items.push(PickerItem {
+                        label: acc.display_name.clone(),
+                        detail: format!(
+                            "{} · {}{}",
+                            acc.source.origin_label(),
+                            acc.status_word(),
+                            if tags.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" · {}", tags.join(" · "))
+                            }
+                        ),
+                        glyph: if acc.default_for_provider { "★" } else { " " },
+                        group: "",
+                        tag: None,
+                        matched: vec![],
+                        disabled: false,
+                    });
+                    self.picker_accounts.push(acc.id.clone());
                 }
+                p.set_items(items);
+                cx.open(Modal::Picker(p), ModalTag::new("provider"));
             }
         }
     }
@@ -992,6 +1286,15 @@ impl CapsuleScreen {
             KeyCode::Char('l') => self.move_focus(Direction::Right, w, cx),
             KeyCode::Char('d') => self.detach(cx),
             KeyCode::Char('u') => self.open_usage(w, cx),
+            KeyCode::Char(',') => {
+                let t = self.daemon(w).map(|d| d.active).unwrap_or(0);
+                self.open_rename(t, w, cx);
+            }
+            KeyCode::Char('m') => {
+                let t = self.daemon(w).map(|d| d.active).unwrap_or(0);
+                self.open_tab_menu(t, w);
+            }
+            KeyCode::F(10) => self.menubar.open_menu(0),
             KeyCode::Char(' ') | KeyCode::Char(':') => self.open_palette(w, cx),
             KeyCode::Char('r') => {
                 self.redraw_flash = 3;
@@ -1126,144 +1429,43 @@ impl CapsuleScreen {
         let bg = t.canvas;
         fill(buf, area, t.base());
         let Some(d) = self.daemon(w) else { return };
-        self.tab_areas.clear();
-        let y = area.y;
-        // baseline
-        for x in area.left()..area.right() {
-            buf.set_string(x, y + 1, "─", Style::new().fg(t.border_subtle).bg(bg));
-        }
-        let mut x = area.x + 1;
-        buf.set_string(x, y, "▪", t.accent_fg().bg(bg));
-        buf.set_string(x + 2, y, "jackin❯", t.title().bg(bg));
-        x += 12;
-        // menu button on the right
-        // `≡` is single-width everywhere; `☰` is East-Asian-ambiguous and
-        // ratatui would reserve a hidden second cell for it
-        let menu = if self.mode() == Mode::PrefixAwait {
-            " prefix… "
-        } else {
-            "  ≡ Menu "
-        };
-        let mw = width(menu) as u16;
-        let menu_x = area.right().saturating_sub(mw + 1);
-        let hovered = ctx.interaction.hovered(MENU);
-        let ms = if self.mode() == Mode::PrefixAwait {
-            t.title().bg(bg)
-        } else if hovered {
-            t.primary().bg(t.surface_elevated)
-        } else {
-            t.secondary().bg(bg)
-        };
-        buf.set_string(menu_x, y, menu, ms);
-        ctx.clickable(MENU, Rect::new(menu_x, y, mw, 1));
-        // tab cells
-        let labels: Vec<(String, AgentState)> = d
+        let items: Vec<TabItem> = d
             .tabs
             .iter()
-            .map(|tab| {
-                (
-                    d.tab_label(tab, &|p| Self::account_suffix(w, p)),
-                    d.tab_state(tab),
-                )
-            })
-            .collect();
-        let cell_w = |i: usize, l: &str| -> u16 {
-            let idx = if i <= 9 { 2 } else { 0 };
-            (idx + width(l) + 4) as u16
-        };
-        let avail_right = menu_x.saturating_sub(5);
-        // overflow window
-        if d.active < self.strip_first {
-            self.strip_first = d.active;
-        }
-        loop {
-            let mut xx = x + if self.strip_first > 0 { 4 } else { 0 };
-            let mut fit = 0;
-            for (i, (l, _)) in labels.iter().enumerate().skip(self.strip_first) {
-                let cw = cell_w(i, l);
-                if xx + cw > avail_right {
-                    break;
-                }
-                xx += cw + 1;
-                fit += 1;
-            }
-            if fit == 0 && !labels.is_empty() {
-                fit = 1;
-            }
-            if d.active >= self.strip_first + fit && self.strip_first + 1 < labels.len() {
-                self.strip_first += 1;
-                continue;
-            }
-            let hidden_left = self.strip_first;
-            let hidden_right = labels.len().saturating_sub(self.strip_first + fit);
-            if hidden_left > 0 {
-                let s = format!("‹{hidden_left:<2}");
-                buf.set_string(x, y, &s, t.muted().bg(bg));
-                ctx.clickable(STRIP.sub("left"), Rect::new(x, y, 3, 1));
-                x += 4;
-            }
-            for (i, (l, st)) in labels.iter().enumerate().skip(self.strip_first).take(fit) {
-                let cw = cell_w(i, l);
-                let r = Rect::new(x, y, cw, 1);
-                let tid = STRIP.child(i);
-                let active = i == d.active;
-                let hov = ctx.interaction.hovered(tid);
-                let mut style = Style::new().bg(bg).fg(if active || hov {
-                    t.text_primary
-                } else {
-                    t.text_secondary
-                });
-                if hov && !active {
-                    style = style.bg(t.lift(bg));
-                }
-                if active {
-                    style = style.add_modifier(Modifier::BOLD);
-                }
-                fill(buf, r, style);
-                let mut cx_ = x + 1;
+            .enumerate()
+            .map(|(i, tab)| {
+                let label = d.tab_label(tab, &|p| Self::account_suffix(w, p));
+                let mut it = TabItem::new(&label);
                 if i < 10 {
-                    let idx = if i == 9 {
+                    it = it.prefix(&if i == 9 {
                         "0".to_owned()
                     } else {
                         (i + 1).to_string()
-                    };
-                    buf.set_string(
-                        cx_,
-                        y,
-                        &idx,
-                        style.fg(t.text_muted).remove_modifier(Modifier::BOLD),
-                    );
-                    cx_ += 2;
+                    });
                 }
-                buf.set_string(cx_, y, l, style);
-                cx_ += width(l) as u16 + 1;
-                let (g, gt) = match st {
-                    AgentState::Blocked => ("●", t.warning),
-                    AgentState::Done => ("○", t.text_secondary),
-                    AgentState::Working => ("▶", t.accent),
-                    AgentState::Idle => ("◆", t.text_muted),
-                    AgentState::Unknown => (" ", t.text_muted),
+                let g = match d.tab_state(tab) {
+                    AgentState::Blocked => "●",
+                    AgentState::Done => "○",
+                    AgentState::Working => "▶",
+                    AgentState::Idle => "◆",
+                    AgentState::Unknown => "",
                 };
-                buf.set_string(cx_, y, g, style.fg(gt).remove_modifier(Modifier::BOLD));
-                if active {
-                    for xx in x + 1..x + cw - 1 {
-                        buf.set_string(xx, y + 1, "━", Style::new().fg(t.accent).bg(bg));
-                    }
+                if !g.is_empty() {
+                    it = it.suffix(g);
                 }
-                ctx.clickable(tid, r);
-                self.tab_areas.push((i, r));
-                x += cw + 1;
-            }
-            if hidden_right > 0 {
-                let s = format!("{hidden_right:>2}›");
-                buf.set_string(menu_x.saturating_sub(4), y, &s, t.muted().bg(bg));
-                ctx.clickable(
-                    STRIP.sub("right"),
-                    Rect::new(menu_x.saturating_sub(4), y, 3, 1),
-                );
-            }
-            break;
-        }
+                it
+            })
+            .collect();
+        let first = self.tabs.first;
+        self.tabs = Tabs::with_items(STRIP, items);
+        self.tabs.first = first;
+        self.tabs.set_active(d.active);
+        self.tabs.render(
+            Rect::new(area.x + 1, area.y, area.width.saturating_sub(2), 2),
+            buf,
+            ctx,
+            bg,
+        );
     }
 
     fn draw_panes(&mut self, body: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
@@ -1422,29 +1624,84 @@ impl CapsuleScreen {
         ctx.control(PANES, Rect::new(body.x, body.y, 1, 1), false);
     }
 
-    fn draw_context(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
-        let t = ctx.theme;
+    fn draw_status(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let Some(i) = w.instance(&self.instance) else {
             return;
         };
-        let mut left = vec![];
+        let d = self.daemon(w);
+        let mut bar = StatusBar::new();
+        // left: where we are
+        let ws = d.map(|d| d.workspace.clone()).unwrap_or_default();
+        bar.left.push(
+            StatusItem::new(format!("{ws} › {}", i.role), Tone::Normal)
+                .strong()
+                .priority(10),
+        );
         let branch = i.branch.clone().unwrap_or(i.default_branch.clone());
         if branch != i.default_branch {
             let text = match &i.pr {
-                Some((n, title)) => format!("PR #{n} · {title}"),
-                None => format!("Branch · {branch}"),
+                Some((n, title)) => format!("PR #{n} · {}", truncate(title, 28)),
+                None => format!("branch · {}", truncate_middle(&branch, 32)),
             };
-            left.push(
-                Segment::new(text, Tone::Secondary)
+            bar.left.push(
+                StatusItem::new(text, Tone::Secondary)
                     .clickable(CONTEXT)
-                    .priority(9),
+                    .priority(6),
             );
         }
-        let mut right = vec![];
-        // usage chip for the focused pane's account
+        // center: the focused session
+        if let Some(pane) = self.focused_pane(w).and_then(|p| d.and_then(|d| d.pane(p))) {
+            let agent = pane.proc.agent.map(|a| a.label()).unwrap_or("shell");
+            let account = pane
+                .proc
+                .account
+                .as_ref()
+                .and_then(|id| w.accounts.get(id))
+                .map(|a| format!(" · {}", a.display_name))
+                .unwrap_or_default();
+            let state = match pane.state() {
+                AgentState::Working => "working",
+                AgentState::Blocked => "needs input",
+                AgentState::Done => "done",
+                AgentState::Idle => "idle",
+                AgentState::Unknown => "",
+            };
+            let tone = match pane.state() {
+                AgentState::Blocked => Tone::Warning,
+                _ => Tone::Secondary,
+            };
+            let label = if state.is_empty() {
+                format!("{agent}{account}")
+            } else {
+                format!("{agent}{account} · {state}")
+            };
+            bar.center.push(StatusItem::new(label, tone).priority(7));
+        }
+        if let Some(d) = d {
+            let panes = d.active_tab().map(|t| t.leaves().len()).unwrap_or(0);
+            bar.center.push(
+                StatusItem::new(
+                    format!(
+                        "{} · {}",
+                        plural(d.tabs.len(), "tab", "tabs"),
+                        plural(panes, "pane", "panes")
+                    ),
+                    Tone::Muted,
+                )
+                .priority(3),
+            );
+        }
+        // right: capacity, runtime, mode
+        if self.mode() == Mode::PrefixAwait {
+            bar.right.push(
+                StatusItem::new("prefix…", Tone::Normal)
+                    .strong()
+                    .priority(11),
+            );
+        }
         let acc = self
             .focused_pane(w)
-            .and_then(|p| self.daemon(w).and_then(|d| d.pane(p)))
+            .and_then(|p| d.and_then(|d| d.pane(p)))
             .and_then(|p| p.proc.account.clone())
             .and_then(|id| w.accounts.get(&id).cloned())
             .or_else(|| {
@@ -1466,26 +1723,39 @@ impl CapsuleScreen {
                 Freshness::Refreshing => " · refreshing",
                 Freshness::Current => "",
             };
-            let full = if parts.is_empty() {
+            let text = if parts.is_empty() {
                 format!("usage · {}", a.status_word())
             } else {
                 format!("{}{state}", parts.join(" · "))
             };
-            let compact = parts.first().cloned().unwrap_or("usage".into());
             let tone = match a.usage.worst_status() {
                 Some(QuotaStatus::Exhausted) => Tone::Error,
                 Some(QuotaStatus::Warning) => Tone::Warning,
                 _ => Tone::Secondary,
             };
-            right.push(Segment::new(full, tone).clickable(USAGE_CHIP).priority(7));
-            let _ = compact;
+            bar.right.push(
+                StatusItem::new(text, tone)
+                    .chip()
+                    .clickable(USAGE_CHIP)
+                    .priority(7),
+            );
         }
-        right.push(
-            Segment::new(truncate_middle(&i.container_id(), 28), Tone::Muted)
+        bar.right.push(
+            StatusItem::new(truncate_middle(&i.container_id(), 28), Tone::Muted)
                 .clickable(CONTAINER_CHIP)
-                .priority(6),
+                .priority(4),
         );
-        segments::render(area, buf, ctx, &left, &right, t.canvas);
+        if !i.run_id.is_empty() {
+            bar.right
+                .push(StatusItem::new(format!("run {}", i.run_id), Tone::Faint).priority(2));
+        }
+        let n = w.running_count();
+        if n > 1 {
+            bar.right
+                .push(StatusItem::new(plural(n, "instance", "instances"), Tone::Faint).priority(1));
+        }
+        bar.render(area, buf, ctx);
+        ctx.clickable(STATUS, area);
     }
 }
 
@@ -1561,6 +1831,36 @@ impl Screen for CapsuleScreen {
             }
             return Outcome::Changed;
         }
+        if let Some((tab, mut m)) = self.tab_menu.take() {
+            let (o, ev) = m.on_key(key);
+            match ev {
+                Some(MenuEvent::Chosen(i)) => {
+                    let label = m.items[i].label.clone();
+                    let t = if tab == usize::MAX { None } else { Some(tab) };
+                    self.run_menu(&label, t, w, cx);
+                }
+                Some(MenuEvent::Dismissed) => {}
+                None => self.tab_menu = Some((tab, m)),
+            }
+            return o.or(Outcome::Changed);
+        }
+        if self.menubar.is_open() {
+            let (o, ev) = self.menubar.on_key(key);
+            match ev {
+                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                    let label = self.menubar.menus[mi][ii].label.clone();
+                    self.run_menu(&label, None, w, cx);
+                }
+                Some(MenuBarEvent::Brand) => self.open_brand_menu(),
+                _ => {}
+            }
+            return o.or(Outcome::Changed);
+        }
+        if key.code == KeyCode::F(10) {
+            self.prefix_until = None;
+            self.menubar.open_menu(0);
+            return Outcome::Changed;
+        }
         if key.ctrl_char('q') {
             self.prefix_until = None;
             self.request_exit(w, cx);
@@ -1614,8 +1914,32 @@ impl Screen for CapsuleScreen {
             return Outcome::Consumed;
         }
         self.prefix_until = None;
-        if id == MENU {
-            self.open_palette(w, cx);
+        // anchored menus take the click first
+        if let Some((tab, mut m)) = self.tab_menu.take() {
+            match m.on_click(id) {
+                Some(MenuEvent::Chosen(i)) => {
+                    let label = m.items[i].label.clone();
+                    let t = if tab == usize::MAX { None } else { Some(tab) };
+                    self.run_menu(&label, t, w, cx);
+                }
+                Some(MenuEvent::Dismissed) | None => {}
+            }
+            return Outcome::Changed;
+        }
+        if self.menubar.owns(id) {
+            let (o, ev) = self.menubar.on_click(id);
+            match ev {
+                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                    let label = self.menubar.menus[mi][ii].label.clone();
+                    self.run_menu(&label, None, w, cx);
+                }
+                Some(MenuBarEvent::Brand) => self.open_brand_menu(),
+                _ => {}
+            }
+            return o.or(Outcome::Changed);
+        }
+        if self.menubar.is_open() {
+            self.menubar.close();
             return Outcome::Changed;
         }
         if id == USAGE_CHIP {
@@ -1630,22 +1954,15 @@ impl Screen for CapsuleScreen {
             self.open_github(w, cx);
             return Outcome::Changed;
         }
-        if id == STRIP.sub("left") {
-            self.strip_first = self.strip_first.saturating_sub(1);
-            return Outcome::Changed;
-        }
-        if id == STRIP.sub("right") {
-            self.strip_first += 1;
-            return Outcome::Changed;
-        }
-        for (i, _) in &self.tab_areas {
-            if STRIP.child(*i) == id {
-                if let Some(d) = self.daemon_mut(w) {
-                    d.active = *i;
-                }
-                cx.focus.focus(PANES);
-                return Outcome::Changed;
+        if self.tabs.owns(id) {
+            let (o, ev) = self.tabs.on_click(id);
+            if let Some(TabEvent::Activated(i)) = ev
+                && let Some(d) = self.daemon_mut(w)
+            {
+                d.active = i;
             }
+            cx.focus.focus(PANES);
+            return o.or(Outcome::Changed);
         }
         if let Some(pid) = self.pane_at(pos) {
             cx.focus.focus(PANES);
@@ -1678,6 +1995,40 @@ impl Screen for CapsuleScreen {
         Outcome::Ignored
     }
 
+    fn on_secondary(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        w: &mut World,
+        _cx: &mut Cx,
+    ) -> Outcome {
+        if self.takeover.is_some() {
+            return Outcome::Consumed;
+        }
+        if let Some(i) = self.tabs.locate(id) {
+            if let Some(d) = self.daemon_mut(w) {
+                d.active = i;
+            }
+            self.open_tab_menu(i, w);
+            return Outcome::Changed;
+        }
+        if self.pane_at(pos).is_some() {
+            // the pane's own context: the Edit menu at the pointer
+            let items = vec![
+                MenuItem::new("Copy selection").shortcut("y"),
+                MenuItem::new("Paste clipboard"),
+                MenuItem::new("Clear selection").separator(),
+                MenuItem::new("Split right").shortcut("Ctrl+B %"),
+                MenuItem::new("Split below").shortcut("Ctrl+B \""),
+                MenuItem::new("Zoom pane").shortcut("Ctrl+B z").separator(),
+                MenuItem::new("Close pane").shortcut("Ctrl+B x").danger(),
+            ];
+            self.tab_menu = Some((usize::MAX, ContextMenu::new(TAB_MENU, items).at(pos)));
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
     fn on_double_click(
         &mut self,
         id: WidgetId,
@@ -1685,30 +2036,9 @@ impl Screen for CapsuleScreen {
         w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
-        for (i, _) in &self.tab_areas {
-            if STRIP.child(*i) == id {
-                let d = self.daemon(w);
-                let current = d
-                    .and_then(|d| d.tabs.get(*i))
-                    .and_then(|t| t.custom_label.clone())
-                    .unwrap_or_default();
-                let auto = d
-                    .and_then(|d| d.tabs.get(*i).map(|t| d.tab_label(t, &|_| None)))
-                    .unwrap_or_default();
-                let input = TextInput::new(WidgetId::of("capsule.rename.input"), "Label")
-                    .value(&current)
-                    .placeholder(&auto)
-                    .help("Empty restores the automatic name · 16 max")
-                    .plain_label();
-                let dlg = Dialog::prompt(
-                    WidgetId::of("capsule.rename"),
-                    "Rename tab",
-                    input,
-                    "Rename",
-                );
-                cx.open(Modal::Dialog(dlg), ModalTag::new("rename").n(*i));
-                return Outcome::Changed;
-            }
+        if let Some(i) = self.tabs.locate(id) {
+            self.open_rename(i, w, cx);
+            return Outcome::Changed;
         }
         if let Some(pid) = self.pane_at(pos) {
             self.prime(pid, w);
@@ -1829,7 +2159,7 @@ impl Screen for CapsuleScreen {
                 }
             }
             ("agent", ModalResult::Picked(i)) => {
-                let agent = Agent::ALL.get(i).copied();
+                let agent = self.picker_agents.get(i).copied().flatten();
                 self.continue_spawn(agent, w, cx);
                 self.apply_pending_spawn(w, cx);
             }
@@ -1909,47 +2239,7 @@ impl Screen for CapsuleScreen {
             ("exitdirty", ModalResult::Choice(Some(row))) => match row {
                 0 => self.spawn_flow(Intent::NewTab, w, cx),
                 1 => {
-                    let touched = self
-                        .daemon(w)
-                        .map(|d| d.touched_files())
-                        .unwrap_or_default();
-                    let ws = self
-                        .daemon(w)
-                        .map(|d| d.workspace.clone())
-                        .unwrap_or_default();
-                    let inst = w.instance(&self.instance);
-                    let mut props = vec![
-                        Prop::new(
-                            ws.as_str(),
-                            format!(
-                                "{} changed · {} unpushed",
-                                inst.map(|i| i.uncommitted).unwrap_or(0) + touched.len(),
-                                inst.map(|i| i.unpushed).unwrap_or(0)
-                            ),
-                        )
-                        .tone(Tone::Warning),
-                    ];
-                    props.push(Prop::new("M", "src/settlement/retry.rs"));
-                    props.push(Prop::new("M", "src/settlement/mod.rs"));
-                    for f in touched {
-                        props.push(Prop::new("A", f));
-                    }
-                    if inst.map(|i| i.unpushed).unwrap_or(0) > 0 {
-                        props.push(
-                            Prop::new(
-                                "↑",
-                                format!(
-                                    "{} commit not pushed",
-                                    inst.map(|i| i.unpushed).unwrap_or(0)
-                                ),
-                            )
-                            .tone(Tone::Warning),
-                        );
-                    }
-                    let d =
-                        InfoDialog::new(WidgetId::of("capsule.inspect"), "Inspect changes", props)
-                            .meta("Esc returns to the exit choices");
-                    cx.open(Modal::Info(d), ModalTag::new("inspect"));
+                    self.open_inspect(w, cx, true);
                 }
                 2 => {
                     cx.status("Exited · changes kept in the preserved instance");
@@ -1986,9 +2276,10 @@ impl Screen for CapsuleScreen {
                     cx.open(Modal::Dialog(d), ModalTag::new("discard"));
                 }
             },
-            ("inspect", _) => {
+            ("inspect", ModalResult::Custom(r)) if r == "back" => {
                 self.request_exit(w, cx);
             }
+            ("inspect", _) => {}
             (
                 "discard",
                 ModalResult::Dialog {
@@ -2090,18 +2381,26 @@ impl Screen for CapsuleScreen {
             }
             return;
         }
-        let strip = Rect::new(area.x, area.y, area.width, 2);
-        let context = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
+        // row 0 menu bar · rows 1–2 agent tabs · body · status bar
+        let menu = Rect::new(area.x, area.y, area.width, 1);
+        let strip = Rect::new(area.x, area.y + 1, area.width, 2);
+        let status = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         let body = Rect::new(
             area.x,
-            area.y + 2,
+            area.y + 3,
             area.width,
-            area.height.saturating_sub(3),
+            area.height.saturating_sub(4),
         );
         self.body = body;
+        self.menubar.on_hover(ctx.interaction.hover);
+        self.menubar.render(menu, buf, ctx, t.canvas);
         self.draw_strip(strip, buf, ctx, w);
         self.draw_panes(body, buf, ctx, w);
-        self.draw_context(context, buf, ctx, w);
+        self.draw_status(status, buf, ctx, w);
+        self.menubar.render_open(area, buf, ctx);
+        if let Some((_, m)) = self.tab_menu.as_mut() {
+            m.render(area, buf, ctx);
+        }
         if self.redraw_flash > 0 {
             buf.set_string(
                 area.right().saturating_sub(10),
@@ -2113,6 +2412,21 @@ impl Screen for CapsuleScreen {
     }
 
     fn hints(&self, _focus: Option<WidgetId>, w: &World) -> Vec<Hint> {
+        if self.tab_menu.is_some() {
+            return vec![
+                hint("↑↓", "Move"),
+                hint("Enter", "Choose"),
+                hint("Esc", "Close"),
+            ];
+        }
+        if self.menubar.is_open() {
+            return vec![
+                hint("← →", "Menu"),
+                hint("↑↓", "Move"),
+                hint("Enter", "Choose"),
+                hint("Esc", "Close"),
+            ];
+        }
         match self.mode() {
             Mode::PrefixAwait => vec![
                 hint("c", "New tab"),
@@ -2126,6 +2440,7 @@ impl Screen for CapsuleScreen {
                 hint("Ctrl+L", "Clear"),
                 hint("d", "Detach"),
                 hint("u", "Usage"),
+                hint(", m", "Title · tab menu"),
                 hint("Space", "Palette"),
             ],
             Mode::Select => vec![hint("drag", "Select"), hint("release", "Copy")],
@@ -2146,9 +2461,10 @@ impl Screen for CapsuleScreen {
                 } else {
                     vec![
                         hint("Ctrl+B", "Prefix"),
-                        hint("Ctrl+\\", "Menu"),
+                        hint("F10", "Menu"),
+                        hint("Ctrl+\\", "Palette"),
                         hint("Alt+Shift+↑↓←→", "Resize"),
-                        hint("click", "Focus pane"),
+                        hint("right-click", "Tab menu"),
                         hint("Ctrl+Q", "Quit"),
                     ]
                 }
@@ -2283,7 +2599,7 @@ impl CustomModal for UsageDialog {
         Outcome::Consumed
     }
 
-    fn on_wheel(&mut self, delta: i32) -> Outcome {
+    fn on_wheel(&mut self, delta: i32, _pos: Position) -> Outcome {
         self.scroll.scroll_by(delta as isize);
         Outcome::Changed
     }
@@ -2539,15 +2855,16 @@ impl CustomModal for UsageDialog {
                     buf.set_string(body.x, yy, truncate(label, lw as usize), t.primary().bg(bg));
                     let mx = body.x + lw + 1;
                     if body.width > lw + 12 {
-                        render_meter(
-                            Rect::new(mx, yy, body.right().saturating_sub(mx), 1),
-                            buf,
-                            ctx,
-                            *pct,
-                            &format!("{pct}%"),
-                            *tone,
-                            bg,
-                        );
+                        Meter::new(Some(*pct))
+                            .value(format!("{pct}%"))
+                            .tone(*tone)
+                            .visual(MeterVisual::Block)
+                            .render(
+                                Rect::new(mx, yy, body.right().saturating_sub(mx), 1),
+                                buf,
+                                ctx,
+                                bg,
+                            );
                     }
                     let _ = value;
                 }

@@ -453,7 +453,9 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
                     level: Some(ValidationLevel::MaterialDiscovered),
                     identity: AccountIdentity::default(),
                     confidence: Confidence::PresenceOnly,
-                    lifecycle: Lifecycle::NeedsLogin,
+                    // key material is present: the agent can run, only the
+                    // public identity stays unresolved
+                    lifecycle: Lifecycle::Available,
                     issue: Some(issue(
                         IssueCode::IdentityUnresolved,
                         "Identity unresolved · showing usage without a public handle",

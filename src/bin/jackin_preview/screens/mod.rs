@@ -74,7 +74,12 @@ pub trait CustomModal {
     ) -> Outcome {
         Outcome::Consumed
     }
-    fn on_wheel(&mut self, _delta: i32) -> Outcome {
+    /// Wheel over the modal; `pos` lets a modal with several regions route it.
+    fn on_wheel(&mut self, _delta: i32, _pos: Position) -> Outcome {
+        Outcome::Consumed
+    }
+    /// Pointer drag that started on `pressed` inside the modal.
+    fn on_drag(&mut self, _pressed: WidgetId, _pos: Position) -> Outcome {
         Outcome::Consumed
     }
     fn on_tick(&mut self, _w: &World) -> Outcome {
@@ -179,6 +184,8 @@ pub enum Request {
     Close,
     Go(Go),
     Copy(String),
+    /// Open the key reference for the current screen.
+    Help,
     /// Mutate the form that is the top modal (after a nested picker).
     WithForm(Box<dyn FnOnce(&mut FormDialog)>),
 }
@@ -208,6 +215,9 @@ impl Cx<'_> {
     pub fn go(&mut self, g: Go) {
         self.requests.push(Request::Go(g));
     }
+    pub fn help(&mut self) {
+        self.requests.push(Request::Help);
+    }
     pub fn copy(&mut self, s: impl Into<String>) {
         self.requests.push(Request::Copy(s.into()));
     }
@@ -234,6 +244,16 @@ pub trait Screen {
         Outcome::Ignored
     }
     fn on_drag(&mut self, _pressed: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
+        Outcome::Ignored
+    }
+    /// Secondary (right) mouse button on `id`: context menus.
+    fn on_secondary(
+        &mut self,
+        _id: WidgetId,
+        _pos: Position,
+        _w: &mut World,
+        _cx: &mut Cx,
+    ) -> Outcome {
         Outcome::Ignored
     }
     /// Mouse button went down on `id`; a drag may follow before the click

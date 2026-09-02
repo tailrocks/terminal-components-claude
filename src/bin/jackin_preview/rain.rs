@@ -86,8 +86,11 @@ pub fn style(t: &Theme, tone: Tone, dim: u8) -> Option<Style> {
             _ => None,
         },
         Tone::Pill => {
+            if dim == 0 {
+                // the one brand treatment: the same lockup the shell shows
+                return Some(junie_tui::widgets::brand::Lockup::style(t));
+            }
             let bg = match dim {
-                0 => t.accent,
                 1 | 2 => t.accent_bg,
                 _ => return None,
             };

@@ -1,0 +1,40 @@
+  jackin❯  inside the Construct  2 running  Workspaces › payments-platform      u Usage  c Accounts  s Settings  ? help
+
+ ╭─ Workspaces ────────── 2 running ─╮ │  payments-platform                               saved workspace · 1 running
+ │ ▎   Current directory             │ │
+ │ ▎ ▸ payments-platform             │ │  Working dir   /workspace/payments-platform
+ │ ▎ ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree
+ │ ▎ ▸ release-automation            │ │                ~/src/shared-libs · ro shared
+ │ ▎ ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 46
+ │ ▎   + New workspace               │ │  Environments  5 vars · 2 [op]
+ │                                   │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·
+ │                ╭──────────────────────────────────────────────────────────────────────────────────╮
+ │                │ Launch · choose Agent                          payments-platform › the-architect │ask
+ │                │ ▎▪ Claude Code  account Claude · Personal · provider d… choose at start  agents  │
+ │                │ ▎▪ Codex        account Codex · Primary · provider def… ready                    │aemon · 4 s ago
+ │                │ ▎▪ OpenCode     account OpenCode · Go subscription · p… ready                    │
+ │                │ ▎▪ Grok Build   account Grok · Team · provider default  ready                    │
+ │                │                                                                                  │
+ │                │                                                                                  │
+ │                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Edit   ▎Prewarm   ▎Delete…
+ ╰───────────────────────────────────╯ │
+
+ ↑↓ Move  Enter Choose  Esc Cancel

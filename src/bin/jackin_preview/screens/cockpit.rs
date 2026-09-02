@@ -43,6 +43,9 @@ pub struct CockpitScreen {
     pub role: String,
     pub agent: Agent,
     pub account: Option<AccountId>,
+    /// The Workspace's effective account set: every account the container
+    /// receives, not just the one the first session starts with.
+    pub accounts: Vec<AccountId>,
     pub rail: StepRail,
     pub activity: String,
     pub log: TextViewport,
@@ -93,12 +96,28 @@ impl CockpitScreen {
             Some(x) => format!("into workspace {}", x.name),
             None => format!("in directory {}", w.tilde(&w.cwd)),
         };
+        let mut accounts: Vec<AccountId> = workspace
+            .and_then(|id| w.workspace(id))
+            .map(|x| {
+                x.effective_accounts(&w.accounts)
+                    .into_iter()
+                    .filter(|e| e.usable.is_ready())
+                    .map(|e| e.id)
+                    .collect()
+            })
+            .unwrap_or_default();
+        if let Some(a) = &account
+            && !accounts.contains(a)
+        {
+            accounts.insert(0, a.clone());
+        }
         Self {
             run,
             workspace,
             role,
             agent,
             account,
+            accounts,
             rail: StepRail::new(RAIL, steps).selectable(false),
             activity: "Preparing launch…".into(),
             log,
@@ -126,28 +145,67 @@ impl CockpitScreen {
     }
 
     fn credential_origin(&self, w: &World) -> (String, String, Tone) {
-        match self.account.as_ref().and_then(|id| w.accounts.get(id)) {
+        let (origin, val, tone) = self.credential_origin_for(self.account.as_deref(), w);
+        let others: Vec<String> = self
+            .accounts
+            .iter()
+            .filter(|id| Some(id.as_str()) != self.account.as_deref())
+            .filter_map(|id| w.accounts.get(id))
+            .map(|a| a.title())
+            .collect();
+        if others.is_empty() {
+            (origin, val, tone)
+        } else {
+            // the container receives every effective account, not only the
+            // one this session starts with; the primary keeps its origin,
+            // the rest are named so the line stays readable
+            let primary = self
+                .account
+                .as_ref()
+                .and_then(|id| w.accounts.get(id))
+                .map(|a| format!("{} ({})", a.title(), a.source.origin_label()))
+                .unwrap_or(origin);
+            (
+                format!(
+                    "{} · {primary} · {}",
+                    crate::screens::plural(self.accounts.len().max(1), "account", "accounts"),
+                    others.join(" · ")
+                ),
+                val,
+                tone,
+            )
+        }
+    }
+
+    /// Why this launch runs with its account: the resolver's level when the
+    /// resolver picked it, else it was chosen by hand for this session.
+    fn why_label(&self, account: &crate::domain::account::Account, w: &World) -> &'static str {
+        let r = w.account_for(
+            account.provider,
+            self.workspace.and_then(|id| w.workspace(id)),
+            Some(&self.role),
+            None,
+        );
+        if r.account.as_deref() == Some(account.id.as_str()) {
+            r.level.label()
+        } else {
+            PrecedenceLevel::Session.label()
+        }
+    }
+
+    fn credential_origin_for(&self, account: Option<&str>, w: &World) -> (String, String, Tone) {
+        match account.and_then(|id| w.accounts.get(id)) {
             Some(a) => {
-                let why = w
-                    .account_for(
-                        a.provider,
-                        self.workspace.and_then(|id| w.workspace(id)),
-                        Some(&self.role),
-                        None,
-                    )
-                    .level;
+                let why = self.why_label(a, w);
                 let origin = format!(
-                    "{} · {} · {}",
+                    "{} ({} · {})",
                     a.title(),
                     a.source.origin_label(),
                     a.source.safe_detail()
                 );
                 let (val, tone) = match a.validation.level() {
-                    Some(l) => (format!("{} · {}", l.label(), why.label()), Tone::Secondary),
-                    None => (
-                        format!("{} · {}", a.validation.label(), why.label()),
-                        Tone::Warning,
-                    ),
+                    Some(l) => (format!("{} · {why}", l.label()), Tone::Secondary),
+                    None => (format!("{} · {why}", a.validation.label()), Tone::Warning),
                 };
                 (origin, val, tone)
             }
@@ -287,6 +345,7 @@ impl CockpitScreen {
             daemon: crate::domain::instance::DaemonSnapshot::Unavailable,
             branch: None,
             pr: None,
+            accounts: self.accounts.clone(),
             default_branch: "main".into(),
             uncommitted: 0,
             unpushed: 0,
@@ -781,16 +840,7 @@ impl Screen for CockpitScreen {
             .account
             .as_ref()
             .and_then(|id| w.accounts.get(id))
-            .map(|a| {
-                w.account_for(
-                    a.provider,
-                    self.workspace.and_then(|i| w.workspace(i)),
-                    Some(&self.role),
-                    None,
-                )
-                .level
-                .label()
-            })
+            .map(|a| self.why_label(a, w))
             .unwrap_or("no registered account");
         center(
             buf,
