@@ -1,0 +1,36 @@
+  jackin❯    File   Go   Help                              Settings › global › General  inside the Construct  2 running
+            ╭──────────────────╮
+            │  Save…    Ctrl+S │
+   General  │ ──────────────── │ents    Agents    Trust
+  ─━━━━━━━━─│  Cancel      Esc │──────────────────────────────────────────────────────────────────────────────────────
+            ╰──────────────────╯
+    Commits
+    ▎[✓] Add Co-authored-by trailer
+    ▎[✓] Sign off commits (DCO)
+
+    Two independent flags; both apply to every Workspace.
+
+    Trailers
+    Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ ← → Menu  ↑↓ Move  Enter Choose  Esc Close

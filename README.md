@@ -43,12 +43,16 @@ cargo run --release --bin jackin-preview -- --scenario first-use --motion paused
 JACKIN_NO_MOTION=1 cargo run --release --bin jackin-preview   # same as --motion reduced
 ```
 
-Inside the Capsule the first row is the application menu bar (`F10`, or click
-a label; the `jackin❯` lockup opens the app menu), the second row the agent
-tabs (right-click or `Ctrl+B m` for a tab's menu, `Ctrl+B ,` to rename), the
-last chrome row the status bar (context, session, usage, container; items
-leave by priority on narrow terminals), and the bottom row the one hint bar
-that every screen, dialog, picker and menu shares.
+Every screen's first row is the application menu bar (`F10`, or click a
+label; the `jackin❯` lockup opens the app menu). Host screens share one bar —
+`File` for the screen's actions, `Go` for the Workspace manager, Account &
+Usage Center, Usage and Global settings, `Help` for the key reference — with
+the breadcrumb and Construct state on the right. Inside the Capsule the bar
+reads `File Edit View Session Help`, the agent tabs follow after a blank row
+(right-click or `Ctrl+B m` for a tab's menu, `Ctrl+B ,` to rename), the last
+chrome row is the status bar (context, session, usage, container; items leave
+by priority on narrow terminals), and the bottom row is the one hint bar that
+every screen, dialog, picker and menu shares.
 
 The preview's scenarios are deterministic: the same `--scenario`, `--motion`,
 `--frame` and terminal size always render the same picture, which is what

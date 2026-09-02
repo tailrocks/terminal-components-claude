@@ -28,7 +28,7 @@ fn capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line() {
         top.contains("jackin❯") && top.contains("File") && top.contains("Help"),
         "{top}"
     );
-    assert!(row(&h, 1).contains("Shell"), "{}", row(&h, 1));
+    assert!(row(&h, 2).contains("Shell"), "{}", row(&h, 2));
     let status = row(&h, 38);
     assert!(status.contains("payments-platform ›"), "{status}");
     assert!(status.contains('%'), "usage chip missing: {status}");
@@ -86,7 +86,7 @@ fn tab_context_menu_renames_and_closes_by_mouse_and_keyboard() {
     if h.text().contains("Change tab title") {
         h.key(KeyCode::Enter);
     }
-    assert!(row(&h, 1).contains("ops"), "{}", row(&h, 1));
+    assert!(row(&h, 2).contains("ops"), "{}", row(&h, 2));
     // keyboard path: prefix m opens the menu for the active tab; the last row is Close
     h.ctrl('b');
     h.key(KeyCode::Char('m'));
