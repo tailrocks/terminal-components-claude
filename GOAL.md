@@ -35,16 +35,20 @@ Compose everything above into one continuous Jackin application.
 
 # 1. AUTHORITATIVE REFERENCES AND BOUNDARIES
 
-Use these local artifacts in this order:
+Use these local artifacts according to their authority:
 
 - `JACKIN_REFERENCE.md` — first and default authority for current-product semantics, surfaces, workflows, states, terminology, and redesign obligations
-- `DESIGN.md`, `README.md`, `src/theme.rs`, `src/widgets/`, and the shared runtime — approved implementation foundations
+- `DESIGN.md` — primary authority for design practices, visual language, component behavior, interaction patterns, and reusable UI architecture
+- `src/theme.rs`, `src/widgets/`, and the shared runtime — implementation foundations for the approved design system
+- `README.md` — repository usage and application-entry guidance
 
 `JACKIN_REFERENCE.md` defines the complete current Jackin product scope. Implement its operator-visible capabilities and interaction semantics through the approved Junie design language.
 
+Resolve design-practice decisions against `DESIGN.md` first. Extend `DESIGN.md` whenever implementation establishes or changes a reusable design practice, component convention, interaction rule, or visual-system decision. Keep the document aligned with the implemented and rendered result.
+
 This goal contains the visual, interaction, architecture, and delivery requirements needed for the preview. It does not depend on earlier prompt files.
 
-When `JACKIN_REFERENCE.md` does not contain enough detail for a required design decision, inspect the cited, pinned Jackin source code read-only. Use that source only to clarify behavior and semantics for the preview.
+When `JACKIN_REFERENCE.md` does not contain enough detail for a required product-behavior or semantic decision, inspect the cited, pinned Jackin source code read-only. Use that source only to clarify behavior and semantics for the preview.
 
 The installed or otherwise available real Jackin CLI is outside this goal. Do not run, launch, install, update, build, test, or invoke it. Do not use its runtime output as design evidence. Every executable command in this goal must target only the local `jackin-preview` binary built from this repository. Simulate external systems and runtime behavior in memory.
 
@@ -52,7 +56,7 @@ Implement the preview in this component-library repository, primarily under:
 
 - `src/bin/jackin_preview/`
 - generic library files only when a real reusable component gap exists
-- `Cargo.toml`, `README.md`, `DESIGN.md` when reusable conventions change, and Jackin capture artifacts
+- `Cargo.toml`, `README.md`, `DESIGN.md` whenever reusable design practices or conventions change, and Jackin capture artifacts
 
 Extend current Jackin with the Account & Usage Center defined below. Use deterministic fixtures for external systems while making every operator interaction real.
 
@@ -60,7 +64,7 @@ Extend current Jackin with the Account & Usage Center defined below. Use determi
 
 # 2. USE THE APPROVED JUNIE DESIGN
 
-Build Jackin with the approved component system and its established visual language:
+Use `DESIGN.md` as the primary reference for design practice. Build Jackin with the approved component system and its established visual language:
 
 - semantic colors and surfaces
 - near-black hierarchy
