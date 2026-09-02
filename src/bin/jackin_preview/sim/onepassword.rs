@@ -62,7 +62,10 @@ pub enum KeyOutcome {
 pub enum SecretClass {
     Empty,
     Unrecognised,
-    Key { provider: Provider, outcome: KeyOutcome },
+    Key {
+        provider: Provider,
+        outcome: KeyOutcome,
+    },
 }
 
 /// Marker for closure results that cannot carry the secret out.
@@ -172,7 +175,9 @@ impl OpError {
             OpError::PermissionDenied { vault } => {
                 format!("1Password access denied: no permission for vault {vault}")
             }
-            OpError::MissingAccount { account } => format!("1Password account not found: {account}"),
+            OpError::MissingAccount { account } => {
+                format!("1Password account not found: {account}")
+            }
             OpError::MissingVault { vault } => format!("1Password vault not found: {vault}"),
             OpError::MissingItem { item, vault } => {
                 format!("1Password item not found: {item} in {vault}")
@@ -220,7 +225,13 @@ fn field(id: &str, label: &str, kind: FieldKind, material: Option<&str>, tail: &
     }
 }
 
-fn item(id: &str, title: &str, category: &'static str, fields: Vec<OpField>, updated: i64) -> OpItem {
+fn item(
+    id: &str,
+    title: &str,
+    category: &'static str,
+    fields: Vec<OpField>,
+    updated: i64,
+) -> OpItem {
     OpItem {
         id: id.into(),
         title: title.into(),
@@ -244,7 +255,13 @@ impl SimOnePassword {
                     "OpenAI · Codex Primary",
                     "API credential",
                     vec![
-                        field("credential", "credential", FieldKind::Concealed, Some("openai:valid-cdx01"), "k7Qz"),
+                        field(
+                            "credential",
+                            "credential",
+                            FieldKind::Concealed,
+                            Some("openai:valid-cdx01"),
+                            "k7Qz",
+                        ),
                         field("notes", "notes", FieldKind::Text, None, "----"),
                     ],
                     epoch - 12 * d,
@@ -253,7 +270,13 @@ impl SimOnePassword {
                     "it_cdx02",
                     "OpenAI · Codex Experiments",
                     "API credential",
-                    vec![field("credential", "credential", FieldKind::Concealed, Some("openai:valid-cdx02"), "m2Xa")],
+                    vec![field(
+                        "credential",
+                        "credential",
+                        FieldKind::Concealed,
+                        Some("openai:valid-cdx02"),
+                        "m2Xa",
+                    )],
                     epoch - 3 * d,
                 ),
                 item(
@@ -261,7 +284,13 @@ impl SimOnePassword {
                     "xAI · Grok Team",
                     "API credential",
                     vec![
-                        field("credential", "credential", FieldKind::Concealed, Some("xai:valid-grk01"), "Rt4v"),
+                        field(
+                            "credential",
+                            "credential",
+                            FieldKind::Concealed,
+                            Some("xai:valid-grk01"),
+                            "Rt4v",
+                        ),
                         field("endpoint", "endpoint", FieldKind::Url, None, "----"),
                     ],
                     epoch - 40 * d,
@@ -270,21 +299,39 @@ impl SimOnePassword {
                     "it_ant01",
                     "Anthropic · Work",
                     "API credential",
-                    vec![field("credential", "credential", FieldKind::Concealed, Some("anthropic:valid-ant01"), "3c9e")],
+                    vec![field(
+                        "credential",
+                        "credential",
+                        FieldKind::Concealed,
+                        Some("anthropic:valid-ant01"),
+                        "3c9e",
+                    )],
                     epoch - 7 * d,
                 ),
                 item(
                     "it_leg01",
                     "Legacy · Rotated key",
                     "API credential",
-                    vec![field("credential", "credential", FieldKind::Concealed, Some("xai:rotated-leg01"), "0x1f")],
+                    vec![field(
+                        "credential",
+                        "credential",
+                        FieldKind::Concealed,
+                        Some("xai:rotated-leg01"),
+                        "0x1f",
+                    )],
                     epoch - 300 * d,
                 ),
                 item(
                     "it_brk01",
                     "Broken · Empty credential",
                     "Password",
-                    vec![field("password", "password", FieldKind::Concealed, Some(""), "----")],
+                    vec![field(
+                        "password",
+                        "password",
+                        FieldKind::Concealed,
+                        Some(""),
+                        "----",
+                    )],
                     epoch - 2 * d,
                 ),
                 item(
@@ -298,7 +345,13 @@ impl SimOnePassword {
                     "it_thr01",
                     "OpenAI · Throttled sandbox",
                     "API credential",
-                    vec![field("credential", "credential", FieldKind::Concealed, Some("openai:throttled-thr01"), "q9Lp")],
+                    vec![field(
+                        "credential",
+                        "credential",
+                        FieldKind::Concealed,
+                        Some("openai:throttled-thr01"),
+                        "q9Lp",
+                    )],
                     epoch - 5 * d,
                 ),
             ],
@@ -311,7 +364,13 @@ impl SimOnePassword {
                 "it_dep01",
                 "Prod · Deploy token",
                 "API credential",
-                vec![field("credential", "credential", FieldKind::Concealed, Some("opencode:valid-dep01"), "zz00")],
+                vec![field(
+                    "credential",
+                    "credential",
+                    FieldKind::Concealed,
+                    Some("opencode:valid-dep01"),
+                    "zz00",
+                )],
                 epoch - 20 * d,
             )],
         };
@@ -329,7 +388,13 @@ impl SimOnePassword {
                 "it_ant02",
                 "Anthropic · Personal API key",
                 "API credential",
-                vec![field("credential", "credential", FieldKind::Concealed, Some("anthropic:valid-ant02"), "8Hj2"),],
+                vec![field(
+                    "credential",
+                    "credential",
+                    FieldKind::Concealed,
+                    Some("anthropic:valid-ant02"),
+                    "8Hj2",
+                )],
                 epoch - 15 * d,
             )],
         };
@@ -341,7 +406,13 @@ impl SimOnePassword {
                 "it_ocg01",
                 "OpenCode · Go",
                 "API credential",
-                vec![field("credential", "credential", FieldKind::Concealed, Some("opencode:valid-ocg01"), "Wq7n")],
+                vec![field(
+                    "credential",
+                    "credential",
+                    FieldKind::Concealed,
+                    Some("opencode:valid-ocg01"),
+                    "Wq7n",
+                )],
                 epoch - 9 * d,
             )],
         };
@@ -381,13 +452,13 @@ impl SimOnePassword {
 
     fn account(&self, id: &str) -> Result<&OpAccount, OpError> {
         self.gate()?;
-        let a = self
-            .accounts
-            .iter()
-            .find(|a| a.id == id)
-            .ok_or_else(|| OpError::MissingAccount {
-                account: id.to_owned(),
-            })?;
+        let a =
+            self.accounts
+                .iter()
+                .find(|a| a.id == id)
+                .ok_or_else(|| OpError::MissingAccount {
+                    account: id.to_owned(),
+                })?;
         match a.state {
             OpAccountState::Available => Ok(a),
             OpAccountState::Locked => Err(OpError::Locked),
@@ -440,12 +511,23 @@ impl SimOnePassword {
         Ok((v, it))
     }
 
-    pub fn list_fields(&self, account: &str, vault: &str, item: &str) -> Result<Vec<&OpField>, OpError> {
+    pub fn list_fields(
+        &self,
+        account: &str,
+        vault: &str,
+        item: &str,
+    ) -> Result<Vec<&OpField>, OpError> {
         Ok(self.item(account, vault, item)?.1.fields.iter().collect())
     }
 
     /// Full reference (with names) for chosen ids.
-    pub fn reference(&self, account: &str, vault: &str, item: &str, field: &str) -> Result<OpReference, OpError> {
+    pub fn reference(
+        &self,
+        account: &str,
+        vault: &str,
+        item: &str,
+        field: &str,
+    ) -> Result<OpReference, OpError> {
         let (v, it) = self.item(account, vault, item)?;
         let f = it
             .fields
@@ -506,7 +588,11 @@ impl SimOnePassword {
     ) -> Result<R, OpError> {
         let desc = self.describe(r)?;
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id)?;
-        let f = it.fields.iter().find(|f| f.id == r.field_id).expect("described");
+        let f = it
+            .fields
+            .iter()
+            .find(|f| f.id == r.field_id)
+            .expect("described");
         let secret = Secret {
             bytes: f.material.clone().unwrap_or_default().into_bytes(),
         };
@@ -566,10 +652,18 @@ mod tests {
     fn resolves_only_inside_the_closure() {
         let op = SimOnePassword::fixture(0);
         let r = op
-            .reference("chainargos.1password.com", "v_eng01", "it_cdx01", "credential")
+            .reference(
+                "chainargos.1password.com",
+                "v_eng01",
+                "it_cdx01",
+                "credential",
+            )
             .unwrap();
         assert_eq!(r.canonical(), "op://v_eng01/it_cdx01/credential");
-        assert_eq!(r.display_path(), "Engineering › OpenAI · Codex Primary › credential");
+        assert_eq!(
+            r.display_path(),
+            "Engineering › OpenAI · Codex Primary › credential"
+        );
         let class = op.resolve_into(&r, |s| s.classify()).unwrap();
         assert_eq!(
             class,
@@ -584,12 +678,28 @@ mod tests {
             OpError::Locked
         );
         assert!(matches!(
-            op.list_items("chainargos.1password.com", "v_inf01").unwrap_err(),
+            op.list_items("chainargos.1password.com", "v_inf01")
+                .unwrap_err(),
             OpError::PermissionDenied { .. }
         ));
-        let bad = op.reference("chainargos.1password.com", "v_eng01", "it_brk02", "notes").unwrap();
-        assert!(matches!(op.describe(&bad).unwrap_err(), OpError::WrongFieldShape { .. }));
-        let empty = op.reference("chainargos.1password.com", "v_eng01", "it_brk01", "password").unwrap();
-        assert!(matches!(op.describe(&empty).unwrap_err(), OpError::EmptyMaterial { .. }));
+        let bad = op
+            .reference("chainargos.1password.com", "v_eng01", "it_brk02", "notes")
+            .unwrap();
+        assert!(matches!(
+            op.describe(&bad).unwrap_err(),
+            OpError::WrongFieldShape { .. }
+        ));
+        let empty = op
+            .reference(
+                "chainargos.1password.com",
+                "v_eng01",
+                "it_brk01",
+                "password",
+            )
+            .unwrap();
+        assert!(matches!(
+            op.describe(&empty).unwrap_err(),
+            OpError::EmptyMaterial { .. }
+        ));
     }
 }

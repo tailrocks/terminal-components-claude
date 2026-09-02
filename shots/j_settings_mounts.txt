@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Settings › global › Mounts                     u Usage  c Accounts  ? help
+
+
+  ▎General   ▎Mounts   ▎Environments   ▎Auth   ▎Trust
+  ────────────━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────
+
+        Destination                    Scope           Mode  Isolation  Kind    Source
+  ▎›    /home/agent/.gitconfig         global          ro    shared     host    ~/.gitconfig
+  ▎     /home/agent/.cargo/registry    global          rw    shared     host    ~/.cache/cargo-registry
+  ▎     /home/agent/.kube              role sre        ro    shared     host    ~/roles/sre-kube
+  ▎     + Add mount
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Enter Edit…  r Read-only  i Isolation  o Open source  d Remove  s Scope…  a Add mount…  [ ] Switch tab  Ctrl+S Save

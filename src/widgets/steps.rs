@@ -38,7 +38,10 @@ impl StepState {
     }
 
     pub fn terminal(self) -> bool {
-        matches!(self, StepState::Done | StepState::Skipped | StepState::Failed)
+        matches!(
+            self,
+            StepState::Done | StepState::Skipped | StepState::Failed
+        )
     }
 }
 
@@ -111,7 +114,11 @@ impl StepRail {
     /// (done, skipped, failed)
     pub fn counts(&self) -> (usize, usize, usize) {
         let c = |st| self.steps.iter().filter(|s| s.state == st).count();
-        (c(StepState::Done), c(StepState::Skipped), c(StepState::Failed))
+        (
+            c(StepState::Done),
+            c(StepState::Skipped),
+            c(StepState::Failed),
+        )
     }
 
     pub fn failed(&self) -> Option<usize> {
@@ -260,7 +267,10 @@ impl StepRail {
             }
             .remove_modifier(Modifier::BOLD);
             let avail = row.right().saturating_sub(x + 1) as usize;
-            let mw = meta.as_ref().map(|m| crate::ui::text::width(m)).unwrap_or(0);
+            let mw = meta
+                .as_ref()
+                .map(|m| crate::ui::text::width(m))
+                .unwrap_or(0);
             let show_meta = mw > 0 && avail >= mw + 12;
             let lw = if show_meta { avail - mw - 2 } else { avail };
             buf.set_string(

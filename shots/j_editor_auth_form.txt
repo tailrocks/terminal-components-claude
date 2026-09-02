@@ -1,14 +1,14 @@
- ▪  Jackin  inside the Construct  2 running  Workspaces › payments-platform › edit      • 2 changes  c Accounts  ? help
+ ▪  Jackin  inside the Construct  2 running  Workspaces › payments-platform › edit       c Accounts  s Settings  ? help
 
 
-  ▎General   ▎Mounts •   ▎Roles   ▎Environments   ▎Auth
-  ─────────────────────────────────────────────────━━━━━──────────────────────────────────────────────────────────────
+  ▎General   ▎Mounts   ▎Roles   ▎Environments   ▎Auth
+  ───────────────────────────────────────────────━━━━━────────────────────────────────────────────────────────────────
 
-  ▎   Workspace                                                                                       inherits global
-  ▎     Claude Code    api key      account     Claude · Work
+      Workspace                                                                                       inherits global
+  ▎›    Claude Code    api key      account     Claude · Work
   ▎     Codex          api key      global      account · Codex · Primary ★
   ▎     Amp            sync         global      host profile · host login mirrored
-  ▎     Kimi Code      ignore       global       ·
+  ▎     Kimi Code      ignore       global      no credentials
   ▎     OpenCode       sync         global      folder · ~/.local/share/opencode
   ▎     Grok Build     api key      global      account · Grok · Team ★ · endpoint api.x.ai
   ▎     + Add provider override
@@ -18,12 +18,12 @@
   ▎     + Add backend override
     ▾ Role: reviewer                                                                               inherits workspace
   ▎     + Add reviewer override
-    ▾ Role: sre                                                                                    inherits workspace
-  ▎     + Add sre override
-    ▾ Role: data-eng                                                                               inherits workspace
-  ▎     + Add data-eng override
-    ▾ Role: writer                                                                                 inherits workspace
-  ▎     + Add writer override
+
+
+
+
+
+
 
 
 
@@ -37,4 +37,4 @@
 
                                                                                                  ▎Cancel    ▎Save…
 
- ← → Choose  Enter Run  [ ] Switch tab  Ctrl+S Save  Esc Back                                  Not saved · keep editing
+ Enter Edit auth…  Space Mode  d Reset to inherited  a Add override…  [ ] Switch tab  Ctrl+S Save  Esc Back

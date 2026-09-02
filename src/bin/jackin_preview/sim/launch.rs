@@ -101,9 +101,14 @@ pub enum LaunchEvent {
     Activity(String),
     BuildLine(String),
     ContainerReady(String),
-    CredentialsResolved { origin: String, validation: String },
+    CredentialsResolved {
+        origin: String,
+        validation: String,
+    },
     /// Recoverable: the operator may retry or cancel.
-    CredentialError { message: String },
+    CredentialError {
+        message: String,
+    },
     Failed(LaunchFailure),
     Ready,
 }
@@ -207,8 +212,14 @@ impl LaunchRun {
 
     pub fn counts(&self) -> (usize, usize) {
         (
-            self.states.iter().filter(|s| **s == StepState::Done).count(),
-            self.states.iter().filter(|s| **s == StepState::Skipped).count(),
+            self.states
+                .iter()
+                .filter(|s| **s == StepState::Done)
+                .count(),
+            self.states
+                .iter()
+                .filter(|s| **s == StepState::Skipped)
+                .count(),
         )
     }
 
@@ -241,7 +252,10 @@ impl LaunchRun {
             self.current = Some(0);
             self.stage_start = self.tick;
             self.states[0] = StepState::Running;
-            ev.push(LaunchEvent::StageChanged(Stage::Identity, StepState::Running));
+            ev.push(LaunchEvent::StageChanged(
+                Stage::Identity,
+                StepState::Running,
+            ));
             ev.push(LaunchEvent::Activity(Stage::Identity.activity(self.agent)));
             return ev;
         };
@@ -250,23 +264,28 @@ impl LaunchRun {
         // stage-specific mid-stage events
         match stage {
             Stage::DerivedImage => {
-                let want = ((elapsed as usize) * BUILD_LOG.len() / self.durations[i] as usize).min(BUILD_LOG.len());
+                let want = ((elapsed as usize) * BUILD_LOG.len() / self.durations[i] as usize)
+                    .min(BUILD_LOG.len());
                 while self.build_lines_emitted < want {
-                    ev.push(LaunchEvent::BuildLine(BUILD_LOG[self.build_lines_emitted].to_owned()));
+                    ev.push(LaunchEvent::BuildLine(
+                        BUILD_LOG[self.build_lines_emitted].to_owned(),
+                    ));
                     self.build_lines_emitted += 1;
                 }
             }
             Stage::Construct if elapsed == 6 => {
                 ev.push(LaunchEvent::ContainerReady(self.container.clone()));
             }
-            Stage::Credentials if elapsed == 10 => {
-                if self.plan == LaunchPlan::CredentialsLocked && !self.credential_retried {
-                    self.credential_hold = true;
-                    ev.push(LaunchEvent::CredentialError {
-                        message: "1Password locked: unlock the app and retry".into(),
-                    });
-                    return ev;
-                }
+            Stage::Credentials
+                if elapsed == 10
+                    && self.plan == LaunchPlan::CredentialsLocked
+                    && !self.credential_retried =>
+            {
+                self.credential_hold = true;
+                ev.push(LaunchEvent::CredentialError {
+                    message: "1Password locked: unlock the app and retry".into(),
+                });
+                return ev;
             }
             _ => {}
         }
@@ -313,7 +332,9 @@ impl LaunchRun {
             }
             StepState::Blocked => {
                 self.blocked_at = Some(stage);
-                ev.push(LaunchEvent::Activity("Blocked · modeled state with no runtime producer".into()));
+                ev.push(LaunchEvent::Activity(
+                    "Blocked · modeled state with no runtime producer".into(),
+                ));
                 return ev;
             }
             _ => {}
@@ -351,7 +372,12 @@ mod tests {
 
     #[test]
     fn clean_plan_walks_all_eleven_stages_in_order() {
-        let (r, ev) = run_to_end(LaunchRun::new(LaunchPlan::Clean, Agent::ClaudeCode, "c", "run"));
+        let (r, ev) = run_to_end(LaunchRun::new(
+            LaunchPlan::Clean,
+            Agent::ClaudeCode,
+            "c",
+            "run",
+        ));
         assert!(r.done);
         let running: Vec<Stage> = ev
             .iter()
@@ -369,11 +395,21 @@ mod tests {
 
     #[test]
     fn failure_and_blocked_plans_stop_the_frontier() {
-        let (r, ev) = run_to_end(LaunchRun::new(LaunchPlan::FailNetwork, Agent::Codex, "c", "run"));
+        let (r, ev) = run_to_end(LaunchRun::new(
+            LaunchPlan::FailNetwork,
+            Agent::Codex,
+            "c",
+            "run",
+        ));
         assert_eq!(r.failure.as_ref().map(|f| f.stage), Some(Stage::Network));
         assert!(ev.iter().any(|e| matches!(e, LaunchEvent::Failed(_))));
         assert_eq!(r.states[Stage::Sidecar.index()], StepState::Queued);
-        let (b, _) = run_to_end(LaunchRun::new(LaunchPlan::BlockedSidecar, Agent::Codex, "c", "run"));
+        let (b, _) = run_to_end(LaunchRun::new(
+            LaunchPlan::BlockedSidecar,
+            Agent::Codex,
+            "c",
+            "run",
+        ));
         assert_eq!(b.blocked_at, Some(Stage::Sidecar));
     }
 
@@ -383,7 +419,10 @@ mod tests {
         let mut held = false;
         for _ in 0..200 {
             let ev = r.advance();
-            if ev.iter().any(|e| matches!(e, LaunchEvent::CredentialError { .. })) {
+            if ev
+                .iter()
+                .any(|e| matches!(e, LaunchEvent::CredentialError { .. }))
+            {
                 held = true;
                 break;
             }

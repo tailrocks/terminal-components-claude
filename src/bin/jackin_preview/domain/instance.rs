@@ -39,14 +39,24 @@ impl InstanceStatus {
     pub fn description(self) -> &'static str {
         match self {
             InstanceStatus::Running => "Container and Capsule daemon are live.",
-            InstanceStatus::CleanExited => "The final session ended cleanly; the container is stopped.",
-            InstanceStatus::Crashed => "The Capsule daemon stopped unexpectedly; the container is kept for inspection.",
-            InstanceStatus::PreservedDirty => "Stopped with uncommitted changes in the Workspace; kept until you decide.",
-            InstanceStatus::PreservedUnpushed => "Stopped with commits that were never pushed; kept until you decide.",
+            InstanceStatus::CleanExited => {
+                "The final session ended cleanly; the container is stopped."
+            }
+            InstanceStatus::Crashed => {
+                "The Capsule daemon stopped unexpectedly; the container is kept for inspection."
+            }
+            InstanceStatus::PreservedDirty => {
+                "Stopped with uncommitted changes in the Workspace; kept until you decide."
+            }
+            InstanceStatus::PreservedUnpushed => {
+                "Stopped with commits that were never pushed; kept until you decide."
+            }
             InstanceStatus::RestoreAvailable => "Stopped cleanly with a restorable Capsule layout.",
             InstanceStatus::Superseded => "Replaced by a newer instance for the same Workspace.",
             InstanceStatus::Purged => "Container and records were removed.",
-            InstanceStatus::FailedSetup => "Launch failed before the Capsule was ready; nothing to attach to.",
+            InstanceStatus::FailedSetup => {
+                "Launch failed before the Capsule was ready; nothing to attach to."
+            }
         }
     }
 

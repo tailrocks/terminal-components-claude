@@ -165,10 +165,24 @@ impl ManagerScreen {
         for ws in &w.workspaces {
             let kids = w.instances_of(Some(ws.id));
             let running = kids.iter().filter(|i| i.status.is_live()).count();
-            let failed = kids.iter().any(|i| matches!(i.status, InstanceStatus::FailedSetup | InstanceStatus::Crashed));
-            let restore = kids.iter().any(|i| i.status == InstanceStatus::RestoreAvailable);
-            let (meta, tone) = if let Some((_, what)) = self.busy_rows.iter().find(|(k, _)| *k == RowKey::Workspace(ws.id)) {
-                (format!("{} {what}", spinner_frame(w.clock.now_ms as u64 / 80)), Tone::Secondary)
+            let failed = kids.iter().any(|i| {
+                matches!(
+                    i.status,
+                    InstanceStatus::FailedSetup | InstanceStatus::Crashed
+                )
+            });
+            let restore = kids
+                .iter()
+                .any(|i| i.status == InstanceStatus::RestoreAvailable);
+            let (meta, tone) = if let Some((_, what)) = self
+                .busy_rows
+                .iter()
+                .find(|(k, _)| *k == RowKey::Workspace(ws.id))
+            {
+                (
+                    format!("{} {what}", spinner_frame(w.clock.now_ms as u64 / 80)),
+                    Tone::Secondary,
+                )
             } else if running > 0 {
                 (format!("{running} running"), Tone::Secondary)
             } else if failed {
@@ -206,19 +220,40 @@ impl ManagerScreen {
                         InstanceStatus::Crashed | InstanceStatus::FailedSetup => ("!", Tone::Error),
                         _ => ("◌", Tone::Muted),
                     };
-                    let (meta, mt) = if let Some((_, what)) = self.busy_rows.iter().find(|(k, _)| *k == RowKey::Instance(i.id.clone())) {
-                        (format!("{} {what}", spinner_frame(w.clock.now_ms as u64 / 80)), Tone::Secondary)
+                    let (meta, mt) = if let Some((_, what)) = self
+                        .busy_rows
+                        .iter()
+                        .find(|(k, _)| *k == RowKey::Instance(i.id.clone()))
+                    {
+                        (
+                            format!("{} {what}", spinner_frame(w.clock.now_ms as u64 / 80)),
+                            Tone::Secondary,
+                        )
                     } else {
                         match i.status {
                             InstanceStatus::Running => (
-                                format!("running {}", crate::clock::format_duration((w.now_secs() - i.created_secs).max(0) as u64)),
+                                format!(
+                                    "running {}",
+                                    crate::clock::format_duration(
+                                        (w.now_secs() - i.created_secs).max(0) as u64
+                                    )
+                                ),
                                 Tone::Secondary,
                             ),
-                            InstanceStatus::CleanExited => (format!("exited clean · {}", w.clock.ago(i.last_seen_secs)), Tone::Muted),
+                            InstanceStatus::CleanExited => (
+                                format!("exited clean · {}", w.clock.ago(i.last_seen_secs)),
+                                Tone::Muted,
+                            ),
                             InstanceStatus::Crashed => ("crashed · exit 137".into(), Tone::Error),
-                            InstanceStatus::PreservedDirty => ("preserved · dirty".into(), Tone::Secondary),
-                            InstanceStatus::PreservedUnpushed => ("preserved · unpushed".into(), Tone::Secondary),
-                            InstanceStatus::RestoreAvailable => ("restore available".into(), Tone::Secondary),
+                            InstanceStatus::PreservedDirty => {
+                                ("preserved · dirty".into(), Tone::Secondary)
+                            }
+                            InstanceStatus::PreservedUnpushed => {
+                                ("preserved · unpushed".into(), Tone::Secondary)
+                            }
+                            InstanceStatus::RestoreAvailable => {
+                                ("restore available".into(), Tone::Secondary)
+                            }
                             InstanceStatus::FailedSetup => ("failed setup".into(), Tone::Error),
                             _ => (i.status.label().into(), Tone::Muted),
                         }
@@ -228,10 +263,19 @@ impl ManagerScreen {
                         depth: 1,
                         glyph,
                         glyph_tone: gt,
-                        label: format!("{}  {} · {}", i.id.trim_start_matches("jk-"), i.role, i.agent.label()),
+                        label: format!(
+                            "{}  {} · {}",
+                            i.id.trim_start_matches("jk-"),
+                            i.role,
+                            i.agent.label()
+                        ),
                         meta,
                         meta_tone: mt,
-                        trailing: if i.status.dirty() { Some(("•", Tone::Warning)) } else { None },
+                        trailing: if i.status.dirty() {
+                            Some(("•", Tone::Warning))
+                        } else {
+                            None
+                        },
                         expandable: false,
                         expanded: false,
                     });
@@ -292,7 +336,10 @@ impl ManagerScreen {
         }
     }
 
-    fn selected_workspace<'a>(&self, w: &'a World) -> Option<&'a crate::domain::workspace::Workspace> {
+    fn selected_workspace<'a>(
+        &self,
+        w: &'a World,
+    ) -> Option<&'a crate::domain::workspace::Workspace> {
         match &self.selected {
             RowKey::Workspace(id) => w.workspace(*id),
             RowKey::CurrentDir => w.cwd_workspace(),
@@ -324,7 +371,11 @@ impl ManagerScreen {
         let (ws, role) = match &self.selected {
             RowKey::Workspace(id) => {
                 let ws = w.workspace(*id);
-                (Some(*id), ws.and_then(|x| x.roles.default.clone().or(x.roles.last.clone())).unwrap_or("the-architect".into()))
+                (
+                    Some(*id),
+                    ws.and_then(|x| x.roles.default.clone().or(x.roles.last.clone()))
+                        .unwrap_or("the-architect".into()),
+                )
             }
             RowKey::CurrentDir => (w.cwd_workspace().map(|x| x.id), "the-architect".into()),
             _ => return,
@@ -345,12 +396,21 @@ impl ManagerScreen {
     }
 
     fn open_session_picker(&mut self, instance: &str, w: &World, cx: &mut Cx) {
-        let Some(i) = w.instance(instance) else { return };
+        let Some(i) = w.instance(instance) else {
+            return;
+        };
         self.pending_session = Some(instance.to_owned());
-        let mut p = Picker::new(WidgetId::of("manager.session"), "New session · choose Agent");
+        let mut p = Picker::new(
+            WidgetId::of("manager.session"),
+            "New session · choose Agent",
+        );
         p.searchable = false;
         p.width = 84;
-        p.scope = Some(format!("instance {} › {}", i.id.trim_start_matches("jk-"), i.role));
+        p.scope = Some(format!(
+            "instance {} › {}",
+            i.id.trim_start_matches("jk-"),
+            i.role
+        ));
         let (mut items, mut targets) = agent_rows(w, i.workspace, Some(&i.role));
         items.push(PickerItem {
             label: "Shell".into(),
@@ -392,7 +452,9 @@ impl ManagerScreen {
                     pane: None,
                 });
             }
-            InstanceStatus::RestoreAvailable | InstanceStatus::PreservedDirty | InstanceStatus::PreservedUnpushed => {
+            InstanceStatus::RestoreAvailable
+            | InstanceStatus::PreservedDirty
+            | InstanceStatus::PreservedUnpushed => {
                 // restore: the container restarts; a fresh daemon with one shell
                 let wsname = i.workdir.trim_start_matches("/workspace/").to_owned();
                 let agent = i.agent;
@@ -407,7 +469,10 @@ impl ManagerScreen {
                 w.daemons.insert(id.to_owned(), d);
                 crate::domain::fixtures::refresh_snapshots(w);
                 w.sync_arbiter();
-                cx.status(format!("Restored {} · container restarted", id.trim_start_matches("jk-")));
+                cx.status(format!(
+                    "Restored {} · container restarted",
+                    id.trim_start_matches("jk-")
+                ));
                 cx.go(Go::Attach {
                     instance: id.to_owned(),
                     pane: None,
@@ -420,10 +485,16 @@ impl ManagerScreen {
                 ));
             }
             InstanceStatus::FailedSetup => {
-                cx.error(format!("Cannot reconnect: {} never reached the Capsule · launch again", id.trim_start_matches("jk-")));
+                cx.error(format!(
+                    "Cannot reconnect: {} never reached the Capsule · launch again",
+                    id.trim_start_matches("jk-")
+                ));
             }
             InstanceStatus::CleanExited => {
-                cx.status(format!("{} exited cleanly · launch the Workspace to start a new instance", id.trim_start_matches("jk-")));
+                cx.status(format!(
+                    "{} exited cleanly · launch the Workspace to start a new instance",
+                    id.trim_start_matches("jk-")
+                ));
             }
             _ => {}
         }
@@ -436,27 +507,75 @@ impl ManagerScreen {
         let account = w.account_for(i.agent.provider(), ws, Some(&i.role), None);
         let mut props = vec![
             Prop::new("Container", i.container_id()).copyable(),
-            Prop::new("Image", format!("jackin/derived:{}-{}", i.workdir.trim_start_matches("/workspace/"), &i.run_id[4..8])),
-            Prop::new("Workspace", format!("{} › role {}", ws.map(|x| x.name.as_str()).unwrap_or("current directory"), i.role)),
-            Prop::new("Agent", format!("{} · account {}", i.agent.label(), account.label(&w.accounts))),
-            Prop::new("Target", format!("{} · {}", i.workdir, plural(ws.map(|x| x.mounts.len()).unwrap_or(1), "mount", "mounts"))),
+            Prop::new(
+                "Image",
+                format!(
+                    "jackin/derived:{}-{}",
+                    i.workdir.trim_start_matches("/workspace/"),
+                    &i.run_id[4..8]
+                ),
+            ),
+            Prop::new(
+                "Workspace",
+                format!(
+                    "{} › role {}",
+                    ws.map(|x| x.name.as_str()).unwrap_or("current directory"),
+                    i.role
+                ),
+            ),
+            Prop::new(
+                "Agent",
+                format!(
+                    "{} · account {}",
+                    i.agent.label(),
+                    account.label(&w.accounts)
+                ),
+            ),
+            Prop::new(
+                "Target",
+                format!(
+                    "{} · {}",
+                    i.workdir,
+                    plural(ws.map(|x| x.mounts.len()).unwrap_or(1), "mount", "mounts")
+                ),
+            ),
             Prop::new("Run id", i.run_id.clone()).copyable(),
-            Prop::new("Lifecycle", i.status.label()).tone(if i.status.is_live() { Tone::Normal } else { Tone::Secondary }),
+            Prop::new("Lifecycle", i.status.label()).tone(if i.status.is_live() {
+                Tone::Normal
+            } else {
+                Tone::Secondary
+            }),
         ];
         match &i.daemon {
-            DaemonSnapshot::Unavailable => props.push(Prop::new("Daemon", "unavailable").tone(Tone::Warning)),
+            DaemonSnapshot::Unavailable => {
+                props.push(Prop::new("Daemon", "unavailable").tone(Tone::Warning))
+            }
             DaemonSnapshot::NoTabs => props.push(Prop::new("Daemon", "attached · no tabs")),
-            DaemonSnapshot::Tabs(t) => props.push(Prop::new("Daemon", format!("attached · {} · {}", plural(t.len(), "tab", "tabs"), w.clock.ago(i.last_seen_secs)))),
+            DaemonSnapshot::Tabs(t) => props.push(Prop::new(
+                "Daemon",
+                format!(
+                    "attached · {} · {}",
+                    plural(t.len(), "tab", "tabs"),
+                    w.clock.ago(i.last_seen_secs)
+                ),
+            )),
         }
-        let d = InfoDialog::new(WidgetId::of("manager.info"), &format!("Container {}", id.trim_start_matches("jk-")), props)
-            .meta("read-only");
+        let d = InfoDialog::new(
+            WidgetId::of("manager.info"),
+            &format!("Container {}", id.trim_start_matches("jk-")),
+            props,
+        )
+        .meta("read-only");
         cx.open(Modal::Info(d), ModalTag::new("info").key(id));
     }
 
     fn stop(&mut self, id: &str, w: &World, cx: &mut Cx) {
         let Some(i) = w.instance(id) else { return };
         if !i.status.stoppable() {
-            cx.status(format!("{} is not running · nothing to stop", id.trim_start_matches("jk-")));
+            cx.status(format!(
+                "{} is not running · nothing to stop",
+                id.trim_start_matches("jk-")
+            ));
             return;
         }
         let short = id.trim_start_matches("jk-").to_owned();
@@ -465,7 +584,11 @@ impl ManagerScreen {
             &format!("Stop instance {short}?"),
             &format!(
                 "The container stops and every session in it ends. The instance record stays reconnectable ({}).",
-                if i.is_dirty() { "preserved with uncommitted work" } else { "restore available" }
+                if i.is_dirty() {
+                    "preserved with uncommitted work"
+                } else {
+                    "restore available"
+                }
             ),
             "Stop",
         );
@@ -475,13 +598,40 @@ impl ManagerScreen {
     fn purge(&mut self, id: &str, w: &World, cx: &mut Cx) {
         let Some(i) = w.instance(id) else { return };
         let short = id.trim_start_matches("jk-").to_owned();
-        let ws = i.workspace.and_then(|x| w.workspace(x)).map(|x| x.name.clone()).unwrap_or("current directory".into());
+        let ws = i
+            .workspace
+            .and_then(|x| w.workspace(x))
+            .map(|x| x.name.clone())
+            .unwrap_or("current directory".into());
         let sessions = i.sessions.as_ref().map(|s| s.len()).unwrap_or(0);
         let facts = vec![
             Prop::new("Action", "purge the instance record and its container").tone(Tone::Error),
-            Prop::new("Target", format!("{short} · {ws} › {} · {}", i.role, i.agent.label())),
-            Prop::new("Scope", format!("1 container · {} · {}", plural(sessions, "preserved session", "preserved sessions"), if i.is_dirty() { "worktree with changes" } else { "clean worktree" })).tone(Tone::Secondary),
-            Prop::new("Risk", if i.is_dirty() { "uncommitted changes in the worktree are lost" } else { "the container and its recovery state are removed" }).tone(Tone::Warning),
+            Prop::new(
+                "Target",
+                format!("{short} · {ws} › {} · {}", i.role, i.agent.label()),
+            ),
+            Prop::new(
+                "Scope",
+                format!(
+                    "1 container · {} · {}",
+                    plural(sessions, "preserved session", "preserved sessions"),
+                    if i.is_dirty() {
+                        "worktree with changes"
+                    } else {
+                        "clean worktree"
+                    }
+                ),
+            )
+            .tone(Tone::Secondary),
+            Prop::new(
+                "Risk",
+                if i.is_dirty() {
+                    "uncommitted changes in the worktree are lost"
+                } else {
+                    "the container and its recovery state are removed"
+                },
+            )
+            .tone(Tone::Warning),
             Prop::new("Reversible", "no").tone(Tone::Secondary),
         ];
         let d = Dialog::facts(
@@ -503,7 +653,11 @@ impl ManagerScreen {
             &format!("Delete workspace {}?", x.name),
             &format!(
                 "The saved configuration is removed. {} and files on disk are kept.",
-                if kids == 0 { "Instances".to_owned() } else { plural(kids, "instance record", "instance records") }
+                if kids == 0 {
+                    "Instances".to_owned()
+                } else {
+                    plural(kids, "instance record", "instance records")
+                }
             ),
             "Delete",
         );
@@ -511,7 +665,11 @@ impl ManagerScreen {
     }
 
     fn prewarm(&mut self, ws: WorkspaceId, w: &mut World, cx: &mut Cx) {
-        if self.busy_rows.iter().any(|(k, _)| *k == RowKey::Workspace(ws)) {
+        if self
+            .busy_rows
+            .iter()
+            .any(|(k, _)| *k == RowKey::Workspace(ws))
+        {
             cx.status("Prewarm already running");
             return;
         }
@@ -541,7 +699,12 @@ impl ManagerScreen {
                 DaemonSnapshot::Tabs(tabs) => {
                     for (ti, t) in tabs.iter().enumerate() {
                         rows.push(DetailRow::Text(
-                            format!("{} tab {}  {}", if t.active { "▾" } else { "▸" }, ti + 1, t.label),
+                            format!(
+                                "{} tab {}  {}",
+                                if t.active { "▾" } else { "▸" },
+                                ti + 1,
+                                t.label
+                            ),
                             Tone::Secondary,
                         ));
                         if t.active || tabs.len() <= 3 {
@@ -567,7 +730,10 @@ impl ManagerScreen {
                         }
                     }
                 }
-                DaemonSnapshot::NoTabs => rows.push(DetailRow::Text("Daemon reports no tabs".into(), Tone::Muted)),
+                DaemonSnapshot::NoTabs => rows.push(DetailRow::Text(
+                    "Daemon reports no tabs".into(),
+                    Tone::Muted,
+                )),
                 DaemonSnapshot::Unavailable => rows.push(DetailRow::Text(
                     if i.status.is_live() {
                         "Daemon unavailable — showing manifest sessions".into()
@@ -579,7 +745,9 @@ impl ManagerScreen {
             }
             rows.push(DetailRow::Blank);
             match &i.sessions {
-                Ok(s) if s.is_empty() => rows.push(DetailRow::Text("No sessions recorded".into(), Tone::Muted)),
+                Ok(s) if s.is_empty() => {
+                    rows.push(DetailRow::Text("No sessions recorded".into(), Tone::Muted))
+                }
                 Ok(s) => {
                     for r in s {
                         rows.push(DetailRow::Session(format!(
@@ -595,7 +763,9 @@ impl ManagerScreen {
             }
         }
         self.detail_rows = rows;
-        self.detail_cursor = self.detail_cursor.min(self.detail_rows.len().saturating_sub(1));
+        self.detail_cursor = self
+            .detail_cursor
+            .min(self.detail_rows.len().saturating_sub(1));
     }
 
     fn detail_focus_ids(&self) -> Vec<WidgetId> {
@@ -604,7 +774,8 @@ impl ManagerScreen {
 
     fn rebuild_actions(&mut self, w: &World) {
         let mut v = vec![];
-        let mk = |name: &str, label: &str, kind: ButtonKind| Button::new(DETAIL.sub(name), label, kind);
+        let mk =
+            |name: &str, label: &str, kind: ButtonKind| Button::new(DETAIL.sub(name), label, kind);
         match &self.selected {
             RowKey::Instance(id) => {
                 let Some(i) = w.instance(id) else {
@@ -707,7 +878,9 @@ impl ManagerScreen {
     }
 
     fn drawer_visible(&self, focus: Option<WidgetId>) -> bool {
-        self.body_narrow && (self.drawer_open || focus.is_some_and(|f| f == DETAIL || self.actions.iter().any(|b| b.id == f)))
+        self.body_narrow
+            && (self.drawer_open
+                || focus.is_some_and(|f| f == DETAIL || self.actions.iter().any(|b| b.id == f)))
     }
 
     // ------------------------------------------------------------- render
@@ -718,13 +891,20 @@ impl ManagerScreen {
         let running = w.running_count();
         let pos = scrollbar::position_label(&self.scroll);
         let meta = if pos.is_empty() {
-            if running > 0 { format!("{running} running") } else { "no instances".into() }
+            if running > 0 {
+                format!("{running} running")
+            } else {
+                "no instances".into()
+            }
         } else if running > 0 {
             format!("{running} running · {pos}")
         } else {
             pos
         };
-        let inner = Panel::framed(Some("Workspaces")).focused(focused).meta(&meta).render(area, buf, t);
+        let inner = Panel::framed(Some("Workspaces"))
+            .focused(focused)
+            .meta(&meta)
+            .render(area, buf, t);
         self.tree_area = inner;
         let bg = t.canvas;
         self.scroll.set_viewport(inner.height as usize);
@@ -753,25 +933,44 @@ impl ManagerScreen {
             fill(buf, rect, st);
             buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
             let mut x = rect.x + 2 + row.depth * 2;
-            let gs = st.fg(t.tone(row.glyph_tone)).remove_modifier(Modifier::BOLD);
-            let gs = if s.focused && row.glyph_tone == Tone::Normal { st } else { gs };
+            let gs = st
+                .fg(t.tone(row.glyph_tone))
+                .remove_modifier(Modifier::BOLD);
+            let gs = if s.focused && row.glyph_tone == Tone::Normal {
+                st
+            } else {
+                gs
+            };
             buf.set_string(x, y, row.glyph, gs);
             if row.expandable {
                 ctx.clickable(Self::toggle_id(i), Rect::new(x, y, 2, 1));
             }
             x += 2;
-            let meta_w = if show_meta { width(&row.meta) as u16 } else { 0 };
+            let meta_w = if show_meta {
+                width(&row.meta) as u16
+            } else {
+                0
+            };
             let trailing_w: u16 = if row.trailing.is_some() { 2 } else { 0 };
             let avail = rect.right().saturating_sub(x + 1);
             let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 } + trailing_w);
             let label_style = if row.key == RowKey::NewWorkspace {
-                st.fg(if s.focused { t.text_primary } else { t.text_secondary })
+                st.fg(if s.focused {
+                    t.text_primary
+                } else {
+                    t.text_secondary
+                })
             } else if s.selected {
                 st.fg(t.accent)
             } else {
                 st
             };
-            buf.set_string(x, y, fit(&truncate_middle(&row.label, lw as usize), lw as usize), label_style);
+            buf.set_string(
+                x,
+                y,
+                fit(&truncate_middle(&row.label, lw as usize), lw as usize),
+                label_style,
+            );
             if meta_w > 0 && meta_w + 4 < avail {
                 buf.set_string(
                     rect.right().saturating_sub(meta_w + 1 + trailing_w),
@@ -785,17 +984,35 @@ impl ManagerScreen {
             }
             ctx.clickable(rid, rect);
             if row.expandable {
-                ctx.clickable(Self::toggle_id(i), Rect::new(rect.x + 2 + row.depth * 2, y, 2, 1));
+                ctx.clickable(
+                    Self::toggle_id(i),
+                    Rect::new(rect.x + 2 + row.depth * 2, y, 2, 1),
+                );
             }
         }
         if has_sb {
-            scrollbar::render_vertical(Rect::new(inner.right() - 1, inner.y, 1, inner.height), buf, ctx, TREE, &self.scroll, focused);
+            scrollbar::render_vertical(
+                Rect::new(inner.right() - 1, inner.y, 1, inner.height),
+                buf,
+                ctx,
+                TREE,
+                &self.scroll,
+                focused,
+            );
         }
     }
 
-    fn draw_detail(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World, as_drawer: bool) {
+    fn draw_detail(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        w: &World,
+        as_drawer: bool,
+    ) {
         let t = ctx.theme;
-        let focused = ctx.interaction.focused(DETAIL) || self.actions.iter().any(|b| ctx.interaction.focused(b.id));
+        let focused = ctx.interaction.focused(DETAIL)
+            || self.actions.iter().any(|b| ctx.interaction.focused(b.id));
         self.build_detail(w);
         self.rebuild_actions(w);
         let (title, scope_word): (String, String) = match &self.selected {
@@ -811,10 +1028,18 @@ impl ManagerScreen {
             ),
             RowKey::Workspace(id) => {
                 let ws = w.workspace(*id);
-                let n = w.instances_of(Some(*id)).iter().filter(|i| i.status.is_live()).count();
+                let n = w
+                    .instances_of(Some(*id))
+                    .iter()
+                    .filter(|i| i.status.is_live())
+                    .count();
                 (
                     ws.map(|x| x.name.clone()).unwrap_or_default(),
-                    if n > 0 { format!("saved workspace · {n} running") } else { "saved workspace".into() },
+                    if n > 0 {
+                        format!("saved workspace · {n} running")
+                    } else {
+                        "saved workspace".into()
+                    },
                 )
             }
             RowKey::Instance(id) => {
@@ -823,7 +1048,10 @@ impl ManagerScreen {
                     format!(
                         "{} · {}",
                         id.trim_start_matches("jk-"),
-                        i.and_then(|x| x.workspace).and_then(|x| w.workspace(x)).map(|x| x.name.as_str()).unwrap_or("current directory")
+                        i.and_then(|x| x.workspace)
+                            .and_then(|x| w.workspace(x))
+                            .map(|x| x.name.as_str())
+                            .unwrap_or("current directory")
                     ),
                     format!("instance · {}", i.map(|x| x.status.label()).unwrap_or("?")),
                 )
@@ -831,9 +1059,15 @@ impl ManagerScreen {
             RowKey::NewWorkspace => ("New workspace".into(), "create".into()),
         };
         let inner = if as_drawer {
-            Panel::framed(Some(&title)).focused(focused).meta(&scope_word).render(area, buf, t)
+            Panel::framed(Some(&title))
+                .focused(focused)
+                .meta(&scope_word)
+                .render(area, buf, t)
         } else {
-            Panel::card(Some(&title)).focused(focused).meta(&scope_word).render(area, buf, t)
+            Panel::card(Some(&title))
+                .focused(focused)
+                .meta(&scope_word)
+                .render(area, buf, t)
         };
         self.detail_area = inner;
         let bg = if as_drawer { t.canvas } else { t.surface };
@@ -841,7 +1075,12 @@ impl ManagerScreen {
         let mut y = inner.y;
         let put = |buf: &mut Buffer, y: u16, text: &str, style: Style| {
             if y < inner.bottom() {
-                buf.set_string(inner.x, y, truncate(text, inner.width as usize), style.bg(bg));
+                buf.set_string(
+                    inner.x,
+                    y,
+                    truncate(text, inner.width as usize),
+                    style.bg(bg),
+                );
             }
         };
         match self.selected.clone() {
@@ -858,7 +1097,14 @@ impl ManagerScreen {
                                 } else {
                                     ws.mounts
                                         .iter()
-                                        .map(|m| format!("{} · {} {}", w.tilde(m.source_label()), m.mode_label(), m.isolation.label().to_lowercase()))
+                                        .map(|m| {
+                                            format!(
+                                                "{} · {} {}",
+                                                w.tilde(m.source_label()),
+                                                m.mode_label(),
+                                                m.isolation.label().to_lowercase()
+                                            )
+                                        })
                                         .collect::<Vec<_>>()
                                         .join("\n")
                                 },
@@ -868,10 +1114,16 @@ impl ManagerScreen {
                                 "Roles",
                                 format!(
                                     "{}{}",
-                                    ws.roles.default.as_ref().map(|d| format!("{d} ★ · ")).unwrap_or_default(),
+                                    ws.roles
+                                        .default
+                                        .as_ref()
+                                        .map(|d| format!("{d} ★ · "))
+                                        .unwrap_or_default(),
                                     match &ws.roles.allowed {
-                                        crate::domain::workspace::AllowedRoles::All => format!("allowed all ({} in registry)", w.roles.len()),
-                                        crate::domain::workspace::AllowedRoles::Custom(l) => format!("allowed {} of {}", l.len(), w.roles.len()),
+                                        crate::domain::workspace::AllowedRoles::All =>
+                                            format!("allowed all ({} in registry)", w.roles.len()),
+                                        crate::domain::workspace::AllowedRoles::Custom(l) =>
+                                            format!("allowed {} of {}", l.len(), w.roles.len()),
                                     }
                                 ),
                             ),
@@ -880,15 +1132,35 @@ impl ManagerScreen {
                                 format!(
                                     "{} · {} [op]",
                                     plural(ws.env_count(), "var", "vars"),
-                                    ws.env.iter().chain(ws.role_env.values().flatten()).filter(|e| matches!(e.value, crate::domain::workspace::EnvValue::OnePassword(_))).count()
+                                    ws.env
+                                        .iter()
+                                        .chain(ws.role_env.values().flatten())
+                                        .filter(|e| matches!(
+                                            e.value,
+                                            crate::domain::workspace::EnvValue::OnePassword(_)
+                                        ))
+                                        .count()
                                 ),
                             ),
                         ];
                         let mut auth_lines = vec![];
                         for a in Agent::ALL {
-                            let r = w.account_for(a.provider(), Some(ws), ws.roles.default.as_deref(), None);
-                            if r.account.is_some() && (ws.account_overrides.contains_key(&a.provider()) || ws.auth.iter().any(|x| x.agent == a)) {
-                                auth_lines.push(format!("{} · {} ({})", a.label(), r.label(&w.accounts), r.level.label()));
+                            let r = w.account_for(
+                                a.provider(),
+                                Some(ws),
+                                ws.roles.default.as_deref(),
+                                None,
+                            );
+                            if r.account.is_some()
+                                && (ws.account_overrides.contains_key(&a.provider())
+                                    || ws.auth.iter().any(|x| x.agent == a))
+                            {
+                                auth_lines.push(format!(
+                                    "{} · {} ({})",
+                                    a.label(),
+                                    r.label(&w.accounts),
+                                    r.level.label()
+                                ));
                             }
                         }
                         if auth_lines.is_empty() {
@@ -904,14 +1176,29 @@ impl ManagerScreen {
                                 ws.dirty_policy.label()
                             ),
                         ));
-                        let used = props::render(Rect::new(inner.x, y, inner.width, inner.height), buf, t, &facts, bg);
+                        let used = props::render(
+                            Rect::new(inner.x, y, inner.width, inner.height),
+                            buf,
+                            t,
+                            &facts,
+                            bg,
+                        );
                         y += used + 1;
                         let kids = w.instances_of(Some(ws.id));
                         if !kids.is_empty() {
-                            put(buf, y, "Instances", t.secondary().add_modifier(Modifier::BOLD));
+                            put(
+                                buf,
+                                y,
+                                "Instances",
+                                t.secondary().add_modifier(Modifier::BOLD),
+                            );
                             let meta = match w.daemon_health {
-                                DaemonHealth::Healthy => format!("daemon · {}", w.clock.ago(w.last_refresh_secs)),
-                                DaemonHealth::Stale => format!("▲ daemon stale · {}", w.clock.ago(w.last_refresh_secs)),
+                                DaemonHealth::Healthy => {
+                                    format!("daemon · {}", w.clock.ago(w.last_refresh_secs))
+                                }
+                                DaemonHealth::Stale => {
+                                    format!("▲ daemon stale · {}", w.clock.ago(w.last_refresh_secs))
+                                }
                                 DaemonHealth::Unavailable => "! daemon unavailable".into(),
                             };
                             let mw = width(&meta) as u16;
@@ -924,7 +1211,8 @@ impl ManagerScreen {
                                     "{} {}  {} · {} · {}",
                                     match i.status {
                                         InstanceStatus::Running => "◉",
-                                        InstanceStatus::Crashed | InstanceStatus::FailedSetup => "!",
+                                        InstanceStatus::Crashed | InstanceStatus::FailedSetup =>
+                                            "!",
                                         _ => "◌",
                                     },
                                     i.id.trim_start_matches("jk-"),
@@ -932,7 +1220,16 @@ impl ManagerScreen {
                                     i.agent.label(),
                                     i.status.label()
                                 );
-                                put(buf, y, &line, if i.status.is_live() { t.primary() } else { t.secondary() });
+                                put(
+                                    buf,
+                                    y,
+                                    &line,
+                                    if i.status.is_live() {
+                                        t.primary()
+                                    } else {
+                                        t.secondary()
+                                    },
+                                );
                                 y += 1;
                             }
                         }
@@ -942,14 +1239,36 @@ impl ManagerScreen {
                             "{} is mounted at its own path inside the Construct. Enter launches with defaults; n creates a saved workspace.",
                             w.tilde(&w.cwd)
                         ));
-                        empty::render(Rect::new(inner.x, inner.y, inner.width, inner.height.saturating_sub(3)), buf, t, &e, bg);
+                        empty::render(
+                            Rect::new(
+                                inner.x,
+                                inner.y,
+                                inner.width,
+                                inner.height.saturating_sub(3),
+                            ),
+                            buf,
+                            t,
+                            &e,
+                            bg,
+                        );
                         y = inner.bottom().saturating_sub(2);
                     }
                 }
             }
             RowKey::NewWorkspace => {
                 let e = EmptyState::new("New workspace").hint("Enter starts the five-step create chain: source, destination, working directory, name, then the editor.");
-                empty::render(Rect::new(inner.x, inner.y, inner.width, inner.height.saturating_sub(3)), buf, t, &e, bg);
+                empty::render(
+                    Rect::new(
+                        inner.x,
+                        inner.y,
+                        inner.width,
+                        inner.height.saturating_sub(3),
+                    ),
+                    buf,
+                    t,
+                    &e,
+                    bg,
+                );
                 y = inner.bottom().saturating_sub(2);
             }
             RowKey::Instance(id) => {
@@ -957,28 +1276,73 @@ impl ManagerScreen {
                 let ws = i.workspace.and_then(|x| w.workspace(x));
                 let acc = w.account_for(i.agent.provider(), ws, Some(&i.role), None);
                 let facts = vec![
-                    Prop::new("Workspace", format!("{} › role {}", ws.map(|x| x.name.as_str()).unwrap_or("current directory"), i.role)),
-                    Prop::new("Agent", format!("{} · account {} ({})", i.agent.label(), acc.label(&w.accounts), acc.level.label())),
+                    Prop::new(
+                        "Workspace",
+                        format!(
+                            "{} › role {}",
+                            ws.map(|x| x.name.as_str()).unwrap_or("current directory"),
+                            i.role
+                        ),
+                    ),
+                    Prop::new(
+                        "Agent",
+                        format!(
+                            "{} · account {} ({})",
+                            i.agent.label(),
+                            acc.label(&w.accounts),
+                            acc.level.label()
+                        ),
+                    ),
                     Prop::new("Container", i.container_id()),
-                    Prop::new("Started", format!("{} · last seen {}", w.clock.ago(i.created_secs), w.clock.ago(i.last_seen_secs))),
-                    Prop::new("Lifecycle", format!("{} · {}", i.status.label(), i.status.description())).tone(match i.status {
+                    Prop::new(
+                        "Started",
+                        format!(
+                            "{} · last seen {}",
+                            w.clock.ago(i.created_secs),
+                            w.clock.ago(i.last_seen_secs)
+                        ),
+                    ),
+                    Prop::new(
+                        "Lifecycle",
+                        format!("{} · {}", i.status.label(), i.status.description()),
+                    )
+                    .tone(match i.status {
                         InstanceStatus::Crashed | InstanceStatus::FailedSetup => Tone::Error,
                         InstanceStatus::Running => Tone::Normal,
                         _ => Tone::Secondary,
-                    }).wrap(),
-                    Prop::new("Working tree", i.dirty_summary()).tone(if i.is_dirty() { Tone::Warning } else { Tone::Secondary }),
+                    })
+                    .wrap(),
+                    Prop::new("Working tree", i.dirty_summary()).tone(if i.is_dirty() {
+                        Tone::Warning
+                    } else {
+                        Tone::Secondary
+                    }),
                 ];
                 let mut facts = facts;
                 if let Some(b) = &i.branch {
-                    facts.push(Prop::new("Branch", match &i.pr {
-                        Some((n, title)) => format!("{b} · PR #{n} · {title}"),
-                        None => b.clone(),
-                    }));
+                    facts.push(Prop::new(
+                        "Branch",
+                        match &i.pr {
+                            Some((n, title)) => format!("{b} · PR #{n} · {title}"),
+                            None => b.clone(),
+                        },
+                    ));
                 }
-                let used = props::render(Rect::new(inner.x, y, inner.width, inner.height), buf, t, &facts, bg);
+                let used = props::render(
+                    Rect::new(inner.x, y, inner.width, inner.height),
+                    buf,
+                    t,
+                    &facts,
+                    bg,
+                );
                 y += used + 1;
                 let live_focus = ctx.interaction.focused(DETAIL);
-                put(buf, y, "Live topology", t.secondary().add_modifier(Modifier::BOLD));
+                put(
+                    buf,
+                    y,
+                    "Live topology",
+                    t.secondary().add_modifier(Modifier::BOLD),
+                );
                 let src = match &i.daemon {
                     DaemonSnapshot::Unavailable => "unavailable".to_owned(),
                     _ => format!("daemon · {}", w.clock.ago(i.last_seen_secs)),
@@ -995,7 +1359,11 @@ impl ManagerScreen {
                 if live_focus {
                     self.detail_scroll.ensure_visible(self.detail_cursor);
                 }
-                ctx.control(DETAIL, Rect::new(inner.x, list_top, inner.width, rows_avail as u16), false);
+                ctx.control(
+                    DETAIL,
+                    Rect::new(inner.x, list_top, inner.width, rows_avail as u16),
+                    false,
+                );
                 let mut sessions_heading_done = false;
                 for (k, ri) in self.detail_scroll.visible_range().enumerate() {
                     let yy = list_top + k as u16;
@@ -1009,10 +1377,17 @@ impl ManagerScreen {
                             let r = Rect::new(inner.x - 1, yy, inner.width + 1, 1);
                             fill(buf, r, st);
                             buf.set_string(r.x, yy, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
-                            buf.set_string(r.x + 2, yy, truncate(text, r.width.saturating_sub(3) as usize), st);
+                            buf.set_string(
+                                r.x + 2,
+                                yy,
+                                truncate(text, r.width.saturating_sub(3) as usize),
+                                st,
+                            );
                             ctx.clickable(rid, r);
                         }
-                        DetailRow::Text(text, tone) => put(buf, yy, text, Style::new().fg(t.tone(*tone))),
+                        DetailRow::Text(text, tone) => {
+                            put(buf, yy, text, Style::new().fg(t.tone(*tone)))
+                        }
                         DetailRow::Session(text) => {
                             if !sessions_heading_done {
                                 sessions_heading_done = true;
@@ -1020,8 +1395,20 @@ impl ManagerScreen {
                             put(buf, yy, text, t.secondary());
                         }
                         DetailRow::Blank => {
-                            put(buf, yy, "Sessions", t.secondary().add_modifier(Modifier::BOLD));
-                            let m = format!("manifest · {}", plural(i.sessions.as_ref().map(|s| s.len()).unwrap_or(0), "recorded", "recorded"));
+                            put(
+                                buf,
+                                yy,
+                                "Sessions",
+                                t.secondary().add_modifier(Modifier::BOLD),
+                            );
+                            let m = format!(
+                                "manifest · {}",
+                                plural(
+                                    i.sessions.as_ref().map(|s| s.len()).unwrap_or(0),
+                                    "recorded",
+                                    "recorded"
+                                )
+                            );
                             let mw = width(&m) as u16;
                             if yy < inner.bottom() && inner.width > mw + 12 {
                                 buf.set_string(inner.right() - mw, yy, &m, t.faint().bg(bg));
@@ -1072,15 +1459,37 @@ impl ManagerScreen {
             if y + 2 >= inner.bottom() {
                 break;
             }
-            let ws = i.workspace.and_then(|x| w.workspace(x)).map(|x| x.name.as_str()).unwrap_or("current directory");
-            let acc = w.account_for(i.agent.provider(), i.workspace.and_then(|x| w.workspace(x)), Some(&i.role), None);
+            let ws = i
+                .workspace
+                .and_then(|x| w.workspace(x))
+                .map(|x| x.name.as_str())
+                .unwrap_or("current directory");
+            let acc = w.account_for(
+                i.agent.provider(),
+                i.workspace.and_then(|x| w.workspace(x)),
+                Some(&i.role),
+                None,
+            );
             let rid = ROSTER.child(y as usize);
             let mut s = ctx.state(rid);
             s.selected = self.selected == RowKey::Instance(i.id.clone());
             let st = t.row(s, bg);
             let r = Rect::new(inner.x - 1, y, inner.width + 1, 3);
             fill(buf, r, st);
-            buf.set_string(inner.x, y, truncate(&format!("◉ {}  {ws} · {} · {}", i.id.trim_start_matches("jk-"), i.role, i.agent.label()), inner.width as usize), st);
+            buf.set_string(
+                inner.x,
+                y,
+                truncate(
+                    &format!(
+                        "◉ {}  {ws} · {} · {}",
+                        i.id.trim_start_matches("jk-"),
+                        i.role,
+                        i.agent.label()
+                    ),
+                    inner.width as usize,
+                ),
+                st,
+            );
             let live = match &i.daemon {
                 DaemonSnapshot::Tabs(tabs) => format!(
                     "running {} · {} · {}",
@@ -1088,17 +1497,42 @@ impl ManagerScreen {
                     plural(tabs.len(), "tab", "tabs"),
                     plural(tabs.iter().map(|t| t.panes.len()).sum(), "pane", "panes")
                 ),
-                _ => format!("running {} · daemon unavailable", crate::clock::format_duration((w.now_secs() - i.created_secs).max(0) as u64)),
+                _ => format!(
+                    "running {} · daemon unavailable",
+                    crate::clock::format_duration((w.now_secs() - i.created_secs).max(0) as u64)
+                ),
             };
-            buf.set_string(inner.x + 3, y + 1, truncate(&live, inner.width.saturating_sub(3) as usize), st.fg(t.text_muted).remove_modifier(Modifier::BOLD));
-            buf.set_string(inner.x + 3, y + 2, truncate(&format!("account {}", acc.label(&w.accounts)), inner.width.saturating_sub(3) as usize), st.fg(t.text_muted).remove_modifier(Modifier::BOLD));
+            buf.set_string(
+                inner.x + 3,
+                y + 1,
+                truncate(&live, inner.width.saturating_sub(3) as usize),
+                st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+            );
+            buf.set_string(
+                inner.x + 3,
+                y + 2,
+                truncate(
+                    &format!("account {}", acc.label(&w.accounts)),
+                    inner.width.saturating_sub(3) as usize,
+                ),
+                st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+            );
             ctx.clickable(rid, r);
             y += 4;
         }
-        let preserved: Vec<_> = w.instances.iter().filter(|i| i.status.dirty() || i.status == InstanceStatus::RestoreAvailable).collect();
+        let preserved: Vec<_> = w
+            .instances
+            .iter()
+            .filter(|i| i.status.dirty() || i.status == InstanceStatus::RestoreAvailable)
+            .collect();
         if !preserved.is_empty() && y + 2 < inner.bottom() {
             y += 1;
-            buf.set_string(inner.x, y, "Preserved", t.secondary().bg(bg).add_modifier(Modifier::BOLD));
+            buf.set_string(
+                inner.x,
+                y,
+                "Preserved",
+                t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+            );
             let m = plural(preserved.len(), "record", "records");
             buf.set_string(inner.right() - width(&m) as u16, y, &m, t.faint().bg(bg));
             y += 1;
@@ -1106,31 +1540,85 @@ impl ManagerScreen {
                 if y >= inner.bottom() {
                     break;
                 }
-                let ws = i.workspace.and_then(|x| w.workspace(x)).map(|x| x.name.as_str()).unwrap_or("current directory");
-                buf.set_string(inner.x, y, truncate(&format!("◌ {}  {ws} · {} · {}", i.id.trim_start_matches("jk-"), i.role, i.status.label()), inner.width as usize), t.secondary().bg(bg));
+                let ws = i
+                    .workspace
+                    .and_then(|x| w.workspace(x))
+                    .map(|x| x.name.as_str())
+                    .unwrap_or("current directory");
+                buf.set_string(
+                    inner.x,
+                    y,
+                    truncate(
+                        &format!(
+                            "◌ {}  {ws} · {} · {}",
+                            i.id.trim_start_matches("jk-"),
+                            i.role,
+                            i.status.label()
+                        ),
+                        inner.width as usize,
+                    ),
+                    t.secondary().bg(bg),
+                );
                 y += 1;
             }
         }
         if y + 3 < inner.bottom() {
             y += 1;
-            buf.set_string(inner.x, y, "Daemon", t.secondary().bg(bg).add_modifier(Modifier::BOLD));
+            buf.set_string(
+                inner.x,
+                y,
+                "Daemon",
+                t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+            );
             let (h, tone) = match w.daemon_health {
-                DaemonHealth::Healthy => (format!("healthy · {}", w.clock.ago(w.last_refresh_secs)), Tone::Secondary),
-                DaemonHealth::Stale => (format!("▲ stale · {}", w.clock.ago(w.last_refresh_secs)), Tone::Warning),
+                DaemonHealth::Healthy => (
+                    format!("healthy · {}", w.clock.ago(w.last_refresh_secs)),
+                    Tone::Secondary,
+                ),
+                DaemonHealth::Stale => (
+                    format!("▲ stale · {}", w.clock.ago(w.last_refresh_secs)),
+                    Tone::Warning,
+                ),
                 DaemonHealth::Unavailable => ("! unavailable".into(), Tone::Error),
             };
-            buf.set_string(inner.right() - width(&h) as u16, y, &h, Style::new().fg(t.tone(tone)).bg(bg));
+            buf.set_string(
+                inner.right() - width(&h) as u16,
+                y,
+                &h,
+                Style::new().fg(t.tone(tone)).bg(bg),
+            );
             y += 1;
-            buf.set_string(inner.x, y, "Refresh      throttled · every 5 s", t.muted().bg(bg));
+            buf.set_string(
+                inner.x,
+                y,
+                "Refresh      throttled · every 5 s",
+                t.muted().bg(bg),
+            );
             y += 1;
             let summary = crate::domain::usage::OverallSummary::compute(&w.accounts.accounts);
-            buf.set_string(inner.x, y, truncate(&format!("Usage        {} · {}", summary.health.label(), summary.issues_line()), inner.width as usize), t.muted().bg(bg));
+            buf.set_string(
+                inner.x,
+                y,
+                truncate(
+                    &format!(
+                        "Usage        {} · {}",
+                        summary.health.label(),
+                        summary.issues_line()
+                    ),
+                    inner.width as usize,
+                ),
+                t.muted().bg(bg),
+            );
         }
     }
 }
 
 /// Picker rows for every Agent with its resolved account and why.
-fn agent_rows(w: &World, ws: Option<WorkspaceId>, role: Option<&str>) -> (Vec<PickerItem>, Vec<(Agent, Option<String>)>) {
+fn agent_rows(
+    w: &World,
+    ws: Option<WorkspaceId>,
+    role: Option<&str>,
+) -> (Vec<PickerItem>, Vec<(Agent, Option<String>)>) {
     let wsr = ws.and_then(|id| w.workspace(id));
     let mut items = vec![];
     let mut targets = vec![];
@@ -1140,16 +1628,31 @@ fn agent_rows(w: &World, ws: Option<WorkspaceId>, role: Option<&str>) -> (Vec<Pi
             Some(id) => {
                 let acc = w.accounts.get(id);
                 let health = acc.map(|x| x.status_word()).unwrap_or("?");
-                (format!("account {} · {} · {}", acc.map(|x| x.title()).unwrap_or(id.clone()), r.level.label(), health), false)
+                (
+                    format!(
+                        "account {} · {} · {}",
+                        acc.map(|x| x.title()).unwrap_or(id.clone()),
+                        r.level.label(),
+                        health
+                    ),
+                    false,
+                )
             }
-            None => ("no account · register one in Accounts (c) or launch with the host profile".into(), false),
+            None => (
+                "no account · register one in Accounts (c) or launch with the host profile".into(),
+                false,
+            ),
         };
         items.push(PickerItem {
             label: a.label().into(),
             detail,
             glyph: if a.registerable() { "▪" } else { "·" },
             group: "agents",
-            tag: if r.account.is_some() { Some(r.level.label()) } else { Some("host profile") },
+            tag: if r.account.is_some() {
+                Some(r.level.label())
+            } else {
+                Some("host profile")
+            },
             matched: vec![],
             disabled,
         });
@@ -1204,31 +1707,47 @@ impl Screen for ManagerScreen {
     fn on_msg(&mut self, msg: &Msg, w: &mut World, cx: &mut Cx) -> Outcome {
         match msg {
             Msg::Prewarmed { workspace } => {
-                self.busy_rows.retain(|(k, _)| *k != RowKey::Workspace(*workspace));
-                let name = w.workspace(*workspace).map(|x| x.name.clone()).unwrap_or_default();
+                self.busy_rows
+                    .retain(|(k, _)| *k != RowKey::Workspace(*workspace));
+                let name = w
+                    .workspace(*workspace)
+                    .map(|x| x.name.clone())
+                    .unwrap_or_default();
                 cx.status(format!("Prewarmed {name} · derived image cached"));
             }
             Msg::Stopped { instance } => {
-                self.busy_rows.retain(|(k, _)| *k != RowKey::Instance(instance.clone()));
+                self.busy_rows
+                    .retain(|(k, _)| *k != RowKey::Instance(instance.clone()));
                 let dirty = w.instance(instance).is_some_and(|i| i.is_dirty());
                 let now_secs = w.clock.now_secs();
                 if let Some(i) = w.instance_mut(instance) {
-                    i.status = if dirty { InstanceStatus::PreservedDirty } else { InstanceStatus::RestoreAvailable };
+                    i.status = if dirty {
+                        InstanceStatus::PreservedDirty
+                    } else {
+                        InstanceStatus::RestoreAvailable
+                    };
                     i.last_seen_secs = now_secs;
                 }
                 w.daemons.remove(instance);
                 crate::domain::fixtures::refresh_snapshots(w);
                 w.sync_arbiter();
-                cx.status(format!("Instance {} stopped", instance.trim_start_matches("jk-")));
+                cx.status(format!(
+                    "Instance {} stopped",
+                    instance.trim_start_matches("jk-")
+                ));
             }
             Msg::Purged { instance } => {
-                self.busy_rows.retain(|(k, _)| *k != RowKey::Instance(instance.clone()));
+                self.busy_rows
+                    .retain(|(k, _)| *k != RowKey::Instance(instance.clone()));
                 if let Some(i) = w.instance_mut(instance) {
                     i.status = InstanceStatus::Purged;
                 }
                 w.daemons.remove(instance);
                 w.sync_arbiter();
-                cx.status(format!("Purged {} · container, sidecar, volume and recovery state removed", instance.trim_start_matches("jk-")));
+                cx.status(format!(
+                    "Purged {} · container, sidecar, volume and recovery state removed",
+                    instance.trim_start_matches("jk-")
+                ));
             }
             Msg::Refreshed { ok: false } => {
                 cx.error("Refresh failed: instance index unreadable · showing last-good rows");
@@ -1264,20 +1783,22 @@ impl Screen for ManagerScreen {
                         });
                         Outcome::Changed
                     }
-                    RowKey::CurrentDir => match w.cwd_workspace() {
-                        Some(ws) => {
-                            let id = ws.id;
-                            cx.go(Go::Editor {
-                                workspace: Some(id),
-                                pending: None,
-                            });
-                            Outcome::Changed
+                    RowKey::CurrentDir => {
+                        match w.cwd_workspace() {
+                            Some(ws) => {
+                                let id = ws.id;
+                                cx.go(Go::Editor {
+                                    workspace: Some(id),
+                                    pending: None,
+                                });
+                                Outcome::Changed
+                            }
+                            None => {
+                                cx.status("The current directory is not a saved workspace · n creates one");
+                                Outcome::Changed
+                            }
                         }
-                        None => {
-                            cx.status("The current directory is not a saved workspace · n creates one");
-                            Outcome::Changed
-                        }
-                    },
+                    }
                     _ => Outcome::Ignored,
                 };
             }
@@ -1435,7 +1956,8 @@ impl Screen for ManagerScreen {
                     return Outcome::Changed;
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
-                    self.detail_cursor = (self.detail_cursor + 1).min(self.detail_rows.len().saturating_sub(1));
+                    self.detail_cursor =
+                        (self.detail_cursor + 1).min(self.detail_rows.len().saturating_sub(1));
                     self.detail_scroll.ensure_visible(self.detail_cursor);
                     return Outcome::Changed;
                 }
@@ -1448,7 +1970,10 @@ impl Screen for ManagerScreen {
                     return Outcome::Changed;
                 }
                 KeyCode::Enter => {
-                    if let (RowKey::Instance(id), Some(DetailRow::Pane { pane, .. })) = (self.selected.clone(), self.detail_rows.get(self.detail_cursor)) {
+                    if let (RowKey::Instance(id), Some(DetailRow::Pane { pane, .. })) = (
+                        self.selected.clone(),
+                        self.detail_rows.get(self.detail_cursor),
+                    ) {
                         let pane = *pane;
                         if w.instance(&id).is_some_and(|i| i.status.is_live()) {
                             cx.go(Go::Attach {
@@ -1477,7 +2002,19 @@ impl Screen for ManagerScreen {
             let (o, fired) = self.actions[i].on_key(key);
             if fired {
                 let name = self.actions[i].id;
-                let names = ["reconnect", "session", "shell", "inspect", "stop", "purge", "launch", "edit", "prewarm", "delete", "new"];
+                let names = [
+                    "reconnect",
+                    "session",
+                    "shell",
+                    "inspect",
+                    "stop",
+                    "purge",
+                    "launch",
+                    "edit",
+                    "prewarm",
+                    "delete",
+                    "new",
+                ];
                 for n in names {
                     if DETAIL.sub(n) == name {
                         return self.fire_action(n, w, cx);
@@ -1552,13 +2089,28 @@ impl Screen for ManagerScreen {
             }
         }
         if id == scrollbar::id_for(TREE) {
-            let track = Rect::new(self.tree_area.right() - 1, self.tree_area.y, 1, self.tree_area.height);
-            self.scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            let track = Rect::new(
+                self.tree_area.right() - 1,
+                self.tree_area.y,
+                1,
+                self.tree_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
             return Outcome::Changed;
         }
         if id == scrollbar::id_for(DETAIL) {
-            let track = Rect::new(self.detail_area.right() - 1, self.detail_area.y, 1, self.detail_area.height);
-            self.detail_scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.detail_scroll));
+            let track = Rect::new(
+                self.detail_area.right() - 1,
+                self.detail_area.y,
+                1,
+                self.detail_area.height,
+            );
+            self.detail_scroll.scroll_to(scrollbar::offset_for_click(
+                track,
+                pos,
+                &self.detail_scroll,
+            ));
             return Outcome::Changed;
         }
         if id == DETAIL {
@@ -1571,7 +2123,10 @@ impl Screen for ManagerScreen {
                 let was = self.detail_cursor == i && cx.focus.is(DETAIL);
                 self.detail_cursor = i;
                 cx.focus.focus(DETAIL);
-                if was && let (RowKey::Instance(iid), Some(DetailRow::Pane { pane, .. })) = (self.selected.clone(), self.detail_rows.get(i)) {
+                if was
+                    && let (RowKey::Instance(iid), Some(DetailRow::Pane { pane, .. })) =
+                        (self.selected.clone(), self.detail_rows.get(i))
+                {
                     let pane = *pane;
                     cx.go(Go::Attach {
                         instance: iid,
@@ -1585,7 +2140,19 @@ impl Screen for ManagerScreen {
             if self.actions[i].id == id {
                 cx.focus.focus(id);
                 if self.actions[i].on_click() {
-                    let names = ["reconnect", "session", "shell", "inspect", "stop", "purge", "launch", "edit", "prewarm", "delete", "new"];
+                    let names = [
+                        "reconnect",
+                        "session",
+                        "shell",
+                        "inspect",
+                        "stop",
+                        "purge",
+                        "launch",
+                        "edit",
+                        "prewarm",
+                        "delete",
+                        "new",
+                    ];
                     for n in names {
                         if DETAIL.sub(n) == id {
                             return self.fire_action(n, w, cx);
@@ -1616,7 +2183,13 @@ impl Screen for ManagerScreen {
         Outcome::Ignored
     }
 
-    fn on_double_click(&mut self, id: WidgetId, _pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_double_click(
+        &mut self,
+        id: WidgetId,
+        _pos: Position,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         for i in self.scroll.visible_range() {
             if Self::row_id(i) == id {
                 self.selected = self.rows[i].key.clone();
@@ -1632,8 +2205,14 @@ impl Screen for ManagerScreen {
             return self.seam.on_drag(&mut self.split, container, 2, pos);
         }
         if pressed == scrollbar::id_for(TREE) {
-            let track = Rect::new(self.tree_area.right() - 1, self.tree_area.y, 1, self.tree_area.height);
-            self.scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            let track = Rect::new(
+                self.tree_area.right() - 1,
+                self.tree_area.y,
+                1,
+                self.tree_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
             return Outcome::Changed;
         }
         Outcome::Ignored
@@ -1651,7 +2230,13 @@ impl Screen for ManagerScreen {
         Outcome::Ignored
     }
 
-    fn on_modal(&mut self, tag: &ModalTag, result: ModalResult, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         match (tag.kind, result) {
             ("launch", ModalResult::Picked(i)) => {
                 let Some((agent, account)) = self.picker_targets.get(i).cloned() else {
@@ -1663,7 +2248,13 @@ impl Screen for ManagerScreen {
                 let plan = match w.scenario {
                     crate::scenario::Scenario::LaunchFailure => LaunchPlan::FailNetwork,
                     crate::scenario::Scenario::HardCases => {
-                        if w.op.session == crate::sim::onepassword::OpSession::Locked && account.as_deref().is_some_and(|a| a.contains("work") || a.contains("grok") || a.contains("codex-primary")) {
+                        if w.op.session == crate::sim::onepassword::OpSession::Locked
+                            && account.as_deref().is_some_and(|a| {
+                                a.contains("work")
+                                    || a.contains("grok")
+                                    || a.contains("codex-primary")
+                            })
+                        {
                             LaunchPlan::CredentialsLocked
                         } else if role == "sre" {
                             LaunchPlan::BlockedSidecar
@@ -1697,21 +2288,38 @@ impl Screen for ManagerScreen {
                 });
                 Outcome::Changed
             }
-            ("stop", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "stop",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 let id = tag.key.clone();
-                self.busy_rows.push((RowKey::Instance(id.clone()), "stopping…"));
+                self.busy_rows
+                    .push((RowKey::Instance(id.clone()), "stopping…"));
                 w.schedule(1_800, Msg::Stopped { instance: id });
                 cx.status("Stopping…");
                 Outcome::Changed
             }
-            ("purge", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "purge",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 let id = tag.key.clone();
-                self.busy_rows.push((RowKey::Instance(id.clone()), "purging…"));
+                self.busy_rows
+                    .push((RowKey::Instance(id.clone()), "purging…"));
                 w.schedule(2_200, Msg::Purged { instance: id });
                 cx.status("Purging…");
                 Outcome::Changed
             }
-            ("delete", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "delete",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 let id = tag.n as WorkspaceId;
                 let name = w.workspace(id).map(|x| x.name.clone()).unwrap_or_default();
                 w.workspaces.retain(|x| x.id != id);
@@ -1722,14 +2330,22 @@ impl Screen for ManagerScreen {
                 }
                 self.selected = RowKey::CurrentDir;
                 self.build_rows(w);
-                cx.status(format!("Deleted workspace {name} · instances and files kept"));
+                cx.status(format!(
+                    "Deleted workspace {name} · instances and files kept"
+                ));
                 Outcome::Changed
             }
             ("info", ModalResult::Info(InfoResult::Copy(v))) => {
                 cx.copy(v);
                 Outcome::Changed
             }
-            (_, ModalResult::Cancelled) | (_, ModalResult::Dialog { action: Some(0), .. }) => {
+            (_, ModalResult::Cancelled)
+            | (
+                _,
+                ModalResult::Dialog {
+                    action: Some(0), ..
+                },
+            ) => {
                 if tag.kind == "stop" || tag.kind == "purge" || tag.kind == "delete" {
                     cx.status("Cancelled · nothing changed");
                 }
@@ -1750,12 +2366,23 @@ impl Screen for ManagerScreen {
         if self.body_narrow {
             let drawer = self.drawer_visible(focus);
             let summary_h = 6u16.min(area.height / 3);
-            let tree = Rect::new(area.x, area.y, area.width, area.height.saturating_sub(summary_h + 1));
+            let tree = Rect::new(
+                area.x,
+                area.y,
+                area.width,
+                area.height.saturating_sub(summary_h + 1),
+            );
             self.draw_tree(tree, buf, ctx, w);
             let summary = Rect::new(area.x, tree.bottom() + 1, area.width, summary_h);
             if drawer {
                 // the drawer covers the body; the tree is still a reachable stop
-                self.draw_detail(Rect::new(area.x, area.y, area.width, area.height), buf, ctx, w, true);
+                self.draw_detail(
+                    Rect::new(area.x, area.y, area.width, area.height),
+                    buf,
+                    ctx,
+                    w,
+                    true,
+                );
             } else {
                 self.draw_summary(summary, buf, ctx, w);
                 // hidden-but-reachable detail stop
@@ -1770,7 +2397,12 @@ impl Screen for ManagerScreen {
         let (left, right) = self.split.horizontal(area, 2);
         let handle = self.split.handle(SplitDir::Horizontal, area, 2);
         self.draw_tree(left, buf, ctx, w);
-        self.seam.render(Rect::new(handle.x + 1, handle.y, 1, handle.height), buf, ctx, t.canvas);
+        self.seam.render(
+            Rect::new(handle.x + 1, handle.y, 1, handle.height),
+            buf,
+            ctx,
+            t.canvas,
+        );
         if self.wide {
             let (detail, roster) = Split::new(55, 40, 36).horizontal(right, 2);
             self.draw_detail(detail, buf, ctx, w, false);
@@ -1800,7 +2432,9 @@ impl Screen for ManagerScreen {
         match &self.selected {
             RowKey::Instance(id) => {
                 let live = w.instance(id).is_some_and(|i| i.status.is_live());
-                let restorable = w.instance(id).is_some_and(|i| i.status.reconnectable() && !i.status.is_live());
+                let restorable = w
+                    .instance(id)
+                    .is_some_and(|i| i.status.reconnectable() && !i.status.is_live());
                 if live {
                     v.push(hint("Enter", "Reconnect"));
                     v.push(hint("a", "New session"));
@@ -1845,9 +2479,17 @@ impl Screen for ManagerScreen {
     fn crumb(&self, w: &World) -> String {
         match &self.selected {
             RowKey::CurrentDir => "Workspaces".into(),
-            RowKey::Workspace(id) => format!("Workspaces › {}", w.workspace(*id).map(|x| x.name.as_str()).unwrap_or("?")),
+            RowKey::Workspace(id) => format!(
+                "Workspaces › {}",
+                w.workspace(*id).map(|x| x.name.as_str()).unwrap_or("?")
+            ),
             RowKey::Instance(id) => {
-                let ws = w.instance(id).and_then(|i| i.workspace).and_then(|x| w.workspace(x)).map(|x| x.name.clone()).unwrap_or("current directory".into());
+                let ws = w
+                    .instance(id)
+                    .and_then(|i| i.workspace)
+                    .and_then(|x| w.workspace(x))
+                    .map(|x| x.name.clone())
+                    .unwrap_or("current directory".into());
                 format!("Workspaces › {ws} › {}", id.trim_start_matches("jk-"))
             }
             RowKey::NewWorkspace => "Workspaces › new workspace".into(),
@@ -1857,7 +2499,17 @@ impl Screen for ManagerScreen {
     fn strip_right(&self, w: &World) -> Vec<Segment> {
         let mut v = vec![];
         if !self.busy_rows.is_empty() {
-            v.push(Segment::new(format!("{} {}", spinner_frame(w.clock.now_ms as u64 / 80), self.busy_rows[0].1.trim_end_matches('…')), Tone::Secondary).priority(6));
+            v.push(
+                Segment::new(
+                    format!(
+                        "{} {}",
+                        spinner_frame(w.clock.now_ms as u64 / 80),
+                        self.busy_rows[0].1.trim_end_matches('…')
+                    ),
+                    Tone::Secondary,
+                )
+                .priority(6),
+            );
         }
         v
     }
@@ -1882,20 +2534,36 @@ impl ManagerScreen {
             RowKey::Instance(id) => format!("Instance {}", id.trim_start_matches("jk-")),
             RowKey::NewWorkspace => "New workspace".into(),
         };
-        let inner = Panel::card(Some(&title)).meta("Tab details").render(area, buf, t);
+        let inner = Panel::card(Some(&title))
+            .meta("Tab details")
+            .render(area, buf, t);
         let lines: Vec<(String, Tone)> = match &self.selected {
             RowKey::CurrentDir | RowKey::Workspace(_) => match self.selected_workspace(w) {
                 Some(ws) => vec![
-                    (format!("{} · {} · {}", ws.workdir, plural(ws.mounts.len(), "mount", "mounts"), plural(ws.env_count(), "var", "vars")), Tone::Secondary),
+                    (
+                        format!(
+                            "{} · {} · {}",
+                            ws.workdir,
+                            plural(ws.mounts.len(), "mount", "mounts"),
+                            plural(ws.env_count(), "var", "vars")
+                        ),
+                        Tone::Secondary,
+                    ),
                     (
                         format!(
                             "Roles {}{} · Auth {}",
-                            ws.roles.default.as_deref().map(|d| format!("{d} ★")).unwrap_or("none".into()),
+                            ws.roles
+                                .default
+                                .as_deref()
+                                .map(|d| format!("{d} ★"))
+                                .unwrap_or("none".into()),
                             match &ws.roles.allowed {
                                 crate::domain::workspace::AllowedRoles::All => " · all".to_owned(),
-                                crate::domain::workspace::AllowedRoles::Custom(l) => format!(" · {} allowed", l.len()),
+                                crate::domain::workspace::AllowedRoles::Custom(l) =>
+                                    format!(" · {} allowed", l.len()),
                             },
-                            w.account_for(Agent::ClaudeCode.provider(), Some(ws), None, None).label(&w.accounts)
+                            w.account_for(Agent::ClaudeCode.provider(), Some(ws), None, None)
+                                .label(&w.accounts)
                         ),
                         Tone::Muted,
                     ),
@@ -1903,19 +2571,45 @@ impl ManagerScreen {
                 .into_iter()
                 .chain(w.instances_of(Some(ws.id)).iter().take(2).map(|i| {
                     (
-                        format!("{} {}  {} · {} · {}", if i.status.is_live() { "◉" } else { "◌" }, i.id.trim_start_matches("jk-"), i.role, i.agent.label(), i.status.label()),
+                        format!(
+                            "{} {}  {} · {} · {}",
+                            if i.status.is_live() { "◉" } else { "◌" },
+                            i.id.trim_start_matches("jk-"),
+                            i.role,
+                            i.agent.label(),
+                            i.status.label()
+                        ),
                         Tone::Secondary,
                     )
                 }))
                 .collect(),
-                None => vec![(format!("{} · not saved · Enter launches, n creates a workspace", w.tilde(&w.cwd)), Tone::Muted)],
+                None => vec![(
+                    format!(
+                        "{} · not saved · Enter launches, n creates a workspace",
+                        w.tilde(&w.cwd)
+                    ),
+                    Tone::Muted,
+                )],
             },
             RowKey::Instance(id) => match w.instance(id) {
                 Some(i) => vec![
-                    (format!("{} · {} · {} · {}", i.role, i.agent.label(), i.status.label(), i.dirty_summary()), Tone::Secondary),
+                    (
+                        format!(
+                            "{} · {} · {} · {}",
+                            i.role,
+                            i.agent.label(),
+                            i.status.label(),
+                            i.dirty_summary()
+                        ),
+                        Tone::Secondary,
+                    ),
                     (
                         match &i.daemon {
-                            DaemonSnapshot::Tabs(tabs) => format!("daemon · {} · {}", plural(tabs.len(), "tab", "tabs"), plural(tabs.iter().map(|t| t.panes.len()).sum(), "pane", "panes")),
+                            DaemonSnapshot::Tabs(tabs) => format!(
+                                "daemon · {} · {}",
+                                plural(tabs.len(), "tab", "tabs"),
+                                plural(tabs.iter().map(|t| t.panes.len()).sum(), "pane", "panes")
+                            ),
                             DaemonSnapshot::NoTabs => "daemon reports no tabs".into(),
                             DaemonSnapshot::Unavailable => "daemon unavailable".into(),
                         },
@@ -1924,13 +2618,21 @@ impl ManagerScreen {
                 ],
                 None => vec![],
             },
-            RowKey::NewWorkspace => vec![("Enter starts the five-step create chain".into(), Tone::Muted)],
+            RowKey::NewWorkspace => vec![(
+                "Enter starts the five-step create chain".into(),
+                Tone::Muted,
+            )],
         };
         for (i, (l, tone)) in lines.iter().enumerate() {
             if inner.y + i as u16 >= inner.bottom() {
                 break;
             }
-            buf.set_string(inner.x, inner.y + i as u16, truncate(l, inner.width as usize), Style::new().fg(t.tone(*tone)).bg(bg));
+            buf.set_string(
+                inner.x,
+                inner.y + i as u16,
+                truncate(l, inner.width as usize),
+                Style::new().fg(t.tone(*tone)).bg(bg),
+            );
         }
         ctx.clickable(DETAIL, area);
     }

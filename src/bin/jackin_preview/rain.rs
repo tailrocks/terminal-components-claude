@@ -24,8 +24,7 @@ pub const MOTION_SEED: u64 = 0x4A41_434B_494E_5E5E;
 /// Stateless mixer over three keyed lanes: the only randomness source.
 #[inline]
 pub const fn mix(a: u64, b: u64, c: u64) -> u64 {
-    let mut z = a
-        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+    let mut z = a.wrapping_mul(0x9E37_79B9_7F4A_7C15)
         ^ b.wrapping_mul(0xD1B5_4A32_D192_ED03)
         ^ c.wrapping_mul(0x2545_F491_4F6C_DD1D)
         ^ MOTION_SEED;
@@ -95,7 +94,11 @@ pub fn style(t: &Theme, tone: Tone, dim: u8) -> Option<Style> {
             };
             Some(
                 Style::new()
-                    .fg(if dim == 0 { t.text_on_accent } else { t.text_muted })
+                    .fg(if dim == 0 {
+                        t.text_on_accent
+                    } else {
+                        t.text_muted
+                    })
                     .bg(bg)
                     .add_modifier(Modifier::BOLD),
             )
@@ -108,7 +111,11 @@ pub fn style(t: &Theme, tone: Tone, dim: u8) -> Option<Style> {
             };
             Some(
                 Style::new()
-                    .fg(if dim == 0 { t.text_primary } else { t.text_secondary })
+                    .fg(if dim == 0 {
+                        t.text_primary
+                    } else {
+                        t.text_secondary
+                    })
                     .bg(bg)
                     .add_modifier(Modifier::BOLD),
             )
@@ -141,9 +148,17 @@ pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, t: &Theme) {
     if steps == 0 {
         return;
     }
-    let ladder = [t.text_ghost, t.text_faint, t.text_muted, t.text_secondary, t.text_primary];
+    let ladder = [
+        t.text_ghost,
+        t.text_faint,
+        t.text_muted,
+        t.text_secondary,
+        t.text_primary,
+    ];
     for pos in area.positions() {
-        let Some(cell) = buf.cell_mut(pos) else { continue };
+        let Some(cell) = buf.cell_mut(pos) else {
+            continue;
+        };
         let st = cell.style();
         let fg = st.fg.unwrap_or(t.text_primary);
         let idx = ladder.iter().position(|c| *c == fg);
@@ -161,10 +176,18 @@ pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, t: &Theme) {
                 _ => None,
             },
             None if fg == t.error || fg == t.warning => {
-                if steps >= 4 { None } else { Some(ladder[4 - steps as usize - 1]) }
+                if steps >= 4 {
+                    None
+                } else {
+                    Some(ladder[4 - steps as usize - 1])
+                }
             }
             None => {
-                if steps >= 3 { None } else { Some(t.text_faint) }
+                if steps >= 3 {
+                    None
+                } else {
+                    Some(t.text_faint)
+                }
             }
         };
         let bg = st.bg.unwrap_or(t.canvas);
@@ -225,7 +248,16 @@ fn resolve(cell: &GlitchCell, j: u64, tick: u64, len: u64) -> (char, Tone) {
 
 /// Paint a set of cells resolving over `len` ticks; blank cells inside the
 /// bounding box show sparse noise while resolving. `dim` dims the result.
-fn paint_glitch(buf: &mut Buffer, cells: &[GlitchCell], bbox: Rect, j: u64, tick: u64, len: u64, dim: u8, t: &Theme) {
+fn paint_glitch(
+    buf: &mut Buffer,
+    cells: &[GlitchCell],
+    bbox: Rect,
+    j: u64,
+    tick: u64,
+    len: u64,
+    dim: u8,
+    t: &Theme,
+) {
     for c in cells {
         let (ch, tone) = resolve(c, j, tick, len);
         if let Some(st) = style(t, tone, dim) {
@@ -238,10 +270,17 @@ fn paint_glitch(buf: &mut Buffer, cells: &[GlitchCell], bbox: Rect, j: u64, tick
                 continue;
             }
             let r = resolve_at(pos.x, pos.y);
-            if j < r && pct(mix(pos.x as u64, pos.y as u64, 5)) < 35
+            if j < r
+                && pct(mix(pos.x as u64, pos.y as u64, 5)) < 35
                 && let Some(st) = style(t, Tone::Ladder(1), dim)
             {
-                put(buf, pos.x, pos.y, glyph(pos.x as u64, pos.y as u64, tick), st);
+                put(
+                    buf,
+                    pos.x,
+                    pos.y,
+                    glyph(pos.x as u64, pos.y as u64, tick),
+                    st,
+                );
             }
         }
     }
@@ -270,7 +309,10 @@ pub fn mark_variant(area: Rect) -> MarkVariant {
 }
 
 fn center(area: Rect) -> (u16, u16) {
-    (area.x + area.width / 2, area.y + (area.height / 2).saturating_sub(1))
+    (
+        area.x + area.width / 2,
+        area.y + (area.height / 2).saturating_sub(1),
+    )
 }
 
 fn pill_cells(x0: u16, y: u16) -> Vec<GlitchCell> {
@@ -280,7 +322,11 @@ fn pill_cells(x0: u16, y: u16) -> Vec<GlitchCell> {
             x: x0 + i as u16,
             y,
             target: ch,
-            tone: if ch == '❯' { Tone::PillChevron } else { Tone::Pill },
+            tone: if ch == '❯' {
+                Tone::PillChevron
+            } else {
+                Tone::Pill
+            },
         })
         .collect()
 }
@@ -293,7 +339,10 @@ pub fn mark_cells(area: Rect, variant: MarkVariant) -> (Vec<GlitchCell>, Rect) {
         MarkVariant::Full => cy.saturating_sub(2),
         MarkVariant::Compact => cy.saturating_sub(1),
     };
-    (pill_cells(x0, y), Rect::new(x0, y, PILL.chars().count() as u16, 1))
+    (
+        pill_cells(x0, y),
+        Rect::new(x0, y, PILL.chars().count() as u16, 1),
+    )
 }
 
 fn caption_cells(area: Rect, text: &str, y: u16) -> (Vec<GlitchCell>, Rect) {
@@ -331,13 +380,22 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
     }
     let x = area.right().saturating_sub(n + 2);
     let y = area.bottom().saturating_sub(1);
-    let ks = Style::new().fg(t.text_muted).bg(t.canvas).add_modifier(Modifier::BOLD);
+    let ks = Style::new()
+        .fg(t.text_muted)
+        .bg(t.canvas)
+        .add_modifier(Modifier::BOLD);
     let as_ = Style::new().fg(t.text_faint).bg(t.canvas);
     for (i, ch) in key.chars().enumerate() {
         put(buf, x + i as u16, y, ch, ks);
     }
     for (i, ch) in action.chars().enumerate() {
-        put(buf, x + key.chars().count() as u16 + 1 + i as u16, y, ch, as_);
+        put(
+            buf,
+            x + key.chars().count() as u16 + 1 + i as u16,
+            y,
+            ch,
+            as_,
+        );
     }
 }
 
@@ -396,7 +454,7 @@ fn column_params(x: u16, rows: u16) -> ColumnParams {
         gap,
         period,
         phase: (m >> 24) % period,
-        signal: (m >> 40) % 8 == 0,
+        signal: (m >> 40).is_multiple_of(8),
         order: (m >> 48) % 100,
     }
 }
@@ -614,10 +672,11 @@ pub fn render_intro(
         IntroPhase::Phrases => {
             fill_canvas(buf, area, t);
             for i in 0..3 {
-                if tick >= P_START[i] && tick < P_START[i] + P_LEN[i] {
-                    if let Some(tone) = phrase_tone(tick - P_START[i], P_HOLD[i]) {
-                        draw_text(buf, area, PHRASES[i], cy, tone, t);
-                    }
+                if tick >= P_START[i]
+                    && tick < P_START[i] + P_LEN[i]
+                    && let Some(tone) = phrase_tone(tick - P_START[i], P_HOLD[i])
+                {
+                    draw_text(buf, area, PHRASES[i], cy, tone, t);
                 }
             }
             // bottom pill, the boundary marker of the host
@@ -684,11 +743,23 @@ pub fn render_intro(
                     bbox.width + 6,
                     bbox.height + 2,
                 );
-                let exclude: &[Rect] = if k < 30 { std::slice::from_ref(&halo) } else { &[] };
+                let exclude: &[Rect] = if k < 30 {
+                    std::slice::from_ref(&halo)
+                } else {
+                    &[]
+                };
                 paint_rain(buf, area, spec, exclude, None, t);
                 if k < 30 {
                     // the mark dissolves cell by cell during ignition
-                    let dim = if k >= 24 { 3 } else if k >= 16 { 2 } else if k >= 8 { 1 } else { 0 };
+                    let dim = if k >= 24 {
+                        3
+                    } else if k >= 16 {
+                        2
+                    } else if k >= 8 {
+                        1
+                    } else {
+                        0
+                    };
                     for c in &cells {
                         if mix(c.x as u64, c.y as u64, 7) % 30 >= k {
                             let tone_dim = match c.tone {
@@ -802,7 +873,11 @@ impl OutroState {
 }
 
 fn outro_density(k: u64) -> u8 {
-    (if k < 40 { 85 } else { 85 * (99u64.saturating_sub(k)) / 60 }) as u8
+    (if k < 40 {
+        85
+    } else {
+        85 * (99u64.saturating_sub(k)) / 60
+    }) as u8
 }
 
 pub fn render_outro(
@@ -837,7 +912,12 @@ pub fn render_outro(
                 }
                 // rain only inside the consumed band
                 let above = Rect::new(area.x, area.y, area.width, lo.saturating_sub(area.y));
-                let below = Rect::new(area.x, hi + 1, area.width, area.bottom().saturating_sub(hi + 1));
+                let below = Rect::new(
+                    area.x,
+                    hi + 1,
+                    area.width,
+                    area.bottom().saturating_sub(hi + 1),
+                );
                 paint_rain(buf, area, spec, &[above, below], None, t);
             } else {
                 fill_canvas(buf, area, t);
@@ -848,8 +928,12 @@ pub fn render_outro(
         OutroPhase::Caption => {
             fill_canvas(buf, area, t);
             match (state.mode, state.caption()) {
-                (Motion::Reduced, Some(text)) => draw_text(buf, area, &text, cy, Tone::Ladder(4), t),
-                (Motion::Reduced, None) => draw_text(buf, area, PILL.trim(), cy, Tone::Ladder(1), t),
+                (Motion::Reduced, Some(text)) => {
+                    draw_text(buf, area, &text, cy, Tone::Ladder(4), t)
+                }
+                (Motion::Reduced, None) => {
+                    draw_text(buf, area, PILL.trim(), cy, Tone::Ladder(1), t)
+                }
                 (_, Some(text)) => {
                     let c = state.tick - OUT_WARP;
                     let (mut cells, bbox) = caption_cells(area, &text, cy);
@@ -894,7 +978,7 @@ pub fn paint_atmosphere(
         let gap = 6 + (m >> 16) % 19;
         let period = area.height as u64 + trail + gap;
         let phase = (m >> 24) % period;
-        let signal = (m >> 40) % 10 == 0;
+        let signal = (m >> 40).is_multiple_of(10);
         let head = (t_local / period_t + phase) % period;
         let head_y = head as i64 - gap as i64;
         for y in area.top()..area.bottom() {
@@ -902,7 +986,7 @@ pub fn paint_atmosphere(
                 continue;
             }
             let age = head_y - (y - area.y) as i64;
-            if age < 0 || age > 3 {
+            if !(0..=3).contains(&age) {
                 continue;
             }
             let tone = if age == 0 {
@@ -984,7 +1068,9 @@ mod tests {
         n.skip();
         assert!(n.is_done());
         assert_eq!(
-            OutroState::new(Motion::Full, Some(8040), 0).caption().as_deref(),
+            OutroState::new(Motion::Full, Some(8040), 0)
+                .caption()
+                .as_deref(),
             Some("You were in the Construct for 2 h 14 min")
         );
     }

@@ -32,22 +32,27 @@ use ratatui::style::{Modifier, Style};
 use super::modals::{BrowserResult, FileBrowser, FormDialog, FormField, FormValues, OpFlow};
 use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
 use crate::domain::account::{
-    Account, AccountId, AccountOrigin, CredentialSource, DetectedKind, DuplicateProbe, IssueCode, Lifecycle,
-    ValidationState, fingerprint, masked, tail_of,
+    Account, AccountId, AccountOrigin, CredentialSource, DetectedKind, DuplicateProbe, IssueCode,
+    Lifecycle, ValidationState, fingerprint, masked, tail_of,
 };
 use crate::domain::agent::{Agent, Provider, UsageSurface};
 use crate::domain::onepassword::OpReference;
 use crate::domain::usage::{Freshness, OverallSummary, QuotaStatus, QuotaWindow, WindowUnit};
-use junie_tui::ui::text::thousands;
 use crate::sim::provider::{self, CheckRow, ValidationOutcome};
 use crate::sim::world::{Msg, World};
+use junie_tui::ui::text::thousands;
 
 pub const TREE: WidgetId = WidgetId::of("accounts.tree");
 pub const INSPECTOR: WidgetId = WidgetId::of("accounts.inspector");
 pub const SEAM: WidgetId = WidgetId::of("accounts.seam");
 pub const FORM: WidgetId = WidgetId::of("accounts.form");
 
-const REGISTERABLE: [Provider; 4] = [Provider::Anthropic, Provider::OpenAi, Provider::XAi, Provider::OpenCode];
+const REGISTERABLE: [Provider; 4] = [
+    Provider::Anthropic,
+    Provider::OpenAi,
+    Provider::XAi,
+    Provider::OpenCode,
+];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Sel {
@@ -156,7 +161,11 @@ impl AccountsScreen {
             expandable: false,
             expanded: false,
         }];
-        let q = self.filter.as_ref().map(|f| f.to_lowercase()).filter(|f| !f.is_empty());
+        let q = self
+            .filter
+            .as_ref()
+            .map(|f| f.to_lowercase())
+            .filter(|f| !f.is_empty());
         for surface in UsageSurface::ALL {
             let accounts: Vec<&Account> = w
                 .accounts
@@ -169,7 +178,10 @@ impl AccountsScreen {
                             || a.provider.label().to_lowercase().contains(q)
                             || a.identity.label().to_lowercase().contains(q)
                             || a.status_word().contains(q.as_str())
-                            || a.identity.plan.as_ref().is_some_and(|p| p.to_lowercase().contains(q))
+                            || a.identity
+                                .plan
+                                .as_ref()
+                                .is_some_and(|p| p.to_lowercase().contains(q))
                     }
                     None => true,
                 })
@@ -191,7 +203,12 @@ impl AccountsScreen {
                 }
                 continue;
             }
-            if accounts.is_empty() && (q.is_some() || !surface.provider().is_some_and(|p| p.agent().is_some_and(|a| a.registerable()))) {
+            if accounts.is_empty()
+                && (q.is_some()
+                    || !surface
+                        .provider()
+                        .is_some_and(|p| p.agent().is_some_and(|a| a.registerable())))
+            {
                 if q.is_none() {
                     rows.push(Row {
                         sel: Sel::Provider(surface),
@@ -209,8 +226,20 @@ impl AccountsScreen {
                 continue;
             }
             let expanded = !self.folded.contains(&surface);
-            let warn = accounts.iter().filter(|a| a.enabled && matches!(a.usage.worst_status(), Some(QuotaStatus::Warning))).count();
-            let err = accounts.iter().filter(|a| a.enabled && (a.is_error_state() || matches!(a.usage.worst_status(), Some(QuotaStatus::Exhausted)))).count();
+            let warn = accounts
+                .iter()
+                .filter(|a| {
+                    a.enabled && matches!(a.usage.worst_status(), Some(QuotaStatus::Warning))
+                })
+                .count();
+            let err = accounts
+                .iter()
+                .filter(|a| {
+                    a.enabled
+                        && (a.is_error_state()
+                            || matches!(a.usage.worst_status(), Some(QuotaStatus::Exhausted)))
+                })
+                .count();
             let health = if err > 0 {
                 Some(("!", Tone::Error))
             } else if warn > 0 {
@@ -224,7 +253,11 @@ impl AccountsScreen {
                 star: false,
                 label: surface.surface_name().into(),
                 health,
-                meta: if accounts.is_empty() { "no accounts".into() } else { accounts.len().to_string() },
+                meta: if accounts.is_empty() {
+                    "no accounts".into()
+                } else {
+                    accounts.len().to_string()
+                },
                 meta_tone: Tone::Muted,
                 faint: accounts.is_empty(),
                 expandable: !accounts.is_empty(),
@@ -235,9 +268,13 @@ impl AccountsScreen {
                     let (meta, tone) = account_meta(a, w);
                     let health = if !a.enabled {
                         None
-                    } else if a.is_error_state() || matches!(a.usage.worst_status(), Some(QuotaStatus::Exhausted)) {
+                    } else if a.is_error_state()
+                        || matches!(a.usage.worst_status(), Some(QuotaStatus::Exhausted))
+                    {
                         Some(("!", Tone::Error))
-                    } else if matches!(a.usage.worst_status(), Some(QuotaStatus::Warning)) || a.usage.freshness.phase == Freshness::Stale {
+                    } else if matches!(a.usage.worst_status(), Some(QuotaStatus::Warning))
+                        || a.usage.freshness.phase == Freshness::Stale
+                    {
                         Some(("▲", Tone::Warning))
                     } else {
                         None
@@ -246,7 +283,9 @@ impl AccountsScreen {
                         sel: Sel::Account(a.id.clone()),
                         depth: 1,
                         star: a.default_for_provider,
-                        label: if a.origin == AccountOrigin::Discovered && a.display_name != "discovered" {
+                        label: if a.origin == AccountOrigin::Discovered
+                            && a.display_name != "discovered"
+                        {
                             format!("{} · discovered", a.display_name)
                         } else {
                             a.display_name.clone()
@@ -278,7 +317,11 @@ impl AccountsScreen {
         self.rows = rows;
         if !self.rows.iter().any(|r| r.sel == self.selected) {
             self.selected = match &self.selected {
-                Sel::Account(id) => w.accounts.get(id).map(|a| Sel::Provider(a.surface)).unwrap_or(Sel::Overview),
+                Sel::Account(id) => w
+                    .accounts
+                    .get(id)
+                    .map(|a| Sel::Provider(a.surface))
+                    .unwrap_or(Sel::Overview),
                 _ => Sel::Overview,
             };
             if !self.rows.iter().any(|r| r.sel == self.selected) {
@@ -319,8 +362,20 @@ impl AccountsScreen {
     fn refresh_scope(&mut self, w: &mut World, cx: &mut Cx) {
         let ids: Vec<AccountId> = match &self.selected {
             Sel::Account(id) => vec![id.clone()],
-            Sel::Provider(s) => w.accounts.accounts.iter().filter(|a| a.surface == *s && a.enabled).map(|a| a.id.clone()).collect(),
-            _ => w.accounts.accounts.iter().filter(|a| a.enabled).map(|a| a.id.clone()).collect(),
+            Sel::Provider(s) => w
+                .accounts
+                .accounts
+                .iter()
+                .filter(|a| a.surface == *s && a.enabled)
+                .map(|a| a.id.clone())
+                .collect(),
+            _ => w
+                .accounts
+                .accounts
+                .iter()
+                .filter(|a| a.enabled)
+                .map(|a| a.id.clone())
+                .collect(),
         };
         if ids.is_empty() {
             cx.status("Nothing to refresh");
@@ -328,13 +383,20 @@ impl AccountsScreen {
         }
         let mut started = 0;
         for (i, id) in ids.iter().enumerate() {
-            let Some(a) = w.accounts.get_mut(id) else { continue };
+            let Some(a) = w.accounts.get_mut(id) else {
+                continue;
+            };
             if a.usage.freshness.phase == Freshness::Refreshing {
                 continue;
             }
             a.usage.freshness.phase = Freshness::Refreshing;
             let dur = provider::refresh_duration_ms(a) + i as i64 * 160;
-            w.schedule(dur, Msg::AccountRefreshed { account: id.clone() });
+            w.schedule(
+                dur,
+                Msg::AccountRefreshed {
+                    account: id.clone(),
+                },
+            );
             started += 1;
         }
         if started == 0 {
@@ -345,18 +407,37 @@ impl AccountsScreen {
                 Sel::Provider(s) => s.label().to_owned(),
                 _ => "all".into(),
             };
-            cx.status(format!("Refreshing {scope} · {}", plural(started, "account", "accounts")));
+            cx.status(format!(
+                "Refreshing {scope} · {}",
+                plural(started, "account", "accounts")
+            ));
         }
     }
 
     fn apply_refresh(&mut self, id: &str, w: &mut World, cx: &mut Cx) {
         let now = w.now_secs();
         let locked = w.op.session != crate::sim::onepassword::OpSession::SignedIn;
-        let Some(a) = w.accounts.get_mut(id) else { return };
+        let broker_down = w.refresh_fails;
+        let Some(a) = w.accounts.get_mut(id) else {
+            return;
+        };
         let title = a.title();
         a.last_refresh_secs = Some(now);
         let outcome: &str;
         match (&a.source, a.issue.as_ref().map(|i| i.code)) {
+            _ if broker_down => {
+                a.usage.freshness.phase = if a.usage.freshness.last_good_secs.is_some() {
+                    Freshness::Stale
+                } else {
+                    Freshness::Failed
+                };
+                a.issue = Some(crate::domain::account::RecoverableIssue::new(
+                    IssueCode::ProviderUnavailable,
+                    "Usage broker unreachable: last good values kept",
+                    crate::domain::account::Recoverability::Retryable,
+                ));
+                outcome = "broker unreachable · last good kept";
+            }
             (CredentialSource::OnePassword(_), _) if locked => {
                 a.usage.freshness.phase = Freshness::Failed;
                 a.issue = Some(crate::domain::account::RecoverableIssue::new(
@@ -381,7 +462,9 @@ impl AccountsScreen {
                 a.usage.freshness.phase = Freshness::Failed;
                 outcome = "provider unavailable";
             }
-            (_, Some(IssueCode::CredentialFileMissing)) | (_, Some(IssueCode::Unauthorized)) | (_, Some(IssueCode::ApiKeyInvalid)) => {
+            (_, Some(IssueCode::CredentialFileMissing))
+            | (_, Some(IssueCode::Unauthorized))
+            | (_, Some(IssueCode::ApiKeyInvalid)) => {
                 a.usage.freshness.phase = Freshness::Failed;
                 outcome = "needs attention";
             }
@@ -392,7 +475,12 @@ impl AccountsScreen {
                 {
                     a.issue = None;
                 }
-                if let Some(win) = a.usage.windows.iter_mut().find(|w| w.used_pct.is_some() && w.status != QuotaStatus::Exhausted) {
+                if let Some(win) = a
+                    .usage
+                    .windows
+                    .iter_mut()
+                    .find(|w| w.used_pct.is_some() && w.status != QuotaStatus::Exhausted)
+                {
                     let p = (win.used_pct.unwrap_or(0) + 1).min(100);
                     win.used_pct = Some(p);
                     win.status = QuotaStatus::from_pct(p);
@@ -401,7 +489,10 @@ impl AccountsScreen {
             }
         }
         let n = a.usage.windows.iter().filter(|w| w.has_meter()).count();
-        cx.status(format!("Refreshed {title} · {outcome} · {}", plural(n, "window", "windows")));
+        cx.status(format!(
+            "Refreshed {title} · {outcome} · {}",
+            plural(n, "window", "windows")
+        ));
     }
 
     fn open_form(&mut self, editing: Option<&Account>, w: &World, cx: &mut Cx) {
@@ -409,7 +500,14 @@ impl AccountsScreen {
             Some(a) => format!("Edit account · {}", a.title()),
             None => "New account".into(),
         };
-        let provider_idx = editing.map(|a| REGISTERABLE.iter().position(|p| *p == a.provider).unwrap_or(0)).unwrap_or(0);
+        let provider_idx = editing
+            .map(|a| {
+                REGISTERABLE
+                    .iter()
+                    .position(|p| *p == a.provider)
+                    .unwrap_or(0)
+            })
+            .unwrap_or(0);
         let source_idx = match editing.map(|a| &a.source) {
             Some(CredentialSource::LocalFolder { .. }) => 1,
             Some(CredentialSource::PlainApiKey { .. }) => 2,
@@ -430,18 +528,31 @@ impl AccountsScreen {
                     .placeholder("personal · work · experiments")
                     .value(editing.and_then(|a| a.purpose.as_deref()).unwrap_or("")),
             ),
-            FormField::select("provider", Select::new(FORM.sub("provider"), "Provider", &labels, provider_idx)),
+            FormField::select(
+                "provider",
+                Select::new(FORM.sub("provider"), "Provider", &labels, provider_idx),
+            ),
             FormField::note("link", vec![]),
             FormField::radio(
                 "source",
                 RadioGroup::new(
                     FORM.sub("source"),
                     "Credential source",
-                    &["1Password item / field  (recommended)", "Local agent folder", "Plain-text API key"],
+                    &[
+                        "1Password item / field  (recommended)",
+                        "Local agent folder",
+                        "Plain-text API key",
+                    ],
                     source_idx,
                 ),
             ),
-            FormField::chooser("op", FORM.sub("op"), "1Password reference", "not chosen", "Choose…"),
+            FormField::chooser(
+                "op",
+                FORM.sub("op"),
+                "1Password reference",
+                "not chosen",
+                "Choose…",
+            ),
             FormField::note("op_note", vec![]),
             FormField::input(
                 "folder",
@@ -463,7 +574,11 @@ impl AccountsScreen {
                     .help("Typed once; only a fingerprint and a four-character tail are stored"),
             )
             .hidden(),
-            FormField::input("endpoint", TextInput::new(FORM.sub("endpoint"), "Endpoint / deployment").value("api.x.ai")).hidden(),
+            FormField::input(
+                "endpoint",
+                TextInput::new(FORM.sub("endpoint"), "Endpoint / deployment").value("api.x.ai"),
+            )
+            .hidden(),
             FormField::note("validation", vec![]),
         ];
         // editing keeps existing reference metadata
@@ -493,9 +608,19 @@ impl AccountsScreen {
         }
         self.form = Some(ctx);
         let mut form = FormDialog::new(FORM, &title, fields)
-            .meta(if editing.is_some() { "form · edits" } else { "form · unsaved" })
-            .action("plain", Button::subtle(FORM.sub("plain"), "Enter plain text instead"))
-            .action("validate", Button::secondary(FORM.sub("validate"), "Validate"))
+            .meta(if editing.is_some() {
+                "form · edits"
+            } else {
+                "form · unsaved"
+            })
+            .action(
+                "plain",
+                Button::subtle(FORM.sub("plain"), "Enter plain text instead"),
+            )
+            .action(
+                "validate",
+                Button::secondary(FORM.sub("validate"), "Validate"),
+            )
             .width(70)
             .keep_open_on_save();
         Self::reveal(&mut form, w);
@@ -546,7 +671,11 @@ impl AccountsScreen {
         let _ = w;
     }
 
-    fn run_validation(&mut self, values: &FormValues, w: &World) -> Result<ValidationOutcome, String> {
+    fn run_validation(
+        &mut self,
+        values: &FormValues,
+        w: &World,
+    ) -> Result<ValidationOutcome, String> {
         let get = |name: &str| -> String {
             values
                 .iter()
@@ -573,8 +702,17 @@ impl AccountsScreen {
         let ctx = self.form.as_ref().ok_or("no form")?;
         match source {
             0 => {
-                let r = ctx.op_ref.clone().ok_or("Choose a 1Password item and field first")?;
-                Ok(provider::validate(provider, &CredentialSource::OnePassword(r), None, &w.op, now))
+                let r = ctx
+                    .op_ref
+                    .clone()
+                    .ok_or("Choose a 1Password item and field first")?;
+                Ok(provider::validate(
+                    provider,
+                    &CredentialSource::OnePassword(r),
+                    None,
+                    &w.op,
+                    now,
+                ))
             }
             1 => {
                 let path = get("folder");
@@ -625,7 +763,14 @@ impl AccountsScreen {
         if let Some(i) = &v.issue
             && !i.is_informational()
         {
-            lines.push((i.message.clone(), if i.code == IssueCode::QuotaUnsupported { Tone::Warning } else { Tone::Error }));
+            lines.push((
+                i.message.clone(),
+                if i.code == IssueCode::QuotaUnsupported {
+                    Tone::Warning
+                } else {
+                    Tone::Error
+                },
+            ));
         }
         lines
     }
@@ -670,7 +815,9 @@ impl AccountsScreen {
                 return;
             }
         };
-        let Some(ctx) = self.form.as_ref() else { return };
+        let Some(ctx) = self.form.as_ref() else {
+            return;
+        };
         let editing = ctx.editing.clone();
         let source = match source_idx {
             0 => CredentialSource::OnePassword(ctx.op_ref.clone().unwrap()),
@@ -691,7 +838,11 @@ impl AccountsScreen {
             }
         };
         if outcome.level.is_none() {
-            let msg = outcome.issue.as_ref().map(|i| i.message.clone()).unwrap_or("Validation failed".into());
+            let msg = outcome
+                .issue
+                .as_ref()
+                .map(|i| i.message.clone())
+                .unwrap_or("Validation failed".into());
             let note = Self::validation_note(&outcome);
             cx.with_form(move |f| {
                 f.error = Some(msg);
@@ -734,7 +885,10 @@ impl AccountsScreen {
             && dup.origin == AccountOrigin::Registered
             && matches!(source, CredentialSource::LocalFolder { .. })
         {
-            let msg = format!("Already registered: {} authenticates the same identity", dup.title());
+            let msg = format!(
+                "Already registered: {} authenticates the same identity",
+                dup.title()
+            );
             cx.with_form(move |f| f.error = Some(msg));
             return;
         }
@@ -745,7 +899,8 @@ impl AccountsScreen {
             None => format!(
                 "acct-{}-{}",
                 provider.short().to_lowercase().replace(['/', ' ', '.'], ""),
-                name.to_lowercase().replace(|c: char| !c.is_ascii_alphanumeric(), "-")
+                name.to_lowercase()
+                    .replace(|c: char| !c.is_ascii_alphanumeric(), "-")
             ),
         };
         let purpose = get("purpose").trim().to_owned();
@@ -755,7 +910,12 @@ impl AccountsScreen {
         } else {
             None
         };
-        let first_for_provider = w.accounts.by_provider(provider).filter(|a| a.origin == AccountOrigin::Registered).count() == 0;
+        let first_for_provider = w
+            .accounts
+            .by_provider(provider)
+            .filter(|a| a.origin == AccountOrigin::Registered)
+            .count()
+            == 0;
         // a discovered twin of the same folder is promoted rather than duplicated
         if let CredentialSource::LocalFolder { path, .. } = &source {
             let twin = w
@@ -779,7 +939,11 @@ impl AccountsScreen {
             }
             None => Account::registered(&id, &name, provider, source),
         };
-        account.purpose = if purpose.is_empty() { None } else { Some(purpose) };
+        account.purpose = if purpose.is_empty() {
+            None
+        } else {
+            Some(purpose)
+        };
         account.endpoint = endpoint.map(|host| crate::domain::account::Endpoint {
             label: "Grok Build".into(),
             host,
@@ -805,7 +969,10 @@ impl AccountsScreen {
         self.selected = Sel::Account(id.clone());
         self.folded.remove(&provider.usage_surface());
         if name_taken {
-            cx.status(format!("Saved {title} · name already used for {}", provider.short()));
+            cx.status(format!(
+                "Saved {title} · name already used for {}",
+                provider.short()
+            ));
         } else {
             cx.status(format!("Saved {title}"));
         }
@@ -821,20 +988,34 @@ impl AccountsScreen {
         let refs = w
             .workspaces
             .iter()
-            .filter(|ws| ws.account_overrides.values().any(|v| v == id) || ws.role_account_overrides.values().any(|v| v == id))
+            .filter(|ws| {
+                ws.account_overrides.values().any(|v| v == id)
+                    || ws.role_account_overrides.values().any(|v| v == id)
+            })
             .count();
         let body = format!(
             "{} is removed from the registry. {} Workspace or Role selections that point at it fall back to the provider default. The credential source itself is untouched.",
             a.title(),
-            if refs == 0 { "No".to_owned() } else { refs.to_string() }
+            if refs == 0 {
+                "No".to_owned()
+            } else {
+                refs.to_string()
+            }
         );
         self.pending_remove = Some(id.to_owned());
-        let d = Dialog::destructive(WidgetId::of("accounts.remove"), &format!("Remove account {}?", a.display_name), &body, "Remove");
+        let d = Dialog::destructive(
+            WidgetId::of("accounts.remove"),
+            &format!("Remove account {}?", a.display_name),
+            &body,
+            "Remove",
+        );
         cx.open(Modal::Dialog(d), ModalTag::new("remove").key(id));
     }
 
     fn toggle_enabled(&mut self, id: &str, w: &mut World, cx: &mut Cx) {
-        let Some(a) = w.accounts.get_mut(id) else { return };
+        let Some(a) = w.accounts.get_mut(id) else {
+            return;
+        };
         if !a.mutations_allowed() {
             cx.status("Discovered accounts are read-only");
             return;
@@ -845,7 +1026,10 @@ impl AccountsScreen {
             a.default_for_provider = false;
             cx.status(format!("Disabled {title} · provider default cleared"));
         } else {
-            cx.status(format!("{} {title}", if enabled { "Enabled" } else { "Disabled" }));
+            cx.status(format!(
+                "{} {title}",
+                if enabled { "Enabled" } else { "Disabled" }
+            ));
         }
         w.accounts.revision += 1;
     }
@@ -862,20 +1046,37 @@ impl AccountsScreen {
     }
 
     fn validate_account(&mut self, id: &str, w: &mut World, cx: &mut Cx) {
-        let Some(a) = w.accounts.get_mut(id) else { return };
-        a.validation = ValidationState::Validating { started_tick: w.clock.now_ms as u64 };
+        let Some(a) = w.accounts.get_mut(id) else {
+            return;
+        };
+        a.validation = ValidationState::Validating {
+            started_tick: w.clock.now_ms as u64,
+        };
         let title = a.title();
-        w.schedule(900, Msg::AccountValidated { account: id.to_owned() });
+        w.schedule(
+            900,
+            Msg::AccountValidated {
+                account: id.to_owned(),
+            },
+        );
         cx.status(format!("Validating {title}…"));
     }
 
     fn apply_validation_result(&mut self, id: &str, w: &mut World, cx: &mut Cx) {
         let now = w.now_secs();
-        let Some(a) = w.accounts.get(id).cloned() else { return };
+        let Some(a) = w.accounts.get(id).cloned() else {
+            return;
+        };
         let outcome = match &a.source {
             CredentialSource::PlainApiKey { .. } => {
                 // no key material is stored: re-validation confirms identity only
-                let mut o = provider::validate(a.provider, &a.source, Some("valid-fingerprint"), &w.op, now);
+                let mut o = provider::validate(
+                    a.provider,
+                    &a.source,
+                    Some("valid-fingerprint"),
+                    &w.op,
+                    now,
+                );
                 if let Some(u) = o.usage.as_mut() {
                     u.windows = a.usage.windows.clone();
                 }
@@ -884,7 +1085,9 @@ impl AccountsScreen {
             }
             src => provider::validate(a.provider, src, None, &w.op, now),
         };
-        let Some(slot) = w.accounts.get_mut(id) else { return };
+        let Some(slot) = w.accounts.get_mut(id) else {
+            return;
+        };
         let keep_windows = slot.usage.windows.clone();
         provider::apply_validation(slot, &outcome, now);
         if slot.usage.windows.is_empty() {
@@ -892,7 +1095,11 @@ impl AccountsScreen {
         }
         let word = match outcome.level {
             Some(l) => format!("Source validated · {}", l.label()),
-            None => outcome.issue.as_ref().map(|i| i.message.clone()).unwrap_or("Validation failed".into()),
+            None => outcome
+                .issue
+                .as_ref()
+                .map(|i| i.message.clone())
+                .unwrap_or("Validation failed".into()),
         };
         if outcome.level.is_some() {
             cx.status(format!("{} · {word}", slot.title()));
@@ -909,15 +1116,26 @@ impl AccountsScreen {
                     mk("refresh", "Refresh", ButtonKind::Secondary),
                     mk("validate", "Validate", ButtonKind::Secondary),
                     mk("edit", "Edit…", ButtonKind::Secondary),
-                    mk("default", "Set default", ButtonKind::Secondary).disabled(a.default_for_provider || !a.enabled),
-                    mk("toggle", if a.enabled { "Disable" } else { "Enable" }, ButtonKind::Secondary),
+                    mk("default", "Set default", ButtonKind::Secondary)
+                        .disabled(a.default_for_provider || !a.enabled),
+                    mk(
+                        "toggle",
+                        if a.enabled { "Disable" } else { "Enable" },
+                        ButtonKind::Secondary,
+                    ),
                     mk("remove", "Remove…", ButtonKind::Danger),
                 ],
                 Some(_) => vec![mk("refresh", "Refresh", ButtonKind::Secondary)],
                 None => vec![],
             },
-            Sel::Provider(_) => vec![mk("refresh", "Refresh provider", ButtonKind::Secondary), mk("add", "Add account…", ButtonKind::Secondary)],
-            Sel::Overview => vec![mk("refresh", "Refresh all", ButtonKind::Secondary), mk("add", "Add account…", ButtonKind::Secondary)],
+            Sel::Provider(_) => vec![
+                mk("refresh", "Refresh provider", ButtonKind::Secondary),
+                mk("add", "Add account…", ButtonKind::Secondary),
+            ],
+            Sel::Overview => vec![
+                mk("refresh", "Refresh all", ButtonKind::Secondary),
+                mk("add", "Add account…", ButtonKind::Secondary),
+            ],
             Sel::Add => vec![mk("add", "Add account…", ButtonKind::Primary)],
         };
     }
@@ -956,7 +1174,10 @@ impl AccountsScreen {
             meta.push_str(&format!(" · {} ▲", summary.counts.warnings));
         }
         if summary.counts.exhausted + summary.counts.failed > 0 {
-            meta.push_str(&format!(" · {} !", summary.counts.exhausted + summary.counts.failed));
+            meta.push_str(&format!(
+                " · {} !",
+                summary.counts.exhausted + summary.counts.failed
+            ));
         }
         if !pos.is_empty() {
             meta.push_str(&format!(" · {pos}"));
@@ -965,7 +1186,10 @@ impl AccountsScreen {
             Some(f) if !f.is_empty() => format!("Accounts · filter {f}"),
             _ => "Accounts".into(),
         };
-        let inner = Panel::framed(Some(&title)).focused(focused).meta(&meta).render(area, buf, t);
+        let inner = Panel::framed(Some(&title))
+            .focused(focused)
+            .meta(&meta)
+            .render(area, buf, t);
         self.tree_area = inner;
         let bg = t.canvas;
         self.scroll.set_viewport(inner.height as usize);
@@ -999,7 +1223,11 @@ impl AccountsScreen {
                 " "
             };
             let gs = if row.star {
-                st.fg(if s.focused { t.text_primary } else { t.text_secondary })
+                st.fg(if s.focused {
+                    t.text_primary
+                } else {
+                    t.text_secondary
+                })
             } else {
                 st.fg(t.text_secondary).remove_modifier(Modifier::BOLD)
             };
@@ -1008,34 +1236,66 @@ impl AccountsScreen {
                 ctx.clickable(TREE.child(i).sub("toggle"), Rect::new(x, y, 2, 1));
             }
             x += 2;
-            let meta_w = if show_meta { width(&row.meta) as u16 } else { 0 };
+            let meta_w = if show_meta {
+                width(&row.meta) as u16
+            } else {
+                0
+            };
             let avail = rect.right().saturating_sub(x + 1);
             let hw: u16 = if row.health.is_some() { 2 } else { 0 };
             let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 } + hw);
             let label_style = if row.faint {
                 st.fg(t.text_faint)
             } else if row.sel == Sel::Add {
-                st.fg(if s.focused { t.text_primary } else { t.text_secondary })
+                st.fg(if s.focused {
+                    t.text_primary
+                } else {
+                    t.text_secondary
+                })
             } else if s.selected {
                 st.fg(t.accent)
             } else {
                 st
             };
-            buf.set_string(x, y, fit(&truncate(&row.label, lw as usize), lw as usize), label_style);
+            buf.set_string(
+                x,
+                y,
+                fit(&truncate(&row.label, lw as usize), lw as usize),
+                label_style,
+            );
             if let Some((g, tone)) = row.health {
                 buf.set_string(x + lw, y, g, st.fg(t.tone(tone)));
             }
             if meta_w > 0 && meta_w + 4 < avail {
-                let ms = if row.faint { st.fg(t.text_faint) } else { st.fg(t.tone(row.meta_tone)) };
-                buf.set_string(rect.right().saturating_sub(meta_w + 1), y, &row.meta, ms.remove_modifier(Modifier::BOLD));
+                let ms = if row.faint {
+                    st.fg(t.text_faint)
+                } else {
+                    st.fg(t.tone(row.meta_tone))
+                };
+                buf.set_string(
+                    rect.right().saturating_sub(meta_w + 1),
+                    y,
+                    &row.meta,
+                    ms.remove_modifier(Modifier::BOLD),
+                );
             }
             ctx.clickable(rid, rect);
             if row.expandable {
-                ctx.clickable(TREE.child(i).sub("toggle"), Rect::new(rect.x + 2 + row.depth * 2, y, 2, 1));
+                ctx.clickable(
+                    TREE.child(i).sub("toggle"),
+                    Rect::new(rect.x + 2 + row.depth * 2, y, 2, 1),
+                );
             }
         }
         if has_sb {
-            scrollbar::render_vertical(Rect::new(inner.right() - 1, inner.y, 1, inner.height), buf, ctx, TREE, &self.scroll, focused);
+            scrollbar::render_vertical(
+                Rect::new(inner.right() - 1, inner.y, 1, inner.height),
+                buf,
+                ctx,
+                TREE,
+                &self.scroll,
+                focused,
+            );
         }
     }
 
@@ -1268,15 +1528,29 @@ impl AccountsScreen {
         }
     }
 
-    fn draw_inspector(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World, as_drawer: bool) {
+    fn draw_inspector(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        w: &World,
+        as_drawer: bool,
+    ) {
         let t = ctx.theme;
-        let focused = ctx.interaction.focused(INSPECTOR) || self.actions.iter().any(|b| ctx.interaction.focused(b.id));
+        let focused = ctx.interaction.focused(INSPECTOR)
+            || self.actions.iter().any(|b| ctx.interaction.focused(b.id));
         self.rebuild_actions(w);
         let (title, scope, lines) = self.inspector_lines(w, area.width.saturating_sub(6));
         let inner = if as_drawer {
-            Panel::framed(Some(&title)).focused(focused).meta(&scope).render(area, buf, t)
+            Panel::framed(Some(&title))
+                .focused(focused)
+                .meta(&scope)
+                .render(area, buf, t)
         } else {
-            Panel::card(Some(&title)).focused(focused).meta(&scope).render(area, buf, t)
+            Panel::card(Some(&title))
+                .focused(focused)
+                .meta(&scope)
+                .render(area, buf, t)
         };
         self.inspector_area = inner;
         let bg = if as_drawer { t.canvas } else { t.surface };
@@ -1301,7 +1575,11 @@ impl AccountsScreen {
                     let vw = body.width.saturating_sub(label_w) as usize;
                     let parts = junie_tui::ui::text::wrap(&v, vw.max(8));
                     for (i, p) in parts.into_iter().enumerate() {
-                        rendered.push(Line::Prop(if i == 0 { k.clone() } else { String::new() }, p, tone));
+                        rendered.push(Line::Prop(
+                            if i == 0 { k.clone() } else { String::new() },
+                            p,
+                            tone,
+                        ));
                     }
                 }
                 Line::Text(v, tone) => {
@@ -1316,19 +1594,40 @@ impl AccountsScreen {
         self.inspector_scroll.set_viewport(body_h as usize);
         ctx.control(INSPECTOR, body, false);
         ctx.scrollable(INSPECTOR, body);
-        let meter_w = if inner.width >= 70 { 30 } else if inner.width >= 50 { 20 } else { 14 };
+        let meter_w = if inner.width >= 70 {
+            30
+        } else if inner.width >= 50 {
+            20
+        } else {
+            14
+        };
         for (k, i) in self.inspector_scroll.visible_range().enumerate() {
             let y = body.y + k as u16;
             match &rendered[i] {
                 Line::Prop(label, value, tone) => {
                     buf.set_string(body.x, y, label, t.muted().bg(bg));
-                    buf.set_string(body.x + label_w, y, truncate(value, body.width.saturating_sub(label_w) as usize), Style::new().fg(t.tone(*tone)).bg(bg));
+                    buf.set_string(
+                        body.x + label_w,
+                        y,
+                        truncate(value, body.width.saturating_sub(label_w) as usize),
+                        Style::new().fg(t.tone(*tone)).bg(bg),
+                    );
                 }
                 Line::Text(text, tone) => {
-                    buf.set_string(body.x, y, truncate(text, body.width as usize), Style::new().fg(t.tone(*tone)).bg(bg));
+                    buf.set_string(
+                        body.x,
+                        y,
+                        truncate(text, body.width as usize),
+                        Style::new().fg(t.tone(*tone)).bg(bg),
+                    );
                 }
                 Line::Heading(h, meta) => {
-                    buf.set_string(body.x, y, h, t.secondary().bg(bg).add_modifier(Modifier::BOLD));
+                    buf.set_string(
+                        body.x,
+                        y,
+                        h,
+                        t.secondary().bg(bg).add_modifier(Modifier::BOLD),
+                    );
                     let room = body.width.saturating_sub(width(h) as u16 + 3) as usize;
                     let meta = truncate(meta, room);
                     let mw = width(&meta) as u16;
@@ -1337,21 +1636,46 @@ impl AccountsScreen {
                     }
                 }
                 Line::Meter(label, pct, value, tone) => {
-                    buf.set_string(body.x, y, truncate(label, (label_w - 1) as usize), t.primary().bg(bg));
+                    buf.set_string(
+                        body.x,
+                        y,
+                        truncate(label, (label_w - 1) as usize),
+                        t.primary().bg(bg),
+                    );
                     let mx = body.x + label_w;
                     let mw = meter_w.min(body.width.saturating_sub(label_w + 8));
                     let pct_text = format!("{pct:>3}%");
-                    render_meter(Rect::new(mx, y, mw + 6, 1), buf, ctx, *pct, &pct_text, *tone, bg);
+                    render_meter(
+                        Rect::new(mx, y, mw + 6, 1),
+                        buf,
+                        ctx,
+                        *pct,
+                        &pct_text,
+                        *tone,
+                        bg,
+                    );
                     let vx = mx + mw + 8;
                     if vx < body.right() {
-                        buf.set_string(vx, y, truncate(value, body.right().saturating_sub(vx) as usize), t.muted().bg(bg));
+                        buf.set_string(
+                            vx,
+                            y,
+                            truncate(value, body.right().saturating_sub(vx) as usize),
+                            t.muted().bg(bg),
+                        );
                     }
                 }
                 Line::Blank => {}
             }
         }
         if self.inspector_scroll.overflows() {
-            scrollbar::render_vertical(Rect::new(inner.right() - 1, body.y, 1, body_h), buf, ctx, INSPECTOR, &self.inspector_scroll, ctx.interaction.focused(INSPECTOR));
+            scrollbar::render_vertical(
+                Rect::new(inner.right() - 1, body.y, 1, body_h),
+                buf,
+                ctx,
+                INSPECTOR,
+                &self.inspector_scroll,
+                ctx.interaction.focused(INSPECTOR),
+            );
         }
         let ay = inner.bottom().saturating_sub(1);
         let widths: Vec<u16> = self.actions.iter().map(|b| b.width()).collect();
@@ -1365,22 +1689,47 @@ impl AccountsScreen {
         let t = ctx.theme;
         let bg = t.surface;
         let (title, scope, lines) = self.inspector_lines(w, area.width.saturating_sub(4));
-        let inner = Panel::card(Some(&title)).meta(&format!("{scope} · Tab details")).render(area, buf, t);
+        let inner = Panel::card(Some(&title))
+            .meta(&format!("{scope} · Tab details"))
+            .render(area, buf, t);
         let mut y = inner.y;
         for l in lines.iter().take(inner.height as usize) {
             match l {
                 Line::Prop(k, v, tone) if !k.is_empty() => {
-                    buf.set_string(inner.x, y, truncate(&format!("{k}  {v}"), inner.width as usize), Style::new().fg(t.tone(*tone)).bg(bg));
+                    buf.set_string(
+                        inner.x,
+                        y,
+                        truncate(&format!("{k}  {v}"), inner.width as usize),
+                        Style::new().fg(t.tone(*tone)).bg(bg),
+                    );
                     y += 1;
                 }
                 Line::Meter(label, pct, value, tone) => {
                     buf.set_string(inner.x, y, truncate(label, 12), t.primary().bg(bg));
-                    render_meter(Rect::new(inner.x + 13, y, 22, 1), buf, ctx, *pct, &format!("{pct:>3}%"), *tone, bg);
-                    buf.set_string(inner.x + 37, y, truncate(value, inner.width.saturating_sub(37) as usize), t.muted().bg(bg));
+                    render_meter(
+                        Rect::new(inner.x + 13, y, 22, 1),
+                        buf,
+                        ctx,
+                        *pct,
+                        &format!("{pct:>3}%"),
+                        *tone,
+                        bg,
+                    );
+                    buf.set_string(
+                        inner.x + 37,
+                        y,
+                        truncate(value, inner.width.saturating_sub(37) as usize),
+                        t.muted().bg(bg),
+                    );
                     y += 1;
                 }
                 Line::Text(v, tone) => {
-                    buf.set_string(inner.x, y, truncate(v, inner.width as usize), Style::new().fg(t.tone(*tone)).bg(bg));
+                    buf.set_string(
+                        inner.x,
+                        y,
+                        truncate(v, inner.width as usize),
+                        Style::new().fg(t.tone(*tone)).bg(bg),
+                    );
                     y += 1;
                 }
                 _ => {}
@@ -1407,7 +1756,12 @@ pub fn meter_detail(win: &QuotaWindow, w: &World) -> String {
     if let (Some(u), Some(l)) = (win.used, win.limit)
         && win.unit != WindowUnit::Percent
     {
-        parts.push(format!("{} / {} {}", thousands(u as usize), thousands(l as usize), win.unit.label()));
+        parts.push(format!(
+            "{} / {} {}",
+            thousands(u as usize),
+            thousands(l as usize),
+            win.unit.label()
+        ));
     }
     if let Some(r) = win.reset_secs {
         parts.push(w.clock.reset_label(r));
@@ -1436,7 +1790,18 @@ fn validation_marks(a: &Account) -> (&'static str, &'static str, &'static str) {
     use crate::domain::account::ValidationLevel as L;
     match &a.validation {
         ValidationState::Valid(L::QuotaReadable) => ("✓", "✓", "✓"),
-        ValidationState::Valid(L::IdentityAuthenticated) => ("✓", "✓", if a.issue.as_ref().is_some_and(|i| i.code == IssueCode::QuotaUnsupported) { "—" } else { "▲" }),
+        ValidationState::Valid(L::IdentityAuthenticated) => (
+            "✓",
+            "✓",
+            if a.issue
+                .as_ref()
+                .is_some_and(|i| i.code == IssueCode::QuotaUnsupported)
+            {
+                "—"
+            } else {
+                "▲"
+            },
+        ),
         ValidationState::Valid(L::MaterialDiscovered) => ("✓", "—", "—"),
         ValidationState::Invalid(_) => ("!", "—", "—"),
         ValidationState::Validating { .. } => ("⠋", "…", "…"),
@@ -1450,9 +1815,19 @@ fn account_meta(a: &Account, w: &World) -> (String, Tone) {
         return ("disabled".into(), Tone::Faint);
     }
     match a.usage.freshness.phase {
-        Freshness::Refreshing => (format!("{} refreshing", spinner_frame(w.now_ms() as u64 / 80)), Tone::Secondary),
+        Freshness::Refreshing => (
+            format!("{} refreshing", spinner_frame(w.now_ms() as u64 / 80)),
+            Tone::Secondary,
+        ),
         Freshness::Stale => (
-            format!("stale {}", a.usage.freshness.last_good_secs.map(|s| w.clock.ago(s).replace(" ago", "")).unwrap_or("?".into())),
+            format!(
+                "stale {}",
+                a.usage
+                    .freshness
+                    .last_good_secs
+                    .map(|s| w.clock.ago(s).replace(" ago", ""))
+                    .unwrap_or("?".into())
+            ),
             Tone::Warning,
         ),
         Freshness::Failed => (
@@ -1460,7 +1835,9 @@ fn account_meta(a: &Account, w: &World) -> (String, Tone) {
                 Some(IssueCode::RateLimited) => "rate limited".into(),
                 Some(IssueCode::ProviderUnavailable) => "unavailable".into(),
                 Some(IssueCode::CredentialFileMissing) => "needs secret".into(),
-                Some(IssueCode::Unauthorized) | Some(IssueCode::ApiKeyInvalid) => "unauthorized".into(),
+                Some(IssueCode::Unauthorized) | Some(IssueCode::ApiKeyInvalid) => {
+                    "unauthorized".into()
+                }
                 Some(IssueCode::OpLocked) => "1Password locked".into(),
                 _ => "error".into(),
             },
@@ -1471,7 +1848,12 @@ fn account_meta(a: &Account, w: &World) -> (String, Tone) {
             Lifecycle::NeedsLogin => ("needs login".into(), Tone::Warning),
             Lifecycle::NeedsSecret => ("needs secret".into(), Tone::Warning),
             _ => (
-                format!("current {}", a.last_refresh_secs.map(|s| w.clock.ago(s).replace(" ago", "")).unwrap_or("now".into())),
+                format!(
+                    "current {}",
+                    a.last_refresh_secs
+                        .map(|s| w.clock.ago(s).replace(" ago", ""))
+                        .unwrap_or("now".into())
+                ),
                 Tone::Muted,
             ),
         },
@@ -1499,12 +1881,19 @@ impl Screen for AccountsScreen {
     }
 
     fn animating(&self, w: &World) -> bool {
-        w.accounts.accounts.iter().any(|a| a.usage.freshness.phase == Freshness::Refreshing || matches!(a.validation, ValidationState::Validating { .. }))
+        w.accounts.accounts.iter().any(|a| {
+            a.usage.freshness.phase == Freshness::Refreshing
+                || matches!(a.validation, ValidationState::Validating { .. })
+        })
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
         self.build_rows(w);
-        if self.animating(w) { Outcome::Changed } else { Outcome::Ignored }
+        if self.animating(w) {
+            Outcome::Changed
+        } else {
+            Outcome::Ignored
+        }
     }
 
     fn on_msg(&mut self, msg: &Msg, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -1551,7 +1940,12 @@ impl Screen for AccountsScreen {
                         .placeholder("name, provider, identity, status, plan")
                         .value(self.filter.as_deref().unwrap_or(""))
                         .plain_label();
-                    let d = Dialog::prompt(WidgetId::of("accounts.filter"), "Filter accounts", input, "Apply");
+                    let d = Dialog::prompt(
+                        WidgetId::of("accounts.filter"),
+                        "Filter accounts",
+                        input,
+                        "Apply",
+                    );
                     cx.open(Modal::Dialog(d), ModalTag::new("filter"));
                     return Outcome::Changed;
                 }
@@ -1741,7 +2135,9 @@ impl Screen for AccountsScreen {
             let (o, fired) = self.actions[i].on_key(key);
             if fired {
                 let id = self.actions[i].id;
-                for n in ["refresh", "validate", "edit", "default", "toggle", "remove", "add"] {
+                for n in [
+                    "refresh", "validate", "edit", "default", "toggle", "remove", "add",
+                ] {
                     if INSPECTOR.sub(n) == id {
                         return self.fire(n, w, cx);
                     }
@@ -1803,13 +2199,28 @@ impl Screen for AccountsScreen {
             }
         }
         if id == scrollbar::id_for(TREE) {
-            let track = Rect::new(self.tree_area.right() - 1, self.tree_area.y, 1, self.tree_area.height);
-            self.scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            let track = Rect::new(
+                self.tree_area.right() - 1,
+                self.tree_area.y,
+                1,
+                self.tree_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
             return Outcome::Changed;
         }
         if id == scrollbar::id_for(INSPECTOR) {
-            let track = Rect::new(self.inspector_area.right() - 1, self.inspector_area.y, 1, self.inspector_area.height);
-            self.inspector_scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.inspector_scroll));
+            let track = Rect::new(
+                self.inspector_area.right() - 1,
+                self.inspector_area.y,
+                1,
+                self.inspector_area.height,
+            );
+            self.inspector_scroll.scroll_to(scrollbar::offset_for_click(
+                track,
+                pos,
+                &self.inspector_scroll,
+            ));
             return Outcome::Changed;
         }
         if id == INSPECTOR {
@@ -1821,7 +2232,9 @@ impl Screen for AccountsScreen {
             if self.actions[i].id == id {
                 cx.focus.focus(id);
                 if self.actions[i].on_click() {
-                    for n in ["refresh", "validate", "edit", "default", "toggle", "remove", "add"] {
+                    for n in [
+                        "refresh", "validate", "edit", "default", "toggle", "remove", "add",
+                    ] {
                         if INSPECTOR.sub(n) == id {
                             return self.fire(n, w, cx);
                         }
@@ -1839,8 +2252,14 @@ impl Screen for AccountsScreen {
             return self.seam.on_drag(&mut self.split, c, 2, pos);
         }
         if pressed == scrollbar::id_for(TREE) {
-            let track = Rect::new(self.tree_area.right() - 1, self.tree_area.y, 1, self.tree_area.height);
-            self.scroll.scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            let track = Rect::new(
+                self.tree_area.right() - 1,
+                self.tree_area.y,
+                1,
+                self.tree_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
             return Outcome::Changed;
         }
         Outcome::Ignored
@@ -1869,7 +2288,13 @@ impl Screen for AccountsScreen {
         }
     }
 
-    fn on_modal(&mut self, tag: &ModalTag, result: ModalResult, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_modal(
+        &mut self,
+        tag: &ModalTag,
+        result: ModalResult,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
         match (tag.kind, result) {
             ("form", ModalResult::FormAction(name, values)) => {
                 match name.as_str() {
@@ -1878,7 +2303,14 @@ impl Screen for AccountsScreen {
                         cx.open(Modal::Op(flow), ModalTag::new("op"));
                     }
                     "choose:browse" => {
-                        let b = FileBrowser::new(WidgetId::of("accounts.browser"), "Choose the local agent folder", &w.home, false, true, w);
+                        let b = FileBrowser::new(
+                            WidgetId::of("accounts.browser"),
+                            "Choose the local agent folder",
+                            &w.home,
+                            false,
+                            true,
+                            w,
+                        );
                         cx.open(Modal::Browser(b), ModalTag::new("browse"));
                     }
                     "plain" => {
@@ -1916,7 +2348,11 @@ impl Screen for AccountsScreen {
                                 f.set_note("validation", note);
                                 f.error = None;
                             });
-                            cx.status(if ok { "Validated · Save stores the reference, never the secret" } else { "Validation failed · fix the source and try again" });
+                            cx.status(if ok {
+                                "Validated · Save stores the reference, never the secret"
+                            } else {
+                                "Validation failed · fix the source and try again"
+                            });
                         }
                         Err(e) => {
                             cx.with_form(move |f| f.error = Some(e));
@@ -1938,7 +2374,10 @@ impl Screen for AccountsScreen {
                 Outcome::Changed
             }
             ("op", ModalResult::Op(Some(r))) => {
-                let masked = w.op.describe(&r).map(|d| d.masked).unwrap_or("••••••••".into());
+                let masked =
+                    w.op.describe(&r)
+                        .map(|d| d.masked)
+                        .unwrap_or("••••••••".into());
                 let path = r.display_path();
                 let meta = format!("{} · {} · {}", r.account, r.canonical(), masked);
                 if let Some(ctx) = self.form.as_mut() {
@@ -1949,10 +2388,23 @@ impl Screen for AccountsScreen {
                 let endpoint = w.op.endpoint_of(&r);
                 cx.with_form(move |f| {
                     f.set_chooser("op", &path, None);
-                    f.set_note("op_note", vec![(meta, Tone::Muted), ("only the reference is saved · the value is resolved at launch".into(), Tone::Faint)]);
+                    f.set_note(
+                        "op_note",
+                        vec![
+                            (meta, Tone::Muted),
+                            (
+                                "only the reference is saved · the value is resolved at launch"
+                                    .into(),
+                                Tone::Faint,
+                            ),
+                        ],
+                    );
                     f.set_note("validation", vec![]);
                     if let Some(e) = endpoint {
-                        f.set_text("endpoint", e.trim_start_matches("https://").trim_end_matches("/v1"));
+                        f.set_text(
+                            "endpoint",
+                            e.trim_start_matches("https://").trim_end_matches("/v1"),
+                        );
                     }
                 });
                 cx.status("Reference chosen · Validate checks provider compatibility");
@@ -1964,7 +2416,12 @@ impl Screen for AccountsScreen {
                 cx.with_form(move |f| f.set_text("folder", &tilde));
                 Outcome::Changed
             }
-            ("remove", ModalResult::Dialog { action: Some(1), .. }) => {
+            (
+                "remove",
+                ModalResult::Dialog {
+                    action: Some(1), ..
+                },
+            ) => {
                 if let Some(a) = w.accounts.remove(&tag.key) {
                     for ws in w.workspaces.iter_mut() {
                         ws.account_overrides.retain(|_, v| *v != a.id);
@@ -1976,12 +2433,24 @@ impl Screen for AccountsScreen {
                 self.build_rows(w);
                 Outcome::Changed
             }
-            ("filter", ModalResult::Dialog { action: Some(1), text }) => {
+            (
+                "filter",
+                ModalResult::Dialog {
+                    action: Some(1),
+                    text,
+                },
+            ) => {
                 self.filter = text.filter(|t| !t.trim().is_empty());
                 self.build_rows(w);
                 Outcome::Changed
             }
-            (_, ModalResult::Cancelled) | (_, ModalResult::Dialog { action: Some(0), .. }) => {
+            (_, ModalResult::Cancelled)
+            | (
+                _,
+                ModalResult::Dialog {
+                    action: Some(0), ..
+                },
+            ) => {
                 if tag.kind == "remove" {
                     cx.status("Cancelled · account kept");
                 }
@@ -2000,9 +2469,15 @@ impl Screen for AccountsScreen {
             // empty state still lists Overview and Add
         }
         if self.narrow {
-            let drawer = self.drawer_open || focus.is_some_and(|f| f == INSPECTOR || self.actions.iter().any(|b| b.id == f));
+            let drawer = self.drawer_open
+                || focus.is_some_and(|f| f == INSPECTOR || self.actions.iter().any(|b| b.id == f));
             let summary_h = 6u16.min(area.height / 3);
-            let tree = Rect::new(area.x, area.y, area.width, area.height.saturating_sub(summary_h + 1));
+            let tree = Rect::new(
+                area.x,
+                area.y,
+                area.width,
+                area.height.saturating_sub(summary_h + 1),
+            );
             self.draw_tree(tree, buf, ctx, w);
             if drawer {
                 self.draw_inspector(area, buf, ctx, w, true);
@@ -2017,11 +2492,21 @@ impl Screen for AccountsScreen {
         let (left, right) = self.split.horizontal(area, 2);
         let handle = self.split.handle(SplitDir::Horizontal, area, 2);
         self.draw_tree(left, buf, ctx, w);
-        self.seam.render(Rect::new(handle.x + 1, handle.y, 1, handle.height), buf, ctx, t.canvas);
+        self.seam.render(
+            Rect::new(handle.x + 1, handle.y, 1, handle.height),
+            buf,
+            ctx,
+            t.canvas,
+        );
         self.draw_inspector(right, buf, ctx, w, false);
         if w.accounts.accounts.is_empty() && matches!(self.selected, Sel::Overview) {
             let e = EmptyState::new("No accounts registered").hint("a adds one · 1Password is the default credential source · discovered sources appear after a refresh");
-            let inner = Rect::new(right.x + 2, right.y + 3, right.width.saturating_sub(4), right.height.saturating_sub(6));
+            let inner = Rect::new(
+                right.x + 2,
+                right.y + 3,
+                right.width.saturating_sub(4),
+                right.height.saturating_sub(6),
+            );
             fill(buf, inner, Style::new().bg(t.surface));
             empty::render(inner, buf, t, &e, t.surface);
         }
@@ -2029,10 +2514,18 @@ impl Screen for AccountsScreen {
 
     fn hints(&self, focus: Option<WidgetId>, w: &World) -> Vec<Hint> {
         if focus == Some(INSPECTOR) {
-            return vec![hint("↑↓", "Scroll"), hint("Tab", "Actions"), hint("Esc", "Back")];
+            return vec![
+                hint("↑↓", "Scroll"),
+                hint("Tab", "Actions"),
+                hint("Esc", "Back"),
+            ];
         }
         if self.actions.iter().any(|b| Some(b.id) == focus) {
-            return vec![hint("← →", "Choose"), hint("Enter", "Run"), hint("Esc", "Back")];
+            return vec![
+                hint("← →", "Choose"),
+                hint("Enter", "Run"),
+                hint("Esc", "Back"),
+            ];
         }
         let mut v = vec![];
         match &self.selected {
@@ -2070,7 +2563,11 @@ impl Screen for AccountsScreen {
             Sel::Overview => "Accounts › Overview".into(),
             Sel::Provider(s) => format!("Accounts › {}", s.surface_name()),
             Sel::Account(id) => match w.accounts.get(id) {
-                Some(a) => format!("Accounts › {} › {}", a.surface.surface_name(), a.display_name),
+                Some(a) => format!(
+                    "Accounts › {} › {}",
+                    a.surface.surface_name(),
+                    a.display_name
+                ),
                 None => "Accounts".into(),
             },
             Sel::Add => "Accounts › new account".into(),
@@ -2078,9 +2575,20 @@ impl Screen for AccountsScreen {
     }
 
     fn strip_right(&self, w: &World) -> Vec<Segment> {
-        let n = w.accounts.accounts.iter().filter(|a| a.usage.freshness.phase == Freshness::Refreshing).count();
+        let n = w
+            .accounts
+            .accounts
+            .iter()
+            .filter(|a| a.usage.freshness.phase == Freshness::Refreshing)
+            .count();
         if n > 0 {
-            vec![Segment::new(format!("{} refreshing {n}", spinner_frame(w.now_ms() as u64 / 80)), Tone::Secondary).priority(6)]
+            vec![
+                Segment::new(
+                    format!("{} refreshing {n}", spinner_frame(w.now_ms() as u64 / 80)),
+                    Tone::Secondary,
+                )
+                .priority(6),
+            ]
         } else {
             vec![]
         }

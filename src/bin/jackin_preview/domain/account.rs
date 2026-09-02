@@ -489,17 +489,32 @@ impl Account {
     pub fn is_error_state(&self) -> bool {
         matches!(
             self.lifecycle,
-            Lifecycle::Error | Lifecycle::NeedsLogin | Lifecycle::NeedsSecret | Lifecycle::Unavailable
+            Lifecycle::Error
+                | Lifecycle::NeedsLogin
+                | Lifecycle::NeedsSecret
+                | Lifecycle::Unavailable
         ) || self.usage.freshness.phase == Freshness::Failed
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DuplicateProbe {
-    Folder { provider: Provider, path: String },
-    OpReference { canonical: String, account: String },
-    KeyFingerprint { provider: Provider, fingerprint: String },
-    Identity { surface: UsageSurface, subject: IdentitySubject },
+    Folder {
+        provider: Provider,
+        path: String,
+    },
+    OpReference {
+        canonical: String,
+        account: String,
+    },
+    KeyFingerprint {
+        provider: Provider,
+        fingerprint: String,
+    },
+    Identity {
+        surface: UsageSurface,
+        subject: IdentitySubject,
+    },
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

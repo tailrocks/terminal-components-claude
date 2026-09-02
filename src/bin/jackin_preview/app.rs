@@ -28,7 +28,7 @@ use crate::screens::capsule::CapsuleScreen;
 use crate::screens::cockpit::CockpitScreen;
 use crate::screens::editor::EditorScreen;
 use crate::screens::manager::ManagerScreen;
-use crate::screens::modals::{BrowserResult, FormEvent, HelpOverlay, InfoResult};
+use crate::screens::modals::{FormEvent, HelpOverlay, InfoResult};
 use crate::screens::prelude::PreludeScreen;
 use crate::screens::settings::SettingsScreen;
 use crate::screens::usage::UsageScreen;
@@ -219,18 +219,31 @@ impl App {
             EntryDecision::JoinActive { .. } => self.enter_manager(),
             EntryDecision::Duplicate => {
                 self.enter_manager();
-                self.set_status("Another client is entering the Construct · joined without replay", Tone::Secondary);
+                self.set_status(
+                    "Another client is entering the Construct · joined without replay",
+                    Tone::Secondary,
+                );
             }
             EntryDecision::Unknown(e) => {
                 self.enter_manager();
-                self.set_status(&format!("Could not confirm running instances: {} · entered without the ritual", e.label()), Tone::Warning);
+                self.set_status(
+                    &format!(
+                        "Could not confirm running instances: {} · entered without the ritual",
+                        e.label()
+                    ),
+                    Tone::Warning,
+                );
             }
         }
         // scenario-specific starting routes
         match self.scenario {
             Scenario::AccountsMixed => self.go(Go::Accounts { select: None }),
             Scenario::LaunchRunning | Scenario::LaunchFailure => {
-                let plan = if self.scenario == Scenario::LaunchFailure { LaunchPlan::FailNetwork } else { LaunchPlan::Clean };
+                let plan = if self.scenario == Scenario::LaunchFailure {
+                    LaunchPlan::FailNetwork
+                } else {
+                    LaunchPlan::Clean
+                };
                 self.go(Go::Launch {
                     workspace: Some(1),
                     role: "the-architect".into(),
@@ -276,10 +289,17 @@ impl App {
     }
 
     fn animating(&self) -> bool {
-        matches!(self.route, Route::Intro | Route::Outro | Route::Handoff | Route::Cockpit | Route::Capsule)
-            || self.flash.is_some()
-            || self.screens.get(self.route).is_some_and(|s| s.animating(&self.world))
-            || self.modals.last().is_some_and(|m| matches!(m.modal, Modal::Op(_) | Modal::Custom(_) | Modal::Browser(_)))
+        matches!(
+            self.route,
+            Route::Intro | Route::Outro | Route::Handoff | Route::Cockpit | Route::Capsule
+        ) || self.flash.is_some()
+            || self
+                .screens
+                .get(self.route)
+                .is_some_and(|s| s.animating(&self.world))
+            || self.modals.last().is_some_and(|m| {
+                matches!(m.modal, Modal::Op(_) | Modal::Custom(_) | Modal::Browser(_))
+            })
             || !self.world.jobs.is_empty()
             || self.world.daemons.values().any(|d| !d.panes.is_empty())
     }
@@ -328,7 +348,11 @@ impl App {
     fn on_tick(&mut self) -> Outcome {
         let interval = self.route.tick_ms(true) as i64;
         let msgs = self.world.tick(interval);
-        let mut out = if self.animating() { Outcome::Changed } else { Outcome::Ignored };
+        let mut out = if self.animating() {
+            Outcome::Changed
+        } else {
+            Outcome::Ignored
+        };
         if let Some((_, until)) = self.flash
             && self.world.now_ms() >= until
         {
@@ -523,7 +547,11 @@ impl App {
             }
             _ => {}
         }
-        if self.modals.is_empty() && key.ctrl_char('c') && self.route != Route::Cockpit && self.route != Route::Capsule {
+        if self.modals.is_empty()
+            && key.ctrl_char('c')
+            && self.route != Route::Cockpit
+            && self.route != Route::Capsule
+        {
             self.world.arbiter.release_entry();
             self.quit = true;
             return Outcome::Consumed;
@@ -534,22 +562,37 @@ impl App {
         let route = self.route;
         let editing = self.screens.get(route).is_some_and(|s| s.is_editing());
         // global chords (never while editing, never inside the Capsule/Cockpit)
-        let host = matches!(route, Route::Manager | Route::Accounts | Route::Usage | Route::Settings | Route::Editor | Route::Prelude);
+        let host = matches!(
+            route,
+            Route::Manager
+                | Route::Accounts
+                | Route::Usage
+                | Route::Settings
+                | Route::Editor
+                | Route::Prelude
+        );
         if host && !editing {
             match key.code {
                 KeyCode::Char('?') => {
                     self.open_help();
                     return Outcome::Changed;
                 }
-                KeyCode::Char('u') if key.plain() && matches!(route, Route::Manager | Route::Accounts) => {
+                KeyCode::Char('u')
+                    if key.plain() && matches!(route, Route::Manager | Route::Accounts) =>
+                {
                     self.go(Go::Usage { select: None });
                     return Outcome::Changed;
                 }
-                KeyCode::Char('c') if key.plain() && matches!(route, Route::Manager | Route::Usage) => {
+                KeyCode::Char('c')
+                    if key.plain() && matches!(route, Route::Manager | Route::Usage) =>
+                {
                     self.go(Go::Accounts { select: None });
                     return Outcome::Changed;
                 }
-                KeyCode::Char('s') if key.plain() && matches!(route, Route::Manager | Route::Accounts | Route::Usage) => {
+                KeyCode::Char('s')
+                    if key.plain()
+                        && matches!(route, Route::Manager | Route::Accounts | Route::Usage) =>
+                {
                     self.go(Go::Settings);
                     return Outcome::Changed;
                 }
@@ -572,7 +615,11 @@ impl App {
         let reqs = std::mem::take(&mut cx.requests);
         out = out.or(self.apply_requests(reqs, route));
         if out.consumed() {
-            if matches!(key.code, KeyCode::Enter | KeyCode::Char(' ')) && key.plain() && !editing && let Some(f) = self.focus.current() {
+            if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
+                && key.plain()
+                && !editing
+                && let Some(f) = self.focus.current()
+            {
                 self.flash = Some((f, self.world.now_ms() + 140));
             }
             return out;
@@ -616,23 +663,310 @@ impl App {
             self.set_status("Close the dialog first", Tone::Secondary);
             return;
         }
-        let scope = self.screens.get(self.route).map(|s| s.crumb(&self.world)).unwrap_or_default();
+        let scope = self
+            .screens
+            .get(self.route)
+            .map(|s| s.crumb(&self.world))
+            .unwrap_or_default();
         let sections: Vec<(&str, Vec<(&str, &str)>)> = match self.route {
             Route::Capsule => vec![
-                ("Capsule", vec![("Ctrl+B", "prefix"), ("Ctrl+\\", "command palette"), ("Ctrl+Q", "exit"), ("Alt+Shift+↑↓←→", "resize split"), ("click", "focus pane"), ("wheel", "scrollback"), ("drag", "select text"), ("2×click", "select word / rename tab")]),
-                ("Prefix commands", vec![("c", "new tab"), ("n p", "next / previous tab"), ("0–9", "jump to tab"), ("x", "close pane"), ("&", "kill tab"), ("\" %", "split below / right"), ("z", "zoom"), ("h j k l", "move focus"), ("Ctrl+L", "clear pane"), ("d", "detach"), ("u", "Usage"), ("Space :", "palette"), ("r", "redraw")]),
-                ("Scrollback", vec![("↑↓", "scroll"), ("PgUp PgDn", "page"), ("Home End", "oldest / live"), ("Esc", "back to live"), ("y", "copy selection")]),
+                (
+                    "Capsule",
+                    vec![
+                        ("Ctrl+B", "prefix"),
+                        ("Ctrl+\\", "command palette"),
+                        ("Ctrl+Q", "exit"),
+                        ("Alt+Shift+↑↓←→", "resize split"),
+                        ("click", "focus pane"),
+                        ("wheel", "scrollback"),
+                        ("drag", "select text"),
+                        ("2×click", "select word / rename tab"),
+                    ],
+                ),
+                (
+                    "Prefix commands",
+                    vec![
+                        ("c", "new tab"),
+                        ("n p", "next / previous tab"),
+                        ("0–9", "jump to tab"),
+                        ("x", "close pane"),
+                        ("&", "kill tab"),
+                        ("\" %", "split below / right"),
+                        ("z", "zoom"),
+                        ("h j k l", "move focus"),
+                        ("Ctrl+L", "clear pane"),
+                        ("d", "detach"),
+                        ("u", "Usage"),
+                        ("Space :", "palette"),
+                        ("r", "redraw"),
+                    ],
+                ),
+                (
+                    "Scrollback",
+                    vec![
+                        ("↑↓", "scroll"),
+                        ("PgUp PgDn", "page"),
+                        ("Home End", "oldest / live"),
+                        ("Esc", "back to live"),
+                        ("y", "copy selection"),
+                    ],
+                ),
             ],
             Route::Cockpit => vec![
-                ("Launch", vec![("b", "build log"), ("i", "container info"), ("c", "cancel launch"), ("d", "toggle debug"), ("Ctrl+Q", "quit with confirmation"), ("Ctrl+C", "hard abort")]),
-                ("Build log", vec![("↑↓ j k", "scroll"), ("PgUp PgDn", "page"), ("End", "follow tail"), ("Esc", "close")]),
+                (
+                    "Launch",
+                    vec![
+                        ("b", "build log"),
+                        ("i", "container info"),
+                        ("c", "cancel launch"),
+                        ("d", "toggle debug"),
+                        ("Ctrl+Q", "quit with confirmation"),
+                        ("Ctrl+C", "hard abort"),
+                    ],
+                ),
+                (
+                    "Build log",
+                    vec![
+                        ("↑↓ j k", "scroll"),
+                        ("PgUp PgDn", "page"),
+                        ("End", "follow tail"),
+                        ("Esc", "close"),
+                    ],
+                ),
             ],
+            Route::Accounts => vec![
+                (
+                    "Accounts",
+                    vec![
+                        ("↑↓ j k", "move"),
+                        ("←→ h l", "fold provider / back"),
+                        ("Enter", "details"),
+                        ("Tab", "inspector → actions"),
+                        ("a", "add account…"),
+                        ("e", "edit…"),
+                        ("Space", "set provider default"),
+                        ("d", "enable / disable"),
+                        ("v", "validate"),
+                        ("x", "remove…"),
+                        ("r", "refresh selection"),
+                        ("F5", "refresh all"),
+                        ("/", "filter"),
+                        ("m", "Usage overlay"),
+                    ],
+                ),
+                (
+                    "Credential sources",
+                    vec![
+                        (
+                            "1Password",
+                            "item / field reference · resolved at launch, never stored",
+                        ),
+                        ("Local folder", "the agent's own login folder"),
+                        (
+                            "Plain-text",
+                            "typed once · masked · fingerprint + 4-char tail kept",
+                        ),
+                    ],
+                ),
+                (
+                    "Everywhere",
+                    vec![
+                        ("Esc", "back one level"),
+                        ("s", "Settings"),
+                        ("?", "this help"),
+                        ("Ctrl+Q", "quit with confirmation"),
+                    ],
+                ),
+            ],
+            Route::Usage => vec![
+                (
+                    "Usage",
+                    vec![
+                        ("↑↓ j k", "move"),
+                        ("Enter", "detail"),
+                        ("r", "refresh every account"),
+                        ("m", "manage in Accounts"),
+                        ("Esc", "close"),
+                    ],
+                ),
+                (
+                    "Reading meters",
+                    vec![
+                        ("━", "used share of the window"),
+                        ("▲", "warning ≥ 75 %"),
+                        ("!", "exhausted · error"),
+                        ("stale", "last good value kept, dimmed"),
+                    ],
+                ),
+            ],
+            Route::Editor => vec![
+                (
+                    "Tabs",
+                    vec![
+                        ("←→ h l 1–5", "switch tab"),
+                        ("[ ]", "switch from anywhere"),
+                        ("Enter ↓", "into the tab body"),
+                        ("Esc", "back to tabs · leave"),
+                    ],
+                ),
+                (
+                    "General",
+                    vec![
+                        ("Enter", "edit field"),
+                        ("Esc", "revert"),
+                        ("Space", "toggle"),
+                        ("Choose…", "working directory picker"),
+                    ],
+                ),
+                (
+                    "Mounts",
+                    vec![
+                        ("Enter e", "edit…"),
+                        ("r", "read-only"),
+                        ("i 1 2 3", "isolation"),
+                        ("o", "open source"),
+                        ("d", "remove (u restores)"),
+                        ("a", "add…"),
+                    ],
+                ),
+                (
+                    "Roles",
+                    vec![
+                        ("Space", "allow / disallow"),
+                        ("Enter", "set default ★"),
+                        ("a", "load role…"),
+                    ],
+                ),
+                (
+                    "Environments · Auth",
+                    vec![
+                        ("Enter e", "edit…"),
+                        ("m", "show / mask"),
+                        ("p", "re-pick from 1Password"),
+                        ("s", "scope…"),
+                        ("Space", "cycle auth mode"),
+                        ("d", "remove · reset"),
+                        ("u", "undo row"),
+                    ],
+                ),
+                (
+                    "Save",
+                    vec![
+                        ("Ctrl+S", "preview then save"),
+                        ("Esc", "leave · asks when dirty"),
+                    ],
+                ),
+            ],
+            Route::Settings => vec![
+                (
+                    "Tabs",
+                    vec![
+                        ("←→ h l 1–5", "switch tab"),
+                        ("[ ]", "switch from anywhere"),
+                        ("Enter ↓", "into the tab body"),
+                        ("Esc", "back to tabs · leave"),
+                    ],
+                ),
+                (
+                    "Mounts · Environments · Auth",
+                    vec![
+                        ("Enter e", "edit…"),
+                        ("s", "scope global ⇄ role"),
+                        ("r i", "read-only · isolation"),
+                        ("m p", "show · 1Password"),
+                        ("Space", "cycle auth mode"),
+                        ("d", "remove · reset"),
+                        ("u", "undo row"),
+                        ("c", "manage accounts (Auth)"),
+                    ],
+                ),
+                (
+                    "Trust",
+                    vec![
+                        ("Space", "trust / untrust a role source"),
+                        ("o", "open the source"),
+                    ],
+                ),
+                (
+                    "Save",
+                    vec![
+                        ("Ctrl+S", "preview then save"),
+                        ("Esc", "leave · asks when dirty"),
+                    ],
+                ),
+            ],
+            Route::Prelude => vec![(
+                "New workspace",
+                vec![
+                    ("Enter", "open / choose"),
+                    ("Backspace", "up one directory"),
+                    ("Space", "choose directory"),
+                    ("g", "Git URL…"),
+                    ("Tab", "next control"),
+                    ("Esc", "back one step · cancel"),
+                ],
+            )],
             _ => vec![
-                ("Workspaces", vec![("↑↓ j k", "move"), ("←→ h l", "collapse / expand"), ("Space", "fold workspace"), ("Enter", "launch"), ("e", "edit workspace"), ("n", "new workspace"), ("d", "delete…"), ("w", "prewarm"), ("o", "open in GitHub"), ("* -", "expand / collapse all"), ("Tab", "details")]),
-                ("Instances", vec![("Enter r", "reconnect / restore"), ("a", "new session"), ("x", "open shell"), ("i", "inspect container"), ("t", "stop"), ("p", "purge…")]),
-                ("Everywhere", vec![("Tab Shift+Tab", "next / previous"), ("Esc", "back one level"), ("u", "Usage overlay"), ("c", "Accounts & Usage"), ("s", "Settings"), ("F5", "refresh now"), ("?", "this help"), ("q", "back / quit"), ("Ctrl+Q", "quit with confirmation"), ("Ctrl+C", "quit immediately")]),
-                ("Editor and Settings", vec![("←→ 1–5 [ ]", "switch tab"), ("Ctrl+S", "save (preview first)"), ("Space", "toggle / cycle"), ("a e d", "add / edit / remove"), ("m p s", "mask · 1Password · scope")]),
-                ("Mouse", vec![("click", "select · 2× activates"), ("wheel", "scroll under pointer"), ("drag", "seam · scrollbar thumb")]),
+                (
+                    "Workspaces",
+                    vec![
+                        ("↑↓ j k", "move"),
+                        ("←→ h l", "collapse / expand"),
+                        ("Space", "fold workspace"),
+                        ("Enter", "launch"),
+                        ("e", "edit workspace"),
+                        ("n", "new workspace"),
+                        ("d", "delete…"),
+                        ("w", "prewarm"),
+                        ("o", "open in GitHub"),
+                        ("* -", "expand / collapse all"),
+                        ("Tab", "details"),
+                    ],
+                ),
+                (
+                    "Instances",
+                    vec![
+                        ("Enter r", "reconnect / restore"),
+                        ("a", "new session"),
+                        ("x", "open shell"),
+                        ("i", "inspect container"),
+                        ("t", "stop"),
+                        ("p", "purge…"),
+                    ],
+                ),
+                (
+                    "Everywhere",
+                    vec![
+                        ("Tab Shift+Tab", "next / previous"),
+                        ("Esc", "back one level"),
+                        ("u", "Usage overlay"),
+                        ("c", "Accounts & Usage"),
+                        ("s", "Settings"),
+                        ("F5", "refresh now"),
+                        ("?", "this help"),
+                        ("q", "back / quit"),
+                        ("Ctrl+Q", "quit with confirmation"),
+                        ("Ctrl+C", "quit immediately"),
+                    ],
+                ),
+                (
+                    "Editor and Settings",
+                    vec![
+                        ("←→ 1–5 [ ]", "switch tab"),
+                        ("Ctrl+S", "save (preview first)"),
+                        ("Space", "toggle / cycle"),
+                        ("a e d", "add / edit / remove"),
+                        ("m p s", "mask · 1Password · scope"),
+                    ],
+                ),
+                (
+                    "Mouse",
+                    vec![
+                        ("click", "select · 2× activates"),
+                        ("wheel", "scroll under pointer"),
+                        ("drag", "seam · scrollbar thumb"),
+                    ],
+                ),
             ],
         };
         let h = HelpOverlay::new(WidgetId::of("help"), &scope, sections);
@@ -642,7 +976,12 @@ impl App {
     fn open_quit_confirm(&mut self) {
         let n = self.world.running_count();
         let body = if n > 0 {
-            format!("{} keep running in the Construct. The host console closes; reconnect from a new terminal.", crate::screens::plural(n, "instance keeps", "instances keep").replace("instances keep", "instances").replace("instance keeps", "instance"))
+            format!(
+                "{} keep running in the Construct. The host console closes; reconnect from a new terminal.",
+                crate::screens::plural(n, "instance keeps", "instances keep")
+                    .replace("instances keep", "instances")
+                    .replace("instance keeps", "instance")
+            )
         } else {
             "No instances are running. The pending Construct entry is released.".into()
         };
@@ -707,12 +1046,19 @@ impl App {
     }
 
     fn refresh_picker(&mut self) {
-        let Some(top) = self.modals.last_mut() else { return };
-        let Modal::Picker(p) = &mut top.modal else { return };
+        let Some(top) = self.modals.last_mut() else {
+            return;
+        };
+        let Modal::Picker(p) = &mut top.modal else {
+            return;
+        };
         let tag = top.tag.clone();
         let query = p.query.clone();
         let owner = top.owner;
-        let items = self.screens.get_mut(owner).and_then(|s| s.picker_items(&tag, &query, &self.world));
+        let items = self
+            .screens
+            .get_mut(owner)
+            .and_then(|s| s.picker_items(&tag, &query, &self.world));
         if let Some(items) = items
             && let Some(top) = self.modals.last_mut()
             && let Modal::Picker(p) = &mut top.modal
@@ -726,12 +1072,19 @@ impl App {
     }
 
     fn form_changed(&mut self) {
-        let Some(top) = self.modals.last_mut() else { return };
+        let Some(top) = self.modals.last_mut() else {
+            return;
+        };
         let tag = top.tag.clone();
         let owner = top.owner;
-        let Modal::Form(f) = &mut top.modal else { return };
+        let Modal::Form(f) = &mut top.modal else {
+            return;
+        };
         // temporarily take the form out to hand both to the screen
-        let mut form = std::mem::replace(f, crate::screens::modals::FormDialog::new(WidgetId::of("tmp"), "", vec![]));
+        let mut form = std::mem::replace(
+            f,
+            crate::screens::modals::FormDialog::new(WidgetId::of("tmp"), "", vec![]),
+        );
         if let Some(s) = self.screens.get_mut(owner) {
             s.form_changed(&tag, &mut form, &self.world);
         }
@@ -808,7 +1161,9 @@ impl App {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::Cancelled)
                     }
-                    Some(PickerEvent::Back) | Some(PickerEvent::Secondary(_)) | None => o.or(Outcome::Consumed),
+                    Some(PickerEvent::Back) | Some(PickerEvent::Secondary(_)) | None => {
+                        o.or(Outcome::Consumed)
+                    }
                 }
             }
             Modal::Browser(b) => {
@@ -847,7 +1202,12 @@ impl App {
                                 requests: vec![],
                             };
                             if let Some(s) = self.screens.get_mut(owner) {
-                                s.on_modal(&tag, ModalResult::FormAction(format!("choose:{name}"), values), &mut self.world, &mut cx);
+                                s.on_modal(
+                                    &tag,
+                                    ModalResult::FormAction(format!("choose:{name}"), values),
+                                    &mut self.world,
+                                    &mut cx,
+                                );
                             }
                             let reqs = std::mem::take(&mut cx.requests);
                             self.apply_requests(reqs, owner);
@@ -863,7 +1223,12 @@ impl App {
                                 requests: vec![],
                             };
                             if let Some(s) = self.screens.get_mut(owner) {
-                                s.on_modal(&tag, ModalResult::FormAction(name, values), &mut self.world, &mut cx);
+                                s.on_modal(
+                                    &tag,
+                                    ModalResult::FormAction(name, values),
+                                    &mut self.world,
+                                    &mut cx,
+                                );
                             }
                             let reqs = std::mem::take(&mut cx.requests);
                             self.apply_requests(reqs, owner);
@@ -941,7 +1306,11 @@ impl App {
                 let suppressed = self.hover_suppressed;
                 self.hover_suppressed = false;
                 self.hover = self.hits.hit(m.pos);
-                if self.hover != was || suppressed { Outcome::Changed } else { Outcome::Ignored }
+                if self.hover != was || suppressed {
+                    Outcome::Changed
+                } else {
+                    Outcome::Ignored
+                }
             }
             MouseKind::Drag => {
                 self.hover = self.hits.hit(m.pos);
@@ -950,7 +1319,11 @@ impl App {
                 };
                 if let Some(top) = self.modals.last_mut() {
                     return match &mut top.modal {
-                        Modal::Info(i) if pressed == junie_tui::widgets::scrollbar::id_for(i.id) => i.on_click(pressed, m.pos, &mut self.focus),
+                        Modal::Info(i)
+                            if pressed == junie_tui::widgets::scrollbar::id_for(i.id) =>
+                        {
+                            i.on_click(pressed, m.pos, &mut self.focus)
+                        }
                         _ => Outcome::Consumed,
                     };
                 }
@@ -965,7 +1338,11 @@ impl App {
                 self.pressed = hit;
                 self.hover = hit;
                 let Some(id) = hit else {
-                    return if self.modals.is_empty() { Outcome::Ignored } else { Outcome::Consumed };
+                    return if self.modals.is_empty() {
+                        Outcome::Ignored
+                    } else {
+                        Outcome::Consumed
+                    };
                 };
                 if self.modals.is_empty() && self.ring.contains(id) {
                     self.focus.focus(id);
@@ -1006,7 +1383,10 @@ impl App {
                     return Outcome::Changed;
                 }
                 self.flash = Some((id, self.world.now_ms() + 140));
-                let double = self.last_click.take().is_some_and(|(lid, at)| lid == id && self.world.now_ms() - at < 500);
+                let double = self
+                    .last_click
+                    .take()
+                    .is_some_and(|(lid, at)| lid == id && self.world.now_ms() - at < 500);
                 self.last_click = Some((id, self.world.now_ms()));
                 if !self.modals.is_empty() {
                     return self.modal_click(id, m.pos);
@@ -1036,7 +1416,11 @@ impl App {
                     Some(s) => {
                         if double {
                             let d = s.on_double_click(id, m.pos, &mut self.world, &mut cx);
-                            if d.consumed() { d } else { s.on_click(id, m.pos, &mut self.world, &mut cx) }
+                            if d.consumed() {
+                                d
+                            } else {
+                                s.on_click(id, m.pos, &mut self.world, &mut cx)
+                            }
                         } else {
                             s.on_click(id, m.pos, &mut self.world, &mut cx)
                         }
@@ -1046,7 +1430,10 @@ impl App {
                 let reqs = std::mem::take(&mut cx.requests);
                 o.or(self.apply_requests(reqs, route)).or(Outcome::Changed)
             }
-            MouseKind::WheelUp | MouseKind::WheelDown | MouseKind::WheelLeft | MouseKind::WheelRight => {
+            MouseKind::WheelUp
+            | MouseKind::WheelDown
+            | MouseKind::WheelLeft
+            | MouseKind::WheelRight => {
                 let delta = match m.kind {
                     MouseKind::WheelUp | MouseKind::WheelLeft => -3,
                     _ => 3,
@@ -1190,7 +1577,12 @@ impl App {
                                 requests: vec![],
                             };
                             if let Some(s) = self.screens.get_mut(owner) {
-                                s.on_modal(&tag, ModalResult::FormAction(format!("choose:{name}"), values), &mut self.world, &mut cx);
+                                s.on_modal(
+                                    &tag,
+                                    ModalResult::FormAction(format!("choose:{name}"), values),
+                                    &mut self.world,
+                                    &mut cx,
+                                );
                             }
                             let reqs = std::mem::take(&mut cx.requests);
                             self.apply_requests(reqs, owner);
@@ -1206,7 +1598,12 @@ impl App {
                                 requests: vec![],
                             };
                             if let Some(s) = self.screens.get_mut(owner) {
-                                s.on_modal(&tag, ModalResult::FormAction(name, values), &mut self.world, &mut cx);
+                                s.on_modal(
+                                    &tag,
+                                    ModalResult::FormAction(name, values),
+                                    &mut self.world,
+                                    &mut cx,
+                                );
                             }
                             let reqs = std::mem::take(&mut cx.requests);
                             self.apply_requests(reqs, owner);
@@ -1322,7 +1719,11 @@ impl App {
                 self.enter_route();
             }
             Go::Editor { workspace, pending } => {
-                self.screens.editor = Some(EditorScreen::new(&self.world, workspace, pending.map(|b| *b)));
+                self.screens.editor = Some(EditorScreen::new(
+                    &self.world,
+                    workspace,
+                    pending.map(|b| *b),
+                ));
                 self.route = Route::Editor;
                 self.enter_route();
             }
@@ -1338,13 +1739,31 @@ impl App {
                 account,
                 plan,
             } => {
-                self.screens.cockpit = Some(CockpitScreen::new(&self.world, workspace, role, agent, account, plan, self.motion));
+                self.screens.cockpit = Some(CockpitScreen::new(
+                    &self.world,
+                    workspace,
+                    role,
+                    agent,
+                    account,
+                    plan,
+                    self.motion,
+                ));
                 self.route = Route::Cockpit;
                 self.enter_route();
             }
             Go::Attach { instance, pane } => {
-                if self.world.instance(&instance).is_none_or(|i| i.status != InstanceStatus::Running) {
-                    self.set_status(&format!("Cannot attach: {} is not running", instance.trim_start_matches("jk-")), Tone::Error);
+                if self
+                    .world
+                    .instance(&instance)
+                    .is_none_or(|i| i.status != InstanceStatus::Running)
+                {
+                    self.set_status(
+                        &format!(
+                            "Cannot attach: {} is not running",
+                            instance.trim_start_matches("jk-")
+                        ),
+                        Tone::Error,
+                    );
                     return;
                 }
                 if let Some(d) = self.world.daemons.get_mut(&instance) {
@@ -1360,21 +1779,43 @@ impl App {
                 } else {
                     self.route = Route::Capsule;
                     self.enter_route();
-                    let name = self.world.daemons.get(&instance).map(|d| d.workspace.clone()).unwrap_or_default();
-                    self.set_status(&format!("Attached to {name} · tabs and panes restored"), Tone::Secondary);
+                    let name = self
+                        .world
+                        .daemons
+                        .get(&instance)
+                        .map(|d| d.workspace.clone())
+                        .unwrap_or_default();
+                    self.set_status(
+                        &format!("Attached to {name} · tabs and panes restored"),
+                        Tone::Secondary,
+                    );
                 }
             }
-            Go::NewSession { instance, agent, account } => {
+            Go::NewSession {
+                instance,
+                agent,
+                account,
+            } => {
                 if let Some(d) = self.world.daemons.get_mut(&instance) {
                     d.new_tab(agent, account.clone(), now, false);
                 }
                 crate::domain::fixtures::refresh_snapshots(&mut self.world);
-                self.go(Go::Attach { instance, pane: None });
-                let label = agent.map(|a| a.label().to_owned()).unwrap_or("Shell".into());
+                self.go(Go::Attach {
+                    instance,
+                    pane: None,
+                });
+                let label = agent
+                    .map(|a| a.label().to_owned())
+                    .unwrap_or("Shell".into());
                 self.set_status(&format!("Started {label} in a new tab"), Tone::Secondary);
             }
             Go::Detach => {
-                let inst = self.screens.capsule.as_ref().map(|c| c.instance.clone()).unwrap_or_default();
+                let inst = self
+                    .screens
+                    .capsule
+                    .as_ref()
+                    .map(|c| c.instance.clone())
+                    .unwrap_or_default();
                 if let Some(d) = self.world.daemons.get_mut(&inst) {
                     d.attached_by = None;
                 }
@@ -1382,9 +1823,20 @@ impl App {
                 self.route = Route::Manager;
                 self.screens.manager.select_instance(&inst, &self.world);
                 self.enter_route();
-                let name = self.world.daemons.get(&inst).map(|d| d.workspace.clone()).unwrap_or_default();
+                let name = self
+                    .world
+                    .daemons
+                    .get(&inst)
+                    .map(|d| d.workspace.clone())
+                    .unwrap_or_default();
                 let n = self.world.running_count();
-                self.set_status(&format!("Detached · {name} keeps running · {} in the Construct", crate::screens::plural(n, "instance", "instances")), Tone::Secondary);
+                self.set_status(
+                    &format!(
+                        "Detached · {name} keeps running · {} in the Construct",
+                        crate::screens::plural(n, "instance", "instances")
+                    ),
+                    Tone::Secondary,
+                );
             }
             Go::InstanceEnded { instance, purge } => {
                 let dirty = self.world.instance(&instance).is_some_and(|i| i.is_dirty());
@@ -1413,7 +1865,17 @@ impl App {
                         self.screens.manager.select_instance(&i, &self.world);
                     }
                     self.enter_route();
-                    self.set_status(&format!("Launch failed · {} still running in the Construct", crate::screens::plural(self.world.running_count(), "instance", "instances")), Tone::Error);
+                    self.set_status(
+                        &format!(
+                            "Launch failed · {} still running in the Construct",
+                            crate::screens::plural(
+                                self.world.running_count(),
+                                "instance",
+                                "instances"
+                            )
+                        ),
+                        Tone::Error,
+                    );
                 } else {
                     // a fresh Construct with no survivor: acknowledge, then the one outro
                     self.leave_construct(instance.as_deref().unwrap_or(""));
@@ -1445,18 +1907,34 @@ impl App {
                     .running()
                     .iter()
                     .map(|i| {
-                        let ws = i.workspace.and_then(|x| self.world.workspace(x)).map(|x| x.name.clone()).unwrap_or("current directory".into());
-                        format!("{ws} › {} · {}", i.role, self.world.mask_path(&format!("{}/src/{ws}", self.world.home)))
+                        let ws = i
+                            .workspace
+                            .and_then(|x| self.world.workspace(x))
+                            .map(|x| x.name.clone())
+                            .unwrap_or("current directory".into());
+                        format!(
+                            "{ws} › {} · {}",
+                            i.role,
+                            self.world
+                                .mask_path(&format!("{}/src/{ws}", self.world.home))
+                        )
                     })
                     .collect();
-                let text = format!("Still inside the Construct · {}", crate::screens::plural(remaining, "instance remains", "instances remain"));
-                self.screens.manager.still_inside = Some((text.clone(), rows, self.world.now_ms() + 6_000));
+                let text = format!(
+                    "Still inside the Construct · {}",
+                    crate::screens::plural(remaining, "instance remains", "instances remain")
+                );
+                self.screens.manager.still_inside =
+                    Some((text.clone(), rows, self.world.now_ms() + 6_000));
                 self.set_status(&text, Tone::Secondary);
             }
             ExitDecision::AlreadyEnded => {
                 self.route = Route::Manager;
                 self.enter_route();
-                self.set_status("Another client already ended the Construct · returning to the host", Tone::Secondary);
+                self.set_status(
+                    "Another client already ended the Construct · returning to the host",
+                    Tone::Secondary,
+                );
                 self.exit_after_status = Some(self.world.now_ms() + 2_500);
             }
             ExitDecision::Unknown(e) => {
@@ -1503,7 +1981,8 @@ impl App {
         if self.modals.is_empty() {
             if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
                 let pf = self.screens.get(self.route).and_then(|s| s.primary_focus());
-                self.focus.set(pf.filter(|p| self.ring.contains(*p)).or(self.ring.first()));
+                self.focus
+                    .set(pf.filter(|p| self.ring.contains(*p)).or(self.ring.first()));
             }
         } else {
             self.focus.ensure_valid(&self.ring);
@@ -1519,9 +1998,21 @@ impl App {
         self.too_small = area.width < MIN_WIDTH || area.height < MIN_HEIGHT;
         if self.too_small {
             let lines = [
-                (" jackin❯ ", Style::new().fg(t.text_on_accent).bg(t.accent).add_modifier(Modifier::BOLD)),
+                (
+                    " jackin❯ ",
+                    Style::new()
+                        .fg(t.text_on_accent)
+                        .bg(t.accent)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 ("Terminal too small", t.secondary()),
-                (&*format!("Need {MIN_WIDTH}×{MIN_HEIGHT}, have {}×{}", area.width, area.height), t.muted()),
+                (
+                    &*format!(
+                        "Need {MIN_WIDTH}×{MIN_HEIGHT}, have {}×{}",
+                        area.width, area.height
+                    ),
+                    t.muted(),
+                ),
                 ("q Quit", t.faint()),
             ];
             let y0 = area.y + area.height.saturating_sub(5) / 2;
@@ -1538,14 +2029,21 @@ impl App {
         match self.route {
             Route::Intro => {
                 let state = self.intro.unwrap_or(IntroState::new(self.motion, 0));
-                let curve = std::mem::replace(&mut self.curves.0, Curve { w: vec![], s: vec![] });
+                let curve = std::mem::replace(
+                    &mut self.curves.0,
+                    Curve {
+                        w: vec![],
+                        s: vec![],
+                    },
+                );
                 ctx.inert = true;
                 let theme = self.theme;
                 {
                     let mut manager = |b: &mut Buffer, a: Rect| {
                         let mut hits2 = HitRegistry::default();
                         let mut ring2 = FocusRing::default();
-                        let mut ctx2 = RenderCtx::new(&theme, Interaction::default(), &mut hits2, &mut ring2);
+                        let mut ctx2 =
+                            RenderCtx::new(&theme, Interaction::default(), &mut hits2, &mut ring2);
                         ctx2.inert = true;
                         self.draw_frame(a, b, &mut ctx2, Route::Manager);
                     };
@@ -1556,15 +2054,26 @@ impl App {
             }
             Route::Outro => {
                 let state = self.outro.unwrap_or(OutroState::new(self.motion, None, 0));
-                let curve = std::mem::replace(&mut self.curves.1, Curve { w: vec![], s: vec![] });
+                let curve = std::mem::replace(
+                    &mut self.curves.1,
+                    Curve {
+                        w: vec![],
+                        s: vec![],
+                    },
+                );
                 let theme = self.theme;
                 {
                     let mut origin = |b: &mut Buffer, a: Rect| {
                         let mut hits2 = HitRegistry::default();
                         let mut ring2 = FocusRing::default();
-                        let mut ctx2 = RenderCtx::new(&theme, Interaction::default(), &mut hits2, &mut ring2);
+                        let mut ctx2 =
+                            RenderCtx::new(&theme, Interaction::default(), &mut hits2, &mut ring2);
                         ctx2.inert = true;
-                        let r = if self.screens.capsule.is_some() { Route::Capsule } else { Route::Manager };
+                        let r = if self.screens.capsule.is_some() {
+                            Route::Capsule
+                        } else {
+                            Route::Manager
+                        };
                         self.draw_frame(a, b, &mut ctx2, r);
                     };
                     rain::render_outro(buf, area, &state, &theme, &curve, &mut origin);
@@ -1635,10 +2144,20 @@ impl App {
         fill(buf, area, t.base());
         let header = Rect::new(area.x, area.y, area.width, 1);
         let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-        let body = Rect::new(area.x + 1, area.y + 2, area.width.saturating_sub(2), area.height.saturating_sub(4));
+        let body = Rect::new(
+            area.x + 1,
+            area.y + 2,
+            area.width.saturating_sub(2),
+            area.height.saturating_sub(4),
+        );
         // Capsule and cockpit use the full width for their own chrome
         let body = if matches!(route, Route::Capsule | Route::Cockpit) {
-            Rect::new(area.x, area.y + 2, area.width, area.height.saturating_sub(4))
+            Rect::new(
+                area.x,
+                area.y + 2,
+                area.width,
+                area.height.saturating_sub(4),
+            )
         } else {
             body
         };
@@ -1679,8 +2198,12 @@ impl App {
             Err(e) => left.push(Segment::new(format!("! {}", e.label()), Tone::Error).priority(8)),
         }
         match self.world.daemon_health {
-            crate::sim::world::DaemonHealth::Stale => left.push(Segment::new("▲ daemon stale", Tone::Warning).priority(8)),
-            crate::sim::world::DaemonHealth::Unavailable => left.push(Segment::new("! daemon unavailable", Tone::Error).priority(8)),
+            crate::sim::world::DaemonHealth::Stale => {
+                left.push(Segment::new("▲ daemon stale", Tone::Warning).priority(8))
+            }
+            crate::sim::world::DaemonHealth::Unavailable => {
+                left.push(Segment::new("! daemon unavailable", Tone::Error).priority(8))
+            }
             _ => {}
         }
         if let Some(s) = self.screens.get(route) {
@@ -1691,21 +2214,60 @@ impl App {
             right.extend(s.strip_right(&self.world));
         }
         if !self.world.jobs.is_empty() && !matches!(route, Route::Cockpit | Route::Capsule) {
-            right.push(Segment::new(format!("{} working", junie_tui::widgets::progress::spinner_frame(ctx.interaction.tick)), Tone::Secondary).priority(6));
+            right.push(
+                Segment::new(
+                    format!(
+                        "{} working",
+                        junie_tui::widgets::progress::spinner_frame(ctx.interaction.tick)
+                    ),
+                    Tone::Secondary,
+                )
+                .priority(6),
+            );
         }
-        if matches!(route, Route::Manager | Route::Accounts | Route::Usage | Route::Settings | Route::Editor | Route::Prelude) {
-            right.push(Segment::new(format!("{} · {}×{}", t.level.label(), self.size.0, self.size.1), Tone::Faint).priority(1));
+        if matches!(
+            route,
+            Route::Manager
+                | Route::Accounts
+                | Route::Usage
+                | Route::Settings
+                | Route::Editor
+                | Route::Prelude
+        ) {
+            right.push(
+                Segment::new(
+                    format!("{} · {}×{}", t.level.label(), self.size.0, self.size.1),
+                    Tone::Faint,
+                )
+                .priority(1),
+            );
             if route != Route::Usage {
-                right.push(Segment::new("u Usage", Tone::Muted).clickable(STRIP_USAGE).priority(2));
+                right.push(
+                    Segment::new("u Usage", Tone::Muted)
+                        .clickable(STRIP_USAGE)
+                        .priority(2),
+                );
             }
             if route != Route::Accounts {
-                right.push(Segment::new("c Accounts", Tone::Muted).clickable(STRIP_ACCOUNTS).priority(3));
+                right.push(
+                    Segment::new("c Accounts", Tone::Muted)
+                        .clickable(STRIP_ACCOUNTS)
+                        .priority(3),
+                );
             }
             if route != Route::Settings {
-                right.push(Segment::new("s Settings", Tone::Muted).clickable(STRIP_SETTINGS).priority(3));
+                right.push(
+                    Segment::new("s Settings", Tone::Muted)
+                        .clickable(STRIP_SETTINGS)
+                        .priority(3),
+                );
             }
         }
-        right.push(Segment::new("? help", Tone::Muted).clickable(STRIP_HELP).priority(4));
+        right.push(
+            Segment::new("? help", Tone::Muted)
+                .clickable(STRIP_HELP)
+                .priority(4),
+        );
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
@@ -1718,28 +2280,61 @@ impl App {
                     if d.is_editing() {
                         vec![hint("Enter", "Next"), hint("Esc", "Cancel")]
                     } else if matches!(d.body, DialogBody::Facts { .. }) {
-                        vec![hint("← →", "Choose"), hint("Enter", "Confirm"), hint("Esc", "Cancel")]
+                        vec![
+                            hint("← →", "Choose"),
+                            hint("Enter", "Confirm"),
+                            hint("Esc", "Cancel"),
+                        ]
                     } else {
-                        vec![hint("← →", "Choose"), hint("Enter", "Confirm"), hint("Esc", "Cancel"), hint("y / n", "Quick answer")]
+                        vec![
+                            hint("← →", "Choose"),
+                            hint("Enter", "Confirm"),
+                            hint("Esc", "Cancel"),
+                            hint("y / n", "Quick answer"),
+                        ]
                     }
                 }
-                Some(Modal::Browser(_)) => vec![hint("Enter", "Open"), hint("Space", "Choose"), hint("g", "Git URL"), hint("Tab", "Next"), hint("Esc", "Cancel")],
-                Some(Modal::Choice(_)) => vec![hint("↑↓", "Choose"), hint("Enter", "Confirm"), hint("Tab", "Buttons"), hint("Esc", "Cancel")],
+                Some(Modal::Browser(_)) => vec![
+                    hint("Enter", "Open"),
+                    hint("Space", "Choose"),
+                    hint("g", "Git URL"),
+                    hint("Tab", "Next"),
+                    hint("Esc", "Cancel"),
+                ],
+                Some(Modal::Choice(_)) => vec![
+                    hint("↑↓", "Choose"),
+                    hint("Enter", "Confirm"),
+                    hint("Tab", "Buttons"),
+                    hint("Esc", "Cancel"),
+                ],
                 Some(Modal::Form(f)) => {
                     if f.is_editing() {
-                        vec![hint("Enter", "Commit"), hint("Tab", "Next field"), hint("Esc", "Revert")]
+                        vec![
+                            hint("Enter", "Commit"),
+                            hint("Tab", "Next field"),
+                            hint("Esc", "Revert"),
+                        ]
                     } else {
-                        vec![hint("Tab", "Next field"), hint("Enter", "Edit / Save"), hint("Esc", "Cancel")]
+                        vec![
+                            hint("Tab", "Next field"),
+                            hint("Enter", "Edit / Save"),
+                            hint("Esc", "Cancel"),
+                        ]
                     }
                 }
-                Some(Modal::Info(_)) => vec![hint("↑↓", "Move"), hint("y", "Copy"), hint("Esc", "Close")],
+                Some(Modal::Info(_)) => {
+                    vec![hint("↑↓", "Move"), hint("y", "Copy"), hint("Esc", "Close")]
+                }
                 Some(Modal::Help(_)) => vec![hint("↑↓", "Scroll"), hint("Esc", "Close")],
                 Some(Modal::Custom(c)) => c.hints(),
                 _ => vec![],
             }
         } else {
             let focus = self.focus.current();
-            self.screens.get(self.route).map(|s| s.hints(focus, &self.world)).unwrap_or_default()
+            self.screens
+                .get(self.route)
+                .map(|s| s.hints(focus, &self.world))
+                .unwrap_or_default()
         };
         let editing = self.screens.get(self.route).is_some_and(|s| s.is_editing())
             || self.modals.last().is_some_and(|m| match &m.modal {
@@ -1748,21 +2343,41 @@ impl App {
                 Modal::Browser(b) => b.is_editing(),
                 _ => false,
             });
-        let badge = if editing { Some(("EDIT", BadgeKind::Edit)) } else { None };
+        let badge = if editing {
+            Some(("EDIT", BadgeKind::Edit))
+        } else {
+            None
+        };
         let status = self.status.as_ref().map(|(s, tone, _)| (s.as_str(), *tone));
         // still-inside feedback takes the status slot when present
-        let still = self.screens.manager.still_inside.as_ref().map(|(s, _, _)| s.clone());
+        let still = self
+            .screens
+            .manager
+            .still_inside
+            .as_ref()
+            .map(|(s, _, _)| s.clone());
         let status = match (&still, status) {
             (Some(s), None) if self.route == Route::Manager => Some((s.as_str(), Tone::Secondary)),
             (_, s) => s,
         };
-        let status = status.map(|(s, tone)| (truncate(s, area.width.saturating_sub(4) as usize), tone));
-        keyhint::render_toned(area, buf, &t, &hints, badge, status.as_ref().map(|(s, tone)| (s.as_str(), *tone)));
+        let status =
+            status.map(|(s, tone)| (truncate(s, area.width.saturating_sub(4) as usize), tone));
+        keyhint::render_toned(
+            area,
+            buf,
+            &t,
+            &hints,
+            badge,
+            status.as_ref().map(|(s, tone)| (s.as_str(), *tone)),
+        );
     }
 }
 
 fn top_tag(modals: &[ModalEntry]) -> ModalTag {
-    modals.last().map(|m| m.tag.clone()).unwrap_or(ModalTag::new(""))
+    modals
+        .last()
+        .map(|m| m.tag.clone())
+        .unwrap_or(ModalTag::new(""))
 }
 
 fn top_owner(modals: &[ModalEntry]) -> Route {

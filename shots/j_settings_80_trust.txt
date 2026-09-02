@@ -1,0 +1,24 @@
+ ▪  Jackin  inside the Construct  2 running  Settings › global › Trust
+
+
+  ▎General   ▎Mounts   ▎Environments   ▎Auth   ▎Trust
+  ──────────────────────────────────────────────━━━━━━────────────────────────
+
+    Role sources                                     3 trusted · 1 untrusted
+  ▎›   github.com/chainargos/roles               git   [✓] trusted
+  ▎    github.com/acme-labs/roles-experimental   git   [ ] untrusted  1 role
+  ▎    ~/roles                                   path  [✓] trusted    1 role
+  ▎    git@corp:infra/roles                      git   [✓] trusted
+
+    An untrusted source blocks + Load role until it is trusted here or
+    in the trust dialog that the load opens.
+
+
+
+
+
+
+
+                                                         ▎Cancel    ▎Save…
+
+ Space Toggle trust  o Open source  [ ] Switch tab  Ctrl+S Save  Esc Back

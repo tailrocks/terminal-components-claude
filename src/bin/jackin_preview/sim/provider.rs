@@ -2,11 +2,13 @@
 //! refresh an account's usage. Secret material never leaves the call.
 
 use crate::domain::account::{
-    Account, AccountIdentity, Confidence, CredentialSource, DetectedKind, IdentitySubject, IssueCode,
-    Lifecycle, Recoverability, RecoverableIssue, ValidationLevel,
+    Account, AccountIdentity, Confidence, CredentialSource, DetectedKind, IdentitySubject,
+    IssueCode, Lifecycle, Recoverability, RecoverableIssue, ValidationLevel,
 };
 use crate::domain::agent::Provider;
-use crate::domain::usage::{AccountUsage, FreshnessInfo, QuotaStatus, QuotaWindow, WindowCategory, WindowUnit};
+use crate::domain::usage::{
+    AccountUsage, FreshnessInfo, QuotaStatus, QuotaWindow, WindowCategory, WindowUnit,
+};
 use crate::sim::onepassword::{KeyOutcome, OpError, SecretClass, SimOnePassword, classify_plain};
 
 /// Three-level validation result.
@@ -54,7 +56,9 @@ pub enum FolderProbe {
 pub fn probe_folder(path: &str) -> FolderProbe {
     let p = path.trim_end_matches('/');
     match p {
-        "~/.claude" | "/Users/alexey/.claude" => FolderProbe::Found(DetectedKind::ClaudeOAuthProfile),
+        "~/.claude" | "/Users/alexey/.claude" => {
+            FolderProbe::Found(DetectedKind::ClaudeOAuthProfile)
+        }
         "~/.claude-work" => FolderProbe::Found(DetectedKind::ClaudeApiKeyEnv),
         "~/.codex" | "/Users/alexey/.codex" => FolderProbe::Found(DetectedKind::CodexAuthJson),
         "~/.grok" => FolderProbe::NoCredential,
@@ -101,30 +105,78 @@ pub fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaW
     let h = 3600;
     match provider {
         Provider::Anthropic => vec![
-            QuotaWindow::pct("session", "Session · 5-hour", WindowCategory::Session, 38).reset(now + 3 * h + 12 * 60),
-            QuotaWindow::pct("weekly", "Weekly · all models", WindowCategory::LongRange, 33).reset(now + 3 * 86_400 + 10 * h),
-            QuotaWindow::pct("weekly_sonnet", "Weekly · Sonnet", WindowCategory::Model, 21).reset(now + 3 * 86_400 + 10 * h),
-            QuotaWindow::pct("weekly_opus", "Weekly · Opus", WindowCategory::Model, 54).reset(now + 3 * 86_400 + 10 * h),
+            QuotaWindow::pct("session", "Session · 5-hour", WindowCategory::Session, 38)
+                .reset(now + 3 * h + 12 * 60),
+            QuotaWindow::pct(
+                "weekly",
+                "Weekly · all models",
+                WindowCategory::LongRange,
+                33,
+            )
+            .reset(now + 3 * 86_400 + 10 * h),
+            QuotaWindow::pct(
+                "weekly_sonnet",
+                "Weekly · Sonnet",
+                WindowCategory::Model,
+                21,
+            )
+            .reset(now + 3 * 86_400 + 10 * h),
+            QuotaWindow::pct("weekly_opus", "Weekly · Opus", WindowCategory::Model, 54)
+                .reset(now + 3 * 86_400 + 10 * h),
         ],
-        Provider::OpenAi if key_backed => vec![
-            QuotaWindow::sentinel("quota", "Quota", QuotaStatus::Unsupported, "Quota not visible for API keys"),
-        ],
+        Provider::OpenAi if key_backed => vec![QuotaWindow::sentinel(
+            "quota",
+            "Quota",
+            QuotaStatus::Unsupported,
+            "Quota not visible for API keys",
+        )],
         Provider::OpenAi => vec![
-            QuotaWindow::pct("session", "Session · 5-hour", WindowCategory::Session, 12).reset(now + 4 * h + 40 * 60),
-            QuotaWindow::pct("weekly", "Weekly · 7-day", WindowCategory::LongRange, 59).reset(now + 2 * 86_400 + 19 * h),
+            QuotaWindow::pct("session", "Session · 5-hour", WindowCategory::Session, 12)
+                .reset(now + 4 * h + 40 * 60),
+            QuotaWindow::pct("weekly", "Weekly · 7-day", WindowCategory::LongRange, 59)
+                .reset(now + 2 * 86_400 + 19 * h),
             QuotaWindow::not_started("spark", "Codex Spark · 5-hour", WindowCategory::Model),
-            QuotaWindow::counted("credits", "Credits", WindowCategory::Other, WindowUnit::Credits, 1_240, 5_000),
+            QuotaWindow::counted(
+                "credits",
+                "Credits",
+                WindowCategory::Other,
+                WindowUnit::Credits,
+                1_240,
+                5_000,
+            ),
         ],
         Provider::XAi => vec![
-            QuotaWindow::pct("monthly", "Monthly", WindowCategory::LongRange, 31).reset(now + 27 * 86_400 + 10 * h),
-            QuotaWindow::pct("weekly", "Weekly", WindowCategory::LongRange, 68).reset(now + 3 * 86_400 + 10 * h),
-            QuotaWindow::counted("credits", "Credits", WindowCategory::Other, WindowUnit::Usd, 3_140, 10_000).spend("$68.60 remaining of $100.00"),
-            QuotaWindow::counted("ondemand", "On-demand usage", WindowCategory::Other, WindowUnit::Usd, 315, 315).status(QuotaStatus::Available).spend("$3.15 this month"),
+            QuotaWindow::pct("monthly", "Monthly", WindowCategory::LongRange, 31)
+                .reset(now + 27 * 86_400 + 10 * h),
+            QuotaWindow::pct("weekly", "Weekly", WindowCategory::LongRange, 68)
+                .reset(now + 3 * 86_400 + 10 * h),
+            QuotaWindow::counted(
+                "credits",
+                "Credits",
+                WindowCategory::Other,
+                WindowUnit::Usd,
+                3_140,
+                10_000,
+            )
+            .spend("$68.60 remaining of $100.00"),
+            QuotaWindow::counted(
+                "ondemand",
+                "On-demand usage",
+                WindowCategory::Other,
+                WindowUnit::Usd,
+                315,
+                315,
+            )
+            .status(QuotaStatus::Available)
+            .spend("$3.15 this month"),
         ],
         Provider::OpenCode => vec![
-            QuotaWindow::pct("rolling", "Rolling", WindowCategory::Session, 57).reset(now + h + 50 * 60),
-            QuotaWindow::pct("weekly", "Weekly", WindowCategory::LongRange, 45).reset(now + 3 * 86_400),
-            QuotaWindow::pct("monthly", "Monthly", WindowCategory::LongRange, 22).reset(now + 27 * 86_400),
+            QuotaWindow::pct("rolling", "Rolling", WindowCategory::Session, 57)
+                .reset(now + h + 50 * 60),
+            QuotaWindow::pct("weekly", "Weekly", WindowCategory::LongRange, 45)
+                .reset(now + 3 * 86_400),
+            QuotaWindow::pct("monthly", "Monthly", WindowCategory::LongRange, 22)
+                .reset(now + 27 * 86_400),
         ],
         _ => vec![],
     }
@@ -144,10 +196,12 @@ pub fn validate(
             Ok(c) => Ok((c, "1Password reference resolved")),
             Err(e) => Err(e),
         },
-        CredentialSource::PlainApiKey { .. } => {
-            Ok((classify_plain(provider, plain_value.unwrap_or("")), "Key material present"))
-        }
-        CredentialSource::LocalFolder { path, .. } | CredentialSource::HostEnv { var: path, .. } => {
+        CredentialSource::PlainApiKey { .. } => Ok((
+            classify_plain(provider, plain_value.unwrap_or("")),
+            "Key material present",
+        )),
+        CredentialSource::LocalFolder { path, .. }
+        | CredentialSource::HostEnv { var: path, .. } => {
             return validate_folder(provider, path, now);
         }
     };
@@ -159,10 +213,12 @@ pub fn validate(
                 OpError::Locked => IssueCode::OpLocked,
                 OpError::AuthorizationRequired { .. } => IssueCode::OpAuthorizationRequired,
                 OpError::PermissionDenied { .. } => IssueCode::OpPermissionDenied,
-                OpError::MissingAccount { .. } | OpError::MissingVault { .. } | OpError::MissingItem { .. } => {
-                    IssueCode::OpItemMissing
+                OpError::MissingAccount { .. }
+                | OpError::MissingVault { .. }
+                | OpError::MissingItem { .. } => IssueCode::OpItemMissing,
+                OpError::MissingField { .. } | OpError::WrongFieldShape { .. } => {
+                    IssueCode::OpFieldMissing
                 }
-                OpError::MissingField { .. } | OpError::WrongFieldShape { .. } => IssueCode::OpFieldMissing,
                 OpError::Malformed(_) => IssueCode::OpReferenceMalformed,
                 OpError::EmptyMaterial { .. } => IssueCode::ApiKeyEmpty,
             };
@@ -190,7 +246,11 @@ pub fn validate(
             identity: AccountIdentity::default(),
             confidence: Confidence::None,
             lifecycle: Lifecycle::NeedsSecret,
-            issue: Some(issue(IssueCode::ApiKeyEmpty, "API key required: the field is empty", Recoverability::ActionRequired)),
+            issue: Some(issue(
+                IssueCode::ApiKeyEmpty,
+                "API key required: the field is empty",
+                Recoverability::ActionRequired,
+            )),
             usage: None,
             material: CheckRow::Failed("Field is empty".into()),
             identity_row: CheckRow::Skipped("not attempted".into()),
@@ -201,13 +261,20 @@ pub fn validate(
             identity: AccountIdentity::default(),
             confidence: Confidence::None,
             lifecycle: Lifecycle::Error,
-            issue: Some(issue(IssueCode::ApiKeyInvalid, "Key rejected: the provider returned 401", Recoverability::ActionRequired)),
+            issue: Some(issue(
+                IssueCode::ApiKeyInvalid,
+                "Key rejected: the provider returned 401",
+                Recoverability::ActionRequired,
+            )),
             usage: None,
             material: CheckRow::Ok(material_msg.into()),
             identity_row: CheckRow::Failed("Not authenticated (401)".into()),
             quota_row: CheckRow::Skipped("not attempted".into()),
         },
-        SecretClass::Key { provider: found, outcome } => {
+        SecretClass::Key {
+            provider: found,
+            outcome,
+        } => {
             if found != provider {
                 return ValidationOutcome {
                     level: Some(ValidationLevel::MaterialDiscovered),
@@ -251,7 +318,10 @@ pub fn validate(
                         issue: unsupported.then(|| {
                             issue(
                                 IssueCode::QuotaUnsupported,
-                                format!("Quota not visible: {} does not expose usage for API keys", provider.short()),
+                                format!(
+                                    "Quota not visible: {} does not expose usage for API keys",
+                                    provider.short()
+                                ),
                                 Recoverability::Unsupported,
                             )
                         }),
@@ -277,10 +347,16 @@ pub fn validate(
                     identity: AccountIdentity::default(),
                     confidence: Confidence::None,
                     lifecycle: Lifecycle::NeedsLogin,
-                    issue: Some(issue(IssueCode::ApiKeyInvalid, "Key rejected: the provider returned 401", Recoverability::ActionRequired)),
+                    issue: Some(issue(
+                        IssueCode::ApiKeyInvalid,
+                        "Key rejected: the provider returned 401",
+                        Recoverability::ActionRequired,
+                    )),
                     usage: None,
                     material: CheckRow::Ok(material_msg.into()),
-                    identity_row: CheckRow::Failed("Not authenticated (401) · key rotated or revoked".into()),
+                    identity_row: CheckRow::Failed(
+                        "Not authenticated (401) · key rotated or revoked".into(),
+                    ),
                     quota_row: CheckRow::Skipped("not attempted".into()),
                 },
                 KeyOutcome::RateLimited => ValidationOutcome {
@@ -288,7 +364,14 @@ pub fn validate(
                     identity: identity.clone(),
                     confidence,
                     lifecycle: Lifecycle::Available,
-                    issue: Some(issue(IssueCode::RateLimited, "Rate limited: retry after 25 min", Recoverability::Retryable).retry(now + 25 * 60)),
+                    issue: Some(
+                        issue(
+                            IssueCode::RateLimited,
+                            "Rate limited: retry after 25 min",
+                            Recoverability::Retryable,
+                        )
+                        .retry(now + 25 * 60),
+                    ),
                     usage: Some(AccountUsage {
                         freshness: FreshnessInfo::failed(None, Some(now + 25 * 60)),
                         windows: vec![],
@@ -371,7 +454,10 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
                     CheckRow::Ok(format!("Detected {}", kind.label())),
                 );
             }
-            let presence_only = matches!(kind, DetectedKind::ClaudeApiKeyEnv | DetectedKind::KimiApiKeyEnv);
+            let presence_only = matches!(
+                kind,
+                DetectedKind::ClaudeApiKeyEnv | DetectedKind::KimiApiKeyEnv
+            );
             if presence_only {
                 return ValidationOutcome {
                     level: Some(ValidationLevel::MaterialDiscovered),
@@ -424,7 +510,11 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
 pub fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
     a.validation = match (&v.level, &v.issue) {
         (Some(l), None) => crate::domain::account::ValidationState::Valid(*l),
-        (Some(l), Some(i)) if i.is_informational() || i.code == IssueCode::QuotaUnsupported || i.code == IssueCode::RateLimited => {
+        (Some(l), Some(i))
+            if i.is_informational()
+                || i.code == IssueCode::QuotaUnsupported
+                || i.code == IssueCode::RateLimited =>
+        {
             crate::domain::account::ValidationState::Valid(*l)
         }
         (_, Some(i)) => crate::domain::account::ValidationState::Invalid(i.clone()),

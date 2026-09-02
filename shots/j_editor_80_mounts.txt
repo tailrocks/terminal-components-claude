@@ -1,0 +1,24 @@
+ ▪  Jackin  inside the Construct  2 running
+
+
+  ▎General   ▎Mounts   ▎Roles   ▎Environments   ▎Auth
+  ────────────━━━━━━━─────────────────────────────────────────────────────────
+
+        Destination                                   Mode  Isolation  Kind 1›
+  ▎›    /workspace/payments-platform                  rw    worktree   host
+  ▎     /workspace/libs                               ro    shared     host
+  ▎     + Add mount
+
+
+
+
+
+
+
+
+
+
+
+                                                         ▎Cancel    ▎Save…
+
+ Enter Edit…  r Read-only  i Isolation  o Open source  d Remove  a Add mount…
