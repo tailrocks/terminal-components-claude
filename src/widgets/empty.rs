@@ -6,10 +6,19 @@ use ratatui::style::Color;
 
 use crate::theme::Theme;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EmptyKind {
+    #[default]
+    Empty,
+    /// A failed state: bold `!` in error tone before the title.
+    Error,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct EmptyState {
     pub title: String,
     pub hint: Option<String>,
+    pub kind: EmptyKind,
 }
 
 impl EmptyState {
@@ -17,6 +26,14 @@ impl EmptyState {
         Self {
             title: title.to_owned(),
             hint: None,
+            kind: EmptyKind::Empty,
+        }
+    }
+    pub fn error(title: &str) -> Self {
+        Self {
+            title: title.to_owned(),
+            hint: None,
+            kind: EmptyKind::Error,
         }
     }
     pub fn hint(mut self, h: &str) -> Self {
@@ -50,7 +67,26 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
         let x = area.x + area.width.saturating_sub(crate::ui::text::width(&s) as u16) / 2;
         buf.set_string(x, y, &s, style.bg(bg));
     };
-    put(buf, y0, &e.title, t.muted());
+    match e.kind {
+        EmptyKind::Empty => put(buf, y0, &e.title, t.muted()),
+        EmptyKind::Error => {
+            let title = format!("! {}", e.title);
+            put(buf, y0, &title, t.error_fg());
+            // the `!` is bold on its own
+            let s = crate::ui::text::truncate(&title, area.width as usize);
+            let x = area.x + area.width.saturating_sub(crate::ui::text::width(&s) as u16) / 2;
+            if y0 < area.bottom() {
+                buf.set_string(
+                    x,
+                    y0,
+                    "!",
+                    t.error_fg()
+                        .bg(bg)
+                        .add_modifier(ratatui::style::Modifier::BOLD),
+                );
+            }
+        }
+    }
     for (i, l) in hint_lines.iter().enumerate() {
         put(buf, y0 + 2 + i as u16, l, t.faint());
     }

@@ -79,6 +79,77 @@ pub fn render_bar(
     buf.set_string(x + pct_w, area.y, suffix, st);
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MeterTone {
+    #[default]
+    Normal,
+    Warning,
+    Exhausted,
+    /// Last-good data: the fill drops to faint.
+    Stale,
+}
+
+/// Quota meter: `━━━━━━───── 62%` with the fill on the white ladder and a
+/// two-cell tone suffix (`▲` warning, `!` exhausted). `value` is the text
+/// shown after the track (`62% used`, `1,240 / 5,000 credits`). Green is
+/// never used: a quota is not a completion.
+pub fn render_meter(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    used_pct: u8,
+    value: &str,
+    tone: MeterTone,
+    bg: Color,
+) {
+    let area = area.intersection(*buf.area());
+    if area.is_empty() {
+        return;
+    }
+    let t = ctx.theme;
+    let ratio = (used_pct.min(100) as f64) / 100.0;
+    let vw = width(value) as u16;
+    let (fill_color, text_color, suffix) = match tone {
+        MeterTone::Normal => (t.text_secondary, t.text_primary, "  "),
+        MeterTone::Warning => (t.warning, t.warning, " ▲"),
+        MeterTone::Exhausted => (t.error, t.error, " !"),
+        MeterTone::Stale => (t.text_faint, t.text_muted, "  "),
+    };
+    // value + suffix always fit; the track takes what is left
+    let track_w = area.width.saturating_sub(vw + 3);
+    if track_w < 6 {
+        buf.set_string(
+            area.x,
+            area.y,
+            crate::ui::text::truncate(value, area.width as usize),
+            ratatui::style::Style::new().fg(text_color).bg(bg),
+        );
+        return;
+    }
+    let filled = ((track_w as f64) * ratio).round() as u16;
+    for i in 0..track_w {
+        let (sym, st) = if i < filled {
+            ("━", ratatui::style::Style::new().fg(fill_color).bg(bg))
+        } else {
+            ("─", ratatui::style::Style::new().fg(t.border_subtle).bg(bg))
+        };
+        buf.set_string(area.x + i, area.y, sym, st);
+    }
+    let x = area.x + track_w + 1;
+    buf.set_string(
+        x,
+        area.y,
+        value,
+        ratatui::style::Style::new().fg(text_color).bg(bg),
+    );
+    let sx = x + vw;
+    let mut st = ratatui::style::Style::new().fg(fill_color).bg(bg);
+    if tone == MeterTone::Exhausted {
+        st = st.add_modifier(ratatui::style::Modifier::BOLD);
+    }
+    buf.set_string(sx, area.y, suffix, st);
+}
+
 /// Indeterminate bar: a short accent segment sweeping over the track.
 pub fn render_indeterminate(
     area: Rect,
