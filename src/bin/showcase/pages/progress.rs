@@ -8,7 +8,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{
-    MeterTone, ProgressStatus, render_bar, render_indeterminate, render_meter, render_spinner,
+    Meter, MeterTone, MeterVisual, ProgressStatus, render_bar, render_indeterminate, render_spinner,
 };
 
 const ID: WidgetId = WidgetId::of("progress");
@@ -97,7 +97,7 @@ impl Page for ProgressPage {
         let panel = Panel::card(Some("States")).meta("static");
         let bg = panel.bg(t);
         let inner = panel.render(
-            Rect::new(rows[2].x, rows[2].y, rows[2].width, rows[2].height.min(18)),
+            Rect::new(rows[2].x, rows[2].y, rows[2].width, rows[2].height.min(22)),
             buf,
             t,
         );
@@ -136,30 +136,43 @@ impl Page for ProgressPage {
             buf.set_string(
                 inner.x,
                 inner.y + 9,
-                "Quota meters are never green: white while fine, warning from 75 %, error at 100 %, dimmed when stale.",
+                "Capacity meters are never green: low ≤ 59 % white, medium ≤ 84 % warning, high error. Line and block visuals.",
                 t.muted().bg(bg),
             );
-            let meters = [
-                ("Session   ", 38u8, MeterTone::Normal),
-                ("Weekly    ", 82, MeterTone::Warning),
-                ("Opus      ", 100, MeterTone::Exhausted),
-                ("Last good ", 54, MeterTone::Stale),
+            let meters: [(&str, Option<u8>, MeterTone); 9] = [
+                ("Low       ", Some(38), MeterTone::Normal),
+                ("Medium    ", Some(72), MeterTone::Normal),
+                ("High      ", Some(91), MeterTone::Normal),
+                ("Warning   ", Some(82), MeterTone::Warning),
+                ("Exhausted ", Some(100), MeterTone::Exhausted),
+                ("Stale     ", Some(54), MeterTone::Stale),
+                ("Refreshing", Some(54), MeterTone::Refreshing),
+                ("Error     ", None, MeterTone::Error),
+                ("Unknown   ", None, MeterTone::Unknown),
             ];
+            let col_w = inner.width.saturating_sub(12) / 2;
             for (i, (label, pct, tone)) in meters.iter().enumerate() {
                 let y = inner.y + 10 + i as u16;
                 if y >= inner.bottom() {
                     break;
                 }
                 buf.set_string(inner.x, y, label, t.primary().bg(bg));
-                render_meter(
-                    Rect::new(inner.x + 11, y, 36, 1),
-                    buf,
-                    ctx,
-                    *pct,
-                    &format!("{pct:>3}%"),
-                    *tone,
-                    bg,
-                );
+                let value = match tone {
+                    MeterTone::Error => "quota read failed".to_owned(),
+                    MeterTone::Unknown => String::new(),
+                    _ => format!("{}% used", pct.unwrap_or(0)),
+                };
+                for (k, visual) in [MeterVisual::Line, MeterVisual::Block]
+                    .into_iter()
+                    .enumerate()
+                {
+                    let x = inner.x + 11 + k as u16 * (col_w + 1);
+                    Meter::new(*pct)
+                        .value(value.clone())
+                        .tone(*tone)
+                        .visual(visual)
+                        .render(Rect::new(x, y, col_w.min(34), 1), buf, ctx, bg);
+                }
             }
         }
     }

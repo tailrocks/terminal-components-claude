@@ -497,6 +497,17 @@ impl DataTable {
         (Outcome::Changed, None)
     }
 
+    /// Horizontal wheel: pages the visible columns.
+    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
+        let before = self.hscroll.offset;
+        self.hscroll.scroll_by(delta as isize);
+        if self.hscroll.offset == before {
+            Outcome::Consumed
+        } else {
+            Outcome::Changed
+        }
+    }
+
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
         self.scroll.scroll_by(delta as isize);
         Outcome::Changed

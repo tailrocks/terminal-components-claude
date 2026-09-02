@@ -11,6 +11,7 @@ use junie_tui::widgets::dialog::{Dialog, DialogResult};
 
 pub mod buttons;
 pub mod chips;
+pub mod chrome;
 pub mod dialogs;
 pub mod editable;
 pub mod editor;
@@ -40,6 +41,11 @@ pub enum PageEvent {
     Paste(String),
     /// Completed click (down and up on the same id).
     Click {
+        id: WidgetId,
+        pos: Position,
+    },
+    /// Secondary (right) button on `id`: a context action.
+    Secondary {
         id: WidgetId,
         pos: Position,
     },

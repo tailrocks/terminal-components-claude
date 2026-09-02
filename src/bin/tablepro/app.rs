@@ -2017,6 +2017,7 @@ impl App {
                     }
                 }
             }
+            MouseKind::Secondary => Outcome::Ignored,
             MouseKind::WheelUp
             | MouseKind::WheelDown
             | MouseKind::WheelLeft

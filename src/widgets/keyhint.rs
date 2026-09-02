@@ -17,7 +17,8 @@ pub const fn hint(key: &'static str, action: &'static str) -> Hint {
 }
 
 /// Render hints left-aligned; `badge` (e.g. EDIT) leads; `right` is a
-/// status message that always wins the right edge.
+/// status message that always wins the right edge. Returns the number of
+/// hints that fit.
 pub fn render(
     area: Rect,
     buf: &mut Buffer,
@@ -25,7 +26,7 @@ pub fn render(
     hints: &[Hint],
     badge: Option<(&str, BadgeKind)>,
     right: Option<&str>,
-) {
+) -> usize {
     render_toned(
         area,
         buf,
@@ -33,11 +34,12 @@ pub fn render(
         hints,
         badge,
         right.map(|r| (r, Tone::Secondary)),
-    );
+    )
 }
 
 /// Like [`render`], with a toned status: an error status is drawn as
-/// `! message` in the error tone.
+/// `! message` in the error tone. Hints that do not fit are dropped from
+/// the right and a faint `…` marks the cut.
 pub fn render_toned(
     area: Rect,
     buf: &mut Buffer,
@@ -45,10 +47,10 @@ pub fn render_toned(
     hints: &[Hint],
     badge: Option<(&str, BadgeKind)>,
     right: Option<(&str, Tone)>,
-) {
+) -> usize {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
-        return;
+        return 0;
     }
     let mut x = area.x + 1;
     let mut right_w = 0u16;
@@ -78,14 +80,23 @@ pub fn render_toned(
         buf.set_string(x, area.y, &b, t.badge(kind));
         x += crate::ui::text::width(&b) as u16 + 2;
     }
-    for h in hints {
+    let limit = area.right().saturating_sub(right_w);
+    let mut drawn = 0usize;
+    for (i, h) in hints.iter().enumerate() {
         let kw = crate::ui::text::width(h.key) as u16;
         let w = kw + 1 + crate::ui::text::width(h.action) as u16 + 2;
-        if x + w + right_w > area.right() {
+        // keep two cells for the cut marker when more hints follow
+        let reserve = if i + 1 < hints.len() { 2 } else { 0 };
+        if x + w + reserve > limit {
             break;
         }
         buf.set_string(x, area.y, h.key, t.key_hint_key());
         buf.set_string(x + kw + 1, area.y, h.action, t.key_hint_action());
         x += w;
+        drawn += 1;
     }
+    if drawn < hints.len() && x + 1 <= limit {
+        buf.set_string(x, area.y, "…", t.faint());
+    }
+    drawn
 }

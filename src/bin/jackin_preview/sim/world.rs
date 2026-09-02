@@ -7,10 +7,10 @@ use std::collections::BTreeMap;
 use crate::arbiter::Arbiter;
 use crate::clock::Clock;
 use crate::domain::account::{AccountId, AccountRegistry};
-use crate::domain::agent::Provider;
+use crate::domain::agent::{Agent, AuthMode, Provider};
 use crate::domain::instance::{Instance, InstanceId, InstanceStatus};
 use crate::domain::workspace::{
-    AuthEntry, EnvVar, Mount, RoleEntry, RoleName, Workspace, WorkspaceId,
+    EnvVar, Mount, RoleEntry, RoleName, Usability, Workspace, WorkspaceId,
 };
 use crate::scenario::Scenario;
 use crate::sim::onepassword::SimOnePassword;
@@ -24,8 +24,9 @@ pub struct GlobalConfig {
     pub mounts: Vec<Mount>,
     pub env: Vec<EnvVar>,
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
-    pub auth: Vec<AuthEntry>,
-    pub role_auth: BTreeMap<RoleName, Vec<AuthEntry>>,
+    /// How each agent runtime is given credentials inside the container.
+    /// Which account backs it is the registry's business, not this table's.
+    pub agent_modes: BTreeMap<Agent, AuthMode>,
     pub trust: Vec<TrustRow>,
 }
 
@@ -36,9 +37,12 @@ impl GlobalConfig {
         n += usize::from(self.dco_signoff != other.dco_signoff);
         n += keyed_diff(&self.mounts, &other.mounts, |m| m.destination.clone());
         n += keyed_diff(&self.env, &other.env, |e| e.key.clone());
-        n += keyed_diff(&self.auth, &other.auth, |a| a.agent.label().to_owned());
         n += usize::from(self.role_env != other.role_env);
-        n += usize::from(self.role_auth != other.role_auth);
+        n += self
+            .agent_modes
+            .iter()
+            .filter(|(a, m)| other.agent_modes.get(a) != Some(m))
+            .count();
         n += keyed_diff(&self.trust, &other.trust, |t| t.source.clone());
         n
     }
@@ -316,6 +320,129 @@ impl World {
     ) -> crate::domain::fixtures::ResolvedAccount {
         crate::domain::fixtures::resolve_account(provider, ws, role, session, &self.accounts)
     }
+
+    /// The agent runtime mode configured in Settings (`sync` when unset).
+    pub fn agent_mode(&self, agent: Agent) -> AuthMode {
+        self.global
+            .agent_modes
+            .get(&agent)
+            .copied()
+            .unwrap_or(AuthMode::Sync)
+    }
+
+    /// Accounts a session for `agent` may use: the Workspace's effective set
+    /// (or, without a Workspace, the registry defaults and discovered
+    /// logins) restricted to the agent's provider and to accounts that are
+    /// ready right now. Preferred first.
+    pub fn eligible_accounts(
+        &self,
+        agent: Agent,
+        ws: Option<&Workspace>,
+        role: Option<&str>,
+    ) -> Vec<AccountId> {
+        let offer = self.offer_for(agent, ws, role);
+        offer.accounts
+    }
+
+    /// Everything the session picker needs for one agent. `None` when the
+    /// agent has no configured account at all (it must not be offered);
+    /// `blocked` when every configured account is temporarily unusable.
+    pub fn offer_for(&self, agent: Agent, ws: Option<&Workspace>, role: Option<&str>) -> AgentOffer {
+        let provider = agent.provider();
+        let mut ready: Vec<AccountId> = vec![];
+        let mut blocked: Vec<(AccountId, String)> = vec![];
+        match ws {
+            Some(w) => {
+                for e in w.effective_accounts(&self.accounts) {
+                    if e.provider != provider {
+                        continue;
+                    }
+                    match &e.usable {
+                        Usability::Ready => ready.push(e.id.clone()),
+                        u => blocked.push((e.id.clone(), u.label())),
+                    }
+                }
+            }
+            None => {
+                // no Workspace: the registry default, else the discovered login
+                if let Some(a) = self.accounts.default_for(provider) {
+                    match crate::domain::workspace::usability_of(a) {
+                        Usability::Ready => ready.push(a.id.clone()),
+                        u => blocked.push((a.id.clone(), u.label())),
+                    }
+                }
+                if ready.is_empty()
+                    && let Some(a) = self.accounts.discovered_current(provider)
+                    && !ready.contains(&a.id)
+                {
+                    ready.push(a.id.clone());
+                }
+            }
+        }
+        if self.agent_mode(agent) == AuthMode::Ignore {
+            return AgentOffer {
+                accounts: vec![],
+                preselected: None,
+                blocked: Some("agent runtime mode is ignore · set in Settings › Agents".into()),
+                configured: !ready.is_empty() || !blocked.is_empty(),
+            };
+        }
+        // preselection follows the precedence resolver, restricted to the ready set
+        let preselected = self
+            .account_for(provider, ws, role, None)
+            .account
+            .filter(|id| ready.contains(id))
+            .or_else(|| ready.first().cloned());
+        if let Some(p) = &preselected
+            && let Some(i) = ready.iter().position(|x| x == p)
+            && i > 0
+        {
+            let x = ready.remove(i);
+            ready.insert(0, x);
+        }
+        let block = if ready.is_empty() {
+            blocked.first().map(|(id, why)| {
+                let name = self
+                    .accounts
+                    .get(id)
+                    .map(|a| a.title())
+                    .unwrap_or(id.clone());
+                format!("{name} · {why}")
+            })
+        } else {
+            None
+        };
+        AgentOffer {
+            configured: !ready.is_empty() || !blocked.is_empty(),
+            accounts: ready,
+            preselected,
+            blocked: block,
+        }
+    }
+
+    /// Agents a new session may run, in `Agent::ALL` order. Unconfigured
+    /// agents are absent; agents whose only accounts are temporarily unusable
+    /// come back with `blocked` set so the picker can show a disabled row.
+    /// Shell is never in this list.
+    pub fn offered_agents(&self, ws: Option<&Workspace>, role: Option<&str>) -> Vec<(Agent, AgentOffer)> {
+        Agent::ALL
+            .iter()
+            .map(|a| (*a, self.offer_for(*a, ws, role)))
+            .filter(|(_, o)| o.configured)
+            .collect()
+    }
+}
+
+/// What a session picker knows about one agent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AgentOffer {
+    /// Ready accounts, preselected one first.
+    pub accounts: Vec<AccountId>,
+    pub preselected: Option<AccountId>,
+    /// Set when the agent is configured but cannot start right now.
+    pub blocked: Option<String>,
+    /// False when nothing at all is configured for the agent.
+    pub configured: bool,
 }
 
 pub fn expand(home: &str, path: &str) -> String {
