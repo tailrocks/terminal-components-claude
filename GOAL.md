@@ -398,7 +398,7 @@ Support:
 - source-drift and running-isolated cleanup blockers before save
 - environment scope and source
 - masked secrets
-- plain, 1Password-style, and other currently represented source choices using synthetic fixture data
+- 1Password as the primary secret source, with plain-text entry and other currently represented source choices using synthetic fixture data
 - Auth mode/source/folder selection
 - validation errors
 - dirty counts/state
@@ -449,7 +449,9 @@ This is the major deliberate extension.
 
 Build one singular interface where an operator can register, inspect, edit, disable, remove, validate, and select multiple AI coding-agent accounts.
 
-Present account forms progressively: show common identity and provider fields first, reveal folder or API-key controls after credential-source selection, reveal endpoint/deployment only for the supported Grok fixture, and keep detected provenance and account metadata in validation or detail views.
+Make 1Password the primary credential-management path throughout the preview for environment secrets, Auth credentials, passwords, and provider API keys. Local agent profile folders remain supported. Direct masked plain-text entry remains a clear secondary choice for operators who need the simplest path.
+
+Present account forms progressively: show common identity and provider fields first, default new secret-backed credentials to 1Password, reveal local-folder or plain-text controls after credential-source selection, reveal endpoint/deployment only for the supported Grok fixture, and keep detected provenance and account metadata in validation or detail views.
 
 Manual account registration is limited to these current Jackin provider families:
 
@@ -460,21 +462,36 @@ Manual account registration is limited to these current Jackin provider families
 
 Treat those labels as an operator-facing linked mapping across separate dimensions:
 
-| Agent runtime | Provider adapter identity | Usage surface | Allowed manual credential sources | Endpoint rule |
+| Agent runtime | Provider adapter identity | Usage surface | Allowed credential sources | Endpoint rule |
 |---|---|---|---|---|
-| Claude Code | Anthropic / Claude | Claude | local Claude profile/home folder; direct Anthropic API key | no invented endpoint field |
-| Codex | OpenAI | Codex | local `CODEX_HOME`-style folder; direct OpenAI API key | no invented endpoint field |
-| Grok Build | xAI / Grok | Grok | local Grok profile folder; direct xAI/deployment API key | endpoint/deployment field only in a source-backed Grok fixture |
-| OpenCode | OpenCode | OpenCode | local OpenCode profile folder; direct OpenCode API key | no arbitrary custom endpoint |
+| Claude Code | Anthropic / Claude | Claude | 1Password item/field reference; local Claude profile/home folder; plain-text Anthropic API key | no invented endpoint field |
+| Codex | OpenAI | Codex | 1Password item/field reference; local `CODEX_HOME`-style folder; plain-text OpenAI API key | no invented endpoint field |
+| Grok Build | xAI / Grok | Grok | 1Password item/field reference; local Grok profile folder; plain-text xAI/deployment API key | endpoint/deployment field only in a source-backed Grok fixture |
+| OpenCode | OpenCode | OpenCode | 1Password item/field reference; local OpenCode profile folder; plain-text OpenCode API key | no arbitrary custom endpoint |
 
 Store and display these dimensions separately even when one row links them.
 
 Credential modes:
 
+- 1Password item/field reference, the primary choice for secret-backed credentials
 - local agent home/config folder
-- direct API key for a selected supported provider
+- direct masked plain-text API key for a selected supported provider
 
-`Direct API Key` is a credential source for one of the supported provider families.
+Selecting an API-key-backed account opens the 1Password path first and provides `Enter plain text instead` as an explicit alternative.
+
+The complete simulated 1Password flow includes:
+
+- choose a synthetic 1Password account when several are available
+- search and choose a vault
+- search and choose an item
+- choose the password, credential, or API-key field
+- show only non-secret reference metadata and a masked value
+- validate the item/field reference and provider compatibility
+- save the reference rather than resolved secret material
+- reopen, change, clear, and recover the reference with exact parent-focus restoration
+- model available, locked, authorization-required, permission-denied, missing-item, missing-field, malformed-reference, and validation-failure states
+
+The preview resolves synthetic 1Password references only inside its deterministic credential service. Resolved values pass directly to the simulated provider operation and never appear in application state, rendering, captures, logs, diagnostics, or committed fixtures.
 
 One operator may have multiple accounts for the same provider. Examples:
 
@@ -508,6 +525,7 @@ For an API-key-backed account, support:
 
 - display name
 - provider family
+- 1Password account, vault, item, and field reference metadata
 - masked key entry
 - optional endpoint only where current provider semantics support one
 - validation state
@@ -519,7 +537,8 @@ Actions must include:
 
 - add account
 - choose provider
-- choose folder or API key
+- choose 1Password, local folder, or plain-text API key
+- browse 1Password account, vault, item, and field
 - browse/type folder path
 - validate source
 - save
@@ -549,6 +568,8 @@ Handle:
 - duplicate folder/account
 - empty API key
 - invalid API key
+- locked or unavailable 1Password
+- missing or unauthorized 1Password item/field reference
 - unauthorized
 - rate limited
 - provider unavailable
@@ -556,7 +577,7 @@ Handle:
 - unsupported quota visibility
 - account with no stable public identity
 
-Secrets remain masked. Diagnostics expose origin type and safe path labels.
+Secrets remain masked. Diagnostics expose origin type, safe path labels, and non-secret 1Password reference metadata.
 
 ---
 
@@ -615,7 +636,7 @@ Show overall observability across all registered accounts and providers. Overall
 
 Use an overall health/capacity summary, account counts, warnings, exhausted windows, stale sources, and provider-level rollups for genuinely comparable units and windows.
 
-The current Usage registry includes Claude, Codex, Amp, Grok, Z.AI, Kimi, MiniMax, OpenCode, and Unsupported states. Preserve current read-only projection semantics for these reference-backed surfaces. New manual registration remains limited to Claude Code, Codex, Grok Build, OpenCode, and their direct API-key modes.
+The current Usage registry includes Claude, Codex, Amp, Grok, Z.AI, Kimi, MiniMax, OpenCode, and Unsupported states. Preserve current read-only projection semantics for these reference-backed surfaces. New manual registration remains limited to Claude Code, Codex, Grok Build, and OpenCode with 1Password-backed or masked plain-text API-key modes.
 
 Provide at least one complete deterministic account/detail fixture, or the explicit Unsupported sentinel state, for every current Usage surface, including Amp, Z.AI, Kimi, and MiniMax. Those non-registerable provider fixtures remain discovered/read-only and expose no account-mutation action.
 
@@ -638,7 +659,7 @@ Cover the current modal families through connected workflows:
 - error popup
 - status popup
 - container info
-- 1Password-style picker
+- 1Password account/vault/item/field picker
 - Role picker
 - provider/Agent picker
 - source picker
@@ -706,6 +727,8 @@ The cockpit must show:
 - debug/run identity when appropriate
 - cancel/quit controls
 - digital-rain or signal atmosphere integrated with the approved design
+
+During the Credentials stage, show the selected credential origin and validation state. Resolve a simulated 1Password reference or masked plain-text fallback without exposing the secret, then advance or present a recoverable credential-source error.
 
 Motion communicates activity and transition while stage status stays primary.
 
@@ -1139,6 +1162,7 @@ Start with app-specific composition, extracting only mechanics that serve multip
 Known component gaps require explicit decisions:
 
 - use a reusable masked `SecretInput` or equivalent for API keys
+- compose a searchable 1Password account/vault/item/field picker from reusable list, input, loading, empty, and error primitives
 - add reusable split-handle geometry and drag mechanics if both Host and Capsule need them
 - consider a reusable selectable read-only viewport only if it serves more than the simulated terminal
 - keep CreatePrelude, file-browser composition, nested Capsule pane tree, and ritual choreography application-specific unless reuse is proven
@@ -1149,7 +1173,7 @@ Raw synthetic API-key text lives only in transient edit state. Rendering, captur
 
 # 28. SIMULATED PRODUCT SERVICES
 
-Use deterministic in-memory services for container state, PTYs, agent processes, provider responses, credential discovery, fixture files, 1Password-style sources, host actions, and daemon events.
+Use deterministic in-memory services for container state, PTYs, agent processes, provider responses, credential discovery, fixture files, 1Password accounts/vaults/items/fields and reference resolution, host actions, and daemon events.
 
 Copy actions write to an in-memory preview clipboard and show status. Export/open/reveal actions expose simulated success, cancellation, and error states. Logs render from sanitized text or structured styled spans.
 
@@ -1175,6 +1199,7 @@ Run it. Interact with it. Capture it. Critique it. Fix it.
 ## Slice 2 — Accounts and Usage
 
 - Account & Usage Center
+- primary 1Password credential flow and masked plain-text fallback
 - account add/edit/remove/default flow
 - account precedence and launch/session integration
 - Host Usage
@@ -1231,7 +1256,7 @@ Design the terminal-native relationship among Workspaces, instances, configurati
 
 ### ACCOUNT & USAGE SPECIALIST
 
-Design multiple-account registration, account resolution, safe secret handling, freshness, honest aggregation, and provider/account error states.
+Design multiple-account registration, primary 1Password reference selection and resolution, masked plain-text fallback, safe secret handling, freshness, honest aggregation, and provider/account error states.
 
 ### INTRO / OUTRO MOTION SPECIALIST
 
@@ -1354,6 +1379,11 @@ Implement and visually review:
 - no accounts
 - several providers
 - several accounts for one provider
+- 1Password account/vault/item/field selection
+- 1Password reference saved without resolved secret material
+- 1Password locked/authorization-required/permission-denied/unavailable
+- missing item, missing field, malformed reference, and provider mismatch
+- masked plain-text API-key fallback
 - duplicate folder
 - wrong-provider folder
 - missing/unreadable folder
@@ -1428,9 +1458,9 @@ Run this connected experience:
 4. Open Account & Usage Center.
 5. Add a Claude Code local-folder account.
 6. Add a second Claude Code local-folder account.
-7. Add a Codex account.
-8. Add a Grok Build API-key profile using masked synthetic input.
-9. Add an OpenCode local-folder account.
+7. Add a Codex API-key account through a simulated 1Password item/field reference.
+8. Add a Grok Build API-key profile through a simulated 1Password item/field reference.
+9. Add an OpenCode API-key account using the masked plain-text fallback.
 10. Validate accounts and set one provider default.
 11. Inspect the honest overall Usage summary.
 12. Inspect one provider and one account in detail.
@@ -1478,6 +1508,8 @@ This phase is complete only when this repository contains a coherent, runnable, 
 It must cover the complete current Jackin product experience described by `JACKIN_REFERENCE.md`, plus the unified Account & Usage Center described here.
 
 It must preserve the special feeling of entering and leaving the Construct through meaningful intro and outro rituals.
+
+It must make the complete simulated 1Password picker and reference flow the primary path for secret-backed credentials while retaining masked plain-text entry as a straightforward alternative.
 
 It must have been:
 
