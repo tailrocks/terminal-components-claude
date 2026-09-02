@@ -246,7 +246,9 @@ impl ContextMenu {
         {
             self.cursor = i;
         }
-        let bg = t.popover;
+        // an anchored popup is an elevated surface, the same plane as the
+        // menu-bar label it hangs from
+        let bg = t.surface_elevated;
         fill(buf, area, Style::new().bg(bg));
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
@@ -287,12 +289,25 @@ impl ContextMenu {
                 s.hovered = false;
             }
             let row = Rect::new(inner.x, y, inner.width, 1);
-            let mut st = t.row(s, bg);
+            // one highlight only: the cursor row is a solid tint with bold
+            // text (a menu row is a command, not a focus stop, so it draws
+            // no `▎` bar); hover merely lifts the plane
+            let mut st = if item.disabled {
+                Style::new().fg(t.disabled).bg(bg)
+            } else if s.selected {
+                Style::new()
+                    .fg(t.text_primary)
+                    .bg(t.accent_bg)
+                    .add_modifier(Modifier::BOLD)
+            } else if s.hovered {
+                Style::new().fg(t.text_primary).bg(t.lift(bg))
+            } else {
+                Style::new().fg(t.text_primary).bg(bg)
+            };
             if item.danger && !item.disabled {
                 st = st.fg(t.error);
             }
             fill(buf, row, st);
-            buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
             let label_w = inner.width.saturating_sub(3) as usize;
             buf.set_string(row.x + 2, y, truncate(&item.label, label_w), st);
             if let Some(sc) = item.shortcut {

@@ -16,7 +16,7 @@ use junie_tui::widgets::picker::PickerEvent;
 use junie_tui::widgets::segments::{self, Segment};
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 
 use crate::arbiter::{EntryDecision, ExitDecision};
@@ -35,6 +35,8 @@ use crate::screens::usage::UsageScreen;
 use crate::screens::{Cx, Go, Modal, ModalResult, ModalTag, Request, Screen};
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
+use junie_tui::widgets::brand::Lockup;
+use junie_tui::widgets::menu::{MenuBar, MenuBarEvent, MenuItem};
 
 pub const MIN_WIDTH: u16 = 72;
 pub const MIN_HEIGHT: u16 = 20;
@@ -42,6 +44,7 @@ pub const MIN_HEIGHT: u16 = 20;
 /// The canonical product mark; every brand lockup renders exactly this.
 pub const BRAND_MARK: &str = "jackin❯";
 const STRIP_HELP: WidgetId = WidgetId::of("strip.help");
+const HOST_MENU: WidgetId = WidgetId::of("host.menu");
 const STRIP_USAGE: WidgetId = WidgetId::of("strip.usage");
 const STRIP_ACCOUNTS: WidgetId = WidgetId::of("strip.accounts");
 const STRIP_SETTINGS: WidgetId = WidgetId::of("strip.settings");
@@ -148,6 +151,9 @@ pub struct App {
     pub size: (u16, u16),
     pub quit: bool,
     too_small: bool,
+    /// The application menu bar shown on every host screen.
+    host_menu: MenuBar,
+    host_menu_route: Route,
     last_click: Option<(WidgetId, i64)>,
     intro_guard: u8,
     pub clipboard_gen: u32,
@@ -181,6 +187,8 @@ impl App {
             size: (0, 0),
             quit: false,
             too_small: false,
+            host_menu: Self::build_host_menu(Route::Manager),
+            host_menu_route: Route::Manager,
             last_click: None,
             intro_guard: 3,
             clipboard_gen: 0,
@@ -568,6 +576,25 @@ impl App {
                 | Route::Editor
                 | Route::Prelude
         );
+        if host && self.host_menu.is_open() {
+            let (o, ev) = self.host_menu.on_key(&key);
+            return match ev {
+                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                    let label = self.host_menu.menus[mi][ii].label.clone();
+                    self.run_host_menu(&label)
+                }
+                Some(MenuBarEvent::Brand) => {
+                    self.open_about();
+                    Outcome::Changed
+                }
+                _ => o.or(Outcome::Changed),
+            };
+        }
+        if host && !editing && key.code == KeyCode::F(10) {
+            self.sync_host_menu();
+            self.host_menu.open_menu(0);
+            return Outcome::Changed;
+        }
         if host && !editing {
             match key.code {
                 KeyCode::Char('?') => {
@@ -653,6 +680,203 @@ impl App {
             }
             _ => Outcome::Ignored,
         }
+    }
+
+    fn is_host(route: Route) -> bool {
+        matches!(
+            route,
+            Route::Manager
+                | Route::Accounts
+                | Route::Usage
+                | Route::Settings
+                | Route::Editor
+                | Route::Prelude
+        )
+    }
+
+    /// The menu bar of the host screens: the same bar as the Capsule's, with
+    /// the screen's own actions under File and the destinations under Go.
+    fn build_host_menu(route: Route) -> MenuBar {
+        let file: Vec<MenuItem> = match route {
+            Route::Manager => vec![
+                MenuItem::new("New workspace…").shortcut("n"),
+                MenuItem::new("Edit workspace…").shortcut("e"),
+                MenuItem::new("Launch…").shortcut("Enter"),
+                MenuItem::new("Prewarm").shortcut("w"),
+                MenuItem::new("Delete workspace…")
+                    .shortcut("d")
+                    .danger()
+                    .separator(),
+                MenuItem::new("Refresh").shortcut("F5").separator(),
+                MenuItem::new("Quit").shortcut("Ctrl+Q"),
+            ],
+            Route::Editor | Route::Settings => vec![
+                MenuItem::new("Save…").shortcut("Ctrl+S").separator(),
+                MenuItem::new("Cancel").shortcut("Esc"),
+            ],
+            Route::Accounts => vec![
+                MenuItem::new("Add account…").shortcut("a"),
+                MenuItem::new("Edit account…").shortcut("e"),
+                MenuItem::new("Validate").shortcut("v").separator(),
+                MenuItem::new("Refresh selection").shortcut("r"),
+                MenuItem::new("Refresh all").shortcut("F5"),
+                MenuItem::new("Filter…").shortcut("/"),
+            ],
+            Route::Usage => vec![
+                MenuItem::new("Refresh").shortcut("r"),
+                MenuItem::new("Manage in Accounts").shortcut("m"),
+            ],
+            _ => vec![MenuItem::new("Cancel").shortcut("Esc")],
+        };
+        let go = vec![
+            MenuItem::new("Workspace manager").shortcut("Esc"),
+            MenuItem::new("Account & Usage Center").shortcut("c"),
+            MenuItem::new("Usage").shortcut("u"),
+            MenuItem::new("Global settings").shortcut("s"),
+        ];
+        let help = vec![
+            MenuItem::new("Key reference").shortcut("?"),
+            MenuItem::new("About jackin-preview"),
+        ];
+        MenuBar::new(HOST_MENU, vec![("File", file), ("Go", go), ("Help", help)])
+            .brand(Lockup::new(BRAND_MARK))
+    }
+
+    fn sync_host_menu(&mut self) {
+        if self.host_menu_route != self.route && Self::is_host(self.route) {
+            self.host_menu = Self::build_host_menu(self.route);
+            self.host_menu_route = self.route;
+        }
+    }
+
+    /// A menu item on a host screen either navigates or presses the key the
+    /// item names, so menus and keys can never disagree.
+    fn run_host_menu(&mut self, label: &str) -> Outcome {
+        let editing_screen = matches!(self.route, Route::Editor | Route::Settings | Route::Prelude);
+        let key = |code: KeyCode, mods: KeyModifiers| Input::Key(Key { code, mods });
+        match label {
+            "Workspace manager" => {
+                if editing_screen {
+                    // the editor asks about unsaved work on its own way out
+                    return self.handle(key(KeyCode::Esc, KeyModifiers::NONE));
+                }
+                self.go(Go::Manager);
+            }
+            "Account & Usage Center" | "Usage" | "Global settings" => {
+                if editing_screen {
+                    self.set_status("Save or cancel this screen first", Tone::Secondary);
+                    return Outcome::Changed;
+                }
+                match label {
+                    "Account & Usage Center" => self.go(Go::Accounts { select: None }),
+                    "Usage" => self.go(Go::Usage { select: None }),
+                    _ => self.go(Go::Settings),
+                }
+            }
+            "Key reference" => self.open_help(),
+            "About jackin-preview" => self.open_about(),
+            "Quit" => self.open_quit_confirm(),
+            "New workspace…" => return self.handle(key(KeyCode::Char('n'), KeyModifiers::NONE)),
+            "Edit workspace…" | "Edit account…" => {
+                return self.handle(key(KeyCode::Char('e'), KeyModifiers::NONE));
+            }
+            "Launch…" => return self.handle(key(KeyCode::Enter, KeyModifiers::NONE)),
+            "Prewarm" => return self.handle(key(KeyCode::Char('w'), KeyModifiers::NONE)),
+            "Delete workspace…" => {
+                return self.handle(key(KeyCode::Char('d'), KeyModifiers::NONE));
+            }
+            "Refresh" | "Refresh selection" => {
+                return self.handle(key(
+                    if self.route == Route::Manager {
+                        KeyCode::F(5)
+                    } else {
+                        KeyCode::Char('r')
+                    },
+                    KeyModifiers::NONE,
+                ));
+            }
+            "Refresh all" => return self.handle(key(KeyCode::F(5), KeyModifiers::NONE)),
+            "Save…" => return self.handle(key(KeyCode::Char('s'), KeyModifiers::CONTROL)),
+            "Cancel" => return self.handle(key(KeyCode::Esc, KeyModifiers::NONE)),
+            "Add account…" => return self.handle(key(KeyCode::Char('a'), KeyModifiers::NONE)),
+            "Validate" => return self.handle(key(KeyCode::Char('v'), KeyModifiers::NONE)),
+            "Filter…" => return self.handle(key(KeyCode::Char('/'), KeyModifiers::NONE)),
+            "Manage in Accounts" => {
+                return self.handle(key(KeyCode::Char('m'), KeyModifiers::NONE));
+            }
+            _ => self.set_status(
+                &format!("{label}: not available in the preview"),
+                Tone::Secondary,
+            ),
+        }
+        Outcome::Changed
+    }
+
+    fn open_about(&mut self) {
+        let props = vec![
+            junie_tui::widgets::props::Prop::new(
+                "Product",
+                "jackin-preview · deterministic redesign preview",
+            ),
+            junie_tui::widgets::props::Prop::new("Scenario", self.world.scenario.name()),
+            junie_tui::widgets::props::Prop::new(
+                "Construct",
+                "simulated · nothing here touches a real container",
+            ),
+            junie_tui::widgets::props::Prop::new(
+                "Design system",
+                "Junie-inspired Ratatui components (junie_tui)",
+            ),
+        ];
+        let d = crate::screens::modals::InfoDialog::new(WidgetId::of("host.about"), "About", props)
+            .width(64);
+        self.push_modal(Modal::Info(d), ModalTag::new("about"), self.route);
+    }
+
+    /// Row zero of every host screen: the menu bar, then the Construct state
+    /// and the breadcrumb right-aligned in what is left of the row.
+    fn draw_host_menu(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, route: Route) {
+        let t = self.theme;
+        self.sync_host_menu();
+        self.host_menu.on_hover(ctx.interaction.hover);
+        self.host_menu.render(area, buf, ctx, t.canvas);
+        let used = self
+            .host_menu
+            .areas
+            .iter()
+            .map(|r| r.right())
+            .max()
+            .unwrap_or(area.x)
+            .max(self.host_menu.brand_area.right());
+        let rest = Rect::new(used + 2, area.y, area.right().saturating_sub(used + 2), 1);
+        let (state, tone) = self.construct_state(route);
+        let mut right = vec![];
+        if let Some(s) = self.screens.get(route) {
+            right.push(Segment::new(s.crumb(&self.world), Tone::Secondary).priority(7));
+            right.extend(s.strip_right(&self.world));
+        }
+        right.push(Segment::new(state, tone).priority(6));
+        match self.world.arbiter.running() {
+            Ok(0) => right.push(Segment::new("no instances", Tone::Muted).priority(5)),
+            Ok(n) => right.push(Segment::new(format!("{n} running"), Tone::Muted).priority(5)),
+            Err(e) => right.push(Segment::new(format!("! {}", e.label()), Tone::Error).priority(8)),
+        }
+        if self.world.daemon_health == crate::sim::world::DaemonHealth::Stale {
+            right.push(Segment::new("▲ daemon stale", Tone::Warning).priority(8));
+        }
+        if !self.world.jobs.is_empty() {
+            right.push(
+                Segment::new(
+                    format!(
+                        "{} working",
+                        junie_tui::widgets::progress::spinner_frame(ctx.interaction.tick)
+                    ),
+                    Tone::Secondary,
+                )
+                .priority(4),
+            );
+        }
+        segments::render(rest, buf, ctx, &[], &right, t.canvas);
     }
 
     fn open_help(&mut self) {
@@ -1417,6 +1641,24 @@ impl App {
                 if !self.modals.is_empty() {
                     return self.modal_click(id, m.pos);
                 }
+                if Self::is_host(self.route) && self.host_menu.owns(id) {
+                    let (o, ev) = self.host_menu.on_click(id);
+                    return match ev {
+                        Some(MenuBarEvent::Chosen(mi, ii)) => {
+                            let label = self.host_menu.menus[mi][ii].label.clone();
+                            self.run_host_menu(&label)
+                        }
+                        Some(MenuBarEvent::Brand) => {
+                            self.open_about();
+                            Outcome::Changed
+                        }
+                        _ => o.or(Outcome::Changed),
+                    };
+                }
+                if Self::is_host(self.route) && self.host_menu.is_open() {
+                    self.host_menu.close();
+                    return Outcome::Changed;
+                }
                 if id == STRIP_HELP {
                     self.open_help();
                     return Outcome::Changed;
@@ -2158,13 +2400,18 @@ impl App {
             ),
             _ => body,
         };
-        if route != Route::Capsule {
+        if Self::is_host(route) {
+            self.draw_host_menu(header, buf, ctx, route);
+        } else if route != Route::Capsule {
             self.draw_strip(header, buf, ctx, route);
         }
         if let Some(s) = self.screens.get_mut(route) {
             s.render(body, buf, ctx, &self.world);
         }
         self.draw_footer(footer, buf, false);
+        if Self::is_host(route) {
+            self.host_menu.render_open(area, buf, ctx);
+        }
     }
 
     fn construct_state(&self, route: Route) -> (&'static str, Tone) {
@@ -2374,11 +2621,20 @@ impl App {
         };
         let status =
             status.map(|(s, tone)| (truncate(s, area.width.saturating_sub(4) as usize), tone));
-        // one hint surface: topmost modal › the screen's own context › fallback
+        // one hint surface: topmost modal › open menu › the screen's own context › fallback
         let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
+        let menu_layer =
+            (!modal && Self::is_host(self.route) && self.host_menu.is_open()).then(|| {
+                HintLayer::new(vec![
+                    hint("← →", "Menu"),
+                    hint("↑↓", "Move"),
+                    hint("Enter", "Choose"),
+                    hint("Esc", "Close"),
+                ])
+            });
         let screen_layer = (!modal && !hints.is_empty()).then(|| HintLayer::new(hints.clone()));
         let fallback = HintLayer::new(vec![hint("?", "Help"), hint("Esc", "Back")]);
-        let mut layer = HintBar::resolve(&[modal_layer, screen_layer, Some(fallback)]);
+        let mut layer = HintBar::resolve(&[modal_layer, menu_layer, screen_layer, Some(fallback)]);
         layer.badge = badge;
         layer.status = status;
         HintBar::render(area, buf, &t, &layer);

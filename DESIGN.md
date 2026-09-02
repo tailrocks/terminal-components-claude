@@ -349,7 +349,7 @@ its whole hierarchy from those.
 
 | Role | Treatment |
 |---|---|
-| Screen identity | the brand lockup (` jackin❯ ` on the accent fill), state word, breadcrumb in text-secondary, one line |
+| Screen identity | the application menu bar: brand lockup (` jackin❯ ` on the accent fill), menu labels, then breadcrumb and Construct state right-aligned in text-secondary/muted, one line |
 | Panel or card title | bold text-primary when focused, text-secondary otherwise; meta right-aligned in text-faint on the same row |
 | Section heading (sidebar groups) | text-faint, sentence case, one blank row before |
 | Field label | text-secondary; bold text-primary when its field has focus; required `*` in primary; `optional` suffix in text-faint only when it fits whole |
@@ -932,17 +932,26 @@ Tab still reaches them.
 
 - **Purpose**: anchored lists of actions — a desktop-style menu bar for a
   surface's command groups, and a context menu for one object (a tab, a row).
-- **Anatomy**: `ContextMenu` — a popover (`popover` plane, rounded
-  `border_subtle` frame) anchored `Below`, `Above` or `Right` of a rectangle
-  or at a pointer position, clamped to the screen and flipped above when
-  there is no room below. Rows are list rows: `▎` gutter, bar-and-`accent_bg`
-  on the cursor row, hover lifts and moves the cursor, shortcuts right-aligned
-  and muted, `danger` rows in the error tone, disabled rows faint and
-  unchoosable, `separator` draws a `─` rule after the row, an optional muted
-  title names the object. `MenuBar` — one row of ` Label ` cells after an
-  optional brand lockup; the open label sits on `surface_elevated` in bold,
-  hover lifts, the keyboard cursor shows the `▎` bar when the bar is focused
-  and closed.
+- **Anatomy**: `ContextMenu` — an elevated popover (`surface_elevated`, the
+  same plane as the menu-bar label it hangs from, rounded `border_subtle`
+  frame) anchored `Below`, `Above` or `Right` of a rectangle or at a pointer
+  position, clamped to the screen and flipped above when there is no room
+  below. Rows are commands, not focus stops: the cursor row is one solid
+  `accent-tint` fill with bold text and no `▎` bar, hover lifts the plane and
+  moves the cursor, shortcuts right-aligned and muted, `danger` rows in the
+  error tone, disabled rows faint and unchoosable, `separator` draws a `─`
+  rule after the row, an optional muted title names the object. `MenuBar` —
+  one row of ` Label ` cells after the brand lockup; the open label sits on
+  `surface_elevated` in bold, hover lifts, the keyboard cursor shows the `▎`
+  bar when the bar is focused and closed.
+- **Application bar**: every screen's first row is this bar, starting with
+  the lockup (its own menu: About, Quit). The Capsule's groups are
+  `File Edit View Session Help`; the host screens share one bar whose `File`
+  holds the screen's own actions, `Go` the destinations (Workspace manager,
+  Account & Usage Center, Usage, Global settings) and `Help` the key
+  reference; the breadcrumb and the Construct state sit right-aligned in the
+  rest of the row. A blank row separates the bar from what follows (the
+  Capsule's agent tabs, a screen's body).
 - **Keys**: menu `↑↓ j k Home End Enter Esc`; bar `←→ h l` move (and switch
   the open menu), `Enter ↓ Space` open, `Esc` close. **Mouse**: a label click
   opens or closes, hovering another label while open switches, a row click

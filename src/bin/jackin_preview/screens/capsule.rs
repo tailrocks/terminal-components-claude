@@ -2381,15 +2381,16 @@ impl Screen for CapsuleScreen {
             }
             return;
         }
-        // row 0 menu bar · rows 1–2 agent tabs · body · status bar
+        // row 0 menu bar · row 1 breathing room · rows 2–3 agent tabs ·
+        // body · status bar
         let menu = Rect::new(area.x, area.y, area.width, 1);
-        let strip = Rect::new(area.x, area.y + 1, area.width, 2);
+        let strip = Rect::new(area.x, area.y + 2, area.width, 2);
         let status = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         let body = Rect::new(
             area.x,
-            area.y + 3,
+            area.y + 4,
             area.width,
-            area.height.saturating_sub(4),
+            area.height.saturating_sub(5),
         );
         self.body = body;
         self.menubar.on_hover(ctx.interaction.hover);
