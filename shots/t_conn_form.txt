@@ -11,9 +11,9 @@
  │ ▎    ◇ Staging                  pg  │      Engine                              ▎( ) staging
  │ ▎    ◆ Analytics             mysql  │    ▎ PostgreSQL                    ▾     ▎( ) production
  │ ▎    ◆ Production               pg  │
- │                                     │      Host  optional          Port  o…      Group
+ │                                     │      Host  optional          Port          Group
  │                                     │    ▎ localhost             ▎ 5432        ▎ Personal                       ▾
- │                                     │      Empty means the dri…
+ │                                     │      Blank: driver defau…
  │                                     │      Database  optional                    Safe Mode
  │                                     │    ▎                                     ▎(●) Silent
  │                                     │      Required for PostgreSQL             ▎( ) Alert
@@ -21,8 +21,8 @@
  │                                     │    ▎                                     ▎( ) Safe Mode
  │                                     │                                          ▎( ) Safe Mode (Full)
  │                                     │      Password  optional                  ▎( ) Read-Only
- │                                     │    ▎ stored in the keychain                Writes run without asking. DROP,
- │                                     │      Never written to connections.js…      TRUNCATE and DELETE without WHERE
+ │                                     │    ▎ stored in the keychain                Writes run without asking.
+ │                                     │      Never written to connections.js…      Destructive statements still
  │                                     │    ▎[ ] Prompt for password on conn…
  │                                     │
  │                                     │

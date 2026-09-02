@@ -1225,7 +1225,7 @@ impl App {
         let index = SwitcherIndex::build(&w.catalog, &w.connection.name, &open, &self.history);
         let mut p = Picker::new(WidgetId::of("switcher"), "Open Quickly");
         p.placeholder = "Search tables, views, schemas, tabs, queries…".into();
-        p.width = 72;
+        p.width = 88;
         self.scope = 0;
         p.scope = Some("All · Tab scope".into());
         self.saved_focus = self.focus.current();
@@ -1342,7 +1342,7 @@ impl App {
         let current = w.connection.safe_mode;
         let mut p = Picker::new(WidgetId::of("safemode"), "Safe Mode · this connection");
         p.searchable = false;
-        p.width = 74;
+        p.width = 112;
         let items: Vec<PickerItem> = SafeMode::ALL
             .iter()
             .map(|s| PickerItem {

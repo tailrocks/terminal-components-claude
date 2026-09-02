@@ -107,6 +107,7 @@ impl PickersPage {
             Kind::Quick => {
                 let mut p = Picker::new(ID.sub("picker.quick"), "Open quickly");
                 p.placeholder = "Files and tasks…".into();
+                p.width = 80;
                 p
             }
             Kind::Tabs => {
@@ -118,7 +119,7 @@ impl PickersPage {
             Kind::Level => {
                 let mut p = Picker::new(ID.sub("picker.level"), "Safe Mode · this connection");
                 p.searchable = false;
-                p.width = 70;
+                p.width = 112;
                 p
             }
         };
@@ -175,7 +176,11 @@ impl PickersPage {
                     let (_, matched) = fuzzy(t, &q)?;
                     Some(PickerItem {
                         label: t.clone(),
-                        detail: if i == 0 { "query".into() } else { "public · data".into() },
+                        detail: if i == 0 {
+                            "query".into()
+                        } else {
+                            "public · data".into()
+                        },
                         glyph: if i == 0 { "≡" } else { "T" },
                         group: "Open tabs",
                         tag: if i == 1 { Some("active") } else { None },
@@ -185,12 +190,27 @@ impl PickersPage {
                 })
                 .collect(),
             Kind::Level => [
-                ("Silent", "Writes run without asking. DROP, TRUNCATE and DELETE without WHERE still confirm."),
+                (
+                    "Silent",
+                    "Writes run without asking. Destructive statements still confirm.",
+                ),
                 ("Alert", "Every write asks for confirmation before it runs."),
-                ("Alert (Full)", "Every statement, reads included, asks for confirmation."),
-                ("Safe Mode", "Writes ask for confirmation and a deliberate acknowledgement."),
-                ("Safe Mode (Full)", "Every statement asks for confirmation and a deliberate acknowledgement."),
-                ("Read-Only", "Writes are refused. Reads and exports still work."),
+                (
+                    "Alert (Full)",
+                    "Every statement, reads included, asks for confirmation.",
+                ),
+                (
+                    "Safe Mode",
+                    "Writes ask for confirmation and a deliberate acknowledgement.",
+                ),
+                (
+                    "Safe Mode (Full)",
+                    "Every statement asks for confirmation and a deliberate acknowledgement.",
+                ),
+                (
+                    "Read-Only",
+                    "Writes are refused. Reads and exports still work.",
+                ),
             ]
             .iter()
             .enumerate()
@@ -198,8 +218,12 @@ impl PickersPage {
                 label: (*l).to_owned(),
                 detail: (*d).to_owned(),
                 glyph: " ",
-                group: "Levels",
-                tag: if i == self.level { Some("current") } else { None },
+                group: "",
+                tag: if i == self.level {
+                    Some("current")
+                } else {
+                    None
+                },
                 matched: vec![],
                 disabled: false,
             })

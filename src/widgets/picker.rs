@@ -301,6 +301,28 @@ impl Picker {
             );
         }
         let has_sb = self.scroll.overflows();
+        let row_w = list.width.saturating_sub(u16::from(has_sb));
+        // column widths come from every item, not just the visible ones,
+        // so scrolling never shifts the columns
+        let label_col = (self
+            .items
+            .iter()
+            .map(|i| width(&i.label) as u16)
+            .max()
+            .unwrap_or(6))
+        .clamp(6, (row_w * 45 / 100).max(6));
+        let tag_col = self
+            .items
+            .iter()
+            .filter_map(|i| i.tag.map(|t| width(t) as u16))
+            .max()
+            .unwrap_or(0);
+        let group_col = self
+            .items
+            .iter()
+            .map(|i| width(i.group) as u16)
+            .max()
+            .unwrap_or(0);
         let mut last_group = "";
         for (k, i) in self.scroll.visible_range().enumerate() {
             let ry = list.y + k as u16;
@@ -327,19 +349,9 @@ impl Picker {
                 })
                 .remove_modifier(Modifier::BOLD),
             );
+            // fixed columns: label · detail · tag · group, so rows line up
             let mut x = row.x + 3;
-            let detail_w = width(&it.detail);
-            let tag_w = it.tag.map(width).unwrap_or(0);
-            let reserve = if detail_w > 0 { detail_w + 2 } else { 0 }
-                + if tag_w > 0 { tag_w + 2 } else { 0 }
-                + if show_group { width(it.group) + 2 } else { 0 };
-            // the label is what people scan; it keeps up to 45% of the row
-            // before the detail column starts giving way
-            let avail = (row.width as usize)
-                .saturating_sub(3 + reserve)
-                .max(width(&it.label).min(row.width as usize * 45 / 100))
-                .max(6);
-            let label = truncate(&it.label, avail);
+            let label = truncate(&it.label, label_col as usize);
             for (bi, ch) in label.char_indices() {
                 let mut cs = st;
                 if it.matched.contains(&bi) {
@@ -352,43 +364,38 @@ impl Picker {
                 x += width(&g) as u16;
             }
             let mut rx = row.right();
-            if show_group {
-                rx = rx.saturating_sub(width(it.group) as u16 + 1);
-                buf.set_string(
-                    rx,
-                    ry,
-                    it.group,
-                    st.fg(t.text_faint).remove_modifier(Modifier::BOLD),
-                );
+            if group_col > 0 {
+                rx = rx.saturating_sub(group_col + 1);
+                if show_group {
+                    buf.set_string(
+                        rx,
+                        ry,
+                        it.group,
+                        st.fg(t.text_faint).remove_modifier(Modifier::BOLD),
+                    );
+                }
             }
-            if let Some(tag) = it.tag {
-                rx = rx.saturating_sub(tag_w as u16 + 2);
-                buf.set_string(
-                    rx,
-                    ry,
-                    tag,
-                    st.fg(t.text_secondary).remove_modifier(Modifier::BOLD),
-                );
+            if tag_col > 0 {
+                rx = rx.saturating_sub(tag_col + 2);
+                if let Some(tag) = it.tag {
+                    buf.set_string(
+                        rx,
+                        ry,
+                        tag,
+                        st.fg(t.text_secondary).remove_modifier(Modifier::BOLD),
+                    );
+                }
             }
-            if detail_w > 0 {
-                let dx = (x + 2).max(rx.saturating_sub(detail_w as u16 + 2));
-                if dx + detail_w as u16 <= rx {
+            if !it.detail.is_empty() {
+                let dx = row.x + 3 + label_col + 2;
+                let room = rx.saturating_sub(dx + 1) as usize;
+                if room >= 4 {
                     buf.set_string(
                         dx,
                         ry,
-                        &it.detail,
+                        truncate(&it.detail, room),
                         st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
                     );
-                } else {
-                    let room = rx.saturating_sub(x + 3) as usize;
-                    if room > 6 {
-                        buf.set_string(
-                            x + 2,
-                            ry,
-                            truncate(&it.detail, room),
-                            st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
-                        );
-                    }
                 }
             }
             if !it.disabled {
