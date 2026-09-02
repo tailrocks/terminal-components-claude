@@ -1385,6 +1385,14 @@ impl DataGrid {
 
     /// `rows 120–150 of 1,203,338 · cols 3–9 of 14`
     pub fn position_label(&self) -> String {
+        match self.cols_label() {
+            Some(c) => format!("{} · {c}", self.rows_label()),
+            None => self.rows_label(),
+        }
+    }
+
+    /// `rows 120–150 of 1,203,338`
+    pub fn rows_label(&self) -> String {
         use crate::ui::text::thousands;
         if self.rows.is_empty() {
             return "0 rows".into();
@@ -1406,13 +1414,17 @@ impl DataGrid {
             RowTotal::Estimated(n) => format!("~{}", thousands(n)),
             RowTotal::Unknown => thousands(self.rows.len()),
         };
-        let mut s = format!("rows {}–{} of {total}", thousands(a), thousands(b));
-        if self.hscroll.overflows() {
-            let c0 = self.hscroll.offset + 1;
-            let c1 = (self.hscroll.offset + self.hscroll.viewport_len).min(self.columns.len());
-            s.push_str(&format!(" · cols {c0}–{c1} of {}", self.columns.len()));
+        format!("rows {}–{} of {total}", thousands(a), thousands(b))
+    }
+
+    /// `cols 3–9 of 14` when columns overflow horizontally.
+    pub fn cols_label(&self) -> Option<String> {
+        if self.rows.is_empty() || !self.hscroll.overflows() {
+            return None;
         }
-        s
+        let c0 = self.hscroll.offset + 1;
+        let c1 = (self.hscroll.offset + self.hscroll.viewport_len).min(self.columns.len());
+        Some(format!("cols {c0}–{c1} of {}", self.columns.len()))
     }
 
     pub fn pending_label(&self) -> Option<String> {

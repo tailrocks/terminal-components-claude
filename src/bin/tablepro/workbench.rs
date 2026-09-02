@@ -1218,9 +1218,17 @@ impl Workbench {
             area.width,
             area.height.saturating_sub(2),
         );
-        let show_explorer = self.explorer_visible && !self.maximized && body.width >= 100;
+        // Below 100 columns the explorer becomes a drawer: it takes the whole
+        // body while it has focus and steps aside as soon as focus leaves.
+        let narrow = body.width < 100;
+        let explorer_focused = ctx.interaction.focused(self.explorer.id)
+            || ctx.interaction.focused(self.explorer_filter.id);
+        let show_explorer =
+            self.explorer_visible && !self.maximized && (!narrow || explorer_focused);
         let explorer_w = (body.width / 4).clamp(28, 40);
-        let (ex, main) = if show_explorer {
+        let (ex, main) = if show_explorer && narrow {
+            (body, Rect::ZERO)
+        } else if show_explorer {
             (
                 Rect::new(body.x, body.y, explorer_w, body.height),
                 Rect::new(
@@ -1255,10 +1263,14 @@ impl Workbench {
             );
             // mark current / open objects via meta glyphs
             self.explorer.render(tree_area, buf, ctx, bg);
-        } else {
-            // the explorer is still a focus stop for keyboard users (Ctrl+B shows it)
+        } else if self.explorer_visible && !self.maximized {
+            // still a focus stop: Tab reaches it, and focusing it opens the drawer
+            ctx.control(self.explorer.id, Rect::ZERO, false);
         }
         // tab body pane
+        if main.is_empty() {
+            return;
+        }
         let Some(active) = self.tabs.get(self.active) else {
             let panel = Panel::framed(None);
             let inner = panel.render(main, buf, t);

@@ -166,7 +166,6 @@ impl Completion {
         let h = rows + 2;
         let area = place(screen, self.anchor, w, h, Placement::Below);
         self.area = area;
-        eprintln!("DBG completion screen={screen:?} anchor={:?} area={area:?} buf={:?}", self.anchor, buf.area());
         let inner = surface(area, buf, ctx, t);
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(inner.height as usize);

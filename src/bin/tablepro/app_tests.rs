@@ -277,7 +277,11 @@ fn editor_completion_and_execution() {
         h.wb_query().completion.is_open(),
         "autocomplete opened after FROM + prefix"
     );
-    assert!(h.text().contains("order_items"));
+    // the explorer lists order_items too; the popup adds a second copy
+    assert!(
+        h.text().matches("order_items").count() >= 2,
+        "completion popup is drawn"
+    );
     h.key(KeyCode::Enter); // accept `orders`
     assert!(h.wb_query().editor.text().ends_with("orders"));
     h.type_str(" WHERE st");

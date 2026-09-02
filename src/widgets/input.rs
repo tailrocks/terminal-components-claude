@@ -265,7 +265,7 @@ impl TextInput {
                 "*",
                 t.accent_fg().bg(bg),
             );
-        } else if !self.required && !self.label.is_empty() {
+        } else if !self.required && !self.plain_label && !self.label.is_empty() {
             buf.set_string(
                 area.x + 2 + name_w as u16 + 2,
                 area.y,
