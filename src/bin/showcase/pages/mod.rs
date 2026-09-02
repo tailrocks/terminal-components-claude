@@ -10,13 +10,17 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 
 pub mod buttons;
+pub mod chips;
 pub mod dialogs;
 pub mod editable;
+pub mod editor;
 pub mod forms;
+pub mod grid;
 pub mod inputs;
 pub mod lists;
 pub mod overview;
 pub mod panels;
+pub mod pickers;
 pub mod progress;
 pub mod scrolling;
 pub mod settings;

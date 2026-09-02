@@ -41,6 +41,10 @@ pub enum PageId {
     Trees,
     Progress,
     Scrolling,
+    Editor,
+    Grid,
+    Chips,
+    Pickers,
     Settings,
     TaskRunner,
 }
@@ -123,6 +127,26 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         section: "Components",
     },
     NavEntry {
+        id: PageId::Editor,
+        label: "Code editor",
+        section: "Components",
+    },
+    NavEntry {
+        id: PageId::Grid,
+        label: "Data grid",
+        section: "Components",
+    },
+    NavEntry {
+        id: PageId::Chips,
+        label: "Chips & selects",
+        section: "Components",
+    },
+    NavEntry {
+        id: PageId::Pickers,
+        label: "Pickers",
+        section: "Components",
+    },
+    NavEntry {
         id: PageId::Settings,
         label: "Settings",
         section: "Screens",
@@ -139,10 +163,18 @@ impl PageId {
         NAV_ENTRIES.iter().position(|e| e.id == self).unwrap_or(0)
     }
     pub fn from_name(name: &str) -> Option<Self> {
-        let n = name.to_lowercase().replace([' ', '-', '_'], "");
+        // compare on letters and digits only, so "chips & selects",
+        // "chips-selects" and "chipsselects" all resolve
+        let norm = |s: &str| -> String {
+            s.chars()
+                .filter(|c| c.is_ascii_alphanumeric())
+                .map(|c| c.to_ascii_lowercase())
+                .collect()
+        };
+        let n = norm(name);
         NAV_ENTRIES
             .iter()
-            .find(|e| e.label.to_lowercase().replace(' ', "") == n)
+            .find(|e| norm(e.label) == n)
             .map(|e| e.id)
     }
 }
@@ -184,6 +216,13 @@ struct ShellLayout {
 }
 
 impl App {
+    /// Where the navigation sidebar was drawn in the last frame (the visual
+    /// baseline test hashes everything but it).
+    #[allow(dead_code)]
+    pub fn sidebar_area(&self) -> Rect {
+        self.layout.sidebar
+    }
+
     pub fn new(theme: Theme) -> Self {
         use crate::pages::*;
         let pages: Vec<Box<dyn Page>> = NAV_ENTRIES
@@ -204,6 +243,10 @@ impl App {
                     PageId::Trees => Box::new(trees::TreesPage::new()),
                     PageId::Progress => Box::new(progress::ProgressPage::new()),
                     PageId::Scrolling => Box::new(scrolling::ScrollingPage::new()),
+                    PageId::Editor => Box::new(editor::EditorPage::new()),
+                    PageId::Grid => Box::new(grid::GridPage::new()),
+                    PageId::Chips => Box::new(chips::ChipsPage::new()),
+                    PageId::Pickers => Box::new(pickers::PickersPage::new()),
                     PageId::Settings => Box::new(settings::SettingsPage::new()),
                     PageId::TaskRunner => Box::new(taskrunner::TaskRunnerPage::new()),
                 }

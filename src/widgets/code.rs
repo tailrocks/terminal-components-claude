@@ -838,6 +838,7 @@ impl CodeEditor {
         }
         // footer row
         let fy = area.y + body_h;
+        let message_drawn = self.find.is_some();
         if let Some(f) = &self.find {
             let label = "find ".to_string();
             buf.set_string(area.x + 1, fy, &label, fs.fg(t.text_muted));
@@ -868,18 +869,6 @@ impl CodeEditor {
                 &count,
                 fs.fg(t.text_muted),
             );
-        } else if let Some(d) = diags.iter().min_by_key(|d| d.range.start.abs_diff(cur_off)) {
-            let c = if d.severity == Severity::Error {
-                t.error
-            } else {
-                t.warning
-            };
-            buf.set_string(
-                area.x + 1,
-                fy,
-                crate::ui::text::truncate(&d.message, area.width.saturating_sub(16) as usize),
-                fs.fg(c),
-            );
         }
         let pos = if s.editing || focused {
             format!("ln {}/{} · col {}", cur.line + 1, line_count, cur.col + 1)
@@ -888,6 +877,23 @@ impl CodeEditor {
         } else {
             String::new()
         };
+        if !message_drawn
+            && let Some(d) = diags.iter().min_by_key(|d| d.range.start.abs_diff(cur_off))
+        {
+            let c = if d.severity == Severity::Error {
+                t.error
+            } else {
+                t.warning
+            };
+            // the diagnostic yields to the position readout on its right
+            let room = area.width.saturating_sub(width(&pos) as u16 + 3).max(8) as usize;
+            buf.set_string(
+                area.x + 1,
+                fy,
+                crate::ui::text::truncate(&d.message, room),
+                fs.fg(c),
+            );
+        }
         if !pos.is_empty() {
             let px = area.right().saturating_sub(width(&pos) as u16 + 1);
             buf.set_string(px, fy, &pos, fs.fg(t.text_faint));
