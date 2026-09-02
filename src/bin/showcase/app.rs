@@ -41,6 +41,7 @@ pub enum PageId {
     Trees,
     Progress,
     Scrolling,
+    Terminal,
     Editor,
     Grid,
     Chips,
@@ -124,6 +125,11 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Scrolling,
         label: "Scrolling",
+        section: "Components",
+    },
+    NavEntry {
+        id: PageId::Terminal,
+        label: "Terminal",
         section: "Components",
     },
     NavEntry {
@@ -243,6 +249,7 @@ impl App {
                     PageId::Trees => Box::new(trees::TreesPage::new()),
                     PageId::Progress => Box::new(progress::ProgressPage::new()),
                     PageId::Scrolling => Box::new(scrolling::ScrollingPage::new()),
+                    PageId::Terminal => Box::new(terminal::TerminalPage::new()),
                     PageId::Editor => Box::new(editor::EditorPage::new()),
                     PageId::Grid => Box::new(grid::GridPage::new()),
                     PageId::Chips => Box::new(chips::ChipsPage::new()),

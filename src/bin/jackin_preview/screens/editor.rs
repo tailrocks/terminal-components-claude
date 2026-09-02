@@ -95,7 +95,6 @@ pub struct EditorScreen {
     cancel: Button,
     save: Button,
     saving: bool,
-    save_error: Option<String>,
     pending_load: Option<String>,
     picker_targets: Vec<String>,
     row_status: Option<String>,
@@ -192,7 +191,6 @@ impl EditorScreen {
             cancel: Button::subtle(CANCEL, "Cancel"),
             save: Button::primary(SAVE, "Save…"),
             saving: false,
-            save_error: None,
             pending_load: None,
             picker_targets: vec![],
             row_status: None,
@@ -221,6 +219,37 @@ impl EditorScreen {
             _ => DirtyExitPolicy::Ask,
         };
         self.cfg.pending.apply_to_workspace(&mut self.pending);
+        // the Auth tab is the single source of the Workspace account choice:
+        // an `account` source becomes the provider override, any other source
+        // clears it, an untouched provider keeps what it had
+        for e in &self.pending.auth {
+            match &e.source {
+                crate::domain::workspace::AuthSource::Account(id) => {
+                    self.pending
+                        .account_overrides
+                        .insert(e.agent.provider(), id.clone());
+                }
+                _ => {
+                    self.pending.account_overrides.remove(&e.agent.provider());
+                }
+            }
+        }
+        for (role, entries) in &self.pending.role_auth {
+            for e in entries {
+                match &e.source {
+                    crate::domain::workspace::AuthSource::Account(id) => {
+                        self.pending
+                            .role_account_overrides
+                            .insert((role.clone(), e.agent.provider()), id.clone());
+                    }
+                    _ => {
+                        self.pending
+                            .role_account_overrides
+                            .remove(&(role.clone(), e.agent.provider()));
+                    }
+                }
+            }
+        }
     }
 
     pub fn change_count(&self) -> usize {

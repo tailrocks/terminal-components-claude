@@ -206,10 +206,6 @@ impl LaunchRun {
         }
     }
 
-    pub fn frontier(&self) -> Option<Stage> {
-        self.current.map(|i| Stage::ALL[i])
-    }
-
     pub fn counts(&self) -> (usize, usize) {
         (
             self.states

@@ -45,17 +45,6 @@ impl Agent {
         }
     }
 
-    pub fn binary(self) -> &'static str {
-        match self {
-            Agent::ClaudeCode => "claude",
-            Agent::Codex => "codex",
-            Agent::Amp => "amp",
-            Agent::KimiCode => "kimi",
-            Agent::OpenCode => "opencode",
-            Agent::GrokBuild => "grok",
-        }
-    }
-
     pub fn provider(self) -> Provider {
         match self {
             Agent::ClaudeCode => Provider::Anthropic,
@@ -98,10 +87,6 @@ impl Agent {
             self,
             Agent::ClaudeCode | Agent::Codex | Agent::GrokBuild | Agent::OpenCode
         )
-    }
-
-    pub fn from_short(s: &str) -> Option<Agent> {
-        Agent::ALL.into_iter().find(|a| a.short() == s)
     }
 }
 
@@ -230,20 +215,6 @@ impl UsageSurface {
         UsageSurface::Unsupported,
     ];
 
-    pub fn id(self) -> &'static str {
-        match self {
-            UsageSurface::Claude => "claude",
-            UsageSurface::Codex => "codex",
-            UsageSurface::Amp => "amp",
-            UsageSurface::Grok => "grok",
-            UsageSurface::Zai => "zai",
-            UsageSurface::Kimi => "kimi",
-            UsageSurface::Minimax => "minimax",
-            UsageSurface::OpenCode => "opencode",
-            UsageSurface::Unsupported => "—",
-        }
-    }
-
     /// Provider label as the Usage registry shows it.
     pub fn label(self) -> &'static str {
         match self {
@@ -298,26 +269,6 @@ pub enum AuthMode {
     OAuthToken,
     /// Do not forward anything.
     Ignore,
-}
-
-impl AuthMode {
-    pub fn label(self) -> &'static str {
-        match self {
-            AuthMode::Sync => "sync",
-            AuthMode::ApiKey => "API key",
-            AuthMode::OAuthToken => "OAuth token",
-            AuthMode::Ignore => "ignore",
-        }
-    }
-
-    pub fn description(self) -> &'static str {
-        match self {
-            AuthMode::Sync => "forward the host profile folder",
-            AuthMode::ApiKey => "inject an API key from a credential source",
-            AuthMode::OAuthToken => "inject a minted OAuth token",
-            AuthMode::Ignore => "no credentials are forwarded",
-        }
-    }
 }
 
 #[cfg(test)]

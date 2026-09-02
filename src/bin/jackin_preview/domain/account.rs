@@ -56,41 +56,11 @@ impl CredentialSource {
             CredentialSource::HostEnv { var, .. } => format!("${var}"),
         }
     }
-
-    /// Always masked.
-    pub fn masked_value(&self) -> String {
-        match self {
-            CredentialSource::PlainApiKey { tail, .. } => masked(tail),
-            CredentialSource::OnePassword(_) => "••••••••".into(),
-            CredentialSource::LocalFolder { .. } | CredentialSource::HostEnv { .. } => {
-                "(profile material)".into()
-            }
-        }
-    }
-
-    pub fn detected(&self) -> Option<DetectedKind> {
-        match self {
-            CredentialSource::LocalFolder { detected, .. }
-            | CredentialSource::HostEnv { detected, .. } => Some(*detected),
-            _ => None,
-        }
-    }
 }
 
 /// `••••••••…k7Qz`
 pub fn masked(tail: &str) -> String {
     format!("••••••••…{tail}")
-}
-
-/// While typing: `•` for every character except the last four.
-pub fn masked_typing(value: &str) -> String {
-    let n = value.chars().count();
-    if n == 0 {
-        return String::new();
-    }
-    let keep = n.min(4);
-    let tail: String = value.chars().skip(n - keep).collect();
-    format!("{}{tail}", "•".repeat(n - keep))
 }
 
 /// Deterministic 8-hex fingerprint of a fixture key (not of secret bytes
@@ -114,11 +84,8 @@ pub fn tail_of(value: &str) -> String {
 pub enum DetectedKind {
     ClaudeOAuthProfile,
     ClaudeApiKeyEnv,
-    ClaudeKeychainRef,
     CodexAuthJson,
-    CodexApiKeyEnv,
     GrokAuthJson,
-    GrokDeploymentKey,
     OpenCodeGoAuthJson,
     AmpSecrets,
     ZaiApiKeyEnv,
@@ -132,11 +99,8 @@ impl DetectedKind {
         match self {
             DetectedKind::ClaudeOAuthProfile => "Claude OAuth profile",
             DetectedKind::ClaudeApiKeyEnv => "Claude API key env",
-            DetectedKind::ClaudeKeychainRef => "Claude keychain reference",
             DetectedKind::CodexAuthJson => "Codex auth.json",
-            DetectedKind::CodexApiKeyEnv => "Codex API key env",
             DetectedKind::GrokAuthJson => "Grok auth.json",
-            DetectedKind::GrokDeploymentKey => "Grok deployment key",
             DetectedKind::OpenCodeGoAuthJson => "OpenCode Go auth.json",
             DetectedKind::AmpSecrets => "Amp secrets.json",
             DetectedKind::ZaiApiKeyEnv => "Z.AI API key env",
@@ -148,11 +112,11 @@ impl DetectedKind {
 
     pub fn provider(self) -> Option<Provider> {
         match self {
-            DetectedKind::ClaudeOAuthProfile
-            | DetectedKind::ClaudeApiKeyEnv
-            | DetectedKind::ClaudeKeychainRef => Some(Provider::Anthropic),
-            DetectedKind::CodexAuthJson | DetectedKind::CodexApiKeyEnv => Some(Provider::OpenAi),
-            DetectedKind::GrokAuthJson | DetectedKind::GrokDeploymentKey => Some(Provider::XAi),
+            DetectedKind::ClaudeOAuthProfile | DetectedKind::ClaudeApiKeyEnv => {
+                Some(Provider::Anthropic)
+            }
+            DetectedKind::CodexAuthJson => Some(Provider::OpenAi),
+            DetectedKind::GrokAuthJson => Some(Provider::XAi),
             DetectedKind::OpenCodeGoAuthJson => Some(Provider::OpenCode),
             DetectedKind::AmpSecrets => Some(Provider::Amp),
             DetectedKind::ZaiApiKeyEnv => Some(Provider::Zai),
@@ -165,14 +129,13 @@ impl DetectedKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IdentitySubject {
-    ProviderId(String),
     Handle(String),
 }
 
 impl IdentitySubject {
     pub fn label(&self) -> &str {
         match self {
-            IdentitySubject::ProviderId(s) | IdentitySubject::Handle(s) => s,
+            IdentitySubject::Handle(s) => s,
         }
     }
 }
@@ -196,7 +159,6 @@ impl AccountIdentity {
 pub enum Provenance {
     ConfiguredSource,
     LiveHost,
-    DurableHistory,
 }
 
 impl Provenance {
@@ -204,7 +166,6 @@ impl Provenance {
         match self {
             Provenance::ConfiguredSource => "configured source",
             Provenance::LiveHost => "live host",
-            Provenance::DurableHistory => "history",
         }
     }
 }
@@ -304,16 +265,13 @@ pub enum IssueCode {
     FolderWrongProvider,
     CredentialFileMissing,
     CredentialMalformed,
-    Duplicate,
     ApiKeyEmpty,
     ApiKeyInvalid,
     OpLocked,
-    OpUnavailable,
     OpAuthorizationRequired,
     OpPermissionDenied,
     OpItemMissing,
     OpFieldMissing,
-    OpReferenceMalformed,
     OpProviderMismatch,
     Unauthorized,
     RateLimited,
@@ -327,7 +285,6 @@ pub enum Recoverability {
     Retryable,
     ActionRequired,
     Unsupported,
-    Terminal,
 }
 
 impl Recoverability {
@@ -336,7 +293,6 @@ impl Recoverability {
             Recoverability::Retryable => "retryable",
             Recoverability::ActionRequired => "action required",
             Recoverability::Unsupported => "unsupported",
-            Recoverability::Terminal => "terminal",
         }
     }
 }
@@ -631,8 +587,6 @@ mod tests {
     #[test]
     fn masking_helpers() {
         assert_eq!(masked("k7Qz"), "••••••••…k7Qz");
-        assert_eq!(masked_typing("sk-abcdef"), "•••••cdef");
-        assert_eq!(masked_typing("ab"), "ab");
         assert_eq!(fingerprint("x").len(), 8);
         assert_eq!(tail_of("sk-ant-k7Qz"), "k7Qz");
     }

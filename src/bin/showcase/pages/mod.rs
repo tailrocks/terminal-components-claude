@@ -27,6 +27,7 @@ pub mod settings;
 pub mod sidebars;
 pub mod tables;
 pub mod taskrunner;
+pub mod terminal;
 pub mod textareas;
 pub mod trees;
 

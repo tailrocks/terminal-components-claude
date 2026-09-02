@@ -207,7 +207,6 @@ pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, dir: Direction) -> Optio
 
 #[derive(Debug, Clone)]
 pub struct Tab {
-    pub id: u64,
     pub custom_label: Option<String>,
     pub root: PaneNode,
     pub focused: PaneId,
@@ -227,7 +226,6 @@ pub enum Step {
     /// Emit a line after `delay` virtual ms.
     Emit(i64, Line),
     State(AgentState),
-    HideCursor(bool),
     /// Touch a file: marks the repo dirty.
     Touch(&'static str),
     /// Wait for operator input.
@@ -1055,7 +1053,6 @@ impl AgentProcess {
             match &self.script[self.pc] {
                 Step::Emit(_, l) => out.push(l.clone()),
                 Step::State(s) => self.state = *s,
-                Step::HideCursor(h) => self.cursor_hidden = *h,
                 Step::Touch(p) => self.touched.push((*p).to_owned()),
                 Step::Await => {
                     self.pc += 1;
@@ -1108,10 +1105,6 @@ impl AgentProcess {
                 }
                 Step::State(s) => {
                     self.state = s;
-                    self.pc += 1;
-                }
-                Step::HideCursor(h) => {
-                    self.cursor_hidden = h;
                     self.pc += 1;
                 }
                 Step::Touch(p) => {
@@ -1262,8 +1255,6 @@ pub struct Pane {
     pub proc: AgentProcess,
     pub term: TextViewport,
     pub input: String,
-    pub cols: u16,
-    pub rows: u16,
     pub received_output: bool,
 }
 
@@ -1283,8 +1274,6 @@ impl Pane {
             proc: AgentProcess::new(agent, account, workspace, start_ms),
             term,
             input: String::new(),
-            cols: 80,
-            rows: 24,
             received_output: false,
         }
     }
@@ -1425,18 +1414,12 @@ impl Pane {
     pub fn state(&self) -> AgentState {
         self.proc.state
     }
-
-    pub fn resize(&mut self, cols: u16, rows: u16) {
-        self.cols = cols;
-        self.rows = rows;
-    }
 }
 
 // --------------------------------------------------------------- daemon
 
 #[derive(Debug, Clone)]
 pub struct Daemon {
-    pub instance: String,
     pub workspace: String,
     pub tabs: Vec<Tab>,
     pub active: usize,
@@ -1444,20 +1427,17 @@ pub struct Daemon {
     pub next_id: u64,
     /// Which client holds the single attach.
     pub attached_by: Option<String>,
-    pub started_ms: i64,
 }
 
 impl Daemon {
-    pub fn new(instance: &str, workspace: &str, now_ms: i64) -> Self {
+    pub fn new(workspace: &str) -> Self {
         Self {
-            instance: instance.to_owned(),
             workspace: workspace.to_owned(),
             tabs: vec![],
             active: 0,
             panes: vec![],
             next_id: 1,
             attached_by: None,
-            started_ms: now_ms,
         }
     }
 
@@ -1511,9 +1491,7 @@ impl Daemon {
         boot: bool,
     ) -> usize {
         let pid = self.new_pane(agent, account, now_ms, boot);
-        let tid = self.alloc();
         self.tabs.push(Tab {
-            id: tid,
             custom_label: None,
             root: PaneNode::Leaf(pid),
             focused: pid,
@@ -1683,7 +1661,7 @@ mod tests {
 
     #[test]
     fn split_close_and_nearest() {
-        let mut d = Daemon::new("jk-1", "payments-platform", 0);
+        let mut d = Daemon::new("payments-platform");
         d.new_tab(Some(Agent::ClaudeCode), None, 0, false);
         let right = d
             .split(SplitDir::Horizontal, false, None, None, 0, false)

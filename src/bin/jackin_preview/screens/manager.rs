@@ -59,7 +59,6 @@ struct Row {
     meta_tone: Tone,
     trailing: Option<(&'static str, Tone)>,
     expandable: bool,
-    expanded: bool,
 }
 
 /// Rows of the detail projection that can take the cursor.
@@ -130,10 +129,6 @@ impl ManagerScreen {
         }
     }
 
-    pub fn select(&mut self, key: RowKey) {
-        self.selected = key;
-    }
-
     /// Select the instance row that was just left.
     pub fn select_instance(&mut self, id: &str, w: &World) {
         if let Some(i) = w.instance(id)
@@ -160,7 +155,6 @@ impl ManagerScreen {
             meta_tone: Tone::Muted,
             trailing: None,
             expandable: false,
-            expanded: false,
         });
         for ws in &w.workspaces {
             let kids = w.instances_of(Some(ws.id));
@@ -211,7 +205,6 @@ impl ManagerScreen {
                 meta_tone: tone,
                 trailing: None,
                 expandable: !kids.is_empty(),
-                expanded,
             });
             if expanded {
                 for i in kids {
@@ -277,7 +270,6 @@ impl ManagerScreen {
                             None
                         },
                         expandable: false,
-                        expanded: false,
                     });
                 }
             }
@@ -292,7 +284,6 @@ impl ManagerScreen {
             meta_tone: Tone::Muted,
             trailing: None,
             expandable: false,
-            expanded: false,
         });
         self.rows = rows;
         // selection identity survives; a vanished row snaps to its parent
@@ -464,7 +455,7 @@ impl ManagerScreen {
                     inst.last_seen_secs = now_secs;
                 }
                 let now = w.now_ms();
-                let mut d = crate::sim::pty::Daemon::new(id, &wsname, now);
+                let mut d = crate::sim::pty::Daemon::new(&wsname);
                 d.new_tab(Some(agent), None, now, false);
                 w.daemons.insert(id.to_owned(), d);
                 crate::domain::fixtures::refresh_snapshots(w);
@@ -766,10 +757,6 @@ impl ManagerScreen {
         self.detail_cursor = self
             .detail_cursor
             .min(self.detail_rows.len().saturating_sub(1));
-    }
-
-    fn detail_focus_ids(&self) -> Vec<WidgetId> {
-        self.actions.iter().map(|b| b.id).collect()
     }
 
     fn rebuild_actions(&mut self, w: &World) {
@@ -1199,7 +1186,6 @@ impl ManagerScreen {
                                 DaemonHealth::Stale => {
                                     format!("▲ daemon stale · {}", w.clock.ago(w.last_refresh_secs))
                                 }
-                                DaemonHealth::Unavailable => "! daemon unavailable".into(),
                             };
                             let mw = width(&meta) as u16;
                             if y < inner.bottom() && inner.width > mw + 12 {
@@ -1579,7 +1565,6 @@ impl ManagerScreen {
                     format!("▲ stale · {}", w.clock.ago(w.last_refresh_secs)),
                     Tone::Warning,
                 ),
-                DaemonHealth::Unavailable => ("! unavailable".into(), Tone::Error),
             };
             buf.set_string(
                 inner.right() - width(&h) as u16,

@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use super::account::{Account, AccountId, IssueCode, Lifecycle};
+use super::account::{Account, AccountId, Lifecycle};
 use super::agent::{Provider, UsageSurface};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -74,7 +74,6 @@ pub enum WindowUnit {
     Percent,
     Tokens,
     Credits,
-    Requests,
     Usd,
 }
 
@@ -84,7 +83,6 @@ impl WindowUnit {
             WindowUnit::Percent => "%",
             WindowUnit::Tokens => "tokens",
             WindowUnit::Credits => "credits",
-            WindowUnit::Requests => "requests",
             WindowUnit::Usd => "USD",
         }
     }
@@ -132,11 +130,7 @@ impl QuotaWindow {
         used: u64,
         limit: u64,
     ) -> Self {
-        let pct = if limit == 0 {
-            0
-        } else {
-            ((used * 100) / limit).min(100) as u8
-        };
+        let pct = (used * 100).checked_div(limit).unwrap_or(0).min(100) as u8;
         Self {
             id,
             label: label.to_owned(),
@@ -570,17 +564,6 @@ impl OverallSummary {
 
 pub fn plural(n: usize) -> &'static str {
     if n == 1 { "" } else { "s" }
-}
-
-/// Issue codes that keep last-good data visible.
-pub fn retains_last_good(code: IssueCode) -> bool {
-    matches!(
-        code,
-        IssueCode::RateLimited
-            | IssueCode::ProviderUnavailable
-            | IssueCode::Stale
-            | IssueCode::OpLocked
-    )
 }
 
 #[cfg(test)]

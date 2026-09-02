@@ -57,7 +57,6 @@ pub enum Tone {
     /// On-accent text on the accent fill (the ` jackin❯ ` pill).
     Pill,
     PillChevron,
-    Warning,
 }
 
 fn ladder_color(t: &Theme, i: u8) -> Color {
@@ -119,13 +118,6 @@ pub fn style(t: &Theme, tone: Tone, dim: u8) -> Option<Style> {
                     .bg(bg)
                     .add_modifier(Modifier::BOLD),
             )
-        }
-        Tone::Warning => {
-            if dim == 0 {
-                Some(Style::new().fg(t.warning).bg(t.canvas))
-            } else {
-                style(t, Tone::Ladder(3), dim - 1)
-            }
         }
     }
 }
@@ -248,6 +240,7 @@ fn resolve(cell: &GlitchCell, j: u64, tick: u64, len: u64) -> (char, Tone) {
 
 /// Paint a set of cells resolving over `len` ticks; blank cells inside the
 /// bounding box show sparse noise while resolving. `dim` dims the result.
+#[allow(clippy::too_many_arguments)]
 fn paint_glitch(
     buf: &mut Buffer,
     cells: &[GlitchCell],
@@ -547,7 +540,6 @@ pub const MARK_START: u64 = 134;
 pub const MARK_RESOLVE: u64 = 18;
 pub const CAPTION_IN: u64 = 152;
 pub const WARP_START: u64 = 206;
-pub const WARP_LEN: u64 = 110;
 pub const INTRO_END: u64 = 316;
 pub const REDUCED_HOLD: u64 = 45;
 /// Reduced motion shows the resolved mark at this local tick.

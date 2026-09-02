@@ -1,6 +1,6 @@
 # Junie TUI — a Ratatui design system and its first real application
 
-Two binaries share one library:
+Three binaries share one library:
 
 - **`showcase`** — the approved design-system laboratory: every component in
   every interaction state, two composed screens, and the visual baseline that
@@ -11,6 +11,14 @@ Two binaries share one library:
   queue, filters, table structure, query history, a quick switcher, EXPLAIN
   plans, and TablePlus' Safe Mode levels. It runs against a deterministic
   in-memory demo database (no drivers), so every flow is reproducible.
+- **`jackin-preview`** — an interactive, fully simulated redesign of the
+  Jackin agent-container CLI (built from a read-only reading of its source): the
+  Construct intro and outro rituals, the host Workspace Manager, the Create
+  Workspace prelude, the Workspace Editor, Global Settings, the Account &
+  Usage Center, the launch cockpit and a Capsule terminal multiplexer. Every
+  scenario is a fixture world with a virtual clock, so any frame can be
+  reproduced. It never touches the real Jackin CLI, containers, 1Password or
+  provider APIs.
 
 The application is the specification: *if the
 [Junie](https://junie.jetbrains.com) website had been designed for a terminal
@@ -26,7 +34,21 @@ cargo run --release -- --color 256                   # force a colour level: tru
 
 cargo run --release --bin tablepro                   # the workbench, starting on the connections screen
 cargo run --release --bin tablepro -- --connect Production   # connect straight away
+
+cargo run --release --bin jackin-preview             # Jackin redesign, first-use scenario (intro → manager)
+cargo run --release --bin jackin-preview -- --scenario accounts-mixed   # first-use | returning | accounts-mixed |
+                                                     # launch-running | launch-failure | capsule-multi | outro-last | hard-cases
+cargo run --release --bin jackin-preview -- --scenario launch-running --motion reduced   # full | reduced | paused
+cargo run --release --bin jackin-preview -- --scenario first-use --motion paused --frame 282    # freeze one frame
+JACKIN_NO_MOTION=1 cargo run --release --bin jackin-preview   # same as --motion reduced
 ```
+
+The preview's scenarios are deterministic: the same `--scenario`, `--motion`,
+`--frame` and terminal size always render the same picture, which is what
+`src/bin/jackin_preview/app_tests.rs` and the `j_*` captures rely on. No
+secret ever reaches a frame — 1Password references resolve only inside the
+simulated credential service, plain-text keys live in transient edit state
+and render masked with a synthetic four-character tail.
 
 Requirements: Rust 1.88+, a terminal with mouse support. Truecolor is the
 primary target (`COLORTERM=truecolor`); 256/16-colour terminals get a mapped
@@ -285,7 +307,9 @@ ARGS="--connect Production"`), sends keys and SGR mouse events, and captures the
 pane with colours; `tools/ansi2png.py` rasterises the capture with JetBrains
 Mono so rendered output can be inspected as an image. Screens in `shots/`
 were produced this way: `f_*` are the showcase, `s_*` the new component
-pages, `t_*` the workbench.
+pages, `t_*` the workbench, `j_*` the Jackin preview (`BIN=target/debug/jackin-preview
+ARGS="--scenario returning --motion reduced"`; use the tmux key name `Escape`,
+not `Esc`, when scripting).
 
 The showcase also carries a visual baseline (`tests/showcase_baseline.txt`):
 a digest of every page at 120×40 and 80×24, excluding the navigation sidebar.

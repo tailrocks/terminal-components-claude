@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  ! instance index unreadable  ▲ daemon stale  Workspaces            c Accounts  ? help
+
+ ╭─ Workspaces ────────── 3 running ─╮ │  Current directory · payments-platform                       saved workspace
+ │ ▎   Current directory             │ │
+ │ ▎ ▸ payments-platform             │ │  Working dir   /workspace/payments-platform
+ │ ▎ ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree
+ │ ▎ ▸ release-automation            │ │                ~/src/shared-libs · ro shared
+ │ ▎ ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 6
+ │ ▎ ▸ data-pipeline                 │ │  Environments  5 vars · 2 [op]
+ │ ▎ ▸ docs-site  ╭──────────────────────────────────────────────────────────────────────────────────╮
+ │ ▎   auth-servic│ Launch · choose Agent                          payments-platform › the-architect │ask
+ │ ▎   gateway    │ ▎▪ Claude Code  account Claude · Work · Workspace c… Workspace choice    agents  │
+ │ ▎   mobile-app │ ▎▪ Codex        account Codex · Primary · provider … provider default            │stale · 4 s ago
+ │ ▎   ml-notebook│ ▎· Amp          account Amp · discovered · discover… discovered on host          │
+ │ ▎   search-inde│ ▎· Kimi Code    no account · register one in Accoun… host profile                │
+ │ ▎   staging-env│ ▎▪ OpenCode     account OpenCode · Go subscription … provider default            │
+ │ ▎   billing-rec│ ▎▪ Grok Build   account Grok · Team · provider defa… provider default            │
+ │ ▎   legacy-mono│                                                                                  │
+ │ ▎   + New works│ ↑↓ Move · Enter Choose · Esc Cancel                                              │
+ │                ╰──────────────────────────────────────────────────────────────────────────────────╯
+ │                                   │ │  ◌ b555  reviewer · Codex · restore available
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Edit
+ ╰───────────────────────────────────╯ │
+
+                            Could not confirm running instances: instance index unreadable · entered without the ritual

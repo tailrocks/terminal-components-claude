@@ -82,14 +82,6 @@ impl Motion {
             None => Motion::Full,
         }
     }
-
-    pub fn label(self) -> &'static str {
-        match self {
-            Motion::Full => "full",
-            Motion::Reduced => "reduced",
-            Motion::Paused => "paused",
-        }
-    }
 }
 
 #[cfg(test)]

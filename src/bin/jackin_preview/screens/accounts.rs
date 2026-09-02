@@ -35,7 +35,7 @@ use crate::domain::account::{
     Account, AccountId, AccountOrigin, CredentialSource, DetectedKind, DuplicateProbe, IssueCode,
     Lifecycle, ValidationState, fingerprint, masked, tail_of,
 };
-use crate::domain::agent::{Agent, Provider, UsageSurface};
+use crate::domain::agent::{Provider, UsageSurface};
 use crate::domain::onepassword::OpReference;
 use crate::domain::usage::{Freshness, OverallSummary, QuotaStatus, QuotaWindow, WindowUnit};
 use crate::sim::provider::{self, CheckRow, ValidationOutcome};
@@ -82,7 +82,6 @@ struct FormCtx {
     op_ref: Option<OpReference>,
     op_masked: Option<String>,
     validation: Option<ValidationOutcome>,
-    validated_for: Option<String>,
 }
 
 pub struct AccountsScreen {
@@ -587,7 +586,6 @@ impl AccountsScreen {
             op_ref: None,
             op_masked: None,
             validation: None,
-            validated_for: None,
         };
         if let Some(CredentialSource::OnePassword(r)) = editing.map(|a| &a.source) {
             ctx.op_ref = Some(r.clone());
@@ -1067,24 +1065,29 @@ impl AccountsScreen {
         let Some(a) = w.accounts.get(id).cloned() else {
             return;
         };
-        let outcome = match &a.source {
-            CredentialSource::PlainApiKey { .. } => {
-                // no key material is stored: re-validation confirms identity only
-                let mut o = provider::validate(
-                    a.provider,
-                    &a.source,
-                    Some("valid-fingerprint"),
-                    &w.op,
-                    now,
-                );
-                if let Some(u) = o.usage.as_mut() {
-                    u.windows = a.usage.windows.clone();
-                }
-                o.identity = a.identity.clone();
-                o
+        if let CredentialSource::PlainApiKey { fingerprint, .. } = &a.source {
+            // no key material is stored, so re-validation can only confirm the
+            // fingerprint and re-check the identity that the original entry produced
+            let level = if a.usage.windows.iter().any(|w| w.has_meter()) {
+                crate::domain::account::ValidationLevel::QuotaReadable
+            } else if a.identity.subject.is_some() {
+                crate::domain::account::ValidationLevel::IdentityAuthenticated
+            } else {
+                crate::domain::account::ValidationLevel::MaterialDiscovered
+            };
+            let short = fingerprint.chars().take(8).collect::<String>();
+            if let Some(slot) = w.accounts.get_mut(id) {
+                slot.validation = ValidationState::Valid(level);
+                slot.last_refresh_secs = Some(now);
             }
-            src => provider::validate(a.provider, src, None, &w.op, now),
-        };
+            cx.status(format!(
+                "{} · fingerprint {short} matches · {}",
+                a.title(),
+                level.label()
+            ));
+            return;
+        }
+        let outcome = provider::validate(a.provider, &a.source, None, &w.op, now);
         let Some(slot) = w.accounts.get_mut(id) else {
             return;
         };
@@ -1319,7 +1322,6 @@ impl AccountsScreen {
                         match w.op.session {
                             crate::sim::onepassword::OpSession::SignedIn => "available",
                             crate::sim::onepassword::OpSession::Locked => "locked",
-                            crate::sim::onepassword::OpSession::NotInstalled => "not installed",
                         }
                     ),
                     Tone::Normal,
@@ -2597,9 +2599,4 @@ impl Screen for AccountsScreen {
     fn is_editing(&self) -> bool {
         false
     }
-}
-
-#[allow(dead_code)]
-fn agent_of(p: Provider) -> Option<Agent> {
-    p.agent()
 }

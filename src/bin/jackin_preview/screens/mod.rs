@@ -15,7 +15,6 @@ pub mod usage;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
-use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::Hint;
@@ -84,9 +83,6 @@ pub trait CustomModal {
     fn done(&mut self) -> Option<ModalResult>;
     fn initial_focus(&self) -> WidgetId;
     fn hints(&self) -> Vec<Hint>;
-    fn is_editing(&self) -> bool {
-        false
-    }
     fn cancel_on_outside_click(&self) -> bool {
         true
     }
@@ -179,14 +175,9 @@ pub enum Request {
     Status(String),
     Error(String),
     Open(Box<Modal>, ModalTag),
-    /// Replace the top modal (nested flows keep one visible owner).
-    Replace(Box<Modal>, ModalTag),
     Close,
     Go(Go),
     Copy(String),
-    Help,
-    /// Refresh the top picker's items (owner changed its data).
-    RefreshPicker,
     /// Mutate the form that is the top modal (after a nested picker).
     WithForm(Box<dyn FnOnce(&mut FormDialog)>),
 }
@@ -201,9 +192,6 @@ impl Cx<'_> {
     pub fn focus_next(&mut self) {
         self.focus.next(self.ring);
     }
-    pub fn focus_prev(&mut self) {
-        self.focus.prev(self.ring);
-    }
     pub fn status(&mut self, s: impl Into<String>) {
         self.requests.push(Request::Status(s.into()));
     }
@@ -213,9 +201,6 @@ impl Cx<'_> {
     pub fn open(&mut self, modal: Modal, tag: ModalTag) {
         self.requests.push(Request::Open(Box::new(modal), tag));
     }
-    pub fn replace(&mut self, modal: Modal, tag: ModalTag) {
-        self.requests.push(Request::Replace(Box::new(modal), tag));
-    }
     pub fn close(&mut self) {
         self.requests.push(Request::Close);
     }
@@ -224,9 +209,6 @@ impl Cx<'_> {
     }
     pub fn copy(&mut self, s: impl Into<String>) {
         self.requests.push(Request::Copy(s.into()));
-    }
-    pub fn help(&mut self) {
-        self.requests.push(Request::Help);
     }
     pub fn with_form(&mut self, f: impl FnOnce(&mut FormDialog) + 'static) {
         self.requests.push(Request::WithForm(Box::new(f)));
@@ -251,6 +233,11 @@ pub trait Screen {
         Outcome::Ignored
     }
     fn on_drag(&mut self, _pressed: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
+        Outcome::Ignored
+    }
+    /// Mouse button went down on `id`; a drag may follow before the click
+    /// completes on release. Screens that select text anchor here.
+    fn on_press(&mut self, _id: WidgetId, _pos: Position, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
     fn on_release(
@@ -317,11 +304,6 @@ pub trait Screen {
         cx.go(Go::Manager);
         Outcome::Changed
     }
-}
-
-/// Segment helper.
-pub fn seg(text: impl Into<String>, tone: Tone) -> Segment {
-    Segment::new(text, tone)
 }
 
 pub fn plural(n: usize, one: &str, many: &str) -> String {

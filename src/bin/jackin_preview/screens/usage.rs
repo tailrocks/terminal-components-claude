@@ -35,6 +35,9 @@ enum Row {
     Account(AccountId),
 }
 
+/// One detail row: text, tone and an optional meter (used %, tone).
+type DetailLine = (String, Tone, Option<(u8, MeterTone)>);
+
 #[derive(Default)]
 pub struct UsageScreen {
     pub selected: Option<AccountId>,
@@ -157,8 +160,8 @@ impl UsageScreen {
         }
     }
 
-    fn account_lines(a: &Account, w: &World) -> Vec<(String, Tone, Option<(u8, MeterTone)>)> {
-        let mut v: Vec<(String, Tone, Option<(u8, MeterTone)>)> = vec![];
+    fn account_lines(a: &Account, w: &World) -> Vec<DetailLine> {
+        let mut v: Vec<DetailLine> = vec![];
         v.push((
             format!(
                 "Provider     {} · surface {}",

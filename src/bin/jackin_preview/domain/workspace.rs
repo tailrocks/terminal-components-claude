@@ -225,15 +225,6 @@ pub enum MountKind {
     Repository,
 }
 
-impl MountKind {
-    pub fn label(self) -> &'static str {
-        match self {
-            MountKind::Directory => "directory",
-            MountKind::Repository => "repository",
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MountScope {
     Global,
@@ -365,21 +356,6 @@ impl EnvValue {
             EnvValue::HostEnv(_) => "host env",
         }
     }
-
-    /// Masked presentation: never the plain value unless unmasked.
-    pub fn display(&self, unmasked: bool) -> String {
-        match self {
-            EnvValue::Plain(v) => {
-                if unmasked {
-                    v.clone()
-                } else {
-                    mask(v)
-                }
-            }
-            EnvValue::OnePassword(r) => format!("[op] {}", r.display()),
-            EnvValue::HostEnv(name) => format!("${name}"),
-        }
-    }
 }
 
 /// Asterisk runs, never `•` (which marks modified rows in the tables).
@@ -457,19 +433,6 @@ pub enum AuthSource {
         fingerprint: String,
     },
     None,
-}
-
-impl AuthSource {
-    pub fn label(&self) -> String {
-        match self {
-            AuthSource::HostProfile => "host profile".into(),
-            AuthSource::Folder(p) => p.clone(),
-            AuthSource::Account(id) => format!("account #{id}"),
-            AuthSource::OnePassword(r) => format!("[op] {}", r.display()),
-            AuthSource::Plain { fingerprint } => format!("plain text · {fingerprint}"),
-            AuthSource::None => "none".into(),
-        }
-    }
 }
 
 #[cfg(test)]

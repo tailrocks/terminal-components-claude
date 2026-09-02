@@ -65,7 +65,7 @@ pub struct CapsuleScreen {
     pub prefix_until: Option<i64>,
     drag: Option<(Vec<u8>, Rect)>,
     selecting: Option<PaneId>,
-    pane_rects: Vec<(PaneId, Rect)>,
+    pub pane_rects: Vec<(PaneId, Rect)>,
     seams: Vec<Seam>,
     tab_areas: Vec<(usize, Rect)>,
     strip_first: usize,
@@ -77,11 +77,13 @@ pub struct CapsuleScreen {
     pub dialog_open: bool,
     pub takeover: Option<String>,
     export_kind: Option<(bool, bool)>,
-    exec_pending: bool,
     pub redraw_flash: u8,
-    zoom_hint: bool,
-    pending_spawn: Option<(Intent, Option<Agent>, Option<AccountId>, String, i64)>,
+    pending_spawn: Option<PendingSpawn>,
 }
+
+/// Intent, agent, account, workspace name and request time of a spawn that
+/// waits for its picker chain.
+type PendingSpawn = (Intent, Option<Agent>, Option<AccountId>, String, i64);
 
 const PALETTE: [&str; 20] = [
     "New tab",
@@ -125,9 +127,7 @@ impl CapsuleScreen {
             dialog_open: false,
             takeover: None,
             export_kind: None,
-            exec_pending: false,
             redraw_flash: 0,
-            zoom_hint: false,
             pending_spawn: None,
         };
         let _ = w;
@@ -1037,6 +1037,7 @@ impl CapsuleScreen {
             .daemon(w)
             .map(|d| d.workspace.clone())
             .unwrap_or_default();
+        self.prime(p, w);
         let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(p)) else {
             return Outcome::Consumed;
         };
@@ -1099,15 +1100,23 @@ impl CapsuleScreen {
         Outcome::Changed
     }
 
+    /// The pane's viewport in the world never renders (a copy does), so give
+    /// it the geometry of the last frame before it handles an event.
+    fn prime(&self, pid: PaneId, w: &mut World) {
+        let Some((_, r)) = self.pane_rects.iter().find(|(p, _)| *p == pid).copied() else {
+            return;
+        };
+        let inner = self.inner_of(w, r);
+        if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
+            pane.term.set_area(inner);
+        }
+    }
+
     fn pane_at(&self, pos: Position) -> Option<PaneId> {
         self.pane_rects
             .iter()
             .find(|(_, r)| r.contains(pos))
             .map(|(id, _)| *id)
-    }
-
-    fn seam_at(&self, pos: Position) -> Option<usize> {
-        self.seams.iter().position(|s| s.handle.contains(pos))
     }
 
     // ---------------------------------------------------------- render
@@ -1128,10 +1137,12 @@ impl CapsuleScreen {
         buf.set_string(x + 2, y, "jackin❯", t.title().bg(bg));
         x += 12;
         // menu button on the right
+        // `≡` is single-width everywhere; `☰` is East-Asian-ambiguous and
+        // ratatui would reserve a hidden second cell for it
         let menu = if self.mode() == Mode::PrefixAwait {
             " prefix… "
         } else {
-            " ☰Menu "
+            "  ≡ Menu "
         };
         let mw = width(menu) as u16;
         let menu_x = area.right().saturating_sub(mw + 1);
@@ -1157,13 +1168,7 @@ impl CapsuleScreen {
             })
             .collect();
         let cell_w = |i: usize, l: &str| -> u16 {
-            let idx = if i < 9 {
-                2
-            } else if i == 9 {
-                2
-            } else {
-                0
-            };
+            let idx = if i <= 9 { 2 } else { 0 };
             (idx + width(l) + 4) as u16
         };
         let avail_right = menu_x.saturating_sub(5);
@@ -1368,9 +1373,12 @@ impl CapsuleScreen {
             ctx.inert = true;
             term.render(inner, buf, ctx, t.canvas);
             ctx.inert = false;
-            if focused && term.follow && term.caret_visible && term.caret.is_some() {
+            if focused
+                && term.follow
+                && term.caret_visible
+                && let Some(c) = term.caret
+            {
                 // re-place the hardware cursor (render skipped it while inert)
-                let c = term.caret.unwrap();
                 let li = term.scroll.visible_range();
                 let line_row = c.line.saturating_sub(li.start);
                 if li.contains(&c.line) {
@@ -1644,12 +1652,30 @@ impl Screen for CapsuleScreen {
             if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) {
                 t.focused = pid;
             }
+            self.prime(pid, w);
             if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
                 pane.term.on_click(pos);
             }
             return Outcome::Changed;
         }
         Outcome::Consumed
+    }
+
+    fn on_press(&mut self, _id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        // anchor a text selection on the press so the drag that follows can
+        // extend it; the release completes the click
+        if let Some(pid) = self.pane_at(pos) {
+            cx.focus.focus(PANES);
+            if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) {
+                t.focused = pid;
+            }
+            self.prime(pid, w);
+            if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
+                pane.term.on_click(pos);
+            }
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
     }
 
     fn on_double_click(
@@ -1684,6 +1710,9 @@ impl Screen for CapsuleScreen {
                 return Outcome::Changed;
             }
         }
+        if let Some(pid) = self.pane_at(pos) {
+            self.prime(pid, w);
+        }
         if let Some(pid) = self.pane_at(pos)
             && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
         {
@@ -1712,6 +1741,9 @@ impl Screen for CapsuleScreen {
             }
         }
         // text selection drag within a pane
+        if let Some(pid) = (0..64u64).find(|p| PANES.child(*p as usize) == pressed) {
+            self.prime(pid, w);
+        }
         if let Some(pid) = (0..64u64).find(|p| PANES.child(*p as usize) == pressed)
             && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
         {
@@ -1747,6 +1779,9 @@ impl Screen for CapsuleScreen {
 
     fn on_wheel(&mut self, id: WidgetId, delta: i32, pos: Position, w: &mut World) -> Outcome {
         let _ = id;
+        if let Some(pid) = self.pane_at(pos) {
+            self.prime(pid, w);
+        }
         if let Some(pid) = self.pane_at(pos)
             && let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid))
         {
