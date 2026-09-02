@@ -58,6 +58,30 @@ impl ModalTag {
     }
 }
 
+/// A screen-specific modal that still lives on the shared modal stack.
+pub trait CustomModal {
+    fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing, w: &World) -> Outcome;
+    fn on_click(&mut self, _id: WidgetId, _pos: Position, _focus: &mut Focus, _w: &World) -> Outcome {
+        Outcome::Consumed
+    }
+    fn on_wheel(&mut self, _delta: i32) -> Outcome {
+        Outcome::Consumed
+    }
+    fn on_tick(&mut self, _w: &World) -> Outcome {
+        Outcome::Ignored
+    }
+    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World);
+    fn done(&mut self) -> Option<ModalResult>;
+    fn initial_focus(&self) -> WidgetId;
+    fn hints(&self) -> Vec<Hint>;
+    fn is_editing(&self) -> bool {
+        false
+    }
+    fn cancel_on_outside_click(&self) -> bool {
+        true
+    }
+}
+
 #[allow(clippy::large_enum_variant)]
 pub enum Modal {
     Dialog(Dialog),
@@ -68,6 +92,7 @@ pub enum Modal {
     Op(OpFlow),
     Info(InfoDialog),
     Help(HelpOverlay),
+    Custom(Box<dyn CustomModal>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,6 +115,7 @@ pub enum ModalResult {
     FormAction(String, FormValues),
     Op(Option<OpReference>),
     Info(InfoResult),
+    Custom(String),
 }
 
 /// Navigation the app performs on a screen's behalf.
