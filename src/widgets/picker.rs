@@ -1,0 +1,412 @@
+//! Searchable picker: a centered modal with a query field and grouped,
+//! ranked rows. Used for quick switchers, tab lists and enum pickers.
+//! Ranking is the owner's job (it supplies the rows for the query).
+
+use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::KeyCode;
+use ratatui::layout::{Constraint, Rect};
+use ratatui::style::{Modifier, Style};
+
+use crate::core::event::{Key, Outcome};
+use crate::core::id::WidgetId;
+use crate::core::scroll::ScrollState;
+use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::popup::{Placement, place};
+use crate::ui::text::{truncate, width};
+use crate::widgets::scrollbar;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PickerItem {
+    pub label: String,
+    pub detail: String,
+    pub glyph: &'static str,
+    pub group: &'static str,
+    /// Trailing hint on the row (e.g. "open").
+    pub tag: Option<&'static str>,
+    pub matched: Vec<usize>,
+    pub disabled: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct Picker {
+    pub id: WidgetId,
+    pub title: String,
+    pub placeholder: String,
+    pub query: String,
+    pub items: Vec<PickerItem>,
+    pub cursor: usize,
+    pub scroll: ScrollState,
+    pub width: u16,
+    pub max_rows: u16,
+    /// Optional right-aligned scope label in the query row.
+    pub scope: Option<String>,
+    pub empty_text: String,
+    pub area: Rect,
+    /// Show the query field (false for fixed-choice pickers).
+    pub searchable: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PickerEvent {
+    /// Query text changed; the owner re-supplies items.
+    QueryChanged,
+    Chosen(usize),
+    /// Chosen with the alternate modifier (e.g. open in new tab).
+    ChosenAlt(usize),
+    /// Secondary action on the cursor row (e.g. close tab).
+    Secondary(usize),
+    NextScope,
+    Cancelled,
+}
+
+impl Picker {
+    pub fn new(id: WidgetId, title: &str) -> Self {
+        Self {
+            id,
+            title: title.to_owned(),
+            placeholder: "Type to search…".into(),
+            query: String::new(),
+            items: vec![],
+            cursor: 0,
+            scroll: ScrollState::default(),
+            width: 64,
+            max_rows: 12,
+            scope: None,
+            empty_text: "No matches".into(),
+            area: Rect::ZERO,
+            searchable: true,
+        }
+    }
+
+    pub fn set_items(&mut self, items: Vec<PickerItem>) {
+        self.items = items;
+        self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
+        self.scroll = ScrollState::new(self.items.len());
+    }
+
+    pub fn row_id(&self, i: usize) -> WidgetId {
+        self.id.child(i)
+    }
+    pub fn locate(&self, id: WidgetId) -> Option<usize> {
+        self.scroll.visible_range().find(|&i| self.row_id(i) == id)
+    }
+    pub fn owns(&self, id: WidgetId) -> bool {
+        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+    }
+
+    fn step(&mut self, delta: isize) {
+        if self.items.is_empty() {
+            return;
+        }
+        let n = self.items.len() as isize;
+        let mut c = self.cursor as isize;
+        for _ in 0..n {
+            c = (c + delta).clamp(0, n - 1);
+            if !self.items[c as usize].disabled {
+                break;
+            }
+            if c == 0 || c == n - 1 {
+                break;
+            }
+        }
+        self.cursor = c as usize;
+        self.scroll.ensure_visible(self.cursor);
+    }
+
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerEvent>) {
+        match key.code {
+            KeyCode::Esc => {
+                if self.searchable && !self.query.is_empty() {
+                    self.query.clear();
+                    return (Outcome::Changed, Some(PickerEvent::QueryChanged));
+                }
+                (Outcome::Changed, Some(PickerEvent::Cancelled))
+            }
+            KeyCode::Enter => {
+                if self.items.get(self.cursor).is_some_and(|i| !i.disabled) {
+                    let ev = if key.alt() {
+                        PickerEvent::ChosenAlt(self.cursor)
+                    } else {
+                        PickerEvent::Chosen(self.cursor)
+                    };
+                    (Outcome::Changed, Some(ev))
+                } else {
+                    (Outcome::Consumed, None)
+                }
+            }
+            KeyCode::Down => {
+                self.step(1);
+                (Outcome::Changed, None)
+            }
+            KeyCode::Up => {
+                self.step(-1);
+                (Outcome::Changed, None)
+            }
+            KeyCode::Char('n') | KeyCode::Char('j') if key.ctrl() => {
+                self.step(1);
+                (Outcome::Changed, None)
+            }
+            KeyCode::Char('p') | KeyCode::Char('k') if key.ctrl() => {
+                self.step(-1);
+                (Outcome::Changed, None)
+            }
+            KeyCode::PageDown => {
+                self.step(self.max_rows as isize);
+                (Outcome::Changed, None)
+            }
+            KeyCode::PageUp => {
+                self.step(-(self.max_rows as isize));
+                (Outcome::Changed, None)
+            }
+            KeyCode::Tab => (Outcome::Changed, Some(PickerEvent::NextScope)),
+            KeyCode::Delete => (Outcome::Changed, Some(PickerEvent::Secondary(self.cursor))),
+            KeyCode::Backspace if self.searchable => {
+                self.query.pop();
+                (Outcome::Changed, Some(PickerEvent::QueryChanged))
+            }
+            KeyCode::Char('u') if key.ctrl() && self.searchable => {
+                self.query.clear();
+                (Outcome::Changed, Some(PickerEvent::QueryChanged))
+            }
+            KeyCode::Char(c) if self.searchable && !key.ctrl() && !key.alt() => {
+                self.query.push(c);
+                (Outcome::Changed, Some(PickerEvent::QueryChanged))
+            }
+            KeyCode::Char('j') if !self.searchable => {
+                self.step(1);
+                (Outcome::Changed, None)
+            }
+            KeyCode::Char('k') if !self.searchable => {
+                self.step(-1);
+                (Outcome::Changed, None)
+            }
+            _ => (Outcome::Consumed, None),
+        }
+    }
+
+    pub fn on_click(&mut self, id: WidgetId) -> Option<PickerEvent> {
+        let i = self.locate(id)?;
+        if self.items[i].disabled {
+            return None;
+        }
+        self.cursor = i;
+        Some(PickerEvent::Chosen(i))
+    }
+
+    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+        self.scroll.scroll_by(delta as isize);
+        Outcome::Changed
+    }
+
+    pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
+        let t = ctx.theme;
+        // dim + modal like Dialog
+        let dim = Rect::new(
+            screen.x,
+            screen.y,
+            screen.width,
+            screen.height.saturating_sub(1),
+        );
+        for pos in dim.positions() {
+            if let Some(c) = buf.cell_mut(pos) {
+                let st = t.backdrop(c.style());
+                c.set_style(st);
+                c.modifier = Modifier::empty();
+            }
+        }
+        ctx.begin_modal();
+        let rows = (self.items.len() as u16).clamp(1, self.max_rows);
+        let query_rows = if self.searchable { 2 } else { 0 };
+        let h = (2 + 1 + query_rows + rows + 2).min(screen.height.saturating_sub(2));
+        let w = self.width.min(screen.width.saturating_sub(4));
+        let area = place(screen, Rect::ZERO, w, h, Placement::Center);
+        let _ = Constraint::Length(0);
+        self.area = area;
+        let bg = t.surface_elevated;
+        fill(buf, area, Style::new().bg(bg));
+        let block = ratatui::widgets::Block::new()
+            .borders(ratatui::widgets::Borders::ALL)
+            .border_type(ratatui::widgets::BorderType::Rounded)
+            .border_style(t.border(true).bg(bg));
+        ratatui::widgets::Widget::render(block, area, buf);
+        ctx.hits.register(self.id, area);
+        let inner = area.inner(ratatui::layout::Margin::new(2, 1));
+        if inner.is_empty() {
+            return;
+        }
+        let mut y = inner.y;
+        buf.set_string(
+            inner.x,
+            y,
+            truncate(&self.title, inner.width as usize),
+            t.title().bg(bg),
+        );
+        if let Some(scope) = &self.scope {
+            let sw = width(scope) as u16;
+            buf.set_string(inner.right().saturating_sub(sw), y, scope, t.muted().bg(bg));
+        }
+        y += 1;
+        if self.searchable {
+            let field = Rect::new(inner.x, y, inner.width, 1);
+            let fs = t.field_style(crate::ui::ctx::VisualState {
+                focused: true,
+                editing: true,
+                ..Default::default()
+            });
+            fill(buf, field, fs);
+            buf.set_string(
+                field.x,
+                y,
+                "▎",
+                Style::new().fg(t.focus).bg(fs.bg.unwrap_or(bg)),
+            );
+            if self.query.is_empty() {
+                buf.set_string(
+                    field.x + 2,
+                    y,
+                    truncate(&self.placeholder, field.width.saturating_sub(3) as usize),
+                    fs.fg(t.text_muted),
+                );
+            } else {
+                buf.set_string(
+                    field.x + 2,
+                    y,
+                    truncate(&self.query, field.width.saturating_sub(3) as usize),
+                    fs.add_modifier(Modifier::UNDERLINED)
+                        .underline_color(t.accent),
+                );
+            }
+            ctx.set_cursor(ratatui::layout::Position::new(
+                field.x + 2 + width(&self.query).min(field.width.saturating_sub(3) as usize) as u16,
+                y,
+            ));
+            y += 2;
+        }
+        let list = Rect::new(
+            inner.x,
+            y,
+            inner.width,
+            inner.bottom().saturating_sub(y + 1),
+        );
+        self.scroll.set_content(self.items.len());
+        self.scroll.set_viewport(list.height as usize);
+        self.scroll.ensure_visible(self.cursor);
+        if self.items.is_empty() {
+            crate::widgets::empty::render(
+                list,
+                buf,
+                t,
+                &crate::widgets::empty::EmptyState::new(&self.empty_text),
+                bg,
+            );
+        }
+        let has_sb = self.scroll.overflows();
+        let mut last_group = "";
+        for (k, i) in self.scroll.visible_range().enumerate() {
+            let ry = list.y + k as u16;
+            let it = &self.items[i];
+            let rid = self.row_id(i);
+            let mut s = ctx.state(rid);
+            s.focused = i == self.cursor;
+            s.disabled = it.disabled;
+            let st = t.row(s, bg);
+            let row = Rect::new(list.x, ry, list.width.saturating_sub(u16::from(has_sb)), 1);
+            fill(buf, row, st);
+            buf.set_string(row.x, ry, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            // group label inline (first row of a group shows it right-aligned muted)
+            let show_group = it.group != last_group && !it.group.is_empty();
+            last_group = it.group;
+            buf.set_string(
+                row.x + 1,
+                ry,
+                it.glyph,
+                st.fg(if s.focused {
+                    t.text_primary
+                } else {
+                    t.text_muted
+                })
+                .remove_modifier(Modifier::BOLD),
+            );
+            let mut x = row.x + 3;
+            let detail_w = width(&it.detail);
+            let tag_w = it.tag.map(width).unwrap_or(0);
+            let reserve = if detail_w > 0 { detail_w + 2 } else { 0 }
+                + if tag_w > 0 { tag_w + 2 } else { 0 }
+                + if show_group { width(it.group) + 2 } else { 0 };
+            let avail = (row.width as usize).saturating_sub(3 + reserve).max(6);
+            let label = truncate(&it.label, avail);
+            for (bi, ch) in label.char_indices() {
+                let mut cs = st;
+                if it.matched.contains(&bi) {
+                    cs = cs.add_modifier(Modifier::BOLD);
+                } else if !s.focused {
+                    cs = cs.remove_modifier(Modifier::BOLD);
+                }
+                let g = ch.to_string();
+                buf.set_string(x, ry, &g, cs);
+                x += width(&g) as u16;
+            }
+            let mut rx = row.right();
+            if show_group {
+                rx = rx.saturating_sub(width(it.group) as u16 + 1);
+                buf.set_string(
+                    rx,
+                    ry,
+                    it.group,
+                    st.fg(t.text_faint).remove_modifier(Modifier::BOLD),
+                );
+            }
+            if let Some(tag) = it.tag {
+                rx = rx.saturating_sub(tag_w as u16 + 2);
+                buf.set_string(
+                    rx,
+                    ry,
+                    tag,
+                    st.fg(t.text_secondary).remove_modifier(Modifier::BOLD),
+                );
+            }
+            if detail_w > 0 {
+                let dx = (x + 2).max(rx.saturating_sub(detail_w as u16 + 2));
+                if dx + detail_w as u16 <= rx {
+                    buf.set_string(
+                        dx,
+                        ry,
+                        &it.detail,
+                        st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                    );
+                } else {
+                    let room = rx.saturating_sub(x + 2) as usize;
+                    if room > 6 {
+                        buf.set_string(
+                            x + 2,
+                            ry,
+                            truncate(&it.detail, room),
+                            st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                        );
+                    }
+                }
+            }
+            if !it.disabled {
+                ctx.clickable(rid, row);
+            }
+        }
+        if has_sb {
+            scrollbar::render_vertical(
+                Rect::new(list.right() - 1, list.y, 1, list.height),
+                buf,
+                ctx,
+                self.id,
+                &self.scroll,
+                true,
+            );
+        }
+        // hints row
+        let hy = inner.bottom().saturating_sub(1);
+        buf.set_string(
+            inner.x,
+            hy,
+            truncate(hints, inner.width as usize),
+            t.faint().bg(bg),
+        );
+    }
+}

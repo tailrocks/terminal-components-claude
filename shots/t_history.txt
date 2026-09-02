@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+ ▎≡ Query 1 ×   ▎↻ History ×                                                                                        +
+ ────────────────━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Qu                                                          ─────────── 15 entries ─╮
+ │                           │ │  ▎ Search history · terms are ANDed                            scope: Production  ·… │
+ │ ▎ Filter objects          │ │                                                                                      │
+ │ ▎▾ D acme_prod            │ │  ▎› SELECT plan, count(*… 3 d ago · 5 ms     Query                Editor · 3 d ago   │
+ │ ▎  ▾ S public             │ │  ▎  SELECT * FROM payme… 1 d ago · 24 ms                                             │
+ │ ▎    ▾ Tables          7  │ │  ▎  SELECT day, revenue… 3 h ago · 14 ms    ▎› 1  SELECT plan, count(*) FROM subs…   │
+ │ ▎      ▸ T organizations1.2 │  ▎! SELECT * FROM ordres     1 h ago · –    ▎                                        │
+ │ ▎      ▸ T customers    48.9│  ▎  SELECT o.id, o.tota… 1 h ago · 61 ms    ▎                                        │
+ │ ▎      ▸ T products  312  │ │  ▎  UPDATE orders SET… 58 min ago · 3 ms    ▎                                        │
+ │ ▎      ▸ T orders       1.2 │  ▎  SELECT * FROM cu… 40 min ago · 21 ms    ▎                                        │
+ │ ▎      ▸ T order_items  3.8 │  ▎  EXPLAIN ANALYZE S… 15 min ago · 9 ms    ▎                                        │
+ │ ▎      ▸ T payments     1.2 │  ▎  SELECT count(*)… 12 min ago · 412 ms    ▎                                        │
+ │ ▎      ▸ T subscriptions1.1 │  ▎  SELECT * FROM ord… 4 min ago · 38 ms    ▎                                        │
+ │ ▎    ▸ Views           2  │ │                                             ▎                                        │
+ │ ▎    ▸ Functions       1  │ │                                             ▎                                        │
+ │ ▎    ▸ Sequences       1  │ │                                             ▎                                        │
+ │ ▎  ▸ S analytics          │ │                                             ▎                                        │
+ │ ▎  ▸ S audit              │ │                                             ▎                                        │
+ │                           │ │                                             ▎                                        │
+ │                           │ │                                             ▎                                        │
+ │                           │ │                                             ▎                                        │
+ │                           │ │                                             ▎                                        │
+ │                           │ │                                             ▎                                        │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                              Connection  Production · acme_prod.p…   │
+ │                           │ │                                              Duration    5 ms                        │
+ │                           │ │                                              Rows        3                           │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                              ▎Open in new tab   ▎Run in new tab      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Open in new tab  r Rerun  y Copy  / Search  c s Scope · Status  Tab Next                 Connected to Production

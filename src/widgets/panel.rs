@@ -9,7 +9,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
-use ratatui::style::{Color, Modifier};
+use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, Widget};
 
 use crate::core::event::{Key, Outcome};
@@ -292,10 +292,7 @@ impl ScrollPanel {
         for (i, li) in self.scroll.visible_range().enumerate() {
             let y = area.y + i as u16;
             let line = &lines[li];
-            let mut st = style_line(t, line).bg(bg);
-            if focused && i == 0 && false {
-                st = st.add_modifier(Modifier::BOLD);
-            }
+            let st = style_line(t, line).bg(bg);
             let text = crate::ui::text::fit(line, text_w as usize);
             buf.set_string(area.x, y, &text, st);
         }

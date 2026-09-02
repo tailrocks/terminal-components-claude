@@ -6,6 +6,20 @@ rust-version = "1.88"
 description = "Junie-inspired Ratatui design-system laboratory"
 license = "MIT"
 
+default-run = "showcase"
+
+[lib]
+name = "junie_tui"
+path = "src/lib.rs"
+
+[[bin]]
+name = "showcase"
+path = "src/bin/showcase/main.rs"
+
+[[bin]]
+name = "tablepro"
+path = "src/bin/tablepro/main.rs"
+
 [dependencies]
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }
 unicode-width = "0.2"

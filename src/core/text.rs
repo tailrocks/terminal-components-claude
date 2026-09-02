@@ -58,6 +58,71 @@ impl TextBuffer {
         self.cursor
     }
 
+    pub fn cursor_offset(&self) -> usize {
+        self.cursor
+    }
+
+    /// Select `a..b` (either order), cursor at `b`.
+    pub fn select_range(&mut self, a: usize, b: usize) {
+        let len = self.text.len();
+        self.anchor = Some(a.min(len));
+        self.cursor = b.min(len);
+    }
+
+    /// First and last line touched by the selection (or the cursor line).
+    pub fn selection_lines(&self) -> (usize, usize) {
+        match self.selection() {
+            Some(r) => {
+                let a = Self::pos_of(&self.text, r.start).line;
+                let b = Self::pos_of(&self.text, r.end.saturating_sub(1).max(r.start)).line;
+                (a, b)
+            }
+            None => {
+                let l = self.cursor_pos().line;
+                (l, l)
+            }
+        }
+    }
+
+    pub fn has_selection_lines(&self) -> bool {
+        self.selection()
+            .is_some_and(|r| self.text[r].contains('\n'))
+    }
+
+    /// Insert at an arbitrary offset, keeping cursor/anchor consistent.
+    pub fn insert_at(&mut self, at: usize, s: &str) {
+        let at = at.min(self.text.len());
+        self.text.insert_str(at, s);
+        if self.cursor >= at {
+            self.cursor += s.len();
+        }
+        if let Some(a) = self.anchor.as_mut()
+            && *a >= at
+        {
+            *a += s.len();
+        }
+    }
+
+    pub fn remove_range(&mut self, r: std::ops::Range<usize>) {
+        let r = r.start.min(self.text.len())..r.end.min(self.text.len());
+        if r.start >= r.end {
+            return;
+        }
+        let n = r.end - r.start;
+        self.text.replace_range(r.clone(), "");
+        let adjust = |p: &mut usize| {
+            if *p >= r.end {
+                *p -= n;
+            } else if *p > r.start {
+                *p = r.start;
+            }
+        };
+        adjust(&mut self.cursor);
+        if let Some(a) = self.anchor.as_mut() {
+            adjust(a);
+        }
+    }
+
     pub fn set_text(&mut self, text: impl Into<String>) {
         self.text = text.into();
         self.cursor = self.text.len();

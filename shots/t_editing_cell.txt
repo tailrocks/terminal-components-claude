@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+ ▎≡ Query 1 ×   ▎T orders ×                                                                                         +
+ ────────────────━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ public › orders ────────────────────────────────────────────────────────── 14 cols ─╮
+ │                           │ │  ▎Data   ▎Structure                                                                  │
+ │ ▎ Filter objects          │ │  ─━━━━━───────────────────────────────────────────────────────────────────────────── │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │   ‹4    status       total_amount  currency                                     7›   │
+ │ ▎    ▾ Tables       ╭────────────────────────────────────────────────────────────────────────╮                   ┃ │
+ │ ▎      ▸ T organizat│ Safe Mode · this connection                                            │                   │ │
+ │ ▎      ▸ T customers│ ▎  Silent  Writes run without asking. DROP, TRUNCATE and DELETE witho… │                   │ │
+ │ ▎      ▸ T products │ ▎  Alert           Every write asks for confirmation before it runs.   │                   │ │
+ │ ▎      ▸ T orders   │ ▎  Alert (Fu…  Every statement, reads included, asks for confirmation. │                   │ │
+ │ ▎      ▸ T order_ite│ ▎› Safe …  Writes ask for confirmation and a deliberate ackn…current   │                   │ │
+ │ ▎      ▸ T payments │ ▎  Safe …  Every statement asks for confirmation and a deliberate ack… │                   │ │
+ │ ▎      ▸ T subscript│ ▎  Read-Only       Writes are refused. Reads and exports still work.   │                   │ │
+ │ ▎    ▸ Views        │                                                                        │                   │ │
+ │ ▎    ▸ Functions    │ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connec… │                   │ │
+ │ ▎    ▸ Sequences    ╰────────────────────────────────────────────────────────────────────────╯                   │ │
+ │ ▎  ▸ S analytics          │ │  ▎   12 refunded          1219.88  USD                                             │ │
+ │ ▎  ▸ S audit              │ │  ▎   13 refunded          1421.90  USD                                             │ │
+ │                           │ │  ▎   14 paid              1814.34  GBP                                             │ │
+ │                           │ │  ▎   15 shipped             24.67  USD                                             │ │
+ │                           │ │  ▎   16 refunded          2197.09  USD                                             │ │
+ │                           │ │  ▎   17 pending           2326.75  USD                                             │ │
+ │                           │ │  ▎   18 pending           2392.98  USD                                             │ │
+ │                           │ │  ▎   19 refunded           785.85  USD                                             │ │
+ │                           │ │  ▎   20 pending            497.22  EUR                                             │ │
+ │                           │ │  ▎   21 cancelled         2402.17  USD                                             │ │
+ │                           │ │  ▎   22 refunded          1645.69  USD                                             │ │
+ │                           │ │  ▎   23 refunded          2412.74  EUR                                             │ │
+ │                           │ │  ▎   24 delivered         1282.42  USD                                             │ │
+ │                           │ │  ▎   25 delivered         2219.60  USD                                             │ │
+ │                           │ │  ▎   26 pending           1326.92  USD                                             │ │
+ │                           │ │  ▎   27 refunded           236.75  EUR                                             │ │
+ │                           │ │   rows 1–27 of 500 loaded · 1,203,338 total · cols 5–7 of 14                         │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                Connected to Production

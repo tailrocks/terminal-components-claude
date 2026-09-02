@@ -1,14 +1,83 @@
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
-use ratatui::style::Color;
+use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
-use crate::data::TreeNode;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::scrollbar;
+
+/// A node in a tree: label, optional trailing metadata, children.
+#[derive(Debug, Clone)]
+pub struct TreeNode {
+    pub label: String,
+    pub children: Vec<TreeNode>,
+    pub meta: Option<String>,
+    /// One-cell muted glyph before the label (object kind).
+    pub glyph: Option<&'static str>,
+    /// Children are fetched on first expand; until then the node shows `▸`
+    /// and expanding emits [`TreeEvent::Expand`].
+    pub lazy: bool,
+    /// A load is in flight (spinner instead of the fold glyph).
+    pub busy: bool,
+    /// Muted, not selectable, e.g. an empty-section note.
+    pub note: bool,
+}
+
+impl TreeNode {
+    pub fn leaf(label: &str) -> Self {
+        Self {
+            label: label.to_owned(),
+            children: vec![],
+            meta: None,
+            glyph: None,
+            lazy: false,
+            busy: false,
+            note: false,
+        }
+    }
+
+    pub fn leaf_meta(label: &str, meta: &str) -> Self {
+        Self {
+            meta: Some(meta.to_owned()),
+            ..Self::leaf(label)
+        }
+    }
+
+    pub fn dir(label: &str, children: Vec<TreeNode>) -> Self {
+        Self {
+            children,
+            ..Self::leaf(label)
+        }
+    }
+
+    /// A folder whose children arrive later via [`TreeView::set_children`].
+    pub fn lazy(label: &str) -> Self {
+        Self {
+            lazy: true,
+            ..Self::leaf(label)
+        }
+    }
+
+    pub fn glyph(mut self, g: &'static str) -> Self {
+        self.glyph = Some(g);
+        self
+    }
+
+    pub fn note(label: &str) -> Self {
+        Self {
+            note: true,
+            ..Self::leaf(label)
+        }
+    }
+
+    pub fn meta(mut self, m: &str) -> Self {
+        self.meta = Some(m.to_owned());
+        self
+    }
+}
 
 /// Path of child indices from the root.
 pub type Path = Vec<usize>;
@@ -21,6 +90,17 @@ pub struct FlatRow {
     pub meta: Option<String>,
     pub has_children: bool,
     pub expanded: bool,
+    pub glyph: Option<&'static str>,
+    pub busy: bool,
+    pub note: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TreeEvent {
+    /// A lazy node was expanded: the owner should fetch and `set_children`.
+    Expand(Path),
+    /// Enter on a leaf.
+    Activate(Path),
 }
 
 #[derive(Debug, Clone)]
@@ -33,6 +113,8 @@ pub struct TreeView {
     pub scroll: ScrollState,
     pub area: Rect,
     rows: Vec<FlatRow>,
+    /// Case-insensitive substring filter; ancestors of matches stay visible.
+    pub filter: Option<String>,
 }
 
 impl TreeView {
@@ -46,6 +128,7 @@ impl TreeView {
             scroll: ScrollState::default(),
             area: Rect::ZERO,
             rows: vec![],
+            filter: None,
         };
         // expand the first level by default
         for i in 0..tv.nodes.len() {
@@ -60,35 +143,120 @@ impl TreeView {
     }
 
     pub fn flatten(&mut self) {
+        fn matches(n: &TreeNode, q: &str) -> bool {
+            n.label.to_lowercase().contains(q) || n.children.iter().any(|c| matches(c, q))
+        }
         fn walk(
             nodes: &[TreeNode],
             path: &mut Path,
             depth: usize,
             exp: &std::collections::HashSet<Path>,
+            filter: Option<&str>,
             out: &mut Vec<FlatRow>,
         ) {
             for (i, n) in nodes.iter().enumerate() {
+                if let Some(q) = filter
+                    && !matches(n, q)
+                {
+                    continue;
+                }
                 path.push(i);
-                let expanded = exp.contains(path);
+                let has_children = !n.children.is_empty() || (n.lazy && !n.note);
+                // while filtering, folders that contain matches are open
+                let expanded = has_children
+                    && (exp.contains(path)
+                        || filter.is_some_and(|q| {
+                            !n.children.is_empty() && !n.label.to_lowercase().contains(q)
+                        }));
                 out.push(FlatRow {
                     path: path.clone(),
                     depth,
                     label: n.label.clone(),
                     meta: n.meta.clone(),
-                    has_children: !n.children.is_empty(),
+                    has_children,
                     expanded,
+                    glyph: n.glyph,
+                    busy: n.busy,
+                    note: n.note,
                 });
                 if expanded {
-                    walk(&n.children, path, depth + 1, exp, out);
+                    walk(&n.children, path, depth + 1, exp, filter, out);
                 }
                 path.pop();
             }
         }
         let mut out = Vec::new();
-        walk(&self.nodes, &mut Vec::new(), 0, &self.expanded, &mut out);
+        let filter = self
+            .filter
+            .as_deref()
+            .map(|f| f.trim().to_lowercase())
+            .filter(|f| !f.is_empty());
+        walk(
+            &self.nodes,
+            &mut Vec::new(),
+            0,
+            &self.expanded,
+            filter.as_deref(),
+            &mut out,
+        );
         self.rows = out;
         self.cursor = self.cursor.min(self.rows.len().saturating_sub(1));
         self.scroll.set_content(self.rows.len());
+    }
+
+    pub fn node(&self, path: &[usize]) -> Option<&TreeNode> {
+        let mut nodes = &self.nodes;
+        let mut cur: Option<&TreeNode> = None;
+        for &i in path {
+            cur = nodes.get(i);
+            nodes = &cur?.children;
+        }
+        cur
+    }
+
+    pub fn node_mut(&mut self, path: &[usize]) -> Option<&mut TreeNode> {
+        let (last, parents) = path.split_last()?;
+        let mut nodes = &mut self.nodes;
+        for &i in parents {
+            nodes = &mut nodes.get_mut(i)?.children;
+        }
+        nodes.get_mut(*last)
+    }
+
+    /// Deliver lazily fetched children; marks the node loaded and open.
+    pub fn set_children(&mut self, path: &[usize], children: Vec<TreeNode>) {
+        if let Some(n) = self.node_mut(path) {
+            n.children = children;
+            n.lazy = false;
+            n.busy = false;
+        }
+        self.expanded.insert(path.to_vec());
+        self.flatten();
+    }
+
+    pub fn set_busy(&mut self, path: &[usize], busy: bool) {
+        if let Some(n) = self.node_mut(path) {
+            n.busy = busy;
+        }
+        self.flatten();
+    }
+
+    pub fn set_filter(&mut self, q: Option<&str>) {
+        self.filter = q.map(str::to_owned);
+        self.flatten();
+        self.scroll.jump_start();
+        self.cursor = 0;
+    }
+
+    /// Move the cursor to a path (expanding ancestors) and select it.
+    pub fn reveal(&mut self, path: &[usize]) {
+        for k in 1..path.len() {
+            self.expanded.insert(path[..k].to_vec());
+        }
+        self.flatten();
+        if let Some(i) = self.rows.iter().position(|r| r.path == path) {
+            self.set_cursor(i);
+        }
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
@@ -104,19 +272,31 @@ impl TreeView {
         self.scroll.ensure_visible(self.cursor);
     }
 
-    pub fn toggle(&mut self, i: usize) -> Outcome {
+    pub fn toggle(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
         let Some(row) = self.rows.get(i) else {
-            return Outcome::Consumed;
+            return (Outcome::Consumed, None);
         };
         if !row.has_children {
-            return Outcome::Consumed;
+            return (Outcome::Consumed, None);
         }
         let path = row.path.clone();
         if !self.expanded.remove(&path) {
-            self.expanded.insert(path);
+            self.expanded.insert(path.clone());
+            let lazy = self
+                .node(&path)
+                .is_some_and(|n| n.lazy && n.children.is_empty());
+            self.flatten();
+            if lazy {
+                if let Some(n) = self.node_mut(&path) {
+                    n.busy = true;
+                }
+                self.flatten();
+                return (Outcome::Changed, Some(TreeEvent::Expand(path)));
+            }
+            return (Outcome::Changed, None);
         }
         self.flatten();
-        Outcome::Changed
+        (Outcome::Changed, None)
     }
 
     pub fn expand_all(&mut self) {
@@ -139,11 +319,11 @@ impl TreeView {
         self.flatten();
     }
 
-    pub fn on_key(&mut self, key: &Key) -> Outcome {
+    pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TreeEvent>) {
         if self.rows.is_empty() {
-            return Outcome::Ignored;
+            return (Outcome::Ignored, None);
         }
-        match key.code {
+        let out = match key.code {
             KeyCode::Up | KeyCode::Char('k') => {
                 self.set_cursor(self.cursor.saturating_sub(1));
                 Outcome::Changed
@@ -171,7 +351,7 @@ impl TreeView {
             KeyCode::Right | KeyCode::Char('l') => {
                 let row = &self.rows[self.cursor];
                 if row.has_children && !row.expanded {
-                    self.toggle(self.cursor)
+                    return self.toggle(self.cursor);
                 } else if row.has_children {
                     self.set_cursor(self.cursor + 1);
                     Outcome::Changed
@@ -182,9 +362,8 @@ impl TreeView {
             KeyCode::Left | KeyCode::Char('h') => {
                 let row = &self.rows[self.cursor];
                 if row.has_children && row.expanded {
-                    self.toggle(self.cursor)
+                    return self.toggle(self.cursor);
                 } else if row.depth > 0 {
-                    // go to parent
                     let parent = &row.path[..row.path.len() - 1];
                     if let Some(pi) = self.rows.iter().position(|r| r.path == parent) {
                         self.set_cursor(pi);
@@ -196,11 +375,16 @@ impl TreeView {
             }
             KeyCode::Enter | KeyCode::Char(' ') => {
                 let row = &self.rows[self.cursor];
-                if row.has_children {
-                    self.toggle(self.cursor)
+                if row.note {
+                    Outcome::Consumed
+                } else if row.has_children {
+                    return self.toggle(self.cursor);
                 } else {
                     self.selected = Some(row.path.clone());
-                    Outcome::Changed
+                    return (
+                        Outcome::Changed,
+                        Some(TreeEvent::Activate(row.path.clone())),
+                    );
                 }
             }
             KeyCode::Char('*') => {
@@ -212,23 +396,29 @@ impl TreeView {
                 Outcome::Changed
             }
             _ => Outcome::Ignored,
-        }
+        };
+        (out, None)
     }
 
-    pub fn on_click_row(&mut self, i: usize) -> Outcome {
+    pub fn on_click_row(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
         if i >= self.rows.len() {
-            return Outcome::Consumed;
+            return (Outcome::Consumed, None);
         }
         self.set_cursor(i);
-        if self.rows[i].has_children {
+        if self.rows[i].note {
+            (Outcome::Consumed, None)
+        } else if self.rows[i].has_children {
             self.toggle(i)
         } else {
             self.selected = Some(self.rows[i].path.clone());
-            Outcome::Changed
+            (
+                Outcome::Changed,
+                Some(TreeEvent::Activate(self.rows[i].path.clone())),
+            )
         }
     }
 
-    pub fn on_click_toggle(&mut self, i: usize) -> Outcome {
+    pub fn on_click_toggle(&mut self, i: usize) -> (Outcome, Option<TreeEvent>) {
         self.set_cursor(i);
         self.toggle(i)
     }
@@ -300,12 +490,16 @@ impl TreeView {
             if x + 2 >= rect.right() {
                 continue;
             }
-            let glyph = if row.has_children {
+            let glyph = if row.busy {
+                crate::widgets::progress::spinner_frame(ctx.interaction.tick)
+            } else if row.has_children {
                 if row.expanded { "▾" } else { "▸" }
             } else {
                 " "
             };
-            let gs = if row.has_children {
+            let gs = if row.busy {
+                st.fg(t.accent)
+            } else if row.has_children {
                 st.fg(t.text_secondary)
             } else {
                 st
@@ -321,15 +515,35 @@ impl TreeView {
                 .map(|m| crate::ui::text::width(m))
                 .unwrap_or(0) as u16;
             let avail = rect.right().saturating_sub(x);
+            // hide metadata rather than starve the label
+            let meta_w = if avail.saturating_sub(meta_w + 2) < 10 {
+                0
+            } else {
+                meta_w
+            };
             let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 1 });
-            let label_style = if s.selected { st.fg(t.accent) } else { st };
+            let mut label_style = if s.selected { st.fg(t.accent) } else { st };
+            if row.note {
+                label_style = st.fg(t.text_muted).remove_modifier(Modifier::BOLD);
+            }
+            let mut lx = x;
+            if let Some(g) = row.glyph {
+                buf.set_string(
+                    lx,
+                    y,
+                    g,
+                    st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                );
+                lx += 2;
+            }
             buf.set_string(
-                x,
+                lx,
                 y,
-                crate::ui::text::fit(&row.label, lw as usize),
+                crate::ui::text::fit(&row.label, (lw as usize).saturating_sub((lx - x) as usize)),
                 label_style,
             );
             if let Some(m) = &row.meta
+                && meta_w > 0
                 && meta_w + 4 < avail
             {
                 buf.set_string(

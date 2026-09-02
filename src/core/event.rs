@@ -83,6 +83,8 @@ pub enum MouseKind {
     Drag,
     WheelUp,
     WheelDown,
+    WheelLeft,
+    WheelRight,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,6 +115,8 @@ impl Input {
                     MouseEventKind::Drag(MouseButton::Left) => MouseKind::Drag,
                     MouseEventKind::ScrollUp => MouseKind::WheelUp,
                     MouseEventKind::ScrollDown => MouseKind::WheelDown,
+                    MouseEventKind::ScrollLeft => MouseKind::WheelLeft,
+                    MouseEventKind::ScrollRight => MouseKind::WheelRight,
                     _ => return None,
                 };
                 Some(Input::Mouse(Mouse {

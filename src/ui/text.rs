@@ -29,6 +29,53 @@ pub fn truncate(s: &str, max: usize) -> String {
     out
 }
 
+/// Truncate keeping both ends: `very_long_identifier_name` → `very_l…_name`.
+pub fn truncate_middle(s: &str, max: usize) -> String {
+    if width(s) <= max {
+        return s.to_owned();
+    }
+    if max < 5 {
+        return truncate(s, max);
+    }
+    let keep_end = (max - 1) / 3;
+    let keep_start = max - 1 - keep_end;
+    let gs: Vec<&str> = s.graphemes(true).collect();
+    let mut head = String::new();
+    let mut w = 0;
+    for g in &gs {
+        let gw = width(g);
+        if w + gw > keep_start {
+            break;
+        }
+        head.push_str(g);
+        w += gw;
+    }
+    let mut tail = String::new();
+    let mut w = 0;
+    for g in gs.iter().rev() {
+        let gw = width(g);
+        if w + gw > keep_end {
+            break;
+        }
+        tail.insert_str(0, g);
+        w += gw;
+    }
+    format!("{head}…{tail}")
+}
+
+/// `1203338` → `1,203,338`.
+pub fn thousands(n: usize) -> String {
+    let s = n.to_string();
+    let mut out = String::new();
+    for (i, ch) in s.chars().enumerate() {
+        if i > 0 && (s.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    out
+}
+
 /// Left-align in `w` cells (pad or truncate).
 pub fn fit(s: &str, w: usize) -> String {
     let t = truncate(s, w);
@@ -101,6 +148,17 @@ mod tests {
         assert_eq!(truncate("hi", 5), "hi");
         assert_eq!(fit("hi", 4), "hi  ");
         assert_eq!(fit_right("hi", 4), "  hi");
+    }
+
+    #[test]
+    fn middle_truncation_and_thousands() {
+        assert_eq!(
+            truncate_middle("very_long_identifier_name", 12),
+            "very_lon…ame"
+        );
+        assert_eq!(truncate_middle("short", 12), "short");
+        assert_eq!(thousands(1_203_338), "1,203,338");
+        assert_eq!(thousands(999), "999");
     }
 
     #[test]

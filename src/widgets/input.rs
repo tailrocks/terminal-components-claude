@@ -34,6 +34,8 @@ pub struct TextInput {
     /// Area of the text run (inside the field), for click-to-cursor.
     text_area: Rect,
     pub validator: Option<fn(&str) -> Option<String>>,
+    /// Hide the "optional" suffix on non-required fields.
+    pub plain_label: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,6 +66,7 @@ impl TextInput {
             area: Rect::ZERO,
             text_area: Rect::ZERO,
             validator: None,
+            plain_label: false,
         }
     }
 
@@ -85,6 +88,10 @@ impl TextInput {
     }
     pub fn help(mut self, h: &str) -> Self {
         self.help = h.to_owned();
+        self
+    }
+    pub fn plain_label(mut self) -> Self {
+        self.plain_label = true;
         self
     }
     pub fn validator(mut self, v: fn(&str) -> Option<String>) -> Self {
@@ -236,7 +243,7 @@ impl TextInput {
         let mut label = self.label.clone();
         if self.required {
             label.push_str(" *");
-        } else if !self.label.is_empty() {
+        } else if !self.label.is_empty() && !self.plain_label {
             label.push_str("  optional");
         }
         let label_style = if self.disabled {

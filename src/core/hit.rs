@@ -84,6 +84,10 @@ impl HitRegistry {
         self.regions.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.regions.is_empty()
+    }
+
     pub fn area_of(&self, id: WidgetId) -> Option<Rect> {
         self.regions
             .iter()

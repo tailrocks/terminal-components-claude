@@ -66,14 +66,7 @@ pub struct Cell {
     pub tone: Tone,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Tone {
-    Normal,
-    Secondary,
-    Muted,
-    Error,
-    Warning,
-}
+pub use crate::theme::Tone;
 
 impl Cell {
     pub fn new(text: impl Into<String>) -> Self {
@@ -643,7 +636,11 @@ impl DataTable {
         if self.rows.is_empty() {
             let msg = crate::ui::text::truncate(&self.empty_text, area.width as usize);
             let y = body.y + body.height / 2;
-            let x = body.x + body.width.saturating_sub(msg.len() as u16) / 2;
+            let x = body.x
+                + body
+                    .width
+                    .saturating_sub(crate::ui::text::width(&msg) as u16)
+                    / 2;
             buf.set_string(x, y, &msg, t.muted().bg(bg));
             return;
         }
@@ -700,10 +697,7 @@ impl DataTable {
                 let mut st = row_style;
                 st = match cell.tone {
                     Tone::Normal => st,
-                    Tone::Secondary => st.fg(t.text_secondary),
-                    Tone::Muted => st.fg(t.text_muted),
-                    Tone::Error => st.fg(t.error),
-                    Tone::Warning => st.fg(t.warning),
+                    other => st.fg(t.tone(other)),
                 };
                 if s.pressed {
                     st = row_style;
