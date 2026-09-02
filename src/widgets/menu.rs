@@ -1,7 +1,7 @@
 //! Anchored menus: a context menu popover that opens at a position or under
 //! an anchor rectangle, and a menu bar whose labels open the same popover
 //! beneath them. Rows are commands (a solid `highlight` fill on the cursor,
-//! hover lifts); shortcuts sit right-aligned in the muted tone; danger rows
+//! hover lifts); shortcuts sit right-aligned in the muted tone; danger rows (soft rose, deep red under the cursor)
 //! use the error tone; disabled rows are faint and cannot be chosen.
 
 use ratatui::buffer::Buffer;
@@ -292,21 +292,36 @@ impl ContextMenu {
             // one highlight only: the cursor row is a solid blue fill with
             // bold white text (a menu row is a command, not a focus stop, so
             // it draws no `▎` bar and never the accent); hover lifts the plane
-            let mut st = if item.disabled {
+            // a destructive row is soft rose at rest and takes a deep red
+            // fill under the cursor: the tone of the plane, not the alarm red
+            let st = if item.disabled {
                 Style::new().fg(t.disabled).bg(bg)
             } else if s.selected {
                 Style::new()
                     .fg(t.text_primary)
-                    .bg(t.highlight)
+                    .bg(if item.danger {
+                        t.highlight_danger
+                    } else {
+                        t.highlight
+                    })
                     .add_modifier(Modifier::BOLD)
             } else if s.hovered {
-                Style::new().fg(t.text_primary).bg(t.lift(bg))
+                Style::new()
+                    .fg(if item.danger {
+                        t.error_soft
+                    } else {
+                        t.text_primary
+                    })
+                    .bg(t.lift(bg))
             } else {
-                Style::new().fg(t.text_primary).bg(bg)
+                Style::new()
+                    .fg(if item.danger {
+                        t.error_soft
+                    } else {
+                        t.text_primary
+                    })
+                    .bg(bg)
             };
-            if item.danger && !item.disabled {
-                st = st.fg(t.error);
-            }
             fill(buf, row, st);
             let label_w = inner.width.saturating_sub(3) as usize;
             buf.set_string(row.x + 2, y, truncate(&item.label, label_w), st);
@@ -662,7 +677,7 @@ mod tests {
             Some(MenuEvent::Dismissed)
         );
         // danger row is drawn in the error tone, shortcut right-aligned
-        assert_eq!(buf[(area.x + 2, area.y)].fg, t.error);
+        assert_eq!(buf[(area.x + 2, area.y)].fg, t.error_soft);
         let sc_x = area.right() - 2;
         assert_eq!(buf[(sc_x, area.y)].symbol(), "x");
     }
