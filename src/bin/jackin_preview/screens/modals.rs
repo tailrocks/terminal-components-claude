@@ -864,6 +864,9 @@ pub struct FormDialog {
     pub area: Rect,
     pub events: Vec<FormEvent>,
     pub dirty: bool,
+    /// When false, Save emits `Action("save")` and the owner closes the form
+    /// once validation passes.
+    pub pop_on_save: bool,
 }
 
 impl FormDialog {
@@ -882,7 +885,13 @@ impl FormDialog {
             area: Rect::ZERO,
             events: vec![],
             dirty: false,
+            pop_on_save: true,
         }
+    }
+
+    pub fn keep_open_on_save(mut self) -> Self {
+        self.pop_on_save = false;
+        self
     }
 
     pub fn action(mut self, name: &str, button: Button) -> Self {
@@ -975,6 +984,14 @@ impl FormDialog {
 
     pub fn is_editing(&self) -> bool {
         self.fields.iter().any(|f| matches!(&f.kind, FieldKindW::Input(i) if i.editing))
+    }
+
+    fn save_event(&self) -> FormEvent {
+        if self.pop_on_save {
+            FormEvent::Save
+        } else {
+            FormEvent::Action("save".into())
+        }
     }
 
     fn any_open_select(&self) -> bool {
@@ -1104,7 +1121,7 @@ impl FormDialog {
         if cur == Some(self.save.id) {
             let (o, fired) = self.save.on_key(key);
             if fired {
-                self.events.push(FormEvent::Save);
+                self.events.push(self.save_event());
                 return Outcome::Changed;
             }
             if o.consumed() {
@@ -1114,7 +1131,7 @@ impl FormDialog {
         match key.code {
             KeyCode::Enter if !editing => {
                 if self.save.can_activate() {
-                    self.events.push(FormEvent::Save);
+                    self.events.push(self.save_event());
                 } else {
                     focus.focus(self.initial_focus());
                 }
@@ -1202,7 +1219,7 @@ impl FormDialog {
         if id == self.save.id {
             focus.focus(id);
             if self.save.on_click() {
-                self.events.push(FormEvent::Save);
+                self.events.push(self.save_event());
             }
             return Outcome::Changed;
         }

@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Usage › Codex › Experiments                 c Accounts  s Settings  ? help
+
+ ╭─ Usage · read-only ─────────────────────────────────────────────────────────────────────────────── ⠼ refreshing 1 ─╮
+ │  ▎  Overview                             Codex · Experiments                                            refreshing │
+ │    Anthropic                                                                                                       │
+ │  ▎    Personal  ★                        Provider     OpenAI · surface Codex                                       │
+ │  ▎    Archived contractor la… disabled   Account      ChatGPT account org_7Hq2 · Plus                              │
+ │  ▎    Work                           !   Credential   API key · …k7Qz · fingerprint 7f3a91c2                       │
+ │    OpenAI                                Status       available · refreshing…                                      │
+ │  ▎    Primary  ★                                                                                                   │
+ │  ▎›   Experiments                    ⠼   Limits                                                                    │
+ │    Amp                                     Session · 5-… ━──────────────────────   4%    resets in 3 h 59 min      │
+ │  ▎    discovered                     ▲     Weekly · 7-d… ━━━────────────────────  12%    resets Sun 04:14          │
+ │    xAI                                     Credits       ━━━━───────────────────  18%    90 / 500 credits          │
+ │  ▎    Team  ★                              Quota   Quota not visible for API keys                                  │
+ │    Z.AI                                                                                                            │
+ │  ▎    discovered                     ▲   Last good    kept from 20 min ago · quota not visible                     │
+ │    Kimi                                                                                                            │
+ │  ▎    discovered        ! needs secret                                                                             │
+ │    MiniMax                                                                                                         │
+ │  ▎    discovered         ! unavailable                                                                             │
+ │    OpenCode                                                                                                        │
+ │  ▎    Go subscription  ★             !                                                                             │
+ │  ▎    ci-bot               unsupported                                                                             │
+ │    Usage                                                                                                           │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ Move  Enter Detail  r Refresh  m Manage in Accounts  Esc Close

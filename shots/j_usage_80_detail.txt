@@ -1,0 +1,24 @@
+ ▪  Jackin  inside the Construct  2 running  Usage › Codex › Experiments
+
+ ╭─ Usage · read-only ─────────────────────────────────────── ⠋ refreshing 1 ─╮
+ │  Codex · Experiments                                            refreshing │
+ │                                                                            │
+ │  Provider     OpenAI · surface Codex                                       │
+ │  Account      ChatGPT account org_7Hq2 · Plus                              │
+ │  Credential   API key · …k7Qz · fingerprint 7f3a91c2                       │
+ │  Status       available · refreshing…                                      │
+ │                                                                            │
+ │  Limits                                                                    │
+ │    Session · 5-… ━──────────────────────   4%    resets in 3 h 59 min      │
+ │    Weekly · 7-d… ━━━────────────────────  12%    resets Sun 04:14          │
+ │    Credits       ━━━━───────────────────  18%    90 / 500 credits          │
+ │    Quota   Quota not visible for API keys                                  │
+ │                                                                            │
+ │  Last good    kept from 20 min ago · quota not visible                     │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ Scroll  r Refresh  m Manage in Accounts  Esc Back to list

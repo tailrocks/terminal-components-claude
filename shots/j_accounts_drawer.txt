@@ -1,0 +1,40 @@
+ ▪  Jackin  inside the Construct  2 running  Accounts › Claude › Personal            ⠹ refreshing 1  s Settings  ? help
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │ ▎Claude · Personal                                            account · ok
+ │ ▎   Overview                        │ │
+ │ ▎ ▾ Claude                      !   │ │  Provider      Anthropic / Claude
+ │ ▎   ★ Personal                      │ │  Agent runtime Claude Code
+ │ ▎     Archived contracto… launches  │ │  Usage surface Claude
+ │ ▎     Work                      !   │ │  Identity      alexey@donbeave.dev
+ │ ▎ ▾ Codex                           │ │  Plan          Max 5x
+ │ ▎   ★ Primary                       │ │  Credential    Local folder · ~/.claude
+ │ ▎     Experiments                   │ │                detected Claude OAuth profile
+ │ ▎ ▾ Amp                         ▲   │ │  Provenance    configured source · confidence authoritative · registered
+ │ ▎     discovered · discovered   ▲   │ │  Lifecycle     available
+ │ ▎ ▾ Grok                            │ │  Default       ★ for Anthropic
+ │ ▎   ★ Team                          │ │  Enabled       yes
+ │ ▎ ▾ Z.AI                        ▲   │ │  Purpose       personal
+ │ ▎     discovered · discovered   ▲   │ │
+ │ ▎ ▾ Kimi                        !   │ │  Quota                                       current · refreshed 4 min ago
+ │ ▎     discovered · discovered   !   │ │  Session · 5-… ━━━━━━━━━━━──────────────────  38%    38% used · resets in…
+ │ ▎ ▾ MiniMax                     !   │ │  Weekly · all… ━━━━━━━━━━───────────────────  33%    33% used · resets Su…
+ │ ▎     discovered · discovered   !   │ │  Weekly · Son… ━━━━━━───────────────────────  21%    21% used · resets Su…
+ │ ▎ ▾ OpenCode                    !   │ │  Weekly · Opus ━━━━━━━━━━━━━━━━─────────────  54%    54% used · resets Su…
+ │ ▎   ★ Go subscription           !   │ │
+ │ ▎     ci-bot · discovered           │ │  Validation    ✓ material   ✓ identity   ✓ quota access · quota readable
+ │ ▎   Unsupported                     │ │
+ │ ▎   + Add account…                  │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │ ▎Refresh   ▎Validate   ▎Edit…   ▎Set default   ▎Disable   ▎Remove…
+ ╰─────────────────────────────────────╯ │
+
+ ↑↓ Scroll  Tab Actions  Esc Back

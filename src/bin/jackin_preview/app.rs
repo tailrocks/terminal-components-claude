@@ -1284,6 +1284,13 @@ impl App {
                 }
                 Request::Help => self.open_help(),
                 Request::RefreshPicker => self.refresh_picker(),
+                Request::WithForm(f) => {
+                    if let Some(top) = self.modals.last_mut()
+                        && let Modal::Form(form) = &mut top.modal
+                    {
+                        f(form);
+                    }
+                }
             }
         }
         out
