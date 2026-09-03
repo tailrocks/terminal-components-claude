@@ -2,8 +2,8 @@
 
 ## Status
 
-- Overall: Slice 1 in progress — baseline and audit
-- Slice: 1 — baseline and audit
+- Overall: Slice 1 audits complete; Slice 2 architecture synthesis running (Opus)
+- Slice: 1→2
 
 ## Baseline
 
@@ -23,7 +23,7 @@
 - Coordinator: `refactor-coordinator` (`claude-fable-5-1`, high) — this session.
 - Implementation: `fable-builder` (`claude-fable-5-1`, high).
 - Research/review: `opus-analyst` (`claude-opus-5`, high, read-only).
-- Slice 1 Opus audits: docs/audit/app-audit.md, domain-boundary-audit.md, interaction-audit.md, architecture-research.md (done, committed); api-audit.md, performance-audit.md (running).
+- Slice 1 Opus audits: docs/audit/app-audit.md, domain-boundary-audit.md, interaction-audit.md, architecture-research.md (done, committed); api-audit.md (done, committed); performance-audit.md (running).
 
 ## Accepted decisions
 
@@ -45,4 +45,4 @@
 
 ## Next action
 
-- When api-audit lands: spawn fresh Opus synthesis for COMPONENT_ARCHITECTURE.md (20 sections, adjudicate model conflict). Record baseline captures manifest.
+- Record Opus synthesis as COMPONENT_ARCHITECTURE.md; record baseline captures manifest and performance audit; then fresh Opus API-review of the architecture (Slice 2 critique) before prototype.
