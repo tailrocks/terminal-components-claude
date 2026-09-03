@@ -1,10 +1,10 @@
 # COMPONENT_ARCHITECTURE.md
 
-**Status:** Accepted, with the Slice 2 review corrections of §21 (Adjudication J), the modern-API and dependency policy of §22 (Adjudication L) and the `Form` API / `Grid::update` decisions of §23 (Adjudication K) applied. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
+**Status:** Accepted, with the Slice 2 review corrections of §21 (Adjudication J), the modern-API and dependency policy of §22 (Adjudication L), the `Form` API / `Grid::update` decisions of §23 (Adjudication K) and the re-export / ASCII-border / `FieldKind` decisions of §24 (Adjudication M) applied. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
 
 **Authority:** `REFACTORING_GOAL.md` › `DESIGN.md` › existing rendered output/tests › current source. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each.
 
-**Inputs adjudicated:** `docs/audit/api-audit.md` (API), `docs/audit/app-audit.md` (APP), `docs/audit/domain-boundary-audit.md` (DOM), `docs/audit/interaction-audit.md` (INT), `docs/audit/architecture-research.md` (RES). `docs/audit/performance-audit.md` (PERF) landed after §1–§15 were written; §20.9 folds its obligations in and amends earlier decisions where needed. `docs/audit/modern-api-audit.md` (MOD) and `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K) landed after §21; §22 and §23 record them as binding, and every earlier section they change carries an inline `<!-- amended by §22 -->` / `<!-- amended by §23 -->` marker.
+**Inputs adjudicated:** `docs/audit/api-audit.md` (API), `docs/audit/app-audit.md` (APP), `docs/audit/domain-boundary-audit.md` (DOM), `docs/audit/interaction-audit.md` (INT), `docs/audit/architecture-research.md` (RES). `docs/audit/performance-audit.md` (PERF) landed after §1–§15 were written; §20.9 folds its obligations in and amends earlier decisions where needed. `docs/audit/modern-api-audit.md` (MOD), `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K) and `docs/reviews/adjudication-m-small-items.md` (ADJ‑M) landed after §21; §22, §23 and §24 record them as binding, and every earlier section they change carries an inline `<!-- amended by §22 -->` / `<!-- amended by §23 -->` / `<!-- amended by §24 -->` marker.
 
 Every claim tagged **[F]** is a collected fact carried from an audit with its citation. Everything else is a decision or its rationale.
 
@@ -38,7 +38,7 @@ Every claim tagged **[F]** is a collected fact carried from an audit with its ci
 | 18 Migration map for every current component | §18 |
 | 19 Alternatives considered and rejected | §19 |
 | 20 Known trade-offs | §20 |
-| — additional | §15 Forms and text editing (goal §19) with §15.1 `Form`; Appendix A Slice plan; §21 Slice 2 review corrections; §22 Adjudication L (modern API and dependency policy); §23 Adjudication K (`Form` API, `Grid::update` bound) |
+| — additional | §15 Forms and text editing (goal §19) with §15.1 `Form`; Appendix A Slice plan; §21 Slice 2 review corrections; §22 Adjudication L (modern API and dependency policy); §23 Adjudication K (`Form` API, `Grid::update` bound); §24 Adjudication M (re-exports, ASCII border set, `FieldKind`) |
 
 ### 0.2 Goal §23 scenarios (M20)
 
@@ -437,6 +437,9 @@ pub enum GridAction   { Moved, Activated(ItemKey), Sort(ColumnKey, SortDir), Cle
                         LeaveForward, LeaveBackward }
 pub enum PickerAction { Chosen(ItemKey), ChosenAlt(ItemKey), Secondary(ItemKey), Back, Scope(ScopeKey), QueryChanged }
 pub enum DialogAction { Action(ActionKey), Dismissed(DismissReason) }
+pub enum SelectAction     { Chose(ItemKey), Opened, Closed }                     // <!-- amended by §24 M3: declared by the §17 self-check -->
+pub enum RadioGroupAction { Chose(ItemKey) }                                     // cursor motion is `Moved`-less: cursor ≠ value (§15)
+pub enum ChipBarAction    { Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey) }
 pub enum ViewportAction { Copy(String), SelectionChanged, FollowChanged(bool) }
 ```
 
@@ -708,6 +711,8 @@ pub struct SplitModel { pub percent: u8, pub min_first: u16, pub min_second: u16
 #[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum RowAlign { Start, End }                  // reads against Flex::{Start, End} (§22)
 ```
 
+<!-- amended by §24 --> `Size { min, preferred }` is the library's own type and keeps its name at the root and in `author`; `ratatui_core::layout::Size` (`{ width, height }`, a different shape under the same name) is named by no `pub` signature and is **never re-exported** (§24 M1).
+
 **Decisions.** One `Split` implementation parameterised by axis, so the vertical/horizontal collapse asymmetry disappears; when both minima cannot fit, **the first pane wins on both axes** (documented, tested). `button::row_layout`/`row_layout_right` move into `layout::action_row` (they are the generic action-row primitive already used by dialog and grid). `showcase/pages/mod.rs:120-168`'s `rows`/`columns`/`caption` become library primitives. No general constraint solver.
 
 <!-- amended by §22 --> **Borrow ratatui's vocabulary, not its engine.** `RowAlign::{Start, End}` (not `Left`/`Right`) and the parameter name `spacing` read against ratatui's `Flex`/`Spacing`; `layout::action_row(area, widths, spacing, RowAlign::End)` is the exact analogue of `Layout::horizontal(…).flex(Flex::End).spacing(Spacing::Space(spacing))` and its rustdoc says so. `Track::{Fixed, Flex, Auto}` stays a hand-written 3-case integer distribution — deterministic, 0-alloc, and able to express `Auto`, which `Constraint` cannot — so `Layout`/`Constraint`/`Flex`/`Spacing` never appear under `components/**` (§22 R‑13) and `ratatui-core/layout-cache` stays off. `Rect` geometry is reused, never re-derived (§22 R‑12): `layout::inset` is `Rect::inner(Margin)` for the symmetric case and keeps `Insets` for the asymmetric one; `Rect::ZERO` replaces `Rect::new(0, 0, 0, 0)`; centering and clamping are `Rect::{centered, centered_horizontally, centered_vertically, clamp}`.
@@ -827,6 +832,13 @@ pub struct GlyphSet { /* one &'static str per GlyphRole; ScrollTrack/ScrollThumb
 /// `bottom_left`, `bottom_right`, `vertical_left`, `vertical_right`, `horizontal_top`, `horizontal_bottom`), so a
 /// theme hands over `symbols::border::{PLAIN, ROUNDED, DOUBLE}` directly instead of retyping glyphs (MOD §2.12, R‑11).
 /// Junie's rounded set is `symbols::border::ROUNDED` verbatim (verified against current output before blessing).
+/// <!-- amended by §24 --> The named sets live in `crates/tui/src/theme/border.rs`, reachable as `junie_tui::theme::border`
+/// and `junie_tui::author::border`: `border::{Set, PLAIN, ROUNDED, DOUBLE}` are ratatui's, re-exported; `border::ASCII`
+/// (`+ - |`) is OURS, a plain `const ASCII: Set<'static>` — a const of a foreign type is not an `impl` and needs no
+/// coherence exception, which is what makes the §11.2 triple `rounded | square | ascii` expressible on a type alias.
+/// `Theme::junie()` → `border::ROUNDED`; `Theme::paper()` → `border::PLAIN`; `border::ASCII` is used by NO builtin and
+/// is opt-in through `ThemeBuilder::borders_set(border::ASCII)`. Nothing selects ASCII automatically: `Capability` has
+/// no unicode axis (§21 item 19) and a border-only auto-switch would leave every other `GlyphSet` glyph unicode (§24 M2).
 pub type BorderSet = ratatui_core::symbols::border::Set<'static>;
 
 pub struct DesignTokens {
@@ -848,7 +860,7 @@ pub struct Theme {
     pub color: ColorTokens,
     pub design: DesignTokens,
     pub recipes: Recipes,
-    pub capability: Capability,   // { color: ColorLevel } — UnicodeLevel deleted (§21 item 19)
+    pub capability: Capability,   // { color: ColorLevel } — UnicodeLevel deleted (§21 item 19); exactly one field, pinned by `architecture::capability_has_no_unicode_field` (§24 M2)
 }
 impl Theme {
     pub fn junie() -> Theme;                      // the approved default, values unchanged
@@ -970,7 +982,7 @@ Colour roles → `ColorTokens`. Spacing → `design.space`. Dimensions → `desi
 
 ### 11.7 The distinct non-Junie theme
 
-`Theme::paper()` — a **light** theme: `surfaces = [#fbfaf8, #f2f0ec, #e8e5df, #ded9d0, #cfc8bb]`, fg ladder from `#1b1a17` down to `#c6c0b6`, accent `#3b5bdb` (indigo), danger `#b02525`, warning `#a86400`, success `#1f7a3d`, `border_subtle #ded9d0` / `border_strong #9c948a`, square borders (`symbols::border::PLAIN`, §22), `Density::Compact`, and `default_variant` for `BUTTON` set to `SECONDARY`. It inverts the plane direction (hover *darkens*), changes hue family, changes glyph border set and density — the four axes that expose hidden Junie assumptions.
+`Theme::paper()` — a **light** theme: `surfaces = [#fbfaf8, #f2f0ec, #e8e5df, #ded9d0, #cfc8bb]`, fg ladder from `#1b1a17` down to `#c6c0b6`, accent `#3b5bdb` (indigo), danger `#b02525`, warning `#a86400`, success `#1f7a3d`, `border_subtle #ded9d0` / `border_strong #9c948a`, square borders (`theme::border::PLAIN`, §22 <!-- amended by §24 -->; `border::ASCII` is opt-in for both builtins via `borders_set`, never a builtin default), `Density::Compact`, and `default_variant` for `BUTTON` set to `SECONDARY`. It inverts the plane direction (hover *darkens*), changes hue family, changes glyph border set and density — the four axes that expose hidden Junie assumptions.
 
 ---
 
@@ -995,7 +1007,7 @@ Colour roles → `ColorTokens`. Spacing → `design.space`. Dimensions → `desi
 
 ### 12.2 The one collection vocabulary
 
-<!-- amended by §21 items 1, 5, 8, 21, 22, 30 -->
+<!-- amended by §21 items 1, 5, 8, 21, 22, 30; §24 -->
 
 Applied to `List`, `Tree`, `Grid`, `Tabs`, `Picker`, `Completion`, `Props`, `Steps`, `Chips`:
 
@@ -1019,7 +1031,7 @@ impl RowUi<'_> {
     pub fn marker(&mut self, g: GlyphRole);
     pub fn label(&mut self, s: &str);
     pub fn label_patched(&mut self, s: &str, p: &StylePatch);
-    pub fn label_spans(&mut self, spans: &[Span<'_>]);   // builds a borrowed ratatui_core::text::Line<'_> and paints via Buffer::set_line (§22 R‑3)
+    pub fn label_spans(&mut self, spans: &[Span<'_>]);   // `Span` is OURS (role-carrying, `crates/tui/src/text/span.rs`, §24 M1); builds a borrowed ratatui_core::text::Line<'_> INSIDE ui/paint.rs and paints via Buffer::set_line (§22 R‑3). `Ui::paint_spans` (A2) is the same paint without a row.
     pub fn meta(&mut self, s: &str);                  // dropped all-or-none (DESIGN.md:478)
     pub fn trailing(&mut self, s: &str, p: &StylePatch);
     pub fn columns(&mut self, widths: &[Track]) -> ColumnsUi<'_>;
@@ -1329,7 +1341,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
 
 ### 15.1 `Form` — the declared-field form component (Adjudication K, K1)
 
-<!-- added by §23 K1 -->
+<!-- added by §23 K1; amended by §24 M3 -->
 
 **Decision.** `Form` is a library component (`components/form.rs`, work package 4F), **not** a `FormState` + `layout::form` helper pair. It is a *composition* (disposition C), not an overlay: it opens no layer, traps no focus, paints no frame; it is placed inside a `Dialog` body slot, a `Panel`, or a bare rect. Reasons, in decreasing weight: (1) three required capabilities — Enter-submits arbitration against the focused control's `EDITING`/`swallows_typing`, validate-then-focus-first-error, and commit-of-the-in-flight-edit before validation — are `update`-phase semantics; a draw-time helper cannot own any of them under `&self`/`&XState` (§3.1); (2) scroll-to-focused-field is today a render-time mutation (**[F]** `modals.rs:1356-1371`) whose only legal home is `update`, which needs the field order, field heights and focus — the component's own knowledge; (3) `architecture::conformance_covers_every_public_component` makes registration mandatory and `FormCase` is already in `conformance_suite!` (§16.2); a helper pair would drop `draw_does_not_commit_or_cancel` and `secret_never_appears_in_debug` for the highest-risk surface in the repository; (4) §14.2 J2 already decided "library component". The capability inventory each of the three current engines carries (ordered data-declared fields; input/select/checkbox/radio/chooser/note/textarea/toggle kinds; secret field; conditional visibility; sections/tabs; two-column and half-width pairs; automatic Tab order; scroll-to-focused-field; per-field and form-level validation with focus-to-first-error; dirty tracking; an action row with submit/cancel/extra; Enter-submits policy; Left/Right traversal of the action row; nested popover; nesting inside a dialog; chooser field; note rows; cross-field effects) survives by the mapping in F1–F13.
 
@@ -1346,17 +1358,26 @@ impl<'a, C: FieldControl> Field<'a, C> {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)] pub struct GroupKey(u16);
 impl GroupKey { pub const ALL: GroupKey; pub const fn custom(name: &'static str) -> GroupKey; }
 
-/// Configuration only — no values, no `&mut`, no `Id`-less chrome. Every variant is a
-/// props struct built by the same consuming builders it has standalone (§13).
+// <!-- amended by §24 M3 --> The three choice controls are ordinary collections (`<'a, T, K, R>`, items per
+// phase, §18.2 / §21 items 1 and 5). A form field holds their DEFAULT instantiation under three aliases;
+// `ByIndex` is forced by the value channel (`FieldMut::Choice(&mut usize)` is positional, M3‑3), not a leaked default.
+pub type LabelSelect<'a> = Select    <'a, &'a str, ByIndex, DefaultRow>;
+pub type LabelRadio <'a> = RadioGroup<'a, &'a str, ByIndex, DefaultRow>;
+pub type LabelChips <'a> = ChipBar   <'a, &'a str, ByIndex, DefaultRow>;
+
+/// Configuration only — no values, no `&mut`, no `Id`-less chrome, no item slice. Every variant is a
+/// props struct built by the same consuming builders it has standalone (§13). Closed and non-generic:
+/// one lifetime, zero type parameters (`architecture::field_kind_has_no_type_parameters`, §24 M3).
 pub enum FieldKind<'a> {
     Text   (TextInput<'a>),          // `.secret(SecretPolicy)` already applied for secrets
     Area   (TextArea<'a>),
-    Select (Select<'a>),
-    Radio  (RadioGroup<'a>),
+    Select (LabelSelect<'a>),        // options arrive through `FormData::options` (below), never here
+    Radio  (LabelRadio<'a>),
+    Chips  (LabelChips<'a>),
     Check  (Checkbox<'a>),
     Toggle (Toggle<'a>),
-    Chips  (ChipBar<'a>),
-    Chooser(Button<'a>),             // button + a read-only value line + optional detail
+    Chooser(Button<'a>),             // button + a read-only value line + optional detail — the escape hatch
+                                     // for a keyed / custom-row / non-string collection (M3‑4)
     Note,                            // static rows; no focus stop, Decorative regions only
 }
 
@@ -1403,6 +1424,20 @@ pub enum FieldRef<'d> {
 pub trait FormData {
     fn value    (&self,     id: Id) -> FieldRef<'_>;
     fn value_mut(&mut self, id: Id) -> FieldMut<'_>;
+
+    /// <!-- amended by §24 M3 --> Option labels for a `Select` / `Radio` / `Chips` field; `&[]` for every
+    /// other kind. Borrowed from the caller — never `'static` (§21 item 22). Painted, never returned in a
+    /// `FormAction` (F5). `Form::draw` calls `value(id)` + `options(id)` (two shared borrows).
+    fn options(&self, _id: Id) -> &[&str] { &[] }
+
+    /// <!-- amended by §24 M3 --> The controlled value and the option list under ONE borrow, so
+    /// `Form::update` can drive a choice control without a second `&mut` (E0502). A data type with option
+    /// tables overrides it by destructuring its own disjoint fields; the default is correct for every
+    /// non-choice kind, and a choice field that forgets it renders an empty list on the first frame.
+    fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
+        (self.value_mut(id), &[])
+    }
+
     fn visible  (&self, _id: Id) -> bool { true }
     fn disabled (&self, _id: Id) -> bool { false }
     /// External / async / server-side errors. Per-field local errors live in `FormState`.
@@ -1478,6 +1513,7 @@ impl fmt::Debug for FormState { /* manual; every draft renders as "[redacted]" *
 * **F11 — Enter-submits is arbitrated, not guessed.** `EnterPolicy::SubmitsWhenIdle` submits only when the focused control's focus entry does not set `swallows_typing` and does not carry `StateFlags::EDITING`. Generalises `modals.rs:1204-1212`'s `if !editing` and the six ad-hoc `!editing` guards §13.1 names. A submit chord (`Ctrl+S`, `connections.rs:577`) is declared as `Action::new(SAVE, "Save").chord(Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL))` — no new API (§17.0 A4).
 * **F12 — Dirty is set only by a committed change.** `FormAction::Committed` and a toggle/choice change set `st.dirty`; a keystroke inside a draft does not. This corrects `modals.rs:1119-1121`, where a mid-edit `InputEvent::Changed` sets `dirty` before anything is committed.
 * **F13 — `FormState` redacts.** Manual `Debug` on `FormState` and every `FieldSlot`; `zeroize()` overwrites secret drafts before drop (§15).
+* <!-- amended by §24 --> **M3‑1 … M3‑4** (§24) — `FormState` stores no props (`SlotValue { None, Text, Choice(usize), Flag(bool), Chips(KeySet) }` is `Clone + PartialEq + Eq`; no `FieldKind` is reachable from state); `FieldKind` holds configuration only and the item slice never enters it; the form's identity model is positional by construction (`ByIndex`); `Chooser` is the escape hatch for a richer control.
 
 **How values reach the application without cloning secrets — exactly.** There is no `values()`; the mechanism is elimination, not redaction. **[F]** Today `FormDialog::values()` (`modals.rs:1039-1044`) clones **every** field name and value into `FormValues = Vec<(String, FieldValue)>`, including password fields, and DOM §3.3 traces that vector through `ModalResult::Form(Some(values))` into `accounts.rs` — every API key in jackin is copied at least twice per submit. Under this design the values were never inside the form: the caller's draft struct is an ordinary field of the screen; `Form::update` reaches each value through `FormData::value_mut(id)` for the duration of one control's `update` call and writes through it; `Form::draw` reaches it through `FormData::value(id)` and reads it; both borrows end when the phase method returns. On submit the screen already owns the values, so the "result" crosses no boundary — `FormAction::Action(ActionKey::SAVE)` is a 2-word `Copy` enum. Secrets specifically: `FieldMut::Secret(&mut Secret)` / `FieldRef::Secret(&Secret)`; `Secret` is **not `Clone`, not `PartialEq`, not `Serialize`** (§15), so a clone is a compile error, not a review item. `Form::draw` renders it with `Secret::write_mask(&mut CellUi, n)` (§21 item 30 P5), which writes cells with a **synthetic** tail — no `String` of the secret is ever constructed. The in-flight draft lives in the field's `TextInputState` inside `FormState`, whose `Debug` is manual and redacting (F13) and whose `zeroize()` overwrites it. Closing the enclosing layer calls `FormState::zeroize()` on `LayerEvent::Dismissed`/`Closed`, so a cancelled password is overwritten rather than dropped.
 
@@ -1505,7 +1541,7 @@ cargo test -p tablepro -p jackin-preview
 cargo test -p junie-tui --test perf --release -- --test-threads=1 frame_tablepro_connection_form
 ```
 
-Named tests (listed in §16.1, §16.4 and §16.6 so `architecture::every_named_test_exists` covers them): `form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_traps_focus_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value` (exhaustive `match`, one arm per variant), `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value` (debug-assert-backed, run by the app suites over each real `FormData`); generated: `conformance::form::draw_does_not_commit_or_cancel` (`Caps::EDITS`), `conformance::form::secret_never_appears_in_debug` (`Caps::SECRET`), `conformance::form::survives_tiny_rects_0x0_to_3x3`, `conformance::form::draw_twice_leaves_state_equal`; application: `tablepro::connection_form_keyboard_and_mouse_reach_every_field`, `tablepro::connection_form_focuses_the_first_invalid_field`, `tablepro::connection_password_is_masked_and_absent_from_the_frame` (closes the **[F]** `connections.rs:155-157` defect — the password is a plain `TextInput` today), `jackin::form_dialog_toggles_visibility_and_keeps_drafts`, `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string`; perf: `frame_tablepro_connection_form_120x40` — **< 40 allocs/frame**.
+Named tests (listed in §16.1, §16.4 and §16.6 so `architecture::every_named_test_exists` covers them): `form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_traps_focus_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value` (exhaustive `match`, one arm per variant), `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value` (debug-assert-backed, run by the app suites over each real `FormData`), <!-- amended by §24 --> `form::select_field_options_come_from_form_data`, `form::changing_options_between_frames_does_not_rebuild_props`, `form::state_holds_no_props`, `form::value_and_options_is_a_single_borrow` (§24 M3); generated: `conformance::form::draw_does_not_commit_or_cancel` (`Caps::EDITS`), `conformance::form::secret_never_appears_in_debug` (`Caps::SECRET`), `conformance::form::survives_tiny_rects_0x0_to_3x3`, `conformance::form::draw_twice_leaves_state_equal`; application: `tablepro::connection_form_keyboard_and_mouse_reach_every_field`, `tablepro::connection_form_focuses_the_first_invalid_field`, `tablepro::connection_password_is_masked_and_absent_from_the_frame` (closes the **[F]** `connections.rs:155-157` defect — the password is a plain `TextInput` today), `jackin::form_dialog_toggles_visibility_and_keeps_drafts`, `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string`; perf: `frame_tablepro_connection_form_120x40` — **< 40 allocs/frame**.
 
 Grep conditions:
 
@@ -1519,7 +1555,7 @@ Grep conditions:
 
 **Risks.**
 
-1. **`FieldKind` is a closed enum.** A downstream control cannot be a form field. Mitigation: `FieldKind` is the *library* set; a custom control is composed beside the form, or `FieldKind::Custom(&'a dyn FieldControl<State = …>)` is added later — deliberately deferred, because the associated `State` type makes a uniform `dyn` slot non-trivial and no current consumer needs it.
+1. **`FieldKind` is a closed enum.** A downstream control cannot be a form field. Mitigation: `FieldKind` is the *library* set; a custom control is composed beside the form, or `FieldKind::Custom(&'a dyn FieldControl<State = …>)` is added later — deliberately deferred, because the associated `State` type makes a uniform `dyn` slot non-trivial and no current consumer needs it. <!-- amended by §24 --> A keyed, custom-row or non-string choice inside a form is `FieldKind::Chooser` plus the owner's own `Picker`/`Select` layer (§24 M3‑4); `FieldKind` never grows type parameters (§24 M3 rejected b1).
 2. **`FieldSlot` is a per-kind enum inside `FormState`**, so `FormState: Clone + PartialEq` (S2) requires every control state to be. All are (§16.2 `Conformance::State`).
 3. **First-frame scroll.** `cx.area(FORM)` is `None` on the first frame, so scroll-to-focused-field is a no-op then (S3). Visible only if a form opens already scrolled; documented, and one frame later it corrects.
 4. **`FormData` match ladders are unchecked for coverage.** A missing arm falls to `_ => FieldRef::Text("")`. Mitigation: the `_` arm should be `unreachable_field(id)` in app code, and `form::every_declared_field_resolves_a_value` runs over each real `FormData`.
@@ -1550,7 +1586,7 @@ Every test named below is a real, runnable name. Builders create them with exact
 
 ### 16.1 Unit tests (goal §25.1)
 
-<!-- amended by §21 items 3, 4, 12, 14, 15, 29, 30, 33; §22; §23 -->
+<!-- amended by §21 items 3, 4, 12, 14, 15, 29, 30, 33; §22; §23; §24 -->
 
 One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module path is the test path.
 
@@ -1588,7 +1624,10 @@ One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module pa
 `insert_and_move_by_grapheme`, `selection_replaces_on_insert`, `word_motion_and_deletion`, `word_chars_are_consistent_between_buffer_and_viewport`, `multiline_vertical_motion_keeps_column`, `single_line_rejects_newline`, `wide_characters_count_as_two_columns`, `combining_marks_are_one_grapheme`, `zwj_emoji_is_one_grapheme`, `pos_of_and_offset_at_round_trip`, `fuzzy_returns_grapheme_indices_into_the_original_label`, `fuzzy_ranks_prefix_before_boundary_before_substring_before_subsequence`, `editor_apply_is_the_only_mutation_entry_point`, `zeroize_overwrites_before_drop`, `row_ui_matches_fit_for_every_fixture` (differential against the `crates/tui/tests/fixtures/text.rs` corpus, §21 item 29), `width_matches_ratatui_cell_width` (§22: `text::width` equals `<str as ratatui_core::buffer::CellWidth>::cell_width` over a corpus including `"ｶﾞ"`, `"あ"`, `"a\u{FF9E}"`, `"\r\n"`, a ZWJ family emoji, a combining-mark cluster and `"\u{7}"` — the pin that keeps `wide_characters_count_as_two_columns` and `zwj_emoji_is_one_grapheme` honest).
 
 **`theme/` (tokens, patch, recipe, resolve, downgrade)**
-`slot_over_prefers_the_speaking_side`, `patch_merge_identity`, `patch_merge_absorption`, `patch_merge_is_associative`, `patch_clear_resolves_to_inherited_surface_fg`, `modifier_add_then_remove_is_symmetric`, `state_rules_are_stored_in_specificity_order` (R2 invariant), `state_rules_tie_break_by_declaration_order`, `state_rule_matches_only_when_when_is_a_subset`, `precedence_family_then_variant_then_state_then_global_then_scope_then_instance`, `roles_bind_after_the_whole_chain`, `raise_is_ladder_index_arithmetic_not_colour_equality`, `raise_saturates_at_the_last_level`, `field_raises_to_field_hover`, `downgrade_maps_every_token_exhaustively`, `downgrade_works_for_a_user_supplied_theme`, `mono_appends_one_state_rule_per_family`, `paper_theme_inverts_the_plane_direction`, `custom_family_and_variant_round_trip`, `theme_is_byte_identical_after_a_scoped_render`, `builder_derives_every_unset_token_deterministically`, `derived_tokens_meet_design_contrast_ratios`, `downgrade_is_deterministic_per_level`, `paper_tokens_are_pinned` (§21 item 29), `patch_merge_matches_ratatui_style_patch_for_modifiers` (§22: the final `inherited.patch(resolved.style)` step and §11.3's modifier-symmetry law agree with `ratatui_core::style::Style::patch`).
+`slot_over_prefers_the_speaking_side`, `patch_merge_identity`, `patch_merge_absorption`, `patch_merge_is_associative`, `patch_clear_resolves_to_inherited_surface_fg`, `modifier_add_then_remove_is_symmetric`, `state_rules_are_stored_in_specificity_order` (R2 invariant), `state_rules_tie_break_by_declaration_order`, `state_rule_matches_only_when_when_is_a_subset`, `precedence_family_then_variant_then_state_then_global_then_scope_then_instance`, `roles_bind_after_the_whole_chain`, `raise_is_ladder_index_arithmetic_not_colour_equality`, `raise_saturates_at_the_last_level`, `field_raises_to_field_hover`, `downgrade_maps_every_token_exhaustively`, `downgrade_works_for_a_user_supplied_theme`, `mono_appends_one_state_rule_per_family`, `paper_theme_inverts_the_plane_direction`, `custom_family_and_variant_round_trip`, `theme_is_byte_identical_after_a_scoped_render`, `builder_derives_every_unset_token_deterministically`, `derived_tokens_meet_design_contrast_ratios`, `downgrade_is_deterministic_per_level`, `paper_tokens_are_pinned` (§21 item 29), `patch_merge_matches_ratatui_style_patch_for_modifiers` (§22: the final `inherited.patch(resolved.style)` step and §11.3's modifier-symmetry law agree with `ratatui_core::style::Style::patch`), <!-- amended by §24 --> `theme::ascii_border_set_is_pure_ascii` (each of `border::ASCII`'s eight fields satisfies `s.is_ascii() && s.len() == 1`, which also pins `text::width(s) == 1`), `theme::builtin_border_sets_are_ratatui_sets` (`Theme::junie().design.borders == border::ROUNDED`, `Theme::paper().design.borders == border::PLAIN`), `theme::ascii_theme_renders_without_box_drawing_glyphs` (a `Scene` digest over `Theme::junie().builder().borders_set(border::ASCII).build()` contains no `U+2500..=U+257F`; scans the border range only, deliberately — §24 M2 risk 3).
+
+**`ui/paint.rs`** <!-- amended by §24 -->
+`ui::paint_spans_matches_row_ui_label_spans` (differential: `Ui::paint_spans(area, spans)` and `RowUi::label_spans(spans)` over the `crates/tui/tests/fixtures/text.rs` corpus produce byte-identical cells and the same column count, §24 M1).
 
 **`collection/` (key, reconcile, rowui, decor, empty)**
 `reconcile_keeps_a_surviving_key`, `reconcile_takes_the_nearest_forward_then_backward`, `reconcile_falls_back_to_the_first_enabled_key`, `reconcile_yields_cursor_lost_when_empty`, `reconcile_drops_vanished_checked_keys_and_reports_the_count`, `reconcile_clamps_the_scroll_offset`, `reconcile_runs_before_any_action_is_emitted`, `generation_stamp_skips_a_no_op_reconcile` (R1), `cached_index_probe_hits_before_a_scan` (R1), `row_ui_label_writes_cells_without_an_intermediate_string` (R5), `row_ui_meta_is_dropped_all_or_none`, `row_ui_columns_clip_to_the_row`, `empty_state_covers_empty_loading_partial_error`, `key_set_stays_sorted_after_insert_remove_toggle_retain`, `key_set_contains_is_binary_search` (§22: asserts the comparison count, not just the answer).
@@ -1597,10 +1636,10 @@ One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module pa
 `panic_hook_restores_before_delegating` — the chained hook installed by `TerminalSession` restores the terminal before delegating to the previous hook, mirroring the ordering of ratatui's `try_init` (`ratatui-0.30.2/src/init.rs:196-197`).
 
 **Component state machines** (`components/*.rs`, buffer-free, no terminal) — goal §25.1 "edit begin, commit, cancel, focus loss":
-`input::begin_snapshots_the_value`, `input::commit_writes_the_controlled_value`, `input::commit_runs_validation_once`, `input::cancel_restores_the_snapshot`, `input::blur_commit_and_validate_policy`, `input::blur_cancel_policy`, `input::blur_keep_policy_leaves_the_draft`, `input::external_error_survives_a_redraw`, `input::write_mask_is_synthetic` (renamed, P5), `textarea::blur_commits_without_validation`, `select::escape_closes_and_restores_the_cursor`, `select::arrows_move_the_cursor_not_the_value_while_closed`, `choice::radio_group_separates_cursor_from_value`, `list::select_all_selects_only_enabled_items`, `list::range_selection_uses_the_anchor`, `tree::expand_collapse_is_keyed_not_positional`, `tree::lazy_children_do_not_reflatten_the_world`, `tabs::close_targets_the_logical_tab_after_a_reorder`, `grid::sort_is_a_permutation_and_edits_stay_bound_to_the_source_row`, `grid::edit_intent_inline_cycle_external_refuse` (reached only via `update_editable`, §23 K2), `grid::range_copy_is_tsv`, `grid::click_inside_an_active_inline_edit_goes_to_the_editor` (§21 item 30), `grid::read_only_update_takes_a_shared_model` (compile-fail via `trybuild`: `Grid::update` cannot reach `commit_cell`/`apply_cycle`, §23 K2), `grid::update_editable_commits_through_the_editor` (begin → type → Enter → `commit_cell` observed once; a failing `commit_cell` leaves the editor open with the returned `FieldError`), `grid::read_only_reason_is_rendered_from_a_grid_model` (a model implementing **only** `GridModel` renders its reason), `grid::cell_actions_affordance_is_painted_for_a_read_only_model` (the `→` glyph and its hot zone appear for a `GridModel`-only model; a click emits `GridAction::CellAction(item, col, key)`), `dialog::action_arming_is_evaluated_in_update`, `dialog::convenience_constructors_render_through_the_body_slot` (§21 item 33), `picker::query_change_emits_query_changed`, `wizard::rewind_retains_per_step_state`, `viewport::retention_fixes_up_selection_and_caret`, `code::edit_counter_invalidates_the_highlight_cache`, `secret::debug_and_display_redact`, `secret::is_not_clone_not_eq` (compile-fail via `trybuild`).
+`input::begin_snapshots_the_value`, `input::commit_writes_the_controlled_value`, `input::commit_runs_validation_once`, `input::cancel_restores_the_snapshot`, `input::blur_commit_and_validate_policy`, `input::blur_cancel_policy`, `input::blur_keep_policy_leaves_the_draft`, `input::external_error_survives_a_redraw`, `input::write_mask_is_synthetic` (renamed, P5), `textarea::blur_commits_without_validation`, `select::escape_closes_and_restores_the_cursor`, `select::arrows_move_the_cursor_not_the_value_while_closed`, `choice::radio_group_separates_cursor_from_value`, `list::select_all_selects_only_enabled_items`, `list::range_selection_uses_the_anchor`, `tree::expand_collapse_is_keyed_not_positional`, `tree::lazy_children_do_not_reflatten_the_world`, `tabs::close_targets_the_logical_tab_after_a_reorder`, `grid::sort_is_a_permutation_and_edits_stay_bound_to_the_source_row`, `grid::edit_intent_inline_cycle_external_refuse` (reached only via `update_editable`, §23 K2), `grid::range_copy_is_tsv`, `grid::click_inside_an_active_inline_edit_goes_to_the_editor` (§21 item 30), `grid::read_only_update_takes_a_shared_model` (compile-fail via `trybuild`: `Grid::update` cannot reach `commit_cell`/`apply_cycle`, §23 K2), `grid::update_editable_commits_through_the_editor` (begin → type → Enter → `commit_cell` observed once; a failing `commit_cell` leaves the editor open with the returned `FieldError`), `grid::read_only_reason_is_rendered_from_a_grid_model` (a model implementing **only** `GridModel` renders its reason), `grid::cell_actions_affordance_is_painted_for_a_read_only_model` (the `→` glyph and its hot zone appear for a `GridModel`-only model; a click emits `GridAction::CellAction(item, col, key)`), `dialog::action_arming_is_evaluated_in_update`, `dialog::convenience_constructors_render_through_the_body_slot` (§21 item 33), `picker::query_change_emits_query_changed`, `wizard::rewind_retains_per_step_state`, `viewport::retention_fixes_up_selection_and_caret`, `code::edit_counter_invalidates_the_highlight_cache`, `secret::debug_and_display_redact`, `secret::is_not_clone_not_eq` (compile-fail via `trybuild`), <!-- amended by §24 --> `select::standalone_select_takes_items_per_phase` (`Select::new(id)` carries no items; `update`/`draw` receive `&[T]` and a `T` that is not `&str` with `.key(..)`/`.row(..)` compiles and reconciles — §24 M3).
 
 **`components/form.rs`** (§15.1, §23 K1) — the form state machine, buffer-free:
-`form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_traps_focus_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value`, `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value`.
+`form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_traps_focus_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value`, `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value`, <!-- amended by §24 M3 --> `form::select_field_options_come_from_form_data` (the painted list is `FormData::options(id)`; a `FieldKind::Select` built with no items renders it), `form::changing_options_between_frames_does_not_rebuild_props` (the `&[FieldSpec]` array is byte-identical across two frames whose `options` differ), `form::state_holds_no_props` (static assertion: `FormState: Clone + PartialEq + Default`; `SlotValue: Clone + PartialEq + Eq`), `form::value_and_options_is_a_single_borrow` (a `Form::update`-shaped body over one `value_and_options` call compiles; the two-call form is a compile-fail via `trybuild`, E0502).
 
 ---
 
@@ -1883,11 +1922,14 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::showcase_covers_every_public_component` <!-- §21 item 33 --> | cross-check the `conformance_suite!` list against the showcase page registry | goal §29 "the showcase demonstrates every public component" |
 | `architecture::no_deprecated_or_legacy_api_usage` <!-- §22 --> | `xtask` scan of `crates/tui/src/**`, `crates/tui-testing/src/**`, `apps/**/src/**` against the 26-row forbidden-pattern table of §22 §6.2; allow-list `crates/tui/tests/allow/legacy_api.txt`, every entry with a same-line justification the test prints on failure **and** on success | the allow-list is **empty**; no deprecated `Buffer::get`, raw `\x1b[`, `Stylize`, `Masked`, `SmallVec`, umbrella-crate / `ratatui_widgets::` / `ratatui_macros::` paths, `KeyboardEnhancementFlags`, `LazyLock`/`OnceLock`/`static mut`, `#[allow(`, nested `for y … for x` over a rect, `Style::default()`, or off-theme `.fg(`/`.bg(` |
 | `architecture::dependency_graph_is_exactly_the_declared_set` <!-- §22 --> | `xtask`, `cargo metadata` | (1) `junie-tui`'s direct normal deps are exactly `{ratatui-core, ratatui-crossterm, unicode-width, unicode-segmentation, bitflags}`; (2) `ratatui`, `ratatui-widgets`, `ratatui-macros`, `smallvec`, a direct `crossterm`, `critical-section`, `palette` are absent from its normal closure; (3) each app's direct normal deps are exactly `{junie-tui}`; (4) `unicode-width`, `unicode-segmentation`, `bitflags` each resolve to **one** version (a second `unicode-width` would mean two disagreeing width tables — R‑1 rests on this); (5) `ratatui-core`'s enabled features are exactly `{std, underline-color}` |
+| `architecture::every_foreign_type_in_the_public_surface_is_re_exported` <!-- §24 M1 --> | `xtask`, rustdoc-json: for every non-local type named in a `pub` item reachable from `junie_tui::`, a `pub use` path exists under `junie_tui::`; likewise for `junie_tui::author::` | the facade is *complete*, not merely the only edge: the day a `ratatui_core::text::Line` enters a signature the check fails and prints the type, the signature that names it and the missing facade line — instead of a downstream `ratatui-core` dependency line appearing |
+| `architecture::capability_has_no_unicode_field` <!-- §24 M2 --> | rustdoc-json | `Capability`'s field set is exactly `{color}`; no automatic ASCII-border selection can exist (§21 item 19, §24 M2) |
+| `architecture::field_kind_has_no_type_parameters` <!-- §24 M3 --> | rustdoc-json | `FieldKind` has one lifetime and zero type parameters; `Form`, `FormState` and every screen's `&[FieldSpec]` stay non-generic (§13) |
 | `architecture::no_boolean_capability_parameter_on_grid` <!-- §23 K2 --> | grep: `! rg -n 'fn editable\(' crates/tui/src/components/grid.rs` and `! rg -n 'trait GridCellActions' crates/tui/src` | G4: capability is chosen by the entry point (`update` / `update_editable`), never by a flag; `GridCellActions` is deleted |
 | CI gate `core_is_backend_free` <!-- §22 --> | `cargo check -p junie-tui --no-default-features` | the whole paint/theme/layout/text/collection core compiles with no backend at all — the mechanical proof that the widget layer is backend-independent (§22 §1.2) |
 | CI gate `readme_compiles` <!-- §22 --> | `cargo test --workspace --doc` with `#![doc = include_str!("../README.md")]` at the top of `crates/tui/src/lib.rs` | every README code fence is valid Rust or tagged ` ```text `/` ```ignore ` (goal §24, §25.5) |
 | `xtask semver` <!-- §22 §3.4: DEFERRED --> | `cargo semver-checks --baseline-rev <tag>` | **Not a shipped gate during the refactor**: during a total public-API rewrite every check fails by construction. Added at the end of Slice 8 against tag `v0.1.0`; blocking in CI from `v0.1.1` onward |
-| `xtask doc-check` <!-- §21 item 34; amended by §23 --> | extracts every `Ident::method` reference and every Rust code block from `COMPONENT_ARCHITECTURE.md` §3–§17 and §21–§23 and resolves each against the library's rustdoc-json | every reference resolves, or is on the printed "not yet built (Slice 3/4)" allow-list; run in every slice gate |
+| `xtask doc-check` <!-- §21 item 34; amended by §23, §24 --> | extracts every `Ident::method` reference and every Rust code block from `COMPONENT_ARCHITECTURE.md` §3–§17 and §21–§24 and resolves each against the library's rustdoc-json | every reference resolves, or is on the printed "not yet built (Slice 3/4)" allow-list; run in every slice gate |
 
 ---
 
@@ -1972,7 +2014,7 @@ Thirteen examples <!-- amended by §23: example 13 -->, one file each under `cra
 
 ### 17.0 API additions
 
-<!-- amended by §21 items 1, 2, 4–10, 13, 17–22, 24, 30, 32; §22; §23 -->
+<!-- amended by §21 items 1, 2, 4–10, 13, 17–22, 24, 30, 32; §22; §23; §24 -->
 
 Everything §17 needs that §1–§15 did not spell out. These are additions to the accepted architecture; each is consistent with an existing rule and is listed here so no example invents a name. This block is the surface the examples compile against and the surface `xtask doc-check` (§21 item 34) resolves the document against.
 
@@ -2097,6 +2139,10 @@ impl Ui<'_> {
     pub fn rule(&mut self, area: Rect);                                     // GlyphRole::RuleQuiet across `area`
     pub fn frame(&mut self, area: Rect, s: Style) -> Rect;                  // theme BorderSet; returns the inner rect
     pub fn glyph(&mut self, area: Rect, g: GlyphRole, s: Style) -> u16;     // columns written
+    /// <!-- amended by §24 M1 --> Multi-style single-line paint in OUR vocabulary. Resolves each `Span`'s `Role`
+    /// against the live theme and surface, then writes one `ratatui_core::text::Line` through `Buffer::set_line`
+    /// inside ui/paint.rs. Returns columns written. Removes the only realistic reason to reach `author::raw::Span`.
+    pub fn paint_spans(&mut self, area: Rect, spans: &[Span<'_>]) -> u16;
     pub fn raw(&mut self) -> (&mut Buffer, Rect);
     /// Derived, non-semantic per-component cache. Keyed by (Id, TypeId). Cleared on resize,
     /// theme change and generation gap. Never observable in `Response`, never compared by
@@ -2180,10 +2226,23 @@ impl Overlay {
 }
 impl SyntaxTokens { pub fn derive(keyword: Color, string: Color, number: Color) -> SyntaxTokens; }
 impl MeterTokens  { pub fn derive(low: Color, medium: Color, high: Color) -> MeterTokens; }
-// <!-- amended by §22 --> `BorderSet` is a type alias of `ratatui_core::symbols::border::Set<'static>` (§11.2), so it carries no
-// inherent consts; the named sets are ratatui's, re-exported for applications (which depend on `junie-tui` alone):
-// in crates/tui/src/theme/mod.rs — reachable as `junie_tui::theme::border`:
-pub mod border { pub use ratatui_core::symbols::border::{Set, PLAIN, ROUNDED, DOUBLE}; }   // `ThemeBuilder::borders_set(border::PLAIN)`
+// <!-- amended by §22; §24 M2 --> `BorderSet` is a type alias of `ratatui_core::symbols::border::Set<'static>` (§11.2), so it carries no
+// inherent consts; the named sets are ratatui's, re-exported for applications (which depend on `junie-tui` alone), plus ONE
+// const of ours. In crates/tui/src/theme/border.rs — reachable as `junie_tui::theme::border` and `junie_tui::author::border`:
+pub mod border {
+    pub use ratatui_core::symbols::border::{Set, DOUBLE, PLAIN, ROUNDED};          // `ThemeBuilder::borders_set(border::PLAIN)`
+    /// Pure-ASCII border set, for terminals and fonts without box-drawing glyphs. Not shipped by ratatui;
+    /// declared here as a plain `const` because `BorderSet` is a type alias of a foreign type and can carry no
+    /// inherent items (§11.2). Opt in with `Theme::junie().builder().borders_set(border::ASCII).build()`.
+    /// Borders only: every other `GlyphSet` glyph stays as the theme set it (§24 M2, deferred root cause).
+    pub const ASCII: Set<'static> = Set {
+        top_left:         "+", top_right:         "+",
+        bottom_left:      "+", bottom_right:      "+",
+        vertical_left:    "|", vertical_right:    "|",
+        horizontal_top:   "-", horizontal_bottom: "-",
+    };
+}
+// `Theme::junie()` → `design.borders = border::ROUNDED`; `Theme::paper()` → `design.borders = border::PLAIN` (§11.7).
 
 // ---- A6. Layer construction (§9.1 gave the struct; §21 items 8, 20) ----
 #[non_exhaustive]
@@ -2334,6 +2393,55 @@ impl<'a, T, K: KeyFn<T>, R: RowFn<T>> Picker<'a, T, K, R> {
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut PickerState, items: &[T]) -> Response<PickerAction>;
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &PickerState, items: &[T]) -> Rect;
 }
+// <!-- amended by §24 M3 --> The three choice controls are ordinary collections under the same three-block shape;
+// `FieldKind` (A10) holds their `<'a, &'a str, ByIndex, DefaultRow>` instantiation and the form passes the option
+// list as the per-phase items (`FormData::options` / `value_and_options`). No constructor takes items.
+impl<'a, T> Select<'a, T, ByIndex, DefaultRow> { pub fn new(id: Id) -> Self; }    // items are per phase (A3); const-constructible
+impl<'a, T, K, R> Select<'a, T, K, R> {
+    pub const PARTS: &'static [Part] = &[Part::FIELD, Part::LABEL, Part::MARKER, Part::ROW,
+                                         Part::TRACK, Part::THUMB, Part::EMPTY];
+    pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Select<'a, T, K2, R>;
+    pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Select<'a, T, K, R2>;
+    pub fn placeholder(self, s: &'a str) -> Self;
+    pub fn popup_rows(self, n: u16) -> Self;
+    pub fn read_only(self, yes: bool) -> Self;   pub fn disabled(self, yes: bool) -> Self;
+    pub fn patch_part(self, ps: &'a [(Part, StylePatch)]) -> Self;
+    pub fn state_override(self, s: StateFlags) -> Self;
+}
+impl<'a, T, K: KeyFn<T>, R: RowFn<T>> Select<'a, T, K, R> {
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut SelectState, items: &[T]) -> Response<SelectAction>;
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &SelectState, items: &[T]) -> Rect;
+    pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size;
+}
+impl<'a, T> RadioGroup<'a, T, ByIndex, DefaultRow> { pub fn new(id: Id) -> Self; }
+impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
+    pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> RadioGroup<'a, T, K2, R>;
+    pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> RadioGroup<'a, T, K, R2>;
+    pub fn read_only(self, yes: bool) -> Self;   pub fn disabled(self, yes: bool) -> Self;
+    pub fn patch_part(self, ps: &'a [(Part, StylePatch)]) -> Self;
+    pub fn state_override(self, s: StateFlags) -> Self;
+}
+impl<'a, T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'a, T, K, R> {
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut RadioGroupState, items: &[T]) -> Response<RadioGroupAction>;   // cursor ≠ value (§15)
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect;
+    pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size;
+}
+impl<'a, T> ChipBar<'a, T, ByIndex, DefaultRow> { pub fn new(id: Id) -> Self; }
+impl<'a, T, K, R> ChipBar<'a, T, K, R> {
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::LABEL, Part::CLOSE, Part::OVERFLOW];
+    pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> ChipBar<'a, T, K2, R>;
+    pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> ChipBar<'a, T, K, R2>;   // Part::LABEL pre-styled per chip
+    pub fn select_mode(self, m: SelectMode) -> Self;   pub fn closable(self, yes: bool) -> Self;
+    pub fn read_only(self, yes: bool) -> Self;         pub fn disabled(self, yes: bool) -> Self;
+    pub fn patch_part(self, ps: &'a [(Part, StylePatch)]) -> Self;
+    pub fn state_override(self, s: StateFlags) -> Self;
+}
+impl<'a, T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'a, T, K, R> {
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut ChipBarState, items: &[T]) -> Response<ChipBarAction>;
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &ChipBarState, items: &[T]) -> Rect;
+    pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size;
+}
 impl<'a> Grid<'a> {                                                   // no `M` on the props (§21 item 1, B15)
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::HEADER, Part::ROW, Part::CELL,
                                          Part::TRACK, Part::THUMB, Part::OVERFLOW, Part::EMPTY, Part::ACTIONS];
@@ -2378,6 +2486,12 @@ pub struct ListState    { /* cursor key, checked KeySet, scroll, gen stamp */ }
 pub struct TabsState    { /* active key, cursor key, strip window, gen stamp */ }
 pub struct GridState    { /* cursor cell, range anchor, row selection KeySet, two-axis scroll, edit lifecycle, gen stamp */ }
 pub struct TextInputState { /* draft, editor core, phase, error */ }
+pub struct SelectState     { /* cursor key, value key, open flag, popup scroll, gen stamp */ }          // §24 M3
+pub struct RadioGroupState { /* cursor key, gen stamp — the VALUE is controlled by the caller (§15) */ }
+pub struct ChipBarState    { /* cursor key, checked KeySet, strip window, gen stamp */ }
+#[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum SelectAction { Chose(ItemKey), Opened, Closed }   // §6.1 <!-- amended by §24 -->
+#[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum RadioGroupAction { Chose(ItemKey) }
+#[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum ChipBarAction { Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey) }
 
 // ---- A8. Status, capability and small value types (§21 items 13, 19, 20, 21, 22) ----
 /// Data readiness of a component; the runtime maps it onto `StateFlags::{BUSY, LOADING, ERROR}`.
@@ -2467,8 +2581,12 @@ pub enum Diagnostic {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum FieldSpan { Full, Half }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)] pub struct GroupKey(u16);
 impl GroupKey { pub const ALL: GroupKey; pub const fn custom(name: &'static str) -> GroupKey; }
-pub enum FieldKind<'a> { Text(TextInput<'a>), Area(TextArea<'a>), Select(Select<'a>), Radio(RadioGroup<'a>),
-                         Check(Checkbox<'a>), Toggle(Toggle<'a>), Chips(ChipBar<'a>), Chooser(Button<'a>), Note }
+// <!-- amended by §24 M3 --> closed, non-generic; the choice variants hold the default collection instantiation
+pub type LabelSelect<'a> = Select<'a, &'a str, ByIndex, DefaultRow>;
+pub type LabelRadio<'a>  = RadioGroup<'a, &'a str, ByIndex, DefaultRow>;
+pub type LabelChips<'a>  = ChipBar<'a, &'a str, ByIndex, DefaultRow>;
+pub enum FieldKind<'a> { Text(TextInput<'a>), Area(TextArea<'a>), Select(LabelSelect<'a>), Radio(LabelRadio<'a>),
+                         Chips(LabelChips<'a>), Check(Checkbox<'a>), Toggle(Toggle<'a>), Chooser(Button<'a>), Note }
 pub struct FieldSpec<'a> { pub id: Id, pub label: &'a str, pub kind: FieldKind<'a>, pub required: bool,
                            pub help: Option<&'a str>, pub span: FieldSpan, pub group: GroupKey, pub plain: bool }
 impl<'a> FieldSpec<'a> {
@@ -2484,6 +2602,8 @@ pub enum FieldRef<'d> { Text(&'d str), Secret(&'d Secret), Choice(usize), Flag(b
 pub trait FormData {
     fn value(&self, id: Id) -> FieldRef<'_>;
     fn value_mut(&mut self, id: Id) -> FieldMut<'_>;
+    fn options(&self, _id: Id) -> &[&str] { &[] }                                                   // §24 M3: the option list is data
+    fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) { (self.value_mut(id), &[]) }  // ONE borrow for `update`
     fn visible(&self, _id: Id) -> bool { true }
     fn disabled(&self, _id: Id) -> bool { false }
     fn error(&self, _id: Id) -> Option<&str> { None }
@@ -2512,11 +2632,10 @@ impl FormState {
     pub fn clear_errors(&mut self);   pub fn reveal(&mut self, id: Id);   pub fn zeroize(&mut self);
 }
 impl Default for FormState { /* … */ }   impl Reconcile for FormState { /* … */ }   impl fmt::Debug for FormState { /* redacting */ }
-// Control constructors example 13 uses inside `FieldKind` — the string-list forms Adjudication K's example fixes
-// (`FieldKind` wraps `Select<'a>` / `RadioGroup<'a>` / `ChipBar<'a>` without collection generics; see §23 open item 1):
+// Control constructors example 13 uses inside `FieldKind`. <!-- amended by §24 M3 --> `Select::new(id)`, `RadioGroup::new(id)`
+// and `ChipBar::new(id)` are the A7 collection constructors — no items, no `&[&str]`; `T = &'a str` is inferred from the
+// `FieldKind` variant and the option list reaches the control through `FormData::options` / `value_and_options`:
 impl<'a> TextArea<'a>   { pub fn new(id: Id, rows: u16) -> Self; }
-impl<'a> Select<'a>     { pub fn new(id: Id, options: &'a [&'a str]) -> Self; }
-impl<'a> RadioGroup<'a> { pub fn new(id: Id, options: &'a [&'a str]) -> Self; }
 impl<'a> Checkbox<'a>   { pub fn new(id: Id, label: &'a str) -> Self; }
 impl<'a> Toggle<'a>     { pub fn new(id: Id, label: &'a str) -> Self; }
 impl Default for SecretPolicy { /* the library's default mask glyph and synthetic-tail length (§15) */ }
@@ -2549,7 +2668,7 @@ fn main() -> std::io::Result<()> { run(Demo::default(), Theme::junie()) }
 
 Nothing registers a hit region, computes hover, tracks press, or places focus: `Button::draw` calls `ui.register_control(SAVE, area, Focusability::Focusable)` and the runtime does the rest (G3). `Button::new(SAVE, "Save")` appears in both phases because it carries no configuration beyond `new` — the one case §13's "props are built once" convention exempts.
 
-**2 — A complete custom theme** (`examples/02_custom_theme.rs`) <!-- amended by §22 -->
+**2 — A complete custom theme** (`examples/02_custom_theme.rs`) <!-- amended by §22; §24 M2 -->
 
 ```rust
 use junie_tui::theme::{border, ColorTokens, Density, MeterTokens, SyntaxTokens, Theme};   // <!-- amended by §22: no umbrella-crate path; `Color::from_u32` is the one literal constructor (R‑10) -->
@@ -2582,7 +2701,11 @@ fn slate() -> Theme {
     .build()
 }
 
-fn main() { let _ = slate(); }
+/// <!-- amended by §24 M2 --> The same theme for a terminal without box-drawing glyphs: `border::ASCII` is a plain
+/// const beside ratatui's sets, chosen by the theme author, never by capability detection.
+fn slate_ascii() -> Theme { slate().builder().borders_set(border::ASCII).build() }
+
+fn main() { let _ = slate(); let _ = slate_ascii(); }
 // `Theme::from_tokens` fills design tokens and recipe defaults; `downgrade` works for it
 // exactly as for `junie()`, because `map_colors` is an exhaustive destructure (§11.4).
 // `ColorTokens` is deliberately NOT `#[non_exhaustive]` (§21 item 8): a new token is an
@@ -3132,7 +3255,7 @@ fn main() {}
 //   impl Conformance for SegmentedCase { … }   conformance_suite!(…, SegmentedCase);
 ```
 
-**13 — The 15-field connection form on `Form`** (`examples/13_connection_form.rs`) — §15.1, §23 K1 <!-- added by §23 -->. Condensed: the file completes the elided helpers (`save`, `begin_test`, `close`, `port_rule`, `default_port`) and the four option tables (`ENGINES`, `ENVS`, `GROUPS`, `MODES`), all trivial.
+**13 — The 15-field connection form on `Form`** (`examples/13_connection_form.rs`) — §15.1, §23 K1 <!-- added by §23; amended by §24 M3: option lists move to `ConnDraft::options`, `Select::new(id)`/`RadioGroup::new(id)`, no `use FieldKind::*` -->. Condensed: the file completes the elided helpers (`save`, `begin_test`, `close`, `port_rule`, `default_port`) and the four option tables (`ENGINES`, `ENVS`, `GROUPS`, `MODES`: `const ENGINES: &[&str] = &[…];` etc.), all trivial.
 
 ```rust
 use junie_tui::{id, Action, ActionKey, Button, Checkbox, Cx, EnterPolicy, FieldKind, FieldRef,
@@ -3154,32 +3277,32 @@ const K_TEST: ActionKey = ActionKey::custom("test");
 const K_SAVE_CONNECT: ActionKey = ActionKey::custom("save+connect");
 
 /// The 15 declarations, written ONCE, called from both phases (§13 props-built-once).
-/// Takes only what it needs — never `&self` — so `update` keeps `&mut self.draft`.
-fn conn_fields<'a>(engines: &'a [&'a str], envs: &'a [&'a str],
-                   groups: &'a [&'a str], modes: &'a [&'a str]) -> [FieldSpec<'a>; 15] {
-    use FieldKind::*;
+/// Configuration only: no option list enters a `FieldKind` (§24 M3‑2) — the lists are DATA and
+/// arrive through `ConnDraft::options`. Spelled-out `FieldKind::…` variants: a `use FieldKind::*`
+/// would shadow the imported `Select` type in the value namespace (§24 M3).
+fn conn_fields<'a>() -> [FieldSpec<'a>; 15] {
     [
-        FieldSpec::new(NAME,  "Name",     Text(TextInput::new(NAME))).required(true).group(BASIC),
-        FieldSpec::new(ENGINE,"Engine",   Select(Select::new(ENGINE, engines))).group(BASIC),
-        FieldSpec::new(HOST,  "Host",     Text(TextInput::new(HOST).placeholder("localhost")))
+        FieldSpec::new(NAME,  "Name",     FieldKind::Text(TextInput::new(NAME))).required(true).group(BASIC),
+        FieldSpec::new(ENGINE,"Engine",   FieldKind::Select(Select::new(ENGINE))).group(BASIC),
+        FieldSpec::new(HOST,  "Host",     FieldKind::Text(TextInput::new(HOST).placeholder("localhost")))
             .help("Blank: driver default").span(FieldSpan::Half).group(BASIC),
-        FieldSpec::new(PORT,  "Port",     Text(TextInput::new(PORT).validate(&port_rule)))
+        FieldSpec::new(PORT,  "Port",     FieldKind::Text(TextInput::new(PORT).validate(&port_rule)))
             .span(FieldSpan::Half).group(BASIC),
-        FieldSpec::new(DB,    "Database", Text(TextInput::new(DB)))
+        FieldSpec::new(DB,    "Database", FieldKind::Text(TextInput::new(DB)))
             .help("Required for PostgreSQL").group(BASIC),
-        FieldSpec::new(USER,  "Username", Text(TextInput::new(USER))).group(BASIC),
-        FieldSpec::new(PW,    "Password", Text(TextInput::new(PW).secret(SecretPolicy::default())))
+        FieldSpec::new(USER,  "Username", FieldKind::Text(TextInput::new(USER))).group(BASIC),
+        FieldSpec::new(PW,    "Password", FieldKind::Text(TextInput::new(PW).secret(SecretPolicy::default())))
             .help("Never written to connections.json").group(BASIC),
-        FieldSpec::new(ASKPW, "",         Check(Checkbox::new(ASKPW, "Prompt for password on connect")))
+        FieldSpec::new(ASKPW, "",         FieldKind::Check(Checkbox::new(ASKPW, "Prompt for password on connect")))
             .plain(true).group(BASIC),
-        FieldSpec::new(ENV,   "Environment", Radio(RadioGroup::new(ENV, envs))).group(BASIC),
-        FieldSpec::new(GROUP, "Group",    Select(Select::new(GROUP, groups))).group(BASIC),
-        FieldSpec::new(SAFE,  "Safe Mode",Radio(RadioGroup::new(SAFE, modes))).group(BASIC),
-        FieldSpec::new(SSL,   "",         Toggle(Toggle::new(SSL, "Use SSL / TLS"))).plain(true).group(ADV),
-        FieldSpec::new(SSH,   "",         Toggle(Toggle::new(SSH, "SSH tunnel"))).plain(true).group(ADV),
-        FieldSpec::new(SSHH,  "SSH host", Text(TextInput::new(SSHH).placeholder("bastion.example.com")))
+        FieldSpec::new(ENV,   "Environment", FieldKind::Radio(RadioGroup::new(ENV))).group(BASIC),
+        FieldSpec::new(GROUP, "Group",    FieldKind::Select(Select::new(GROUP))).group(BASIC),
+        FieldSpec::new(SAFE,  "Safe Mode",FieldKind::Radio(RadioGroup::new(SAFE))).group(BASIC),
+        FieldSpec::new(SSL,   "",         FieldKind::Toggle(Toggle::new(SSL, "Use SSL / TLS"))).plain(true).group(ADV),
+        FieldSpec::new(SSH,   "",         FieldKind::Toggle(Toggle::new(SSH, "SSH tunnel"))).plain(true).group(ADV),
+        FieldSpec::new(SSHH,  "SSH host", FieldKind::Text(TextInput::new(SSHH).placeholder("bastion.example.com")))
             .group(ADV),
-        FieldSpec::new(START, "Startup commands", Area(TextArea::new(START, 3)))
+        FieldSpec::new(START, "Startup commands", FieldKind::Area(TextArea::new(START, 3)))
             .help("Run after every connect, one per line").group(ADV),
     ]
 }
@@ -3193,11 +3316,18 @@ fn conn_actions() -> [Action<'static>; 4] {
 
 /// The caller owns every value. This struct IS the connection draft.
 #[derive(Default)]
-struct Draft { name: String, engine: usize, host: String, port: String, db: String,
-               user: String, pw: Secret, ask_pw: bool, env: usize, group: usize, safe: usize,
-               ssl: bool, ssh: bool, ssh_host: String, startup: String }
+struct ConnDraft { name: String, engine: usize, host: String, port: String, db: String,
+                   user: String, pw: Secret, ask_pw: bool, env: usize, group: usize, safe: usize,
+                   ssl: bool, ssh: bool, ssh_host: String, startup: String }
 
-impl FormData for Draft {
+impl ConnDraft {
+    /// The option tables, keyed by field id — one place, read by both `options` and `value_and_options`.
+    fn option_table(id: Id) -> &'static [&'static str] {
+        match id { ENGINE => ENGINES, ENV => ENVS, GROUP => GROUPS, SAFE => MODES, _ => &[] }
+    }
+}
+
+impl FormData for ConnDraft {
     fn value(&self, id: Id) -> FieldRef<'_> {
         match id {
             NAME => FieldRef::Text(&self.name),        ENGINE => FieldRef::Choice(self.engine),
@@ -3222,6 +3352,11 @@ impl FormData for Draft {
             START=> FieldMut::Text(&mut self.startup), _      => FieldMut::ReadOnly,
         }
     }
+    // the option lists are data (§24 M3): painted by `draw`, driven by `update` under ONE borrow
+    fn options(&self, id: Id) -> &[&str] { Self::option_table(id) }
+    fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
+        (self.value_mut(id), Self::option_table(id))
+    }
     // conditional visibility — replaces the render-time `disabled` write at connections.rs:1205-1206
     fn visible(&self, id: Id) -> bool { if id == SSHH { self.ssh } else { true } }
     fn validate(&self, id: Id, v: FieldRef<'_>) -> Result<(), FieldError> {
@@ -3240,7 +3375,7 @@ impl FormData for Draft {
     }
 }
 
-struct ConnScreen { draft: Draft, form: FormState, tab: GroupKey, /* … */ }
+struct ConnScreen { draft: ConnDraft, form: FormState, tab: GroupKey, /* … */ }
 
 impl ConnScreen {
     fn form_props<'a>(&self, f: &'a [FieldSpec<'a>], a: &'a [Action<'a>]) -> Form<'a> {
@@ -3249,9 +3384,9 @@ impl ConnScreen {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let (fields, actions) = (conn_fields(ENGINES, ENVS, GROUPS, MODES), conn_actions());
+        let (fields, actions) = (conn_fields(), conn_actions());
         self.form_props(&fields, &actions)
-            .update(cx, &mut self.form, &mut self.draft)          // data per phase (§21 item 1)
+            .update(cx, &mut self.form, &mut self.draft)          // data per phase (§21 item 1); options via value_and_options
             .on_action(|a| match a {
                 // the ONE cross-field rule; no widget is rebuilt (cf. connections.rs:629-631)
                 FormAction::Committed(ENGINE) =>
@@ -3266,15 +3401,17 @@ impl ConnScreen {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let (fields, actions) = (conn_fields(ENGINES, ENVS, GROUPS, MODES), conn_actions());
-        self.form_props(&fields, &actions).draw(ui, area, &self.form, &self.draft);
+        let (fields, actions) = (conn_fields(), conn_actions());
+        self.form_props(&fields, &actions).draw(ui, area, &self.form, &self.draft);   // options via FormData::options
     }
 }
 
 fn main() {}
 // No `on_form_key` ladder, no `on_form_click`, no height arithmetic, no `validate() && validate()`,
 // no focus-to-first-error block, no widget rebuild to change a value, no render-time `disabled`
-// write. `Draft: !Clone` because it holds a `Secret`; nothing copies the password (§15.1 F5).
+// write. `ConnDraft: !Clone` because it holds a `Secret`; nothing copies the password (§15.1 F5).
+// The field array is byte-identical across frames whose option tables differ (§24 M3,
+// `form::changing_options_between_frames_does_not_rebuild_props`).
 ```
 
 ---
@@ -3304,6 +3441,7 @@ Every current module, every foundation file, and every app-side reusable control
 | `src/ui/layout.rs` | **refactor + merge** | `layout::{rows, columns, responsive_columns, action_row, inset, split_v, split_h}`, `Track`, `Insets`, `RowAlign`, `SplitModel`, `Constraints`, `Size`, `Measure` | `«tui»/layout.rs`, `«tui»/measure.rs` | `Split`'s vertical/horizontal minima asymmetry **fixed** (first pane wins on both axes). Absorbs `button::row_layout*` and `showcase/pages/mod.rs`'s `rows`/`columns`/`caption`. Module doc's "the workbench" (domain leak) removed. |
 | `src/ui/popup.rs` | **remove → compose** | `LayerId`, `LayerKind`, `LayerSpec`, `Anchor`, `Side`, `CrossAlign`, `Dismiss`, `Backdrop`, `LayerEvent`, `DismissReason` | `«tui»/layer.rs` | Both `Placement` enums and both placement algorithms **deleted**; the shared `WidgetId::of("popup.surface")` **deleted**; the hand-written `Rect::centered` in `dialog.rs` **deleted** — replaced by `ratatui_core`'s `Rect::centered`/`centered_horizontally`/`centered_vertically`/`clamp` (§22 R‑12). One resolver: flip, clamp, clip, min-size. Satisfies §9. |
 | `src/ui/text.rs` | **move** | see `text/measure.rs` above | `«tui»/text/` | Module removed; no `ui::text` namespace remains. |
+| — (new, out of `viewport.rs`) <!-- amended by §24 M1 --> | **compose** | `Span<'a>` (ours, role-carrying) | `«tui»/text/span.rs` | Consumed by `RowUi::label_spans` (`collection/`), `Ui::paint_spans` (`ui/paint.rs`) and `TextViewport` (`components/`); lives in `text/` so `collection → components` is never a dependency edge for a type name. Re-exported at the root and in `author` as `Span`; ratatui's `text::Span` is reachable only as `author::raw::Span`. |
 
 ### 18.2 The 31 widget modules
 
@@ -3331,7 +3469,7 @@ Every current module, every foundation file, and every app-side reusable control
 | `props` | **refactor** | `Props<'a>` (static) + `PropsList<'a,T,K,R>` as a two-column `List` variant | `«tui»/components/props.rs` | The **two independent render paths** (free fn vs `PropsList::render`) collapse to one; `locate`/`owns`/`row_id` deleted; used by `Dialog::facts`. |
 | `scrollbar` | **retain as a part** | `Part::TRACK` / `Part::THUMB` of a `scroll_region` | `«tui»/components/scroll_region.rs` | `scrollbar::id_for` **deleted** (26 showcase + 18 tablepro + ≥4 jackin call sites). One `on_scrollbar` implementation replaces seven copies; thumb drag uses pointer capture. <!-- amended by §22 --> The loose `TRACK`/`THUMB` consts (`scrollbar.rs:8-9`) become a typed `ratatui_core::symbols::scrollbar::Set<'static>` holding the Junie glyphs; `ratatui_widgets::Scrollbar`/`ScrollbarState` are rejected (no `Part` hit regions, no recipe resolution, a second source of truth beside `ScrollState`). |
 | `segments` | **merge** | absorbed by `StatusBar` | `«tui»/components/status.rs` | Two priority-drop loops become one `Left/Center/Right` item strip; `bg: Color` deleted. |
-| `select` | **rebuild** | `Select<'a,T,K,R>`, `SelectState` | `«tui»/components/select.rs` | Render-time overlay close (`select.rs:161-167`) **impossible**; the popup becomes a `Popover` layer (so the focus barrier bug in `ui/popup.rs` disappears); 10-row clip → a real scroll region; `HEIGHT` deleted. |
+| `select` | **rebuild** | `Select<'a,T,K,R>`, `SelectState`, `SelectAction` (`Select::new(id)`, items per phase; `LabelSelect<'a>` is the `FieldKind` alias — §24 M3 <!-- amended by §24 -->) | `«tui»/components/select.rs` | Render-time overlay close (`select.rs:161-167`) **impossible**; the popup becomes a `Popover` layer (so the focus barrier bug in `ui/popup.rs` disappears); 10-row clip → a real scroll region; `HEIGHT` deleted. |
 | `splitter` | **merge** | `SplitPane<'a>`, `SplitPaneState` (with `SplitModel`) | `«tui»/components/split.rs` | `Splitter` + `ui::layout::Split` become one component that owns its container rect from its own draw; caller-held `seam_container: Rect` fields in three jackin screens **deleted**; drag through capture; optional keyboard resize as a binding. |
 | `statusbar` | **retain + promote** | `StatusBar<'a>`, `StatusItem<'a>`, `Emphasis` | `«tui»/components/status.rs` | Absorbs `segments`; gains TablePro's identity strip and grid status line as consumers, deleting two hand-written priority-drop loops; `STATUS_METER_TRACK` moves to `design.size.meter_track`. |
 | `steps` | **refactor** | `Steps<'a,T,K,R>`, `StepsState`, `StepState` | `«tui»/components/steps.rs` | Stays a *display* rail with a frontier (the meaningful difference, DOM §6.2); gains keys and a row renderer; the step *flow* becomes the separate `Wizard` (J7). |
@@ -3339,7 +3477,7 @@ Every current module, every foundation file, and every app-side reusable control
 | `tabs` | **refactor** | `Tabs<'a,T,K,R>`, `TabsState`, `TabsAction` | `«tui»/components/tabs.rs` | Positional `tab_id(i)`/`close_id(i)` **deleted** → `ItemKey`; per-frame `areas`/`widths` `Vec`s **deleted**; the "rebuild the whole widget and rescue `first`/`active`" idiom in both apps **deleted**; strip window follows the logical first tab (§20.10-13). Satisfies Scenario E. |
 | `textarea` | **refactor** | `TextArea<'a>`, `TextAreaState` | `«tui»/components/textarea.rs` | Render-time commit (`textarea.rs:202`) **impossible**; shares `TextEditorCore` with `input`/`code`; missing `owns`/`on_scrollbar` supplied by `scroll_region`; 1-cell-width underflow fixed. |
 | `tree` | **refactor** | `Tree<'a,T,K,R>`, `TreeState`, `TreeNode<'a>`, `TreeAction` | `«tui»/components/tree.rs` | `path: Vec<usize>` identity → `ItemKey` (`TreeNode::keyed`); `expanded: HashSet<Vec<usize>>` → `HashSet<ItemKey>`; `flatten()` becomes **incremental and borrow-based** (§20.9-8); `FlatRow`'s duplicate `label`/`meta` **deleted**; row renderer added (kills TablePro's paint-over-the-tree hack); `object_at`/`schema_at` path reconstruction **deleted**. |
-| `viewport` | **retain (rewritten storage)** | `TextViewport<'a>`, `ViewportState`, `Span<'a>`, `ViewportAction` | `«tui»/components/viewport.rs` | Best-in-class behaviour preserved verbatim. `Cell { g: String }` → `{ range: Range<u32>, w: u8, style_ix: u16 }`; layout becomes **incremental + windowed**; `set_area`/`prime`/the `inert` clone dance **deleted** once view state is caller-owned. Satisfies §20.9-7. |
+| `viewport` | **retain (rewritten storage)** | `TextViewport<'a>`, `ViewportState`, `ViewportAction` (`Span<'a>` moves to `«tui»/text/span.rs`, §24 M1 <!-- amended by §24 -->) | `«tui»/components/viewport.rs` | Best-in-class behaviour preserved verbatim. `Cell { g: String }` → `{ range: Range<u32>, w: u8, style_ix: u16 }`; layout becomes **incremental + windowed**; `set_area`/`prime`/the `inert` clone dance **deleted** once view state is caller-owned. Satisfies §20.9-7. |
 
 ### 18.3 The 23 app-side reusable controls (**[F]** APP §3)
 
@@ -3375,7 +3513,7 @@ Every current module, every foundation file, and every app-side reusable control
 
 ## 19. Alternatives considered and rejected
 
-<!-- amended by §22, §23: rows for MOD and ADJ‑K appended; the K1 `Form` rejections are tabulated in §15.1 -->
+<!-- amended by §22, §23, §24: rows for MOD, ADJ‑K and ADJ‑M appended; the K1 `Form` rejections are tabulated in §15.1 -->
 
 | Alternative | Where proposed | Why rejected | Adopted instead |
 |---|---|---|---|
@@ -3434,6 +3572,13 @@ Every current module, every foundation file, and every app-side reusable control
 | `Grid::update<M: GridEditor>` with defaulted refusals | ADJ‑K K2.4(a) (§23) | Every read-only model implements a trait named "Editor" (~10 of ~14 sites); `update` takes `&mut M` for a grid that cannot edit; a forgotten `commit_cell` override compiles into a silent refusal; `read_only_reason`/`actions` still unreachable from `draw` | Two entry points `update` / `update_editable`; `read_only_reason` and `actions` on `GridModel` |
 | Blanket `impl<M: GridModel> GridEditor for ReadOnly<M>` | ADJ‑K K2.4(c) (§23) | Needs an `unsafe` `repr(transparent)` reinterpretation or storing the wrapper in app state (contradicting §21 item 1); a second blanket for actions risks coherence conflicts; still "update always requires `GridEditor`" | as above |
 | `update_readonly` / `update` naming | ADJ‑K K2.4(d) (§23) | `update` and `draw` should share one bound; read-only call sites outnumber editable ones; the capability is named where the extra capability is used | `update` / `update_editable` |
+| Renaming our `Size`/`Span` (`Extent`, `RoleSpan`) or theirs on export (`TermSize`, `TextSpan`) | ADJ‑M M1 (§24) | Renames the whole `measure`/`label_spans` vocabulary to make room for two types no signature mentions; or invents names that exist in no upstream doc for types only ever seen behind `raw()` | Neither exported; ours keep their names; `author::raw::{Line, Span, Text}` qualified-only (§24 M1) |
+| A `junie_tui::ratatui` / `junie_tui::tty` umbrella submodule for foreign types | ADJ‑M M1 (§24) | `junie_tui::ratatui::` trips §22.7 forbidden-pattern rule 14 (`\bratatui::`) at every use site; `tty` misnames text and geometry types | `author::raw`, named for what it is for (§24 M1) |
+| Dropping the ASCII border set, or a `BorderSet(Set)` newtype to hang consts on | ADJ‑M M2 (§24) | Dropping removes a capability §11.2 declared while `borders_set` already supports it; a newtype re-adds the wrapper §22.2 item 12 deleted and breaks `borders_set(border::PLAIN)` | `pub const ASCII: Set<'static>` beside the re-exported ratatui sets (§24 M2) |
+| Automatic ASCII border selection from terminal capability | ADJ‑M M2 (§24) | Needs runtime detection (contradicts §16.4 determinism, as §22.2 item 6 rejected for key flags); ASCII edges with unicode `GlyphSet` glyphs everywhere else; re-adds the `Capability` axis §21 item 19 deleted | Manual opt-in via `ThemeBuilder::borders_set(border::ASCII)`; a full `GlyphSet` fallback is a named deferred adjudication (§24 M2) |
+| Generic `FieldKind<'a, TS,KS,RS, …>` | ADJ‑M M3 (b1) (§24) | A closed enum cannot carry a per-variant type parameter; nine parameters, and every element of `&[FieldSpec]` must share one instantiation, so a form could not hold two `Select`s over different item types; leaks generics into `Form`, `FormState` and every screen (§13) | Non-generic `FieldKind` over `LabelSelect`/`LabelRadio`/`LabelChips` aliases (§24 M3) |
+| `FieldKind::Control(&'a dyn FieldControl)` | ADJ‑M M3 (b2) (§24) | `FieldControl` has an associated `State` and is not dyn-safe; erasing it erases what `FormState.slots` keys on, and `Form` still needs the value-shape discriminant — the enum comes back beside the trait object | as above |
+| Option slice inside the variant (`Select(LabelSelect, &[&str])`) or a `Select::labels(id, &[&str])` constructor | ADJ‑M M3 (a′, a″) (§24) | Puts data back in props (§21 item 1) and re-opens the disjoint-borrow question; a second constructor is one name too many when `T = &str` is inferred from the variant | `FormData::options` / `value_and_options` (§24 M3) |
 | Renaming the library crate away from `junie-tui` | Adjudication F | §13 (accepted) already fixes the public paths `junie_tui::*` / `junie_tui::author::*`; the rename touches `tools/capture.sh`, `README.md`, every test import and the baseline fixture path, and changes no invariant | Keep `junie-tui` / `junie_tui`; neutrality is enforced by `architecture::no_domain_vocabulary_in_the_library` and by shipping `Theme::paper()` as a peer of `Theme::junie()` (Appendix B) |
 
 ---
@@ -3712,14 +3857,14 @@ crates/tui/                                 # package junie-tui, lib junie_tui
   Cargo.toml
   src/
     lib.rs            # #![deny(missing_docs)] #![forbid(unsafe_code)] #![doc = include_str!("../README.md")]; the curated facade (§22)
-    author.rs         # the component-author layer (B.4)
+    author.rs  author/raw.rs   # the component-author layer (B.4); raw.rs: the qualified-only `author::raw::{Line, Span, Text}` escape module (§24 M1)
     id.rs  event.rs  intent.rs  response.rs  keymap.rs
     focus.rs  hit.rs  capture.rs  scroll.rs  cursor.rs
     layer.rs  runtime.rs  runtime/session.rs  diagnostics.rs      # session.rs: the only file naming raw-mode/alt-screen commands (§22 §6.2)
     layout.rs  measure.rs
     ui/{mod.rs, cx.rs, paint.rs, surface.rs, layer_buf.rs}
-    text/{mod.rs, buffer.rs, editor.rs, measure.rs, fuzzy.rs}
-    theme/{mod.rs, tokens.rs, role.rs, glyph.rs, recipe.rs, patch.rs, resolve.rs, downgrade.rs}
+    text/{mod.rs, buffer.rs, editor.rs, measure.rs, fuzzy.rs, span.rs}                       # span.rs: OUR role-carrying Span (§24 M1)
+    theme/{mod.rs, tokens.rs, role.rs, glyph.rs, recipe.rs, patch.rs, resolve.rs, downgrade.rs, border.rs}   # border.rs: Set/PLAIN/ROUNDED/DOUBLE re-exports + const ASCII (§24 M2)
     theme/builtin/{mod.rs, junie.rs, paper.rs}
     collection/{mod.rs, key.rs, reconcile.rs, rowui.rs, decor.rs, empty.rs}
     components/{mod.rs, button.rs, choice.rs, chip.rs, brand.rs, keyhint.rs, too_small.rs,
@@ -3910,7 +4055,20 @@ junie-tui-testing.workspace = true
 
 ### B.4 The `author` module
 
-<!-- amended by §21 items 18, 19, 21, 22, 31; §22 --> `junie_tui::author` is a re-export module, not a second implementation. (During Slices 3–4 the path reads `tui_next::author`, §21 item 31.) It is what example 12 and every downstream component author consumes, and it is the mechanical proof of Scenario G: if a component can be written with it, no private access is needed.
+<!-- amended by §21 items 18, 19, 21, 22, 31; §22; §24 M1 --> `junie_tui::author` is a re-export module, not a second implementation. (During Slices 3–4 the path reads `tui_next::author`, §21 item 31.) It is what example 12 and every downstream component author consumes, and it is the mechanical proof of Scenario G: if a component can be written with it, no private access is needed.
+
+**The root facade's foreign re-exports (exact, §24 M1).** MOD §1.2's rule is *"`junie-tui` re-exports the ratatui types the public API mentions"*; applying the rule rather than its pre-§22.10 parenthetical list, every foreign type a `pub` signature names is re-exported at the layer that names it, and nothing else is. `ratatui_core::layout::Size` and `ratatui_core::text::{Line, Span, Text}` are named by **no** `pub` signature (`Frame::area()` returns `Rect`; resize is `Input::Resize{w,h}`; `Backend::size`/`WindowSize` never leave `runtime/session.rs`; `RowUi::label_spans` builds its `Line` inside `ui/paint.rs`), so our `Size` and our `Span` keep their names and the ratatui ones are not exported at the root. `Frame` is named only by `Runtime::draw` (A1) — a host concern — so it is **root only**. `architecture::every_foreign_type_in_the_public_surface_is_re_exported` (§16.5) keeps the list complete mechanically.
+
+```rust
+// crates/tui/src/lib.rs — the application-author facade (B.3 item 2: one curated line each)
+pub use ratatui_core::buffer::{Buffer, Cell};
+pub use ratatui_core::layout::{Position, Rect};
+pub use ratatui_core::style::{Color, Modifier, Style};
+pub use ratatui_core::terminal::Frame;          // named by Runtime::draw (A1) — host concern, root only
+pub use crate::text::Span;                      // OURS: role-carrying, used by RowUi::label_spans / Ui::paint_spans
+pub mod theme;                                  // theme::border (M2), ColorTokens, Theme, …
+// …plus every library type the root surface names (components, Form vocabulary, Runtime, run, App, …; §23.1)
+```
 
 ```rust
 //! Component-author API. Everything needed to build a component that participates in
@@ -3951,13 +4109,21 @@ pub mod author {
     pub use crate::diagnostics::Diagnostic;
     // ratatui-core types a painter needs (§22: `ratatui_core::` paths, never the umbrella crate)
     pub use ratatui_core::layout::{Rect, Position};
-    pub use ratatui_core::style::{Color, Style};
+    pub use ratatui_core::style::{Color, Style, Modifier};
     pub use ratatui_core::buffer::{Buffer, Cell};
-    pub use crate::theme::border;                 // symbols::border::{Set, PLAIN, ROUNDED, DOUBLE} (§17.0 A5)
+    pub use crate::theme::border;                 // symbols::border::{Set, PLAIN, ROUNDED, DOUBLE} + our ASCII (§17.0 A5, §24 M2)
+    // <!-- amended by §24 M1 --> our role-carrying span; same type as the root `Span`. `Frame` is deliberately ABSENT:
+    // a component author receives `Ui`, never a `Frame` (the same reason `Runtime`/`run` are absent).
+    pub use crate::text::Span;
+    /// Types needed only to drive the `Ui::raw()` / `RowUi::raw()` escape hatch (`Buffer::set_line` / `set_span`).
+    /// The ONLY re-export not forced by a signature. `raw::Span` is ratatui's style-carrying span and is written
+    /// qualified, always: `raw::Span` — never flat-imported beside ours. If `raw::Span` starts appearing in
+    /// components, `Ui::paint_spans` is under-specified; that is the signal, not a naming problem (§24 M1 risk 2).
+    pub mod raw;                                  // body in crates/tui/src/author/raw.rs: `pub use ratatui_core::text::{Line, Span, Text};`
 }
 ```
 
-What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `Registry`, `FocusRing`, `FocusState`, `App`, and the concrete components. A component author drives none of those; an application author reaches `Runtime`/`run`/`App` from the root facade, and tests reach `FocusRing` through `Harness::ring()`. `architecture::conformance_covers_every_public_component` plus example 12 compiling with `use junie_tui::author::*;` and **no other `junie_tui` path** is the standing proof that the split is honest.
+What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `Registry`, `FocusRing`, `FocusState`, `App`, `Frame` <!-- amended by §24 -->, and the concrete components. A component author drives none of those; an application author reaches `Runtime`/`run`/`App` from the root facade, and tests reach `FocusRing` through `Harness::ring()`. `architecture::conformance_covers_every_public_component` plus example 12 compiling with `use junie_tui::author::*;` and **no other `junie_tui` path** is the standing proof that the split is honest.
 
 ### B.5 Examples and capture tooling
 
@@ -3980,7 +4146,9 @@ What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `
 Decision: a props struct holds configuration and closures only. Every collection passes its items to each phase; `Grid` passes its model.
 
 ```rust
-// every collection: List, Tabs, Picker, Tree, NavList, Steps, ChipBar, RadioGroup, Completion, FilterList, PropsList
+// every collection: List, Tabs, Picker, Tree, NavList, Steps, ChipBar, RadioGroup, Select, Completion, FilterList, PropsList
+// <!-- amended by §24 M3: clarified, not changed --> `Select` was always in this class; a form field holds its default
+// instantiation and passes `FormData::options` as the per-phase items, so the rule holds at every form field too.
 pub fn update(&self, cx: &mut Cx<'_>, st: &mut ListState, items: &[T]) -> Response<ListAction>;
 pub fn draw  (&self, ui: &mut Ui<'_>, area: Rect, st: &ListState, items: &[T]) -> Rect;
 // Grid — `M` is a method parameter, not a props parameter
@@ -4444,10 +4612,10 @@ cargo test  --workspace --test architecture dependency_graph_is_exactly_the_decl
 
 Pass condition for the two new architecture tests: `crates/tui/tests/allow/legacy_api.txt` is **empty**, and the five `dependency_graph_is_exactly_the_declared_set` assertions hold. During Slices 3–4 the crate is `tui-next` (§21 item 31), so `-p junie-tui` reads `-p tui-next`.
 
-### 22.10 Open items surfaced while recording (require `opus-analyst`; not decided here)
+### 22.10 Open items surfaced while recording — resolved by §24 <!-- amended by §24 -->
 
-1. **Re-export name collisions.** MOD §1.2 lists `Size` and `Span` among the ratatui types `junie-tui` re-exports at `junie_tui::` / `junie_tui::author::`. The document already defines its own `Size { min, preferred }` (§10, used by `App::min_size` and every `measure`) and its own role-carrying `Span<'a>` (§12.2 `RowUi::label_spans`, §18.2 viewport — which MOD §2.16 itself says to keep). Both names cannot be exported twice from one module. Which ratatui types are re-exported at the root, under what names, and whether `Frame`/`Line`/`Text` belong in `author` are unresolved; Appendix B.4 records only the four uncontested paths (`Rect`, `Position`, `Color`, `Style`, `Buffer`, `Cell`) plus `theme::border`.
-2. **The ASCII border set.** §11.2 named `rounded | square | ascii`; ratatui ships `PLAIN`, `ROUNDED`, `DOUBLE`, … but no `+-|` ASCII set, and an inherent `impl BorderSet` is impossible on a type alias of a foreign type. Where an ASCII `BorderSet` const lives (if it is still wanted) is unresolved. The `junie_tui::theme::border` re-export module (§17.0 A5, B.4) is the minimal placement needed for example 2 to compile under the apps-depend-on-`junie-tui`-alone rule and needs confirmation.
+1. **Re-export name collisions** — decided as **§24 M1**: neither of our types is renamed and neither colliding ratatui type is exported; `Frame` is root-only; `Line`/`Span`/`Text` are reachable only as `author::raw::{…}`; `Ui::paint_spans` covers the multi-style paint case in our vocabulary; the exact root and `author` lists are Appendix B.4.
+2. **The ASCII border set** — decided as **§24 M2**: `junie_tui::theme::border::ASCII`, a plain `const` of the foreign `Set<'static>`; Junie = `ROUNDED`, Paper = `PLAIN`; no automatic selection.
 
 ---
 
@@ -4465,7 +4633,7 @@ Two consequences of recording K1 under §22 (not new decisions): `FormState`'s i
 
 **Sequencing.** K1 blocks **4F** (wave 2, depends on 4B); it does not block Slice 3. `xtask doc-check` (§21 item 34) now covers §15.1, §17.0 A10 and example 13, so every identifier there must resolve against the built rustdoc-json or sit on its printed allow-list.
 
-**Open item for `opus-analyst` (surfaced while recording, not decided here).** ADJ‑K K1.2 fixes `FieldKind<'a>` as a closed enum wrapping `Select<'a>`, `RadioGroup<'a>` and `ChipBar<'a>` **without** collection type parameters, and the K1 example constructs them as `Select::new(ENGINE, engines)` / `RadioGroup::new(ENV, envs)` over `&[&str]`. §18.2 and §21 item 5 list `Select<'a,T,K,R>`, `RadioGroup<'a,T,K,R>`, `ChipBar<'a,T,K,R>` under the three-impl-block generic scheme. A `FieldKind` over the generic forms would need type parameters of its own; a non-generic `Select<'a>` contradicts §21 item 5. §17.0 A10 records the constructors exactly as ADJ‑K's example uses them; reconciling the two (a string-list `Select<'a>` as the form-field control beside a generic `Select<'a,T,K,R>`, or generics on `FieldKind`) is a fresh decision.
+**Open item — resolved by §24 M3** <!-- amended by §24 -->. ADJ‑K K1.2's non-generic `FieldKind<'a>` and §21 item 5's generic `Select<'a,T,K,R>` / `RadioGroup<'a,T,K,R>` / `ChipBar<'a,T,K,R>` are reconciled without changing either: the three controls stay ordinary collections with `new(id)` and per-phase items; `FieldKind` holds their default instantiation through the `LabelSelect`/`LabelRadio`/`LabelChips` aliases; the option list is data and reaches the control through `FormData::options` / `value_and_options`. §15.1, §17.0 A7/A10 and example 13 carry the amended text.
 
 ### 23.2 K2 — the `Grid::update` bound
 
@@ -4538,3 +4706,240 @@ Named tests (in §16.1 / §16.2 / §16.4 / §16.5): `grid::read_only_update_take
 4. **`GridCellActions` deletion is a documented API change** relative to the pre-K2 §12.3 and DOM §1.5 (`docs/audit/domain-boundary-audit.md:147-149`). Recorded as an amendment in §12.3 and §18.2; must be mirrored in `REFACTORING_STATE.md` (coordinator-owned) before work package 4I starts, per the change-control rule at the top of this document.
 
 **Sequencing.** Neither decision blocks Slice 3 (§21 item 1 already records this for K2). K1 blocks **4F**, K2 blocks **4I** — both wave 2 (Appendix A). Both are mirrored in `REFACTORING_STATE.md` before wave 2 begins.
+
+## 24. Adjudication M — re-exports, ASCII border set, `FieldKind`
+
+**Status:** Accepted. Source: `docs/reviews/adjudication-m-small-items.md` (ADJ‑M). Resolves the two items §22.10 left open and §23.1's open item 1. Nothing here reopens Adjudications A–L. Each inline edit carries `<!-- amended by §24 -->`.
+
+**Amends:** §0.1, §6.1 (three action enums declared by the §17 self-check), §10 (nothing — `Size` confirmed unchanged; one clarifying sentence), §11.2, §11.7, §12.2, §15.1, §16.1, §16.5, §17.0 A2/A5/A7/A10, §17 examples 2 and 13, §18.1, §18.2, §19, §21 item 1 (clarified, not changed), §22.10, §23.1, Appendix B.2, Appendix B.4.
+
+**Facts the three decisions rest on** (ADJ‑M §0). **[F]** `ratatui_core::layout::Size` is `{ width: u16, height: u16 }` (`ratatui-core-0.1.2/src/layout/size.rs:1-40`); ours is `Size { min, preferred }` (§10) — different shape, same name. **[F]** `ratatui_core::text` exports `Line`, `Span`, `Text`, `Masked`, `StyledGrapheme`, `ToLine`, `ToSpan`, `ToText` (`text.rs:51-64`); ours is the role-carrying `Span<'a>` §22.2 item 16 keeps. **[F]** `Frame::area() -> Rect`; `Frame` has no `Size` (`terminal/frame.rs:60-70`); `Frame`'s only appearance in our surface is `Runtime::draw(&mut self, frame: &mut Frame<'_>)` (A1). **[F]** `symbols::border::Set<'a>` is a plain struct with eight `pub` `&'a str` fields deriving `Debug, Clone, Copy, Eq, PartialEq, Hash` (`symbols/border.rs:3-19`); consts shipped: `PLAIN`, `ROUNDED`, `DOUBLE`, `THICK`, six dashed sets, `QUADRANT_*`, `ONE_EIGHTH_*`; **there is no `+-|` ASCII set**; `Default` is `PLAIN`. **[F]** `Capability` has exactly one field, `color: ColorLevel` (§21 item 19). **[F]** `Theme::paper()` already specifies `PLAIN` (§11.7) and §11.2 records Junie's set as `ROUNDED`. **[F]** Pre-§24, `FieldKind<'a>` wrapped `Select<'a>` / `RadioGroup<'a>` / `ChipBar<'a>` without collection generics and A10 gave `Select::new(id, options: &'a [&'a str])`, while §18.2 typed them `<'a,T,K,R>` and §21 items 1 and 5 put them under the per-phase item channel and the three-impl-block scheme.
+
+### 24.1 M1 — Root and `author` re-export set
+
+**Decision.** **Neither of our types is renamed and neither colliding ratatui type is exported.** MOD §1.2's binding rule is *"`junie-tui` re-exports the ratatui types the public API mentions"*; its parenthetical list predates §22.10's finding that two of its eleven names are already ours. Applying the rule rather than the list:
+
+* `ratatui_core::layout::Size` — **not exported anywhere.** No `pub` signature names it (`Frame::area()` returns `Rect`; resize enters as `Input::Resize{w,h}`; `Backend::size`/`WindowSize` never leave `runtime/session.rs`). Our `Size` keeps the name at the root and in `author` (§10, unchanged).
+* `ratatui_core::text::{Line, Span, Text}` — **not exported at the root and not exported flat in `author`.** No `pub` signature names them: `RowUi::label_spans` builds its borrowed `Line<'_>` *inside* `crates/tui/src/ui/paint.rs`. Our `Span<'a>` keeps the name.
+* Everything the surface does name is re-exported at the layer that names it: `Buffer`, `Cell`, `Position`, `Rect`, `Color`, `Modifier`, `Style` and our `Span` at **both** root and `author` (`Ui` is a root type whose `raw()` names `Buffer`, so an app must be able to name it without reaching into `author`); `Frame` at the **root only** (a component author receives `Ui`, never a `Frame`, for the same reason B.4 excludes `Runtime`/`run`); the `theme` module (with `theme::border`) at the root and `border` in `author`.
+* `Ui::raw()`/`RowUi::raw()` hand out `&mut Buffer`, whose `set_line`/`set_span` would otherwise be unreachable. Two closures, both cheap: `Ui::paint_spans` in our own vocabulary (A2), and the qualified-only escape module `author::raw::{Line, Span, Text}` — the only re-export not forced by a signature.
+* `Span<'a>` moves from `components/viewport.rs` to `crates/tui/src/text/span.rs`: `RowUi` lives in `collection/`, and a `collection → components` dependency for a type name is backwards; `TextViewport` and `RowUi` are both consumers.
+
+**Exact Rust.**
+
+```rust
+// crates/tui/src/lib.rs — the application-author facade (B.3 item 2: one curated line each)
+pub use ratatui_core::buffer::{Buffer, Cell};
+pub use ratatui_core::layout::{Position, Rect};
+pub use ratatui_core::style::{Color, Modifier, Style};
+pub use ratatui_core::terminal::Frame;          // named by Runtime::draw (A1) — host concern, root only
+pub use crate::text::Span;                      // OURS: role-carrying, used by RowUi::label_spans
+pub mod theme;                                  // theme::border (M2), ColorTokens, Theme, …
+
+// crates/tui/src/theme/border.rs — reachable as junie_tui::theme::border and junie_tui::author::border
+pub use ratatui_core::symbols::border::{Set, DOUBLE, PLAIN, ROUNDED};
+pub type BorderSet = Set<'static>;              // §11.2, unchanged
+
+// crates/tui/src/author.rs
+pub mod author {
+    // …everything already listed in Appendix B.4, plus:
+    pub use crate::text::Span;                  // OURS
+    // `Frame` is NOT re-exported here (root only).
+    /// Types needed only to drive the `Ui::raw()` / `RowUi::raw()` escape hatch.
+    /// The ONLY re-export not forced by a signature. `raw::Span` is ratatui's
+    /// style-carrying span and is written qualified, always: `raw::Span`.
+    pub mod raw {
+        pub use ratatui_core::text::{Line, Span, Text};
+    }
+}
+
+// crates/tui/src/ui/paint.rs — new, so the role-carrying Span is the only span in normal use (R‑3)
+impl Ui<'_> {
+    /// Multi-style single-line paint. Resolves each `Span`'s `Role` against the live
+    /// theme and surface, then writes one `ratatui_core::text::Line` through
+    /// `Buffer::set_line`. Returns columns written.
+    pub fn paint_spans(&mut self, area: Rect, spans: &[Span<'_>]) -> u16;
+}
+```
+
+**Mechanical proof that "apps depend on `junie-tui` only" stays true.** `architecture::applications_depend_only_on_the_library_facade` (§16.5) proves the *dependency edge*; it does not prove the facade is *complete* — one signature naming an unexported type forces an app back to a `ratatui-core` line. Closed by **`architecture::every_foreign_type_in_the_public_surface_is_re_exported`** (`xtask`, rustdoc-json): for every non-local type named in a `pub` item reachable from `junie_tui::`, a `pub use` path exists under `junie_tui::`; likewise for `junie_tui::author::`. Failure prints the type, the signature that names it and the missing facade line. This makes the decision self-maintaining: the day someone puts a `Line` in a signature, the check fails and the exporting decision is forced rather than discovered downstream.
+
+**Rejected alternatives.**
+
+* **Rename ours (`Measured`/`Extent` for `Size`, `RoleSpan` for `Span`).** Renames the type used by `App::min_size`, `Measure::measure`, every component's `measure` and `label_spans` — the whole public vocabulary — to make room for two types no signature mentions; `RowUi::label_spans(&[RoleSpan])` also reads worse. Cost with no benefit.
+* **Rename theirs on export (`TermSize`, `TextSpan`/`StyledSpan`).** A name that exists in no upstream doc, error message or answer, for types that only ever appear behind `raw()`; does not reduce the count of exported names.
+* **A single `junie_tui::tty` / `junie_tui::ratatui` submodule.** `tty` is a lie (text and geometry types, not terminal-session types); `junie_tui::ratatui::` trips §22.7 forbidden-pattern rule 14 (`\bratatui::`) at every use site — a mechanical conflict with an accepted gate. `author::raw` says exactly what it is for and collides with nothing.
+
+**Tests.** `architecture::every_foreign_type_in_the_public_surface_is_re_exported`, `architecture::applications_depend_only_on_the_library_facade` (existing, unchanged), `ui::paint_spans_matches_row_ui_label_spans` (differential over the §16.1 text corpus).
+
+### 24.2 M2 — The ASCII border set
+
+**Decision.** **Keep ASCII, as a plain `const` of the foreign type, in `junie_tui::theme::border`.** A `const` of a foreign type is not an `impl` and is subject to no coherence rule; `Set`'s eight fields are all `pub` **[F]**. The `BorderSet` alias stays exactly as §11.2 and §22 R‑11 wrote it. `Theme::junie()` uses `border::ROUNDED`; `Theme::paper()` uses `border::PLAIN`; `border::ASCII` is used by neither builtin — it is opt-in through the already-specified `ThemeBuilder::borders_set` (A5). **`Capability` has no `unicode` field** **[F]**, so **nothing selects ASCII automatically**, and nothing should.
+
+**Exact Rust.**
+
+```rust
+// crates/tui/src/theme/border.rs
+pub use ratatui_core::symbols::border::{Set, DOUBLE, PLAIN, ROUNDED};
+
+/// Pure-ASCII border set, for terminals and fonts without box-drawing glyphs.
+/// Not shipped by ratatui; declared here as a plain `const` because `BorderSet`
+/// is a type alias of a foreign type and can carry no inherent items (§11.2).
+/// Opt in with `Theme::junie().builder().borders_set(border::ASCII).build()`.
+pub const ASCII: Set<'static> = Set {
+    top_left:         "+", top_right:         "+",
+    bottom_left:      "+", bottom_right:      "+",
+    vertical_left:    "|", vertical_right:    "|",
+    horizontal_top:   "-", horizontal_bottom: "-",
+};
+```
+
+`Theme::junie()` → `design.borders = border::ROUNDED`. `Theme::paper()` → `design.borders = border::PLAIN` (§11.7, unchanged).
+
+**Rationale.** Three glyphs, eight fields, ten lines, zero new types, and `Set: PartialEq` **[F]** makes the builtins assertable. §11.2's declared triple (`rounded | square | ascii`) survives without the deleted `UnicodeLevel` returning. Automatic selection is rejected on three grounds: (1) it needs runtime terminal-capability detection, which contradicts §16.4's determinism claim for the same reason §22.2 item 6 rejected keyboard-enhancement flags; (2) borders are 8 of ~35 glyph slots — a border-only auto-switch renders a frame that is ASCII at the edges and unicode everywhere else (`GlyphRole::{Chosen, Checked, SortAsc, FollowRef, …}`), worse than either consistent choice; (3) it would reintroduce the `Capability` axis §21 item 19 deliberately deleted, and every §16.3 baseline would fork by terminal.
+
+**Deferred root cause, named.** If unicode-capability fallback is ever wanted, the correct shape is a `Capability` field **plus** a full `GlyphSet` fallback table applied the way §11.4's `apply_mono_fallbacks` applies colour fallbacks, plus re-blessed baselines under §20.10. That is a fresh adjudication, not a border const. `border::ASCII` is the manual, deterministic, theme-author-visible half of it and does not prejudge it.
+
+**Rejected alternatives.**
+
+* **Drop ASCII.** Leaves no supported way to theme for a terminal without box-drawing glyphs, while the mechanism (`borders_set`) already exists and is already tested — dropping saves ten lines and removes a capability §11.2 declared.
+* **`pub struct BorderSet(Set<'static>)` newtype.** Re-adds the wrapper §22.2 item 12 just deleted; forces `.0` or a `Deref` at every read; breaks `ThemeBuilder::borders_set(border::PLAIN)`; buys only the ability to hang inherent consts, which a module of consts already provides with better `use` ergonomics.
+
+**Tests.** `theme::ascii_border_set_is_pure_ascii` (each of the eight fields satisfies `s.is_ascii() && s.len() == 1`, which also pins `text::width(s) == 1`), `theme::builtin_border_sets_are_ratatui_sets` (`assert_eq!(Theme::junie().design.borders, border::ROUNDED)`, `assert_eq!(Theme::paper().design.borders, border::PLAIN)`), `theme::ascii_theme_renders_without_box_drawing_glyphs` (a `Scene` digest over `Theme::junie().builder().borders_set(border::ASCII).build()` contains no `U+2500..=U+257F`), `architecture::capability_has_no_unicode_field` (rustdoc-json: `Capability`'s field set is exactly `{color}`).
+
+### 24.3 M3 — `FieldKind` versus the collection generics
+
+**Decision — option (a), with the option list on the data channel, not on the props.** **`Select`, `RadioGroup` and `ChipBar` keep `<'a, T, K, R>` and the per-phase item channel, exactly like every other collection (§18.2, §21 items 1 and 5, unamended). `FieldKind<'a>` stays a closed, non-generic enum holding the default instantiation `<'a, &'a str, ByIndex, DefaultRow>`. The option list a form field needs reaches the control through `FormData`, which is already the form's single data channel.** This is the only reconciliation that changes neither §21 item 1 nor §18.2 nor `FieldKind`'s shape; it costs two defaulted `FormData` methods and three type aliases.
+
+**Exact Rust.**
+
+```rust
+// ── §17.0 A7 / §18.2: the three controls are ordinary collections ────────────
+impl<'a, T> Select<'a, T, ByIndex, DefaultRow> { pub fn new(id: Id) -> Self; }   // items are per phase (A3)
+impl<'a, T, K, R> Select<'a, T, K, R> {
+    pub const PARTS: &'static [Part] = &[Part::FIELD, Part::LABEL, Part::MARKER, Part::ROW,
+                                         Part::TRACK, Part::THUMB, Part::EMPTY];
+    pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Select<'a, T, K2, R>;
+    pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Select<'a, T, K, R2>;
+    pub fn placeholder(self, s: &'a str) -> Self;
+    pub fn popup_rows(self, n: u16) -> Self;
+    pub fn read_only(self, yes: bool) -> Self;   pub fn disabled(self, yes: bool) -> Self;
+    pub fn patch_part(self, ps: &'a [(Part, StylePatch)]) -> Self;
+    pub fn state_override(self, s: StateFlags) -> Self;
+}
+impl<'a, T, K: KeyFn<T>, R: RowFn<T>> Select<'a, T, K, R> {
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut SelectState, items: &[T]) -> Response<SelectAction>;
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &SelectState, items: &[T]) -> Rect;
+    pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size;
+}
+// identical three-block shape for RadioGroup<'a,T,K,R> and ChipBar<'a,T,K,R> (§21 item 5; written out in A7)
+
+// ── §15.1 / §17.0 A10: FieldKind stays closed and non-generic ────────────────
+pub type LabelSelect<'a> = Select    <'a, &'a str, ByIndex, DefaultRow>;
+pub type LabelRadio <'a> = RadioGroup<'a, &'a str, ByIndex, DefaultRow>;
+pub type LabelChips <'a> = ChipBar   <'a, &'a str, ByIndex, DefaultRow>;
+
+pub enum FieldKind<'a> {
+    Text   (TextInput<'a>),
+    Area   (TextArea<'a>),
+    Select (LabelSelect<'a>),
+    Radio  (LabelRadio<'a>),
+    Chips  (LabelChips<'a>),
+    Check  (Checkbox<'a>),
+    Toggle (Toggle<'a>),
+    Chooser(Button<'a>),
+    Note,
+}
+
+// ── §15.1: the option list is data, and travels with the value ───────────────
+pub trait FormData {
+    fn value    (&self,     id: Id) -> FieldRef<'_>;
+    fn value_mut(&mut self, id: Id) -> FieldMut<'_>;
+
+    /// Option labels for a `Select` / `Radio` / `Chips` field; `&[]` for every other kind.
+    /// Borrowed from the caller — never `'static` (§21 item 22). Painted, never returned
+    /// in a `FormAction` (F5).
+    fn options(&self, _id: Id) -> &[&str] { &[] }
+
+    /// The controlled value and the option list under ONE borrow, so `Form::update` can
+    /// drive a choice control without a second `&mut` (E0502). A data type with option
+    /// tables overrides it by destructuring its own disjoint fields.
+    fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
+        (self.value_mut(id), &[])
+    }
+
+    fn visible (&self, _id: Id) -> bool { true }
+    fn disabled(&self, _id: Id) -> bool { false }
+    fn error   (&self, _id: Id) -> Option<&str> { None }
+    fn validate(&self, _id: Id, _v: FieldRef<'_>) -> Result<(), FieldError> { Ok(()) }
+    fn validate_all(&self) -> Result<(), (Id, FieldError)> { Ok(()) }
+}
+```
+
+`Form::draw` calls `data.value(id)` + `data.options(id)` (two shared borrows). `Form::update` calls `data.value_and_options(id)` (one mutable borrow). `FieldSpec::new` stays `const fn` — `Select::new(id)` is `const`-constructible.
+
+**Amendments this forces.** §17.0 A10's `Select::new(id, options)` and `RadioGroup::new(id, options)` become `new(id)` (declared once, in A7); §17 example 13's `conn_fields` loses its `engines/envs/groups/modes` parameters (they move to `ConnDraft::options` / `value_and_options`) and drops `use FieldKind::*;` in favour of spelled-out `FieldKind::Select(…)` — the glob shadowed the imported `Select` type in the value namespace and compiled only by an explicit-beats-glob accident.
+
+**Invariants.**
+
+* **M3‑1 — `FormState` stores no props.** `FieldSlot`'s value is `enum SlotValue { None, Text, Choice(usize), Flag(bool), Chips(KeySet) }`, `Clone + PartialEq + Eq`; text drafts live in the slot's `TextInputState`/`TextEditorCore` (manual redacting `Debug`, `zeroize`), never as a `Secret` field, so `FormState: Clone + PartialEq + Default` holds (S2, conformance case 6) and no `FieldKind` — which holds `&dyn Fn` slots and is neither `Clone` nor `PartialEq` — is ever reachable from state.
+* **M3‑2 — Props are built once and hold no values.** `Form<'a>` holds `&'a [FieldSpec<'a>]` and scalars (F1). `FieldKind` holds control *configuration* only; the item slice never enters it, so §21 item 1's B3 borrow hazard cannot arise at a form field.
+* **M3‑3 — The form's identity model is positional by construction.** `FieldMut::Choice(&mut usize)` / `FieldRef::Choice(usize)` are index-based, so a keyed `Select` inside a `FieldKind` would have no channel to report its `ItemKey`. `ByIndex` in the aliases is therefore forced by the value channel, not a default that leaked. Documented consequence: a form whose option table is reordered *at runtime* must map indices itself, or use `FieldKind::Chooser`.
+* **M3‑4 — `Chooser` is the escape hatch for a richer control.** A field needing a keyed, custom-row, non-string collection is `FieldKind::Chooser(Button<'a>)`: it emits `FormAction::Chose(id)` and the owner opens its own `Picker`/`Select` layer with the full `<T,K,R>` surface. No new API; already in §15.1 and example 13's shape.
+
+**Rejected alternatives.**
+
+* **(b1) Generic `FieldKind`.** A closed enum cannot carry a *per-variant* type parameter; it would need nine (`FieldKind<'a, TS,KS,RS, TR,KR,RR, TC,KC,RC>`), and every element of a `&'a [FieldSpec<'a>]` must be the same instantiation — so a form could not hold two `Select`s over different item types. Fatal, not merely ugly. It would also put type parameters into `Form`, `FormState` and every screen's field-array signature, which §13 forbids and §11.1 already rejected for themes.
+* **(b2) `FieldKind::Control(&'a dyn FieldControl)`.** `FieldControl` has an associated type `State` (§15) and is not dyn-safe; erasing `State` erases the very thing `FormState.slots` keys (`TextInputState` vs `SelectState`), breaking M3‑1. Even erased, `Form` still needs a discriminant for each field's *value shape* — which is the enum, re-added beside the trait object. Collapses to (a) plus indirection.
+* **(a′) `FieldKind` variants hold the option slice (`Select(LabelSelect<'a>, &'a [&'a str])`).** Puts data back in props, which §21 item 1 removed for exactly this class, and re-opens the disjointness question (the props array and `&mut D` must borrow disjoint fields of the screen). `FormData` already carries per-field data keyed by `Id`; a second parallel channel is the API-inconsistency class G1 removes.
+* **(a″) `Select::labels(id, &[&str])` as a separate constructor.** Redundant: `Select::new(id)` is already the non-generic default instantiation and `T = &'a str` is inferred from the `FieldKind::Select` variant. One name, not two.
+
+**Tests.** `form::select_field_options_come_from_form_data`, `form::changing_options_between_frames_does_not_rebuild_props`, `form::state_holds_no_props` (static assertion: `FormState: Clone + PartialEq + Default`; `SlotValue: Clone + PartialEq + Eq`), `form::value_and_options_is_a_single_borrow` (a `Form::update`-shaped body over one call compiles; the two-call body is a `trybuild` compile-fail, E0502), `form::chooser_activation_emits_chose_with_the_field_id` (retained from §15.1, now also the escape-hatch proof), `architecture::field_kind_has_no_type_parameters` (rustdoc-json: one lifetime, zero type params), `select::standalone_select_takes_items_per_phase`, `select::escape_closes_and_restores_the_cursor` (retained), `choice::radio_group_separates_cursor_from_value` (retained).
+
+### 24.4 Declared by the §17 reference self-check (recorded, not decided)
+
+Re-running the self-check over §17 examples 1–13 after the amendments found no reference an example uses that the document does not declare. Applying M3's "identical three-block shape" to `RadioGroup` and `ChipBar` in A7 required three names §6.1's exact action set and the §18.2 state list had not spelled out; they are declared, not adjudicated, and follow existing conventions only: `SelectAction { Chose(ItemKey), Opened, Closed }`, `RadioGroupAction { Chose(ItemKey) }`, `ChipBarAction { Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey) }` (§6.1; the `XAction` naming of §13.2), the contents of `SelectState` / `RadioGroupState` / `ChipBarState` (A7; the state-holds-no-props rule of §4), and `RadioGroup::PARTS` / `ChipBar::PARTS` over existing `Part` constants only (`CONTAINER, GUTTER, MARKER, LABEL` / `CONTAINER, LABEL, CLOSE, OVERFLOW`). The 4A/4B owners may refine the variant lists under §13.2's rustdoc template; a change to the *names* is an Opus decision.
+
+### 24.5 Acceptance conditions (executable)
+
+```bash
+cargo check -p junie-tui --no-default-features
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test  --workspace --all-targets --all-features
+cargo test  --workspace --doc
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
+cargo build -p junie-tui --examples                     # examples 2 and 13 compile as amended
+cargo tree  -p showcase -e normal --depth 1             # => junie-tui, and nothing else
+
+cargo test --workspace --test architecture every_foreign_type_in_the_public_surface_is_re_exported
+cargo test --workspace --test architecture capability_has_no_unicode_field
+cargo test --workspace --test architecture field_kind_has_no_type_parameters
+cargo test -p junie-tui --lib theme::ascii_border_set_is_pure_ascii
+cargo test -p junie-tui --lib theme::builtin_border_sets_are_ratatui_sets
+cargo test -p junie-tui --lib ui::paint_spans_matches_row_ui_label_spans
+cargo test -p junie-tui --lib form::
+cargo test -p junie-tui --test conformance conformance::form::
+
+# M1: neither colliding ratatui type is re-exported, and no umbrella path appears
+! rg -n 'pub use ratatui_core::(layout::\{[^}]*\bSize\b|text::\{)' crates/tui/src/lib.rs
+! rg -n 'pub use ratatui_core::text::' crates/tui/src/author.rs
+  rg -n 'pub mod raw' crates/tui/src/author.rs
+# M2: ASCII is a const, never an impl on the alias
+! rg -n 'impl (BorderSet|border::Set)' crates/tui/src
+  rg -n 'pub const ASCII: Set' crates/tui/src/theme/border.rs
+# M3: no items in a form control's constructor; no glob over FieldKind
+! rg -n 'fn new\(id: Id, (options|labels|items): &' crates/tui/src/components/{select,choice,chip}.rs
+! rg -n 'use FieldKind::\*' crates/tui/examples
+```
+
+Pass condition: all commands succeed, the four `!`-prefixed greps return no matches, and `crates/tui/tests/allow/legacy_api.txt` stays empty. During Slices 3–4 the crate is `tui-next` (§21 item 31), so `-p junie-tui` reads `-p tui-next`. **File placement forced by the two `author.rs` greps (recorded, not decided):** the negative `! rg 'pub use ratatui_core::text::' crates/tui/src/author.rs` and the positive `rg 'pub mod raw' crates/tui/src/author.rs` can both hold only if `author.rs` carries the declaration `pub mod raw;` and the body (`pub use ratatui_core::text::{Line, Span, Text};`) lives in `crates/tui/src/author/raw.rs` (Appendix B.2). ADJ‑M's inline `pub mod raw { … }` sketch is therefore realised as a file-backed module; nothing about the path `junie_tui::author::raw::{Line, Span, Text}` changes.
+
+### 24.6 Risks
+
+1. **`Frame` at the root puts a `ratatui-core` type in our published surface.** Already true of `Rect`/`Style`/`Color`, so it adds no new class of exposure; `cargo-semver-checks` from `v0.1.1` (§22.3) is the detector. If ratatui-core ever moves `Frame`, one facade line changes and `every_foreign_type_in_the_public_surface_is_re_exported` fails loudly rather than an app's build breaking.
+2. **`author::raw` re-exports a second `Span`.** Mitigated by module qualification (`raw::Span`, never a flat `use`) and by `Ui::paint_spans`, which removes the only realistic reason to reach for it. If `raw::Span` starts appearing in components, that is a signal `paint_spans` is under-specified — not a naming problem.
+3. **`border::ASCII` themes still get unicode `GlyphSet` glyphs.** Stated in the const's rustdoc and above as the deferred root cause. `theme::ascii_theme_renders_without_box_drawing_glyphs` scans only the border range, deliberately, so it does not create a false impression of full ASCII safety.
+4. **`FormData` widens to seven methods (five defaulted).** Same shape §12.3 chose for `GridModel` and §23 K2 reinforced. `value_and_options`'s default is correct for every kind except the three choice kinds, so a data type that forgets to override it renders an empty option list — visible immediately in `form::select_field_options_come_from_form_data` and in the first frame, not a silent wrong answer.
+5. **Example 13 and §17.0 A7/A10 change text.** Both are gated by `xtask doc-check` (§21 item 34) and `architecture::all_examples_compile`, so the amendment is verified rather than asserted; `REFACTORING_STATE.md` (coordinator-owned) must mirror the three decisions before work packages 4A/4B/4F/4G start, per the change-control rule at the top of this document.
+
+**Sequencing.** M1 and M2 land in Slice 3 (`lib.rs`, `author.rs`, `text/span.rs`, `theme/border.rs`, `ui/paint.rs` are foundation files); M3 blocks **4B** (`select.rs`), **4A** (`choice.rs`, `chip.rs`) and **4F** (`form.rs`), all of which are already sequenced after Slice 3 (Appendix A).
