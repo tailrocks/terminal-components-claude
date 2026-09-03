@@ -53,7 +53,7 @@
 - (done) opus: docs/audit/modern-api-audit.md; docs/reviews/adjudication-k-form-grid.md.
 - (done 27bd918) arch-fold builder: §22 Adjudication L, §23 Adjudication K, §15.1 Form API, §17 example 13, 46 inline markers.
 - (done) Adjudication M recorded at docs/reviews/adjudication-m-small-items.md (ACCEPTED: M1 no rename — ratatui `Size`/`Line`/`Span`/`Text` not re-exported at root, `author::raw::{Line,Span,Text}` only, `Frame` root-only, `Ui::paint_spans`; M2 `theme::border::ASCII` plain const, Junie=ROUNDED, Paper=PLAIN, no auto selection; M3 `FieldKind` closed over `LabelSelect/LabelRadio/LabelChips` aliases, `FormData::{options,value_and_options}`).
-- fable-builder "arch-record-M": COMPONENT_ARCHITECTURE.md only (§24).
+- (done) arch-record-M: §24 appended, 32 markers; self-declared (not adjudicated) names recorded in §24.4: `SelectAction{Chose,Opened,Closed}`, `RadioGroupAction{Chose}`, `ChipBarAction{Toggled,Closed,Activated}`, `SelectState`/`RadioGroupState`/`ChipBarState`; `author::raw` lives in crates/tui/src/author/raw.rs (§24.5) — to be confirmed by the post-prototype Opus API review.
 - fable-builder "foundations": root Cargo.toml (workspace sections only), crates/tui/** (package `tui-next`, lib `tui_next` — TEMPORARY until Slice 5), crates/tui-testing/**, xtask/**, rust-toolchain.toml. No src/, tests/, docs/ edits.
 - (done) perf-baseline builder: tests/perf*.rs, src/bin/*/perf_tests.rs.
 - (done) baseline-capture builder: baseline/before/**, tools/baseline_capture.sh.
