@@ -1,7 +1,7 @@
 ---
 name: refactor-coordinator
-description: Fable 5.1 coordinator for the complete terminal component refactor, using Opus 5 for every research and judgment task.
-model: claude-fable-5-1
+description: Opus 5 coordinator for the complete terminal component refactor, using Opus 5 for every research and judgment task.
+model: claude-opus-5
 effort: high
 tools: Agent(opus-analyst, fable-builder), Read, Grep, Glob, Edit, Write, Bash
 ---

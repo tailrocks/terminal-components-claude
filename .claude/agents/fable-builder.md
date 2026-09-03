@@ -1,7 +1,7 @@
 ---
 name: fable-builder
 description: Implements approved refactor slices, migrations, tests, documentation, captures, fixes, and verification without performing research or architectural redesign.
-model: claude-fable-5-1
+model: claude-opus-5
 effort: high
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---

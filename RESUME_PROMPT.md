@@ -17,16 +17,16 @@ Continue the in-progress refactor in this repository. Do not restart from scratc
 
 ## Mandatory execution model (unchanged)
 
-- Coordinator and every implementation worker: `claude-fable-5-1`, effort `high`.
+- Coordinator and every implementation worker: **`claude-opus-5`, effort `high`** — a user-authorized deviation from the goal's `claude-fable-5-1` mandate, because Fable 5.1 credits were exhausted. `.claude/agents/{refactor-coordinator,fable-builder}.md` and `.claude/settings.json` are already repointed; agent definitions own routing, so never pass a per-invocation model override. Revert all three to `claude-fable-5-1` if Fable capacity returns.
 - Every audit, research question, architecture decision, alternative comparison, root-cause diagnosis, public-API or test-design critique, domain-boundary decision, security analysis, performance interpretation, visual judgment and independent verification: a fresh, read-only `opus-analyst` (`claude-opus-5`, high).
 - All implementation through `fable-builder` subagents. The coordinator only spawns agents, records results into `REFACTORING_STATE.md` and the architecture document, commits, and reports. User directive: **all audits and implementations run in subagents.**
 - Never use generic, inheriting, built-in Explore or built-in Plan agents. Never override configured agent models or effort.
 - Parallel builders must have explicit, disjoint file ownership; keep shared foundations under one owner.
 - User directives to keep: use the latest dependency versions and their latest APIs and modern practices; commit and push `origin/main` after every recorded result.
 
-## Blocker to resolve before implementation restarts
+## Recorded blocker and its user-authorized resolution
 
-The previous session ended because the Fable 5.1 monthly spend limit was reached — two `fable-builder` agents were terminated mid-task (HTTP 429). The goal treats an unavailable required model as a blocker. Confirm Fable 5.1 capacity is available before spawning builders; if it is not, stop and report rather than substituting a model.
+The previous session ended because the Fable 5.1 monthly spend limit was reached — three `fable-builder` agents were terminated mid-task (HTTP 429). The goal treats an unavailable required model as a blocker. The user resolved it by directing that the work continue on Opus 5 only. The routing files are already updated; surface this deviation in the final report rather than treating it as unresolved.
 
 ## Immediate state
 
