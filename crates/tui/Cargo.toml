@@ -1,0 +1,37 @@
+[package]
+# TEMPORARY name for Slices 3-4 (COMPONENT_ARCHITECTURE.md §21 item 31, Appendix A "Slice 3"):
+# the root package keeps `junie-tui` / `junie_tui` so the legacy tree stays green. At the start of
+# Slice 5 this package is renamed to `junie-tui` and its lib to `junie_tui` in one scripted commit.
+name = "tui-next"
+description = "Junie-inspired terminal component library (foundations)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "tui_next"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[features]
+default = ["crossterm"]
+# Terminal session (`TerminalSession`, `run()`, `DefaultTerminal`): the only code that names a
+# backend. `--no-default-features` compiles the whole paint/theme/layout/text/collection core
+# and the runtime without it (§22 §1.2 "core is backend-free").
+crossterm = []
+# Runtime/Ui inspection surface for the test harness (§17.0 A1, A2). Never in a release binary.
+testing = []
+
+[dependencies]
+ratatui-core.workspace = true
+ratatui-crossterm.workspace = true
+unicode-width.workspace = true
+unicode-segmentation.workspace = true
+bitflags.workspace = true
+
+[dev-dependencies]
+tui-next-testing.workspace = true

@@ -1,0 +1,19 @@
+# perf baseline: name ns allocs bytes [hits ring]
+# regenerate with PERF_BLESS=1 in a release build; review like a snapshot
+fit_10k_grapheme_line_to_80 3168 7 224
+focus_tab_traversal_ring_200 517716 0 0
+frame_testbackend_empty_120x40 30765 0 0
+fuzzy_10k_grapheme_label 432364 15 262232
+hit_registry_size_is_bounded 4891 0 0 80 40
+intents_drain_is_o_1_when_the_queue_is_empty 626 0 0
+mouse_move_over_1000_regions 7005712 0 0
+style_backdrop_full_screen_120x40 48462 0 0
+style_downgrade_theme_all_levels 96337 1034 165008
+style_resolve_10k_parts 131975 0 0
+style_resolve_10k_parts_with_two_overlays 171979 0 0
+textbuffer_offset_at_10k_line 340134 0 0
+textbuffer_pos_of_10k_line 369141 0 0
+truncate_10k_grapheme_line_to_80 552479 6 288
+truncate_middle_10k_to_40 334372 1 128
+width_10k_grapheme_line 425970 0 0
+wrap_10k_graphemes_to_80 374577 1119 82416
