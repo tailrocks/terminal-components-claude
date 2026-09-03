@@ -39,12 +39,16 @@
 - Appendix A amends goal §27 Slice 4: family builders do not touch apps; showcase migration is entirely Slice 5 (disjoint ownership).
 - Slice 2 review (docs/reviews/slice2-architecture-review.md): adjudications A–I upheld; 16 BLOCKER / 31 MAJOR / 24 MINOR surface corrections accepted in full; recorded as §21 Adjudication J. Three amendments: data passed to update/draw phase calls (B3/B15); `Ui::cache<T>(id)` for derived per-frame caches + rule R8 (B5); Esc dismissal after app.update (B6).
 - Staging (Opus §7, replaces coordinator proposal): root package stays `junie-tui` and becomes workspace root; new library at crates/tui named `tui-next`/`tui_next` during Slices 3–4 (TEMPORARY, deliberate — do not "fix"); single scripted rename to `junie-tui`/`junie_tui` at start of Slice 5 when root src/ and root bins are removed. Mapping: `junie_tui::author` ⇔ `tui_next::author` until then. `junie-tui-legacy` rename REJECTED (doc-target collision, duplicate bin names, default-run).
+- User directives (2026-09-04): use latest dependency versions and latest APIs/modern practices (Opus modern-api audit running; direct deps already latest: ratatui 0.30.2, crossterm 0.29.0, unicode-width 0.2.2, unicode-segmentation 1.13.3); ALL audits and implementations in subagents — coordinator only spawns, records, commits.
+- Open architecture decisions (Opus K1/K2 running): `Form` API sketch; `Grid::update` model bound.
 - Slice 2 prototype scope (review §9c): Button, Field+TextInput, List, Tabs, Dialog-as-layer, ScrollRegion, minimal runtime/theme; examples 01,05,06,07,08,09,10,11,12 verbatim; conformance 20 cases × 7 components; render digests junie/paper × truecolor/mono; overrides tests; overlay tests; migrated Buttons page in new crate with 3 retained test intents; xtask doc-check; legacy tree green; then fresh Opus API review of actual code.
 
 ## File ownership
 
 - fable-builder "baseline-capture": baseline/before/**, tools/** (capture additions only). No src/ edits.
-- fable-builder "arch-edits": COMPONENT_ARCHITECTURE.md, docs/visual-changes.md (applying §21). No src edits.
+- (done 95ab652) arch-edits builder: §21 Adjudication J applied (34 items, 44 inline markers), docs/visual-changes.md created.
+- fable-builder "wp0-digests": src/bin/{tablepro,jackin_preview}/visual_tests.rs (+ mod line in main.rs), tests/baselines/{tablepro,jackin}.txt, .github/workflows/{ci,perf}.yml.
+- opus-analyst (running): docs/audit/modern-api-audit.md; docs/reviews/adjudication-k-form-grid.md (K1 Form API, K2 Grid::update bound).
 - (done) perf-baseline builder: tests/perf*.rs, src/bin/*/perf_tests.rs.
 - (done) baseline-capture builder: baseline/before/**, tools/baseline_capture.sh.
 
@@ -64,4 +68,4 @@
 
 ## Next action
 
-- After §21 lands: spawn Slice 2 prototype builder (workspace root + crates/tui as tui-next, prototype scope above). Then fresh Opus review of actual API; then Slice 3 foundations completes the crate.
+- When modern-api audit + K1/K2 land: builder records them as §22/§21 additions; then spawn Slice 2 prototype builder (workspace root + crates/tui as tui-next, prototype scope above). Then fresh Opus review of actual API; then Slice 3 foundations completes the crate.
