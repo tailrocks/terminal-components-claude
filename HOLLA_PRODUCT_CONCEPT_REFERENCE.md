@@ -500,17 +500,83 @@ button, input placement, visual hierarchy, or other presentation.
 
 ## 8. Core experience domains
 
+### 8.0 Non-negotiable technology focus
+
+Holla must be designed around the user's real technology stack, not a generic
+catalog of shell commands. These are primary product domains:
+
+1. mise installation, active tools, missing tools, tasks, hierarchy, upgrades,
+   and trust;
+2. Git operations here or across discovered children, including status, pull,
+   push, primary-branch switching, and GitHub cloning from personal or
+   organization accounts;
+3. Docker inspection, logs, Compose context, resource usage, lifecycle, and full
+   host cleanup;
+4. `btm` as preferred deep system-monitoring handoff;
+5. progressive disk analysis and cleanup using Mole-informed concepts;
+6. CPU, memory, disk, network, pressure, and process insights;
+7. PostgreSQL activity through native critical metrics and `pg_activity`;
+8. common Rust workflows through Cargo and nextest;
+9. SSH destination discovery and connection from user SSH configuration;
+10. Rust build-artifact cleanup;
+11. Gradle output and cache cleanup;
+12. Node dependency and package-manager cache cleanup.
+
+These domains should dominate discovery, recommendation quality, hierarchy,
+plan orchestration, activity multiplexing, and realistic concept scenarios.
+Generic extensibility remains useful but must not dilute this focus.
+
+Detailed local concept examples live in:
+
+- [Technology-stack workflows](reference/technology-stack-workflows.md)
+- [Mole-informed disk and cleanup patterns](reference/mole-disk-cleanup-patterns.md)
+
 ### 8.1 Current project
 
 Discover build, run, test, lint, format, clean, project tasks, local services,
 documentation, common paths, and trusted project workflows. Users should not
 need to inspect manifests to learn what the project supports.
 
+#### mise
+
+Treat mise as a first-class context system. Explain effective local, ancestor,
+monorepository, and global configuration; active and missing tools; available
+updates; discovered tasks; task working directory; task dependencies; and trust
+state.
+
+From a monorepository root, expose namespaced child tasks. From inside a child,
+expose local tasks first while retaining applicable parent tools, environment,
+and ecosystem tasks. Trust must identify exact configuration and propagation
+scope before running tasks or installing tools.
+
+#### Rust
+
+Recognize Cargo workspaces and members as one hierarchy. Focus on common actions:
+check, build, run, test, nextest, format, Clippy, and cleanup. Preserve current
+package, workspace, selected package, binary, test, feature, toolchain, and
+profile scope without overwhelming common defaults.
+
 ### 8.2 Git
 
 Use live worktree, branch, upstream, conflict, and remote state to influence
 recommendations and primary actions. Deep history, staging, rebasing, or
 conflict work may open a specialist Git TUI.
+
+Core Git intents include:
+
+- status here or across all discovered child Git worktrees;
+- pull here or across selected children;
+- push here or across selected children;
+- switch selected projects to their actual primary branches;
+- inspect blocked, dirty, detached, divergent, or missing-upstream states;
+- clone a repository owned by the active GitHub account or one of its
+  organizations.
+
+Recursive discovery must understand `.git` directories and files, deduplicate
+worktrees, and distinguish submodules from independent child projects. Bulk
+plans allow exclusions, bounded parallelism, per-project output, and isolated
+failure. Never hard-code `main` or `master`; resolve each project's primary
+branch.
 
 ### 8.3 Project neighborhoods
 
@@ -525,6 +591,20 @@ drill-down, recognize generated artifacts, explain age and regeneration, estimat
 recoverable space, prefer recoverable deletion, and report each result.
 
 Never recommend deletion only because a path is large.
+
+Adopt these Mole-informed product patterns without copying its visual design:
+
+- progressive results before full scanning completes;
+- hierarchy by filesystem, current path, project, child project, and cleanup
+  family;
+- candidate size, item count, activity age, rebuildability, owning project,
+  active-process state, privilege, deletion mode, and confidence;
+- dry-run using the same eligibility rules as execution;
+- persistent protected paths or whitelist;
+- recent or unverifiable artifacts initially unselected;
+- project, category, and individual-target exclusions;
+- Trash, permanent, and tool-managed cleanup distinguished;
+- auditable cleanup history and reclaimed-space reporting.
 
 ### 8.5 Docker and containers
 
@@ -561,13 +641,38 @@ Surface start, stop, restart, health, logs, ports, and resource pressure based o
 actual state. Keep project-local and host-wide scope distinct. Prefer specialist
 monitoring tools for deep continuous inspection.
 
-### 8.7 Files and navigation
+Host insight should cover total and per-core CPU, load, memory and swap, disk
+capacity and I/O, network rates, process hierarchy, and Linux CPU/memory/I/O
+pressure when available. Provide a lightweight contextual snapshot, then offer
+`btm` as the preferred persistent deep-monitoring activity when installed.
+
+### 8.7 PostgreSQL activity
+
+Discover PostgreSQL contexts from standard connection configuration, project
+environment, local sockets, and container context without exposing secrets.
+
+Prioritize:
+
+- active, waiting, blocked, and idle-in-transaction sessions;
+- query and transaction duration;
+- blocker dependency trees;
+- connection saturation;
+- database read, hit, temporary-file, deadlock, and I/O trends;
+- expensive workload dimensions when statement statistics are available;
+- vacuum and analyze health;
+- replication state, retained WAL, and lag indicators.
+
+Offer `pg_activity` as a persistent specialist activity. Query cancellation and
+backend termination remain distinct actions; revalidate PID identity and query
+before mutation.
+
+### 8.8 Files and navigation
 
 Nearby and project files should rank before broad filesystem matches. Actions
 may open, preview, reveal, change directory, copy path, or pass a resource to
 another workflow. A focused browser can handle deep navigation.
 
-### 8.8 Personal and team workflows
+### 8.9 Personal and team workflows
 
 Each custom workflow needs a clear name, description, stable identity, declared
 scope, preview, arguments, risk class, provenance, trust state, and optional
@@ -575,19 +680,48 @@ alias or pin.
 
 Do not execute arbitrary shell startup files merely to discover aliases.
 
-### 8.9 Remote environments
+### 8.10 SSH
+
+Discover literal destinations from `$HOME/.ssh/config` and included files.
+Treat wildcard and negated host rules as policies, not enumerable destinations.
+For a selected alias, resolve effective OpenSSH behavior before connection and
+explain destination, user, port, jump chain, identity filenames, forwarding,
+host-key policy, and existing connection multiplexing without exposing secrets.
+
+Execute the configured alias rather than rebuilding a simplified command that
+could discard proxy, match, forwarding, canonicalization, or multiplexing rules.
+Preserve native passphrase and host-key prompts. Changed host keys hard-stop.
+
+### 8.11 Stack-aware cleanup
+
+Cleanup must understand ownership and regeneration rather than delete folders by
+name alone.
+
+- **Rust:** resolve actual Cargo target directories, deduplicate shared targets,
+  preview cleanup, and serialize projects sharing output.
+- **Gradle:** prefer each project wrapper and `clean` task so custom build
+  directories are respected. Treat project `.gradle` data and user-global caches
+  as separate deeper cleanup.
+- **Node:** identify workspace ownership, manager, lockfile, install strategy,
+  Plug'n'Play or node-modules mode, symlinks, and checked-in caches. Separate
+  dependency removal, locked restoration, and global cache cleanup.
+
+Independent projects may clean in parallel. Shared workspaces, caches, and
+output directories require dependency-aware ordering.
+
+### 8.12 Remote environments
 
 Make hostname, environment role, current path, remote state, and relevant
 privilege visible. Use platform-appropriate actions and stronger confirmation
 for production or sensitive hosts.
 
-### 8.10 Specialist handoffs
+### 8.13 Specialist handoffs
 
 Holla coordinates tools rather than recreating every expert workflow. Explain
 why a tool fits, show its target, preserve context, honor user preference, and
 return cleanly when possible.
 
-### 8.11 Program insights and activity multiplexing
+### 8.14 Program insights and activity multiplexing
 
 Holla must support more than launching a command and forgetting it. Long-lived
 tasks, development servers, logs, monitors, and interactive programs become
@@ -613,7 +747,7 @@ return to without losing state. It does not require a particular tab bar, pane
 arrangement, or visual form. Required behavior is persistent named activities,
 program insights, fast switching, clear state, and retained scope.
 
-### 8.12 Plan-based workflows and dependency graphs
+### 8.15 Plan-based workflows and dependency graphs
 
 Some intents contain several commands with dependencies. Holla must represent
 them as an execution graph, not pretend they are always one command or one
@@ -688,7 +822,7 @@ Failure handling must preserve graph meaning:
 The graph relationship is required product information. Its visual rendering as
 a tree, graph, outline, tabs, timeline, or combination remains open design work.
 
-### 8.13 System maintenance and upgrades
+### 8.16 System maintenance and upgrades
 
 System-level discovery may recommend compound actions such as **Upgrade
 everything on this system** when relevant package managers and tool managers are
@@ -791,8 +925,8 @@ safety treatment.
   when the effect is surprising, sensitive, or difficult to reverse.
 - **Destructive:** never execute from ordinary primary selection. Begin a
   dedicated review, then require a separate final confirmation.
-- **Broad destructive:** use two gates plus a target-bound typed phrase. This
-  includes deleting everything below a folder, removing all containers or
+- **Broad destructive:** use two gates; the second requires a target-bound typed
+  phrase. This includes deleting everything below a folder, removing all containers or
   images, pruning all volumes, resetting a workspace, or affecting many targets.
 - **Privileged or production:** apply the destructive flow whenever impact is
   broad or recovery is uncertain, even if the underlying command is normally
@@ -829,7 +963,7 @@ For exceptionally broad actions, prefix the phrase with `I UNDERSTAND:`. A
 generic `y`, `yes`, or `I know what I am doing` is insufficient because it does
 not identify what the user is authorizing.
 
-The execute control remains disabled until the phrase matches exactly.
+Execution remains unavailable until the phrase matches exactly.
 
 ### Confirmation invariants
 
@@ -839,7 +973,8 @@ The execute control remains disabled until the phrase matches exactly.
 - Never remember approval for future destructive actions.
 - Re-resolve the plan immediately before execution. If target or affected set
   changed materially, invalidate confirmation and show the new plan.
-- Make safe cancellation the default focused action.
+- Cancellation remains the default outcome unless the user explicitly
+  continues.
 - Do not use countdowns as a substitute for informed confirmation.
 - Prefer recoverable operations, but clearly allow permanent operations after
   the required confirmation.
@@ -918,6 +1053,79 @@ the root scope without losing the frontend context.
 From the same session, the user enters System scope to inspect Docker status,
 find a specific container, or choose a host-wide stop-all or cleanup action.
 Every action retains its own scope and confirmation behavior.
+
+### mise trust and child-task execution
+
+From the monorepository root, the user searches for frontend tests. Holla finds
+a namespaced task in the child's `mise.toml`, explains its child working
+directory and dependency graph, then shows that the configuration is not yet
+trusted.
+
+The user reviews the exact configuration, commands, environment effect, and
+trust scope. After explicit trust, Holla re-resolves the task and starts it in
+the child directory. Dependencies and live output remain available as plan
+activities.
+
+### Git operations across child projects
+
+The user asks for status across all child Git projects. Holla discovers and
+deduplicates worktrees, distinguishes submodules, and inspects every project in
+parallel. The user then creates a pull plan, excludes one dirty project, and
+runs fast-forward-only pulls for eligible projects.
+
+A later request to `checkout main` is understood as **switch each selected
+project to its resolved primary branch**; projects whose primary branch is
+`master` or another name use that actual branch. Dirty or ambiguous projects are
+blocked without discarding work.
+
+For cloning, Holla offers projects from the active GitHub account and selected
+organizations. The user reviews account, owner, protocol, destination, primary
+branch, and fork behavior before cloning.
+
+### Follow logs from multiple containers
+
+The user asks to follow logs from `api`, `worker`, and `scheduler`. If they belong
+to one Compose project, Holla uses project-aware multi-service logs. Otherwise it
+coordinates separate container streams. Output retains container identity, and
+each stream remains independently inspectable within one combined activity.
+
+### Diagnose host resource pressure
+
+Holla notices sustained CPU or memory pressure and recommends **Show system
+resources**. It provides enough context to identify the pressure domain, then
+offers `btm` as a persistent deep-monitoring activity. The user can return to
+Holla without losing the monitor or its host context.
+
+### Diagnose PostgreSQL blocking
+
+The user asks who is blocking a database. Holla identifies a blocker dependency
+tree, query and transaction ages, wait state, database, user, client, and affected
+sessions. It offers `pg_activity` for live inspection.
+
+If the user chooses mutation, cancel-current-query is offered before
+terminate-backend. Holla revalidates server, PID, and query identity immediately
+before confirmation.
+
+### Connect through SSH configuration
+
+The user searches a literal alias discovered from `$HOME/.ssh/config`. Holla
+resolves included configuration and explains effective destination, port, user,
+jump chain, identity filenames, forwarding, host-key behavior, and existing
+connection multiplexing. It then launches the original alias, preserving native
+authentication and fingerprint checks.
+
+### Clean Rust, Gradle, and Node artifacts
+
+The user asks to clean build artifacts under a workspace. Holla groups Cargo
+target directories, Gradle builds, and Node dependency trees beneath their
+owning projects. It deduplicates shared targets and workspace roots, measures
+reclaimable space, and leaves recent or uncertain data unselected.
+
+Independent projects become parallel branches. Shared Cargo targets, tasks
+within one Gradle build hierarchy, tasks within one Node workspace, and shared
+caches remain ordered; independent roots may run in parallel. The user excludes
+one project, reviews regeneration methods, confirms exact paths, then receives
+reclaimed, skipped, blocked, and failed results per branch.
 
 ### Remote server
 
@@ -1158,6 +1366,8 @@ visual design:
 - [Universal launcher patterns](reference/universal-launcher-patterns.md)
 - [Terminal workflow patterns](reference/terminal-workflow-patterns.md)
 - [Context-adaptive product principles](reference/context-adaptive-product-principles.md)
+- [Technology-stack workflows](reference/technology-stack-workflows.md)
+- [Mole-informed disk and cleanup patterns](reference/mole-disk-cleanup-patterns.md)
 
 ### Final interpretation rule
 

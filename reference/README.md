@@ -6,6 +6,8 @@ Optional product-pattern notes supporting
 - [Universal launcher patterns](universal-launcher-patterns.md)
 - [Terminal workflow patterns](terminal-workflow-patterns.md)
 - [Context-adaptive product principles](context-adaptive-product-principles.md)
+- [Technology-stack workflows](technology-stack-workflows.md)
+- [Mole-informed disk and cleanup patterns](mole-disk-cleanup-patterns.md)
 
 These documents contain synthesized ideas, not instructions to reproduce a
 specific product. They start from Holla's intended user needs and experience.
