@@ -2,8 +2,8 @@
 
 ## Status
 
-- Overall: Slice 2 — COMPONENT_ARCHITECTURE.md complete (20 sections + slice plan + package layout), under fresh Opus critique
-- Slice: 2 — architecture review and representative prototype
+- Overall: Slice 2/3 — architecture accepted (Adjudications A–M); foundations crate under construction
+- Slice: 3 — foundations (crates/tui as tui-next), prototype components next
 
 ## Baseline
 
@@ -52,7 +52,9 @@
 - (done) wp0-digests builder: tablepro 42 + jackin 36 pre-refactor cell-exact digests in tests/baselines/, CI workflows .github/workflows/{ci,perf}.yml; tag perf/baseline moved to this commit.
 - (done) opus: docs/audit/modern-api-audit.md; docs/reviews/adjudication-k-form-grid.md.
 - (done 27bd918) arch-fold builder: §22 Adjudication L, §23 Adjudication K, §15.1 Form API, §17 example 13, 46 inline markers.
-- opus-analyst (running): docs/reviews/adjudication-m-small-items.md — M1 re-export names (Size/Span collision), M2 ASCII border set, M3 FieldKind vs collection generics.
+- (done) Adjudication M recorded at docs/reviews/adjudication-m-small-items.md (ACCEPTED: M1 no rename — ratatui `Size`/`Line`/`Span`/`Text` not re-exported at root, `author::raw::{Line,Span,Text}` only, `Frame` root-only, `Ui::paint_spans`; M2 `theme::border::ASCII` plain const, Junie=ROUNDED, Paper=PLAIN, no auto selection; M3 `FieldKind` closed over `LabelSelect/LabelRadio/LabelChips` aliases, `FormData::{options,value_and_options}`).
+- fable-builder "arch-record-M": COMPONENT_ARCHITECTURE.md only (§24).
+- fable-builder "foundations": root Cargo.toml (workspace sections only), crates/tui/** (package `tui-next`, lib `tui_next` — TEMPORARY until Slice 5), crates/tui-testing/**, xtask/**, rust-toolchain.toml. No src/, tests/, docs/ edits.
 - (done) perf-baseline builder: tests/perf*.rs, src/bin/*/perf_tests.rs.
 - (done) baseline-capture builder: baseline/before/**, tools/baseline_capture.sh.
 
@@ -73,4 +75,4 @@
 ## Next action
 
 - MSRV re-examined during refactor and deliberately held at 1.88 (Adjudication L §22.5); CI gate `cargo +1.88.0 check --workspace --all-targets --all-features` makes it a fact.
-- When Adjudication M lands: builder records it; then spawn Slice 2 prototype builder (workspace root; crates/tui as tui-next on ratatui-core; scope per review §9c + Adjudication L rules) (workspace root + crates/tui as tui-next, prototype scope above). Then fresh Opus review of actual API; then Slice 3 foundations completes the crate.
+- After foundations builder: spawn components builder (Button, Field+TextInput+Secret, List, Tabs, Dialog-as-layer, ScrollRegion; examples 01,05–12; conformance/render/override/overlay tests; migrated Buttons page in-crate) → fresh Opus review of real API → Slice 3 gate → Slice 4 waves (workspace root; crates/tui as tui-next on ratatui-core; scope per review §9c + Adjudication L rules) (workspace root + crates/tui as tui-next, prototype scope above). Then fresh Opus review of actual API; then Slice 3 foundations completes the crate.
