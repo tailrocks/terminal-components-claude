@@ -1,4 +1,3 @@
-
 # Performance and Ownership Audit — current code + measurement plan
 
 Scope: `REFACTORING_GOAL.md` §25.6 and §28 ("Performance and ownership review"), judged against `docs/audit/architecture-research.md` §2–§3, §8 and `docs/audit/interaction-audit.md` Part B (B1–B3).
