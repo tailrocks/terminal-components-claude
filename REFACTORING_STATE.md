@@ -20,6 +20,7 @@
   3. `Ctrl+\` palette chord undeliverable via tmux legacy encoding (harness limitation, not app bug).
   4. jackin F10 reopens last-used menu, not File (semantics decision deferred to Slice 7 Opus review).
   5. TablePro has no menu bar (by design today).
+  6. TablePro reads `Instant::now()` for status (5 s) and press flash (140 ms) — wall-clock in app state; digests stable in practice but the refactor injects a clock (runtime-owned motion tokens, §8.5).
 - Perf baseline (WP-0): commit 07cb2c9, tag perf/baseline; tests/perf_baseline.txt blessed in release. Key before-numbers: showcase lists frame 213 allocs; tablepro grid frame 1,030 allocs; jackin capsule 4-pane frame 1,080,602 allocs / 74 MB; viewport 100k-line render 15.2M allocs / 1 GiB per frame; grid load 61,005 allocs; tree 100k toggle 596,840 allocs.
 - Source size: ~72K lines; lib ~16K (core/ui/theme/runtime/widgets), showcase ~8K, tablepro ~12K, jackin ~35K.
 - Before-refactor captures: baseline/before/ — 499 captures (208 showcase, 108 tablepro, 183 jackin) as .ansi/.txt/.cursor (committed) + .html/.png (gitignored, regenerable via `tools/baseline_capture.sh all`); MANIFEST.md has exact key/mouse recipes; NOTES.md findings.
@@ -47,7 +48,7 @@
 
 - fable-builder "baseline-capture": baseline/before/**, tools/** (capture additions only). No src/ edits.
 - (done 95ab652) arch-edits builder: §21 Adjudication J applied (34 items, 44 inline markers), docs/visual-changes.md created.
-- fable-builder "wp0-digests": src/bin/{tablepro,jackin_preview}/visual_tests.rs (+ mod line in main.rs), tests/baselines/{tablepro,jackin}.txt, .github/workflows/{ci,perf}.yml.
+- (done) wp0-digests builder: tablepro 42 + jackin 36 pre-refactor cell-exact digests in tests/baselines/, CI workflows .github/workflows/{ci,perf}.yml; tag perf/baseline moved to this commit.
 - opus-analyst (running): docs/audit/modern-api-audit.md; docs/reviews/adjudication-k-form-grid.md (K1 Form API, K2 Grid::update bound).
 - (done) perf-baseline builder: tests/perf*.rs, src/bin/*/perf_tests.rs.
 - (done) baseline-capture builder: baseline/before/**, tools/baseline_capture.sh.
@@ -55,7 +56,7 @@
 ## Completed gates
 
 - Slice 1 baseline commands: done (see Baseline).
-- WP-0 perf baseline: done (07cb2c9); fmt/clippy/test green after harness added.
+- WP-0 perf baseline: done (07cb2c9); digests + CI done (next commit; tag perf/baseline). Full §26-shaped gate run green on single package: fmt, clippy -D warnings, test (lib 76, jackin 67, showcase 33, tablepro 41, perf 30), doc tests, doc -D warnings, build --all-targets.
 
 ## Unresolved findings
 
