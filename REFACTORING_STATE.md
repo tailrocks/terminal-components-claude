@@ -20,6 +20,7 @@
   3. `Ctrl+\` palette chord undeliverable via tmux legacy encoding (harness limitation, not app bug).
   4. jackin F10 reopens last-used menu, not File (semantics decision deferred to Slice 7 Opus review).
   5. TablePro has no menu bar (by design today).
+- Perf baseline (WP-0): commit 07cb2c9, tag perf/baseline; tests/perf_baseline.txt blessed in release. Key before-numbers: showcase lists frame 213 allocs; tablepro grid frame 1,030 allocs; jackin capsule 4-pane frame 1,080,602 allocs / 74 MB; viewport 100k-line render 15.2M allocs / 1 GiB per frame; grid load 61,005 allocs; tree 100k toggle 596,840 allocs.
 - Source size: ~72K lines; lib ~16K (core/ui/theme/runtime/widgets), showcase ~8K, tablepro ~12K, jackin ~35K.
 - Before-refactor captures: baseline/before/ — 499 captures (208 showcase, 108 tablepro, 183 jackin) as .ansi/.txt/.cursor (committed) + .html/.png (gitignored, regenerable via `tools/baseline_capture.sh all`); MANIFEST.md has exact key/mouse recipes; NOTES.md findings.
 
@@ -46,12 +47,16 @@
 ## Completed gates
 
 - Slice 1 baseline commands: done (see Baseline).
+- WP-0 perf baseline: done (07cb2c9); fmt/clippy/test green after harness added.
 
 ## Unresolved findings
 
 - Library domain leaks (grep sweep, coordinator): src/widgets/grid.rs (105 SQL/NULL/PK/FK hits), src/widgets/dialog.rs:21 ("(SQL)" doc), src/widgets/statusbar.rs:335 (jackin label in test). Apps: 82 `.owns(`/`.locate` call sites.
 - Research conflict to adjudicate (Opus synthesis): interaction-audit B2/B3 proposes retained handle/render split with runtime-delivered `Event` + `Response{flow,invalidate,action}`; architecture-research §2 proposes immediate-mode `show(ui, area)` with intent queue drained during show. Must weigh Scenario A ergonomics vs migration of ~55K lines of app code and deterministic test harnesses.
 - app-audit agent reported no grep/glob; its counts are lower bounds over files read in full.
+- Perf finding P1 (new cost centre): TextViewport::render calls ensure_layout twice per frame (width, then width-1 on overflow) so the whole buffer re-lays out every frame even with no push — 15.2M allocs/frame at 100k lines. Must be covered by §20.9 item 7 (windowed incremental layout); acceptance `viewport_100k_lines_render` allocs independent of buffer size.
+- Perf finding P2: debug vs release differ by exactly one 3-byte alloc (optimizer-elided String). Decision needed for `debug_and_release_alloc_counts_match` tolerance (defer to Slice 3 gate Opus review; harness currently reports).
+- Perf harness deviations: thread-local counters (not global atomics) for exactness under concurrent tests; realloc counted; `hits` ±10% enforced inside report(); PERF_TARGET=1 gates post-refactor assertions.
 
 ## Next action
 
