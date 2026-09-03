@@ -16,7 +16,7 @@ Resolve ordinary decisions autonomously within these model boundaries. Opus comp
 
 Run the primary coordinator and every implementation worker with `claude-fable-5-1`, effort `high`.
 
-Use fresh `opus-analyst` agents for every exploratory repository audit, external or current-documentation research, architecture decision, alternative comparison, public-API critique, test-design review, domain-boundary decision, security or threat analysis, performance interpretation, visual judgment, architectural root-cause diagnosis, and independent review. "Research" includes investigation of repository source, tests, captures, and rendered behavior, not only web research. Opus agents are read-only and return evidence-backed findings.
+Use fresh `opus-analyst` agents for every exploratory repository audit, research question, architecture decision, alternative comparison, public-API critique, test-design review, domain-boundary decision, security or threat analysis, performance interpretation, visual judgment, architectural root-cause diagnosis, and independent review. Opus agents are read-only and return evidence-backed findings.
 
 Fable may perform targeted reads needed to execute an accepted design. Fable owns all worktree mutations, production code, migrations, test and capture execution, benchmark collection, documentation updates, cleanup, corrections, integration, and final reporting. Fable records accepted Opus findings in `COMPONENT_ARCHITECTURE.md`, `REFACTORING_STATE.md`, and other repository documents.
 
@@ -98,7 +98,7 @@ Use the following authority order when requirements conflict:
 3. Existing rendered output, capture artifacts, visual baselines, and interaction tests — regression evidence for the default theme and current product behavior.
 4. Current source under `src/core/`, `src/ui/`, `src/widgets/`, and `src/runtime.rs` — implementation evidence, not an architecture that must be preserved.
 5. Current `showcase`, `tablepro`, and `jackin-preview` behavior and tests — application semantics that must continue to work unless an existing defect is deliberately corrected.
-6. shadcn/ui and external references — conceptual and architectural references, not implementation templates.
+6. Relevant prior art — conceptual and architectural evidence, not implementation templates.
 
 Preserve the exact default Junie token values and established visual behavior unless a change is necessary to correct a demonstrated inconsistency or defect. Document every intentional visual change and review it through actual captures.
 
@@ -170,7 +170,7 @@ No component may be silently skipped because it is difficult or application-spec
 
 # 5. IMPORTANT NON-GOALS
 
-Do not turn this project into a clone of a web framework.
+Do not turn this project into a clone of another UI framework.
 
 Do not introduce a virtual DOM, CSS parser, Tailwind-like class system, stringly typed style language, plugin ABI, or declarative macro DSL unless rigorous research proves that it is necessary and materially better than simpler Rust APIs.
 
@@ -292,22 +292,11 @@ The audit is not the final deliverable. Use it to make decisions and then contin
 
 ---
 
-# 8. EXTERNAL RESEARCH
+# 8. ARCHITECTURE RESEARCH
 
-Research current primary sources before choosing the new architecture.
+Investigate the design questions that materially affect the new architecture. The analyst chooses the evidence and read-only tools appropriate to each question.
 
-At minimum inspect:
-
-* the current shadcn/ui source and documentation:
-  [https://github.com/shadcn-ui/ui](https://github.com/shadcn-ui/ui)
-* Rust API Guidelines:
-  [https://rust-lang.github.io/api-guidelines/](https://rust-lang.github.io/api-guidelines/)
-* the Ratatui version used by this repository and current Ratatui source/documentation:
-  [https://github.com/ratatui/ratatui](https://github.com/ratatui/ratatui)
-* current Crossterm input and terminal semantics:
-  [https://github.com/crossterm-rs/crossterm](https://github.com/crossterm-rs/crossterm)
-
-You may inspect other maintained Rust UI or TUI libraries when they provide useful evidence about:
+Cover:
 
 * retained versus immediate component models
 * stateless view plus external state
@@ -322,8 +311,6 @@ You may inspect other maintained Rust UI or TUI libraries when they provide usef
 * custom item renderers
 * testability
 
-Use primary documentation and source rather than blog summaries.
-
 Do not copy another framework wholesale. Record:
 
 * which problem a reference solves
@@ -332,8 +319,6 @@ Do not copy another framework wholesale. Record:
 * what was adopted
 * what was rejected
 * why the chosen design is appropriate for this repository
-
-Record versions or commits for important external references so the research remains reproducible.
 
 ---
 
@@ -450,7 +435,7 @@ Determine how a Rust caller can:
 * reuse behavior with different presentation
 * provide borrowed content without unnecessary allocation
 
-Translate shadcn/ui’s compound-component and open-code ideas into idiomatic Rust rather than reproducing its web syntax.
+Translate shadcn/ui’s compound-component and open-code ideas into idiomatic Rust rather than reproducing its original syntax.
 
 ## 9.5 Package boundary
 
@@ -1004,7 +989,7 @@ Preserve the runnable binary names:
 
 Preserve the current Rust edition and MSRV unless a change is strongly justified, documented, and verified.
 
-Verify current dependency versions against their primary sources. Upgrade only when an upgrade materially supports the architecture or fixes a relevant issue. Do not combine the refactor with unrelated dependency churn.
+Verify dependency versions before proposing upgrades. Upgrade only when an upgrade materially supports the architecture or fixes a relevant issue. Do not combine the refactor with unrelated dependency churn.
 
 Keep dependencies focused. Avoid adding a framework-sized dependency merely to replace a small amount of well-understood code.
 
@@ -1418,7 +1403,7 @@ Use vertical slices rather than a single uncontrolled big-bang rewrite.
 * identify API inconsistencies
 * identify domain leakage
 * identify reusable controls hidden in applications
-* complete external research
+* complete architecture research
 
 ## Slice 2 — Architecture and representative prototype
 
@@ -1550,7 +1535,7 @@ Inventory every component API, state model, event shape, render signature, exten
 
 ## Rust API research
 
-Compare idiomatic Rust component, ownership, generic, trait, and public-API alternatives using current primary sources.
+Compare idiomatic Rust component, ownership, generic, trait, and public-API alternatives using evidence appropriate to the decision.
 
 ## Theme architecture
 

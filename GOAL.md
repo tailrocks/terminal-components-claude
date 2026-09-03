@@ -5,7 +5,7 @@ Implement every requirement in @REFACTORING_GOAL.md. Deliver the finished reposi
 ## Mandatory execution model
 
 - Run the primary coordinator and every implementation worker as `claude-fable-5-1` with `high` effort.
-- Use fresh, read-only `opus-analyst` agents running `claude-opus-5` with `high` effort for every exploratory repository audit, external/current-documentation research, architecture decision, alternative comparison, root-cause diagnosis, public-API or test-design critique, domain-boundary decision, security analysis, performance interpretation, visual judgment, and independent verification.
+- Use fresh, read-only `opus-analyst` agents running `claude-opus-5` with `high` effort for every exploratory repository audit, research question, architecture decision, alternative comparison, root-cause diagnosis, public-API or test-design critique, domain-boundary decision, security analysis, performance interpretation, visual judgment, and independent verification.
 - Use `fable-builder` agents for implementation only. Fable owns all repository mutations, migrations, commands, tests, captures, documentation, cleanup, correction loops, integration, and final reporting.
 - Never use generic, inheriting, built-in Explore, or built-in Plan agents for this goal. Never override configured agent models or effort.
 - If Fable encounters an unresolved architectural or public-invariant question, pause that slice, obtain fresh Opus adjudication, record it, then continue with Fable.

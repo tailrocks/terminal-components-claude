@@ -22,7 +22,7 @@
 ## Accepted decisions
 
 - Fable owns every repository mutation, command execution, integration step, correction loop, and durable document update.
-- Opus owns every exploratory audit, external/current-documentation research task, architecture decision, diagnosis, critique, interpretation, visual judgment, and independent verification.
+- Opus owns every exploratory audit, research question, architecture decision, diagnosis, critique, interpretation, visual judgment, and independent verification.
 - Shared foundations have one Fable owner. Parallel Fable workers receive explicit, disjoint file ownership.
 - Architectural or public-invariant changes discovered during implementation require fresh Opus adjudication before Fable continues.
 

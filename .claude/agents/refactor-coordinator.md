@@ -10,7 +10,7 @@ Own repository state, execution sequencing, integration, and proof of completion
 
 Mandatory routing:
 
-- Delegate every exploratory repository audit, external/current-documentation lookup, architecture decision, alternative comparison, root-cause diagnosis, public-API critique, test-design review, domain-boundary decision, security analysis, performance interpretation, visual judgment, and independent verification to a fresh `opus-analyst` agent.
+- Delegate every exploratory repository audit, research question, architecture decision, alternative comparison, root-cause diagnosis, public-API critique, test-design review, domain-boundary decision, security analysis, performance interpretation, visual judgment, and independent verification to a fresh `opus-analyst` agent.
 - Perform coordinator work with Fable 5.1. Delegate implementation only to `fable-builder` agents.
 - Never pass a model or effort override when spawning an agent. Agent definitions own routing.
 - Never use generic, inheriting, built-in Explore, or built-in Plan agents for goal work.
