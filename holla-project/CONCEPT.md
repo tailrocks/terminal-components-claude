@@ -528,8 +528,8 @@ Generic extensibility remains useful but must not dilute this focus.
 
 Detailed local concept examples live in:
 
-- [Technology-stack workflows](reference/technology-stack-workflows.md)
-- [Mole-informed disk and cleanup patterns](reference/mole-disk-cleanup-patterns.md)
+- [Technology-stack workflows](references/technology-stack-workflows.md)
+- [Mole-informed disk and cleanup patterns](references/mole-disk-cleanup-patterns.md)
 
 ### 8.1 Current project
 
@@ -1363,11 +1363,11 @@ This document is self-contained. These local notes offer deeper conceptual
 pattern analysis without requiring external research. They also do not prescribe
 visual design:
 
-- [Universal launcher patterns](reference/universal-launcher-patterns.md)
-- [Terminal workflow patterns](reference/terminal-workflow-patterns.md)
-- [Context-adaptive product principles](reference/context-adaptive-product-principles.md)
-- [Technology-stack workflows](reference/technology-stack-workflows.md)
-- [Mole-informed disk and cleanup patterns](reference/mole-disk-cleanup-patterns.md)
+- [Universal launcher patterns](references/universal-launcher-patterns.md)
+- [Terminal workflow patterns](references/terminal-workflow-patterns.md)
+- [Context-adaptive product principles](references/context-adaptive-product-principles.md)
+- [Technology-stack workflows](references/technology-stack-workflows.md)
+- [Mole-informed disk and cleanup patterns](references/mole-disk-cleanup-patterns.md)
 
 ### Final interpretation rule
 
