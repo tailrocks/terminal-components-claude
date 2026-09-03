@@ -51,7 +51,8 @@
 - (done 95ab652) arch-edits builder: §21 Adjudication J applied (34 items, 44 inline markers), docs/visual-changes.md created.
 - (done) wp0-digests builder: tablepro 42 + jackin 36 pre-refactor cell-exact digests in tests/baselines/, CI workflows .github/workflows/{ci,perf}.yml; tag perf/baseline moved to this commit.
 - (done) opus: docs/audit/modern-api-audit.md; docs/reviews/adjudication-k-form-grid.md.
-- fable-builder "arch-fold-L-K": COMPONENT_ARCHITECTURE.md only (records §22 Adjudication L modern-API policy, §23 Adjudication K Form/Grid).
+- (done 27bd918) arch-fold builder: §22 Adjudication L, §23 Adjudication K, §15.1 Form API, §17 example 13, 46 inline markers.
+- opus-analyst (running): docs/reviews/adjudication-m-small-items.md — M1 re-export names (Size/Span collision), M2 ASCII border set, M3 FieldKind vs collection generics.
 - (done) perf-baseline builder: tests/perf*.rs, src/bin/*/perf_tests.rs.
 - (done) baseline-capture builder: baseline/before/**, tools/baseline_capture.sh.
 
@@ -71,4 +72,5 @@
 
 ## Next action
 
-- When §22/§23 land: spawn Slice 2 prototype builder (workspace root; crates/tui as tui-next on ratatui-core; scope per review §9c + Adjudication L rules) (workspace root + crates/tui as tui-next, prototype scope above). Then fresh Opus review of actual API; then Slice 3 foundations completes the crate.
+- MSRV re-examined during refactor and deliberately held at 1.88 (Adjudication L §22.5); CI gate `cargo +1.88.0 check --workspace --all-targets --all-features` makes it a fact.
+- When Adjudication M lands: builder records it; then spawn Slice 2 prototype builder (workspace root; crates/tui as tui-next on ratatui-core; scope per review §9c + Adjudication L rules) (workspace root + crates/tui as tui-next, prototype scope above). Then fresh Opus review of actual API; then Slice 3 foundations completes the crate.
