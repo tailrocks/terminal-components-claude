@@ -23,15 +23,16 @@
 - Coordinator: `refactor-coordinator` (`claude-fable-5-1`, high) — this session.
 - Implementation: `fable-builder` (`claude-fable-5-1`, high).
 - Research/review: `opus-analyst` (`claude-opus-5`, high, read-only).
-- Slice 1 Opus audits: docs/audit/app-audit.md, domain-boundary-audit.md, interaction-audit.md, architecture-research.md (done, committed); api-audit.md (done, committed); performance-audit.md (running).
+- Slice 1 Opus audits: docs/audit/app-audit.md, domain-boundary-audit.md, interaction-audit.md, architecture-research.md (done, committed); api-audit.md, performance-audit.md (all six done, committed).
 
 ## Accepted decisions
 
-- None recorded yet (awaiting Slice 1 research).
+- Pending Opus synthesis (COMPONENT_ARCHITECTURE.md). Performance mitigations R1–R7 and §6.3 (viewport/tree/code) from docs/audit/performance-audit.md must be folded into the accepted architecture before Slice 3.
 
 ## File ownership
 
 - fable-builder "baseline-capture": baseline/before/**, tools/** (capture additions only). No src/ edits.
+- fable-builder "perf-baseline": tests/perf.rs, tests/perf_common.rs, tests/perf_baseline.txt, src/bin/*/perf_tests.rs (+ one `mod perf_tests;` line per main.rs). No library edits.
 
 ## Completed gates
 
