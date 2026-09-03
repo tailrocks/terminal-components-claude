@@ -609,6 +609,53 @@ mod tests {
         assert!(tight.iter().all(|r| r.right() <= 15));
     }
 
+    /// Adjudication 2.7: `Track::Auto` is content-sized, and without a
+    /// measurement the primitive gives it **one cell** when explicit `Flex`
+    /// tracks exist (so `Auto` never starves a `Flex`) and an **equal share
+    /// of the remainder** when there are none.
+    #[test]
+    fn auto_takes_one_cell_beside_flex_and_an_equal_share_without_it() {
+        // beside a Flex: exactly one cell
+        let d = distribute(20, &[Track::Auto, Track::Flex(1)], 0, None);
+        assert_eq!(d, vec![1, 19]);
+        let d = distribute(20, &[Track::Auto, Track::Auto, Track::Flex(1)], 0, None);
+        assert_eq!(d, vec![1, 1, 18]);
+        // with a Fixed track and a Flex, the Fixed is honoured first
+        let d = distribute(20, &[Track::Fixed(6), Track::Auto, Track::Flex(1)], 0, None);
+        assert_eq!(d, vec![6, 1, 13]);
+        // no Flex at all: an equal share of the remainder, leftovers to the
+        // earliest tracks
+        let d = distribute(20, &[Track::Auto, Track::Auto], 0, None);
+        assert_eq!(d, vec![10, 10]);
+        let d = distribute(20, &[Track::Fixed(5), Track::Auto, Track::Auto], 0, None);
+        assert_eq!(d, vec![5, 8, 7]);
+    }
+
+    /// The `_measured` variants are the home for `Measure`-derived sizes: a
+    /// supplied natural size replaces the one-cell placeholder.
+    #[test]
+    fn rows_measured_uses_the_natural_size() {
+        let area = Rect::new(0, 0, 30, 12);
+        let tracks = [Track::Auto, Track::Fixed(1), Track::Flex(1)];
+        // unmeasured: `Auto` gets one cell beside the `Flex`
+        let plain = rows(area, &tracks);
+        assert_eq!(plain[0].height, 1);
+        // measured: `Auto` gets exactly the natural size it reported, and the
+        // `Flex` track absorbs the difference
+        let rows_m = rows_measured(area, &tracks, &[4, 0, 0]);
+        assert_eq!(rows_m[0].height, 4);
+        assert_eq!(rows_m[1].height, 1);
+        assert_eq!(rows_m[2].height, 7);
+        assert_eq!(rows_m.iter().map(|r| r.height).sum::<u16>(), 12);
+        // a natural size larger than the area degrades to the space left
+        let big = rows_measured(area, &tracks, &[40, 0, 0]);
+        assert_eq!(big[0].height, 12);
+        assert_eq!(big[2].height, 0);
+        // columns_measured behaves the same on the other axis
+        let cols = columns_measured(area, &tracks, 1, &[4, 0, 0]);
+        assert_eq!(cols[0].width, 4);
+    }
+
     #[test]
     fn inset_saturates_on_tiny_rects() {
         // the symmetric case is `Rect::inner`, which yields an empty rect when the margin does not fit

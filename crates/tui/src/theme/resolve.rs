@@ -31,6 +31,57 @@ pub struct Resolved {
     pub align: Option<Align>,
 }
 
+impl Resolved {
+    /// This part's style layered over an inherited one — §11.3's final step,
+    /// `Style::patch` semantics (modifier symmetry, §22 R‑9).
+    ///
+    /// Write `ui.fill(area, r.over(ui.surface_style()))`: the inherited style
+    /// is the **left** operand, this part's style the right.
+    #[must_use]
+    pub fn over(self, inherited: Style) -> Style {
+        inherited.patch(self.style)
+    }
+
+    /// The surface-independent half: glyph, size and alignment.
+    #[must_use]
+    pub const fn metrics(self) -> PartMetrics {
+        PartMetrics {
+            glyph: self.glyph,
+            size: self.size,
+            align: self.align,
+        }
+    }
+}
+
+/// The surface-independent half of resolution: everything §11.3 settles
+/// before roles bind to colours. Available in `update`, where there is no
+/// `Surface` (Adjudication N2).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct PartMetrics {
+    /// The glyph the part must paint when `Some` (§5 R9).
+    pub glyph: Option<GlyphRole>,
+    /// The part's size, if the recipe sets one.
+    pub size: Option<u16>,
+    /// The part's text alignment, if the recipe sets one.
+    pub align: Option<Align>,
+}
+
+impl From<Resolved> for PartMetrics {
+    fn from(r: Resolved) -> Self {
+        r.metrics()
+    }
+}
+
+/// The metrics carried by an accumulated patch — the one place `Theme::resolve`
+/// and `Theme::metrics` read `glyph`/`size`/`align`, so they cannot drift.
+pub(crate) fn metrics_of(acc: &StylePatch) -> PartMetrics {
+    PartMetrics {
+        glyph: acc.glyph.get(),
+        size: acc.size.get(),
+        align: acc.align.get(),
+    }
+}
+
 /// Steps 1–5: accumulate the role-level patch.
 pub(crate) fn accumulate(
     theme: &Theme,
@@ -42,23 +93,31 @@ pub(crate) fn accumulate(
 ) -> StylePatch {
     let mut acc = StylePatch::new();
     let recipes = &theme.recipes;
-    let variant = recipes.get(f).map_or(v, |r| {
-        if v == Variant::DEFAULT {
-            r.default_variant
-        } else {
-            v
-        }
-    });
-    if let Some(r) = recipes.get(f) {
-        // 1 + 3: family base part and its state rules
-        if let Some(part) = r.parts.get(p) {
-            acc = part.apply(acc, live);
-        }
-        // 2 (+ its own state rules): the variant delta
-        if let Some(part) = r.variant(variant).and_then(|m| m.get(p)) {
-            acc = part.apply(acc, live);
-        }
+    // A family nobody declared resolves through the neutral recipe (§11.2).
+    let r = recipes.get_or_neutral(f);
+    let variant = if v == Variant::DEFAULT {
+        r.default_variant
+    } else {
+        v
+    };
+    let fam = r.parts.get(p);
+    let var = r.variant(variant).and_then(|m| m.get(p));
+    // 1: the family base
+    if let Some(part) = fam {
+        acc = part.apply_base(acc);
     }
+    // 2: the variant delta's base
+    if let Some(part) = var {
+        acc = part.apply_base(acc);
+    }
+    // 3: family and variant state rules are one level, merged in ascending
+    //    specificity with the family's rule first on a tie
+    acc = super::recipe::merge_states(
+        acc,
+        fam.map_or(&[][..], |x| &x.states),
+        var.map_or(&[][..], |x| &x.states),
+        live,
+    );
     // 4: theme-level global overrides — family-wide, then variant-specific
     for o in recipes.overrides() {
         if o.family != f {
@@ -193,20 +252,38 @@ pub(crate) fn bind(
     style.underline_color = bind_slot(theme, acc.underline, surface);
     style.add_modifier = acc.add;
     style.sub_modifier = acc.remove;
+    let m = metrics_of(&acc);
     Resolved {
         style,
-        glyph: acc.glyph.get(),
-        size: acc.size.get(),
-        align: acc.align.get(),
+        glyph: m.glyph,
+        size: m.size,
+        align: m.align,
     }
 }
 
-/// Number of direct-mapped cache slots (§11.1 A3, §20.9-2).
+/// Cache entries (§11.1 A3, §20.9-2): 256, unchanged.
 const CACHE_SLOTS: usize = 256;
+
+/// Ways per set. The entries are the same 256; they are grouped into
+/// `CACHE_SLOTS / WAYS` sets so that two hot keys landing on one set do not
+/// evict each other on every access.
+///
+/// A **direct-mapped** table of 256 entries cannot meet §16.6's ≥ 90 % hit
+/// rate for a realistic frame: with `k` hot keys the expected number of
+/// colliding pairs is `C(k,2)/256`, and a colliding pair in a hot loop misses
+/// on *every* access. `style_resolve_10k_parts` touches 32 keys — 4 parts × 8
+/// states — so ≈2 pairs collide by construction and the measured rate is
+/// ≈87 %, whatever the hash. Two ways make a miss need three keys in one set
+/// (`C(32,3)/128² ≈ 0.3`), which is what makes the memo's health assertable.
+/// The array shape, the single construction-time allocation and the
+/// generation stamp are unchanged.
+const WAYS: usize = 2;
+const CACHE_SETS: usize = CACHE_SLOTS / WAYS;
 
 /// Allocation-free memo of steps 1–5, keyed by a 64-bit mix of
 /// `(Family, Variant, Part, StateFlags, overlay-stack hash)` and cleared by
-/// a generation stamp rather than by zeroing.
+/// a generation stamp rather than by zeroing. Two-way set-associative with
+/// insert-at-most-recent replacement.
 #[derive(Clone, Debug)]
 pub(crate) struct StyleCache {
     slots: Box<[(u64, u32, StylePatch); CACHE_SLOTS]>,
@@ -236,7 +313,10 @@ impl StyleCache {
         self.generation = self.generation.wrapping_add(1).max(1);
     }
 
-    #[cfg(test)]
+    /// `(hits, misses)` since construction. Promoted from `#[cfg(test)]` by
+    /// adjudication 2.8: the memo's hit rate is the binding assertion that
+    /// replaces the per-query ns ratio, so the harness must be able to read it.
+    #[cfg(any(test, feature = "testing"))]
     pub(crate) const fn stats(&self) -> (u64, u64) {
         (self.hits, self.misses)
     }
@@ -265,20 +345,59 @@ impl StyleCache {
         stack_hash: u64,
     ) -> StylePatch {
         let key = Self::key(f, v, p, live, stack_hash) | 1;
-        let idx = (key as usize) % CACHE_SLOTS;
-        if let Some((k, g, patch)) = self.slots.get(idx)
-            && *k == key
-            && *g == self.generation
-        {
-            self.hits = self.hits.wrapping_add(1);
-            return *patch;
+        // `| 1` keeps 0 free as the "empty entry" sentinel, so the set index
+        // is taken from the bits above it.
+        let set = ((key >> 1) as usize) % CACHE_SETS;
+        let base = set.saturating_mul(WAYS);
+        for w in 0..WAYS {
+            if let Some((k, g, patch)) = self.slots.get(base.saturating_add(w))
+                && *k == key
+                && *g == self.generation
+            {
+                let patch = *patch;
+                self.hits = self.hits.wrapping_add(1);
+                if w != 0 {
+                    self.promote(base, w);
+                }
+                return patch;
+            }
         }
         let patch = accumulate(theme, f, v, p, live, overlays);
-        if let Some(slot) = self.slots.get_mut(idx) {
+        // insert at the most-recent way, pushing the previous ways down; the
+        // last way is evicted
+        for w in (1..WAYS).rev() {
+            let prev = self
+                .slots
+                .get(base.saturating_add(w).saturating_sub(1))
+                .copied();
+            if let (Some(p), Some(slot)) = (prev, self.slots.get_mut(base.saturating_add(w))) {
+                *slot = p;
+            }
+        }
+        if let Some(slot) = self.slots.get_mut(base) {
             *slot = (key, self.generation, patch);
         }
         self.misses = self.misses.wrapping_add(1);
         patch
+    }
+
+    /// Move way `w` of the set at `base` to way 0 (most recent).
+    fn promote(&mut self, base: usize, w: usize) {
+        let Some(hit) = self.slots.get(base.saturating_add(w)).copied() else {
+            return;
+        };
+        for i in (1..=w).rev() {
+            let prev = self
+                .slots
+                .get(base.saturating_add(i).saturating_sub(1))
+                .copied();
+            if let (Some(p), Some(slot)) = (prev, self.slots.get_mut(base.saturating_add(i))) {
+                *slot = p;
+            }
+        }
+        if let Some(slot) = self.slots.get_mut(base) {
+            *slot = hit;
+        }
     }
 }
 
@@ -309,79 +428,196 @@ mod tests {
     use crate::theme::role::FgStep;
     use ratatui_core::style::Modifier;
 
-    fn theme() -> Theme {
-        let mut t = Theme::junie();
+    /// The precedence fixture, over an arbitrary base theme: a family base,
+    /// a **family state rule** and a **variant base** whose bound colours are
+    /// distinct under every built-in theme, so an ordering swap is visible.
+    fn theme_over(base: Theme) -> Theme {
+        let mut t = base;
         let r = t.recipes.get_mut(Family::custom("t"));
         r.default_variant = Variant::PRIMARY;
-        // 1 family base + 3 state rule
-        let base = r.parts.entry(Part::LABEL);
-        base.base = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
-        base.when(StateFlags::FOCUSED, StylePatch::new().set_fg(Role::Focus));
+        // 1 family base + 3 family state rule
+        let part = r.parts.entry(Part::LABEL);
+        part.base = StylePatch::new().set_fg(Role::Fg(FgStep::Primary));
+        part.when(StateFlags::FOCUSED, StylePatch::new().set_fg(Role::Warning));
         // 2 variant delta
         r.variant_mut(Variant::PRIMARY).entry(Part::LABEL).base =
             StylePatch::new().set_fg(Role::Accent);
         t
     }
 
+    fn theme() -> Theme {
+        theme_over(Theme::junie())
+    }
+
+    fn label_fg(
+        t: &Theme,
+        live: StateFlags,
+        ovs: &[Overlay],
+        inst: Option<&StylePatch>,
+    ) -> Option<Color> {
+        resolve_uncached(
+            t,
+            Family::custom("t"),
+            Variant::DEFAULT,
+            Part::LABEL,
+            live,
+            Surface::Canvas,
+            ovs,
+            inst,
+        )
+        .style
+        .fg
+    }
+
     #[test]
     fn precedence_family_then_variant_then_state_then_global_then_scope_then_instance() {
-        let mut t = theme();
-        let f = Family::custom("t");
-        let q = |t: &Theme, live, ovs: &[Overlay], inst: Option<&StylePatch>| {
+        for base in [Theme::junie(), Theme::paper()] {
+            let mut t = theme_over(base);
+            let f = Family::custom("t");
+            // the fixture is only meaningful while these four differ
+            assert_ne!(t.color.warning, t.color.accent);
+            assert_ne!(t.color.success, t.color.warning);
+            assert_ne!(t.color.info, t.color.success);
+            assert_ne!(t.color.danger, t.color.info);
+            let q = label_fg;
+            // 2 over 1
+            assert_eq!(q(&t, StateFlags::empty(), &[], None), Some(t.color.accent));
+            // 3 over 2 — the family's state rule beats the variant's base
+            assert_eq!(q(&t, StateFlags::FOCUSED, &[], None), Some(t.color.warning));
+            // 4 over 3
+            let mut parts: PartMap<PartRecipe> = PartMap::new();
+            parts.entry(Part::LABEL).base = StylePatch::new().set_fg(Role::Success);
+            t.recipes.push_override(GlobalOverride {
+                family: f,
+                variant: None,
+                parts,
+            });
+            assert_eq!(q(&t, StateFlags::FOCUSED, &[], None), Some(t.color.success));
+            // 5 over 4
+            static OV: [OverlayRule; 1] = [(
+                Family::custom("t"),
+                Variant::PRIMARY,
+                Part::LABEL,
+                StateFlags::empty(),
+                StylePatch::new().set_fg(Role::Info),
+            )];
+            let ov = Overlay::new(&OV);
+            assert_eq!(q(&t, StateFlags::FOCUSED, &[ov], None), Some(t.color.info));
+            // 6 over 5
+            let inst = StylePatch::new().set_fg(Role::Danger);
+            assert_eq!(
+                q(&t, StateFlags::FOCUSED, &[ov], Some(&inst)),
+                Some(t.color.danger)
+            );
+            // outer → inner: the inner overlay wins
+            static OV2: [OverlayRule; 1] = [(
+                Family::custom("t"),
+                Variant::PRIMARY,
+                Part::LABEL,
+                StateFlags::empty(),
+                StylePatch::new().set_fg(Role::Success),
+            )];
+            assert_eq!(
+                q(&t, StateFlags::empty(), &[ov, Overlay::new(&OV2)], None),
+                Some(t.color.success)
+            );
+        }
+    }
+
+    #[test]
+    fn state_rules_beat_a_variant_base() {
+        for base in [Theme::junie(), Theme::paper()] {
+            let t = theme_over(base);
+            assert_ne!(t.color.warning, t.color.accent);
+            // no state: the variant base shows
+            assert_eq!(
+                label_fg(&t, StateFlags::empty(), &[], None),
+                Some(t.color.accent)
+            );
+            // a *family* state rule is precedence 3 and outranks the variant
+            // base at precedence 2, even though the variant is more specific
+            assert_eq!(
+                label_fg(&t, StateFlags::FOCUSED, &[], None),
+                Some(t.color.warning)
+            );
+        }
+    }
+
+    #[test]
+    fn family_and_variant_state_rules_interleave_by_specificity() {
+        let mut t = Theme::junie();
+        let f = Family::custom("i");
+        {
+            let r = t.recipes.get_mut(f);
+            r.default_variant = Variant::PRIMARY;
+            let part = r.parts.entry(Part::LABEL);
+            part.when(
+                StateFlags::FOCUSED,
+                StylePatch::new()
+                    .set_fg(Role::Warning)
+                    .set_bg(Role::DangerTint),
+            );
+            part.when(
+                StateFlags::FOCUSED | StateFlags::HOVERED,
+                StylePatch::new().set_fg(Role::Info),
+            );
+            let vp = r.variant_mut(Variant::PRIMARY).entry(Part::LABEL);
+            vp.when(
+                StateFlags::FOCUSED,
+                StylePatch::new()
+                    .set_fg(Role::Success)
+                    .set_bg(Role::AccentTint),
+            );
+        }
+        let q = |live| {
             resolve_uncached(
-                t,
+                &t,
                 f,
                 Variant::DEFAULT,
                 Part::LABEL,
                 live,
                 Surface::Canvas,
-                ovs,
-                inst,
+                &[],
+                None,
             )
             .style
-            .fg
         };
-        // 2 over 1
-        assert_eq!(q(&t, StateFlags::empty(), &[], None), Some(t.color.accent));
-        // 3 over 2
-        assert_eq!(q(&t, StateFlags::FOCUSED, &[], None), Some(t.color.focus));
-        // 4 over 3
-        let mut parts: PartMap<PartRecipe> = PartMap::new();
-        parts.entry(Part::LABEL).base = StylePatch::new().set_fg(Role::Warning);
-        t.recipes.push_override(GlobalOverride {
-            family: f,
-            variant: None,
-            parts,
-        });
-        assert_eq!(q(&t, StateFlags::FOCUSED, &[], None), Some(t.color.warning));
-        // 5 over 4
-        static OV: [OverlayRule; 1] = [(
-            Family::custom("t"),
-            Variant::PRIMARY,
-            Part::LABEL,
+        // equal specificity: the family's rule is applied first, so the
+        // variant's rule of the same specificity wins the slot
+        assert_eq!(q(StateFlags::FOCUSED).fg, Some(t.color.success));
+        assert_eq!(q(StateFlags::FOCUSED).bg, Some(t.color.accent_tint));
+        // the family's 2-flag rule is applied *after* the variant's 1-flag
+        // rule, which only a merged specificity order can produce
+        let both = StateFlags::FOCUSED | StateFlags::HOVERED;
+        assert_eq!(q(both).fg, Some(t.color.info));
+        assert_eq!(q(both).bg, Some(t.color.accent_tint));
+    }
+
+    #[test]
+    fn a_custom_family_resolves_through_the_neutral_recipe() {
+        let t = Theme::junie();
+        let f = Family::custom("segmented");
+        assert!(t.recipes.get(f).is_none());
+        let container = t.resolve(
+            f,
+            Variant::DEFAULT,
+            Part::CONTAINER,
             StateFlags::empty(),
-            StylePatch::new().set_fg(Role::Info),
-        )];
-        let ov = Overlay::new(&OV);
-        assert_eq!(q(&t, StateFlags::FOCUSED, &[ov], None), Some(t.color.info));
-        // 6 over 5
-        let inst = StylePatch::new().set_fg(Role::Danger);
-        assert_eq!(
-            q(&t, StateFlags::FOCUSED, &[ov], Some(&inst)),
-            Some(t.color.danger)
+            Surface::Canvas,
         );
-        // outer → inner: the inner overlay wins
-        static OV2: [OverlayRule; 1] = [(
-            Family::custom("t"),
-            Variant::PRIMARY,
-            Part::LABEL,
-            StateFlags::empty(),
-            StylePatch::new().set_fg(Role::Success),
-        )];
-        assert_eq!(
-            q(&t, StateFlags::empty(), &[ov, Overlay::new(&OV2)], None),
-            Some(t.color.success)
+        // the neutral recipe is row-like: a real foreground and background
+        assert_eq!(container.style.fg, Some(t.color.fg[0]));
+        assert_eq!(container.style.bg, Some(t.bg(Surface::Canvas)));
+        // and its state rules apply, so a custom family is distinguishable
+        let focused = t.resolve(
+            f,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::FOCUSED,
+            Surface::Canvas,
         );
+        assert_eq!(focused.glyph, Some(GlyphRole::FocusBar));
+        assert_eq!(focused.style.fg, Some(t.color.focus));
     }
 
     #[test]

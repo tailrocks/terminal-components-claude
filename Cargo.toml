@@ -21,6 +21,7 @@ ratatui-crossterm = { version = "0.1.2" } # default = crossterm_0_29 + underline
 unicode-width = "0.2.2"
 unicode-segmentation = "1.13"
 bitflags = "2.13"
+trybuild = "1.0"
 
 [workspace.lints.rust]
 unsafe_code = "deny"                          # crates/tui raises to forbid at the crate root

@@ -78,17 +78,70 @@ fn rel(p: &Path) -> String {
         .replace('\\', "/")
 }
 
-/// Lines of a file with `#[cfg(test)]` tails removed (test modules sit at
-/// the bottom of every library file).
+/// Lines of a file with **each** `#[cfg(test)]` item removed.
+///
+/// The old version `break`ed at the first `#[cfg(test)]`, so a mid-file
+/// `#[cfg(test)] pub(crate) const fn stats` left the whole rest of the file
+/// unscanned by all 26 forbidden-pattern rules (MA-2). This skips exactly the
+/// attributed item by brace matching and keeps scanning afterwards.
 fn non_test_lines(text: &str) -> Vec<(usize, &str)> {
+    let lines: Vec<&str> = text.lines().collect();
     let mut out = Vec::new();
-    for (i, line) in text.lines().enumerate() {
+    let mut i = 0usize;
+    while i < lines.len() {
+        let Some(line) = lines.get(i) else { break };
         if line.trim_start().starts_with("#[cfg(test)]") {
-            break;
+            i = skip_item(&lines, i.saturating_add(1));
+            continue;
         }
-        out.push((i + 1, line));
+        out.push((i.saturating_add(1), *line));
+        i = i.saturating_add(1);
     }
     out
+}
+
+/// The index just past the item starting at `from`: any further attributes,
+/// then either a braced body (matched, ignoring braces inside `"` strings and
+/// `//` comments) or a single `;`-terminated line.
+fn skip_item(lines: &[&str], from: usize) -> usize {
+    let mut i = from;
+    let mut depth = 0usize;
+    let mut opened = false;
+    while i < lines.len() {
+        let Some(line) = lines.get(i) else { break };
+        let code = code_line(line);
+        let mut in_str = false;
+        let mut prev_escape = false;
+        for c in code.chars() {
+            if in_str {
+                if prev_escape {
+                    prev_escape = false;
+                } else if c == '\\' {
+                    prev_escape = true;
+                } else if c == '"' {
+                    in_str = false;
+                }
+                continue;
+            }
+            match c {
+                '"' => in_str = true,
+                '{' => {
+                    depth = depth.saturating_add(1);
+                    opened = true;
+                }
+                '}' => depth = depth.saturating_sub(1),
+                _ => {}
+            }
+        }
+        i = i.saturating_add(1);
+        if opened && depth == 0 {
+            return i;
+        }
+        if !opened && code.trim_end().ends_with(';') {
+            return i;
+        }
+    }
+    i
 }
 
 fn code_line(line: &str) -> &str {
@@ -154,6 +207,24 @@ const CHECKS: &[Check] = &[
     (
         "msrv_and_edition_are_unchanged",
         msrv_and_edition_are_unchanged,
+    ),
+    ("no_unreachable_spin_loops", no_unreachable_spin_loops),
+    (
+        "ratatui_crossterm_is_named_in_exactly_two_files",
+        ratatui_crossterm_is_named_in_exactly_two_files,
+    ),
+    ("every_named_test_exists", every_named_test_exists),
+    (
+        "conformance_covers_every_public_component",
+        conformance_covers_every_public_component,
+    ),
+    (
+        "state_override_is_used_only_in_apps_and_fixtures",
+        state_override_is_used_only_in_apps_and_fixtures,
+    ),
+    (
+        "examples_are_external_consumers",
+        examples_are_external_consumers,
     ),
 ];
 
@@ -267,6 +338,10 @@ const RULES: &[Rule] = &[
         only_if: None,
         under: None,
     },
+    // NOTE (§4(j)-3): this rule cannot distinguish *construction*
+    // (`st.fg = c` while building a `Style`) from *layering* (which R-9
+    // forbids); the two occurrences in `ui/paint.rs` are construction and the
+    // file is allow-listed by path for that reason.
     Rule {
         n: 9,
         re: r"Style::new\(\)\s*\.(fg|bg)\(|style\.(fg|bg)\(|\.add_modifier\(|\.remove_modifier\(|\.underline_color\(",
@@ -354,7 +429,15 @@ const RULES: &[Rule] = &[
     Rule {
         n: 19,
         re: r"\.unwrap\(\)|\.expect\(|panic!|todo!|unimplemented!",
-        allowed: &["crates/tui-testing/", "xtask/"],
+        // `ui/derived.rs` is the single documented exception: `dyn
+        // Any::downcast_mut` returns `Option` and safe Rust cannot express
+        // "keyed by TypeId::of::<T>() ⇒ holds Box<T>". A named path shows the
+        // exception; the alternative was a livelock (BL-2).
+        allowed: &[
+            "crates/tui-testing/",
+            "xtask/",
+            "crates/tui/src/ui/derived.rs",
+        ],
         why: "goal §10",
         only_if: None,
         under: None,
@@ -377,10 +460,18 @@ const RULES: &[Rule] = &[
     },
     Rule {
         n: 22,
-        re: r"Color::Rgb\(\s*\d|Color::from_u32\(\s*0x|#[0-9a-fA-F]{6}\b",
+        // §22.7's broad regex: a narrowed one lets `Color::Rgb(r, g, b)` from
+        // computed values through anywhere (D-10). The exceptions are named
+        // *paths*, which are printed and reviewable; path exceptions do not
+        // feed the "legacy_api.txt must be empty" condition.
+        re: r"Color::Rgb\(|Color::from_u32\(|#[0-9a-fA-F]{6}\b",
         allowed: &[
             "crates/tui/src/theme/builtin/junie.rs",
             "crates/tui/src/theme/builtin/paper.rs",
+            // derives a colour arithmetically from the seeds (L* ladders)
+            "crates/tui/src/theme/builder.rs",
+            // reconstructs `(r, g, b)` when downgrading to a palette
+            "crates/tui/src/theme/downgrade.rs",
             "/tests/fixtures/",
             "crates/tui-testing/",
         ],
@@ -417,6 +508,22 @@ const RULES: &[Rule] = &[
         re: r"SmallVec|smallvec::",
         allowed: &[],
         why: "§22.4",
+        only_if: None,
+        under: None,
+    },
+    Rule {
+        n: 27,
+        re: r"CrosstermBackend|ratatui_crossterm::crossterm::(?:terminal|execute|cursor|style)",
+        allowed: &["crates/tui/src/runtime/session.rs"],
+        why: "§22.1: the backend lives in runtime/session.rs only",
+        only_if: None,
+        under: None,
+    },
+    Rule {
+        n: 28,
+        re: r"spin_loop",
+        allowed: &[],
+        why: "BL-2: a livelock is strictly worse than a panic",
         only_if: None,
         under: None,
     },
@@ -506,6 +613,375 @@ fn no_deprecated_or_legacy_api_usage() -> Result<(), String> {
     }
 }
 
+// ─────────────────────── the named-test inventory (§21 item 28) ───────────────────────
+
+/// The section of `COMPONENT_ARCHITECTURE.md` between two headings.
+fn doc_section(doc: &str, from: &str, to: &str) -> String {
+    let Some(a) = doc.find(from) else {
+        return String::new();
+    };
+    let rest = doc.get(a..).unwrap_or_default();
+    match rest.find(to) {
+        Some(b) => rest.get(..b).unwrap_or_default().to_owned(),
+        None => rest.to_owned(),
+    }
+}
+
+/// Backticked snake-case identifiers at parenthesis depth 0, with HTML
+/// comments removed. The listed names are at depth 0; the prose that explains
+/// them is inside `(…)`, which is exactly how §16.1 is written.
+fn doc_test_names(text: &str) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let mut depth = 0i32;
+    let bytes = text.as_bytes();
+    let mut i = 0usize;
+    while i < text.len() {
+        let rest = text.get(i..).unwrap_or_default();
+        if rest.starts_with("<!--") {
+            i = rest.find("-->").map_or(text.len(), |j| i + j + 3);
+            continue;
+        }
+        let c = bytes.get(i).copied().unwrap_or(b' ');
+        match c {
+            b'(' => depth = depth.saturating_add(1),
+            b')' => depth = depth.saturating_sub(1),
+            b'`' => {
+                let body = rest.get(1..).unwrap_or_default();
+                let Some(end) = body.find('`') else {
+                    break;
+                };
+                let token = body.get(..end).unwrap_or_default();
+                if depth == 0 {
+                    let last = token.rsplit("::").next().unwrap_or(token);
+                    let snake = last
+                        .chars()
+                        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+                    if snake
+                        && last.matches('_').count() >= 2
+                        && last.starts_with(|c: char| c.is_ascii_lowercase())
+                    {
+                        out.insert(last.to_owned());
+                    }
+                }
+                i = i + 1 + end + 1;
+                continue;
+            }
+            _ => {}
+        }
+        i = i.saturating_add(
+            text.get(i..)
+                .and_then(|r| r.chars().next())
+                .map_or(1, char::len_utf8),
+        );
+    }
+    out
+}
+
+/// The first cell of every `| \`name\` | … |` row.
+fn doc_table_names(text: &str) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if !line.starts_with('|') {
+            continue;
+        }
+        let cell = line.trim_start_matches('|').trim();
+        let Some(rest) = cell.strip_prefix('`') else {
+            continue;
+        };
+        let Some(end) = rest.find('`') else { continue };
+        let name = rest.get(..end).unwrap_or_default();
+        let last = name.rsplit("::").next().unwrap_or(name);
+        if last
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+            && last.matches('_').count() >= 2
+        {
+            out.insert(last.to_owned());
+        }
+    }
+    out
+}
+
+/// Every `#[test]`-annotated function name in the workspace's sources.
+///
+/// §21 item 28 words this as `cargo test --workspace -- --list`. This scans
+/// the sources for the same thing — every `#[test] fn name` — because the
+/// check runs *inside* `cargo test --test architecture` and a nested
+/// `cargo test --workspace --test perf --release -- --list` would rebuild the
+/// world in a second profile on every architecture run. The two enumerate the
+/// same set; source scanning additionally sees `cfg`-gated tests, which for a
+/// one-directional "the name exists" check is the safer direction.
+fn declared_test_names() -> BTreeSet<String> {
+    let r = root();
+    let mut dirs = vec![
+        r.join("crates"),
+        r.join("src"),
+        r.join("tests"),
+        r.join("xtask/src"),
+    ];
+    if r.join("apps").exists() {
+        dirs.push(r.join("apps"));
+    }
+    let Ok(re) = Regex::new(r"\bfn\s+([a-z_][a-z0-9_]*)\s*\(") else {
+        return BTreeSet::new();
+    };
+    let mut out = BTreeSet::new();
+    for dir in dirs {
+        for file in rust_files(&dir) {
+            if rel(&file).contains("/target/") {
+                continue;
+            }
+            let text = read(&file);
+            let lines: Vec<&str> = text.lines().collect();
+            for (i, line) in lines.iter().enumerate() {
+                if !line.trim_start().starts_with("#[test]") {
+                    continue;
+                }
+                for l in lines.iter().skip(i.saturating_add(1)).take(4) {
+                    if let Some(c) = re.captures(l) {
+                        if let Some(m) = c.get(1) {
+                            out.insert(m.as_str().to_owned());
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    // `trybuild` cases are file names, not `#[test]` functions
+    if let Ok(entries) = std::fs::read_dir(r.join("crates/tui/tests/ui")) {
+        for e in entries.filter_map(Result::ok) {
+            if let Some(stem) = e.path().file_stem().and_then(|s| s.to_str()) {
+                out.insert(stem.to_owned());
+            }
+        }
+    }
+    out
+}
+
+/// The names deferred to a later slice, with the slice that owns each.
+fn named_tests_allow() -> BTreeMap<String, String> {
+    let p = root().join("xtask/named_tests_allow.txt");
+    let mut out = BTreeMap::new();
+    for line in read(&p).lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let (name, why) = line.split_once("  #").unwrap_or((line, ""));
+        out.insert(name.trim().to_owned(), why.trim().to_owned());
+    }
+    out
+}
+
+fn every_named_test_exists() -> Result<(), String> {
+    let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
+    if doc.is_empty() {
+        return Err("COMPONENT_ARCHITECTURE.md not found".to_owned());
+    }
+    let mut want = BTreeSet::new();
+    want.extend(doc_test_names(&doc_section(&doc, "### 16.1", "### 16.2")));
+    // §16.2: the suite-level bullets only (the per-case names are generated)
+    for line in doc_section(&doc, "Suite-level tests (emitted once", "---").lines() {
+        if line.trim_start().starts_with("* `") {
+            want.extend(doc_test_names(line));
+        }
+    }
+    // §16.4: only the "New application coverage" list names tests; the rest
+    // of the section is the `Harness` API contract
+    want.extend(doc_test_names(&doc_section(
+        &doc,
+        "**New application coverage**",
+        "### 16.5",
+    )));
+    want.extend(doc_table_names(&doc_section(&doc, "### 16.6", "## 17.")));
+
+    let have = declared_test_names();
+    let allow = named_tests_allow();
+    let mut missing = Vec::new();
+    let mut deferred = 0usize;
+    for name in &want {
+        if have.contains(name) {
+            continue;
+        }
+        if allow.contains_key(name) {
+            deferred = deferred.saturating_add(1);
+            continue;
+        }
+        missing.push(name.clone());
+    }
+    println!(
+        "every_named_test_exists: {} names in §16.1/§16.2/§16.4/§16.6, {} present, {deferred} deferred (xtask/named_tests_allow.txt)",
+        want.len(),
+        want.len()
+            .saturating_sub(missing.len())
+            .saturating_sub(deferred)
+    );
+    // the §21 item 28 deletion assertion
+    let baseline = read(&root().join("crates/tui/tests/perf_baseline.txt"));
+    if baseline.contains("capsule_pane_clone_4x2000") {
+        missing.push("capsule_pane_clone_4x2000 must be ABSENT from perf_baseline.txt".to_owned());
+    }
+    // an allow-list entry that is now satisfied must be removed
+    let stale: Vec<&String> = allow.keys().filter(|n| have.contains(*n)).collect();
+    if !stale.is_empty() {
+        missing.push(format!("stale entries in named_tests_allow.txt: {stale:?}"));
+    }
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "named tests missing (add the test, or defer it in xtask/named_tests_allow.txt with the owning slice):\n  {}",
+            missing.join("\n  ")
+        ))
+    }
+}
+
+/// §16.2: `conformance.rs`'s `conformance_suite!` must list a case for every
+/// public component, so adding a component without registering it fails CI.
+fn conformance_covers_every_public_component() -> Result<(), String> {
+    let dir = root().join("crates/tui/src/components");
+    let suite = read(&root().join("crates/tui/tests/conformance.rs"));
+    if suite.is_empty() {
+        return Err("crates/tui/tests/conformance.rs not found".to_owned());
+    }
+    let mut missing = Vec::new();
+    let mut covered = 0usize;
+    for (path, ast) in parse_files(&dir) {
+        if path.ends_with("/mod.rs") {
+            continue;
+        }
+        // the component type is the public struct whose inherent impl has
+        // `pub fn draw(&self, ui: &mut Ui<'_>, …)`
+        let mut drawn: BTreeSet<String> = BTreeSet::new();
+        for item in &ast.items {
+            if let syn::Item::Impl(im) = item
+                && im.trait_.is_none()
+                && let syn::Type::Path(tp) = im.self_ty.as_ref()
+                && let Some(seg) = tp.path.segments.last()
+            {
+                for it in &im.items {
+                    if let syn::ImplItem::Fn(f) = it
+                        && f.sig.ident == "draw"
+                        && matches!(f.vis, syn::Visibility::Public(_))
+                    {
+                        drawn.insert(seg.ident.to_string());
+                    }
+                }
+            }
+        }
+        let public: BTreeSet<String> = ast
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                syn::Item::Struct(s) if matches!(s.vis, syn::Visibility::Public(_)) => {
+                    Some(s.ident.to_string())
+                }
+                _ => None,
+            })
+            .collect();
+        for name in drawn.intersection(&public) {
+            let case = format!("{name}Case");
+            if suite.contains(&case) {
+                covered = covered.saturating_add(1);
+            } else {
+                missing.push(format!(
+                    "{path}: {name} has no {case} in conformance_suite!"
+                ));
+            }
+        }
+    }
+    println!("conformance_covers_every_public_component: {covered} component(s) registered");
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(missing.join("\n"))
+    }
+}
+
+/// §21 item 30: `.state_override(` is a fixture affordance, never a library
+/// or application-logic call.
+fn state_override_is_used_only_in_apps_and_fixtures() -> Result<(), String> {
+    let mut dirs = vec![root().join("crates")];
+    if root().join("apps").exists() {
+        dirs.push(root().join("apps"));
+    }
+    let re = Regex::new(r"\.state_override\(").map_err(|e| e.to_string())?;
+    // the builder's own forwarding (`self.ov = self.ov.state_override(s)`) is
+    // the *definition* of the affordance, not a use of it
+    let own =
+        Regex::new(r"self\.\w+\s*=\s*self\.\w+\.state_override\(|pub (const )?fn state_override")
+            .map_err(|e| e.to_string())?;
+    let mut hits = Vec::new();
+    for dir in dirs {
+        for file in rust_files(&dir) {
+            let path = rel(&file);
+            if path.contains("/target/")
+                || path.starts_with("apps/")
+                // every test target is a fixture context: `tests/fixtures/**`
+                // is the documented home, and the conformance cases are the
+                // same thing under another name
+                || path.contains("crates/tui/tests/")
+                || path.contains("crates/tui-testing/")
+            {
+                continue;
+            }
+            for (i, line) in read(&file).lines().enumerate() {
+                let code = code_line(line);
+                if re.is_match(code) && !own.is_match(code) {
+                    hits.push(format!("{path}:{}: {}", i.saturating_add(1), line.trim()));
+                }
+            }
+        }
+    }
+    if hits.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "`.state_override(` outside apps/**, crates/tui/tests/**, crates/tui-testing/** and \
+             a component's own builder forwarding:\n{}",
+            hits.join("\n")
+        ))
+    }
+}
+
+/// §16.5: the examples are external consumers — they compile against the
+/// public facade only, with no `#[path]`, no `include!` and no private paths.
+fn examples_are_external_consumers() -> Result<(), String> {
+    let dir = root().join("crates/tui/examples");
+    let mut hits = Vec::new();
+    let mut n = 0usize;
+    for file in rust_files(&dir) {
+        n = n.saturating_add(1);
+        let path = rel(&file);
+        let text = read(&file);
+        for (i, line) in text.lines().enumerate() {
+            let code = code_line(line);
+            if code.contains("#[path") || code.contains("include!") {
+                hits.push(format!("{path}:{}: {}", i.saturating_add(1), line.trim()));
+            }
+        }
+    }
+    if n == 0 {
+        return Err("no examples found under crates/tui/examples".to_owned());
+    }
+    let status = Command::new("cargo")
+        .args(["build", "-p", LIB, "--examples", "-q"])
+        .current_dir(root())
+        .status()
+        .map_err(|e| e.to_string())?;
+    if !status.success() {
+        hits.push("cargo build -p tui-next --examples failed".to_owned());
+    }
+    println!("examples_are_external_consumers: {n} example(s)");
+    if hits.is_empty() {
+        Ok(())
+    } else {
+        Err(hits.join("\n"))
+    }
+}
+
 fn metadata() -> Result<cargo_metadata::Metadata, String> {
     cargo_metadata::MetadataCommand::new()
         .manifest_path(root().join("Cargo.toml"))
@@ -521,14 +997,29 @@ const DECLARED: [&str; 5] = [
     "unicode-segmentation",
     "bitflags",
 ];
-const FORBIDDEN: [&str; 7] = [
+/// §22.7 (2a): absent from the **entire** normal closure.
+const FORBIDDEN_ANYWHERE: [&str; 5] = [
     "ratatui",
     "ratatui-widgets",
     "ratatui-macros",
-    "smallvec",
-    "crossterm",
+    // (2b): these can only arrive through `ratatui-core` features we disable
     "critical-section",
     "palette",
+];
+
+/// §22.7 (2c): crossterm's own internals. They may appear **only beneath
+/// `ratatui-crossterm`** — they are crossterm's choice, not ours, and §22.4's
+/// decision is about *our* containers (enforced by forbidden-pattern rule 26
+/// over our source).
+const ONLY_UNDER_CROSSTERM: [&str; 8] = [
+    "smallvec",
+    "parking_lot",
+    "parking_lot_core",
+    "lock_api",
+    "scopeguard",
+    "libc",
+    "mio",
+    "signal-hook",
 ];
 
 /// `cargo tree -p tui-next -e normal` lines: `(name, version, features)`.
@@ -601,19 +1092,47 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
     let tree = lib_tree(true)?;
     let closure: BTreeSet<String> = tree.iter().map(|(n, _, _)| n.clone()).collect();
     let full = lib_tree(false)?;
-    if !full.iter().any(|(n, _, _)| n == "crossterm") {
+    let full_names: BTreeSet<String> = full.iter().map(|(n, _, _)| n.clone()).collect();
+    if !full_names.contains("crossterm") {
         errors
             .push("crossterm is not in the closure at all (ratatui-crossterm missing?)".to_owned());
     }
-    for f in FORBIDDEN {
-        if f == "crossterm" {
-            if direct.contains("crossterm") {
-                errors.push("direct crossterm dependency".to_owned());
-            }
-            continue;
+    // (2a) + (2b): absent from the ENTIRE closure, not merely the pruned one
+    for f in FORBIDDEN_ANYWHERE {
+        if full_names.contains(f) {
+            errors.push(format!("{f} is in the entire normal closure (2a/2b)"));
         }
-        if closure.contains(f) {
-            errors.push(format!("{f} is in the normal closure"));
+    }
+    // (2d): no direct `smallvec`, no direct `crossterm`
+    if direct.contains("crossterm") {
+        errors.push("direct crossterm dependency (2d)".to_owned());
+    }
+    if direct.contains("smallvec") {
+        errors.push("direct smallvec dependency (2d)".to_owned());
+    }
+    if closure.contains("smallvec") {
+        errors.push("smallvec survives the crossterm prune (2c/2d)".to_owned());
+    }
+    // (2c): every path to each of crossterm's internals passes through
+    // `ratatui-crossterm`. Printed on success so the exception is visible.
+    for name in ONLY_UNDER_CROSSTERM {
+        if !full_names.iter().any(|n| n == name || n.starts_with(name)) {
+            continue; // not in the closure at all: nothing to prove
+        }
+        match inverted_paths(name) {
+            Err(e) => errors.push(format!("cargo tree --invert {name}: {e}")),
+            Ok(paths) => {
+                if paths.trim().is_empty() {
+                    continue;
+                }
+                if !paths.contains("ratatui-crossterm") {
+                    errors.push(format!(
+                        "{name} is reachable without ratatui-crossterm (2c):\n{paths}"
+                    ));
+                } else {
+                    println!("2c: {name} is reachable only beneath ratatui-crossterm");
+                }
+            }
         }
     }
     // (3) apps
@@ -661,6 +1180,22 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
     } else {
         Err(errors.join("\n"))
     }
+}
+
+/// `cargo tree -p tui-next -e normal --invert <crate>`, for §22.7 (2c).
+fn inverted_paths(name: &str) -> Result<String, String> {
+    let out = Command::new("cargo")
+        .args([
+            "tree", "-p", LIB, "-e", "normal", "--invert", name, "--prefix", "none",
+        ])
+        .current_dir(root())
+        .output()
+        .map_err(|e| e.to_string())?;
+    if !out.status.success() {
+        // an absent crate is not an error for this assertion
+        return Ok(String::new());
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 fn library_has_no_application_dependency() -> Result<(), String> {
@@ -715,6 +1250,10 @@ fn grep_check(
     }
 }
 
+/// Scans **code lines only**, deliberately (§4(j)-5): `\bworkspace\b` and
+/// `\binstance\b` appear in ordinary architectural prose ("per-instance
+/// patch"), and a reflowed `///` line must not fire the check. `grep_check`
+/// strips comments through `code_line`.
 fn no_domain_vocabulary_in_the_library() -> Result<(), String> {
     grep_check(
         &[root().join("crates/tui/src")],
@@ -728,11 +1267,59 @@ fn no_domain_vocabulary_in_the_library() -> Result<(), String> {
 fn palette_literals_are_confined_to_theme_builtins() -> Result<(), String> {
     grep_check(
         &[root().join("crates/tui/src")],
-        r"Color::Rgb\(\s*\d|Color::from_u32\(\s*0x|#[0-9a-fA-F]{6}\b",
-        &["theme/builtin/junie.rs", "theme/builtin/paper.rs"],
+        // §22.7's broad regex (D-10): the narrowed form let a computed
+        // `Color::Rgb(r, g, b)` through anywhere.
+        r"Color::Rgb\(|Color::from_u32\(|#[0-9a-fA-F]{6}\b",
+        &[
+            "theme/builtin/junie.rs",
+            "theme/builtin/paper.rs",
+            "theme/builder.rs",
+            "theme/downgrade.rs",
+        ],
         None,
         "colour literals outside theme/builtin (R-10)",
     )
+}
+
+/// BL-2: an "unreachable" arm implemented as `loop { spin_loop() }` hangs the
+/// process with raw mode on and the alternate screen entered — strictly worse
+/// than a panic, because `TerminalSession`'s hook can restore a panic but not
+/// a livelock.
+fn no_unreachable_spin_loops() -> Result<(), String> {
+    grep_check(
+        &[root().join("crates/tui/src")],
+        r"spin_loop|loop\s*\{\s*\}",
+        &[],
+        None,
+        "a livelock is not an `unreachable` arm (BL-2)",
+    )
+}
+
+/// §22.1 as amended: `ratatui-crossterm` is a normal, non-optional dependency
+/// taken for its version-unified `crossterm` **event vocabulary**, never for
+/// `CrosstermBackend`. Exactly two files may name it: `event.rs` (the
+/// vocabulary) and `runtime/session.rs` (the backend).
+fn ratatui_crossterm_is_named_in_exactly_two_files() -> Result<(), String> {
+    let re = Regex::new(r"ratatui_crossterm\b").map_err(|e| e.to_string())?;
+    let mut files: Vec<String> = Vec::new();
+    for file in rust_files(&root().join("crates/tui/src")) {
+        if read(&file).lines().any(|l| re.is_match(l)) {
+            files.push(rel(&file));
+        }
+    }
+    files.sort();
+    let want = [
+        "crates/tui/src/event.rs".to_owned(),
+        "crates/tui/src/runtime/session.rs".to_owned(),
+    ];
+    if files == want {
+        println!("ratatui-crossterm is named in {files:?}");
+        Ok(())
+    } else {
+        Err(format!(
+            "ratatui_crossterm named in {files:?}, want {want:?}"
+        ))
+    }
 }
 
 fn no_raw_background_parameter() -> Result<(), String> {
@@ -1219,7 +1806,13 @@ fn collect_use(tree: &syn::UseTree, api: &mut Api) {
     }
 }
 
-/// Well-known foreign members reachable through the facade's re-exports.
+/// Well-known **foreign** members reachable through the facade's re-exports.
+///
+/// This table is for ratatui / crossterm API only. Legacy pre-refactor names
+/// (`Theme::row`, `Theme::gutter`, `Interaction::pressed`,
+/// `Interaction::focus_hidden`) used to be listed here as if they were
+/// foreign API, which hid them; they are explicit entries in
+/// `xtask/doc_check_allow.txt` instead (MA-14).
 fn foreign_members() -> BTreeSet<(String, String)> {
     let mut m = BTreeSet::new();
     for (t, ms) in [
@@ -1253,6 +1846,7 @@ fn foreign_members() -> BTreeSet<(String, String)> {
             &[
                 "set_stringn",
                 "set_line",
+                "set_span",
                 "set_string",
                 "set_style",
                 "cell",
@@ -1359,17 +1953,15 @@ fn foreign_members() -> BTreeSet<(String, String)> {
         ),
         ("Event", &["as_key_press_event", "Key", "Mouse"][..]),
         ("KeyEvent", &["is_press", "is_repeat", "is_release"][..]),
-        ("Theme", &["row", "gutter"][..]),
         ("Constraint", &["Length", "Ratio"][..]),
         ("Margin", &["new"][..]),
         ("CellWidth", &["cell_width"][..]),
-        ("Backend", &["Error"][..]),
+        ("Backend", &["Error", "size"][..]),
         ("Layout", &["split", "horizontal", "vertical"][..]),
         ("Terminal", &["insert_before"][..]),
         ("Style", &["underline_color"][..]),
         ("Self", &["PARTS", "State", "Action", "Cmd"][..]),
         ("Ident", &["method"][..]),
-        ("Interaction", &["pressed", "focus_hidden"][..]),
         ("PartEdit", &["when"][..]),
     ] {
         for x in ms {
@@ -1391,13 +1983,15 @@ fn doc_allow() -> BTreeSet<String> {
 }
 
 fn doc_sections(text: &str) -> String {
-    // §3–§17 and §21–§23: from "## 3." to "## 18." plus "## 21." to the end
+    // §3–§17 and §21–§26
     let mut out = String::new();
     let mut keep = false;
     for line in text.lines() {
         if let Some(rest) = line.strip_prefix("## ") {
             let n: Option<u32> = rest.split('.').next().and_then(|s| s.trim().parse().ok());
-            keep = matches!(n, Some(3..=17 | 21..=23));
+            // §24–§26 carry the M-, K- and correction-pass amendments; the
+            // range stopped at §23 and left them unchecked (MA-14, F23)
+            keep = matches!(n, Some(3..=17 | 21..=26));
         }
         if keep {
             out.push_str(line);
@@ -1485,5 +2079,37 @@ fn doc_check() -> Result<(), String> {
             msg.push_str(&format!("  {k} ({n})\n"));
         }
         Err(msg)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// MA-2: the scan used to stop at the first `#[cfg(test)]`, so everything
+    /// after a mid-file test helper was invisible to all forbidden-pattern
+    /// rules. It must skip exactly the attributed item and carry on.
+    #[test]
+    fn non_test_lines_skips_only_the_cfg_test_item() {
+        let src = "\
+a();
+#[cfg(test)]
+fn helper() {
+    let s = \"}\";
+    inner();
+}
+b();
+#[cfg(test)]
+const K: u8 = 1;
+c();
+#[cfg(test)]
+mod tests {
+    fn t() {}
+}
+";
+        let kept: Vec<&str> = non_test_lines(src).into_iter().map(|(_, l)| l).collect();
+        assert_eq!(kept, vec!["a();", "b();", "c();"]);
+        let lines: Vec<usize> = non_test_lines(src).into_iter().map(|(n, _)| n).collect();
+        assert_eq!(lines, vec![1, 7, 10]);
     }
 }

@@ -2,7 +2,8 @@
 //!
 //! Every method clips to the current area and marks the layer's
 //! written-cell bitset. `paint_str` *is* `Buffer::set_stringn`; `paint_spans`
-//! builds a borrowed `Line` and paints through `Buffer::set_line`;
+//! walks the spans and paints each through `Buffer::set_span`, allocating
+//! nothing;
 //! `paint_cell` resets the cells a wide grapheme shadows; `fill` and
 //! `dim_layer` are deliberate re-implementations of `ratatui_widgets::{Fill,
 //! Dimmed}` because foreign widgets cannot mark the bitset or walk roles.
@@ -10,7 +11,7 @@
 use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Modifier, Style};
-use ratatui_core::text::{Line, Span as RawSpan};
+use ratatui_core::text::Span as RawSpan;
 
 use super::{CellRoles, Ui};
 use crate::text::Span;
@@ -71,55 +72,49 @@ impl Ui<'_> {
         written
     }
 
-    /// Multi-style single-line paint: each `Span`'s role is resolved
-    /// against the live theme and surface, then one borrowed
-    /// `ratatui_core::text::Line` is written through `Buffer::set_line`
-    /// (R‑3). `base` is the part style the spans inherit. Returns the
-    /// columns written.
+    /// Multi-style single-line paint: each `Span`'s role is resolved against
+    /// the live theme and surface and written through `Buffer::set_span`
+    /// (R‑3 — the same `set_stringn` width accounting as `paint_str`), one
+    /// span at a time with **no intermediate allocation** (§20.9-6, R5).
+    /// `base` is the part style the spans inherit. Returns the columns
+    /// written.
     pub fn paint_spans(&mut self, area: Rect, spans: &[Span<'_>], base: Style) -> u16 {
         let area = area.intersection(self.clip);
         if area.is_empty() || spans.is_empty() {
             return 0;
         }
-        let theme = self.theme_ref();
-        let surface = self.surface;
-        let raw: Vec<RawSpan<'_>> = spans
-            .iter()
-            .map(|sp| {
-                let mut st = Style::new().add_modifier(sp.add);
-                if let Some(r) = sp.role
-                    && let Some(c) = crate::theme::resolve::bind_role(theme, r, surface)
-                {
-                    st = st.fg(c);
-                }
-                RawSpan::styled(sp.text, st)
-            })
-            .collect();
-        let line = Line::from(raw).style(base);
-        let (end, _) = self.buffer().set_line(area.x, area.y, &line, area.width);
-        // record per-span roles for the cells each span covered
+        let base_roles = self.roles;
+        let right = area.right();
         let mut x = area.x;
         for sp in spans {
-            let w = crate::text::width(sp.text);
-            let stop = x.saturating_add(w).min(end);
-            let roles = CellRoles {
-                fg: sp.role.or(self.roles.fg),
-                bg: self.roles.bg,
-            };
-            let saved = self.roles;
-            self.roles = roles;
-            let mut px = x;
-            while px < stop {
-                self.mark(Position::new(px, area.y));
-                px = px.saturating_add(1);
-            }
-            self.roles = saved;
-            x = stop;
-            if x >= end {
+            if x >= right {
                 break;
             }
+            let mut st = base.add_modifier(sp.add);
+            if let Some(r) = sp.role
+                && let Some(c) =
+                    crate::theme::resolve::bind_role(self.theme_ref(), r, self.surface())
+            {
+                st = st.fg(c);
+            }
+            self.set_roles(CellRoles {
+                fg: sp.role.or(base_roles.fg),
+                bg: base_roles.bg,
+            });
+            let width = right.saturating_sub(x);
+            let (end, _) = self
+                .buffer()
+                .set_span(x, area.y, &RawSpan::styled(sp.text, st), width);
+            self.mark_area(Rect {
+                x,
+                y: area.y,
+                width: end.saturating_sub(x),
+                height: 1,
+            });
+            x = end;
         }
-        end.saturating_sub(area.x)
+        self.set_roles(base_roles);
+        x.saturating_sub(area.x)
     }
 
     /// Restyle `area` without touching symbols (`Buffer::set_style`).

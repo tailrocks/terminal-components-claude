@@ -176,3 +176,92 @@ impl EmptyState<'_> {
         rows
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+
+    use super::*;
+    use crate::theme::Theme;
+    use crate::ui::cx::LastFrame;
+    use crate::ui::{FrameState, UiCore};
+
+    const SCREEN: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 40,
+        height: 5,
+    };
+
+    fn render(e: &EmptyState<'_>, frame: usize) -> (String, u16) {
+        let theme = Theme::junie();
+        let mut fs = FrameState::default();
+        fs.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let rows = {
+            let mut ui = Ui::new(&mut fs, &mut page, &mut core, &theme, &last);
+            e.draw(&mut ui, SCREEN, frame)
+        };
+        let mut text = String::new();
+        for y in 0..SCREEN.height {
+            for x in 0..SCREEN.width {
+                if let Some(c) = page.cell((x, y)) {
+                    text.push_str(c.symbol());
+                }
+            }
+            text.push('\n');
+        }
+        (text, rows)
+    }
+
+    /// §12.2: the four data-readiness shapes each render their own primary
+    /// and secondary line, map onto the right `StateFlags`, and the spinner
+    /// is a pure function of the frame counter.
+    #[test]
+    fn empty_state_covers_empty_loading_partial_error() {
+        let empty = EmptyState::Empty {
+            title: "No rows",
+            hint: Some("Adjust the filter"),
+        };
+        let (t, rows) = render(&empty, 0);
+        assert!(t.contains("No rows"), "{t}");
+        assert!(t.contains("Adjust the filter"), "{t}");
+        assert_eq!(rows, 3);
+        assert_eq!(empty.status(), Status::Ready);
+        assert_eq!(empty.status().flags(), StateFlags::empty());
+
+        let loading = EmptyState::Loading { label: "Loading" };
+        let (t, rows) = render(&loading, 0);
+        assert!(t.contains("Loading"), "{t}");
+        assert_eq!(rows, 1);
+        assert_eq!(loading.status().flags(), StateFlags::LOADING);
+
+        let partial = EmptyState::Partial {
+            loaded: 2,
+            total: RowTotal::Estimated(9),
+            hint: "2 of about 9 sources",
+        };
+        let (t, _) = render(&partial, 0);
+        assert!(t.contains("2 of about 9 sources"), "{t}");
+        assert_eq!(partial.status(), Status::Loading);
+
+        let error = EmptyState::Error {
+            message: "Failed",
+            detail: Some("timed out"),
+        };
+        let (t, _) = render(&error, 0);
+        assert!(t.contains("Failed") && t.contains("timed out"), "{t}");
+        assert_eq!(error.status().flags(), StateFlags::ERROR);
+
+        // the spinner advances with the frame and is otherwise deterministic
+        let a = render(&loading, 0).0;
+        let b = render(&loading, 1).0;
+        assert_ne!(a, b, "the spinner must advance with the frame");
+        assert_eq!(a, render(&loading, 0).0);
+
+        // a rect too small to draw into writes nothing and reports 0 rows
+        assert_eq!(render(&empty, 0).1, 3);
+    }
+}

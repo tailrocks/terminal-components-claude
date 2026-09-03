@@ -18,6 +18,10 @@ use crate::theme::{Align, Family, GlyphRole, Role, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Maximum columns `RowUi::columns` lays out without allocating.
+///
+/// Tracks beyond this cap are **silently ignored** — the fixed `[u16; 16]`
+/// track buffer is what makes the row painter allocation-free (§12.2, R5,
+/// MI-8).
 pub const MAX_COLUMNS: usize = 16;
 
 /// A painter for one collection row, its parts pre-styled.
@@ -106,13 +110,11 @@ impl<'u> RowUi<'u> {
     }
 
     fn style_of(&mut self, part: Part) -> Style {
-        let s = self
-            .ui
-            .style(self.family, self.variant, part, self.flags)
-            .style;
+        let r = self.ui.style(self.family, self.variant, part, self.flags);
         #[cfg(feature = "testing")]
-        self.ui.note_styled(self.owner, part);
-        s
+        self.ui
+            .note_styled(self.owner, self.family, self.variant, part, r);
+        r.style
     }
 
     /// Paint a marker glyph at the left, then a gap.
@@ -261,16 +263,19 @@ impl<'u> RowUi<'u> {
             height: 1,
         };
         self.right = self.right.saturating_add(w).saturating_add(1);
-        let style = self
-            .ui
-            .style(self.family, self.variant, p, self.flags)
-            .style;
+        let r = self.ui.style(self.family, self.variant, p, self.flags);
         #[cfg(feature = "testing")]
-        self.ui.note_styled(self.owner, p);
-        CellUi::new(self.ui.reborrow(), cell, style)
+        self.ui
+            .note_styled(self.owner, self.family, self.variant, p, r);
+        CellUi::new(self.ui.reborrow(), cell, r.style)
     }
 
     /// Split what is left into columns.
+    ///
+    /// At most [`MAX_COLUMNS`] tracks are laid out; further tracks are
+    /// **silently ignored** so the row can never allocate (§12.2, MI-8). A
+    /// component that needs more columns than the cap is a design error, not
+    /// a runtime one: split the row.
     pub fn columns(&mut self, widths: &[Track]) -> ColumnsUi<'_> {
         let area = self.remaining();
         let gap = self.ui.design().space.column_gap;
@@ -289,11 +294,12 @@ impl<'u> RowUi<'u> {
         }
     }
 
-    /// The buffer and the row rect; marks the rect written.
+    /// The buffer and the row rect; marks **the row rect** written, not the
+    /// whole clip (BL-3): a right-aligned cell inside a layer must not make
+    /// the layer's written-cell bitset all-true.
     pub fn raw(&mut self) -> (&mut Buffer, Rect) {
         let row = self.row;
-        self.ui.with_area(row, |_| {});
-        let (buf, _) = self.ui.raw();
+        let (buf, _) = self.ui.buffer_in(row);
         (buf, row)
     }
 }
@@ -464,7 +470,7 @@ impl Drop for CellUi<'_> {
         };
         let y = self.area.y;
         if shift > 0 {
-            let (buf, _) = self.ui.raw();
+            let (buf, _) = self.ui.buffer_in(self.area);
             let mut x = self.area.x.saturating_add(used);
             while x > self.area.x {
                 x = x.saturating_sub(1);
@@ -622,7 +628,137 @@ fn format_money(cents: i64, buf: &mut [u8; 32]) -> &str {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+
     use super::*;
+    use crate::theme::Theme;
+    use crate::ui::cx::LastFrame;
+    use crate::ui::{FrameState, UiCore};
+
+    const OWNER: Id = Id::root("rowui.owner");
+    const SCREEN: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 30,
+        height: 2,
+    };
+
+    /// Paint one row and return the page buffer.
+    fn paint(row: Rect, f: impl FnOnce(&mut RowUi<'_>)) -> Buffer {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut r = RowUi::new(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::empty(),
+                ItemKey::index(0),
+                row,
+            );
+            f(&mut r);
+        }
+        page
+    }
+
+    fn row_text(buf: &Buffer, y: u16, from: u16, to: u16) -> String {
+        let mut out = String::new();
+        let mut x = from;
+        while x < to {
+            let Some(c) = buf.cell((x, y)) else { break };
+            out.push_str(c.symbol());
+            x = x.saturating_add(width(c.symbol()).max(1));
+        }
+        out
+    }
+
+    /// R5: the label path writes straight into cells; the only allocation a
+    /// row may make is none at all. Proved structurally here (the painter
+    /// takes `&str` and routes to `Buffer::set_stringn`) and by cell content.
+    #[test]
+    fn row_ui_label_writes_cells_without_an_intermediate_string() {
+        let page = paint(Rect::new(0, 0, 10, 1), |r| r.label("hello"));
+        assert_eq!(row_text(&page, 0, 0, 10), "hello     ");
+        // the ellipsis path truncates in place, ending with the theme glyph
+        let page = paint(Rect::new(0, 0, 5, 1), |r| r.label("hello world"));
+        let painted = row_text(&page, 0, 0, 5);
+        assert_eq!(painted.chars().count(), 5);
+        assert!(painted.ends_with('…'), "{painted:?}");
+        // `label_fmt` formats into cells too
+        let page = paint(Rect::new(0, 0, 10, 1), |r| {
+            r.label_fmt(format_args!("{}-{}", 12, 7));
+        });
+        assert_eq!(row_text(&page, 0, 0, 10), "12-7      ");
+    }
+
+    /// `DESIGN.md:478`: meta is right-aligned and dropped **all or none**
+    /// when it does not fit after a two-cell gap.
+    #[test]
+    fn row_ui_meta_is_dropped_all_or_none() {
+        // room for the label, the gap and the meta
+        let page = paint(Rect::new(0, 0, 12, 1), |r| {
+            r.meta("42");
+            r.label("name");
+        });
+        assert_eq!(row_text(&page, 0, 0, 12), "name      42");
+        // one column short: nothing of the meta is painted, not a truncation
+        let page = paint(Rect::new(0, 0, 3, 1), |r| {
+            r.meta("42");
+            r.label("name");
+        });
+        assert_eq!(row_text(&page, 0, 0, 3), "na…");
+        // exactly at the boundary (need + 2 == width) it still fits
+        let page = paint(Rect::new(0, 0, 4, 1), |r| r.meta("42"));
+        assert_eq!(row_text(&page, 0, 0, 4), "  42");
+    }
+
+    /// Columns are clipped to the row: nothing is written past `row.right()`,
+    /// and the fixed `[u16; MAX_COLUMNS]` never overflows the rect.
+    #[test]
+    fn row_ui_columns_clip_to_the_row() {
+        let page = paint(Rect::new(2, 0, 12, 1), |r| {
+            let mut c = r.columns(&[Track::Flex(1), Track::Flex(1)]);
+            c.cell(0).text("aaaaaaaa");
+            c.cell(1).text("bbbbbbbb");
+        });
+        // outside the row on both sides the page is untouched
+        assert_eq!(
+            page.cell((0, 0)).map(|c| c.symbol().to_owned()),
+            Some(" ".to_owned())
+        );
+        assert_eq!(
+            page.cell((1, 0)).map(|c| c.symbol().to_owned()),
+            Some(" ".to_owned())
+        );
+        for x in 14..30u16 {
+            assert_eq!(
+                page.cell((x, 0)).map(|c| c.symbol().to_owned()),
+                Some(" ".to_owned())
+            );
+        }
+        let inside = row_text(&page, 0, 2, 14);
+        assert_eq!(inside.chars().count(), 12);
+        // more tracks than MAX_COLUMNS are ignored, not painted past the row
+        let many: Vec<Track> = (0..MAX_COLUMNS + 4).map(|_| Track::Flex(1)).collect();
+        let page = paint(Rect::new(0, 0, 20, 1), |r| {
+            let mut c = r.columns(&many);
+            for i in 0..4 {
+                c.cell(i).text("xx");
+            }
+        });
+        for x in 20..30u16 {
+            assert_eq!(
+                page.cell((x, 0)).map(|c| c.symbol().to_owned()),
+                Some(" ".to_owned())
+            );
+        }
+    }
 
     #[test]
     fn in_place_number_formatting() {

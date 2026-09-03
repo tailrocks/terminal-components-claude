@@ -207,11 +207,15 @@ impl FocusRing {
             .map(|r| r.id)
     }
 
-    /// The innermost active scope: the highest layer's latest scope.
+    /// The innermost active scope: the **latest** scope on the highest layer.
+    ///
+    /// `Iterator::max_by` keeps the *last* maximum, so the iteration must not
+    /// be reversed — `.rev().max_by(layer)` returned the *earliest* scope on
+    /// the highest layer, contradicting this doc (MI-1). Harmless while there
+    /// is one scope per layer; wrong the moment there are two.
     pub fn innermost_scope(&self) -> ScopeId {
         self.scopes
             .iter()
-            .rev()
             .max_by(|a, b| a.layer.cmp(&b.layer))
             .map_or(ScopeId::ROOT, |r| r.id)
     }
@@ -346,7 +350,13 @@ impl FocusRing {
                 return Some(id);
             }
         }
-        // (c) the innermost active scope's first enabled entry, then (d) None
+        // (c) the innermost active scope's first enabled entry, then (d) None.
+        //
+        // The trailing `or_else` is an accepted amendment to §3.3 step 14
+        // (MI-2): rather than yielding `None` while a reachable entry exists
+        // somewhere else in the ring, focus lands on the first reachable
+        // entry. Strictly better behaviour, recorded here because it is a
+        // divergence from the literal ladder.
         self.first_in(self.innermost_scope())
             .or_else(|| self.reachable().next().map(|e| e.id))
     }
@@ -478,24 +488,6 @@ mod tests {
         assert!(r.is_registered(Id::root("b")));
         assert!(!r.contains(Id::root("b")));
         assert_eq!(r.next(Some(Id::root("a"))), Some(Id::root("c")));
-    }
-
-    #[test]
-    fn read_only_entries_stay_in_the_ring() {
-        // read-only is `Focusability::FocusableReadOnly`: `disabled: false`
-        let mut r = FocusRing::new();
-        let mut e = entry("ro", ScopeId::ROOT, false, LayerId::PAGE);
-        e.swallows_typing = false;
-        r.register(e);
-        assert!(r.contains(Id::root("ro")));
-    }
-
-    #[test]
-    fn click_only_entries_are_never_reachable() {
-        // `Focusability::ClickOnly` never registers: the ring has no entry
-        let r = ring(&["a"]);
-        assert!(!r.is_registered(Id::root("clickonly")));
-        assert!(!r.contains(Id::root("clickonly")));
     }
 
     fn trapped() -> FocusRing {
@@ -634,19 +626,107 @@ mod tests {
         assert_eq!(r.reachable().count(), 0);
         assert_eq!(r.next(None), None);
     }
+}
 
+/// MI-3: three §16.1 names whose mechanism lives in `Ui::register_entry` and
+/// in `Runtime`, not in `FocusRing`. As `FocusRing`-level tests they asserted
+/// nothing about the thing they are named for.
+#[cfg(test)]
+mod runtime_tests {
+    use ratatui_core::layout::Rect;
+
+    use super::*;
+    use crate::event::KeyCode;
+    use crate::layer::LayerSpec;
+    use crate::response::StateFlags;
+    use crate::runtime::stub::{Control, Stub, key, runtime, step};
+
+    const A: Id = Id::root("page.a");
+    const RO: Id = Id::root("page.ro");
+    const CLICKY: Id = Id::root("page.clicky");
+    const DLG: Id = Id::root("dlg");
+    const OK: Id = Id::root("dlg.ok");
+
+    fn page() -> Stub {
+        Stub {
+            page: vec![
+                Control::new(A, Rect::new(0, 0, 6, 1)),
+                Control {
+                    focus: Focusability::FocusableReadOnly,
+                    ..Control::new(RO, Rect::new(0, 1, 6, 1))
+                },
+                Control {
+                    focus: Focusability::ClickOnly,
+                    ..Control::new(CLICKY, Rect::new(0, 2, 6, 1))
+                },
+            ],
+            ..Stub::default()
+        }
+    }
+
+    /// `Focusability::FocusableReadOnly` registers a ring entry that Tab
+    /// reaches, and declares `READ_ONLY` for the next frame.
+    #[test]
+    fn read_only_entries_stay_in_the_ring() {
+        let (mut rt, mut buf) = runtime(page());
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        assert!(rt.ring().contains(RO), "read-only must stay reachable");
+        assert!(rt.ring().is_registered(RO));
+        assert!(
+            rt.state_of(RO).contains(StateFlags::READ_ONLY),
+            "register_editor/FocusableReadOnly declares READ_ONLY"
+        );
+        // and Tab actually lands on it
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
+        let first = rt.focus();
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
+        let seen = [first, rt.focus()];
+        assert!(
+            seen.contains(&Some(RO)),
+            "Tab never reached the read-only entry"
+        );
+    }
+
+    /// `Focusability::ClickOnly` registers a hit region but **no** ring
+    /// entry: it is clickable and unreachable by Tab.
+    #[test]
+    fn click_only_entries_are_never_reachable() {
+        let (mut rt, mut buf) = runtime(page());
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        assert!(
+            !rt.ring().is_registered(CLICKY),
+            "ClickOnly registers no ring entry"
+        );
+        assert!(!rt.ring().contains(CLICKY));
+        assert!(rt.ring().contains(A));
+        // but the region is still hit-testable
+        assert!(rt.registry().area_of(CLICKY).is_some());
+    }
+
+    /// §21 item 15: after a layer closes, the restore target holds focus and
+    /// receives keys **before** the next draw re-registers it.
     #[test]
     fn restore_target_receives_keys_before_the_next_draw() {
-        // FocusState::current is the restore target as soon as a layer closes,
-        // even though it is absent from the last ring (§21 item 15)
-        let mut f = FocusState::default();
-        let dlg = ScopeId::new(Id::root("dlg"));
-        f.save_restore(dlg, Id::root("opener"));
-        f.set(Some(Id::root("ok")));
-        let target = f.take_restore(dlg);
-        f.set(target);
-        assert_eq!(f.current(), Some(Id::root("opener")));
-        let last = trapped();
-        assert!(!last.contains(Id::root("opener")));
+        let mut s = page();
+        s.layers = vec![(DLG, vec![Control::new(OK, Rect::new(2, 2, 4, 1))])];
+        let (mut rt, mut buf) = runtime(s);
+        rt.app_mut().focus_request = Some(A);
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        assert_eq!(rt.focus(), Some(A));
+        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).initial_focus(OK)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        assert_eq!(rt.focus(), Some(OK));
+        // Esc dismisses the layer; the opener is focused again immediately,
+        // in the same `handle`, before the draw that re-registers it
+        let _ = rt.handle(key(KeyCode::Esc));
+        assert_eq!(
+            rt.focus(),
+            Some(A),
+            "the restore target holds focus before the next draw"
+        );
+        // and the very next key reaches it
+        rt.app_mut().log.clear();
+        let _ = rt.handle(key(KeyCode::Char('z')));
+        assert!(rt.app().saw(A, "Key"), "{:?}", rt.app().log);
     }
 }

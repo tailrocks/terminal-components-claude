@@ -8,8 +8,9 @@
 //! `Registry`, `FocusRing`, `FocusState`, `App` and the concrete
 //! components. A component author drives none of those.
 
-// identity and parts
-pub use crate::id;
+// identity and parts — the NAMED items, never the module itself: re-exporting
+// `crate::id` widens the surface unintentionally, and the `id!` macro is
+// `#[macro_export]` and already reachable at the root (F21, MI-11).
 pub use crate::id::{Id, ItemKey, Part, PartRef};
 // phases and plumbing
 pub use crate::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
@@ -35,10 +36,11 @@ pub use crate::theme::{
 // layout and measurement
 pub use crate::layout::{self, Insets, RowAlign, SplitModel, Track};
 pub use crate::measure::{Constraints, Measure, Size};
-// text
+// text — curated: `grapheme_width`, `is_word_char` and `thousands` stay
+// internal (Appendix B.4 lists neither)
 pub use crate::text::{
-    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextEditorCore, fuzzy, truncate,
-    truncate_middle, width, wrap,
+    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
+    truncate, truncate_middle, width, wrap, wrapped_rows,
 };
 // collections
 pub use crate::collection::{

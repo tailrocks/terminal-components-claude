@@ -139,6 +139,22 @@ pub enum Backdrop {
     },
 }
 
+/// How large a layer asks to be (Adjudication N1).
+///
+/// The resolver clamps to the screen; it never grows a layer, so a `Fixed`
+/// size is a maximum as well as a request ("size, then clamp, then documented
+/// degradation", §9.1). The size is the opener's, the placement is the
+/// runtime's: a component computes a size, never a rect.
+#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LayerSize {
+    /// The whole screen. The content is responsible for its own internal
+    /// layout; `Anchor` is ignored. Help overlays, file browsers, `TooSmall`.
+    Fill,
+    /// Exactly `w × h` cells before clamping.
+    Fixed(u16, u16),
+}
+
 /// A layer's configuration. Construct through the builders.
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -155,8 +171,8 @@ pub struct LayerSpec {
     pub restore_focus: bool,
     /// Initial focus inside the layer.
     pub initial_focus: Option<Id>,
-    /// The requested content size; `(0, 0)` means the whole screen.
-    pub min_size: (u16, u16),
+    /// The requested content size (§9.1).
+    pub size: LayerSize,
     /// The backdrop.
     pub backdrop: Backdrop,
     /// No registrations from the layers below.
@@ -173,7 +189,7 @@ impl LayerSpec {
             dismiss: Dismiss::ESC_AND_OUTSIDE,
             restore_focus: true,
             initial_focus: None,
-            min_size: (0, 0),
+            size: LayerSize::Fill,
             backdrop: Backdrop::Dim {
                 exclude_footer: true,
             },
@@ -190,7 +206,7 @@ impl LayerSpec {
             dismiss: Dismiss::ESC_AND_OUTSIDE,
             restore_focus: true,
             initial_focus: None,
-            min_size: (0, 0),
+            size: LayerSize::Fill,
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -205,7 +221,7 @@ impl LayerSpec {
             dismiss: Dismiss::ALL,
             restore_focus: false,
             initial_focus: None,
-            min_size: (0, 0),
+            size: LayerSize::Fill,
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -239,10 +255,11 @@ impl LayerSpec {
         self
     }
 
-    /// Set the requested size.
+    /// Set the requested size. `LayerSize::Fixed(w, h)` is a request *and* a
+    /// maximum: the resolver clamps to the screen and never grows a layer.
     #[must_use]
-    pub const fn min_size(mut self, w: u16, h: u16) -> Self {
-        self.min_size = (w, h);
+    pub const fn size(mut self, s: LayerSize) -> Self {
+        self.size = s;
         self
     }
 
@@ -294,15 +311,21 @@ pub enum DismissReason {
 
 /// Resolve a layer's area: anchor, flip, then clamp (§9.1).
 ///
-/// `size == (0, 0)` yields the whole screen. Otherwise the requested size is
-/// clipped to the screen first ("`min_size`, then clamp, then documented
-/// degradation": a layer larger than the screen is shrunk to it).
-pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: (u16, u16)) -> Rect {
-    if size.0 == 0 || size.1 == 0 {
-        return screen;
-    }
-    let w = size.0.min(screen.width);
-    let h = size.1.min(screen.height);
+/// [`LayerSize::Fill`] yields the whole screen. A `Fixed` size is clipped to
+/// the screen first, then anchored, then flipped if the chosen side has no
+/// room, then `Rect::clamp`ed. A layer is **never grown** to meet its
+/// request ("size, then clamp, then documented degradation"). A zero
+/// dimension is an empty layer, not the screen.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "w/h/x/y/p are the geometry vocabulary of the anchor arms"
+)]
+pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
+    let (w, h) = match size {
+        LayerSize::Fill => return screen,
+        LayerSize::Fixed(w, h) if w == 0 || h == 0 => return Rect::ZERO,
+        LayerSize::Fixed(w, h) => (w.min(screen.width), h.min(screen.height)),
+    };
     let raw = match anchor {
         Anchor::Screen(align) => {
             let x = screen.centered_horizontally(Constraint::Length(w)).x;
@@ -355,12 +378,31 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: (u16, u16)) -> Rect {
                 height: h,
             }
         }
-        Anchor::Point(p) => Rect {
-            x: p.x,
-            y: p.y,
-            width: w,
-            height: h,
-        },
+        // a tooltip or a context menu near an edge is placed above/left of
+        // the pointer rather than sliding over it (Adjudication N1, change 2)
+        Anchor::Point(p) => {
+            let below = p.y.saturating_add(1);
+            let fits_below = below.saturating_add(h) <= screen.bottom();
+            let fits_above = p.y >= screen.y.saturating_add(h);
+            let y = if fits_below || !fits_above {
+                below
+            } else {
+                p.y.saturating_sub(h)
+            };
+            let fits_right = p.x.saturating_add(w) <= screen.right();
+            let fits_left = p.x >= screen.x.saturating_add(w);
+            let x = if fits_right || !fits_left {
+                p.x
+            } else {
+                p.x.saturating_sub(w)
+            };
+            Rect {
+                x,
+                y,
+                width: w,
+                height: h,
+            }
+        }
     };
     raw.clamp(screen)
 }
@@ -430,6 +472,18 @@ impl LayerStack {
 
     pub(crate) fn is_open(&self, id: Id) -> bool {
         self.get(id).is_some()
+    }
+
+    /// The spec of an open layer, mutable. Only the geometry (`size`,
+    /// `anchor`) may change while a layer is open: `kind`, `inert_below`,
+    /// `restore_focus` and `initial_focus` were armed by the runtime when the
+    /// layer was pushed and re-deriving them would desync the focus scope and
+    /// the inert floor (§21 item 14).
+    pub(crate) fn spec_mut(&mut self, id: Id) -> Option<&mut LayerSpec> {
+        self.open
+            .iter_mut()
+            .find(|l| l.id == id)
+            .map(|l| &mut l.spec)
     }
 
     pub(crate) fn top_layer(&self) -> Option<&OpenLayer> {
@@ -572,7 +626,7 @@ mod tests {
             align: CrossAlign::Start,
         };
         assert_eq!(
-            resolve_anchor(screen, below, (40, 8)),
+            resolve_anchor(screen, below, LayerSize::Fixed(40, 8)),
             Rect::new(10, 6, 40, 8)
         );
         let low = Anchor::Rect {
@@ -581,7 +635,7 @@ mod tests {
             align: CrossAlign::Start,
         };
         assert_eq!(
-            resolve_anchor(screen, low, (40, 8)),
+            resolve_anchor(screen, low, LayerSize::Fixed(40, 8)),
             Rect::new(10, 18, 40, 8)
         );
         let right = Anchor::Rect {
@@ -589,22 +643,28 @@ mod tests {
             side: Side::Below,
             align: CrossAlign::Start,
         };
-        assert_eq!(resolve_anchor(screen, right, (40, 8)).right(), 100);
-        let tall = resolve_anchor(screen, below, (40, 60));
+        assert_eq!(
+            resolve_anchor(screen, right, LayerSize::Fixed(40, 8)).right(),
+            100
+        );
+        let tall = resolve_anchor(screen, below, LayerSize::Fixed(40, 60));
         assert!(tall.height <= 30);
         let end = Anchor::Rect {
             rect: Rect::new(50, 5, 10, 1),
             side: Side::Above,
             align: CrossAlign::End,
         };
-        assert_eq!(resolve_anchor(screen, end, (4, 2)), Rect::new(56, 3, 4, 2));
+        assert_eq!(
+            resolve_anchor(screen, end, LayerSize::Fixed(4, 2)),
+            Rect::new(56, 3, 4, 2)
+        );
         let side = Anchor::Rect {
             rect: Rect::new(95, 5, 5, 3),
             side: Side::Right,
             align: CrossAlign::Center,
         };
         assert_eq!(
-            resolve_anchor(screen, side, (10, 1)),
+            resolve_anchor(screen, side, LayerSize::Fixed(10, 1)),
             Rect::new(85, 6, 10, 1)
         );
     }
@@ -612,25 +672,133 @@ mod tests {
     #[test]
     fn anchor_screen_center_sits_in_the_upper_third() {
         let screen = Rect::new(0, 0, 120, 40);
-        let r = resolve_anchor(screen, Anchor::Screen(ScreenAlign::Center), (60, 12));
-        assert_eq!(r, Rect::new(30, 9, 60, 12));
-        let b = resolve_anchor(screen, Anchor::Screen(ScreenAlign::Bottom), (60, 12));
-        assert_eq!(b.bottom(), 40);
-        let u = resolve_anchor(screen, Anchor::Screen(ScreenAlign::UpperThird), (60, 12));
-        assert!(u.y < r.y);
-        assert_eq!(
-            resolve_anchor(screen, Anchor::Screen(ScreenAlign::Center), (0, 0)),
-            screen
+        let r = resolve_anchor(
+            screen,
+            Anchor::Screen(ScreenAlign::Center),
+            LayerSize::Fixed(60, 12),
         );
+        assert_eq!(r, Rect::new(30, 9, 60, 12));
+        let b = resolve_anchor(
+            screen,
+            Anchor::Screen(ScreenAlign::Bottom),
+            LayerSize::Fixed(60, 12),
+        );
+        assert_eq!(b.bottom(), 40);
+        let u = resolve_anchor(
+            screen,
+            Anchor::Screen(ScreenAlign::UpperThird),
+            LayerSize::Fixed(60, 12),
+        );
+        assert!(u.y < r.y);
     }
 
     #[test]
-    fn min_size_then_clamp_then_documented_degradation() {
+    fn fill_resolves_to_the_whole_screen() {
+        let screen = Rect::new(0, 0, 120, 40);
+        for anchor in [
+            Anchor::Screen(ScreenAlign::Center),
+            Anchor::Point(Position::new(3, 3)),
+            Anchor::Rect {
+                rect: Rect::new(1, 1, 2, 2),
+                side: Side::Below,
+                align: CrossAlign::Start,
+            },
+        ] {
+            assert_eq!(resolve_anchor(screen, anchor, LayerSize::Fill), screen);
+        }
+        assert_eq!(LayerSpec::modal(DLG).size, LayerSize::Fill);
+        assert_eq!(
+            LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::Center)).size,
+            LayerSize::Fill
+        );
+        assert_eq!(
+            LayerSpec::tooltip(DLG, Position::new(0, 0)).size,
+            LayerSize::Fill
+        );
+    }
+
+    /// The field was never a minimum: the resolver clamps down and never
+    /// grows (Adjudication N1). A zero dimension is an *empty* layer, which
+    /// is what §16.2 case 19 and `draw_registers_nothing_when_it_cannot_draw`
+    /// assume — not the whole screen.
+    #[test]
+    fn fixed_size_is_clamped_never_grown() {
         let screen = Rect::new(0, 0, 40, 10);
-        let r = resolve_anchor(screen, Anchor::Screen(ScreenAlign::Center), (54, 20));
+        let r = resolve_anchor(
+            screen,
+            Anchor::Screen(ScreenAlign::Center),
+            LayerSize::Fixed(54, 20),
+        );
         assert_eq!(r, screen);
-        let p = resolve_anchor(screen, Anchor::Point(Position::new(38, 9)), (10, 3));
-        assert_eq!(p, Rect::new(30, 7, 10, 3));
+        assert_eq!(
+            resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::Center),
+                LayerSize::Fixed(0, 8)
+            ),
+            Rect::ZERO
+        );
+        assert_eq!(
+            resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::Center),
+                LayerSize::Fixed(8, 0)
+            ),
+            Rect::ZERO
+        );
+        // a request smaller than the screen is honoured exactly
+        let small = resolve_anchor(
+            screen,
+            Anchor::Screen(ScreenAlign::Center),
+            LayerSize::Fixed(10, 4),
+        );
+        assert_eq!((small.width, small.height), (10, 4));
+    }
+
+    /// Now reachable: while every spec asked for the whole screen the flip
+    /// arms of `Anchor::Rect` could never run.
+    #[test]
+    fn popover_flips_above_when_the_content_does_not_fit_below() {
+        let screen = Rect::new(0, 0, 40, 20);
+        let below = Anchor::Rect {
+            rect: Rect::new(4, 17, 6, 1),
+            side: Side::Below,
+            align: CrossAlign::Start,
+        };
+        let r = resolve_anchor(screen, below, LayerSize::Fixed(12, 6));
+        assert_eq!(r, Rect::new(4, 11, 12, 6));
+        // there is room below, so no flip
+        let high = Anchor::Rect {
+            rect: Rect::new(4, 2, 6, 1),
+            side: Side::Below,
+            align: CrossAlign::Start,
+        };
+        assert_eq!(
+            resolve_anchor(screen, high, LayerSize::Fixed(12, 6)),
+            Rect::new(4, 3, 12, 6)
+        );
+    }
+
+    /// A context menu near the bottom-right must not slide up *over* the
+    /// pointer; it flips above and left of it (Adjudication N1, change 2).
+    #[test]
+    fn point_anchor_flips_instead_of_covering_the_pointer() {
+        let screen = Rect::new(0, 0, 40, 10);
+        let p = resolve_anchor(
+            screen,
+            Anchor::Point(Position::new(38, 9)),
+            LayerSize::Fixed(10, 3),
+        );
+        assert_eq!(p, Rect::new(28, 6, 10, 3));
+        assert!(!p.contains(Position::new(38, 9)));
+        // room below and to the right: placed one row under the pointer
+        let q = resolve_anchor(
+            screen,
+            Anchor::Point(Position::new(2, 1)),
+            LayerSize::Fixed(10, 3),
+        );
+        assert_eq!(q, Rect::new(2, 2, 10, 3));
+        assert!(!q.contains(Position::new(2, 1)));
     }
 
     #[test]
@@ -714,6 +882,60 @@ mod runtime_tests {
             consume_keys: false,
             ..Stub::default()
         }
+    }
+
+    /// The size a component asserts from `update` takes effect in the very
+    /// next draw — the same frame, no flash (Adjudication N1).
+    #[test]
+    fn resize_layer_re_resolves_the_anchor_on_the_next_draw() {
+        let (mut rt, mut buf) = runtime(dialog_stub());
+        rt.app_mut().open_request =
+            Some((DLG, LayerSpec::modal(DLG).size(LayerSize::Fixed(20, 4))));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        let first = rt.layer_area(DLG).expect("the layer is open");
+        assert_eq!((first.width, first.height), (20, 4));
+        rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(40, 10)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        let grown = rt.layer_area(DLG).expect("the layer is still open");
+        assert_eq!((grown.width, grown.height), (40, 10));
+        // the resolver still centres it; the component computed no rect
+        assert_eq!(
+            grown,
+            resolve_anchor(
+                rt.screen(),
+                Anchor::Screen(ScreenAlign::Center),
+                LayerSize::Fixed(40, 10)
+            )
+        );
+        // a no-op resize does not request a repaint
+        rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(40, 10)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        assert_eq!(rt.layer_area(DLG), Some(grown));
+    }
+
+    /// Geometry is the only part of a spec that may change while a layer is
+    /// open: `kind`, `inert_below`, `restore_focus` and `initial_focus` were
+    /// armed when the layer was pushed (§21 item 14).
+    #[test]
+    fn spec_geometry_is_the_only_mutable_field() {
+        let (mut rt, mut buf) = runtime(dialog_stub());
+        let spec = LayerSpec::modal(DLG)
+            .size(LayerSize::Fixed(20, 4))
+            .initial_focus(OK)
+            .inert_below(true);
+        rt.app_mut().open_request = Some((DLG, spec));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(24, 6)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        // `Cx` exposes exactly two spec mutators, both geometric; every other
+        // field still reads back as it was armed
+        let open = rt.open_spec(DLG).expect("the layer is open");
+        assert_eq!(open.size, LayerSize::Fixed(24, 6));
+        assert_eq!(open.kind, spec.kind);
+        assert_eq!(open.inert_below, spec.inert_below);
+        assert_eq!(open.restore_focus, spec.restore_focus);
+        assert_eq!(open.initial_focus, spec.initial_focus);
+        assert_eq!(open.dismiss, spec.dismiss);
     }
 
     #[test]

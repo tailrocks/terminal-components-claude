@@ -103,14 +103,49 @@ impl Default for Fixture {
     }
 }
 
-/// The states case 9 compares by default.
+/// The states case 9 compares by default: **all ten** of §16.2's list
+/// (MA-8). A five-state default silently gave every component a weaker check
+/// than the contract asks for.
+///
+/// [`Conformance::mono_states`] may only **narrow** this list — the driver
+/// asserts that, and asserts that every state the component's [`Caps`] imply
+/// is still present.
 pub const DEFAULT_MONO_STATES: &[StateFlags] = &[
     StateFlags::empty(),
     StateFlags::FOCUSED,
     StateFlags::SELECTED,
     StateFlags::PRESSED,
     StateFlags::DISABLED,
+    StateFlags::ERROR,
+    StateFlags::WARNING,
+    StateFlags::EDITING,
+    StateFlags::BUSY,
+    StateFlags::ACTIVE,
 ];
+
+/// The states a capability implies, which `mono_states()` may not drop.
+pub const fn mono_states_required_by(caps: Caps) -> &'static [StateFlags] {
+    // one contiguous prefix per capability keeps this `const`
+    const FOCUSED: [StateFlags; 1] = [StateFlags::FOCUSED];
+    const PRESSED: [StateFlags; 1] = [StateFlags::PRESSED];
+    const DISABLED: [StateFlags; 1] = [StateFlags::DISABLED];
+    const EDITING: [StateFlags; 1] = [StateFlags::EDITING];
+    const SELECTED: [StateFlags; 1] = [StateFlags::SELECTED];
+    const NONE: [StateFlags; 0] = [];
+    if caps.contains(Caps::EDITS) {
+        &EDITING
+    } else if caps.contains(Caps::COLLECTION) {
+        &SELECTED
+    } else if caps.contains(Caps::DISABLEABLE) {
+        &DISABLED
+    } else if caps.contains(Caps::ACTIVATES) {
+        &PRESSED
+    } else if caps.contains(Caps::FOCUSABLE) {
+        &FOCUSED
+    } else {
+        &NONE
+    }
+}
 
 /// One registration per public component. `State = ()` for stateless components.
 pub trait Conformance: 'static {
@@ -192,6 +227,19 @@ macro_rules! conformance_suite {
             mod $name {
                 use super::*;
                 use $crate::conformance::driver as d;
+                /// D-8: the macro cannot derive the module identifier from
+                /// `Conformance::NAME`, so the ident is written explicitly.
+                /// This guard is what keeps the two from drifting: a renamed
+                /// `NAME` with an unrenamed module fails here.
+                #[test] fn name_matches_the_module() {
+                    assert_eq!(
+                        <$case as $crate::conformance::Conformance>::NAME,
+                        stringify!($name),
+                        "conformance_suite!: module `{}` registers a case named `{}`",
+                        stringify!($name),
+                        <$case as $crate::conformance::Conformance>::NAME,
+                    );
+                }
                 #[test] fn disabled_cannot_activate() { d::disabled_cannot_activate::<$case>(); }
                 #[test] fn keyboard_and_mouse_activation_are_equivalent() { d::keyboard_and_mouse_activation_are_equivalent::<$case>(); }
                 #[test] fn traversal_order_is_registration_order() { d::traversal_order_is_registration_order::<$case>(); }

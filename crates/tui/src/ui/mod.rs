@@ -6,10 +6,9 @@
 //! is automatic, and roles are recorded per painted cell for `dim_layer`.
 
 pub(crate) mod cx;
+pub(crate) mod derived;
 pub(crate) mod layer_buf;
 pub(crate) mod paint;
-
-use core::any::{Any, TypeId};
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -17,6 +16,7 @@ use ratatui_core::style::Color;
 
 use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
+use derived::DerivedCache;
 use layer_buf::LayerPool;
 
 use crate::cursor::CursorRequest;
@@ -52,7 +52,16 @@ pub(crate) struct FrameState {
     pub(crate) top: LayerId,
     #[cfg(feature = "testing")]
     pub(crate) styled_parts: Vec<(Id, Part)>,
+    #[cfg(feature = "testing")]
+    pub(crate) styled_queries: Vec<StyledQuery>,
 }
+
+/// One recorded style query: who asked, under which family/variant, for which
+/// part, and what came back (§16.4's theme-coupling migration contract).
+/// `Runtime::resolved` reads this, so a migrated assertion sees the family the
+/// component actually queried rather than a hardcoded guess (BL-7).
+#[cfg(feature = "testing")]
+pub type StyledQuery = (Id, Family, Variant, Part, Resolved);
 
 impl FrameState {
     pub(crate) fn reset(&mut self, generation: u32, screen: Rect) {
@@ -71,6 +80,8 @@ impl FrameState {
         self.top = LayerId::PAGE;
         #[cfg(feature = "testing")]
         self.styled_parts.clear();
+        #[cfg(feature = "testing")]
+        self.styled_queries.clear();
     }
 
     fn role_index(&self, pos: Position) -> Option<usize> {
@@ -90,7 +101,7 @@ impl FrameState {
 /// overlay stack (§20.9-2 P4: constructed once per runtime, reused).
 #[derive(Default)]
 pub(crate) struct UiCore {
-    cache: Vec<(Id, TypeId, Box<dyn Any>)>,
+    cache: DerivedCache,
     pub(crate) style_cache: StyleCache,
     overlays: Vec<Overlay>,
     stack_hash: u64,
@@ -99,7 +110,7 @@ pub(crate) struct UiCore {
 impl core::fmt::Debug for UiCore {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("UiCore")
-            .field("cache_entries", &self.cache.len())
+            .field("cache", &self.cache)
             .field("overlays", &self.overlays.len())
             .field("stack_hash", &self.stack_hash)
             .finish_non_exhaustive()
@@ -264,16 +275,113 @@ impl<'f> Ui<'f> {
         crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
     }
 
-    /// Record that `owner` styled `part` (the declared-parts check).
+    /// Record that `owner` resolved `part` under `family`/`variant`, and what
+    /// it got (the declared-parts check and `Runtime::resolved`).
     #[cfg(feature = "testing")]
-    pub fn note_styled(&mut self, owner: Id, part: Part) {
+    pub fn note_styled(
+        &mut self,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        resolved: Resolved,
+    ) {
         self.frame.styled_parts.push((owner, part));
+        self.frame
+            .styled_queries
+            .push((owner, family, variant, part, resolved));
     }
 
-    /// The parts styled this frame.
+    /// The `(owner, part)` pairs styled this frame — the declared-parts check.
     #[cfg(feature = "testing")]
     pub fn styled_parts(&self) -> &[(Id, Part)] {
         &self.frame.styled_parts
+    }
+
+    /// The full style queries recorded this frame, with the family, variant
+    /// and the `Resolved` each one produced.
+    #[cfg(feature = "testing")]
+    pub fn styled_queries(&self) -> &[StyledQuery] {
+        &self.frame.styled_queries
+    }
+
+    /// `(hits, misses)` of the §11.1 A3 memo since the runtime was built.
+    #[cfg(feature = "testing")]
+    pub fn style_cache_stats(&self) -> (u64, u64) {
+        self.core.style_cache.stats()
+    }
+
+    /// Resolve a part through the whole §11.3 chain **without** the memo and
+    /// **without** recording roles — the `&self` path, for `Measure::measure`
+    /// and any read that must not paint (Adjudication N2).
+    ///
+    /// Identical to [`Ui::style`] in result (same family/variant/state chain,
+    /// same live overlay stack, same current surface); it differs only in what
+    /// it does *not* do. Excludes the per-instance patch (precedence 6), which
+    /// the caller merges with `StylePatch::merge` if it has one.
+    ///
+    /// Costs one uncached accumulation and zero allocations. Use [`Ui::style`]
+    /// on the painting path: a measurement must not evict a painting entry
+    /// from the 256-slot memo (§11.1 A3, §20.9-2).
+    pub fn resolve(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+    ) -> Resolved {
+        crate::theme::resolve::resolve_uncached(
+            self.theme,
+            family,
+            variant,
+            part,
+            flags,
+            self.surface,
+            &self.core.overlays,
+            None,
+        )
+    }
+
+    /// The glyph a role currently maps to (`design.glyphs`). `&self`, so it is
+    /// reachable from `measure`; pair with `text::width` for its cell width.
+    pub fn glyph_str(&self, g: crate::theme::GlyphRole) -> &'static str {
+        self.theme.design.glyphs.get(g)
+    }
+
+    /// The style a child inherits from the current surface: `bg` is
+    /// `theme.bg(ui.surface())`, `fg` is `Role::Fg(FgStep::Primary)` bound on
+    /// that surface, no modifiers. The **left** operand of §11.3's final
+    /// layering — write it as `resolved.over(ui.surface_style())`.
+    pub fn surface_style(&self) -> ratatui_core::style::Style {
+        let mut st = ratatui_core::style::Style::new();
+        st.bg = Some(self.theme.bg(self.surface));
+        st.fg = crate::theme::resolve::bind_role(
+            self.theme,
+            Role::Fg(crate::theme::FgStep::Primary),
+            self.surface,
+        );
+        st
+    }
+
+    /// Resolve `part` once and paint with it: equivalent to binding
+    /// `let r = ui.style(family, variant, part, flags);` and then painting —
+    /// including the memo lookup and the per-cell role recording `dim_layer`
+    /// reads — but expressible as one statement.
+    ///
+    /// Binds a value only: it pushes **no** clip and **no** surface (use
+    /// [`Ui::with_area`] / [`Ui::with_surface`] for those). A component with a
+    /// per-instance patch keeps the two-step [`Ui::style_patched`] shape;
+    /// there is deliberately no `with_` form for precedence 6.
+    pub fn with_part<R>(
+        &mut self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        f: impl FnOnce(&mut Ui<'_>, Resolved) -> R,
+    ) -> R {
+        let r = self.style(family, variant, part, flags);
+        f(&mut self.reborrow(), r)
     }
 
     /// Run `f` with the clip rect intersected with `area`.
@@ -365,6 +473,15 @@ impl<'f> Ui<'f> {
 
     /// Declare non-runtime flags for `id` (`EDITING`, `DIRTY`, `BUSY`, …) so
     /// `FrameRead::state` reports them next frame.
+    ///
+    /// **One-frame contract (D-6)**: declared flags live in *last* frame's
+    /// `declared` list, so they are read back on the **next** frame — the same
+    /// rule as `cx.area` (§4 S3). A paste in the same `handle` that began an
+    /// edit is therefore not routed as editing; the edit must have been
+    /// declared by a previous draw.
+    ///
+    /// It is a `draw`-phase write the runtime consumes, alongside
+    /// [`Ui::report_layout`] (§5 R2).
     pub fn declare_state(&mut self, id: Id, flags: StateFlags) {
         if flags.is_empty() {
             return;
@@ -423,27 +540,30 @@ impl<'f> Ui<'f> {
             owner,
             pos,
             inert: self.inert,
+            focused: self.state(owner).contains(StateFlags::FOCUSED),
         };
+        // §8.4 makes filtering the runtime's job, so components write
+        // unconditionally: keep the *best* candidate — higher layer first,
+        // then the focused owner, then the later write — never the first
+        // arrival, which would hand the frame's only cursor slot to whoever
+        // happened to draw first (BL-6).
         let keep = match self.frame.cursor {
             None => true,
-            // a later write from the top layer replaces a lower one
-            Some(cur) => req.layer > cur.layer,
+            Some(cur) => (req.layer, req.focused) >= (cur.layer, cur.focused),
         };
-        if keep {
-            if let Some(prev) = self.frame.cursor
-                && !prev.inert
-                && prev.layer < req.layer
-            {
-                self.frame.diagnostics.push(Diagnostic::CursorRejected {
-                    owner: prev.owner,
-                    layer: prev.layer,
-                });
-            }
+        let loser = if keep {
+            let prev = self.frame.cursor;
             self.frame.cursor = Some(req);
-        } else if !req.inert {
+            prev
+        } else {
+            Some(req)
+        };
+        if let Some(l) = loser
+            && !l.inert
+        {
             self.frame.diagnostics.push(Diagnostic::CursorRejected {
-                owner: req.owner,
-                layer: req.layer,
+                owner: l.owner,
+                layer: l.layer,
             });
         }
     }
@@ -488,38 +608,24 @@ impl<'f> Ui<'f> {
     /// Derived, non-semantic per-component cache (rule R8). Keyed by
     /// `(Id, TypeId)`; cleared on resize, theme change and generation gap.
     pub fn cache<T: Default + 'static>(&mut self, id: Id) -> &mut T {
-        let tid = TypeId::of::<T>();
-        let pos = if let Some(p) = self
-            .core
-            .cache
-            .iter()
-            .position(|(i, t, _)| *i == id && *t == tid)
-        {
-            p
-        } else {
-            self.core.cache.push((id, tid, Box::new(T::default())));
-            self.core.cache.len().saturating_sub(1)
-        };
-        let typed = self
-            .core
-            .cache
-            .get(pos)
-            .is_some_and(|(_, _, b)| b.is::<T>());
-        if !typed && let Some(e) = self.core.cache.get_mut(pos) {
-            e.2 = Box::new(T::default());
-        }
-        match self
-            .core
-            .cache
-            .get_mut(pos)
-            .and_then(|(_, _, b)| b.downcast_mut::<T>())
-        {
-            Some(v) => v,
-            None => unreachable_cache(),
-        }
+        self.core.cache.get_mut::<T>(id)
     }
 
     // ── internals shared with paint.rs and the runtime ──
+
+    /// The buffer and `area` clipped to the current clip rect, marking
+    /// **`area`** written — not the whole clip, which [`Ui::raw`] marks.
+    ///
+    /// The internal painters that move already-painted cells (`CellUi`'s
+    /// alignment shift, `RowUi::raw`) must use this: marking the component's
+    /// whole clip would make a layer's written-cell bitset all-true and
+    /// composite unpainted cells over the page (§3.3 step 12, R3), and would
+    /// stamp the current role over every cell `dim_layer` later walks.
+    pub(crate) fn buffer_in(&mut self, area: Rect) -> (&mut Buffer, Rect) {
+        let a = area.intersection(self.clip);
+        self.mark_area(a);
+        (self.buffer(), a)
+    }
 
     pub(crate) fn buffer(&mut self) -> &mut Buffer {
         match self.target {
@@ -606,12 +712,6 @@ impl<'f> Ui<'f> {
     }
 }
 
-fn unreachable_cache<T>() -> T {
-    loop {
-        core::hint::spin_loop();
-    }
-}
-
 impl FrameRead for Ui<'_> {
     fn state(&self, id: Id) -> StateFlags {
         self.last.state(id)
@@ -631,5 +731,158 @@ impl FrameRead for Ui<'_> {
 
     fn layout(&self, id: Id) -> Option<LayoutFacts> {
         self.last.layout_of(id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::{Position, Rect};
+    use ratatui_core::style::Style;
+
+    use super::cx::LastFrame;
+    use super::{CellRoles, FrameState, Ui, UiCore};
+    use crate::collection::RowUi;
+    use crate::id::{Id, ItemKey, Part};
+    use crate::response::StateFlags;
+    use crate::theme::{Family, FgStep, Role, Surface, Theme, Variant};
+
+    const SCREEN: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 3,
+    };
+    const OWNER: Id = Id::root("ui.owner");
+
+    fn with_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let out = {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+            f(&mut ui)
+        };
+        (out, page)
+    }
+
+    /// `with_part` is a convenience over `style`, not a second resolution
+    /// path: it resolves exactly once and records the role for `dim_layer`.
+    #[test]
+    fn with_part_resolves_once_and_records_the_role() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            #[cfg(feature = "testing")]
+            let before = ui.style_cache_stats();
+            let painted = ui.with_part(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                StateFlags::empty(),
+                |ui, r| {
+                    let area = Rect::new(0, 0, 4, 1);
+                    ui.fill(area, r.style);
+                    (area, r)
+                },
+            );
+            #[cfg(feature = "testing")]
+            {
+                let after = ui.style_cache_stats();
+                assert_eq!(after.1, before.1 + 1, "exactly one cache miss");
+                assert_eq!(after.0, before.0, "and no hit: it resolved once");
+            }
+            let (area, r) = painted;
+            // it binds a value only: no clip and no surface were pushed
+            assert_eq!(ui.full(), SCREEN);
+            assert_eq!(ui.surface(), Surface::Canvas);
+            for pos in area.positions() {
+                assert_eq!(
+                    ui.roles_at(pos),
+                    CellRoles {
+                        fg: Some(Role::Fg(FgStep::Primary)),
+                        bg: Some(Role::CurrentSurface),
+                    }
+                );
+            }
+            assert_eq!(r.style.bg, Some(theme.bg(Surface::Canvas)));
+        });
+    }
+
+    /// §11.3's final layering is `inherited.patch(resolved.style)`;
+    /// `Resolved::over` is that expression and `Ui::surface_style` is its
+    /// left operand.
+    #[test]
+    fn surface_style_is_the_left_operand_of_the_final_patch() {
+        for theme in [Theme::junie(), Theme::paper()] {
+            for s in [
+                Surface::Canvas,
+                Surface::Surface,
+                Surface::Elevated,
+                Surface::Overlay,
+                Surface::Popover,
+                Surface::Field,
+            ] {
+                with_ui(&theme, |ui| {
+                    ui.with_surface(s, |ui| {
+                        let inherited = ui.surface_style();
+                        assert_eq!(inherited.bg, Some(theme.bg(s)));
+                        assert_eq!(
+                            inherited.fg,
+                            crate::theme::resolve::bind_role(&theme, Role::Fg(FgStep::Primary), s)
+                        );
+                        assert_eq!(inherited.add_modifier, Style::new().add_modifier);
+                        for &f in &[Family::LIST, Family::BUTTON, Family::FIELD] {
+                            for &p in &[Part::CONTAINER, Part::LABEL, Part::GUTTER] {
+                                for st in [StateFlags::empty(), StateFlags::FOCUSED] {
+                                    let r = ui.style(f, Variant::DEFAULT, p, st);
+                                    assert_eq!(r.over(inherited), inherited.patch(r.style));
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+        }
+    }
+
+    /// BL-3: a right-aligned `CellUi` shifts painted cells through the buffer
+    /// and must mark **its own rect**, not the component's clip. Marking the
+    /// clip stamped the cell's role over every cell of the row, so
+    /// `dim_layer` dimmed unpainted cells with the wrong role.
+    #[test]
+    fn dim_layer_uses_the_role_of_the_painted_cell() {
+        let theme = Theme::junie();
+        let backdrop = crate::theme::resolve::bind_role(&theme, Role::BackdropFg, Surface::Canvas);
+        let ((), page) = with_ui(&theme, |ui| {
+            let row = Rect::new(0, 0, 10, 1);
+            {
+                let mut r = RowUi::new(
+                    ui,
+                    OWNER,
+                    Family::LIST,
+                    Variant::DEFAULT,
+                    StateFlags::empty(),
+                    ItemKey::num(1),
+                    row,
+                );
+                let mut cell = r.part(Part::META, 6);
+                cell.align(crate::theme::Align::Right);
+                cell.text("ok");
+            }
+            // the cells outside the row keep the default role: the shift did
+            // not mark the whole clip
+            for x in 12..24u16 {
+                assert_eq!(ui.roles_at(Position::new(x, 0)), CellRoles::default());
+            }
+            ui.dim_layer(SCREEN, 2);
+        });
+        // a never-painted cell dims to the backdrop foreground …
+        let far = page.cell(Position::new(20, 2)).expect("cell");
+        assert_eq!(far.fg, backdrop.unwrap_or(far.fg));
+        // … while a painted row cell keeps a surface-derived background
+        let painted = page.cell(Position::new(1, 0)).expect("cell");
+        assert_eq!(painted.bg, theme.bg(Surface::Canvas));
     }
 }

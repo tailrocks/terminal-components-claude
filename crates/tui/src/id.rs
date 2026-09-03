@@ -424,6 +424,47 @@ mod tests {
         assert_ne!(r.item(ItemKey::num(7)), r.item(ItemKey::index(7)));
     }
 
+    /// §2.2: `Id` derives structural equality (a `const Id` in a `match`
+    /// pattern needs it). The invariant that makes debug and release compare
+    /// identically is that equality *is* hash equality — proved over a corpus
+    /// built by every derivation, not by comparing two ids with identical
+    /// labels.
+    #[test]
+    fn id_equality_is_exactly_hash_equality() {
+        let mut corpus: Vec<Id> = Vec::new();
+        let roots = ["a", "ab", "b", "root", "root::a", ""];
+        for r in roots {
+            let base = Id::root(r);
+            corpus.push(base);
+            corpus.push(base.sub("b"));
+            corpus.push(base.sub(""));
+            corpus.push(base.sub("b").sub("c"));
+            corpus.push(base.part(Part::LABEL));
+            corpus.push(base.part(Part::GUTTER));
+            corpus.push(base.index(0));
+            corpus.push(base.index(1));
+            corpus.push(base.item(ItemKey::num(0)));
+            corpus.push(base.item(ItemKey::num(1)));
+            corpus.push(base.item(ItemKey::text("b")));
+            corpus.push(base.item(ItemKey::pair(1, 2)));
+            corpus.push(base.item(ItemKey::pair(2, 1)));
+            corpus.push(base.part(Part::LABEL).index(3));
+            corpus.push(base.sub("b").part(Part::custom("z")));
+        }
+        assert!(corpus.len() >= 90);
+        for a in &corpus {
+            for b in &corpus {
+                let (ha, hb) = (Id::hash(*a), Id::hash(*b));
+                assert_eq!(
+                    a == b,
+                    ha == hb,
+                    "equality must be exactly hash equality: {a:?} vs {b:?}"
+                );
+                assert_eq!(a.cmp(b), ha.cmp(&hb), "{a:?} vs {b:?}");
+            }
+        }
+    }
+
     #[test]
     fn id_equality_ignores_debug_label() {
         // ids built by different paths to the same segments compare equal,

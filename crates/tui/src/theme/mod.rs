@@ -13,6 +13,7 @@ pub(crate) mod resolve;
 pub(crate) mod role;
 pub(crate) mod tokens;
 
+#[cfg(feature = "testing")]
 use core::hash::{Hash, Hasher};
 
 use ratatui_core::style::Color;
@@ -27,7 +28,7 @@ pub use recipe::{
     Family, Overlay, OverlayRule, PartEdit, PartMap, PartRecipe, Recipe, RecipeEdit, Recipes,
     Variant,
 };
-pub use resolve::Resolved;
+pub use resolve::{PartMetrics, Resolved};
 pub use role::{Align, FG_STEPS, FgStep, MeterRole, Role, SURFACE_LEVELS, Surface, SyntaxRole};
 pub use tokens::{
     Capability, ColorLevel, ColorTokens, Density, DesignTokens, MeterThresholds, MeterTokens,
@@ -196,8 +197,32 @@ impl Theme {
         resolve::resolve_uncached(self, f, v, p, s, surface, &[], None)
     }
 
+    /// Sizes, glyphs and alignment for a part, with no colour binding and no
+    /// overlay stack — an `update` has neither a surface nor a draw-time
+    /// scope. This is the sizing path for `Cx`-phase arithmetic: `Form`'s
+    /// field height (§15.1 F4) and `Dialog::layer` (Adjudication N1).
+    ///
+    /// It runs the same §11.3 `accumulate` as [`Theme::resolve`] and reads the
+    /// same slots, so the two cannot disagree about a size.
+    pub fn metrics(
+        &self,
+        f: Family,
+        v: Variant,
+        p: crate::id::Part,
+        s: crate::response::StateFlags,
+    ) -> PartMetrics {
+        resolve::metrics_of(&resolve::accumulate(self, f, v, p, s, &[]))
+    }
+
     /// A stable fingerprint of the whole theme (tests: byte-identical after
     /// a scoped render).
+    ///
+    /// It formats the whole theme and hashes the text, which allocates; that
+    /// is acceptable for a test assertion and is why it is **behind the
+    /// `testing` feature** rather than on the release surface (MI-12). A
+    /// structural hash would need `Hash` on `StylePatch`, `PartRecipe` and
+    /// `Recipes`, which are user-constructed data records.
+    #[cfg(feature = "testing")]
     pub fn fingerprint(&self) -> u64 {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         format!("{self:?}").hash(&mut h);
@@ -210,6 +235,32 @@ mod tests {
     use super::*;
     use crate::id::Part;
     use crate::response::StateFlags;
+
+    /// `Theme::metrics` is the sizing path a component uses in `update`,
+    /// where there is no `Surface`: the glyph and size it computes there are
+    /// exactly the ones `draw` resolves and paints with (Adjudication N2).
+    #[test]
+    fn metrics_is_the_sizing_path_for_update() {
+        let mut t = Theme::junie();
+        // a themed size and glyph, the shape `Form`'s field height and
+        // `Dialog::measured_height` read
+        {
+            let r = t.recipes.get_mut(Family::FIELD);
+            let p = r.parts.entry(Part::FIELD);
+            p.size = Slot::Set(3);
+            p.glyph = Slot::Set(GlyphRole::FocusBar);
+        }
+        for st in [StateFlags::empty(), StateFlags::FOCUSED, StateFlags::ERROR] {
+            let m = t.metrics(Family::FIELD, Variant::DEFAULT, Part::FIELD, st);
+            assert_eq!(m.size, Some(3));
+            assert_eq!(m.glyph, Some(GlyphRole::FocusBar));
+            // the draw phase resolves the same numbers on every surface
+            for s in [Surface::Canvas, Surface::Field, Surface::Overlay] {
+                let r = t.resolve(Family::FIELD, Variant::DEFAULT, Part::FIELD, st, s);
+                assert_eq!((r.size, r.glyph, r.align), (m.size, m.glyph, m.align));
+            }
+        }
+    }
 
     #[test]
     fn raise_is_ladder_index_arithmetic_not_colour_equality() {

@@ -136,7 +136,7 @@ impl<'a> Overrides<'a> {
             None => ui.style(family, variant, part, flags),
         };
         #[cfg(feature = "testing")]
-        ui.note_styled(owner, part);
+        ui.note_styled(owner, family, variant, part, r);
         #[cfg(not(feature = "testing"))]
         let _ = owner;
         r

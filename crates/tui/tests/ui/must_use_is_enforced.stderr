@@ -1,0 +1,16 @@
+error: unused `Response` that must be used
+  --> tests/ui/must_use_is_enforced.rs:13:5
+   |
+13 |     make();
+   |     ^^^^^^
+   |
+   = note: a Response carries the consumed/repaint answer; fold it with `|` or read it
+note: the lint level is defined here
+  --> tests/ui/must_use_is_enforced.rs:4:9
+   |
+ 4 | #![deny(unused_must_use)]
+   |         ^^^^^^^^^^^^^^^
+help: use `let _ = ...` to ignore the resulting value
+   |
+13 |     let _ = make();
+   |     +++++++

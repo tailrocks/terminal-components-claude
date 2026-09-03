@@ -9,9 +9,9 @@ use ratatui_core::buffer::{Buffer, Cell};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::terminal::Terminal;
 use tui_next::{
-    App, Axis, ColorLevel, Diagnostic, FocusRing, Id, Input, Invalidate, Key, KeyCode,
+    App, Axis, ColorLevel, Diagnostic, Family, FocusRing, Id, Input, Invalidate, Key, KeyCode,
     KeyModifiers, LayerId, Mouse, MouseKind, Part, PartRef, Resolved, Response, Runtime,
-    StateFlags, Theme,
+    StateFlags, Theme, Variant,
 };
 
 use crate::digest::Scene;
@@ -257,6 +257,11 @@ impl<A: App> Harness<A> {
         self.rt.top_layer()
     }
 
+    /// The area the resolver gave layer `id` in the last draw.
+    pub fn layer_area(&self, id: Id) -> Option<Rect> {
+        self.rt.layer_area(id)
+    }
+
     /// Whether layer `id` is open.
     pub fn is_open(&self, id: Id) -> bool {
         self.rt.is_open(id)
@@ -376,9 +381,17 @@ impl<A: App> Harness<A> {
         &mut self.rt
     }
 
-    /// Resolve `p` for `id` as the runtime would (default family).
+    /// What `id` actually got for `p` in the last draw: the `Resolved` the
+    /// component recorded for its own `(family, variant)`, never a hard-coded
+    /// `Family::BUTTON` (§16.4's theme-coupling migration contract).
     pub fn resolved(&self, id: Id, p: Part) -> Resolved {
         self.rt.resolved(id, p)
+    }
+
+    /// Resolve `p` for `id` under an explicit family and variant — the escape
+    /// hatch for a part the component never paints.
+    pub fn resolved_in(&self, f: Family, v: Variant, id: Id, p: Part) -> Resolved {
+        self.rt.resolved_in(f, v, id, p)
     }
 
     /// The invalidation of the last `handle`.
@@ -415,9 +428,116 @@ pub fn row_text(buf: &Buffer, y: u16) -> (String, Vec<u16>) {
             cols.push(x);
         }
         s.push_str(sym);
-        let w = tui_next::text::width(sym).max(1);
+        let w = tui_next::width(sym).max(1);
         x = x.saturating_add(w);
     }
     cols.push(x);
     (s, cols)
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::layout::Rect;
+    use tui_next::{Cx, Focusability, FrameRead, ItemKey, RowUi, Ui};
+
+    use super::*;
+
+    const LIST: Id = Id::root("harness.list");
+    const BUTTON: Id = Id::root("harness.button");
+
+    /// BL-7: `Harness::resolved(id, part)` must return the resolution the
+    /// component itself made. A hard-coded `Family::BUTTON` would answer a
+    /// `List` question with a button colour, and every §16.4 assertion
+    /// migrated away from `Theme::junie().focus` would be silently wrong.
+    struct TwoFamilies;
+
+    impl App for TwoFamilies {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let row = Rect::new(0, 0, 20, 1);
+            ui.register_control(LIST, row, Focusability::Focusable);
+            {
+                let mut r = RowUi::new(
+                    ui,
+                    LIST,
+                    Family::LIST,
+                    Variant::DEFAULT,
+                    ui.state(LIST),
+                    ItemKey::index(0),
+                    row,
+                );
+                r.gutter();
+                r.label("row");
+            }
+            let bar = Rect::new(0, 1, 20, 1);
+            ui.register_control(BUTTON, bar, Focusability::Focusable);
+            let r = ui.style(
+                Family::BUTTON,
+                Variant::PRIMARY,
+                Part::CONTAINER,
+                ui.state(BUTTON),
+            );
+            ui.note_styled(BUTTON, Family::BUTTON, Variant::PRIMARY, Part::CONTAINER, r);
+            ui.fill(bar, r.style);
+        }
+    }
+
+    #[test]
+    fn resolved_reports_the_family_the_component_actually_queried() {
+        let theme = Theme::junie();
+        let mut h = Harness::new(TwoFamilies, theme.clone(), 20, 3);
+        h.draw();
+        // the list's LABEL is the LIST recipe's, not the button's
+        let list_label = h.resolved(LIST, Part::LABEL);
+        assert_eq!(
+            list_label,
+            theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::LABEL,
+                h.state_of(LIST),
+                tui_next::Surface::Canvas
+            )
+        );
+        // the button's CONTAINER is the PRIMARY variant it actually queried,
+        // which differs from the family default
+        let btn = h.resolved(BUTTON, Part::CONTAINER);
+        assert_eq!(
+            btn,
+            theme.resolve(
+                Family::BUTTON,
+                Variant::PRIMARY,
+                Part::CONTAINER,
+                h.state_of(BUTTON),
+                tui_next::Surface::Canvas
+            )
+        );
+        assert_ne!(
+            btn,
+            theme.resolve(
+                Family::BUTTON,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                h.state_of(BUTTON),
+                tui_next::Surface::Canvas
+            ),
+            "the recorded variant must be the one the component used"
+        );
+        // and the two families genuinely disagree, so the test is not vacuous
+        assert_ne!(list_label.style, btn.style);
+        // the explicit escape hatch still resolves an unpainted part
+        assert_eq!(
+            h.resolved_in(Family::TABS, Variant::DEFAULT, LIST, Part::TAB),
+            theme.resolve(
+                Family::TABS,
+                Variant::DEFAULT,
+                Part::TAB,
+                h.state_of(LIST),
+                tui_next::Surface::Canvas
+            )
+        );
+    }
 }

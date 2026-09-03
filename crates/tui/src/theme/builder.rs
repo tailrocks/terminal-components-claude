@@ -200,9 +200,23 @@ impl ThemeBuilder {
     }
 
     /// Set the border glyph set.
+    ///
+    /// Choosing [`border::ASCII`](crate::theme::border::ASCII) also swaps the
+    /// **rule** and **scrollbar** glyphs to ASCII (`-`, `=`, `|`, `#`): those
+    /// come from typed `line`/`scrollbar` sets rather than from the border
+    /// set, and an "ASCII theme" that still paints `─` in a divider is not
+    /// one (§24 M2, `theme::ascii_theme_renders_without_box_drawing_glyphs`).
+    /// Override any of the four afterwards with [`ThemeBuilder::glyph`].
     #[must_use]
     pub fn borders_set(mut self, b: BorderSet) -> Self {
         self.theme.design.borders = b;
+        if b == crate::theme::border::ASCII {
+            let g = &mut self.theme.design.glyphs;
+            g.set(GlyphRole::RuleQuiet, "-");
+            g.set(GlyphRole::RuleActive, "=");
+            g.set(GlyphRole::ScrollTrack, "|");
+            g.set(GlyphRole::ScrollThumb, "#");
+        }
         self
     }
 

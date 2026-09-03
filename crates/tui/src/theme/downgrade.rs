@@ -57,27 +57,6 @@ const fn named_index(c: Color) -> Option<usize> {
     }
 }
 
-const fn named_of(i: usize) -> Color {
-    match i {
-        0 => Color::Black,
-        1 => Color::Red,
-        2 => Color::Green,
-        3 => Color::Yellow,
-        4 => Color::Blue,
-        5 => Color::Magenta,
-        6 => Color::Cyan,
-        7 => Color::Gray,
-        8 => Color::DarkGray,
-        9 => Color::LightRed,
-        10 => Color::LightGreen,
-        11 => Color::LightYellow,
-        12 => Color::LightBlue,
-        13 => Color::LightMagenta,
-        14 => Color::LightCyan,
-        _ => Color::White,
-    }
-}
-
 /// The cube channel value for a cube step `0..6`.
 const fn cube_value(step: u8) -> u8 {
     if step == 0 {
@@ -163,18 +142,64 @@ pub(crate) fn lab_of(rgb: (u8, u8, u8)) -> (f64, f64, f64) {
     (116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
 }
 
-/// Nearest of the 16 xterm defaults by CIE76 ΔE.
+/// Nearest of the 16 xterm defaults by **hue family and brightness class**
+/// (`DESIGN.md:320`), not by perceptual distance.
+///
+/// A colour whose channel spread is under 40 collapses to the grey ladder by
+/// ITU-R BT.601 luma (`≤30 Black`, `≤110 DarkGray`, `≤200 Gray`, else
+/// `White`); otherwise the dominant channel selects the hue family (with
+/// `r ≥ g,b ∧ g > 120 ∧ b < 80` reading as Yellow) and `max(r,g,b) > 180`
+/// selects the light half.
+///
+/// Recorded rejection: nearest-by-CIE76 ΔE. It is the more "correct"
+/// perceptual answer and the wrong design answer — it maps Junie's accent
+/// `#48e054` and error `#e44545` into the *dark* half, discarding the
+/// brightness contrast the accent system rests on, and collapses
+/// `danger_soft` onto a grey. `DESIGN.md:320` fixes the outcome (accent
+/// `LightGreen`, error `LightRed`) and the authority order puts it above the
+/// implementation spec.
 fn nearest_16(rgb: (u8, u8, u8)) -> Color {
-    let lab = lab_of(rgb);
-    let mut best = (15usize, f64::MAX);
-    for (i, c) in XTERM16.iter().enumerate() {
-        let l = lab_of(*c);
-        let de = ((lab.0 - l.0).powi(2) + (lab.1 - l.1).powi(2) + (lab.2 - l.2).powi(2)).sqrt();
-        if de < best.1 {
-            best = (i, de);
+    let (r, g, b) = rgb;
+    let lum = (u32::from(r)
+        .saturating_mul(299)
+        .saturating_add(u32::from(g).saturating_mul(587))
+        .saturating_add(u32::from(b).saturating_mul(114)))
+        / 1000;
+    let max = u32::from(r.max(g).max(b));
+    let min = u32::from(r.min(g).min(b));
+    if max.saturating_sub(min) < 40 {
+        return match lum {
+            0..=30 => Color::Black,
+            31..=110 => Color::DarkGray,
+            111..=200 => Color::Gray,
+            _ => Color::White,
+        };
+    }
+    let bright = max > 180;
+    match (r >= g && r >= b, g >= r && g >= b) {
+        (true, _) if g > 120 && b < 80 => Color::Yellow,
+        (true, _) => {
+            if bright {
+                Color::LightRed
+            } else {
+                Color::Red
+            }
+        }
+        (_, true) => {
+            if bright {
+                Color::LightGreen
+            } else {
+                Color::Green
+            }
+        }
+        _ => {
+            if bright {
+                Color::LightBlue
+            } else {
+                Color::Blue
+            }
         }
     }
-    named_of(best.0)
 }
 
 /// Relative luminance `Y = 0.2126R + 0.7152G + 0.0722B` over linear channels.
@@ -339,6 +364,18 @@ impl Recipes {
             for (part, when, patch) in rules.iter().chain(extra.iter()) {
                 recipe.parts.entry(*part).when(*when, *patch);
             }
+            // MI-13: the fallbacks must reach the variant maps too. §11.3's
+            // step 3 merges family and variant state rules in one specificity
+            // order, so a variant that re-declares `PRESSED` would otherwise
+            // be applied after the family's mono rule and erase the bracket
+            // glyph that makes `pressed` distinguishable without colour.
+            for (_, map) in &mut recipe.variants {
+                for (part, when, patch) in rules.iter().chain(extra.iter()) {
+                    if map.get(*part).is_some() {
+                        map.entry(*part).when(*when, *patch);
+                    }
+                }
+            }
         }
     }
 }
@@ -392,15 +429,15 @@ mod tests {
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi256),
             Color::Indexed(77)
         );
-        // CIE76 nearest of the xterm defaults (§21 item 29): Junie's accent and
-        // error land on the dark pair, the pure primaries on the light pair
+        // the categorical hue-family metric (DESIGN.md:320): Junie's accent
+        // and error keep their hue *and* their brightness class
         assert_eq!(
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi16),
-            Color::Green
+            Color::LightGreen
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0xe4, 0x45, 0x45), ColorLevel::Ansi16),
-            Color::Red
+            Color::LightRed
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0xf5, 0x9e, 0x09), ColorLevel::Ansi16),
@@ -430,6 +467,15 @@ mod tests {
             downgrade_color(Color::Indexed(196), ColorLevel::Ansi16),
             Color::LightRed
         );
+        // a near-grey collapses to the grey ladder, not to a hue
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x26, 0x26, 0x26), ColorLevel::Ansi16),
+            Color::DarkGray
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x11, 0x11, 0x11), ColorLevel::Ansi16),
+            Color::Black
+        );
         // greyscale wins over the cube for a mid grey, ties to the lower index
         assert_eq!(
             downgrade_color(Color::Rgb(8, 8, 8), ColorLevel::Ansi256),
@@ -438,6 +484,32 @@ mod tests {
         assert_eq!(rgb_of_index(232), (8, 8, 8));
         assert_eq!(rgb_of_index(16), (0, 0, 0));
         assert_eq!(rgb_of_index(231), (255, 255, 255));
+    }
+
+    /// `DESIGN.md:320` is the contract: a 16-colour downgrade preserves hue
+    /// family and brightness class, it does not minimise perceptual distance.
+    #[test]
+    fn ansi16_preserves_hue_family_and_brightness() {
+        let c = Theme::junie().color;
+        let at16 = |x| downgrade_color(x, ColorLevel::Ansi16);
+        // DESIGN.md:320 — "at 16 colours the accent is LightGreen and error is LightRed"
+        assert_eq!(at16(c.accent), Color::LightGreen);
+        assert_eq!(at16(c.danger), Color::LightRed);
+        // a destructive label at rest stays red rather than collapsing to grey
+        assert_eq!(at16(c.danger_soft), Color::LightRed);
+        // the grey ladder: subtle chrome is grey, never a hue. `border_subtle`
+        // is `#262626`, BT.601 luma 38, so it lands on `DarkGray` — the
+        // review's "Black" was an unverified estimate; `#111111` (luma 17) is
+        // the colour that reaches `Black`.
+        assert_eq!(at16(c.border_subtle), Color::DarkGray);
+        assert_eq!(at16(c.surfaces[1]), Color::Black);
+        assert_eq!(at16(c.fg[1]), Color::Gray);
+        assert_eq!(at16(c.fg[0]), Color::White);
+        assert_eq!(at16(c.warning), Color::Yellow);
+        // the dark half is reachable: the same hue at low brightness
+        assert_eq!(at16(Color::Rgb(0x2b, 0x86, 0x32)), Color::Green);
+        assert_eq!(at16(Color::Rgb(0x7a, 0x2a, 0x2a)), Color::Red);
+        assert_eq!(at16(c.info), Color::LightBlue);
     }
 
     #[test]

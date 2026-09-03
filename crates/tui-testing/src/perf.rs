@@ -14,8 +14,9 @@
 //!
 //! Environment knobs:
 //! - `PERF_BLESS=1`    rewrite the baseline with this run's numbers.
-//! - `PERF_STRICT=1`   also assert wall time against `baseline × 1.2`.
-//! - `PERF_TARGET=1`   enable the post-refactor acceptance assertions.
+//! - `PERF_STRICT=1`   also assert wall time against `baseline × 1.2`, and every
+//!   "within N×" ratio (`PERF_TARGET` is folded into it — §16.6 declares exactly
+//!   two knobs, MI-14).
 //! - `PERF_ITERS=n`    cap every benchmark's iteration count at `n`.
 //! - `PERF_FULL=1`     use full data sizes even in debug builds.
 //! - `PERF_BASELINE`   the baseline file (default: `crates/tui/tests/perf_baseline.txt`).
@@ -262,11 +263,27 @@ fn read_baseline(path: &str) -> BTreeMap<String, Entry> {
     out
 }
 
+/// Rewrite the baseline, **preserving the existing `#` header comments**: a
+/// re-blessed baseline records why a number moved, and blessing must not
+/// silently delete that reason.
 fn write_baseline(path: &str, map: &BTreeMap<String, Entry>) {
-    let mut s = String::from(
-        "# perf baseline: name ns allocs bytes [hits ring]\n\
-         # regenerate with PERF_BLESS=1 in a release build; review like a snapshot\n",
-    );
+    let existing = std::fs::read_to_string(path).unwrap_or_default();
+    let mut header = String::new();
+    for l in existing
+        .lines()
+        .take_while(|l| l.trim_start().starts_with('#') || l.trim().is_empty())
+    {
+        header.push_str(l);
+        header.push('\n');
+    }
+    let mut s = if header.trim().is_empty() {
+        String::from(
+            "# perf baseline: name ns allocs bytes [hits ring]\n\
+             # regenerate with PERF_BLESS=1 in a release build; review like a snapshot\n",
+        )
+    } else {
+        header
+    };
     for (name, e) in map {
         s.push_str(&format!("{name} {} {} {}", e.ns, e.allocs, e.bytes));
         if let (Some(h), Some(r)) = (e.hits, e.ring) {
@@ -360,8 +377,23 @@ pub fn check_ratio(name: &str, a: u128, b: u128, max: f64, strict: bool) {
 
 // ------------------------------------------------------------ fixtures
 
+/// One line of `n` graphemes whose symbols all fit ratatui `Cell`'s inline
+/// `CompactString` storage: ASCII, CJK (width 2) and combining marks, and no
+/// ZWJ sequence. A painter over this corpus must record **0** allocations —
+/// any count above zero is the painter's, not the buffer's (adjudication 4).
+pub fn unicode_line_inline(n: usize) -> String {
+    const PARTS: [&str; 6] = ["a", "b", "漢", "字", "e\u{301}", "\u{00E9}"];
+    let mut s = String::with_capacity(n * 4);
+    for i in 0..n {
+        s.push_str(PARTS[i % PARTS.len()]);
+    }
+    s
+}
+
 /// One line of `n` graphemes mixing ASCII, CJK (width 2), combining marks and
-/// an emoji ZWJ sequence.
+/// an emoji ZWJ sequence. The ZWJ symbol exceeds `Cell`'s inline storage, so
+/// each such **cell** heap-allocates — a property of the buffer, not of the
+/// painter.
 pub fn unicode_line(n: usize) -> String {
     const PARTS: [&str; 8] = [
         "a",

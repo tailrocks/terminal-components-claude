@@ -1,5 +1,20 @@
 # Not yet built: Slice 4 components and their vocabulary (COMPONENT_ARCHITECTURE.md Appendix A).
 # One name per line; `xtask doc-check` prints every allow-listed hit. Remove a line when the item lands.
+#
+# Legacy pre-refactor names quoted by the document (`Theme::row`,
+# `Interaction::pressed`, …). They lived in `foreign_members()` as if they were
+# ratatui API, which hid them; they are explicit here instead (MA-14, F23).
+Theme::row
+Theme::gutter
+Interaction::pressed
+Interaction::focus_hidden
+#
+# Named by the document as a REJECTED alternative or an OPEN item, so it must
+# not resolve: `LayerSize::Measured` is Adjudication N1's rejected variant, and
+# `Ui::scroll_region` is §12.2's declared-but-unimplemented convenience,
+# recorded by the Slice 3 review §4(h) as a 4E blocker.
+LayerSize::Measured
+Ui::scroll_region
 Button
 TextInput
 TextInputState

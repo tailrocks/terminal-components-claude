@@ -35,3 +35,7 @@ bitflags.workspace = true
 
 [dev-dependencies]
 tui-next-testing.workspace = true
+# compile-fail tests for the type-level guarantees of §6.1 and §15
+# (`response::must_use_is_enforced`, `response::bitor_is_defined_only_for_unit`,
+# `secret::is_not_clone_not_eq`) — §16.1, MA-12.
+trybuild.workspace = true

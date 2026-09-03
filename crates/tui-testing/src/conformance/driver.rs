@@ -7,9 +7,9 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Style;
 use tui_next::{
-    Anchor, App, Axis, BindingState, Chord, ColorLevel, CrossAlign, Cx, Diagnostic, Flow,
-    Focusability, Id, Invalidate, KeyCode, KeyModifiers, LayerId, LayerSpec, MouseKind, Region,
-    RegionKind, Response, Side, StateFlags, Theme, Ui,
+    Anchor, App, Axis, BindingState, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic,
+    Flow, Focusability, Id, Invalidate, ItemKey, KeyCode, KeyModifiers, LayerId, LayerSize,
+    LayerSpec, MouseKind, Region, RegionKind, Response, Side, StateFlags, Theme, Ui,
 };
 
 use super::{Caps, Conformance, Fixture};
@@ -78,7 +78,10 @@ impl<C: Conformance> App for CaseApp<C> {
                 side: Side::Below,
                 align: CrossAlign::Start,
             };
-            cx.open_layer(POPOVER, LayerSpec::popover(POPOVER, anchor).min_size(6, 1));
+            cx.open_layer(
+                POPOVER,
+                LayerSpec::popover(POPOVER, anchor).size(LayerSize::Fixed(6, 1)),
+            );
         }
         let r = C::update(cx, &mut self.st, &self.fixture);
         self.last_flow = (r.flow(), r.invalidate());
@@ -412,6 +415,23 @@ fn symbol_modifier_multiset(buf: &Buffer, area: Rect) -> BTreeMap<(String, u16),
 /// Case 9.
 pub fn mono_states_are_distinguishable<C: Conformance>() {
     let states = C::mono_states();
+    // MA-8: `mono_states()` may only NARROW the default ten, and it may not
+    // drop a state the component's own capabilities imply.
+    for s in states {
+        assert!(
+            super::DEFAULT_MONO_STATES.contains(s),
+            "{}: mono_states() may only narrow DEFAULT_MONO_STATES; {s:?} is not in it",
+            C::NAME
+        );
+    }
+    for s in super::mono_states_required_by(C::caps()) {
+        assert!(
+            states.contains(s),
+            "{}: caps {:?} imply {s:?}, which mono_states() dropped",
+            C::NAME,
+            C::caps()
+        );
+    }
     let mut seen: Vec<(StateFlags, BTreeMap<(String, u16), usize>)> = Vec::new();
     for s in states {
         let mut f = Fixture::default();
@@ -499,6 +519,10 @@ pub fn id_separator_collision_free<C: Conformance>() {
 }
 
 /// Case 12.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one case: click identity across a reorder plus the retention half (MA-9)"
+)]
 pub fn item_identity_survives_reorder<C: Conformance>() {
     if !has::<C>(Caps::COLLECTION) {
         return;
@@ -534,7 +558,7 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
     rows.insert(
         0,
         super::FixtureRow {
-            key: tui_next::ItemKey::num(9_999),
+            key: ItemKey::num(9_999),
             label: "new".to_owned(),
             meta: String::new(),
             disabled: false,
@@ -552,6 +576,71 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
             C::NAME
         );
     }
+    // MA-9: click identity alone is not the case. Set cursor and checked on
+    // k1 and k2 and assert they *survive* the same reorder — the retention
+    // half §16.2 case 12 specifies, exercised against the `CollectionCore`
+    // every keyed collection embeds.
+    let k2 = keys[1];
+    let mut core = CollectionCore::new();
+    let ordered = |ks: &[ItemKey]| {
+        let owned: Vec<ItemKey> = ks.to_vec();
+        move |i: usize| owned.get(i).copied().unwrap_or(ItemKey::index(0))
+    };
+    core.reconcile_with(keys.len(), ordered(&keys), |_| true);
+    core.set_cursor(0, k1);
+    core.checked_mut().insert(k1);
+    core.checked_mut().insert(k2);
+
+    let reversed: Vec<ItemKey> = keys.iter().rev().copied().collect();
+    core.reconcile_with(reversed.len(), ordered(&reversed), |_| true);
+    assert_eq!(
+        core.cursor(),
+        Some(k1),
+        "{}: the cursor must still name k1 after a reverse permutation",
+        C::NAME
+    );
+    assert_eq!(
+        core.cursor_index(),
+        reversed.len().saturating_sub(1),
+        "{}: the cursor index must follow k1 to its new position",
+        C::NAME
+    );
+    assert!(
+        core.checked().contains(k1) && core.checked().contains(k2),
+        "{}: the checked set must still name k1 and k2 after a reorder",
+        C::NAME
+    );
+
+    // insert + remove: k1 disappears, k2 survives, and the cursor moves to a
+    // surviving neighbour rather than to a stale index
+    let mut after: Vec<ItemKey> = reversed.clone();
+    after.retain(|k| *k != k1);
+    after.insert(0, ItemKey::num(9_998));
+    let dropped = core.reconcile_with(after.len(), ordered(&after), |_| true);
+    assert!(
+        core.cursor().is_some_and(|c| after.contains(&c)),
+        "{}: the cursor must land on a surviving key",
+        C::NAME
+    );
+    assert!(
+        core.checked().contains(k2),
+        "{}: k2 was still present and must stay checked",
+        C::NAME
+    );
+    assert!(
+        !core.checked().contains(k1),
+        "{}: a vanished key must leave the checked set",
+        C::NAME
+    );
+    assert!(
+        matches!(
+            dropped,
+            tui_next::Reconciliation::SelectionDropped(1)
+                | tui_next::Reconciliation::CursorMoved(_)
+        ),
+        "{}: the reconcile must report the dropped checked key or the moved cursor, got {dropped:?}",
+        C::NAME
+    );
 }
 
 /// Case 13.

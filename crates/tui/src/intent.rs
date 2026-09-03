@@ -146,6 +146,11 @@ pub(crate) struct IntentQueue {
     used: usize,
     table: [Option<(u64, u16)>; TABLE],
     overflow: bool,
+    /// Bucket probes performed since construction (adjudication 2.6): the
+    /// deterministic replacement for a ±10 % wall-clock band on a ~600 ns
+    /// measurement.
+    #[cfg(feature = "testing")]
+    probes: Cell<usize>,
 }
 
 impl IntentQueue {
@@ -156,7 +161,15 @@ impl IntentQueue {
             used: 0,
             table: [None; TABLE],
             overflow: false,
+            #[cfg(feature = "testing")]
+            probes: Cell::new(0),
         }
+    }
+
+    /// Bucket probes performed since construction.
+    #[cfg(feature = "testing")]
+    pub(crate) fn probes(&self) -> usize {
+        self.probes.get()
     }
 
     /// Empty the queue, keeping every allocation (buckets are reused).
@@ -180,6 +193,8 @@ impl IntentQueue {
     }
 
     fn bucket_index(&self, owner: Id) -> Option<usize> {
+        #[cfg(feature = "testing")]
+        self.probes.set(self.probes.get().saturating_add(1));
         if self.overflow {
             return self.live().iter().position(|b| b.owner == owner);
         }

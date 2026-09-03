@@ -1,19 +1,57 @@
 # perf baseline: name ns allocs bytes [hits ring]
 # regenerate with PERF_BLESS=1 in a release build; review like a snapshot
-fit_10k_grapheme_line_to_80 3168 7 224
-focus_tab_traversal_ring_200 517716 0 0
-frame_testbackend_empty_120x40 30765 0 0
-fuzzy_10k_grapheme_label 432364 15 262232
-hit_registry_size_is_bounded 4891 0 0 80 40
-intents_drain_is_o_1_when_the_queue_is_empty 626 0 0
-mouse_move_over_1000_regions 7005712 0 0
-style_backdrop_full_screen_120x40 48462 0 0
-style_downgrade_theme_all_levels 96337 1034 165008
-style_resolve_10k_parts 131975 0 0
-style_resolve_10k_parts_with_two_overlays 171979 0 0
-textbuffer_offset_at_10k_line 340134 0 0
-textbuffer_pos_of_10k_line 369141 0 0
-truncate_10k_grapheme_line_to_80 552479 6 288
-truncate_middle_10k_to_40 334372 1 128
-width_10k_grapheme_line 425970 0 0
-wrap_10k_graphemes_to_80 374577 1119 82416
+# the `#` header is preserved across a bless, so the reasons below survive
+#
+# Re-blessed by the Slice 3 foundations correction pass (docs/reviews/
+# slice3-foundations-review.md F18, adjudications 4, 6 and 8). What changed and why:
+#
+#  fit_10k_grapheme_line_to_80        7 -> 0 allocs. Adjudication 4: the benchmark now
+#                                     drives `RowUi::label` (the ellipsis path it is
+#                                     named for) over a corpus whose symbols fit
+#                                     ratatui `Cell`'s inline storage, so the painter's
+#                                     own allocation count is asserted at exactly 0.
+#                                     `<= 8` was rejected as a magic constant.
+#  fit_10k_grapheme_line_to_80_wide   added. The ZWJ-emoji corpus, reported: the 7
+#                                     allocations are ratatui `Cell` heap symbols, a
+#                                     property of the buffer, and are asserted equal
+#                                     between a 10 k and a 100 k line and <= 80.
+#  measure_is_allocation_free         added (Adjudication N2): `Ui::resolve` is the
+#                                     uncached `&self` path `Measure::measure` uses.
+#  paint_spans_500_rows_is_...        added (BL-4): the span painter no longer collects
+#                                     a `Vec<RawSpan>` per call.
+#  style_downgrade_theme_all_levels   1034 -> 1079 allocs, 165008 -> 170904 bytes.
+#                                     MA-6/F14: `Recipes` now carries the neutral
+#                                     fallback recipe a `Family::custom(..)` resolves
+#                                     through, and `Theme::downgrade` clones it once
+#                                     per level (4 levels x 12 row-like parts); and
+#                                     MI-13 applies the mono state-rule fallbacks to a
+#                                     family's variant maps as well as its base parts,
+#                                     which is what keeps `pressed` distinguishable
+#                                     without colour under a variant that re-declares
+#                                     PRESSED. This is a one-shot theme operation,
+#                                     asserted never to appear in a `frame_*` profile.
+#  every ns column                    re-measured on the blessing machine; ns is
+#                                     reported always and asserted only under
+#                                     PERF_STRICT=1, so these are a snapshot, not a
+#                                     contract. The allocation and byte columns are the
+#                                     hard assertions.
+fit_10k_grapheme_line_to_80 156980 0 0
+fit_10k_grapheme_line_to_80_wide 333847 7 224
+focus_tab_traversal_ring_200 381966 0 0
+frame_testbackend_empty_120x40 24886 0 0
+fuzzy_10k_grapheme_label 323778 15 262232
+hit_registry_size_is_bounded 4040 0 0 80 40
+intents_drain_is_o_1_when_the_queue_is_empty 632 0 0
+measure_is_allocation_free 7619 0 0
+mouse_move_over_1000_regions 7261112 0 0
+paint_spans_500_rows_is_allocation_free 113159 0 0
+style_backdrop_full_screen_120x40 41866 0 0
+style_downgrade_theme_all_levels 65004 1079 170904
+style_resolve_10k_parts 120141 0 0
+style_resolve_10k_parts_with_two_overlays 121787 0 0
+textbuffer_offset_at_10k_line 287795 0 0
+textbuffer_pos_of_10k_line 339752 0 0
+truncate_10k_grapheme_line_to_80 320007 6 288
+truncate_middle_10k_to_40 328753 1 128
+width_10k_grapheme_line 341420 0 0
+wrap_10k_graphemes_to_80 457620 1119 82416

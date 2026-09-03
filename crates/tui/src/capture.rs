@@ -213,6 +213,25 @@ mod runtime_tests {
         assert!(rt.app().saw(THUMB, "Click"));
     }
 
+    /// §8.2: `Capture.origin` is "where the pointer was when the claim was
+    /// made", so a splitter or a scrollbar thumb computes `pos - origin`
+    /// without the press offset inside the thumb leaking into the delta.
+    #[test]
+    fn origin_is_the_press_position() {
+        let (mut rt, mut buf) = runtime(stub());
+        // press at (5, 4) — inside the thumb, three columns right and two
+        // rows below its top-left (2, 2)
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 5, 4));
+        assert!(
+            rt.app().saw(THUMB, "origin: Some(Position { x: 5, y: 4 })"),
+            "origin must be the press position, not the area origin: {:?}",
+            rt.app().log
+        );
+        // a drag one cell right moves the thumb by exactly one cell
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Drag, 6, 4));
+        assert!(rt.app().saw(THUMB, "phase: Drag"));
+    }
+
     #[test]
     fn capture_is_released_on_resize() {
         let (mut rt, mut buf) = runtime(stub());

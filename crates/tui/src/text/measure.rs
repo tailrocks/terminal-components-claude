@@ -18,7 +18,7 @@ pub(crate) fn graphemes(s: &str) -> impl Iterator<Item = (usize, &str)> {
 
 /// Columns one grapheme occupies as painted: `0` for a grapheme carrying a
 /// control character, else `CellWidth::cell_width`.
-pub fn grapheme_width(g: &str) -> u16 {
+pub(crate) fn grapheme_width(g: &str) -> u16 {
     if g.contains(char::is_control) {
         0
     } else {
@@ -37,7 +37,7 @@ pub fn width(s: &str) -> u16 {
 
 /// Whether `c` is a word character for word motion; one definition shared by
 /// the editor core and the viewport.
-pub fn is_word_char(c: char) -> bool {
+pub(crate) fn is_word_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
@@ -108,66 +108,89 @@ pub fn truncate_middle(s: &str, max: u16) -> String {
     out
 }
 
-/// `1203338` → `1,203,338`.
-pub fn thousands(n: usize) -> String {
-    let digits = n.to_string();
-    let len = digits.len();
-    let mut out = String::with_capacity(len.saturating_add(len / 3));
-    for (i, ch) in digits.chars().enumerate() {
-        if i > 0 && len.saturating_sub(i) % 3 == 0 {
-            out.push(',');
-        }
-        out.push(ch);
-    }
-    out
+/// One step of the wrap walk: text to append, a separating space, or a line
+/// break. `wrap` and `wrapped_rows` are both written against it so the row
+/// count and the rows themselves cannot drift.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum WrapPiece<'a> {
+    Text(&'a str),
+    Space,
+    Break,
 }
 
-/// Word-wrap into lines of at most `w` columns; hard-wraps overlong words.
-pub fn wrap(s: &str, w: u16) -> Vec<String> {
+/// Word-wrap `s` to `w` columns, hard-wrapping a word longer than the width,
+/// emitting one [`WrapPiece`] per step. Allocation-free in itself.
+fn wrap_walk<'a>(s: &'a str, w: u16, f: &mut dyn FnMut(WrapPiece<'a>)) {
     let w = w.max(1);
-    let mut lines = Vec::new();
-    for para in s.split('\n') {
-        let mut line = String::new();
+    for (i, para) in s.split('\n').enumerate() {
+        if i > 0 {
+            f(WrapPiece::Break);
+        }
         let mut lw = 0u16;
         for word in para.split(' ') {
             let ww = width(word);
             if lw == 0 {
                 if ww <= w {
-                    line.push_str(word);
+                    f(WrapPiece::Text(word));
                     lw = ww;
                 } else {
-                    hard_wrap(word, w, &mut lines, &mut line, &mut lw);
+                    hard_wrap_walk(word, w, &mut lw, f);
                 }
             } else if lw.saturating_add(1).saturating_add(ww) <= w {
-                line.push(' ');
-                line.push_str(word);
+                f(WrapPiece::Space);
+                f(WrapPiece::Text(word));
                 lw = lw.saturating_add(1).saturating_add(ww);
             } else {
-                lines.push(core::mem::take(&mut line));
+                f(WrapPiece::Break);
                 lw = 0;
                 if ww <= w {
-                    line.push_str(word);
+                    f(WrapPiece::Text(word));
                     lw = ww;
                 } else {
-                    hard_wrap(word, w, &mut lines, &mut line, &mut lw);
+                    hard_wrap_walk(word, w, &mut lw, f);
                 }
             }
         }
-        lines.push(line);
     }
-    lines
 }
 
-fn hard_wrap(word: &str, w: u16, lines: &mut Vec<String>, line: &mut String, lw: &mut u16) {
+fn hard_wrap_walk<'a>(word: &'a str, w: u16, lw: &mut u16, f: &mut dyn FnMut(WrapPiece<'a>)) {
     for g in word.graphemes(true) {
         let gw = grapheme_width(g);
         if lw.saturating_add(gw) > w {
-            lines.push(core::mem::take(line));
+            f(WrapPiece::Break);
             *lw = 0;
         }
-        line.push_str(g);
+        f(WrapPiece::Text(g));
         *lw = lw.saturating_add(gw);
     }
+}
+
+/// Word-wrap into lines of at most `w` columns; hard-wraps overlong words.
+pub fn wrap(s: &str, w: u16) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    wrap_walk(s, w, &mut |p| match p {
+        WrapPiece::Text(t) => line.push_str(t),
+        WrapPiece::Space => line.push(' '),
+        WrapPiece::Break => lines.push(core::mem::take(&mut line)),
+    });
+    lines.push(line);
+    lines
+}
+
+/// The number of rows [`wrap`] would produce, without building them: the
+/// sizing half of the wrap, for a component that must state its height as a
+/// pure function of its props before it draws (Adjudication N1,
+/// `Dialog::measured_height`). **Zero allocations.**
+pub fn wrapped_rows(s: &str, w: u16) -> u16 {
+    let mut rows = 1u16;
+    wrap_walk(s, w, &mut |p| {
+        if p == WrapPiece::Break {
+            rows = rows.saturating_add(1);
+        }
+    });
+    rows
 }
 
 #[cfg(test)]
@@ -243,8 +266,36 @@ mod tests {
         );
         assert_eq!(truncate_middle("short", 12), "short");
         assert_eq!(truncate_middle("abcdefghij", 4), "abc…");
-        assert_eq!(thousands(1_203_338), "1,203,338");
-        assert_eq!(thousands(999), "999");
+    }
+
+    /// `wrapped_rows` is the sizing half of `wrap`: they must agree exactly,
+    /// or `Dialog::measured_height` and `Dialog::draw` drift (Adjudication N1).
+    #[test]
+    fn wrapped_rows_matches_wrap() {
+        let corpus: &[&str] = &[
+            "",
+            " ",
+            "a",
+            "hello world",
+            "one two three four five six seven eight nine ten",
+            "supercalifragilisticexpialidocious",
+            "日本語のテキストは全角です",
+            "a\nb\nc",
+            "\n",
+            "line one\n\nline three",
+            "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{200D}\u{1F466} family",
+            "trailing space ",
+            "double  space",
+        ];
+        for s in corpus {
+            for w in [1u16, 2, 3, 5, 8, 13, 40] {
+                assert_eq!(
+                    usize::from(wrapped_rows(s, w)),
+                    wrap(s, w).len(),
+                    "{s:?} at width {w}"
+                );
+            }
+        }
     }
 
     #[test]

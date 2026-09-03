@@ -15,7 +15,7 @@ use crate::focus::FocusRing;
 use crate::hit::Registry;
 use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue};
-use crate::layer::{DismissReason, LayerEvent, LayerId, LayerSpec, LayerStack};
+use crate::layer::{Anchor, DismissReason, LayerEvent, LayerId, LayerSize, LayerSpec, LayerStack};
 use crate::response::StateFlags;
 use crate::theme::{DesignTokens, Theme};
 
@@ -134,6 +134,10 @@ pub(crate) struct FrameServices {
     pub(crate) diagnostics: Diagnostics,
     pub(crate) closed_layers: Vec<crate::layer::OpenLayer>,
     pub(crate) registry_gen: u32,
+    /// Where the pointer was at the last button-down. `Cx::capture` uses it
+    /// as the claim's `origin`, so `pos - origin` is the press offset inside
+    /// the thumb rather than the offset from the region's top-left (MA-5).
+    pub(crate) press_pos: Option<Position>,
 }
 
 /// The update-phase context.
@@ -209,7 +213,13 @@ impl<'f> Cx<'f> {
             .area_of_part(owner, part)
             .or_else(|| self.last.registry.area_of(owner))
             .unwrap_or_default();
-        let origin = Position::new(area.x, area.y);
+        // §8.2: the origin is where the pointer *was*, so a splitter or a
+        // scrollbar thumb computes `pos - origin` without the press offset
+        // inside the thumb leaking into the delta (MA-5).
+        let origin = self
+            .services
+            .press_pos
+            .unwrap_or_else(|| Position::new(area.x, area.y));
         self.services.capture.claim(Capture {
             owner,
             part,
@@ -251,6 +261,34 @@ impl<'f> Cx<'f> {
             && let Some(f) = spec.initial_focus
         {
             self.services.focus_request = Some(f);
+        }
+    }
+
+    /// Update an open layer's requested size (Adjudication N1).
+    ///
+    /// No-op when `id` is not open or the size is unchanged; the next `draw`
+    /// re-resolves the anchor, so a size asserted in `update` takes effect in
+    /// the very same frame. Safe to call unconditionally every frame — that
+    /// is the intended use: the component that owns the content re-asserts
+    /// its size, and a description that grows or a theme swap corrects the
+    /// layer without the opener predicting anything.
+    pub fn resize_layer(&mut self, id: Id, size: LayerSize) {
+        if let Some(spec) = self.services.layers.spec_mut(id)
+            && spec.size != size
+        {
+            spec.size = size;
+            self.services.repaint = true;
+        }
+    }
+
+    /// Update an open layer's anchor (a popover whose owner moved).
+    /// No-op when `id` is not open or the anchor is unchanged.
+    pub fn reanchor_layer(&mut self, id: Id, anchor: Anchor) {
+        if let Some(spec) = self.services.layers.spec_mut(id)
+            && spec.anchor != anchor
+        {
+            spec.anchor = anchor;
+            self.services.repaint = true;
         }
     }
 

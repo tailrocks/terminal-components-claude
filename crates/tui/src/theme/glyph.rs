@@ -83,11 +83,19 @@ pub enum GlyphRole {
     PressLeft,
     /// Mono `PRESSED` right bracket.
     PressRight,
+    /// The mask a secret field paints per character (§11.2, D-11).
+    ///
+    /// Distinct from [`GlyphRole::Dirty`] even though the Junie theme binds
+    /// both to `•`: `Dirty` is the *uncommitted changes* marker and §11.4's
+    /// mono rule already binds `MARKER + WARNING/DIRTY` to it, so overloading
+    /// it would make a theme that restyles the dirty marker also restyle
+    /// password masking.
+    SecretMask,
 }
 
 impl GlyphRole {
     /// Every role, in declaration order.
-    pub const ALL: [GlyphRole; 38] = [
+    pub const ALL: [GlyphRole; 39] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
@@ -126,6 +134,7 @@ impl GlyphRole {
         GlyphRole::NewTab,
         GlyphRole::PressLeft,
         GlyphRole::PressRight,
+        GlyphRole::SecretMask,
     ];
 
     const fn index(self) -> usize {
@@ -138,7 +147,7 @@ impl GlyphRole {
 /// typed `symbols::line::Set`s (§22 R‑11).
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct GlyphSet {
-    glyphs: [&'static str; 38],
+    glyphs: [&'static str; 39],
     scroll: scrollbar::Set<'static>,
     rule_quiet: line::Set<'static>,
     rule_active: line::Set<'static>,
@@ -147,7 +156,7 @@ pub struct GlyphSet {
 impl GlyphSet {
     /// A set from a full table plus the typed symbol sets.
     pub const fn new(
-        glyphs: [&'static str; 38],
+        glyphs: [&'static str; 39],
         scroll: scrollbar::Set<'static>,
         rule_quiet: line::Set<'static>,
         rule_active: line::Set<'static>,
@@ -212,7 +221,7 @@ mod tests {
 
     #[test]
     fn every_role_reads_and_writes_its_slot() {
-        let mut g = GlyphSet::new(["x"; 38], scrollbar::VERTICAL, line::NORMAL, line::THICK);
+        let mut g = GlyphSet::new(["x"; 39], scrollbar::VERTICAL, line::NORMAL, line::THICK);
         for r in GlyphRole::ALL {
             g.set(r, "y");
             assert_eq!(g.get(r), "y", "{r:?}");

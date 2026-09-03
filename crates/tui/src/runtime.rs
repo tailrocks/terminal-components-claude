@@ -72,6 +72,9 @@ struct Press {
     part: PartRef,
     area: Rect,
     dragging: bool,
+    /// Where the pointer was when the button went down — `Cx::capture`'s
+    /// `origin`, so `pos - origin` is the offset within the thumb (MA-5).
+    pos: Position,
 }
 
 /// Runtime-owned interaction bookkeeping (§1.2(4), §8.6).
@@ -105,6 +108,9 @@ pub struct Runtime<A: App> {
     cursor: Option<Position>,
     last_invalidate: Invalidate,
     pending_focus: Option<(Option<Id>, Option<Id>, FocusVia)>,
+    /// The key map state the cached conflicts were computed for (MI-4).
+    keymap_fingerprint: Option<u64>,
+    keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
     layer_events_pending: Vec<(Id, LayerEvent)>,
     unsettled: usize,
@@ -140,6 +146,8 @@ impl<A: App> Runtime<A> {
             cursor: None,
             last_invalidate: Invalidate::None,
             pending_focus: None,
+            keymap_fingerprint: None,
+            keymap_conflicts: Vec::new(),
             staged_focus: None,
             layer_events_pending: Vec::new(),
             unsettled: 0,
@@ -223,6 +231,18 @@ impl<A: App> Runtime<A> {
 
     fn top(&self) -> LayerId {
         self.services.layers.top()
+    }
+
+    /// The application key map's conflicts, recomputed only when the map
+    /// changes. `KeyMap::conflicts` is an `O(n²)` scan; running it on every
+    /// input made every keystroke quadratic in the binding count (MI-4).
+    fn keymap_conflicts(&mut self) -> Vec<Diagnostic> {
+        let fp = self.app.keymap().fingerprint();
+        if self.keymap_fingerprint != Some(fp) {
+            self.keymap_fingerprint = Some(fp);
+            self.keymap_conflicts = self.app.keymap().conflicts();
+        }
+        self.keymap_conflicts.clone()
     }
 
     fn stage_focus(&mut self, to: Option<Id>, via: FocusVia) {
@@ -414,7 +434,11 @@ impl<A: App> Runtime<A> {
             }
             MouseKind::SecondaryUp => {}
             MouseKind::Wheel(axis, delta) => {
-                if let Some(h) = self.last.registry.hit_scroll(m.pos, axis) {
+                // a wheel over the page below a popover must not scroll the
+                // page: the same top-layer filter `deliverable` applies (MI-5)
+                if let Some(h) = self.last.registry.hit_scroll(m.pos, axis)
+                    && h.layer == top
+                {
                     let rows = self.theme.design.motion.wheel_rows as i16;
                     self.intents
                         .wheel(h.owner, axis, delta.saturating_mul(rows), h.part, m.pos);
@@ -434,7 +458,9 @@ impl<A: App> Runtime<A> {
             part: h.part,
             area,
             dragging: false,
+            pos: m.pos,
         });
+        self.services.press_pos = Some(m.pos);
         self.last.snapshot.pressed = Some(h.owner);
         if self.last.ring.contains(h.owner) {
             self.stage_focus(Some(h.owner), FocusVia::Pointer);
@@ -508,6 +534,7 @@ impl<A: App> Runtime<A> {
                 self.last.snapshot.capture = None;
             }
             MouseKind::Down => {
+                self.services.press_pos = Some(m.pos);
                 self.intents
                     .pointer(cap.owner, Phase::Press, cap.part, m.pos, local, m.mods);
             }
@@ -534,7 +561,11 @@ impl<A: App> Runtime<A> {
             .layers
             .close(top.id, LayerEvent::Dismissed(reason));
         self.services.closed_layers.extend(closed);
-        self.intents.cancel(top.spec.owner);
+        // §6.1: `Cancel` is "Esc reached this owner after layer dismissal".
+        // An outside click or a programmatic close is not a cancellation.
+        if reason == DismissReason::Esc {
+            self.intents.cancel(top.spec.owner);
+        }
         true
     }
 
@@ -634,11 +665,17 @@ impl<A: App> Runtime<A> {
             first_pass = false;
             self.unsettled = self.unsettled.saturating_add(1);
             if self.unsettled >= MAX_FOCUS_PASSES {
-                let target = self.staged_focus.and_then(|(to, _)| to);
+                let (target, via) = self.staged_focus.unwrap_or((None, FocusVia::Programmatic));
                 self.services
                     .diagnostics
                     .push(Diagnostic::FocusTransitionDidNotSettle { target });
-                self.apply_staged_focus();
+                let from = self.focus.current();
+                if self.apply_staged_focus() {
+                    // §21 item 11: the pair is *applied*. `intents.clear()`
+                    // below would swallow it, so it is delivered by the next
+                    // `handle` through `pending_focus` (MI-7).
+                    self.pending_focus = Some((from, target, via));
+                }
                 self.intents.clear();
                 break;
             }
@@ -650,9 +687,8 @@ impl<A: App> Runtime<A> {
     /// `Runtime::handle` — steps 1–9.
     pub fn handle(&mut self, input: Input) -> Response<()> {
         self.services.diagnostics.clear();
-        self.services
-            .diagnostics
-            .extend(self.app.keymap().conflicts());
+        let conflicts = self.keymap_conflicts();
+        self.services.diagnostics.extend(conflicts);
         self.services.repaint = false;
         self.services.repaint_after = None;
         self.intents.clear();
@@ -671,7 +707,12 @@ impl<A: App> Runtime<A> {
         match input {
             Input::Resize(w, h) => {
                 self.resize(w, h);
-                return Response::changed().relayout();
+                // step 1 then the ordinary update pass: the `FocusOut`/
+                // `FocusIn` pair staged for a `pending_focus` is already in
+                // the queue and must reach `app.update` before `finish`
+                // clears it (MA-7).
+                let r = self.run_update(None) | Response::changed().relayout();
+                return self.finish(r);
             }
             Input::Tick => {
                 self.clock_ms = self
@@ -787,7 +828,7 @@ impl<A: App> Runtime<A> {
         self.frame.top = self.services.layers.top();
         // arm every open layer's scope and draw target before anything draws
         for l in self.services.layers.layers() {
-            let rect = resolve_anchor(area, l.spec.anchor, l.spec.min_size);
+            let rect = resolve_anchor(area, l.spec.anchor, l.spec.size);
             self.frame.layers.push(l.id, l.layer, l.spec, rect, area);
             let mode = match l.spec.kind {
                 LayerKind::Modal => ScopeMode::Trap,
@@ -932,17 +973,26 @@ impl<A: App> Runtime<A> {
         self.cursor
     }
 
-    /// Resolve `p` of `id`'s family as the runtime would, using the flags
-    /// `id` wears now. The family is looked up from the part's owner
-    /// through the recipe of `Family::custom`-agnostic default: callers
-    /// pass the family explicitly through [`Runtime::resolved_in`].
+    /// What `id` actually got for `p` in the last draw.
+    ///
+    /// Returns the `Resolved` the component recorded when it queried the
+    /// style, so the family and variant are the ones the component itself
+    /// used — a `List`, a `Tabs` or a `Field` is never resolved through the
+    /// button recipe (§16.4's theme-coupling migration contract). When `id`
+    /// never styled `p`, the family and variant of any other query `id` made
+    /// this frame are reused; when `id` styled nothing at all this falls back
+    /// to `Family::BUTTON`. [`Runtime::resolved_in`] is the explicit escape
+    /// hatch for a part that is never painted.
     pub fn resolved(&self, id: Id, p: Part) -> crate::theme::Resolved {
-        self.resolved_in(
-            crate::theme::Family::BUTTON,
-            crate::theme::Variant::DEFAULT,
-            id,
-            p,
-        )
+        let mine = self.frame.styled_queries.iter().rev();
+        if let Some((_, _, _, _, r)) = mine.clone().find(|(o, _, _, q, _)| *o == id && *q == p) {
+            return *r;
+        }
+        let (f, v) = mine.clone().find(|(o, _, _, _, _)| *o == id).map_or(
+            (crate::theme::Family::BUTTON, crate::theme::Variant::DEFAULT),
+            |(_, f, v, _, _)| (*f, *v),
+        );
+        self.resolved_in(f, v, id, p)
     }
 
     /// Resolve `p` for `id` under an explicit family and variant.
@@ -1018,6 +1068,38 @@ impl<A: App> Runtime<A> {
         }
     }
 
+    /// Intent-queue bucket probes since the runtime was built (adjudication
+    /// 2.6): a frame with an empty queue must perform **zero**, and a frame
+    /// with intents exactly one per `cx.intents` call.
+    pub fn intent_probes(&self) -> usize {
+        self.intents.probes()
+    }
+
+    /// `(hits, misses)` of the §11.1 A3 style memo (adjudication 2.8).
+    pub fn style_cache_stats(&self) -> (u64, u64) {
+        self.core.style_cache.stats()
+    }
+
+    /// The live spec of an open layer.
+    pub fn open_spec(&self, id: Id) -> Option<crate::layer::LayerSpec> {
+        self.services
+            .layers
+            .layers()
+            .iter()
+            .find(|l| l.id == id)
+            .map(|l| l.spec)
+    }
+
+    /// The area the resolver gave layer `id` in the last draw.
+    pub fn layer_area(&self, id: Id) -> Option<Rect> {
+        self.frame
+            .layers
+            .active()
+            .iter()
+            .find(|l| l.id == id)
+            .map(|l| l.area)
+    }
+
     /// Record a diagnostic on the harness's behalf (`UnaddressableId`).
     pub fn record_diagnostic(&mut self, d: Diagnostic) {
         self.services.diagnostics.push(d);
@@ -1078,6 +1160,7 @@ pub(crate) mod stub {
         pub(crate) focus_request: Option<Id>,
         pub(crate) open_request: Option<(Id, LayerSpec)>,
         pub(crate) close_request: Option<Id>,
+        pub(crate) resize_request: Option<(Id, crate::layer::LayerSize)>,
         /// `update` calls so far.
         pub(crate) updates: usize,
         /// Focus requests issued from inside `update` on each pass (settling tests).
@@ -1123,6 +1206,8 @@ pub(crate) mod stub {
                             ..
                         } if c.captures => {
                             assert!(cx.capture(c.id, part));
+                            self.log
+                                .push((c.id, format!("origin: {:?}", cx.capture_origin())));
                             r |= Response::changed();
                         }
                         Intent::Pointer { .. } | Intent::Wheel { .. } => r |= Response::changed(),
@@ -1147,6 +1232,9 @@ pub(crate) mod stub {
             }
             if let Some(id) = self.close_request.take() {
                 cx.close_layer(id, None);
+            }
+            if let Some((id, size)) = self.resize_request.take() {
+                cx.resize_layer(id, size);
             }
             r
         }
@@ -1363,7 +1451,24 @@ mod tests {
                 .iter()
                 .any(|d| matches!(d, Diagnostic::FocusTransitionDidNotSettle { .. }))
         );
-        assert!(rt.focus().is_some());
+        let settled = rt.focus().expect("the give-up path applies the transition");
+        // §21 item 11 says the pair is *applied*: the give-up path used to
+        // enqueue `FocusOut`/`FocusIn` and then `intents.clear()` them, so
+        // neither ever reached a component (MI-7). They are now delivered by
+        // the next `handle`.
+        rt.app_mut().chase.clear();
+        rt.app_mut().log.clear();
+        let _ = step(&mut rt, &mut buf, Input::Tick);
+        assert!(
+            rt.app().saw(settled, "FocusIn"),
+            "the matching FocusIn must reach the new owner: {:?}",
+            rt.app().log
+        );
+        assert!(
+            rt.app().log.iter().any(|(_, s)| s.contains("FocusOut")),
+            "the pending FocusOut must be delivered too: {:?}",
+            rt.app().log
+        );
     }
 
     #[test]

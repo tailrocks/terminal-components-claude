@@ -70,11 +70,23 @@ impl Secret {
         out.text(s);
     }
 
-    /// Overwrite every byte with zero, then clear.
+    /// Overwrite every byte with zero, then release the buffer.
+    ///
+    /// **Known limit of safe-Rust zeroization** (MA-13): the fill writes into
+    /// a buffer that is about to be dropped, and LLVM is permitted to remove
+    /// a dead store. `black_box` and a `SeqCst` fence make the write
+    /// observable to the optimiser, which is as far as `#![forbid(unsafe_code)]`
+    /// reaches — a guaranteed wipe needs `core::ptr::write_volatile`, which
+    /// this crate cannot use. What *is* guaranteed and is asserted by
+    /// `secret::zeroize_overwrites_before_drop` is that the buffer is released
+    /// and a fresh `expose()` is empty.
     pub fn zeroize(&mut self) {
         let mut bytes = core::mem::take(&mut self.0).into_bytes();
         bytes.fill(0);
+        core::hint::black_box(&bytes);
+        core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
         bytes.clear();
+        drop(bytes);
         self.0 = String::new();
     }
 }
@@ -107,11 +119,13 @@ pub struct SecretPolicy {
 }
 
 impl Default for SecretPolicy {
-    /// The library default: the `Dirty` bullet glyph and a two-character
-    /// synthetic tail.
+    /// The library default: the [`GlyphRole::SecretMask`] bullet glyph and a
+    /// two-character synthetic tail. **Not** `GlyphRole::Dirty`: that is the
+    /// uncommitted-changes marker, and a theme that restyles it must not
+    /// thereby restyle password masking (D-11).
     fn default() -> Self {
         SecretPolicy {
-            mask: GlyphRole::Dirty,
+            mask: GlyphRole::SecretMask,
             synthetic_tail: 2,
         }
     }
@@ -138,13 +152,24 @@ mod tests {
         );
     }
 
+    /// §16.1's name (MA-13). Safe Rust cannot observe the zeroed bytes after
+    /// the buffer is released, so this asserts the properties that *are*
+    /// observable: the capacity is gone, a fresh `expose()` is empty, and the
+    /// secret is reusable afterwards. The compiler-elision risk is named on
+    /// `Secret::zeroize` itself.
     #[test]
-    fn zeroize_clears() {
+    fn zeroize_overwrites_before_drop() {
         let mut s = Secret::new("hunter2".to_owned());
+        assert_eq!(s.len(), 7);
         s.zeroize();
         assert!(s.is_empty());
+        assert_eq!(s.expose(), "");
+        assert_eq!(s.expose().len(), 0, "the buffer is released, not kept");
         s.set("again");
         assert_eq!(s.expose(), "again");
+        // the default policy masks with the dedicated role, never `Dirty`
         assert_eq!(SecretPolicy::default().synthetic_tail, 2);
+        assert_eq!(SecretPolicy::default().mask, GlyphRole::SecretMask);
+        assert_ne!(SecretPolicy::default().mask, GlyphRole::Dirty);
     }
 }

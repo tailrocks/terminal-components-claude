@@ -162,6 +162,21 @@ impl KeyMap {
         self.entries.is_empty()
     }
 
+    /// A cheap `O(n)` structural fingerprint of the bindings, so a caller can
+    /// tell whether the `O(n²)` [`KeyMap::conflicts`] scan needs re-running.
+    pub(crate) fn fingerprint(&self) -> u64 {
+        use core::hash::{Hash, Hasher};
+
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.entries.len().hash(&mut h);
+        for e in &self.entries {
+            e.chord.hash(&mut h);
+            e.phase.hash(&mut h);
+            e.key.raw().hash(&mut h);
+        }
+        h.finish()
+    }
+
     /// Two bindings of the same chord in the same phase.
     pub fn conflicts(&self) -> Vec<Diagnostic> {
         let mut out = Vec::new();

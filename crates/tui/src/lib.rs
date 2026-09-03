@@ -36,7 +36,7 @@ pub(crate) mod response;
 pub(crate) mod runtime;
 pub(crate) mod scroll;
 pub(crate) mod secret;
-pub mod text;
+pub(crate) mod text;
 pub mod theme;
 pub(crate) mod ui;
 pub(crate) mod validate;
@@ -52,6 +52,8 @@ pub use id::{Id, ItemKey, Part, PartRef};
 pub use runtime::session::{DefaultTerminal, TerminalSession, chain_panic_hook, run};
 pub use runtime::{App, Runtime};
 // phases
+#[cfg(feature = "testing")]
+pub use ui::StyledQuery;
 pub use ui::{Cx, FrameRead, LayoutFacts, Ui};
 // events, intents, responses
 pub use event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
@@ -71,19 +73,23 @@ pub use scroll::ScrollState;
 // layers
 pub use layer::{
     Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
-    LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
+    LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
 // theme
 pub use theme::{
     Align, ColorLevel, ColorTokens, Density, DesignTokens, Family, FgStep, GlyphRole, MeterRole,
-    Modifier, Overlay, OverlayRule, Resolved, Role, Slot, StylePatch, Surface, SyntaxRole, Theme,
-    ThemeBuilder, Variant,
+    Modifier, Overlay, OverlayRule, PartMetrics, Resolved, Role, Slot, StylePatch, Surface,
+    SyntaxRole, Theme, ThemeBuilder, Variant,
 };
 // layout and measurement
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
 pub use measure::{Constraints, Measure, Size};
-// text
-pub use text::{CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextEditorCore};
+// text — `text` is `pub(crate)` (Appendix B.3 item 2): `grapheme_width`,
+// `is_word_char` and `thousands` are internal, and the rest is curated here
+pub use text::{
+    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
+    truncate, truncate_middle, width, wrap, wrapped_rows,
+};
 // collections
 pub use collection::{
     ByIndex, CellDecor, CellUi, CollectionCore, ColumnsUi, DefaultRow, EmptyState, KeyFn, KeySet,

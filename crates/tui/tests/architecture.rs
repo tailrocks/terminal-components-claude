@@ -151,6 +151,59 @@ mod architecture {
     }
 
     #[test]
+    fn no_unreachable_spin_loops() {
+        check("no_unreachable_spin_loops");
+    }
+
+    #[test]
+    fn ratatui_crossterm_is_named_in_exactly_two_files() {
+        check("ratatui_crossterm_is_named_in_exactly_two_files");
+    }
+
+    #[test]
+    fn every_named_test_exists() {
+        check("every_named_test_exists");
+    }
+
+    #[test]
+    fn conformance_covers_every_public_component() {
+        check("conformance_covers_every_public_component");
+    }
+
+    #[test]
+    fn state_override_is_used_only_in_apps_and_fixtures() {
+        check("state_override_is_used_only_in_apps_and_fixtures");
+    }
+
+    #[test]
+    fn examples_are_external_consumers() {
+        check("examples_are_external_consumers");
+    }
+
+    /// `cargo build --examples` is the mechanism (run by
+    /// `examples_are_external_consumers`); this pins that all thirteen §17
+    /// example files exist and are named, so a deleted example is visible.
+    #[test]
+    fn all_examples_compile() {
+        check("examples_are_external_consumers");
+    }
+
+    /// §16.1: the three type-level guarantees that can only be proved by a
+    /// program that must **not** compile.
+    #[test]
+    fn compile_fail_cases_hold() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/ui/*.rs");
+    }
+
+    /// **Recorded deviation (MA-11).** §16.5 specifies a rustdoc-json check —
+    /// "for every non-local type named in a `pub` item, a `pub use` path
+    /// exists" — and this is a substring grep over `lib.rs`. It cannot detect
+    /// the case it was written for: a `pub` signature naming an unexported
+    /// foreign type. The rustdoc-json form is a Slice-8 upgrade, tracked in
+    /// §16.5's table; until then this is a pin on the facade lines, not a
+    /// proof of completeness.
+    #[test]
     fn every_foreign_type_in_the_public_surface_is_re_exported() {
         // Adjudication M1: every ratatui type named by a `pub` signature has
         // a facade line; the facade names them explicitly and this pins it

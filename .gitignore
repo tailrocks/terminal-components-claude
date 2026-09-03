@@ -3,3 +3,6 @@ baseline/**/*.png
 baseline/**/*.html
 tools/__pycache__/
 .DS_Store
+
+# trybuild writes candidate .stderr files here when a case has none yet
+crates/tui/wip/

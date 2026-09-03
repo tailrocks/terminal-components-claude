@@ -197,6 +197,11 @@ impl<T> PartMap<T> {
     }
 
     /// The entry for `p`, created with `T::default()` if absent.
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "`i` is either the index binary_search found or the index Vec::insert(i, _) just \
+                  filled, so it is in range by construction"
+    )]
     pub fn entry(&mut self, p: Part) -> &mut T
     where
         T: Default,
@@ -208,17 +213,7 @@ impl<T> PartMap<T> {
                 i
             }
         };
-        // `i` was just found or inserted, so the slot exists; the fallback
-        // pushes a fresh default rather than indexing.
-        if self.entries.get(i).is_none() {
-            self.entries.push((p, T::default()));
-        }
-        let last = self.entries.len().saturating_sub(1);
-        let idx = if i < self.entries.len() { i } else { last };
-        match self.entries.get_mut(idx) {
-            Some((_, v)) => v,
-            None => unreachable_entry(),
-        }
+        &mut self.entries[i].1
     }
 
     /// Iterate in part order.
@@ -239,16 +234,6 @@ impl<T> PartMap<T> {
     /// Whether the map is empty.
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
-    }
-}
-
-/// `PartMap::entry` always has a slot after insertion; this arm is a
-/// type-level requirement only and can never execute.
-fn unreachable_entry<T>() -> T {
-    // A non-empty `Vec` always yields `get_mut(last)`; the loop keeps the
-    // function total without a panic path.
-    loop {
-        core::hint::spin_loop();
     }
 }
 
@@ -280,17 +265,36 @@ impl PartRecipe {
         self
     }
 
-    /// Accumulate: base, glyph/size slots, then every matching rule.
-    pub fn apply(&self, acc: StylePatch, live: StateFlags) -> StylePatch {
+    /// Accumulate the base patch and the `glyph`/`size` slots — §11.3
+    /// precedence steps 1 (family base) and 2 (variant delta). State rules
+    /// are step 3 and are applied afterwards, over *every* base, by
+    /// [`PartRecipe::apply_states`].
+    pub fn apply_base(&self, acc: StylePatch) -> StylePatch {
         let mut acc = acc.merge(self.base);
         acc.glyph = self.glyph.over(acc.glyph);
         acc.size = self.size.over(acc.size);
+        acc
+    }
+
+    /// Accumulate every matching state rule — §11.3 precedence step 3.
+    /// The rules are stored pre-sorted by specificity, so this is one scan.
+    pub fn apply_states(&self, acc: StylePatch, live: StateFlags) -> StylePatch {
+        let mut acc = acc;
         for r in &self.states {
             if r.matches(live) {
                 acc = acc.merge(r.patch);
             }
         }
         acc
+    }
+
+    /// Base then state rules, for a recipe that is a whole precedence level
+    /// on its own (a global override, §11.3 step 4). The family/variant pair
+    /// must **not** use this: their bases both precede both their state rule
+    /// sets, so they go through `apply_base` and the crate-internal
+    /// specificity merge.
+    pub fn apply(&self, acc: StylePatch, live: StateFlags) -> StylePatch {
+        self.apply_states(self.apply_base(acc), live)
     }
 
     /// Merge another recipe over this one.
@@ -302,6 +306,38 @@ impl PartRecipe {
             self.when(r.when, r.patch);
         }
     }
+}
+
+/// Merge a family's and a variant's state rules over `acc` in one pass,
+/// ascending by specificity, the family's rule first on a tie — §11.3
+/// precedence step 3, which is a single level spanning both rule lists.
+///
+/// Both slices are stored pre-sorted (`PartRecipe::when`), so this is a
+/// stable two-way merge: allocation-free and `O(n + m)`.
+pub(crate) fn merge_states(
+    acc: StylePatch,
+    family: &[StateRule],
+    variant: &[StateRule],
+    live: StateFlags,
+) -> StylePatch {
+    let mut acc = acc;
+    let mut fam = family.iter().peekable();
+    let mut var = variant.iter().peekable();
+    loop {
+        let take_family = match (fam.peek(), var.peek()) {
+            (None, None) => break,
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (Some(a), Some(b)) => a.specificity() <= b.specificity(),
+        };
+        let rule = if take_family { fam.next() } else { var.next() };
+        if let Some(r) = rule
+            && r.matches(live)
+        {
+            acc = acc.merge(r.patch);
+        }
+    }
+    acc
 }
 
 /// A family's recipe: its default variant, base parts and variant deltas.
@@ -332,6 +368,11 @@ impl Recipe {
     }
 
     /// The variant delta for `v`, created if absent.
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "`pos` is either the index `position` found or the last index after a push, so \
+                  it is in range by construction"
+    )]
     pub fn variant_mut(&mut self, v: Variant) -> &mut PartMap<PartRecipe> {
         let pos = if let Some(i) = self.variants.iter().position(|(k, _)| *k == v) {
             i
@@ -339,10 +380,7 @@ impl Recipe {
             self.variants.push((v, PartMap::new()));
             self.variants.len().saturating_sub(1)
         };
-        match self.variants.get_mut(pos) {
-            Some((_, m)) => m,
-            None => unreachable_entry(),
-        }
+        &mut self.variants[pos].1
     }
 }
 
@@ -356,10 +394,21 @@ pub(crate) struct GlobalOverride {
 
 /// Every family's recipe plus the global overrides; built once at theme
 /// construction, only read at resolution.
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
     overrides: Vec<GlobalOverride>,
+    neutral: Recipe,
+}
+
+impl Default for Recipes {
+    fn default() -> Self {
+        Recipes {
+            by_family: Vec::new(),
+            overrides: Vec::new(),
+            neutral: super::builtin::neutral_recipe(),
+        }
+    }
 }
 
 impl Recipes {
@@ -372,7 +421,25 @@ impl Recipes {
             .map(|(_, r)| r)
     }
 
+    /// The recipe a family that `define_family` never declared starts from
+    /// (§11.2): the neutral row-like set `CONTAINER / GUTTER / MARKER /
+    /// LABEL / META …`, so `Family::custom("x")` renders instead of
+    /// resolving to an empty style. `define_family` replaces it.
+    pub fn neutral(&self) -> &Recipe {
+        &self.neutral
+    }
+
+    /// The recipe for a family, falling back to [`Recipes::neutral`].
+    pub fn get_or_neutral(&self, f: Family) -> &Recipe {
+        self.get(f).unwrap_or(&self.neutral)
+    }
+
     /// The recipe for a family, created if absent.
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "`i` is either the index binary_search found or the index Vec::insert(i, _) just \
+                  filled, so it is in range by construction"
+    )]
     pub fn get_mut(&mut self, f: Family) -> &mut Recipe {
         let i = match self.by_family.binary_search_by_key(&f, |(k, _)| *k) {
             Ok(i) => i,
@@ -381,10 +448,7 @@ impl Recipes {
                 i
             }
         };
-        match self.by_family.get_mut(i) {
-            Some((_, r)) => r,
-            None => unreachable_entry(),
-        }
+        &mut self.by_family[i].1
     }
 
     /// Iterate families in order.

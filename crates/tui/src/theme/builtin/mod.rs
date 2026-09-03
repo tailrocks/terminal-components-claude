@@ -517,6 +517,15 @@ fn button(r: &mut Recipe) {
     }
 }
 
+/// The recipe a family with no declaration of its own starts from (§11.2,
+/// MA-6): the neutral row-like chrome, so a downstream `Family::custom("x")`
+/// renders with the library's default look instead of an empty style.
+pub(crate) fn neutral_recipe() -> Recipe {
+    let mut r = Recipe::default();
+    row_like(&mut r.parts);
+    r
+}
+
 /// The default recipe table every theme starts from.
 pub(crate) fn default_recipes() -> Recipes {
     let mut rs = Recipes::default();

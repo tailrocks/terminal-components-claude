@@ -19,6 +19,10 @@ pub(crate) struct CursorRequest {
     pub(crate) pos: Position,
     /// The layer was inert (below an `inert_below` layer) when written.
     pub(crate) inert: bool,
+    /// The owner carried `FOCUSED` when the write was made. `Ui::set_cursor`
+    /// keeps the best candidate by `(layer, focused)`, because §8.4 makes the
+    /// *runtime* the filter and two same-layer writers are legitimate.
+    pub(crate) focused: bool,
 }
 
 /// The outcome of resolving the frame's cursor requests.
@@ -56,6 +60,7 @@ mod tests {
             owner: OWNER,
             pos: Position::new(4, 2),
             inert,
+            focused: true,
         }
     }
 
@@ -97,6 +102,61 @@ mod tests {
             resolve(req(LayerId::PAGE, false), LayerId::PAGE, None),
             CursorDecision::Reject(_)
         ));
+    }
+
+    /// Two same-layer writers (two focusable text controls in one form) are
+    /// legitimate: §8.4 makes filtering the runtime's job, so components write
+    /// unconditionally. `Ui::set_cursor` must keep the **focused** owner's
+    /// write, not the first one drawn — otherwise `cursor::resolve` drops the
+    /// retained request and the frame ends with no cursor at all (BL-6).
+    #[test]
+    fn the_focused_owners_write_wins_on_the_same_layer() {
+        use ratatui_core::buffer::Buffer;
+        use ratatui_core::layout::Rect;
+
+        use crate::theme::Theme;
+        use crate::ui::Ui;
+        use crate::ui::cx::LastFrame;
+        use crate::ui::{FrameState, UiCore};
+
+        const FIRST: Id = Id::root("form.first");
+        const SECOND: Id = Id::root("form.second");
+
+        let screen = Rect::new(0, 0, 20, 4);
+        let theme = Theme::junie();
+        for focused in [FIRST, SECOND] {
+            let mut frame = FrameState::default();
+            frame.reset(1, screen);
+            let mut page = Buffer::empty(screen);
+            let mut core = UiCore::default();
+            let mut last = LastFrame::default();
+            last.snapshot.focus = Some(focused);
+            {
+                let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+                // drawn in this order regardless of which one is focused
+                ui.set_cursor(FIRST, Position::new(1, 1));
+                ui.set_cursor(SECOND, Position::new(9, 2));
+            }
+            let req = frame.cursor.expect("a cursor request survives the frame");
+            assert_eq!(req.owner, focused);
+            assert!(req.focused);
+            // and the runtime keeps it, because its owner is the focused one
+            assert_eq!(
+                resolve(req, LayerId::PAGE, Some(focused)),
+                CursorDecision::Keep(req.pos)
+            );
+            // exactly one loser is diagnosed, and it is the other control
+            let rejected: Vec<Id> = frame
+                .diagnostics
+                .iter()
+                .filter_map(|d| match d {
+                    Diagnostic::CursorRejected { owner, .. } => Some(*owner),
+                    _ => None,
+                })
+                .collect();
+            let other = if focused == FIRST { SECOND } else { FIRST };
+            assert_eq!(rejected, vec![other]);
+        }
     }
 
     #[test]

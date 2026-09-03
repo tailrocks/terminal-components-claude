@@ -18,6 +18,13 @@ fn eq_fold(a: &str, b: &str) -> bool {
 /// (60 + position of the last match). Returns the penalty (lower is better)
 /// and the **grapheme ordinals in the original label** that matched, so a
 /// list can bold them while walking the label's graphemes.
+///
+/// **Allocates three `Vec`s per call** (the grapheme index, the lowercase
+/// fold and the match ordinals). That is fine for a Slice-3 primitive and a
+/// dialog-sized candidate set; a 100 k-item `Picker` filter would make
+/// 300 000 allocations per keystroke, so 4F must either take a scratch buffer
+/// or filter incrementally (MI-10). Recorded here so it is not discovered
+/// under a profiler.
 pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     if word.is_empty() {
         return Some((0, Vec::new()));

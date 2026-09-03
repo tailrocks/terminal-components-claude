@@ -244,27 +244,36 @@ impl Registry {
         }
     }
 
-    /// The topmost non-scroll region covering `pos`, regardless of layer.
+    /// The topmost non-scroll region covering `pos`, ordered by
+    /// `(layer, registration index)`.
+    ///
+    /// z-order is the **layer** order, not the call order (§9.1): a page
+    /// control drawn after a popover must not shadow the popover, or the
+    /// runtime reads `hit.layer < top_layer` and treats a click *on* the
+    /// popover as an outside click.
     pub fn hit(&self, pos: Position) -> Option<Hit> {
         self.regions
             .iter()
-            .rev()
-            .find(|r| r.kind != RegionKind::Scroll && r.area.contains(pos))
-            .map(|r| Self::hit_of(r, pos))
+            .enumerate()
+            .filter(|(_, r)| r.kind != RegionKind::Scroll && r.area.contains(pos))
+            .max_by_key(|(i, r)| (r.layer, *i))
+            .map(|(_, r)| Self::hit_of(r, pos))
     }
 
     /// The innermost scroll region covering `pos` that handles `axis`,
-    /// returned even at zero headroom (§8.3).
+    /// returned even at zero headroom (§8.3). Ordered by
+    /// `(layer, registration index)`, like [`Registry::hit`].
     pub fn hit_scroll(&self, pos: Position, axis: Axis) -> Option<Hit> {
         self.regions
             .iter()
-            .rev()
-            .find(|r| {
+            .enumerate()
+            .filter(|(_, r)| {
                 r.kind == RegionKind::Scroll
                     && r.area.contains(pos)
                     && r.scroll.is_some_and(|(axes, _)| axes.handles(axis))
             })
-            .map(|r| Self::hit_of(r, pos))
+            .max_by_key(|(i, r)| (r.layer, *i))
+            .map(|(_, r)| Self::hit_of(r, pos))
     }
 
     /// The last `Control` region of `id`, else its last `Decorative` region.
@@ -319,6 +328,7 @@ mod tests {
 
     const A: Id = Id::root("a");
     const B: Id = Id::root("b");
+    const C: Id = Id::root("c");
 
     #[test]
     fn last_registration_wins() {
@@ -343,6 +353,43 @@ mod tests {
         h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
         let hit = h.hit(Position::new(3, 3));
         assert_eq!(hit.map(|h| (h.owner, h.layer)), Some((B, LayerId(1))));
+        // and the last registration on the *same* layer still wins
+        h.register_control(C, Rect::new(2, 2, 3, 3), LayerId(1));
+        assert_eq!(h.hit(Position::new(3, 3)).map(|h| h.owner), Some(C));
+    }
+
+    /// z-order is the layer order, **not** the call order (§9.1). A page
+    /// control registered after a popover must not shadow it: the runtime
+    /// compares `hit.layer < top_layer` to detect an outside click, so a
+    /// registration-ordered `hit` would dismiss the popover on a click that
+    /// landed on it (MA-1).
+    #[test]
+    fn a_lower_layer_region_registered_later_does_not_shadow_a_higher_one() {
+        let mut h = Registry::new(1);
+        // the popover draws first, the page control after it
+        h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
+        h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
+        let hit = h.hit(Position::new(3, 3)).expect("a covering region");
+        assert_eq!((hit.owner, hit.layer), (B, LayerId(1)));
+        // scroll routing obeys the same order
+        h.register_scroll(
+            C,
+            Rect::new(2, 2, 3, 3),
+            LayerId(1),
+            Axes::V,
+            Headroom::default(),
+        );
+        h.register_scroll(
+            A,
+            Rect::new(0, 0, 10, 10),
+            LayerId::PAGE,
+            Axes::V,
+            Headroom::default(),
+        );
+        assert_eq!(
+            h.hit_scroll(Position::new(3, 3), Axis::V).map(|x| x.owner),
+            Some(C)
+        );
     }
 
     #[test]
@@ -354,16 +401,6 @@ mod tests {
         // runtime compares `hit.layer < top_layer` to decide "outside"
         let hit = h.hit(Position::new(8, 8));
         assert_eq!(hit.map(|h| (h.owner, h.layer)), Some((A, LayerId::PAGE)));
-    }
-
-    #[test]
-    fn inert_below_registers_nothing() {
-        // the `Ui` refuses registrations from layers below an inert layer;
-        // at the registry level a frame drawn that way has only top regions
-        let mut h = Registry::new(1);
-        h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
-        assert_eq!(h.hit(Position::new(8, 8)), None);
-        assert_eq!(h.len(), 1);
     }
 
     #[test]
@@ -484,5 +521,49 @@ mod tests {
         assert!(h.is_empty());
         assert_eq!(h.generation(), 2);
         assert_eq!(h.hit(Position::new(0, 0)), None);
+    }
+}
+
+/// MI-3: `inert_below` is enforced by `Ui::register_entry`, not by
+/// `Registry`. At the registry level the old test only proved that an
+/// unregistered region is not hit.
+#[cfg(test)]
+mod runtime_tests {
+    use ratatui_core::layout::Rect;
+
+    use crate::event::{KeyCode, MouseKind};
+    use crate::id::Id;
+    use crate::layer::LayerSpec;
+    use crate::runtime::stub::{Control, Stub, key, mouse, runtime, step};
+
+    const PAGE_A: Id = Id::root("page.a");
+    const DLG: Id = Id::root("dlg");
+    const OK: Id = Id::root("dlg.ok");
+
+    #[test]
+    fn inert_below_registers_nothing() {
+        let s = Stub {
+            page: vec![Control::new(PAGE_A, Rect::new(0, 0, 10, 1))],
+            layers: vec![(DLG, vec![Control::new(OK, Rect::new(2, 4, 5, 1))])],
+            ..Stub::default()
+        };
+        let (mut rt, mut buf) = runtime(s);
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        assert!(
+            rt.registry().area_of(PAGE_A).is_some(),
+            "the page registers"
+        );
+        // `LayerSpec::modal` sets `inert_below`
+        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+        assert!(
+            rt.registry().area_of(PAGE_A).is_none(),
+            "a page control below an inert layer registers nothing"
+        );
+        assert!(rt.registry().area_of(OK).is_some());
+        // and a click on the page's old rect reaches nothing on that layer
+        rt.app_mut().log.clear();
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 1, 0));
+        assert!(!rt.app().saw(PAGE_A, "Press"), "{:?}", rt.app().log);
     }
 }
