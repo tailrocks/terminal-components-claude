@@ -23,7 +23,7 @@
 - Coordinator: `refactor-coordinator` (`claude-fable-5-1`, high) — this session.
 - Implementation: `fable-builder` (`claude-fable-5-1`, high).
 - Research/review: `opus-analyst` (`claude-opus-5`, high, read-only).
-- Slice 1 Opus audits (running): api-audit, app-audit, domain-boundary-audit, interaction-audit, architecture-research. Results to be recorded under docs/audit/.
+- Slice 1 Opus audits: docs/audit/app-audit.md, domain-boundary-audit.md, interaction-audit.md, architecture-research.md (done, committed); api-audit.md, performance-audit.md (running).
 
 ## Accepted decisions
 
@@ -39,8 +39,10 @@
 
 ## Unresolved findings
 
-- None known.
+- Library domain leaks (grep sweep, coordinator): src/widgets/grid.rs (105 SQL/NULL/PK/FK hits), src/widgets/dialog.rs:21 ("(SQL)" doc), src/widgets/statusbar.rs:335 (jackin label in test). Apps: 82 `.owns(`/`.locate` call sites.
+- Research conflict to adjudicate (Opus synthesis): interaction-audit B2/B3 proposes retained handle/render split with runtime-delivered `Event` + `Response{flow,invalidate,action}`; architecture-research §2 proposes immediate-mode `show(ui, area)` with intent queue drained during show. Must weigh Scenario A ergonomics vs migration of ~55K lines of app code and deterministic test harnesses.
+- app-audit agent reported no grep/glob; its counts are lower bounds over files read in full.
 
 ## Next action
 
-- Collect Opus audit results, save to docs/audit/, synthesize into COMPONENT_ARCHITECTURE.md draft; complete baseline captures.
+- When api-audit lands: spawn fresh Opus synthesis for COMPONENT_ARCHITECTURE.md (20 sections, adjudicate model conflict). Record baseline captures manifest.
