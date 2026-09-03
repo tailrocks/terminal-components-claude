@@ -78,9 +78,7 @@ Use the following authority order when requirements conflict:
 3. Existing rendered output, capture artifacts, visual baselines, and interaction tests — regression evidence for the default theme and current product behavior.
 4. Current source under `src/core/`, `src/ui/`, `src/widgets/`, and `src/runtime.rs` — implementation evidence, not an architecture that must be preserved.
 5. Current `showcase`, `tablepro`, and `jackin-preview` behavior and tests — application semantics that must continue to work unless an existing defect is deliberately corrected.
-6. `JACKIN_REFERENCE.md` — authority for Jackin product terminology, workflows, and operator-visible semantics.
-7. Existing `GOAL.md` and `FEEDBACK.md` — prior product intent and reusable-design decisions, but not authority for preserving the current component architecture.
-8. shadcn/ui and external references — conceptual and architectural references, not implementation templates.
+6. shadcn/ui and external references — conceptual and architectural references, not implementation templates.
 
 Preserve the exact default Junie token values and established visual behavior unless a change is necessary to correct a demonstrated inconsistency or defect. Document every intentional visual change and review it through actual captures.
 
@@ -177,7 +175,7 @@ Do not optimize for backward compatibility. This is an experimental research rep
 Before changing architecture:
 
 1. Inspect `git status` and preserve unrelated local changes.
-2. Read `README.md`, `DESIGN.md`, `FEEDBACK.md`, `GOAL.md`, and the relevant parts of `JACKIN_REFERENCE.md`.
+2. Read `README.md`, `DESIGN.md`, and the relevant current source and test files.
 3. Read every core, UI, theme, runtime, and widget module.
 4. Inspect every place where the three applications construct, mutate, render, and route events to components.
 5. Run the current formatting, linting, tests, and builds.
@@ -1063,7 +1061,7 @@ TablePro screens should become clearer examples of composition, with less low-le
 
 ## 22.3 Jackin Preview
 
-Preserve the deterministic Jackin product experience and the semantics established by `JACKIN_REFERENCE.md`, `GOAL.md`, and `FEEDBACK.md`.
+Preserve the deterministic Jackin product experience and the semantics established by the current source and interaction tests.
 
 Migrate:
 
@@ -1680,4 +1678,3 @@ Review it independently.
 Remove the old architecture.
 
 Deliver the finished reusable Rust TUI component system.
-
