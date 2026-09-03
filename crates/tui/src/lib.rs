@@ -19,6 +19,7 @@
 pub(crate) mod action;
 pub(crate) mod capture;
 pub(crate) mod collection;
+pub mod components;
 pub(crate) mod cursor;
 pub(crate) mod diagnostics;
 pub(crate) mod event;
@@ -87,6 +88,12 @@ pub use text::{CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextEdi
 pub use collection::{
     ByIndex, CellDecor, CellUi, CollectionCore, ColumnsUi, DefaultRow, EmptyState, KeyFn, KeySet,
     MAX_COLUMNS, Reconcile, Reconciliation, RowDecor, RowFn, RowTotal, RowUi, SelectMode, Status,
+};
+// components (Slice 4, append-only region, alphabetical)
+pub use components::{
+    BlurPolicy, Button, ButtonCmd, Dialog, DialogAction, DialogCmd, DialogState, EditPhase, Field,
+    List, ListAction, ListCmd, ListState, Props, ScrollRegion, Tabs, TabsAction, TabsCmd,
+    TabsState, TextAction, TextCmd, TextInput, TextInputState,
 };
 // fields and secrets
 pub use field_control::FieldControl;
