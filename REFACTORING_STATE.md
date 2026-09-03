@@ -1,6 +1,6 @@
 # Refactoring State
 
-**SESSION INTERRUPTED (user request, 2026-09-04). Two subagents were killed mid-work; their partial output is committed as WIP. Read "Resume" at the bottom first.**
+**RESUMED 2026-09-04 on Opus 5 routing (see Assignments). Ground truth verified at HEAD 0c87fb0: `cargo build -p tui-next --all-targets` OK; 190 lib tests pass; legacy root package 247 tests green; two expected failures from the interruption — `crates/tui/tests/conformance.rs` does not compile (components WIP) and `architecture::doc_check_resolves_every_reference` fails (architecture amendments half-applied). Both are owned by running builders.**
 
 ## Status
 
@@ -32,11 +32,11 @@
 - Slice 3 foundations review (docs/reviews/slice3-foundations-review.md) — ACCEPTED in full: 7 BLOCKERS (BL-1 precedence variant-after-state-rules; BL-2 spin-loop "unreachable"; BL-3 Ui::raw marks clip/clobbers roles; BL-4 paint_spans allocates; BL-5 Ansi16 CIE76 → restore legacy categorical metric; BL-6 set_cursor first-writer; BL-7 Harness::resolved hardcodes BUTTON), 14 MAJOR, 16 MINOR; fix list F1–F26; 8 adjudications (crossterm normal dep confirmed; Id structural derive confirmed; CIE76 rejected; fit split inline/wide; §22.7(2) split 2a–2d; intents-drain probe counts; Track::Auto accepted + rows_measured; style bound per-frame ≤5% + cache hit ≥90%); deviations D-1..D-13 (D-3 rejected, D-10 broad regex + path allow, D-11 `GlyphRole::SecretMask`).
 - N (docs/reviews/adjudication-n-layer-measure.md) — ACCEPTED: `LayerSpec.size: LayerSize{Fill,Fixed}` replaces `min_size`; `Cx::resize_layer/reanchor_layer`; `Anchor::Point` flips; Dialog sizes its own layer (`Dialog::layer(cx)`, `measured_width/height`, `body_rows`, `text::wrapped_rows`); `Ui::resolve(&self)` uncached no-record path, `Ui::glyph_str`, `Theme::metrics/PartMetrics`, `Ui::with_part`, `Ui::surface_style`, `Resolved::over`. `Ui::scroll_region` open for 4E.
 
-## File ownership at interruption
+## File ownership (active)
 
-- KILLED mid-work: fable-builder "components" (owned crates/tui/src/components/**, crates/tui/examples/01,05–11,showcase_buttons, crates/tui/tests/{conformance,render,overrides,overlay,showcase_buttons}.rs, baselines, perf additions). It self-committed fa87a59 "(WIP)" and further uncommitted edits to components/tabs.rs + tests/conformance.rs are committed in the interruption commit. STATE UNKNOWN: may not compile or pass gates. 9 component files exist; examples 01,05–11 exist; overrides.rs/overlay.rs/showcase_buttons.rs/showcase_buttons example NOT yet present.
-- KILLED mid-work: fable-builder "arch-amend-§25/§26" (owned COMPONENT_ARCHITECTURE.md only): partial inline edits committed in the interruption commit; §25/§26 sections likely NOT yet appended. Must be redone from docs/reviews/slice3-foundations-review.md + adjudication-n-layer-measure.md (check `rg -n '^## 25\|^## 26\|amended by §25\|amended by §26' COMPONENT_ARCHITECTURE.md`).
-- Foundation files (everything under crates/tui/src except components/, plus crates/tui-testing, xtask): frozen since 18afddd; correction pass F1–F26 + N1/N2 NOT started.
+- RUNNING `arch-amend`: owns COMPONENT_ARCHITECTURE.md only. Appends §25 (Slice 3 review adjudications + deviations + F1–F26) and §26 (Adjudication N), plus the inline amendments both reviews list. Resumes partial work from the killed predecessor.
+- RUNNING `foundations-fix`: owns crates/tui/src/** except components/**, crates/tui-testing/src/**, xtask/**, crates/tui/tests/{architecture,perf,render,fixtures,allow,ui}, crates/tui/Cargo.toml, crates/tui/README.md, root Cargo.toml. Applies F1–F26 + N1/N2. Permitted mechanical call-site updates in components/** where a signature changes; must not add component features. `crates/tui/tests/conformance.rs` excluded from its gates.
+- PENDING `components-finish` (serial, after foundations-fix): owns crates/tui/src/components/**, crates/tui/examples/**, crates/tui/tests/{conformance,overrides,overlay,showcase_buttons}.rs and baselines. 9 component files exist (button, dialog, field, input, list, props, scroll_region, tabs, mod); examples 01,05–12 exist; overrides.rs / overlay.rs / showcase_buttons NOT yet present.
 
 ## Completed gates
 
