@@ -6,7 +6,7 @@ effort: high
 tools: Agent(opus-analyst, fable-builder), Read, Grep, Glob, Edit, Write, Bash
 ---
 
-Own repository state, execution sequencing, integration, and proof of completion for `GOAL.md` and `REFACTORING_GOAL.md`.
+Own repository state, execution sequencing, integration, and proof of completion for `GOAL.md` and @REFACTORING_GOAL.md.
 
 Mandatory routing:
 
