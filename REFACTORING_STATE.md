@@ -2,8 +2,8 @@
 
 ## Status
 
-- Overall: Slice 1 audits complete; Slice 2 architecture synthesis running (Opus)
-- Slice: 1→2
+- Overall: Slice 2 — COMPONENT_ARCHITECTURE.md complete (20 sections + slice plan + package layout), under fresh Opus critique
+- Slice: 2 — architecture review and representative prototype
 
 ## Baseline
 
@@ -32,7 +32,11 @@
 
 ## Accepted decisions
 
-- Pending Opus synthesis (COMPONENT_ARCHITECTURE.md). Performance mitigations R1–R7 and §6.3 (viewport/tree/code) from docs/audit/performance-audit.md must be folded into the accepted architecture before Slice 3.
+- COMPONENT_ARCHITECTURE.md (commit after cefc4b8) is the accepted architecture, pending Slice 2 critique edits. Adjudications recorded there: A retained state + props + explicit update/draw phases with pre-resolved intents (immediate-mode `show` rejected); B unified Id (FNV with separator+kind, ItemKey, typed Part, PartRef in registry); C `Response<A>{flow,invalidate,state,action}`; D tokens+recipes+StylePatch+overlay scopes, precedence 1–6, mono fallback rule; E layer stack/focus scopes/capture/wheel/cursor/invalidation; F workspace, crate name stays `junie-tui`, `author` module; G keyed collection vocabulary, DataTable removed, Grid split via GridModel/GridEditor/GridCellActions; H Field/TextEditorCore/BlurPolicy/Validate/Secret; I dispositions + J1–J13.
+- §20.9 folds performance-audit R1–R7 and §6.3 as binding amendments (16 items) with named acceptance tests.
+- §20.10 lists 14 intentional visual changes; each requires a docs/visual-changes.md entry before any baseline regeneration.
+- Appendix A amends goal §27 Slice 4: family builders do not touch apps; showcase migration is entirely Slice 5 (disjoint ownership).
+- Coordinator staging proposal (awaiting Opus confirmation in Slice 2 review): keep old root package compiling as `junie-tui-legacy` during Slices 3–4 so apps + 198 tests stay green until migrated.
 
 ## File ownership
 
@@ -51,4 +55,4 @@
 
 ## Next action
 
-- Record Opus synthesis as COMPONENT_ARCHITECTURE.md; record baseline captures manifest and performance audit; then fresh Opus API-review of the architecture (Slice 2 critique) before prototype.
+- Apply Slice 2 critique edits to COMPONENT_ARCHITECTURE.md; commit perf baseline (WP-0); then start Slice 3 foundations builder per Appendix A.
