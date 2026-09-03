@@ -1125,4 +1125,1643 @@ impl<'a, C> Field<'a, C> {
 
 ---
 
-<!-- PART 2 (§16–§20, Appendices A–B) appended by a second synthesis pass -->
+---
+
+## 16. Testing strategy
+
+Every test named below is a real, runnable name. Builders create them with exactly these names; §16.5's `architecture::every_named_test_exists` asserts the inventory in this section matches the compiled test list, so a renamed or missing test is a build failure rather than a silent gap.
+
+**Where tests live.**
+
+| Level | Location | Runner |
+|---|---|---|
+| unit | `#[cfg(test)] mod tests` inside each library module | `cargo test -p junie-tui --lib` |
+| conformance | `crates/tui/tests/conformance.rs` + `crates/tui-testing/src/conformance/` | `cargo test -p junie-tui --test conformance` |
+| rendering / digest | `crates/tui/tests/render.rs`, `apps/*/tests/visual.rs` | `cargo test --workspace --test render --test visual` |
+| application integration | `apps/*/tests/app_tests*.rs` (moved out of the binaries, see §18) | `cargo test -p showcase -p tablepro -p jackin-preview` |
+| architecture | `crates/tui/tests/architecture.rs` + `xtask` | `cargo test --workspace --test architecture` |
+| performance | `crates/tui/tests/perf.rs`, `apps/*/tests/perf.rs` | `cargo test --workspace --test perf --release -- --test-threads=1` |
+
+`crates/tui-testing` is a **dev-only** crate (`publish = false`, depended on with `[dev-dependencies]` only) so the counting allocator, the `Harness` and the conformance driver never reach a shipped binary.
+
+---
+
+### 16.1 Unit tests (goal §25.1)
+
+One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module path is the test path.
+
+**`id.rs`** — identity, goal §25.1 "stable identity"
+`root_sub_part_index_item_are_all_distinct`, `separator_prevents_concatenation_collision` (asserts `Id::root("a").sub("b") != Id::root("ab")` **and** `Id::root("ab").sub("") != Id::root("a").sub("b")`), `kind_tag_separates_name_from_item_with_equal_bytes`, `id_equality_ignores_debug_label`, `id_is_const_constructible`, `item_key_text_is_stable_across_runs`, `item_key_pair_is_order_sensitive`, `part_custom_lands_in_the_high_range`, `part_constants_are_unique`, `debug_prints_path_in_debug_builds`, `debug_prints_hash_in_release_builds`.
+
+**`response.rs`** — event consumption and invalidation
+`ignored_consumed_changed_action_constructors`, `bitor_takes_consumed_over_ignored`, `bitor_takes_max_invalidate`, `bitor_keeps_the_first_action`, `repaint_raises_relayout_raises_further`, `no_repaint_lowers_to_none`, `map_action_preserves_flow_and_invalidate`, `erase_drops_the_action_only`, `must_use_is_enforced` (compile-fail via `trybuild`), `state_flags_round_trip`.
+
+**`intent.rs` / `event.rs`**
+`key_release_is_dropped`, `unmapped_mouse_button_is_dropped`, `mouse_carries_modifiers`, `chord_hashes_by_code_and_mods`, `secondary_up_is_modelled`, `wheel_carries_axis_and_delta`, `paste_reaches_only_an_editing_owner`.
+
+**`focus.rs`** — traversal, scopes, restoration, disabled/read-only
+`tab_cycles_forward_and_backward`, `shift_tab_is_the_exact_reverse`, `disabled_entries_are_registered_but_skipped`, `read_only_entries_stay_in_the_ring`, `click_only_entries_are_never_reachable`, `trap_confines_traversal_to_the_scope`, `trap_wraps_inside_the_scope`, `nested_scopes_resolve_innermost_first`, `scope_restore_returns_focus_to_the_opener`, `reconcile_prefers_nearest_surviving_entry_by_previous_index`, `reconcile_falls_back_to_scope_first_enabled`, `reconcile_falls_back_to_innermost_active_scope`, `reconcile_yields_none_when_nothing_is_reachable`, `focus_visible_is_true_only_after_a_key`, `trap_is_armed_when_the_layer_is_pushed_not_when_it_draws`.
+
+**`hit.rs`** — hit ordering, layers, scroll routing
+`last_registration_wins`, `higher_layer_shadows_lower`, `inert_below_registers_nothing`, `hit_returns_part_ref_not_a_derived_id`, `hit_scroll_returns_the_innermost_handler_of_the_axis`, `hit_scroll_returns_a_region_at_zero_headroom`, `hit_scroll_skips_regions_that_do_not_handle_the_axis`, `duplicate_id_is_reported_as_a_diagnostic_not_a_panic`, `empty_rects_are_rejected`, `generation_bump_invalidates_stale_regions`.
+
+**`capture.rs`** — drag capture
+`capture_claims_and_rejects_a_second_claim`, `drag_and_release_go_to_the_capture_owner`, `local_is_computed_against_the_captured_area`, `pressed_stays_set_while_the_pointer_leaves`, `release_outside_the_captured_area_does_not_activate`, `capture_is_released_on_resize`, `capture_is_released_when_the_owner_disappears`, `capture_is_released_on_generation_mismatch`.
+
+**`scroll.rs`** — nested scrolling, boundary rule
+`clamps_offset_to_content`, `ensure_visible_moves_minimally`, `thumb_covers_track_proportionally`, `track_position_round_trips`, `wheel_at_the_boundary_is_consumed_without_repaint`, `ensure_visible_on_next_layout_is_set_only_by_cursor_motion`, `fields_are_private_and_every_mutator_clamps`.
+
+**`layer.rs`** — overlay stacking
+`push_and_pop_maintain_layer_order`, `modal_pushes_a_trap_and_a_pointer_barrier`, `popover_pushes_a_pointer_barrier_only`, `esc_dismisses_only_the_top_layer`, `outside_click_is_layer_less_than_top_or_none`, `nested_layers_each_trap` (Scenario F), `anchor_rect_flips_then_clamps`, `anchor_screen_center_sits_in_the_upper_third`, `min_size_then_clamp_then_documented_degradation`, `closed_with_action_key_emits_layer_event_closed`, `dismissed_emits_the_reason`, `backdrop_excludes_the_footer_row`.
+
+**`cursor.rs`**
+`cursor_write_is_kept_for_the_focused_owner_on_the_top_layer`, `cursor_write_from_a_lower_layer_is_rejected`, `cursor_write_from_an_unfocused_owner_is_rejected`, `rejection_records_a_diagnostic`.
+
+**`layout.rs` / `measure.rs`**
+`rows_distributes_flex_after_fixed`, `columns_respects_gap_and_rounds_deterministically`, `responsive_columns_stack_below_the_threshold`, `action_row_right_aligns_and_left_aligns`, `inset_saturates_on_tiny_rects`, `split_first_pane_wins_on_both_axes_when_minima_do_not_fit`, `split_percent_is_clamped_to_5_95`, `measure_reports_min_and_preferred`.
+
+**`text/` (buffer, editor, measure, fuzzy)**
+`insert_and_move_by_grapheme`, `selection_replaces_on_insert`, `word_motion_and_deletion`, `word_chars_are_consistent_between_buffer_and_viewport`, `multiline_vertical_motion_keeps_column`, `single_line_rejects_newline`, `wide_characters_count_as_two_columns`, `combining_marks_are_one_grapheme`, `zwj_emoji_is_one_grapheme`, `pos_of_and_offset_at_round_trip`, `fuzzy_returns_grapheme_indices_into_the_original_label`, `fuzzy_ranks_prefix_before_boundary_before_substring_before_subsequence`, `editor_apply_is_the_only_mutation_entry_point`, `zeroize_overwrites_before_drop`.
+
+**`theme/` (tokens, patch, recipe, resolve, downgrade)**
+`slot_over_prefers_the_speaking_side`, `patch_merge_identity`, `patch_merge_absorption`, `patch_merge_is_associative`, `patch_clear_resolves_to_inherited_surface_fg`, `modifier_add_then_remove_is_symmetric`, `state_rules_are_stored_in_specificity_order` (R2 invariant), `state_rules_tie_break_by_declaration_order`, `state_rule_matches_only_when_when_is_a_subset`, `precedence_family_then_variant_then_state_then_global_then_scope_then_instance`, `roles_bind_after_the_whole_chain`, `raise_is_ladder_index_arithmetic_not_colour_equality`, `raise_saturates_at_the_last_level`, `field_raises_to_field_hover`, `downgrade_maps_every_token_exhaustively`, `downgrade_works_for_a_user_supplied_theme`, `mono_appends_one_state_rule_per_family`, `paper_theme_inverts_the_plane_direction`, `custom_family_and_variant_round_trip`, `theme_is_byte_identical_after_a_scoped_render`.
+
+**`collection/` (key, reconcile, rowui, decor, empty)**
+`reconcile_keeps_a_surviving_key`, `reconcile_takes_the_nearest_forward_then_backward`, `reconcile_falls_back_to_the_first_enabled_key`, `reconcile_yields_cursor_lost_when_empty`, `reconcile_drops_vanished_checked_keys_and_reports_the_count`, `reconcile_clamps_the_scroll_offset`, `reconcile_runs_before_any_action_is_emitted`, `generation_stamp_skips_a_no_op_reconcile` (R1), `cached_index_probe_hits_before_a_scan` (R1), `row_ui_label_writes_cells_without_an_intermediate_string` (R5), `row_ui_meta_is_dropped_all_or_none`, `row_ui_columns_clip_to_the_row`, `empty_state_covers_empty_loading_partial_error`.
+
+**Component state machines** (`components/*.rs`, buffer-free, no terminal) — goal §25.1 "edit begin, commit, cancel, focus loss":
+`input::begin_snapshots_the_value`, `input::commit_writes_the_controlled_value`, `input::commit_runs_validation_once`, `input::cancel_restores_the_snapshot`, `input::blur_commit_and_validate_policy`, `input::blur_cancel_policy`, `input::blur_keep_policy_leaves_the_draft`, `input::external_error_survives_a_redraw`, `input::masked_tail_is_synthetic`, `textarea::blur_commits_without_validation`, `select::escape_closes_and_restores_the_cursor`, `select::arrows_move_the_cursor_not_the_value_while_closed`, `choice::radio_group_separates_cursor_from_value`, `list::select_all_selects_only_enabled_items`, `list::range_selection_uses_the_anchor`, `tree::expand_collapse_is_keyed_not_positional`, `tree::lazy_children_do_not_reflatten_the_world`, `tabs::close_targets_the_logical_tab_after_a_reorder`, `grid::sort_is_a_permutation_and_edits_stay_bound_to_the_source_row`, `grid::edit_intent_inline_cycle_external_refuse`, `grid::range_copy_is_tsv`, `dialog::action_arming_is_evaluated_in_update`, `picker::query_change_emits_query_changed`, `wizard::rewind_retains_per_step_state`, `viewport::retention_fixes_up_selection_and_caret`, `code::edit_counter_invalidates_the_highlight_cache`, `secret::debug_and_display_redact`, `secret::is_not_clone_not_eq` (compile-fail via `trybuild`).
+
+---
+
+### 16.2 Shared conformance suite (goal §25.2)
+
+**Mechanism.** One trait implemented once per public component; one macro generates the whole matrix. There is no per-component test writing.
+
+```rust
+// crates/tui-testing/src/conformance/mod.rs
+bitflags! {
+    pub struct Caps: u32 {
+        const ACTIVATES   = 1 << 0;  // has a keyboard and a mouse activation path
+        const DISABLEABLE = 1 << 1;
+        const FOCUSABLE   = 1 << 2;
+        const COLLECTION  = 1 << 3;  // takes items + a key fn
+        const EDITS       = 1 << 4;  // has an edit lifecycle
+        const SCROLLS     = 1 << 5;
+        const OVERLAY     = 1 << 6;  // opens a layer
+        const CAPTURES    = 1 << 7;  // claims pointer capture
+        const CURSOR      = 1 << 8;  // writes the hardware cursor
+        const SECRET      = 1 << 9;  // may hold secret bytes
+    }
+}
+
+/// One registration per public component. `State = ()` for stateless components.
+pub trait Conformance: 'static {
+    const NAME: &'static str;                 // "button", "list", …
+    const FAMILY: Family;
+    const PARTS: &'static [Part];
+    type State: Default + Clone + PartialEq + core::fmt::Debug;
+    type Action;
+
+    fn caps() -> Caps;
+    fn id() -> Id;
+    /// Fixture knobs the driver varies: disabled, read_only, item count, theme, colour level.
+    fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action>;
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture);
+
+    // capability-gated hooks; the default panics only if the matching cap is set
+    fn activation_chords() -> &'static [Chord] { &[] }             // ACTIVATES
+    fn activation_part() -> PartRef { PartRef::of(Part::CONTAINER) }
+    fn bindings(s: BindingState) -> &'static [Binding<Self::Action>] { &[] }
+    fn item_keys(f: &Fixture) -> Vec<ItemKey> { Vec::new() }        // COLLECTION
+    fn reorder(f: &mut Fixture, perm: &[usize]) {}                  // COLLECTION
+    fn action_key_of(a: &Self::Action) -> Option<ItemKey> { None }  // COLLECTION
+    fn secret_bytes() -> &'static str { "" }                        // SECRET
+}
+
+pub struct Fixture {
+    pub disabled: bool, pub read_only: bool, pub items: usize,
+    pub theme: Theme, pub color: ColorLevel, pub area: Rect,
+}
+
+#[macro_export] macro_rules! conformance_suite { ($($case:ty),+ $(,)?) => { … } }
+```
+
+`crates/tui/tests/conformance.rs` ends with one invocation listing **every** public component; `architecture::conformance_covers_every_public_component` (§16.5) cross-checks that list against the `pub` component inventory, so adding a component without registering it fails CI.
+
+```rust
+conformance_suite!(
+    ButtonCase, ChipCase, CheckboxCase, RadioGroupCase, ToggleCase, BrandCase, KeyHintCase, EmptyCase,
+    FieldCase, TextInputCase, SecretInputCase, TextAreaCase, SelectCase,
+    ListCase, NavListCase, TreeCase, PropsCase, StepsCase, GridCase, TabsCase, ChipBarCase,
+    PanelCase, SplitPaneCase, ScrollRegionCase, TextViewportCase, DiffViewCase, CodeEditorCase,
+    DialogCase, MenuBarCase, ContextMenuCase, PickerCase, FilterListCase, CompletionCase,
+    FormCase, WizardCase, PickerChainCase, HelpOverlayCase,
+    ProgressBarCase, SpinnerCase, MeterCase, StatusBarCase, HintBarCase, ScrollbarCase, TooSmallCase,
+);
+```
+
+**Generated tests.** The macro emits one module per component (`mod button { … }`), so the fully-qualified names are `conformance::<component>::<case>`. Cases marked *(cap)* are emitted only when the capability is declared; the driver asserts a component never silently skips a case it should run.
+
+| # | Generated test name | §25.2 contract | What it asserts |
+|---|---|---|---|
+| 1 | `disabled_cannot_activate` *(DISABLEABLE)* | disabled controls cannot activate | With `disabled: true`: every `activation_chords()` key and a full press→release over `activation_part()` return `Response::ignored()` with `action_ref().is_none()`; state is `PartialEq`-equal to the pre-input state; the entry is present in the ring with `disabled: true` and absent from `reachable()` |
+| 2 | `keyboard_and_mouse_activation_are_equivalent` *(ACTIVATES)* | keyboard/mouse equivalence | The action produced by each chord equals the action produced by press→release on the same part, compared structurally (`ItemKey`s included); `flow` and `invalidate` also equal |
+| 3 | `traversal_order_is_registration_order` *(FOCUSABLE)* | traversal order | Draw into a scene with two sentinels before and after; `ring().reachable()` ids appear in draw order; `next`/`prev` are exact inverses over the whole ring |
+| 4 | `hover_does_not_steal_focus` | hover never focuses | A `MouseKind::Move` raster over every cell of the component's area leaves `focus()` unchanged; `HOVERED` is set; a key press sets `hover_suppressed` and clears the hover style until the pointer moves |
+| 5 | `draw_twice_is_byte_identical` | rendering twice is stable | Two `draw` calls with the same props+state produce byte-identical `Buffer`s **and** identical `Registry` region lists (owner, part, area, layer, kind) |
+| 6 | `draw_twice_leaves_state_equal` | rendering twice is stable | `st_before == st_after` by `PartialEq` after two draws, in the default, focused, hovered, editing and disabled fixtures |
+| 7 | `draw_does_not_commit_or_cancel` *(EDITS)* | rendering does not commit or cancel edits | Begin an edit, remove focus, draw 3×: draft, committed value, error, pending set and overlay open-state are all unchanged; the controlled value is untouched |
+| 8 | `draw_stays_inside_its_area` | component areas remain clipped | The component draws into a rect inset inside a sentinel-filled buffer; every cell outside the rect still holds the sentinel; every registered region satisfies `area ⊆ clip` |
+| 9 | `mono_states_are_distinguishable` | no-colour output retains state indicators | Under `ColorLevel::Mono`, the `(symbol, modifier)` multiset differs pairwise between default / focused / selected / pressed / disabled / error / warning / editing / busy / active, colour excluded |
+| 10 | `local_override_does_not_mutate_the_theme` | local overrides do not mutate the theme | Hash the `Theme` before, render inside `ui.with_overlay(&OV, …)` and with `.patch_part(…)`, hash after: equal; the overridden part's `Resolved` differs while the un-overridden sibling's does not |
+| 11 | `id_separator_collision_free` | (added) | Every id and `PartRef` this component registers is unique within a frame; no two differ only by concatenation (`Diagnostic::DuplicateId` count is 0) |
+| 12 | `item_identity_survives_reorder` *(COLLECTION)* | (added, Scenario E) | Set cursor/selection/checked on keys `k₁,k₂`; apply a reverse permutation and an insert+remove; after `reconcile`, cursor and checked set still name `k₁,k₂`; a click on the row now showing `k₁` emits an action carrying `k₁` |
+| 13 | `focus_reconcile_follows_the_rule` *(FOCUSABLE)* | (added) | Remove the focused entry: focus lands on the nearest surviving entry by previous index; if the scope empties, on the scope's first enabled; then on the innermost active scope's first; then `None` — all four branches exercised |
+| 14 | `focus_trap_and_restore` *(OVERLAY)* | (added) | Opening the layer shrinks `reachable()` to the layer's own stops; Tab wraps inside; closing restores focus to the opener; a layer that cannot draw (0×0) still traps |
+| 15 | `pointer_capture_delivers_drag_and_release` *(CAPTURES)* | (added) | After a press claims capture, drags outside the component still reach it with `local` relative to the captured area; a second claim is refused; release outside the captured area does not activate |
+| 16 | `wheel_at_boundary_is_consumed_without_repaint` *(SCROLLS)* | (added) | At offset 0 a wheel-up returns `Flow::Consumed` with `Invalidate::None`; mid-range returns `Consumed` + `Paint`; the event never chains to an outer scrollable and never moves focus or the cursor |
+| 17 | `cursor_write_is_rejected_off_top_layer` *(CURSOR)* | (added) | Drawn under an open modal, the component's `ui.set_cursor` is dropped and one `Diagnostic::CursorRejected` is recorded; on the top layer with focus, it is kept |
+| 18 | `secret_never_appears_in_debug` *(SECRET)* | (added) | `format!("{:?}")` of props, state, and any owning container (`Field`, `Dialog`, `Form`) contains neither `secret_bytes()` nor its snapshot; the rendered buffer contains neither; the `TestBackend` digest is unchanged when only the secret changes |
+| 19 | `survives_tiny_rects_0x0_to_3x3` | (added) | For every `w,h ∈ 0..=3`: `draw` does not panic in a debug build, writes no cell outside the rect, registers no region outside it, and leaves no stale geometry (a click after a 0×0 frame resolves to `None`, never to last frame's rect) |
+| 20 | `bindings_match_handled_keys` | (added) | Every chord in `bindings(state)` is consumed by `update` in that state, and every chord `update` consumes in that state appears in `bindings(state)` — the table and the handler cannot drift |
+
+Suite-level tests (emitted once, not per component), in `conformance.rs`:
+
+* `conformance::registry::every_public_component_is_registered`
+* `conformance::registry::declared_parts_are_the_parts_actually_styled` — the parts a component resolves at draw time equal `Self::PARTS`
+* `conformance::conflicting_visible_bindings_are_reported` — two visible bindings on the same chord in the same phase produce a `Diagnostic::BindingConflict` (this is what makes the historically dead grid `Ctrl+D` detectable)
+* `conformance::focus_transition_settles` — the §3.3 step 7 re-run loop converges within 4 passes for every registered component
+* `conformance::draw_registers_nothing_when_it_cannot_draw` — the 0×0 case across the whole registry
+
+---
+
+### 16.3 Rendering and snapshot tests (goal §25.3)
+
+**Mechanism.** `TestBackend` + an FNV‑1a digest of `(symbol, fg, bg, modifier)` per cell — the existing `showcase_visual_baseline` mechanism (**[F]** APP §6, `app_tests.rs:623-668`) generalised. Digests, not golden images: a digest fails fast and the reviewer regenerates the *image* with `tools/capture.sh` to look at the difference.
+
+```rust
+// crates/tui-testing/src/digest.rs
+pub struct Scene { /* theme, color level, size, name */ }
+impl Scene {
+    pub fn new(name: &'static str, theme: Theme, color: ColorLevel, w: u16, h: u16) -> Self;
+    pub fn draw(&mut self, f: impl FnOnce(&mut Ui<'_>, Rect));
+    pub fn digest(&self) -> u64;
+    pub fn text(&self) -> String;
+    pub fn assert_against(&self, baseline: &Baseline);   // writes on BLESS=1
+}
+pub struct Baseline { path: &'static str }   // one `name w h theme color hash` line, sorted
+```
+
+**Baseline files** (checked in, reviewed like source):
+
+| File | Owner | Content |
+|---|---|---|
+| `crates/tui/tests/baselines/components.txt` | library | one line per component × state × theme × colour × size |
+| `apps/showcase/tests/baselines/showcase.txt` | showcase | the migrated `showcase_visual_baseline`, now **including** the sidebar (the exclusion existed only because the shell sidebar was hand-drawn; it becomes a `NavList` and is covered) |
+| `apps/tablepro/tests/baselines/tablepro.txt` | tablepro | **new** — closes **[F]** APP §9 risk 5 (TablePro had no cell-level baseline) |
+| `apps/jackin-preview/tests/baselines/jackin.txt` | jackin | **new**, at `--motion paused --frame N` for determinism |
+
+**Regeneration and review policy.** `BLESS=1 cargo test --workspace --test render --test visual` rewrites baselines. The rule from goal §6.10 is enforced mechanically: `xtask bless-guard` fails a commit that changes a baseline file without a matching entry in `docs/visual-changes.md` referencing a §20.10 item and a capture path under `shots/`. No baseline is regenerated because a test failed; the classification comes first.
+
+**The matrix** — `crates/tui/tests/render.rs`:
+
+* Test `render::components::<component>::<state>` for every registered `Conformance` case × states `{default, focused, focus_visible, hovered, focus_plus_hover, pressed, selected, disabled, read_only, busy, loading, error, warning, editing, empty, overflow}` where meaningful (the driver derives which are meaningful from `Caps`).
+* Themes: `Theme::junie()` and `Theme::paper()` — test names get a `_paper` suffix.
+* Colour levels: `truecolor`, `ansi256`, `ansi16`, `mono` — suffix `_256` / `_16` / `_mono`.
+* Sizes: `80x24`, `100x30`, `120x40`, `160x50`, plus `40x10` for the narrow/overflow states.
+* Overrides: `render::overrides::global_family_override_changes_every_button`, `render::overrides::scoped_overlay_changes_only_the_subtree`, `render::overrides::instance_patch_changes_only_one_instance`, `render::overrides::part_slot_replaces_the_part_and_keeps_hit_regions`.
+* Composition: `render::overlay::modal_over_page`, `render::overlay::nested_picker_over_dialog`, `render::overlay::popover_anchored_below_then_flipped`, `render::overlay::backdrop_excludes_the_footer`, `render::overlay::layer_composites_bottom_to_top_regardless_of_call_order`.
+
+**Showcase digest contract** (from **[F]** APP §6): `apps/showcase/tests/visual.rs::showcase_visual_baseline` keeps its exact shape — for each page in `NAV_ENTRIES` × `{120×40, 80×24}`, focus the first control, hash every cell, write `"{w}x{h} {label} {hash:016x}"`, regenerate under an env var. Two changes, both recorded in §20.10: the sidebar rect is no longer excluded, and the matrix gains `× {junie, paper} × {truecolor, mono}` (four times the lines). `UPDATE_BASELINE=1` is preserved as an alias of `BLESS=1` so the documented workflow (`README.md:325-328`) still works.
+
+---
+
+### 16.4 Application integration tests (goal §25.4)
+
+**All current tests are retained**: 26 showcase, 21 tablepro, 22 jackin (17 + 5 chrome) plus the in-module `rain`/`arbiter`/`clock`/`scenario` unit tests — the exact inventories in **[F]** APP §5.1–§5.3. They move from `#[cfg(test)] mod app_tests` inside each binary to `apps/<app>/tests/app_tests.rs`, which forces each app to expose a small, deliberate test surface instead of reaching into private fields (goal §21).
+
+**The `Harness` contract.** Every assertion shape in the three existing suites survives because `Harness` provides exactly these operations. This table is the migration contract: an operation missing here means an existing test cannot be expressed.
+
+```rust
+// crates/tui-testing/src/harness.rs
+pub struct Harness<A: App> { /* Runtime<A> + Terminal<TestBackend> */ }
+
+impl<A: App> Harness<A> {
+    // construction
+    pub fn new(app: A, theme: Theme, w: u16, h: u16) -> Self;
+    pub fn with_color(self, level: ColorLevel) -> Self;
+
+    // input → Response, then an automatic synchronous draw (replaces `handle` + `draw`)
+    pub fn handle(&mut self, input: Input) -> Response<()>;
+    pub fn key(&mut self, code: KeyCode) -> Response<()>;
+    pub fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) -> Response<()>;
+    pub fn ctrl(&mut self, c: char) -> Response<()>;
+    pub fn alt(&mut self, c: char) -> Response<()>;
+    pub fn type_str(&mut self, s: &str) -> Response<()>;
+    pub fn paste(&mut self, s: &str) -> Response<()>;
+    pub fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Response<()>;
+    pub fn click(&mut self, x: u16, y: u16) -> Response<()>;
+    pub fn click_id(&mut self, id: Id) -> Response<()>;                 // clicks the centre of area_of(id)
+    pub fn click_part(&mut self, id: Id, p: PartRef) -> Response<()>;
+    pub fn double_click(&mut self, x: u16, y: u16) -> Response<()>;
+    pub fn secondary(&mut self, x: u16, y: u16) -> Response<()>;
+    pub fn drag(&mut self, from: (u16,u16), to: (u16,u16)) -> Response<()>;
+    pub fn wheel(&mut self, axis: Axis, delta: i16, x: u16, y: u16) -> Response<()>;
+    pub fn resize(&mut self, w: u16, h: u16) -> Response<()>;
+
+    // explicit draw, for tests that assert on redraw suppression
+    pub fn draw(&mut self);
+    pub fn ticks(&mut self, n: usize);                                   // virtual clock, no wall clock
+    pub fn tick(&mut self) -> Response<()>;
+
+    // addressing (replaces hits.area_of / ring.reachable / focus.current)
+    pub fn area_of(&self, id: Id) -> Option<Rect>;
+    pub fn area_of_part(&self, id: Id, p: PartRef) -> Option<Rect>;
+    pub fn ring(&self) -> &FocusRing;                                    // .reachable(), .entries()
+    pub fn focus(&self) -> Option<Id>;
+    pub fn focus_visible(&self) -> bool;
+    pub fn hover(&self) -> Option<Id>;
+    pub fn state_of(&self, id: Id) -> StateFlags;
+    pub fn top_layer(&self) -> LayerId;
+    pub fn is_open(&self, id: Id) -> bool;
+    pub fn tab_to(&mut self, id: Id) -> bool;                            // jackin's helper, promoted
+    pub fn diagnostics(&self) -> &[Diagnostic];
+
+    // reading the frame
+    pub fn text(&self) -> String;
+    pub fn row(&self, y: u16) -> String;
+    pub fn find(&self, needle: &str) -> Option<(u16, u16)>;              // grapheme-accurate
+    pub fn find_row(&self, needle: &str) -> Option<u16>;
+    pub fn count(&self, needle: &str) -> usize;
+    pub fn cell(&self, x: u16, y: u16) -> &Cell;
+    pub fn cursor(&self) -> Option<Position>;
+    pub fn snapshot(&self) -> Scene;                                     // digest / assert_against
+    pub fn actions(&mut self) -> Vec<AppActionRecord>;                   // drained semantic actions
+}
+```
+
+Mapping of the seven "must keep working" facts from **[F]** APP §6:
+
+1. `handle(Input) -> Response<()>` with `changed()` meaning "redraw needed" — `Response::changed()` replaces `Outcome::Changed`; the ~60 assertions of the form `assert_eq!(h.key(…), Outcome::Changed)` become `assert!(h.key(…).changed())`. `update` runs inside `handle`, so the answer stays truthful (this is the §3.2 argument against `show`, discharged here).
+2. Synchronous deterministic draw after every input — `Harness::handle` draws before returning.
+3. Stable test-visible addressing — app `const Id`s stay `pub` within the app crate; `FORM.sub("save")` becomes `FORM.part(Part::custom("save"))` or `area_of_part(FORM, PartRef::of(Part::custom("save")))`; `WidgetId::of("editor.cfg").sub("form").sub("save")` becomes `screens::editor::CFG_FORM.part(SAVE)`.
+4. Resolved geometry read-back — `area_of` / `area_of_part`.
+5. Reachable focus ring — `ring().reachable()`.
+6. Virtual-clock tick injection — `ticks(n)`; jackin's `Clock` keeps its no-wall-clock contract.
+7. Exact minimum-size copy strings — the shared `TooSmall` component keeps `"Terminal too small"` and `"Need {w}×{h}, have {w}×{h}"` verbatim; `showcase::below_minimum_size_shows_reduced_state` and its two siblings are unchanged.
+
+**Theme coupling in tests** (`focus_bar_x` compares against `Theme::junie().focus`, **[F]** APP §6) becomes `h.resolved(id, Part::GUTTER).style.fg`, so the assertion survives a theme change and also runs under `Theme::paper()`.
+
+**New application coverage** required by goal §25.4:
+
+`showcase::complete_navigation_visits_every_page_and_every_state`, `showcase::custom_theme_injection_repaints_every_page` (`--theme paper`), `showcase::local_override_page_shows_three_distinct_buttons`, `showcase::author_component_page_participates_in_focus_and_hover`, `tablepro::mouse_flow_full_journey` and `tablepro::keyboard_flow_full_journey` (retained, renamed from `acceptance_flow_*`), `tablepro::grid_adapter_keeps_every_pending_change_capability`, `jackin::complete_flow_keyboard_first` (retained), `jackin::nested_overlay_picker_inside_dialog`, `*::resize_across_every_supported_size`, `*::focus_is_restored_after_every_overlay_closes`, `*::no_diagnostics_are_emitted_during_the_journey` (asserts zero `DuplicateId`, `CursorRejected`, `UndeliveredIntent`, `BindingConflict` in a full run — a strong, cheap regression net).
+
+---
+
+### 16.5 Architecture checks (goal §25.5)
+
+`crates/tui/tests/architecture.rs` plus an `xtask` binary for the checks that need to read the workspace. Preference order per goal §25.5: **Cargo/visibility first, `cargo tree` second, text allow-lists last.**
+
+| Test name | Mechanism | Asserts |
+|---|---|---|
+| `architecture::library_has_no_application_dependency` | `cargo metadata` from `xtask`: the dependency closure of `junie-tui` | `showcase`, `tablepro`, `jackin-preview` are absent; the only deps are `ratatui`, `unicode-width`, `unicode-segmentation`, `bitflags`, `smallvec` |
+| `architecture::applications_depend_only_on_the_library_facade` | `cargo tree -p <app> -e normal --depth 1` + a source scan for `junie_tui::` paths | Every path resolves under `junie_tui::` or `junie_tui::author::`; there is no `#[path]`, no `include!`, and no `pub(crate)` reachable from an app (guaranteed structurally — a separate crate cannot name a `pub(crate)` item, so this test is a belt-and-braces report, not the enforcement) |
+| `architecture::examples_are_external_consumers` | `cargo build -p junie-tui --examples` in CI plus a check that no example uses `#[path]` | The 12 §17 examples compile against the public API only |
+| `architecture::all_examples_compile` | `cargo test --workspace --doc` + `--examples` gate | goal §25.5 "all examples compile" |
+| `architecture::public_items_are_documented` | `#![deny(missing_docs)]` in `crates/tui/src/lib.rs` + `RUSTDOCFLAGS="-D warnings" cargo doc` | Every public item has rustdoc |
+| `architecture::no_unsafe` | `#![forbid(unsafe_code)]` in the library; `crates/tui-testing` carries the single documented `unsafe impl GlobalAlloc` with a safety comment | goal §26 |
+| `architecture::no_domain_vocabulary_in_the_library` | grep allow-list over `crates/tui/src/**` for `(?i)\b(sql|schema|primary key|nullable|foreign|references|not null|tablepro|jackin|workspace|instance|daemon|capsule|construct|catalog)\b`, with an allow-list file `crates/tui/tests/allow/domain.txt` (currently empty) | DOM §7 acceptance conditions 1 and 2 |
+| `architecture::palette_literals_are_confined_to_theme_builtins` | grep for `Color::Rgb(` / `#[0-9a-f]{6}` over `crates/tui/src/**`, allow-listed to `theme/builtin/junie.rs`, `theme/builtin/paper.rs`, and `tests/fixtures/*.rs` | goal §25.5 |
+| `architecture::no_raw_background_parameter` | grep for `bg: Color` / `bg: ratatui::style::Color` in any `pub fn` signature under `crates/tui/src` | The 24 `bg: Color` sites (**[F]** API §3.6) are gone; `Role::Custom(Color)` inside a `StylePatch` is the one allowed raw colour and is allow-listed by name |
+| `architecture::no_owns_or_locate_in_applications` | grep for `\.owns\(`, `\.locate`, `scrollbar::id_for`, `\.child\(` over `apps/**/src` | Target 0; the allow-list file `apps/allow/dispatch.txt` must be empty and any entry requires a justification comment that the test prints |
+| `architecture::no_generic_component_copies_in_applications` | grep for `fn render(` + `Style::new()` + `Block::default()` + `buf.set_string` over `apps/**/src`, allow-listed to `apps/jackin-preview/src/rain.rs` | goal §25.5 "application directories do not contain generic component copies"; rain is the single documented exception (goal §22.3) |
+| `architecture::no_public_geometry_or_cache` | grep for `pub area`, `pub areas`, `pub anchor`, `pub .*_rects`, `pub scroll` under `crates/tui/src` | Invariant S1; kills the 21 `pub area` + 3 `pub areas` sites (**[F]** API §3.8) |
+| `architecture::no_fn_pointer_extension_points` | grep for `: fn\(`, `Option<fn(`, `type \w+ = fn\(` under `crates/tui/src` | The 6 sites in **[F]** API §3.12 are gone (DOM §7 condition 6) |
+| `architecture::draw_takes_shared_self` | `syn`-based scan in `xtask`: every `fn draw` in `crates/tui/src/components/**` has `&self` and, if it takes a state parameter, `&XState` | G2 — the structural form of "render cannot change semantics" |
+| `architecture::no_static_bound_in_component_surface` | `syn` scan for `'static` bounds on public component types and their builder parameters, allow-listed to `Binding<A: 'static>` and `Conformance: 'static` | goal §2.2 |
+| `architecture::conformance_covers_every_public_component` | `syn` scan of `pub struct`s in `components/**` vs the `conformance_suite!` list | G10 / §16.2 |
+| `architecture::every_named_test_exists` | parses this section's names out of `COMPONENT_ARCHITECTURE.md` and compares against `cargo test -- --list` | Documentation and the suite cannot drift |
+| `architecture::binary_names_are_preserved` | `cargo metadata` target names | `showcase`, `tablepro`, `jackin-preview` (goal §21) |
+| `architecture::msrv_and_edition_are_unchanged` | `cargo metadata` | edition 2024, `rust-version = "1.88"` on every package |
+
+---
+
+### 16.6 Performance (goal §25.6)
+
+**The measurement plan of `docs/audit/performance-audit.md` §7 is adopted verbatim** — harness, assertion policy, baseline file format, CI wiring, and every test name. Nothing in it is renamed. Restated obligations:
+
+* Harness in `crates/tui-testing/src/perf.rs` (`Counting` global allocator shim, `ALLOCS`/`BYTES`, `bench`, `Stats`, `report`); `#[global_allocator]` declared **only** in `crates/tui/tests/perf.rs` and `apps/*/tests/perf.rs`.
+* Allocation and byte counts are deterministic → **hard assertions**. Wall time is reported always, asserted only under `PERF_STRICT=1` against `baseline × 1.2`.
+* Baseline `crates/tui/tests/perf_baseline.txt`, one `name ns allocs bytes` line, regenerated only with `PERF_BLESS=1`, reviewed in the diff.
+* **The baseline is recorded on the pre-refactor tree**, on a `perf/baseline` commit, before Slice 3 begins (Appendix A, WP‑0). This is a hard sequencing constraint: without it "before and after" is not literal.
+* `--test-threads=1` is mandatory; the counters are process-wide.
+* Every screen benchmark also reports `hits=<registry len>` and `ring=<reachable len>`.
+
+**Before → after thresholds.** "Before" is the recorded pre-refactor baseline; "after" is the assertion that must hold at the end of Slice 8.
+
+| Test (perf §7) | Before | After (asserted) |
+|---|---|---|
+| `frame_showcase_lists_120x40` | ≈ 160 allocs/frame, 57 hits, 4 ring | **< 20 allocs/frame**; hits within ±10 %; ring ≥ 4 |
+| `frame_showcase_lists_80x24` | report | ≤ `frame_showcase_lists_120x40` |
+| `frame_showcase_dialog_open` | full background still registered | hits **< 25 %** of `frame_showcase_lists_120x40` (`inert_below`) |
+| `frame_tablepro_grid_500x12_120x40` | ≈ 1 110 allocs/frame, ≈ 300 hits | **< 100 allocs/frame**; hits ≤ 320 |
+| `frame_jackin_manager_100rows_120x40` | ≈ 350–400 allocs/frame | **< 60 allocs/frame** (rows rebuilt on world generation change only) |
+| `frame_jackin_capsule_4panes_120x40` | ≈ 480 000 allocs/frame | **< 200 allocs/frame** |
+| `key_showcase_down_lists` | includes `describe_key` `String` | **0 allocs/event** |
+| `key_tablepro_grid_cursor` | report | **0 allocs/event** |
+| `key_tablepro_grid_sort_local` | 4 allocs/comparison | **≤ 1 alloc/comparison** (`display_width`, no `to_lowercase` per compare) |
+| `key_jackin_manager_move` | ≈ 200 allocs/key | **0 allocs/key** |
+| `key_tree_toggle_10k` | full reflatten | allocs **< 10 × viewport** per toggle |
+| `mouse_move_over_1000_regions` | 0 allocs | **0 allocs**, ns within 1.2× |
+| `mouse_move_showcase_frame` | report | **0 allocs** |
+| `mouse_click_grid_cell` | ≈ 250 hash computations | **0 allocs**, ns **< 0.2×** before (no `locate`) |
+| `wheel_showcase_lists`, `wheel_tablepro_grid` | 0 allocs | **0 allocs** |
+| `focus_tab_traversal_ring_200` | 0 allocs | **0 allocs** |
+| `style_resolve_10k_parts` | `Theme::row`+`gutter`, 0 allocs | **exactly 0 allocs**, ns ≤ 2× before (R2) |
+| `style_resolve_10k_parts_with_two_overlays` | n/a | **0 allocs**, ns ≤ 2× the empty-stack case (R3) |
+| `style_backdrop_full_screen_120x40` | 4 680 equality chains, 0 allocs | **0 allocs**, ns ≤ 1× (walk restricted to the covered rect) |
+| `style_downgrade_theme_all_levels` | one-shot | one-shot only; asserted **not** to appear in any `frame_*` profile |
+| `list_100k_rows_construct` | report | report |
+| `list_100k_rows_render` | — | **< 500 allocs/frame**, ns ≤ 1.5× `list_1k_rows_render` (R1) |
+| `list_1k_rows_render` | control | control |
+| `tree_100k_nodes_flatten` | ≈ 300 000 allocs per toggle | allocs **< 10 × viewport** |
+| `tree_100k_nodes_render` | — | allocs/frame independent of node count |
+| `grid_500x12_render` | — | **< 100 allocs/frame** |
+| `grid_500x12_load` | ≈ 36 000 allocs | **< 8 000 allocs** (one owned conversion) |
+| `grid_100k_local_sort` | ≈ 7 M allocs | report; documents why `local_sort` stays opt-in |
+| `viewport_100k_lines_push` | ≈ 6 M allocs/line | allocs **independent of `lines.len()`** |
+| `viewport_100k_lines_render` | — | allocs/frame independent of buffer size |
+| `capsule_pane_clone_4x2000` | dominant cost | **the test is deleted**; its deletion is asserted by `architecture::every_named_test_exists` reading the §20.9 note |
+| `width_10k_grapheme_line` | 0 allocs | **0 allocs** |
+| `truncate_10k_grapheme_line_to_80` | exactly 1 | 1 (non-render callers only) |
+| `fit_10k_grapheme_line_to_80` | exactly 3 | the `RowUi` equivalent records **0** (R5) |
+| `truncate_middle_10k_to_40` | exactly 4 | ≤ 1 |
+| `wrap_10k_graphemes_to_80` | ≥ 1/line | report |
+| `textbuffer_pos_of_10k_line`, `textbuffer_offset_at_10k_line` | 0 allocs | **0 allocs**, ns ≤ 1× |
+| `viewport_layout_10k_grapheme_line` | ≈ 10 000 allocs | **0 allocs** |
+| `render_twice_allocates_the_same` | — | equal counts |
+| `no_full_collection_clone_per_frame` | — | **bytes/frame < 64 KiB** for a 100 k list frame and a 100 k viewport frame |
+| `event_dispatch_is_not_o_n` | — | **0 allocs**, ns within **3×** of the 100-row case |
+| `hit_registry_size_is_bounded` | recorded | within baseline ± 10 % |
+| `debug_and_release_alloc_counts_match` | — | equal (R4) |
+
+**Three additions to perf §7**, needed because §7 has no coverage for two obligations §20.9 makes binding. They are additions, not renames, and are marked as such in `perf_baseline.txt`:
+
+| Added test | Location | Threshold |
+|---|---|---|
+| `frame_tablepro_query_editor_2k_lines` | `apps/tablepro/tests/perf.rs::frames` | before ≈ 7 collections + O(graphemes × spans) per frame; after **< 40 allocs/frame** and ns scaling with *viewport*, not document length (§20.9 amendment 9) |
+| `list_100k_select_all` | `crates/tui/tests/perf.rs::large` | `ToggledAll` must **not** materialise 100 000 `ItemKey`s: **< 100 allocs** (R7) |
+| `intents_drain_scales_with_intents_not_components` | `crates/tui/tests/perf.rs::invariants` | a frame with 500 registered components and 2 intents costs the same as one with 20 components and 2 intents, ±10 % (R6) |
+
+**CI wiring** (perf §7.3, adopted verbatim): one always-on job `cargo test --workspace --test perf --release` (allocation counts only) and one pinned-runner job `PERF_STRICT=1 cargo test --workspace --test perf --release -- --test-threads=1`. `PERF` lines are collected into a build artefact for the final report (goal §30 item 13).
+
+---
+
+## 17. Representative usage examples
+
+Twelve examples, one file each under `crates/tui/examples/`, built by `cargo build -p junie-tui --examples` and gated by `architecture::all_examples_compile`. They use only the public facade, so they are literal proof of the "external consumer" claim. Examples 1–10 are also condensed into rustdoc doctests on the corresponding types (`cargo test --workspace --doc`).
+
+### 17.0 API additions
+
+Everything §17 needs that §1–§15 did not spell out. These are additions to the accepted architecture; each is consistent with an existing rule and is listed here so no example invents a name.
+
+```rust
+// ---- A1. Application entry point (§3.3 named `Runtime<A>` and `app.update`/`app.draw`) ----
+pub trait App {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()>;
+    fn draw(&self, ui: &mut Ui<'_>);
+    fn should_quit(&self) -> bool { false }
+    fn keymap(&self) -> &KeyMap { KeyMap::empty() }
+    fn min_size(&self) -> Size { Size { min: (72, 20), preferred: (120, 40) } }
+}
+pub struct Runtime<A: App> { /* … */ }
+impl<A: App> Runtime<A> {
+    pub fn new(app: A, theme: Theme) -> Self;
+    pub fn handle(&mut self, input: Input) -> Response<()>;
+    pub fn draw(&mut self, frame: &mut Frame<'_>);
+    pub fn app(&self) -> &A;  pub fn app_mut(&mut self) -> &mut A;
+    pub fn area_of(&self, id: Id) -> Option<Rect>;
+    pub fn area_of_part(&self, id: Id, p: PartRef) -> Option<Rect>;
+    pub fn ring(&self) -> &FocusRing;
+    pub fn focus(&self) -> Option<Id>;
+    pub fn diagnostics(&self) -> &[Diagnostic];
+    pub fn set_theme(&mut self, t: Theme);
+}
+/// Owns the terminal session (raw mode, alt screen, mouse, bracketed paste, panic hook).
+pub fn run<A: App>(app: A, theme: Theme) -> std::io::Result<()>;
+
+// ---- A2. Cx / Ui members used below (§4 S3, §8.2, §8.5, §9.1 already name most) ----
+impl Cx<'_> {
+    pub fn intents(&mut self, id: Id) -> IntentIter<'_>;   // drains this owner's bucket; O(1) probe
+    pub fn state(&self, id: Id) -> StateFlags;             // runtime-resolved focus/hover/press
+    pub fn area(&self, id: Id) -> Option<Rect>;            // LAST frame's geometry, None on frame 1
+    pub fn layout(&self, id: Id) -> Option<LayoutFacts>;
+    pub fn theme(&self) -> &Theme;
+    pub fn quit(&mut self);
+}
+impl Ui<'_> {
+    pub fn state(&self, id: Id) -> StateFlags;
+    pub fn theme(&self) -> &Theme;
+    pub fn design(&self) -> &DesignTokens;
+    pub fn style(&self, f: Family, v: Variant, p: Part, s: StateFlags) -> Resolved;
+    pub fn with_area<R>(&mut self, area: Rect, f: impl FnOnce(&mut Ui<'_>) -> R) -> R;
+    pub fn with_overlay<R>(&mut self, ov: &Overlay, f: impl FnOnce(&mut Ui<'_>) -> R) -> R;
+    pub fn report_layout(&mut self, id: Id, l: LayoutFacts);
+    pub fn dim_layer(&mut self, area: Rect, steps: u8);
+}
+pub struct LayoutFacts { pub viewport_len: usize, pub content_len: usize, pub rows: u16, pub cols: u16 }
+
+// ---- A3. Controlled-value phase signature (§4 rule 4, made explicit) ----
+// Components with a controlled value take it as a third `update` parameter and a
+// borrowed field on the props for `draw`:
+//   fn update(&self, cx: &mut Cx<'_>, st: &mut TextInputState, value: &mut String) -> Response<TextAction>
+//   fn draw  (&self, ui: &mut Ui<'_>, area: Rect, st: &TextInputState) -> Rect   // value borrowed in props
+
+// ---- A4. Action identity for dialogs, menus and cell actions (referenced by §6.1, §9.1, §12.3) ----
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct ActionKey(u16);
+impl ActionKey {
+    pub const CONFIRM: ActionKey; pub const CANCEL: ActionKey; pub const CLOSE: ActionKey;
+    pub const SAVE: ActionKey;    pub const DISCARD: ActionKey; pub const RETRY: ActionKey;
+    pub const fn custom(name: &'static str) -> ActionKey;   // FNV into the high range
+}
+pub struct Action<'a> { /* key, label, variant, chord, enabled, danger */ }
+impl<'a> Action<'a> {
+    pub const fn new(key: ActionKey, label: &'a str) -> Self;
+    pub const fn danger(key: ActionKey, label: &'a str) -> Self;
+    pub const fn quiet(key: ActionKey, label: &'a str) -> Self;
+    pub const fn chord(self, c: Chord) -> Self;
+    pub const fn enabled(self, yes: bool) -> Self;          // the §9.2 arming predicate, evaluated in update
+}
+
+// ---- A5. Theme builder and recipe editor (§11.2 declared the entry points only) ----
+pub struct ThemeBuilder { /* … */ }
+impl ThemeBuilder {
+    pub fn accent(self, c: Color) -> Self;      pub fn danger(self, c: Color) -> Self;
+    pub fn warning(self, c: Color) -> Self;     pub fn success(self, c: Color) -> Self;
+    pub fn info(self, c: Color) -> Self;
+    pub fn surfaces(self, s: [Color; SURFACE_LEVELS]) -> Self;
+    pub fn fg(self, f: [Color; FG_STEPS]) -> Self;
+    pub fn borders(self, subtle: Color, strong: Color) -> Self;
+    pub fn borders_set(self, b: BorderSet) -> Self;
+    pub fn glyph(self, r: GlyphRole, s: &'static str) -> Self;
+    pub fn space(self, s: SpaceTokens) -> Self; pub fn size(self, s: SizeTokens) -> Self;
+    pub fn density(self, d: Density) -> Self;
+    pub fn motion(self, m: MotionTokens) -> Self;
+    /// Fills every token the caller did not set by deriving from the ones they did,
+    /// preserving DESIGN.md's contrast relationships. Deterministic and tested.
+    pub fn build(self) -> Theme;
+}
+pub struct RecipeEdit { /* … */ }
+impl RecipeEdit {
+    pub fn default_variant(&mut self, v: Variant) -> &mut Self;
+    pub fn part(&mut self, p: Part) -> &mut PartEdit;
+}
+pub struct PartEdit { /* … */ }
+impl PartEdit {
+    pub fn base(&mut self, p: StylePatch) -> &mut Self;
+    pub fn when(&mut self, s: StateFlags, p: StylePatch) -> &mut Self;   // stored pre-sorted (§20.9-1)
+    pub fn glyph(&mut self, g: GlyphRole) -> &mut Self;
+    pub fn size(&mut self, n: u16) -> &mut Self;
+}
+impl Overlay {
+    /// Scope override, const-constructible, borrowed, never mutates the theme.
+    pub const fn new(rules: &'static [(Family, Variant, Part, StateFlags, StylePatch)]) -> Overlay;
+    pub const EMPTY: Overlay;
+}
+
+// ---- A6. Layer construction conveniences (§9.1 gave the struct) ----
+impl LayerSpec {
+    pub const fn modal(owner: Id) -> LayerSpec;          // Modal, Screen(Center), esc+outside, dim, inert
+    pub const fn popover(owner: Id, anchor: Anchor) -> LayerSpec;  // Popover, pointer barrier only
+    pub const fn tooltip(owner: Id, at: Position) -> LayerSpec;
+}
+
+// ---- A7. Component constructors and builders used below (§13 fixes the conventions) ----
+impl<'a> Button<'a> {
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::LABEL, Part::ICON];
+    pub fn new(id: Id, label: &'a str) -> Self;
+    pub fn variant(self, v: Variant) -> Self;      pub fn disabled(self, yes: bool) -> Self;
+    pub fn icon(self, g: GlyphRole) -> Self;       pub fn autofocus(self) -> Self;
+    pub fn patch(self, p: &'a StylePatch) -> Self;
+    pub fn patch_part(self, ps: &'a [(Part, StylePatch)]) -> Self;
+    pub fn slot(self, p: Part, f: &'a dyn Fn(&mut Ui<'_>, Rect)) -> Self;
+    pub fn update(&self, cx: &mut Cx<'_>) -> Response<Activated>;
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect;
+    pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size;
+}
+impl<'a> TextInput<'a> {
+    pub const PARTS: &'static [Part] = &[Part::FIELD, Part::TEXT, Part::PLACEHOLDER, Part::MARKER];
+    pub fn new(id: Id) -> Self;
+    pub fn value(self, v: &'a str) -> Self;                 // for draw
+    pub fn placeholder(self, s: &'a str) -> Self;
+    pub fn validate(self, v: &'a dyn Validate) -> Self;
+    pub fn blur(self, p: BlurPolicy) -> Self;
+    pub fn secret(self, policy: SecretPolicy) -> Self;
+    pub fn read_only(self, yes: bool) -> Self;   pub fn disabled(self, yes: bool) -> Self;
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut TextInputState, value: &mut String)
+        -> Response<TextAction>;
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TextInputState) -> Rect;
+}
+impl<'a, C> Field<'a, C> {
+    pub fn new(id: Id, label: &'a str, control: C) -> Self;
+    pub fn required(self, yes: bool) -> Self;   pub fn help(self, s: &'a str) -> Self;
+    pub fn error(self, s: Option<&'a str>) -> Self;
+    // update/draw forward to the control and own the chrome
+}
+impl<'a, T, K, R> List<'a, T, K, R>
+where K: Fn(&T) -> ItemKey, R: Fn(&T, &mut RowUi<'_>) {
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER,
+                                         Part::LABEL, Part::META, Part::TRACK, Part::THUMB, Part::EMPTY];
+    pub fn new(id: Id, items: &'a [T]) -> List<'a, T, (), ()>;
+    pub fn key(self, k: K) -> List<'a, T, K, R>;
+    pub fn row(self, r: R) -> List<'a, T, K, R>;
+    pub fn select_mode(self, m: SelectMode) -> Self;
+    pub fn empty(self, e: EmptyState<'a>) -> Self;
+    pub fn disabled_item(self, f: &'a dyn Fn(&T) -> bool) -> Self;
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut ListState) -> Response<ListAction>;
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &ListState) -> Rect;
+}
+impl<'a, T, K, R> Tabs<'a, T, K, R>
+where K: Fn(&T) -> ItemKey, R: Fn(&T, &mut RowUi<'_>) {
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::TAB, Part::CLOSE, Part::NEW,
+                                         Part::RULE, Part::OVERFLOW, Part::BADGE];
+    pub fn new(id: Id, items: &'a [T]) -> Tabs<'a, T, (), ()>;
+    pub fn key(self, k: K) -> Self;  pub fn row(self, r: R) -> Self;   // Part::TAB pre-styled
+    pub fn allow_new(self, yes: bool) -> Self;  pub fn closable(self, yes: bool) -> Self;
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut TabsState) -> Response<TabsAction>;
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TabsState) -> Rect;
+}
+impl<'a> Dialog<'a> {
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::BORDER, Part::TITLE,
+                                         Part::DETAIL, Part::BODY, Part::ACTIONS, Part::BACKDROP];
+    pub fn new(id: Id) -> Self;
+    pub fn title(self, s: &'a str) -> Self;
+    pub fn description(self, s: &'a str) -> Self;
+    pub fn actions(self, a: &'a [Action<'a>]) -> Self;
+    pub fn cancel(self, k: ActionKey) -> Self;
+    pub fn width(self, w: u16) -> Self;
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction>;
+    pub fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, st: &DialogState,
+                   body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R>;
+    // convenience constructors over the same path (§9.2)
+    pub fn confirm(id: Id, title: &'a str, question: &'a str) -> Self;
+    pub fn destructive(id: Id, title: &'a str, question: &'a str) -> Self;
+    pub fn prompt(id: Id, title: &'a str, label: &'a str) -> Self;
+    pub fn acknowledge(id: Id, title: &'a str, token: &'a str) -> Self;
+    pub fn facts(id: Id, title: &'a str, props: &'a [(&'a str, &'a str)]) -> Self;
+    pub fn choice(id: Id, title: &'a str, options: &'a [&'a str]) -> Self;
+    pub fn info(id: Id, title: &'a str) -> Self;
+}
+impl<'a, T, K, R> Picker<'a, T, K, R> { /* new(id) .items(&'a [T]) .key(K) .row(R)
+                                           .query(&'a str) .scopes(&'a [ScopeKey])
+                                           .status(EmptyState) .update(cx,&mut PickerState)
+                                           .draw(ui,area,&PickerState) */ }
+#[derive(Clone, Copy, PartialEq, Eq, Hash)] pub struct ScopeKey(u16);
+pub struct DialogState  { /* action cursor, prompt draft */ }
+pub struct PickerState  { /* query editor core, cursor, scroll, active scope */ }
+pub struct ListState    { /* cursor key, checked KeySet, scroll, gen stamp */ }
+pub struct TabsState    { /* active key, cursor key, strip window, gen stamp */ }
+pub struct TextInputState { /* draft, editor core, phase, error */ }
+```
+
+---
+
+**1 — Default button** (`examples/01_button.rs`)
+
+```rust
+use junie_tui::{id, run, App, Button, Cx, Id, Response, Ui, Theme, layout};
+
+const SAVE: Id = id!("save");
+
+#[derive(Default)]
+struct Demo { saves: u32 }
+
+impl App for Demo {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        Button::new(SAVE, "Save").update(cx).on_activated(|| self.saves += 1)
+    }
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let area = layout::inset(ui.full(), Insets { l: 2, t: 1, r: 2, b: 1 });
+        Button::new(SAVE, "Save").draw(ui, area);
+    }
+}
+
+fn main() -> std::io::Result<()> { run(Demo::default(), Theme::junie()) }
+```
+
+Nothing registers a hit region, computes hover, tracks press, or places focus: `Button::draw` calls `ui.register_control(SAVE, area, Focusability::Focusable)` and the runtime does the rest (G3).
+
+**2 — A complete custom theme** (`examples/02_custom_theme.rs`)
+
+```rust
+use junie_tui::theme::{BorderSet, ColorTokens, Density, FgStep, MeterTokens, SyntaxTokens, Theme};
+use ratatui::style::Color::Rgb as rgb;
+
+fn slate() -> Theme {
+    Theme::from_tokens(ColorTokens {
+        surfaces: [rgb(10,12,16), rgb(16,19,26), rgb(23,27,36), rgb(31,36,48), rgb(40,46,61)],
+        field: rgb(16,19,26), field_hover: rgb(23,27,36),
+        fg: [rgb(232,236,244), rgb(186,193,208), rgb(140,148,166), rgb(97,105,124), rgb(64,71,88)],
+        on_accent: rgb(8,10,14), on_danger: rgb(255,245,245), on_surface_inverse: rgb(10,12,16),
+        border_subtle: rgb(31,36,48), border_strong: rgb(72,80,98),
+        accent: rgb(122,162,247), accent_hover: rgb(147,180,250), accent_pressed: rgb(96,138,232),
+        accent_tint: rgb(22,32,54),
+        focus: rgb(122,162,247), focus_ring: rgb(96,138,232),
+        selection_bg: rgb(31,44,72), selection_fg: rgb(232,236,244),
+        highlight_bg: rgb(38,52,84), highlight_fg: rgb(232,236,244),
+        highlight_danger_bg: rgb(84,32,38), highlight_danger_fg: rgb(255,235,235),
+        backdrop_fg: rgb(64,71,88), backdrop_bg: rgb(8,10,14),
+        danger: rgb(240,110,120), danger_soft: rgb(96,42,50), danger_tint: rgb(48,22,28),
+        warning: rgb(224,168,80), warning_tint: rgb(56,42,20),
+        success: rgb(126,200,140), info: rgb(120,180,220),
+        disabled_fg: rgb(74,82,100), disabled_bg: rgb(16,19,26), read_only_fg: rgb(140,148,166),
+        syntax: SyntaxTokens::derive(rgb(122,162,247), rgb(126,200,140), rgb(224,168,80)),
+        meter:  MeterTokens::derive(rgb(126,200,140), rgb(224,168,80), rgb(240,110,120)),
+    })
+    .builder()
+    .borders_set(BorderSet::SQUARE)
+    .density(Density::Compact)
+    .build()
+}
+// `Theme::from_tokens` fills design tokens and recipe defaults; `downgrade` works for it
+// exactly as for `junie()`, because `map_colors` is an exhaustive destructure (§11.4).
+```
+
+**3 — Partial theme override** (`examples/03_partial_theme.rs`)
+
+```rust
+use junie_tui::Theme;
+use ratatui::style::Color::Rgb as rgb;
+
+// Change three roles; everything else is inherited from Junie, unchanged, byte-for-byte.
+let t = Theme::junie()
+    .builder()
+    .accent(rgb(0xC6, 0x7A, 0x2E))   // amber instead of green
+    .focus(rgb(0xC6, 0x7A, 0x2E))
+    .danger(rgb(0xB0, 0x25, 0x25))
+    .build();
+
+assert_eq!(t.color.surfaces, Theme::junie().color.surfaces);   // untouched roles inherit
+```
+
+**4 — Global family recipe override** (`examples/04_family_recipe.rs`)
+
+```rust
+use junie_tui::{Family, GlyphRole, Modifier, Part, Role, StateFlags, StylePatch, Theme, Variant};
+
+// Every Button in the application: square gutter marker, bold label when focused,
+// tinted container when hovered. No component source is edited.
+let t = Theme::junie().override_family(Family::BUTTON, |r| {
+    r.default_variant(Variant::SECONDARY);
+    r.part(Part::GUTTER).glyph(GlyphRole::FocusBar);
+    r.part(Part::LABEL)
+        .base(StylePatch::new().set_fg(Role::Fg(FgStep::Primary)))
+        .when(StateFlags::FOCUSED, StylePatch::new().add(Modifier::BOLD))
+        .when(StateFlags::DISABLED, StylePatch::new().set_fg(Role::DisabledFg).remove(Modifier::BOLD));
+    r.part(Part::CONTAINER)
+        .when(StateFlags::HOVERED, StylePatch::new().set_bg(Role::AccentTint))
+        .when(StateFlags::HOVERED | StateFlags::PRESSED,
+              StylePatch::new().set_bg(Role::AccentPressed).set_fg(Role::OnAccent));
+});
+// The two-flag rule wins over the one-flag rule by `when.count_ones()` (§11.3 step 3),
+// and the rules are stored pre-sorted so resolution never allocates (§20.9-1).
+```
+
+**5 — Per-instance part override** (`examples/05_instance_patch.rs`) — Scenario C
+
+```rust
+use junie_tui::{id, Button, Id, Part, Role, StylePatch, Ui, Variant, layout, Rect, Track};
+
+const OK: Id = id!("ok");
+const RESET: Id = id!("reset");
+
+// One patch, declared `const`, so it costs nothing per frame.
+const RESET_LABEL: [(Part, StylePatch); 2] = [
+    (Part::LABEL,  StylePatch::new().set_fg(Role::Warning)),
+    (Part::GUTTER, StylePatch::new().set_fg(Role::Warning)),
+];
+
+fn draw_actions(ui: &mut Ui<'_>, area: Rect) {
+    let cols = layout::action_row(area, &[10, 12], ui.design().space.gap, RowAlign::Right);
+    Button::new(OK, "OK").variant(Variant::PRIMARY).draw(ui, cols[0]);
+    Button::new(RESET, "Reset").patch_part(&RESET_LABEL).draw(ui, cols[1]);
+}
+// Both buttons use the same global theme and the same renderer; only one is patched,
+// and `conformance::button::local_override_does_not_mutate_the_theme` proves the
+// theme is byte-identical afterwards.
+```
+
+**6 — Text field with external validation** (`examples/06_validated_field.rs`)
+
+```rust
+use junie_tui::{id, BlurPolicy, Cx, Field, FieldError, Id, Response, TextAction,
+                TextInput, TextInputState, Ui, Rect};
+
+const EMAIL: Id = id!("email");
+
+struct Form {
+    email: String,                 // the controlled value — the caller owns it
+    email_st: TextInputState,      // durable interaction state only
+    server_error: Option<String>,  // async result from the application
+}
+
+fn valid_email(s: &str) -> Result<(), FieldError> {
+    if s.contains('@') { Ok(()) }
+    else { Err(FieldError { message: "Enter a valid address".into(), code: Some("email") }) }
+}
+
+impl Form {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let r = TextInput::new(EMAIL)
+            .validate(&valid_email)                    // closure, via the blanket `Validate` impl
+            .blur(BlurPolicy::CommitAndValidate)
+            .update(cx, &mut self.email_st, &mut self.email);
+
+        if let Some(TextAction::Committed) = r.action_ref() {
+            self.server_error = check_uniqueness(&self.email);          // application effect
+            self.email_st.set_error(self.server_error.as_deref()
+                .map(|m| FieldError { message: m.to_owned().into(), code: Some("dup") }));
+        }
+        r.erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        Field::new(EMAIL, "Email", TextInput::new(EMAIL).value(&self.email))
+            .required(true)
+            .help("We only use this for sign-in.")
+            .error(self.server_error.as_deref())
+            .draw(ui, area, &self.email_st);
+    }
+}
+// `draw` is `&self` and takes `&TextInputState`: committing or validating from draw is a
+// compile error, which is what removes the five render-time commits of §1.2(5).
+```
+
+**7 — List with borrowed domain rows and a custom renderer** (`examples/07_borrowed_rows.rs`) — Scenario D
+
+```rust
+use junie_tui::{id, Cx, GlyphRole, Id, ItemKey, List, ListAction, ListState, Response,
+                Role, RowUi, SelectMode, Ui, Rect, EmptyState};
+
+pub struct Order { pub id: u64, pub customer: String, pub total_cents: i64, pub flagged: bool }
+
+const ORDERS: Id = id!("orders");
+
+struct Screen { orders: Vec<Order>, list: ListState, chosen: Option<u64> }
+
+fn orders_view<'a>(rows: &'a [Order]) -> impl 'a + Fn(&Order, &mut RowUi<'_>) {
+    |o: &Order, r: &mut RowUi<'_>| {
+        if o.flagged { r.marker(GlyphRole::WarningMark); }
+        r.label(&o.customer);                        // borrowed &str, one grapheme walk, 0 allocs
+        let mut c = r.part(Part::META, 12);
+        c.money(o.total_cents).align(Align::Right)   // formats into the cell, no String
+         .tone(if o.total_cents < 0 { Role::Danger } else { Role::Fg(FgStep::Muted) });
+    }
+}
+
+impl Screen {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        List::new(ORDERS, &self.orders)
+            .key(|o: &Order| ItemKey::num(o.id))
+            .row(orders_view(&self.orders))
+            .select_mode(SelectMode::Single)
+            .update(cx, &mut self.list)
+            .on_action(|a| if let ListAction::Chose(k) = a {
+                self.chosen = self.orders.iter().find(|o| ItemKey::num(o.id) == k).map(|o| o.id);
+            })
+    }
+    fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        List::new(ORDERS, &self.orders)
+            .key(|o: &Order| ItemKey::num(o.id))
+            .row(orders_view(&self.orders))
+            .empty(EmptyState::Empty { title: "No orders", hint: Some("Adjust the filter") })
+            .draw(ui, area, &self.list);
+    }
+}
+// Nothing is converted to owned strings, only visible rows invoke the renderer, and the
+// action carries `ItemKey`, never a display index.
+```
+
+**8 — Dynamic tabs with stable keys** (`examples/08_dynamic_tabs.rs`) — Scenario E
+
+```rust
+use junie_tui::{id, Cx, Id, ItemKey, Response, RowUi, Tabs, TabsAction, TabsState, Ui, Rect, GlyphRole};
+
+pub struct Doc { pub key: u64, pub title: String, pub dirty: bool }
+const STRIP: Id = id!("strip");
+
+struct Workspace { docs: Vec<Doc>, strip: TabsState, next_key: u64 }
+
+fn tab_view(d: &Doc, r: &mut RowUi<'_>) {
+    r.label(&d.title);
+    if d.dirty { r.marker(GlyphRole::Dirty); }
+}
+
+impl Workspace {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        Tabs::new(STRIP, &self.docs)
+            .key(|d: &Doc| ItemKey::num(d.key))
+            .row(tab_view)
+            .allow_new(true)
+            .closable(true)
+            .update(cx, &mut self.strip)          // reconcile() runs first, every frame
+            .on_action(|a| match a {
+                TabsAction::Activated(k) => { /* the active key, not an index */ }
+                TabsAction::Close(k)     => self.docs.retain(|d| ItemKey::num(d.key) != k),
+                TabsAction::New          => {
+                    self.next_key += 1;
+                    self.docs.insert(0, Doc { key: self.next_key, title: "Untitled".into(), dirty: false });
+                }
+            })
+    }
+    fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        Tabs::new(STRIP, &self.docs).key(|d: &Doc| ItemKey::num(d.key)).row(tab_view)
+            .draw(ui, area, &self.strip);
+    }
+}
+// Insert at position 0: the active tab, the strip window and any pending close still name
+// the same `ItemKey`. Nothing is rebuilt; `TabsState` is never reconstructed.
+```
+
+**9 — Composed dialog with an arbitrary body** (`examples/09_composed_dialog.rs`)
+
+```rust
+use junie_tui::{id, Action, ActionKey, Cx, Dialog, DialogAction, DialogState, DismissReason,
+                Id, LayerSpec, Props, Response, Ui, layout};
+
+const CONFIRM: Id = id!("confirm.delete");
+const K_CANCEL: ActionKey = ActionKey::CANCEL;
+const K_DELETE: ActionKey = ActionKey::custom("delete");
+
+struct Screen { dlg: DialogState, token: String, target: String, deleted: bool }
+
+impl Screen {
+    fn open(&mut self, cx: &mut Cx<'_>) { cx.open_layer(CONFIRM, LayerSpec::modal(CONFIRM)); }
+
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let armed = self.token.trim() == self.target;      // arming is an `update` predicate
+        let actions = [
+            Action::new(K_CANCEL, "Cancel"),
+            Action::danger(K_DELETE, "Delete").enabled(armed),
+        ];
+        let r = Dialog::new(CONFIRM)
+            .title("Delete table")
+            .description("This cannot be undone.")
+            .actions(&actions)
+            .cancel(K_CANCEL)
+            .update(cx, &mut self.dlg);
+
+        match r.action_ref() {
+            Some(DialogAction::Action(k)) if *k == K_DELETE => { self.deleted = true; cx.close_layer(CONFIRM, Some(K_DELETE)); }
+            Some(DialogAction::Action(_)) | Some(DialogAction::Dismissed(DismissReason::Esc)) =>
+                cx.close_layer(CONFIRM, Some(K_CANCEL)),
+            _ => {}
+        }
+        r.erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        ui.layer(CONFIRM, |ui, area| {
+            Dialog::new(CONFIRM).title("Delete table").width(60)
+                .draw(ui, area, &self.dlg, |ui, body| {           // ARBITRARY body content
+                    let rows = layout::rows(body, &[Track::Auto, Track::Fixed(1), Track::Flex(1)]);
+                    Props::new(&[("Table", self.target.as_str()), ("Rows", "12,481")]).draw(ui, rows[0]);
+                    ui.rule(rows[1]);
+                    TextInput::new(CONFIRM.part(Part::FIELD)).value(&self.token)
+                        .placeholder("Type the table name to confirm").draw(ui, rows[2], &self.token_st);
+                });
+        });
+    }
+}
+// `DialogBody` does not exist. The body is a closure that borrows application data.
+// Focus trapping, backdrop, Esc, click-outside, focus restore and the hint layer come
+// from the layer, not from the dialog.
+```
+
+**10 — Nested picker inside a dialog** (`examples/10_nested_overlay.rs`) — Scenario F
+
+```rust
+use junie_tui::{id, Anchor, Cx, Id, ItemKey, LayerEvent, LayerSpec, Picker, PickerAction,
+                PickerState, Response, RowUi, Ui, Side, CrossAlign};
+
+const DLG: Id = id!("dlg");
+const OWNER_PICK: Id = id!("dlg.owner_picker");
+
+struct Screen { dlg: DialogState, pick: PickerState, people: Vec<Person>, owner: Option<u64> }
+
+impl Screen {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut r = Response::ignored();
+
+        // the picker opens ON TOP of the dialog; the dialog is now pointer- and key-inert
+        r |= Button::new(DLG.part(Part::custom("owner")), "Choose owner…").update(cx)
+                .on_activated(|| cx.open_layer(OWNER_PICK, LayerSpec {
+                    anchor: Anchor::Rect { rect: cx.area(DLG.part(Part::custom("owner"))).unwrap_or_default(),
+                                           side: Side::Below, align: CrossAlign::Start },
+                    ..LayerSpec::modal(OWNER_PICK)
+                }));
+
+        if cx.is_open(OWNER_PICK) {
+            r |= Picker::new(OWNER_PICK).items(&self.people)
+                    .key(|p: &Person| ItemKey::num(p.id))
+                    .row(|p: &Person, u: &mut RowUi<'_>| { u.label(&p.name); u.meta(&p.team); })
+                    .update(cx, &mut self.pick)
+                    .on_action(|a| if let PickerAction::Chosen(k) = a {
+                        self.owner = self.people.iter().find(|p| ItemKey::num(p.id) == k).map(|p| p.id);
+                        cx.close_layer(OWNER_PICK, Some(ActionKey::CONFIRM));
+                    });
+        }
+
+        if let Some(LayerEvent::Dismissed(_)) = cx.layer_event(OWNER_PICK) { /* nothing to undo */ }
+        r.erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        ui.layer(DLG, |ui, a| { /* dialog body, incl. the "Choose owner…" button */ });
+        ui.layer(OWNER_PICK, |ui, a| { Picker::new(OWNER_PICK)./*…*/draw(ui, a, &self.pick); });
+    }
+}
+// Esc closes only the picker; the dialog stays open and regains focus at the button.
+// No barrier is pushed by hand, no hit region is re-registered, and the picker draws no
+// hint row of its own — the top layer contributes to the shared HintBar (§11.4 of §13.1).
+```
+
+**11 — A small complete application on shared focus and dispatch** (`examples/11_small_app.rs`) — Scenario A
+
+```rust
+use junie_tui::{id, layout, run, Action, ActionKey, App, Button, Cx, Dialog, DialogAction,
+                DialogState, Field, Id, Insets, ItemKey, LayerSpec, List, ListAction, ListState,
+                Response, RowUi, Rect, TextInput, TextInputState, Theme, Track, Ui, Variant};
+
+const NAME:   Id = id!("name");
+const ADD:    Id = id!("add");
+const PEOPLE: Id = id!("people");
+const CONFIRM:Id = id!("confirm");
+const K_YES: ActionKey = ActionKey::CONFIRM;
+const K_NO:  ActionKey = ActionKey::CANCEL;
+
+#[derive(Default)]
+struct Roster {
+    name: String, name_st: TextInputState,
+    people: Vec<String>, list: ListState,
+    dlg: DialogState, pending_remove: Option<ItemKey>,
+    quit: bool,
+}
+
+impl App for Roster {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut r = Response::ignored();
+
+        r |= TextInput::new(NAME).update(cx, &mut self.name_st, &mut self.name).erase();
+
+        r |= Button::new(ADD, "Add").variant(Variant::PRIMARY)
+                .disabled(self.name.trim().is_empty())
+                .update(cx)
+                .on_activated(|| { self.people.push(std::mem::take(&mut self.name)); });
+
+        r |= List::new(PEOPLE, &self.people)
+                .key(|s: &String| ItemKey::text(s))
+                .row(|s: &String, u: &mut RowUi<'_>| u.label(s))
+                .update(cx, &mut self.list)
+                .on_action(|a| if let ListAction::Activated(k) = a {
+                    self.pending_remove = Some(k);
+                    cx.open_layer(CONFIRM, LayerSpec::modal(CONFIRM));
+                });
+
+        if cx.is_open(CONFIRM) {
+            let actions = [Action::new(K_NO, "Cancel"), Action::danger(K_YES, "Remove")];
+            r |= Dialog::destructive(CONFIRM, "Remove person", "Remove this person from the roster?")
+                    .actions(&actions).cancel(K_NO)
+                    .update(cx, &mut self.dlg)
+                    .on_action(|a| {
+                        if let DialogAction::Action(K_YES) = a {
+                            if let Some(k) = self.pending_remove.take() {
+                                self.people.retain(|s| ItemKey::text(s) != k);
+                            }
+                        }
+                        cx.close_layer(CONFIRM, None);
+                    });
+        }
+        r
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let body = layout::inset(ui.full(), Insets { l: 2, t: 1, r: 2, b: 1 });
+        let rows = layout::rows(&body, &[Track::Fixed(3), Track::Fixed(1), Track::Flex(1)]);
+        let top  = layout::columns(rows[0], &[Track::Flex(1), Track::Fixed(10)], ui.design().space.gap);
+
+        Field::new(NAME, "Name", TextInput::new(NAME).value(&self.name)).draw(ui, top[0], &self.name_st);
+        Button::new(ADD, "Add").variant(Variant::PRIMARY)
+            .disabled(self.name.trim().is_empty()).draw(ui, top[1]);
+        List::new(PEOPLE, &self.people)
+            .key(|s: &String| ItemKey::text(s))
+            .row(|s: &String, u: &mut RowUi<'_>| u.label(s))
+            .draw(ui, rows[2], &self.list);
+
+        ui.layer(CONFIRM, |ui, a| {
+            Dialog::destructive(CONFIRM, "Remove person", "Remove this person from the roster?")
+                .draw(ui, a, &self.dlg, |_, _| {});
+        });
+    }
+
+    fn should_quit(&self) -> bool { self.quit }
+}
+
+fn main() -> std::io::Result<()> { run(Roster::default(), Theme::junie()) }
+```
+
+The Scenario A checklist is satisfied by omission: there is no hit region, no mouse coordinate, no hover or pressed field, no derived child id, no Tab implementation, no modal barrier, no focus save/restore, no `set_cursor_position`, and no "which row was clicked" arithmetic.
+
+**12 — A downstream component using only `junie_tui::author`** (`examples/12_author_component.rs`) — Scenario G
+
+```rust
+use junie_tui::author::{Cx, Family, Focusability, GlyphRole, Id, Intent, ItemKey, Part, PartRef,
+                        Phase, Rect, Response, StateFlags, Ui, Variant, Chord, Binding, BindingState};
+
+/// A segmented control: N labelled segments, one selected, roving cursor.
+pub struct Segmented<'a> { id: Id, labels: &'a [&'a str], variant: Variant }
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct SegmentedState { pub cursor: usize, pub selected: usize }
+
+#[derive(Clone, Copy, Debug)] pub enum SegmentedAction { Moved, Selected(ItemKey) }
+
+const SEGMENT: Part = Part::custom("segment");
+const F_SEGMENTED: Family = Family::custom("segmented");
+
+const BINDINGS: &[Binding<SegmentedAction>] = &[
+    Binding { chord: Chord::key(KeyCode::Left),  action: SegmentedAction::Moved, label: "Prev", priority: 40, visible: true },
+    Binding { chord: Chord::key(KeyCode::Right), action: SegmentedAction::Moved, label: "Next", priority: 40, visible: true },
+    Binding { chord: Chord::key(KeyCode::Enter), action: SegmentedAction::Moved, label: "Select", priority: 80, visible: true },
+];
+
+impl<'a> Segmented<'a> {
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, SEGMENT, Part::LABEL];
+    pub fn new(id: Id, labels: &'a [&'a str]) -> Self { Self { id, labels, variant: Variant::DEFAULT } }
+    pub fn variant(mut self, v: Variant) -> Self { self.variant = v; self }
+
+    pub fn bindings(_s: BindingState) -> &'static [Binding<SegmentedAction>] { BINDINGS }
+
+    pub fn update(&self, cx: &mut Cx<'_>, st: &mut SegmentedState) -> Response<SegmentedAction> {
+        let mut r = Response::ignored().for_id(self.id);
+        let n = self.labels.len();
+        if n == 0 { return r; }
+        for it in cx.intents(self.id) {
+            match it {
+                Intent::Key(k) if k.is(KeyCode::Left)  => { st.cursor = (st.cursor + n - 1) % n; r = Response::action(SegmentedAction::Moved); }
+                Intent::Key(k) if k.is(KeyCode::Right) => { st.cursor = (st.cursor + 1) % n;     r = Response::action(SegmentedAction::Moved); }
+                Intent::Key(k) if k.is(KeyCode::Enter) || k.is(KeyCode::Char(' ')) => {
+                    st.selected = st.cursor;
+                    r = Response::action(SegmentedAction::Selected(ItemKey::index(st.selected)));
+                }
+                Intent::Pointer { phase: Phase::Click, part: PartRef { part, item: Some(k) }, .. }
+                    if part == SEGMENT => {
+                        if let ItemKey::Index(i) = k { st.cursor = i; st.selected = i; }
+                        r = Response::action(SegmentedAction::Selected(k));
+                    }
+                _ => {}
+            }
+        }
+        r.for_id(self.id)
+    }
+
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &SegmentedState) -> Rect {
+        if area.is_empty() { return area; }                       // registers nothing (R5)
+        ui.register_control(self.id, area, Focusability::Focusable);
+        let live = ui.state(self.id);
+        let w = area.width / self.labels.len().max(1) as u16;
+        for (i, label) in self.labels.iter().enumerate() {
+            let cell = Rect { x: area.x + w * i as u16, y: area.y, width: w, height: area.height };
+            let mut s = live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::HOVERED);
+            if i == st.selected { s |= StateFlags::SELECTED; }
+            if i == st.cursor && live.contains(StateFlags::FOCUSED) { s |= StateFlags::ACTIVE; }
+            let r = ui.style(F_SEGMENTED, self.variant, SEGMENT, s);
+            ui.fill(cell, r.style);
+            if s.contains(StateFlags::SELECTED) { ui.glyph(cell, GlyphRole::Chosen, r.style); }
+            ui.paint_str(cell, label, ui.style(F_SEGMENTED, self.variant, Part::LABEL, s).style);
+            ui.register_part(self.id, PartRef { part: SEGMENT, item: Some(ItemKey::index(i)) }, cell);
+        }
+        area
+    }
+}
+// Theme resolution, focus, hover, press, dispatch, hit testing, capture, cursor, layers,
+// digest testing and the conformance suite are all reachable from `author::` with no
+// private access. Register it once and the whole §16.2 matrix runs against it:
+//   impl Conformance for SegmentedCase { … }   conformance_suite!(…, SegmentedCase);
+```
+
+---
+
+## 18. Migration map
+
+Every current module, every foundation file, and every app-side reusable control from **[F]** APP §3, with its disposition. `crates/tui/src/` is abbreviated `«tui»`; `apps/<app>/src/` is abbreviated `«showcase»`, `«tablepro»`, `«jackin»`.
+
+### 18.1 Foundation modules
+
+| Current item | Disposition | Target type(s) | Target file | Notes — what is deleted, which invariant it now satisfies |
+|---|---|---|---|---|
+| `src/core/event.rs` | **decompose** | `Input`, `Key`, `Chord`, `Mouse`, `MouseKind`, `Axis` | `«tui»/event.rs` | `Outcome` **deleted** (replaced by `Response`, §6.1). `Mouse` gains `mods`; `Secondary`/`SecondaryUp`/`Wheel(Axis,i16)` added; right/middle drag no longer silently dropped. Satisfies §6.1, INT A2. |
+| — (new, split out of `event.rs`) | **compose** | `Response<A>`, `Flow`, `Invalidate`, `StateFlags` | `«tui»/response.rs` | The nine reply shapes of §1.2(2) collapse to one. `#[must_use]`. Satisfies G1, `DESIGN.md:507` boundary-wheel rule. |
+| — (new) | **compose** | `Intent`, `PartRef`, `Phase`, `FocusVia`, `IntentIter` | `«tui»/intent.rs` | Pre-resolved input. Removes `owns`/`locate` from the model (§3.3 step 3). |
+| — (new) | **compose** | `Binding`, `Bindings`, `KeyMap`, `Phase2`, `HintLayer`, `Hint` | `«tui»/keymap.rs` | Hard-coded product chords in 18 modules (**[F]** API §3.9) become `const` tables + an app override layer (§13.1). |
+| `src/core/focus.rs` | **refactor** | `FocusRing`, `FocusEntry`, `FocusState`, `ScopeId`, `ScopeMode`, `Focusability`, `FocusVis` | `«tui»/focus.rs` | Single `barrier: Option<usize>` **deleted** → scopes + traps. `Focus`/`FocusRing` no longer public `&mut` to components. Adds restore map, the (a)(b)(c)(d) reconcile rule, disabled-but-registered entries. Satisfies §8.1, Scenario F. |
+| `src/core/hit.rs` | **refactor** | `Registry`, `Region`, `Hit`, `Headroom`, `Axes` | `«tui»/hit.rs` | Barrier **deleted** → `layer: LayerId` per region. Regions carry `PartRef` (24 B, `Copy`), so `area_of`-by-render-order and all 12 `locate` helpers die. `hit_scroll` returns a region at zero headroom. Satisfies §8.3, §7.1. |
+| — (new, split out of `hit.rs`) | **compose** | `Capture` | `«tui»/capture.rs` | Deletes cached-rect reconstruction in `list`/`tree`/`viewport`/`splitter`. Satisfies §8.2. |
+| `src/core/id.rs` | **refactor** | `Id`, `ItemKey`, `Part`, `PartRef`, `DebugLabel`, `id!` | `«tui»/id.rs` | `WidgetId` **deleted**; `child(usize)` **deleted** as the default child mechanism (`Id::index` survives, debug-asserted). Separator + kind byte make `root("a").sub("b") != root("ab")` an identity. `Debug` prints a path. Satisfies §7.1, G5, Scenario E. |
+| `src/core/scroll.rs` | **retain + tighten** | `ScrollState` | `«tui»/scroll.rs` | Public fields **removed** (kills the 8 bypass sites in `grid`/`table`); adds `ensure_visible_on_next_layout` (generalises `Picker::cursor_dirty`); column-axis misuse replaced by the grid's own column window. Satisfies §8.3. |
+| `src/core/text.rs` | **decompose** | `TextEditorCore`, `EditAction`, `EditOutcome`, `CursorPos` | `«tui»/text/{buffer.rs, editor.rs}` | `TextBuffer`'s derived `Debug`/`Clone` over raw bytes **removed** (manual redacting `Debug`); `zeroize` added; word-char set unified with the viewport; `line_count`/`pos_of` memoised behind the edit counter. Satisfies §15, API §5. |
+| — (new, from `ui/text.rs`) | **move** | `width`, `wrap`, `fuzzy`, `thousands`, `truncate`, `truncate_middle` | `«tui»/text/{measure.rs, fuzzy.rs}` | `fit`/`fit_right` **removed from every render path** (R5); `fuzzy` returns grapheme indices into the *original* label, fixing the latent mis-highlight. Satisfies §20.9-7. |
+| `src/runtime.rs` | **refactor** | `Runtime<A>`, `App`, `TerminalSession`, `run`, `drain_pending_input`, `Diagnostic` | `«tui»/runtime.rs`, `«tui»/diagnostics.rs` | `Application::render(&mut self)` **deleted** — the sanction for render-time mutation at the top of the stack. Adds the two-phase frame (§3.3), the layer compositor, `request_repaint_after`, and `diagnostics()`. Satisfies G2. |
+| `src/theme.rs` | **decompose** | `Theme`, `ColorTokens`, `DesignTokens`, `Role`, `GlyphRole`, `GlyphSet`, `BorderSet`, `Recipe`, `Recipes`, `PartRecipe`, `StateRule`, `StylePatch`, `Slot`, `Overlay`, `Resolved`, `Family`, `Variant`, `Capability`, `ColorLevel` | `«tui»/theme/{mod,tokens,role,glyph,recipe,patch,resolve,downgrade}.rs`, `«tui»/theme/builtin/{junie,paper}.rs` | Flat 30-field `Copy` struct **deleted**; `lift`/`backdrop` colour-equality dispatch **deleted** (ladder index arithmetic, §10); the 30-field `for_level` macro **deleted** (`map_colors` exhaustive destructure); `Theme::change_glyph` (added from `grid.rs`) **deleted**. Junie token values preserved verbatim. Satisfies G6, §11. |
+| `src/ui/ctx.rs` | **decompose** | `Ui`, `Cx`, `Surface`, `StyleStack`, `LayoutFacts` | `«tui»/ui/{mod,cx,paint,surface,layer_buf}.rs` | `RenderCtx`, `Interaction`, `begin_modal`, `focus_hidden` (dead), public `hits`/`ring` **all deleted**. Adds clip rect, surface stack, style stack, written-cell bitset, `raw()` escape hatch. Satisfies R2–R4, §10. |
+| `src/ui/layout.rs` | **refactor + merge** | `layout::{rows, columns, responsive_columns, action_row, inset, split_v, split_h}`, `Track`, `Insets`, `RowAlign`, `SplitModel`, `Constraints`, `Size`, `Measure` | `«tui»/layout.rs`, `«tui»/measure.rs` | `Split`'s vertical/horizontal minima asymmetry **fixed** (first pane wins on both axes). Absorbs `button::row_layout*` and `showcase/pages/mod.rs`'s `rows`/`columns`/`caption`. Module doc's "the workbench" (domain leak) removed. |
+| `src/ui/popup.rs` | **remove → compose** | `LayerId`, `LayerKind`, `LayerSpec`, `Anchor`, `Side`, `CrossAlign`, `Dismiss`, `Backdrop`, `LayerEvent`, `DismissReason` | `«tui»/layer.rs` | Both `Placement` enums and both placement algorithms **deleted**; the shared `WidgetId::of("popup.surface")` **deleted**; `Rect::centered` in `dialog.rs` **deleted**. One resolver: flip, clamp, clip, min-size. Satisfies §9. |
+| `src/ui/text.rs` | **move** | see `text/measure.rs` above | `«tui»/text/` | Module removed; no `ui::text` namespace remains. |
+
+### 18.2 The 31 widget modules
+
+| Current module | Disposition | Target type(s) | Target file | Notes |
+|---|---|---|---|---|
+| `brand` | **retain + restyle** | `Lockup` | `«tui»/components/brand.rs` | "the only control that fills with the accent" moves from a doc rule in code to a `Theme::junie()` recipe default (§11.6). `pub area` removed (S1). |
+| `button` | **refactor** | `Button<'a>` | `«tui»/components/button.rs` | `(Outcome,bool)`/`bool` → `Response<Activated>`; `bg: Color` → `Surface`; `pub area` → `cx.area(id)`; `row_layout*` moved to `layout::action_row`. Reference implementation of §13. |
+| `chips` | **decompose** | `Chip<'a>`, `ChipBar<'a,T,K,R>`, `ChipBarState` | `«tui»/components/chip.rs` | Raw `ctx.ring.register` **deleted**; drop-out-of-ring-on-overflow bug fixed by `register_control` on the strip; `"+ Add filter"` / `"match all ▾"` TablePro defaults removed; keys via `ItemKey`. |
+| `choice` | **decompose** | `Checkbox<'a>`, `Toggle<'a>`, `RadioGroup<'a,T,K,R>`, `RadioGroupState` | `«tui»/components/choice.rs` | Three `pub area`/`areas` removed; `RadioGroup::height()` deleted (`Field` measures); **cursor and value separated** (§20.10-3). |
+| `code` | **refactor** | `CodeEditor<'a>`, `CodeEditorState`, `Highlighter`, `Segmenter`, `Diagnostic'` | `«tui»/components/code.rs` | Render-time commit (`code.rs:611`) **impossible** (`&self`); `fn`-pointer `Highlighter`/`Segmenter` → `&'a dyn Fn`; per-frame `hash_text` → edit counter; per-grapheme linear span scan → sorted-span cursor; vim key table → default `KeyMap`. Satisfies §20.9-9. |
+| `completion` | **compose + controller** | `Completion<'a,T,K,R>`, `CompletionState`, `CompletionController` | `«tui»/components/completion.rs` | Becomes `Popover` layer content; missing `on_scrollbar` fixed by `scroll_region`; boundary-wheel violation (`completion.rs:142-145`) fixed; the ~40 lines of editor↔popup hand-wiring in `tablepro/tabs.rs:1326-1377` collapse into the controller. Shares `Item` with `Picker`. |
+| `dialog` | **decompose** | `Dialog<'a>`, `DialogState`, `Action<'a>`, `ActionKey`, `DialogAction` | `«tui»/components/dialog.rs` | `DialogBody` **deleted**; polled `result` field **deleted**; `&mut Focus` parameters **deleted**; render-time ack arming (`dialog.rs:465`) **deleted** (an `update` predicate); backdrop loop **deleted** (one layer implementation); `dialog.rs:389`'s trap-less modal **fixed** (the trap belongs to the layer). Satisfies §9.2, goal §14. |
+| `diff` | **retain (composition)** | `DiffView<'a>`, `DiffViewState`, `DiffSource`, `DiffMode` | `«tui»/components/diff.rs` | Data model moves behind `DiffSource` so jackin's `sim::changes::ChangedFile` feeds it without conversion; `review_lines(f,width)` becomes `measure`; the render-time `set_follow(false)`/`scroll_to` in the layout cache moves to `update`. |
+| `empty` | **retain** | `EmptyState<'a>` rendering inside each collection | `«tui»/collection/empty.rs` | The free `render(…, bg)` **deleted**; empty/loading/partial/error become one vocabulary (absorbs `PickerStatus`). |
+| `field_common` | **remove → refactor** | `EditAction` table on `TextEditorCore` + `Binding` set | `«tui»/text/editor.rs`, `«tui»/keymap.rs` | `EditAction::Apply(fn(&mut TextBuffer))` **deleted** (fn pointer, API §3.12). The shared keymap becomes a `const [Binding<EditAction>]`. |
+| `grid` | **decompose** | `Grid<'a,M>`, `GridState`, `GridModel`, `GridEditor`, `GridCellActions`, `ColumnKey`, `ColumnSpec'`, `CellRef`, `NavUnit`, `EditIntent`, `CellAction` | `«tui»/components/grid.rs` | Everything DB-shaped moves out (see 18.4 TablePro row). `CellValue`, `PendingChanges`, `UndoAction`, `default_validator`, `cmp_cells`, `Validator` fn pointer, `"Preview SQL"`, `primary`/`nullable`/`references`/`enum_values`, `Theme::change_glyph` **all deleted from the library**. `col_rects.clone()` per row **deleted**. `GridEditor` is `&mut self` and unreachable from `draw`. Satisfies §12.3, Scenario H, DOM §7 condition 1. |
+| `hintbar` | **retain + wire** | `HintBar`, `HintLayer`, `Hint` | `«tui»/components/hintbar.rs` | Layers are now *derived*: top layer ▸ mode ▸ focused component's visible bindings ▸ screen extras ▸ global. The ~700 lines of hand-written hint tables across the apps are deleted. |
+| `input` | **decompose** | `TextInput<'a>`, `TextInputState`, `Secret`, `SecretPolicy`, `BlurPolicy` | `«tui»/components/input.rs`, `«tui»/components/secret.rs` | Render-time commit+validate (`input.rs:282`) **impossible**; `validator: Option<fn>` → `&dyn Validate`; `plain_label` **deleted** (`Field` owns chrome); `HEIGHT` **deleted** (`measure`); `reveal_tail` **re-specified** to a synthetic tail; 5 tiny-rect underflows fixed with `saturating_sub`. Satisfies §15, API §5. |
+| `keyhint` | **retain** | `KeyHint` | `«tui»/components/keyhint.rs` | Rendered by `HintBar`; the free-function entry point stays for one-off chips. |
+| `list` | **refactor** | `List<'a,T,K,R>`, `ListState`, `SelectMode`, `KeySet` | `«tui»/components/list.rs` | Owned `ListItem` **deleted** (borrowed `&'a [T]`); `row_id`/`locate`/`owns` **deleted**; boundary-wheel violation (`list.rs:180`) fixed; `SelectMode` gains `Range`/`None`; `KeySet` gets `AllExcept` (R7). Satisfies Scenario D. |
+| `menu` | **retain + extend** | `MenuBar<'a>`, `ContextMenu<'a>`, `MenuItem<'a>`, `MenuState` | `«tui»/components/menu.rs` | Render-time cursor move on hover (`menu.rs:243`) → an explicit `Intent::Pointer{Move}`; `shortcut: &'static str` → a real `Chord` that both renders and binds (kills jackin's `run_host_menu` key synthesis); label-string dispatch → `ActionKey`; `MenuItem::submenu` added; own `Placement` merged into `Anchor`; becomes layer content. |
+| `panel` | **split** | `Panel<'a>` retained; `ScrollPanel` **removed** | `«tui»/components/panel.rs` | `bg: Color`, `Panel::bg(t)` and `pub bg_override` **all deleted** (contextual `Surface`). Framed inner rect escaping the panel for `width ≤ 4` **fixed**. `ScrollPanel` callers migrate to `TextViewport` with tone-carrying spans. |
+| `picker` | **decompose** | `FilterList<'a,T,K,R>` (headless), `Picker<'a,…>` overlay, `CommandPalette`, `PickerState`, `ScopeKey` | `«tui»/components/{filter_list,picker}.rs` | `hints: &str` **deleted** (a `HintLayer` contribution); positional `row_id` → `ItemKey`; `scopes` first-class; `PickerStatus` folded into `EmptyState`; `Delete`-secondary gains a mouse equivalent (§20.10-4); duplicated backdrop dim **deleted**. |
+| `progress` | **decompose** | `Spinner`, `ProgressBar`, `Meter`, `MeterTone`, `MeterVisual` | `«tui»/components/{progress,meter}.rs` | Five `bg: Color` parameters **deleted**; `METER_LOW_MAX`/`MEDIUM_MAX` and `SPINNER` move to `DesignTokens` (A4); `MeterTone::{Warning,Exhausted,Stale,Refreshing}` (jackin quota lifecycle) move to jackin; `MeterTone::from_ratio` helper kills the app-side duplicate matches (J12). |
+| `props` | **refactor** | `Props<'a>` (static) + `PropsList<'a,T,K,R>` as a two-column `List` variant | `«tui»/components/props.rs` | The **two independent render paths** (free fn vs `PropsList::render`) collapse to one; `locate`/`owns`/`row_id` deleted; used by `Dialog::facts`. |
+| `scrollbar` | **retain as a part** | `Part::TRACK` / `Part::THUMB` of a `scroll_region` | `«tui»/components/scroll_region.rs` | `scrollbar::id_for` **deleted** (26 showcase + 18 tablepro + ≥4 jackin call sites). One `on_scrollbar` implementation replaces seven copies; thumb drag uses pointer capture. |
+| `segments` | **merge** | absorbed by `StatusBar` | `«tui»/components/status.rs` | Two priority-drop loops become one `Left/Center/Right` item strip; `bg: Color` deleted. |
+| `select` | **rebuild** | `Select<'a,T,K,R>`, `SelectState` | `«tui»/components/select.rs` | Render-time overlay close (`select.rs:161-167`) **impossible**; the popup becomes a `Popover` layer (so the focus barrier bug in `ui/popup.rs` disappears); 10-row clip → a real scroll region; `HEIGHT` deleted. |
+| `splitter` | **merge** | `SplitPane<'a>`, `SplitPaneState` (with `SplitModel`) | `«tui»/components/split.rs` | `Splitter` + `ui::layout::Split` become one component that owns its container rect from its own draw; caller-held `seam_container: Rect` fields in three jackin screens **deleted**; drag through capture; optional keyboard resize as a binding. |
+| `statusbar` | **retain + promote** | `StatusBar<'a>`, `StatusItem<'a>`, `Emphasis` | `«tui»/components/status.rs` | Absorbs `segments`; gains TablePro's identity strip and grid status line as consumers, deleting two hand-written priority-drop loops; `STATUS_METER_TRACK` moves to `design.size.meter_track`. |
+| `steps` | **refactor** | `Steps<'a,T,K,R>`, `StepsState`, `StepState` | `«tui»/components/steps.rs` | Stays a *display* rail with a frontier (the meaningful difference, DOM §6.2); gains keys and a row renderer; the step *flow* becomes the separate `Wizard` (J7). |
+| `table` | **remove** | absorbed by `Grid` with `NavUnit::{Row, Cell}` | — (`«tui»/components/grid.rs`) | `DataTable` **deleted**: its `Column`, `Cell`, third `EditState`, string sort, `validator: fn`, `locate`/`locate_header`, double cell registration, and 4 ragged-row panics all go. TablePro's Structure tab becomes six `GridModel`s. |
+| `tabs` | **refactor** | `Tabs<'a,T,K,R>`, `TabsState`, `TabsAction` | `«tui»/components/tabs.rs` | Positional `tab_id(i)`/`close_id(i)` **deleted** → `ItemKey`; per-frame `areas`/`widths` `Vec`s **deleted**; the "rebuild the whole widget and rescue `first`/`active`" idiom in both apps **deleted**; strip window follows the logical first tab (§20.10-13). Satisfies Scenario E. |
+| `textarea` | **refactor** | `TextArea<'a>`, `TextAreaState` | `«tui»/components/textarea.rs` | Render-time commit (`textarea.rs:202`) **impossible**; shares `TextEditorCore` with `input`/`code`; missing `owns`/`on_scrollbar` supplied by `scroll_region`; 1-cell-width underflow fixed. |
+| `tree` | **refactor** | `Tree<'a,T,K,R>`, `TreeState`, `TreeNode<'a>`, `TreeAction` | `«tui»/components/tree.rs` | `path: Vec<usize>` identity → `ItemKey` (`TreeNode::keyed`); `expanded: HashSet<Vec<usize>>` → `HashSet<ItemKey>`; `flatten()` becomes **incremental and borrow-based** (§20.9-8); `FlatRow`'s duplicate `label`/`meta` **deleted**; row renderer added (kills TablePro's paint-over-the-tree hack); `object_at`/`schema_at` path reconstruction **deleted**. |
+| `viewport` | **retain (rewritten storage)** | `TextViewport<'a>`, `ViewportState`, `Span<'a>`, `ViewportAction` | `«tui»/components/viewport.rs` | Best-in-class behaviour preserved verbatim. `Cell { g: String }` → `{ range: Range<u32>, w: u8, style_ix: u16 }`; layout becomes **incremental + windowed**; `set_area`/`prime`/the `inert` clone dance **deleted** once view state is caller-owned. Satisfies §20.9-7. |
+
+### 18.3 The 23 app-side reusable controls (**[F]** APP §3)
+
+| # | Current control | Disposition | Target type(s) | Target file | Notes |
+|---|---|---|---|---|---|
+| 1 | `NavList` + `NavItem` (`showcase/pages/sidebars.rs:16-165`) | **move** | `NavList<'a,T,K,R>`, `NavListState` | `«tui»/components/nav_list.rs` | Sections, collapsed icon-only mode, badges and disabled skipping become `List` features; the control's own `ctx.ring.register` and reverse `locate` scan are deleted. |
+| 2 | Shell nav sidebar (`showcase/app.rs:868-926, 461-492, 696-698`) | **compose** | uses #1 | `«showcase»/app.rs` | `nav_index_at`'s 22-id reverse scan and the hand-written sidebar key table are deleted; the digest baseline now covers the sidebar (§20.10). |
+| 3 | `static_field` (`showcase/pages/inputs.rs:65-106`) | **compose** | `TextInput` + `Field` + `.state_override(StateFlags)` | `«showcase»/pages/inputs.rs` | Needs the documented "render in state X without owning state" path: the showcase supplies a `TextInputState` fixture per cell. The fake cursor cell and manual underline are deleted. |
+| 4 | Button state matrix (`showcase/pages/buttons.rs:143-176`) | **compose** | `Button` × `Variant` × `StateFlags` fixtures | `«showcase»/pages/buttons.rs` | Same mechanism as #3; the re-implemented renderer (`t.button` + `t.gutter` + `set_string`) is deleted. |
+| 5 | Showcase footer hint row (`showcase/app.rs:1018-1077`) | **compose** | `HintBar` + `HintLayer` | `«showcase»/app.rs` | Uses the widget the other two apps already use; width budgeting comes from `HintBar`. |
+| 6 | `layout::{caption,rows,columns}` (`showcase/pages/mod.rs:120-168`) | **move** | `layout::rows`, `layout::responsive_columns`, `Part::HELP` caption style | `«tui»/layout.rs` | The ad-hoc re-implementations in the other two apps are deleted. |
+| 7 | State inspector panel (`showcase/app.rs:948-1012`) | **compose** | `Props` + `Runtime::diagnostics()`/`ring()`/`focus()` | `«showcase»/app.rs` | The *data source* becomes a supported debug API; three per-frame `area_of` full scans are deleted. |
+| 8 | `FilterEditor` (`tablepro/app.rs:99-109, 1368-1433, 1648-1736, 2051-2086, 2337-2468`) | **compose** | `Dialog` + `Form` + `Field<Select>`/`Field<TextInput>` | `«tablepro»/filter_editor.rs` | The hand-drawn modal (dim loop, raw `Block`, six manual `hits.register` calls, twice-written Tab/BackTab) is deleted; `FilterOp` stays domain. |
+| 9 | Status-segment priority dropper (`tablepro/tabs.rs:794-838`) | **compose** | `StatusBar` | `«tablepro»/tabs.rs` | The bespoke `while … remove lowest priority` loop is deleted. |
+| 10 | Plan-tree metric columns (`tablepro/tabs.rs:1774-1852`) | **move** | `Tree` `.row(…)` with `RowUi::columns` | `«tui»/components/tree.rs` + `«tablepro»/tabs.rs` | The read-back-the-cell-background paint-over hack is deleted; metrics stay domain. |
+| 11 | TablePro identity strip (`tablepro/app.rs:2189-2282`) | **compose** | `StatusBar` with clickable `StatusItem` ids | `«tablepro»/app.rs` | `STRIP_SAFE`/`STRIP_SCOPE`/`STRIP_CONN`/`STRIP_HELP` become `PartRef`s of one id. |
+| 12 | `modal_frame` (`jackin/screens/modals.rs:36-96`) | **move** | `LayerSpec` + `Panel`/`Frame` chrome | `«tui»/layer.rs`, `«tui»/components/panel.rs` | Four copies of the same 40 lines deleted (J1); `hint_row` becomes the derived `HintBar` layer. |
+| 13 | `FileBrowser` (`jackin/screens/modals.rs:117-563`) | **compose** | `Form` + `List` + `Field<Checkbox>` + `Dialog` | `«jackin»/screens/file_browser.rs` | `World.fs`/`github` lookups stay domain; the 6 derived child ids, the manual Tab fallback and the double-click emulation are deleted. |
+| 14 | `ChoiceDialog` (`jackin/screens/modals.rs:569-783`) | **move** | `Dialog::choice(...)` | `«tui»/components/dialog.rs` | Composed body + `RadioGroup` + actions; the modular Left/Right button ring and `stepper(&str)` string patch are deleted (the stepper becomes `Wizard`). |
+| 15 | `FormDialog` + `FormField` + `FieldKindW` (`jackin/screens/modals.rs:787-1541`) | **move** | `Form<'a>`, `FormState`, `Field<C>`, `FormAction` | `«tui»/components/form.rs` | J2, the strongest candidate. Ordered fields, visibility, focused-field scroll-into-view, per-field clipping, action row, error row and the open-select z-order fix all become library behaviour; the 22 lines of manual hit re-registration and the hand-written button ring are deleted. Three form engines (jackin `FormDialog`, tablepro `connections.rs`, tablepro `FilterEditor`) collapse to one. |
+| 16 | `OpFlow` (`jackin/screens/modals.rs:1546-1943`) | **compose** | `PickerChain` (J8) | `«tui»/components/picker_chain.rs` + `«jackin»/screens/op_flow.rs` | Stage list, `EmptyState::Loading/Error` with retry, breadcrumb scope and back-one-step become library; the 1Password account/vault/item/field model stays domain. |
+| 17 | `InfoDialog` (`jackin/screens/modals.rs:1947-2280`) | **move** | `Dialog::facts(...)` + `Props` + a scrollable detail slot | `«tui»/components/dialog.rs` | Supersedes `DialogBody::Facts` **and** TablePro's post-construction button surgery (J4). |
+| 18 | `HelpOverlay` (`jackin/screens/modals.rs:2284-2425`) | **move** | `HelpOverlay<'a>`, `HelpOverlayState` | `«tui»/components/help.rs` | Multi-column, round-robin, scrollable, scope label — fed by the same `Binding` metadata as `HintBar`. Replaces showcase's `?` dialog and TablePro's `\n`-joined `Dialog::confirm` help (J5). |
+| 19 | Host menu bar + `run_host_menu` (`jackin/app.rs:699-813`) | **split** | item list stays domain; `MenuItem.action: ActionKey` + `.chord(Chord)` move to the library | `«tui»/components/menu.rs` + `«jackin»/app.rs` | **Key synthesis is deleted**: menu items dispatch an `ActionKey` and the same `Chord` is registered as a binding, so "menus and keys can never disagree" becomes structural rather than a comment (§20.10-6). |
+| 20 | Master-detail + draggable seam (`manager.rs:114`, `accounts.rs:96`, `inspect.rs:111`, `showcase/pages/terminal.rs:104`) | **move** | `SplitPane` | `«tui»/components/split.rs` | Four copies deleted; `seam_container: Rect` app fields deleted; narrow-collapse becomes a `SplitPane` mode. |
+| 21 | "Terminal too small" screen (`showcase/app.rs:802`, `tablepro/app.rs:2121`, `jackin/app.rs:2283`) | **move** | `TooSmall<'a>` | `«tui»/components/too_small.rs` | Three near-identical copies deleted; the exact copy strings are preserved so the three existing tests pass unchanged. |
+| 22 | `PageCtx` / `Cx` request bus (`showcase/pages/mod.rs:74-98`, `tablepro/app.rs:51-84`, `jackin/screens/mod.rs:180-227`) | **move (partially)** | `Cx` (focus, layers, capture, repaint, intents, area) in the library; the `Request`/`Go`/`Status` payload stays per-app | `«tui»/ui/cx.rs` + `«showcase»/pages/mod.rs`, `«tablepro»/app.rs`, `«jackin»/screens/mod.rs` | The generic half (`&mut Focus`, `&FocusRing`, hit access) is deleted from all three; the product half (navigation commands, status messages) is correctly app-specific and stays. |
+| 23 | `InspectChanges` diff modal (`jackin/screens/inspect.rs:61-89`) | **keep domain** | composes `Tree` + `DiffView` + `SplitPane` | `«jackin»/screens/inspect.rs` | Only the composition changes (it now uses #20 and `DiffSource`); compact/advanced and region focus stay domain. |
+
+**Also deleted at the application level, subsumed by the library** (not separate controls but the mechanics goal §2.9 names): the three `Focus`/`FocusRing` field sets and 186+ direct manipulation sites; the three `HitRegistry` fields and the six manual re-registration blocks; the three press/hover/flash/double-click state machines; the three focus-reconciliation implementations; the three `saved_focus` fields; the three `animating()`/`tick_interval()` heuristics; `showcase/pages/terminal.rs:337-349`'s press reconstruction; `jackin`'s 9-arm outside-click, 9-arm click-dispatch and 9-arm wheel-routing matches.
+
+---
+
+## 19. Alternatives considered and rejected
+
+| Alternative | Where proposed | Why rejected | Adopted instead |
+|---|---|---|---|
+| Immediate-mode `show(ui, area)` fusing update+draw | RES §2.2 | Re-admits draw-time mutation as legal (§11 stays a review rule, not a compile error); breaks all three harnesses because `handle` can no longer return a truthful consumed/changed answer (~60 assertions unsound); requires inverting 55 K lines of already handle/render-split app code; makes headless state-machine testing incidental | Two phases: `update(&self, cx, &mut st) -> Response<A>` and `draw(&self, ui, area, &st) -> Rect` (§3.1) |
+| Retained app-owned components with a single `on(Event)` method | INT Part B | One giant method per component cannot express a typed per-phase signature (`update` needs `&mut XState`, `draw` needs `&XState`); leaves `render(&mut self)` in place so §1.2(5) survives | INT's dispatch, `Response` fields, overlay/focus/capture services — with `on(Event)` replaced by `update` and `render(&mut self)` by `draw(&self)` (§3.2) |
+| Runtime-owned component tree (tuirealm / cursive shape) | RES §7 prior art | Forces `'static` + `Box<dyn>` + interior mutability; kills borrowed domain rows (Scenario D); makes two sibling `&mut` widgets impossible; requires a full-tree walk per event (§25.6) | App-owned values + a per-frame `Registry`/`FocusRing` (§3.1, §3.3) |
+| A universal `Widget` trait | `README.md`, goal §5 | Components differ in whether they take state, a model, or child slots; a trait large enough to cover all of them is the "giant universal trait" goal §5 forbids | Naming and signature conventions (§13) enforced by `architecture::draw_takes_shared_self` |
+| Generic theme parameters / trait-object components as the primary model | goal §9.1/§9.2 option list | Spreads generics into every application signature, or boxes every node per frame | Concrete `Theme` data + typed recipes, no generics in app-visible signatures (§11.1) |
+| A `Theme` **trait** | `README.md` suggestion | Every custom-theme author would have to reimplement resolution — and resolution is exactly the part that must stay uniform for precedence to be deterministic | Concrete `Theme` data + `ThemeBuilder` + `Overlay` (§11.1) |
+| A flat enum reply `Reply { Ignored, Consumed, Changed, Action(A) }` | INT A2 discussion | Cannot express consumed + action + repaint at once — precisely why `picker.rs:147` returns a tuple today | `Response<A>` with orthogonal `flow` / `invalidate` / `action` (§6.1) |
+| `Box<dyn Any>` message bus | goal §9.3 option list | Untyped, unmatched, forces `'static` | Per-component action enums + `map_action` at composition boundaries (§6.1) |
+| Polled result fields (`Dialog.result`) | current code | Causes all three apps to re-check `if d.result.is_some()` after every key and click | `Response<DialogAction>` + `LayerEvent::{Opened, Dismissed, Closed}` (§6.2, §9.1) |
+| RES's `Response{id,state,area,action,changed}` | RES §2 | `area` is meaningless in a phase with no layout; a single `changed: bool` cannot carry the boundary-wheel rule | `Response` without `area`; geometry via `cx.area(id)` / `draw`'s return value (§6.2) |
+| INT B3's `{part_kind:u16, slot:u16}` token + a per-frame key side table | INT B3 | Unnecessary complexity: packing, round-trip risk, and a per-frame table for a 24-byte `Copy` value | `PartRef { part: Part, item: Option<ItemKey> }` stored directly in each region (§7.1) |
+| Interned path ids | §7.2 | Allocation plus a global on the render path; ids stop being `const`, breaking `const NAV` | FNV over kind-tagged, separator-delimited segments, `const fn` except `item` (§7.1) |
+| Generational handles for identity | §7.2 | Unusable in `const` and in tests that address a control before it is first drawn | as above |
+| Source-location ids (egui style) | §7.2 | Unstable under reorder, invisible in tests | `ItemKey`-derived ids + `id!` with `module_path!` |
+| Keeping raw indices as the only child key | §7.2 | Fails Scenario E; already forces the index-through-a-display-string hack in TablePro | `ItemKey`; `Id::index` retained for genuinely positional cases with a debug assertion |
+| Spatial / directional focus navigation | §8.1 | Unrequested; `DESIGN.md:601` specifies reading order | Registration-order ring + scopes + traps (§8.1) |
+| Trap armed on render | §8.1 | A modal that fails to draw loses its trap (`dialog.rs:389`) | Trap armed when the layer is pushed (§8.1, §9.1) |
+| App-owned focus restoration | §8.1 | Three divergent `saved_focus` implementations | Runtime-owned `restore: ScopeId → Id` (§8.1) |
+| Wheel chaining outward at a boundary | §8.3 | Contradicts `DESIGN.md:507` and surprises the user at nested scroll edges | Consume at the boundary without repaint (§8.3) |
+| Focus-follows-wheel | §8.3 | Violates "hover/scroll never steal focus" | Wheel never moves focus or the cursor (§8.3) |
+| Sorted-`z` widgets for overlays | §9.1 | Solves painting only — not nesting, barriers, focus restore, Esc, or lifecycle | Runtime-owned layer stack (§9.1) |
+| Modality as a render side effect (`begin_modal`) | §9.1 | Barrier ordering after children have registered; two calls in one frame clobber each other; five manual re-registration blocks exist only to work around it | `LayerSpec` pushed from `update`, composited from `draw` (§9.1) |
+| Per-app overlay stacks | §9.1 | Three implementations, one of which supports nesting | One runtime stack (§9.1) |
+| A general-purpose layout / constraint solver | goal §17, §10 | The three apps do not demonstrate the need; it would add a large engine for row/column/split arithmetic | A small set of composable primitives + optional `Measure` (§10) |
+| `Panel::bg(t)` + `bg: Color` threading (status quo) | current code | 24 signatures, plus three components that hard-code their own plane and one public `bg_override` escape hatch | Contextual `Surface` inheritance with ladder-index `raise` (§10) |
+| Colour-equality plane arithmetic (`lift`, `backdrop`) | current `theme.rs` | Breaks for any theme where two roles share a value, for light themes, and under colour downgrade where tokens collapse | Ordered surface ladder with index arithmetic (§10, §11.6) |
+| Sorting state rules inside `Ui::style` (`sorted_by_key`) | RES §3 draft | One heap allocation per part per element per frame — a straight regression against today's allocation-free resolvers | Rules stored pre-sorted at recipe-construction time (R2, §20.9-1) |
+| Hash-map overlay lookup on `(Family,Variant,Part,StateFlags)` | RES §3.4 | Four hashes per part per element per frame; measurable at grid scale | Linear scan over a `&'static` slice, short-circuited when the stack is empty (R3, §20.9-4) |
+| `Id → String` debug table populated at **registration** | INT B1 | 300 map inserts + 300 `String`s per frame in TablePro; visibly laggy and corrupts allocation-counting tests | Populate at `Id` construction, or gate behind a `debug-ids` feature (R4, §20.9-5) |
+| `RowUi::label` implemented over `ui::text::fit` | RES §3 draft | Keeps the 3-allocations-per-cell cost and makes the zero-allocation frame goal unsatisfiable | A single grapheme walk that writes cells and pads in place (R5, §20.9-6) |
+| A Unicode width / grapheme memo cache | perf §8 non-recommendations | The strings change every frame at most call sites; a cache would add complexity for no gain | Stop producing intermediate `String`s at all (R5) |
+| Spatial indexing for hit testing and the focus ring | perf §8 non-recommendations | Observed sizes are 30–300 regions and 4–15 ring entries; a reverse linear scan is sub-microsecond | Keep the linear scans; fix the *architecture* (`PartRef` in the region) instead (§3.3) |
+| A closed `DialogBody` enum | current code, goal §14 | Named explicitly by goal §14 as unacceptable; forces "button surgery" in TablePro and a parallel dialog family in jackin | A body slot closure + convenience constructors on the same path (§9.2) |
+| `fn`-pointer extension points (validator, highlighter, segmenter, `style_line`, `Apply`) | current code | Cannot capture a dialect, a catalog, a connection or a locale | `&'a dyn Fn` slots and small traits with blanket closure impls (§12.1, §15) |
+| Keeping `DataTable` alongside `DataGrid` | DOM §2.12 | A third `EditState`, a second sort semantics, a second event vocabulary, one consumer | Delete `DataTable`; `Grid` with `NavUnit::{Row, Cell}` (§12.3) |
+| Keeping SQL vocabulary in the generic grid | current code | Blocks Scenario H and goal §18's DataGrid boundary | Generic `GridModel`/`GridEditor` + a TablePro adapter (§12.3) |
+| Keeping `ScrollPanel` | DOM §2.6 | A strict subset of `TextViewport` with a second wrap cache and an `fn`-pointer styler | Remove; migrate callers to `TextViewport` with tone-carrying spans |
+| A macro DSL / CSS-like class strings / a plugin ABI / a registry CLI | goal §5 | Explicitly out of scope; would hide behaviour from engineers and coding agents | Plain Rust builders, `const` patches, and open component source (§13) |
+| A compatibility facade over the old API | goal §2 | Explicitly forbidden; would preserve the nine defects under new names | Hard cut with a complete disposition map (§18) |
+| Renaming the library crate away from `junie-tui` | Adjudication F | §13 (accepted) already fixes the public paths `junie_tui::*` / `junie_tui::author::*`; the rename touches `tools/capture.sh`, `README.md`, every test import and the baseline fixture path, and changes no invariant | Keep `junie-tui` / `junie_tui`; neutrality is enforced by `architecture::no_domain_vocabulary_in_the_library` and by shipping `Theme::paper()` as a peer of `Theme::junie()` (Appendix B) |
+
+---
+
+## 20. Known trade-offs
+
+**20.1 A component drawn for the first time this frame is not clickable until the next frame.** Pointer intents resolve against last frame's registry (§3.3). This is exactly today's behaviour in all three apps, it keeps the resolution the user actually saw, and it avoids a speculative layout pass. Documented on `Cx::area` and asserted by `focus_reconcile_follows_the_rule`. The cost is one frame of latency on a control that appears under an already-moving pointer.
+
+**20.2 Two phases means two constructions of the props struct per frame.** `update` and `draw` each build `Button::new(SAVE, "Save")`. Props are stack-allocated borrowed views, so the cost is register moves, not allocation (`frame_showcase_lists_120x40 < 20 allocs/frame`). The benefit is that `draw` can take `&self` and `&XState`, which is what makes G2 a compile error. Callers who dislike the repetition can factor a `fn button(&self) -> Button<'_>` helper — the migrated jackin `Screen` in §3.4 does exactly that.
+
+**20.3 Collection generics (`List<'a, T, K, R>`) are three type parameters.** They are always inferred at the call site and never appear in an application signature (§13). The alternative — boxing the key and row closures — costs two allocations per collection per frame and a `'static` bound. `architecture::no_static_bound_in_component_surface` guards the boundary.
+
+**20.4 `Id` is a 64-bit hash with no reverse mapping in release builds.** Collision safety is *detection* (`Diagnostic::DuplicateId`), not prevention. With kind-tagged, separator-delimited segments the accidental-collision class of §1.2(1) is eliminated; a genuine FNV collision remains theoretically possible and is reported, never panicked (goal §10). Debug builds carry a zero-cost-in-release `DebugLabel`.
+
+**20.5 `Invalidate::Layout` ships but behaves as `Paint`.** It is reserved for future layout caching; only its ordering is asserted (§8.5). Shipping it now avoids a breaking change later; the cost is one variant that does nothing distinguishable today.
+
+**20.6 `&'a dyn Fn` slots are the only `dyn` in a component's public surface.** They are opt-in and allocation-free, but they are dynamic dispatch on a per-part path. Measured under `style_resolve_10k_parts`; the alternative (a generic slot parameter per part) would add one type parameter per replaceable part to every component signature, which fails §13's "no gratuitous generic parameters".
+
+**20.7 Controlled values require the caller to hold a `String` per field.** For a 15-field form that is 15 owned strings the caller must place somewhere. This is deliberate: it deletes the "rebuild the widget to change its value" idiom (five sites) and makes external synchronisation trivial. Uncontrolled mode (`XState` owns the draft) remains for throwaway fields and is documented per component (S4).
+
+**20.8 The conformance suite is a hard cost per new component.** Registering a `Conformance` case is ~40 lines. It is mandatory (`architecture::conformance_covers_every_public_component`), which is the point: 20 contracts become free for every component, forever, and the untested-module gap of **[F]** API §8.1 (21 of 31 modules with no tests) cannot recur.
+
+### 20.9 Performance obligations (binding)
+
+These are **amendments to §3–§15**, not advice. Each folds a `docs/audit/performance-audit.md` finding into the accepted architecture and carries the acceptance test that proves it. A builder who implements §3–§15 without these has not implemented the architecture.
+
+| # | Amendment | Amends | Acceptance test (§16.6) |
+|---|---|---|---|
+| 1 | **State rules are stored in specificity order at recipe-build time.** `PartEdit::when` inserts into `PartRecipe.states` sorted by `when.count_ones()` ascending, ties by declaration order. §11.3 step 3's "ordered by specificity" is therefore a *storage* invariant, not a resolution-time sort. `Ui::style` is `for rule in &part.states { if s.contains(rule.when) { acc = acc.merge(rule.patch) } }` and **allocates nothing**. (R2) | §11.3 | `style_resolve_10k_parts` — **exactly 0 allocations**, ns ≤ 2× the pre-refactor `Theme::row`+`Theme::gutter` baseline |
+| 2 | **The §11.1 A3 memo cache is allocation-free and statically sized.** A `[Option<(u64, Resolved)>; 256]` direct-mapped array embedded in `Ui`, keyed by a 64-bit mix of `(Family, Variant, Part, StateFlags, Surface, overlay_stack_hash)`, cleared by a generation stamp rather than by zeroing. No `HashMap`, no `Vec`, no per-frame allocation, no growth. A miss recomputes; there is no eviction policy to get wrong. | §11.1 A3 | `style_resolve_10k_parts`, `render_twice_allocates_the_same` |
+| 3 | **`ItemKey` reconcile uses a generation stamp cache.** Every `XState` with a cursor stores `(cursor_key, cursor_index, stamp)` where `stamp = (len, key(first), key(last))`. `reconcile` returns `Unchanged` immediately when the stamp matches; on a mismatch it first probes the cached index (`key(&items[i]) == cursor_key`) and only then scans. `XState::invalidate()` is public for callers who mutate in place. 100 000 rows never re-hash per frame. (R1) | §12.2 | `list_100k_rows_render` — **< 500 allocs/frame**, ns ≤ 1.5× `list_1k_rows_render`; `event_dispatch_is_not_o_n` — 0 allocs, ns within 3× of the 100-row click |
+| 4 | **Overlay lookup is a linear scan over a `&'static` slice, short-circuited when empty.** `Overlay::new(&'static [(Family, Variant, Part, StateFlags, StylePatch)])`; the resolution loop returns before touching the stack when `stack.is_empty()`, which is the overwhelmingly common case. No hashing on the style path. (R3) | §11.3 step 5 | `style_resolve_10k_parts_with_two_overlays` — 0 allocations, ns ≤ 2× the empty-stack case |
+| 5 | **`Id` debug names are populated at construction, never at registration.** `id!` expands to a `const` path, so `Registry::names` is filled when an `Id` is built (a `once`-initialised table keyed by the literal), not by `register_*`. If a registration-time table ever proves unavoidable it is gated behind an explicit `debug-ids` cargo feature, never behind `debug_assertions`. §7.1's "populated at registration" is amended accordingly. (R4) | §7.1 | `debug_and_release_alloc_counts_match` — `frame_tablepro_grid_500x12_120x40` reports identical allocation counts in debug and release |
+| 6 | **`RowUi`/`CellUi` paint via a single grapheme walk with no intermediate `String`.** `RowUi::label`, `meta`, `trailing` and `CellUi` write cells directly and pad in place. `ui::text::{fit, fit_right}` are **deleted from every render path** and survive only for non-render callers. §12.2's `RowUi` contract is amended to forbid intermediate allocation. (R5) | §12.2 | `fit_10k_grapheme_line_to_80` — the `RowUi` equivalent records **0** allocations; `frame_showcase_lists_120x40` drops from ≈160 to **< 20** allocs/frame; `grid_500x12_render` **< 100** |
+| 7 | **`TextViewport` cells become `(range, width)` with windowed incremental layout.** `Cell { range: Range<u32>, w: u8, style_ix: u16 }` referencing the source `Span` text instead of an owned grapheme `String`; layout is append-only on `push` and lays out only `visible_range ± 1 page`. §14.1's "`TextViewport` — Keep" is amended: the *behaviour* is kept, the *storage* is rewritten. (perf §6.3-1) | §14.1, §12.4 | `viewport_100k_lines_push` — allocations **independent of `lines.len()`**; `viewport_layout_10k_grapheme_line` — **0** allocations; `viewport_100k_lines_render` — allocs/frame independent of buffer size |
+| 8 | **`Tree` flatten is incremental and keyed.** The flat index is rebuilt only for the affected subtree on expand/collapse, `expanded` is `HashSet<ItemKey>` (no `Vec<usize>` hashing), rows borrow `label`/`meta` from the source nodes, and filtering does not lowercase per node per level. §12.4's "`Tree` keeps hierarchy, lazy children" is amended with this storage requirement. (perf §6.3, §5.2) | §12.4 | `tree_100k_nodes_flatten` — allocs **< 10 × viewport** per toggle; `tree_100k_nodes_render` — allocs/frame independent of node count; `key_tree_toggle_10k` |
+| 9 | **`CodeEditor` uses an edit-counter cache and a sorted-span cursor.** The highlight cache is keyed on a monotonically incremented edit counter, never on re-hashing the document per frame; spans, diagnostics and find matches are stored sorted and consumed by a cursor advanced alongside the grapheme walk — O(graphemes + spans), not O(graphemes × spans). The seven per-frame clones are structurally impossible because `draw` takes `&self` and reads the state it needs by reference. §14.1's `CodeEditor` row is amended accordingly. (perf §6.3-2) | §14.1 | `frame_tablepro_query_editor_2k_lines` (§16.6 addition) — **< 40 allocs/frame**, ns scaling with viewport not document length |
+| 10 | **`Capsule` never clones a viewport per frame.** With caller-owned `ViewportState`, jackin renders directly from the daemon's pane; `TextViewport::set_area`/`prime` and the `inert` clone dance are deleted. The per-frame `pane.term.clone()` — the single worst path in the repository — has no replacement because it has no reason to exist. (perf §8-1) | §12.4, §18.3 #23 | `frame_jackin_capsule_4panes_120x40` — **< 200 allocs/frame**; `capsule_pane_clone_4x2000` **is deleted** |
+| 11 | **TablePro's grid load is one owned conversion.** The three-copy chain (`db::rows` → projection clone → `to_cell` clone) collapses to a single owned `ResultSet` that the `GridModel` borrows; `sample_widths` calls a non-allocating `CellValue::display_width()` instead of materialising a `String` per sampled cell. (perf §8-4, §6.3-4) | §12.3 | `grid_500x12_load` — **< 8 000** allocations (from ≈36 000) |
+| 12 | **`Intents::take` does not scan the queue.** The runtime builds a small per-frame index (or sorts once by `Id` and binary-searches); frame cost is O(intents), never O(components × intents). (R6) | §3.3 step 7 | `intents_drain_scales_with_intents_not_components` (§16.6 addition) |
+| 13 | **`KeySet` has an inverted representation.** `KeySet::AllExcept(set)` so "select all" over 100 000 rows does not materialise 100 000 `ItemKey`s; `ListAction::ToggledAll` reports the intent and the caller may keep its own bitmap. (R7) | §6.1, §12.2 | `list_100k_select_all` (§16.6 addition) — **< 100** allocations |
+| 14 | **The backdrop dim resolves as a `StylePatch` and walks only the covered rect.** It runs through the same `Resolved` path as everything else, so a monochrome or no-colour theme gets it for free, and it never walks cells the layer does not cover. §11.6's "`backdrop` recipe keyed on `Role`" is amended with the rect restriction. (perf §6.3-3) | §11.6, §9.1 | `style_backdrop_full_screen_120x40` — 0 allocations, ns ≤ 1× the pre-refactor baseline |
+| 15 | **Jackin's manager rebuilds rows on world change only.** `build_rows`/`build_detail`/`rebuild_actions` are gated by a world generation counter and never run from `draw` (structurally: `draw` is `&self`) nor from `on_key` before the key is examined. (perf §8-7) | §18.3, §3.4 | `key_jackin_manager_move` — **0 allocs/key**; `frame_jackin_manager_100rows_120x40` — **< 60 allocs/frame** |
+| 16 | **`inert_below` suppresses background registration.** A modal layer with `inert_below: true` stops the page beneath it from registering ring entries, hit regions and cursor writes, so an open dialog does not pay the full background registration cost every frame. §9.1's `inert_below` is amended from "no interaction" to "no *registration*". | §9.1 | `frame_showcase_dialog_open` — `hits` **< 25 %** of `frame_showcase_lists_120x40` |
+
+**Sequencing obligation.** The benchmark harness and the checked-in baseline land **first**, on a `perf/baseline` commit against the pre-refactor tree (Appendix A, WP‑0). Without that commit, "before and after" in goal §25.6 and §30 item 13 is not literal and none of the thresholds above can be asserted.
+
+### 20.10 Intentional visual changes
+
+Every item below changes rendered output relative to the reviewed baseline. Each is deliberate, is justified against `DESIGN.md` or a demonstrated defect (authority order, goal §3), and each names how it is reviewed. Nothing on this list may be regenerated into a baseline without an entry in `docs/visual-changes.md` (enforced by `xtask bless-guard`, §16.3).
+
+| # | Change | Why | How it is reviewed |
+|---|---|---|---|
+| 1 | **Mono legibility fallbacks** (§11.4). At `ColorLevel::Mono` every state gains a symbol or modifier: focus gutter bar + bold label, marker glyphs for selected/checked, explicit reverse for pressed (never the terminal `REVERSE` attribute), faint + no marker for disabled, trailing error glyph + underline, dirty glyph for warning, underline + hardware cursor for editing, spinner for busy, active rule + bold for tabs. | **[F]** RES §1.2: mono currently collapses accent (mean 126) and error (mean 122) onto the same grey, so state is unreadable. goal §15 requires state meaning to survive without colour. | `conformance::<component>::mono_states_are_distinguishable` for every component; `render::components::*_mono` digests; capture matrix `tools/capture.sh` with `NO_COLOR=1` at 120×40 for showcase, tablepro and jackin, reviewed side by side against the truecolor capture by a fresh `opus-analyst` visual reviewer |
+| 2 | **Layer compositing order** (§5 R7, §3.3 step 12). Layers paint into pooled buffers and are composited bottom-to-top after `app.draw` returns, so z-order is the *layer* order, not the call order. A popup no longer has to be "drawn last" by the caller (**[F]** `DESIGN.md:749`). | Removes the three different "draw the overlay last" conventions, the `ui/popup.rs` shared-id collision, and the six manual hit re-registration blocks. Fixes the case where two popups in one frame silently clobber each other's barrier. | `render::overlay::layer_composites_bottom_to_top_regardless_of_call_order`; `render::overlay::nested_picker_over_dialog` digest; jackin `hint_bar_stays_on_the_last_row_across_layers` (retained, must stay green); captures of `f_*` (filter editor over grid) and `j_*` (picker over dialog) before/after |
+| 3 | **`RadioGroup` separates cursor from value.** Arrow keys move a cursor; Space/Enter commits the value. Today arrows change the selection while moving (`choice.rs:121-130`). | The only collection in the library that fuses cursor and selection (DOM §6.1-2); inconsistent with `List`, `Tabs`, `Picker`, `Grid`, `Tree`. | `conformance::radio_group::keyboard_and_mouse_activation_are_equivalent`; unit `choice::radio_group_separates_cursor_from_value`; showcase `forms` page digest; the two affected app tests (`showcase::form_validation_blocks_submit_and_focuses_first_error`, jackin `ChoiceDialog` flows) are re-read to confirm the new keystroke sequence still expresses the same product intent |
+| 4 | **`Picker` secondary action gains a mouse equivalent.** `Delete` (secondary, e.g. close a tab from the tab list) becomes a secondary-click on the row and a visible trailing affordance, not a keyboard-only path. | goal §13: "keyboard and mouse activation of the same control should produce the same semantic component action"; `conformance::picker::keyboard_and_mouse_activation_are_equivalent` would otherwise fail by construction. | The conformance test itself; `render::components::picker::default` digest (a trailing affordance column appears when any item is secondary-able); tablepro `tab_strip_overflow_and_tab_list` capture |
+| 5 | **`Dialog`'s `y`/`n` quick answers become an opt-in binding set.** Today they are hard-coded and only for `DialogBody::Text` (`dialog.rs:297-311`). | goal §13: application-domain chords must not live in generic components. TablePro and jackin opt in through their `KeyMap`; showcase's `modal_traps_focus_and_restores_it` and `settings_screen_remove_member_flow` opt in so `y` still answers. | `conformance::dialog::bindings_match_handled_keys`; the three retained app tests that press `y`; the derived `HintBar` row now shows `y Yes  n No` only where the bindings are opted in — visible in the footer of every dialog capture |
+| 6 | **F10 / menu-bar drift fixes.** `MenuItem` carries an `ActionKey` *and* the `Chord` that is both rendered as the hint and registered as the binding. jackin's `run_host_menu` key-synthesis dispatcher (`app.rs:754-813`) is deleted, as is label-string dispatch in `capsule.rs:368-471`. | **[F]** DOM §2.2: `shortcut: Option<&'static str>` is a display string with no relation to key handling, so the menu and the keymap can silently disagree; the workaround was to re-synthesise key presses. Making them one declaration removes the drift class. | `conformance::menu_bar::bindings_match_handled_keys`; `conformance::conflicting_visible_bindings_are_reported`; jackin `menu_bar_opens_switches_and_runs_an_action`, `tab_context_menu_renames_and_closes_by_mouse_and_keyboard`, `inspect_changes_opens_from_the_view_menu_in_both_modes` (all retained); `j_menu_*` captures compared for shortcut-column alignment, which changes where a chord was previously mis-labelled |
+| 7 | **Container / geometry defect fixes** — a group, reviewed together. (a) `dialog.rs:389`'s modal that returns before registering anything now still traps focus, because the trap belongs to the layer. (b) `panel.rs:117-122`'s framed inner rect no longer escapes the panel for `area.width ≤ 4`. (c) The 12 `usize` underflow sites in `input`/`textarea`/`grid`/`table` are `saturating_sub`. (d) The 4 ragged-row index panics in `grid`/`table` are bounds-checked. (e) `Split::vertical`/`horizontal`'s opposite collapse becomes "first pane wins on both axes". (f) `fuzzy` returns grapheme indices into the original label, so match highlighting no longer lands on the wrong bytes for labels whose lowercase form differs in length. (g) `hit_scroll` no longer returns non-scrollable regions. (h) The ~20 stale-geometry early-return sites are gone because the registry is rebuilt per frame. (i) All popups no longer share `WidgetId::of("popup.surface")`. (j) `Interaction.focus_hidden` (dead) is removed. | **[F]** §1.3 latent defects; goal §17 forbids panics, underflow, out-of-area writes and stale hit regions. | `conformance::<component>::survives_tiny_rects_0x0_to_3x3` and `draw_stays_inside_its_area` for every component; unit `layout::split_first_pane_wins_on_both_axes_when_minima_do_not_fit`, `text::fuzzy_returns_grapheme_indices_into_the_original_label`, `hit::hit_scroll_skips_regions_that_do_not_handle_the_axis`; new `render::components::*_40x10` narrow digests; captures at 60×15 and 72×20 for all three apps. Items (b), (e) and (f) change pixels in the current baseline and are called out individually in `docs/visual-changes.md`. |
+| 8 | **The backdrop excludes the footer row uniformly** and is one implementation. Today `Dialog` and `Picker` each dim with byte-identical loops and both leave the last row live inconsistently with TablePro's hand-written filter-editor dim. | `DESIGN.md:537`; three implementations cannot stay consistent. | `layer::backdrop_excludes_the_footer_row`; `render::overlay::modal_over_page` digest; tablepro `f_filter_*` captures (its dim currently differs from `Dialog`'s) |
+| 9 | **`StatusBar` and `segments` merge**, so TablePro's identity strip and its grid status line adopt the shared priority-drop order (centre → right → left, strongest left item never leaves) instead of two bespoke loops. | **[F]** DOM §2.7: the same concept at two fidelities, with a third hand-rolled copy. | `render::components::status_bar::*` at 80/100/120/160 columns; tablepro `every_screen_renders_at_representative_sizes` (retained); `t_strip_*` captures at 80×24 where the drop order visibly differs |
+| 10 | **Hints are derived from component bindings.** The `HintBar` composes top layer ▸ temporary mode ▸ focused component's visible bindings by priority ▸ screen extras ▸ global fallback. Hint text changes wherever a hand-written table had drifted from the real bindings. | **[F]** DOM §2.8: ~700 lines of hand-written hint tables across two apps, kept in sync by hand; `capsule.rs:2478-2492` already documents the drift risk. goal §13 asks for exactly this. | `conformance::<component>::bindings_match_handled_keys`; the footer row of every capture in the matrix; jackin `hard_cases_refresh_keeps_last_good_and_help_opens_everywhere` (per-route help sections, retained); a diff of the old hand-written tables against the derived output is attached to `docs/visual-changes.md` so each drifted entry is classified as a fix or a regression |
+| 11 | **Surface inheritance replaces colour-equality `lift`.** Hover elevation is ladder-index arithmetic. Under `Theme::junie()` the resolved planes are unchanged wherever the ladder is injective; where two Junie tokens happen to share a value the resolved plane may now differ from the equality-dispatch result. | **[F]** API §6.2: `lift` and `backdrop` branch on colour equality and silently land on `popover`/`surface_overlay` for any unexpected input; this is the single biggest obstacle to Scenario B. | `theme::raise_is_ladder_index_arithmetic_not_colour_equality`; the full `render::components::*` digest under `junie` (any cell that changes is enumerated in `docs/visual-changes.md` with the token pair that collided); showcase `hover_and_focus_render_differently` (retained, asserts `bg == surface_overlay` on hover) |
+| 12 | **The showcase visual baseline covers the sidebar and gains three axes.** The `sidebar_area()` exclusion is removed (the sidebar becomes a `NavList`, so it is no longer hand-drawn); the matrix becomes pages × {120×40, 80×24} × {junie, paper} × {truecolor, mono}. | **[F]** APP §6: the exclusion existed only because the shell sidebar was a hand-written copy of `ListBox`. Goal §25.3 requires the custom theme and no-colour modes to be under snapshot. | The baseline file diff itself, reviewed line by line at the point of regeneration; `showcase_visual_baseline` (retained name) |
+| 13 | **`Tabs`' strip window follows the logical first tab.** After an insert or reorder the visible window keeps showing the same tab, instead of the same index. | Scenario E; today both apps rescue `first` by hand across a full widget rebuild. | `conformance::tabs::item_identity_survives_reorder`; tablepro `tab_strip_overflow_and_tab_list` (retained); `t_tabs_overflow` captures before/after an insert at position 0 |
+| 14 | **New cell-exact baselines for TablePro and jackin.** Neither has one today (**[F]** APP §6, §9 risk 5); their regressions would be caught only by text-substring assertions. | goal §25.3 and §26 require inspecting actual rendered output; §20.10 items 8–11 all touch TablePro and jackin surfaces that nothing currently pins. | The first generation of `apps/tablepro/tests/baselines/tablepro.txt` and `apps/jackin-preview/tests/baselines/jackin.txt` is produced **on the pre-refactor tree** at the `perf/baseline` commit (Appendix A, WP‑0) so it is a genuine before-image, then re-generated once at the end of Slice 8 with every difference classified against this table |
+
+**Not on this list, and therefore regressions if they appear:** any change to Junie token values; any change to spacing, glyph or border-set output under `Theme::junie()` at truecolor; any change to padding or ellipsis placement caused by replacing `fit`/`truncate` with the `RowUi` grapheme painter (the painter must be byte-identical to `fit` for every input — asserted by `render::components::*` digests and by a dedicated differential test `text::row_ui_matches_fit_for_every_fixture`); any change to the exact minimum-size copy strings; any change to the eight jackin scenario contracts, the rain timing constants, or the `format_universe_duration` wording.
+
+---
+
+## Appendix A — Slice plan
+
+Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**, so `fable-builder` agents can run in parallel without integration conflict. A package's owner is the only agent that writes its files during that slice. Files not listed are owned by nobody and must not be touched.
+
+**Amendment to goal §27 (recorded, with justification).** Goal §27 Slice 4 says "migrate coherent families, continuously updating showcase pages and tests". Continuous showcase updates would make every Slice-4 owner write into `apps/showcase/`, destroying disjointness. Instead: **Slice 4 owners do not touch any application.** Each family package proves itself with unit tests, a `Conformance` registration (which runs the full 20-case matrix), a `render::components::*` digest, and one `crates/tui/examples/` file. Showcase migration is entirely Slice 5. The review cadence goal §27 asks for is preserved: a fresh read-only `opus-analyst` reviews API consistency after **each** family package lands, before the next depends on it.
+
+### WP‑0 — Performance and visual baseline (blocking prerequisite, before Slice 3)
+
+* **Owner:** one builder. **Files:** `crates/tui-testing/src/perf.rs`, `tests/perf.rs`, `tests/perf_baseline.txt`, `tests/baselines/` (pre-refactor tablepro + jackin digests), `.github/workflows/perf.yml`.
+* Written against the **current** single-package tree, on a `perf/baseline` commit. Records every §16.6 "before" number and the two new app digests (§20.10-14).
+* **Gate:** `cargo test --test perf --release -- --test-threads=1` green; `perf_baseline.txt` and the two baseline files committed; `PERF` lines archived as a build artefact.
+* **Dependency:** everything. No refactor commit lands before this one.
+
+### Slice 3 — Foundations (one owner, serial)
+
+* **Owner:** one builder. **Files:** the whole of `crates/tui/src/` except `components/`, plus the workspace skeleton and the test crate.
+  `Cargo.toml` (workspace), `crates/tui/Cargo.toml`, `crates/tui/src/{lib.rs, author.rs, id.rs, event.rs, intent.rs, response.rs, keymap.rs, focus.rs, hit.rs, capture.rs, scroll.rs, cursor.rs, layer.rs, runtime.rs, diagnostics.rs, layout.rs, measure.rs}`, `crates/tui/src/ui/**`, `crates/tui/src/text/**`, `crates/tui/src/theme/**`, `crates/tui/src/collection/**`, `crates/tui-testing/src/**`, `crates/tui/tests/{conformance.rs, architecture.rs, render.rs}` (skeletons).
+* **Order inside the slice:** identity → events/response/intents → registry/focus/capture/cursor → layers → surface/`Ui`/`Cx` → theme tokens/patch/recipe/resolve/downgrade → layout/measure → text/editor → collection vocabulary (`ItemKey`, `reconcile`, `RowUi`, `RowDecor`, `EmptyState`, `scroll_region`) → `Runtime`/`App`/`run` → `author` module → `Harness` + `Conformance` driver + digest driver.
+* Applications do not compile during this slice. They are excluded from the workspace default members until Slice 5–7 and re-added one at a time. `crates/tui/examples/12_author_component.rs` is written here as the first consumer, proving the `author` surface is complete before any component depends on it.
+* **Gate:**
+  ```bash
+  cargo fmt --all --check
+  cargo clippy -p junie-tui -p junie-tui-testing --all-targets --all-features -- -D warnings
+  cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features
+  cargo test -p junie-tui --doc
+  RUSTDOCFLAGS="-D warnings" cargo doc -p junie-tui --all-features --no-deps
+  cargo build -p junie-tui --examples
+  cargo test -p junie-tui --test architecture
+  cargo test -p junie-tui --test perf --release -- --test-threads=1
+  ```
+  plus a fresh read-only `opus-analyst` API review of the foundation surface (goal §27 Slice 2's review, applied to the real implementation) before Slice 4 begins.
+
+### Slice 4 — Component families (parallel; 9 owners)
+
+Every package owns files under `crates/tui/src/components/` only, plus its own example and its `Conformance` registration line. All depend on Slice 3; **none depends on another 4x package** except where stated.
+
+| WP | Owner scope | Files owned | Depends on |
+|---|---|---|---|
+| 4A | Buttons, choices, chips, brand, hints, empty chrome | `components/{button.rs, choice.rs, chip.rs, brand.rs, keyhint.rs, too_small.rs}`, `examples/01_button.rs`, `examples/05_instance_patch.rs` | Slice 3 |
+| 4B | Fields, inputs, textarea, select, secrets, validation | `components/{field.rs, input.rs, textarea.rs, select.rs, secret.rs, validate.rs}`, `examples/06_validated_field.rs` | Slice 3 |
+| 4C | Lists, trees, props, steps, nav | `components/{list.rs, tree.rs, props.rs, steps.rs, nav_list.rs}`, `examples/07_borrowed_rows.rs` | Slice 3 |
+| 4D | Tabs | `components/tabs.rs`, `examples/08_dynamic_tabs.rs` | Slice 3 |
+| 4E | Containers and scrolling | `components/{panel.rs, split.rs, scroll_region.rs, viewport.rs}` | Slice 3 |
+| 4F | Overlays: dialog, menu, picker, completion, form, wizard, chain, help | `components/{dialog.rs, menu.rs, picker.rs, filter_list.rs, completion.rs, form.rs, wizard.rs, picker_chain.rs, help.rs}`, `examples/{09_composed_dialog.rs, 10_nested_overlay.rs, 11_small_app.rs}` | Slice 3; **4B** (`Form` composes `Field`), **4C** (`Picker` composes `FilterList` rows) |
+| 4G | Status, hints, progress, meters | `components/{status.rs, hintbar.rs, progress.rs, meter.rs}` | Slice 3 |
+| 4H | Code editor and diff | `components/{code.rs, diff.rs}` | Slice 3; **4E** (`DiffView` composes `TextViewport`) |
+| 4I | Generic grid | `components/grid.rs`, `crates/tui/tests/fixtures/grid_model.rs` (a test-only model — the TablePro adapter is Slice 6) | Slice 3; **4C** (shared collection vocabulary) |
+
+Shared, contended files are handled by convention rather than by ownership: `components/mod.rs`, `crates/tui/src/lib.rs`'s re-export list, `crates/tui/tests/conformance.rs`'s `conformance_suite!` list, and `examples/02_custom_theme.rs`/`03_partial_theme.rs`/`04_family_recipe.rs` (which touch every family's recipe defaults). Each is **append-only in a fixed, alphabetically sorted region**, so concurrent additions merge cleanly; the coordinator resolves the ordering once per slice.
+
+* **Wave order** (to honour the dependencies above): wave 1 = 4A, 4B, 4C, 4E, 4G in parallel; wave 2 = 4D, 4F, 4H, 4I in parallel.
+* **Gate (per package, then per wave):**
+  ```bash
+  cargo fmt --all --check
+  cargo clippy -p junie-tui --all-targets --all-features -- -D warnings
+  cargo test -p junie-tui --lib
+  cargo test -p junie-tui --test conformance
+  cargo test -p junie-tui --test render
+  cargo test -p junie-tui --test architecture
+  cargo test -p junie-tui --doc
+  cargo build -p junie-tui --examples
+  cargo test -p junie-tui --test perf --release -- --test-threads=1
+  ```
+  Every component in the package must appear in `conformance_suite!` and pass all 20 applicable cases. After each package, a fresh read-only `opus-analyst` reviews API consistency against §13; the coordinator applies verified corrections before the next wave.
+
+### Slice 5 — Showcase (one owner)
+
+* **Files:** `apps/showcase/**` in full (`Cargo.toml`, `src/main.rs`, `src/app.rs`, `src/pages/*.rs` — all 22 — `src/data.rs`, `tests/app_tests.rs`, `tests/visual.rs`, `tests/baselines/showcase.txt`, `tests/perf.rs`).
+* Deletes the shell sidebar, footer hint row, static-field renderer, button matrix, inspector panel and too-small screen in favour of library components (§18.3 #2–#7, #21). Adds the pages goal §22.1 requires: the state matrix per component, `Theme::paper()` coverage, scoped and per-instance override pages, the author-component page (example 12 rendered as a page), and deterministic navigation to every state for captures.
+* Re-adds `showcase` to workspace default members. All 26 existing tests must pass with the §16.4 `Harness`.
+* **Gate:** the full §26 command set scoped to `-p junie-tui -p showcase`, plus `cargo run -p showcase` driven through `tools/capture.sh` at 80×24, 100×30, 120×40, 160×50 × {truecolor, 256, 16, mono} × {junie, paper}, with every capture inspected and every baseline difference classified against §20.10.
+
+### Slice 6 — TablePro (one owner)
+
+* **Files:** `apps/tablepro/**` in full, including the new `src/grid_model.rs` (the `GridModel`/`GridEditor` adapter carrying `CellValue`, `PendingChanges`, `UndoAction`, `RowState` derivation, validators, `cmp_cells`, insert/duplicate/delete/discard/undo, `primary`/`nullable`/`references`/`enum_values`, `pending_label`, the Save/Discard/Preview action bar) and `src/filter_editor.rs`.
+* DOM §1.6's 22-capability mapping is the migration checklist; each capability is ticked off against a retained or new test before the slice closes.
+* **Gate:** the §26 set scoped to `-p junie-tui -p tablepro`; all 21 existing tests green; `grid_500x12_load` and `frame_tablepro_grid_500x12_120x40` meet their §16.6 thresholds; `apps/tablepro/tests/baselines/tablepro.txt` regenerated once with every difference classified; captures of connection, editor, grid, tabs, dialog, menu, picker and results surfaces reviewed.
+
+### Slice 7 — Jackin (one owner)
+
+* **Files:** `apps/jackin-preview/**` in full, including the decomposition of `screens/modals.rs` (≈2 400 lines) into `screens/{file_browser.rs, op_flow.rs}` plus library `Form`/`Dialog`/`HelpOverlay` usage, and `rain.rs` rewritten onto `Role` + `Ui::dim_layer`.
+* **Gate:** the §26 set scoped to `-p junie-tui -p jackin-preview`; all 22 existing tests plus the `rain`/`arbiter`/`clock`/`scenario` unit tests green; the eight scenarios reachable; the determinism assertion (two `--frame 282` runs byte-identical) green; the secret-masking assertions green; `frame_jackin_capsule_4panes_120x40 < 200 allocs` and `capsule_pane_clone_4x2000` deleted; `apps/jackin-preview/tests/baselines/jackin.txt` regenerated with differences classified; host, settings, account/usage, launch, Capsule, menu, modal, tab, status-bar and responsive surfaces captured and reviewed.
+
+### Slice 8 — Cleanup and independent verification (one owner, then two reviewers)
+
+* **Files:** anything, but only for deletion, visibility tightening, documentation and reviewed baseline regeneration. No new behaviour.
+* Work: delete every remaining legacy path and dead module; tighten `pub` → `pub(crate)` everywhere `architecture::applications_depend_only_on_the_library_facade` allows; complete `README.md`, `DESIGN.md`, the theme-customisation guide, the component-override guide, the component-author guide and the old→new API map (goal §24); regenerate only reviewed baselines; run the full gate set; then a fresh read-only `opus-analyst` **architecture** review and a separate fresh read-only `opus-analyst` **visual** review, with the coordinator correcting every verified issue.
+* **Gate (the goal §26 set, unscoped):**
+  ```bash
+  cargo fmt --all --check
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
+  cargo test --workspace --all-targets --all-features
+  cargo test --workspace --doc
+  RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
+  cargo build --workspace --all-targets --all-features
+  cargo test --workspace --test perf --release -- --test-threads=1
+  PERF_STRICT=1 cargo test --workspace --test perf --release -- --test-threads=1
+  cargo run -p showcase & cargo run -p tablepro & cargo run -p jackin-preview
+  tools/capture.sh   # the full matrix, reviewed
+  ```
+
+**Dependency summary.** WP‑0 → Slice 3 → {4A,4B,4C,4E,4G} → {4D,4F,4H,4I} → Slice 5 → {Slice 6, Slice 7 — parallel, disjoint app trees} → Slice 8. Slices 6 and 7 may run concurrently because their file trees are disjoint and both depend only on the frozen library surface; if either needs a library change, the slice pauses, a fresh `opus-analyst` adjudicates, the decision is recorded in this document and `REFACTORING_STATE.md`, and the change lands as a small serial amendment before both resume.
+
+---
+
+## Appendix B — Package layout and crate naming (Adjudication F)
+
+### B.1 Decision — the repository becomes a Cargo workspace; the library keeps the name `junie-tui`
+
+**Workspace, not one package.** goal §9.5 asks for a *mechanically enforceable* boundary proving applications consume only supported public APIs. A single package cannot provide one: `pub(crate)` is visible to `src/bin/*` because the binaries are in the same crate, which is exactly how the three apps reach `HitRegistry`, `Focus` and `FocusRing` today. A workspace makes the boundary a property of the compiler rather than of a grep: an application literally cannot name a `pub(crate)` item. Every text check in §16.5 is therefore a *report*, and the enforcement is structural.
+
+**Crate name: keep `junie-tui` (package) / `junie_tui` (lib).** Considered and rejected: renaming to a theme-neutral name such as `tui-components`.
+
+*Why keep it.* (a) §13, which is accepted, already fixes the public paths `junie_tui::*` and `junie_tui::author::*` as the two documented API layers; changing them is a change to an accepted decision and would require a fresh adjudication for a naming preference, not for an invariant. (b) "Junie" names the *design language*, not an application domain. G8 and `architecture::no_domain_vocabulary_in_the_library` forbid TablePro and Jackin vocabulary; a theme name is neither. (c) The neutrality the rename would buy is bought instead by structure: `Theme::junie()` and `Theme::paper()` are peers under `junie_tui::theme::builtin`, no component references Junie, and `architecture::palette_literals_are_confined_to_theme_builtins` proves it. (d) The rename cost is entirely non-architectural churn — `tools/capture.sh`, `README.md`, `Cargo.toml`, every test import, the baseline fixture path — landing in the middle of a refactor that already changes every one of those files for real reasons, which makes classification of the resulting diffs harder, not easier.
+
+*Rename implications, recorded so the decision is reversible in one commit.* If the crate is later renamed to `<new>` / `<new_snake>`:
+
+1. `crates/tui/Cargo.toml`: `package.name`, `lib.name`.
+2. `apps/*/Cargo.toml`: the `junie-tui` and `junie-tui-testing` dependency lines.
+3. Every `use junie_tui::…` in `apps/**`, `crates/tui/examples/**`, `crates/tui/tests/**` and every doctest — mechanical, `cargo fix` cannot do it, a scripted rename can.
+4. `tools/capture.sh`: `S=junie_cap` (tmux session name) and `BIN=${BIN:-target/debug/junie-tui}` — the latter is already stale (the package has no binary of that name) and becomes `BIN=${BIN:-target/debug/showcase}` in Slice 5 regardless of any rename.
+5. `README.md` and `DESIGN.md` prose, install snippets, and the `UPDATE_BASELINE` documentation.
+6. `tests/showcase_baseline.txt` moves to `apps/showcase/tests/baselines/showcase.txt` in Slice 5 regardless; its `CARGO_MANIFEST_DIR` anchor changes crates either way.
+7. `shots/` filenames are unaffected.
+8. `architecture::binary_names_are_preserved` and `architecture::msrv_and_edition_are_unchanged` are unaffected — the *binary* names never change.
+
+**Binary names are preserved exactly** (goal §21): `showcase`, `tablepro`, `jackin-preview`. Each becomes its own package whose single `[[bin]]` carries the required name, so `cargo run -p showcase` and `target/debug/showcase` both work and `cargo build --workspace` produces all three. The current `default-run = "showcase"` has no workspace equivalent and is dropped; `cargo run -p showcase` replaces it and is documented in `README.md`.
+
+**Edition and MSRV are unchanged**: edition 2024, `rust-version = "1.88"`, set once in `[workspace.package]` and inherited by every member. Dependencies are unchanged except for two small, justified additions used by the accepted architecture (`bitflags` for `StateFlags`/`Caps`, `smallvec` for `PartRecipe.states` and `Recipe.variants`); no framework-sized dependency is added, and no unrelated version churn accompanies the refactor.
+
+### B.2 Exact layout
+
+```
+Cargo.toml                                  # [workspace] members + [workspace.package] + [workspace.dependencies]
+rust-toolchain.toml                         # pinned for the PERF_STRICT job
+README.md  DESIGN.md  COMPONENT_ARCHITECTURE.md  REFACTORING_GOAL.md  REFACTORING_STATE.md
+docs/audit/*.md                             # the five Slice-1 audits, unchanged
+docs/visual-changes.md                      # §20.10 ledger; xtask bless-guard reads it
+docs/guides/{quickstart.md, theming.md, overrides.md, authoring.md, migration.md}
+shots/                                      # capture artefacts
+tools/{capture.sh, ansi2png.py, ansi2html.py}
+
+crates/tui/                                 # package junie-tui, lib junie_tui
+  Cargo.toml
+  src/
+    lib.rs            # #![deny(missing_docs)] #![forbid(unsafe_code)]; the curated facade
+    author.rs         # the component-author layer (B.4)
+    id.rs  event.rs  intent.rs  response.rs  keymap.rs
+    focus.rs  hit.rs  capture.rs  scroll.rs  cursor.rs
+    layer.rs  runtime.rs  diagnostics.rs
+    layout.rs  measure.rs
+    ui/{mod.rs, cx.rs, paint.rs, surface.rs, layer_buf.rs}
+    text/{mod.rs, buffer.rs, editor.rs, measure.rs, fuzzy.rs}
+    theme/{mod.rs, tokens.rs, role.rs, glyph.rs, recipe.rs, patch.rs, resolve.rs, downgrade.rs}
+    theme/builtin/{mod.rs, junie.rs, paper.rs}
+    collection/{mod.rs, key.rs, reconcile.rs, rowui.rs, decor.rs, empty.rs}
+    components/{mod.rs, button.rs, choice.rs, chip.rs, brand.rs, keyhint.rs, too_small.rs,
+                field.rs, input.rs, textarea.rs, select.rs, secret.rs, validate.rs,
+                list.rs, tree.rs, props.rs, steps.rs, nav_list.rs, tabs.rs,
+                panel.rs, split.rs, scroll_region.rs, viewport.rs,
+                dialog.rs, menu.rs, picker.rs, filter_list.rs, completion.rs,
+                form.rs, wizard.rs, picker_chain.rs, help.rs,
+                status.rs, hintbar.rs, progress.rs, meter.rs, code.rs, diff.rs, grid.rs}
+  examples/           # 01_button.rs … 12_author_component.rs  (external-style consumers)
+  tests/
+    conformance.rs  render.rs  architecture.rs  perf.rs  perf_baseline.txt
+    baselines/components.txt
+    fixtures/{grid_model.rs, rows.rs, text.rs}
+
+crates/tui-testing/                         # package junie-tui-testing, publish = false
+  Cargo.toml
+  src/{lib.rs, harness.rs, digest.rs, perf.rs, conformance/mod.rs, conformance/driver.rs}
+
+apps/showcase/            Cargo.toml  src/{main.rs, app.rs, data.rs, pages/*.rs}
+                          tests/{app_tests.rs, visual.rs, perf.rs, baselines/showcase.txt}
+apps/tablepro/            Cargo.toml  src/{main.rs, app.rs, workbench.rs, tabs.rs, connections.rs,
+                                           grid_model.rs, filter_editor.rs, db.rs, model.rs, sql.rs}
+                          tests/{app_tests.rs, visual.rs, perf.rs, baselines/tablepro.txt}
+apps/jackin-preview/      Cargo.toml  src/{main.rs, app.rs, arbiter.rs, clock.rs, scenario.rs, rain.rs,
+                                           screens/**, domain/**, sim/**}
+                          tests/{app_tests.rs, app_tests_chrome.rs, visual.rs, perf.rs,
+                                 baselines/jackin.txt}
+
+xtask/                    Cargo.toml  src/main.rs   # boundary checks, bless-guard, capture matrix driver
+```
+
+Root `Cargo.toml`:
+
+```toml
+[workspace]
+resolver = "3"
+members  = ["crates/tui", "crates/tui-testing", "apps/showcase", "apps/tablepro", "apps/jackin-preview", "xtask"]
+
+[workspace.package]
+version      = "0.1.0"
+edition      = "2024"
+rust-version = "1.88"
+license      = "MIT"
+
+[workspace.dependencies]
+ratatui              = { version = "0.30", features = ["crossterm_0_29"] }
+unicode-width        = "0.2"
+unicode-segmentation = "1"
+bitflags             = "2"
+smallvec             = "1"
+junie-tui            = { path = "crates/tui" }
+junie-tui-testing    = { path = "crates/tui-testing" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+```
+
+`apps/showcase/Cargo.toml` (the other two are identical in shape):
+
+```toml
+[package]
+name = "showcase"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "showcase"
+path = "src/main.rs"
+
+[dependencies]
+junie-tui.workspace = true
+ratatui.workspace   = true
+
+[dev-dependencies]
+junie-tui-testing.workspace = true
+```
+
+`jackin-preview` sets `[[bin]] name = "jackin-preview"` with `path = "src/main.rs"`, preserving the hyphenated binary while the package directory stays readable.
+
+### B.3 `pub` vs `pub(crate)` policy
+
+1. **Two documented layers, one crate.** `junie_tui::*` is the application-author surface; `junie_tui::author::*` is the component-author surface. Both are `pub` and separately documented with a module-level rustdoc header stating who the audience is (§13). Nothing else is `pub`.
+2. **`lib.rs` is a curated facade, not a `pub mod` list.** Every module is `pub(crate) mod`; `lib.rs` re-exports the named items. Adding a type to the public API is a deliberate line in `lib.rs`, reviewable in a diff. `pub use` globs are forbidden.
+3. **No public fields on component types** (invariant S1). Public fields exist only on plain data records with no behaviour and no geometry: `LayerSpec`, `Dismiss`, `StylePatch`, `StateRule`, `PartRecipe`, `ColorTokens`, `DesignTokens` and their sub-structs, `Role`/`GlyphRole`/`Part`/`Family`/`Variant` newtypes' constants, `FocusEntry`, `Headroom`, `Insets`, `Size`, `Constraints`, `RowDecor`, `CellDecor`, `Binding`, `Hint`, `HintLayer`, `LayoutFacts`, `Capture`, `PartRef`, `Key`, `Chord`, `Mouse`, `FieldError`. `architecture::no_public_geometry_or_cache` enforces the geometry half.
+4. **`#[non_exhaustive]`** on every public struct with pub fields that a future token or capability may extend (`ColorTokens`, `DesignTokens`, `LayerSpec`, `RowDecor`, `CellDecor`, `LayoutFacts`), so adding a field is not a breaking change for downstream authors. `ColorTokens` is the deliberate exception in one direction: `map_colors` destructures it exhaustively *inside* the crate so adding a token is a compile error there (§11.4).
+5. **No `#[doc(hidden)]` public items.** If something must be reachable it is documented in `author`; if it must not, it is `pub(crate)`.
+6. **`#![deny(missing_docs)]` and `#![forbid(unsafe_code)]`** at the top of `crates/tui/src/lib.rs`. The single `unsafe impl GlobalAlloc` lives in `crates/tui-testing`, carries a written safety rationale, and is covered by `debug_and_release_alloc_counts_match`.
+7. **Applications export nothing.** Each app is a binary-only package (`publish = false`, no `[lib]`); its tests live in `tests/` and reach the app through a small `pub` surface declared in `main.rs` behind `#[cfg(test)]`-friendly visibility — the app's `const Id`s, its `App` type and its screen enums. This is the migration contract of §16.4 item 3.
+
+### B.4 The `author` module
+
+`junie_tui::author` is a re-export module, not a second implementation. It is what example 12 and every downstream component author consumes, and it is the mechanical proof of Scenario G: if a component can be written with it, no private access is needed.
+
+```rust
+//! Component-author API. Everything needed to build a component that participates in
+//! theme resolution, focus, hover, press, dispatch, hit testing, cursor output,
+//! scrolling, overlays, capture, testing and visual capture — and nothing more.
+pub mod author {
+    // identity and parts
+    pub use crate::id::{id, Id, ItemKey, Part, PartRef};
+    // phases and plumbing
+    pub use crate::ui::{Ui, Cx};
+    pub use crate::intent::{Intent, IntentIter, Phase, FocusVia};
+    pub use crate::response::{Response, Flow, Invalidate, StateFlags};
+    pub use crate::event::{Input, Key, KeyCode, KeyModifiers, Chord, Mouse, MouseKind, Axis};
+    // registration services
+    pub use crate::focus::{Focusability, ScopeMode, ScopeId, FocusVis};
+    pub use crate::hit::{Axes, Headroom};
+    pub use crate::capture::Capture;
+    pub use crate::layer::{LayerId, LayerKind, LayerSpec, Anchor, Side, CrossAlign,
+                           Dismiss, Backdrop, LayerEvent, DismissReason};
+    // theme resolution
+    pub use crate::theme::{Theme, Family, Variant, Role, FgStep, SyntaxRole, MeterRole,
+                           GlyphRole, Surface, StylePatch, Slot, StateRule, Overlay,
+                           Resolved, Modifier, Density, ColorLevel, DesignTokens};
+    // layout and measurement
+    pub use crate::layout::{self, Track, RowAlign, Insets, SplitModel};
+    pub use crate::measure::{Measure, Size, Constraints};
+    pub use crate::ui::LayoutFacts;
+    // text
+    pub use crate::text::{TextEditorCore, EditAction, EditOutcome, CursorPos,
+                          width, wrap, fuzzy, truncate, truncate_middle};
+    // collections
+    pub use crate::collection::{RowUi, CellUi, ColumnsUi, RowDecor, CellDecor,
+                                EmptyState, RowTotal, Reconciliation, SelectMode, KeySet};
+    // bindings and hints
+    pub use crate::keymap::{Binding, Bindings, BindingState, KeyMap, Phase2, Hint, HintLayer};
+    // errors and diagnostics
+    pub use crate::{FieldError, LayoutError, Validate, NoValidate, Secret, SecretPolicy};
+    pub use crate::diagnostics::Diagnostic;
+    // ratatui types a painter needs
+    pub use ratatui::layout::{Rect, Position};
+    pub use ratatui::style::{Color, Style};
+    pub use ratatui::buffer::{Buffer, Cell};
+}
+```
+
+What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `Registry`, `FocusRing`, `FocusState`, `App`, and the concrete components. A component author drives none of those; an application author reaches `Runtime`/`run`/`App` from the root facade, and tests reach `FocusRing` through `Harness::ring()`. `architecture::conformance_covers_every_public_component` plus example 12 compiling with `use junie_tui::author::*;` and **no other `junie_tui` path** is the standing proof that the split is honest.
+
+### B.5 Examples and capture tooling
+
+* The twelve §17 examples live in `crates/tui/examples/` and are built by `cargo build -p junie-tui --examples` in every slice gate. Because Cargo compiles examples as separate crates linked against `junie_tui`, they see exactly the public API and nothing else — the "external-style consumer" requirement of goal §21 is satisfied structurally, not by convention.
+* Doctests carry the condensed forms of examples 1–10 on the corresponding types and run under `cargo test --workspace --doc`.
+* `tools/capture.sh` changes in two places, both in Slice 5: `BIN` defaults to `target/debug/showcase` (the current default names a binary that does not exist), and `ARGS` gains documented `--theme {junie|paper}` and `--color {truecolor|256|16|none}` pass-through so the §20.10 review matrix is scriptable. `xtask capture-matrix` drives it over the full size × theme × colour × app grid and writes into `shots/`, so the visual reviewer receives a complete, reproducible set rather than ad-hoc screenshots.
