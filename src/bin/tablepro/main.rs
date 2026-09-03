@@ -7,6 +7,8 @@ mod app_tests;
 mod connections;
 mod db;
 mod model;
+#[cfg(test)]
+mod perf_tests;
 mod sql;
 mod tabs;
 mod workbench;

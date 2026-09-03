@@ -11,6 +11,8 @@ mod app_tests_chrome;
 mod arbiter;
 mod clock;
 mod domain;
+#[cfg(test)]
+mod perf_tests;
 mod rain;
 mod scenario;
 mod screens;

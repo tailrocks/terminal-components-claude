@@ -5,6 +5,8 @@ mod app;
 mod app_tests;
 mod data;
 mod pages;
+#[cfg(test)]
+mod perf_tests;
 
 use crate::app::{App, PageId};
 use junie_tui::core::event::{Input, Outcome};

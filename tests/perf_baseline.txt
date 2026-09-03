@@ -1,0 +1,44 @@
+# perf baseline: name ns allocs bytes [hits ring]
+# regenerate with PERF_BLESS=1 in a release build; review like a snapshot
+capsule_pane_clone_4x2000 8808028 571572 23829520
+fit_10k_grapheme_line_to_80 176832 7 566
+focus_tab_traversal_ring_200 325679 0 0
+frame_jackin_capsule_4panes_120x40 24572550 1080602 74131917 26 3
+frame_jackin_manager_100rows_120x40 86353 499 19333 55 5
+frame_showcase_dialog_open 94652 306 6090 60 1
+frame_showcase_lists_120x40 59392 213 3958 57 4
+frame_showcase_lists_80x24 33502 202 3362 55 4
+frame_tablepro_grid_500x12_120x40 124566 1030 46119 176 5
+frame_testbackend_empty_120x40 29328 0 0
+grid_100k_local_sort 10897896 399998 15999856
+grid_500x12_load 2084950 61005 2635335
+grid_500x12_render 120585 1260 22511 212 1
+grid_500x12_set_rows 193929 6915 333762
+key_jackin_manager_move 3035 132 5495
+key_showcase_down_lists 44 2 16
+key_tablepro_grid_cursor 76 2 19
+key_tablepro_grid_sort_local 108243 7428 268727
+key_tree_toggle_10k 776461 57014 4167560
+list_100k_rows_construct 4706139 200003 12000016
+list_100k_rows_render 55771 166 7808 43 1
+list_1k_rows_render 51974 166 7808 43 1
+mouse_click_grid_cell 323 2 19
+mouse_move_over_1000_regions 2583033 0 0
+mouse_move_showcase_frame 74937 0 0 57 4
+style_backdrop_full_screen_120x40 22082 0 0
+style_downgrade_theme_all_levels 20 0 0
+style_resolve_10k_parts 11287 0 0
+style_resolve_10k_parts_with_two_overlays 28204 0 0
+textbuffer_offset_at_10k_line 243999 0 0
+textbuffer_pos_of_10k_line 61667 0 0
+tree_100k_nodes_flatten 8760236 596840 35218704
+tree_100k_nodes_render 49620 166 6710 45 1
+truncate_10k_grapheme_line_to_80 56948 6 288
+truncate_middle_10k_to_40 284410 23 262510
+viewport_100k_lines_push 367965958 15949816 1101369364
+viewport_100k_lines_render 337389347 15177816 1049069364 3 1
+viewport_layout_10k_grapheme_line 402177 10024 704582
+wheel_showcase_lists 45 0 0
+wheel_tablepro_grid 133 0 0
+width_10k_grapheme_line 59101 0 0
+wrap_10k_graphemes_to_80 100863 749 66896
