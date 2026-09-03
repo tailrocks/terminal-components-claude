@@ -930,8 +930,7 @@ Also inconsistent: **wheel boundary semantics.** `picker.rs:234-242` and `table.
 | `grid` | internal `selected_rows` + `cursor` + `anchor` `:338-342` | private rows + a full pending-change queue `:330,:342` |
 | `tabs` | internal `active` `:55` | owned `Vec<TabItem>` `:54` |
 | `select` | internal `selected` `:19` | owned `Vec<String>` `:18` |
-| `choice::RadioGroup` | internal `sel
-ected` `:92` | owned `Vec<String>` `:91` |
+| `choice::RadioGroup` | internal `selected` `:92` | owned `Vec<String>` `:91` |
 | `picker` | internal `cursor` `:51` | owned `Vec<PickerItem>` `:50` |
 | `completion` | internal `cursor` `:33` | owned `Vec<CompletionItem>` `:32` |
 | `props` | internal `cursor` `:103` | owned `Vec<Prop>` `:102` |
