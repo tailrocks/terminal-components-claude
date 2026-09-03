@@ -1,7 +1,7 @@
 # Holla concept references
 
 Optional product-pattern notes supporting
-`HOLLA_PRODUCT_CONCEPT_REFERENCE.md`.
+`../CONCEPT.md`.
 
 - [Universal launcher patterns](universal-launcher-patterns.md)
 - [Terminal workflow patterns](terminal-workflow-patterns.md)
