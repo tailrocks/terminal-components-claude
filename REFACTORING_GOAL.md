@@ -2,9 +2,29 @@ You are a principal Rust framework engineer, senior Ratatui engineer, terminal i
 
 This is an implementation goal. Do not stop after analysis, recommendations, an architecture document, or a migration plan. Research the problem, make the architectural decisions, implement the complete refactor, migrate every application, run and interact with the result, inspect rendered output, correct problems, and deliver a finished repository.
 
-Use subagents aggressively where supported. Parallelize independent audits, external research, component-family migration, theme design, interaction-system work, visual review, and verification. The primary agent owns the integrated architecture and must resolve conflicting recommendations.
+Use only the configured agent types for this goal:
 
-Resolve ordinary architectural and implementation decisions autonomously. Do not ask the user to choose between routine Rust API alternatives. Compare the alternatives, document the reasoning, select the strongest fit for this repository, and continue.
+- `refactor-coordinator` — `claude-fable-5-1`, effort `high`; owns sequencing, repository state, integration, durable records, completion evidence, and the final report.
+- `opus-analyst` — `claude-opus-5`, effort `high`, read-only; owns all research and judgment work.
+- `fable-builder` — `claude-fable-5-1`, effort `high`; owns implementation and execution work within an assigned scope.
+
+Use subagents aggressively where supported. Parallelize independent Opus research/review and disjoint Fable implementation work. The primary Fable coordinator owns execution and integrated repository state. Opus owns architectural synthesis and adjudication of conflicting research. The Fable coordinator resolves the recorded result against the authority order in this document and implements it.
+
+Resolve ordinary decisions autonomously within these model boundaries. Opus compares and selects architectural and public-API alternatives. Fable selects local implementation details that do not change accepted architecture or public invariants. Do not ask the user to choose between routine Rust API alternatives.
+
+# 0. MANDATORY MODEL ROUTING
+
+Run the primary coordinator and every implementation worker with `claude-fable-5-1`, effort `high`.
+
+Use fresh `opus-analyst` agents for every exploratory repository audit, external or current-documentation research, architecture decision, alternative comparison, public-API critique, test-design review, domain-boundary decision, security or threat analysis, performance interpretation, visual judgment, architectural root-cause diagnosis, and independent review. "Research" includes investigation of repository source, tests, captures, and rendered behavior, not only web research. Opus agents are read-only and return evidence-backed findings.
+
+Fable may perform targeted reads needed to execute an accepted design. Fable owns all worktree mutations, production code, migrations, test and capture execution, benchmark collection, documentation updates, cleanup, corrections, integration, and final reporting. Fable records accepted Opus findings in `COMPONENT_ARCHITECTURE.md`, `REFACTORING_STATE.md`, and other repository documents.
+
+Fable must not silently change an accepted architecture or public invariant. If implementation exposes such a need, pause that slice, obtain fresh Opus adjudication, record the decision, then continue with Fable.
+
+Never use generic, inheriting, built-in Explore, or built-in Plan agents for this goal. Never use Opus for repository mutation. Never pass per-invocation model or effort overrides; configured agent definitions own routing. Treat an unavailable required model, model substitution, or model/effort mismatch as a blocker.
+
+Maintain `REFACTORING_STATE.md` throughout the run so work survives compaction and resume. Record baseline revision/status, active slice, agent and model assignment, accepted decisions, explicit file ownership, completed gates, pre-existing failures, unresolved findings, and next action. Fable alone edits this ledger.
 
 ---
 
@@ -1417,7 +1437,7 @@ Migrate a small showcase surface to the proposed API.
 
 Write representative downstream usage examples.
 
-Have an independent API reviewer critique:
+Have a fresh, read-only `opus-analyst` API reviewer critique:
 
 * ceremony
 * naming
@@ -1466,7 +1486,7 @@ Migrate coherent families, continuously updating showcase pages and tests:
 * code editor and diff viewer
 * generic grid and TablePro database adapter
 
-Review the API after each family. Consolidate repeated concepts rather than reproducing inconsistencies in a new namespace.
+After each family, have a fresh, read-only `opus-analyst` review API consistency. Fable applies verified corrections. Consolidate repeated concepts rather than reproducing inconsistencies in a new namespace.
 
 ## Slice 5 — Showcase migration
 
@@ -1502,9 +1522,9 @@ Review the API after each family. Consolidate repeated concepts rather than repr
 * update documentation
 * regenerate only reviewed baselines
 * run full quality gates
-* run independent architecture review
-* run independent visual review
-* correct every material issue found
+* run a fresh, read-only `opus-analyst` architecture review
+* run a separate fresh, read-only `opus-analyst` visual review
+* use Fable to correct every material issue found
 
 At the end of every slice:
 
@@ -1519,6 +1539,8 @@ At the end of every slice:
 ---
 
 # 28. SUBAGENT RESPONSIBILITIES
+
+Every responsibility in this section is mandatory `opus-analyst` work using `claude-opus-5` at effort `high`. Spawn fresh agents for independent reviews. Opus agents remain read-only; Fable records their findings and performs every repository mutation.
 
 At minimum delegate independent work for:
 
@@ -1558,7 +1580,7 @@ Inspect allocations, cloning, large collection behavior, IDs, lookup complexity,
 
 Compare default-theme output before and after, inspect the custom theme, and review focus, hover, selection, editing, spacing, hierarchy, overflow, and responsive layouts.
 
-## Independent verifier
+## Independent verifier — fresh Opus agent
 
 Review the final repository without assuming the primary implementation is correct. Attempt to find:
 

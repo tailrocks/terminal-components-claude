@@ -1,0 +1,9 @@
+{
+  "agent": "refactor-coordinator",
+  "model": "claude-fable-5-1",
+  "effortLevel": "high",
+  "env": {
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-fable-5-1",
+    "CLAUDE_CODE_EFFORT_LEVEL": "high"
+  }
+}
