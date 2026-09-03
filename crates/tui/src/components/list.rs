@@ -652,7 +652,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     }
                 }
                 Intent::Pointer { .. } => acc.consumed(),
-                Intent::FocusIn { .. } | Intent::FocusOut { .. } => acc.changed(),
                 _ => {}
             }
         }

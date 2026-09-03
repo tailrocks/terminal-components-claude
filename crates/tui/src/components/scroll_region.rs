@@ -94,7 +94,7 @@ impl fmt::Debug for ScrollRegion<'_> {
 
 impl<'a> ScrollRegion<'a> {
     /// The parts this component styles.
-    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::TRACK, Part::THUMB];
+    pub const PARTS: &'static [Part] = &[Part::TRACK, Part::THUMB, Part::CONTAINER];
 
     /// A scroll region for the container `id`.
     pub const fn new(id: Id) -> Self {

@@ -535,7 +535,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         }
                         acc.changed();
                     }
-                    (Phase::Click, Part::TAB, Some(k)) => {
+                    (Phase::Click | Phase::DoubleClick, Part::TAB, Some(k)) => {
                         match self.index_of(items, k, Some(st.core.cursor_index())) {
                             Some(i) => self.activate(st, items, i, &mut acc),
                             None => acc.consumed(),
@@ -557,7 +557,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     }
                     _ => acc.consumed(),
                 },
-                Intent::FocusIn { .. } | Intent::FocusOut { .. } => acc.changed(),
                 _ => {}
             }
         }
@@ -700,7 +699,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 let close_cell = cell_at(tab, tab.right().saturating_sub(2));
                 let cs = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::CLOSE, flags);
                 ui.glyph(close_cell, cs.glyph.unwrap_or(GlyphRole::Close), cs.style);
-                ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
             }
             if is_active && let Some(rr) = rule_row {
                 let rs = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::RULE, flags);
@@ -776,7 +774,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 x: cell.right().saturating_sub(1).saturating_sub(dw),
                 width: dw,
                 ..cell
-            };
+            }
+            .intersection(cell);
             ui.paint_str(text, d, os.style);
             ui.glyph(
                 cell_at(cell, cell.right().saturating_sub(1)),

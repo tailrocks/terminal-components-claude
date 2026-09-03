@@ -259,13 +259,10 @@ impl<'a> Button<'a> {
                     }
                 }
                 Intent::Pointer {
-                    phase: Phase::Click,
+                    phase: Phase::Click | Phase::DoubleClick,
                     ..
                 } if can => r = Response::action(Activated),
                 Intent::Pointer { .. } if can && !r.activated() => r = Response::changed(),
-                Intent::FocusIn { .. } | Intent::FocusOut { .. } if !r.activated() => {
-                    r = Response::changed();
-                }
                 _ => {}
             }
         }

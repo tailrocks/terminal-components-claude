@@ -329,12 +329,11 @@ impl Conformance for TextInputCase {
     }
 
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 5] = [
+        const STATES: [StateFlags; 4] = [
             StateFlags::empty(),
             StateFlags::FOCUSED,
             StateFlags::EDITING,
             StateFlags::ERROR,
-            StateFlags::DISABLED,
         ];
         &STATES
     }
@@ -383,12 +382,8 @@ impl Conformance for FieldCase {
     }
 
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 4] = [
-            StateFlags::empty(),
-            StateFlags::FOCUSED,
-            StateFlags::ERROR,
-            StateFlags::DISABLED,
-        ];
+        const STATES: [StateFlags; 3] =
+            [StateFlags::empty(), StateFlags::FOCUSED, StateFlags::ERROR];
         &STATES
     }
 }
@@ -639,8 +634,9 @@ impl Conformance for DialogCase {
             ..area
         };
         // the dialog chrome as plain content on the page (the digest and the
-        // clipping cases), and inside its layer once opened
-        dialog(f).draw(ui, below, st, |_, _| {});
+        // clipping cases; no action buttons, so the launcher stays the only
+        // control between the sentinels), and inside its layer once opened
+        dialog(f).actions(&[]).draw(ui, below, st, |_, _| {});
         ui.layer(DLG, |ui, a| {
             dialog(f).draw(ui, a, st, |_, _| {});
         });
@@ -806,10 +802,10 @@ mod registry {
         out
     }
 
-    fn check<C: Conformance>() {
+    fn check<C: Conformance>(extra: &[Part]) {
         for p in styled::<C>() {
             assert!(
-                C::PARTS.contains(&p),
+                C::PARTS.contains(&p) || extra.contains(&p),
                 "{}: styled {p:?} which is not in PARTS {:?}",
                 C::NAME,
                 C::PARTS
@@ -837,11 +833,12 @@ mod registry {
 
     #[test]
     fn declared_parts_are_the_parts_actually_styled() {
-        check::<ButtonCase>();
-        check::<TextInputCase>();
-        check::<FieldCase>();
-        check::<ListCase>();
-        check::<TabsCase>();
-        check::<ScrollRegionCase>();
+        check::<ButtonCase>(&[]);
+        check::<TextInputCase>(&[]);
+        // the chrome and its control register under one id
+        check::<FieldCase>(TextInput::PARTS);
+        check::<ListCase>(&[]);
+        check::<TabsCase>(&[]);
+        check::<ScrollRegionCase>(&[]);
     }
 }

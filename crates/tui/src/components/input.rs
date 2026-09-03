@@ -609,7 +609,6 @@ impl<'a> TextInput<'a> {
                     if editable {
                         st.begin(value);
                     }
-                    acc.changed();
                 }
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
@@ -620,10 +619,8 @@ impl<'a> TextInput<'a> {
                                 acc.action(TextAction::Committed);
                             }
                             BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
-                            BlurPolicy::Keep => acc.changed(),
+                            BlurPolicy::Keep => {}
                         }
-                    } else {
-                        acc.changed();
                     }
                 }
                 Intent::Key(k) if editable => {
@@ -759,6 +756,13 @@ impl<'a> TextInput<'a> {
         } else {
             StateFlags::empty()
         };
+        let inner = Rect {
+            x: area.x.saturating_add(2),
+            y: area.y,
+            width: Self::inner_width(area.width, error),
+            height: 1,
+        };
+        ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         if !self.ov.is_forced() {
             ui.register_editor(self.id, area, focusability, declared);
         }
@@ -795,13 +799,6 @@ impl<'a> TextInput<'a> {
                 None => ui.fill(gutter_cell, g.style),
             }
         }
-        let inner = Rect {
-            x: area.x.saturating_add(2),
-            y: area.y,
-            width: Self::inner_width(area.width, error),
-            height: 1,
-        };
-        ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         let shown = if editing {
             st.draft.text()
         } else {
@@ -861,14 +858,19 @@ impl<'a> TextInput<'a> {
                 let last = cell_at(inner, inner.right().saturating_sub(1));
                 ui.glyph(last, GlyphRole::Ellipsis, ts.style);
             }
-            if editing && live.contains(StateFlags::FOCUSED) {
+            if live.contains(StateFlags::FOCUSED) && self.editable() {
+                let cursor_col = if editing {
+                    cursor_col
+                } else {
+                    usize::from(width(shown))
+                };
                 let cx = inner
                     .x
                     .saturating_add(cursor_col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16)
                     .min(inner.right());
                 ui.set_cursor(self.id, Position::new(cx, inner.y));
             }
-        } else if editing && live.contains(StateFlags::FOCUSED) {
+        } else if live.contains(StateFlags::FOCUSED) && self.editable() {
             ui.set_cursor(self.id, Position::new(inner.x, inner.y));
         }
         if error {
