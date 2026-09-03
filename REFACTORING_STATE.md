@@ -34,7 +34,7 @@
 
 ## File ownership (active)
 
-- RUNNING `arch-amend`: owns COMPONENT_ARCHITECTURE.md only. Appends §25 (Slice 3 review adjudications + deviations + F1–F26) and §26 (Adjudication N), plus the inline amendments both reviews list. Resumes partial work from the killed predecessor.
+- DONE (587c53b) `arch-amend`: §25 (eight adjudications, D-1..D-13 verdicts, F1–F26 obligation table with test names, gate additions) and §26 (Adjudication N) appended; 83 `§25` + 35 `§26` inline markers; superseded text struck in place (§20.9-1 per-query bound, §21 item 20 `(u16,u16)`, §21 item 29 CIE76, §24.5 `author/raw.rs` file-placement paragraph, Appendix B.2 optional-crossterm). §17 self-check: 44 references, 0 unresolved library references.
 - RUNNING `foundations-fix`: owns crates/tui/src/** except components/**, crates/tui-testing/src/**, xtask/**, crates/tui/tests/{architecture,perf,render,fixtures,allow,ui}, crates/tui/Cargo.toml, crates/tui/README.md, root Cargo.toml. Applies F1–F26 + N1/N2. Permitted mechanical call-site updates in components/** where a signature changes; must not add component features. `crates/tui/tests/conformance.rs` excluded from its gates.
 - PENDING `components-finish` (serial, after foundations-fix): owns crates/tui/src/components/**, crates/tui/examples/**, crates/tui/tests/{conformance,overrides,overlay,showcase_buttons}.rs and baselines. 9 component files exist (button, dialog, field, input, list, props, scroll_region, tabs, mod); examples 01,05–12 exist; overrides.rs / overlay.rs / showcase_buttons NOT yet present.
 
@@ -45,6 +45,11 @@
 - Slice 3 foundations at 18afddd: fmt/clippy/test/doc/no-default-features/architecture/perf gates green; legacy 247 tests green; doc-check 305 refs; boundary 17/17. Post-review: NOT gated (corrections pending).
 
 ## Unresolved findings
+
+- Three names declared by the `arch-amend` builder because the accepted decisions plus the §17 self-check forced them, but which neither review spelled out — flag to the next fresh `opus-analyst` for confirmation: `Picker::measured_size(&self, cx, items) -> LayerSize` and the same on `Select` (§26 N1 mandates the popover `.size(...)` but names no method); `Props::measure(&self, ui, c) -> Size` (the review's example-9 rewrite calls it); the `Dialog::body_rows` values used in examples 9 and 10 (derived arithmetic, not from the review).
+- `docs/visual-changes.md` needs an entry for §20.10 item 17 (`Anchor::Point` flip) before any tooltip or context-menu baseline is blessed.
+- §25.3's ΔE figures are carried through as the review marked them — hand arithmetic, to be re-derived before blessing.
+- Open, not decided: `Ui::scroll_region(id, part, …)` (Slice-3-owned, blocks 4E); rustdoc-json upgrades for `every_foreign_type_in_the_public_surface_is_re_exported` and `xtask doc-check`, both deferred to Slice 8.
 
 - F1–F26 correction obligations (slice3-foundations-review.md §5) and N1/N2 code changes not applied.
 - Components WIP state unknown; `cargo test -p tui-next --all-targets` must be re-run first.
