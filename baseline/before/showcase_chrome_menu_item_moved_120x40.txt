@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Chrome                                 truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Chrome  Brand lockup · menu bar with anchored menus · status bar planes and priorities · con…
+▎  Overview
+                            app❯    File   View   Help
+   Components                             ╭───────────────────╮
+▎  Buttons                  Sessions      │  Zoom pane      z │                      right-click or m for the tab menu
+▎  Inputs                                 │  Redraw         r │
+▎  Text areas               ▎  1 Claude Co│ ───────────────── │     working     The status bar below sits on its own …
+▎  Forms                    ▎  2 Codex (Pr│  Usage          u │        idle     separator glyphs, and items leave by …
+▎  Lists                    ▎  3 Shell    │  Inspect changes  │                 narrow — resize the terminal to watch…
+▎  Trees                    ▎  4 docs     ╰───────────────────╯     blocked
+▎  Tables                                                                       Brand: one lockup, accent-filled, the…
+▎  Editable tables
+▎  Panels
+▎  Sidebars
+▎  Dialogs
+▎  Progress
+▎  Scrolling
+▎  Terminal
+▎  Code editor
+▎  Data grid
+▎  Chips & selects
+▎  Pickers
+▎› Chrome
+
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+                           payments-platform   PR #482 · settlement backoff                                 Weekly 59%
+                           hint bar · topmost layer wins:
+                           ↑↓ Move  ← → Switch menu  Enter Choose  Esc Close
+
+ ↑↓ Move  ← → Switch menu  Enter Choose  Esc Close  Tab Next

@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Terminal            i Inspector   ? Help
+
+▎  Overview          Terminal  Viewport with scrollback, selection and copy · …
+▎  Buttons
+▎  Inputs              Step rail                              0 of 7 · running
+▎  Text areas
+▎  Forms               ▎⠏ 01 Resolve workspace                          0.7 s
+▎  Lists               ▎  02 Pull base image                           queued
+▎  Trees               ▎  03 Build container                           queued
+▎  Tables              ▎  04 Mount sources                             queued
+▎  Editable tables     ▎  05 Resolve credentials                       queued
+▎  Panels              ▎  06 Start agent                               queued
+▎  Sidebars            ▎  07 Ready                                     queued
+▎  Dialogs
+▎  Progress
+▎  Scrolling
+▎› Terminal
+▎  Code editor
+▎  Data grid
+▎  Chips & selects
+▎  Pickers             ▎Run   ▎Run with a failure
+▎  Chrome
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

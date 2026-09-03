@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Buttons                                truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Buttons  Primary, secondary, subtle, danger, toggle, disabled, busy
+▎  Overview
+                            Playground                                             hover · click · Tab · Enter / Space
+   Components
+▎› Buttons                  Actions
+▎  Inputs                   ▎Run task   ▎Preview   ▎Cancel   ▎Delete branch
+▎  Text areas
+▎  Forms                    Toggles
+▎  Lists                    ▎○ Auto-approve   ▎● Verbose
+▎  Trees                 ╭────────────────────────────────────────────────────────────────────╮
+▎  Tables                │                                                                    │
+▎  Editable tables       │  Keyboard & mouse                                                  │
+▎  Panels                │                                                                    │
+▎  Sidebars              │  Tab / Shift+Tab   move keyboard focus                             │
+▎  Dialogs               │  ↑ ↓ ← →           move inside the focused control                 │
+▎  Progress              │  Enter / Space     activate · start editing                        │
+▎  Scrolling             │  Esc               cancel editing · back to navigation             │
+▎  Terminal              │  [ ]               previous / next page                            │
+▎  Code editor           │  0                 jump to navigation                              │    reference rendering
+▎  Data grid             │  i                 toggle state inspector                          │
+▎  Chips & selects       │  q                 quit                                            │
+▎  Pickers               │                                                                    │
+▎  Chrome                │  Mouse: hover to preview, click to focus and activate, wheel to    │
+                         │  scroll, drag the scrollbar thumb.                                 │
+   Screens               │                                                                    │
+▎  Settings              │                                                           ▎Close   │
+▎  Task runner           │                                                                    │
+                         ╰────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+ ← → Choose  Enter Confirm  Esc Cancel                                                                       Run task ✓

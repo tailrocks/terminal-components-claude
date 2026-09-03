@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │ ▎Claude · Archived contractor laptop profile — do not use for production …
+ │ ▎   Overview                        │ │
+ │ ▎ ▾ Claude                      !   │ │  Provider      Anthropic / Claude
+ │ ▎   ★ Personal                      │ │  Agent runtime Claude Code
+ │ ▎     Archived contractor laptop …  │ │  Usage surface Claude
+ │ ▎     Work                      !   │ │  Identity      unresolved identity
+ │ ▎ ▾ Codex                           │ │  Plan          unknown
+ │ ▎   ★ Primary                       │ │  Credential    Local folder · ~/Library/Application
+ │ ▎     Experiments                   │ │                Support/jackin/profiles/claude-contractor-2025-archive
+ │ ▎ ▾ Amp                         ▲   │ │                detected Claude API key env
+ │ ▎     discovered                ▲   │ │  Provenance    configured source · confidence presence only · registered
+ │ ▎ ▾ Grok                            │ │  Lifecycle     needs login
+ │ ▎   ★ Team                          │ │  Default       no
+ │ ▎ ▾ Z.AI                        ▲   │ │  Enabled       no · disabled
+ │ ▎     discovered                ▲   │ │
+ │ ▎ ▾ Kimi                        !   │ │  Quota                                        current · refreshed 30 d ago
+ │ ▎     discovered                !   │ │  No quota windows · not started or unavailable
+ │ ▎ ▾ MiniMax                     !   │ │
+ │ ▎     discovered                !   │ │  Validation    ✓ material   — identity   — quota access · material
+ │ ▎ ▾ OpenCode                    !   │ │                discovered
+ │ ▎   ★ Go subscription           !   │ │  Status        Identity unresolved · showing usage without a public handle
+ │ ▎     ci-bot · discovered           │ │                · unsupported
+ │ ▎   Unsupported                     │ │
+ │ ▎   + Add account…                  │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │ ▎Refresh   ▎Validate   ▎Edit…   ▎Set default   ▎Enable   ▎Remove…
+ ╰─────────────────────────────────────╯ │
+
+                                           ↑↓ Scroll  Tab Actions  Esc Back

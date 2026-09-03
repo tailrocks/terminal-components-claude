@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Forms              truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Forms  Sections, required fields, validation, submission
+▎  Buttons
+▎  Inputs              New task                                                      Ctrl+S Submit
+▎  Text areas
+▎› Forms               Task                                   Options
+▎  Lists                 Task name *                            Mode
+▎  Trees               ▎ Short imperative summary             ▎( ) Fast
+▎  Tables                                                     ▎(●) Balanced
+▎  Editable tables       Description                          ▎( ) Thorough
+▎  Panels              ▎ What should Junie do, and what…
+▎  Sidebars            ▎                                      ▎[✓] Run tests before opening a PR
+▎  Dialogs             ▎                                      ▎[ ] Open a pull request when done
+▎  Progress            ▎
+▎  Scrolling             Optional · Markdown                  ▎○── Auto-approve changes off
+▎  Terminal                                                   ▎──● Notify on completion on
+▎  Code editor         Review                                   Managed by your organization
+▎  Data grid             Reviewer  optional
+▎  Chips & selects     ▎ name@company.com
+▎  Pickers               Optional
+▎  Chrome
+▎  Settings
+▎  Task runner
+
+
+                       ▎Create task   ▎Reset
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

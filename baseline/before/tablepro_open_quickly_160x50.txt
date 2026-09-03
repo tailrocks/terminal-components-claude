@@ -1,0 +1,50 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                                                                     truecolor · 160×50  ? help
+
+  ≡ Query 1 ×    T orders ×    ≡ Query 2 ×                                                                                                                  +
+ ─────────────────────────────━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ───────────────── public ─╮ ╭─ Query 2 ────────────────────────────────────────────────────────────────────────────────────────────────── 15 ms ─╮
+ │                                     │ │  ▎›  1 SELECT * FROM orders WHERE status = 'pending' LIMIT 25                                                      │
+ │ ▎ Filter objects                    │ │                                                                                                                    │
+ │ ▎▾ D acme_prod                      │ │                                                                                                                    │
+ │ ▎  ▾ S public                       │ │                                                                                                                    │
+ │ ▎    ▾ Tables                    7  │ │                                                                                                                    │
+ │ ▎      ▸ T organizations     1.2 ╭──────────────────────────────────────────────────────────────────────────────────────╮                                  │
+ │ ▎      ▸ T customers        48.9 │ Open Quickly                                                         All · Tab scope │                                  │
+ │ ▎      ▸ T products            31│ ▎ Search tables, views, schemas, tabs, queries…                                      │                                  │
+ │ ▎      ▸ T orders            1.2 │                                                                                      │                                  │
+ │ ▎      ▸ T order_items       3.8 │ ▎T change_log                             audit · Production        Tables         ┃ │                                  │
+ │ ▎      ▸ T payments          1.2 │ ▎T customers                              public · Production                      ┃ │                                  │
+ │ ▎      ▸ T subscriptions     1.1 │ ▎T daily_revenue                          analytics · Produc…                      ┃ │                                  │
+ │ ▎    ▸ Views                     │ ▎T events                                 analytics · Produc…                      ┃ │                                  │
+ │ ▎    ▸ Functions                 │ ▎T login_attempts                         audit · Production                       ┃ │                                  │
+ │ ▎    ▸ Sequences                 │ ▎T order_items                            public · Production                      ┃ │                 ln 1/1 · col 55  │
+ │ ▎  ▸ S analytics                 │ ▎T orders                                 public · Production open                 ┃ │                                  │
+ │ ▎  ▸ S audit                     │ ▎T organizations                          public · Production                      │ │                                  │
+ │                                  │ ▎T payments                               public · Production                      │ │───────────────────────────────── │
+ │                                  │ ▎T products                               public · Production                      │ │                                  │
+ │                                  │ ▎T subscriptions                          public · Production                      │ │                  organizat… 11›  │
+ │                                  │ ▎V active_customers                       public · Production       Views          │ │95a-9b742856481→  a1cc57…aa→    ┃ │
+ │                                  │ ▎V cohort_retention                       analytics · Produc…                      │ │a5a-c2456513255→  45e4f5…92→    ┃ │
+ │                                  │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close             │997-7c607525437→  216371…f3→    ┃ │
+ │                                  ╰──────────────────────────────────────────────────────────────────────────────────────╯51a-61c3440148c→  e420b1…6b→    ┃ │
+ │                                     │ │  ▎   5 3a51e6b3-97f9-429c-b204-1d21d17d6a7f           10009  dd2c444c-7d3a-4a51-94f3-9e11c0218d6→  cbc419…87→    ┃ │
+ │                                     │ │  ▎   6 2e505aaa-ff7a-41b9-b1ff-0b8121ee3631           10016  e0ada9f0-d147-4112-8007-32d482f763e→  856eb1…08→    ┃ │
+ │                                     │ │  ▎   7 5ae74dff-257a-43b9-ba1e-e787efcf86e3           10017  b6d7e92a-e7c9-49f9-9025-5c684f35e13→  c180d9…3e→    ┃ │
+ │                                     │ │  ▎   8 c7c8457e-da6b-40e9-b90c-2cbbfeb56e8b           10019  33ba912f-50d1-46c2-8879-fed0e88c032→  e20af4…c1→    ┃ │
+ │                                     │ │  ▎   9 e612ed16-fccc-4359-9e84-386a95bd1a52           10025  2a817425-9c74-4067-ab9e-90fbe5c51c0→  d996d5…5f→    ┃ │
+ │                                     │ │  ▎  10 e26a9aba-f9c1-42f8-a46e-f4cff1e838f5           10029  96788054-d189-4781-bf02-c11236d1bc3→  96d494…1a→    ┃ │
+ │                                     │ │  ▎  11 60378d74-6f01-46f7-ae88-8f2eea08cd3f           10031  29133d87-5162-4dbe-a534-5f8a93fd6f8→  b5ef3c…60→    ┃ │
+ │                                     │ │  ▎  12 96d494e2-5a1f-40bc-9417-d0b50fa931a8           10033  f936ac92-9fc2-4e6b-9a33-aac1b78bc2b→  9ba3e6…1e→    ┃ │
+ │                                     │ │  ▎  13 202aa3f4-15d2-4141-84b6-92229037eeec           10040  14075dfb-fe9d-49c8-9223-a642b580a24→  ca9a3a…db→    ┃ │
+ │                                     │ │  ▎  14 88b114bd-04ad-479d-be5c-be980f185067           10041  c2244d61-d50f-4efe-bb03-bfc5a011cee→  dc0b4d…6e→    ┃ │
+ │                                     │ │  ▎  15 bfaf27ec-ff7e-440b-b7a8-0479a1406c4f           10042  aadffcd7-b527-485f-99c4-0486b007a01→  778238…b3→    ┃ │
+ │                                     │ │  ▎  16 bae8f93b-4c51-46c7-8f05-6d3af594fde9           10048  730e3123-c392-4337-93a8-273d3deacea→  0581d8…7a→    ┃ │
+ │                                     │ │  ▎  17 9cd28eb3-aa71-4502-9d2d-02c0d5dd62c9           10052  77e6ed22-4315-4b26-80a7-6c8ad22a2d7→  302b8b…d2→    ┃ │
+ │                                     │ │  ▎  18 d5876307-858c-48b1-a4ca-202ab17f0c03           10064  fb3511cd-704d-4b80-8c9a-54b2b55cf97→  a5ef8d…af→    ┃ │
+ │                                     │ │  ▎  19 9c904894-d9fb-4e54-a27a-59d4625c510b           10077  d288d519-4a36-448b-b46d-3c36faa49f4→  9de52c…70→    ┃ │
+ │                                     │ │  ▎  20 bc747931-c685-4142-8e89-3d508557cc76           10081  8f61c64f-00c0-4b9f-8839-a7531b484fe→  ac7c81…1a→    │ │
+ │                                     │ │  ▎  21 63b6e700-e375-4efc-a424-66cd981d2620           10082  67215086-10ba-462a-b643-03f4879104c→  0fa002…58→    │ │
+ │                                     │ │  ▎  22 c060bc76-2b22-4b26-95fb-370b8ea87657           10084  54044c8d-5bb7-4fbf-ad48-d5010c65e4f→  9d69e6…91→    │ │
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+

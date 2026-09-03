@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                    Workspaces › payments-platform › 7f3a  inside the Construct  2 running
+
+ ╭─ Workspaces ────────── 2 running ─╮ │  7f3a · payments-platform                                 instance · running
+ │ ▎   Current directory             │ │
+ │ ▎ ▾ payments-platform             │ │  Workspace     payments-platform › role the-architect
+ │ ▎   ◉ 7f3a  the-archite…ude Code  │ │  Agent         Claude Code · account Claude · Personal (provider default)
+ │ ▎   ◌ c41e  reviewer · Codex   •  │ │  Container     jackin-payments-platform-7f3a
+ │ ▎ ▸ infra-control-plane           │ │  Started       2 h ago · last seen 3 s ago
+ │ ▎ ▸ release-automation            │ │  Lifecycle     running · Container and Capsule daemon are live.
+ │ ▎ ▸ customer-portal               │ │  Working tree  2 uncommitted · 1 unpushed
+ │ ▎   + New workspace               │ │  Branch        feature/settlement-backoff · PR #482 · Settlement retry back…
+ │                                   │ │
+ │                                   │ │  Live topology                                              daemon · 3 s ago
+ │                                   │ │  ▾ tab 1  Mix (3)
+ │                                   │ │ ▎ › pane 1  claude     blocked
+ │                                   │ │ ▎   pane 2  codex      done
+ │                                   │ │ ▎   pane 3  shell      unknown
+ │                                   │ │  ▸ tab 2  Shell
+ │                                   │ │ ▎ › pane 1  shell      unknown
+ │                                   │ │  ▸ tab 3  docs
+ │                                   │ │ ▎ › pane 1  amp        blocked
+ │                                   │ │  Sessions                                              manifest · 2 recorded
+ │                                   │ │  s-01  2 h ago     claude   active
+ │                                   │ │  s-02  yesterday   codex    exited
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Reconnect   ▎New session   ▎Shell   ▎Inspect   ▎Stop   ▎Purge…
+ ╰───────────────────────────────────╯ │
+
+   Enter Reconnect  a New session  x Shell  t Stop  i Inspect  p Purge…  ← Back  Tab Details  c Accounts  u Usage  …

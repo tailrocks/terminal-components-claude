@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+  ≡ Query 1 ×    ≡ Query 2 ×    ≡ Query 3 ×    ≡ Query 4 ×                                                          +
+ ─────────────────────────────────────────────━━━━━━━━━━━━━━───────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 4 ─────────────────────────────────────────────────────────────────────────  ─╮
+ │                           │ │  ▎   1 Type SQL. Ctrl+R runs the statement under the cursor.                         │
+ │ ▎ Filter objects          │ │                                                                                      │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │                                                                                      │
+ │ ▎    ▾ Tables            ╭──────────────────────────────────────────────────────────────╮                          │
+ │ ▎      ▸ T organizations │ Open tabs                                                    │                          │
+ │ ▎      ▸ T customers     │ ▎ Filter tabs…                                               │                          │
+ │ ▎      ▸ T products      │                                                              │                          │
+ │ ▎      ▸ T orders        │ ▎≡ Query 1  query                                            │                          │
+ │ ▎      ▸ T order_items   │ ▎≡ Query 2  query                                            │                          │
+ │ ▎      ▸ T payments      │ ▎≡ Query 3  query                                            │                          │
+ │ ▎      ▸ T subscriptions │ ▎≡ Query 4  query                                   active   │                          │
+ │ ▎    ▸ Views             │                                                              │                          │
+ │ ▎    ▸ Functions         │ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        │                          │
+ │ ▎    ▸ Sequences         ╰──────────────────────────────────────────────────────────────╯                          │
+ │ ▎  ▸ S analytics          │ │                                                                                      │
+ │ ▎  ▸ S audit              │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                    No results yet                                    │
+ │                           │ │                                                                                      │
+ │                           │ │              Ctrl+R runs the statement under the cursor · Alt+R runs all             │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                Connected to Production

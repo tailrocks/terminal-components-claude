@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Pickers                                truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
+▎  Overview
+                            Open a picker
+   Components
+▎  Buttons                  ▎Open quickly   ▎Switch tab   ▎Choose a level
+▎  Inputs           ╭──────────────────────────────────────────────────────────────────────────────╮
+▎  Text areas       │ Open quickly                                                 All · Tab scope │e alternate actio…
+▎  Forms            │ ▎ Files and tasks…                                                           │
+▎  Lists            │                                                                              │
+▎  Trees            │ ▎F Cargo.toml                         Cargo.toml                     Files ┃ │
+▎  Tables           │ ▎F README.md                          README.md                            ┃ │
+▎  Editable tables  │ ▎F architecture.md                    docs/architecture.md                 ┃ │
+▎  Panels           │ ▎F auth.rs                            src/api/auth.rs                      ┃ │
+▎  Sidebars         │ ▎F auth_flow.rs                       tests/auth_flow.rs                   │ │
+▎  Dialogs          │ ▎F billing.rs                         src/api/billing.rs                   │ │
+▎  Progress         │ ▎F checkout.rs                        tests/checkout.rs                    │ │
+▎  Scrolling        │ ▎F config.rs                          src/config.rs                        │ │
+▎  Terminal         │ ▎F dispatch.rs                        src/api/webhooks/dispatch.rs         │ │
+▎  Code editor      │ ▎F lib.rs                             src/lib.rs                           │ │
+▎  Data grid        │ ▎F mailer.rs                          src/workers/mailer.rs                │ │
+▎  Chips & selects  │ ▎F main.rs                            src/main.rs                          │ │
+▎› Pickers          │ ▎F migrations.rs                      src/db/migrations.rs                 │ │
+▎  Chrome           │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close     │
+                    ╰──────────────────────────────────────────────────────────────────────────────╯
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+ Esc Close  Tab Next

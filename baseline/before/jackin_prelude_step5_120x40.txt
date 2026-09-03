@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                               Workspaces › new workspace  inside the Construct  2 running
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                             ╭────────────────────────────────────────────────────────────╮
+                             │                                                            │
+                             │  New workspace · step 5 of 5 · Name                        │
+                             │                                                            │
+                             │   Name *                                                   │
+                             │ ▎ data-pipeline                                            │
+                             │   Directory basename by default                            │
+                             │                                                            │
+                             │                                           ▎Back  ▎Create   │
+                             │                                                            │
+                             ╰────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT                                          Enter Next  Esc Cancel

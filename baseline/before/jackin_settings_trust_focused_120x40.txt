@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                                Settings › global › Trust  inside the Construct  2 running
+
+
+   General    Mounts    Environments    Agents    Trust
+  ───────────────────────────────────────────────━━━━━━━━─────────────────────────────────────────────────────────────
+
+    Role sources                                                                             3 trusted · 1 untrusted
+  ▎›   github.com/chainargos/roles               git   [✓] trusted    4 roles
+  ▎    github.com/acme-labs/roles-experimental   git   [ ] untrusted  1 role
+  ▎    ~/roles                                   path  [✓] trusted    1 role
+  ▎    git@corp:infra/roles                      git   [✓] trusted    2 roles
+
+    An untrusted source blocks + Load role until it is trusted here or
+    in the trust dialog that the load opens.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+                       Space Toggle trust  o Open source  [ ] Switch tab  Ctrl+S Save  Esc Back

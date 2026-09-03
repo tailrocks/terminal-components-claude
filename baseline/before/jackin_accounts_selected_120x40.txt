@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                        Accounts › Claude  ⠋ refreshing 1  inside the Construct  2 running
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │  Claude                                              provider · 3 accounts
+ │ ▎   Overview                        │ │
+ │ ▎ ▾ Claude                      !   │ │  Provider            Anthropic / Claude
+ │ ▎   ★ Personal                      │ │  Agent runtime       Claude Code
+ │ ▎     Archived contractor laptop …  │ │  Usage surface       Claude
+ │ ▎     Work                      !   │ │  Registration        manual accounts allowed · 1Password, local folder or
+ │ ▎ ▾ Codex                           │ │                      plain-text key
+ │ ▎   ★ Primary                       │ │  Default             ★ Personal
+ │ ▎     Experiments                   │ │
+ │ ▎ ▾ Amp                         ▲   │ │  Personal                                                    current 4 min
+ │ ▎     discovered                ▲   │ │  Session · 5-hour      38%                                 resets in 3 h …
+ │ ▎ ▾ Grok                            │ │  Weekly · all models   33%                                 resets Sun 19:…
+ │ ▎   ★ Team                          │ │  Archived contractor laptop profile — do not use for production launches
+ │ ▎ ▾ Z.AI                        ▲   │ │  Work                                                         stale 47 min
+ │ ▎     discovered                ▲   │ │  Session · 5-hour      76%                                 resets in 1 h …
+ │ ▎ ▾ Kimi                        !   │ │  Weekly · all models   88%                                 resets Sun 19:…
+ │ ▎     discovered                !   │ │
+ │ ▎ ▾ MiniMax                     !   │ │
+ │ ▎     discovered                !   │ │
+ │ ▎ ▾ OpenCode                    !   │ │
+ │ ▎   ★ Go subscription           !   │ │
+ │ ▎     ci-bot · discovered           │ │
+ │ ▎   Unsupported                     │ │
+ │ ▎   + Add account…                  │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │
+ │                                     │ │ ▎Refresh provider   ▎Add account…
+ ╰─────────────────────────────────────╯ │
+
+                         Space Fold  r Refresh provider  a Add…  / Filter  m Usage  Esc Back

@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Code editor        truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Code editor  Blocks, tones, diagnostics and completion; the gutter says where…
+▎  Buttons
+▎  Inputs              retry.rs                            3 blocks      State
+▎  Text areas
+▎  Forms               ▎›  1 // Retry a request with exponential …┃      Mode         navigating
+▎  Lists                   2 pub async fn fetch(url: &str) -> Res…┃      Cursor       ln 1 · col 1
+▎  Trees                   3     let mut delay = 200;             ┃      Block        1 of 3
+▎  Tables                  4     for attempt in 1..=5 {           ┃      Runs         0
+▎  Editable tables         5         match client().get(url).awai…┃      Last run     —
+▎  Panels                  6             Ok(body) => return Ok(bo…┃      Diagnostics  0
+▎  Sidebars                7             Err(e) if e.is_transient…┃      Completion   closed
+▎  Dialogs                 8                 log::warn!("attempt …┃
+▎  Progress                9                 sleep(delay).await;  ┃
+▎  Scrolling              10                 delay *= 2;          ┃
+▎  Terminal               11             }                        ┃      Diagnostics
+▎› Code editor            12             Err(e) => return Err(e), ┃
+▎  Data grid              13         }                            ┃           Nothing flagged
+▎  Chips & selects        14     }                                ┃
+▎  Pickers                15     Err(Error::Exhausted)            ┃        Run the second block:
+▎  Chrome                 16 }                                    │         its unwrap() gets a
+▎  Settings               17                                      │               warning
+▎  Task runner            18 fn client() -> Client {              │
+                          19     Client::builder().timeout(10).bu…│
+                          20 }                                    │
+                                                        1–20 of 26
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

@@ -1,0 +1,40 @@
+  jackin❯    File   Edit   View   Session   Help        payments-platform › the-architect  jackin-payments-pl…form-7f3a
+                                 ╭────────────────────────────────╮
+  1 Mix (3) ●    2 Shell    3 doc│  New tab with account…         │
+ ───────────────━━━━━━━━━━───────│  Change tab title…    Ctrl+B , │────────────────────────────────────────────────────
+payments-platform ❯ git status -s│ ────────────────────────────── │
+## feature/settlement-backoff…ori│  Detach               Ctrl+B d │ead 2]
+ M src/settlement/retry.rs       │  Close tab            Ctrl+B & │
+ M src/settlement/mod.rs         │ ────────────────────────────── │
+?? docs/adr/0007-retry-backoff.md│  Exit                   Ctrl+Q │
+payments-platform ❯ cargo clippy ╰────────────────────────────────╯
+    Checking settlement v0.9.2 (crates/settlement)
+    Finished dev [unoptimized] target(s) in 3.12s
+payments-platform ❯ ls docs/adr
+0001-record-architecture.md  0004-ledger-precision.md
+0002-settlement-batches.md   0005-fx-rounding.md
+0003-retry-policy.md         0007-retry-backoff.md
+payments-platform ❯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ PR #482 · Settlement retry backoff   • 4 changed · 1 unpushed        shell   3 tabs · 1 pane        no account · shell
+                  ← → Menu  ↑↓ Move  Enter Choose  Esc Close    Attached to payments-platform · tabs and panes restored

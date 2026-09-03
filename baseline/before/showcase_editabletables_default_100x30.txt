@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Editable tables    truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Editable tables  Navigation is reversed cell; editing is a cursor. They never…
+▎  Buttons
+▎  Inputs              Tasks                                                               0 edits
+▎  Text areas
+▎  Forms                  ID     Task                                        Owner     Status    …
+▎  Lists               ▎  #1040  Add rate limiting to auth endpoints         mira      Done
+▎  Trees               ▎  #1041  Migrate sessions table to UUID keys         jonas     ▸ Running
+▎  Tables              ▎  #1042  Fix flaky checkout integration test         ana       Failed
+▎› Editable tables     ▎  #1043  Write release notes for 3.2                 mira      Queued
+▎  Panels              ▎  #1044  Replace deprecated Vue mixins               kai       Done
+▎  Sidebars            ▎  #1045  Upgrade Postgres driver to 0.9              jonas     Paused
+▎  Dialogs             ▎  #1046  Extract billing service module              sofia     Done
+▎  Progress            ▎  #1047  Add OpenTelemetry tracing spans             kai       ▸ Running
+▎  Scrolling           ▎  #1048  Remove legacy feature flags                 ana       Queued
+▎  Terminal            ▎  #1049  Generate API client from OpenAPI            sofia     Done
+▎  Code editor         ▎  #1050  Harden CSP headers                          mira      Done
+▎  Data grid           ▎  #1051  Speed up cold start of worker               jonas     Failed
+▎  Chips & selects     ▎  #1052  Localize onboarding emails                  kai       Queued
+▎  Pickers             ▎  #1053  Add pagination to audit log                 ana       Done
+▎  Chrome
+▎  Settings
+▎  Task runner       reversed  cell cursor (navigation)
+                     ▁         editing cursor + accent underline
+                     !         validation error
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

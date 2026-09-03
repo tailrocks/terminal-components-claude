@@ -1,0 +1,24 @@
+  jackin❯    File   Edit   View   Session   Help
+
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ───────────────━━━━━━━━━━─────────────────────────────────────────────────────
+payments-platform ❯ git status -sb
+## feature/se╭─ Unsaved work — exit? ─────────────────────────────╮ead 2]
+ M src/settle│  payments-platform   • 4 changed · 1 unpushed      │
+ M src/settle│                                                    │
+?? docs/adr/0│                                                    │
+payments-plat│ ▎(●) Start a new agent                             │
+    Checking │ ▎( ) Inspect changes                               │
+    Finished │ ▎( ) Exit & keep changes                           │
+payments-plat│ ▎( ) Exit & discard changes                        │
+0001-record-a│                                                    │
+0002-settleme│                                                    │
+0003-retry-po│                                                    │
+payments-plat│                                                    │
+             │                                 ▎Cancel  ▎Choose   │
+             ╰────────────────────────────────────────────────────╯
+
+
+
+ PR #482 · Settlement retry backoff   • 4 changed · 1 unpushed      shell
+         ↑↓ Choose  …   Attached to payments-platform · tabs and panes restored

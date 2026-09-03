@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Panels             truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Panels  Cards group; a frame only where a pane needs an edge; nothing boxed t…
+▎  Buttons
+▎  Inputs              Titled card                surface    ╭─ Framed · split pane ────────────  ─╮
+▎  Text areas                                                │  Junie works through a task the   ┃ │
+▎  Forms               A card is a filled surface. Its       │  way a careful engineer would: it ┃ │
+▎  Lists               title sits in the top-left and        │  reads the relevant code, forms a ┃ │
+▎  Trees               metadata on the right. It never       │  plan, makes focused changes,     │ │
+▎  Tables              has a border.                         │  runs the tests, and reports back │ │
+▎  Editable tables                                           │  with a summary you can review    │ │
+▎› Panels                                                    │  before anything is merged.       │ │
+▎  Sidebars                                                  │                                   │ │
+▎  Dialogs             Untitled card. Same surface,          │  Each step is visible. You can    │ │
+▎  Progress            content starts at the padding         │  pause, redirect, or take over at │ │
+▎  Scrolling           edge.                                 ╰─────────────────────────────────────╯
+▎  Terminal
+▎  Code editor                                                 Card · scrollable
+▎  Data grid
+▎  Chips & selects     Nested                                     0.00s  info   Resolving works… ┃
+▎  Pickers                                                        0.37s  info   Fetching crates… │
+▎  Chrome              Target                                     0.74s  info   Compiling proc-… │
+▎  Settings            ▎  Local                                   1.11s  info   Compiling serde… │
+▎  Task runner         ▎  CLI                                     1.48s  warn   unused import: … │
+                       ▎  Cloud                                   1.85s  info   Compiling tokio… │
+                                                                  2.22s  info   Running unittes… │
+                                                                  2.59s  info   test api::auth:… │
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

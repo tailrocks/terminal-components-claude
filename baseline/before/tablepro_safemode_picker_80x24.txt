@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ≡ Query 1 • ×    T orders ×    H History ×    ≡ Query 2 ×                 +
+ ──────────────────────────────────────────────━━━━━━━━━━━━━━──────────────────
+ ╭╭──────────────────────────────────────────────────────────────────────────╮╮
+ ││ Safe Mode · this connection                                              ││
+ ││ ▎  Silent            Writes run without asking. Destructive s…           ││
+ ││ ▎  Alert             Every write asks for confirmation before…           ││
+ ││ ▎  Alert (Full)      Every statement, reads included, asks fo…           ││
+ ││ ▎› Safe Mode         Writes ask for confirmation and a delibe… current   ││
+ ││ ▎  Safe Mode (Full)  Every statement asks for confirmation an…           ││
+ ││ ▎  Read-Only         Writes are refused. Reads and exports st…           ││
+ ││                                                                          ││
+ ││ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connecti… ││
+ │╰──────────────────────────────────────────────────────────────────────────╯│
+ │                                                                            │
+ │         Ctrl+R runs the statement under the cursor · Alt+R runs all        │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+                                               Cancelled · nothing was executed

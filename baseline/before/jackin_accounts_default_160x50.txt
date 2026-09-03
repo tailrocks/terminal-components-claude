@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                              Accounts › Overview  ⠋ refreshing 1  inside the Construct  2 running
+
+ ╭─ Accounts ─────────────────────── 12 · 4 ▲ · 4 ! ─╮ │  Overview                                                                  12 accounts · 8 providers
+ │ ▎   Overview                                      │ │
+ │ ▎ ▾ Claude                                 !   3  │ │  Health        degraded · 4 warnings · 1 exhausted · 2 stale · 1 refreshing · 3 failed · 1 quota not
+ │ ▎   ★ Personal                     current 4 min  │ │                visible · 2 identities unresolved
+ │ ▎     Archived contractor laptop prof…  disabled  │ │  Registry      12 accounts · 11 enabled · 1 disabled · 8 providers
+ │ ▎     Work                      !   stale 47 min  │ │  Sources       7 registered · 5 discovered · 1Password available
+ │ ▎ ▾ Codex                                      2  │ │
+ │ ▎   ★ Primary                      current 2 min  │ │  Comparable windows                                         identical provider, window and unit only
+ │ ▎     Experiments                   ⠋ refreshing  │ │  Anthropic · Session · 5-hour   2 accounts · 24–62% remaining (1 last good)
+ │ ▎ ▾ Amp                                    ▲   1  │ │  Anthropic · Weekly · all models   2 accounts · 12–67% remaining (1 last good)
+ │ ▎     discovered               ▲   current 1 min  │ │  Anthropic · Weekly · Opus   2 accounts · 0–46% remaining (1 last good)
+ │ ▎ ▾ Grok                                       1  │ │  OpenAI · Credits   2 accounts · 76–82% remaining (1 last good)
+ │ ▎   ★ Team                         current 9 min  │ │  OpenAI · Session · 5-hour   2 accounts · 88–96% remaining (1 last good)
+ │ ▎ ▾ Z.AI                                   ▲   1  │ │  OpenAI · Weekly · 7-day   2 accounts · 41–88% remaining (1 last good)
+ │ ▎     discovered                   ▲   stale 2 h  │ │
+ │ ▎ ▾ Kimi                                   !   1  │ │  Not comparable
+ │ ▎     discovered                !   needs secret  │ │  Amp (single account or different windows) · xAI (single account or different windows) · Z.AI
+ │ ▎ ▾ MiniMax                                !   1  │ │  (single account or different windows) · MiniMax (single account or different windows) · OpenCode
+ │ ▎     discovered                 !   unavailable  │ │  (single account or different windows)
+ │ ▎ ▾ OpenCode                               !   2  │ │
+ │ ▎   ★ Go subscription           !   rate limited  │ │  Warnings
+ │ ▎     ci-bot · discovered            unsupported  │ │  ▲ Claude · Work   Session · 5-hour 76% used · resets in 1 h 5 min
+ │ ▎   Unsupported                         sentinel  │ │  ▲ Claude · Work   Weekly · all models 88% used · resets Sun 19:14
+ │ ▎   + Add account…                                │ │  ! Claude · Work   Weekly · Opus exhausted · resets Sun 19:14
+ │                                                   │ │  ▲ Claude · Work   stale · last good 47 min ago
+ │                                                   │ │  ▲ Amp · discovered   Amp Free · daily 91% used · resets in 10 h
+ │                                                   │ │  ▲ Z.AI · discovered   Weekly 76% used · resets Mon 09:14
+ │                                                   │ │  ▲ Z.AI · discovered   stale · last good 2 h ago
+ │                                                   │ │  ! Kimi · discovered   No credential found: ~/.kimi has no api key
+ │                                                   │ │  ! MiniMax · discovered   Provider unavailable: MiniMax did not respond
+ │                                                   │ │  ! OpenCode · Go subscription   Rate limited: retry after 25 min
+ │                                                   │ │
+ │                                                   │ │  Unresolved identity
+ │                                                   │ │  Amp · discovered · local folder · presence only — not an authenticated account
+ │                                                   │ │  Kimi · discovered · local folder · presence only — not an authenticated account
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │ ▎Refresh all   ▎Add account…
+ ╰───────────────────────────────────────────────────╯ │
+
+                                              Enter Details  r Refresh all  a Add…  / Filter  m Usage  Esc Back

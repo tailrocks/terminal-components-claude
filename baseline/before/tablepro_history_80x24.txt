@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ≡ Query 1 • ×    T orders ×    H History ×                                +
+ ───────────────────────────────━━━━━━━━━━━━━━─────────────────────────────────
+ ╭─ Query history ─────────────────────────────────────────────── 16 entries ─╮
+ │                                                                            │
+ │  ▎ Search history · terms are ANDed      scope: Production  ·  status: any │
+ │                                                                            │
+ │  ▎› SELECT * FROM… just now · 63 ms     Query          Editor · just now   │
+ │  ▎  SELECT plan, co… 3 d ago · 5 ms                                        │
+ │  ▎  SELECT * FROM … 1 d ago · 24 ms    ▎›  1 SELECT * FROM orders          │
+ │  ▎  SELECT day, re… 3 h ago · 14 ms        2 LIMIT 5                       │
+ │  ▎! SELECT * FROM ordr… 1 h ago · –                                        │
+ │  ▎  SELECT o.id, o… 1 h ago · 61 ms                                        │
+ │  ▎  UPDATE order… 58 min ago · 3 ms     Connection  Production · acme_p…   │
+ │  ▎  SELECT * FR… 40 min ago · 21 ms     Duration    63 ms                  │
+ │  ▎  EXPLAIN ANAL… 15 min ago · 9 ms     Rows        5                      │
+ │  ▎  SELECT count(*) FROM orders WHE…                                       │
+ │  ▎  SELECT * FRO… 4 min ago · 38 ms     ▎Open in new tab   ▎Run in new…    │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Open in new tab  r Rerun  y Copy  / Search  c s Scope · Status  …

@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help        Workspaces › payments-platform › edit  • 1 change  inside the Construct  2 running
+
+
+   General    Mounts •    Roles    Environments    Accounts
+  ───────────────────────━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────
+
+    Allowed roles  3 of 46                                                                   default ★ the-architect
+  ▎›   [✓] the-architect ★  registry · trusted · Full-stack design and refactoring; Claude Code default              ┃
+  ▎    [✓] backend          registry · trusted · Rust and Postgres services                                          ┃
+  ▎    [✓] reviewer         registry · trusted · Read-mostly code review with limited write scope                    ┃
+  ▎    [ ] sre              registry · trusted · Infrastructure, Terraform, Kubernetes                               ┃
+  ▎    [ ] data-eng         ! load error · trust required                                                            ┃
+  ▎    [ ] writer           ~/roles/writer · not in registry                                                         ┃
+  ▎    [ ] svc-001          registry · trusted · ledger service agent #1                                             ┃
+  ▎    [ ] svc-002          registry · trusted · search service agent #2                                             ┃
+  ▎    [ ] svc-003          registry · trusted · notify service agent #3                                             ┃
+  ▎    [ ] svc-004          registry · trusted · ingest service agent #4                                             ┃
+  ▎    [ ] svc-005          registry · trusted · auth service agent #5                                               ┃
+  ▎    [ ] svc-006          registry · trusted · billing service agent #6                                            ┃
+  ▎    [ ] svc-007          registry · trusted · ledger service agent #7                                             ┃
+  ▎    [ ] svc-008          registry · trusted · search service agent #8                                             ┃
+  ▎    [ ] svc-009          registry · trusted · notify service agent #9                                             ┃
+  ▎    [ ] svc-010          registry · trusted · ingest service agent #10                                            ┃
+  ▎    [ ] svc-011          registry · trusted · auth service agent #11                                              ┃
+  ▎    [ ] svc-012          registry · trusted · billing service agent #12                                           │
+  ▎    [ ] svc-013          registry · trusted · ledger service agent #13                                            │
+  ▎    [ ] svc-014          registry · trusted · search service agent #14                                            │
+  ▎    [ ] svc-015          registry · trusted · notify service agent #15                                            │
+  ▎    [ ] svc-016          registry · trusted · ingest service agent #16                                            │
+  ▎    [ ] svc-017          registry · trusted · auth service agent #17                                              │
+  ▎    [ ] svc-018          registry · trusted · billing service agent #18                                           │
+  ▎    [ ] svc-019          registry · trusted · ledger service agent #19                                            │
+  ▎    [ ] svc-020          registry · trusted · search service agent #20                                            │
+  ▎    [ ] svc-021          registry · trusted · notify service agent #21                                            │
+  ▎    [ ] svc-022          registry · trusted · ingest service agent #22                                            │
+  ▎    [ ] svc-023          registry · trusted · auth service agent #23                                              │
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ ← → Tab  1–5 Jump  Enter Body  [ ] Switch tab  Ctrl+S Save  Esc Back    /workspace/payments-platform · isolation clone

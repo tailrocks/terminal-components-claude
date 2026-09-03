@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                           Workspaces › payments-platform  inside the Construct  2 running
+  ╭─ Keyboard shortcuts ──────────────────────────────────────────────────────────── Workspaces › payments-platform ─╮
+ ╭│  Workspaces                          Instances                           Everywhere                              │
+ ││  ↑↓ j k       move                   Enter r      reconnect / restore    Tab Shift+T… next / previous            │
+ ││  ←→ h l       collapse / expand      a            new session            Esc          back one level             │
+ ││  Space        fold workspace         x            open shell             u            Usage overlay              │
+ ││  Enter        launch                 i            inspect container      c            Accounts & Usage           │
+ ││  e            edit workspace         t            stop                   s            Settings                   │
+ ││  n            new workspace          p            purge…                 F5           refresh now                │
+ ││  d            delete…                                                    ?            this help                  │
+ ││  w            prewarm                Mouse                               q            back / quit                │
+ ││  o            open in GitHub         click        select · 2× activates  Ctrl+Q       quit with confirmati…      │
+ ││  * -          expand / collapse all  wheel        scroll under pointer   Ctrl+C       quit immediately           │
+ ││  Tab          details                drag         seam · scrollbar thu…                                          │
+ ││                                                                                                                  │
+ ││  Editor and Settings                                                                                             │
+ ││  ←→ 1–5 [ ]   switch tab                                                                                         │
+ ││  Ctrl+S       save (preview first)                                                                               │
+ ││  Space        toggle / cycle                                                                                     │
+ ││  a e d        add / edit / remove                                                                                │
+ ││  m p s        mask · 1Password · s…                                                                              │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││  ↑↓ Scroll · Esc Close                                                                                           │
+ ╰╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                 ↑↓ Scroll  Esc Close

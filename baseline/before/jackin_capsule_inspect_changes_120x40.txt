@@ -1,0 +1,40 @@
+  jackin❯    File   Edit   View   Session   Help        payments-platform › the-architect  jackin-payments-pl…form-7f3a
+      ╭─ Inspect changes · payments-platform ────────────────────────────────────────────────── m advanced view ─╮
+  1 Mi│  2 files · +9 −4                                                                      compact · unified  │
+ ─────│                                                                                                          │─────
+╭─ She│  ▎ M src/settlement/mod.rs                                                                       +2 −1   │─────╮
+│payme│  ▎ M src/settlement/retry.rs                                                                     +7 −3   │     │
+│## fe│  ▎ ↑ 1 commit not pushed                                                                                 │     │
+│ M sr│                                                                                                          │     │
+│ M sr│                                                                                                          │     │
+│?? do│                                                                                                          │     │
+│payme│                                                                                                          │     │
+│    C│                                                                                                          │     │
+│    F│                                                                                                          │     │
+│payme│                                                                                                          │     │
+│0001-│                                                                                                          │     │
+│0002-│                                                                                                          │     │
+│0003-│                                                                                                          │     │
+│payme│                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     │                                                                                                          │     │
+│     ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────╯     │
+╰─────────────────────────────────────────────────────────╯│╰──────────────────────────────────────────────────────────╯
+ PR #482 · Settlement retry backoff   • 4 changed · 1 unpushed       shell   3 tabs · 2 panes        no account · shell
+                         ↑↓ Move  Enter Open diff  d Unified / review  m Advanced  Esc Close              Started Shell

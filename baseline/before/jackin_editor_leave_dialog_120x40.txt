@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help        Workspaces › payments-platform › edit  • 1 change  inside the Construct  2 running
+
+
+   General    Mounts •    Roles    Environments    Accounts
+  ───────────────────────━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────
+
+    Allowed roles  3 of 46                                                                   default ★ the-architect
+  ▎›   [✓] the-architect ★  registry · trusted · Full-stack design and refactoring; Claude Code default              ┃
+  ▎    [✓] backend          registry · trusted · Rust and Postgres services                                          ┃
+  ▎    [✓] reviewer         registry · trusted · Read-mostly code review with limited write scope                    ┃
+  ▎    [ ] sre              registry · trusted · Infrastructure, Terraform, Kubernetes                               ┃
+  ▎    [ ] data-eng         ! load error · trust required                                                            ┃
+  ▎    [ ] writer           ~/roles/writer · not in registry                                                         ┃
+  ▎    [ ] svc-001          registry · trusted · ledger service agent #1                                             ┃
+  ▎    [ ] svc-002          registry · trusted · search service agent #2                                             ┃
+  ▎    [ ] svc-003          regis╭────────────────────────────────────────────────────╮                              ┃
+  ▎    [ ] svc-004          regis│                                                    │                              ┃
+  ▎    [ ] svc-005          regis│  Unsaved changes                                   │                              ┃
+  ▎    [ ] svc-006          regis│                                                    │                              ┃
+  ▎    [ ] svc-007          regis│  Save changes before leaving? 1 change would be    │                              ┃
+  ▎    [ ] svc-008          regis│  lost.                                             │                              ┃
+  ▎    [ ] svc-009          regis│                                                    │                              ┃
+  ▎    [ ] svc-010          regis│                         ▎Cancel  ▎Discard  ▎Save   │                              ┃
+  ▎    [ ] svc-011          regis│                                                    │                              ┃
+  ▎    [ ] svc-012          regis╰────────────────────────────────────────────────────╯                              │
+  ▎    [ ] svc-013          registry · trusted · ledger service agent #13                                            │
+  ▎    [ ] svc-014          registry · trusted · search service agent #14                                            │
+  ▎    [ ] svc-015          registry · trusted · notify service agent #15                                            │
+  ▎    [ ] svc-016          registry · trusted · ingest service agent #16                                            │
+  ▎    [ ] svc-017          registry · trusted · auth service agent #17                                              │
+  ▎    [ ] svc-018          registry · trusted · billing service agent #18                                           │
+  ▎    [ ] svc-019          registry · trusted · ledger service agent #19                                            │
+  ▎    [ ] svc-020          registry · trusted · search service agent #20                                            │
+  ▎    [ ] svc-021          registry · trusted · notify service agent #21                                            │
+  ▎    [ ] svc-022          registry · trusted · ingest service agent #22                                            │
+  ▎    [ ] svc-023          registry · trusted · auth service agent #23                                              │
+
+                                                                                                 ▎Cancel    ▎Save…
+
+            ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer    /workspace/payments-platform · isolation clone

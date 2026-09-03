@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                    Workspaces › payments-platform › b5df  inside the Construct  2 running
+
+ ╭─ Workspaces ────────── 2 running ─╮ │  b5df · payments-platform                            instance · failed setup
+ │ ▎   Current directory             │ │
+ │ ▎ ▾ payments-platform             │ │  Workspace     payments-platform › role the-architect
+ │ ▎   ◉ 7f3a  the-archite…ude Code  │ │  Agent         Claude Code · account Claude · Personal (provider default)
+ │ ▎   ◌ c41e  reviewer · Codex   •  │ │  Container     jackin-payments-platform-b5df
+ │ ▎   ! b5df  the-archite…ude Code  │ │  Started       0 s ago · last seen 0 s ago
+ │ ▎ ▸ infra-control-plane           │ │  Lifecycle     failed setup · Launch failed before the Capsule was ready;
+ │ ▎ ▸ release-automation            │ │                nothing to attach to.
+ │ ▎ ▸ customer-portal               │ │  Working tree  clean
+ │ ▎   + New workspace               │ │  Branch        feature/settlement-backoff
+ │                                   │ │
+ │                                   │ │  Live topology                                                   unavailable
+ │                                   │ │  No live daemon (instance not running)
+ │                                   │ │  Sessions                                              manifest · 0 recorded
+ │                                   │ │  No sessions recorded
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Inspect   ▎Purge…
+ ╰───────────────────────────────────╯ │
+
+ i Inspect  p Purge…  ← Back  Tab Details  c Accounts  …   ! Launch failed · 2 instances still running in the Construct

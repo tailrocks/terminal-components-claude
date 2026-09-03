@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help       Workspaces › release-automation › edit  ! instance index unreadable  ▲ daemon stale
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ──────────────────────────────━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────
+
+      Workspace                                                                                                0 vars
+  ▎›    + Add environment variable
+      Role overrides                                                                       none · 126 in the registry
+  ▎     + Add role override…
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+            Enter Add…  …   Could not confirm running instances: instance index unreadable · entered without the ritual

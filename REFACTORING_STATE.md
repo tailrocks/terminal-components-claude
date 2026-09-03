@@ -14,9 +14,14 @@
   - `cargo clippy --all-targets -- -D warnings` exit 0, 0 warnings
   - `cargo test --all-targets` exit 0 — 76 (lib) + 63 (jackin) + 26 (tablepro) + 33 (showcase) = 198 passed, 0 failed
   - `cargo build --bins` exit 0
-- Pre-existing failures: none.
+- Pre-existing failures (from captures, see baseline/before/NOTES.md):
+  1. PANIC jackin-preview View→Container info: src/bin/jackin_preview/screens/capsule.rs:1183 `&i.run_id.replace('-', "")[..8]` on 7-byte id (unguarded byte slice). Fix in Slice 7 (structural: width-safe truncation helper).
+  2. jackin `Ctrl+B i` listed in View menu but prefix handler rejects it (menu/binding drift — the B9 binding-table design removes the class).
+  3. `Ctrl+\` palette chord undeliverable via tmux legacy encoding (harness limitation, not app bug).
+  4. jackin F10 reopens last-used menu, not File (semantics decision deferred to Slice 7 Opus review).
+  5. TablePro has no menu bar (by design today).
 - Source size: ~72K lines; lib ~16K (core/ui/theme/runtime/widgets), showcase ~8K, tablepro ~12K, jackin ~35K.
-- Before-refactor captures: in progress (baseline/before/), existing shots/ f_* and j_* retained.
+- Before-refactor captures: baseline/before/ — 499 captures (208 showcase, 108 tablepro, 183 jackin) as .ansi/.txt/.cursor (committed) + .html/.png (gitignored, regenerable via `tools/baseline_capture.sh all`); MANIFEST.md has exact key/mouse recipes; NOTES.md findings.
 
 ## Assignments
 

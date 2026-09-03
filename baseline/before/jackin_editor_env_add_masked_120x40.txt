@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                    Workspaces › payments-platform › edit  inside the Construct  2 running
+
+
+   General    Mounts    Roles    Environments    Accounts
+  ──────────────────────────────━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────
+
+      Workspace                                                                                                4 vars
+  ▎›    DATABASE_URL        ****************          plain
+  ▎     STRIPE_KEY       ╭─ New workspace environment key ────────────────────── environment ─╮dential
+  ▎     LOG_LEVEL        │   Key *                                                            │
+  ▎     GH_TOKEN         │ ▎ NEW_SECRET                                                       │
+  ▎     + Add environment│                                                                    │
+      Role overrides     │                                                                    │d · 46 in the registry
+    ▾ Role: backend      │   Value source                                                     │                 1 var
+  ▎     OPENAI_API_KEY   │ ▎(●) Plain text  (masked)                                          │ › credential
+  ▎     + Add backend env│ ▎( ) 1Password item / field  (recommended for secrets)             │
+  ▎     + Add role overri│ ▎( ) Host environment variable                                     │
+                         │                                                                    │
+                         │   Value for the key  optional                                      │
+                         │ ▎ ••••••••••••••••••••••••1234                                     │
+                         │                                                                    │
+                         │                                                                    │
+                         │   Scope                                                            │
+                         │ ▎ workspace                                                    ▾   │
+                         │                                                                    │
+                         │                                                                    │
+                         │                                                                    │
+                         │                                                                    │
+                         │                                                                    │
+                         │                                                   ▎Cancel  ▎Save   │
+                         ╰────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+                                 Tab Next field  Enter Edit / Save  Esc Cancel    DATABASE_URL shown · m masks it again

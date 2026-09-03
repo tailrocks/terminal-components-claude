@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help             Workspaces › infra-control-plane  ! instance index unreadable  ▲ daemon stale
+
+ ╭─ Workspaces ────────── 3 running ─╮ │  infra-control-plane                             saved workspace · 1 running
+ │ ▎   Current directory             │ │
+ │ ▎ ▸ payments-platform             │ │  Working dir   /workspace/infra-control-plane
+ │ ▎ ▸ infra-control-plane           │ │  Mounts        ~/src/infra-control-plane · rw shared
+ │ ▎ ▸ release-automation            │ │  Roles         sre ★ · allowed all (126 in registry)
+ │ ▎ ▸ customer-portal               │ │  Environments  2 vars · 1 [op]
+ │ ▎ ▸ data-pipeline                 │ │  Accounts      Claude · Personal ★ · Codex · Experiments ★ · Grok · Team ★ ·
+ │ ▎ ▸ docs-site                     │ │                OpenCode · Go subscription ★
+ │ ▎   auth-service                  │ │  Policies      git pull enabled · keep awake off · dirty exit ask
+ │ ▎   gateway                       │ │
+ │ ▎   mobile-app                    │ │  Instances                                          ▲ daemon stale · 3 s ago
+ │ ▎   ml-notebooks                  │ │  ◉ 9b02  sre · Codex · running
+ │ ▎   search-indexer                │ │  ◌ 04d7  sre · Grok Build · preserved · unpushed
+ │ ▎   staging-env                   │ │
+ │ ▎   billing-reconcilia…runcation  │ │
+ │ ▎   legacy-monolith               │ │
+ │ ▎   + New workspace               │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Edit   ▎Prewarm   ▎Delete…
+ ╰───────────────────────────────────╯ │
+
+          Enter Launch  …   Could not confirm running instances: instance index unreadable · entered without the ritual

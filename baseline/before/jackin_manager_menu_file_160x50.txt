@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                                   Workspaces › payments-platform  inside the Construct  2 running
+            ╭─────────────────────────╮
+ ╭─ Workspac│  New workspace…       n │ running ─╮ │  payments-platform         saved workspace · 1 running      Running                          2 instances
+ │ ▎   Curre│  Edit workspace…      e │platform  │ │
+ │ ▎ ▸ payme│  Launch…          Enter │ running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…
+ │ ▎ ▸ infra│  Prewarm              w │ running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes
+ │ ▎ ▸ relea│  Delete workspace…    d │! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal
+ │ ▎ ▸ custo│ ─────────────────────── │! failed  │ │  Roles         the-architect ★ · allowed 3 of 46
+ │ ▎   + New│  Refresh             F5 │          │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex
+ │          │ ─────────────────────── │          │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane
+ │          │  Quit            Ctrl+Q │          │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments
+ │          ╰─────────────────────────╯          │ │                OpenCode · Go subscription ★
+ │                                               │ │  Policies      git pull enabled · keep awake on · dir…
+ │                                               │ │                                                             Preserved                          3 records
+ │                                               │ │  Instances                            daemon · 3 s ago      ◌ c41e  payments-platform · reviewer · pres…
+ │                                               │ │  ◉ 7f3a  the-architect · Claude Code · running              ◌ a1c0  release-automation · backend · rest…
+ │                                               │ │  ◌ c41e  reviewer · Codex · preserved · dirty               ◌ 04d7  infra-control-plane · sre · preserv…
+ │                                               │ │
+ │                                               │ │                                                             Daemon                     healthy · 3 s ago
+ │                                               │ │                                                             Refresh      throttled · every 5 s
+ │                                               │ │                                                             Usage        degraded · 4 warnings · 1 exha…
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │ ▎Launch   ▎Edit   ▎Prewarm   ▎Delete…
+ ╰───────────────────────────────────────────────╯ │
+
+                                                          ← → Menu  ↑↓ Move  Enter Choose  Esc Close

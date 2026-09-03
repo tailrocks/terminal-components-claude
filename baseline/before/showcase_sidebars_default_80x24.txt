@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Sidebars            i Inspector   ? Help
+
+▎  Overview          Sidebars  Sections, current item, focus cursor, hover, co…
+▎  Buttons
+▎  Inputs                                            Tasks
+▎  Text areas           Workspace
+▎  Forms             ▎› T Tasks                3     One focus stop. ↑ ↓ move
+▎  Lists             ▎  R Runs                       the cursor, Enter opens.
+▎  Trees             ▎  B Branches
+▎  Tables                                            ›  current item ·
+▎  Editable tables      Project                      persists when focus
+▎  Panels            ▎  M Members                    leaves
+▎› Sidebars          ▎  E Environment                ▎  keyboard cursor · only
+▎  Dialogs           ▎  $ Billing                    while focused
+▎  Progress                                          ░  hover · follows the
+▎  Scrolling            Preferences                  pointer
+▎  Terminal          ▎  K Keyboard
+▎  Code editor       ▎  A Appearance                 Disabled items are
+▎  Data grid                                         skipped and ignore the
+▎  Chips & selects                                   pointer.
+▎  Pickers            ▎Collapse                      Collapsed mode keeps rows
+▎  Chrome
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

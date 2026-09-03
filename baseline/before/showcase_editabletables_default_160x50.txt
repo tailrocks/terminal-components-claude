@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Editable tables                                                                truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Editable tables  Navigation is reversed cell; editing is a cursor. They never look alike.
+▎  Overview
+                            Tasks                                                                                                                      0 edits
+   Components
+▎  Buttons                     ID     Task                                                             Owner     Status     Branch                   Changes
+▎  Inputs                   ▎  #1040  Add rate limiting to auth endpoints                              mira      Done       feat/rate-limit               14
+▎  Text areas               ▎  #1041  Migrate sessions table to UUID keys                              jonas     ▸ Running  chore/uuid-sessions           31
+▎  Forms                    ▎  #1042  Fix flaky checkout integration test                              ana       Failed     fix/checkout flake   !         3
+▎  Lists                    ▎  #1043  Write release notes for 3.2                                      mira      Queued     docs/release-3.2               0
+▎  Trees                    ▎  #1044  Replace deprecated Vue mixins                                    kai       Done       refactor/mixins               87
+▎  Tables                   ▎  #1045  Upgrade Postgres driver to 0.9                                   jonas     Paused     chore/pg-driver                5
+▎› Editable tables          ▎  #1046  Extract billing service module                                   sofia     Done       refactor/billing              52
+▎  Panels                   ▎  #1047  Add OpenTelemetry tracing spans                                  kai       ▸ Running  feat/otel                     22
+▎  Sidebars                 ▎  #1048  Remove legacy feature flags                                      ana       Queued     chore/flags                    0
+▎  Dialogs                  ▎  #1049  Generate API client from OpenAPI                                 sofia     Done       feat/api-client              118
+▎  Progress                 ▎  #1050  Harden CSP headers                                               mira      Done       sec/csp                        4
+▎  Scrolling                ▎  #1051  Speed up cold start of worker                                    jonas     Failed     perf/worker-boot               9
+▎  Terminal                 ▎  #1052  Localize onboarding emails                                       kai       Queued     feat/i18n-emails               0
+▎  Code editor              ▎  #1053  Add pagination to audit log                                      ana       Done       feat/audit-pages              16
+▎  Data grid
+▎  Chips & selects
+▎  Pickers                reversed  cell cursor (navigation)
+▎  Chrome                 ▁         editing cursor + accent underline
+                          !         validation error
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

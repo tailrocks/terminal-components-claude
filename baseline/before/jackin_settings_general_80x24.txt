@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help                       Settings › global › General
+
+
+   General    Mounts    Environments    Agents    Trust
+  ━━━━━━━━━━──────────────────────────────────────────────────────────────────
+
+    Commits
+    ▎[✓] Add Co-authored-by trailer
+    ▎[✓] Sign off commits (DCO)
+
+    Two independent flags; both apply to every Workspace.
+
+    Trailers
+    Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…
+
+
+
+
+
+
+
+                                                         ▎Cancel    ▎Save…
+
+     ← → Tab  1–5 Jump  Enter Body  [ ] Switch tab  Ctrl+S Save  Esc Back

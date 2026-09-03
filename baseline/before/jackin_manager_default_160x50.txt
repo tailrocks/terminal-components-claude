@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                                                       Workspaces  inside the Construct  2 running
+
+ ╭─ Workspaces ────────────────────── 2 running ─╮ │  Current directory · payments-platform                      Running                          2 instances
+ │ ▎   Current …ory  saved as payments-platform  │ │
+ │ ▎ ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…
+ │ ▎ ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes
+ │ ▎ ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal
+ │ ▎ ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 46
+ │ ▎   + New workspace                           │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex
+ │                                               │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane
+ │                                               │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments
+ │                                               │ │                OpenCode · Go subscription ★
+ │                                               │ │  Policies      git pull enabled · keep awake on · dir…
+ │                                               │ │                                                             Preserved                          3 records
+ │                                               │ │  Instances                            daemon · 3 s ago      ◌ c41e  payments-platform · reviewer · pres…
+ │                                               │ │  ◉ 7f3a  the-architect · Claude Code · running              ◌ a1c0  release-automation · backend · rest…
+ │                                               │ │  ◌ c41e  reviewer · Codex · preserved · dirty               ◌ 04d7  infra-control-plane · sre · preserv…
+ │                                               │ │
+ │                                               │ │                                                             Daemon                     healthy · 3 s ago
+ │                                               │ │                                                             Refresh      throttled · every 5 s
+ │                                               │ │                                                             Usage        degraded · 4 warnings · 1 exha…
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │ ▎Launch   ▎Edit
+ ╰───────────────────────────────────────────────╯ │
+
+                                  Enter Launch  n New  e Edit  Tab Details  c Accounts  u Usage  s Settings  ? Help  q Quit

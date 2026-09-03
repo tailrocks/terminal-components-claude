@@ -1,1 +1,5 @@
 /target
+baseline/**/*.png
+baseline/**/*.html
+tools/__pycache__/
+.DS_Store

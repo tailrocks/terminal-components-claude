@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help
+
+ ╭─ Usage · read-only ─────────────────────────────────────────────────────────────────────────────── ⠋ refreshing 1 ─╮
+ │  ▎  Overview                             Claude · Archived contractor laptop profile — do not…            disabled │
+ │    Anthropic                                                                                                       │
+ │  ▎    Personal  ★                        Provider     Anthropic / Claude · surface Claude                          │
+ │  ▎›   Archived contractor la… disabled   Account      unresolved identity · plan unknown                           │
+ │  ▎    Work                           !   Credential   Local folder · ~/Library/Application Support/jackin/profile… │
+ │    OpenAI                                Status       needs login · current · refreshed 30 d ago                   │
+ │  ▎    Primary  ★                                                                                                   │
+ │  ▎    Experiments                    ⠋   Limits                                                                    │
+ │    Amp                                     needs login · no quota until the agent signs in                         │
+ │  ▎    discovered                     ▲                                                                             │
+ │    xAI                                                                                                             │
+ │  ▎    Team  ★                                                                                                      │
+ │    Z.AI                                                                                                            │
+ │  ▎    discovered                     ▲                                                                             │
+ │    Kimi                                                                                                            │
+ │  ▎    discovered        ! needs secret                                                                             │
+ │    MiniMax                                                                                                         │
+ │  ▎    discovered         ! unavailable                                                                             │
+ │    OpenCode                                                                                                        │
+ │  ▎    Go subscription  ★             !                                                                             │
+ │  ▎    ci-bot               unsupported                                                                             │
+ │    Usage                                                                                                           │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                          ↑↓ Move  Enter Detail  r Refresh  m Manage in Accounts  Esc Close

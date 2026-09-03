@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help                    Workspaces › payments-platform
+            ╭─────────────────────────╮
+ ╭─ Workspac│  New workspace…       n │─────────────────────────── 2 running ─╮
+ │ ▎   Curre│  Edit workspace…      e │           saved as payments-platform  │
+ │ ▎ ▸ payme│  Launch…          Enter │                            1 running  │
+ │ ▎ ▸ infra│  Prewarm              w │                            1 running  │
+ │ ▎ ▸ relea│  Delete workspace…    d │                             ! failed  │
+ │ ▎ ▸ custo│ ─────────────────────── │                             ! failed  │
+ │ ▎   + New│  Refresh             F5 │                                       │
+ │          │ ─────────────────────── │                                       │
+ │          │  Quit            Ctrl+Q │                                       │
+ │          ╰─────────────────────────╯                                       │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+   payments-platform                                              Tab details
+
+   /workspace/payments-platform · 2 mounts · 5 vars
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal
+   ◉ 7f3a  the-architect · Claude Code · running
+
+
+                  ← → Menu  ↑↓ Move  Enter Choose  Esc Close
