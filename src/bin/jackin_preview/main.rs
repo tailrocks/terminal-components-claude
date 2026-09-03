@@ -17,6 +17,8 @@ mod rain;
 mod scenario;
 mod screens;
 mod sim;
+#[cfg(test)]
+mod visual_tests;
 
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};

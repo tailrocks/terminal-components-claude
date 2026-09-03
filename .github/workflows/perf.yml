@@ -1,0 +1,59 @@
+name: Perf
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  perf:
+    name: perf (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Library perf
+        run: |
+          cargo test --release --test perf -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
+      - name: Showcase perf
+        run: |
+          cargo test --release --bin showcase perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-showcase.log
+      - name: TablePro perf
+        run: |
+          cargo test --release --bin tablepro perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-tablepro.log
+      - name: Jackin perf
+        run: |
+          cargo test --release --bin jackin-preview perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-jackin.log
+      - name: Collect PERF lines
+        if: always()
+        run: grep -h '^PERF' perf-*.log > perf-lines.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-lines
+          path: |
+            perf-lines.txt
+            perf-*.log
+
+  perf-strict:
+    name: perf (strict, advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      PERF_STRICT: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Library perf (strict)
+        run: cargo test --release --test perf -- --test-threads=1
+      - name: Showcase perf (strict)
+        run: cargo test --release --bin showcase perf_tests -- --test-threads=1
+      - name: TablePro perf (strict)
+        run: cargo test --release --bin tablepro perf_tests -- --test-threads=1
+      - name: Jackin perf (strict)
+        run: cargo test --release --bin jackin-preview perf_tests -- --test-threads=1

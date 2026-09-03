@@ -11,6 +11,8 @@ mod model;
 mod perf_tests;
 mod sql;
 mod tabs;
+#[cfg(test)]
+mod visual_tests;
 mod workbench;
 
 use junie_tui::core::event::{Input, Outcome};
