@@ -7158,3 +7158,54 @@ Related: Appendix B.3 argues `text` stays private because "a `pub mod text` leak
 `inherit_forced_stays_crate_internal` is registered and runs under `xtask boundary`, but has **no `#[test]` wrapper** in `architecture.rs` — every other registered check does — and **no §16.5 row**. So it is invisible to `cargo test --workspace --test architecture`, which §16.5 and §16.1 both present as the way architecture checks run. Same omission shape as `bless-guard`, weaker instance because the check does at least execute.
 
 Its own doc comment states why it matters: if `inherit_forced` becomes public outside the `FieldControl` default, an application can force a component's state without writing `.state_override(`, **and the A11 boundary check becomes decorative.**
+
+## §42 Record — Slice 8 scoping, and three more findings in the gate the deliverable rests on <!-- amended by §42 -->
+
+**Status: recorded.** A read-only Slice 8 audit. Two premises it was handed were stale and it said so; three of its findings change scope rather than adding work.
+
+### §42.1 "Exactly two modules are `pub` by decision" is false <!-- amended by §42 -->
+
+Appendix B.3 item 2 states it and gives the reason: *"adding a type to the public API is a deliberate line in `lib.rs`, reviewable in a diff."* `crates/tui/src/lib.rs` declares **four** `pub mod`: `components`, `layout`, `theme`, `author`. `author` is separately sanctioned by B.3 item 1. **`pub mod components` has no sanction anywhere in B.3 or B.4.**
+
+The consequence is exactly the one B.3's reason exists to prevent: every component has **two** public paths, and `components/mod.rs`'s own `pub use` lines are already public, so the reviewable-line-in-`lib.rs` property is defeated. `author.rs` opens by saying the concrete components are "deliberately **not** here" — the same argument applies one level down.
+
+**Slice 8 fix is one line**, `pub mod components` → `pub(crate) mod components`; nothing in the root re-export list breaks, because it already names every item. Also unlisted in B.3 and B.4: the `#[cfg(feature = "testing")]` `StyledQuery` re-export.
+
+### §42.2 Three more holes in `doc-check`, the gate the documentation deliverable rests on <!-- amended by §42 -->
+
+§40.1 found that `doc-check` does not scan §27 onward. The same function has two further blind spots, and the third is in the resolver:
+
+- **It ignores §18, §19 and §20 as well.** So **the migration map itself is not doc-checked** — nor §20.10's visual-change list. §18 is a Slice 8 deliverable and no type name in it has ever been checked to resolve.
+- **It does not check visibility.** The API collector inserts every struct, enum and trait ident with **no visibility test**, unlike the conformance coverage check, which does. So a documented "public API" resolves happily against a `pub(crate)` or private item. **`doc-check` proves a name exists somewhere in the crate; it does not prove the documented API is public.** Combined with §41.4's arity blindness and §35's finding that it never compiles §17's examples, the gate proves very little.
+- **It never reads `crates/tui-testing`.** Every `Harness`, `Scene`, `Baseline`, `Conformance`, `Fixture` and `Caps` reference in §16.2/§16.3/§16.4 is **permanently** unresolvable and **permanently** allow-listed. The testing crate's documented API — which is §16.4's migration contract — has no reference check at all.
+
+`doc_check_allow.txt` has ~167 unique entries with **five duplicate pairs** — a list with duplicates has never been curated — and **at least 45 are already satisfied**. Since there is no staleness check, a satisfied entry silently becomes inert. §35.2's owed `KIND` column is necessary but **not sufficient**: the list needs at least four kinds — *not-yet-built* (the only kind that can go stale), *deleted-by-design*, *example-local*, and *other-crate* — because today all four are spelled identically. The worst entries are the bare ones: `Self`, `Runtime` and `Registry` each silence **every** member reference on that type across the whole document.
+
+**Consequence for the ledger:** "rustdoc-json upgrades for `doc-check`" is recorded as a Slice 8 *nice-to-have*. It is not an upgrade — the visibility blindness is **the reason the gate is decorative**, and it belongs in the gate-audit package as a correction.
+
+### §42.3 The one Slice 8 item that cannot wait <!-- amended by §42 -->
+
+**The roughly 76 legacy library unit tests have no per-test disposition recorded anywhere.** §16.4 accounts for the application tests by name; §16.1 and §16.2 declare the new library tests; **nothing maps old library test → new successor, or → "deliberately dropped, because".**
+
+Slice 5 deletes the root `src/`. When it does, those tests vanish with no record — **and the evidence needed to write that record is destroyed by the deletion itself.** An aggregate argument ("the new suite has 288 where the old had 76") is exactly the shape of reasoning this session has spent its time discrediting.
+
+This is therefore **a Slice 5 prerequisite, not a Slice 8 cleanup step**, and it is in flight.
+
+### §42.4 Two blockers nobody had recorded <!-- amended by §42 -->
+
+- **Deleting the legacy tree breaks `bless-guard`.** Four baseline files are classified `Frozen` — "any change fails, and the remedy is `git checkout --`, not a ledger entry". Slices 5–7 delete their producers, and **a deletion is a change**. The guard will fail with no documented remedy. Needs adjudication before Slice 5 writes code: either frozen evidence survives producerless, or the guard gains a deletion rule.
+- **`DESIGN.md` says both binaries accept `--color truecolor|256|16|none`, and §34 decides narrowing-never-widening with no `run_with`.** `--color truecolor` on a 16-colour terminal **is** a widening. **`DESIGN.md` outranks this document in the authority order**, so this is a conflict §34 does not get to win by default, and Slice 5 writes the showcase's `main` that resolves it.
+
+### §42.5 `DESIGN.md` has not been touched by this refactor <!-- amended by §42 -->
+
+Ten divergences were found, and the goal is explicit that when implementation establishes a reusable visual or interaction rule, `DESIGN.md` is updated. It has not been. The largest: **the entire mono state grammar** — nineteen rules per resolvable recipe, the neutral fallback, the `MARKER`/`Check` affordance, `DIM` on `FIELD`/`TEXT` — is a new reusable visual rule living **only** in this document, which is *below* `DESIGN.md` in the authority order. The mono pressed **bracket** is likewise absent from `DESIGN.md`'s own list of what must survive every colour level.
+
+So the Slice 8 `DESIGN.md` work is not a prose pass: it is a new section, a conflict to adjudicate, and a survival-list amendment.
+
+### §42.6 How to keep the Slice 8 architecture review from rubber-stamping <!-- amended by §42 -->
+
+A review that reads this document and confirms the code matches it **will** rubber-stamp, because the document has been amended to match the code twelve times. The review must be given **falsifiable, pre-registered questions with stated rejection conditions**, and — per `COORDINATION.md`'s rule — must demonstrate each finding red on a broken input. The sharpest question to hand it, because it has already paid twice:
+
+> **Which invariant is asserted by a mechanism that shares the defect's enabling condition?**
+
+§31 found a test that enumerated `by_family` exactly as the buggy code did, and §39 found that the mechanism added to make forcing honest is the mechanism that hid the operator's defect.
