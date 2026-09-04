@@ -292,3 +292,25 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - `rtk git diff --check` on the owned files: exit code `0`.
 - Remaining TextArea conformance issues are fixture-only: `text_area::mono_states_are_distinguishable` lacks non-empty controlled text, and `text_area::cursor_write_is_rejected_off_top_layer` has harness focus-settle timing after `tab_to`.
 - The production cursor contract remains focused + editing.
+
+## Session 3 checkpoint — Fable's post-Q1 conformance probe (2026-09-04)
+
+- Q1 source is committed and pushed in `db37043538f6d9ce1020ccbb1d4aae163d50434e` (`db37043`): `crates/tui/src/components/mod.rs`, `button.rs`, `tabs.rs`, and `chip.rs`. Focused Q1 tests: `3 passed; 264 filtered out`; exit code `0`. Push output: `ddd1dda..db37043 main -> main`; exit code `0`.
+- Kant ran the exact filtered conformance probe; no files changed:
+  - `radio_group`: `20 passed; 1 failed; 0 ignored; 0 measured; 446 filtered out`; exit code `101`.
+    - `radio_group::disabled_cannot_activate`: `state changed while disabled`; left state initialized a cursor and 5 items (`content_len: 5`), right state was the empty initial state (`content_len: 0`).
+  - `chip_bar`: `17 passed; 4 failed; 0 ignored; 0 measured; 446 filtered out`; exit code `101`.
+    - `chip_bar::item_identity_survives_reorder`: `click did not name k1` (`left: None`, `right: Some(Num(100))`).
+    - `chip_bar::keyboard_and_mouse_activation_are_equivalent`: `a click over the activation part did nothing`.
+    - `chip_bar::disabled_cannot_activate`: `state changed while disabled`; left state initialized a cursor and 5 items, right state was the empty initial state.
+    - `chip_bar::mono_states_are_distinguishable`: mono output of `StateFlags(SELECTED)` equals `StateFlags(0x0)`; both outputs were `{(" ", 0): 179, ("…", 0): 1}`.
+  - `text_area`: `19 passed; 2 failed; 0 ignored; 0 measured; 446 filtered out`; exit code `101`.
+    - `text_area::cursor_write_is_rejected_off_top_layer`: `no cursor while focused on the top layer`.
+    - `text_area::mono_states_are_distinguishable`: mono output of `StateFlags(EDITING)` equals `StateFlags(0x0)`; the differing glyph modifiers were `h/p/r/y: 1` versus `h/p/r/y: 0`.
+- Fresh analyst findings: ChipBar mutates disabled state before editability checks; its right-aligned metadata is included in width measurement, preventing keyed label registration and causing the click/identity failures; its `SELECTED` marker contract remains unresolved. RadioGroup's META failure comes from shared `row_paint`; use a label-only fixture, while the disabled-state root still needs focused adjudication. TextArea production fixes are complete; its two remaining failures are fixture/harness issues.
+
+## Session 3 checkpoint — Fable's fresh analyst adjudications (2026-09-04)
+
+- Dewey adjudicated ChipBar `SELECTED` as a production contract defect: add `Part::MARKER` with the `Check` glyph in the existing leading pad; preserve geometry and do not narrow `mono_states()`. This requires a new `§30` record. No source or architecture files were changed.
+- Boole adjudicated RadioGroup disabled initialization as a component-specific reconcile-ordering bug: skip all state writes while disabled, preserving `Caps` and `CollectionCore`. The shared `row_paint` META finding still calls for a label-only fixture. No source or architecture files were changed.
+- Popper's TextArea buckets confirm production fixes are complete. The remaining `text_area::cursor_write_is_rejected_off_top_layer` and `text_area::mono_states_are_distinguishable` failures remain fixture/harness issues, as already recorded. No source or architecture files were changed.
