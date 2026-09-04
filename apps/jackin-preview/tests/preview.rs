@@ -14,15 +14,17 @@ fn first_use_flow_enters_the_manager() {
         30,
     );
     assert_eq!(harness.app().route(), Route::Intro);
-    assert!(harness
-        .text()
-        .contains("No running instances found"));
+    assert!(harness.text().contains("No running instances found"));
     assert!(harness.area_of(ENTER).is_some());
 
     let _ = harness.key(KeyCode::Enter);
     assert_eq!(harness.app().route(), Route::Manager);
     assert!(harness.text().contains("Workspaces & instances"));
-    assert!(harness.diagnostics().is_empty(), "{:?}", harness.diagnostics());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 
 #[test]
@@ -53,7 +55,11 @@ fn product_routes_and_account_picker_render_through_the_facade() {
     assert_eq!(harness.app().route(), Route::Capsule);
     assert!(harness.text().contains("Capsule"));
     assert!(harness.area_of(APP).is_some());
-    assert!(harness.diagnostics().is_empty(), "{:?}", harness.diagnostics());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 
 #[test]
@@ -77,7 +83,11 @@ fn launch_dialog_contains_a_nested_role_picker() {
     assert!(harness.is_open(LAUNCH_DIALOG));
     let _ = harness.key(KeyCode::Esc);
     assert!(!harness.is_open(LAUNCH_DIALOG));
-    assert!(harness.diagnostics().is_empty(), "{:?}", harness.diagnostics());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 
 #[test]
@@ -99,7 +109,7 @@ fn launch_simulation_is_deterministic_and_run_id_is_typed() {
     let other = RunId::from_label("different fixture");
     assert_eq!(first, second);
     assert_ne!(first, other);
-    assert_eq!(first.short().len(), 16);
+    assert_eq!(first.short().len(), 8);
     assert_eq!(format!("{first}"), format!("run-{}", first.short()));
 }
 
@@ -116,7 +126,11 @@ fn resize_preserves_focus_and_does_not_create_diagnostics() {
     let _ = harness.resize(84, 24);
     assert_eq!(harness.focus(), before);
     assert!(harness.area_of(APP).is_some());
-    assert!(harness.diagnostics().is_empty(), "{:?}", harness.diagnostics());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 
 #[test]
@@ -131,6 +145,7 @@ fn scenarios_and_references_are_stable_without_secret_material() {
     let debug = format!("{world:?}");
     assert!(debug.contains("v_eng01"));
     assert!(debug.contains("it_cdx01"));
+    assert!(!debug.contains("op://v_eng01/it_cdx01/credential"));
     assert!(!debug.contains("openai:valid-cdx01"));
     assert!(!debug.contains("anthropic:valid-ant01"));
 

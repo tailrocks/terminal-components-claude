@@ -40,9 +40,10 @@ impl RunId {
         Self(hash)
     }
 
-    /// A bounded display form. This never slices a short identifier.
+    /// An eight-hex-digit display form. The full value remains in the typed
+    /// field; this compact projection is for rows and status text only.
     pub fn short(self) -> String {
-        format!("{:08x}", self.0)
+        format!("{:08x}", self.0 & u64::from(u32::MAX))
     }
 
     /// The public short container identifier used by Capsule diagnostics.

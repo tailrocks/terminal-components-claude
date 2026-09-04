@@ -304,50 +304,23 @@ impl App {
     }
 
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if cx.is_open(ROLE_PICKER) {
-            let picker = Picker::new(ROLE_PICKER).title("Choose a role");
-            let response = picker.update(cx, &mut self.role_state, &self.roles);
-            let action = response.action_ref().copied();
-            let mut result = response.erase();
-            if let Some(PickerAction::Chosen(key)) = action
-                && let Some(index) = self
-                    .roles
-                    .iter()
-                    .position(|role| ItemKey::text(&role.key) == key)
-            {
-                self.selected_role = index;
-                cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
-                result |= Response::changed();
-            }
-            return result;
-        }
-        if cx.is_open(ACCOUNT_PICKER) {
-            let picker = Picker::new(ACCOUNT_PICKER).title("Choose a configured account");
-            let response = picker.update(cx, &mut self.account_state, &self.account_options);
-            let action = response.action_ref().copied();
-            let mut result = response.erase();
-            if let Some(PickerAction::Chosen(key)) = action
-                && let Some(account) = self
-                    .account_options
-                    .iter()
-                    .find(|account| ItemKey::text(&account.key) == key)
-            {
-                self.status = Some(format!("Selected reference · {}", account.detail));
-                cx.close_layer(ACCOUNT_PICKER, Some(ActionKey::CONFIRM));
-                result |= Response::changed();
-            }
-            return result;
-        }
-        if cx.is_open(LAUNCH_DIALOG) {
+        let mut result = Response::ignored();
+
+        // Drain the dialog and its body control while a child picker is
+        // open too.  Layer dismissal intents are addressed to the underlying
+        // owners during the same update pass; returning early for the top
+        // picker leaves those intents undelivered and makes nested overlays
+        // noisy in diagnostics.
+        if cx.is_open(LAUNCH_DIALOG) || cx.is_open(ROLE_PICKER) {
             let dialog = self.launch_dialog();
             let response = dialog.update(cx, &mut self.launch_dialog);
             let action = response.action_ref().copied();
-            let mut result = response.erase();
+            result |= response.erase();
             let role_label = self.selected_role().to_owned();
             let role = Button::new(ROLE_CHOOSE, &role_label).update(cx);
             let role_chosen = role.activated();
             result |= role.erase();
-            if role_chosen {
+            if role_chosen && !cx.is_open(ROLE_PICKER) {
                 self.open_role_picker(cx);
             }
             if let Some(action) = action {
@@ -365,9 +338,41 @@ impl App {
                 }
                 result |= Response::changed();
             }
-            return result;
         }
-        Response::ignored()
+
+        if cx.is_open(ROLE_PICKER) {
+            let picker = Picker::new(ROLE_PICKER).title("Choose a role");
+            let response = picker.update(cx, &mut self.role_state, &self.roles);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            if let Some(PickerAction::Chosen(key)) = action
+                && let Some(index) = self
+                    .roles
+                    .iter()
+                    .position(|role| ItemKey::text(&role.key) == key)
+            {
+                self.selected_role = index;
+                cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
+                result |= Response::changed();
+            }
+        }
+        if cx.is_open(ACCOUNT_PICKER) {
+            let picker = Picker::new(ACCOUNT_PICKER).title("Choose a configured account");
+            let response = picker.update(cx, &mut self.account_state, &self.account_options);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            if let Some(PickerAction::Chosen(key)) = action
+                && let Some(account) = self
+                    .account_options
+                    .iter()
+                    .find(|account| ItemKey::text(&account.key) == key)
+            {
+                self.status = Some(format!("Selected reference · {}", account.detail));
+                cx.close_layer(ACCOUNT_PICKER, Some(ActionKey::CONFIRM));
+                result |= Response::changed();
+            }
+        }
+        result
     }
 
     fn update_navigation(&mut self, cx: &mut Cx<'_>) -> Response<()> {
