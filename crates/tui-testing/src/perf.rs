@@ -61,10 +61,10 @@ fn count(bytes: usize) {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Counting;
 
+#[expect(unsafe_code, reason = "counting allocator; see SAFETY")]
 // SAFETY: every method forwards to `System` unchanged after bumping a
 // thread-local counter; the counter access cannot allocate or panic, so the
 // `GlobalAlloc` contract of `System` is preserved verbatim.
-#[expect(unsafe_code, reason = "counting allocator; see SAFETY")]
 unsafe impl GlobalAlloc for Counting {
     unsafe fn alloc(&self, l: Layout) -> *mut u8 {
         count(l.size());

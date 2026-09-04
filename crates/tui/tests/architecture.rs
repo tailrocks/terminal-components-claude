@@ -32,9 +32,10 @@ fn xtask(args: &[&str]) -> (bool, String) {
         .current_dir(workspace_root());
     // The production guard correctly refuses a missing base. Give its test
     // wrapper a real local range when no CI/PR base was inherited.
+    let has_env = |name| std::env::var(name).is_ok_and(|value| !value.trim().is_empty());
     if args == ["boundary", "--check", "baseline_moves_are_classified"]
-        && std::env::var_os("BLESS_GUARD_BASE").is_none()
-        && std::env::var_os("GITHUB_BASE_REF").is_none()
+        && !has_env("BLESS_GUARD_BASE")
+        && !has_env("GITHUB_BASE_REF")
     {
         command.env("BLESS_GUARD_BASE", "HEAD^");
     }
