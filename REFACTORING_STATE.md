@@ -337,3 +337,144 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - Mill adjudicated Select's layer contract: retain `OVERLAY`, add `TRAPS_FOCUS`, split case 14 so only the latter requires focus confinement/Tab wrapping/zero-size trapping, and record the amendment as new §31.
 - Mencius implemented the `TRAPS_FOCUS` capability bit and case-14 split. `rtk cargo test -p tui-next-testing --lib`: `3 passed; 1 ignored`; exit code `0`. `rtk cargo test -p tui-next --test conformance focus_trap_and_restore`: `22 passed; 445 filtered out`; exit code `0`. No commit or push was made for Mencius's implementation.
 - This checkpoint makes no unsupported completion claim: full conformance is still red, ChipBar production/fixture fixes remain pending, and the complete Slice 4 gate has not been run to green.
+
+## Session 4 — MAIN LEAD, multi-lead coordination (2026-09-04)
+
+**Three lead agents now work this goal against one working tree.** This session is
+**Lane A, the main lead**: it owns sequencing, this ledger, `COMPONENT_ARCHITECTURE.md`,
+`COORDINATION.md`, and the §30 final report. `COORDINATION.md` is the authoritative
+lane and file-ownership contract between the leads and is the only cross-lead channel.
+Lane B owns Slice 6 / TablePro, Lane C owns Slice 7 / Jackin, both over their own app
+trees plus lane-prefixed files under `docs/reviews/` and `docs/status/`. Lane A owns
+`crates/**`, `xtask/**`, `tools/**`, the root `src/**` removal and the crate rename.
+`cargo fmt --all`, every `BLESS=1` run, dependency bumps and force-pushes are Lane A only.
+
+### Measured ground truth (coordinator, 2026-09-04), HEAD `efe17ca` + uncommitted tree
+
+GREEN:
+- `cargo build -p tui-next --all-targets` exit 0.
+- `tui-next` lib **268** passed; `tui-next-testing` lib green.
+- `overrides` 5, `overlay` 4, `showcase_buttons` 4, `render` 8, `perf` **27** passed.
+- Legacy root package `cargo test --all-targets`: 76 + 67 + 33 + 41 + 30 = **247** passed.
+- `cargo run -p xtask -- doc-check` exit **0** (71 rust blocks, 583 references resolved).
+
+RED — the exact remaining Slice 4 wave-1 closure work:
+1. `cargo fmt --all --check` exit 1: 10 diffs in 7 files — `tui-testing/src/conformance/driver.rs`,
+   `components/{chip,meter,mod,scroll_region,status}.rs`, `tests/perf.rs`.
+2. `cargo clippy` exit 1, **2 errors, both in `tui-next` lib**:
+   `chip.rs:728` `use of eprintln!` (a leftover debug print that also spams every
+   conformance run) and `progress.rs:56` `indexing may panic` on `buf[len] = b'%'`.
+3. `architecture::conformance_covers_every_public_component` FAILS: 21 components
+   registered, `Select has no SelectCase in conformance_suite`. This is also the one
+   failing `xtask boundary` check (all others ok).
+4. `--test conformance`: **465 passed / 2 failed** — `chip_bar::item_identity_survives_reorder`
+   ("k1 lost after reverse", `left: None`, `right: Some(Num(100))`) and
+   `registry::declared_parts_are_the_parts_actually_styled`
+   ("chip_bar: styled Part::META which is not in PARTS
+   [Part::CONTAINER, Part::MARKER, Part::LABEL, Part::CLOSE, Part::OVERFLOW]").
+5. `--test render_components`: **45 passed / 115 failed** — the matrix was expanded to 20
+   components while `components.txt` still holds the old 384 lines. Mid-bless, expected,
+   and must not be blessed until 1-4 are closed and each move is classified in
+   `docs/visual-changes.md` against a numbered §20.10 item.
+
+### Corrections to `CONTINUE_PROMPT.md`, measured not assumed
+
+- **`CONTINUE_PROMPT.md` item 1 is STALE.** It says "§29 does not exist" and that
+  `COMPONENT_ARCHITECTURE.md` ends at §28.8. It does not: `## §29 Adjudication Q — Slice 3
+  residuals` is at line 6297 and `## §30 Adjudication — Slice 4 ChipBar selected marker`
+  at line 6495; the file is 6517 lines. §29 and §30 were written after that prompt was
+  authored. Completeness of the nine Q amendments is under independent audit.
+- **`CONTINUE_PROMPT.md` item 2 is STALE.** The `RowUi::marker`/`RowUi::part` glyph defect
+  is fixed: `Resolved.glyph` and `PartMetrics.glyph` are `Slot<GlyphRole>` and A4 is
+  re-stated as a live caller gate. Under independent audit.
+- The prompt's "known-failing at last measure" list is stale in three places: `cargo fmt`
+  is 7 files not 5; clippy is **2** errors not ~18 in `tui-next` and **0** not 2 in `xtask`;
+  `components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells` now **passes**.
+- `xtask doc-check` and the legacy 247 are green, not pending.
+
+### Active agents (Lane A, session 4)
+
+Builders, disjoint single-file ownership, running in parallel:
+- `chipbar-fix` — owns `crates/tui/src/components/chip.rs` only. Remove the `eprintln!`,
+  resolve `Part::META` vs `PARTS`, fix `item_identity_survives_reorder`. Given the recorded
+  prior diagnosis (right-aligned metadata included in width measurement prevents keyed
+  label registration) and told to verify it rather than trust it.
+- `progress-lint` — owns `crates/tui/src/components/progress.rs` only. Structural fix for
+  the unchecked index, keeping the allocation-free per-frame property.
+- `select-conformance` — owns `crates/tui/tests/conformance.rs` only. Register `SelectCase`.
+  Told that the "overlay contract unresolved" reason is stale: §29 settles it as
+  `Caps::OVERLAY` without `Caps::TRAPS_FOCUS`, so case 14 must not run for `Select`.
+
+Fresh read-only `opus-analyst` agents, running in parallel:
+- F1 mono-fallback adjudication: does `Recipes::apply_mono_fallbacks` really give a
+  `Family::custom(...)` zero rules at `ColorLevel::Mono`, and is that the same root cause
+  as `define_family`-with-empty-edit discarding neutral styling.
+- `findings-from-documentation.md` re-measurement: which of the eight defects are still
+  live, with severity against a named goal/architecture/R-rule item, disjoint fix
+  ownership, and a regression test per finding.
+- Recorded-counts verification: TablePro app tests, Jackin app tests, the Jackin `Screen`
+  trait method count, and the capsule frame allocation baseline — measured from source,
+  every asserting site enumerated, and whether correcting them turns
+  `every_named_test_exists` (currently 332 names / 269 present / 63 deferred, passing) red.
+- Adjudication Q completeness audit: all nine document amendments, the eight citation
+  sites, Q1/Q2/Q3, A4, and whether **every** registered component supplies a real
+  `mono_narrowing_reason()` rather than boilerplate.
+
+### Next action
+
+Fold the seven results in as they land, commit per finished agent, then bless
+`render_components` last (after chip and Select settle) with each moved baseline
+classified in `docs/visual-changes.md` first. Then Slice 4 packages 4A / 4C / 4E in
+parallel, a fresh analyst API-consistency review after each, then wave 2.
+
+### COORDINATOR CORRECTION — my own clippy measurement was wrong (2026-09-04)
+
+I recorded "clippy exit 1, **2 errors**" above. That is wrong and I am correcting it rather
+than letting it stand. I measured with `cargo clippy -p tui-next --all-features` **without**
+`-D warnings`, which reports only the hard errors. The required §26 gate is
+`cargo clippy --workspace --all-targets --all-features -- -D warnings`, and under it this
+crate's restriction lints (`arithmetic_side_effects`, `indexing_slicing`, `byte_char_slices`,
+`single_match_else`, `too_many_lines`, `unfulfilled_lint_expectations`) fire as errors too.
+The `progress-lint` builder found **8** errors in `progress.rs` alone where I had reported one,
+and 8 more across `chip.rs`, `choice.rs`, `keyhint.rs`, `meter.rs`, `select.rs` and `status.rs`.
+Lesson recorded for the remaining slices: always measure clippy with the exact gate string.
+
+### DONE — `progress.rs` (commit `1e9776f`)
+
+Root cause was structural, not a lint nit: `Pct::of` built its buffer imperatively and used a
+runtime `len` as an index, so the capacity proof lived only in the reader's head. Each branch
+now yields a complete four-byte literal with a constant length, so the array literal *is* the
+proof and no runtime index remains. Seven further gate errors in the same file were fixed the
+same way; in particular the indeterminate sweep's signed intermediate (introduced only to hold
+`edge < seg`) was removed by expressing the span unsigned as
+`(edge.saturating_sub(seg).min(w), edge.min(w))`, which deleted two casts and both unchecked
+operators at once. Equivalence to the old formula was checked over `w` in `0..200` plus
+1000/65530/65535 and `frame` in `0..600` plus 65535/100000/123456789 — 0 mismatches.
+A `#[expect(clippy::too_many_lines)]` on `ProgressBar::draw` was itself an
+`unfulfilled_lint_expectations` error and was removed. Output byte-identical; no baseline moves.
+
+**New gap found by that builder, not previously recorded:** `render_components` has **no
+baseline entries at all** for `render::components::progress_bar::{default,disabled,editing,
+empty,focused,hovered,pressed,selected}` at `120 40 junie truecolor`. That is a *missing*
+baseline, not drift — the entries were never written. It is part of the mid-bless
+`render_components` state and must be classified in `docs/visual-changes.md` before blessing.
+
+### CROSS-LEAD CONFLICT FOUND AND UNDER ADJUDICATION — `Select` focus trapping
+
+Another lead's analyst ("Mill", recorded in the Session 3 checkpoint above) adjudicated that
+`Select` should **retain `OVERLAY` and add `TRAPS_FOCUS`**, with case 14 split so only
+`TRAPS_FOCUS` requires focus confinement, and the amendment recorded as a new §31. A builder
+("Mencius") already implemented the capability bit and the case-14 split; that work is in the
+uncommitted tree in `crates/tui-testing/src/conformance/{driver.rs,mod.rs}`.
+
+This **directly contradicts recorded §29**, which states that `Select` remains `OVERLAY`-only
+and non-trapping, and it contradicts the instruction I gave my own `select-conformance` builder.
+`COMPONENT_ARCHITECTURE.md` change control requires a fresh adjudication to overturn §29, so a
+fresh read-only `opus-analyst` is adjudicating it now, with the explicit instruction to reject
+the case-14 split if it turns out to exist only to let `Select` pass — that would be a
+permanently loosened gate. Until that verdict lands, no §31 is written and the `SelectCase`
+registration is provisional.
+
+**Process note for the other leads:** an adjudication that overturns a recorded section is not
+applied until Lane A records it in `COMPONENT_ARCHITECTURE.md` and in this ledger. Implementing
+it first, as happened here, produces exactly this kind of split-brain.
