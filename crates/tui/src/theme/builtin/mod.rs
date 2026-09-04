@@ -925,15 +925,13 @@ mod tests {
     #[test]
     fn grid_active_cell_keeps_a_non_color_affordance_at_mono() {
         for base in [Theme::junie(), Theme::paper()] {
-            let active = base
-                .downgrade(crate::ColorLevel::Mono)
-                .resolve(
-                    Family::GRID,
-                    Variant::DEFAULT,
-                    Part::CELL,
-                    StateFlags::ACTIVE,
-                    Surface::Canvas,
-                );
+            let active = base.downgrade(crate::ColorLevel::Mono).resolve(
+                Family::GRID,
+                Variant::DEFAULT,
+                Part::CELL,
+                StateFlags::ACTIVE,
+                Surface::Canvas,
+            );
             assert!(active.style.add_modifier.contains(Modifier::BOLD));
         }
     }

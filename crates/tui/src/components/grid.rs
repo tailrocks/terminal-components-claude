@@ -2142,18 +2142,15 @@ impl Grid<'_> {
             live,
         );
         ui.fill(head, hs.style);
-        let right_overflow = (g.hidden_right > 0)
-            .then(|| Self::right_overflow_rect(head, g.hidden_right));
+        let right_overflow =
+            (g.hidden_right > 0).then(|| Self::right_overflow_rect(head, g.hidden_right));
         for i in 0..g.n {
             let raw_rect = g.cell(i, head.y);
             let Some(col) = self.columns.get(i) else {
                 break;
             };
             let rect = right_overflow.map_or(raw_rect, |overflow| Rect {
-                width: raw_rect
-                    .right()
-                    .min(overflow.x)
-                    .saturating_sub(raw_rect.x),
+                width: raw_rect.right().min(overflow.x).saturating_sub(raw_rect.x),
                 ..raw_rect
             });
             if rect.width == 0 {

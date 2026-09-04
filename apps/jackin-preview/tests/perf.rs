@@ -114,7 +114,11 @@ fn key_jackin_manager_move() {
     });
     perf::report_to(BASELINE, "key_jackin_manager_move", &stats);
     if perf::env_flag("PERF_STRICT") {
-        assert_eq!(stats.allocs, 0, "manager key path allocates {} times", stats.allocs);
+        assert_eq!(
+            stats.allocs, 0,
+            "manager key path allocates {} times",
+            stats.allocs
+        );
     }
 }
 
@@ -153,5 +157,9 @@ fn jackin_manager_key_round_trip_preserves_focus() {
     let _ = harness.key(KeyCode::Down);
     let _ = harness.key(KeyCode::Up);
     assert_eq!(harness.focus(), before);
-    assert!(harness.diagnostics().is_empty(), "{:?}", harness.diagnostics());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }

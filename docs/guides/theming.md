@@ -537,6 +537,11 @@ collapses `danger_soft` onto a grey. A colour whose channel spread is under 40
 collapses to the grey ladder by BT.601 luma; otherwise the dominant channel
 selects the hue family and `max(r, g, b) > 180` selects the light half.
 
+For a light theme at `Ansi16`, the mapped foreground ladder additionally
+replaces bright `Gray`/`White` entries with `DarkGray`; ANSI16's bright greys
+would otherwise disappear against a light canvas. Accent and status hues, and
+all non-foreground tokens, keep the mapping above.
+
 `Role::Custom(Color)` — the one documented raw-colour escape hatch — is
 downgraded too.
 

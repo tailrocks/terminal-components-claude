@@ -1255,3 +1255,24 @@ remains frozen; later allocation or byte growth is a regression.
      the non-color affordance belongs to §20.10 item 1.
   Both are **class: fix**, and neither authorizes a bless until corrected captures pass a fresh
   independent review.
+
+## Review status — fresh app visual audit (2026-09-05)
+
+**Result: FAIL. No bless is authorized.**
+
+- **TablePro evidence remains stale.** `shots/tablepro_junie_truecolor_80x24.txt:5` still shows
+  the pre-fix header collision, and `shots/tablepro_junie_mono_120x40.html:11` still shows the
+  pre-fix active-cell collapse. Their provenance records point to `a358272`, before the source
+  fix in `e45fde1`; the source tests are current, but the captures do not prove clearance.
+- **Showcase Paper/ANSI16 contrast fails.** Metadata labels and subtitles render as bright
+  `#e5e5e5` on `#ffffff` in `shots/showcase_paper_16_100x30.html:14-19` and
+  `shots/showcase_paper_16_120x40.html:14-19`.
+- **Showcase layout and overlays pass** in the inspected 100×30 and 120×40 frames except for
+  that contrast defect. **Jackin layout, spacing, contrast and overlays pass** in all inspected
+  representative frames.
+- **Matrix integrity passes:** 96/96 records are `ok`, all 480 artifacts hash-match, stderr is
+  empty for all records, and coverage is 3 apps × 4 color levels × 2 themes × 4 sizes.
+
+This is an attached current FAIL, not a reclassification of the historical Slice-4 review above.
+The contrast fix is classified under §20.10 item 32; fresh captures and a new independent review
+are required before blessing.
