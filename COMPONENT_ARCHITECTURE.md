@@ -1,6 +1,6 @@
 # COMPONENT_ARCHITECTURE.md
 
-**Status:** Accepted, with the Slice 2 review corrections of §21 (Adjudication J), the modern-API and dependency policy of §22 (Adjudication L), the `Form` API / `Grid::update` decisions of §23 (Adjudication K) the re-export / ASCII-border / `FieldKind` decisions of §24 (Adjudication M), the Slice 3 foundations review's eight adjudications, thirteen deviation verdicts and correction obligations F1–F26 of §25, the layer-sizing / `Measure` style-access decisions of §26 (Adjudication N), the Slice 3 foundations follow-ups of §27 (Adjudication O), the prototype decisions of §28 (Adjudication P), the Slice 3 residual decisions of §29 (Adjudication Q), and the Slice 4 ChipBar decision of §30 applied. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
+**Status:** Accepted, with the Slice 2 review corrections of §21 (Adjudication J), the modern-API and dependency policy of §22 (Adjudication L), the `Form` API / `Grid::update` decisions of §23 (Adjudication K) the re-export / ASCII-border / `FieldKind` decisions of §24 (Adjudication M), the Slice 3 foundations review's eight adjudications, thirteen deviation verdicts and correction obligations F1–F26 of §25, the layer-sizing / `Measure` style-access decisions of §26 (Adjudication N), the Slice 3 foundations follow-ups of §27 (Adjudication O), the prototype decisions of §28 (Adjudication P), the Slice 3 residual decisions of §29 (Adjudication Q), and the Slice 4 ChipBar decision of §30, the neutral-recipe mono correction of §31, the Q/P audit corrections of §32, the `PARTS` styling-contract decision of §33, the capability-detection decision of §34, the `Ui::scroll_region` strike of §35, the first-generation digest item of §36, the gate audit of §37, the readiness-capability decision of §38, and the forced-state operator decision of §39 applied. <!-- amended by §39: this list was stale through §31–§37 although four of those sections each declare in their own header that this rule is engaged --> This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
 
 **Authority:** `REFACTORING_GOAL.md` › `DESIGN.md` › existing rendered output/tests › current source. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each.
 
@@ -7006,3 +7006,58 @@ The root cause is that `mono_states()` **conflates two properties and only one i
 ### §38.5 §29.3's table is replaced by a pointer <!-- amended by §38 -->
 
 §29.3 enumerated required dropped-state names for **9** implementations while **23** are registered. A hand-maintained duplicate of a machine-checked property drifts, and this one drifted *within a single slice*. Completing it to 23 rows buys a second drift in Slice 5. The authority is `conformance_suite!` and case 9; this document states the rule the code enforces and does not restate the data.
+
+## §39 Adjudication — forcing substitutes for the runtime, never for the props <!-- amended by §39 -->
+
+**Status: accepted. BLOCKS the §36 first-generation bless — see §39.4.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged three times: it changes the exact type of `Overrides::flags`, adds an invariant to §12.1's A11 clause, and changes the exact type of `Fixture::forced` in §16.2.
+
+### §39.0 Corrections to the finding that prompted it <!-- amended by §39 -->
+
+Three load-bearing premises handed to this adjudication were **false against the current tree**, and the analyst checked rather than acted:
+
+- **The six unguarded fixtures are already guarded.** All six now test `if !f.forced().is_empty()`. "The Spinner case has never rendered a spinner in its own state" is no longer true. **But the same defect is live and unmentioned in the render matrix**, which calls `.state_override(flags)` unconditionally for every component and every state, including those whose flags are empty. That is the surviving instance.
+- **The `PROGRESS` and `METER` `ERROR` rules *are* reached**, because `Fixture::force` couples the readiness prop and `Caps::REPORTS_STATUS` keeps `ERROR` in `mono_states()`. Three production rustdoc blocks now assert the opposite of the truth and are struck by this decision — a `## Testing` section naming a gap that has since closed is the same failure as a reason string naming a state falsely (§32.4): checkable for shape, never for truth.
+- **What *is* genuinely unreachable** is `(PROGRESS, ICON, CHECKED)`: nothing sets `ProgressBar::done`, `Meter` has no `.done` at all, and `CHECKED` is not in the default mono states, so case 9 can never force it. **Dead recipe.**
+
+### §39.1 The defect <!-- amended by §39 -->
+
+`Overrides::flags` was `self.state.unwrap_or(live)`: a forced state **replaced** the whole derived state. **`live` is not one thing.** It is the union of two halves with opposite ownership — the **runtime** half the frame supplies, and the **props-derived** half the caller's own props imply. Forcing must replace the first and may never erase the second.
+
+One argument cannot express two ownerships, so every component resolved the ambiguity locally, and **six components produced five answers**: `Button` and `StatusBar` or the props half back in by hand; `ProgressBar`, `Spinner`, `Meter` and `HintBar` do not; `Empty` routes only its container fill through the overrides and lets `EmptyState::draw` re-derive its own flags, so **three of its four declared parts are unreachable through the override system it advertises**. A sixth shape exists in the glyph fallback, where `Meter::icon` reads the prop while `StatusBar` and `HintBar` read the resolved flags.
+
+**This is not six bugs. It is one missing decision that every builder made locally.**
+
+The visible consequence is in the render matrix, where forced and derived disagree by construction — `St::Disabled` maps onto `Status::Error` while its flags are `DISABLED`. So `render::components::progress_bar::disabled` is a bar that **is in error and paints no error glyph**, contradicting `Caps::REPORTS_STATUS`'s own obligation and §11.4.
+
+### §39.2 Decision — Invariant Q <!-- amended by §39 -->
+
+> A forced state substitutes for the **runtime**, never for the caller's **props**. The flags a part resolves under are `forced.map_or(runtime | derived, |f| f | derived)`. **`flags(r, d) ⊇ d` holds unconditionally**: a reference rendering may show a state the runtime never produced, and may never hide a state the props declare.
+
+`Overrides::flags` takes the two halves as **separate arguments**. `StatusBar`'s and `Button`'s hand-written union moves into the operator; the four divergent components pass an empty runtime half; `Meter::icon`'s fallback reads the resolved flags so one glyph has one source of truth.
+
+Why neither pure semantics is right: **replacement alone** makes `.status(Error).state_override(DISABLED)` mean "disabled and *not* in error" — a rendering the caller cannot ask for any other way, and §16.2's `Fixture::force` spends its whole existence making forced and derived *agree*. **Merge alone** cannot render an unhovered instance while the snapshot still carries `HOVERED` from a previous frame, which is the runtime-substitution job A11 exists for.
+
+**`Slot<StateFlags>` is rejected, and the reasoning matters because §29 looks like a precedent and is not.** The `Option` already carries the distinction that is load-bearing — `is_forced()` gates *registration*, discharging "a reference rendering registers nothing" — and under the union, `Some(empty())` and `None` agreeing on the flags is *correct*, because forcing nothing adds nothing. §29.1's `Option`→`Slot` migration earned its third case because `Slot::Clear` has **three call-site branches and a real consumer**. A `Clear` here would mean "force the empty state, suppressing the props-derived flags" — which has **no consumer**, is forbidden by case 9's own "make the forced state real" clause, and is exactly the "forced but not real" rendering §28 P6(iii) closed. **The type was right; the operator was wrong.**
+
+### §39.3 The fixture API is wrong for a different reason <!-- amended by §39 -->
+
+The union does **not** make the twenty-three guards removable. They are not about the flags; they are about `is_forced()`, and an unconditional override still turns a live component into a reference rendering that registers nothing, breaking cases 1, 2, 3, 4, 11 and 13. Here §29.1's reasoning *does* apply one level up: `Fixture::forced()` returns `Option<StateFlags>`, so the unconditional form stops compiling and the twenty-three hand-written guards become a `let`-binding the compiler enforces. **Severable**, with its own red-then-green demonstration, because it makes case 9's baseline state a reference rendering — expected paint-neutral, not proven.
+
+### §39.4 Ordering — this lands BEFORE the §36 bless, and that is not negotiable <!-- amended by §39 -->
+
+**Three cells change content, all `::disabled`** — `progress_bar` gains the error glyph and `Danger`; `meter` gains `Danger`; `hint_bar` gains the glyph, **its two reserved columns**, and `Danger` on the label. 24 keys, **12 of them truecolor**. `::pressed` and `::editing` do not move, because no recipe rule and no mono rule keys `BUSY` or `LOADING`. Nothing else moves, and the six already-blessed components cannot move because the matrix gives them no readiness prop, so their derived half is empty and the new operator is bit-identical to the old one for them.
+
+**Before the bless**, the 24 keys are *recorded*, not *moved*: §20.10 item 19 covers them as first generation, **§20.10 gains no new item**, and nothing is owed beyond item 19's existing entry. **After the bless**, twelve truecolor keys move — which §36.5's guard refuses outright and §20.10's closing clause makes a regression by construction — and item 19 may not be cited twice for the same key, so a new numbered item and a fresh visual review would be required **for pixels that were wrong when they were blessed**. §36.6 named this risk in the abstract; this is it, concretely.
+
+### §39.5 Why every existing test was blind <!-- amended by §39 -->
+
+**Case 9 is the only test in the tree that forces a state — and `Fixture::force` deliberately makes forced and derived agree.** Union and replacement are indistinguishable exactly when they agree. *The mechanism §28 P6 added to make forcing honest is the mechanism that hid the operator's defect.* Case 9 could not see it for two further reasons: it asserts pairwise **difference**, never content, so two wrong states still pass; and its multiset excludes colour, so two of the three moved cells are outside its universe entirely. The render matrix is the only place forced and derived disagree, and for these components it asserts a digest against a baseline **that does not exist**.
+
+**No test shape in this suite can detect an unreachable recipe *rule*.** Case 9 detects an unreachable *state*; the registry check detects an unresolved *part*; nothing observes rule *matching*. A rule is four coordinates and case 9 varies one. What is owed is a coverage assertion over the recipe table itself — `theme::every_state_rule_is_matched_by_some_registered_case` — whose exemption list must **invert** like `every_named_test_exists`, so a listed rule that *is* matched is a failure and an exemption cannot outlive its reason.
+
+### §39.6 Open obligations <!-- amended by §39 -->
+
+1. **`Empty` bypasses its own override system**, leaving three of its four declared parts unreachable through `.state_override` and `.patch_part` — documented as a hole rather than fixed. It is the fifth shape and must not be left behind once the other four are unified.
+2. **`(PROGRESS, ICON, CHECKED)` is dead recipe.** Either a fixture sets `done(true)` or the rule goes. §33.4's rule applies verbatim: two legal outcomes, no third.
+3. **Twenty-one `ov.flags(` call sites across eighteen component files.** Classifying each site's argument into runtime and derived **is the actual work of this change** and each must be read, not pattern-matched.
+4. **Three production rustdoc blocks assert the opposite of the truth** and are struck.

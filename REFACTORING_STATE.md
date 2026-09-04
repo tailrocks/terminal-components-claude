@@ -787,3 +787,115 @@ removed and `Select` withheld. Recorded so the drop is not later read as a regre
 - §34's `run` half in flight; until it lands `NO_COLOR=1` still yields truecolor and
   `COLOR=mono tools/capture.sh` **must not be run** — it would produce truecolor frames under
   mono names.
+
+## Q documentation mirror — current owned-slice status (2026-09-04)
+
+Q1–Q3 are accepted and applied in the current tree. This is a Q closeout, not a claim that the
+concurrent Slice 4 wave or the full workspace gate is green. `COMPONENT_ARCHITECTURE.md` carries
+the coherent §29 record; this ledger mirrors its exact amendment set and preserves the supplied
+follow-up questions.
+
+- **R1 is proven in three phases.** Tabs mono conformance passed with the bracket enabled; it
+  failed when only `tabs.rs:719–728` was disabled because mono `PRESSED`/`FOCUSED` became equal;
+  restoring that block returned exit `0`. `CONTAINER`'s `BOLD` alone did not distinguish the
+  pair.
+- **Q2 is structural.** `Fixture::state_override` and `status` are private; `forced()` and
+  `status()` are the reads; `force(StateFlags)` is the only post-construction paired writer and
+  preserves `BUSY > LOADING > ERROR > Ready` status precedence.
+- **Q3 is machine-checked.** The default `mono_narrowing_reason()` is empty exactly when
+  `mono_states()` is not narrowed; case 9 checks every dropped default-state name through
+  `iter_names()`.
+
+### The exact nine §29 amendments
+
+1. §11.4: reserved-pad components own the `PRESSED` bracket; `RowUi`-labelled rows use the
+   `CONTAINER` rule and `RowUi` does not paint the bracket.
+2. §12.2: `Resolved.glyph` and `PartMetrics.glyph` use `Slot<GlyphRole>`; cell-owning methods
+   honor `Inherit`, `Set` and `Clear` without changing reserved geometry.
+3. §16.2: the eight public Fixture fields remain public while `state_override` and `status` are
+   private, with `force`, `forced()` and `status()` defining the paired state contract.
+4. §16.2 case 9: `mono_narrowing_reason()` must be non-empty exactly on narrowing and name every
+   dropped state.
+5. §28.6: the impossible narrowing grep is struck and replaced by the case-9 contract.
+6. §28.8: the old grep gate is replaced by the Fixture privacy/accessor and Q3 symbol checks.
+7. §20.10 item 18: Button's mono digest is included if the reserved-pad correction moves it.
+8. §16.1: the Button no-truncation and Tabs reserved-pad regression names are recorded.
+9. New §29: Q1–Q3, R1, the corrected live `RowUi`/`Slot` contract, amendment markers and the
+   unresolved questions are recorded and mirrored here.
+
+### Supplied fresh analyst dispositions
+
+- **`OVERLAY` / `TRAPS_FOCUS` — decided.** `OVERLAY` opens a layer; `TRAPS_FOCUS` is separate,
+  implies `OVERLAY`, and is for a real focus scope. Modal cases declare both. `Select`'s
+  pointer-only `Popover` remains `OVERLAY`-only and non-trapping; focus-out dismissal is a
+  separate popover concern.
+- **`FieldControl` item channel — decided with follow-up open.** The scalar trait cannot carry
+  per-phase items, so item-bearing choice controls stay on direct per-phase paths and `Form`
+  drives the three choice controls directly. A future item-aware composition path or trait
+  widening remains open.
+- **`RadioGroup::value(ItemKey)` — open.** The controlled draw-time behavior and cursor/value
+  separation exist in code, but §17.0 A7 omits the public contract wording and still needs its
+  controlled-state adjudication.
+- **`ChipBar` `Activated(add_key)` — open.** The add affordance uses the caller's `add_key` and
+  emits the existing `Activated(ItemKey)` action. Whether to introduce `Added` or `AddRequested`
+  remains an action-naming question.
+- **`StatusBar` `hovered_part` — open.** The original stateless-bar limitation was real. A
+  `FrameRead::hovered_part` primitive is now present in the concurrent tree, but `StatusBar`
+  does not consume it; the per-item hover contract and test remain open.
+
+## BLOCKING — §39 must land before the §36 bless (2026-09-04)
+
+**Do not run `BLESS=1` on the component matrix until §39's operator change has landed.**
+
+`Overrides::flags` is `self.state.unwrap_or(live)` — forcing **replaces** the derived state. `live`
+is two halves with opposite ownership: the runtime half the frame supplies, and the props-derived
+half the caller's props imply. One argument cannot express two ownerships, so **six components
+produced five different answers** and `Empty` produced a sixth by opting out entirely.
+
+The render matrix is the only place forced and derived disagree — `St::Disabled` maps onto
+`Status::Error` while its flags are `DISABLED` — so **`progress_bar::disabled` is a bar that is in
+error and paints no error glyph.** Blessing today pins that.
+
+**Three cells change, 24 keys, 12 of them truecolor.** Before the bless they are *recorded* under
+§20.10 item 19 as first generation and nothing is owed. After the bless they are *moved*, which
+§36.5's guard refuses outright and §20.10's closing clause makes a regression by construction —
+and item 19 may not be cited twice for the same key, so it would need a new numbered item and a
+fresh visual review **for pixels that were wrong when they were blessed**.
+
+The six already-blessed components cannot move: the matrix gives them no readiness prop, so their
+derived half is empty and the new operator is bit-identical to the old for them. **That is an
+acceptance condition, not an expectation** — if any of the 388 existing keys moves, §39 is wrong
+and must not land.
+
+### Three premises I handed the analyst were false, and it checked rather than acted
+
+- The six "unguarded" fixtures **are already guarded** — a builder fixed them mid-session. The
+  surviving instance is the **render matrix**, which still forces unconditionally and which
+  nobody had mentioned.
+- The `PROGRESS`/`METER` `ERROR` rules **are** reached now, because `Fixture::force` couples the
+  readiness prop and `Caps::REPORTS_STATUS` keeps `ERROR` in `mono_states()`. **Three production
+  rustdoc blocks now assert the opposite of the truth** and are struck.
+- What *is* genuinely dead is `(PROGRESS, ICON, CHECKED)`: nothing sets `ProgressBar::done`,
+  `Meter` has no `.done`, and `CHECKED` is not in the default mono states.
+
+### Why nothing caught it
+
+**Case 9 is the only test that forces a state, and `Fixture::force` deliberately makes forced and
+derived agree** — and the two semantics are indistinguishable exactly when they agree. *The
+mechanism §28 P6 added to make forcing honest is the mechanism that hid the operator's defect.*
+Case 9 also asserts pairwise difference rather than content, and excludes colour, so two of the
+three moved cells are outside its universe. **No test shape in this suite can detect an
+unreachable recipe rule**; a rule is four coordinates and case 9 varies one.
+
+### Sequencing
+
+The change touches **21 `ov.flags(` call sites across 18 component files** and must be atomic —
+it cannot be split across builders without breaking the build. It therefore needs **one builder
+owning `crates/tui/src/components/*.rs`**, scheduled when the current per-file builders release.
+Classifying each site's argument into runtime and derived **is the work**; it must be read, not
+pattern-matched.
+
+`Slot<StateFlags>` was considered and **rejected**: the `Option` already carries the load-bearing
+distinction (`is_forced()` gates registration), and a third `Clear` case would mean "force the
+empty state, suppressing the props-derived flags" — no consumer, and forbidden by case 9's own
+"make the forced state real" clause. §29.1 looks like a precedent and is not.

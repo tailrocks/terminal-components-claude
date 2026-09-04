@@ -655,7 +655,7 @@ impl Conformance for DialogCase {
     type Cmd = ButtonCmd;
 
     fn caps() -> Caps {
-        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::OVERLAY
+        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::OVERLAY | Caps::TRAPS_FOCUS
     }
 
     fn id() -> Id {
