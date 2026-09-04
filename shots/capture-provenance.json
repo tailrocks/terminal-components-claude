@@ -1,0 +1,5858 @@
+[
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3005,
+        "path": "shots/showcase_junie_truecolor_80x24.ansi",
+        "sha256": "5e3e67b94486423cfce24e9dee97cc1b73bc0d767b083f5c5f3d11f8ba80aa5d",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_truecolor_80x24.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6771,
+        "path": "shots/showcase_junie_truecolor_80x24.html",
+        "sha256": "332a979887b3b7579b776738bf8fa2b076be0273a78c96f7c872071c5fd95426",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 32843,
+        "path": "shots/showcase_junie_truecolor_80x24.png",
+        "sha256": "4be2aa82b680a0362ba67b38bc503f71b5d3f99f123501920bccb523f5b4baff",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 588,
+        "path": "shots/showcase_junie_truecolor_80x24.txt",
+        "sha256": "e9f1f9b81c250b7f4390a970c22b0003a0166b9bb807268675d4507ed3e88741",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:29.568620Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:29.609526Z",
+    "name": "showcase_junie_truecolor_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221828Z-96114",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2921,
+        "path": "shots/showcase_paper_truecolor_80x24.ansi",
+        "sha256": "352eaa158eff2b2b3b3585ecde11d6dd37adec148c28a60abf987af32976a34c",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_truecolor_80x24.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6771,
+        "path": "shots/showcase_paper_truecolor_80x24.html",
+        "sha256": "b5cb804ceaebe69fd67ba12689c83e01490aa471e878269123d1ae8c4718b8bf",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 36128,
+        "path": "shots/showcase_paper_truecolor_80x24.png",
+        "sha256": "a078c752fd2da098d999254b080deb5699aebbfa0b23d62419d76cf493c93223",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 588,
+        "path": "shots/showcase_paper_truecolor_80x24.txt",
+        "sha256": "e9f1f9b81c250b7f4390a970c22b0003a0166b9bb807268675d4507ed3e88741",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:30.489649Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:30.531077Z",
+    "name": "showcase_paper_truecolor_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221829Z-96183",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2547,
+        "path": "shots/showcase_junie_256_80x24.ansi",
+        "sha256": "45fdead651a91e2d83b38570c3ec7b8f3ae999fbe560d332c8e03bddbdc63aba",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_256_80x24.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6771,
+        "path": "shots/showcase_junie_256_80x24.html",
+        "sha256": "e30c052afdb17569ecda4d1307a5c9551e272006a6ca225d7918d3cc21a2b3f9",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 32762,
+        "path": "shots/showcase_junie_256_80x24.png",
+        "sha256": "3477e89940908c8a7c7ec3c8a76562ef2109a343ae3264a9c6df5e55174f5d63",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 588,
+        "path": "shots/showcase_junie_256_80x24.txt",
+        "sha256": "e9f1f9b81c250b7f4390a970c22b0003a0166b9bb807268675d4507ed3e88741",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:31.414086Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:31.458088Z",
+    "name": "showcase_junie_256_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221830Z-96264",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2555,
+        "path": "shots/showcase_paper_256_80x24.ansi",
+        "sha256": "2ddbc7976a483ef014d888ea46e8239dcbcd2d1ed97ba3c7ec08fa21b0501d31",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_256_80x24.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6771,
+        "path": "shots/showcase_paper_256_80x24.html",
+        "sha256": "8d1377af518db354ae5d71a1d3425afea09691a33785c0819d7f29af65f2c0f5",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 34671,
+        "path": "shots/showcase_paper_256_80x24.png",
+        "sha256": "d7f5fd19b9baadc90d6b5f3be06d67c337003b66cd2e4e2182a7a307fb53d2b0",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 588,
+        "path": "shots/showcase_paper_256_80x24.txt",
+        "sha256": "e9f1f9b81c250b7f4390a970c22b0003a0166b9bb807268675d4507ed3e88741",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:32.342795Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:32.384157Z",
+    "name": "showcase_paper_256_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221831Z-96363",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2449,
+        "path": "shots/showcase_junie_16_80x24.ansi",
+        "sha256": "b9480d86493af0263538fa8da3df558baf702fc0e153b063411d59e687404164",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_16_80x24.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6771,
+        "path": "shots/showcase_junie_16_80x24.html",
+        "sha256": "f244de31d7a272c1aff8794b952c344de93e808778d370847987438939ea639e",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 32160,
+        "path": "shots/showcase_junie_16_80x24.png",
+        "sha256": "9ebf86eb1ef75e5f583137281b2e99644ca7806ab85e9ef67a6cfcd1e869b7dc",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 588,
+        "path": "shots/showcase_junie_16_80x24.txt",
+        "sha256": "e9f1f9b81c250b7f4390a970c22b0003a0166b9bb807268675d4507ed3e88741",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:33.268151Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:33.311412Z",
+    "name": "showcase_junie_16_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221832Z-96439",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2422,
+        "path": "shots/showcase_paper_16_80x24.ansi",
+        "sha256": "2971a95fb39ad2e6b357c73e72c5195db1e5b5156ae5a87af8f9582bd8c6553c",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_16_80x24.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6771,
+        "path": "shots/showcase_paper_16_80x24.html",
+        "sha256": "118cc1dd2d235e855b80605421e1f0135f0943fec006d30682e3217af78ead48",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 33875,
+        "path": "shots/showcase_paper_16_80x24.png",
+        "sha256": "2776a33fe6c5372e09f32e3b8ba18a496e7640aa908c42a5f5fbae7c15f75bfa",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 588,
+        "path": "shots/showcase_paper_16_80x24.txt",
+        "sha256": "e9f1f9b81c250b7f4390a970c22b0003a0166b9bb807268675d4507ed3e88741",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:34.196975Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:34.238857Z",
+    "name": "showcase_paper_16_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221833Z-96528",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 964,
+        "path": "shots/showcase_junie_mono_80x24.ansi",
+        "sha256": "f308201f2174d251984881b1511fe9ce1e891d1c62908d070aed80a672703001",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_mono_80x24.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 4807,
+        "path": "shots/showcase_junie_mono_80x24.html",
+        "sha256": "6e464571047c236d81e4b837a533f987e93b496687dfd3353ef0fb904903d3e2",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 32224,
+        "path": "shots/showcase_junie_mono_80x24.png",
+        "sha256": "96e25134217c968491a170bf6e909d6d3c55be78e617359cd6faf6f58f75720a",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 588,
+        "path": "shots/showcase_junie_mono_80x24.txt",
+        "sha256": "e9f1f9b81c250b7f4390a970c22b0003a0166b9bb807268675d4507ed3e88741",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:35.111516Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:35.153733Z",
+    "name": "showcase_junie_mono_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221834Z-96595",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 964,
+        "path": "shots/showcase_paper_mono_80x24.ansi",
+        "sha256": "f308201f2174d251984881b1511fe9ce1e891d1c62908d070aed80a672703001",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_mono_80x24.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 4807,
+        "path": "shots/showcase_paper_mono_80x24.html",
+        "sha256": "6e464571047c236d81e4b837a533f987e93b496687dfd3353ef0fb904903d3e2",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 32224,
+        "path": "shots/showcase_paper_mono_80x24.png",
+        "sha256": "96e25134217c968491a170bf6e909d6d3c55be78e617359cd6faf6f58f75720a",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 588,
+        "path": "shots/showcase_paper_mono_80x24.txt",
+        "sha256": "e9f1f9b81c250b7f4390a970c22b0003a0166b9bb807268675d4507ed3e88741",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:36.030936Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:36.074380Z",
+    "name": "showcase_paper_mono_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221835Z-96671",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 6995,
+        "path": "shots/showcase_junie_truecolor_100x30.ansi",
+        "sha256": "78a5342899334c3b60286775634c2f4dc7827196a3042854554c040f1b0f60d8",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_truecolor_100x30.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 14437,
+        "path": "shots/showcase_junie_truecolor_100x30.html",
+        "sha256": "210b69d846c05f5ff8f16850b32b05bb7e552e89ce2b0a0c37acdd4a851097a4",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 69226,
+        "path": "shots/showcase_junie_truecolor_100x30.png",
+        "sha256": "1d9f439a0b577835de7330675a43bd73726366f2e928f51b1ea36e54848e14cf",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3275,
+        "path": "shots/showcase_junie_truecolor_100x30.txt",
+        "sha256": "4632de4e1f2a2ebe2961a08a376cdc4a156258d297488dec5f42e8eb4cded692",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:37.033299Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:37.075808Z",
+    "name": "showcase_junie_truecolor_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221836Z-96755",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 6905,
+        "path": "shots/showcase_paper_truecolor_100x30.ansi",
+        "sha256": "2746d07c611d424a14064c2b4d48a9c7d657e71a0637bbb38fae711dc7a79579",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_truecolor_100x30.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 14437,
+        "path": "shots/showcase_paper_truecolor_100x30.html",
+        "sha256": "e6c814913d5dc06cca48ce545d7e8539e10fb28ae201c4280a09f4b6d5f9dbfe",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 73813,
+        "path": "shots/showcase_paper_truecolor_100x30.png",
+        "sha256": "97c2eb28f35f8c36f7c4e926bfe153b0e731b3b0c5194b080295167a90143fa6",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3275,
+        "path": "shots/showcase_paper_truecolor_100x30.txt",
+        "sha256": "88ac46f5ef41602166271ea3732abed096dcde97adc0d8b0df11a43b8079abef",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:38.016977Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:38.059055Z",
+    "name": "showcase_paper_truecolor_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221837Z-96842",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5604,
+        "path": "shots/showcase_junie_256_100x30.ansi",
+        "sha256": "a181c5a2b3cb0ffbe465fbdbde756b08eaba3c5c7e541d851a757733c46f511d",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_256_100x30.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 14437,
+        "path": "shots/showcase_junie_256_100x30.html",
+        "sha256": "10876d7ea15f005b46ce234d3727c3ce909599ae46a930760d241fce2dda5ae9",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 68763,
+        "path": "shots/showcase_junie_256_100x30.png",
+        "sha256": "0b9efedbeda9ea221ce8b09fbbacfd9794d4a040aad56045a49a0a1ca3599a0b",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3275,
+        "path": "shots/showcase_junie_256_100x30.txt",
+        "sha256": "4632de4e1f2a2ebe2961a08a376cdc4a156258d297488dec5f42e8eb4cded692",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:39.014197Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:39.060102Z",
+    "name": "showcase_junie_256_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221838Z-96929",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5614,
+        "path": "shots/showcase_paper_256_100x30.ansi",
+        "sha256": "03318d3717b8d961c74953546368ba4e47d6a054115c6d6cf77f05e87c3801c4",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_256_100x30.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 14437,
+        "path": "shots/showcase_paper_256_100x30.html",
+        "sha256": "aefb2edcc86a66816e4388dcbbd0cf1f68f05952932a6f8c71439209671e2155",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 70564,
+        "path": "shots/showcase_paper_256_100x30.png",
+        "sha256": "ad611319c43eb202061b02f37d85c4e596de8772e23ecd1aa470f11c5ae4ee28",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3275,
+        "path": "shots/showcase_paper_256_100x30.txt",
+        "sha256": "88ac46f5ef41602166271ea3732abed096dcde97adc0d8b0df11a43b8079abef",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:40.020544Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:40.064703Z",
+    "name": "showcase_paper_256_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221839Z-97016",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5237,
+        "path": "shots/showcase_junie_16_100x30.ansi",
+        "sha256": "c1bfd9b81cd1c1951536fd957898530dcfd7ba7a55c7d1609555032e91fe72d0",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_16_100x30.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 14437,
+        "path": "shots/showcase_junie_16_100x30.html",
+        "sha256": "02ce4c95c31897022a8f56aaaacafd3d1db3f03ba09a7c6a765df1f7580d9810",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 68163,
+        "path": "shots/showcase_junie_16_100x30.png",
+        "sha256": "f4503c170df04f86e3e60cc8a21df548ab9a00f90567c4da316bc497603de0c9",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3275,
+        "path": "shots/showcase_junie_16_100x30.txt",
+        "sha256": "4632de4e1f2a2ebe2961a08a376cdc4a156258d297488dec5f42e8eb4cded692",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:41.030456Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:41.078154Z",
+    "name": "showcase_junie_16_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221840Z-97120",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5207,
+        "path": "shots/showcase_paper_16_100x30.ansi",
+        "sha256": "1775f907d2fb4e12c90de3d74fd20e1d947af4d2784bfadb4d9c5b0cf888d770",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_16_100x30.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 14437,
+        "path": "shots/showcase_paper_16_100x30.html",
+        "sha256": "7537ad7b35833c034f462c8772511b2d931c9e5499da59560b7300622f5e7965",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 66284,
+        "path": "shots/showcase_paper_16_100x30.png",
+        "sha256": "55a9fecec163a7e9a89df5ff6c9ab96529f4a8d2f3b3e41b036f3ffbb7bff3c2",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3275,
+        "path": "shots/showcase_paper_16_100x30.txt",
+        "sha256": "88ac46f5ef41602166271ea3732abed096dcde97adc0d8b0df11a43b8079abef",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:42.015421Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:42.059216Z",
+    "name": "showcase_paper_16_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221841Z-97191",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3294,
+        "path": "shots/showcase_junie_mono_100x30.ansi",
+        "sha256": "a3377f732d22b630386e26ccf99ec16664a55d77b549329aaf2df2c2aa047829",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_mono_100x30.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 5583,
+        "path": "shots/showcase_junie_mono_100x30.html",
+        "sha256": "5ea35047745e4efeff8874fb6186c3510663ccbe31bbdb3df14f88af27476758",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 62586,
+        "path": "shots/showcase_junie_mono_100x30.png",
+        "sha256": "7c1da7297e6d9f903cca8ee68887bfea59613757cc37112b0349ddfde84b69fc",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3275,
+        "path": "shots/showcase_junie_mono_100x30.txt",
+        "sha256": "4632de4e1f2a2ebe2961a08a376cdc4a156258d297488dec5f42e8eb4cded692",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:43.017945Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:43.060475Z",
+    "name": "showcase_junie_mono_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221842Z-97278",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3326,
+        "path": "shots/showcase_paper_mono_100x30.ansi",
+        "sha256": "6c55e79d61f061ac4f2d6bf4d54f34c74c8f07bebfb533ddc46637049d268cf7",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_mono_100x30.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 5971,
+        "path": "shots/showcase_paper_mono_100x30.html",
+        "sha256": "7ccb9627f4c1d98e01e6e3b6f704b7d8389a9d9b75a9793bd431a1b688656ac7",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 63148,
+        "path": "shots/showcase_paper_mono_100x30.png",
+        "sha256": "e7da7660a2476a9bca535a88ca239c715c21b08b4ef1773e10583c836f6f59bc",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3275,
+        "path": "shots/showcase_paper_mono_100x30.txt",
+        "sha256": "88ac46f5ef41602166271ea3732abed096dcde97adc0d8b0df11a43b8079abef",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:44.008374Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:44.055494Z",
+    "name": "showcase_paper_mono_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221843Z-97355",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9656,
+        "path": "shots/showcase_junie_truecolor_120x40.ansi",
+        "sha256": "b2952146fadd7e768707cfdf499e7e19a5ad4d457c3f17edd1a3b55564b7074f",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_truecolor_120x40.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 18678,
+        "path": "shots/showcase_junie_truecolor_120x40.html",
+        "sha256": "13e6f321140937b0b56fb4d8d6357ebe4885bf0ccadad2fd5675367fdaac38b6",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 74275,
+        "path": "shots/showcase_junie_truecolor_120x40.png",
+        "sha256": "d1bb0e9717305aea187fec8cd8b6a617284cadd20117c1f59191ada1849c739c",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5188,
+        "path": "shots/showcase_junie_truecolor_120x40.txt",
+        "sha256": "b86d9187d4b57724b31ca9e07cad4269fe5d2ed1ff988efa88061e795252bbcb",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:45.021025Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:45.067688Z",
+    "name": "showcase_junie_truecolor_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221844Z-97469",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9560,
+        "path": "shots/showcase_paper_truecolor_120x40.ansi",
+        "sha256": "7f1c6a6980c3d038e9a857464a1fc8f3b11b11a146608117b7ecf29229bbae10",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_truecolor_120x40.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 18678,
+        "path": "shots/showcase_paper_truecolor_120x40.html",
+        "sha256": "3d5bc76b1dbfd375bc3ae15309010f9de62db9956e2001309baa1674f482c655",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 79094,
+        "path": "shots/showcase_paper_truecolor_120x40.png",
+        "sha256": "8d2f206c54e968c347c9489965c85eef019c5a761ca96c5efe2faa57cd6d569b",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5188,
+        "path": "shots/showcase_paper_truecolor_120x40.txt",
+        "sha256": "30549f704f0271c2d3d8a38e1ce870f28b6b270b672f537582d3276f5e013a3e",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:46.029294Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:46.074489Z",
+    "name": "showcase_paper_truecolor_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221845Z-97539",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 7989,
+        "path": "shots/showcase_junie_256_120x40.ansi",
+        "sha256": "1d809a0f1a0b0493a2b069a77aaba31bd31f2b27ce635aef84a9cb319afd6dd9",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_256_120x40.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 18678,
+        "path": "shots/showcase_junie_256_120x40.html",
+        "sha256": "c2a39f14f220967bcf5ddebe09c54728459d5887c4cf52a3bf53627e2b26279f",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 73871,
+        "path": "shots/showcase_junie_256_120x40.png",
+        "sha256": "017b5cf2c5e076478f3ae52c97793ac905a03156a6fdcb9afba7698adb443ab5",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5188,
+        "path": "shots/showcase_junie_256_120x40.txt",
+        "sha256": "b86d9187d4b57724b31ca9e07cad4269fe5d2ed1ff988efa88061e795252bbcb",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:47.027538Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:47.074462Z",
+    "name": "showcase_junie_256_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221846Z-97606",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 7999,
+        "path": "shots/showcase_paper_256_120x40.ansi",
+        "sha256": "2b0e1af0340355013b5b09977a044e922172ae7eddd0d01ec4f0d9710d28f13f",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_256_120x40.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 18678,
+        "path": "shots/showcase_paper_256_120x40.html",
+        "sha256": "6cea52f9522652b07751238f88932964c32a9a5a809797eb782cfe94d1c00e51",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 75834,
+        "path": "shots/showcase_paper_256_120x40.png",
+        "sha256": "30cfa8ddd4455ad76c7b143b69835a36d8eb25d87817366677028fa6949d0e62",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5188,
+        "path": "shots/showcase_paper_256_120x40.txt",
+        "sha256": "30549f704f0271c2d3d8a38e1ce870f28b6b270b672f537582d3276f5e013a3e",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:48.043350Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:48.085756Z",
+    "name": "showcase_paper_256_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221847Z-97692",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 7559,
+        "path": "shots/showcase_junie_16_120x40.ansi",
+        "sha256": "940aca01e7378456c0fe267db9e4bcb4d61f000418fc8ba3ad1c66db5b91e155",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_16_120x40.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 18678,
+        "path": "shots/showcase_junie_16_120x40.html",
+        "sha256": "0b2020408afe6932f698357ed30928938d4df10839668a95c8a84d70ceef8f3a",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 73501,
+        "path": "shots/showcase_junie_16_120x40.png",
+        "sha256": "42891b6fc430a7e383f4d5c531253437ca6360ec60fe5349f192ebd387271c38",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5188,
+        "path": "shots/showcase_junie_16_120x40.txt",
+        "sha256": "b86d9187d4b57724b31ca9e07cad4269fe5d2ed1ff988efa88061e795252bbcb",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:49.081908Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:49.125567Z",
+    "name": "showcase_junie_16_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221848Z-97780",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 7528,
+        "path": "shots/showcase_paper_16_120x40.ansi",
+        "sha256": "03822f74d24ec8180ffffa2581119abccfc53a50403fdd1c9e2cc3b0b94c52bd",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_16_120x40.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 18678,
+        "path": "shots/showcase_paper_16_120x40.html",
+        "sha256": "404e8a417e45c4d565738f3c5f412361413c46c80e7e466c9c8a52c103685b69",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 71768,
+        "path": "shots/showcase_paper_16_120x40.png",
+        "sha256": "de03bfb2f1489b5f8ad8886553ba91985df8b78a0d46692b6506839a8dd8d6a8",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5188,
+        "path": "shots/showcase_paper_16_120x40.txt",
+        "sha256": "30549f704f0271c2d3d8a38e1ce870f28b6b270b672f537582d3276f5e013a3e",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:50.081886Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:50.125630Z",
+    "name": "showcase_paper_16_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221849Z-97857",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5217,
+        "path": "shots/showcase_junie_mono_120x40.ansi",
+        "sha256": "f0abf4c63bc49502671627672b0c862dd1d085cb404431fa8361086548ab5404",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_mono_120x40.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8096,
+        "path": "shots/showcase_junie_mono_120x40.html",
+        "sha256": "7450323cf12840fa85bc0a98c8c29de5535ac4761f7b23c9c8a23c0fb6565b72",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 68583,
+        "path": "shots/showcase_junie_mono_120x40.png",
+        "sha256": "6dc9fd8e287dd98fc02689bca517e08be42c706c742c5c0d230c926d48b84df3",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5188,
+        "path": "shots/showcase_junie_mono_120x40.txt",
+        "sha256": "b86d9187d4b57724b31ca9e07cad4269fe5d2ed1ff988efa88061e795252bbcb",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:51.116000Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:51.162726Z",
+    "name": "showcase_junie_mono_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221850Z-97929",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5249,
+        "path": "shots/showcase_paper_mono_120x40.ansi",
+        "sha256": "274f28811c2d9a02394948a2f9a2c5e782af29f97ecede88b334c03c8b570521",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_mono_120x40.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8484,
+        "path": "shots/showcase_paper_mono_120x40.html",
+        "sha256": "4b13bc966950f64c67207682daee4fdb21d99537d1ab157aa9de0df8de99be1b",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 68563,
+        "path": "shots/showcase_paper_mono_120x40.png",
+        "sha256": "28476a599f1b792c28980ea3c2115e0a4eb0f86f3fe62773f24e2acd6e144ac4",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5188,
+        "path": "shots/showcase_paper_mono_120x40.txt",
+        "sha256": "30549f704f0271c2d3d8a38e1ce870f28b6b270b672f537582d3276f5e013a3e",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:52.142348Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:52.184352Z",
+    "name": "showcase_paper_mono_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221851Z-98078",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 13706,
+        "path": "shots/showcase_junie_truecolor_160x50.ansi",
+        "sha256": "5604f00cfdd374ae89c7e400194a2596fbc44b13d2bbf9aa06fbbf9011d32a45",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_truecolor_160x50.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 24328,
+        "path": "shots/showcase_junie_truecolor_160x50.html",
+        "sha256": "bbbfaf0cbf3c75047a27ebc736b319068a6f544c0c0a5c00bf944da6414e18a6",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 79460,
+        "path": "shots/showcase_junie_truecolor_160x50.png",
+        "sha256": "c6d3faf8b3a0a59e29a34fc64b3acfdb6ea59a5e91fbf6ba2cadf2d0a31cb812",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8558,
+        "path": "shots/showcase_junie_truecolor_160x50.txt",
+        "sha256": "e226da8a40cbafef5617291c2f28d61cc0bf91c32468190241b75c4a537de614",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:53.198381Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:53.245836Z",
+    "name": "showcase_junie_truecolor_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221852Z-98144",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 13610,
+        "path": "shots/showcase_paper_truecolor_160x50.ansi",
+        "sha256": "c6d91dd182ad96ae1cca8f1a6126f88b33ba913976357c17d8c2c4af5339ec93",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_truecolor_160x50.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 24328,
+        "path": "shots/showcase_paper_truecolor_160x50.html",
+        "sha256": "a6f9a7daa5abfc6a0ead2b0d742230f775795b38b01f693ff2eba5e5c238328c",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 83920,
+        "path": "shots/showcase_paper_truecolor_160x50.png",
+        "sha256": "3c263c2b2e20f03cdc1de6446e91d7eb1e772d7e748d99b8ec3a3774468bee62",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8558,
+        "path": "shots/showcase_paper_truecolor_160x50.txt",
+        "sha256": "54f6137c54340592f922ed7b6a49e3f86a8f559c123cea1766c13f95e58525ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:54.198342Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:54.240018Z",
+    "name": "showcase_paper_truecolor_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221853Z-98221",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 11779,
+        "path": "shots/showcase_junie_256_160x50.ansi",
+        "sha256": "3aa54e917b7121d4e95ddc5840833e22081b48801c3e5886e97283ca8b341be6",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_256_160x50.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 24328,
+        "path": "shots/showcase_junie_256_160x50.html",
+        "sha256": "40f2a296f31055fd602ed8616cb5ab925c37c6c0d13beae649fbe30e6773ac3d",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 79118,
+        "path": "shots/showcase_junie_256_160x50.png",
+        "sha256": "26da18e79c30fffb8e2f9de20a568a51a7ff48675dd8a7fa1b0967d4255fe4aa",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8558,
+        "path": "shots/showcase_junie_256_160x50.txt",
+        "sha256": "e226da8a40cbafef5617291c2f28d61cc0bf91c32468190241b75c4a537de614",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:55.220492Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:55.262320Z",
+    "name": "showcase_junie_256_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221854Z-98292",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 11789,
+        "path": "shots/showcase_paper_256_160x50.ansi",
+        "sha256": "2914ef1d4221149d26d6b53270c00f40eb9c9dc1d86d31ec37551bf55ed64055",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_256_160x50.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 24328,
+        "path": "shots/showcase_paper_256_160x50.html",
+        "sha256": "9cf9808643b7625c020997cd495f410b0c4a9de62eeff0011533a29dbb4a848f",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 80817,
+        "path": "shots/showcase_paper_256_160x50.png",
+        "sha256": "f688a9139dd9ac2db4b0b0b2f86f3d18772674b178e853f07263f239ef53d9bd",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8558,
+        "path": "shots/showcase_paper_256_160x50.txt",
+        "sha256": "54f6137c54340592f922ed7b6a49e3f86a8f559c123cea1766c13f95e58525ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:56.232189Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:56.277183Z",
+    "name": "showcase_paper_256_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221855Z-98369",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 11289,
+        "path": "shots/showcase_junie_16_160x50.ansi",
+        "sha256": "2e60590bfde55b7ecf1f90d09ee2130196884cbf38ba3336bdf1a58ec2fb2203",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_16_160x50.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 24328,
+        "path": "shots/showcase_junie_16_160x50.html",
+        "sha256": "e2dcb55cb94ef6579857a3c9bdce662d1bbffc8b653c51a829fa46e3f19555aa",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 78620,
+        "path": "shots/showcase_junie_16_160x50.png",
+        "sha256": "201bd5efdf896ba7d6b3ee2fd1790fefdbecbed3fbdcf98828d7a67e868a9400",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8558,
+        "path": "shots/showcase_junie_16_160x50.txt",
+        "sha256": "e226da8a40cbafef5617291c2f28d61cc0bf91c32468190241b75c4a537de614",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:57.244034Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:57.286588Z",
+    "name": "showcase_junie_16_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221856Z-98452",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 11258,
+        "path": "shots/showcase_paper_16_160x50.ansi",
+        "sha256": "ada439ec3378f1bf7af58f96e728037480927748f005f1f6ee10522c60e941fb",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_16_160x50.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 24328,
+        "path": "shots/showcase_paper_16_160x50.html",
+        "sha256": "222fc697b46835565f77571bfb30ff0bc25fb526198af4ff4d0936237631c62a",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 76798,
+        "path": "shots/showcase_paper_16_160x50.png",
+        "sha256": "86f5683e4706eff1faf3a88ecda5848616726faa5660d050882c9cb688a4567b",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8558,
+        "path": "shots/showcase_paper_16_160x50.txt",
+        "sha256": "54f6137c54340592f922ed7b6a49e3f86a8f559c123cea1766c13f95e58525ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:58.263751Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:58.314909Z",
+    "name": "showcase_paper_16_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221857Z-98519",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 8567,
+        "path": "shots/showcase_junie_mono_160x50.ansi",
+        "sha256": "6bbe1b2b5f38fca23737951e141d44b061685f0a50c2c9afb53e9510bb7bbdf6",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_junie_mono_160x50.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12126,
+        "path": "shots/showcase_junie_mono_160x50.html",
+        "sha256": "24b64476bff786f219e17d0e8a27dbeb218dc357d70d379f3c46bbf4b97cccca",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 73650,
+        "path": "shots/showcase_junie_mono_160x50.png",
+        "sha256": "5552c5faedcb0466afc06c9a05959de5c1df9a9158ac694bcacd3e265a301ec8",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8558,
+        "path": "shots/showcase_junie_mono_160x50.txt",
+        "sha256": "e226da8a40cbafef5617291c2f28d61cc0bf91c32468190241b75c4a537de614",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:18:59.277255Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:18:59.319560Z",
+    "name": "showcase_junie_mono_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221858Z-98594",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "showcase",
+    "artifacts": {
+      "ansi": {
+        "bytes": 8599,
+        "path": "shots/showcase_paper_mono_160x50.ansi",
+        "sha256": "b1e1376f20ec53f1fd6c33176fda6ad3c047120a4e1857b98df2bada9c39e521",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/showcase_paper_mono_160x50.cursor",
+        "sha256": "761065dc05090dbc26df36219542cce30a2e689425ae82ba8d83a745cbd5eb18",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12514,
+        "path": "shots/showcase_paper_mono_160x50.html",
+        "sha256": "673709e90a2431c1c0893fcaaf7f810e2704fd0def13e2698cc544843e3c17ce",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 73616,
+        "path": "shots/showcase_paper_mono_160x50.png",
+        "sha256": "47ef66071cdce5d4d49e4ca61b8348284c73d6ddab6290fd922aafe9597665b7",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8558,
+        "path": "shots/showcase_paper_mono_160x50.txt",
+        "sha256": "54f6137c54340592f922ed7b6a49e3f86a8f559c123cea1766c13f95e58525ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:00.269877Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:00.315863Z",
+    "name": "showcase_paper_mono_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221859Z-98728",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3770,
+        "path": "shots/tablepro_junie_truecolor_80x24.ansi",
+        "sha256": "08e9f860975bb95410cafcba9ca1b052c6c141d08ebff58ab6ff48607483b611",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_truecolor_80x24.cursor",
+        "sha256": "2e06325763aaa437c85cbaba5bd607726622c6bebad655675f1a0b63fe4717db",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8689,
+        "path": "shots/tablepro_junie_truecolor_80x24.html",
+        "sha256": "5c1d7a5b4da16866183d0ab9d532487ac6704597ebf906625a307b5fca64b0ab",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 81575,
+        "path": "shots/tablepro_junie_truecolor_80x24.png",
+        "sha256": "7e243214a970ac432d3db6316ee896f4b913ffaf507273577cd887fca8129263",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 2097,
+        "path": "shots/tablepro_junie_truecolor_80x24.txt",
+        "sha256": "0bc08c23cbb0d7f6d2d43ea06b59390839db3c25c5852ea9141082d43cfb4bd7",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:01.278420Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:01.321357Z",
+    "name": "tablepro_junie_truecolor_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221900Z-98813",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3758,
+        "path": "shots/tablepro_paper_truecolor_80x24.ansi",
+        "sha256": "a7a5091652b5879dadba0e63af0f0e3e9d214e88af112459b96d58605c294b73",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_truecolor_80x24.cursor",
+        "sha256": "2e06325763aaa437c85cbaba5bd607726622c6bebad655675f1a0b63fe4717db",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8689,
+        "path": "shots/tablepro_paper_truecolor_80x24.html",
+        "sha256": "1237ed077dedc86e943ef0a29a9599185eec6d823d286f019bdd17ff564775a6",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 88514,
+        "path": "shots/tablepro_paper_truecolor_80x24.png",
+        "sha256": "5264c11e5a2cc32e69eba0e68efa06019fcf6844b28006f5f4d40f306b6af616",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 2097,
+        "path": "shots/tablepro_paper_truecolor_80x24.txt",
+        "sha256": "1b99d388b06bb4938180cad8a3cfd6f026f47b77301adc8162742c10a58426b7",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:02.297797Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:02.340823Z",
+    "name": "tablepro_paper_truecolor_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221901Z-98882",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3149,
+        "path": "shots/tablepro_junie_256_80x24.ansi",
+        "sha256": "88213906c1374efbf24e974421bbec70f9049c0b412814b04f8f1c875d3b1914",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_256_80x24.cursor",
+        "sha256": "2e06325763aaa437c85cbaba5bd607726622c6bebad655675f1a0b63fe4717db",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8689,
+        "path": "shots/tablepro_junie_256_80x24.html",
+        "sha256": "ed9f1c2619fa87c7569cc5b4ccd9080f4a0c252def828f882474c35ea3a6abef",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 81032,
+        "path": "shots/tablepro_junie_256_80x24.png",
+        "sha256": "b24eda3114b99c6f57a7ca3c0127663618912da26f26032d1d88feb13af6644f",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 2097,
+        "path": "shots/tablepro_junie_256_80x24.txt",
+        "sha256": "0bc08c23cbb0d7f6d2d43ea06b59390839db3c25c5852ea9141082d43cfb4bd7",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:03.318722Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:03.363708Z",
+    "name": "tablepro_junie_256_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221902Z-98956",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3154,
+        "path": "shots/tablepro_paper_256_80x24.ansi",
+        "sha256": "52a8ad08d1e48e6a2adbeeb184e1136110e2a8eb1bb4fb337d603866b551e24f",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_256_80x24.cursor",
+        "sha256": "2e06325763aaa437c85cbaba5bd607726622c6bebad655675f1a0b63fe4717db",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8689,
+        "path": "shots/tablepro_paper_256_80x24.html",
+        "sha256": "46d4adfb257c6b146bea80979179bca96761776e510a66c81190ba530f9e453b",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 84239,
+        "path": "shots/tablepro_paper_256_80x24.png",
+        "sha256": "53d1daeed15de0106f20a9a9a4829b36f334b4aad4143acebb873ccb743ab357",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 2097,
+        "path": "shots/tablepro_paper_256_80x24.txt",
+        "sha256": "1b99d388b06bb4938180cad8a3cfd6f026f47b77301adc8162742c10a58426b7",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:04.341075Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:04.383726Z",
+    "name": "tablepro_paper_256_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221903Z-99047",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2992,
+        "path": "shots/tablepro_junie_16_80x24.ansi",
+        "sha256": "fe2e3ad7972cf04cf223c1a9ef2d11662811748e4e8c414821c41c2cccc649f8",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_16_80x24.cursor",
+        "sha256": "2e06325763aaa437c85cbaba5bd607726622c6bebad655675f1a0b63fe4717db",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8619,
+        "path": "shots/tablepro_junie_16_80x24.html",
+        "sha256": "a14e2fdea6f1b44fe990363ce287c1bc41840ec3fb172b55e9f2a8e5f940436f",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 80933,
+        "path": "shots/tablepro_junie_16_80x24.png",
+        "sha256": "eb9a09d416bd3bbec0884a7f4fe3e7dce1bacb4b2b23ccd9afecd977329a161a",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 2097,
+        "path": "shots/tablepro_junie_16_80x24.txt",
+        "sha256": "0bc08c23cbb0d7f6d2d43ea06b59390839db3c25c5852ea9141082d43cfb4bd7",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:05.371056Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:05.414067Z",
+    "name": "tablepro_junie_16_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221904Z-99116",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2975,
+        "path": "shots/tablepro_paper_16_80x24.ansi",
+        "sha256": "14451fb0f18b3aa9690b7c3069fb7ce50c7fabb2baae2f47166f47e1eb1dec51",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_16_80x24.cursor",
+        "sha256": "2e06325763aaa437c85cbaba5bd607726622c6bebad655675f1a0b63fe4717db",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8581,
+        "path": "shots/tablepro_paper_16_80x24.html",
+        "sha256": "8bc80d489e52d34f2bd60953059385870ca159705ad277a86cde08bd0af954dd",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 81059,
+        "path": "shots/tablepro_paper_16_80x24.png",
+        "sha256": "e36f64e39e9e29d9b919793b57291e4c06497bbfae6f100a4eac2a364e8ee4d4",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 2097,
+        "path": "shots/tablepro_paper_16_80x24.txt",
+        "sha256": "1b99d388b06bb4938180cad8a3cfd6f026f47b77301adc8162742c10a58426b7",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:06.369852Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:06.413175Z",
+    "name": "tablepro_paper_16_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221905Z-99182",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2124,
+        "path": "shots/tablepro_junie_mono_80x24.ansi",
+        "sha256": "45a955e406d92b13d1a0b52ad4852df5c03b50632faae3aa4c06e8140c4146a5",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_mono_80x24.cursor",
+        "sha256": "2e06325763aaa437c85cbaba5bd607726622c6bebad655675f1a0b63fe4717db",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 4267,
+        "path": "shots/tablepro_junie_mono_80x24.html",
+        "sha256": "530eddfababe946d114f35a5e08b77135094b56f7fdf6ea72fec071c9987116f",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 81647,
+        "path": "shots/tablepro_junie_mono_80x24.png",
+        "sha256": "450b9908c84dcd4f799fa6fc26b8fd37f55777dd77f1be7ea940cc68276f6df0",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 2097,
+        "path": "shots/tablepro_junie_mono_80x24.txt",
+        "sha256": "0bc08c23cbb0d7f6d2d43ea06b59390839db3c25c5852ea9141082d43cfb4bd7",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:07.390415Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:07.436184Z",
+    "name": "tablepro_junie_mono_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221906Z-99268",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2132,
+        "path": "shots/tablepro_paper_mono_80x24.ansi",
+        "sha256": "05864f2e6dee4665501e87e6e3ba66ebf82060e67601bbefd3d28b1a4487b29b",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_mono_80x24.cursor",
+        "sha256": "2e06325763aaa437c85cbaba5bd607726622c6bebad655675f1a0b63fe4717db",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 4391,
+        "path": "shots/tablepro_paper_mono_80x24.html",
+        "sha256": "d266c0f1ef69c232e14af7cbac714f15aa6d85cde67230735783a6979b274f18",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 81905,
+        "path": "shots/tablepro_paper_mono_80x24.png",
+        "sha256": "c537c9f55dcb4c239ccfc5e92cac528c76c2b46ead8081e244499e3fa2ca2c98",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 2097,
+        "path": "shots/tablepro_paper_mono_80x24.txt",
+        "sha256": "1b99d388b06bb4938180cad8a3cfd6f026f47b77301adc8162742c10a58426b7",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:08.414442Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:08.461374Z",
+    "name": "tablepro_paper_mono_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221907Z-99434",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 4455,
+        "path": "shots/tablepro_junie_truecolor_100x30.ansi",
+        "sha256": "aa14fa54f1c82a99cbd491fd13af2d663a50abfb9158c4d99ed6480aaa71800a",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_truecolor_100x30.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8981,
+        "path": "shots/tablepro_junie_truecolor_100x30.html",
+        "sha256": "b1b3574ef320f702493e87d8b26d21d6751ad1146f4f64a76337cba1dcc1d585",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 97508,
+        "path": "shots/tablepro_junie_truecolor_100x30.png",
+        "sha256": "bc04468924e3edf7b0b64bb10d71eacc1bbc05e3088f25558935e1fab0bcd8f8",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3193,
+        "path": "shots/tablepro_junie_truecolor_100x30.txt",
+        "sha256": "458f69cc6c6d0908369b9838fedc5024dffd2b68febf8bbc9b564e006e8b9cff",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:09.542667Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:09.585267Z",
+    "name": "tablepro_junie_truecolor_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221908Z-99530",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 4479,
+        "path": "shots/tablepro_paper_truecolor_100x30.ansi",
+        "sha256": "08691e57c12a051b4cd9e1fe4867ad8b0ad94954a58f15ad522f2eb6efdcc91b",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_truecolor_100x30.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8981,
+        "path": "shots/tablepro_paper_truecolor_100x30.html",
+        "sha256": "002d4edd034191176289814cb0ff9cc948c254912bad05f7d6a4b9e96cf7edf3",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 105321,
+        "path": "shots/tablepro_paper_truecolor_100x30.png",
+        "sha256": "32e935893087026023114c278b1aeae46b0fe74f4a9c765ee4b162e9b7cfcbc1",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3193,
+        "path": "shots/tablepro_paper_truecolor_100x30.txt",
+        "sha256": "faf456ad2568cb9a687e0fc4ca435af4822ca96f4bc1aab54d670447cd05f95a",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:10.609795Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:10.652412Z",
+    "name": "tablepro_paper_truecolor_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221909Z-99606",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 4013,
+        "path": "shots/tablepro_junie_256_100x30.ansi",
+        "sha256": "a4de7848341a90d36b205136b7efaa4fd4a91d7a8631978d305f00520160d923",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_256_100x30.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8981,
+        "path": "shots/tablepro_junie_256_100x30.html",
+        "sha256": "76feb9bc99a9eb60193ec264203da0a1ea1c69474f5c7e3e1d47628c33b9bc00",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 96978,
+        "path": "shots/tablepro_junie_256_100x30.png",
+        "sha256": "97c1fbdca820d5e48be4254d740213d1671a05a2c47dd14f18f88ff149bbf64e",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3193,
+        "path": "shots/tablepro_junie_256_100x30.txt",
+        "sha256": "458f69cc6c6d0908369b9838fedc5024dffd2b68febf8bbc9b564e006e8b9cff",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:11.684100Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:11.728733Z",
+    "name": "tablepro_junie_256_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221910Z-99674",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 4018,
+        "path": "shots/tablepro_paper_256_100x30.ansi",
+        "sha256": "14362b70eb67e593e835f6bdbf6eeb3fc784a9415fc68d0a98557b37add729e5",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_256_100x30.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8981,
+        "path": "shots/tablepro_paper_256_100x30.html",
+        "sha256": "080a44a84b0cc02de0fa630ef1f3446775b1b9344e13f3e9b3e269cbd5078450",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 100819,
+        "path": "shots/tablepro_paper_256_100x30.png",
+        "sha256": "edefc973072536d81c08d6f7c4d75bb13556a809178ee12fdf58321e11b777c6",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3193,
+        "path": "shots/tablepro_paper_256_100x30.txt",
+        "sha256": "faf456ad2568cb9a687e0fc4ca435af4822ca96f4bc1aab54d670447cd05f95a",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:12.740414Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:12.782992Z",
+    "name": "tablepro_paper_256_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221911Z-99757",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3889,
+        "path": "shots/tablepro_junie_16_100x30.ansi",
+        "sha256": "25dca9c2cb9130447daa0d912fafdaa2cf8305d9951e703fd3261ba3a9589708",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_16_100x30.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8911,
+        "path": "shots/tablepro_junie_16_100x30.html",
+        "sha256": "36824cbe7867cc4ed167bb28101b0252dbec9bb5c2aa75ad0bfa7181eb88e149",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 97170,
+        "path": "shots/tablepro_junie_16_100x30.png",
+        "sha256": "c47d8be5ce7af1ea1cfb6e57698bbbc5d28fabd865d0e87516ed317881add3c1",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3193,
+        "path": "shots/tablepro_junie_16_100x30.txt",
+        "sha256": "458f69cc6c6d0908369b9838fedc5024dffd2b68febf8bbc9b564e006e8b9cff",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:13.816833Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:13.861668Z",
+    "name": "tablepro_junie_16_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221912Z-99838",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3884,
+        "path": "shots/tablepro_paper_16_100x30.ansi",
+        "sha256": "a5725412e7101710541bcee3429a4349ddb4be28b2c6c6fa0354c13254d629ff",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_16_100x30.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8873,
+        "path": "shots/tablepro_paper_16_100x30.html",
+        "sha256": "763c7087b2740c2a83dfd7785c5ef9274e99f8bd7fa43f3bfd08893b7ab69955",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 96544,
+        "path": "shots/tablepro_paper_16_100x30.png",
+        "sha256": "8c8c13f7fba6ccac9ffca6be137f3e15104f4beb77eafaf64543c7c53656f379",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3193,
+        "path": "shots/tablepro_paper_16_100x30.txt",
+        "sha256": "faf456ad2568cb9a687e0fc4ca435af4822ca96f4bc1aab54d670447cd05f95a",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:14.886381Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:14.931673Z",
+    "name": "tablepro_paper_16_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221913Z-99921",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3230,
+        "path": "shots/tablepro_junie_mono_100x30.ansi",
+        "sha256": "8dcd487fb80e8a6990d4d5927e86be9355f759de7bc51a1d782d6ce84f831937",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_mono_100x30.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 5747,
+        "path": "shots/tablepro_junie_mono_100x30.html",
+        "sha256": "e6507ceba6a1aa5b3e8c26d9b9bd8b641b9999fb4fdfc844108ccfe3418aa597",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 97867,
+        "path": "shots/tablepro_junie_mono_100x30.png",
+        "sha256": "01ada1ba64016194ee88c6e1607e558128b7a015ed286e53286ad95661ef7442",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3193,
+        "path": "shots/tablepro_junie_mono_100x30.txt",
+        "sha256": "458f69cc6c6d0908369b9838fedc5024dffd2b68febf8bbc9b564e006e8b9cff",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:15.949883Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:15.993554Z",
+    "name": "tablepro_junie_mono_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221914Z-131",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3238,
+        "path": "shots/tablepro_paper_mono_100x30.ansi",
+        "sha256": "faa28f515308b17ba7a0fe5ed341ddd39ec70eb3f5f4a2316a19bd16deb2da66",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_mono_100x30.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 5871,
+        "path": "shots/tablepro_paper_mono_100x30.html",
+        "sha256": "39d6d9012fa563bc2f7922f550047ef4bed2a0e88f4cd31d0e13bc56fbe8327c",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 98104,
+        "path": "shots/tablepro_paper_mono_100x30.png",
+        "sha256": "b81754c4371881763ea7473bf80eb0a231ba05755f2a9be35dd83e521c2c5ff7",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 3193,
+        "path": "shots/tablepro_paper_mono_100x30.txt",
+        "sha256": "faf456ad2568cb9a687e0fc4ca435af4822ca96f4bc1aab54d670447cd05f95a",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:17.019280Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:17.062337Z",
+    "name": "tablepro_paper_mono_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221916Z-197",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 6638,
+        "path": "shots/tablepro_junie_truecolor_120x40.ansi",
+        "sha256": "7912d995bd0c528b6a43a118a934cecb5afc4d987f34b07ed21545f454fa8832",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_truecolor_120x40.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12483,
+        "path": "shots/tablepro_junie_truecolor_120x40.html",
+        "sha256": "5638666c2d9d4e098bf1d54d4bb2ac15a76a40de21b743543ea68cbce442fe06",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 116274,
+        "path": "shots/tablepro_junie_truecolor_120x40.png",
+        "sha256": "6173f4c7457583b7b6d64c76fd534e13610a7d3d2625f42bb35290c9e67a03b6",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5069,
+        "path": "shots/tablepro_junie_truecolor_120x40.txt",
+        "sha256": "768d271a41e73f9bf6376a738ee4de4fd3572e5bb30cc92f91fc80a3d9ad5279",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:18.154977Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:18.199161Z",
+    "name": "tablepro_junie_truecolor_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221917Z-312",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 6656,
+        "path": "shots/tablepro_paper_truecolor_120x40.ansi",
+        "sha256": "ca592c7943b76358bad913d447c60cedda261f0df8cb7c5828c4707b89502ff3",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_truecolor_120x40.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12483,
+        "path": "shots/tablepro_paper_truecolor_120x40.html",
+        "sha256": "17527f65fea30a1b4f58a38272f96e46e0b749d7808c2eff32faae108650ee5a",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 124830,
+        "path": "shots/tablepro_paper_truecolor_120x40.png",
+        "sha256": "8fb1b1ae8ea404e826664f8fa75732889d003d81df87c0e9deeb83abd4540313",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5069,
+        "path": "shots/tablepro_paper_truecolor_120x40.txt",
+        "sha256": "7c8e416645db55bbdc624dccfe4756f6bedf239ac76b15349c85d9cab6920cd5",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:19.269440Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:19.312721Z",
+    "name": "tablepro_paper_truecolor_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221918Z-460",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 6069,
+        "path": "shots/tablepro_junie_256_120x40.ansi",
+        "sha256": "5754f62184c70acb2107328ebbd9446a685b5245307723e702e749e567a22480",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_256_120x40.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12483,
+        "path": "shots/tablepro_junie_256_120x40.html",
+        "sha256": "0e5c5a0614e0448adcb32b96de5ba0cca09aafc377203a44f123a869ddb159c5",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 115696,
+        "path": "shots/tablepro_junie_256_120x40.png",
+        "sha256": "285bfb654a2346894d19a4787227bd4a82709d00a3178f63ad019a8e578560c8",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5069,
+        "path": "shots/tablepro_junie_256_120x40.txt",
+        "sha256": "768d271a41e73f9bf6376a738ee4de4fd3572e5bb30cc92f91fc80a3d9ad5279",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:20.392811Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:20.435541Z",
+    "name": "tablepro_junie_256_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221919Z-554",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 6073,
+        "path": "shots/tablepro_paper_256_120x40.ansi",
+        "sha256": "47ff609d82d8ea29262e2ca3e19636a56de18d8f165e74c697e6cdcc74740e82",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_256_120x40.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12483,
+        "path": "shots/tablepro_paper_256_120x40.html",
+        "sha256": "0d7b648ddf02c3574eb72fdb841ecfbbfad43062a98139be2e3cfcf8ebad0a5d",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 119743,
+        "path": "shots/tablepro_paper_256_120x40.png",
+        "sha256": "71a1bd488d1d0666ce30e1525eba23de97d144ac71ce8b78d6a3845f54d4d60e",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5069,
+        "path": "shots/tablepro_paper_256_120x40.txt",
+        "sha256": "7c8e416645db55bbdc624dccfe4756f6bedf239ac76b15349c85d9cab6920cd5",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:21.514327Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:21.558111Z",
+    "name": "tablepro_paper_256_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221920Z-657",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5916,
+        "path": "shots/tablepro_junie_16_120x40.ansi",
+        "sha256": "7bf9881cb6c194c03f44a3fe24abb40afc18bf89dca2eee9172773b04e15fcf0",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_16_120x40.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12413,
+        "path": "shots/tablepro_junie_16_120x40.html",
+        "sha256": "5bac843255a459c7915b2f5920ea864c10cb7684b20ae2d94bf70812e17cf160",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 115562,
+        "path": "shots/tablepro_junie_16_120x40.png",
+        "sha256": "875665079228169cc64cca9d7b60b3fca8a4b7b910094cd0879769be27297d33",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5069,
+        "path": "shots/tablepro_junie_16_120x40.txt",
+        "sha256": "768d271a41e73f9bf6376a738ee4de4fd3572e5bb30cc92f91fc80a3d9ad5279",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:22.630622Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:22.674466Z",
+    "name": "tablepro_junie_16_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221921Z-764",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5910,
+        "path": "shots/tablepro_paper_16_120x40.ansi",
+        "sha256": "2026c2f67d1283ef286191ae4135402142c0fe23e8bc33837dbdabb6c80b5bd5",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_16_120x40.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12375,
+        "path": "shots/tablepro_paper_16_120x40.html",
+        "sha256": "b73281588561c44a8a08add4127a767566be11a4e6d5423d2ae89922763429e9",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 115253,
+        "path": "shots/tablepro_paper_16_120x40.png",
+        "sha256": "306d319192548bddc3efbee038ae5907b04927c4250e610499361f56d20b47b7",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5069,
+        "path": "shots/tablepro_paper_16_120x40.txt",
+        "sha256": "7c8e416645db55bbdc624dccfe4756f6bedf239ac76b15349c85d9cab6920cd5",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:23.737012Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:23.782039Z",
+    "name": "tablepro_paper_16_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221922Z-861",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5086,
+        "path": "shots/tablepro_junie_mono_120x40.ansi",
+        "sha256": "7fb00e02830a4297d54426836be4e41917f938c48f69e9c6a4bc6fb501f4988b",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_mono_120x40.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8223,
+        "path": "shots/tablepro_junie_mono_120x40.html",
+        "sha256": "fa149efe75514e6b57bc4938580514724570537de3cdb469b60cda21bb80bb3d",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 116492,
+        "path": "shots/tablepro_junie_mono_120x40.png",
+        "sha256": "4af5e34d83ad710d649b082407400e3b0774f07a7896ac68c69e994c4bd367ca",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5069,
+        "path": "shots/tablepro_junie_mono_120x40.txt",
+        "sha256": "768d271a41e73f9bf6376a738ee4de4fd3572e5bb30cc92f91fc80a3d9ad5279",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:24.838034Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:24.883943Z",
+    "name": "tablepro_junie_mono_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221923Z-953",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5094,
+        "path": "shots/tablepro_paper_mono_120x40.ansi",
+        "sha256": "48878fc2b00e5dfe5cd7bbf7878dad98862d2896e47677aa547f338479c2d85b",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_mono_120x40.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8347,
+        "path": "shots/tablepro_paper_mono_120x40.html",
+        "sha256": "b10d7398b799d142b706fb2a86674a7f6fa37251298b184fc72104a5de8fc7e1",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 116784,
+        "path": "shots/tablepro_paper_mono_120x40.png",
+        "sha256": "2d3a3356649970957707d692941429ba1f1c5886fda8506adf510317f624a376",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 5069,
+        "path": "shots/tablepro_paper_mono_120x40.txt",
+        "sha256": "7c8e416645db55bbdc624dccfe4756f6bedf239ac76b15349c85d9cab6920cd5",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:25.961715Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:26.006028Z",
+    "name": "tablepro_paper_mono_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221924Z-1042",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 10313,
+        "path": "shots/tablepro_junie_truecolor_160x50.ansi",
+        "sha256": "223c587aaf0d120da30efdf80879dc10da5b5fc2d56ae18a48aeb9b2d0778857",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_truecolor_160x50.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 17569,
+        "path": "shots/tablepro_junie_truecolor_160x50.html",
+        "sha256": "b65131623eb7e3fdf1b165bdf07e383d033004279c15f904b9c18ed40f50bea6",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 142350,
+        "path": "shots/tablepro_junie_truecolor_160x50.png",
+        "sha256": "73f5254d735ad4c4645b0f19f83d48825c347602a2962d364716226e213c43f8",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8361,
+        "path": "shots/tablepro_junie_truecolor_160x50.txt",
+        "sha256": "eb4fe801eda84bb565cbc5c6aafb879a527654ac5f387c3948f1678ce707c1b1",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:27.173966Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:27.219276Z",
+    "name": "tablepro_junie_truecolor_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221926Z-1132",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 10337,
+        "path": "shots/tablepro_paper_truecolor_160x50.ansi",
+        "sha256": "7f9a49ac5459a3b3230e8b0a0b241c56e10667933fc274db6edcdad2f83c4a95",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_truecolor_160x50.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 17569,
+        "path": "shots/tablepro_paper_truecolor_160x50.html",
+        "sha256": "9933ffd0a659698d5755cf6efee7eee8f0868e581c6ea0413fbc5c9bf2c0a68f",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 149109,
+        "path": "shots/tablepro_paper_truecolor_160x50.png",
+        "sha256": "f9daf0d6749c4473dbed9da179e9d7c8f731c70aacfe8c02be7d5c22a82e2758",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8361,
+        "path": "shots/tablepro_paper_truecolor_160x50.txt",
+        "sha256": "be08245d41378f6608b513441eb639c73e8c304d27c30cbdd817884be442a8a9",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:28.403029Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:28.448451Z",
+    "name": "tablepro_paper_truecolor_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221927Z-1201",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9611,
+        "path": "shots/tablepro_junie_256_160x50.ansi",
+        "sha256": "9616c6aff9dfbf84017f64c75db4ae350b273fce136defd1e04ad1239f325c20",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_256_160x50.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 17569,
+        "path": "shots/tablepro_junie_256_160x50.html",
+        "sha256": "a016e2057e754659646d9ec6ffdfce771808f339a8d1da20269f1b6c680104a0",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 141887,
+        "path": "shots/tablepro_junie_256_160x50.png",
+        "sha256": "57037ddb22195f34b1d455e23163b18dc350eeac1b2b227d9794caf62f289063",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8361,
+        "path": "shots/tablepro_junie_256_160x50.txt",
+        "sha256": "eb4fe801eda84bb565cbc5c6aafb879a527654ac5f387c3948f1678ce707c1b1",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:29.602761Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:29.646697Z",
+    "name": "tablepro_junie_256_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221928Z-1281",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9616,
+        "path": "shots/tablepro_paper_256_160x50.ansi",
+        "sha256": "e681bf8728801debf211c373efd9e35cb25460dc3804091adf55f2665c80f20e",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_256_160x50.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 17569,
+        "path": "shots/tablepro_paper_256_160x50.html",
+        "sha256": "f42ebaf38fadcdb6e7edc90b76abd74355cc53518d0da575f86269a45b018200",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 145352,
+        "path": "shots/tablepro_paper_256_160x50.png",
+        "sha256": "a999a9a7e2809a8c6d52289102505ca16a82f9a8657bfea5b749bbcf862fc48c",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8361,
+        "path": "shots/tablepro_paper_256_160x50.txt",
+        "sha256": "be08245d41378f6608b513441eb639c73e8c304d27c30cbdd817884be442a8a9",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:30.814366Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:30.858233Z",
+    "name": "tablepro_paper_256_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221929Z-1422",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9427,
+        "path": "shots/tablepro_junie_16_160x50.ansi",
+        "sha256": "8cf83846957d8a3fe6a89690abf5badb8bc5aa12b3e0369b937e60dece9b9038",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_16_160x50.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 17499,
+        "path": "shots/tablepro_junie_16_160x50.html",
+        "sha256": "bced36acfbffc858a90500e7c684f4f62fbc0645e7aec199fd2aad188e54fcd0",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 141915,
+        "path": "shots/tablepro_junie_16_160x50.png",
+        "sha256": "b88b205a5cd6be95cd3cfa3caf50371e840981ee130a01de7bab401e3af3808e",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8361,
+        "path": "shots/tablepro_junie_16_160x50.txt",
+        "sha256": "eb4fe801eda84bb565cbc5c6aafb879a527654ac5f387c3948f1678ce707c1b1",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:31.983747Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:32.029169Z",
+    "name": "tablepro_junie_16_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221930Z-1503",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9422,
+        "path": "shots/tablepro_paper_16_160x50.ansi",
+        "sha256": "7018dc16e7559deff5c3c5fd24ed5fa2d38dfdb6ead3e0aa2f78cb8d29cced87",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_16_160x50.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 17461,
+        "path": "shots/tablepro_paper_16_160x50.html",
+        "sha256": "4503cd16dcb141af00a62e692147314db0ed189e7a9c832795e4648a72d6b26b",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 141488,
+        "path": "shots/tablepro_paper_16_160x50.png",
+        "sha256": "ab4c56d3a00632c0c867965908a821434a96e1c5ad2ba29e787a6e50f3dde145",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8361,
+        "path": "shots/tablepro_paper_16_160x50.txt",
+        "sha256": "be08245d41378f6608b513441eb639c73e8c304d27c30cbdd817884be442a8a9",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:33.188089Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:33.232859Z",
+    "name": "tablepro_paper_16_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221932Z-1584",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 8388,
+        "path": "shots/tablepro_junie_mono_160x50.ansi",
+        "sha256": "dad5505fb1e026a67e4147532016070a4d79dae7fd0997fa8783ab4ae7939e8b",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_junie_mono_160x50.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12175,
+        "path": "shots/tablepro_junie_mono_160x50.html",
+        "sha256": "fad864f55fb754fef53946a9bec4d0c979afcfa7ba1a3484a1c09a27d2dd081a",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 142699,
+        "path": "shots/tablepro_junie_mono_160x50.png",
+        "sha256": "63686926e5dec4f7b0428276dee6e4a961d778150d2c99c6ddc20b9dc80ed3c5",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8361,
+        "path": "shots/tablepro_junie_mono_160x50.txt",
+        "sha256": "eb4fe801eda84bb565cbc5c6aafb879a527654ac5f387c3948f1678ce707c1b1",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:34.403908Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:34.447669Z",
+    "name": "tablepro_junie_mono_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221933Z-1651",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "tablepro",
+    "artifacts": {
+      "ansi": {
+        "bytes": 8396,
+        "path": "shots/tablepro_paper_mono_160x50.ansi",
+        "sha256": "8ac5900ec82231e77ca796a0f0335e26ee12bfe08033c74af9a0e31e69317044",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/tablepro_paper_mono_160x50.cursor",
+        "sha256": "fb5575a61d25b78491e43693e9f69849b14548fce9d8e8dda52436c25ef2fe90",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12299,
+        "path": "shots/tablepro_paper_mono_160x50.html",
+        "sha256": "9b4858a4f5becabf139cacf77c5bdc0e136959491402db3bcf4a955d5c254122",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 142847,
+        "path": "shots/tablepro_paper_mono_160x50.png",
+        "sha256": "a9256e7a4cdeb361b23c872774384bfd7f3c6f9666691275682e0c67d721c911",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 8361,
+        "path": "shots/tablepro_paper_mono_160x50.txt",
+        "sha256": "be08245d41378f6608b513441eb639c73e8c304d27c30cbdd817884be442a8a9",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:35.629327Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:35.673295Z",
+    "name": "tablepro_paper_mono_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221934Z-1722",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2862,
+        "path": "shots/jackin-preview_junie_truecolor_80x24.ansi",
+        "sha256": "5e93d3bc2b9e41fc73e346fa2afce45960792ba8cd98e5ea18fd8e923f3cb1bc",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_truecolor_80x24.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6281,
+        "path": "shots/jackin-preview_junie_truecolor_80x24.html",
+        "sha256": "3e0e0d4bcbfd18e346f704402db4473b4344225d81ec5dc547d7e26f9dd8817a",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 22926,
+        "path": "shots/jackin-preview_junie_truecolor_80x24.png",
+        "sha256": "0f17524261c4b8a301a5e6f2f67140577275071fb9403f413541b63c08274fea",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 347,
+        "path": "shots/jackin-preview_junie_truecolor_80x24.txt",
+        "sha256": "1d6ba84c688043c5c3f91a343cc6b3bf9e27541ae6aa10030cb5319186530f71",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:36.562881Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:36.606505Z",
+    "name": "jackin-preview_junie_truecolor_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221935Z-1803",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2967,
+        "path": "shots/jackin-preview_paper_truecolor_80x24.ansi",
+        "sha256": "c2cb2b1278f3b49951a75e7ea4db9845e762bb433ddc69969d20aa108221f263",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_truecolor_80x24.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6281,
+        "path": "shots/jackin-preview_paper_truecolor_80x24.html",
+        "sha256": "123514bb98f25f31039a3badc57e6bce8230ff25958ddd5b4d107d36c824e622",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 23612,
+        "path": "shots/jackin-preview_paper_truecolor_80x24.png",
+        "sha256": "1c609576097daa3d4d77291507338eb4ba79a3707555fe018daa6c4ae01b70fd",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 347,
+        "path": "shots/jackin-preview_paper_truecolor_80x24.txt",
+        "sha256": "1d6ba84c688043c5c3f91a343cc6b3bf9e27541ae6aa10030cb5319186530f71",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:37.493717Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:37.536967Z",
+    "name": "jackin-preview_paper_truecolor_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221936Z-1893",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2569,
+        "path": "shots/jackin-preview_junie_256_80x24.ansi",
+        "sha256": "d4b4effc2f8d63758afc1c8c08df7654459b6eb62e0ee4cce115b85691eea2d3",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_256_80x24.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6281,
+        "path": "shots/jackin-preview_junie_256_80x24.html",
+        "sha256": "b7717d451d88f5182baa2227f83ef6ddeb541b96af291998473b5f2f7a0d3429",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 22478,
+        "path": "shots/jackin-preview_junie_256_80x24.png",
+        "sha256": "d57b9770155e20b7840297ab4f9e80cec3e6048145d09d8d4632dbd7434d1852",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 347,
+        "path": "shots/jackin-preview_junie_256_80x24.txt",
+        "sha256": "1d6ba84c688043c5c3f91a343cc6b3bf9e27541ae6aa10030cb5319186530f71",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:38.445200Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:38.489046Z",
+    "name": "jackin-preview_junie_256_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221937Z-2211",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2569,
+        "path": "shots/jackin-preview_paper_256_80x24.ansi",
+        "sha256": "75faf78b4f075c7420180007f11755cc7b3d0d250889d2e7feee9a2773fb9c15",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_256_80x24.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 6281,
+        "path": "shots/jackin-preview_paper_256_80x24.html",
+        "sha256": "fa8dcf47bd5a98451ad4b1fd771b90c863c398b58052bb736294fa5a9c19936a",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 22628,
+        "path": "shots/jackin-preview_paper_256_80x24.png",
+        "sha256": "8d439a3188af574b27844746c999fb2eb4fddb875de78c1e89a7c3cf0af42ff6",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 347,
+        "path": "shots/jackin-preview_paper_256_80x24.txt",
+        "sha256": "1d6ba84c688043c5c3f91a343cc6b3bf9e27541ae6aa10030cb5319186530f71",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:39.395711Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:39.439483Z",
+    "name": "jackin-preview_paper_256_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221938Z-2284",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2186,
+        "path": "shots/jackin-preview_junie_16_80x24.ansi",
+        "sha256": "51ab4aaeee7827b8b4dd9fa880c141fdc71b9d6a52c8c8be21ae761398e838b2",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_16_80x24.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 4553,
+        "path": "shots/jackin-preview_junie_16_80x24.html",
+        "sha256": "80b7deee1229be8d28a4a038db3e9bf96dfd02962ba47d18e4384407f9b2c06d",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 20308,
+        "path": "shots/jackin-preview_junie_16_80x24.png",
+        "sha256": "ed70aa1ef478e9ba5eadf3804615ddc6189afb50348acc93460c2ecc2f13d81b",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 347,
+        "path": "shots/jackin-preview_junie_16_80x24.txt",
+        "sha256": "1d6ba84c688043c5c3f91a343cc6b3bf9e27541ae6aa10030cb5319186530f71",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:40.342086Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:40.387758Z",
+    "name": "jackin-preview_junie_16_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221939Z-2347",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 2140,
+        "path": "shots/jackin-preview_paper_16_80x24.ansi",
+        "sha256": "fd2a4b379b7a5e16d9dba478489bb4f7e4adcaf53ed208d92d5e9f442566243a",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_16_80x24.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 4337,
+        "path": "shots/jackin-preview_paper_16_80x24.html",
+        "sha256": "25157feb9eed6c7e92a213ced8c3ab8201f491f0044b4160f0c8a708d0e47b85",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 21865,
+        "path": "shots/jackin-preview_paper_16_80x24.png",
+        "sha256": "2f3bfa305ae6ef85b53be929f183d5dab13ac76b14a30f0b131dfd82407dd28d",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 347,
+        "path": "shots/jackin-preview_paper_16_80x24.txt",
+        "sha256": "1d6ba84c688043c5c3f91a343cc6b3bf9e27541ae6aa10030cb5319186530f71",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:41.291572Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:41.337916Z",
+    "name": "jackin-preview_paper_16_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221940Z-2412",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 472,
+        "path": "shots/jackin-preview_junie_mono_80x24.ansi",
+        "sha256": "33bde4843b6fdb7fd99cf170a7ebd3d137bfa43644721a0ff71cf2b2b9720c9f",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_mono_80x24.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 3793,
+        "path": "shots/jackin-preview_junie_mono_80x24.html",
+        "sha256": "3de6d1bacd9523e82794fadf04eef82adf04e6184bafb38e0fccb2a2830725c0",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 20189,
+        "path": "shots/jackin-preview_junie_mono_80x24.png",
+        "sha256": "e8f0bef88d483c95aa388ea403480ec08a1fb26bf1542637af35911c83e88ac6",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 347,
+        "path": "shots/jackin-preview_junie_mono_80x24.txt",
+        "sha256": "d70b1a9425d67ca5faccd48bca1e4a4ca502cb84f594c64f41f94fe1a8e35c97",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:42.252617Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:42.296345Z",
+    "name": "jackin-preview_junie_mono_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221941Z-2478",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 472,
+        "path": "shots/jackin-preview_paper_mono_80x24.ansi",
+        "sha256": "33bde4843b6fdb7fd99cf170a7ebd3d137bfa43644721a0ff71cf2b2b9720c9f",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_mono_80x24.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 3793,
+        "path": "shots/jackin-preview_paper_mono_80x24.html",
+        "sha256": "3de6d1bacd9523e82794fadf04eef82adf04e6184bafb38e0fccb2a2830725c0",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 20189,
+        "path": "shots/jackin-preview_paper_mono_80x24.png",
+        "sha256": "e8f0bef88d483c95aa388ea403480ec08a1fb26bf1542637af35911c83e88ac6",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 347,
+        "path": "shots/jackin-preview_paper_mono_80x24.txt",
+        "sha256": "d70b1a9425d67ca5faccd48bca1e4a4ca502cb84f594c64f41f94fe1a8e35c97",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:43.184412Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:43.232996Z",
+    "name": "jackin-preview_paper_mono_80x24",
+    "requested_dimensions": {
+      "columns": 80,
+      "rows": 24
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221942Z-2554",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 4140,
+        "path": "shots/jackin-preview_junie_truecolor_100x30.ansi",
+        "sha256": "40dcbc79a627d0dba8acc24cc812f20fa115b0e4fa12cfa68f4bd98b37048d73",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_truecolor_100x30.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8339,
+        "path": "shots/jackin-preview_junie_truecolor_100x30.html",
+        "sha256": "18b6ea776a008af23c6ba67ae7447b4a1cce66ce605569686d507f3022931fa8",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 24124,
+        "path": "shots/jackin-preview_junie_truecolor_100x30.png",
+        "sha256": "5ed6aee54b28ca74d4174bcf7fbb5a91a73ae6e6183462fc408571a18b00a356",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 373,
+        "path": "shots/jackin-preview_junie_truecolor_100x30.txt",
+        "sha256": "b71010ad03f94a985f8b28f0e5be221960b9f6ea4e1e288b00edc64c171a8839",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:44.134058Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:44.177966Z",
+    "name": "jackin-preview_junie_truecolor_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221943Z-2651",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 4281,
+        "path": "shots/jackin-preview_paper_truecolor_100x30.ansi",
+        "sha256": "89bbd24b8a23e8eee2d21025b10e8cfc7adfa2584e595073e7064861d577489b",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_truecolor_100x30.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8339,
+        "path": "shots/jackin-preview_paper_truecolor_100x30.html",
+        "sha256": "7027c32edec3733f262a2f1d6a102cc350bcb43f1f4fd7829259e1576a7629cd",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 24827,
+        "path": "shots/jackin-preview_paper_truecolor_100x30.png",
+        "sha256": "524a5ed36dbb2082ed915f3b9ab3c7af478c006eb597ea619c28d68b6c71d941",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 373,
+        "path": "shots/jackin-preview_paper_truecolor_100x30.txt",
+        "sha256": "b71010ad03f94a985f8b28f0e5be221960b9f6ea4e1e288b00edc64c171a8839",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:45.096875Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:45.141038Z",
+    "name": "jackin-preview_paper_truecolor_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221944Z-2722",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3787,
+        "path": "shots/jackin-preview_junie_256_100x30.ansi",
+        "sha256": "063f9bfd000aa23eb5a791caf73cef8e0b83f6ee5d8d7f45ccf5dbb44f1113e3",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_256_100x30.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8339,
+        "path": "shots/jackin-preview_junie_256_100x30.html",
+        "sha256": "25b61eedeac41fc8c1976e3cf2bae6ab5858b11351b09100d443ab7133dd35a0",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 23681,
+        "path": "shots/jackin-preview_junie_256_100x30.png",
+        "sha256": "ec7b22a41848fa2e6c3388b3b300934dea46593bd6c0c4b32bc0fcce6e02084c",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 373,
+        "path": "shots/jackin-preview_junie_256_100x30.txt",
+        "sha256": "b71010ad03f94a985f8b28f0e5be221960b9f6ea4e1e288b00edc64c171a8839",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:46.060431Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:46.105213Z",
+    "name": "jackin-preview_junie_256_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221945Z-2793",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3787,
+        "path": "shots/jackin-preview_paper_256_100x30.ansi",
+        "sha256": "c263db123235f1f691779ff1d1474b7e84ddd6f50c44998466526256a16a404b",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_256_100x30.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8339,
+        "path": "shots/jackin-preview_paper_256_100x30.html",
+        "sha256": "fa8cc442d7582edebddfe4feb30c0f5d8d220a303a8afe18e83833da0be55876",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 23848,
+        "path": "shots/jackin-preview_paper_256_100x30.png",
+        "sha256": "d355e007c270bb3a5d090a5ba92d654659b633c713b6e4806952c0d9692aac37",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 373,
+        "path": "shots/jackin-preview_paper_256_100x30.txt",
+        "sha256": "b71010ad03f94a985f8b28f0e5be221960b9f6ea4e1e288b00edc64c171a8839",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:47.010398Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:47.055174Z",
+    "name": "jackin-preview_paper_256_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221946Z-2861",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3272,
+        "path": "shots/jackin-preview_junie_16_100x30.ansi",
+        "sha256": "629166f35306d953be0f103492886e840f20b809d55b94bdd297ed45d7d5a6a7",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_16_100x30.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 5963,
+        "path": "shots/jackin-preview_junie_16_100x30.html",
+        "sha256": "3748bebbda3be31d543b7c22e5eb21e23a550ab901ca092fea1e53437b56194d",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 21224,
+        "path": "shots/jackin-preview_junie_16_100x30.png",
+        "sha256": "94dd626bba98b56d47a9f16ac1d41b676d27872af7911683b082cfa9c5430644",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 373,
+        "path": "shots/jackin-preview_junie_16_100x30.txt",
+        "sha256": "b71010ad03f94a985f8b28f0e5be221960b9f6ea4e1e288b00edc64c171a8839",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:47.957551Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:48.006500Z",
+    "name": "jackin-preview_junie_16_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221947Z-2983",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 3226,
+        "path": "shots/jackin-preview_paper_16_100x30.ansi",
+        "sha256": "a62d22f09fc613feafb947ff8c5e33db3ebf7116d21eaba9e206cb3527d541ce",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_16_100x30.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 5747,
+        "path": "shots/jackin-preview_paper_16_100x30.html",
+        "sha256": "b5ad60d83807d1ae7d2c17fbd7da22cd969ed9a7ccc3f61073e462aa05213c04",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 23118,
+        "path": "shots/jackin-preview_paper_16_100x30.png",
+        "sha256": "87f60d9722b03d1f8975fe159db3b4256921146fb3cb3275a5ae3c37146b0a5d",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 373,
+        "path": "shots/jackin-preview_paper_16_100x30.txt",
+        "sha256": "b71010ad03f94a985f8b28f0e5be221960b9f6ea4e1e288b00edc64c171a8839",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:48.918839Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:48.962607Z",
+    "name": "jackin-preview_paper_16_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221948Z-3066",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 508,
+        "path": "shots/jackin-preview_junie_mono_100x30.ansi",
+        "sha256": "bf0cab38260ee446f014e3aa6859e35ad316e1a1ad315ec526309f69486feb8f",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_mono_100x30.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 5159,
+        "path": "shots/jackin-preview_junie_mono_100x30.html",
+        "sha256": "92f710859a544574d71d67b35d634781aaf7a15b3c8a227c145ce99e374e8067",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 21080,
+        "path": "shots/jackin-preview_junie_mono_100x30.png",
+        "sha256": "47a22547e3a5d44b505c156debb2d055244476d0332cd48da0490644d4ecd8fa",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 373,
+        "path": "shots/jackin-preview_junie_mono_100x30.txt",
+        "sha256": "dd04b32f94c59de6a099d97e8c4dfdcfeceffab659e65b1b177ace5cace5b7bb",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:49.845737Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:49.892294Z",
+    "name": "jackin-preview_junie_mono_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221949Z-3135",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 508,
+        "path": "shots/jackin-preview_paper_mono_100x30.ansi",
+        "sha256": "bf0cab38260ee446f014e3aa6859e35ad316e1a1ad315ec526309f69486feb8f",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_mono_100x30.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 5159,
+        "path": "shots/jackin-preview_paper_mono_100x30.html",
+        "sha256": "92f710859a544574d71d67b35d634781aaf7a15b3c8a227c145ce99e374e8067",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 21080,
+        "path": "shots/jackin-preview_paper_mono_100x30.png",
+        "sha256": "47a22547e3a5d44b505c156debb2d055244476d0332cd48da0490644d4ecd8fa",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 373,
+        "path": "shots/jackin-preview_paper_mono_100x30.txt",
+        "sha256": "dd04b32f94c59de6a099d97e8c4dfdcfeceffab659e65b1b177ace5cace5b7bb",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:50.796569Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:50.840042Z",
+    "name": "jackin-preview_paper_mono_100x30",
+    "requested_dimensions": {
+      "columns": 100,
+      "rows": 30
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221949Z-3299",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 6270,
+        "path": "shots/jackin-preview_junie_truecolor_120x40.ansi",
+        "sha256": "45e37afcc4e7d0c2df5fc43cc0a77c0b1c75e8421f828fc8f99782b39c7bf3a7",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_truecolor_120x40.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 11769,
+        "path": "shots/jackin-preview_junie_truecolor_120x40.html",
+        "sha256": "633f49aa35c07b4c24f8d78d3eb21bbe36328f6dc853cc2769d6c7e16b06c392",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 26116,
+        "path": "shots/jackin-preview_junie_truecolor_120x40.png",
+        "sha256": "5a3972127b614e0303cee4cacfb8043092901b3d2d87d00394ad9fd48ac2ca23",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 403,
+        "path": "shots/jackin-preview_junie_truecolor_120x40.txt",
+        "sha256": "f2d80cf8d1ca82602a30df83aada2b4739424f72a8f348428f97f86140d802dd",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:51.745701Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:51.792559Z",
+    "name": "jackin-preview_junie_truecolor_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221950Z-3375",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 6471,
+        "path": "shots/jackin-preview_paper_truecolor_120x40.ansi",
+        "sha256": "d897b8c75ca1eb23b1d2d4765f30bce72324578e3351a409ff703b8d4f6aef31",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_truecolor_120x40.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 11769,
+        "path": "shots/jackin-preview_paper_truecolor_120x40.html",
+        "sha256": "882ff12f2e1410c627b370f1f9f62088dfa1c50cef176370f6036344a4e99bcc",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 26803,
+        "path": "shots/jackin-preview_paper_truecolor_120x40.png",
+        "sha256": "699652b7e4f0888e234f7efd0a1d2ab59dcd5cdab2f2e188aef66423e8619ffe",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 403,
+        "path": "shots/jackin-preview_paper_truecolor_120x40.txt",
+        "sha256": "f2d80cf8d1ca82602a30df83aada2b4739424f72a8f348428f97f86140d802dd",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:52.707142Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:52.750325Z",
+    "name": "jackin-preview_paper_truecolor_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221951Z-3473",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5817,
+        "path": "shots/jackin-preview_junie_256_120x40.ansi",
+        "sha256": "c7bf90f54ad785d0417e23484a8e023b25b99508940a52247c63417c8846ab24",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_256_120x40.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 11769,
+        "path": "shots/jackin-preview_junie_256_120x40.html",
+        "sha256": "2aa53f56acc004da6f86143b5871fedf1c4a956d064f2b94883f544363e3cb22",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 25689,
+        "path": "shots/jackin-preview_junie_256_120x40.png",
+        "sha256": "6f8fbb4f600be090de93e2b9b08b89411e881bf1e0badba3befd08ddfb1de2a7",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 403,
+        "path": "shots/jackin-preview_junie_256_120x40.txt",
+        "sha256": "f2d80cf8d1ca82602a30df83aada2b4739424f72a8f348428f97f86140d802dd",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:53.653884Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:53.701405Z",
+    "name": "jackin-preview_junie_256_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221952Z-3543",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5817,
+        "path": "shots/jackin-preview_paper_256_120x40.ansi",
+        "sha256": "afe94c8527e8838440088813d5a27ff005c5155e1d6f4757a75d3f8f25da79af",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_256_120x40.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 11769,
+        "path": "shots/jackin-preview_paper_256_120x40.html",
+        "sha256": "9e18a477ff600cac70f6f3d09876cab738d3692f5c7f556ad7d839ebea9a30ff",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 25834,
+        "path": "shots/jackin-preview_paper_256_120x40.png",
+        "sha256": "58ef8d0016a97c536837d4da6a9c13816f67da911569845f2caa54c1c029dbfb",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 403,
+        "path": "shots/jackin-preview_paper_256_120x40.txt",
+        "sha256": "f2d80cf8d1ca82602a30df83aada2b4739424f72a8f348428f97f86140d802dd",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:54.609203Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:54.657048Z",
+    "name": "jackin-preview_paper_256_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221953Z-3611",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5082,
+        "path": "shots/jackin-preview_junie_16_120x40.ansi",
+        "sha256": "c6bc70adae6a8a12b7b7c6b2b1fb4b492111e2ea6b33018b158c710991d92de9",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_16_120x40.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8313,
+        "path": "shots/jackin-preview_junie_16_120x40.html",
+        "sha256": "1c133b28cebba2ae387c9c1d05a5f8c4223dedd33db7a91ef80f93aa9e5edf75",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 22517,
+        "path": "shots/jackin-preview_junie_16_120x40.png",
+        "sha256": "2b46acdcadf62106369911cb76d8c6f0bf265a1f6265865b1a413cb67e15700e",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 403,
+        "path": "shots/jackin-preview_junie_16_120x40.txt",
+        "sha256": "f2d80cf8d1ca82602a30df83aada2b4739424f72a8f348428f97f86140d802dd",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:55.552059Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:55.597023Z",
+    "name": "jackin-preview_junie_16_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221954Z-3738",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 5036,
+        "path": "shots/jackin-preview_paper_16_120x40.ansi",
+        "sha256": "3d715e257758326c87f80ce7bc1e7470ca79498c5bdfe894e8f575247b7f38f6",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_16_120x40.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 8097,
+        "path": "shots/jackin-preview_paper_16_120x40.html",
+        "sha256": "736d3a408295bc31c36e93db86b42906e8477566a4d9b433239d140b756e84a9",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 25220,
+        "path": "shots/jackin-preview_paper_16_120x40.png",
+        "sha256": "a0d51df325d0c3756c36e872d62a28575a0e1807649d57e3d9a6b6261627e044",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 403,
+        "path": "shots/jackin-preview_paper_16_120x40.txt",
+        "sha256": "f2d80cf8d1ca82602a30df83aada2b4739424f72a8f348428f97f86140d802dd",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:56.501600Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:56.545877Z",
+    "name": "jackin-preview_paper_16_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221955Z-3818",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 458,
+        "path": "shots/jackin-preview_junie_mono_120x40.ansi",
+        "sha256": "3289d84ca945dabe91a5287137523700db3e1c0450863681646ad22a9809151c",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_mono_120x40.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 7449,
+        "path": "shots/jackin-preview_junie_mono_120x40.html",
+        "sha256": "afb177cd90f76e0a0402a0cff714bbf449083dd0ac643ca27a86e2c910f54dfe",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 22378,
+        "path": "shots/jackin-preview_junie_mono_120x40.png",
+        "sha256": "2e0a94145feb239c7c439710600970002948b087321f52925dc6c9326a2f9bb4",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 403,
+        "path": "shots/jackin-preview_junie_mono_120x40.txt",
+        "sha256": "3493b53641a1e7eb1855d850c53d570ac358a9d95866409ca4930cf98a425bcf",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:57.480074Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:57.537821Z",
+    "name": "jackin-preview_junie_mono_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221956Z-3899",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 458,
+        "path": "shots/jackin-preview_paper_mono_120x40.ansi",
+        "sha256": "3289d84ca945dabe91a5287137523700db3e1c0450863681646ad22a9809151c",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_mono_120x40.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 7449,
+        "path": "shots/jackin-preview_paper_mono_120x40.html",
+        "sha256": "afb177cd90f76e0a0402a0cff714bbf449083dd0ac643ca27a86e2c910f54dfe",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 22378,
+        "path": "shots/jackin-preview_paper_mono_120x40.png",
+        "sha256": "2e0a94145feb239c7c439710600970002948b087321f52925dc6c9326a2f9bb4",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 403,
+        "path": "shots/jackin-preview_paper_mono_120x40.txt",
+        "sha256": "3493b53641a1e7eb1855d850c53d570ac358a9d95866409ca4930cf98a425bcf",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:58.430098Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:58.477652Z",
+    "name": "jackin-preview_paper_mono_120x40",
+    "requested_dimensions": {
+      "columns": 120,
+      "rows": 40
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221957Z-3973",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9800,
+        "path": "shots/jackin-preview_junie_truecolor_160x50.ansi",
+        "sha256": "a5b8c6facfb88ef90a41980979eb0969a0c4c97b984e807dcc9a216ddfb3685d",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_truecolor_160x50.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 16599,
+        "path": "shots/jackin-preview_junie_truecolor_160x50.html",
+        "sha256": "1a41a444c0f39e31d92da327ff3e8443cc9e077b39e4b5bde2f7661077cf71e9",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 28212,
+        "path": "shots/jackin-preview_junie_truecolor_160x50.png",
+        "sha256": "2b0331334cd649034427bb6225e37a54c5211b99c0898d1e5d5f71393e667f7b",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 453,
+        "path": "shots/jackin-preview_junie_truecolor_160x50.txt",
+        "sha256": "e1c66b46fa011b26327cdcf3ff18d7be51f2bc4d21d04264e0bb132bde79f7ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:19:59.417519Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:19:59.468746Z",
+    "name": "jackin-preview_junie_truecolor_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221958Z-4053",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 10061,
+        "path": "shots/jackin-preview_paper_truecolor_160x50.ansi",
+        "sha256": "e911d22cf8b5b408d17afd35eefc57a129efa0c9dca9c4b8e8642b0775142295",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_truecolor_160x50.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 16599,
+        "path": "shots/jackin-preview_paper_truecolor_160x50.html",
+        "sha256": "b7f6537e7cf04487e946900a22f42929b304897d055a4a11ca03ba7602a2cd67",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 28986,
+        "path": "shots/jackin-preview_paper_truecolor_160x50.png",
+        "sha256": "4b7c2c01be8dcaad999d5c9246469a1d3b9c63f10b6da97fbb44725b2323b1c6",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 453,
+        "path": "shots/jackin-preview_paper_truecolor_160x50.txt",
+        "sha256": "e1c66b46fa011b26327cdcf3ff18d7be51f2bc4d21d04264e0bb132bde79f7ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:20:00.382720Z",
+    "color": "truecolor",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:20:00.434014Z",
+    "name": "jackin-preview_paper_truecolor_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T221959Z-4134",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9247,
+        "path": "shots/jackin-preview_junie_256_160x50.ansi",
+        "sha256": "888679eb558e859228b6eb6cc103116e83034b124f3c62dff2e9bea9b66b5198",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_256_160x50.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 16599,
+        "path": "shots/jackin-preview_junie_256_160x50.html",
+        "sha256": "9bb1b1ecf9edcab1d5328c0cbfad9a6b0bad71899b2bf47e8cc58d06cbcaffe7",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 27773,
+        "path": "shots/jackin-preview_junie_256_160x50.png",
+        "sha256": "4f8e69e2beaa2d6613f72b7e4bf856bb18d30a44946163bc753775bc7df24ced",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 453,
+        "path": "shots/jackin-preview_junie_256_160x50.txt",
+        "sha256": "e1c66b46fa011b26327cdcf3ff18d7be51f2bc4d21d04264e0bb132bde79f7ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:20:01.387618Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:20:01.440308Z",
+    "name": "jackin-preview_junie_256_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T222000Z-4204",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 9247,
+        "path": "shots/jackin-preview_paper_256_160x50.ansi",
+        "sha256": "e4cd493e5c2ad87303f1d39c88e10e8d12eeaf9b2fb6e9a21398b3f7971d33c6",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_256_160x50.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 16599,
+        "path": "shots/jackin-preview_paper_256_160x50.html",
+        "sha256": "07f34e840d765aba65d3f6fd74d09ff4729a92b6419f3d9a74f8cdfae17c4b07",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 27951,
+        "path": "shots/jackin-preview_paper_256_160x50.png",
+        "sha256": "2915effda20d56a729db110bd8171097a7f3869153cf9411374abb75dcd5cd24",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 453,
+        "path": "shots/jackin-preview_paper_256_160x50.txt",
+        "sha256": "e1c66b46fa011b26327cdcf3ff18d7be51f2bc4d21d04264e0bb132bde79f7ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:20:02.367630Z",
+    "color": "256",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:20:02.416921Z",
+    "name": "jackin-preview_paper_256_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T222001Z-4299",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 8292,
+        "path": "shots/jackin-preview_junie_16_160x50.ansi",
+        "sha256": "fb3a8bcd3decd5433812afe83b1138bed5ce01ffc2954194c4c0b7361026491f",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_16_160x50.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 12063,
+        "path": "shots/jackin-preview_junie_16_160x50.html",
+        "sha256": "17dd9df1527955eeacc8460ac15de053deb94332edfb1c4b6a43a8a0bca13d71",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 24363,
+        "path": "shots/jackin-preview_junie_16_160x50.png",
+        "sha256": "c7528213dd961879ac834eecae313bc04f4459854a1386b182c4dc3db1cb41d2",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 453,
+        "path": "shots/jackin-preview_junie_16_160x50.txt",
+        "sha256": "e1c66b46fa011b26327cdcf3ff18d7be51f2bc4d21d04264e0bb132bde79f7ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:20:03.351438Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:20:03.402905Z",
+    "name": "jackin-preview_junie_16_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T222002Z-4393",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 8246,
+        "path": "shots/jackin-preview_paper_16_160x50.ansi",
+        "sha256": "6bfd55e33fc913f9fba077f0af008bc5909c3ced63681747f6b4e53f2941961c",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_16_160x50.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 11847,
+        "path": "shots/jackin-preview_paper_16_160x50.html",
+        "sha256": "fa6d7db2bbf3c998ede02bbceb5db8624c773e243e858ef8141c6312c1140947",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 27386,
+        "path": "shots/jackin-preview_paper_16_160x50.png",
+        "sha256": "54435884a5e397e2b3a54518fce793ae57978f0a4a65c71a0aed640ff30d28fe",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 453,
+        "path": "shots/jackin-preview_paper_16_160x50.txt",
+        "sha256": "e1c66b46fa011b26327cdcf3ff18d7be51f2bc4d21d04264e0bb132bde79f7ce",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:20:04.313038Z",
+    "color": "16",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:20:04.360156Z",
+    "name": "jackin-preview_paper_16_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T222003Z-4465",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 598,
+        "path": "shots/jackin-preview_junie_mono_160x50.ansi",
+        "sha256": "9fc5d4e9f53ee5e6cfae9cfb93db3cd7f0992a23cd18c3e3d5417ffad7bd53e0",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_junie_mono_160x50.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 11059,
+        "path": "shots/jackin-preview_junie_mono_160x50.html",
+        "sha256": "e8f656555cdc79753dc31ff7953b77d4f50bb7c116ad185b1a975468da4b16ff",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 24196,
+        "path": "shots/jackin-preview_junie_mono_160x50.png",
+        "sha256": "e38b5811cb6607d80e13f68b333e7d0ccbf51afde586e82c8a1d391af1a961e3",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 453,
+        "path": "shots/jackin-preview_junie_mono_160x50.txt",
+        "sha256": "37810a3290f94dd778942d5f703d46da9070ff77e27cd75bfb9a8dab09ba9340",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:20:05.269061Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:20:05.314713Z",
+    "name": "jackin-preview_junie_mono_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T222004Z-4536",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "junie"
+  },
+  {
+    "app": "jackin-preview",
+    "artifacts": {
+      "ansi": {
+        "bytes": 598,
+        "path": "shots/jackin-preview_paper_mono_160x50.ansi",
+        "sha256": "9fc5d4e9f53ee5e6cfae9cfb93db3cd7f0992a23cd18c3e3d5417ffad7bd53e0",
+        "status": "ok"
+      },
+      "cursor": {
+        "bytes": 7,
+        "path": "shots/jackin-preview_paper_mono_160x50.cursor",
+        "sha256": "0d1ca196703b60208812b16979802c767eeb7630272d5f0fa5eb80cc5894a1cc",
+        "status": "ok"
+      },
+      "html": {
+        "bytes": 11059,
+        "path": "shots/jackin-preview_paper_mono_160x50.html",
+        "sha256": "e8f656555cdc79753dc31ff7953b77d4f50bb7c116ad185b1a975468da4b16ff",
+        "status": "ok"
+      },
+      "png": {
+        "bytes": 24196,
+        "path": "shots/jackin-preview_paper_mono_160x50.png",
+        "sha256": "e38b5811cb6607d80e13f68b333e7d0ccbf51afde586e82c8a1d391af1a961e3",
+        "status": "ok"
+      },
+      "txt": {
+        "bytes": 453,
+        "path": "shots/jackin-preview_paper_mono_160x50.txt",
+        "sha256": "37810a3290f94dd778942d5f703d46da9070ff77e27cd75bfb9a8dab09ba9340",
+        "status": "ok"
+      }
+    },
+    "captured_at": "2026-09-04T22:20:06.255658Z",
+    "color": "mono",
+    "dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "exit_observed": false,
+    "exit_status": "terminated_by_capture_stop",
+    "finalized_at": "2026-09-04T22:20:06.303455Z",
+    "name": "jackin-preview_paper_mono_160x50",
+    "requested_dimensions": {
+      "columns": 160,
+      "rows": 50
+    },
+    "revision": "1378c31be7fe6930955d9ee436612e48145a990b",
+    "run_id": "20260904T222005Z-4631",
+    "schema_version": 1,
+    "status": "ok",
+    "stderr": {
+      "bytes": 0,
+      "path": "shots/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "empty"
+    },
+    "termination": "capture_stop",
+    "theme": "paper"
+  }
+]

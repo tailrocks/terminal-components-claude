@@ -1,0 +1,30 @@
+  Jackin Preview                                                               scenario · returning
+
+  Workspaces & instances
+  ▎● Manager     Accounts    Usage       Settings    Capsule
+
+    Workspaces & instances
+
+       jk-7f3a · running · run 9c41e2f0 · clean
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     Launch session
+
+  q quit · m manager · a accounts · u usage · s settings
+
+
