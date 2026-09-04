@@ -108,7 +108,17 @@ Interrupted packages and what each had produced:
 - Perf findings P1 (viewport double relayout), P2 (debug/release 1-alloc delta; review adjudicated tolerance ≤1) — P1 addressed by §20.9 item 7 (Slice 4E).
 - Open for 4E: `Ui::scroll_region` convenience.
 
-## Next action (Resume)
+## Next action (Resume) — session 3
+
+0. **Recover the build.** `cargo build -p tui-next --all-targets`; fix or revert per the interruption block above. Target: back to green, then commit and push before starting anything new.
+1. **Finish Slice 4 wave 1.** Re-run or complete `digest-race-fix`, `4B`, `4G` (scopes in the ownership section). Gate each: fmt, clippy `-D warnings`, `cargo test -p tui-next -p tui-next-testing --all-targets --all-features`, doc tests, `RUSTDOCFLAGS="-D warnings" cargo doc`, examples build, `--test render --test render_components`, `xtask doc-check`, `xtask boundary`, and `cargo test --all-targets` with the legacy root package still at 247.
+2. **Apply Adjudication Q** (`docs/reviews/adjudication-q-residuals.md`): Q1 the shared bracket helper taking two reserved cells (and fix `Button`'s in-run bracket, which can truncate a full-width label); Q2 make `Fixture::{state_override,status}` private with accessors; Q3 add `Conformance::mono_narrowing_reason()` and its case-9 check, then write the ~8 missing reasons. Record as §29 in `COMPONENT_ARCHITECTURE.md` with the nine listed amendments. **Confirm Q's R1 first** by disabling the `Tabs` bracket block and checking case 9 is still red.
+3. **Fix the live `RowUi` glyph defect** (`Resolved.glyph: Option<GlyphRole>` → `Slot<GlyphRole>`; `marker()`/`part()` must honour it; `label*()` deliberately out of scope). Two callers already exist in `examples/{07,08}`, so Adjudication Q's A4 gate fails as written and must be re-stated.
+4. **Slice 4 remaining packages**: `4A` buttons/choices/brand-chrome, `4C` lists/trees/props/steps/nav, `4E` containers/scrolling (wave 1); then wave 2 `4D` tabs, `4F` overlays, `4H` code/diff, `4I` grid. A fresh `opus-analyst` reviews API consistency after each package.
+5. **Slice 5** showcase migration — including the scripted `tui-next`/`tui_next` → `junie-tui`/`junie_tui` rename, removal of the root `src/` and its three `[[bin]]`s, `tools/capture.sh`'s `BIN` default, and P1's obligation to merge the two halves of the Buttons page into `apps/showcase` and strike §18.3 #4's deviation paragraph.
+6. **Slices 6 and 7** (TablePro, Jackin — parallel, disjoint app trees), then **Slice 8** cleanup with a fresh Opus architecture review, a separate fresh Opus visual review, and the §30 final report.
+
+### Superseded resume steps (session 1)
 
 1. `git status`; `cargo test -p tui-next -p tui-next-testing --all-targets --all-features` and `cargo run -p xtask -- boundary` to learn the WIP state. Do NOT run the legacy digest blessing.
 2. Spawn fable-builder "arch-amend": redo §25/§26 + inline amendments per docs/reviews/slice3-foundations-review.md (§2, §3, §4(f)) and docs/reviews/adjudication-n-layer-measure.md ("Document amendments" table); owns COMPONENT_ARCHITECTURE.md only. Commit + push.

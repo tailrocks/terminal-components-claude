@@ -79,21 +79,34 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
     b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
 ];
 
-/// Paint one flag row — gutter, marker glyph, label — and return the row.
+/// One flag row's chrome — gutter, marker glyph, label, trailing word.
 ///
 /// Shared by [`Checkbox`] and [`Toggle`]: the only difference is the marker,
 /// which each control supplies as a closure over its own glyph roles.
-fn flag_row(
-    ui: &mut Ui<'_>,
+struct FlagRow<'r> {
     id: Id,
-    ov: Overrides<'_>,
-    area: Rect,
-    live: StateFlags,
-    label: &str,
+    ov: Overrides<'r>,
+    label: &'r str,
     marker_w: u16,
-    marker: &dyn Fn(&mut Ui<'_>, Rect, ratatui_core::style::Style),
-    trailing: Option<&str>,
-) -> Rect {
+    trailing: Option<&'r str>,
+}
+
+impl FlagRow<'_> {
+    /// Paint the row and return it.
+    fn draw(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        live: StateFlags,
+        marker: &dyn Fn(&mut Ui<'_>, Rect, ratatui_core::style::Style),
+    ) -> Rect {
+    let (id, ov, label, marker_w, trailing) = (
+        self.id,
+        self.ov,
+        self.label,
+        self.marker_w,
+        self.trailing,
+    );
     let style = |ui: &mut Ui<'_>, part: Part| {
         ov.style(ui, id, Family::CHOICE, Variant::DEFAULT, part, live)
     };
@@ -154,6 +167,7 @@ fn flag_row(
         }
     }
     area
+    }
 }
 
 /// A one-row checkbox: `[✓]` / `[ ]`, a label, and the caller's `bool`.
@@ -369,24 +383,21 @@ impl<'a> Checkbox<'a> {
             ui.register_control(self.id, area, f);
         }
         let on = live.contains(StateFlags::CHECKED);
-        flag_row(
-            ui,
-            self.id,
-            self.ov,
-            area,
-            live,
-            self.label,
-            Self::MARKER_W,
-            &move |ui: &mut Ui<'_>, cell: Rect, style| {
-                let g = if on {
-                    GlyphRole::CheckboxOn
-                } else {
-                    GlyphRole::CheckboxOff
-                };
-                ui.glyph(cell, g, style);
-            },
-            None,
-        )
+        FlagRow {
+            id: self.id,
+            ov: self.ov,
+            label: self.label,
+            marker_w: Self::MARKER_W,
+            trailing: None,
+        }
+        .draw(ui, area, live, &move |ui: &mut Ui<'_>, cell: Rect, style| {
+            let g = if on {
+                GlyphRole::CheckboxOn
+            } else {
+                GlyphRole::CheckboxOff
+            };
+            ui.glyph(cell, g, style);
+        })
     }
 
     /// One row, the marker plus the label.
@@ -641,15 +652,14 @@ impl<'a> Toggle<'a> {
             ui.register_control(self.id, area, f);
         }
         let on = live.contains(StateFlags::CHECKED);
-        flag_row(
-            ui,
-            self.id,
-            self.ov,
-            area,
-            live,
-            self.label,
-            Self::MARKER_W,
-            &move |ui: &mut Ui<'_>, cell: Rect, style| {
+        FlagRow {
+            id: self.id,
+            ov: self.ov,
+            label: self.label,
+            marker_w: Self::MARKER_W,
+            trailing: Some(if on { "on" } else { "off" }),
+        }
+        .draw(ui, area, live, &move |ui: &mut Ui<'_>, cell: Rect, style| {
                 // the knob sits at the end of the track when the switch is on
                 let (knob, track) = if on {
                     (cell.right().saturating_sub(1), cell.x)
@@ -665,10 +675,8 @@ impl<'a> Toggle<'a> {
                 for col in rail.columns() {
                     ui.glyph(col, GlyphRole::RuleQuiet, style);
                 }
-                ui.glyph(cell_at(cell, knob), GlyphRole::SwitchKnob, style);
-            },
-            Some(if on { "on" } else { "off" }),
-        )
+            ui.glyph(cell_at(cell, knob), GlyphRole::SwitchKnob, style);
+        })
     }
 
     /// One row, the switch plus the label and the state word.
