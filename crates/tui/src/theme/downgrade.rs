@@ -364,8 +364,9 @@ fn mono_rules() -> [(Part, StateFlags, StylePatch); 15] {
 }
 
 /// Rules that share a slot with the table above but are keyed on a second
-/// flag (`DIRTY` beside `WARNING`, `ACTIVE` for tabs).
-fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 3] {
+/// flag (`DIRTY` beside `WARNING`, `ACTIVE` for tabs), plus the scrollbar
+/// half of `PRESSED`.
+fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 4] {
     let p = StylePatch::new;
     [
         (
@@ -379,6 +380,16 @@ fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 3] {
             p().set_glyph(GlyphRole::RuleActive),
         ),
         (Part::LABEL, StateFlags::ACTIVE, p().add(Modifier::BOLD)),
+        // §11.4 `PRESSED`, scrollbar half: the thumb wears `PRESSED` from a
+        // live capture (`components/scroll_region.rs:36-38`) and the
+        // `CONTAINER`/`LABEL` rules above reach neither part a scroll region
+        // paints — it draws `TRACK` and `THUMB` only, `CONTAINER` is
+        // `register_decor`. The `SCROLLBAR` recipe's own `PRESSED` rule is
+        // `set_fg(Role::Accent)`, and colour alone is excluded from
+        // conformance case 9's comparison, so without this a dragged thumb is
+        // invisible at `Mono`. `BOLD` reserves no cell, so this keeps the
+        // "a mono fallback never changes geometry" guarantee.
+        (Part::THUMB, StateFlags::PRESSED, p().add(Modifier::BOLD)),
     ]
 }
 
@@ -387,8 +398,8 @@ fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 3] {
 /// families resolve through (`Recipes`' resolvable-set invariant).
 ///
 /// The name is historical (§16.1 cites it) and is kept deliberately: the
-/// count is unchanged, only the set it applies to is stated correctly.
-pub const MONO_RULES_PER_FAMILY: usize = 18;
+/// set it applies to is every resolvable recipe, not only a declared family.
+pub const MONO_RULES_PER_FAMILY: usize = 19;
 
 /// Append the §11.4 mono rules to one recipe.
 ///
@@ -670,6 +681,31 @@ mod tests {
                 disabled.style.fg
             );
         }
+    }
+
+    /// §11.4, `PRESSED`: a dragged scrollbar thumb must stay visible at
+    /// `Mono`. `ScrollRegion` paints only `Part::TRACK` and `Part::THUMB`
+    /// (`CONTAINER` is `register_decor` only), so the `PRESSED` mono rules on
+    /// `CONTAINER` and `LABEL` reach nothing a scroll region draws, and the
+    /// sole `PRESSED` rule the `SCROLLBAR` recipe declares is
+    /// `set_fg(Role::Accent)` — colour, which conformance case 9 excludes from
+    /// its comparison. The thumb genuinely wears `PRESSED`: a live capture
+    /// keeps it (`components/scroll_region.rs:36-38`).
+    #[test]
+    fn mono_pressed_reaches_the_scrollbar_thumb() {
+        let m = Theme::junie().downgrade(ColorLevel::Mono);
+        let r = m.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            Part::THUMB,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+        assert!(
+            r.style.add_modifier.contains(Modifier::BOLD),
+            "a dragged thumb has no non-colour affordance at Mono: {:?}",
+            r.style
+        );
     }
 
     /// §29 + §11.4: at `Mono` a disabled control must stay **readable**, not

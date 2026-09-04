@@ -483,16 +483,79 @@ pub enum ColorLevel {
 }
 
 impl ColorLevel {
-    /// Detect from `NO_COLOR`, `COLORTERM` and `TERM`.
+    /// The level this process's terminal can paint, from the environment.
+    ///
+    /// A thin wrapper over [`ColorLevel::from_env`], which holds the whole
+    /// decision table and is where the behaviour is tested; this reads the
+    /// inputs and nothing else.
+    #[must_use]
     pub fn detect() -> Self {
-        if std::env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty()) {
+        use std::io::IsTerminal as _;
+
+        Self::from_env(
+            std::env::var_os("CLICOLOR_FORCE").as_deref(),
+            std::env::var_os("NO_COLOR").as_deref(),
+            std::env::var("TERM").ok().as_deref(),
+            std::env::var("COLORTERM").ok().as_deref(),
+            std::io::stdout().is_terminal(),
+        )
+    }
+
+    /// The colour-capability decision table. Pure: no environment, no I/O.
+    ///
+    /// Split out from [`ColorLevel::detect`] because it is the only testable
+    /// shape. Edition 2024 makes `std::env::set_var` `unsafe` and this crate
+    /// is `#![forbid(unsafe_code)]`, which no inner `allow` lifts, so no test
+    /// here can set an environment variable; the inputs must arrive as
+    /// arguments.
+    ///
+    /// Precedence, highest first:
+    ///
+    /// 1. `term` is exactly `"dumb"` — [`ColorLevel::Mono`]. The device cannot
+    ///    render SGR at all, so this is a fact about the hardware and outranks
+    ///    everything below it, `clicolor_force` included.
+    /// 2. `clicolor_force` present and neither `""` nor `"0"` — colour is
+    ///    forced on, overriding both `no_color` and `stdout_is_terminal`. This
+    ///    is the only way to force colour up.
+    /// 3. `no_color` present with any non-empty value, per no-color.org —
+    ///    [`ColorLevel::Mono`]. It is an [`OsStr`](std::ffi::OsStr) because a
+    ///    value that is not UTF-8 is still present; the value is never parsed.
+    ///    An empty `no_color` does *not* disable colour.
+    /// 4. `stdout_is_terminal` is `false` — [`ColorLevel::Mono`], so redirected
+    ///    or piped output carries no escape sequences.
+    /// 5. `colorterm` is `truecolor` or `24bit` — [`ColorLevel::TrueColor`].
+    /// 6. `term` contains `256color`, `ghostty` or `kitty` —
+    ///    [`ColorLevel::Ansi256`].
+    /// 7. Otherwise [`ColorLevel::Ansi16`], including when `term` is absent or
+    ///    empty: Windows sets no `TERM` and crossterm enables VT processing
+    ///    there, so `Mono` in that arm would strip colour from Windows Terminal.
+    #[must_use]
+    pub fn from_env(
+        clicolor_force: Option<&std::ffi::OsStr>,
+        no_color: Option<&std::ffi::OsStr>,
+        term: Option<&str>,
+        colorterm: Option<&str>,
+        stdout_is_terminal: bool,
+    ) -> Self {
+        let term = term.unwrap_or_default();
+        if term == "dumb" {
             return ColorLevel::Mono;
         }
-        let colorterm = std::env::var("COLORTERM").unwrap_or_default();
+
+        let forced = clicolor_force.is_some_and(|v| !v.is_empty() && v != "0");
+        if !forced {
+            if no_color.is_some_and(|v| !v.is_empty()) {
+                return ColorLevel::Mono;
+            }
+            if !stdout_is_terminal {
+                return ColorLevel::Mono;
+            }
+        }
+
+        let colorterm = colorterm.unwrap_or_default();
         if colorterm == "truecolor" || colorterm == "24bit" {
             return ColorLevel::TrueColor;
         }
-        let term = std::env::var("TERM").unwrap_or_default();
         if term.contains("256color") || term.contains("ghostty") || term.contains("kitty") {
             return ColorLevel::Ansi256;
         }
@@ -515,4 +578,112 @@ impl ColorLevel {
 pub struct Capability {
     /// Colour depth.
     pub color: ColorLevel,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsStr;
+
+    use super::ColorLevel;
+
+    /// `TERM=dumb` outranks every other input: the device cannot render SGR.
+    #[test]
+    fn term_dumb_is_mono() {
+        assert_eq!(
+            ColorLevel::from_env(None, None, Some("dumb"), Some("truecolor"), true),
+            ColorLevel::Mono
+        );
+    }
+
+    /// no-color.org: *presence* with any non-empty value disables colour, and
+    /// an empty value does not. Pinned so nobody rewrites the check as
+    /// `is_some()` (which would fire on `NO_COLOR=`) or as `== "1"`.
+    #[test]
+    fn no_color_triggers_on_any_non_empty_value() {
+        for v in ["1", "0", "false", " "] {
+            assert_eq!(
+                ColorLevel::from_env(
+                    None,
+                    Some(OsStr::new(v)),
+                    Some("xterm-256color"),
+                    Some("truecolor"),
+                    true
+                ),
+                ColorLevel::Mono,
+                "NO_COLOR={v:?} must disable colour"
+            );
+        }
+        for v in [Some(OsStr::new("")), None] {
+            assert_eq!(
+                ColorLevel::from_env(None, v, Some("xterm-256color"), Some("truecolor"), true),
+                ColorLevel::TrueColor,
+                "NO_COLOR={v:?} must not disable colour"
+            );
+        }
+    }
+
+    /// Redirected or piped output must not carry escape sequences.
+    #[test]
+    fn a_non_tty_stdout_is_mono() {
+        assert_eq!(
+            ColorLevel::from_env(None, None, Some("xterm-256color"), Some("truecolor"), false),
+            ColorLevel::Mono
+        );
+    }
+
+    /// `CLICOLOR_FORCE` is the single way to force colour up.
+    #[test]
+    fn clicolor_force_overrides_no_color_and_the_tty_check() {
+        assert_eq!(
+            ColorLevel::from_env(
+                Some(OsStr::new("1")),
+                Some(OsStr::new("1")),
+                Some("xterm-256color"),
+                Some("truecolor"),
+                false
+            ),
+            ColorLevel::TrueColor
+        );
+        for off in ["", "0"] {
+            assert_eq!(
+                ColorLevel::from_env(
+                    Some(OsStr::new(off)),
+                    Some(OsStr::new("1")),
+                    Some("xterm-256color"),
+                    Some("truecolor"),
+                    false
+                ),
+                ColorLevel::Mono,
+                "CLICOLOR_FORCE={off:?} must not force colour"
+            );
+        }
+    }
+
+    /// Forcing colour cannot invent a capability the device lacks.
+    #[test]
+    fn clicolor_force_does_not_override_term_dumb() {
+        assert_eq!(
+            ColorLevel::from_env(
+                Some(OsStr::new("1")),
+                None,
+                Some("dumb"),
+                Some("truecolor"),
+                true
+            ),
+            ColorLevel::Mono
+        );
+    }
+
+    /// Windows sets no `TERM` and crossterm enables VT processing, so an
+    /// absent `TERM` must stay coloured rather than fall back to `Mono`.
+    #[test]
+    fn term_unset_or_empty_is_ansi16() {
+        for term in [None, Some("")] {
+            assert_eq!(
+                ColorLevel::from_env(None, None, term, None, true),
+                ColorLevel::Ansi16,
+                "TERM={term:?}"
+            );
+        }
+    }
 }

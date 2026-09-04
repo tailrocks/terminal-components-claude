@@ -6,17 +6,37 @@
 #   tools/capture.sh shot   <name>                 # capture to shots/<name>.{ansi,html,txt}
 #   tools/capture.sh resize <cols> <rows>
 #   tools/capture.sh stop
+#
+# Parameters, all environment variables, all with a default:
+#   BIN    the binary to launch            (target/debug/junie-tui)
+#   ARGS   its arguments                   (none)
+#   COLOR  the colour level to capture at  (truecolor)
+#          truecolor | 256 | 16 | mono
+#          `mono` runs the app under NO_COLOR=1; it deliberately leaves
+#          COLORTERM=truecolor set, so a mono capture also proves NO_COLOR
+#          outranks COLORTERM rather than hiding a regression behind an
+#          unset variable. See COMPONENT_ARCHITECTURE.md §20.10 item 1.
+#   PY     the python used for the PNG step (python3)
+# Example: COLOR=mono tools/capture.sh start 120 40
 set -euo pipefail
 cd "$(dirname "$0")/.."
 S=junie_cap
 BIN=${BIN:-target/debug/junie-tui}
+COLOR=${COLOR:-truecolor}
 cmd=${1:-}; shift || true
 case "$cmd" in
   start)
     cols=${1:-120}; rows=${2:-40}
+    case "$COLOR" in
+      truecolor) app_env="env -u NO_COLOR TERM=xterm-256color COLORTERM=truecolor" ;;
+      256)       app_env="env -u NO_COLOR -u COLORTERM TERM=xterm-256color" ;;
+      16)        app_env="env -u NO_COLOR -u COLORTERM TERM=xterm" ;;
+      mono)      app_env="env NO_COLOR=1 TERM=xterm-256color COLORTERM=truecolor" ;;
+      *) echo "unknown COLOR: $COLOR (truecolor|256|16|mono)" >&2; exit 1 ;;
+    esac
     tmux kill-session -t $S 2>/dev/null || true
     tmux -f /dev/null new-session -d -s $S -x "$cols" -y "$rows" \
-      "env -u NO_COLOR TERM=xterm-256color COLORTERM=truecolor ${BIN} ${ARGS:-} 2>shots/stderr.log; sleep 30"
+      "${app_env} ${BIN} ${ARGS:-} 2>shots/stderr.log; sleep 30"
     tmux set-option -t $S status off
     tmux set-option -s escape-time 0
     tmux set-option -g default-terminal "tmux-256color"
