@@ -149,3 +149,25 @@ guilty until it has been seen to fail.**
 Any new or changed check must be demonstrated failing on a deliberately broken input
 and passing on the fixed one, and that demonstration must be recorded with the change.
 A check that has never been observed red is not evidence.
+
+## Incident 2 — RESOLVED (2026-09-04)
+
+The coverage gate now parses the `conformance_suite!` invocation with `syn` rather than
+searching the file text, and reports:
+
+```
+conformance_covers_every_public_component: 21 component(s) registered, 22 entr(y/ies) in conformance_suite!
+FAIL conformance_covers_every_public_component
+crates/tui/src/components/select.rs: Select is not certified — the conformance_suite! list has
+no `=> SelectCase` entry (mentioning SelectCase elsewhere in that file does not register it)
+```
+
+**That red is correct and is being left red.** `Select` is genuinely uncertified pending three
+production defects in `crates/tui/src/components/select.rs`. The fix was demonstrated red-then-green
+on an isolated copy of the tree, per the rule above.
+
+The same audit fixed three further whole-file substring checks and found a **fifth** decorative
+gate — `no_boolean_capability_parameter_on_grid` reads a file that does not exist yet, so it has
+reported `ok` for the entire refactor while asserting nothing — and flagged a **sixth**, the
+dependency-graph check's `every path` claim, which a substring cannot express. Both are recorded
+in `COMPONENT_ARCHITECTURE.md` §37.
