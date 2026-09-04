@@ -19,7 +19,7 @@ use crate::keymap::HintLayer;
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// The bottom row of hints: a badge, the key hints that fit, and a status
@@ -92,8 +92,33 @@ use crate::ui::{FrameRead, Ui};
 /// because nothing addresses an individual hint.
 ///
 /// ## Testing
-/// `HintBarCase` with no capabilities;
-/// `render::components::hint_bar::{default, busy, error, overflow, empty}`.
+/// `HintBarCase` in `crates/tui/tests/conformance.rs`, declaring
+/// `Caps::empty()`, so twelve of its twenty-one `hint_bar::*` cases are
+/// capability-gated and return immediately, and
+/// `mono_states_are_distinguishable` is narrowed to the single default
+/// state and compares one rendering against nothing.
+///
+/// The render matrix in `crates/tui/tests/render_components.rs` generates
+/// exactly eight cells per component, one per `St` variant: there is no
+/// `render::components::hint_bar::busy`, no `::error` and no `::overflow`.
+/// Readiness arrives through the matrix's `status_for` mapping —
+/// `::pressed` is `Status::Busy`, `::editing` `Status::Loading`,
+/// `::disabled` `Status::Error`. `busy` reads `self.status`, so the spinner
+/// really does lead the status message in the first two, and is pinned as a
+/// digest there.
+///
+/// The layer resolution and the right-hand drop are unit-tested in this
+/// module by `the_topmost_layer_wins_and_the_fallback_is_none` and
+/// `narrow_rows_drop_hints_from_the_right`, which calls `fitting` directly.
+///
+/// Exercised by no test: the painted `…` — with the matrix's two-hint
+/// fixture, `fitting` keeps both hints at 40 and at 120 columns whether or
+/// not a readiness glyph takes its two cells, so no matrix cell reaches the
+/// `Part::OVERFLOW` branch, and the unit test stops at `fitting`'s counts.
+/// The error glyph is untested too: `draw` resolves `live` through
+/// `Overrides::flags`, which **replaces** the status-derived `ERROR` with
+/// the forced state, so the `::disabled` cell sets `Status::Error` and then
+/// asks `status_glyph` about `DISABLED`, which answers `None`.
 ///
 /// ## Invariants
 /// Overflow drops from the **right** and always leaves the marker, so the
@@ -270,18 +295,20 @@ impl<'a> HintBar<'a> {
                 .copied();
         }
         if live.contains(StateFlags::ERROR) {
-            let g = ui
-                .resolve(Family::HINTBAR, self.variant, Part::MARKER, live)
-                .glyph
-                .unwrap_or(GlyphRole::Error);
-            return Some(ui.glyph_str(g));
+            let glyph = ui.resolve(Family::HINTBAR, self.variant, Part::MARKER, live);
+            return match glyph.glyph {
+                Slot::Set(g) => Some(ui.glyph_str(g)),
+                Slot::Inherit => Some(ui.glyph_str(GlyphRole::Error)),
+                Slot::Clear => None,
+            };
         }
         if live.contains(StateFlags::WARNING) {
-            let g = ui
-                .resolve(Family::HINTBAR, self.variant, Part::MARKER, live)
-                .glyph
-                .unwrap_or(GlyphRole::Dirty);
-            return Some(ui.glyph_str(g));
+            let glyph = ui.resolve(Family::HINTBAR, self.variant, Part::MARKER, live);
+            return match glyph.glyph {
+                Slot::Set(g) => Some(ui.glyph_str(g)),
+                Slot::Inherit => Some(ui.glyph_str(GlyphRole::Dirty)),
+                Slot::Clear => None,
+            };
         }
         None
     }
@@ -418,7 +445,17 @@ impl<'a> HintBar<'a> {
                 width: right_limit.saturating_sub(x),
                 ..area
             };
-            ui.glyph(cell, s.glyph.unwrap_or(GlyphRole::Ellipsis), s.style);
+            match s.glyph {
+                Slot::Set(g) => {
+                    ui.glyph(cell, g, s.style);
+                }
+                Slot::Inherit => {
+                    ui.glyph(cell, GlyphRole::Ellipsis, s.style);
+                }
+                Slot::Clear => {
+                    ui.fill(cell, s.style);
+                }
+            }
         }
         area
     }
@@ -472,13 +509,19 @@ mod tests {
             HintBar::resolve(&[Some(&modal), None, Some(&screen)]).map(|l| l.hints.len()),
             Some(1)
         );
+        // Identity, not equality, is the assertion. `resolve` returns one of the
+        // caller's own borrows, so which slot it picked is provenance, not content:
+        // `HintLayer: PartialEq`, and two layers carrying the same hints would be
+        // `==` while coming from different slots, so `==` would pass even if the
+        // wrong element were returned. Each case also falls back to the *other*
+        // layer, so a `None` result fails rather than aliases the expected pointer.
         assert!(core::ptr::eq(
             HintBar::resolve(&[Some(&modal), None, Some(&screen)]).unwrap_or(&screen),
-            &modal
+            &raw const modal
         ));
         assert!(core::ptr::eq(
             HintBar::resolve(&[None, None, Some(&screen)]).unwrap_or(&modal),
-            &screen
+            &raw const screen
         ));
         assert!(HintBar::resolve(&[None, None]).is_none());
     }
