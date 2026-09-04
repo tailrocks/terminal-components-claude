@@ -141,3 +141,23 @@ Interrupted packages and what each had produced:
   1. `Caps::OVERLAY` conflates "opens a layer" with "traps focus". Case 14 asserts `reachable()` shrinks to the layer's own stops and Tab wraps inside, but §9.1 makes a `Popover` a pointer barrier with no focus scope and `Select` keeps focus while open — so `SelectCase` cannot declare `OVERLAY` without asserting a property the layer kind forbids.
   2. `FieldControl` has no item channel. §15 says implement it for `Select`/`RadioGroup`, but §24 M3 moved items to the per-phase channel and `draw(&self, ui, area, st)` cannot carry `&[T]`. Implemented for `TextArea`/`Checkbox`/`Toggle` only; 4F's `Form` must drive the three choice controls directly.
   3. `RadioGroup` needed a `.value(ItemKey)` draw-phase controlled prop that §17.0 A7 does not declare, and the `ChipBar` add affordance emits `Activated(k)` with a caller-stated key because `ChipBarAction` has no `Added` variant. Both reported rather than silently deviated.
+
+## Session 2 addendum — 4G landed after the stop order
+
+- `4G` self-persisted a handoff at `<scratchpad>/4G-handoff.md`. Delivered, compiling, with unit tests: `keyhint.rs` (`KeyHint` + a `pub(crate) ChordText` fixed-buffer chord renderer, because there is no `Ui::paint_fmt` and a hint bar may not allocate per frame), `brand.rs`, `empty.rs` (thin id-owning component over the one shared `EmptyState::draw`), `progress.rs` (`ProgressBar` determinate + indeterminate, `Spinner`), `meter.rs` (`MeterTone::from_ratio`, `MeterVisual`), `hintbar.rs` (borrowing topmost-wins `resolve`), `status.rs` (`StatusBar` merging the legacy statusbar + segments; legacy drop order preserved verbatim, allocation-free `[u32; 3]` keep-masks).
+- Contended files: `components/mod.rs` only, alphabetical single-line insertions. `lib.rs`, `author.rs`, `named_tests_allow.txt` untouched by 4G.
+- NOT done by 4G: the `lib.rs` facade line, all 8 conformance registrations plus the four hard-coded case lists in `conformance.rs`, the `render_components.rs` matrix, digest blessing, the whole gate.
+
+### BLOCKER to clear first on resume (small, precise)
+
+`cargo test -p tui-next --lib` does not compile. `crates/tui/src/components/choice.rs:1229`, inside its `#[cfg(test)]` module:
+
+```rust
+g.choose(&mut st, &items, st.cursor_index(), &mut acc);   // E0502: st borrowed mutably and immutably
+```
+
+Fix by hoisting: `let i = st.cursor_index(); g.choose(&mut st, &items, i, &mut acc);`. The library target builds; only the test target is blocked. `cargo build -p tui-next` is green. (Earlier ledger lines describing an unresolved E0502 elsewhere are superseded by this one.)
+
+### Research request for `opus-analyst` (4G)
+
+A stateless `StatusBar` cannot paint per-item hover, which the legacy `src/widgets/statusbar.rs::render` did. `Runtime` keeps `hover: Option<(Id, PartRef)>` (`crates/tui/src/runtime.rs:83`), but the frame snapshot carries only `hover: Option<Id>` (`crates/tui/src/ui/cx.rs:53`), `FrameRead` exposes only `state(id) -> StateFlags` (`cx.rs:108`), and `Phase` (`crates/tui/src/intent.rs:71`) has no `Move`, so `update` cannot track it either. Missing primitive: `FrameRead::hovered_part(&self, owner: Id) -> Option<PartRef>` in the Slice-3-owned `crates/tui/src/ui/cx.rs`. Recorded as a documented `StatusBar` limitation rather than a stop — but it is a visual regression against the legacy widget until it is closed.
