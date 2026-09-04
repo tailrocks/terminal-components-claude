@@ -6,15 +6,13 @@
 use std::time::Duration;
 
 use tui_next::{
-    Action, ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction,
-    DialogState, FrameRead, Id, Item, ItemKey, KeyCode, KeyMap, KeyPhase, List, ListAction,
-    ListState, Panel, Picker, PickerAction, PickerState, Rect, Response, StateFlags, Tabs,
-    TabsState, Ui, UpdateCause, Variant,
+    ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction, DialogState, Id,
+    Item, ItemKey, KeyCode, KeyMap, KeyPhase, List, ListAction, ListState, Panel, Picker,
+    PickerAction, PickerState, Rect, Response, Tabs, TabsState, Ui, UpdateCause, Variant,
 };
 
 use crate::domain::account::Account;
 use crate::domain::agent::Agent;
-use crate::domain::fixtures::{PAYMENTS_WORKSPACE, fixture_roles};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
 use crate::scenario::{Motion, Scenario};
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun, Stage};
@@ -983,8 +981,4 @@ impl From<&Account> for AccountOption {
             detail: account.source.safe_detail(),
         }
     }
-}
-
-fn _fixture_roles_are_available() -> usize {
-    fixture_roles().len()
 }

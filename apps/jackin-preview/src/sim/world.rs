@@ -8,10 +8,9 @@ use crate::clock::{Clock, EPOCH_SECS};
 use crate::domain::account::{AccountId, AccountRegistry};
 use crate::domain::agent::{Agent, AuthMode, Provider};
 use crate::domain::fixtures::{
-    self, HOME, PAYMENTS_WORKSPACE, fixture_accounts, fixture_instance, fixture_roles,
-    fixture_workspace,
+    self, HOME, fixture_accounts, fixture_instance, fixture_roles, fixture_workspace,
 };
-use crate::domain::instance::{Instance, InstanceId, InstanceStatus};
+use crate::domain::instance::{Instance, InstanceStatus};
 use crate::domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
 use crate::scenario::Scenario;
 use crate::sim::onepassword::SimOnePassword;
@@ -249,7 +248,7 @@ pub fn world_for(scenario: Scenario) -> World {
             InstanceStatus::Running,
             crate::domain::instance::RunId::new(0x9c41_e2f0),
             now,
-            crate::domain::fixtures::live_capsule(),
+            fixtures::live_capsule(),
         ));
     }
     if matches!(scenario, Scenario::AccountsMixed | Scenario::HardCases) {
