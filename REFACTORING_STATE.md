@@ -236,3 +236,12 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - `git diff --check` exited `0`.
 - `rtk cargo test -p tui-next-testing --lib` exited `101` with 22 compile errors and no tests, because `conformance.rs` consumers remain unmigrated.
 - **Open follow-up:** finish the `Slot` migration and migrate `Fixture` consumers, then rerun Q1.
+
+## Session 3 checkpoint — Pauli's paused proof wiring (2026-09-04)
+
+- Pauli's proof-wiring pass is paused before completion. It changed `crates/tui/src/lib.rs` by `+5` lines (pre-correction), `crates/tui/tests/conformance.rs` by `+834/-6` with 22 registrations, excluding `Select` because its overlay contract remains unresolved, `crates/tui/tests/render_components.rs` by `+232/-6` with a 20-component matrix including `Select`, and `xtask/named_tests_allow.txt` by `-13` stale entries.
+- Rustfmt and `git diff --check` each exited `0`.
+- The conformance and render compilation checks each exited `101` with 17 unowned `Slot` migration errors at remaining consumers in `hintbar`, `meter`, `progress`, `select`, `tabs`, and `textarea`.
+- Pre-edit conformance passed with 194 tests; exit code `0`.
+- The existing baseline contains 384 lines. The expanded render matrix declares 20 components.
+- No commit has been made for this paused pass. `Select` registration remains open pending the overlay contract.
