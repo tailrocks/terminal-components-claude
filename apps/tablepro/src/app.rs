@@ -1,6 +1,6 @@
-//! TablePro application shell built only on the public `tui-next` facade.
+//! TablePro application shell built only on the public `junie-tui` facade.
 
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, App, Chord, Cx, Field, Form, FormAction, FormState, Grid, GridAction,
     GridState, Id, KeyCode, KeyMap, KeyModifiers, KeyPhase, Panel, PanelKind, Response, Size,
     StatusBar, StatusItem, TextInput, TextInputState, Ui, UpdateCause, Variant,
@@ -221,7 +221,7 @@ pub struct TableProApp {
     pub workbench: Workbench,
     draft: Option<ConnectionDraft>,
     form_state: FormState,
-    form_fields: Box<[tui_next::FieldSpec<'static>]>,
+    form_fields: Box<[junie_tui::FieldSpec<'static>]>,
     form_actions: Box<[Action<'static>]>,
     form_open: bool,
 }
@@ -441,14 +441,14 @@ impl TableProApp {
             },
         }
     }
-    fn column_specs(columns: &[(String, ColType)], editable: bool) -> Vec<tui_next::Column<'_>> {
+    fn column_specs(columns: &[(String, ColType)], editable: bool) -> Vec<junie_tui::Column<'_>> {
         columns
             .iter()
-            .take(tui_next::GRID_MAX_COLUMNS)
+            .take(junie_tui::GRID_MAX_COLUMNS)
             .enumerate()
             .map(|(index, (name, _))| {
-                let mut col = tui_next::Column::new(
-                    tui_next::ColumnKey::num((index as u16).saturating_add(1)),
+                let mut col = junie_tui::Column::new(
+                    junie_tui::ColumnKey::num((index as u16).saturating_add(1)),
                     name.as_str(),
                 );
                 col.sortable = true;
@@ -459,7 +459,7 @@ impl TableProApp {
             .collect()
     }
     fn connection_form<'a>(
-        fields: &'a [tui_next::FieldSpec<'a>],
+        fields: &'a [junie_tui::FieldSpec<'a>],
         actions: &'a [Action<'a>],
     ) -> Form<'a> {
         Form::new(connections::FORM, fields)
@@ -544,10 +544,10 @@ fn status_bar<'a>(left: &'a [StatusItem<'a>], right: &'a [StatusItem<'a>]) -> St
         .right(right)
         .variant(Variant::DEFAULT)
 }
-fn result_grid<'a>(columns: &'a [tui_next::Column<'a>]) -> Grid<'a> {
+fn result_grid<'a>(columns: &'a [junie_tui::Column<'a>]) -> Grid<'a> {
     Grid::new(RESULTS, columns)
-        .nav(tui_next::NavUnit::Cell)
-        .select_mode(tui_next::SelectMode::Multi)
+        .nav(junie_tui::NavUnit::Cell)
+        .select_mode(junie_tui::SelectMode::Multi)
 }
 
 impl App for TableProApp {
@@ -654,12 +654,12 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        let rows = tui_next::layout::rows(
+        let rows = junie_tui::layout::rows(
             ui.full(),
             &[
-                tui_next::Track::Fixed(3),
-                tui_next::Track::Flex(1),
-                tui_next::Track::Fixed(1),
+                junie_tui::Track::Fixed(3),
+                junie_tui::Track::Flex(1),
+                junie_tui::Track::Fixed(1),
             ],
         );
         let header = rows.first().copied().unwrap_or_else(|| ui.full());
@@ -729,5 +729,5 @@ impl App for TableProApp {
 
 /// Start the interactive TablePro binary.
 pub fn run() -> std::io::Result<()> {
-    tui_next::run(TableProApp::default(), tui_next::Theme::junie())
+    junie_tui::run(TableProApp::default(), junie_tui::Theme::junie())
 }

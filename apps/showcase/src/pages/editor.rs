@@ -1,6 +1,6 @@
 //! Code editor page with cursor, insert mode and diagnostics.
 
-use tui_next::{
+use junie_tui::{
     CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx, Id, Rect, Response,
     Ui, id,
 };

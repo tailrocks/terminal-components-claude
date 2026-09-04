@@ -4,9 +4,9 @@
 //! public application facade and domain adapter. Allocation budgets belong to
 //! a separate harness because the old backend is outside this package.
 
+use junie_tui::{Axis, KeyCode, Theme};
+use junie_tui_testing::Harness;
 use tablepro_app::{QueryOutcome, TableProApp};
-use tui_next::{Axis, KeyCode, Theme};
-use tui_next_testing::Harness;
 
 fn full_result_app() -> TableProApp {
     let mut app = TableProApp::default();

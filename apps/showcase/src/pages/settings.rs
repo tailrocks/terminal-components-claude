@@ -1,6 +1,6 @@
 //! Settings screen with tabs, member selection and destructive confirmation.
 
-use tui_next::{
+use junie_tui::{
     Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, List, ListAction, ListState, Rect,
     Response, RowUi, Tabs, TabsAction, TabsState, Ui, Variant, id, layout,
 };
@@ -164,7 +164,7 @@ impl Page for SettingsPage {
         let dialog = remove_dialog().update(cx, &mut self.remove_state);
         if let Some(action) = dialog.action_ref() {
             match action {
-                DialogAction::Action(key) if *key == tui_next::ActionKey::CONFIRM => {
+                DialogAction::Action(key) if *key == junie_tui::ActionKey::CONFIRM => {
                     if !self.members.is_empty() {
                         self.members
                             .remove(self.selected.min(self.members.len().saturating_sub(1)));

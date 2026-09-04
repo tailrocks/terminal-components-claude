@@ -1,4 +1,4 @@
-//! Jackin Preview: a deterministic terminal app built on `tui-next`.
+//! Jackin Preview: a deterministic terminal app built on `junie-tui`.
 #![forbid(unsafe_code)]
 #![expect(
     missing_docs,
@@ -43,15 +43,15 @@ pub use app::{
 pub use domain::instance::RunId;
 pub use scenario::{Motion, Scenario};
 
-/// Run the interactive preview through the public `tui-next` entry point.
+/// Run the interactive preview through the public `junie-tui` entry point.
 pub fn run() -> std::io::Result<()> {
     run_scenario(Scenario::Returning, Motion::Full, 0)
 }
 
-/// Run a pinned scenario through the public `tui-next` entry point.
+/// Run a pinned scenario through the public `junie-tui` entry point.
 pub fn run_scenario(scenario: Scenario, motion: Motion, frame: u64) -> std::io::Result<()> {
-    tui_next::run(
+    junie_tui::run(
         App::for_scenario_at(scenario, motion, frame),
-        tui_next::Theme::junie(),
+        junie_tui::Theme::junie(),
     )
 }

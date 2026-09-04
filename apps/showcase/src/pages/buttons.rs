@@ -4,7 +4,7 @@
 //! The matrix uses the public `Ui::reference` scope around the same Button
 //! props used by the live controls, so captures cannot drift from behavior.
 
-use tui_next::{
+use junie_tui::{
     Button, Constraints, Cx, FrameRead, Id, Part, PartRef, Rect, ReferenceState, ReferenceTarget,
     Response, RowAlign, StateFlags, Status, Ui, Variant, id, layout,
 };
@@ -180,10 +180,10 @@ impl Page for ButtonsPage {
                 let regions = layout::rows(
                     body,
                     &[
-                        tui_next::Track::Fixed(15),
-                        tui_next::Track::Fixed(1),
-                        tui_next::Track::Fixed(8),
-                        tui_next::Track::Flex(1),
+                        junie_tui::Track::Fixed(15),
+                        junie_tui::Track::Fixed(1),
+                        junie_tui::Track::Fixed(8),
+                        junie_tui::Track::Flex(1),
                     ],
                 );
                 self.draw_playground(ui, regions.first().copied().unwrap_or(body));

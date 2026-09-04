@@ -107,7 +107,7 @@ impl<'i> Item<'i> {
 /// A custom row painter does not replace this semantic contract:
 ///
 /// ```compile_fail
-/// use tui_next::{AsItem, FilterList, Id};
+/// use junie_tui::{AsItem, FilterList, Id};
 /// struct PaintedOnly;
 /// fn requires_semantics<T: AsItem>(_: &FilterList<'_, T>) {}
 /// let list = FilterList::<PaintedOnly>::new(Id::root("painted-only"));

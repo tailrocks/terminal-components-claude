@@ -1,6 +1,6 @@
 //! Editable task rows: keyed selection, commit/cancel and field validation.
 
-use tui_next::{
+use junie_tui::{
     Cx, FieldError, Id, ItemKey, List, ListAction, ListState, Rect, Response, RowUi, TextInput,
     TextInputState, Ui, id, layout,
 };
@@ -125,10 +125,10 @@ impl Page for EditablePage {
             );
             if let Some(action) = name.action_ref() {
                 self.message = match action {
-                    tui_next::TextAction::Committed => "name committed",
-                    tui_next::TextAction::Cancelled => "name edit cancelled",
-                    tui_next::TextAction::Changed => "name draft changed",
-                    tui_next::TextAction::MoveNext | tui_next::TextAction::MovePrev => {
+                    junie_tui::TextAction::Committed => "name committed",
+                    junie_tui::TextAction::Cancelled => "name edit cancelled",
+                    junie_tui::TextAction::Changed => "name draft changed",
+                    junie_tui::TextAction::MoveNext | junie_tui::TextAction::MovePrev => {
                         "focus moved"
                     }
                 };
@@ -141,15 +141,15 @@ impl Page for EditablePage {
             let changes_action = changes.action_ref().copied();
             if let Some(action) = changes_action {
                 self.message = match action {
-                    tui_next::TextAction::Committed => "changes committed",
-                    tui_next::TextAction::Cancelled => "changes edit cancelled",
-                    tui_next::TextAction::Changed => "changes draft changed",
-                    tui_next::TextAction::MoveNext | tui_next::TextAction::MovePrev => {
+                    junie_tui::TextAction::Committed => "changes committed",
+                    junie_tui::TextAction::Cancelled => "changes edit cancelled",
+                    junie_tui::TextAction::Changed => "changes draft changed",
+                    junie_tui::TextAction::MoveNext | junie_tui::TextAction::MovePrev => {
                         "focus moved"
                     }
                 };
             }
-            let invalid_commit = matches!(changes_action, Some(tui_next::TextAction::Committed))
+            let invalid_commit = matches!(changes_action, Some(junie_tui::TextAction::Committed))
                 && self.changes_state.error().is_some();
             if invalid_commit {
                 // TextInput ends a failed commit in Idle after writing the
@@ -157,7 +157,7 @@ impl Page for EditablePage {
                 // draft remains editable until the user fixes or cancels it.
                 self.changes_state.begin(&row.changes);
                 cx.focus(CHANGES);
-            } else if matches!(changes_action, Some(tui_next::TextAction::Cancelled)) {
+            } else if matches!(changes_action, Some(junie_tui::TextAction::Cancelled)) {
                 self.changes_state.set_error(None);
             }
             result |= changes.erase();

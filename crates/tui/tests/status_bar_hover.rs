@@ -1,11 +1,11 @@
 //! Regression coverage for live and reference `StatusBar` hover state.
 
-use tui_next::{
+use junie_tui::{
     App, Cx, Family, FrameRead, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, ReferenceState,
     ReferenceTarget, Response, Role, StateFlags, StatusBar, StatusItem, StylePatch, Surface, Theme,
     Ui, UpdateCause,
 };
-use tui_next_testing::Harness;
+use junie_tui_testing::Harness;
 
 const BAR: Id = Id::root("status.hover");
 const FIRST: ItemKey = ItemKey::num(1);

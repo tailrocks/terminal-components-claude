@@ -1,6 +1,6 @@
 //! Query-history, completion and quick-switcher models.
 
-use tui_next::fuzzy;
+use junie_tui::fuzzy;
 
 use crate::db::{Catalog, ColType, Table};
 use crate::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};

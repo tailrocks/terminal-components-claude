@@ -47,7 +47,7 @@ name: CI
 #       proves the FIELD, this job proves the code compiles on the floor. Without it a
 #       builder could use a 1.95 API on a 1.98 toolchain and every other gate would pass.
 #
-# Naming note (§47.1): `tui-next` / `tui_next` remains the temporary package/lib
+# Naming note (§47.1): `junie-tui` / `junie_tui` remains the temporary package/lib
 # name through Slices 5–7 while `showcase`, `tablepro`, and `jackin-preview` move
 # into `apps/`. After Slice 7, one scripted commit removes the root legacy package
 # and renames the library to `junie-tui` / `junie_tui`. The package-specific gates

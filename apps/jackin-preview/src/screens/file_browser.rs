@@ -1,10 +1,10 @@
 //! File and repository chooser state.
 //!
 //! This is the app-side half of the modal decomposition.  Rendering belongs
-//! to `tui_next::Dialog`, `Form`, and `List`; this type keeps the source path,
+//! to `junie_tui::Dialog`, `Form`, and `List`; this type keeps the source path,
 //! URL-mode toggle, and keyed selection stable while the list is reconciled.
 
-use tui_next::ItemKey;
+use junie_tui::ItemKey;
 
 /// A source the operator can choose for a workspace mount.
 #[derive(Debug, Clone, PartialEq, Eq)]

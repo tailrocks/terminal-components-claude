@@ -2230,7 +2230,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 
 ## 17. Representative usage examples
 
-Thirteen examples <!-- amended by §23: example 13 -->, one file each under `crates/tui/examples/`, built by `cargo build -p junie-tui --examples` (`-p tui-next` during Slices 3–4) and gated by `architecture::all_examples_compile`. Every file is complete — a `main` or a `#[test]`, every `use` list exact — because Slice 2 acceptance condition 1 compiles them verbatim. They use only the public facade, so they are literal proof of the "external consumer" claim. Examples 1–10 are also condensed into rustdoc doctests on the corresponding types (`cargo test --workspace --doc`).
+Thirteen examples <!-- amended by §23: example 13 -->, one file each under `crates/tui/examples/`, built by `cargo build -p junie-tui --examples` (`-p junie-tui` during Slices 3–4) and gated by `architecture::all_examples_compile`. Every file is complete — a `main` or a `#[test]`, every `use` list exact — because Slice 2 acceptance condition 1 compiles them verbatim. They use only the public facade, so they are literal proof of the "external consumer" claim. Examples 1–10 are also condensed into rustdoc doctests on the corresponding types (`cargo test --workspace --doc`).
 
 ### 17.0 API additions
 
@@ -4092,19 +4092,19 @@ Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**,
   The new library is built at `crates/tui` under a **temporary** name for Slices 3–4 only:
 
   ```toml
-  [package] name = "tui-next"
-  [lib]     name = "tui_next"
+  [package] name = "junie-tui"
+  [lib]     name = "junie_tui"
   ```
 
-  Consequences: no duplicate lib name ever exists; `cargo doc --workspace` never collides; `default-run`, the three `[[bin]]`s, `tools/capture.sh`'s `BIN` and all 198 tests are untouched; `cargo test --workspace` runs both trees. `crates/tui-testing` (package name `junie-tui-testing`, unchanged) and `xtask` depend on `tui-next` during Slices 3–4. Gate commands in Slices 3–4 therefore say `-p tui-next`; from Slice 5 they say `-p junie-tui`.
+  Consequences: no duplicate lib name ever exists; `cargo doc --workspace` never collides; `default-run`, the three `[[bin]]`s, `tools/capture.sh`'s `BIN` and all 198 tests are untouched; `cargo test --workspace` runs both trees. `crates/tui-testing` (package name `junie-tui-testing`, unchanged) and `xtask` depend on `junie-tui` during Slices 3–4. Gate commands in Slices 3–4 therefore say `-p junie-tui`; from Slice 5 they say `-p junie-tui`.
 
-  **Start of Slice 5, one commit, no behaviour change:** delete the root package's `[lib]`, `src/`, `src/bin/*`, `default-run` and its `[[bin]]`s as the apps move to `apps/*`; then rename `tui-next` → `junie-tui` / `tui_next` → `junie_tui` by scripted `sed` over a closed, slice-owned file set (`crates/tui/**`, `crates/tui-testing/**`, `xtask/**`, `crates/tui/examples/**`, `crates/tui/tests/**`). Re-run the full Slice-4 gate. Apps' `use junie_tui::…` lines are then written **once**, in their own migration slice, where the diff belongs.
+  **Start of Slice 5, one commit, no behaviour change:** delete the root package's `[lib]`, `src/`, `src/bin/*`, `default-run` and its `[[bin]]`s as the apps move to `apps/*`; then rename `junie-tui` → `junie-tui` / `junie_tui` → `junie_tui` by scripted `sed` over a closed, slice-owned file set (`crates/tui/**`, `crates/tui-testing/**`, `xtask/**`, `crates/tui/examples/**`, `crates/tui/tests/**`). Re-run the full Slice-4 gate. Apps' `use junie_tui::…` lines are then written **once**, in their own migration slice, where the diff belongs.
 
   **Rejected staging** (review §7): renaming the root package to `junie-tui-legacy` inside one workspace — (1) doc-target collision: two crates with `[lib] name = "junie_tui"` both write `target/doc/junie_tui/`, fatal under `RUSTDOCFLAGS="-D warnings"`, and ~~avoiding it by renaming the legacy lib rewrites every `use junie_tui::` in 55K lines of apps twice~~ — **struck by §47: that premise is false.** Slices 5–7 rewrite every one of those call sites as part of migration under *every* plan, so the throwaway rewrite is discarded by the very slices cited as its cost; the marginal cost is one scripted `sed`. **The rejection stands on reason (1) alone, which is structural.** Reasons (2) and (3) below are **contingent and do not discriminate** — they arise under *every* plan that adds `apps/X` while the root still declares `[[bin]] X`, and both are removed by §47's binding obligation: **a root `[[bin]] X` and any `default-run` naming it are dropped in the same commit that adds `apps/X`**; (2) duplicate `showcase`/`tablepro`/`jackin-preview` bin names from Slice 5 make `cargo run --bin showcase` ambiguous and `target/debug/showcase` whichever package built last, silently corrupting `tools/capture.sh`; (3) `default-run` is a package key with no workspace equivalent, so `cargo run` at the root would resolve to the legacy showcase for Slices 3–7. ~~Also rejected: keeping `junie-tui` on the new crate and renaming the root package's lib — … so that rename also rewrites all three apps twice.~~ — **struck by §47 for the same false premise.** The alternative is rejected instead on Appendix B.1(d): it front-loads a scripted rewrite of code **scheduled for deletion** into the same commit as the showcase migration and the crate rename, which is exactly the diff-classification cost B.1(d) already refuses.
 
   **Five recorded risks** (mirror them in `REFACTORING_STATE.md` so a resumed or compacted session does not "correct" the temporary name):
-  1. The name `tui-next` is deliberate and temporary; the rename is a scheduled Slice-5 step, not a defect.
-  2. Appendix B.4's `junie_tui::author` paths and every `architecture::*` test name are written against the final name; during Slices 3–4 they read `tui_next::author`. One-line mapping: `junie_tui` ⇢ `tui_next`, `-p junie-tui` ⇢ `-p tui-next`, until the Slice-5 rename commit.
+  1. The name `junie-tui` is deliberate and temporary; the rename is a scheduled Slice-5 step, not a defect.
+  2. Appendix B.4's `junie_tui::author` paths and every `architecture::*` test name are written against the final name; during Slices 3–4 they read `junie_tui::author`. One-line mapping: `junie_tui` ⇢ `junie_tui`, `-p junie-tui` ⇢ `-p junie-tui`, until the Slice-5 rename commit.
   3. `xtask` and `crates/tui-testing` depend on the temporary name and their dependency lines are rewritten in the same commit.
   4. `tools/capture.sh`'s `BIN=${BIN:-target/debug/junie-tui}` is **[F]** already stale (no binary of that name exists); it changes to `target/debug/showcase` in Slice 5 exactly as Appendix B.5 schedules — independent of the rename.
   5. WP‑0 landed in the root package (paths above); Slice 3 moves the harness to `crates/tui-testing/src/perf.rs` and the library benchmarks to `crates/tui/tests/perf.rs`, keeping the app benchmarks at the root until Slices 5–7 move them with their apps. `perf_baseline.txt` moves with the harness and its line names never change.
@@ -4112,19 +4112,19 @@ Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**,
 * `crates/tui/examples/12_author_component.rs` is written here as the first consumer, proving the `author` surface is complete before any component depends on it.
 * **Gate:** <!-- amended by §28: the `render::components::` reachability line (P2) -->
   ```bash
-  # tui-next is the temporary Slice 3–4 name of crates/tui (§21 item 31); junie-tui from Slice 5
+  # junie-tui is the temporary Slice 3–4 name of crates/tui (§21 item 31); junie-tui from Slice 5
   cargo fmt --all --check
-  cargo clippy -p tui-next -p junie-tui-testing --all-targets --all-features -- -D warnings
-  cargo test -p tui-next -p junie-tui-testing --all-targets --all-features
-  cargo test -p tui-next --doc
-  RUSTDOCFLAGS="-D warnings" cargo doc -p tui-next --all-features --no-deps
-  cargo build -p tui-next --examples
-  cargo test -p tui-next --test architecture
-  cargo test -p tui-next --test perf --test perf_collections --release -- --test-threads=1
+  cargo clippy -p junie-tui -p junie-tui-testing --all-targets --all-features -- -D warnings
+  cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features
+  cargo test -p junie-tui --doc
+  RUSTDOCFLAGS="-D warnings" cargo doc -p junie-tui --all-features --no-deps
+  cargo build -p junie-tui --examples
+  cargo test -p junie-tui --test architecture
+  cargo test -p junie-tui --test perf --test perf_collections --release -- --test-threads=1
   cargo test --workspace -- --list | rg -c '^render::components::'   # non-zero: the matrix is reachable
                                                     # under the documented path from BOTH targets (§16.3, §28 P2)
   cargo run -p xtask -- doc-check                   # §21 item 34
-  cargo check -p tui-next --no-default-features     # §22: the core is backend-free
+  cargo check -p junie-tui --no-default-features     # §22: the core is backend-free
   cargo +1.88.0 check --workspace --all-targets --all-features   # §22: the MSRV is a fact, not a field
   cargo test --all-targets                          # the legacy root package: all 198 existing tests stay green (M30)
   ```
@@ -4151,18 +4151,18 @@ Shared, contended files are handled by convention rather than by ownership: `com
 * **Wave order** (to honour the dependencies above): wave 1 = 4A, 4B, 4C, 4E, 4G in parallel; wave 2 = 4D, 4F, 4H, 4I in parallel.
 * **Gate (per package, then per wave):** <!-- amended by §28: the render line names both targets (P2) -->
   ```bash
-  # tui-next is the temporary Slice 3–4 name of crates/tui (§21 item 31)
+  # junie-tui is the temporary Slice 3–4 name of crates/tui (§21 item 31)
   cargo fmt --all --check
-  cargo clippy -p tui-next --all-targets --all-features -- -D warnings
-  cargo test -p tui-next --lib
-  cargo test -p tui-next --test conformance
-  cargo test -p tui-next --test render --test render_components   # both targets; --test render alone runs half the matrix (§16.3, §28)
-  cargo test -p tui-next --test architecture
-  cargo test -p tui-next --doc
-  cargo build -p tui-next --examples
-  cargo test -p tui-next --test perf --test perf_collections --release -- --test-threads=1
+  cargo clippy -p junie-tui --all-targets --all-features -- -D warnings
+  cargo test -p junie-tui --lib
+  cargo test -p junie-tui --test conformance
+  cargo test -p junie-tui --test render --test render_components   # both targets; --test render alone runs half the matrix (§16.3, §28)
+  cargo test -p junie-tui --test architecture
+  cargo test -p junie-tui --doc
+  cargo build -p junie-tui --examples
+  cargo test -p junie-tui --test perf --test perf_collections --release -- --test-threads=1
   cargo run -p xtask -- doc-check                   # §21 item 34
-  cargo check -p tui-next --no-default-features     # §22
+  cargo check -p junie-tui --no-default-features     # §22
   cargo +1.88.0 check --workspace --all-targets --all-features   # §22
   cargo test --all-targets                          # the legacy root package stays green (M30)
   ```
@@ -4172,7 +4172,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
 
 * **Files:** `apps/showcase/**` in full (`Cargo.toml`, `src/main.rs`, `src/app.rs`, `src/pages/*.rs` — all 22 — `src/data.rs`, `tests/app_tests.rs`, `tests/visual.rs`, `tests/baselines/showcase.txt`, `tests/perf.rs`).
 * Deletes the shell sidebar, footer hint row, static-field renderer, button matrix, inspector panel and too-small screen in favour of library components (§18.3 #2–#7, #21). Adds the pages goal §22.1 requires: the state matrix per component, `Theme::paper()` coverage, scoped and per-instance override pages, the author-component page (example 12 rendered as a page), and deterministic navigation to every state for captures.
-* Begins with the one-commit rename `tui-next` → `junie-tui` and the removal of the root package's `src/`, `src/bin/*`, `[lib]`, `default-run` and `[[bin]]`s (Slice 3 staging, §21 item 31); then adds `apps/showcase` (with its `[lib] showcase_app` + `[[bin]] showcase`, §21 item 23) to the workspace members. All 26 existing tests must pass with the §16.4 `Harness`. <!-- amended by §21 items 23, 31 -->
+* Begins with the one-commit rename `junie-tui` → `junie-tui` and the removal of the root package's `src/`, `src/bin/*`, `[lib]`, `default-run` and `[[bin]]`s (Slice 3 staging, §21 item 31); then adds `apps/showcase` (with its `[lib] showcase_app` + `[[bin]] showcase`, §21 item 23) to the workspace members. All 26 existing tests must pass with the §16.4 `Harness`. <!-- amended by §21 items 23, 31 -->
 * **Gate:** the full §26 command set scoped to `-p junie-tui -p showcase`, plus `cargo run -p xtask -- doc-check`, `cargo check -p junie-tui --no-default-features` and the `cargo +1.88.0 check` MSRV job (§22), plus `cargo run -p showcase` driven through `tools/capture.sh` at 80×24, 100×30, 120×40, 160×50 × {truecolor, 256, 16, mono} × {junie, paper}, with every capture inspected and every baseline difference classified against §20.10.
 
 ### Slice 6 — TablePro (one owner)
@@ -4220,7 +4220,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
 
 **Crate name: keep `junie-tui` (package) / `junie_tui` (lib).** Considered and rejected: renaming to a theme-neutral name such as `tui-components`.
 
-**Staging of the name (§21 item 31, review §7).** During Slices 3–4 the package at `crates/tui` is **temporarily** `tui-next` / `tui_next`, because the root package keeps `junie-tui` / `junie_tui` (with `default-run`, its three `[[bin]]`s, `src/` and all 198 tests) so the repository stays compiling and tested throughout. The rename to the final name is one scripted commit at the start of Slice 5, when the root package's library and binaries are removed. The five risks of the temporary name are recorded in Appendix A (Slice 3) and mirrored in `REFACTORING_STATE.md`. Everything below describes the **final** layout (Slice 5 onward). <!-- amended by §21 item 31 -->
+**Staging of the name (§21 item 31, review §7).** During Slices 3–4 the package at `crates/tui` is **temporarily** `junie-tui` / `junie_tui`, because the root package keeps `junie-tui` / `junie_tui` (with `default-run`, its three `[[bin]]`s, `src/` and all 198 tests) so the repository stays compiling and tested throughout. The rename to the final name is one scripted commit at the start of Slice 5, when the root package's library and binaries are removed. The five risks of the temporary name are recorded in Appendix A (Slice 3) and mirrored in `REFACTORING_STATE.md`. Everything below describes the **final** layout (Slice 5 onward). <!-- amended by §21 item 31 -->
 
 *Why keep it.* (a) §13, which is accepted, already fixes the public paths `junie_tui::*` and `junie_tui::author::*` as the two documented API layers; changing them is a change to an accepted decision and would require a fresh adjudication for a naming preference, not for an invariant. (b) "Junie" names the *design language*, not an application domain. G8 and `architecture::no_domain_vocabulary_in_the_library` forbid TablePro and Jackin vocabulary; a theme name is neither. (c) The neutrality the rename would buy is bought instead by structure: `Theme::junie()` and `Theme::paper()` are peers under `junie_tui::theme::builtin`, no component references Junie, and `architecture::palette_literals_are_confined_to_theme_builtins` proves it. (d) The rename cost is entirely non-architectural churn — `tools/capture.sh`, `README.md`, `Cargo.toml`, every test import, the baseline fixture path — landing in the middle of a refactor that already changes every one of those files for real reasons, which makes classification of the resulting diffs harder, not easier.
 
@@ -4464,7 +4464,7 @@ junie-tui-testing.workspace = true
 
 ### B.4 The `author` module
 
-<!-- amended by §21 items 18, 19, 21, 22, 31; §22; §24 M1 --> `junie_tui::author` is a re-export module, not a second implementation. (During Slices 3–4 the path reads `tui_next::author`, §21 item 31.) It is what example 12 and every downstream component author consumes, and it is the mechanical proof of Scenario G: if a component can be written with it, no private access is needed.
+<!-- amended by §21 items 18, 19, 21, 22, 31; §22; §24 M1 --> `junie_tui::author` is a re-export module, not a second implementation. (During Slices 3–4 the path reads `junie_tui::author`, §21 item 31.) It is what example 12 and every downstream component author consumes, and it is the mechanical proof of Scenario G: if a component can be written with it, no private access is needed.
 
 **The root facade's foreign re-exports (exact, §24 M1).** MOD §1.2's rule is *"`junie-tui` re-exports the ratatui types the public API mentions"*; applying the rule rather than its pre-§22.10 parenthetical list, every foreign type a `pub` signature names is re-exported at the layer that names it, and nothing else is. `ratatui_core::layout::Size` and `ratatui_core::text::{Line, Span, Text}` are named by **no** `pub` signature (`Frame::area()` returns `Rect`; resize is `Input::Resize{w,h}`; `Backend::size`/`WindowSize` never leave `runtime/session.rs`; `RowUi::label_spans` builds its `Line` inside `ui/paint.rs`), so our `Size` and our `Span` keep their names and the ratatui ones are not exported at the root. `Frame` is named only by `Runtime::draw` (A1) — a host concern — so it is **root only**. `architecture::every_foreign_type_in_the_public_surface_is_re_exported` (§16.5) keeps the list complete mechanically.
 
@@ -4828,7 +4828,7 @@ so it moves and adds no baseline key.
 
 **Item 31 — B16, review §7, M30: staging.** Amends Appendix A (WP‑0, Slice 3, Slice 4 gates), Appendix B.1/B.2, §16.6.
 
-The coordinator's `junie-tui-legacy` rename proposal is rejected (doc-target collision on `junie_tui` under `RUSTDOCFLAGS="-D warnings"`; duplicate `showcase`/`tablepro`/`jackin-preview` bin names making `cargo run --bin` and `target/debug/<bin>` ambiguous in the slices where visual comparison matters; `default-run` resolving to the legacy showcase). Accepted plan: the root package stays `junie-tui` untouched and becomes the workspace root; the new library at `crates/tui` is temporarily `tui-next`/`tui_next` during Slices 3–4; one scripted rename to `junie-tui`/`junie_tui` at the start of Slice 5 when root `src/`, `src/bin/*`, `[lib]`, `default-run` and the `[[bin]]`s are removed. Appendix A records the plan, the five risks and WP‑0's actual landed paths (commit `07cb2c9`: `tests/perf.rs`, `tests/perf_common.rs`, `tests/perf_baseline.txt`, `src/bin/{showcase,tablepro,jackin_preview}/perf_tests.rs`); the legacy test command `cargo test --all-targets` at the repository root is added to the Slice 3 and Slice 4 gates. `REFACTORING_STATE.md` must carry the same five risks (coordinator-owned; not part of this edit).
+The coordinator's `junie-tui-legacy` rename proposal is rejected (doc-target collision on `junie_tui` under `RUSTDOCFLAGS="-D warnings"`; duplicate `showcase`/`tablepro`/`jackin-preview` bin names making `cargo run --bin` and `target/debug/<bin>` ambiguous in the slices where visual comparison matters; `default-run` resolving to the legacy showcase). Accepted plan: the root package stays `junie-tui` untouched and becomes the workspace root; the new library at `crates/tui` is temporarily `junie-tui`/`junie_tui` during Slices 3–4; one scripted rename to `junie-tui`/`junie_tui` at the start of Slice 5 when root `src/`, `src/bin/*`, `[lib]`, `default-run` and the `[[bin]]`s are removed. Appendix A records the plan, the five risks and WP‑0's actual landed paths (commit `07cb2c9`: `tests/perf.rs`, `tests/perf_common.rs`, `tests/perf_baseline.txt`, `src/bin/{showcase,tablepro,jackin_preview}/perf_tests.rs`); the legacy test command `cargo test --all-targets` at the repository root is added to the Slice 3 and Slice 4 gates. `REFACTORING_STATE.md` must carry the same five risks (coordinator-owned; not part of this edit).
 
 **Item 32 — M12: jackin's request bus `Jx` and the `Msg` channel.** Amends §3.4, §17.0 A1, §18.3 #22.
 
@@ -5032,7 +5032,7 @@ cargo test  --workspace --test architecture no_deprecated_or_legacy_api_usage
 cargo test  --workspace --test architecture dependency_graph_is_exactly_the_declared_set
 ```
 
-Pass condition for the two new architecture tests: `crates/tui/tests/allow/legacy_api.txt` is **empty**, and the five `dependency_graph_is_exactly_the_declared_set` assertions hold. During Slices 3–4 the crate is `tui-next` (§21 item 31), so `-p junie-tui` reads `-p tui-next`.
+Pass condition for the two new architecture tests: `crates/tui/tests/allow/legacy_api.txt` is **empty**, and the five `dependency_graph_is_exactly_the_declared_set` assertions hold. During Slices 3–4 the crate is `junie-tui` (§21 item 31), so `-p junie-tui` reads `-p junie-tui`.
 
 ### 22.10 Open items surfaced while recording — resolved by §24 <!-- amended by §24 -->
 
@@ -5363,7 +5363,7 @@ cargo test -p junie-tui --test conformance conformance::form::
 ! rg -n 'use FieldKind::\*' crates/tui/examples
 ```
 
-Pass condition: all commands succeed, the four `!`-prefixed greps return no matches, and `crates/tui/tests/allow/legacy_api.txt` stays empty. During Slices 3–4 the crate is `tui-next` (§21 item 31), so `-p junie-tui` reads `-p tui-next`. ~~**File placement forced by the two `author.rs` greps (recorded, not decided):** … ADJ‑M's inline `pub mod raw { … }` sketch is therefore realised as a file-backed module.~~ <!-- amended by §25 §3 --> **Struck.** `author::raw` is an **inline** `pub mod raw` inside `crates/tui/src/author.rs`, as §24.1's exact Rust already writes it; there is no `author/raw.rs` file, and Appendix B.2's earlier line was the outlier (corrected). The greps were what forced the wrong conclusion, so the negative one is replaced: the check is that the `author` module's **own** re-export list names no `ratatui_core::text` item — a `syn`-scoped assertion in `xtask`, not a whole-file `rg`, because the nested `raw` module legitimately contains exactly that line. Nothing about the path `junie_tui::author::raw::{Line, Span, Text}` changes.
+Pass condition: all commands succeed, the four `!`-prefixed greps return no matches, and `crates/tui/tests/allow/legacy_api.txt` stays empty. During Slices 3–4 the crate is `junie-tui` (§21 item 31), so `-p junie-tui` reads `-p junie-tui`. ~~**File placement forced by the two `author.rs` greps (recorded, not decided):** … ADJ‑M's inline `pub mod raw { … }` sketch is therefore realised as a file-backed module.~~ <!-- amended by §25 §3 --> **Struck.** `author::raw` is an **inline** `pub mod raw` inside `crates/tui/src/author.rs`, as §24.1's exact Rust already writes it; there is no `author/raw.rs` file, and Appendix B.2's earlier line was the outlier (corrected). The greps were what forced the wrong conclusion, so the negative one is replaced: the check is that the `author` module's **own** re-export list names no `ratatui_core::text` item — a `syn`-scoped assertion in `xtask`, not a whole-file `rg`, because the nested `raw` module legitimately contains exactly that line. Nothing about the path `junie_tui::author::raw::{Line, Span, Text}` changes.
 
 ### 24.6 Risks
 
@@ -5379,7 +5379,7 @@ Pass condition: all commands succeed, the four `!`-prefixed greps return no matc
 
 ## 25. Slice 3 foundations review — accepted adjudications and deviations
 
-**Source.** `docs/reviews/slice3-foundations-review.md` — a fresh read-only `opus-analyst` review of `crates/tui` (package `tui-next`, lib `tui_next`), `crates/tui-testing`, `xtask`, `crates/tui/tests/**`, `crates/tui/examples/12_author_component.rs` and `crates/tui/README.md` at commit `18afddd`, read against §3–§13, §16, §17.0, §21–§24, Appendix B and `docs/audit/modern-api-audit.md` §1–§2. **Accepted as written.** This section records it; it does not re-decide it. Every earlier section it changes carries an inline `<!-- amended by §25 -->` marker.
+**Source.** `docs/reviews/slice3-foundations-review.md` — a fresh read-only `opus-analyst` review of `crates/tui` (package `junie-tui`, lib `junie_tui`), `crates/tui-testing`, `xtask`, `crates/tui/tests/**`, `crates/tui/examples/12_author_component.rs` and `crates/tui/README.md` at commit `18afddd`, read against §3–§13, §16, §17.0, §21–§24, Appendix B and `docs/audit/modern-api-audit.md` §1–§2. **Accepted as written.** This section records it; it does not re-decide it. Every earlier section it changes carries an inline `<!-- amended by §25 -->` marker.
 
 **Verdict recorded.** *Components may build on this surface: **no** as it stands; **yes** after the seven blockers and the eight adjudications are applied.* The intent queue, focus ring, capture, scroll, layout, reconcile core and the conformance driver are ready. Seven defects are load-bearing for Slice 4 and live in files Slice 3 owns, so a 4x owner cannot fix them; four document amendments are required so the gates stop asserting things that are false. Numeric colour claims the review marks *(estimate)* were hand arithmetic and must be re-derived before blessing.
 
@@ -5471,7 +5471,7 @@ Code: `unicode_line_inline(n)` beside `unicode_line(n)` in `crates/tui-testing/s
 > **(2c)** `smallvec`, `parking_lot`, `parking_lot_core`, `lock_api`, `scopeguard`, `libc`, `mio` and `signal-hook*` may appear **only beneath `ratatui-crossterm`**: every path from `junie-tui` to each of them passes through `ratatui-crossterm`. They are crossterm's internals, not a choice of ours; §22.4's decision is about *our* containers and is enforced by forbidden-pattern rule 26 over our source.
 > **(2d)** `junie-tui`'s **direct** normal dependencies contain no `smallvec` and no direct `crossterm`.
 
-Mechanism: keep the pruned check for (2a)/(2d), move `critical-section`/`palette` to the **unpruned** closure for (2b), and add (2c) as `cargo tree -p tui-next -e normal --invert <crate>` per name, asserting `ratatui-crossterm` on every printed path. Print the pruned subtree once on success so the exception is visible in CI output.
+Mechanism: keep the pruned check for (2a)/(2d), move `critical-section`/`palette` to the **unpruned** closure for (2b), and add (2c) as `cargo tree -p junie-tui -e normal --invert <crate>` per name, asserting `ratatui-crossterm` on every printed path. Print the pruned subtree once on success so the exception is visible in CI output.
 
 ### 25.6 Adjudication 6 — `intents_drain_is_o_1_when_the_queue_is_empty`: a deterministic probe count replaces the wall-clock band
 
@@ -5591,42 +5591,42 @@ Recorded because they are decisions about the surface, not defects to fix.
 
 ### 25.12 Slice 3 gate additions
 
-The Appendix A Slice 3 gate stands, with these additions; all commands from the workspace root, and during Slices 3–4 `-p junie-tui` reads `-p tui-next`.
+The Appendix A Slice 3 gate stands, with these additions; all commands from the workspace root, and during Slices 3–4 `-p junie-tui` reads `-p junie-tui`.
 
 <!-- amended by §28: the render line names both targets (P2) -->
 
 ```bash
 # F1: precedence is real, not a colour coincidence
-cargo test -p tui-next --lib theme::resolve::tests::precedence_family_then_variant_then_state_then_global_then_scope_then_instance
-cargo test -p tui-next --lib theme::resolve::tests::state_rules_beat_a_variant_base
+cargo test -p junie-tui --lib theme::resolve::tests::precedence_family_then_variant_then_state_then_global_then_scope_then_instance
+cargo test -p junie-tui --lib theme::resolve::tests::state_rules_beat_a_variant_base
 # F2: no hang-instead-of-panic path survives
 ! rg -n 'spin_loop' crates/tui/src
 cargo test --workspace --test architecture no_unreachable_spin_loops
 # F3/F4: the written-cell bitset and the row path
-cargo test -p tui-next --test render --test render_components layer::composite_copies_only_painted_cells   # §28: both targets
-cargo test -p tui-next --test perf --release -- --test-threads=1 paint_spans
+cargo test -p junie-tui --test render --test render_components layer::composite_copies_only_painted_cells   # §28: both targets
+cargo test -p junie-tui --test perf --release -- --test-threads=1 paint_spans
 # F5: DESIGN.md:320 is the contract
-cargo test -p tui-next --lib theme::downgrade::tests::ansi16_preserves_hue_family_and_brightness
+cargo test -p junie-tui --lib theme::downgrade::tests::ansi16_preserves_hue_family_and_brightness
 cargo test --all-targets theme::tests::accent_survives_downgrade      # the legacy pin, still green
 # F6/F7: cursor selection and the theme-coupling migration contract
-cargo test -p tui-next --lib cursor::tests::the_focused_owners_write_wins_on_the_same_layer
-cargo test -p tui-next --all-features harness::resolved_reports_the_family_the_component_actually_queried
+cargo test -p junie-tui --lib cursor::tests::the_focused_owners_write_wins_on_the_same_layer
+cargo test -p junie-tui --all-features harness::resolved_reports_the_family_the_component_actually_queried
 # F9: the boundary check scans whole files
 cargo run -p xtask -- boundary                 # `ok` for every check, allow-lists printed and empty
 test -s crates/tui/tests/allow/legacy_api.txt && exit 1
 # F11/F12/F13: the named-test inventory is machine-checked
 cargo test --workspace --test architecture every_named_test_exists
 cargo test --workspace --test architecture conformance_covers_every_public_component
-cargo test -p tui-next --test conformance conformance::registry::
-cargo test -p tui-next --test conformance conformance::focus_transition_settles
-cargo test -p tui-next --test conformance conformance::conflicting_visible_bindings_are_reported
-cargo test -p tui-next --test conformance conformance::draw_registers_nothing_when_it_cannot_draw
+cargo test -p junie-tui --test conformance conformance::registry::
+cargo test -p junie-tui --test conformance conformance::focus_transition_settles
+cargo test -p junie-tui --test conformance conformance::conflicting_visible_bindings_are_reported
+cargo test -p junie-tui --test conformance conformance::draw_registers_nothing_when_it_cannot_draw
 # F19/F20: the dependency story is asserted, not assumed
 cargo test --workspace --test architecture dependency_graph_is_exactly_the_declared_set
 cargo test --workspace --test architecture ratatui_crossterm_is_named_in_exactly_two_files
-cargo tree -p tui-next -e normal --invert smallvec    # every path passes through ratatui-crossterm
+cargo tree -p junie-tui -e normal --invert smallvec    # every path passes through ratatui-crossterm
 # F18: the perf contract, re-blessed in the same commit as the code change
-PERF_STRICT=1 cargo test -p tui-next --test perf --release -- --test-threads=1
+PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1
 git diff --exit-code crates/tui/tests/perf_baseline.txt
 # F26: the document and the state ledger carry the adjudications
 rg -n 'Slice 3 foundations review' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
@@ -5987,25 +5987,25 @@ Call site: `ui.fill(area, r.over(ui.surface_style()))`. Tests: `ui::surface_styl
 
 ```bash
 # N1 — the resolver is given a real size, and it clamps rather than grows
-cargo test -p tui-next --lib layer::tests::fill_resolves_to_the_whole_screen
-cargo test -p tui-next --lib layer::tests::fixed_size_is_clamped_never_grown
-cargo test -p tui-next --lib layer::tests::point_anchor_flips_instead_of_covering_the_pointer
-cargo test -p tui-next --lib layer::tests::popover_flips_above_when_the_content_does_not_fit_below
-cargo test -p tui-next --lib layer::runtime_tests::resize_layer_re_resolves_the_anchor_on_the_next_draw
+cargo test -p junie-tui --lib layer::tests::fill_resolves_to_the_whole_screen
+cargo test -p junie-tui --lib layer::tests::fixed_size_is_clamped_never_grown
+cargo test -p junie-tui --lib layer::tests::point_anchor_flips_instead_of_covering_the_pointer
+cargo test -p junie-tui --lib layer::tests::popover_flips_above_when_the_content_does_not_fit_below
+cargo test -p junie-tui --lib layer::runtime_tests::resize_layer_re_resolves_the_anchor_on_the_next_draw
 ! rg -n 'min_size' crates/tui/src            # the false name is gone from the source
 # N1 — no component computes an overlay rect (the "one resolver" claim, mechanically)
 ! rg -n 'centered|centered_horizontally|centered_vertically|resolve_anchor' crates/tui/src/components/
 # N2 — the two resolution paths cannot drift, and measurement has no side effects
-cargo test -p tui-next --lib measure::tests::ui_resolve_equals_ui_style_for_every_family_variant_part
-cargo test -p tui-next --lib measure::tests::measure_records_no_roles_and_no_styled_parts
-cargo test -p tui-next --all-features measure::tests::measure_does_not_touch_the_style_cache
-cargo test -p tui-next --lib theme::tests::metrics_are_surface_independent
+cargo test -p junie-tui --lib measure::tests::ui_resolve_equals_ui_style_for_every_family_variant_part
+cargo test -p junie-tui --lib measure::tests::measure_records_no_roles_and_no_styled_parts
+cargo test -p junie-tui --all-features measure::tests::measure_does_not_touch_the_style_cache
+cargo test -p junie-tui --lib theme::tests::metrics_are_surface_independent
 # the confirmations
-cargo test -p tui-next --lib ui::tests::with_part_resolves_once_and_records_the_role
-cargo test -p tui-next --lib ui::tests::surface_style_is_the_left_operand_of_the_final_patch
+cargo test -p junie-tui --lib ui::tests::with_part_resolves_once_and_records_the_role
+cargo test -p junie-tui --lib ui::tests::surface_style_is_the_left_operand_of_the_final_patch
 # the memo and allocation contracts are unperturbed
-PERF_STRICT=1 cargo test -p tui-next --test perf --release -- --test-threads=1 style_resolve
-cargo test -p tui-next --test perf --release -- --test-threads=1 measure_is_allocation_free
+PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1 style_resolve
+cargo test -p junie-tui --test perf --release -- --test-threads=1 measure_is_allocation_free
 # the inventory and the document agree
 cargo test --workspace --test architecture every_named_test_exists
 cargo run -p xtask -- doc-check
@@ -6069,9 +6069,9 @@ Every path is O(1) and independent of the key count. **No new worst case.**
 **Tests and acceptance.**
 
 ```bash
-cargo test -p tui-next --lib theme::resolve::tests::cache_hits_after_the_first_query_and_clears_by_generation
-cargo test -p tui-next --lib theme::resolve::tests::cache_generation_wrap_does_not_serve_a_stale_entry   # new
-PERF_STRICT=1 cargo test -p tui-next --test perf --release -- --test-threads=1 style_resolve_10k_parts
+cargo test -p junie-tui --lib theme::resolve::tests::cache_hits_after_the_first_query_and_clears_by_generation
+cargo test -p junie-tui --lib theme::resolve::tests::cache_generation_wrap_does_not_serve_a_stale_entry   # new
+PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1 style_resolve_10k_parts
 ! rg -n 'direct.mapped' crates/tui/src            # the literal survives in this document only inside ~~strikeouts~~
 rg -n 'two-way set-associative' COMPONENT_ARCHITECTURE.md crates/tui/src/theme/resolve.rs
 ```
@@ -6123,10 +6123,10 @@ Two further findings are recorded, not fixed: the swap is **sticky and order-dep
 <!-- amended by §28: the render line names both targets (P2) -->
 
 ```bash
-cargo test -p tui-next --test render --test render_components theme::ascii_theme_renders_without_box_drawing_glyphs   # §28: both targets
-cargo test -p tui-next --lib theme::glyph::tests::ascii_glyph_set_has_no_box_drawing                      # new
-cargo test -p tui-next --lib theme::builder::tests::ascii_glyphs_is_idempotent_and_glyph_overrides_it     # new
-cargo test -p tui-next --lib theme::border::tests::ascii_border_set_is_pure_ascii
+cargo test -p junie-tui --test render --test render_components theme::ascii_theme_renders_without_box_drawing_glyphs   # §28: both targets
+cargo test -p junie-tui --lib theme::glyph::tests::ascii_glyph_set_has_no_box_drawing                      # new
+cargo test -p junie-tui --lib theme::builder::tests::ascii_glyphs_is_idempotent_and_glyph_overrides_it     # new
+cargo test -p junie-tui --lib theme::border::tests::ascii_border_set_is_pure_ascii
 rg -n 'ascii_glyphs' crates/tui/src/theme/builder.rs COMPONENT_ARCHITECTURE.md
 rg -n 'Slice 4E' COMPONENT_ARCHITECTURE.md
 ```
@@ -6170,8 +6170,8 @@ Also confirmed: the restored `nearest_16` is the legacy `src/theme.rs` implement
 **Tests and acceptance.**
 
 ```bash
-cargo test -p tui-next --lib theme::downgrade::tests::ansi16_preserves_hue_family_and_brightness
-cargo test -p tui-next --lib theme::downgrade::tests::downgrade_is_deterministic_per_level
+cargo test -p junie-tui --lib theme::downgrade::tests::ansi16_preserves_hue_family_and_brightness
+cargo test -p junie-tui --lib theme::downgrade::tests::downgrade_is_deterministic_per_level
 cargo test --all-targets theme::tests::accent_survives_downgrade          # the legacy pin, unchanged
 git diff --exit-code crates/tui/tests/perf_baseline.txt                   # O3 re-blesses nothing
 ```
@@ -6209,8 +6209,8 @@ git diff --exit-code crates/tui/tests/perf_baseline.txt                   # O3 r
 **Tests and acceptance.**
 
 ```bash
-PERF_STRICT=1 cargo test -p tui-next --test perf --release -- --test-threads=1 style_resolve_per_frame
-PERF_STRICT=1 cargo test -p tui-next --test perf --release -- --test-threads=1 intents_drain
+PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1 style_resolve_per_frame
+PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1 intents_drain
 #   PERF-PROBES probes_500 - probes_20 == 480; PERF-RATIO intents_drain_ns_per_control <= 1.25
 rg -n 'style_resolve_per_frame' COMPONENT_ARCHITECTURE.md   # names Slice 5 + frame_showcase_lists_120x40
 ```
@@ -6243,7 +6243,7 @@ Every command in §27.1–§27.4 exits 0; `crates/tui/tests/perf_baseline.txt` c
 
 **Rejected.** Widen to `crates/tui/examples/**` (applies the exemption to twelve files with no claim to it and makes "A11 is showcase/fixture-only" unenforceable for the rest of the refactor). Widen to `crates/tui/examples/showcase_*.rs` (costs the matrix's assertions for the same one slice and leaves an allow-list entry a later reader must remember to delete). Move the page to `crates/tui/tests/fixtures/` (a fixture is not runnable; goal §29's "the showcase demonstrates every public component" is not satisfied by a file nobody can start).
 
-**Tests.** `cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures` exits 0 **with no allow-list**; `cargo test -p tui-next --test showcase_buttons` keeps asserting `b.area_of(MATRIX.index(0).index(0)).is_none()`; `cargo build -p tui-next --example showcase_buttons` still builds the page. **Slice-5 obligation** (recorded in `REFACTORING_STATE.md`, and the whole mitigation for the risk that a convention-only deviation becomes permanent): *the two halves become one file under `apps/showcase`, and §18.3 #4's deviation paragraph is struck.*
+**Tests.** `cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures` exits 0 **with no allow-list**; `cargo test -p junie-tui --test showcase_buttons` keeps asserting `b.area_of(MATRIX.index(0).index(0)).is_none()`; `cargo build -p junie-tui --example showcase_buttons` still builds the page. **Slice-5 obligation** (recorded in `REFACTORING_STATE.md`, and the whole mitigation for the risk that a convention-only deviation becomes permanent): *the two halves become one file under `apps/showcase`, and §18.3 #4's deviation paragraph is struck.*
 
 ### 28.2 P2 — `render::components::*` file placement
 
@@ -6253,7 +6253,7 @@ Every command in §27.1–§27.4 exits 0; `crates/tui/tests/perf_baseline.txt` c
 
 **Rejected.** *Require the fold now* — buys nothing testable, creates a cross-work-package file, and would be undone if the two owners diverge again in Slice 4.
 
-**Tests.** `cargo test -p tui-next --test render --test render_components` runs the 384 component cells plus the foundations digests; `cargo test -p tui-next --test render_components render::components::` lists the matrix under the documented path; added to the Slice 3 gate: `cargo test --workspace -- --list | rg -c '^render::components::'` is non-zero.
+**Tests.** `cargo test -p junie-tui --test render --test render_components` runs the 384 component cells plus the foundations digests; `cargo test -p junie-tui --test render_components render::components::` lists the matrix under the documented path; added to the Slice 3 gate: `cargo test --workspace -- --list | rg -c '^render::components::'` is non-zero.
 
 ### 28.3 P3 — §17 example 11 and the undelivered-intent guard
 
@@ -6339,56 +6339,56 @@ This is the one item of the six that is a **goal §29 defect**, not a placement 
 
 ```bash
 # ── P3, first: confirm the premise correction before changing anything ──
-cargo test -p tui-next --test showcase_buttons no_diagnostics_are_emitted_during_the_journey
-cargo test -p tui-next --lib runtime::tests::a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it
-cargo test -p tui-next --lib runtime::tests::a_decorative_owner_is_not_diagnosed_for_a_pointer_intent
-cargo test -p tui-next --test overlay                      # the unconditional shape stays green
+cargo test -p junie-tui --test showcase_buttons no_diagnostics_are_emitted_during_the_journey
+cargo test -p junie-tui --lib runtime::tests::a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it
+cargo test -p junie-tui --lib runtime::tests::a_decorative_owner_is_not_diagnosed_for_a_pointer_intent
+cargo test -p junie-tui --test overlay                      # the unconditional shape stays green
 
 # ── P6 (priority) ──
-cargo test -p tui-next --lib theme::downgrade::tests::mono_resolver_applies_once_without_recipe_storage
-cargo test -p tui-next --lib theme::downgrade::tests::mono_disabled_is_dim_and_readable
-cargo test -p tui-next --test conformance conformance::text_input::mono_states_are_distinguishable
-cargo test -p tui-next --test conformance conformance::button::mono_states_are_distinguishable
-cargo test -p tui-next --test conformance conformance::field::mono_states_are_distinguishable
-cargo test -p tui-next --test conformance conformance::list::mono_states_are_distinguishable
-cargo test -p tui-next --test conformance conformance::tabs::mono_states_are_distinguishable
-cargo test -p tui-next --test conformance conformance::mono_states_required_by_is_a_union
+cargo test -p junie-tui --lib theme::downgrade::tests::mono_resolver_applies_once_without_recipe_storage
+cargo test -p junie-tui --lib theme::downgrade::tests::mono_disabled_is_dim_and_readable
+cargo test -p junie-tui --test conformance conformance::text_input::mono_states_are_distinguishable
+cargo test -p junie-tui --test conformance conformance::button::mono_states_are_distinguishable
+cargo test -p junie-tui --test conformance conformance::field::mono_states_are_distinguishable
+cargo test -p junie-tui --test conformance conformance::list::mono_states_are_distinguishable
+cargo test -p junie-tui --test conformance conformance::tabs::mono_states_are_distinguishable
+cargo test -p junie-tui --test conformance conformance::mono_states_required_by_is_a_union
 # ── Q2/A5: the forced state is private and read through its paired accessors ──
 ! rg -n 'pub (state_override|status)\s*:' crates/tui-testing/src/conformance/mod.rs
 rg -n 'state_override\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs  # only Fixture::force writes the paired state
-cargo test -p tui-next --test conformance
+cargo test -p junie-tui --test conformance
 rg -n 'state_override: StateFlags,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
 
 # ── Q3/A6: the declared reason is checked in case 9, not by a source-shape grep ──
-cargo test -p tui-next --test conformance conformance:: -- --include-ignored
+cargo test -p junie-tui --test conformance conformance:: -- --include-ignored
 rg -n 'mono_narrowing_reason' crates/tui-testing/src/conformance/{mod,driver}.rs \
       crates/tui/tests/conformance.rs COMPONENT_ARCHITECTURE.md
 
 # ── P6 baselines: change → capture → classify → bless, in that order ──
-cargo test -p tui-next --test render --test render_components render::components::   # RED on the mono disabled cells
-BLESS=1 cargo test -p tui-next --test render --test render_components
+cargo test -p junie-tui --test render --test render_components render::components::   # RED on the mono disabled cells
+BLESS=1 cargo test -p junie-tui --test render --test render_components
 git diff --stat crates/tui/tests/baselines/components.txt              # mono lines only
 rg -n 'mono DISABLED' docs/visual-changes.md                           # the classification exists
 
 # ── P4 ──
-cargo test -p tui-next --lib components::dialog::tests::layer_size_is_a_pure_function_of_props_and_design_tokens
-cargo test -p tui-next --lib components::dialog::tests::a_prompt_dialog_sizes_its_own_field_row
+cargo test -p junie-tui --lib components::dialog::tests::layer_size_is_a_pure_function_of_props_and_design_tokens
+cargo test -p junie-tui --lib components::dialog::tests::a_prompt_dialog_sizes_its_own_field_row
 ! rg -n 'centered|resolve_anchor' crates/tui/src/components/           # §26.5 still holds
 
 # ── P5 ──
-cargo test -p tui-next --test architecture legacy_forced_state_apis_are_absent
-cargo test -p tui-next --test architecture reference_rendering_is_ui_scoped
+cargo test -p junie-tui --test architecture legacy_forced_state_apis_are_absent
+cargo test -p junie-tui --test architecture reference_rendering_is_ui_scoped
 cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures
 ! rg -n 'pub fn inherit_forced' crates/tui/src --glob '!field_control.rs'
 
 # ── P1 ──
 cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures   # unchanged allow-list
-cargo test -p tui-next --test showcase_buttons                         # the matrix stays asserted
-cargo build -p tui-next --example showcase_buttons                     # the page still runs
+cargo test -p junie-tui --test showcase_buttons                         # the matrix stays asserted
+cargo build -p junie-tui --example showcase_buttons                     # the page still runs
 rg -n 'apps/showcase' REFACTORING_STATE.md                             # the Slice-5 obligation is recorded
 
 # ── P2 ──
-cargo test -p tui-next --test render --test render_components
+cargo test -p junie-tui --test render --test render_components
 cargo test --workspace -- --list | rg -c '^render::components::'       # non-zero
 rg -n -- '--test render\b' COMPONENT_ARCHITECTURE.md | rg -v 'render_components' && exit 1   # no gate names one target
 
@@ -6412,7 +6412,7 @@ cargo test --workspace --test architecture every_named_test_exists
 
 **(a) is not a new affordance; it is compliance with §11.4 as already written.** The `PRESSED` row requires the bracket *in addition to* the `CONTAINER` rule. `Button` discharges it; `Tabs` now discharges it. What was missing from the spec is the sentence saying who paints it, and Adjudication P's table assumed every component paints its own label the way `Button` does.
 
-**R1 is confirmed by execution.** With the `Tabs` bracket block enabled, `cargo test -p tui-next --test conformance conformance::tabs::mono_states_are_distinguishable` exited 0. With only `tabs.rs:719–728` disabled, the same case was nonzero because `TabsCase`'s mono `PRESSED` and `FOCUSED` outputs were equal. Restoring the block returned the case to exit 0. Thus `CONTAINER`'s `BOLD` alone does not satisfy this observed pair; the bracket is independently required.
+**R1 is confirmed by execution.** With the `Tabs` bracket block enabled, `cargo test -p junie-tui --test conformance conformance::tabs::mono_states_are_distinguishable` exited 0. With only `tabs.rs:719–728` disabled, the same case was nonzero because `TabsCase`'s mono `PRESSED` and `FOCUSED` outputs were equal. Restoring the block returned the case to exit 0. Thus `CONTAINER`'s `BOLD` alone does not satisfy this observed pair; the bracket is independently required.
 
 **Why the bracket cannot move into `RowUi` (rejects (c) as stated).** The bracket needs two columns that are not the label's. `Button` has a gutter and a trailing pad; a tab has two pad cells; a `List`/`Tree`/`Props`/`Grid` row has none — `RowUi::label` fills the whole remainder. Teaching `label` to bracket would take two content columns from every pressed row and pull the ellipsis in by two — a mono fallback changing geometry, which §28.6 already rejected. `RowUi` has no information with which to reserve those columns; only the component that laid out the row does. This is structurally the same conclusion §28.6(b) reached for the spinner: the theme rule states the affordance; the component that owns the cells paints it.
 
@@ -6552,9 +6552,9 @@ The following nine amendments from `docs/reviews/adjudication-q-residuals.md` ar
 
 ```bash
 # R1/Q1: the bracket is independently required and geometry is stable
-cargo test -p tui-next --test conformance conformance::tabs::mono_states_are_distinguishable
-cargo test -p tui-next --lib components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
-cargo test -p tui-next --lib components::button::tests::mono_pressed_does_not_truncate_the_label
+cargo test -p junie-tui --test conformance conformance::tabs::mono_states_are_distinguishable
+cargo test -p junie-tui --lib components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
+cargo test -p junie-tui --lib components::button::tests::mono_pressed_does_not_truncate_the_label
 
 # A3: exactly one *implementation* of the bracket. Only mod.rs paints it; every other
 # component-file mention of the role is the resolved-slot guard that calls the helper.
@@ -6566,12 +6566,12 @@ rg -l -- 'GlyphRole::PressLeft' crates/tui/src/components/ | rg -v 'mod\.rs' | x
 
 # A4: live RowUi callers and Slot semantics, not the superseded no-caller grep
 rg -n '\.marker\(' crates/tui/examples/07_borrowed_rows.rs crates/tui/examples/08_dynamic_tabs.rs
-cargo test -p tui-next --lib collection::rowui
+cargo test -p junie-tui --lib collection::rowui
 
 # A5/A6: private paired Fixture state and machine-checked narrowing reasons
 ! rg -n 'pub (state_override|status)\s*:' crates/tui-testing/src/conformance/mod.rs
 rg -n 'state_override\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs  # only Fixture::force writes the paired state
-cargo test -p tui-next --test conformance conformance:: -- --include-ignored
+cargo test -p junie-tui --test conformance conformance:: -- --include-ignored
 rg -n 'mono_narrowing_reason' crates/tui-testing/src/conformance/{mod,driver}.rs \
       crates/tui/tests/conformance.rs COMPONENT_ARCHITECTURE.md
 ```
@@ -7447,7 +7447,7 @@ So it has **no ordering constraint of its own**, and it lands *after* §39 — b
 
 ### §46.1 The rename produces a workspace cargo cannot resolve <!-- amended by §46 -->
 
-Appendix A says: *"delete the root package's `[lib]`, `src/`, `src/bin/*`, `default-run` and its `[[bin]]`s **as the apps move to `apps/*`**; then rename `tui-next` → `junie-tui`"*, and Appendix B.1 calls it "one scripted commit at the start of Slice 5" with "no behaviour change".
+Appendix A says: *"delete the root package's `[lib]`, `src/`, `src/bin/*`, `default-run` and its `[[bin]]`s **as the apps move to `apps/*`**; then rename `junie-tui` → `junie-tui`"*, and Appendix B.1 calls it "one scripted commit at the start of Slice 5" with "no behaviour change".
 
 It cannot be either.
 
@@ -7536,7 +7536,7 @@ Seven deliberate breaks; every test seen red before being trusted. The right-ali
 
 ### §47.1 Verdict <!-- amended by §47 -->
 
-> `crates/tui` stays `tui-next`/`tui_next` through Slices 5, 6 and 7. The legacy root package stays exactly as it is, **losing one `[[bin]]` and its `src/bin/<app>/**` in the same commit that adds each `apps/<app>` package** — showcase at Slice 5, tablepro at 6, jackin-preview at 7. After Slice 7 the root package holds no binaries and no consumers, and **one commit between Slice 7 and Slice 8** deletes the root `src/`, `[package]`, `[lib]`, `[[bin]]`s and `default-run`, turning the root manifest virtual, and performs the rename by a single scripted pass.
+> `crates/tui` stays `junie-tui`/`junie_tui` through Slices 5, 6 and 7. The legacy root package stays exactly as it is, **losing one `[[bin]]` and its `src/bin/<app>/**` in the same commit that adds each `apps/<app>` package** — showcase at Slice 5, tablepro at 6, jackin-preview at 7. After Slice 7 the root package holds no binaries and no consumers, and **one commit between Slice 7 and Slice 8** deletes the root `src/`, `[package]`, `[lib]`, `[[bin]]`s and `default-run`, turning the root manifest virtual, and performs the rename by a single scripted pass.
 
 **Appendix A's Slice 5 row was written before anyone traced what the root package holds, and the row contains the evidence.** Its clause "**as the apps move to `apps/*`**" describes an *incremental* removal; Appendix B.1 calls the same thing "**one scripted commit** at the start of Slice 5". Those are two different plans and neither is executable.
 
@@ -7581,7 +7581,7 @@ Related document gap: the moved application benchmark rows have **nowhere legal 
 
 ### §47.7 Ten CI steps break, and Appendix A names none of them <!-- amended by §47 -->
 
-Six `--bin` steps die with the root binaries, three per-app pairs across two jobs; the perf baseline diff step names only the two existing files and would leave the new per-app baselines unguarded; the header comment map describes the deleted steps; and the artefact globs reference logs that stop being produced, hidden by `|| true`. Three `-p tui-next` gate strings and two `xtask` constants change at the rename commit.
+Six `--bin` steps die with the root binaries, three per-app pairs across two jobs; the perf baseline diff step names only the two existing files and would leave the new per-app baselines unguarded; the header comment map describes the deleted steps; and the artefact globs reference logs that stop being produced, hidden by `|| true`. Three `-p junie-tui` gate strings and two `xtask` constants change at the rename commit.
 
 ### §47.8 Steps whose safety rests on a gate that does not exist <!-- amended by §47 -->
 

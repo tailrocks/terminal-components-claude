@@ -2,7 +2,7 @@
 
 use std::{cmp::Ordering, time::Duration};
 
-use tui_next::{
+use junie_tui::{
     ActionKey, Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, Rect, Response, RowUi,
     StepState, Steps, StepsAction, StepsState, Ui, Variant, id, layout,
 };

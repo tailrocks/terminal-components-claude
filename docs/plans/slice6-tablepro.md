@@ -12,7 +12,7 @@ Two historical input corrections, up front, because they change the contract:
 
 ---
 
-**Status:** executable when its application-migration preconditions hold. Preconditions: Slice 5 closed (the `tui-next` → `junie-tui` rename, root `src/` and its three `[[bin]]`s removed, `apps/` layout live), Slice 4 packages 4A–4I closed, `crates/tui/tests/fixtures/grid_model.rs` green. `NavList`, `Steps`, `Grid` and `TooSmall` are already exported by the Slice 4 library; that does not remove these later app preconditions. Slice 6 and Slice 7 run in parallel over disjoint app trees (Appendix A "Dependency summary").
+**Status:** executable when its application-migration preconditions hold. Preconditions: Slice 5 closed (the `junie-tui` → `junie-tui` rename, root `src/` and its three `[[bin]]`s removed, `apps/` layout live), Slice 4 packages 4A–4I closed, `crates/tui/tests/fixtures/grid_model.rs` green. `NavList`, `Steps`, `Grid` and `TooSmall` are already exported by the Slice 4 library; that does not remove these later app preconditions. Slice 6 and Slice 7 run in parallel over disjoint app trees (Appendix A "Dependency summary").
 
 **Authority:** `REFACTORING_GOAL.md` §18/§22.2/§23-H/§29 › `DESIGN.md` › the pre-refactor captures and `tests/baselines/tablepro.txt` › `COMPONENT_ARCHITECTURE.md` §12.3, §14, §17, §18, §21–§29. DOM §1.6's 22-capability table is adopted verbatim as the checklist (§12.3, final sentence).
 

@@ -1,4 +1,4 @@
-//! `COMPONENT_ARCHITECTURE.md` §17 example 8, verbatim (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! `COMPONENT_ARCHITECTURE.md` §17 example 8, verbatim (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 #![expect(
     dead_code,
     missing_docs,
@@ -7,7 +7,7 @@
     reason = "verbatim from §17 example 8"
 )]
 
-use tui_next::{
+use junie_tui::{
     Cx, GlyphRole, Id, ItemKey, Rect, Response, RowUi, Tabs, TabsAction, TabsState, Ui, id,
 };
 

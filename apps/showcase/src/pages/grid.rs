@@ -1,6 +1,6 @@
 //! A second grid consumer: compact service-health metrics.
 
-use tui_next::{
+use junie_tui::{
     Align, CellRef, Column, ColumnKey, Cx, Grid, GridAction, GridModel, GridState, Id, ItemKey,
     NavUnit, Rect, Response, Role, RowDecor, Ui, id,
 };

@@ -20,7 +20,7 @@ Continue the in-progress refactor in this repository. Do not restart, do not re-
 
 ## Scope — finish Slice 4 wave 1, and nothing else
 
-1. **Clear the build.** Run `cargo build -p tui-next --all-targets` and `cargo test -p tui-next --lib` and fix what they actually report. Two prior reports disagreed (one `E0502` versus 17–18 errors), so measure rather than trusting either. The one confirmed item is `crates/tui/src/components/choice.rs:1229`, where `st` is borrowed mutably and immutably in the same call; hoist `let i = st.cursor_index();` before the call.
+1. **Clear the build.** Run `cargo build -p junie-tui --all-targets` and `cargo test -p junie-tui --lib` and fix what they actually report. Two prior reports disagreed (one `E0502` versus 17–18 errors), so measure rather than trusting either. The one confirmed item is `crates/tui/src/components/choice.rs:1229`, where `st` is borrowed mutably and immutably in the same call; hoist `let i = st.cursor_index();` before the call.
 2. **Finish work packages 4B and 4G**, which delivered components but not their proofs. Missing: the `lib.rs` facade line for 4G's components; conformance registrations in `conformance_suite!` for `TextArea`, `Select`, `RadioGroup`, `Checkbox`, `Toggle`, `ChipBar`, `StatusBar`, `HintBar`, `KeyHint`, `ProgressBar`, `Spinner`, `Meter`, `Empty`, `Brand`, with correct `Caps` and all 20 cases passing; the four hard-coded case lists in `conformance.rs`; the `render_components.rs` digest matrix for each new component across `{junie, paper} × {truecolor, mono} × {120×40, 40×10}`; blessing those digests; and the deletion of any `xtask/named_tests_allow.txt` entry that becomes satisfied (the check fails if a satisfied entry remains).
 3. **Apply Adjudication Q** (`docs/reviews/adjudication-q-residuals.md`): Q1 a shared bracket helper taking two reserved cells, and fix `Button`'s in-run bracket which can truncate a full-width label; Q2 make `Fixture::state_override` and `Fixture::status` private with `forced()`/`status()` accessors so `force` is the only writer; Q3 add `Conformance::mono_narrowing_reason()` with the case-9 check and write the roughly eight missing reasons. Record it as §29 in `COMPONENT_ARCHITECTURE.md` with the nine amendments its "Exact document amendments" section lists. **Confirm its R1 first**: disable the `Tabs` bracket block and check that conformance case 9 is still red — if it is green, `CONTAINER`'s `BOLD` already distinguished the states and the recorded reason is wrong.
 4. **Fix the live `RowUi` glyph defect.** `RowUi::marker` and `RowUi::part` discard `Resolved.glyph`, so every mono `MARKER` rule is inert. `Resolved.glyph` must become `Slot<GlyphRole>` — `Option` cannot distinguish `Slot::Clear` from unset — which is a §11.2 amendment. Note that Adjudication Q's acceptance condition A4 asserts no caller exists; that is false, `examples/07_borrowed_rows.rs:31` and `examples/08_dynamic_tabs.rs:30` already call it, so A4 must be re-stated.
@@ -33,19 +33,19 @@ Three questions were returned by the builders and need a fresh `opus-analyst` be
 
 ## Out of scope — do not start
 
-Work packages 4A, 4C, 4E, 4D, 4F, 4H, 4I; Slices 5–8; the `tui-next` → `junie-tui` rename; any migration of `showcase`, `tablepro` or `jackin-preview`; any edit under the legacy `src/` tree. The legacy root package must keep building and its 247 tests must keep passing.
+Work packages 4A, 4C, 4E, 4D, 4F, 4H, 4I; Slices 5–8; the `junie-tui` → `junie-tui` rename; any migration of `showcase`, `tablepro` or `jackin-preview`; any edit under the legacy `src/` tree. The legacy root package must keep building and its 247 tests must keep passing.
 
 ## Gate — every command must exit 0 before you claim the slice is done
 
 ```
 cargo fmt --all --check
-cargo clippy -p tui-next -p tui-next-testing --all-targets --all-features -- -D warnings
-cargo test -p tui-next -p tui-next-testing --all-targets --all-features
-cargo test -p tui-next --doc
-RUSTDOCFLAGS="-D warnings" cargo doc -p tui-next --all-features --no-deps
-cargo build -p tui-next --examples
-cargo test -p tui-next --test render --test render_components
-cargo test -p tui-next --test perf --release -- --test-threads=1
+cargo clippy -p junie-tui -p junie-tui-testing --all-targets --all-features -- -D warnings
+cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features
+cargo test -p junie-tui --doc
+RUSTDOCFLAGS="-D warnings" cargo doc -p junie-tui --all-features --no-deps
+cargo build -p junie-tui --examples
+cargo test -p junie-tui --test render --test render_components
+cargo test -p junie-tui --test perf --release -- --test-threads=1
 cargo run -p xtask -- doc-check
 cargo run -p xtask -- boundary
 cargo test --all-targets

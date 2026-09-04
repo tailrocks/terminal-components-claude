@@ -2,7 +2,7 @@
 
 This maps the pre-refactor `junie-tui` (the root package, `src/core/`,
 `src/ui/`, `src/widgets/`) onto the new library (`crates/tui`, temporarily
-`tui-next` / `tui_next` through Slices 5–7, then `junie-tui` / `junie_tui` in
+`junie-tui` / `junie_tui` through Slices 5–7, then `junie-tui` / `junie_tui` in
 one scripted commit between Slice 7 and Slice 8).
 
 Two ground rules for reading it:
@@ -15,7 +15,7 @@ Two ground rules for reading it:
   something that is not there.
 
 See the note at the top of [`quickstart.md`](quickstart.md) about the
-temporary crate name (`tui-next` through Slices 5–7).
+temporary crate name (`junie-tui` through Slices 5–7).
 
 ---
 
@@ -485,7 +485,7 @@ Status is against the current **Slice 4** library tree. "not yet" means the
 type does not exist; it is scheduled, not silently dropped. A ✅ library API
 does not mean the staged application moves have happened: the apps land in
 `apps/showcase`, `apps/tablepro`, and `apps/jackin-preview` across Slices 5–7,
-while `tui-next` remains the library package until the post-Slice-7 rename.
+while `junie-tui` remains the library package until the post-Slice-7 rename.
 
 | Old module | New | Status | Notes |
 |---|---|---|---|

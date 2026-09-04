@@ -5,7 +5,7 @@
 //! SQL preview generation. The split is deliberate: the library never knows
 //! about databases, while the app never reaches into runtime internals.
 
-use tui_next::{
+use junie_tui::{
     CellDecor, CellRef, ColumnKey, EditIntent, FieldError, GridEditor, GridModel, ItemKey,
     RowDecor, RowTotal, SortDir, StateFlags,
 };
@@ -325,7 +325,7 @@ impl ResultGrid {
         })
     }
 
-    /// Adapt one SQL result without exposing database types to `tui-next`.
+    /// Adapt one SQL result without exposing database types to `junie-tui`.
     pub fn from_result(result: &sql::ResultSet) -> Self {
         let pending = PendingEdits::new(result.rows.clone());
         let keys = (0..result.rows.len())

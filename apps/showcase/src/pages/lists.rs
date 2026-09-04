@@ -1,6 +1,6 @@
 //! Keyed collection rows, single selection and multi-selection.
 
-use tui_next::{
+use junie_tui::{
     Cx, Id, ItemKey, List, ListAction, ListState, Rect, Response, RowUi, SelectMode, Ui, id, layout,
 };
 

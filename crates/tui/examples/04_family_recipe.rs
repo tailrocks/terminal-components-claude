@@ -1,5 +1,5 @@
 //! `COMPONENT_ARCHITECTURE.md` §17 example 4 — a global family recipe override
-//! (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 //!
 //! Every `Button` in the application gets a square gutter marker, a bold label
 //! when focused and a tinted container when hovered. **No component source is
@@ -18,7 +18,7 @@
 //! Declaration order still decides a tie *between equally specific rules*, and
 //! `declaration_order_breaks_a_tie_between_equal_specificity` pins that half.
 
-use tui_next::{
+use junie_tui::{
     App, Button, Cx, Family, FgStep, FrameRead, GlyphRole, Id, Insets, Modifier, Part, Response,
     Role, RowAlign, StateFlags, StylePatch, Theme, Ui, Variant, id, layout, run,
 };
@@ -89,7 +89,7 @@ fn main() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::themed_buttons;
-    use tui_next::{
+    use junie_tui::{
         Family, GlyphRole, Modifier, Part, Resolved, Slot, StateFlags, Surface, Theme, Variant,
     };
 

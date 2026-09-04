@@ -8,6 +8,7 @@
     clippy::panic
 )]
 
+use junie_tui::GridEditor;
 use tablepro_app::{
     QueryOutcome, Screen, Surface, TableProApp,
     connections::ConnectionDraft,
@@ -17,7 +18,6 @@ use tablepro_app::{
     model::History,
     tabs::Tab,
 };
-use tui_next::GridEditor;
 
 fn connected() -> TableProApp {
     let mut app = TableProApp::default();
@@ -63,7 +63,7 @@ fn sort_and_filter_on_table_tab() {
     assert!(app.workbench.apply_filter(filter.clone()));
     assert_eq!(filter.to_sql(), "status = 'pending'");
     if let Some(tab) = app.workbench.active_table_mut() {
-        tab.sort(0, tui_next::SortDir::Desc);
+        tab.sort(0, junie_tui::SortDir::Desc);
         assert_eq!(tab.filters.len(), 1);
     }
 }
@@ -250,7 +250,7 @@ fn mouse_opens_table_and_switches_tabs() {
 #[test]
 fn every_screen_renders_at_representative_sizes() {
     let app = TableProApp::default();
-    let size = <TableProApp as tui_next::App>::min_size(&app);
+    let size = <TableProApp as junie_tui::App>::min_size(&app);
     assert_eq!(size.min, (72, 20));
     assert!(size.preferred.0 >= size.min.0 && size.preferred.1 >= size.min.1);
 }
@@ -312,7 +312,7 @@ fn connection_password_is_masked_and_absent_from_the_frame() {
 fn resize_across_every_supported_size() {
     let sizes = [(60, 15), (72, 20), (80, 24), (120, 40), (160, 50)];
     let app = TableProApp::default();
-    let min = <TableProApp as tui_next::App>::min_size(&app).min;
+    let min = <TableProApp as junie_tui::App>::min_size(&app).min;
     assert!(sizes.iter().any(|&(width, height)| (width, height) == min));
 }
 #[test]

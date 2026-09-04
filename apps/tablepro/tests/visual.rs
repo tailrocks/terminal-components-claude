@@ -1,8 +1,8 @@
 //! `TablePro`'s 21-surface × 2-size deterministic visual matrix.
 
+use junie_tui::Theme;
+use junie_tui_testing::Harness;
 use tablepro_app::{Surface, TableProApp};
-use tui_next::Theme;
-use tui_next_testing::Harness;
 
 fn scene(surface: Surface, width: u16, height: u16) -> (String, String) {
     let mut app = TableProApp::default();

@@ -6,8 +6,8 @@
 //! properties that make the new facade renderer bounded.
 
 use jackin_app::{APP, App, Motion, Route, Scenario};
-use tui_next::{KeyCode, Theme};
-use tui_next_testing::Harness;
+use junie_tui::{KeyCode, Theme};
+use junie_tui_testing::Harness;
 
 #[test]
 fn frame_jackin_capsule_4panes_120x40() {

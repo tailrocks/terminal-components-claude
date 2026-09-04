@@ -1833,7 +1833,7 @@ fn examples_are_external_consumers() -> Result<(), String> {
         .status()
         .map_err(|e| e.to_string())?;
     if !status.success() {
-        hits.push("cargo build -p tui-next --examples failed".to_owned());
+        hits.push("cargo build -p junie-tui --examples failed".to_owned());
     }
     println!("examples_are_external_consumers: {n} example(s)");
     if hits.is_empty() {
@@ -2386,7 +2386,7 @@ fn metadata() -> Result<cargo_metadata::Metadata, String> {
         .map_err(|e| e.to_string())
 }
 
-const LIB: &str = "tui-next";
+const LIB: &str = "junie-tui";
 const DECLARED: [&str; 5] = [
     "ratatui-core",
     "ratatui-crossterm",
@@ -2419,7 +2419,7 @@ const ONLY_UNDER_CROSSTERM: [&str; 8] = [
     "signal-hook",
 ];
 
-/// `cargo tree -p tui-next -e normal` lines: `(name, version, features)`.
+/// `cargo tree -p junie-tui -e normal` lines: `(name, version, features)`.
 /// With `prune_crossterm`, the backend's own `crossterm` subtree is left out:
 /// the architecture mandates `ratatui-crossterm`, and what crossterm pulls
 /// beneath itself (`parking_lot` → `smallvec`, …) is not a choice of ours.
@@ -2469,7 +2469,7 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
         .packages
         .iter()
         .find(|p| p.name.as_str() == LIB)
-        .ok_or("no tui-next package")?;
+        .ok_or("no junie-tui package")?;
     let mut errors = Vec::new();
     // (1) direct normal deps
     let direct: BTreeSet<String> = lib
@@ -2556,7 +2556,7 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
             .collect();
         if versions.len() > 1 {
             errors.push(format!(
-                "{name} resolves to {versions:?} inside tui-next's closure"
+                "{name} resolves to {versions:?} inside junie-tui's closure"
             ));
         }
     }
@@ -2579,7 +2579,7 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
     }
 }
 
-/// `cargo tree -p tui-next -e normal --invert <crate>`, for §22.7 (2c).
+/// `cargo tree -p junie-tui -e normal --invert <crate>`, for §22.7 (2c).
 fn inverted_paths(name: &str) -> Result<String, String> {
     let out = Command::new("cargo")
         .args([
@@ -2601,7 +2601,7 @@ fn library_has_no_application_dependency() -> Result<(), String> {
         .packages
         .iter()
         .find(|p| p.name.as_str() == LIB)
-        .ok_or("no tui-next package")?;
+        .ok_or("no junie-tui package")?;
     let bad: Vec<String> = lib
         .dependencies
         .iter()
@@ -4188,10 +4188,8 @@ impl syn::visit::Visit<'_> for FacadeUse {
     }
 }
 
-/// The crate names the library answers to: the Slice 3–4 temporary name and
-/// the name it takes at the rename commit (§21 item 31, §47.1). Both are
-/// scanned so this check does not go silently blind for one commit.
-const LIB_CRATE_IDENTS: &[&str] = &["tui_next", "junie_tui"];
+/// The public library crate identifier used by every migrated consumer.
+const LIB_CRATE_IDENTS: &[&str] = &["junie_tui"];
 
 /// The first line of `text` naming `<crate>::<segment>`, 1-based.
 fn first_facade_line(text: &str, segment: &str) -> usize {
@@ -5825,9 +5823,9 @@ fn doc_check() -> Result<(), String> {
     }
     // `use junie_tui::{…}` lists in rust blocks
     let block_re = Regex::new(r"(?s)```rust\n(.*?)```").map_err(|e| e.to_string())?;
-    let use_re = Regex::new(r"use (?:junie_tui|tui_next)(?:::author)?::\{([^}]*)\}")
-        .map_err(|e| e.to_string())?;
-    let use_one = Regex::new(r"use (?:junie_tui|tui_next)(?:::author)?::([A-Za-z_][A-Za-z0-9_]*);")
+    let use_re =
+        Regex::new(r"use junie_tui(?:::author)?::\{([^}]*)\}").map_err(|e| e.to_string())?;
+    let use_one = Regex::new(r"use junie_tui(?:::author)?::([A-Za-z_][A-Za-z0-9_]*);")
         .map_err(|e| e.to_string())?;
     let mut blocks = 0usize;
     for b in block_re.captures_iter(&scoped) {
@@ -7107,7 +7105,7 @@ impl Page for DialogDemo {
 
         let imports = vec![(
             "apps/showcase/src/pages/buttons.rs".to_owned(),
-            "use tui_next::Button; fn page() {}".to_owned(),
+            "use junie_tui::Button; fn page() {}".to_owned(),
         )];
         let import_hits = showcase_coverage_hits(&cases, &registry, &imports);
         assert!(
@@ -7800,7 +7798,7 @@ captures / classification: `(pending — filled when the change lands)`
 ### 1a — `Tabs` paints §11.4's mono `PRESSED` bracket
 
 ```
-- surface:   tui-next/tabs/pressed @ 120x40 / junie / mono
+- surface:   junie-tui/tabs/pressed @ 120x40 / junie / mono
 - captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
 - tests:     crates/tui/tests/baselines/components.txt
 - moved:     1 line, every one `mono`:
@@ -7819,7 +7817,7 @@ captures / classification: `(pending — filled when the change lands)`
 ## Item 20 — forcing stops erasing the props half
 
 ```
-- surface:   tui-next/tabs/pressed @ 120x40 / junie
+- surface:   junie-tui/tabs/pressed @ 120x40 / junie
 - captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
 - tests:     crates/tui/tests/baselines/components.txt
 - moved:     2 lines:
@@ -7839,7 +7837,7 @@ captures / classification: `(pending — filled when the change lands)`
 ## Item 19 — first-generation component digests
 
 ```
-- surface:   tui-next/tabs/pressed @ 120x40 / junie / mono
+- surface:   junie-tui/tabs/pressed @ 120x40 / junie / mono
 - captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
 - tests:     crates/tui/tests/baselines/components.txt
 - moved:     1 line:

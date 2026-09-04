@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use tui_next::{
+use junie_tui::{
     Cx, Id, Panel, PanelKind, ProgressBar, Rect, Response, Spinner, Status, Ui, id, layout,
 };
 

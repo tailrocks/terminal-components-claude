@@ -1,6 +1,6 @@
 //! Connection list and the app-owned 15-field connection draft.
 
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, Checkbox, Chord, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec,
     FormData, GroupKey, Id, RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, Toggle,
 };
@@ -14,7 +14,7 @@ pub const FORM: Id = Id::root("tablepro.connections.form");
 
 /// Stable form field ids.
 pub mod field {
-    use tui_next::Id;
+    use junie_tui::Id;
     pub const NAME: Id = Id::root("tablepro.connections.form.name");
     pub const ENGINE: Id = Id::root("tablepro.connections.form.engine");
     pub const HOST: Id = Id::root("tablepro.connections.form.host");
@@ -66,11 +66,11 @@ pub const fn default_port(engine: usize) -> &'static str {
     }
 }
 
-fn valid_port(value: &str) -> Result<(), tui_next::FieldError> {
+fn valid_port(value: &str) -> Result<(), junie_tui::FieldError> {
     if value.is_empty() || value.parse::<u16>().is_ok() {
         Ok(())
     } else {
-        Err(tui_next::FieldError::coded("Enter a valid port", "port"))
+        Err(junie_tui::FieldError::coded("Enter a valid port", "port"))
     }
 }
 
@@ -165,8 +165,8 @@ pub fn form_actions() -> [Action<'static>; 4] {
         Action::quiet(TEST, "Test connection"),
         Action::new(ActionKey::CANCEL, "Cancel"),
         Action::new(ActionKey::SAVE, "Save").chord(Chord::with(
-            tui_next::KeyCode::Char('s'),
-            tui_next::KeyModifiers::CONTROL,
+            junie_tui::KeyCode::Char('s'),
+            junie_tui::KeyModifiers::CONTROL,
         )),
         Action::new(SAVE_CONNECT, "Save & connect"),
     ]
@@ -246,18 +246,18 @@ impl ConnectionDraft {
     }
 
     /// Validate required fields and the port.
-    pub fn validate_all(&self) -> Result<(), (Id, tui_next::FieldError)> {
+    pub fn validate_all(&self) -> Result<(), (Id, junie_tui::FieldError)> {
         use field::*;
         if self.name.trim().is_empty() {
             return Err((
                 NAME,
-                tui_next::FieldError::coded("Name is required", "required"),
+                junie_tui::FieldError::coded("Name is required", "required"),
             ));
         }
         if self.engine == 0 && self.database.trim().is_empty() {
             return Err((
                 DATABASE,
-                tui_next::FieldError::coded("Database is required", "required"),
+                junie_tui::FieldError::coded("Database is required", "required"),
             ));
         }
         valid_port(&self.port).map_err(|e| (PORT, e))
@@ -385,7 +385,7 @@ impl FormData for ConnectionDraft {
     fn disabled(&self, id: Id) -> bool {
         id == field::PASSWORD && self.ask_password
     }
-    fn validate(&self, id: Id, value: FieldRef<'_>) -> Result<(), tui_next::FieldError> {
+    fn validate(&self, id: Id, value: FieldRef<'_>) -> Result<(), junie_tui::FieldError> {
         if id == field::PORT
             && let FieldRef::Text(text) = value
         {
@@ -394,7 +394,7 @@ impl FormData for ConnectionDraft {
             Ok(())
         }
     }
-    fn validate_all(&self) -> Result<(), (Id, tui_next::FieldError)> {
+    fn validate_all(&self) -> Result<(), (Id, junie_tui::FieldError)> {
         Self::validate_all(self)
     }
 }

@@ -54,7 +54,7 @@ focused tab are the same picture under `Mono`: the mono `PRESSED` and `FOCUSED`
 styles differ only in colour, and at `Mono` there is no colour.
 
 ```
-- surface:   tui-next/tabs/pressed @ {120x40, 40x10} / {junie, paper} / mono
+- surface:   junie-tui/tabs/pressed @ {120x40, 40x10} / {junie, paper} / mono
              (truecolor cells are untouched: the bracket branch is gated on
              `Slot::Set(GlyphRole::PressLeft)`, and that slot is set only by a rule
              appended at `ColorLevel::Mono`)
@@ -93,7 +93,7 @@ restyle. This is a second movement of the same keys recorded in item 18a, so it 
 classified independently under item 1.
 
 ```
-- surface:   tui-next/field/disabled @ {120x40, 40x10} / {junie, paper} / mono
+- surface:   junie-tui/field/disabled @ {120x40, 40x10} / {junie, paper} / mono
 - captures:  none under `shots/` — this is a headless `Scene` matrix. The reviewable
              artefact is the frame-text dump printed by the no-BLESS
              `render::components::field::disabled` run; its first moved frame shows
@@ -134,7 +134,7 @@ classified independently under item 1.
              or runtime bit and without changing geometry. Any future digest movement requires
              fresh scratch capture and exact classification before bless.
 ```
-- surface:   tui-next/select/pressed @ {120x40, 40x10} / {junie, paper} / mono
+- surface:   junie-tui/select/pressed @ {120x40, 40x10} / {junie, paper} / mono
 - captures:  none under `shots/`; clean Junie 120×40 before/after frame text is
              `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/moved-before/mono/select--pressed.txt`
              and `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/moved-after/mono/select--pressed.txt`.
@@ -266,7 +266,7 @@ machine-checked movement field: item 1b owns their current second movement, and
 the previous transition remains historical git evidence.
 
 ```
-- surface:   tui-next/{text_input,field,list,button,tabs,dialog}/disabled
+- surface:   junie-tui/{text_input,field,list,button,tabs,dialog}/disabled
              @ {120x40, 40x10} / {junie, paper} / mono   (truecolor cells are untouched:
              mono rules are appended only at `ColorLevel::Mono`)
 - captures:  none under `shots/` — this matrix is a headless digest matrix, not a
@@ -319,7 +319,7 @@ mono line **together with the same state of every component that draws a `Button
 through `inherit_forced`, `Dialog`'s action row in the current matrix**.
 
 ```
-- surface:   tui-next/{button,dialog}/pressed @ {120x40, 40x10} / {junie, paper} / mono
+- surface:   junie-tui/{button,dialog}/pressed @ {120x40, 40x10} / {junie, paper} / mono
 - captures:  none under `shots/` — headless `Scene` matrix (see 18a). The reviewable
              artefact is the frame-text dump printed by the no-BLESS
              `render::components::{button,dialog}::pressed` runs; it shows the
@@ -373,7 +373,7 @@ an approval of present appearance** (§20.10 item 19, §36.4); the first review 
 these components *as pictures* is the Slice-5 capture matrix.
 
 ```
-- surface:   tui-next/{text_area,select,radio_group,checkbox,toggle,chip_bar,
+- surface:   junie-tui/{text_area,select,radio_group,checkbox,toggle,chip_bar,
              status_bar,hint_bar,key_hint,progress_bar,spinner,meter,empty,brand}
              / {default,focused,hovered,pressed,disabled,selected,editing,empty}
              @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
@@ -431,7 +431,7 @@ of unrelated changes relies on the exact 22-key digest scope plus the six review
 the style half remains machine-asserted rather than visually recoverable from frame text.
 
 ```
-- surface:   tui-next/{hint_bar,meter,progress_bar}/disabled
+- surface:   junie-tui/{hint_bar,meter,progress_bar}/disabled
              @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
 - captures:  none under `shots/` — this is a headless `Scene` matrix and
              `tools/capture.sh` cannot address it. Reviewable after-frame artefacts:
@@ -496,7 +496,7 @@ the style half remains machine-asserted rather than visually recoverable from fr
 ## Item 22 — First-generation Panel, SplitPane, TextViewport and Tree digests
 
 ```
-- surface:   tui-next/{panel,split_pane,text_viewport,tree}
+- surface:   junie-tui/{panel,split_pane,text_viewport,tree}
              / {default,focused,hovered,pressed,disabled,selected,editing,empty}
              @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
 - captures:  none under `shots/`; the matrix is headless. Clean Junie 120×40
@@ -530,7 +530,7 @@ the style half remains machine-asserted rather than visually recoverable from fr
 ## Item 23 — ChipBar semantic identity and owned-patch correction
 
 ```
-- surface:   tui-next/chip_bar/{default,focused,hovered,pressed,disabled,selected,editing}
+- surface:   junie-tui/chip_bar/{default,focused,hovered,pressed,disabled,selected,editing}
              @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
 - captures:  none under `shots/`; the matrix is headless. Exact scratch diff/key
              evidence is `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/{components-scratch.diff,moved-keys-exact.txt}`.
@@ -587,7 +587,7 @@ the style half remains machine-asserted rather than visually recoverable from fr
 ## Item 24 — First-generation TooSmall digests
 
 ```
-- surface:   tui-next/too_small/{default,focused,hovered,pressed,disabled,selected,editing,empty}
+- surface:   junie-tui/too_small/{default,focused,hovered,pressed,disabled,selected,editing,empty}
              @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
 - captures:  none under `shots/`; the matrix is headless. Clean Junie 120×40
              truecolor/mono frame text is under
@@ -604,7 +604,7 @@ the style half remains machine-asserted rather than visually recoverable from fr
 ## Item 25 — First-generation ScrollRegion, NavList, Steps and Grid digests
 
 ```
-- surface:   tui-next/{scroll_region,nav_list,steps,grid}
+- surface:   junie-tui/{scroll_region,nav_list,steps,grid}
              / {default,focused,hovered,pressed,disabled,selected,editing,empty}
              @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
 - captures:  none under `shots/`; the matrix is headless. Clean Junie 120×40
@@ -623,7 +623,7 @@ the style half remains machine-asserted rather than visually recoverable from fr
 ## Item 26 — First-generation DiffView and CodeEditor digests
 
 ```
-- surface:   tui-next/{diff_view,code_editor}
+- surface:   junie-tui/{diff_view,code_editor}
              / {default,focused,hovered,pressed,disabled,selected,editing,empty}
              @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
 - captures:  none under `shots/`; the matrix is headless. Clean Junie 120×40
@@ -643,7 +643,7 @@ the style half remains machine-asserted rather than visually recoverable from fr
 ## Item 27 — First-generation Slice-4F component digests
 
 ```
-- surface:   tui-next/{filter_list,picker,completion,form,context_menu,help_overlay,
+- surface:   junie-tui/{filter_list,picker,completion,form,context_menu,help_overlay,
              menu_bar,picker_chain,wizard}
              / {default,focused,hovered,pressed,disabled,selected,editing,empty}
              @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
@@ -696,7 +696,7 @@ the style half remains machine-asserted rather than visually recoverable from fr
 ## Item 28 — Semantic selection is state-owned
 
 ```
-- surface:   tui-next/{list,tabs,radio_group,select} semantic-selection states
+- surface:   junie-tui/{list,tabs,radio_group,select} semantic-selection states
              @ {120x40, 40x10} / {junie, paper} / the exact colours below
 - captures:  none under `shots/`; the matrix is headless. Exact scratch evidence is
              `/tmp/fable-slice4-final-VPCSC9/artifacts/components-scratch.diff` and
@@ -763,7 +763,7 @@ classified or blessed.
 ## Item 29 — Select owns vertical disclosure glyphs
 
 ```
-- surface:   tui-next Select closed/open field disclosure, all themes and color levels
+- surface:   junie-tui Select closed/open field disclosure, all themes and color levels
 - captures:  none under `shots/`; exact headless unit evidence is
              `select::select_disclosure_is_exact_for_both_themes_and_color_levels`
 - tests:     no retained baseline line changes; the eight-state component matrix draws Select
@@ -781,7 +781,7 @@ classified or blessed.
 ## Item 30 — Dialog targets one owned control
 
 ```
-- surface:   tui-next/dialog reference states, all retained theme/colour/size cells
+- surface:   junie-tui/dialog reference states, all retained theme/colour/size cells
 - captures:  pending fresh discarded-scratch before/after frame text; no current capture is
              accepted for blessing
 - tests:     dialog::a_reference_dialog_registers_no_control,

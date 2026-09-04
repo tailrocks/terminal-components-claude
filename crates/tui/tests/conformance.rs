@@ -13,12 +13,12 @@
     )
 )]
 
-use tui_next::author::{
+use junie_tui::author::{
     Activated, Binding, BindingState, Bindings, Chord, Cx, Family, FgStep, Focusability, FrameRead,
     GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, Phase, Position, Rect, Response,
     ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, Anchor, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef, Checkbox,
     ChipBar, ChipBarAction, ChipBarCmd, ChoiceCmd, CodeAction, CodeCmd, CodeEditor,
     CodeEditorState, Column, ColumnKey, Completion, CompletionAction, CompletionCmd,
@@ -31,19 +31,20 @@ use tui_next::{
     ListAction, ListCmd, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Meter, NavList,
     NavListAction, NavListCmd, NavListState, NavUnit, Panel, Picker, PickerAction, PickerChain,
     PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState, ProgressBar,
-    Props, RadioGroup, RadioGroupAction, RadioGroupState, Role, RowUi, ScreenAlign, ScrollRegion,
-    Secret, SecretPolicy, Select, SelectAction, SelectCmd, SelectMode, SelectState, Slot, Span,
-    Spinner, SplitAction, SplitAxis, SplitCmd, SplitPane, SplitPaneState, Status, StatusAction,
-    StatusBar, StatusItem, StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction,
-    TabsCmd, TextAction, TextArea, TextAreaState, TextCmd, TextInput, TextInputState, TextViewport,
-    Theme, Toggle, TooSmall, Tree, TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction,
-    ViewportCmd, ViewportLine, ViewportState, Wizard, WizardAction, WizardCmd, WizardState,
-    WizardStep, binding_conflicts, resolve_anchor,
+    Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, RadioGroup, RadioGroupAction,
+    RadioGroupState, Role, RowUi, ScreenAlign, ScrollRegion, Secret, SecretPolicy, Select,
+    SelectAction, SelectCmd, SelectMode, SelectState, Slot, Span, Spinner, SplitAction, SplitAxis,
+    SplitCmd, SplitPane, SplitPaneState, Status, StatusAction, StatusBar, StatusItem, StepState,
+    Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction, TabsCmd, TextAction, TextArea,
+    TextAreaState, TextCmd, TextInput, TextInputState, TextViewport, Theme, Toggle, TooSmall, Tree,
+    TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction, ViewportCmd, ViewportLine,
+    ViewportState, Wizard, WizardAction, WizardCmd, WizardState, WizardStep, binding_conflicts,
+    resolve_anchor,
 };
-use tui_next_testing::conformance::{
+use junie_tui_testing::conformance::{
     Caps, Conformance, Fixture, FixtureRow, PointerGesture, mono_states_required_by,
 };
-use tui_next_testing::{Harness, Scene, conformance_suite};
+use junie_tui_testing::{Harness, Scene, conformance_suite};
 
 const PROBE: Id = Id::root("conformance.probe");
 
@@ -522,7 +523,7 @@ impl Conformance for ListCase {
     const NAME: &'static str = "list";
     const FAMILY: Family = Family::LIST;
     const PARTS: &'static [Part] = FixtureList::PARTS;
-    type State = tui_next::ListState;
+    type State = junie_tui::ListState;
     type Action = ListAction;
     type Cmd = ListCmd;
 
@@ -539,11 +540,11 @@ impl Conformance for ListCase {
         LIST
     }
 
-    fn update(cx: &mut Cx<'_>, st: &mut tui_next::ListState, f: &Fixture) -> Response<ListAction> {
+    fn update(cx: &mut Cx<'_>, st: &mut junie_tui::ListState, f: &Fixture) -> Response<ListAction> {
         list(f).update(cx, st, &f.rows)
     }
 
-    fn draw(ui: &mut Ui<'_>, area: Rect, st: &tui_next::ListState, f: &Fixture) {
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &junie_tui::ListState, f: &Fixture) {
         list(f).draw(ui, area, st, &f.rows);
     }
 
@@ -633,7 +634,7 @@ impl Conformance for TabsCase {
     const NAME: &'static str = "tabs";
     const FAMILY: Family = Family::TABS;
     const PARTS: &'static [Part] = FixtureTabs::PARTS;
-    type State = tui_next::TabsState;
+    type State = junie_tui::TabsState;
     type Action = TabsAction;
     type Cmd = TabsCmd;
 
@@ -645,11 +646,11 @@ impl Conformance for TabsCase {
         TABS
     }
 
-    fn update(cx: &mut Cx<'_>, st: &mut tui_next::TabsState, f: &Fixture) -> Response<TabsAction> {
+    fn update(cx: &mut Cx<'_>, st: &mut junie_tui::TabsState, f: &Fixture) -> Response<TabsAction> {
         tabs(f).update(cx, st, &f.rows)
     }
 
-    fn draw(ui: &mut Ui<'_>, area: Rect, st: &tui_next::TabsState, f: &Fixture) {
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &junie_tui::TabsState, f: &Fixture) {
         tabs(f).draw(ui, area, st, &f.rows);
     }
 
@@ -736,7 +737,7 @@ impl Conformance for DialogCase {
     const NAME: &'static str = "dialog";
     const FAMILY: Family = Family::DIALOG;
     const PARTS: &'static [Part] = Dialog::PARTS;
-    type State = tui_next::DialogState;
+    type State = junie_tui::DialogState;
     type Action = DialogAction;
     type Cmd = ButtonCmd;
 
@@ -758,7 +759,7 @@ impl Conformance for DialogCase {
 
     fn update(
         cx: &mut Cx<'_>,
-        st: &mut tui_next::DialogState,
+        st: &mut junie_tui::DialogState,
         f: &Fixture,
     ) -> Response<DialogAction> {
         let launch = Button::new(LAUNCH, "Open").update(cx);
@@ -793,7 +794,7 @@ impl Conformance for DialogCase {
         }
     }
 
-    fn draw(ui: &mut Ui<'_>, area: Rect, st: &tui_next::DialogState, f: &Fixture) {
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &junie_tui::DialogState, f: &Fixture) {
         let b = Button::new(LAUNCH, "Open");
         let used = b.draw(ui, area);
         let below = Rect {
@@ -960,6 +961,101 @@ impl Conformance for PropsCase {
     }
     fn mono_narrowing_reason() -> &'static str {
         "FOCUSED SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE: Props is a stateless label/value surface"
+    }
+}
+
+const PROPS_LIST: Id = Id::root("conformance.props_list");
+
+fn props_list_rows(f: &Fixture) -> Vec<PropsRow<'_>> {
+    f.rows
+        .iter()
+        .map(|row| PropsRow::new(row.key, &row.label, &row.meta).copyable())
+        .collect()
+}
+
+fn props_list(f: &Fixture) -> PropsList<'_> {
+    PropsList::new(PROPS_LIST).patch_part(patch_of(f))
+}
+
+/// `PropsList`: keyed borrowed rows, navigation, scrolling and copy actions.
+struct PropsListCase;
+
+impl Conformance for PropsListCase {
+    const NAME: &'static str = "props_list";
+    const FAMILY: Family = Family::PROPS;
+    const PARTS: &'static [Part] = PropsList::PARTS;
+    type State = PropsState;
+    type Action = PropsAction;
+    type Cmd = PropsCmd;
+
+    fn caps() -> Caps {
+        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::COLLECTION | Caps::SCROLLS
+    }
+
+    fn id() -> Id {
+        PROPS_LIST
+    }
+
+    fn update(cx: &mut Cx<'_>, st: &mut PropsState, f: &Fixture) -> Response<PropsAction> {
+        let rows = props_list_rows(f);
+        props_list(f).update(cx, st, &rows)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &PropsState, f: &Fixture) {
+        let rows = props_list_rows(f);
+        props_list(f).draw(ui, area, st, &rows);
+    }
+
+    fn activation_chords() -> &'static [Chord] {
+        const CHORDS: [Chord; 1] = [Chord::key(KeyCode::Char('y'))];
+        &CHORDS
+    }
+
+    fn activation_part() -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::num(100))
+    }
+
+    fn bindings(s: BindingState) -> &'static [Binding<PropsCmd>] {
+        PropsList::new(PROPS_LIST).bindings(s)
+    }
+
+    fn item_keys(f: &Fixture) -> Vec<ItemKey> {
+        f.rows.iter().map(|row| row.key).collect()
+    }
+
+    fn reorder(f: &mut Fixture, perm: &[usize]) {
+        let rows = f.rows.clone();
+        f.rows = perm.iter().filter_map(|&i| rows.get(i).cloned()).collect();
+    }
+
+    fn action_key_of(action: &PropsAction) -> Option<ItemKey> {
+        match action {
+            PropsAction::Copy(key) => Some(*key),
+        }
+    }
+
+    fn prepare_scroll_fixture(f: &mut Fixture) {
+        for index in 5..20 {
+            f.rows.push(FixtureRow {
+                key: ItemKey::num(100_u64.saturating_add(index as u64)),
+                label: format!("Property {index}"),
+                meta: format!("value-{index}"),
+                disabled: false,
+            });
+        }
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 3] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::PRESSED,
+        ];
+        &STATES
+    }
+
+    fn mono_narrowing_reason() -> &'static str {
+        "SELECTED DISABLED ERROR WARNING EDITING BUSY ACTIVE: PropsList has no selection, disabled, validation, readiness, editing, or independent active-item affordance"
     }
 }
 
@@ -1485,7 +1581,7 @@ impl Conformance for ChipBarCase {
     const NAME: &'static str = "chip_bar";
     const FAMILY: Family = Family::CHIP;
     const PARTS: &'static [Part] = FixtureChips::<'static>::PARTS;
-    type State = tui_next::ChipBarState;
+    type State = junie_tui::ChipBarState;
     type Action = ChipBarAction;
     type Cmd = ChipBarCmd;
 
@@ -1499,13 +1595,13 @@ impl Conformance for ChipBarCase {
 
     fn update(
         cx: &mut Cx<'_>,
-        st: &mut tui_next::ChipBarState,
+        st: &mut junie_tui::ChipBarState,
         f: &Fixture,
     ) -> Response<ChipBarAction> {
         chip_bar(f).update(cx, st, &f.rows)
     }
 
-    fn draw(ui: &mut Ui<'_>, area: Rect, st: &tui_next::ChipBarState, f: &Fixture) {
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &junie_tui::ChipBarState, f: &Fixture) {
         chip_bar(f).draw(ui, area, st, &f.rows);
     }
 
@@ -2992,7 +3088,7 @@ impl Conformance for GridCase {
 
 #[test]
 fn grid_case_runs_both_update_entry_points() {
-    use tui_next_testing::conformance::driver::CaseApp;
+    use junie_tui_testing::conformance::driver::CaseApp;
 
     for read_only in [true, false] {
         let mut fixture = Fixture::default();
@@ -3010,7 +3106,7 @@ fn grid_case_runs_both_update_entry_points() {
 
 #[test]
 fn grid_mono_setup_chords_reach_real_selection_and_editing() {
-    use tui_next_testing::conformance::driver::CaseApp;
+    use junie_tui_testing::conformance::driver::CaseApp;
 
     let setup = |state| {
         let fixture = GridCase::mono_fixture(state);
@@ -3031,7 +3127,7 @@ fn grid_mono_setup_chords_reach_real_selection_and_editing() {
 
 #[test]
 fn grid_error_is_real_cell_decor_and_mono_distinct() {
-    use tui_next_testing::conformance::driver::CaseApp;
+    use junie_tui_testing::conformance::driver::CaseApp;
 
     let semantic = GridCase::mono_fixture(StateFlags::ERROR);
     assert_eq!(semantic.forced(), None, "semantic fixture must stay live");
@@ -3045,7 +3141,7 @@ fn grid_error_is_real_cell_decor_and_mono_distinct() {
     for theme in [Theme::junie(), Theme::paper()] {
         let digest = |state| {
             let mut fixture = GridCase::mono_fixture(state).force(state);
-            fixture.color = tui_next::ColorLevel::Mono;
+            fixture.color = junie_tui::ColorLevel::Mono;
             fixture.theme = theme.clone();
             let mono = fixture.theme.clone().downgrade(fixture.color);
             Harness::new(CaseApp::<GridCase>::new(fixture), mono, 40, 12)
@@ -3455,7 +3551,7 @@ menu_case!(
 
 #[test]
 fn open_menu_bar_dropdown_consumes_dynamic_item_binding() {
-    use tui_next_testing::conformance::driver::CaseApp;
+    use junie_tui_testing::conformance::driver::CaseApp;
 
     let mut harness = Harness::new(
         CaseApp::<MenuBarCase>::new(Fixture::default()),
@@ -3861,6 +3957,7 @@ conformance_suite!(
     dialog => DialogCase,
     scroll_region => ScrollRegionCase,
     props => PropsCase,
+    props_list => PropsListCase,
     text_area => TextAreaCase,
     select => SelectCase,
     radio_group => RadioGroupCase,
@@ -3969,6 +4066,7 @@ fn every_registered_table_is_clean() {
     clean::<DialogCase>(&states);
     clean::<ScrollRegionCase>(&states);
     clean::<PropsCase>(&states);
+    clean::<PropsListCase>(&states);
     clean::<TextAreaCase>(&states);
     clean::<SelectCase>(&states);
     clean::<RadioGroupCase>(&states);
@@ -4117,6 +4215,7 @@ fn draw_registers_nothing_when_it_cannot_draw() {
     degenerate::<DialogCase>();
     degenerate::<ScrollRegionCase>();
     degenerate::<PropsCase>();
+    degenerate::<PropsListCase>();
     degenerate::<TextAreaCase>();
     degenerate::<SelectCase>();
     degenerate::<RadioGroupCase>();
@@ -4173,7 +4272,7 @@ const ZERO: Id = Id::root("conformance.zero_layer");
 /// An app whose only layer asks for `LayerSize::Fixed(0, h)`.
 struct ZeroLayer;
 
-impl tui_next::App for ZeroLayer {
+impl junie_tui::App for ZeroLayer {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if !cx.is_open(ZERO) {
             cx.open_layer(ZERO, LayerSpec::modal(ZERO).size(LayerSize::Fixed(0, 8)));

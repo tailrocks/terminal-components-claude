@@ -1,6 +1,8 @@
 //! Read-only terminal output with line scrolling.
 
-use tui_next::{Cx, Id, Panel, PanelKind, Rect, Response, Status, TextArea, TextAreaState, Ui, id};
+use junie_tui::{
+    Cx, Id, Panel, PanelKind, Rect, Response, Status, TextArea, TextAreaState, Ui, id,
+};
 
 use crate::data::log_lines;
 

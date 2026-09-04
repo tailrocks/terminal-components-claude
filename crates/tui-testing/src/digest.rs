@@ -17,9 +17,9 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 
+use junie_tui::{App, ColorLevel, Cx, FocusRing, Registry, Response, Runtime, Theme, Ui};
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
-use tui_next::{App, ColorLevel, Cx, FocusRing, Registry, Response, Runtime, Theme, Ui};
 
 /// An application that does nothing; the scene draws through a closure.
 #[derive(Debug, Default, Clone, Copy)]
@@ -403,7 +403,7 @@ mod tests {
     use std::process::Command;
     use std::sync::Barrier;
 
-    use tui_next::{Family, Part, StateFlags, Variant};
+    use junie_tui::{Family, Part, StateFlags, Variant};
 
     use super::*;
 
@@ -473,7 +473,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_nanos());
         let dir = std::env::temp_dir().join(format!(
-            "tui-next-digest-{tag}-{}-{nanos}",
+            "junie-tui-digest-{tag}-{}-{nanos}",
             std::process::id()
         ));
         std::fs::create_dir_all(&dir).expect("temp dir");

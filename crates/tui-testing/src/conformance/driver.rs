@@ -3,15 +3,15 @@
 
 use std::collections::BTreeMap;
 
-use ratatui_core::buffer::Buffer;
-use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Style;
-use tui_next::{
+use junie_tui::{
     Anchor, App, Axis, BindingState, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic,
     Flow, Focusability, Id, Invalidate, ItemKey, KeyCode, KeyMap, KeyModifiers, LayerId, LayerKind,
     LayerSize, LayerSpec, MouseKind, ReferenceState, ReferenceTarget, Region, RegionKind, Response,
     Side, StateFlags, Theme, Ui,
 };
+use ratatui_core::buffer::Buffer;
+use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::Style;
 
 use super::{Caps, Conformance, Fixture, PointerGesture};
 use crate::harness::{Harness, centre};
@@ -178,13 +178,13 @@ fn has<C: Conformance>(cap: Caps) -> bool {
     C::caps().contains(cap)
 }
 
-fn region_key(r: &Region) -> (Id, tui_next::PartRef, Rect, LayerId, RegionKind) {
+fn region_key(r: &Region) -> (Id, junie_tui::PartRef, Rect, LayerId, RegionKind) {
     (r.owner, r.part, r.area, r.layer, r.kind)
 }
 
 fn regions_of<C: Conformance>(
     h: &Harness<CaseApp<C>>,
-) -> Vec<(Id, tui_next::PartRef, Rect, LayerId, RegionKind)> {
+) -> Vec<(Id, junie_tui::PartRef, Rect, LayerId, RegionKind)> {
     h.runtime()
         .registry()
         .regions()
@@ -208,7 +208,7 @@ fn activate_at<C: Conformance>(h: &mut Harness<CaseApp<C>>, x: u16, y: u16) -> R
 
 fn activate_part<C: Conformance>(
     h: &mut Harness<CaseApp<C>>,
-    part: tui_next::PartRef,
+    part: junie_tui::PartRef,
 ) -> Response<()> {
     let area = h
         .area_of_part(C::activation_id(), part)
@@ -541,7 +541,7 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
     let states = C::mono_states();
     if has::<C>(Caps::REPORTS_STATUS) {
         assert!(
-            C::PARTS.contains(&tui_next::Part::ICON),
+            C::PARTS.contains(&junie_tui::Part::ICON),
             "{}: REPORTS_STATUS requires an ICON part",
             C::NAME
         );
@@ -638,8 +638,8 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
         C::PARTS
             .first()
             .copied()
-            .unwrap_or(tui_next::Part::CONTAINER),
-        tui_next::StylePatch::new().set_fg(tui_next::Role::Warning),
+            .unwrap_or(junie_tui::Part::CONTAINER),
+        junie_tui::StylePatch::new().set_fg(junie_tui::Role::Warning),
     ));
     let patched = harness::<C>(f);
     assert_eq!(
@@ -836,8 +836,8 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
     assert!(
         matches!(
             dropped,
-            tui_next::Reconciliation::SelectionDropped(1)
-                | tui_next::Reconciliation::CursorMoved(_)
+            junie_tui::Reconciliation::SelectionDropped(1)
+                | junie_tui::Reconciliation::CursorMoved(_)
         ),
         "{}: the reconcile must report the dropped checked key or the moved cursor, got {dropped:?}",
         C::NAME
@@ -1041,7 +1041,7 @@ pub fn focus_trap_and_restore<C: Conformance>() {
         );
         assert_eq!(
             h.ring().active_trap(),
-            Some(tui_next::ScopeId::new(layer)),
+            Some(junie_tui::ScopeId::new(layer)),
             "{}: zero-area resize did not preserve the opened modal's active trap",
             C::NAME
         );
@@ -1113,7 +1113,10 @@ pub fn wheel_at_boundary_is_consumed_without_repaint<C: Conformance>() {
     }
     let focus = h.focus();
     let area = h
-        .area_of_part(C::scroll_id(), tui_next::PartRef::of(tui_next::Part::TRACK))
+        .area_of_part(
+            C::scroll_id(),
+            junie_tui::PartRef::of(junie_tui::Part::TRACK),
+        )
         .or_else(|| h.area_of(C::scroll_id()))
         .unwrap_or(h.app().fixture.area);
     let (x, y) = centre(area);
@@ -1333,7 +1336,7 @@ fn chord_universe() -> Vec<Chord> {
 
 fn dynamic_bindings_follow_keymap<C: Conformance>(
     fixture: &Fixture,
-    dynamic: &[(tui_next::ActionKey, Chord)],
+    dynamic: &[(junie_tui::ActionKey, Chord)],
 ) {
     for (action, chord) in dynamic {
         let owner = C::dynamic_binding_id(*action);
@@ -1427,7 +1430,7 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 .iter()
                 .find_map(|(action, declared)| {
                     declared
-                        .matches(&tui_next::Key {
+                        .matches(&junie_tui::Key {
                             code: chord.code,
                             mods: chord.mods,
                         })
@@ -1440,7 +1443,7 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
             }
             let r = h.key_mod(chord.code, chord.mods);
             if r.is_consumed() {
-                let key = tui_next::Key {
+                let key = junie_tui::Key {
                     code: chord.code,
                     mods: chord.mods,
                 };

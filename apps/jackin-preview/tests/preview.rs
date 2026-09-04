@@ -4,8 +4,8 @@ use jackin_app::{
     ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, LAUNCH, LAUNCH_DIALOG, Motion, ROLE_CHOOSE,
     ROLE_PICKER, Route, RunId, Scenario,
 };
-use tui_next::{KeyCode, Theme};
-use tui_next_testing::Harness;
+use junie_tui::{KeyCode, Theme};
+use junie_tui_testing::Harness;
 
 #[test]
 fn first_use_flow_enters_the_manager() {

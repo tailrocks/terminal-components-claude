@@ -3,10 +3,6 @@
 
 use core::fmt;
 
-use ratatui_core::layout::Rect;
-use ratatui_core::style::Style;
-use unicode_segmentation::UnicodeSegmentation;
-
 use super::{Acc, Overrides, SlotFn};
 use crate::collection::CellUi;
 use crate::event::{Chord, KeyCode};
@@ -19,9 +15,12 @@ use crate::response::Response;
 use crate::response::StateFlags;
 use crate::scroll::ScrollState;
 use crate::secret::{Secret, SecretPolicy};
+use crate::text::measure::graphemes;
 use crate::text::width;
 use crate::theme::{Family, Role, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use ratatui_core::layout::Rect;
+use ratatui_core::style::Style;
 
 /// A borrowed value displayed by an interactive property row.
 ///
@@ -813,7 +812,7 @@ fn hard_wrap<'a>(
     line_width: &mut u16,
     f: &mut dyn FnMut(WrapPiece<'a>),
 ) {
-    for grapheme in word.graphemes(true) {
+    for (_, grapheme) in graphemes(word) {
         let grapheme_width = width_of(grapheme);
         if line_width.saturating_add(grapheme_width) > width {
             f(WrapPiece::Break);

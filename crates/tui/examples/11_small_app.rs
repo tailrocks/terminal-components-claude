@@ -1,7 +1,7 @@
-//! `COMPONENT_ARCHITECTURE.md` §17 example 11, verbatim (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! `COMPONENT_ARCHITECTURE.md` §17 example 11, verbatim (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 #![expect(clippy::indexing_slicing, reason = "verbatim from §17 example 11")]
 
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, App, Button, Cx, Dialog, DialogAction, DialogState, Field, FrameRead, Id,
     Insets, ItemKey, List, ListAction, ListState, Response, RowUi, TextInput, TextInputState,
     Theme, Track, Ui, Variant, id, layout, run,

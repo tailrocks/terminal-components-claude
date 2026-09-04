@@ -18,7 +18,6 @@
 every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.5 records the rustdoc-json resolver as a Slice-8 upgrade
 
 # ── Slices 5–7 application integration tests (`apps/**/tests`) ──
-author_component_page_participates_in_focus_and_hover  # Slices 5-7 — apps/**
 complete_flow_keyboard_first  # Slices 5-7 — apps/**
 complete_navigation_visits_every_page_and_every_state  # Slices 5-7 — apps/**
 custom_theme_injection_repaints_every_page  # Slices 5-7 — apps/**

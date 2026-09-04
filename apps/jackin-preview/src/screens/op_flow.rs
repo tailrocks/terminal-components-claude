@@ -1,11 +1,11 @@
 //! Domain half of the staged 1Password picker.
 //!
-//! `tui_next::PickerChain` owns breadcrumb focus and retry/back bindings.  The
+//! `junie_tui::PickerChain` owns breadcrumb focus and retry/back bindings.  The
 //! app keeps provider-specific ids and translates simulator errors to safe
 //! display state; credential material remains inside `SimOnePassword`'s
 //! closure and is never stored here.
 
-use tui_next::{ItemKey, Status};
+use junie_tui::{ItemKey, Status};
 
 use crate::sim::onepassword::OpError;
 

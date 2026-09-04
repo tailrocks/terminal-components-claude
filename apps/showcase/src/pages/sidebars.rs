@@ -1,6 +1,6 @@
 //! Nested sidebar navigation and content ownership.
 
-use tui_next::{
+use junie_tui::{
     Cx, Id, ItemKey, NavList, NavListAction, NavListState, Rect, Response, RowUi, Ui, id, layout,
 };
 

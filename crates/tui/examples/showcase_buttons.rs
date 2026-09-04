@@ -8,14 +8,14 @@
 //! buttons per row instead of a parallel painting path that could drift from
 //! the widget.
 //!
-//! Crate name is temporary: `tui_next` → `junie_tui` at Slice 5.
+//! Crate name is temporary: `junie_tui` → `junie_tui` at Slice 5.
 #![expect(
     missing_debug_implementations,
     clippy::indexing_slicing,
     reason = "a showcase page, mirroring src/bin/showcase/pages/buttons.rs"
 )]
 
-use tui_next::{
+use junie_tui::{
     App, Button, Cx, FrameRead, Id, Insets, Part, Rect, Response, RowAlign, StateFlags, Status,
     Theme, Track, Ui, Variant, id, layout, run,
 };
@@ -152,7 +152,7 @@ impl App for ButtonsPage {
                 height: 1,
             };
             ui.with_part(
-                tui_next::Family::PANEL,
+                junie_tui::Family::PANEL,
                 Variant::DEFAULT,
                 Part::DETAIL,
                 StateFlags::empty(),
@@ -164,7 +164,7 @@ impl App for ButtonsPage {
                 .iter()
                 .map(|&i| {
                     self.button(i)
-                        .measure(ui, tui_next::Constraints::loose(rows[0].width, 1))
+                        .measure(ui, junie_tui::Constraints::loose(rows[0].width, 1))
                         .preferred
                         .0
                 })
@@ -198,7 +198,7 @@ impl App for ButtonsPage {
 
         if let Some(last) = &self.last {
             ui.with_part(
-                tui_next::Family::PANEL,
+                junie_tui::Family::PANEL,
                 Variant::DEFAULT,
                 Part::HELP,
                 StateFlags::empty(),

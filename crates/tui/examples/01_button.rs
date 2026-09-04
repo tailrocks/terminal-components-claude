@@ -1,10 +1,10 @@
-//! `COMPONENT_ARCHITECTURE.md` §17 example 1, verbatim (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! `COMPONENT_ARCHITECTURE.md` §17 example 1, verbatim (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 #![expect(
     clippy::arithmetic_side_effects,
     reason = "verbatim from §17 example 1"
 )]
 
-use tui_next::{App, Button, Cx, Id, Insets, Response, Theme, Ui, id, layout, run};
+use junie_tui::{App, Button, Cx, Id, Insets, Response, Theme, Ui, id, layout, run};
 
 const SAVE: Id = id!("save");
 

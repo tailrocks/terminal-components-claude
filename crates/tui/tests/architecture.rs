@@ -47,7 +47,7 @@ fn check(name: &str) {
 
 #[test]
 fn derived_hint_bar_is_exported_from_the_root_facade() {
-    fn accepts_root_type(_: Option<tui_next::DerivedHintBar<'static>>) {}
+    fn accepts_root_type(_: Option<junie_tui::DerivedHintBar<'static>>) {}
     accepts_root_type(None);
 }
 

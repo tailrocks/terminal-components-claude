@@ -26,7 +26,7 @@ pub struct TableTab {
     /// Active local filters.
     pub filters: Vec<Filter>,
     /// Last sort direction per column.
-    pub sort: Option<(usize, tui_next::SortDir)>,
+    pub sort: Option<(usize, junie_tui::SortDir)>,
 }
 
 impl TableTab {
@@ -76,9 +76,9 @@ impl TableTab {
         self.filters.clear();
     }
     /// Apply a local sort while preserving adapter row identity.
-    pub fn sort(&mut self, column: usize, direction: tui_next::SortDir) {
+    pub fn sort(&mut self, column: usize, direction: junie_tui::SortDir) {
         self.result.sort(
-            tui_next::ColumnKey::num((column as u16).saturating_add(1)),
+            junie_tui::ColumnKey::num((column as u16).saturating_add(1)),
             direction,
         );
         self.sort = Some((column, direction));

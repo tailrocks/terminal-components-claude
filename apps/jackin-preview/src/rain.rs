@@ -4,7 +4,7 @@
 //! the public facade when the shell paints it, while this module keeps the
 //! exact virtual-frame contracts used by the preview and its tests.
 
-use tui_next::{Buffer, Color, Rect, Style, Theme};
+use junie_tui::{Buffer, Color, Rect, Style, Theme};
 
 use crate::scenario::Motion;
 

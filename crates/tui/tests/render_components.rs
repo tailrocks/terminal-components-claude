@@ -30,8 +30,7 @@
     )
 )]
 
-use ratatui_core::style::Modifier;
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, App, Brand, Button, CellPos, CellRef, Checkbox, ChipBar, ChipBarState,
     Chord, CodeEditor, CodeEditorState, ColorLevel, Column, ColumnKey, Completion, CompletionState,
     ContextMenu, Cx, Dialog, DialogState, DiffLineKind, DiffRow, DiffSource, DiffView,
@@ -47,7 +46,8 @@ use tui_next::{
     TextInput, TextInputState, TextViewport, Theme, Toggle, TooSmall, Tree, TreeNode, TreeState,
     Ui, Variant, ViewportLine, ViewportState, Wizard, WizardState, WizardStep,
 };
-use tui_next_testing::{Baseline, Harness, Scene};
+use junie_tui_testing::{Baseline, Harness, Scene};
+use ratatui_core::style::Modifier;
 
 const BASELINE: Baseline = Baseline::new(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -1182,7 +1182,7 @@ fn draw_context_menu(st: St, ui: &mut Ui<'_>, area: Rect) {
     ContextMenu::new(
         CONTEXT_MENU,
         items,
-        tui_next::Anchor::Screen(tui_next::ScreenAlign::Center),
+        junie_tui::Anchor::Screen(junie_tui::ScreenAlign::Center),
     )
     .draw(ui, area, &MenuState::default());
 }

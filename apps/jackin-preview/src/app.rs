@@ -1,11 +1,11 @@
 //! Jackin Preview application shell.
 //!
-//! This module owns only interaction state and paints through `tui-next`'s
+//! This module owns only interaction state and paints through `junie-tui`'s
 //! public facade.  Domain and simulation state stay in sibling modules.
 
 use std::time::Duration;
 
-use tui_next::{
+use junie_tui::{
     ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction, DialogState, Id,
     Item, ItemKey, KeyCode, KeyMap, KeyPhase, List, ListAction, ListState, Panel, Picker,
     PickerAction, PickerState, Rect, Response, StepState, Steps, StepsState, Tabs, TabsState, Ui,
@@ -1293,8 +1293,8 @@ impl TuiApp for App {
         &self.keymap
     }
 
-    fn min_size(&self) -> tui_next::Size {
-        tui_next::Size {
+    fn min_size(&self) -> junie_tui::Size {
+        junie_tui::Size {
             min: (72, 20),
             preferred: (120, 40),
         }

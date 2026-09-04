@@ -2,22 +2,22 @@
 //!
 //! Every screen owns the state for the controls it demonstrates. The shell
 //! only selects a screen and supplies its content rectangle; this keeps the
-//! application package a consumer of the public `tui-next` facade rather than
+//! application package a consumer of the public `junie-tui` facade rather than
 //! a second component implementation.
 
-use tui_next::{Panel, PanelKind, Rect, Response, Ui, id};
+use junie_tui::{Panel, PanelKind, Rect, Response, Ui, id};
 
 /// A stateful screen in the showcase.
 pub(crate) trait Page: Send {
     /// Stable navigation title.
     fn title(&self) -> &'static str;
     /// Drain this screen's runtime intents.
-    fn update(&mut self, cx: &mut tui_next::Cx<'_>) -> Response<()>;
+    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> Response<()>;
     /// Handle an application-level command before component intents run.
     fn command(
         &mut self,
-        _cx: &mut tui_next::Cx<'_>,
-        _action: tui_next::ActionKey,
+        _cx: &mut junie_tui::Cx<'_>,
+        _action: junie_tui::ActionKey,
     ) -> Response<()> {
         Response::ignored()
     }

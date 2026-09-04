@@ -20,7 +20,7 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
-tui-next.workspace = true
+junie-tui.workspace = true
 
 [dev-dependencies]
-tui-next-testing.workspace = true
+junie-tui-testing.workspace = true

@@ -1,6 +1,6 @@
 //! Application shell for the migrated showcase binary.
 
-use tui_next::{
+use junie_tui::{
     ActionKey, App as TuiApp, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState, Id,
     ItemKey, KeyCode, KeyMap, KeyPhase, NavList, NavListAction, NavListState, Panel, PanelKind,
     Response, Size, Status, StatusBar, StatusItem, Theme, TooSmall, Ui, id, layout,
@@ -351,7 +351,7 @@ fn nav_section(entry: &NavEntry) -> &str {
     entry.section
 }
 
-fn nav_row(entry: &NavEntry, row: &mut tui_next::RowUi<'_>) {
+fn nav_row(entry: &NavEntry, row: &mut junie_tui::RowUi<'_>) {
     row.label(entry.label);
 }
 
@@ -363,7 +363,7 @@ fn nav() -> NavList<
     'static,
     NavEntry,
     impl Fn(&NavEntry) -> ItemKey,
-    impl Fn(&NavEntry, &mut tui_next::RowUi<'_>),
+    impl Fn(&NavEntry, &mut junie_tui::RowUi<'_>),
 > {
     NavList::new(NAV)
         .key(nav_key)
@@ -406,12 +406,12 @@ fn keymap() -> KeyMap {
         // owns printable-key handling.
         .bind(
             KeyPhase::Capture,
-            Chord::with(KeyCode::Char('c'), tui_next::KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL),
             QUIT_CTRL,
         )
         .bind(
             KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('c'), tui_next::KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL),
             QUIT_CTRL,
         )
         .bind(
@@ -428,7 +428,7 @@ fn keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('s'), tui_next::KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('s'), junie_tui::KeyModifiers::CONTROL),
             FORM_SUBMIT,
         )
 }
@@ -606,8 +606,8 @@ impl TuiApp for App {
         let (without_status, status_area) = layout::split_v(full, full.height.saturating_sub(1));
         let (header, body) = layout::split_v(without_status, 3);
         let (sidebar, content) = layout::split_h(body, 24);
-        tui_next::Brand::new(BRAND, "SHOWCASE")
-            .tagline("public tui-next API")
+        junie_tui::Brand::new(BRAND, "SHOWCASE")
+            .tagline("public junie-tui API")
             .draw(ui, header);
         nav().draw(ui, sidebar, &self.nav_state, NAV_ENTRIES);
         if let Some(active) = self.active() {
@@ -698,5 +698,5 @@ pub(crate) fn run() -> std::io::Result<()> {
             _ => {}
         }
     }
-    tui_next::run(App::with_page(page), theme)
+    junie_tui::run(App::with_page(page), theme)
 }

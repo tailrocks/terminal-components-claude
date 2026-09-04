@@ -1,6 +1,6 @@
 //! Single-line controlled editing with commit, cancel and validation feedback.
 
-use tui_next::{
+use junie_tui::{
     BlurPolicy, Cx, Id, Panel, PanelKind, Rect, Response, TextAction, TextInput, TextInputState,
     Ui, id,
 };

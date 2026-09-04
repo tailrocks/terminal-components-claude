@@ -1,6 +1,6 @@
 //! Modal confirmation and prompt flows.
 
-use tui_next::{
+use junie_tui::{
     ActionKey, Button, Cx, Dialog, DialogAction, DialogState, Id, Rect, Response, Ui, Variant, id,
     layout,
 };
@@ -11,11 +11,11 @@ const OPEN_CONFIRM: Id = id!("dialogs.confirm.open");
 const OPEN_PROMPT: Id = id!("dialogs.prompt.open");
 const CONFIRM: Id = id!("dialogs.confirm.layer");
 const PROMPT: Id = id!("dialogs.prompt.layer");
-const DIALOG_LABEL_PATCH: tui_next::StylePatch = tui_next::StylePatch::new()
-    .set_fg(tui_next::Role::Accent)
-    .add(tui_next::Modifier::BOLD);
-const DIALOG_PARTS: &[(tui_next::Part, tui_next::StylePatch)] =
-    &[(tui_next::Part::TITLE, DIALOG_LABEL_PATCH)];
+const DIALOG_LABEL_PATCH: junie_tui::StylePatch = junie_tui::StylePatch::new()
+    .set_fg(junie_tui::Role::Accent)
+    .add(junie_tui::Modifier::BOLD);
+const DIALOG_PARTS: &[(junie_tui::Part, junie_tui::StylePatch)] =
+    &[(junie_tui::Part::TITLE, DIALOG_LABEL_PATCH)];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum OpenDialog {

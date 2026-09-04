@@ -2,7 +2,7 @@
 //! a copy is a second place the plaintext lives, and equality is a timing
 //! oracle. `expose()` is the one deliberately verbose way out.
 
-use tui_next::Secret;
+use junie_tui::Secret;
 
 fn main() {
     let s = Secret::new(String::from("hunter2"));

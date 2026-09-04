@@ -4,7 +4,7 @@
 //! viewports. Their source lines are app-owned fixtures; `TextViewport` owns
 //! only scroll, selection, follow-tail, and pointer capture state.
 
-use tui_next::{
+use junie_tui::{
     Cx, Id, Panel, PanelKind, Rect, Response, TextViewport, Ui, ViewportAction, ViewportLine,
     ViewportState, id, layout,
 };

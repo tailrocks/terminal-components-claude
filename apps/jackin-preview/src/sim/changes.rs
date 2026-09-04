@@ -3,12 +3,12 @@
 //! A simulated instance has no repository, so this module turns its touched
 //! paths into stable fixture hunks.  The data model intentionally belongs to
 //! the app instead of importing the retired diff widget.  A future screen can
-//! project it into `tui_next::DiffSource` without exposing credentials or
+//! project it into `junie_tui::DiffSource` without exposing credentials or
 //! coupling the simulation to a renderer.
 
 use std::collections::BTreeSet;
 
-use tui_next::{FgStep, Role};
+use junie_tui::{FgStep, Role};
 
 /// The kind of one line in a unified diff.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

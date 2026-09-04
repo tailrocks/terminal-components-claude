@@ -4,15 +4,15 @@
 //! shape of the existing suites survives and a test never observes the
 //! one-frame pointer latency of §20.1.
 
-use ratatui_core::backend::TestBackend;
-use ratatui_core::buffer::{Buffer, Cell};
-use ratatui_core::layout::{Position, Rect};
-use ratatui_core::terminal::Terminal;
-use tui_next::{
+use junie_tui::{
     App, Axis, ColorLevel, Diagnostic, Family, FocusRing, Id, Input, Invalidate, Key, KeyCode,
     KeyModifiers, LayerId, Mouse, MouseKind, Part, PartRef, Resolved, Response, Runtime,
     StateFlags, Theme, Variant,
 };
+use ratatui_core::backend::TestBackend;
+use ratatui_core::buffer::{Buffer, Cell};
+use ratatui_core::layout::{Position, Rect};
+use ratatui_core::terminal::Terminal;
 
 use crate::digest::Scene;
 
@@ -428,7 +428,7 @@ pub fn row_text(buf: &Buffer, y: u16) -> (String, Vec<u16>) {
             cols.push(x);
         }
         s.push_str(sym);
-        let w = tui_next::width(sym).max(1);
+        let w = junie_tui::width(sym).max(1);
         x = x.saturating_add(w);
     }
     cols.push(x);
@@ -437,8 +437,8 @@ pub fn row_text(buf: &Buffer, y: u16) -> (String, Vec<u16>) {
 
 #[cfg(test)]
 mod tests {
+    use junie_tui::{Cx, Focusability, FrameRead, ItemKey, RowUi, Ui};
     use ratatui_core::layout::Rect;
-    use tui_next::{Cx, Focusability, FrameRead, ItemKey, RowUi, Ui};
 
     use super::*;
 
@@ -499,7 +499,7 @@ mod tests {
                 Variant::DEFAULT,
                 Part::LABEL,
                 h.state_of(LIST),
-                tui_next::Surface::Canvas
+                junie_tui::Surface::Canvas
             )
         );
         // the button's CONTAINER is the PRIMARY variant it actually queried,
@@ -512,7 +512,7 @@ mod tests {
                 Variant::PRIMARY,
                 Part::CONTAINER,
                 h.state_of(BUTTON),
-                tui_next::Surface::Canvas
+                junie_tui::Surface::Canvas
             )
         );
         assert_ne!(
@@ -522,7 +522,7 @@ mod tests {
                 Variant::DEFAULT,
                 Part::CONTAINER,
                 h.state_of(BUTTON),
-                tui_next::Surface::Canvas
+                junie_tui::Surface::Canvas
             ),
             "the recorded variant must be the one the component used"
         );
@@ -536,7 +536,7 @@ mod tests {
                 Variant::DEFAULT,
                 Part::TAB,
                 h.state_of(LIST),
-                tui_next::Surface::Canvas
+                junie_tui::Surface::Canvas
             )
         );
     }

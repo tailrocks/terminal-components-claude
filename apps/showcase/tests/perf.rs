@@ -1,9 +1,9 @@
 //! Focused performance smoke tests for the migrated app.
 use std::hint::black_box;
 
+use junie_tui::{Axis, KeyCode, Theme};
+use junie_tui_testing::Harness;
 use showcase_app::{App, PageId};
-use tui_next::{Axis, KeyCode, Theme};
-use tui_next_testing::Harness;
 
 #[expect(
     clippy::panic,
@@ -81,7 +81,7 @@ fn mouse_move_showcase_frame() {
     let mut hovered = 0_u32;
     for y in 0..40 {
         for x in (0..120).step_by(2) {
-            let _ = h.mouse(tui_next::MouseKind::Move, x, y);
+            let _ = h.mouse(junie_tui::MouseKind::Move, x, y);
             if h.hover().is_some() {
                 hovered = hovered.saturating_add(1);
             }

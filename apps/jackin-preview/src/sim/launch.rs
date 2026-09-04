@@ -2,7 +2,7 @@
 //! on a deterministic tick timeline, a bounded build log, typed failure,
 //! and the credential stage's account resolution.
 
-use tui_next::StepState;
+use junie_tui::StepState;
 
 use crate::domain::agent::Agent;
 use crate::domain::instance::RunId;

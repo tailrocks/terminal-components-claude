@@ -1,6 +1,6 @@
 //! Searchable semantic picker with query and scope state.
 
-use tui_next::{
+use junie_tui::{
     Button, Cx, Id, Item, ItemKey, Picker, PickerAction, PickerState, Rect, Response, Ui, Variant,
     id, layout,
 };
@@ -9,7 +9,7 @@ use super::{Page, frame, lines};
 
 const OPEN: Id = id!("pickers.open");
 const PICKER: Id = id!("pickers.layer");
-const SCOPES: &[tui_next::ScopeKey] = &[tui_next::ScopeKey::new(1), tui_next::ScopeKey::new(2)];
+const SCOPES: &[junie_tui::ScopeKey] = &[junie_tui::ScopeKey::new(1), junie_tui::ScopeKey::new(2)];
 const ITEMS: &[Item<'static>] = &[
     Item::new(ItemKey::Num(1), "Deploy production")
         .glyph("▶")

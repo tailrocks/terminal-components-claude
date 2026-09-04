@@ -1,6 +1,6 @@
 //! Read-only keyed data grid with model-owned sorting.
 
-use tui_next::{
+use junie_tui::{
     Align, CellRef, Column, ColumnKey, Cx, Grid, GridAction, GridModel, GridState, Id, ItemKey,
     NavUnit, Part, Rect, Response, Role, RowDecor, RowTotal, SortDir, StylePatch, Ui, id,
 };

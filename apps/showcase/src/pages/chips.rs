@@ -1,6 +1,6 @@
 //! Chip toggles and a keyed select field.
 
-use tui_next::{
+use junie_tui::{
     ChipBar, ChipBarAction, ChipBarState, Cx, Id, ItemKey, Rect, Response, RowUi, Select,
     SelectAction, SelectState, Ui, id, layout,
 };
@@ -37,7 +37,7 @@ fn chips() -> ChipBar<
     ChipBar::new(CHIPS)
         .key(chip_key)
         .row(chip_row)
-        .select_mode(tui_next::SelectMode::Multi)
+        .select_mode(junie_tui::SelectMode::Multi)
         .closable(false)
 }
 

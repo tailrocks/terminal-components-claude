@@ -1,11 +1,11 @@
 //! Card and framed panel composition, including caller-owned overrides.
 
-use tui_next::{Modifier, Panel, PanelKind, Part, Rect, Response, Role, StylePatch, Ui, id};
+use junie_tui::{Modifier, Panel, PanelKind, Part, Rect, Response, Role, StylePatch, Ui, id};
 
 use super::{Page, frame, lines};
 
-const OUTER: tui_next::Id = id!("panels.outer");
-const INNER: tui_next::Id = id!("panels.inner");
+const OUTER: junie_tui::Id = id!("panels.outer");
+const INNER: junie_tui::Id = id!("panels.inner");
 const PATCH: StylePatch = StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD);
 const PARTS: &[(Part, StylePatch)] = &[(Part::TITLE, PATCH)];
 
@@ -25,7 +25,7 @@ impl Page for PanelsPage {
         "Panels"
     }
 
-    fn update(&mut self, _cx: &mut tui_next::Cx<'_>) -> Response<()> {
+    fn update(&mut self, _cx: &mut junie_tui::Cx<'_>) -> Response<()> {
         Response::ignored()
     }
 

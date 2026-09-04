@@ -1,6 +1,6 @@
 //! Application chrome: brand lockup, status strip and inline meters.
 
-use tui_next::{Brand, Cx, Id, Response, Role, Status, StatusBar, StatusItem, Ui, id, layout};
+use junie_tui::{Brand, Cx, Id, Response, Role, Status, StatusBar, StatusItem, Ui, id, layout};
 
 use super::{Page, frame, lines};
 
@@ -8,7 +8,7 @@ const BRAND: Id = id!("chrome.brand");
 const BAR: Id = id!("chrome.status");
 const LEFT: [StatusItem<'static>; 2] = [
     StatusItem::new("SHOWCASE").strong(),
-    StatusItem::new("workspace").tone(Role::Fg(tui_next::FgStep::Secondary)),
+    StatusItem::new("workspace").tone(Role::Fg(junie_tui::FgStep::Secondary)),
 ];
 const CENTER: [StatusItem<'static>; 1] = [StatusItem::new("public API").chip()];
 const RIGHT: [StatusItem<'static>; 2] = [
@@ -45,7 +45,7 @@ impl Page for ChromePage {
         brand.erase()
     }
 
-    fn draw(&self, ui: &mut Ui<'_>, area: tui_next::Rect) {
+    fn draw(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
         frame(
             ui,
             area,
@@ -73,7 +73,7 @@ impl Page for ChromePage {
                 let _ = ui.paint_str(notes, &clicks, ui.surface_style());
                 lines(
                     ui,
-                    tui_next::Rect {
+                    junie_tui::Rect {
                         y: notes.y.saturating_add(2),
                         height: notes.height.saturating_sub(2),
                         ..notes

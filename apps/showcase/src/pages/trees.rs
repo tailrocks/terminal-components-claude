@@ -1,6 +1,6 @@
 //! Keyed tree navigation with stable branch expansion.
 
-use tui_next::{
+use junie_tui::{
     Cx, Id, ItemKey, Rect, Response, RowUi, Tree, TreeAction, TreeNode, TreeState, Ui, id,
 };
 

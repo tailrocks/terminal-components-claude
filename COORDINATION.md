@@ -30,7 +30,7 @@ Exclusive ownership:
 - `crates/tui-testing/**`
 - `xtask/**`
 - `tools/**`
-- root `src/**` removal, `tools/capture.sh`, the `tui-next` -> `junie-tui` rename
+- root `src/**` removal, `tools/capture.sh`, the `junie-tui` -> `junie-tui` rename
 
 Deliverables: close Slice 4 wave 1, then packages 4A/4C/4E, then wave 2
 (4D/4F/4H/4I), then Slice 5 (rename, showcase migration, Adjudication P1).

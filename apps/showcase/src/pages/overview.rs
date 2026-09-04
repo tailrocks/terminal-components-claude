@@ -1,13 +1,13 @@
 //! Overview screen: the public-facade contract and its stable sample data.
 
-use tui_next::{Brand, Id, Props, Rect, Response, Ui, id, layout};
+use junie_tui::{Brand, Id, Props, Rect, Response, Ui, id, layout};
 
 use super::{Page, author::AuthorBadge, frame, lines};
 
 const BRAND: Id = id!("overview.brand");
 const AUTHOR: Id = id!("overview.author");
 const PROPS: [(&str, &str); 6] = [
-    ("Library", "tui-next"),
+    ("Library", "junie-tui"),
     ("Ownership", "application state"),
     ("Input", "runtime intents"),
     ("Rendering", "public Ui facade"),
@@ -41,30 +41,36 @@ impl Page for OverviewPage {
         "Overview"
     }
 
-    fn update(&mut self, cx: &mut tui_next::Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> Response<()> {
         self.author.update(cx)
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "public tui-next API", |ui, body| {
-            let (intro, rest) = layout::split_v(body, 4);
-            Brand::new(BRAND, "Junie")
-                .tagline("component showcase")
-                .draw(ui, intro);
-            let (copy, props) = layout::split_h(rest, rest.width / 2);
-            let (copy_text, author_area) = layout::split_v(copy, copy.height.saturating_sub(2));
-            lines(
-                ui,
-                copy_text,
-                &[
-                    "A complete app-owned migration of the legacy showcase.",
-                    "Each page owns durable state and talks to tui-next through",
-                    "the same public facade available to downstream binaries.",
-                    "Tab focuses controls · Enter activates · Esc returns home.",
-                ],
-            );
-            self.author.draw(ui, author_area);
-            Props::new(&PROPS).draw(ui, props);
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "public junie-tui API",
+            |ui, body| {
+                let (intro, rest) = layout::split_v(body, 4);
+                Brand::new(BRAND, "Junie")
+                    .tagline("component showcase")
+                    .draw(ui, intro);
+                let (copy, props) = layout::split_h(rest, rest.width / 2);
+                let (copy_text, author_area) = layout::split_v(copy, copy.height.saturating_sub(2));
+                lines(
+                    ui,
+                    copy_text,
+                    &[
+                        "A complete app-owned migration of the legacy showcase.",
+                        "Each page owns durable state and talks to junie-tui through",
+                        "the same public facade available to downstream binaries.",
+                        "Tab focuses controls · Enter activates · Esc returns home.",
+                    ],
+                );
+                self.author.draw(ui, author_area);
+                Props::new(&PROPS).draw(ui, props);
+            },
+        );
     }
 }

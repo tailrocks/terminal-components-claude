@@ -1,10 +1,10 @@
 //! External contract tests for `RowUi` marker and cell-owning part glyphs.
 
-use tui_next::{
+use junie_tui::{
     ColorLevel, Family, GlyphRole, Id, ItemKey, Part, Rect, RowUi, Slot, StateFlags, Theme, Track,
     Ui, Variant,
 };
-use tui_next_testing::Scene;
+use junie_tui_testing::Scene;
 
 const OWNER: Id = Id::root("rowui.glyph.contract");
 const ROW: Rect = Rect::new(2, 0, 12, 1);

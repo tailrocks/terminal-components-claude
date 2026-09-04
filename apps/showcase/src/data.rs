@@ -1,6 +1,6 @@
 //! Demo fixtures carried over from the legacy showcase.
 
-use tui_next::{ItemKey, TreeNode};
+use junie_tui::{ItemKey, TreeNode};
 
 /// One deterministic task row shared by the table and task-runner pages.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

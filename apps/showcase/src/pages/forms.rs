@@ -1,6 +1,6 @@
 //! Form-like composition with required-field validation.
 
-use tui_next::{
+use junie_tui::{
     ActionKey, Button, Checkbox, Cx, Id, ItemKey, Rect, Response, Select, SelectState, TextArea,
     TextAreaState, TextInput, TextInputState, Ui, Variant, id, layout,
 };

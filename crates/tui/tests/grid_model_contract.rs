@@ -3,7 +3,7 @@
 #[path = "fixtures/grid_model.rs"]
 mod grid_model;
 
-use tui_next::{Buffer, Rect, Runtime, Theme};
+use junie_tui::{Buffer, Rect, Runtime, Theme};
 
 #[test]
 fn three_method_grid_model_supports_read_only_entry_points() {
@@ -15,7 +15,7 @@ fn three_method_grid_model_supports_read_only_entry_points() {
     let text = buffer
         .content()
         .iter()
-        .map(tui_next::Cell::symbol)
+        .map(junie_tui::Cell::symbol)
         .collect::<String>();
     assert!(text.contains("model only"));
 }

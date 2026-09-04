@@ -1,11 +1,11 @@
-//! `COMPONENT_ARCHITECTURE.md` §17 example 5, verbatim (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! `COMPONENT_ARCHITECTURE.md` §17 example 5, verbatim (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 #![expect(
     missing_docs,
     clippy::indexing_slicing,
     reason = "verbatim from §17 example 5"
 )]
 
-use tui_next::{
+use junie_tui::{
     Button, FrameRead, Id, Part, Rect, Role, RowAlign, StylePatch, Ui, Variant, id, layout,
 };
 

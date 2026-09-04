@@ -1,12 +1,12 @@
 //! Non-vacuous Showcase journeys through the public application facade.
 //!
-//! Every interaction below goes through `tui-next-testing::Harness`. The
+//! Every interaction below goes through `junie-tui-testing::Harness`. The
 //! assertions check rendered evidence, focus, keyed regions, and durable
 //! state transitions; a missing control is a test failure, never a skip.
 
+use junie_tui::{Axis, ColorLevel, Id, ItemKey, KeyCode, LayerId, MouseKind, Part, PartRef, Theme};
+use junie_tui_testing::Harness;
 use showcase_app::{App, NAV_ENTRIES, PageId};
-use tui_next::{Axis, ColorLevel, Id, ItemKey, KeyCode, LayerId, MouseKind, Part, PartRef, Theme};
-use tui_next_testing::Harness;
 
 const FORM_SUMMARY: Id = Id::root("showcase_app::pages::forms::forms.summary");
 const SCROLL_LIST: Id = Id::root("showcase_app::pages::scrolling::scrolling.list");
@@ -148,10 +148,7 @@ fn tab_traversal_is_deterministic_and_wraps() {
     let mut backwards = Vec::new();
     for _ in 0..seen.len() {
         press(&mut h, KeyCode::BackTab);
-        backwards.push(require(
-            h.focus(),
-            "backward traversal stays reachable",
-        ));
+        backwards.push(require(h.focus(), "backward traversal stays reachable"));
     }
     let mut expected = seen;
     expected.reverse();

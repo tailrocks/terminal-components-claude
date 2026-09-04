@@ -1,7 +1,7 @@
 //! `TablePro` application package.
 //!
 //! Database semantics stay in application-owned adapters; terminal behavior
-//! is reached only through the public `tui-next` facade.
+//! is reached only through the public `junie-tui` facade.
 #![forbid(unsafe_code)]
 #![allow(missing_docs, unused_qualifications)]
 #![allow(
@@ -45,7 +45,7 @@ mod tablepro {
         domain::{PendingEdits, ResultGrid},
         sql::{self, Statement},
     };
-    use tui_next::{ColumnKey, EditIntent, GridEditor, GridModel, ItemKey, SortDir};
+    use junie_tui::{ColumnKey, EditIntent, GridEditor, GridModel, ItemKey, SortDir};
 
     #[test]
     fn grid_adapter_keeps_every_pending_change_capability() {

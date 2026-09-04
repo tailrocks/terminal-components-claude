@@ -36,8 +36,8 @@ Two external agents were recently working in `crates/**`, so the tree may have m
 
 ```
 git log --oneline -5 && git status --short
-cargo build -p tui-next --all-targets
-cargo test  -p tui-next -p tui-next-testing --all-targets --all-features
+cargo build -p junie-tui --all-targets
+cargo test  -p junie-tui -p junie-tui-testing --all-targets --all-features
 cargo run   -p xtask -- boundary
 cargo run   -p xtask -- doc-check
 cargo test  --all-targets          # the legacy root package must stay green at 247
@@ -46,9 +46,9 @@ cargo test  --all-targets          # the legacy root package must stay green at 
 As last measured, this was the picture — verify each line before relying on it:
 
 - **Slices 1–3 are complete.** Six audits, a 499-capture before-refactor evidence set, TablePro and Jackin cell-exact digests, a perf baseline (tag `perf/baseline`), the architecture with Adjudications A–P, the foundations crate, and the Slice-2 prototype (7 components, 193 conformance tests, 384 render digests, override/overlay/showcase tests).
-- **The library crate is temporarily named `tui-next` / `tui_next`.** It is renamed to `junie-tui` / `junie_tui` in Slice 5 by a single scripted rename. This is deliberate; do not "fix" it early.
+- **The library crate is temporarily named `junie-tui` / `junie_tui`.** It is renamed to `junie-tui` / `junie_tui` in Slice 5 by a single scripted rename. This is deliberate; do not "fix" it early.
 - **Slice 4 wave 1 is partially done.** 4B (fields, inputs, textarea, select, choice, chips) and 4G (status, hints, progress, meters, chrome) delivered components; their conformance registrations, render matrix and gate were incomplete. Packages 4A, 4C, 4E, 4D, 4F, 4H, 4I are not started.
-- **Known-failing at last measure**: `cargo fmt` on 5 files; ~18 clippy errors in `tui-next` and 2 in `xtask`; `components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells`; `render_components` 44 passed / 116 failed (matrix mid-bless); `boundary` failing only on `conformance_covers_every_public_component`. `PERF_STRICT` shows wall-clock regressions with **zero** allocation or byte failures, which is expected on a shared runner.
+- **Known-failing at last measure**: `cargo fmt` on 5 files; ~18 clippy errors in `junie-tui` and 2 in `xtask`; `components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells`; `render_components` 44 passed / 116 failed (matrix mid-bless); `boundary` failing only on `conformance_covers_every_public_component`. `PERF_STRICT` shows wall-clock regressions with **zero** allocation or byte failures, which is expected on a shared runner.
 
 ## Open decisions that block work — resolve these with fresh Opus agents, in parallel, early
 
@@ -69,7 +69,7 @@ These are not optional cleanups. Several block packages that are otherwise ready
 
 **Finish Slice 4.** Close wave 1 (4B and 4G's conformance registrations, the render matrix, the gate), then wave 1's remaining packages **4A** buttons/choices/brand-chrome, **4C** lists/trees/props/steps/nav, **4E** containers/scrolling — all three in parallel, disjoint files. Then wave 2: **4D** tabs, **4F** overlays/dialogs/menus/pickers/forms, **4H** code editor and diff, **4I** the generic grid. Appendix A gives the exact file ownership per package. After **each** package lands, spawn a fresh `opus-analyst` to review API consistency against §13, and have a builder apply verified corrections — that cadence is required by §27 Slice 4 and is what keeps the families coherent.
 
-**Slice 5 — showcase.** The scripted `tui-next` → `junie-tui` rename, removal of the root `src/` and its three `[[bin]]`s, `tools/capture.sh`'s `BIN` default, then migrate every showcase page, add custom-theme and local-override coverage, the author-level custom component, complete conformance captures, and remove privileged access to internals. Also merge the two halves of the Buttons page into `apps/showcase` and strike §18.3 #4's deviation paragraph (Adjudication P's P1 obligation).
+**Slice 5 — showcase.** The scripted `junie-tui` → `junie-tui` rename, removal of the root `src/` and its three `[[bin]]`s, `tools/capture.sh`'s `BIN` default, then migrate every showcase page, add custom-theme and local-override coverage, the author-level custom component, complete conformance captures, and remove privileged access to internals. Also merge the two halves of the Buttons page into `apps/showcase` and strike §18.3 #4's deviation paragraph (Adjudication P's P1 obligation).
 
 **Slices 6 and 7 — TablePro and Jackin, in parallel** over disjoint app trees. Execute `docs/plans/slice6-tablepro.md` and `docs/plans/slice7-jackin.md`; they are per-screen, cited to `file:line`, with the regression contract for all 23 TablePro tests, 42 TablePro digests, 28 Jackin tests and 36 Jackin digests. Slice 7's highest risk is stated explicitly: Jackin's virtual clock advances by the **route's** interval (`Route::tick_ms`), and re-basing it on a uniform token or wall-clock delta breaks ~40 tick counts, every fixture timestamp and the outro caption at once.
 
@@ -86,10 +86,10 @@ cargo test  --workspace --all-targets --all-features
 cargo test  --workspace --doc --all-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo build --workspace --all-targets --all-features
-cargo build -p tui-next --examples
-cargo test  -p tui-next --test render --test render_components
+cargo build -p junie-tui --examples
+cargo test  -p junie-tui --test render --test render_components
 cargo test  --workspace --test perf --release -- --test-threads=1
-cargo check -p tui-next --no-default-features
+cargo check -p junie-tui --no-default-features
 cargo +1.88.0 check --workspace --all-targets --all-features
 cargo run   -p xtask -- doc-check
 cargo run   -p xtask -- boundary

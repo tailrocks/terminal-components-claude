@@ -1,6 +1,6 @@
 //! Multiline editing and viewport scrolling.
 
-use tui_next::{Cx, Id, Rect, Response, TextAction, TextArea, TextAreaState, Ui, id};
+use junie_tui::{Cx, Id, Rect, Response, TextAction, TextArea, TextAreaState, Ui, id};
 
 use super::{Page, frame, lines, rows};
 

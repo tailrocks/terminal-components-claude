@@ -15,7 +15,7 @@ routing and layer z-order.
 > these guides is written against that name.
 >
 > While the refactor is in progress the crate is temporarily published inside
-> this workspace as **`tui-next`** (Rust path `tui_next`), because the root
+> this workspace as **`junie-tui`** (Rust path `junie_tui`), because the root
 > package still owns the legacy tree during the staged application moves
 > (`COMPONENT_ARCHITECTURE.md` §47.1). The application packages land in
 > `apps/showcase`, `apps/tablepro`, and `apps/jackin-preview` across Slices
@@ -23,8 +23,8 @@ routing and layer z-order.
 > between Slice 7 and Slice 8, after the root package has no legacy sources or
 > binaries.
 >
-> Until then, read every `junie_tui::` in these guides as `tui_next::`, and
-> every `junie_tui_testing::` as `tui_next_testing::`. Nothing else changes.
+> Until then, read every `junie_tui::` in these guides as `junie_tui::`, and
+> every `junie_tui_testing::` as `junie_tui_testing::`. Nothing else changes.
 > The in-tree examples under `crates/tui/examples/` carry the temporary name
 > and a header comment saying so.
 

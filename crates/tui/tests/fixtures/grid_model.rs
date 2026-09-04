@@ -1,4 +1,4 @@
-use tui_next::{
+use junie_tui::{
     App, CellRef, Column, ColumnKey, Cx, Grid, GridModel, GridState, Id, ItemKey, Rect, Response,
     Ui,
 };

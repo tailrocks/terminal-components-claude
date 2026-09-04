@@ -1,5 +1,5 @@
 //! `COMPONENT_ARCHITECTURE.md` §17 example 2 — Scenario B, a complete custom
-//! theme (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! theme (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 //!
 //! This file is the executable half of two claims the architecture document
 //! makes and cannot prove on its own:
@@ -10,14 +10,14 @@
 //!   `#[non_exhaustive]` by pointing at this literal. An example is a separate
 //!   crate, so the struct literal below only compiles while every field of
 //!   `ColorTokens` is public *and* the struct is exhaustively constructible
-//!   from outside `tui_next`. Add a token and this file stops compiling — that
+//!   from outside `junie_tui`. Add a token and this file stops compiling — that
 //!   is the intended breaking change, and this is where it is felt.
 //!
 //! `#[test]`s below assert the theme actually resolves differently from
 //! `Theme::junie()`; `main` renders with it.
 
-use tui_next::theme::{ColorTokens, Density, MeterTokens, SyntaxTokens, border};
-use tui_next::{
+use junie_tui::theme::{ColorTokens, Density, MeterTokens, SyntaxTokens, border};
+use junie_tui::{
     App, Button, Color, Cx, FrameRead, Id, Insets, Response, RowAlign, Theme, Ui, Variant, id,
     layout, run,
 };
@@ -158,8 +158,8 @@ fn main() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{slate, slate_ascii};
-    use tui_next::theme::{Density, border};
-    use tui_next::{Color, Family, Part, StateFlags, Surface, Theme, Variant};
+    use junie_tui::theme::{Density, border};
+    use junie_tui::{Color, Family, Part, StateFlags, Surface, Theme, Variant};
 
     /// The literal survives `from_tokens` untouched: a token the author set
     /// explicitly is never re-derived (§11.2 — derivation fills only

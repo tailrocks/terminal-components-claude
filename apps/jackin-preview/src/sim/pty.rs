@@ -2,12 +2,12 @@
 //!
 //! This is a model of tabs, pane geometry, transcripts, and agent input.  It
 //! does not open a process, socket, or terminal.  Geometry delegates its
-//! arithmetic to the public `tui_next::SplitModel`; all transcript data is
+//! arithmetic to the public `junie_tui::SplitModel`; all transcript data is
 //! owned here so tests can advance virtual time without depending on a PTY.
 
 use std::collections::VecDeque;
 
-use tui_next::{FgStep, Position, Rect, Role, SplitAxis, SplitModel, width};
+use junie_tui::{FgStep, Position, Rect, Role, SplitAxis, SplitModel, width};
 
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
@@ -86,8 +86,8 @@ impl Split {
         let mut model = SplitModel::new(dir.axis(), percent, self.min_first, self.min_second);
         match self.maximized {
             Maximized::None => {}
-            Maximized::First => model.toggle_max(tui_next::Maximized::First),
-            Maximized::Second => model.toggle_max(tui_next::Maximized::Second),
+            Maximized::First => model.toggle_max(junie_tui::Maximized::First),
+            Maximized::Second => model.toggle_max(junie_tui::Maximized::Second),
         }
         model
     }
@@ -371,7 +371,7 @@ impl Tab {
     }
 }
 
-/// A semantic transcript tone.  It maps to a public `tui_next` role when a
+/// A semantic transcript tone.  It maps to a public `junie_tui` role when a
 /// future Capsule screen projects owned lines into the facade viewport.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tone {
@@ -390,7 +390,7 @@ pub enum Tone {
 }
 
 impl Tone {
-    /// Convert the simulation tone to a public `tui_next` role.
+    /// Convert the simulation tone to a public `junie_tui` role.
     pub const fn role(self) -> Role {
         match self {
             Self::Normal => Role::Fg(FgStep::Primary),
@@ -448,7 +448,7 @@ pub struct TextViewport {
     /// Whether new output follows the tail.
     pub follow: bool,
     /// Optional cursor position.
-    pub caret: Option<tui_next::CellPos>,
+    pub caret: Option<junie_tui::CellPos>,
     /// Whether the cursor is visible.
     pub caret_visible: bool,
     max_lines: usize,
@@ -1067,7 +1067,7 @@ impl Pane {
             let line_number = self.term.lines.len().saturating_sub(1);
             let col = usize::from(width(&self.proc.prompt))
                 .saturating_add(usize::from(width(&self.input)));
-            self.term.caret = Some(tui_next::CellPos::new(line_number, col));
+            self.term.caret = Some(junie_tui::CellPos::new(line_number, col));
         } else {
             self.term.caret = None;
         }

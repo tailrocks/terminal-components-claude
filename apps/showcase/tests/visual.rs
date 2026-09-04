@@ -1,9 +1,9 @@
 //! Visual digest matrix for the migrated showcase shell.
+use junie_tui::{ColorLevel, Theme};
+use junie_tui_testing::Harness;
 use showcase_app::{App, PageId};
-use tui_next::{ColorLevel, Theme};
-use tui_next_testing::Harness;
 
-const BASELINE: tui_next_testing::Baseline = tui_next_testing::Baseline::new(concat!(
+const BASELINE: junie_tui_testing::Baseline = junie_tui_testing::Baseline::new(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/baselines/showcase.txt"
 ));

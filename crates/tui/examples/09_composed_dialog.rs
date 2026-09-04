@@ -1,4 +1,4 @@
-//! `COMPONENT_ARCHITECTURE.md` §17 example 9, verbatim (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! `COMPONENT_ARCHITECTURE.md` §17 example 9, verbatim (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 #![expect(
     dead_code,
     clippy::unnested_or_patterns,
@@ -8,7 +8,7 @@
     reason = "verbatim from §17 example 9"
 )]
 
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, Constraints, Cx, Dialog, DialogAction, DialogState, DismissReason, Id, Part,
     Props, Response, TextInput, TextInputState, Track, Ui, id, layout,
 };

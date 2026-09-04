@@ -30,20 +30,20 @@ The previous session ended because the Fable 5.1 monthly spend limit was reached
 
 ## Immediate state (session 2 ended at a token limit)
 
-The tree does **not** compile at HEAD. Three Slice-4 builders were killed mid-work and their partial output is committed as WIP; `cargo build -p tui-next --all-targets` fails with one `E0502`. The last fully green commit is `0f66160` (797 tests, exit 0). Start by reading `REFACTORING_STATE.md`'s "SESSION 2 INTERRUPTION" block, then `git diff 0f66160 -- crates/` to see what the three builders produced, and decide per file whether to finish or revert. Reverting an unfinished component and re-running its package is often faster than repairing a half-written file.
+The tree does **not** compile at HEAD. Three Slice-4 builders were killed mid-work and their partial output is committed as WIP; `cargo build -p junie-tui --all-targets` fails with one `E0502`. The last fully green commit is `0f66160` (797 tests, exit 0). Start by reading `REFACTORING_STATE.md`'s "SESSION 2 INTERRUPTION" block, then `git diff 0f66160 -- crates/` to see what the three builders produced, and decide per file whether to finish or revert. Reverting an unfinished component and re-running its package is often faster than repairing a half-written file.
 
 ## Earlier state
 
 - HEAD `69fcdca`, pushed to `origin/main`, worktree clean.
 - Slice 1 (baseline + six audits + 499 before-captures + TablePro/Jackin digests + perf baseline, tag `perf/baseline`) is complete.
 - Slice 2 (architecture, independent review, corrections §21–§24) is complete.
-- Slice 3 foundations exist at `crates/tui` (package `tui-next`, lib `tui_next` — a deliberate temporary name renamed to `junie-tui`/`junie_tui` at Slice 5), `crates/tui-testing`, `xtask`. They were green at commit `18afddd` and were then independently reviewed; **the F1–F26 corrections and Adjudication N code changes are not applied**.
+- Slice 3 foundations exist at `crates/tui` (package `junie-tui`, lib `junie_tui` — a deliberate temporary name renamed to `junie-tui`/`junie_tui` at Slice 5), `crates/tui-testing`, `xtask`. They were green at commit `18afddd` and were then independently reviewed; **the F1–F26 corrections and Adjudication N code changes are not applied**.
 - Two tasks were interrupted and their partial output is committed as WIP: the prototype components (`crates/tui/src/components/**`, examples 01/05–11) may not compile or pass gates, and the §25/§26 architecture amendments were not appended.
 - The legacy package at the repository root still builds and its 247 tests pass; it must stay green until Slices 5–7 migrate the applications.
 
 ## First actions
 
-1. Establish ground truth: `git status`, `cargo test -p tui-next -p tui-next-testing --all-targets --all-features`, `cargo run -p xtask -- boundary`, `cargo test --all-targets`.
+1. Establish ground truth: `git status`, `cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features`, `cargo run -p xtask -- boundary`, `cargo test --all-targets`.
 2. Then follow `REFACTORING_STATE.md` → "Next action (Resume)" steps 2–6, updating the ledger and pushing after each result.
 
 At every turn end, report completed evidence, unresolved criteria and active blockers, and do not claim completion without surfaced command results and review findings.
