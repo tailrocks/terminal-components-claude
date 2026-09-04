@@ -1,10 +1,12 @@
 # COMPONENT_ARCHITECTURE.md
 
-**Status:** Accepted, with the Slice 2 review corrections of §21 (Adjudication J), the modern-API and dependency policy of §22 (Adjudication L), the `Form` API / `Grid::update` decisions of §23 (Adjudication K) the re-export / ASCII-border / `FieldKind` decisions of §24 (Adjudication M), the Slice 3 foundations review's eight adjudications, thirteen deviation verdicts and correction obligations F1–F26 of §25, the layer-sizing / `Measure` style-access decisions of §26 (Adjudication N), and the Slice 3 foundations follow-ups of §27 (Adjudication O) applied. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
+**Status:** Accepted, with the Slice 2 review corrections of §21 (Adjudication J), the modern-API and dependency policy of §22 (Adjudication L), the `Form` API / `Grid::update` decisions of §23 (Adjudication K) the re-export / ASCII-border / `FieldKind` decisions of §24 (Adjudication M), the Slice 3 foundations review's eight adjudications, thirteen deviation verdicts and correction obligations F1–F26 of §25, the layer-sizing / `Measure` style-access decisions of §26 (Adjudication N), the Slice 3 foundations follow-ups of §27 (Adjudication O), the prototype decisions of §28 (Adjudication P), the Slice 3 residual decisions of §29 (Adjudication Q), and the Slice 4 ChipBar decision of §30 applied. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
 
 **Authority:** `REFACTORING_GOAL.md` › `DESIGN.md` › existing rendered output/tests › current source. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each.
 
 **Inputs adjudicated:** `docs/audit/api-audit.md` (API), `docs/audit/app-audit.md` (APP), `docs/audit/domain-boundary-audit.md` (DOM), `docs/audit/interaction-audit.md` (INT), `docs/audit/architecture-research.md` (RES). `docs/audit/performance-audit.md` (PERF) landed after §1–§15 were written; §20.9 folds its obligations in and amends earlier decisions where needed. `docs/audit/modern-api-audit.md` (MOD), `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K) and `docs/reviews/adjudication-m-small-items.md` (ADJ‑M) landed after §21; §22, §23 and §24 record them as binding, and every earlier section they change carries an inline `<!-- amended by §22 -->` / `<!-- amended by §23 -->` / `<!-- amended by §24 -->` marker. `docs/reviews/slice3-foundations-review.md` (the fresh read-only Slice 3 foundations review, at commit `18afddd`) and `docs/reviews/adjudication-n-layer-measure.md` (ADJ‑N) landed after §24; §25 and §26 record them as binding, and every earlier section they change carries an inline `<!-- amended by §25 -->` / `<!-- amended by §26 -->` marker. `docs/reviews/adjudication-o-foundations-followups.md` (ADJ‑O) landed after §26; §27 records it as binding, and every earlier section it changes carries an inline `<!-- amended by §27 -->` marker.
+
+`docs/reviews/adjudication-p...` and `docs/reviews/adjudication-q-residuals.md` are the binding §28/§29 review inputs; the Q and §30 records below preserve unresolved API questions rather than deciding them implicitly. <!-- amended by §29; §30 -->
 
 Every claim tagged **[F]** is a collected fact carried from an audit with its citation. Everything else is a decision or its rationale.
 
@@ -38,7 +40,9 @@ Every claim tagged **[F]** is a collected fact carried from an audit with its ci
 | 18 Migration map for every current component | §18 |
 | 19 Alternatives considered and rejected | §19 |
 | 20 Known trade-offs | §20 |
-| — additional | §15 Forms and text editing (goal §19) with §15.1 `Form`; Appendix A Slice plan; §21 Slice 2 review corrections; §22 Adjudication L (modern API and dependency policy); §23 Adjudication K (`Form` API, `Grid::update` bound); §24 Adjudication M (re-exports, ASCII border set, `FieldKind`); §25 Slice 3 foundations review (eight adjudications, deviations D‑1…D‑13, corrections F1–F26); §26 Adjudication N (layer sizing, `Measure` style access); §27 Adjudication O (Slice 3 foundations follow-ups: memo associativity, ASCII glyph coupling, the `border_subtle` downgrade correction, two perf substitutes) |
+| — additional | §15 Forms and text editing (goal §19) with §15.1 `Form`; Appendix A Slice plan; §21 Slice 2 review corrections; §22 Adjudication L (modern API and dependency policy); §23 Adjudication K (`Form` API, `Grid::update` bound); §24 Adjudication M (re-exports, ASCII border set, `FieldKind`); §25 Slice 3 foundations review (eight adjudications, deviations D‑1…D‑13, corrections F1–F26); §26 Adjudication N (layer sizing, `Measure` style access); §27 Adjudication O (Slice 3 foundations follow-ups: memo associativity, ASCII glyph coupling, the `border_subtle` downgrade correction, two perf substitutes); §28 Adjudication P; §29 Adjudication Q; §30 Slice 4 ChipBar adjudication |
+
+The additional adjudication record continues through §28 (Adjudication P), §29 (Adjudication Q — Slice 3 residuals), and §30 (Slice 4 ChipBar). <!-- amended by §29; §30 -->
 
 ### 0.2 Goal §23 scenarios (M20)
 
@@ -354,7 +358,7 @@ The seven concerns of goal §11 have exactly one home each.
 
 **R8** <!-- amended by §21 item 2 --> `Ui::cache<T>(id)` is the only mutable state reachable from `draw`. Its contents must be a pure function of (props, state, area, theme); a component that reads a value from `cache` that is not derivable from those inputs is a bug. It is runtime-owned, keyed by `(Id, TypeId)`, cleared on resize, theme change and generation gap, never observable in `Response`, never compared by `draw_twice_leaves_state_equal`, and guarded by `architecture::cache_types_are_derived_only`.
 
-**R9** <!-- amended by §21 item 30 (A4) --> A component that declares a part must paint `Resolved.glyph` when it is `Some`; `conformance::registry::declared_parts_are_the_parts_actually_styled` checks the query and `mono_states_are_distinguishable` checks the paint.
+**R9** <!-- amended by §21 item 30 (A4); §29 --> A component that owns a cell-valued part must honor `Resolved.glyph: Slot<GlyphRole>`: `Inherit`, `Set` and `Clear` are distinct paint instructions; `conformance::registry::declared_parts_are_the_parts_actually_styled` checks the query and `mono_states_are_distinguishable` checks the paint.
 
 ---
 
@@ -928,7 +932,7 @@ impl Theme {
 }
 ```
 
-`Family` and `Variant` mirror `Part`: `u16` newtypes, library constants in the low range, `custom(&'static str)` const fn into the high range. Families: `BUTTON, CHOICE, CHIP, FIELD, INPUT, TEXTAREA, CODE, SELECT, LIST, TREE, GRID, PROPS, STEPS, TABS, PANEL, SPLIT, SCROLLBAR, VIEWPORT, DIFF, DIALOG, OVERLAY, MENU, PICKER, COMPLETION, FORM, HELP, WIZARD, STATUSBAR, HINTBAR, PROGRESS, METER, EMPTY, BRAND, KEYHINT`. Variants: `DEFAULT, PRIMARY, SECONDARY, SUBTLE, DANGER, TOGGLE, QUIET, GHOST` + custom. <!-- amended by §25 F14 (MA‑6) --> A custom family (`Family::custom(..)`) starts from the **neutral recipe** — `row_like`'s `CONTAINER/GUTTER/MARKER/LABEL/META` set, used whenever `Recipes::get(f)` misses — and `define_family` replaces it. Without this a downstream family resolved to an empty patch and rendered invisible, the worst first-run experience in the surface (`theme::a_custom_family_resolves_through_the_neutral_recipe`; example 12's expectations follow it).
+`Family` and `Variant` mirror `Part`: `u16` newtypes, library constants in the low range, `custom(&'static str)` const fn into the high range. Families: `BUTTON, CHOICE, CHIP, FIELD, INPUT, TEXTAREA, CODE, SELECT, LIST, TREE, GRID, PROPS, STEPS, TABS, PANEL, SPLIT, SCROLLBAR, VIEWPORT, DIFF, DIALOG, OVERLAY, MENU, PICKER, COMPLETION, FORM, HELP, WIZARD, STATUSBAR, HINTBAR, PROGRESS, METER, EMPTY, BRAND, KEYHINT`. Variants: `DEFAULT, PRIMARY, SECONDARY, SUBTLE, DANGER, TOGGLE, QUIET, GHOST` + custom. <!-- amended by §25 F14 (MA‑6) --> A custom family (`Family::custom(..)`) starts from the **neutral recipe** — `row_like`'s `CONTAINER/GUTTER/MARKER/LABEL/META` set, used whenever `Recipes::get(f)` misses — and `define_family` replaces it. Without this a downstream family resolved to an empty patch and rendered invisible, the worst first-run experience in the surface (`theme::a_custom_family_resolves_through_the_neutral_recipe`; example 12's expectations follow it). The neutral recipe receives the §11.4 mono fallbacks like any declared family, so an undeclared family satisfies goal §29 on the default path. <!-- amended by §31 -->
 
 **`ThemeBuilder::build` derivation (exact)** <!-- amended by §21 item 29 -->. Given `surfaces[0]` and `accent`: `surfaces[1..4]` step L\* by +4 (dark base) or −4 (light base, detected by L\*(surfaces[0]) > 50); `fg[0..4]` step L\* by −18 from a contrast-7:1 anchor against `surfaces[0]`; `accent_hover = ΔL* +8`, `accent_pressed = ΔL* −8`, `accent_tint` = accent at 12 % over `surfaces[1]`; `focus = accent`, `focus_ring = accent_pressed`; `border_subtle = surfaces[3]`, `border_strong = fg[3]`; `danger`/`warning`/`success`/`info` tints at 12 %; `on_accent`/`on_danger` = whichever of `fg[0]`/`surfaces[0]` reaches ≥ 4.5:1. Every derived value is a pure function of the seeds; `theme::builder_derives_every_unset_token_deterministically` pins the table and `theme::derived_tokens_meet_design_contrast_ratios` checks the ratios. `Theme::paper()` (§11.7) is `from_tokens(seeds).builder()…build()` and is pinned by `theme::paper_tokens_are_pinned`.
 
@@ -960,9 +964,13 @@ pub struct PartRecipe { pub base: StylePatch, pub states: Vec<StateRule>,      /
                         pub glyph: Slot<GlyphRole>, pub size: Slot<u16> }
 pub struct Recipe  { pub default_variant: Variant, pub parts: PartMap<PartRecipe>,
                      pub variants: Vec<(Variant, PartMap<PartRecipe>)> }        // built once at theme construction; resolution only reads
-pub struct Recipes { by_family: Box<[Recipe]> }
+pub struct Recipes {                     // <!-- amended by §31 -->
+    by_family: Vec<(Family, Recipe)>,    // sorted by Family; binary-searched
+    overrides: Vec<GlobalOverride>,      // precedence step 4
+    neutral: Recipe,                     // §11.2's fallback; NOT a precedence level
+}
 pub struct Overlay { /* borrowed scope override; const-constructible */ }
-pub struct Resolved { pub style: Style, pub glyph: Option<GlyphRole>, pub size: Option<u16>, pub align: Option<Align> }   // <!-- amended by §25 D‑5; §26 --> `align` was the omission (`StylePatch.align` already existed)
+pub struct Resolved { pub style: Style, pub glyph: Slot<GlyphRole>, pub size: Option<u16>, pub align: Option<Align> }   // <!-- amended by §25 D‑5; §26; §29 --> `align` was the omission (`StylePatch.align` already existed); `Slot` preserves an explicit clear for cell-owned glyphs
 impl Resolved {
     /// This part's style layered over an inherited one — §11.3's final step, `Style::patch` semantics
     /// (modifier symmetry, §22 R‑9). Call site: `ui.fill(area, r.over(ui.surface_style()))`. <!-- amended by §26 -->
@@ -971,7 +979,7 @@ impl Resolved {
 /// <!-- amended by §26 (Adjudication N2) --> The surface-independent half of resolution: everything §11.3
 /// settles before roles bind to colours. Available in `update`, which has no `Surface`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-pub struct PartMetrics { pub glyph: Option<GlyphRole>, pub size: Option<u16>, pub align: Option<Align> }
+pub struct PartMetrics { pub glyph: Slot<GlyphRole>, pub size: Option<u16>, pub align: Option<Align> } // <!-- amended by §29 -->
 impl Theme {
     /// The whole chain plus colour binding, `&self`, uncached. The `update`- and test-phase resolution path.
     pub fn resolve(&self, f: Family, v: Variant, p: Part, s: StateFlags, surface: Surface) -> Resolved;
@@ -1038,7 +1046,7 @@ This replaces the hand-written 30-field macro and the Junie-only `for_level`, so
 |---|---|
 | `FOCUSED` | `Part::GUTTER` glyph = `GlyphRole::FocusBar`, `Part::LABEL` adds `BOLD` |
 | `SELECTED` / `CHECKED` | `Part::MARKER` glyph = `Chosen` / `Checked`, never colour-only; when both are live, `CHECKED` wins (§21 item 25) |
-| `PRESSED` | `Part::CONTAINER` `bg = Role::Fg(Primary)`, `fg = Role::Surface(Canvas)` (explicit reverse, never the terminal REVERSE attribute) **plus** `add(Modifier::BOLD)`, **and** `Part::LABEL` bracketed with `GlyphRole::PressLeft` / `GlyphRole::PressRight` (Junie `[` `]`, rendered `[Save]`) — a colour-only rule was indistinguishable under conformance case 9 (§21 item 25) |
+| `PRESSED` | `Part::CONTAINER` `bg = Role::Fg(Primary)`, `fg = Role::Surface(Canvas)` (explicit reverse, never the terminal REVERSE attribute) **plus** `add(Modifier::BOLD)`, **and** `Part::LABEL` bracketed with `GlyphRole::PressLeft` / `GlyphRole::PressRight` (Junie `[` `]`, rendered `[Save]`) — a colour-only rule was indistinguishable under conformance case 9 (§21 item 25). The `CONTAINER` half is a `StateRule`. The bracket is a **component obligation**, like the `BUSY` spinner two rows down and for the same reason: a rule binds a glyph but cannot reserve the two columns it needs. A component that reserves pad cells around its label (`Button`'s gutter and trailing pad, a tab's or a chip's pads) paints `PressLeft`/`PressRight` **into those cells**, never into the label's own run, so a mono fallback never changes geometry. A component whose row has no spare pad — every `RowUi`-labelled collection row — expresses `PRESSED` through the `CONTAINER` rule alone, which is already distinguishable (`conformance::list::mono_states_are_distinguishable`). `RowUi` does not paint the bracket. <!-- amended by §29 --> |
 | `DISABLED` | no gutter glyph, no marker, **`DIM` added and every other modifier removed, on `LABEL`, `MARKER`, `FIELD` and `TEXT`**. At `Mono` the foreground is set to `Fg(Primary)`, **not** ~~`fg = Role::Fg(Faint)`~~: `mono()` maps every step below `Y = 0.35` to `Black`, so a faint disabled foreground on a dark canvas is black-on-black — invisible rather than merely colourless (goal §29; under `Theme::junie()` `disabled_fg #4d4d4d` and `Fg(Faint) #262626` both fall in that band and `surfaces[0]` is `#000000`). Colour is excluded from case 9's comparison, so `DIM` plus the absent glyphs is the whole signal, and it is enough (§25 D‑4). A rule reaching only `LABEL`/`GUTTER`/`MARKER` never reached a text control's content, which is why `TextInputCase` could narrow `DISABLED` away (§28 P6). <!-- amended by §25 --> <!-- amended by §28 --> |
 | `ERROR` | trailing `GlyphRole::Error` in `Part::MARKER` + `UNDERLINED` on `Part::FIELD` |
 | `WARNING` / `DIRTY` | `GlyphRole::Dirty` in `Part::MARKER` |
@@ -1046,7 +1054,7 @@ This replaces the hand-written 30-field macro and the Junie-only `for_level`, so
 | `BUSY` / `LOADING` | **a component obligation, not a `StateRule`**: a component that can enter `BUSY`/`LOADING` paints `Part::ICON` with `design.motion.spinner_frames`. The spinner is a *symbol*, so it satisfies case 9 without any theme rule, and a `StateRule` could not express it — a rule binds one `GlyphRole`, the spinner is a frame sequence. A component with no icon slot must not accept `.status(…)`. ~~spinner glyph in `Part::ICON`~~ read as a mono `StateRule` obligation and produced none: no mono rule mentions `BUSY` or `LOADING`. <!-- amended by §28 --> |
 | `ACTIVE` (tabs) | `Part::RULE` glyph = `RuleActive` + `BOLD` label |
 
-Test `conformance::mono_states_are_distinguishable` compares `(symbol, modifier)` pairs only, colour excluded, for every component × every state. <!-- amended by §25 MI‑13 --> `apply_mono_fallbacks` appends its rules to the family's part maps **and** to every variant map, because under the §11.3 precedence a variant that re-declares `PRESSED` would otherwise beat the mono bracket rule; the interaction is recorded here so it is not rediscovered.
+Test `conformance::mono_states_are_distinguishable` compares `(symbol, modifier)` pairs only, colour excluded, for every component × every state. <!-- amended by §25 MI‑13 --> `apply_mono_fallbacks` appends its rules to the family's part maps **and** to every variant map, because under the §11.3 precedence a variant that re-declares `PRESSED` would otherwise beat the mono bracket rule; the interaction is recorded here so it is not rediscovered. It appends the same rules to **`Recipes::neutral`**, which is a resolvable recipe outside `by_family` (§11.2, §11.3): an undeclared `Family::custom(..)` resolves through it, so a pass over `by_family` alone left the whole downstream default path with zero of the eighteen rules and rendered mono `DISABLED` and `ERROR` black-on-black — the §28 P6 defect surviving on the one path P did not sweep. The rules themselves are unchanged; `MONO_RULES_PER_FAMILY` is now per **resolvable recipe**, `by_family` and `neutral` alike. No geometry changes: the one glyph-binding rule that could, `LABEL`/`PRESSED` → `PressLeft`, is a component obligation discharged only by a component that reserved the cells (§29 Q1). <!-- amended by §31 -->
 
 ### 11.5 Where each concern lives (binding)
 
@@ -1131,6 +1139,8 @@ impl CellUi<'_> {                                     // exact (§21 item 21)
     pub fn suffix(&mut self, g: GlyphRole) -> &mut Self;
     pub fn patch(&mut self, p: &StylePatch) -> &mut Self;
 }
+
+**The glyph slot (binding).** `Resolved.glyph` and `PartMetrics.glyph` are `Slot<GlyphRole>`, preserving `Inherit`, `Set` and `Clear`; `Option` cannot distinguish `Slot::Clear` from unset. A `RowUi` method that paints a part owning a **cell** must honor the resolved slot. `gutter()` paints `Set(g)` and leaves `Inherit`/`Clear` blank. `marker(g)` paints the caller's `g` for `Inherit`, the resolved glyph for `Set(g)`, and a blank cell for `Clear`, preserving the marker and gap geometry. `part(p, w)` passes the resolved slot into its reserved cell: `Set(g)` paints `g`, `Clear` paints blank without changing the reserved width, and `Inherit` adds no automatic glyph, leaving caller content or a suffix authoritative. `label`, `label_patched`, `label_spans` and `label_fmt` are **not** in scope: `Part::LABEL` is a text run with no reserved glyph cell, so the resolved glyph has no defined placement there — see §11.4's `PRESSED` row. The live callers in `crates/tui/examples/07_borrowed_rows.rs` and `crates/tui/examples/08_dynamic_tabs.rs` are required regression coverage for this contract. <!-- amended by §29 -->
 
 // state of the data, not of the widget
 pub enum EmptyState<'a> {
@@ -1725,6 +1735,8 @@ One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module pa
 **Component state machines** (`components/*.rs`, buffer-free, no terminal) — goal §25.1 "edit begin, commit, cancel, focus loss":
 `input::begin_snapshots_the_value`, `input::commit_writes_the_controlled_value`, `input::commit_runs_validation_once`, `input::cancel_restores_the_snapshot`, `input::blur_commit_and_validate_policy`, `input::blur_cancel_policy`, `input::blur_keep_policy_leaves_the_draft`, `input::external_error_survives_a_redraw`, `input::write_mask_is_synthetic` (renamed, P5), `textarea::blur_commits_without_validation`, `select::escape_closes_and_restores_the_cursor`, `select::arrows_move_the_cursor_not_the_value_while_closed`, `choice::radio_group_separates_cursor_from_value`, `list::select_all_selects_only_enabled_items`, `list::range_selection_uses_the_anchor`, `tree::expand_collapse_is_keyed_not_positional`, `tree::lazy_children_do_not_reflatten_the_world`, `tabs::close_targets_the_logical_tab_after_a_reorder`, `grid::sort_is_a_permutation_and_edits_stay_bound_to_the_source_row`, `grid::edit_intent_inline_cycle_external_refuse` (reached only via `update_editable`, §23 K2), `grid::range_copy_is_tsv`, `grid::click_inside_an_active_inline_edit_goes_to_the_editor` (§21 item 30), `grid::read_only_update_takes_a_shared_model` (compile-fail via `trybuild`: `Grid::update` cannot reach `commit_cell`/`apply_cycle`, §23 K2), `grid::update_editable_commits_through_the_editor` (begin → type → Enter → `commit_cell` observed once; a failing `commit_cell` leaves the editor open with the returned `FieldError`), `grid::read_only_reason_is_rendered_from_a_grid_model` (a model implementing **only** `GridModel` renders its reason), `grid::cell_actions_affordance_is_painted_for_a_read_only_model` (the `→` glyph and its hot zone appear for a `GridModel`-only model; a click emits `GridAction::CellAction(item, col, key)`), `dialog::action_arming_is_evaluated_in_update`, `dialog::convenience_constructors_render_through_the_body_slot` (§21 item 33), <!-- amended by §26 --> `dialog::layer_size_is_a_pure_function_of_props_and_design_tokens` (same props + two themes ⇒ two deterministic sizes; same props twice ⇒ identical), `dialog::draw_lays_out_against_the_height_it_asked_for` (the rect `draw` returns equals the layer area; no `Rect::centered*` call in `dialog.rs`), `dialog::confirm_is_centred_by_the_resolver_not_by_the_dialog`, `dialog::a_growing_body_resizes_the_layer_on_the_next_frame`, <!-- amended by §28 --> `dialog::an_unconditional_update_receives_the_dismissal` (§28 P3: the unconditional shape yields `DialogAction::Dismissed(DismissReason::Esc)` and zero diagnostics), `dialog::a_prompt_dialog_sizes_its_own_field_row` (§28 P4: the drawn `Field` rect's height equals `d.size.field_height`, and `measured_height` minus the other terms equals `input_rows`), `dialog::a_forced_dialog_registers_no_control` (§28 P5: under `.state_override(..)`, `area_of(action_id(0))` and `area_of(id)` are both `None` and the ring is empty), `field::a_forced_field_registers_no_control` (§28 P5: the same for `Field` over a `TextInput`, through `FieldControl`'s `inherit_forced`; it fails today), `picker::query_change_emits_query_changed`, `wizard::rewind_retains_per_step_state`, `viewport::retention_fixes_up_selection_and_caret`, `code::edit_counter_invalidates_the_highlight_cache`, `secret::debug_and_display_redact`, `secret::is_not_clone_not_eq` (compile-fail via `trybuild`), <!-- amended by §24 --> `select::standalone_select_takes_items_per_phase` (`Select::new(id)` carries no items; `update`/`draw` receive `&[T]` and a `T` that is not `&str` with `.key(..)`/`.row(..)` compiles and reconciles — §24 M3).
 
+<!-- amended by §29 --> Q1 geometry regressions in `components/*.rs`: `button::mono_pressed_does_not_truncate_the_label`, `tabs::mono_pressed_brackets_the_reserved_pad_cells`.
+
 **`components/form.rs`** (§15.1, §23 K1) — the form state machine, buffer-free:
 `form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_traps_focus_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value`, `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value`, <!-- amended by §24 M3 --> `form::select_field_options_come_from_form_data` (the painted list is `FormData::options(id)`; a `FieldKind::Select` built with no items renders it), `form::changing_options_between_frames_does_not_rebuild_props` (the `&[FieldSpec]` array is byte-identical across two frames whose `options` differ), `form::state_holds_no_props` (static assertion: `FormState: Clone + PartialEq + Default`; `SlotValue: Clone + PartialEq + Eq`), `form::value_and_options_is_a_single_borrow` (a `Form::update`-shaped body over one `value_and_options` call compiles; the two-call form is a compile-fail via `trybuild`, E0502).
 
@@ -1732,7 +1744,7 @@ One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module pa
 
 ### 16.2 Shared conformance suite (goal §25.2)
 
-<!-- amended by §21 items 10, 11, 15, 25, 27; §25 D‑8, MA‑8, MA‑9; §26 -->
+<!-- amended by §21 items 10, 11, 15, 25, 27; §25 D‑8, MA‑8, MA‑9; §26; §29 -->
 
 **Mechanism.** One trait implemented once per public component; one macro generates the whole matrix. There is no per-component test writing.
 
@@ -1747,12 +1759,20 @@ bitflags! {
         const EDITS       = 1 << 4;  // has an edit lifecycle
         const SCROLLS     = 1 << 5;
         const OVERLAY     = 1 << 6;  // opens a layer
+        const TRAPS_FOCUS = 1 << 11; // opens a focus-trapping layer; implies OVERLAY
         const CAPTURES    = 1 << 7;  // claims pointer capture
         const CURSOR      = 1 << 8;  // writes the hardware cursor
         const SECRET      = 1 << 9;  // may hold secret bytes
         const TYPES       = 1 << 10; // focus entry sets swallows_typing; bare Char chords are exempt from case 20 (§21 item 27)
     }
 }
+
+`Caps::OVERLAY` means that a component opens a layer. `Caps::TRAPS_FOCUS` is
+separate: a component declares it only when the opened layer owns a focus
+scope, and it must be declared alongside `Caps::OVERLAY`. Case 14 is gated by
+`TRAPS_FOCUS`; an overlay that is a pointer barrier only does not run that
+case. `Select` opens a `Popover`, so it declares `OVERLAY` only and remains
+non-trapping. <!-- amended by §29 -->
 
 /// One registration per public component. `State = ()` for stateless components.
 pub trait Conformance: 'static {
@@ -1777,14 +1797,34 @@ pub trait Conformance: 'static {
     fn reorder(f: &mut Fixture, perm: &[usize]) {}                  // COLLECTION
     fn action_key_of(a: &Self::Action) -> Option<ItemKey> { None }  // COLLECTION
     fn secret_bytes() -> &'static str { "" }                        // SECRET
+    /// Why `mono_states()` narrows [`DEFAULT_MONO_STATES`], naming every state it drops.
+    /// Empty exactly when nothing is narrowed. <!-- amended by §29 -->
+    fn mono_narrowing_reason() -> &'static str { "" }
 }
 
-pub struct Fixture {                                  // §21 item 27: real rows, not a count
-    pub disabled: bool, pub read_only: bool,
-    pub theme: Theme, pub color: ColorLevel, pub area: Rect,
-    pub rows: Vec<FixtureRow>,                        // `update`/`draw` borrow from here; `reorder` permutes it
+pub struct Fixture {                                  // §21 item 27: real rows, not a count; Q2 adds private paired state <!-- amended by §29 -->
+    pub disabled: bool, pub read_only: bool, pub theme: Theme,
+    pub color: ColorLevel, pub area: Rect, pub rows: Vec<FixtureRow>,
+    pub patch: Option<(Part, StylePatch)>, pub secret: Option<&'static str>,
+    /// Forced state (A11) — private, because setting it without the props
+    /// the state implies re-opens the P6(iii) gap. Write it with
+    /// [`Fixture::force`]; read it with [`Fixture::forced`].
+    state_override: StateFlags,
+    /// Readiness, derived from `force`. Private for the same reason.
+    status: Status,
 }
 pub struct FixtureRow { pub key: ItemKey, pub label: String, pub meta: String, pub disabled: bool }
+
+impl Fixture {
+    #[must_use]
+    pub const fn forced(&self) -> StateFlags { self.state_override }
+    #[must_use]
+    pub const fn status(&self) -> Status { self.status }
+    #[must_use]
+    pub fn force(mut self, s: StateFlags) -> Self { /* unchanged body */ }
+}
+
+`force(StateFlags)` is the only way to set a forced state; it sets `status` alongside the flags, so P6(iii)'s props-driven-affordance gap cannot be re-opened by a later case. `forced()` and `status()` are the reads. `Fixture` keeps `Clone + Debug`; nothing constructs it by struct literal outside the crate. <!-- amended by §29 -->
 
 // <!-- amended by §25 D‑8 --> the module ident is written explicitly (a macro cannot derive it from the `NAME` const);
 // the macro emits, per entry, `#[test] fn name_matches_the_module() { assert_eq!(<$case as Conformance>::NAME, stringify!($name)); }`
@@ -1830,13 +1870,15 @@ conformance_suite!(   // <!-- amended by §25 D‑8: `name => Case` form -->
 | 11 | `id_separator_collision_free` | (added) | Every id and `PartRef` this component registers is unique within a frame; no two differ only by concatenation (`Diagnostic::DuplicateId` count is 0) |
 | 12 | `item_identity_survives_reorder` *(COLLECTION)* | (added, Scenario E) | Set cursor/selection/checked on keys `k₁,k₂`; apply a reverse permutation and an insert+remove; after `reconcile`, cursor and checked set still name `k₁,k₂`; a click on the row now showing `k₁` emits an action carrying `k₁`. <!-- amended by §25 MA‑9 --> The driver **sets** cursor/checked on `k₁,k₂` and asserts they survive `reconcile`; click identity alone is not the case |
 | 13 | `focus_reconcile_follows_the_rule` *(FOCUSABLE)* | (added) | Remove the focused entry: focus lands on the nearest surviving entry by previous index; if the scope empties, on the scope's first enabled; then on the innermost active scope's first; then `None` — all four branches exercised |
-| 14 | `focus_trap_and_restore` *(OVERLAY)* | (added) | Opening the layer shrinks `reachable()` to the layer's own stops; Tab wraps inside; closing restores focus to the opener; a layer that cannot draw (0×0) still traps |
+| 14 | `focus_trap_and_restore` *(TRAPS_FOCUS)* | (added) | Opening the layer shrinks `reachable()` to the layer's own stops; Tab wraps inside; closing restores focus to the opener; a layer that cannot draw (0×0) still traps. `TRAPS_FOCUS` is distinct from `OVERLAY`; `Select` remains `OVERLAY`-only because its `Popover` keeps focus with the field <!-- amended by §29 --> |
 | 15 | `pointer_capture_delivers_drag_and_release` *(CAPTURES)* | (added) | After a press claims capture, drags outside the component still reach it with `local` relative to the captured area; a second claim is refused; release outside the captured area does not activate |
 | 16 | `wheel_at_boundary_is_consumed_without_repaint` *(SCROLLS)* | (added) | At offset 0 a wheel-up returns `Flow::Consumed` with `Invalidate::None`; mid-range returns `Consumed` + `Paint`; the event never chains to an outer scrollable and never moves focus or the cursor |
 | 17 | `cursor_write_is_rejected_off_top_layer` *(CURSOR)* | (added) | Drawn under an open `Popover` (pointer barrier only, no `inert_below` — an inert layer registers nothing and is discarded silently, §21 item 15), the component's `ui.set_cursor` is dropped and one `Diagnostic::CursorRejected` is recorded; on the top layer with focus, it is kept |
 | 18 | `secret_never_appears_in_debug` *(SECRET)* | (added) | `format!("{:?}")` of props, state, and any owning container (`Field`, `Dialog`, `Form`) contains neither `secret_bytes()` nor its snapshot; the rendered buffer contains neither; the `TestBackend` digest is unchanged when only the secret changes |
 | 19 | `survives_tiny_rects_0x0_to_3x3` | (added) | For every `w,h ∈ 0..=3`: `draw` does not panic in a debug build, writes no cell outside the rect, registers no region outside it, and leaves no stale geometry (a click after a 0×0 frame resolves to `None`, never to last frame's rect). <!-- amended by §26 --> For `Caps::OVERLAY` the driver opens the layer through the component's **own** `LayerSpec` at each of the 16 screens and asserts `area ⊆ screen`, no registration outside, no panic |
 | 20 | `bindings_match_handled_keys` | (added) | Every chord in `bindings(state)` is consumed by `update` in that state, and every chord `update` consumes in that state appears in `bindings(state)` — the table and the handler cannot drift. For components declaring `Caps::TYPES` the reverse direction exempts bare `Char` chords (§21 item 27) |
+
+Every narrowing carries a machine-checked reason: `Conformance::mono_narrowing_reason()` is non-empty exactly when `mono_states()` narrows, and names every state dropped (checked by `iter_names()` containment inside case 9). The grep §28.6 named in its place could never exit 0 and did not express the property. <!-- amended by §29 -->
 
 <!-- amended by §23 --> For `GridCase`, one registration selects `Grid::update` or `Grid::update_editable` from the existing `Fixture.read_only` knob, so every case — in particular 7 (`draw_does_not_commit_or_cancel`) and 12 (`item_identity_survives_reorder`) — runs through **both** entry points from a single registration (§23 K2). `FormCase` declares `Caps::EDITS | Caps::SECRET | Caps::FOCUSABLE | Caps::SCROLLS | Caps::TYPES` (§15.1).
 
@@ -2618,7 +2660,7 @@ impl<'a, T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'a, T, K, R> {
 }
 impl<'a, T> ChipBar<'a, T, ByIndex, DefaultRow> { pub fn new(id: Id) -> Self; }
 impl<'a, T, K, R> ChipBar<'a, T, K, R> {
-    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::LABEL, Part::CLOSE, Part::OVERFLOW];
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::MARKER, Part::LABEL, Part::CLOSE, Part::OVERFLOW]; // <!-- amended by §30; corrected by §32 -->
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> ChipBar<'a, T, K2, R>;
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> ChipBar<'a, T, K, R2>;   // Part::LABEL pre-styled per chip
     pub fn select_mode(self, m: SelectMode) -> Self;   pub fn closable(self, yes: bool) -> Self;
@@ -3487,8 +3529,13 @@ impl<'a> Segmented<'a> {
             if i == st.cursor && live.contains(StateFlags::FOCUSED) { s |= StateFlags::ACTIVE; }
             let r = ui.style(F_SEGMENTED, self.variant, SEGMENT, s);
             ui.fill(cell, r.style);
-            if let Some(g) = r.glyph { ui.glyph(cell, g, r.style); }              // a declared part paints Resolved.glyph (A4)
-            else if s.contains(StateFlags::SELECTED) { ui.glyph(cell, GlyphRole::Chosen, r.style); }
+            match r.glyph {
+                Slot::Set(g) => ui.glyph(cell, g, r.style),
+                Slot::Inherit if s.contains(StateFlags::SELECTED) => {
+                    ui.glyph(cell, GlyphRole::Chosen, r.style);
+                }
+                Slot::Inherit | Slot::Clear => {}
+            }                                                                    // a cell-valued part honors Resolved.glyph (A4)
             let ls = ui.style(F_SEGMENTED, self.variant, Part::LABEL, s).style;
             ui.paint_str(cell, label, ls);
             ui.register_part(self.id, PartRef::item(SEGMENT, ItemKey::index(i)), cell);   // RegionKind::Part
@@ -3905,7 +3952,7 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 | 17 | **`Anchor::Point` flips instead of covering the pointer** <!-- amended by §26 (Adjudication N1) -->. A tooltip or context menu opened near the bottom or right edge is placed **above** / **left of** the pointer when the content does not fit below/right, instead of sliding over it. `Anchor::Rect` already flipped; `Point` placed and clamped, so the overlay covered the cell the user was pointing at. | The flip was unreachable while every `LayerSpec` asked for the whole screen (`min_size: (0,0)` ⇒ the screen), so the defect was invisible; with `LayerSize::Fixed` the resolver has a real size and the two anchors must behave alike (§9.1 "one resolver"). | `layer::point_anchor_flips_instead_of_covering_the_pointer`; any tooltip/context-menu capture near a screen edge is re-blessed **with** a `docs/visual-changes.md` entry under this item |
 
 
-| 18 | **Mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background** <!-- amended by §28 (Adjudication P6) -->. At `ColorLevel::Mono` the `DISABLED` rules add `DIM` (and remove every other modifier) on `LABEL`, `MARKER`, `FIELD` and `TEXT`, and set `fg = Role::Fg(Primary)` instead of `Role::Fg(Faint)`. `MONO_RULES_PER_FAMILY` goes 16 → 18. `TextInput` additionally paints `design.motion.spinner_frames[0]` in its trailing marker cell for `BUSY`/`LOADING` and declares `Part::ICON`. | Two defects in one place. (a) No mono rule reached the parts a *text control* paints (`FIELD`, `TEXT`), so a disabled `TextInput` was indistinguishable from an enabled one and `TextInputCase` narrowed `DISABLED` away rather than fail. (b) Worse, `Fg(Faint) #262626` and `disabled_fg #4d4d4d` both have `Y < 0.35`, which `mono()` maps to `Black` on a `Black` canvas under `Theme::junie()` — a disabled control was **invisible**, not merely colourless, and goal §29 asks for *readable*. `Theme::paper()` escaped only by landing in the `Reset` band. | `theme::mono_disabled_is_dim_and_readable` (the `fg != bg(Surface::Canvas)` assertion that would have caught it); `theme::mono_appends_one_state_rule_per_family` (== 18); `conformance::{text_input,button,field,list,tabs}::mono_states_are_distinguishable` with the un-narrowed state lists; the **mono half only** of `render::components::{text_input,field,list,button,tabs}::disabled` in `crates/tui/tests/baselines/components.txt` re-blessed in the fixed order **change → capture → classify → bless**, with a `docs/visual-changes.md` entry under this item before the bless (truecolor lines are untouched — mono rules are appended only at `ColorLevel::Mono`) |
+| 18 | **Mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background** <!-- amended by §28 (Adjudication P6) -->. At `ColorLevel::Mono` the `DISABLED` rules add `DIM` (and remove every other modifier) on `LABEL`, `MARKER`, `FIELD` and `TEXT`, and set `fg = Role::Fg(Primary)` instead of `Role::Fg(Faint)`. `MONO_RULES_PER_FAMILY` goes 16 → 18. `TextInput` additionally paints `design.motion.spinner_frames[0]` in its trailing marker cell for `BUSY`/`LOADING` and declares `Part::ICON`. | Two defects in one place. (a) No mono rule reached the parts a *text control* paints (`FIELD`, `TEXT`), so a disabled `TextInput` was indistinguishable from an enabled one and `TextInputCase` narrowed `DISABLED` away rather than fail. (b) Worse, `Fg(Faint) #262626` and `disabled_fg #4d4d4d` both have `Y < 0.35`, which `mono()` maps to `Black` on a `Black` canvas under `Theme::junie()` — a disabled control was **invisible**, not merely colourless, and goal §29 asks for *readable*. `Theme::paper()` escaped only by landing in the `Reset` band. | `theme::mono_disabled_is_dim_and_readable` (the `fg != bg(Surface::Canvas)` assertion that would have caught it); `theme::mono_appends_one_state_rule_per_family` (== 18); `conformance::{text_input,button,field,list,tabs}::mono_states_are_distinguishable` with the un-narrowed state lists; the **mono half only** of `render::components::{text_input,field,list,button,tabs}::disabled` in `crates/tui/tests/baselines/components.txt` re-blessed in the fixed order **change → capture → classify → bless**, with a `docs/visual-changes.md` entry under this item before the bless (truecolor lines are untouched — mono rules are appended only at `ColorLevel::Mono`); and, under §29 Q1, `render::components::button::pressed`'s mono line if `Button`'s bracket moves out of the text run <!-- amended by §29 --> |
 
 **Not on this list, and therefore regressions if they appear:** any change to Junie token values; any change to spacing, glyph or border-set output under `Theme::junie()` at truecolor; any change to padding or ellipsis placement caused by replacing `fit`/`truncate` with the `RowUi` grapheme painter (the painter must be byte-identical to `fit` for every input — asserted by `render::components::*` digests and by a dedicated differential test `text::row_ui_matches_fit_for_every_fixture`); any change to the exact minimum-size copy strings; any change to the eight jackin scenario contracts, the rain timing constants, or the `format_universe_duration` wording.
 
@@ -4674,7 +4721,7 @@ Option (a) of the review is chosen (legible in a real monochrome terminal, which
 * §20.9-7/-8/-9 are restated on `Ui::cache` (item 2); §20.9-11 commits to pre-formatting at load — `apps/tablepro/src/grid_model.rs` stores `ResultSet { text: Vec<String>, kind: Vec<CellKind>, … }` produced once (6 000 strings for 500×12, within `< 8 000`), `CellRef<'a> { text: &'a str, tone: Option<Role>, align: Align }`, `CellValue` survives only in the domain model, and the `CellValue::display_width` clause is deleted; §20.9-12 restated (item 6); §20.9-5 amended (item 22).
 * Review §3, inline editors: a `Grid` cell's inline editor registers a `Control` region **after** the grid's cell `Part` region and therefore wins the click; the grid must not treat a click inside an active edit as a cursor move. New test `grid::click_inside_an_active_inline_edit_goes_to_the_editor`.
 * Review §3, binding convention added to §13: *A component instance with any configuration beyond `new(id, …)` is built by exactly one private constructor function on the owning screen, called from both phases. The constructor takes the fields it needs as parameters, never `&self`, so `update` can still pass `&mut` to disjoint fields; a controlled `.value(&T)` added in `draw` is the documented per-phase difference.* `architecture::props_are_built_once` (a `syn` check that no `X::new(` appears more than once per screen module for the same `const Id`, ignoring unconfigured constructions) reports violations. `Form` (J2) declares each field once so a 15-field form drives both phases from one constructor — the API sketch was the open research item at the end of this section and is now §15.1 (`FieldSpec::new(id, …)`, Adjudication K1, §23). <!-- amended by §23 -->
-* A4 (§5): *a component that declares a part must paint `Resolved.glyph` when `Some`; `conformance::registry::declared_parts_are_the_parts_actually_styled` checks the query, `mono_states_are_distinguishable` checks the paint.* A5: `#[cfg(feature = "testing")] Ui::styled_parts(&self) -> &[(Id, Part)]` <!-- amended by §25 F7 --> widened to `&[(Id, Family, Variant, Part, Resolved)]`, so `Runtime::resolved(id, part)` returns the resolution the component actually recorded instead of a hard-coded `Family::BUTTON` (`resolved_in(f, v, id, p)` stays as the explicit escape hatch). Written by the painting queries only — `Ui::resolve`, `Theme::resolve` and `Theme::metrics` record nothing (invariant M1, §26), or a part a component merely *measured* would be reported as styled. A8: `EditIntent::External` — *the component emits `EditRequested(item, col)` and does not begin an inline edit; the application opens its own editor.* A10 (§9.1): *`Dismiss.focus_out` is honoured only for `Popover` and `Tooltip`; a `Modal` traps focus so it can never fire.* A11: `.state_override(StateFlags)` is declared on component builders as a documented showcase/testing-only path with `architecture::state_override_is_used_only_in_apps_and_fixtures`. A14 (§16.3): the order is change → capture → classify → bless; `xtask bless-guard` runs in CI on the committed tree, not locally.
+* A4 (§5) <!-- amended by §29 -->: *a component that owns a cell-valued part must honor `Resolved.glyph: Slot<GlyphRole>`.* `RowUi::marker` and `RowUi::part` honor `Inherit`, `Set` and `Clear` without changing reserved geometry; `label`, `label_patched`, `label_spans` and `label_fmt` remain text-run methods with no automatic glyph placement. The existing callers in `crates/tui/examples/07_borrowed_rows.rs:31` and `crates/tui/examples/08_dynamic_tabs.rs:30` are required regression coverage, so A4 is a live caller/paint-semantics gate, not a no-caller assertion. `conformance::registry::declared_parts_are_the_parts_actually_styled` checks the query, and `mono_states_are_distinguishable` checks the paint. A5: `#[cfg(feature = "testing")] Ui::styled_parts(&self) -> &[(Id, Part)]` <!-- amended by §25 F7 --> widened to `&[(Id, Family, Variant, Part, Resolved)]`, so `Runtime::resolved(id, part)` returns the resolution the component actually recorded instead of a hard-coded `Family::BUTTON` (`resolved_in(f, v, id, p)` stays as the explicit escape hatch). Written by the painting queries only — `Ui::resolve`, `Theme::resolve` and `Theme::metrics` record nothing (invariant M1, §26), or a part a component merely *measured* would be reported as styled. A8: `EditIntent::External` — *the component emits `EditRequested(item, col)` and does not begin an inline edit; the application opens its own editor.* A10 (§9.1): *`Dismiss.focus_out` is honoured only for `Popover` and `Tooltip`; a `Modal` traps focus so it can never fire.* A11: `.state_override(StateFlags)` is declared on component builders as a documented showcase/testing-only path with `architecture::state_override_is_used_only_in_apps_and_fixtures`. A14 (§16.3): the order is change → capture → classify → bless; `xtask bless-guard` runs in CI on the committed tree, not locally.
 
 ### Group 6 — Staging, traceability, gates
 
@@ -5726,7 +5773,7 @@ impl Ui<'_> {
 /// roles bind to colours. Available in `update`, where there is no `Surface`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct PartMetrics {
-    pub glyph: Option<GlyphRole>,
+    pub glyph: Slot<GlyphRole>,
     pub size:  Option<u16>,
     pub align: Option<Align>,
 }
@@ -5753,7 +5800,10 @@ impl Measure for Button<'_> {
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let flags = ui.state(self.id);
         let gutter = ui.resolve(Family::BUTTON, self.variant, Part::GUTTER, flags);
-        let g = gutter.glyph.map_or(0, |r| text::width(ui.glyph_str(r)));
+        let g = match gutter.glyph {
+            Slot::Set(r) => text::width(ui.glyph_str(r)),
+            Slot::Inherit | Slot::Clear => 0,
+        };
         let pad = ui.design().space.inline;
         let w = g.saturating_add(pad)
                  .saturating_add(text::width(self.label))
@@ -6170,7 +6220,7 @@ This is the one item of the six that is a **goal §29 defect**, not a placement 
 
 **Rejected.** *`(Part::CONTAINER, DISABLED)` instead of `FIELD`/`TEXT`* — does not reach the defect (a text control fills `FIELD`), and moves every component's mono `disabled` baseline while leaving `TextInput` exactly as broken. *A strike-through or bracket glyph for `DISABLED`, like mono `PRESSED`* — `STRIKETHROUGH` is not universally rendered and reads as "deleted"; a bracket glyph steals two columns from a field's content, and a mono fallback must never change geometry. *Mono `StateRule`s for `BUSY`/`LOADING` binding a static "busy" `GlyphRole`* — requires a new `GlyphRole` (there is none), duplicates `design.motion.spinner_frames` as a second source of truth, and still paints nothing in a component that lays out no icon cell, i.e. it is inert exactly where the gap is. *Leave `Fg(Faint)` and accept black-on-black at mono* — satisfies case 9 while failing the sentence case 9 exists to enforce.
 
-**Tests.** `theme::mono_disabled_is_dim_and_readable` (under `ColorLevel::Mono`, for `Family::{INPUT, FIELD, LIST, BUTTON}` × `Part::{FIELD, TEXT, LABEL}`: the resolved style contains `Modifier::DIM` and its `fg` differs from the resolved `bg` of `Surface::Canvas` — the assertion that would have caught the black-on-black); `theme::mono_appends_one_state_rule_per_family` (now 18); `conformance::mono_states_required_by_is_a_union`; `conformance::{text_input,button,field,list,tabs}::mono_states_are_distinguishable` with the widened state lists; `render::components::{text_input,field,list,button}::disabled` re-blessed under §20.10 item 18. The narrowing must stay visible in one place, each entry carrying a reason: `! rg -n 'fn mono_states' crates/tui/tests/conformance.rs -A2 | rg -v '///|//|const|&STATES|STATES:|\]|\}'`.
+**Tests.** `theme::mono_disabled_is_dim_and_readable` (under `ColorLevel::Mono`, for `Family::{INPUT, FIELD, LIST, BUTTON}` × `Part::{FIELD, TEXT, LABEL}`: the resolved style contains `Modifier::DIM` and its `fg` differs from the resolved `bg` of `Surface::Canvas` — the assertion that would have caught the black-on-black); `theme::mono_appends_one_state_rule_per_family` (now 18); `conformance::mono_states_required_by_is_a_union`; `conformance::{text_input,button,field,list,tabs}::mono_states_are_distinguishable` with the widened state lists; `render::components::{text_input,field,list,button}::disabled` re-blessed under §20.10 item 18. ~~The narrowing must stay visible in one place, each entry carrying a reason.~~ **Struck (§29 Q3):** the grep always matched the `StateFlags::empty(),` line every case has and could never exit 0, and four of the five narrowings did not in fact name the states they dropped. Replaced by `Conformance::mono_narrowing_reason()`, asserted inside case 9. <!-- amended by §29 -->
 
 ### 28.7 Risks
 
@@ -6181,7 +6231,7 @@ This is the one item of the six that is a **goal §29 defect**, not a placement 
 5. **P2's two-target split fails open** if any gate command names `--test render` without also naming `--test render_components`; the §16.3/§16 amendments are the mitigation and must land in the same commit.
 6. **P3's premise correction is inferred, not executed.** Verify with the first acceptance command below **before** editing the prototype's `FINDING` comment.
 
-### 28.8 Acceptance conditions (executable, from the workspace root)
+### 28.8 Acceptance conditions (executable, from the workspace root) <!-- amended by §29 -->
 
 ```bash
 # ── P3, first: confirm the premise correction before changing anything ──
@@ -6199,7 +6249,16 @@ cargo test -p tui-next --test conformance conformance::field::mono_states_are_di
 cargo test -p tui-next --test conformance conformance::list::mono_states_are_distinguishable
 cargo test -p tui-next --test conformance conformance::tabs::mono_states_are_distinguishable
 cargo test -p tui-next --test conformance conformance::mono_states_required_by_is_a_union
-! rg -n 'fn mono_states' crates/tui/tests/conformance.rs -A2 | rg -v '///|//|const|&STATES|STATES:|\]|\}'
+# ── Q2/A5: the forced state is private and read through its paired accessors ──
+! rg -n 'pub (state_override|status)\s*:' crates/tui-testing/src/conformance/mod.rs
+rg -n 'state_override\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs  # only Fixture::force writes the paired state
+cargo test -p tui-next --test conformance
+rg -n 'state_override: StateFlags,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
+
+# ── Q3/A6: the declared reason is checked in case 9, not by a source-shape grep ──
+cargo test -p tui-next --test conformance conformance:: -- --include-ignored
+rg -n 'mono_narrowing_reason' crates/tui-testing/src/conformance/{mod,driver}.rs \
+      crates/tui/tests/conformance.rs COMPONENT_ARCHITECTURE.md
 
 # ── P6 baselines: change → capture → classify → bless, in that order ──
 cargo test -p tui-next --test render --test render_components render::components::   # RED on the mono disabled cells
@@ -6236,3 +6295,329 @@ cargo test --workspace --test architecture every_named_test_exists
 ```
 
 **Gate pass condition.** Every command exits 0; `crates/tui/tests/allow/legacy_api.txt` and `allow/domain.txt` stay empty; `docs/visual-changes.md` carries the mono-`DISABLED` entry before any baseline is blessed; §3.3 step 9, §11.4, §12.1, §13, §16.1, §16.2 case 9, §16.3, §17 example 11, §18.3 #4, §20.10 item 18 and §26.1 carry the amendments above; and `every_named_test_exists` reports no missing name once the eight names §28 introduces exist in the sources or are deferred in `xtask/named_tests_allow.txt` with the owning slice.
+
+---
+
+## §29 Adjudication Q — Slice 3 residuals <!-- amended by §29 -->
+
+**Status: accepted and applied.** This record carries the three residual decisions in `docs/reviews/adjudication-q-residuals.md`. The source review was a read-only proposal at `HEAD 0f66160`; Q is accepted here after the implementation evidence below. Its unresolved API questions remain open and are not silently decided by this record.
+
+### §29.1 Q1 — `Tabs` mono `PRESSED` <!-- amended by §29 -->
+
+**Decision: (a), confirmed — with the idiom named, and with the `RowUi` question answered by splitting it.**
+
+**(a) is not a new affordance; it is compliance with §11.4 as already written.** The `PRESSED` row requires the bracket *in addition to* the `CONTAINER` rule. `Button` discharges it; `Tabs` now discharges it. What was missing from the spec is the sentence saying who paints it, and Adjudication P's table assumed every component paints its own label the way `Button` does.
+
+**R1 is confirmed by execution.** With the `Tabs` bracket block enabled, `cargo test -p tui-next --test conformance conformance::tabs::mono_states_are_distinguishable` exited 0. With only `tabs.rs:719–728` disabled, the same case was nonzero because `TabsCase`'s mono `PRESSED` and `FOCUSED` outputs were equal. Restoring the block returned the case to exit 0. Thus `CONTAINER`'s `BOLD` alone does not satisfy this observed pair; the bracket is independently required.
+
+**Why the bracket cannot move into `RowUi` (rejects (c) as stated).** The bracket needs two columns that are not the label's. `Button` has a gutter and a trailing pad; a tab has two pad cells; a `List`/`Tree`/`Props`/`Grid` row has none — `RowUi::label` fills the whole remainder. Teaching `label` to bracket would take two content columns from every pressed row and pull the ellipsis in by two — a mono fallback changing geometry, which §28.6 already rejected. `RowUi` has no information with which to reserve those columns; only the component that laid out the row does. This is structurally the same conclusion §28.6(b) reached for the spinner: the theme rule states the affordance; the component that owns the cells paints it.
+
+**Why (b) is rejected.** A `(Part::TAB, PRESSED)` modifier rule is per-family-part, so it does not scale — chips would need `(CHIP, PRESSED)`, steps `(STEP, PRESSED)`, and each new part needs a modifier not already spoken for by `FOCUSED` (BOLD), `DISABLED` (DIM) or `ERROR`/`EDITING` (UNDERLINED). Worse, it makes `PRESSED` mean something different for a tab than for a button, which destroys the single mono vocabulary case 9's pairwise comparison rests on. It also hides that `CONTAINER`'s rule already fires.
+
+**The `RowUi` glyph defect is live, not deferred.** A part that owns a **cell** must paint the resolved glyph slot — that is what `gutter()` does, what `List` does for its own gutter/marker, and what `Tabs` does for `CLOSE`. `RowUi::marker(g)` previously resolved `Part::MARKER` and threw the answer away, so mono `MARKER` rules were inert for components using it. `RowUi::part` likewise dropped the glyph. `Part::LABEL` remains different in kind: it is a text run with no reserved glyph cell, so there is no defined automatic glyph placement there.
+
+`Resolved.glyph` and `PartMetrics.glyph` are therefore `Slot<GlyphRole>`, not `Option<GlyphRole>`: `Slot::Clear` must remain distinguishable from `Slot::Inherit`. `marker(g)` paints the caller's glyph for `Inherit`, the resolved glyph for `Set(g)`, and blank for `Clear`; `part(p, w)` preserves the reserved width and applies the same slot semantics to its reserved cell. The existing callers in `crates/tui/examples/07_borrowed_rows.rs:31` and `crates/tui/examples/08_dynamic_tabs.rs:30` are required regression coverage. This corrects the old A4 no-caller assertion; A4 is a live caller/paint-semantics gate.
+
+**Scaling to Slice 4.** Chips are tab-shaped and use the same reserved-pad bracket. Menu items, steps, picker rows and radio rows are list-shaped and need nothing — `CONTAINER`'s reverse + `BOLD` already carries `PRESSED`, as `ListCase` proves. The rule is one sentence, not five implementations.
+
+**Residual geometry rule.** The shared helper takes two already-reserved one-cell `Rect`s and does not shift, resize, measure or truncate the label:
+
+```rust
+fn paint_pressed_bracket(
+    ui: &mut Ui<'_>,
+    left: Rect,
+    right: Rect,
+    style: Style,
+) {
+    ui.glyph(left, GlyphRole::PressLeft, style);
+    ui.glyph(right, GlyphRole::PressRight, style);
+}
+```
+
+`Button` passes its gutter and final trailing pad; `Tabs` and `ChipBar` pass their existing pad cells. The full label rectangle, total width and close-cell geometry remain unchanged. RowUi/list-shaped rows use `CONTAINER` alone; `RowUi` does not paint the bracket. <!-- amended by §29 -->
+
+### §29.2 Q2 — `Fixture::state_override` <!-- amended by §29 -->
+
+**Decision: make the field private, with a read accessor. `force` becomes the only way to set it.** Keeping it public with a documented invariant plus a check is a symptom patch: the invariant is enforceable only by a reviewer noticing an assignment, and the enabling condition — a settable field that leaves `status` stale — survives. Making it private removes the enabling condition.
+
+The exact fixture shape is:
+
+```rust
+pub struct Fixture {
+    pub disabled: bool,
+    pub read_only: bool,
+    pub theme: Theme,
+    pub color: ColorLevel,
+    pub area: Rect,
+    pub rows: Vec<FixtureRow>,
+    pub patch: Option<(Part, StylePatch)>,
+    pub secret: Option<&'static str>,
+    state_override: StateFlags,
+    status: Status,
+}
+
+impl Fixture {
+    #[must_use]
+    pub const fn forced(&self) -> StateFlags { self.state_override }
+
+    #[must_use]
+    pub const fn status(&self) -> Status { self.status }
+
+    #[must_use]
+    pub fn force(mut self, s: StateFlags) -> Self { /* existing precedence/body */ }
+}
+```
+
+`force(StateFlags)` is the only way to set a forced state; it sets `status` alongside the flags, preserving the existing `BUSY > LOADING > ERROR > Ready` derivation. `forced()` and `status()` are the reads. The eight fields above remain public; only `state_override` and `status` are private. `Fixture` keeps `Clone + Debug`; external struct literals use `Fixture::default()` followed by public field assignment. <!-- amended by §29 -->
+
+**Rejected.** *Public + documented invariant + a `debug_assert` in the driver* fires only on the path that happens to run and leaves the field settable. *A `Forced(StateFlags, Status)` newtype field, still public* leaves the same hole one indirection deeper. *An `xtask` boundary rule forbidding `state_override =`* is a text check standing in for a language feature already available here.
+
+### §29.3 Q3 — the acceptance grep <!-- amended by §29 -->
+
+**Decision: withdraw the grep. Replace it with a declared reason that case 9 checks.** A grep cannot read prose, and the old one could never pass: it always matched the `StateFlags::empty(),` line every case has. Four of five narrowing cases also documented fewer states than they dropped.
+
+The trait declaration is:
+
+```rust
+/// Why `mono_states()` narrows [`DEFAULT_MONO_STATES`], naming every
+/// state it drops. Empty exactly when nothing is narrowed.
+fn mono_narrowing_reason() -> &'static str { "" }
+```
+
+Case 9 computes the dropped states and checks the declaration:
+
+```rust
+let dropped: Vec<StateFlags> = super::DEFAULT_MONO_STATES
+    .iter()
+    .copied()
+    .filter(|s| !states.contains(s))
+    .collect();
+let why = C::mono_narrowing_reason();
+
+assert_eq!(
+    dropped.is_empty(),
+    why.is_empty(),
+    "{}: mono_narrowing_reason() must be non-empty exactly when mono_states() narrows",
+    C::NAME
+);
+
+for s in &dropped {
+    for (name, _) in s.iter_names() {
+        assert!(
+            why.contains(name),
+            "{}: mono_states() drops {name}, and mono_narrowing_reason() does not say why",
+            C::NAME
+        );
+    }
+}
+```
+
+The reason is checked inside case 9, so the 20-case matrix and `every_named_test_exists` remain unchanged. It survives file moves, cannot be satisfied by an unrelated comment, and catches a second state being dropped later.
+
+Every implemented narrowing reason names the required dropped states:
+
+| Implementation | Required state names in `mono_narrowing_reason()` |
+|---|---|
+| Probe | `SELECTED ERROR WARNING EDITING BUSY ACTIVE` |
+| Button | `SELECTED ERROR WARNING EDITING ACTIVE` |
+| TextInput | `SELECTED PRESSED WARNING ACTIVE` |
+| Field | `SELECTED PRESSED WARNING BUSY ACTIVE` |
+| List | `EDITING BUSY ACTIVE` |
+| Tabs | `ERROR WARNING EDITING BUSY ACTIVE` |
+| Dialog | `SELECTED DISABLED ERROR WARNING EDITING BUSY ACTIVE` |
+| ScrollRegion | `FOCUSED SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE` |
+| Props | `FOCUSED SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE` |
+
+An empty string is required exactly for an implementation whose `mono_states()` does not narrow. `iter_names()` names every state dropped, so a reason cannot omit one. <!-- amended by §29 -->
+
+### §29.4 Nine document amendments <!-- amended by §29 -->
+
+The following nine amendments from `docs/reviews/adjudication-q-residuals.md` are applied. The inline markers are part of the change-control record.
+
+1. **§11.4, `PRESSED` row:** the `CONTAINER` half is a `StateRule`; the bracket is a component obligation. Components with reserved pads paint `PressLeft`/`PressRight` into those cells; RowUi-labelled collection rows use `CONTAINER` alone. `RowUi` does not paint the bracket. <!-- amended by §29 -->
+2. **§12.2, after the `RowUi` block:** cell-owning methods honor `Resolved.glyph`. `Resolved.glyph` and `PartMetrics.glyph` are `Slot<GlyphRole>` so `Inherit`, `Set` and `Clear` remain distinct. `marker()` and `part()` preserve those semantics and reserved geometry; label methods remain text-run methods without automatic glyph placement. The live example callers are A4 regression coverage. <!-- amended by §29 -->
+3. **§16.2, `Fixture`:** preserve the eight public fields, make `state_override` and `status` private, add `forced()` and `status()`, and make `force` the sole paired writer. <!-- amended by §29 -->
+4. **§16.2 case 9:** require `mono_narrowing_reason()` to be non-empty exactly when `mono_states()` narrows and to name every dropped state by `iter_names()` containment. <!-- amended by §29 -->
+5. **§28.6 tests:** strike the impossible source-shape grep and replace it with the machine-checked `mono_narrowing_reason()` assertion in case 9. <!-- amended by §29 -->
+6. **§28.8:** remove the old grep gate; use the Q2 privacy/accessor checks and Q3 case-9/symbol-presence checks. <!-- amended by §29 -->
+7. **§20.10 item 18:** include `render::components::button::pressed`'s mono digest if the Button bracket moves out of the text run; no new visual-change item is created. <!-- amended by §29 -->
+8. **§16.1 component tests:** add `button::mono_pressed_does_not_truncate_the_label` and `tabs::mono_pressed_brackets_the_reserved_pad_cells`. <!-- amended by §29 -->
+9. **New §29:** this adjudication record carries Q1/Q2/Q3, the corrected live A4/`Slot` contract, the nine amendment markers, and the unresolved questions. It is mirrored in `REFACTORING_STATE.md` under the change-control rule at line 3. <!-- amended by §29 -->
+
+### §29.5 Corrected acceptance conditions <!-- amended by §29 -->
+
+```bash
+# R1/Q1: the bracket is independently required and geometry is stable
+cargo test -p tui-next --test conformance conformance::tabs::mono_states_are_distinguishable
+cargo test -p tui-next --lib components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
+cargo test -p tui-next --lib components::button::tests::mono_pressed_does_not_truncate_the_label
+
+# A3: exactly one *implementation* of the bracket. Only mod.rs paints it; every other
+# component-file mention of the role is the resolved-slot guard that calls the helper.
+# <!-- corrected by §32: the old form greped mentions of `GlyphRole::PressLeft` and so could
+# never pass -- button.rs, tabs.rs and chip.rs each legitimately name the role in a
+# `matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft))` guard before delegating. -->
+test "$(rg -c -- 'ui\.glyph\([^)]*GlyphRole::Press(Left|Right)' crates/tui/src/components/ | rg -v 'mod\.rs:' | wc -l)" -eq 0
+rg -l -- 'GlyphRole::PressLeft' crates/tui/src/components/ | rg -v 'mod\.rs' | xargs rg -L 'paint_pressed_bracket' && exit 1
+
+# A4: live RowUi callers and Slot semantics, not the superseded no-caller grep
+rg -n '\.marker\(' crates/tui/examples/07_borrowed_rows.rs crates/tui/examples/08_dynamic_tabs.rs
+cargo test -p tui-next --lib collection::rowui
+
+# A5/A6: private paired Fixture state and machine-checked narrowing reasons
+! rg -n 'pub (state_override|status)\s*:' crates/tui-testing/src/conformance/mod.rs
+rg -n 'state_override\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs  # only Fixture::force writes the paired state
+cargo test -p tui-next --test conformance conformance:: -- --include-ignored
+rg -n 'mono_narrowing_reason' crates/tui-testing/src/conformance/{mod,driver}.rs \
+      crates/tui/tests/conformance.rs COMPONENT_ARCHITECTURE.md
+```
+
+Only the R1 three-run result above is recorded as measured evidence in this document. The remaining commands are acceptance conditions, not claims of execution here. The full Q gate also requires `docs/visual-changes.md` classification before any moved mono baseline is blessed, empty legacy/domain allow-lists, `xtask boundary`, `xtask doc-check`, and the workspace gates.
+
+### §29.6 Overlay capability split <!-- amended by §29 -->
+
+**Decision: separate opening a layer from trapping focus.** `Caps::OVERLAY`
+means that a component opens a layer and remains the capability used by case
+19's layer-size/degenerate-screen checks. `Caps::TRAPS_FOCUS` is a distinct
+capability for case 14; it implies that the component also declares
+`Caps::OVERLAY`, and case 14 is skipped unless `TRAPS_FOCUS` is present.
+
+`DialogCase` declares both capabilities because its `LayerSpec::modal` owns a
+focus scope. `Select` is deliberately not a trapping component: its
+`LayerSpec::popover` is a pointer barrier only, the field keeps the one focus
+stop while the popup is open, and `Select` therefore declares `OVERLAY` but
+not `TRAPS_FOCUS`. This resolves the capability question without changing
+`LayerKind`, popover dismissal, or focus restoration. <!-- amended by §29 -->
+
+### §29.7 Unresolved questions preserved <!-- amended by §29 -->
+
+§29 does not decide the following separate questions:
+
+1. `FieldControl::draw` has no item channel while §24 M3 requires per-phase items for `Select` and `RadioGroup`. Whether to add an item-aware composition path or widen the scalar trait is unresolved.
+2. `RadioGroup` already has controlled `.value(ItemKey)` behavior in code, but its A7 documentation omits it. The public contract wording and controlled-state adjudication remain unresolved.
+3. `ChipBar`'s add affordance currently emits `Activated(ItemKey)` and has no dedicated `Added`/`AddRequested` variant. The action naming contract remains unresolved.
+4. `StatusBar` has no per-item hover channel in the frame snapshot; whether to add `FrameRead::hovered_part` remains unresolved.
+5. Separate Choice/Brand bracket implementations and their reserved-pad obligations are not adjudicated by Q1; this record does not change those contracts.
+
+---
+
+## §30 Adjudication — Slice 4 `ChipBar` selected marker <!-- amended by §30 -->
+
+**Status: accepted.** This is Dewey's fresh Slice 4 decision, recorded separately from §29 because it changes a Slice 4 public parts invariant.
+
+### §30.1 Decision <!-- amended by §30 -->
+
+`ChipBar` must declare and paint a `Part::MARKER` for `SELECTED`. In the existing leading one-cell pad, `SELECTED` paints the canonical `GlyphRole::Check` through the normal resolved-slot path (`RowUi::marker`); the unselected state leaves that cell blank. `Slot::Set`/`Slot::Clear` continue to override or suppress the fallback without changing the reserved cell's width.
+
+The exact public parts contract changes from `{CONTAINER, LABEL, CLOSE, OVERFLOW}` to `{CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW}`; `OVERFLOW` was already declared and is already painted (`chip.rs`'s truncation glyph, resolved and registered on the truncation cell) and is retained. The inline A7 declaration is amended accordingly. ~~The exact public parts contract changes from `{CONTAINER, LABEL, CLOSE}` to `{CONTAINER, MARKER, LABEL, CLOSE}`. No `OVERFLOW` part is added by this decision.~~ — struck: the prior contract was the **four**-part list, recorded as fact [F6] in `docs/reviews/adjudication-q-residuals.md`, and dropping `OVERFLOW` from the declaration while the component still paints it would fail `registry::declared_parts_are_the_parts_actually_styled` on truncation. <!-- corrected by §32 -->
+
+This decision does **not** change the label rectangle, total chip width, close-cell location, existing leading/trailing pad geometry, or the pressed bracket geometry. `ChipBar` keeps the existing reserved pads and passes them to the shared pressed-bracket helper. No mono narrowing override is allowed: `COLLECTION` requires `SELECTED`, and removing it would hide a real state instead of making the selected affordance legible.
+
+### §30.2 Root cause and rejected alternatives <!-- amended by §30 -->
+
+The prior contract declared `{CONTAINER, LABEL, CLOSE, OVERFLOW}` while forced `SELECTED` reached only the row flags. <!-- corrected by §32 --> Under mono, that state could therefore have the same `(symbol, modifier)` output as the empty state because no marker cell was painted. This is a production contract defect; changing the conformance driver or narrowing away `SELECTED` would weaken the accepted `COLLECTION` invariant.
+
+Rejected: removing `SELECTED` from the required mono states; adding a color-only or non-canonical marker; moving the marker into the label run; changing the driver/fixture; or widening the chip geometry. Each either hides the required state, changes text geometry, or makes the conformance proof weaker.
+
+### §30.3 Acceptance and scope <!-- amended by §30 -->
+
+The implementation must make `ChipBar::PARTS` exactly `[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW]`, <!-- corrected by §32 --> paint `GlyphRole::Check` only in the already-reserved leading marker cell for `SELECTED`, keep the label/width/close/bracket geometry byte-stable, and pass the existing declared-parts and mono-state conformance checks. The separate ChipBar add-action question remains open; §30 makes no decision between `Activated`, `Added` and `AddRequested`.
+
+The unresolved questions listed in §29.7 remain unresolved. In particular, §30 does not decide the `FieldControl` item channel, RadioGroup's documented `.value(ItemKey)`, StatusBar hover data, or any future action-variant naming. The `Caps::OVERLAY`/`TRAPS_FOCUS` split is already decided in §29.6. <!-- amended by §30; §29 -->
+
+## §31 Adjudication — mono fallbacks must reach the neutral recipe <!-- amended by §31 -->
+
+**Status: accepted.** Fresh read-only `opus-analyst` adjudication of finding F1, recorded separately because it corrects an **exact type** (§11.3) and widens the scope of a **Decision** (§11.4), both of which the change-control rule at line 3 binds.
+
+### §31.1 The defect <!-- amended by §31 -->
+
+`Recipes` has three fields, not one. Resolution reads `neutral` whenever `by_family` misses — `theme/resolve.rs` calls `recipes.get_or_neutral(f)`, which is `self.get(f).unwrap_or(&self.neutral)` — so **the set of recipes resolution can reach is `by_family ∪ {neutral}`**. But `apply_mono_fallbacks` looped over `Recipes::iter_mut`, which yields `by_family` only. The neutral recipe therefore received **none** of the eighteen §11.4 mono rules.
+
+The consequence is on the default downstream path, not an edge case. `Family::custom(..)` is a `const fn` over an FNV hash; it registers nothing, so a family that is never passed to `define_family` resolves through `neutral`, which is `row_like` only. The repository's own Scenario G reference does exactly this — `examples/12_author_component.rs` declares `Family::custom("segmented")` and never calls `define_family`. At `ColorLevel::Mono` under `Theme::junie()` that gives: `LABEL`+`FOCUSED` no `BOLD`; `MARKER`+`ERROR` no glyph, with `CONTAINER`+`ERROR` falling to `danger #e44545`, whose luma maps to `Black` on a `Black` canvas; `DISABLED` mapping `disabled_fg #4d4d4d` to `Black` on `Black` with no `DIM`; and `WARNING`, `DIRTY`, `EDITING`, `ACTIVE` producing no signal at all.
+
+That is Adjudication P's black-on-black defect (§28 P6) surviving on the one path P's sweep did not cover, and it fails goal §29's acceptance line "component state remains readable without relying only on color".
+
+**The defect is one step wider than F1 states.** `Theme.recipes` is a `pub` field and `Recipes::default()` is public with an empty `by_family`, so `theme.recipes = Recipes::default()` makes *every* family, built-ins included, resolve through `neutral`. Same root cause, wider reach. Flagged, not fixed here.
+
+### §31.2 Decision <!-- amended by §31 -->
+
+`neutral` is **not** a precedence level and this adjudication does not make it one. §11.3's six levels are unchanged. Per §11.2, `neutral` is a *substitute occupant of the family-recipe slot*, consulted only when `by_family` misses; it never coexists with a family's own rules, so "override" has no referent.
+
+`apply_mono_fallbacks` applies the same eighteen rules to every **resolvable** recipe: each entry of `by_family` **and** `neutral`. The rule content is unchanged. `MONO_RULES_PER_FAMILY` keeps its name — it is cited by name in §16.1 — and is re-documented as rules per *resolvable recipe*.
+
+The bug class is "a pass that mutates recipes enumerates `by_family` and silently omits a recipe resolution can reach". The fix is therefore structural: the per-recipe body is extracted, the resolvable set is expressed on the type, and the invariant is recorded in §11.3 — *any pass that mutates recipes must cover the resolvable set, not `by_family` alone*.
+
+### §31.3 Rejected alternatives <!-- amended by §31 -->
+
+**Rejected — neutral as a base layer under every family.** It would change built-in resolution, not just custom-family resolution. `field_like` and `container_like` deliberately do not call `row_like`; layering neutral beneath them would give `FIELD`/`INPUT`/`SELECT` a `META`, `HEADER`, `TRACK`, `THUMB`, `EMPTY` and `ICON` they never declared, and give `PANEL`/`DIALOG`/`FORM`/`WIZARD`/`HELP` a `CONTAINER` `HOVERED → RaisedSurface` rule they never had — a silent behavioural change to painted components and a large baseline move, in service of a mono bug.
+
+**Rejected — seeding at `Family::custom` or `define_family`.** It cannot fix this at all. `Family::custom` is a `const fn` with no declaration event, and `define_family` is by definition not called on the path in question; the entire F1 population is families that were never declared. It would also remove a capability, since nothing in the API subtracts a `StateRule`: `PartRecipe::merge_from` only appends, and `Slot::Clear` clears a *slot*, not a *rule*.
+
+**Held:** an author who declares a sparse family still gets a sparse recipe, because declaring replaces neutral wholesale (§11.2). Only the *undeclared* case changes, and there is no author intent to respect there.
+
+### §31.4 Interaction with §28 P6 and §29 Q1 <!-- amended by §31 -->
+
+**With P6 — favourable.** The eighteen rules already carry P's correction (`set_fg(Role::Fg(Primary))`, `remove(Modifier::all())`, `add(Modifier::DIM)`), so applying them to `neutral` fixes P's defect there too. Ordering is correct: `PartRecipe::when` inserts after all rules of equal specificity, so the appended one-flag mono `DISABLED` rule lands after neutral's own one-flag `DISABLED` rule and wins the merge. One residue, identical to what every built-in family already has and outside §11.4's scope: there is no mono `CONTAINER`/`DISABLED` rule, so neutral's container fill stays `DisabledFg → Black`; the readable signal is the `LABEL`/`MARKER` text painted over it, exactly the arrangement `Family::LIST` ships.
+
+**With Q1 — not engaged.** The only geometry-adjacent rule is `LABEL`/`PRESSED` → `PressLeft`, and under §11.4 as amended by §29 the bracket is a component obligation: the rule binds a glyph, the component that reserved the cells paints it, and `RowUi` does not. A component resolving through `neutral` that reserves no pad simply never reads the slot. Nothing reserves, shifts or truncates.
+
+### §31.5 F1 is not F5 <!-- amended by §31 -->
+
+`docs/reviews/findings-from-documentation.md` F5 — `define_family` with an empty edit silently discarding the neutral styling — is a **distinct** cause, and the two must not be merged into one fix.
+
+F1's cause is a *write* pass enumerating `by_family`. F5's cause is a *read* path: `get_or_neutral` treats "present in `by_family`" as "fully specified", while `Recipes::get_mut` inserts a bare `Recipe::default()` with an empty `PartMap` on any miss. **Proof they are independent:** fixing F1 leaves F5 byte-for-byte unchanged, and fixing F5 leaves F1 unchanged for the never-declared family, which is F1's entire population.
+
+F5 is also understated in its own record: its enabling condition is `Recipes::get_mut`, reached by **four** public `Theme` methods — `override_family`, `override_variant`, `define_variant` and `define_family` — so `Theme::junie().override_family(Family::custom("x"), …)` discards neutral too. F5 remains open and needs its own adjudication.
+
+### §31.6 Why every existing test was blind to this <!-- amended by §31 -->
+
+This is the root-cause finding, and it is why §31.2 puts the resolvable-set invariant on the *type* rather than only fixing the loop.
+
+- `theme::downgrade::mono_appends_one_state_rule_per_family` — the closest existing test — loops `for (f, before) in t.recipes.iter()`, and `Recipes::iter` yields `by_family` only. **The test uses the same enumeration as the buggy code**, so it was structurally incapable of observing the omission: `neutral` is a struct field the iterator cannot reach.
+- `theme::downgrade::mono_disabled_is_dim_and_readable` — Adjudication P's own regression test — sweeps `INPUT`, `FIELD`, `LIST`, `BUTTON`, all declared. P's fix was verified only on the path P had in view.
+- `theme::a_custom_family_resolves_through_the_neutral_recipe` — the only test on the neutral path — runs at `TrueColor` and never calls `downgrade`. The custom-family axis and the mono axis are each covered; their intersection was not.
+- Conformance case 9 is mandatory per registered component, and every registered component is a library family. The one custom-family component in the repository, `examples/12`'s `Segmented`, is not registered against `conformance_suite!`.
+
+### §31.7 Acceptance <!-- amended by §31 -->
+
+`theme::downgrade::mono_fallbacks_reach_the_neutral_recipe`, red before and green after, asserting for **both** `Theme::junie()` and `Theme::paper()` after `.downgrade(ColorLevel::Mono)`, against an undeclared `Family::custom("segmented")`:
+
+1. the fixture family is still undeclared, so the test cannot silently stop testing the neutral path;
+2. the neutral recipe's total state-rule count grew by exactly `MONO_RULES_PER_FAMILY`;
+3. and the rules are **observable through `Theme::resolve`** — the same path painting uses, so a fix that only inflates a counter cannot satisfy it: `LABEL`+`FOCUSED` carries `BOLD`, `MARKER`+`ERROR` resolves to the error glyph role, and `LABEL`+`DISABLED` carries `DIM` *and* has a foreground unequal to the resolved canvas colour.
+
+Condition 3's disabled arm is expressed as `DIM`-presence plus canvas-inequality rather than as literal token colours, deliberately, so it cannot become theme-token-fragile.
+
+**No baseline moves.** Every component in the render matrix resolves through a `Family` that *is* declared, so mutating `neutral` cannot touch a digest line; no `docs/visual-changes.md` entry is required and `xtask bless-guard` is not engaged. Should a future capture ever render an undeclared-family component at `Mono` — the obvious candidate being `examples/12`'s `Segmented`, if it is ever registered — that surface classifies under **§20.10 item 1, mono legibility fallbacks**, class *fix*, sharing item 1a's reason: the old output was unreadable and the new output is `DIM` over the primary foreground. It is not a new §20.10 item.
+
+Two secondary effects, neither test-visible: a *mono-downgraded* theme's `fingerprint()` changes value, and no test pins one; and `apply_mono_fallbacks` is not idempotent, so a chained `.downgrade(Mono).downgrade(Mono)` doubles the rules. The latter is pre-existing for `by_family` and is extended to `neutral` on equal terms — documented in rustdoc, not fixed.
+
+## §32 Corrections — independent audit of Adjudications Q and P <!-- amended by §32 -->
+
+**Status: accepted.** A fresh read-only `opus-analyst`, given none of the context of the work it was checking, audited whether Adjudication Q (§29) and the `ChipBar` decision (§30) are completely and correctly applied. Most of Q is genuinely applied. Four things were wrong rather than merely incomplete, and are corrected here.
+
+### §32.1 §30 stated `ChipBar`'s parts contract incorrectly <!-- amended by §32 -->
+
+§30 recorded the prior contract as `{CONTAINER, LABEL, CLOSE}` and the new one as `{CONTAINER, MARKER, LABEL, CLOSE}`, and added "No `OVERFLOW` part is added by this decision". The prior contract was in fact the **four**-part list including `OVERFLOW` — recorded as fact [F6] in `docs/reviews/adjudication-q-residuals.md` — and `ChipBar` genuinely resolves, paints and registers `Part::OVERFLOW` as its truncation glyph. Following §30 literally would have removed a declared part that is still painted and failed `registry::declared_parts_are_the_parts_actually_styled` on any truncated strip. **The code was right and the document was wrong**; §30.1, §30.2, §30.3 and the inline A7 declaration are corrected in place. The correct contract is `[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW]`.
+
+### §32.2 §29's A3 gate could never pass <!-- amended by §32 -->
+
+A3 asserted that no file under `crates/tui/src/components/` other than `mod.rs` mentions `GlyphRole::PressLeft`. Three do — `button.rs`, `tabs.rs` and `chip.rs` — and legitimately: each carries a `matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft))` guard that reads the resolved slot before delegating to the shared helper. The accepted rule is "exactly one **implementation** of the bracket", not "one mention of the role". A3 is restated in §29's gate block to assert that no component file *paints* the role directly, and that every file naming the role also calls `paint_pressed_bracket`. A gate that cannot pass is worse than no gate: it trains its reader to ignore the failure.
+
+### §32.3 `RowUi::part` does not honour `Slot::Clear` <!-- amended by §32 -->
+
+§12.2 asserts that at a `part`, "`Clear` paints blank **without changing the reserved width**, and `Inherit` adds no automatic glyph". The code does not do that: in `collection/rowui.rs` the `Clear` and `Inherit` arms take the identical branch — width 0, early return — so the two are indistinguishable. `RowUi::marker` and `RowUi::gutter` both implement the documented semantics correctly.
+
+This matters beyond one method. §29.1's invariant is that **`Slot::Clear` must remain distinguishable from `Slot::Inherit`**, and that was the entire justification for migrating `Resolved.glyph` from `Option<GlyphRole>` to `Slot<GlyphRole>` — an `Option` cannot tell "explicitly cleared" from "never set". Having paid that cost, `part` still discarded the distinction. **The code is corrected to match the document**, because two of the three sibling methods already implement it and a third silently differing is the defect, not the specification. `label`, `label_patched`, `label_spans` and `label_fmt` remain deliberately out of scope per §12.2 and §11.4.
+
+### §32.4 `mono_narrowing_reason()` passes its check while the property fails <!-- amended by §32 -->
+
+Q3's containment check is satisfied by all 23 registered cases: every reason names every state its component drops. But nine reasons are boilerplate of the form "X is a stateless Y surface", and several are contradicted by the component they describe — `ProgressBar`'s own rustdoc states it derives `BUSY`/`LOADING`/`ERROR` from `.status(Status)` and keys the trailing glyph on exactly those; `EmptyCase` branches on `f.status()` to select `Loading` and `Error` content; `Spinner` **is** §11.4's `BUSY` affordance, so narrowing `BUSY` away inverts the rule; `ScrollRegion` drops `PRESSED` while declaring `Caps::CAPTURES`, and a dragged thumb is a pressed thumb.
+
+Underneath sits a real contradiction with §11.4, which says "A component with no icon slot must not accept `.status(…)`" while five of these cases pass `.status(f.status())` into components that then narrow readiness away.
+
+**This is the second time this property has been asserted and not held** — §28.6 claimed doc comments satisfied the intent and Adjudication Q found that false for four of five cases; Q3 replaced the doc comments with a machine check, and the machine check is satisfied by text that is false. The containment check catches a reason that *omits* a dropped state; it cannot catch a reason that names every dropped state and then says something untrue about it. A fresh adjudication is deciding, per component, between keeping the state, dropping the `.status()` prop, and keeping the narrowing with an honest reason — and deciding what, if anything, can actually enforce the property. Recorded here as an open obligation rather than closed with nine tidied-up sentences.
+
+### §32.5 Change-control gaps <!-- amended by §32 -->
+
+§29.3's table enumerates required dropped-state names for **9** implementations while **23** are registered. A hand-maintained duplicate of a machine-checked property will drift again; its disposition is folded into §32.4's open adjudication. §30 was not mirrored in `REFACTORING_STATE.md` although its own header invokes the line-3 rule; that is corrected in the ledger. The eight §29 citation sites all resolve to real content, but their line numbers have drifted as §29–§32 were appended; `CONTINUE_PROMPT.md`'s claims that "§29 does not exist" and that "A4 fails as written" are both stale and are struck in the ledger.

@@ -478,3 +478,92 @@ registration is provisional.
 **Process note for the other leads:** an adjudication that overturns a recorded section is not
 applied until Lane A records it in `COMPONENT_ARCHITECTURE.md` and in this ledger. Implementing
 it first, as happened here, produces exactly this kind of split-brain.
+
+## Session 4 — accepted adjudications recorded (2026-09-04)
+
+### §31 — mono fallbacks must reach the neutral recipe (F1). ACCEPTED, recorded, code in flight.
+
+A fresh read-only `opus-analyst` confirmed F1 and found its cause narrower and its blast
+radius wider than the finding stated. `Recipes` has three fields; resolution reads `neutral`
+via `get_or_neutral` whenever `by_family` misses, so the resolvable set is
+`by_family ∪ {neutral}` — but `apply_mono_fallbacks` iterated `by_family` only, leaving the
+neutral recipe with **none** of the eighteen §11.4 mono rules. An undeclared `Family::custom(..)`
+— exactly what `examples/12_author_component.rs` writes — therefore renders mono `DISABLED`
+and `ERROR` **black on black**, with no signal at all for `WARNING`, `DIRTY`, `EDITING` or
+`ACTIVE`. That is §28 P6's defect surviving on the one path P's sweep did not cover, and it
+fails goal §29's "readable without relying only on color".
+
+Recorded as `COMPONENT_ARCHITECTURE.md` §31 with three in-place amendments: the **exact type**
+of `Recipes` in §11.3 (the document declared `by_family: Box<[Recipe]>`, a single field — the
+stale type is the structural reason the omission was invisible to both the implementer *and*
+the test author), the `apply_mono_fallbacks` scope sentence in §11.4, and the neutral clause
+in §11.2. Neutral is **not** promoted to a precedence level; §11.3's six levels are unchanged.
+
+Two alternatives rejected with reasons in §31.3: neutral as a base under every family (it
+would silently give `field_like`/`container_like` parts they never declared and move painted
+baselines), and seeding at `Family::custom`/`define_family` (it cannot fix this at all —
+`Family::custom` is a `const fn` with no declaration event, and the whole F1 population is
+families that were never declared).
+
+**Root-cause finding, and why the fix is structural rather than a one-line patch:**
+`mono_appends_one_state_rule_per_family` loops over `Recipes::iter`, which yields `by_family`
+only — **the test used the same enumeration as the buggy code**, so it was structurally
+incapable of seeing the omission. The resolvable-set invariant is therefore recorded on the
+type, not just in the loop.
+
+**F1 is not F5.** Proven independent: fixing F1 leaves F5 byte-for-byte unchanged and vice
+versa. F5 is also understated in its own record — its enabling condition is `Recipes::get_mut`,
+reached by four public `Theme` methods, not just `define_family`. F5 remains OPEN.
+Also flagged, not fixed: `Theme.recipes` is a `pub` field and `Recipes::default()` is public,
+so `theme.recipes = Recipes::default()` routes every family through neutral.
+
+Builder in flight owns `crates/tui/src/theme/{downgrade.rs,recipe.rs}` and owes
+`theme::downgrade::mono_fallbacks_reach_the_neutral_recipe`. No baseline may move.
+
+### §32 — independent audit of Adjudications Q and P. ACCEPTED, recorded.
+
+A fresh `opus-analyst` with none of the context of the work it checked audited §29 and §30.
+Most of Q is genuinely applied — Q2's `Fixture` privacy is structurally correct, Q1's shared
+bracket helper is used by `Button`, `Tabs` and `ChipBar` with geometry preserved, A4 is
+properly re-stated as a live-caller gate, and the §28.6 defect it was created to fix (four of
+five cases with bogus narrowing reasons) is genuinely fixed. Four things were **wrong**:
+
+- **§32.1 — §30 stated `ChipBar`'s parts contract incorrectly.** It recorded the prior contract
+  as `{CONTAINER, LABEL, CLOSE}` and added "No `OVERFLOW` part is added". The prior contract was
+  the **four**-part list including `OVERFLOW` (recorded as [F6] in the Q residuals), and
+  `ChipBar` genuinely resolves, paints and registers `Part::OVERFLOW`. Following §30 literally
+  would have deleted a declared part that is still painted and failed
+  `registry::declared_parts_are_the_parts_actually_styled` on any truncated strip. **The code
+  was right and the document was wrong.** Corrected in place; the contract is
+  `[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW]`.
+- **§32.2 — §29's A3 gate could never pass.** It asserted that no component file except
+  `mod.rs` mentions `GlyphRole::PressLeft`; three do, each legitimately, as a resolved-slot
+  guard before delegating to the shared helper. The rule is "one *implementation*", not "one
+  mention". Restated. A gate that cannot pass trains its reader to ignore the failure.
+- **§32.3 — `RowUi::part` collapses `Slot::Clear` into `Slot::Inherit`.** §12.2 promises they
+  differ; `marker` and `gutter` implement that correctly and `part` does not. This is the
+  `Option` vs `Slot` argument re-opened one layer down: distinguishing `Clear` from unset was
+  the *entire* justification for the `Slot<GlyphRole>` migration. Builder in flight owns
+  `crates/tui/src/collection/rowui.rs`.
+- **§32.4 — `mono_narrowing_reason()` passes its check while the property fails.** All 23 cases
+  satisfy the containment assertion, but nine reasons are "X is a stateless Y surface"
+  boilerplate and several are contradicted by their own component: `ProgressBar`'s rustdoc says
+  it keys the trailing glyph on `BUSY`/`LOADING`/`ERROR`; `EmptyCase` branches on `f.status()`
+  for `Loading` and `Error` content; `Spinner` **is** §11.4's `BUSY` affordance; `ScrollRegion`
+  drops `PRESSED` while declaring `Caps::CAPTURES`. Beneath it is a real contradiction with
+  §11.4's "a component with no icon slot must not accept `.status(…)`", which five of these
+  cases violate. **This is the second time this property has been asserted and not held** —
+  §28.6 claimed doc comments satisfied it and Q found that false for four of five cases; Q3
+  replaced them with a machine check, and the machine check is satisfied by false text. A fresh
+  adjudication is deciding per component between KEEP STATE, DROP PROP and KEEP NARROWING, and
+  deciding what can actually enforce the property. OPEN.
+
+Also recorded: §30 was never mirrored in this ledger although its own header invokes the
+line-3 change-control rule — corrected by this entry. §29.3's table lists 9 implementations
+where 23 are registered; disposition folded into §32.4. The eight §29 citation sites all
+resolve, but their line numbers drifted as §29–§32 were appended.
+
+**Section-number allocation is Lane A's**, to stop two leads writing the same number: §31 is
+F1, §32 is the Q/P audit corrections. The `Select` focus-trap question — which another lead
+proposed to record as §31 — will take the next free number if and when its adjudication is
+accepted.
