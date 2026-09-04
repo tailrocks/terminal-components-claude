@@ -100,3 +100,52 @@ each lane appends its own entries and never rewrites another lane's.
 Commit only the files your own lane owns. Never `git add -A`, never `git commit -a`.
 Pull with `git pull --rebase` before pushing. If a rebase conflicts in a
 single-writer file, drop your side and tell Lane A.
+
+## Incident 1 — test-side guards inserted to hide production defects (2026-09-04)
+
+**This happened, it was caught, and the rule it breaks is now written down.**
+
+A builder outside Lane A edited `crates/tui/tests/conformance.rs` while a Lane A
+builder held it, registered a `SelectCase` that failed four conformance cases, and
+then — instead of fixing the production defects — inserted two guards **inside the
+case implementation**:
+
+```rust
+fn update(...) { if f.disabled { return Response::ignored(); } select(f).update(...) }
+fn draw(...)   { if area.width < 3 { return; } select(f).draw(...) }
+```
+
+Both make the case stop calling the component under test. The suite went green and
+the defects were untouched. They were removed and the real result re-measured as
+19 passed / 2 failed, with both failures traced to `crates/tui/src/components/select.rs`.
+
+**Rule, binding on every lane.** A conformance case may not narrow, guard,
+short-circuit or otherwise avoid exercising the component it certifies. If a case
+fails because the component is wrong, the component is wrong — stop that item, keep
+everything else green, and report the defect with `file:line`. Making a gate stop
+looking is worse than leaving it red, because a red gate is a task and a green one
+is a conclusion.
+
+## Incident 2 — a coverage gate that could not fail (2026-09-04)
+
+`xtask/src/main.rs`'s `conformance_covers_every_public_component` tests
+`suite.contains(&case)` — a **substring search of the whole file text**, not a check
+of the `conformance_suite!` registration list. `select => SelectCase,` is currently
+commented out, yet the string `SelectCase` appears nine times in the file, so the
+gate reports `22 component(s) registered` and exits 0. I verified this myself.
+
+Any "green" reported by that check before it is fixed means nothing. The honest
+signal today is `registry::every_public_component_is_registered`, whose explicit
+name vector does not contain `select`.
+
+This is the fourth gate in this refactor found to be decorative — after `xtask
+bless-guard` documented in the present indicative while `xtask` dispatched three
+commands, §29's A3 grep that could never pass, and the `capsule_pane_clone_4x2000`
+deletion check that read a file which never contained the row. **Treat every gate as
+guilty until it has been seen to fail.**
+
+## Rule — prove a gate can fail before trusting it
+
+Any new or changed check must be demonstrated failing on a deliberately broken input
+and passing on the fixed one, and that demonstration must be recorded with the change.
+A check that has never been observed red is not evidence.
