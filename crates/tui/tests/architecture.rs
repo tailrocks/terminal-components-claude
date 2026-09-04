@@ -180,6 +180,14 @@ mod architecture {
         check("examples_are_external_consumers");
     }
 
+    /// §16.3 as amended by §36, and §36.5: every moved or added baseline key is
+    /// accounted for by a `docs/visual-changes.md` entry citing a numbered
+    /// §20.10 item. `cargo run -p xtask -- bless-guard` is the same check.
+    #[test]
+    fn baseline_moves_are_classified() {
+        check("baseline_moves_are_classified");
+    }
+
     /// `cargo build --examples` is the mechanism (run by
     /// `examples_are_external_consumers`); this pins that all thirteen §17
     /// example files exist and are named, so a deleted example is visible.

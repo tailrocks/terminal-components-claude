@@ -4,6 +4,7 @@
 //! cargo run -p xtask -- doc-check                # §3–§17 and §21–§23 references resolve
 //! cargo run -p xtask -- boundary                 # every §16.5 / §22.7 grep and metadata check
 //! cargo run -p xtask -- boundary --check <name>  # one named check
+//! cargo run -p xtask -- bless-guard              # §16.3 / §36.5 baseline bless guard
 //! cargo run -p xtask -- list                     # the check names
 //! ```
 //!
@@ -33,6 +34,9 @@ fn main() -> ExitCode {
                 .and_then(|i| args.get(i + 1).cloned());
             boundary(only.as_deref())
         }
+        // §16.3 / §20.10 / §36.5. A named `boundary` check, so it inherits the
+        // `ok`/`FAIL` formatting, the `N check(s) failed` tail and `xtask list`.
+        Some("bless-guard") => boundary(Some("baseline_moves_are_classified")),
         Some("list") => {
             for name in CHECKS.iter().map(|c| c.0) {
                 println!("{name}");
@@ -40,7 +44,7 @@ fn main() -> ExitCode {
             Ok(())
         }
         _ => {
-            eprintln!("usage: xtask <doc-check | boundary [--check NAME] | list>");
+            eprintln!("usage: xtask <doc-check | boundary [--check NAME] | bless-guard | list>");
             Err("no command".to_owned())
         }
     };
@@ -229,6 +233,10 @@ const CHECKS: &[Check] = &[
     (
         "inherit_forced_stays_crate_internal",
         inherit_forced_stays_crate_internal,
+    ),
+    (
+        "baseline_moves_are_classified",
+        baseline_moves_are_classified,
     ),
 ];
 
@@ -2405,6 +2413,774 @@ fn doc_check() -> Result<(), String> {
     }
 }
 
+// ─────────────── bless-guard (§16.3, §20.10, §36.5) ───────────────
+
+/// The kind of baseline a path is, which fixes how its lines become keys.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum BaselineKind {
+    /// `name w h theme color hash`. The key is the line minus its **last**
+    /// whitespace field — exactly `Baseline::parse`'s rule in
+    /// `crates/tui-testing/src/digest.rs`. Any other rule makes the guard and
+    /// the writer disagree about what a key is.
+    Digest,
+    /// `name ns allocs bytes [hits ring]`. The key is the name and the compared
+    /// value **excludes the `ns` column**: `crates/tui/tests/perf_baseline.txt`
+    /// records that timings are re-measured per machine and asserted only under
+    /// `PERF_STRICT`, so a guard that fired on timing noise would be suppressed,
+    /// and a suppressed guard is a dead one.
+    Perf,
+    /// Frozen pre-refactor evidence (`baseline/before/**`, `tests/baselines/**`,
+    /// `tests/showcase_baseline.txt`, the root `tests/perf_baseline.txt`). Never
+    /// parsed into keys: any change fails, and the remedy is `git checkout --`,
+    /// not a ledger entry. Much of it is binary, so change is read from git's
+    /// name-status rather than from a text comparison.
+    Frozen,
+}
+
+/// Which baseline rule a repository-relative path obeys, or `None` if it is not
+/// a baseline at all. Patterns, never a hard-coded file list:
+/// `apps/*/tests/baselines/*.txt` do not exist yet and arrive in Slices 5–7.
+fn classify_baseline(rel: &str) -> Option<BaselineKind> {
+    let frozen = rel.starts_with("baseline/before/")
+        || rel == "tests/showcase_baseline.txt"
+        || rel == "tests/perf_baseline.txt"
+        || (rel.starts_with("tests/baselines/") && rel.ends_with(".txt"));
+    if frozen {
+        return Some(BaselineKind::Frozen);
+    }
+    if rel.ends_with("/tests/perf_baseline.txt") {
+        return Some(BaselineKind::Perf);
+    }
+    if rel.ends_with(".txt") && rel.contains("/tests/baselines/") {
+        return Some(BaselineKind::Digest);
+    }
+    None
+}
+
+/// A baseline file's `key -> compared value` map under its own rule. Blank and
+/// `#` lines are skipped, as `Baseline::parse` skips them.
+fn parse_baseline_entries(kind: BaselineKind, text: &str) -> BTreeMap<String, String> {
+    let mut out = BTreeMap::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        match kind {
+            BaselineKind::Digest => {
+                if let Some((key, hash)) = line.rsplit_once(' ') {
+                    out.insert(key.to_owned(), hash.to_owned());
+                }
+            }
+            BaselineKind::Perf => {
+                let mut fields = line.split_whitespace();
+                let Some(name) = fields.next() else { continue };
+                let _ns = fields.next(); // re-measured per machine; never compared
+                out.insert(name.to_owned(), fields.collect::<Vec<&str>>().join(" "));
+            }
+            // frozen evidence is compared as a whole file, never by key
+            BaselineKind::Frozen => {}
+        }
+    }
+    out
+}
+
+/// A baseline key whose recorded value changed.
+#[derive(Debug, PartialEq, Eq)]
+struct Movement {
+    file: String,
+    key: String,
+    old: String,
+    new: String,
+}
+
+/// A baseline key recorded for the first time.
+#[derive(Debug, PartialEq, Eq)]
+struct Addition {
+    file: String,
+    key: String,
+}
+
+/// The moved and added sets of one baseline file. A key present in the base and
+/// absent now is a *removal*, which §36.5 does not make classifiable and which
+/// this therefore does not report.
+fn diff_baseline(
+    file: &str,
+    kind: BaselineKind,
+    base: &str,
+    work: &str,
+) -> (Vec<Movement>, Vec<Addition>) {
+    let before = parse_baseline_entries(kind, base);
+    let after = parse_baseline_entries(kind, work);
+    let mut moved = Vec::new();
+    let mut added = Vec::new();
+    for (key, value) in &after {
+        match before.get(key) {
+            Some(old) if old == value => {}
+            Some(old) => moved.push(Movement {
+                file: file.to_owned(),
+                key: key.clone(),
+                old: old.clone(),
+                new: value.clone(),
+            }),
+            None => added.push(Addition {
+                file: file.to_owned(),
+                key: key.clone(),
+            }),
+        }
+    }
+    (moved, added)
+}
+
+/// Every item number declared in `COMPONENT_ARCHITECTURE.md` §20.10.
+///
+/// §20.10 is **three** tables — items 1–16, then 17 alone, then 18 and 19 as
+/// separate one-row tables. A parser that takes "the first table after the
+/// heading" silently gets 1–16 and then rejects a correct citation of item 19,
+/// the item that governs the first-generation digests. This scans the whole
+/// section for table rows whose first cell is a number, so a further split
+/// costs nothing.
+fn visual_change_items(doc: &str) -> BTreeSet<u32> {
+    let mut out = BTreeSet::new();
+    let mut inside = false;
+    for line in doc.lines() {
+        if line.starts_with("### 20.10") {
+            inside = true;
+            continue;
+        }
+        if !inside {
+            continue;
+        }
+        if line.starts_with("## ") || line.starts_with("### ") {
+            break;
+        }
+        let trimmed = line.trim();
+        if !trimmed.starts_with('|') {
+            continue;
+        }
+        let cell = trimmed
+            .trim_start_matches('|')
+            .split('|')
+            .next()
+            .unwrap_or("")
+            .trim();
+        if let Ok(n) = cell.parse::<u32>() {
+            out.insert(n);
+        }
+    }
+    out
+}
+
+/// Expands `{a,b,c}` alternation groups into the full cross product, so one
+/// matrix-generated key set is one ledger claim instead of 896 transcribed
+/// lines. Whitespace inside a produced key is normalised to single spaces,
+/// which is the form a baseline line uses.
+fn expand_key_pattern(pattern: &str) -> Result<Vec<String>, String> {
+    let mut out = vec![String::new()];
+    let mut rest = pattern;
+    loop {
+        let Some(open) = rest.find('{') else {
+            for s in &mut out {
+                s.push_str(rest);
+            }
+            break;
+        };
+        let Some(close) = rest.get(open..).and_then(|r| r.find('}')).map(|i| open + i) else {
+            return Err(format!("unbalanced `{{` in key pattern `{pattern}`"));
+        };
+        let head = rest.get(..open).unwrap_or_default();
+        let alts: Vec<&str> = rest
+            .get(open.saturating_add(1)..close)
+            .unwrap_or_default()
+            .split(',')
+            .map(str::trim)
+            .collect();
+        let mut next = Vec::new();
+        for prefix in &out {
+            for alt in &alts {
+                let mut s = prefix.clone();
+                s.push_str(head);
+                s.push_str(alt);
+                next.push(s);
+            }
+        }
+        if next.len() > 100_000 {
+            return Err(format!(
+                "key pattern `{pattern}` expands past 100000 keys; write the keys out"
+            ));
+        }
+        out = next;
+        rest = rest.get(close.saturating_add(1)..).unwrap_or_default();
+    }
+    Ok(out
+        .into_iter()
+        .map(|s| s.split_whitespace().collect::<Vec<&str>>().join(" "))
+        .filter(|s| !s.is_empty())
+        .collect())
+}
+
+/// One classified entry of `docs/visual-changes.md`: a fenced block beneath a
+/// `## Item <n>` heading. The entry-format block at the head of the ledger sits
+/// **above** the first such heading and is therefore not an entry.
+#[derive(Debug, Default)]
+struct LedgerEntry {
+    /// `Item 18 / 18b` — for messages only.
+    label: String,
+    /// The numbered §20.10 item this entry cites.
+    cited: Option<u32>,
+    class: Option<String>,
+    /// The text left of the arrow on each `- moved:` claim line.
+    moved: Vec<String>,
+    moved_declared: Option<usize>,
+    /// The expanded key claims of `- added:`.
+    added: Vec<String>,
+    added_declared: Option<usize>,
+    /// Defects in the entry's own shape, reported only when it is engaged.
+    defects: Vec<String>,
+}
+
+/// The `- name:` fields of one fenced entry block. A line that does not start a
+/// field continues the previous one, which is how the ledger writes its
+/// multi-line `- moved:` lists.
+fn block_fields(block: &str) -> BTreeMap<String, String> {
+    let mut out: BTreeMap<String, String> = BTreeMap::new();
+    let mut current = String::new();
+    for line in block.lines() {
+        let mut started = false;
+        if let Some(rest) = line.trim_start().strip_prefix("- ")
+            && let Some((name, value)) = rest.split_once(':')
+            && !name.is_empty()
+            && name.chars().all(|c| c.is_ascii_lowercase() || c == '_')
+        {
+            current = name.to_owned();
+            let field = out.entry(current.clone()).or_default();
+            field.push_str(value.trim());
+            field.push('\n');
+            started = true;
+        }
+        if !started && !current.is_empty() {
+            let field = out.entry(current.clone()).or_default();
+            field.push_str(line.trim());
+            field.push('\n');
+        }
+    }
+    out
+}
+
+/// Whether a field's first line declares the empty set.
+fn declares_none(field: &str) -> bool {
+    field
+        .lines()
+        .next()
+        .is_some_and(|l| l.trim_start().starts_with("none"))
+}
+
+/// The `N keys` / `N lines` count a field declares about itself, if any.
+fn declared_count(field: &str) -> Option<usize> {
+    let re = Regex::new(r"\b(\d+)\s+(?:keys?|lines?|entries|entry)\b").ok()?;
+    re.captures(field)
+        .and_then(|c| c.get(1))
+        .and_then(|m| m.as_str().parse().ok())
+}
+
+/// The `<key> <old> → <new>` claim lines of a `- moved:` field: the text left
+/// of the arrow, which is `<key> <old>` under the same "line minus its last
+/// field" rule the writer uses. A line without an arrow is prose.
+fn moved_claims(field: &str) -> Vec<String> {
+    field
+        .lines()
+        .filter_map(|l| {
+            let (left, right) = l.split_once('→').or_else(|| l.split_once("->"))?;
+            let left = left.trim();
+            if left.is_empty() || right.trim().is_empty() {
+                return None;
+            }
+            Some(left.to_owned())
+        })
+        .collect()
+}
+
+/// The key claims of an `- added:` field: every backticked span, expanded
+/// through `{a,b}` alternation. Backticks mark the claim so prose in the same
+/// field cannot be mistaken for a key.
+fn added_claims(field: &str) -> (Vec<String>, Vec<String>) {
+    let mut keys = Vec::new();
+    let mut defects = Vec::new();
+    let mut rest = field;
+    while let Some(open) = rest.find('`') {
+        let after = rest.get(open.saturating_add(1)..).unwrap_or_default();
+        let Some(end) = after.find('`') else { break };
+        let span = after.get(..end).unwrap_or_default().trim();
+        match expand_key_pattern(span) {
+            Ok(expanded) => keys.extend(expanded),
+            Err(e) => defects.push(e),
+        }
+        rest = after.get(end.saturating_add(1)..).unwrap_or_default();
+    }
+    (keys, defects)
+}
+
+/// Every entry of `docs/visual-changes.md`.
+fn parse_ledger(ledger: &str) -> Vec<LedgerEntry> {
+    let reason_re = Regex::new(r"§20\.10 item (\d+)").ok();
+    let mut out = Vec::new();
+    let mut item: Option<u32> = None;
+    let mut sub = String::new();
+    let mut in_fence = false;
+    let mut block = String::new();
+    for line in ledger.lines() {
+        if line.trim_start().starts_with("```") {
+            if in_fence {
+                if let Some(n) = item {
+                    let label = if sub.is_empty() {
+                        format!("Item {n}")
+                    } else {
+                        format!("Item {n} / {sub}")
+                    };
+                    out.push(entry_from_block(&block, n, &label, reason_re.as_ref()));
+                }
+                block.clear();
+            }
+            in_fence = !in_fence;
+            continue;
+        }
+        if in_fence {
+            block.push_str(line);
+            block.push('\n');
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("## Item ") {
+            let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+            item = digits.parse().ok();
+            sub.clear();
+        } else if line.starts_with("## ") {
+            item = None;
+            sub.clear();
+        } else if let Some(rest) = line.strip_prefix("### ") {
+            sub = rest.split('—').next().unwrap_or(rest).trim().to_owned();
+        }
+    }
+    out
+}
+
+/// One entry, from its fenced block and the heading it sits beneath.
+fn entry_from_block(
+    block: &str,
+    heading_item: u32,
+    label: &str,
+    reason_re: Option<&Regex>,
+) -> LedgerEntry {
+    let fields = block_fields(block);
+    let empty = String::new();
+    let moved_field = fields.get("moved").unwrap_or(&empty);
+    let added_field = fields.get("added").unwrap_or(&empty);
+    let reason = fields.get("reason").unwrap_or(&empty);
+    let (added, mut defects) = added_claims(added_field);
+    let moved = moved_claims(moved_field);
+    let moved_none = declares_none(moved_field);
+    let added_none = declares_none(added_field);
+    if !moved_none && moved.is_empty() {
+        defects.push(
+            "`- moved:` is neither `none` nor one or more `<key> <old> → <new>` lines".to_owned(),
+        );
+    }
+    if !added_none && added.is_empty() {
+        defects
+            .push("`- added:` is neither `none` nor one or more backticked key claims".to_owned());
+    }
+    let class = fields
+        .get("class")
+        .and_then(|f| f.split_whitespace().next())
+        .map(str::to_ascii_lowercase);
+    let cited = reason_re
+        .and_then(|re| re.captures(reason))
+        .and_then(|c| c.get(1))
+        .and_then(|m| m.as_str().parse().ok())
+        .or(Some(heading_item));
+    LedgerEntry {
+        label: label.to_owned(),
+        cited,
+        class,
+        moved,
+        moved_declared: declared_count(moved_field),
+        added,
+        added_declared: declared_count(added_field),
+        defects,
+    }
+}
+
+/// Whether a `- moved:` claim accounts for `key`: the claim is `<key> <old>`,
+/// so it either equals the key or is the key followed by its old value.
+fn claim_covers(claim: &str, key: &str) -> bool {
+    claim == key || claim.strip_prefix(key).is_some_and(|r| r.starts_with(' '))
+}
+
+/// The classification report. Pure: everything it needs arrives as strings.
+///
+/// **Ordering is not checked here and cannot be checked anywhere.** §36.5: a
+/// committed tree is a state, not a history, so nothing in this guard proves
+/// the classification was written before the bless. Do not read a green
+/// `baseline_moves_are_classified` as evidence of the fixed order
+/// change → capture → classify → bless. What it does prove is *completeness* —
+/// the accounted key set equals the moved-and-added key set — plus the citation
+/// and the two refusals.
+fn report_baseline_moves(
+    doc: &str,
+    ledger: &str,
+    moved: &[Movement],
+    added: &[Addition],
+) -> Result<(), String> {
+    let items = visual_change_items(doc);
+    let entries = parse_ledger(ledger);
+    let mut problems: Vec<String> = Vec::new();
+    if items.is_empty() {
+        return Err(
+            "COMPONENT_ARCHITECTURE.md §20.10 declares no numbered items; the citation check has \
+             nothing to resolve against, which would let any citation pass"
+                .to_owned(),
+        );
+    }
+
+    // which entries account for which keys
+    let mut engaged: Vec<bool> = vec![false; entries.len()];
+    let mut unaccounted: Vec<String> = Vec::new();
+    for m in moved {
+        let mut covered = false;
+        for (i, e) in entries.iter().enumerate() {
+            if e.moved.iter().any(|c| claim_covers(c, &m.key)) {
+                covered = true;
+                if let Some(slot) = engaged.get_mut(i) {
+                    *slot = true;
+                }
+            }
+        }
+        if !covered {
+            unaccounted.push(format!(
+                "  moved, unaccounted: {} :: {} ({} → {})",
+                m.file, m.key, m.old, m.new
+            ));
+        }
+    }
+    for a in added {
+        let mut covered = false;
+        for (i, e) in entries.iter().enumerate() {
+            if e.added.iter().any(|c| c == &a.key) {
+                covered = true;
+                if let Some(slot) = engaged.get_mut(i) {
+                    *slot = true;
+                }
+            }
+        }
+        if !covered {
+            unaccounted.push(format!("  added, unaccounted: {} :: {}", a.file, a.key));
+        }
+    }
+
+    let moved_keys: BTreeSet<&str> = moved.iter().map(|m| m.key.as_str()).collect();
+    let added_keys: BTreeSet<&str> = added.iter().map(|a| a.key.as_str()).collect();
+    for (i, e) in entries.iter().enumerate() {
+        if !engaged.get(i).copied().unwrap_or(false) {
+            continue;
+        }
+        for d in &e.defects {
+            problems.push(format!("  {}: {d}", e.label));
+        }
+        match e.cited {
+            None => problems.push(format!("  {}: cites no numbered §20.10 item", e.label)),
+            Some(n) if !items.contains(&n) => problems.push(format!(
+                "  {}: cites §20.10 item {n}, which does not exist (§20.10 declares {:?})",
+                e.label,
+                items.iter().copied().collect::<Vec<u32>>()
+            )),
+            Some(_) => {}
+        }
+        match e.class.as_deref() {
+            Some("intended" | "fix") => {}
+            Some("regression") => problems.push(format!(
+                "  {}: `- class: regression` — a regression must be fixed, never blessed",
+                e.label
+            )),
+            Some(other) => problems.push(format!(
+                "  {}: `- class: {other}` is not one of intended | fix | regression",
+                e.label
+            )),
+            None => problems.push(format!("  {}: has no `- class:` field", e.label)),
+        }
+        for c in &e.moved {
+            if !moved_keys.iter().any(|k| claim_covers(c, k)) {
+                problems.push(format!(
+                    "  {}: `- moved:` claims `{c}`, which the diff did not move",
+                    e.label
+                ));
+            }
+        }
+        for c in &e.added {
+            if !added_keys.contains(c.as_str()) {
+                problems.push(format!(
+                    "  {}: `- added:` claims `{c}`, which the diff did not add",
+                    e.label
+                ));
+            }
+        }
+        if let Some(n) = e.moved_declared
+            && n != e.moved.len()
+        {
+            problems.push(format!(
+                "  {}: `- moved:` declares {n} but lists {}",
+                e.label,
+                e.moved.len()
+            ));
+        }
+        if let Some(n) = e.added_declared
+            && n != e.added.len()
+        {
+            problems.push(format!(
+                "  {}: `- added:` declares {n} but its key patterns expand to {}",
+                e.label,
+                e.added.len()
+            ));
+        }
+    }
+
+    if unaccounted.is_empty() && problems.is_empty() {
+        return Ok(());
+    }
+    let mut msg = String::from(
+        "docs/visual-changes.md does not account for this tree's baseline diff (§16.3, §20.10, \
+         §36.5). Every moved and added key must be listed by an entry that cites a numbered \
+         §20.10 item; co-presence of an entry is not enough.\n",
+    );
+    let shown = unaccounted.len().min(20);
+    for line in unaccounted.iter().take(shown) {
+        msg.push_str(line);
+        msg.push('\n');
+    }
+    if unaccounted.len() > shown {
+        msg.push_str(&format!(
+            "  … and {} more unaccounted key(s)\n",
+            unaccounted.len().saturating_sub(shown)
+        ));
+    }
+    for line in &problems {
+        msg.push_str(line);
+        msg.push('\n');
+    }
+    Err(msg)
+}
+
+/// The whole guard over in-memory strings.
+///
+/// `files` is `(repository-relative path, base text, working text)` for every
+/// non-frozen baseline; `frozen_changed` is the frozen evidence git reports as
+/// touched, which is read from name-status rather than content because
+/// `baseline/before/**` is binary.
+fn evaluate_bless_guard(
+    doc: &str,
+    ledger: &str,
+    files: &[(String, String, String)],
+    frozen_changed: &[String],
+) -> Result<(), String> {
+    let mut refusals: Vec<String> = frozen_changed
+        .iter()
+        .map(|p| {
+            format!(
+                "  {p}: frozen pre-refactor evidence changed. Revert it (`git checkout -- {p}`); \
+                 do not classify it."
+            )
+        })
+        .collect();
+    let mut moved: Vec<Movement> = Vec::new();
+    let mut added: Vec<Addition> = Vec::new();
+    for (path, base, work) in files {
+        let Some(kind) = classify_baseline(path) else {
+            continue;
+        };
+        if kind == BaselineKind::Frozen {
+            continue;
+        }
+        let (m, a) = diff_baseline(path, kind, base, work);
+        if kind == BaselineKind::Digest {
+            for mv in &m {
+                if mv.key.rsplit(' ').next() == Some("truecolor") {
+                    refusals.push(format!(
+                        "  {path}: `{}` MOVED ({} → {}) and its colour field is `truecolor`. \
+                         §20.10's closing clause makes that a regression by construction, so it is \
+                         refused outright and is not classifiable.",
+                        mv.key, mv.old, mv.new
+                    ));
+                }
+            }
+        }
+        moved.extend(m);
+        added.extend(a);
+    }
+    println!(
+        "baseline_moves_are_classified: {} moved key(s), {} added key(s) across {} baseline file(s)",
+        moved.len(),
+        added.len(),
+        files.len()
+    );
+    if !refusals.is_empty() {
+        let mut msg = String::from("baseline changes refused outright (§36.5):\n");
+        for r in &refusals {
+            msg.push_str(r);
+            msg.push('\n');
+        }
+        return Err(msg);
+    }
+    report_baseline_moves(doc, ledger, &moved, &added)
+}
+
+// ── the git and filesystem half ──
+
+fn git(args: &[&str]) -> Result<std::process::Output, String> {
+    Command::new("git")
+        .args(args)
+        .current_dir(root())
+        .output()
+        .map_err(|e| format!("git {}: {e}", args.join(" ")))
+}
+
+/// `git show <rev>:<path>`, or the empty string when the path did not exist.
+fn git_show(rev: &str, path: &str) -> String {
+    match git(&["show", &format!("{rev}:{path}")]) {
+        Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).into_owned(),
+        _ => String::new(),
+    }
+}
+
+fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
+    let out = git(&[
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        &format!("{rev}^{{commit}}"),
+    ])?;
+    if out.status.success() {
+        return Ok(rev.to_owned());
+    }
+    Err(format!(
+        "bless-guard base revision `{rev}` (from {source}) does not resolve. Falling back to HEAD \
+         here would compare the tree with itself and pass vacuously, which is the failure this \
+         gate exists to prevent, so the guard stops instead. In CI the checkout needs \
+         `fetch-depth: 0`; locally set BLESS_GUARD_BASE to a revision that exists."
+    ))
+}
+
+/// `$BLESS_GUARD_BASE`, else `origin/$GITHUB_BASE_REF`, else `HEAD`. A base that
+/// is *set but does not resolve* is an error, never a fallback.
+fn bless_guard_base() -> Result<String, String> {
+    if let Ok(v) = std::env::var("BLESS_GUARD_BASE")
+        && !v.trim().is_empty()
+    {
+        return resolve_rev(v.trim(), "BLESS_GUARD_BASE");
+    }
+    if let Ok(v) = std::env::var("GITHUB_BASE_REF")
+        && !v.trim().is_empty()
+    {
+        return resolve_rev(&format!("origin/{}", v.trim()), "GITHUB_BASE_REF");
+    }
+    resolve_rev("HEAD", "the default")
+}
+
+/// `git diff -M --name-status <base>`: `(new path -> base path)` for renames,
+/// and every baseline path the diff touches. `-M` is why Slice 5's move of the
+/// app baselines into `apps/` does not fire hundreds of spurious entries.
+fn diff_name_status(base: &str) -> Result<(BTreeMap<String, String>, BTreeSet<String>), String> {
+    let out = git(&["diff", "-M", "--name-status", base, "--"])?;
+    if !out.status.success() {
+        return Err(format!(
+            "git diff -M --name-status {base} failed: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        ));
+    }
+    let text = String::from_utf8_lossy(&out.stdout).into_owned();
+    let mut renames = BTreeMap::new();
+    let mut touched = BTreeSet::new();
+    for line in text.lines() {
+        let mut fields = line.split('\t');
+        let Some(status) = fields.next() else {
+            continue;
+        };
+        let Some(first) = fields.next() else { continue };
+        match fields.next() {
+            Some(second) if status.starts_with('R') || status.starts_with('C') => {
+                renames.insert(second.to_owned(), first.to_owned());
+                touched.insert(second.to_owned());
+                touched.insert(first.to_owned());
+            }
+            _ => {
+                touched.insert(first.to_owned());
+            }
+        }
+    }
+    Ok((renames, touched))
+}
+
+/// Untracked files, so a baseline that has never been committed is still seen.
+fn untracked_files() -> Result<BTreeSet<String>, String> {
+    let out = git(&["ls-files", "--others", "--exclude-standard"])?;
+    Ok(String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .map(str::to_owned)
+        .collect())
+}
+
+/// Every baseline file on disk, by pattern rather than by name. A discovery
+/// that stopped matching would find nothing to compare and the guard would exit
+/// 0 forever; `the_baseline_inventory_is_not_empty` is the defence against that.
+fn discover_baselines() -> BTreeSet<String> {
+    WalkDir::new(root())
+        .into_iter()
+        .filter_entry(|e| {
+            let name = e.file_name().to_string_lossy();
+            name != "target" && name != ".git"
+        })
+        .filter_map(Result::ok)
+        .filter(|e| e.file_type().is_file())
+        .map(|e| rel(e.path()))
+        .filter(|r| classify_baseline(r).is_some())
+        .collect()
+}
+
+/// §16.3 as amended by §36, §20.10 and §36.5: every moved or added baseline key
+/// is accounted for by a `docs/visual-changes.md` entry citing a numbered
+/// §20.10 item, frozen evidence is never touched, and a moved `truecolor` key
+/// is refused outright.
+fn baseline_moves_are_classified() -> Result<(), String> {
+    let base = bless_guard_base()?;
+    let (renames, touched) = diff_name_status(&base)?;
+    let untracked = untracked_files()?;
+    let mut paths = discover_baselines();
+    paths.extend(touched.iter().cloned());
+    paths.extend(untracked.iter().cloned());
+    paths.retain(|p| classify_baseline(p).is_some());
+
+    let mut frozen_changed: Vec<String> = Vec::new();
+    let mut files: Vec<(String, String, String)> = Vec::new();
+    for path in &paths {
+        if classify_baseline(path) == Some(BaselineKind::Frozen) {
+            if touched.contains(path) || untracked.contains(path) {
+                frozen_changed.push(path.clone());
+            }
+            continue;
+        }
+        let base_path = renames.get(path).cloned().unwrap_or_else(|| path.clone());
+        files.push((
+            path.clone(),
+            git_show(&base, &base_path),
+            read(&root().join(path)),
+        ));
+    }
+    println!("baseline_moves_are_classified: base {base}");
+    evaluate_bless_guard(
+        &read(&root().join("COMPONENT_ARCHITECTURE.md")),
+        &read(&root().join("docs/visual-changes.md")),
+        &files,
+        &frozen_changed,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2434,5 +3210,233 @@ mod tests {
         assert_eq!(kept, vec!["a();", "b();", "c();"]);
         let lines: Vec<usize> = non_test_lines(src).into_iter().map(|(n, _)| n).collect();
         assert_eq!(lines, vec![1, 7, 10]);
+    }
+
+    // ── bless-guard (§16.3, §20.10, §36.5) ──
+
+    /// A §20.10 stand-in that reproduces the real document's **three** tables.
+    const DOC: &str = "\
+### 20.10 Intentional visual changes
+
+| # | Change | Why | How it is reviewed |
+|---|---|---|---|
+| 1 | **Mono legibility fallbacks** | … | … |
+| 2 | **Layer compositing order** | … | … |
+
+| 17 | **`Anchor::Point` flips** | … | … |
+
+
+| 18 | **Mono `DISABLED` gains `DIM`** | … | … |
+
+## Appendix A — Slice plan
+";
+
+    const BASE_BASELINE: &str = "\
+# digest baseline: name w h theme color hash
+render::components::tabs::pressed 120 40 junie mono 5517de00b23ac747
+render::components::tabs::pressed 120 40 junie truecolor aaaaaaaaaaaaaaaa
+";
+
+    const WORK_BASELINE: &str = "\
+# digest baseline: name w h theme color hash
+render::components::tabs::pressed 120 40 junie mono 8531aef99ed82a7c
+render::components::tabs::pressed 120 40 junie truecolor aaaaaaaaaaaaaaaa
+";
+
+    const LEDGER_WITHOUT_ENTRY: &str = "\
+# Visual changes ledger
+
+## Item 1 — Mono legibility fallbacks
+
+captures / classification: `(pending — filled when the change lands)`
+";
+
+    const LEDGER_WITH_ENTRY: &str = "\
+# Visual changes ledger
+
+## Item 1 — Mono legibility fallbacks
+
+### 1a — `Tabs` paints §11.4's mono `PRESSED` bracket
+
+```
+- surface:   tui-next/tabs/pressed @ 120x40 / junie / mono
+- captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
+- tests:     crates/tui/tests/baselines/components.txt
+- moved:     1 line, every one `mono`:
+  render::components::tabs::pressed 120 40 junie mono 5517de00b23ac747 → 8531aef99ed82a7c
+- added:     none
+- class:     fix
+- reason:    §20.10 item 1 (mono legibility fallbacks).
+```
+";
+
+    fn one_file(base: &str, work: &str) -> Vec<(String, String, String)> {
+        vec![(
+            "crates/tui/tests/baselines/components.txt".to_owned(),
+            base.to_owned(),
+            work.to_owned(),
+        )]
+    }
+
+    /// The red half of the COORDINATION.md demonstration: a moved key with no
+    /// ledger entry accounting for it must fail. A guard hard-wired to `Ok(())`
+    /// fails this test.
+    #[test]
+    fn a_moved_baseline_without_a_ledger_entry_fails() {
+        let err = evaluate_bless_guard(
+            DOC,
+            LEDGER_WITHOUT_ENTRY,
+            &one_file(BASE_BASELINE, WORK_BASELINE),
+            &[],
+        )
+        .expect_err("an unclassified move must fail");
+        assert!(
+            err.contains("render::components::tabs::pressed 120 40 junie mono"),
+            "the failure must name the key: {err}"
+        );
+    }
+
+    /// The green half: the same input with the entry present passes. A guard
+    /// hard-wired to `Err` fails this test.
+    #[test]
+    fn the_same_move_with_a_ledger_entry_passes() {
+        evaluate_bless_guard(
+            DOC,
+            LEDGER_WITH_ENTRY,
+            &one_file(BASE_BASELINE, WORK_BASELINE),
+            &[],
+        )
+        .expect("the same move, classified, must pass");
+    }
+
+    #[test]
+    fn an_unchanged_tree_reports_no_moves() {
+        let (moved, added) = diff_baseline(
+            "crates/tui/tests/baselines/components.txt",
+            BaselineKind::Digest,
+            BASE_BASELINE,
+            BASE_BASELINE,
+        );
+        assert!(moved.is_empty() && added.is_empty(), "{moved:?} {added:?}");
+        evaluate_bless_guard(
+            DOC,
+            LEDGER_WITHOUT_ENTRY,
+            &one_file(BASE_BASELINE, BASE_BASELINE),
+            &[],
+        )
+        .expect("an unchanged tree has nothing to classify");
+    }
+
+    /// §20.10 is three tables. A parser that takes the first one gets 1–16 and
+    /// then rejects a correct citation of item 19.
+    #[test]
+    fn the_2010_item_list_survives_the_split_tables() {
+        let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
+        let items = visual_change_items(&doc);
+        let want: BTreeSet<u32> = (1..=19).collect();
+        assert_eq!(items, want, "§20.10 item numbers");
+    }
+
+    /// The defence against the third vacuous-pass mode: discovery patterns that
+    /// stop matching find nothing to compare and the guard exits 0 forever.
+    #[test]
+    fn the_baseline_inventory_is_not_empty() {
+        let found = discover_baselines();
+        for want in [
+            "crates/tui/tests/baselines/components.txt",
+            "crates/tui/tests/perf_baseline.txt",
+        ] {
+            assert!(found.contains(want), "{want} not discovered: {found:?}");
+        }
+    }
+
+    /// A moved `truecolor` key is refused without classification, even when the
+    /// ledger accounts for it.
+    #[test]
+    fn a_moved_truecolor_key_is_refused_outright() {
+        let work = WORK_BASELINE.replace("aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb");
+        let err =
+            evaluate_bless_guard(DOC, LEDGER_WITH_ENTRY, &one_file(BASE_BASELINE, &work), &[])
+                .expect_err("a truecolor movement is a regression by construction");
+        assert!(err.contains("truecolor"), "{err}");
+    }
+
+    /// `regression` is the ledger's own "must be fixed, never blessed".
+    #[test]
+    fn a_regression_class_fails_the_guard() {
+        let ledger = LEDGER_WITH_ENTRY.replace("- class:     fix", "- class:     regression");
+        let err = evaluate_bless_guard(DOC, &ledger, &one_file(BASE_BASELINE, WORK_BASELINE), &[])
+            .expect_err("a regression may not be blessed");
+        assert!(err.contains("regression"), "{err}");
+    }
+
+    /// A citation of an item §20.10 does not declare is not a citation.
+    #[test]
+    fn a_citation_of_a_nonexistent_2010_item_fails() {
+        let ledger = LEDGER_WITH_ENTRY.replace("§20.10 item 1 ", "§20.10 item 42 ");
+        let err = evaluate_bless_guard(DOC, &ledger, &one_file(BASE_BASELINE, WORK_BASELINE), &[])
+            .expect_err("item 42 does not exist");
+        assert!(err.contains("item 42"), "{err}");
+    }
+
+    #[test]
+    fn frozen_evidence_fails_without_classification() {
+        let err = evaluate_bless_guard(
+            DOC,
+            LEDGER_WITH_ENTRY,
+            &[],
+            &["tests/baselines/tablepro.txt".to_owned()],
+        )
+        .expect_err("frozen evidence may not change");
+        assert!(err.contains("Revert it"), "{err}");
+    }
+
+    /// The perf rule: the `ns` column is re-measured per machine, so a timing
+    /// difference is not a movement — but an allocation or hit-count one is.
+    #[test]
+    fn perf_baselines_ignore_the_ns_column_and_see_the_rest() {
+        let base = "frame_showcase_lists_120x40 8275 0 0 9 7\n";
+        let noise = "frame_showcase_lists_120x40 9111 0 0 9 7\n";
+        let real = "frame_showcase_lists_120x40 8275 0 0 10 7\n";
+        let (moved, _) =
+            diff_baseline("a/tests/perf_baseline.txt", BaselineKind::Perf, base, noise);
+        assert!(
+            moved.is_empty(),
+            "timing noise is not a movement: {moved:?}"
+        );
+        let (moved, _) = diff_baseline("a/tests/perf_baseline.txt", BaselineKind::Perf, base, real);
+        assert_eq!(moved.len(), 1, "a hit-count change is a movement");
+    }
+
+    /// Frozen paths win over the digest and perf patterns.
+    #[test]
+    fn baseline_paths_are_classified_by_pattern() {
+        use BaselineKind::{Digest, Frozen, Perf};
+        for (path, want) in [
+            ("crates/tui/tests/baselines/components.txt", Some(Digest)),
+            ("apps/showcase/tests/baselines/showcase.txt", Some(Digest)),
+            ("crates/tui/tests/perf_baseline.txt", Some(Perf)),
+            ("tests/perf_baseline.txt", Some(Frozen)),
+            ("tests/showcase_baseline.txt", Some(Frozen)),
+            ("tests/baselines/tablepro.txt", Some(Frozen)),
+            (
+                "baseline/before/showcase_forms_default_120x40.png",
+                Some(Frozen),
+            ),
+            ("crates/tui/src/lib.rs", None),
+        ] {
+            assert_eq!(classify_baseline(path), want, "{path}");
+        }
+    }
+
+    /// One matrix-generated set is one claim; the declared count must match.
+    #[test]
+    fn a_key_pattern_expands_to_the_matrix_it_names() {
+        let keys = expand_key_pattern(
+            "render::components::{meter,brand}::{default,focused} {120 40,40 10} {junie} {mono}",
+        )
+        .expect("expands");
+        assert_eq!(keys.len(), 8);
+        assert!(keys.contains(&"render::components::meter::default 120 40 junie mono".to_owned()));
     }
 }

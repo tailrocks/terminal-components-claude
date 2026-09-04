@@ -19,10 +19,14 @@ use tui_next::author::{
     ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
 use tui_next::{
-    ActionKey, Anchor, Button, ButtonCmd, Diagnostic, Dialog, DialogAction, Field, KeyPhase,
-    LayerSize, LayerSpec, List, ListAction, ListCmd, Props, RowUi, ScreenAlign, ScrollRegion,
-    SelectMode, Tabs, TabsAction, TabsCmd, TextCmd, TextInput, TextInputState, Theme,
-    binding_conflicts, resolve_anchor,
+    ActionKey, Anchor, Brand, Button, ButtonCmd, Checkbox, ChipBar, ChipBarAction, ChipBarCmd,
+    ChoiceCmd, Diagnostic, Dialog, DialogAction, Empty, EmptyState, Field, Hint, HintBar,
+    HintLayer, KeyHint, KeyPhase, LayerSize, LayerSpec, List, ListAction, ListCmd, Meter,
+    ProgressBar, Props, RadioGroup, RadioGroupAction, RadioGroupState, RowUi, ScreenAlign,
+    ScrollRegion, Select, SelectAction, SelectCmd, SelectMode, SelectState, Slot, Spinner, Status,
+    StatusAction, StatusBar, StatusItem, Tabs, TabsAction, TabsCmd, TextAction, TextArea,
+    TextAreaState, TextCmd, TextInput, TextInputState, Theme, Toggle, binding_conflicts,
+    resolve_anchor,
 };
 use tui_next_testing::conformance::{
     Caps, Conformance, Fixture, FixtureRow, mono_states_required_by,
@@ -113,10 +117,11 @@ impl Conformance for ProbeCase {
         };
         ui.register_control(PROBE, area, focus);
         // `state_override` replaces the runtime state (A11: render a forced state)
-        let mut live = if f.state_override.is_empty() {
+        let forced = f.forced();
+        let mut live = if forced.is_empty() {
             ui.state(PROBE)
         } else {
-            f.state_override
+            forced
         };
         if f.disabled {
             live |= StateFlags::DISABLED;
@@ -134,8 +139,13 @@ impl Conformance for ProbeCase {
             width: 1.min(area.width),
             ..area
         };
-        if let Some(g) = gutter.glyph {
-            ui.glyph(gutter_cell, g, gutter.style);
+        match gutter.glyph {
+            Slot::Set(g) => {
+                ui.glyph(gutter_cell, g, gutter.style);
+            }
+            Slot::Inherit | Slot::Clear => {
+                ui.fill(gutter_cell, gutter.style);
+            }
         }
         let label = style_for(ui, Part::LABEL);
         let mut text = Rect {
@@ -144,7 +154,7 @@ impl Conformance for ProbeCase {
             ..area
         };
         text.height = 1.min(area.height);
-        if label.glyph == Some(GlyphRole::PressLeft) {
+        if matches!(label.glyph, Slot::Set(GlyphRole::PressLeft)) {
             let used = ui.glyph(text, GlyphRole::PressLeft, label.style);
             text.x = text.x.saturating_add(used);
             text.width = text.width.saturating_sub(used);
@@ -182,6 +192,9 @@ impl Conformance for ProbeCase {
         ];
         &STATES
     }
+    fn mono_narrowing_reason() -> &'static str {
+        "SELECTED ERROR WARNING EDITING BUSY ACTIVE: probe exposes no corresponding mono affordance"
+    }
 }
 
 // ───────────────────────────── Slice 4 cases ─────────────────────────────
@@ -215,17 +228,17 @@ impl Conformance for ButtonCase {
     fn update(cx: &mut Cx<'_>, _st: &mut (), f: &Fixture) -> Response<Activated> {
         Button::new(BTN, "Probe")
             .disabled(f.disabled)
-            .status(f.status)
+            .status(f.status())
             .update(cx)
     }
 
     fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
         let mut b = Button::new(BTN, "Probe")
             .disabled(f.disabled)
-            .status(f.status)
+            .status(f.status())
             .patch_part(patch_of(f));
-        if !f.state_override.is_empty() {
-            b = b.state_override(f.state_override);
+        if !f.forced().is_empty() {
+            b = b.state_override(f.forced());
         }
         b.draw(ui, area);
     }
@@ -253,6 +266,9 @@ impl Conformance for ButtonCase {
         ];
         &STATES
     }
+    fn mono_narrowing_reason() -> &'static str {
+        "SELECTED ERROR WARNING EDITING ACTIVE: Button has no collection, validation, edit, or active-item state"
+    }
 }
 
 const INPUT: Id = Id::root("conformance.text_input");
@@ -278,13 +294,13 @@ fn text_input(id: Id, f: &Fixture) -> TextInput<'_> {
         .disabled(f.disabled)
         .read_only(f.read_only)
         .placeholder("Type here")
-        .status(f.status)
+        .status(f.status())
         .patch_part(patch_of(f));
     if f.secret.is_some() {
         t = t.secret(tui_next::SecretPolicy::default());
     }
-    if !f.state_override.is_empty() {
-        t = t.state_override(f.state_override);
+    if !f.forced().is_empty() {
+        t = t.state_override(f.forced());
     }
     t
 }
@@ -307,7 +323,7 @@ impl Conformance for TextInputCase {
     const FAMILY: Family = Family::INPUT;
     const PARTS: &'static [Part] = TextInput::PARTS;
     type State = InputState;
-    type Action = tui_next::TextAction;
+    type Action = TextAction;
     type Cmd = TextCmd;
 
     fn caps() -> Caps {
@@ -323,7 +339,7 @@ impl Conformance for TextInputCase {
         INPUT
     }
 
-    fn update(cx: &mut Cx<'_>, st: &mut InputState, f: &Fixture) -> Response<tui_next::TextAction> {
+    fn update(cx: &mut Cx<'_>, st: &mut InputState, f: &Fixture) -> Response<TextAction> {
         text_input(INPUT, f).update(cx, &mut st.st, &mut st.value)
     }
 
@@ -356,6 +372,9 @@ impl Conformance for TextInputCase {
         ];
         &STATES
     }
+    fn mono_narrowing_reason() -> &'static str {
+        "SELECTED PRESSED WARNING ACTIVE: TextInput has no selection, press, warning, or active-item affordance"
+    }
 }
 
 const FIELD_INPUT: Id = Id::root("conformance.field");
@@ -368,7 +387,7 @@ impl Conformance for FieldCase {
     const FAMILY: Family = Family::FIELD;
     const PARTS: &'static [Part] = Field::<TextInput<'static>>::PARTS;
     type State = InputState;
-    type Action = tui_next::TextAction;
+    type Action = TextAction;
     type Cmd = TextCmd;
 
     fn caps() -> Caps {
@@ -379,12 +398,12 @@ impl Conformance for FieldCase {
         FIELD_INPUT
     }
 
-    fn update(cx: &mut Cx<'_>, st: &mut InputState, f: &Fixture) -> Response<tui_next::TextAction> {
+    fn update(cx: &mut Cx<'_>, st: &mut InputState, f: &Fixture) -> Response<TextAction> {
         text_input(FIELD_INPUT, f).update(cx, &mut st.st, &mut st.value)
     }
 
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &InputState, f: &Fixture) {
-        let error = f.state_override.contains(StateFlags::ERROR);
+        let error = f.forced().contains(StateFlags::ERROR);
         let mut field = Field::new(
             "Label",
             text_input(FIELD_INPUT, f).value(shown_value(st, f)),
@@ -393,8 +412,8 @@ impl Conformance for FieldCase {
         .help("Help text")
         .error(error.then_some("Something is wrong"))
         .patch_part(patch_of(f));
-        if !f.state_override.is_empty() {
-            field = field.state_override(f.state_override);
+        if !f.forced().is_empty() {
+            field = field.state_override(f.forced());
         }
         field.draw(ui, area, &st.st);
     }
@@ -417,6 +436,9 @@ impl Conformance for FieldCase {
         ];
         &STATES
     }
+    fn mono_narrowing_reason() -> &'static str {
+        "SELECTED PRESSED WARNING BUSY ACTIVE: Field has no collection, press, warning, readiness, or active-item affordance"
+    }
 }
 
 const LIST: Id = Id::root("conformance.list");
@@ -428,6 +450,10 @@ fn row_key(r: &FixtureRow) -> ItemKey {
 fn row_paint(r: &FixtureRow, u: &mut RowUi<'_>) {
     u.label(&r.label);
     u.meta(&r.meta);
+}
+
+fn row_label(r: &FixtureRow, u: &mut RowUi<'_>) {
+    u.label(&r.label);
 }
 
 fn row_disabled(r: &FixtureRow) -> bool {
@@ -445,10 +471,10 @@ fn list(f: &Fixture) -> FixtureList<'_> {
         .key(key)
         .row(row)
         .disabled_item(disabled)
-        .status(f.status)
+        .status(f.status())
         .patch_part(patch_of(f));
-    if !f.state_override.is_empty() {
-        l = l.state_override(f.state_override);
+    if !f.forced().is_empty() {
+        l = l.state_override(f.forced());
     }
     l
 }
@@ -528,6 +554,9 @@ impl Conformance for ListCase {
         ];
         &STATES
     }
+    fn mono_narrowing_reason() -> &'static str {
+        "EDITING BUSY ACTIVE: List has no edit or readiness affordance, and active is represented by the selected row"
+    }
 }
 
 const TABS: Id = Id::root("conformance.tabs");
@@ -547,10 +576,10 @@ fn tabs(f: &Fixture) -> FixtureTabs<'_> {
         .key(key)
         .row(row)
         .closable(true)
-        .status(f.status)
+        .status(f.status())
         .patch_part(patch_of(f));
-    if !f.state_override.is_empty() {
-        t = t.state_override(f.state_override);
+    if !f.forced().is_empty() {
+        t = t.state_override(f.forced());
     }
     t
 }
@@ -632,6 +661,9 @@ impl Conformance for TabsCase {
         ];
         &STATES
     }
+    fn mono_narrowing_reason() -> &'static str {
+        "ERROR WARNING EDITING BUSY ACTIVE: Tabs has no validation, edit, readiness, or independent active-state affordance"
+    }
 }
 
 const LAUNCH: Id = Id::root("conformance.dialog.launch");
@@ -673,21 +705,25 @@ impl Conformance for DialogCase {
             return Response::action(DialogAction::Action(K_OPEN)).for_id(LAUNCH);
         }
         let mut r = launch.erase();
+        let d = dialog(f).update(cx, st);
         if cx.is_open(DLG) {
-            let d = dialog(f).update(cx, st);
             if let Some(DialogAction::Action(_)) = d.action_ref() {
                 cx.close_layer(DLG, Some(ActionKey::CONFIRM));
             }
             return d;
         }
+        if d.action_ref().is_some() {
+            return d;
+        }
+        r |= d.erase();
         r |= Response::ignored();
         r.map_action(|()| DialogAction::Action(K_OPEN))
     }
 
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &tui_next::DialogState, f: &Fixture) {
         let mut b = Button::new(LAUNCH, "Open");
-        if !f.state_override.is_empty() {
-            b = b.state_override(f.state_override);
+        if !f.forced().is_empty() {
+            b = b.state_override(f.forced());
         }
         let used = b.draw(ui, area);
         let below = Rect {
@@ -725,6 +761,18 @@ impl Conformance for DialogCase {
         ];
         &STATES
     }
+    fn mono_narrowing_reason() -> &'static str {
+        "SELECTED DISABLED ERROR WARNING EDITING BUSY ACTIVE: every symbol this case compares belongs \
+         to the launcher `Button` — `id()` is LAUNCH and `draw` forces state on the button alone, \
+         while the `Dialog` is drawn unforced — so the states below are narrowed off the *launcher*, \
+         not off `Dialog`. SELECTED, EDITING and ACTIVE name nothing a modal can be, and DISABLED \
+         belongs to its action buttons, which are their own `ButtonCase`. ERROR, WARNING and BUSY \
+         are narrowed **temporarily**: §11.4 makes readiness a component obligation and `Dialog` \
+         paints neither MARKER nor ICON, so widening this fixture today would only compare identical \
+         frames. That is a named obligation on `Dialog` (slice 4 package 4F), not a permanent \
+         exemption — when `Dialog` paints a readiness affordance, this case forces the dialog rather \
+         than the launcher and ERROR, WARNING and BUSY come back here."
+    }
 }
 
 const SCROLL: Id = Id::root("conformance.scroll_region");
@@ -755,8 +803,8 @@ impl Conformance for ScrollRegionCase {
 
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &ScrollState, f: &Fixture) {
         let mut sr = ScrollRegion::new(SCROLL).patch_part(patch_of(f));
-        if !f.state_override.is_empty() {
-            sr = sr.state_override(f.state_override);
+        if !f.forced().is_empty() {
+            sr = sr.state_override(f.forced());
         }
         let content = sr.draw(ui, area, st, SCROLL_ROWS);
         let view = ScrollRegion::view(st, content, SCROLL_ROWS);
@@ -780,9 +828,20 @@ impl Conformance for ScrollRegionCase {
         PartRef::of(Part::THUMB)
     }
 
+    /// `PRESSED` is **kept**, and that is the whole point of the case: a
+    /// `Caps::CAPTURES` component holds `PRESSED` for the life of a thumb
+    /// drag, and §11.4's `(THUMB, PRESSED, add(BOLD))` mono rule exists to
+    /// keep that drag visible without hue. Narrowing it away left the rule
+    /// unexecuted.
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 1] = [StateFlags::empty()];
+        const STATES: [StateFlags; 2] = [StateFlags::empty(), StateFlags::PRESSED];
         &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED DISABLED ERROR WARNING EDITING BUSY ACTIVE: a scroll region is never a focus \
+         stop and registers no ring entry; it paints only TRACK and THUMB, and no §11.4 rule binds either \
+         for those states. PRESSED is kept: Caps::CAPTURES means a live thumb capture holds PRESSED, and \
+         the §11.4 THUMB/PRESSED mono rule gives it BOLD."
     }
 }
 
@@ -824,6 +883,1025 @@ impl Conformance for PropsCase {
         const STATES: [StateFlags; 1] = [StateFlags::empty()];
         &STATES
     }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE: Props is a stateless label/value surface"
+    }
+}
+
+const TEXT_AREA: Id = Id::root("conformance.text_area");
+const TEXT_AREA_SETTLE: Id = Id::root("conformance.text_area.settle");
+const TEXT_AREA_VALUE: &str = "The quick brown fox";
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct TextAreaCaseState {
+    st: TextAreaState,
+    value: String,
+}
+
+impl Default for TextAreaCaseState {
+    fn default() -> Self {
+        TextAreaCaseState {
+            st: TextAreaState::default(),
+            value: TEXT_AREA_VALUE.to_owned(),
+        }
+    }
+}
+
+fn text_area(f: &Fixture) -> TextArea<'_> {
+    let mut t = TextArea::new(TEXT_AREA, 4)
+        .placeholder("Type here")
+        .disabled(f.disabled)
+        .read_only(f.read_only)
+        .status(f.status())
+        .patch_part(patch_of(f));
+    if !f.forced().is_empty() {
+        t = t.state_override(f.forced());
+    }
+    t
+}
+
+/// `TextArea`: multiline editing, scrolling and the hardware cursor.
+struct TextAreaCase;
+
+impl Conformance for TextAreaCase {
+    const NAME: &'static str = "text_area";
+    const FAMILY: Family = Family::TEXTAREA;
+    const PARTS: &'static [Part] = TextArea::PARTS;
+    type State = TextAreaCaseState;
+    type Action = TextAction;
+    type Cmd = TextCmd;
+
+    fn caps() -> Caps {
+        Caps::FOCUSABLE
+            | Caps::EDITS
+            | Caps::CURSOR
+            | Caps::TYPES
+            | Caps::SCROLLS
+            | Caps::DISABLEABLE
+    }
+
+    fn id() -> Id {
+        TEXT_AREA
+    }
+
+    fn update(cx: &mut Cx<'_>, st: &mut TextAreaCaseState, f: &Fixture) -> Response<TextAction> {
+        text_area(f).update(cx, &mut st.st, &mut st.value)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &TextAreaCaseState, f: &Fixture) {
+        if !area.is_empty() {
+            // Keep the first harness focus stop outside the editor so `tab_to`
+            // delivers FocusIn before the cursor assertion runs.
+            let settle = Rect {
+                width: 1.min(area.width),
+                height: 1.min(area.height),
+                ..area
+            };
+            ui.register_control(TEXT_AREA_SETTLE, settle, Focusability::Focusable);
+        }
+        text_area(f).value(&st.value).draw(ui, area, &st.st);
+    }
+
+    fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
+        TextArea::new(TEXT_AREA, 4).bindings(s)
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 5] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::EDITING,
+            StateFlags::DISABLED,
+            StateFlags::ERROR,
+        ];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "SELECTED PRESSED WARNING BUSY ACTIVE: TextArea has no selection, press, warning, readiness, or active-item affordance"
+    }
+}
+
+const SELECT: Id = Id::root("conformance.select");
+
+type FixtureSelect<'a> =
+    Select<'a, FixtureRow, fn(&FixtureRow) -> ItemKey, fn(&FixtureRow, &mut RowUi<'_>)>;
+
+fn select(f: &Fixture) -> FixtureSelect<'_> {
+    let key: fn(&FixtureRow) -> ItemKey = row_key;
+    let row: fn(&FixtureRow, &mut RowUi<'_>) = row_label;
+    let mut s = Select::new(SELECT)
+        .key(key)
+        .row(row)
+        .placeholder("Choose a person")
+        .popup_rows(5)
+        .disabled(f.disabled)
+        .read_only(f.read_only)
+        .patch_part(patch_of(f));
+    if !f.forced().is_empty() {
+        s = s.state_override(f.forced());
+    }
+    s
+}
+
+/// A select that already carries a committed value, so the closed field
+/// paints its label through `RowUi` and the mono `(LABEL, …)` rules have a
+/// text run to reach. `SelectState::default()` has no value and shows the
+/// placeholder, which no mono state rule touches — the same reason
+/// `TextInputCase` shows a fixture row instead of an empty value.
+#[derive(Clone, Debug, PartialEq)]
+struct ChosenSelect(SelectState);
+
+impl Default for ChosenSelect {
+    fn default() -> Self {
+        let mut st = SelectState::default();
+        st.set_value(Some(ItemKey::num(100)));
+        ChosenSelect(st)
+    }
+}
+
+/// `Select`: a one-row field that opens a keyed popover.
+///
+/// `OVERLAY` without `TRAPS_FOCUS` is §29.6 verbatim: the `LayerSpec::popover`
+/// is a pointer barrier, the field keeps the one focus stop while the popup is
+/// open, so case 14 checks the open/Esc/restore half and skips the trap half.
+///
+/// `COLLECTION` is **not** declared, and that is not a narrowing of a state
+/// the component wears: case 12 addresses rows through
+/// `PartRef::item(Part::ROW, k)`, and `Select` registers those regions only
+/// inside the open popover layer. Nothing in the driver or in `SelectState`'s
+/// public API can open that layer before the case's first click —
+/// `SelectState::open` is private and `Select::open` runs only from a
+/// delivered intent. `SELECTED` is kept in [`SelectCase::mono_states`]
+/// regardless, so no mono state is lost by the omission.
+struct SelectCase;
+
+impl Conformance for SelectCase {
+    const NAME: &'static str = "select";
+    const FAMILY: Family = Family::SELECT;
+    const PARTS: &'static [Part] = Select::<'static, FixtureRow>::PARTS;
+    type State = ChosenSelect;
+    type Action = SelectAction;
+    type Cmd = SelectCmd;
+
+    fn caps() -> Caps {
+        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::DISABLEABLE | Caps::OVERLAY
+    }
+
+    fn id() -> Id {
+        SELECT
+    }
+
+    fn update(cx: &mut Cx<'_>, st: &mut ChosenSelect, f: &Fixture) -> Response<SelectAction> {
+        select(f).update(cx, &mut st.0, &f.rows)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &ChosenSelect, f: &Fixture) {
+        select(f).draw(ui, area, &st.0, &f.rows);
+    }
+
+    fn activation_chords() -> &'static [Chord] {
+        const CHORDS: [Chord; 2] = [Chord::key(KeyCode::Enter), Chord::key(KeyCode::Char(' '))];
+        &CHORDS
+    }
+
+    fn activation_part() -> PartRef {
+        PartRef::of(Part::FIELD)
+    }
+
+    fn bindings(s: BindingState) -> &'static [Binding<SelectCmd>] {
+        Select::<FixtureRow>::new(SELECT).bindings(s)
+    }
+
+    fn action_key_of(a: &SelectAction) -> Option<ItemKey> {
+        match a {
+            SelectAction::Chose(k) => Some(*k),
+            SelectAction::Opened | SelectAction::Closed => None,
+        }
+    }
+
+    fn row_part(k: ItemKey) -> PartRef {
+        PartRef::item(Part::ROW, k)
+    }
+
+    fn layer_id() -> Option<Id> {
+        Some(SELECT)
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 7] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::SELECTED,
+            StateFlags::PRESSED,
+            StateFlags::DISABLED,
+            StateFlags::ERROR,
+            StateFlags::WARNING,
+        ];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "EDITING BUSY ACTIVE: Select commits a value instead of editing text, \
+         takes no readiness status, and reaches ACTIVE only through the same \
+         (LABEL, BOLD) mono rule as PRESSED"
+    }
+}
+
+const RADIO: Id = Id::root("conformance.radio_group");
+
+type FixtureRadio<'a> =
+    RadioGroup<'a, FixtureRow, fn(&FixtureRow) -> ItemKey, fn(&FixtureRow, &mut RowUi<'_>)>;
+
+fn radio(f: &Fixture) -> FixtureRadio<'_> {
+    let key: fn(&FixtureRow) -> ItemKey = row_key;
+    let row: fn(&FixtureRow, &mut RowUi<'_>) = row_label;
+    let mut r = RadioGroup::new(RADIO)
+        .key(key)
+        .row(row)
+        .disabled(f.disabled)
+        .read_only(f.read_only)
+        .patch_part(patch_of(f));
+    if f.forced().contains(StateFlags::SELECTED) {
+        r = r.value(ItemKey::num(100));
+    }
+    if !f.forced().is_empty() {
+        r = r.state_override(f.forced());
+    }
+    r
+}
+
+/// `RadioGroup`: keyed options with a cursor separate from the value.
+struct RadioGroupCase;
+
+impl Conformance for RadioGroupCase {
+    const NAME: &'static str = "radio_group";
+    const FAMILY: Family = Family::CHOICE;
+    const PARTS: &'static [Part] = FixtureRadio::<'static>::PARTS;
+    type State = RadioGroupState;
+    type Action = RadioGroupAction;
+    type Cmd = ChoiceCmd;
+
+    fn caps() -> Caps {
+        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::COLLECTION | Caps::DISABLEABLE
+    }
+
+    fn id() -> Id {
+        RADIO
+    }
+
+    fn update(
+        cx: &mut Cx<'_>,
+        st: &mut RadioGroupState,
+        f: &Fixture,
+    ) -> Response<RadioGroupAction> {
+        radio(f).update(cx, st, &f.rows)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, f: &Fixture) {
+        radio(f).draw(ui, area, st, &f.rows);
+    }
+
+    fn activation_chords() -> &'static [Chord] {
+        const CHORDS: [Chord; 2] = [Chord::key(KeyCode::Enter), Chord::key(KeyCode::Char(' '))];
+        &CHORDS
+    }
+
+    fn activation_part() -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::num(100))
+    }
+
+    fn bindings(s: BindingState) -> &'static [Binding<ChoiceCmd>] {
+        RadioGroup::<FixtureRow>::new(RADIO).bindings(s)
+    }
+
+    fn item_keys(f: &Fixture) -> Vec<ItemKey> {
+        f.rows.iter().map(|r| r.key).collect()
+    }
+
+    fn reorder(f: &mut Fixture, perm: &[usize]) {
+        let rows = f.rows.clone();
+        f.rows = perm.iter().filter_map(|&i| rows.get(i).cloned()).collect();
+    }
+
+    fn action_key_of(a: &RadioGroupAction) -> Option<ItemKey> {
+        match a {
+            RadioGroupAction::Chose(k) => Some(*k),
+        }
+    }
+
+    fn row_part(k: ItemKey) -> PartRef {
+        PartRef::item(Part::ROW, k)
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 5] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::SELECTED,
+            StateFlags::PRESSED,
+            StateFlags::DISABLED,
+        ];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "ERROR WARNING EDITING BUSY ACTIVE: RadioGroup has no validation, warning, edit, readiness, or independent active state"
+    }
+}
+
+const CHECKBOX: Id = Id::root("conformance.checkbox");
+
+fn checkbox(f: &Fixture) -> Checkbox<'_> {
+    let mut c = Checkbox::new(CHECKBOX, "Accept terms")
+        .checked(f.forced().contains(StateFlags::SELECTED))
+        .read_only(f.read_only)
+        .disabled(f.disabled)
+        .patch_part(patch_of(f));
+    if !f.forced().is_empty() {
+        c = c.state_override(f.forced());
+    }
+    c
+}
+
+/// `Checkbox`: a controlled boolean choice.
+struct CheckboxCase;
+
+impl Conformance for CheckboxCase {
+    const NAME: &'static str = "checkbox";
+    const FAMILY: Family = Family::CHOICE;
+    const PARTS: &'static [Part] = Checkbox::PARTS;
+    type State = ();
+    type Action = Activated;
+    type Cmd = ChoiceCmd;
+
+    fn caps() -> Caps {
+        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::DISABLEABLE
+    }
+
+    fn id() -> Id {
+        CHECKBOX
+    }
+
+    fn update(cx: &mut Cx<'_>, _st: &mut (), f: &Fixture) -> Response<Activated> {
+        let mut value = false;
+        checkbox(f).update(cx, &mut value)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        checkbox(f).draw(ui, area);
+    }
+
+    fn activation_chords() -> &'static [Chord] {
+        const CHORDS: [Chord; 2] = [Chord::key(KeyCode::Enter), Chord::key(KeyCode::Char(' '))];
+        &CHORDS
+    }
+
+    fn bindings(s: BindingState) -> &'static [Binding<ChoiceCmd>] {
+        Checkbox::new(CHECKBOX, "").bindings(s)
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 5] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::PRESSED,
+            StateFlags::DISABLED,
+            StateFlags::SELECTED,
+        ];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "ERROR WARNING EDITING BUSY ACTIVE: Checkbox has no validation, warning, edit, readiness, or active-item state"
+    }
+}
+
+const TOGGLE: Id = Id::root("conformance.toggle");
+
+fn toggle(f: &Fixture) -> Toggle<'_> {
+    let mut t = Toggle::new(TOGGLE, "Notifications")
+        .on(f.forced().contains(StateFlags::SELECTED))
+        .read_only(f.read_only)
+        .disabled(f.disabled)
+        .patch_part(patch_of(f));
+    if !f.forced().is_empty() {
+        t = t.state_override(f.forced());
+    }
+    t
+}
+
+/// `Toggle`: a controlled switch.
+struct ToggleCase;
+
+impl Conformance for ToggleCase {
+    const NAME: &'static str = "toggle";
+    const FAMILY: Family = Family::CHOICE;
+    const PARTS: &'static [Part] = Toggle::PARTS;
+    type State = ();
+    type Action = Activated;
+    type Cmd = ChoiceCmd;
+
+    fn caps() -> Caps {
+        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::DISABLEABLE
+    }
+
+    fn id() -> Id {
+        TOGGLE
+    }
+
+    fn update(cx: &mut Cx<'_>, _st: &mut (), f: &Fixture) -> Response<Activated> {
+        let mut value = false;
+        toggle(f).update(cx, &mut value)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        toggle(f).draw(ui, area);
+    }
+
+    fn activation_chords() -> &'static [Chord] {
+        const CHORDS: [Chord; 2] = [Chord::key(KeyCode::Enter), Chord::key(KeyCode::Char(' '))];
+        &CHORDS
+    }
+
+    fn bindings(s: BindingState) -> &'static [Binding<ChoiceCmd>] {
+        Toggle::new(TOGGLE, "").bindings(s)
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 5] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::PRESSED,
+            StateFlags::DISABLED,
+            StateFlags::SELECTED,
+        ];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "ERROR WARNING EDITING BUSY ACTIVE: Toggle has no validation, warning, edit, readiness, or active-item state"
+    }
+}
+
+const CHIP_BAR: Id = Id::root("conformance.chip_bar");
+
+type FixtureChips<'a> =
+    ChipBar<'a, FixtureRow, fn(&FixtureRow) -> ItemKey, fn(&FixtureRow, &mut RowUi<'_>)>;
+
+fn chip_bar(f: &Fixture) -> FixtureChips<'_> {
+    let key: fn(&FixtureRow) -> ItemKey = row_key;
+    let row: fn(&FixtureRow, &mut RowUi<'_>) = row_label;
+    let mut c = ChipBar::new(CHIP_BAR)
+        .key(key)
+        .row(row)
+        .select_mode(SelectMode::Single)
+        .disabled(f.disabled)
+        .read_only(f.read_only)
+        .patch_part(patch_of(f));
+    if !f.forced().is_empty() {
+        c = c.state_override(f.forced());
+    }
+    c
+}
+
+/// `ChipBar`: a keyed, single-activation chip strip.
+struct ChipBarCase;
+
+impl Conformance for ChipBarCase {
+    const NAME: &'static str = "chip_bar";
+    const FAMILY: Family = Family::CHIP;
+    const PARTS: &'static [Part] = FixtureChips::<'static>::PARTS;
+    type State = tui_next::ChipBarState;
+    type Action = ChipBarAction;
+    type Cmd = ChipBarCmd;
+
+    fn caps() -> Caps {
+        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::COLLECTION | Caps::DISABLEABLE
+    }
+
+    fn id() -> Id {
+        CHIP_BAR
+    }
+
+    fn update(
+        cx: &mut Cx<'_>,
+        st: &mut tui_next::ChipBarState,
+        f: &Fixture,
+    ) -> Response<ChipBarAction> {
+        chip_bar(f).update(cx, st, &f.rows)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &tui_next::ChipBarState, f: &Fixture) {
+        chip_bar(f).draw(ui, area, st, &f.rows);
+    }
+
+    fn activation_chords() -> &'static [Chord] {
+        const CHORDS: [Chord; 1] = [Chord::key(KeyCode::Enter)];
+        &CHORDS
+    }
+
+    fn activation_part() -> PartRef {
+        PartRef::item(Part::LABEL, ItemKey::num(100))
+    }
+
+    fn bindings(s: BindingState) -> &'static [Binding<ChipBarCmd>] {
+        ChipBar::<FixtureRow>::new(CHIP_BAR)
+            .select_mode(SelectMode::Single)
+            .bindings(s)
+    }
+
+    fn item_keys(f: &Fixture) -> Vec<ItemKey> {
+        f.rows.iter().map(|r| r.key).collect()
+    }
+
+    fn reorder(f: &mut Fixture, perm: &[usize]) {
+        let rows = f.rows.clone();
+        f.rows = perm.iter().filter_map(|&i| rows.get(i).cloned()).collect();
+    }
+
+    fn action_key_of(a: &ChipBarAction) -> Option<ItemKey> {
+        match a {
+            ChipBarAction::Toggled(k) | ChipBarAction::Closed(k) | ChipBarAction::Activated(k) => {
+                Some(*k)
+            }
+        }
+    }
+
+    fn row_part(k: ItemKey) -> PartRef {
+        PartRef::item(Part::LABEL, k)
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 5] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::SELECTED,
+            StateFlags::PRESSED,
+            StateFlags::DISABLED,
+        ];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "ERROR WARNING EDITING BUSY ACTIVE: ChipBar has no validation, warning, edit, readiness, or independent active state"
+    }
+}
+
+const STATUS_BAR: Id = Id::root("conformance.status_bar");
+const STATUS_LEFT: [StatusItem<'static>; 2] = [
+    StatusItem::new("Workspace").strong(),
+    StatusItem::new("main").key(ItemKey::num(1)),
+];
+const STATUS_CENTER: [StatusItem<'static>; 1] = [StatusItem::new("Ready")];
+const STATUS_RIGHT: [StatusItem<'static>; 1] = [StatusItem::new("0 changes").key(ItemKey::num(2))];
+
+fn status_bar(f: &Fixture) -> StatusBar<'_> {
+    let mut s = StatusBar::new(STATUS_BAR)
+        .left(&STATUS_LEFT)
+        .center(&STATUS_CENTER)
+        .right(&STATUS_RIGHT)
+        .status(f.status())
+        .patch_part(patch_of(f));
+    // `Overrides::flags` is `self.state.unwrap_or(live)`, so an unconditional
+    // `.state_override(StateFlags::empty())` does not mean "force nothing" —
+    // it means "force the empty state", erasing the flags the component
+    // derived for itself. Every case guards the call for that reason.
+    if !f.forced().is_empty() {
+        s = s.state_override(f.forced());
+    }
+    s
+}
+
+/// `StatusBar`: stateless priority-ordered status items.
+struct StatusBarCase;
+
+impl Conformance for StatusBarCase {
+    const NAME: &'static str = "status_bar";
+    const FAMILY: Family = Family::STATUSBAR;
+    const PARTS: &'static [Part] = StatusBar::PARTS;
+    type State = ();
+    type Action = StatusAction;
+    type Cmd = ButtonCmd;
+
+    fn caps() -> Caps {
+        Caps::REPORTS_STATUS
+    }
+
+    fn id() -> Id {
+        STATUS_BAR
+    }
+
+    fn update(cx: &mut Cx<'_>, _st: &mut (), f: &Fixture) -> Response<StatusAction> {
+        status_bar(f).update(cx)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        status_bar(f).draw(ui, area);
+    }
+
+    /// `PRESSED` is kept beyond what `Caps::REPORTS_STATUS` requires because
+    /// the strip really can wear it: `LastFrame::state` sets `PRESSED` when
+    /// `snapshot.pressed == Some(id)`, and `StatusBar` registers its
+    /// clickable item regions under its **own** id.
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 5] = [
+            StateFlags::empty(),
+            StateFlags::PRESSED,
+            StateFlags::ERROR,
+            StateFlags::WARNING,
+            StateFlags::BUSY,
+        ];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED DISABLED EDITING ACTIVE: StatusBar registers item regions but no focus-ring \
+         entry, and both FOCUSED and DISABLED are read off the ring, so neither can ever be set on it; \
+         it declares no state of its own, and an item's weight is its `.emphasis` and `.tone(Role)` \
+         rather than a StateFlags bit, so SELECTED, EDITING and ACTIVE name nothing a strip can be. \
+         BUSY, ERROR and WARNING are kept: `StatusBar::readiness` paints a spinner frame into \
+         Part::ICON, the error glyph into Part::MARKER and GlyphRole::Dirty into Part::MARKER, and \
+         the leading glyph also shifts every item right, so the four renderings differ in more than \
+         one cell."
+    }
+}
+
+const HINT_BAR: Id = Id::root("conformance.hint_bar");
+
+/// `HintBar`: derived key hints and a status message.
+struct HintBarCase;
+
+impl Conformance for HintBarCase {
+    const NAME: &'static str = "hint_bar";
+    const FAMILY: Family = Family::HINTBAR;
+    const PARTS: &'static [Part] = HintBar::PARTS;
+    type State = ();
+    type Action = ();
+    type Cmd = ButtonCmd;
+
+    fn caps() -> Caps {
+        Caps::REPORTS_STATUS
+    }
+
+    fn id() -> Id {
+        HINT_BAR
+    }
+
+    fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    chord: Chord::key(KeyCode::Enter),
+                    label: "Open",
+                    priority: 80,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Esc),
+                    label: "Close",
+                    priority: 70,
+                },
+            ],
+            badge: Some("F1"),
+            status: Some(std::borrow::Cow::Borrowed("Ready")),
+            centered: false,
+        };
+        let mut h = HintBar::new(HINT_BAR, &layer)
+            .status(f.status())
+            .patch_part(patch_of(f));
+        if !f.forced().is_empty() {
+            h = h.state_override(f.forced());
+        }
+        h.draw(ui, area);
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 4] = [
+            StateFlags::empty(),
+            StateFlags::ERROR,
+            StateFlags::WARNING,
+            StateFlags::BUSY,
+        ];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED PRESSED DISABLED EDITING ACTIVE: HintBar registers no ring entry and no \
+         region and never calls `Ui::state`, so its live flags are `Status::flags()` alone and no \
+         runtime state can reach it — nothing focuses, presses or disables a bar that owns no \
+         control. A hint is a *label* for a chord another component declared, so SELECTED, EDITING \
+         and ACTIVE have no referent here either. BUSY, ERROR and WARNING are kept: \
+         `HintBar::status_glyph` leads the status message with a spinner frame, the error glyph or \
+         GlyphRole::Dirty, and `status_width` counts that glyph, so it also changes how many hints \
+         fit the row."
+    }
+}
+
+const KEY_HINT: Id = Id::root("conformance.key_hint");
+
+/// `KeyHint`: one fixed-width chord/action pair.
+struct KeyHintCase;
+
+impl Conformance for KeyHintCase {
+    const NAME: &'static str = "key_hint";
+    const FAMILY: Family = Family::KEYHINT;
+    const PARTS: &'static [Part] = KeyHint::PARTS;
+    type State = ();
+    type Action = ();
+    type Cmd = ButtonCmd;
+
+    fn caps() -> Caps {
+        Caps::empty()
+    }
+
+    fn id() -> Id {
+        KEY_HINT
+    }
+
+    fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        let mut h =
+            KeyHint::new(KEY_HINT, Chord::key(KeyCode::Enter), "Open").patch_part(patch_of(f));
+        if !f.forced().is_empty() {
+            h = h.state_override(f.forced());
+        }
+        h.draw(ui, area);
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 1] = [StateFlags::empty()];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE: KeyHint is a stateless key hint"
+    }
+}
+
+const PROGRESS_BAR: Id = Id::root("conformance.progress_bar");
+
+/// `ProgressBar`: determinate progress with readiness status.
+struct ProgressBarCase;
+
+impl Conformance for ProgressBarCase {
+    const NAME: &'static str = "progress_bar";
+    const FAMILY: Family = Family::PROGRESS;
+    const PARTS: &'static [Part] = ProgressBar::PARTS;
+    type State = ();
+    type Action = ();
+    type Cmd = ButtonCmd;
+
+    fn caps() -> Caps {
+        Caps::REPORTS_STATUS
+    }
+
+    fn id() -> Id {
+        PROGRESS_BAR
+    }
+
+    fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        let mut p = ProgressBar::new(PROGRESS_BAR)
+            .label("Uploading")
+            .ratio(0.65)
+            .status(f.status())
+            .patch_part(patch_of(f));
+        if !f.forced().is_empty() {
+            p = p.state_override(f.forced());
+        }
+        p.draw(ui, area);
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 3] = [StateFlags::empty(), StateFlags::ERROR, StateFlags::BUSY];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED PRESSED DISABLED WARNING EDITING ACTIVE: ProgressBar registers no ring \
+         entry and no region, so it never wears a runtime state; it declares no MARKER, so §11.4's \
+         WARNING rule reaches nothing. BUSY and ERROR are kept: derived from .status(Status) and \
+         painted into Part::ICON."
+    }
+}
+
+const SPINNER: Id = Id::root("conformance.spinner");
+
+/// `Spinner`: deterministic frame-driven progress indication.
+struct SpinnerCase;
+
+impl Conformance for SpinnerCase {
+    const NAME: &'static str = "spinner";
+    const FAMILY: Family = Family::PROGRESS;
+    const PARTS: &'static [Part] = Spinner::PARTS;
+    type State = ();
+    type Action = ();
+    type Cmd = ButtonCmd;
+
+    fn caps() -> Caps {
+        Caps::empty()
+    }
+
+    fn id() -> Id {
+        SPINNER
+    }
+
+    fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        let mut s = Spinner::new(SPINNER)
+            .label("Working")
+            .frame(1)
+            .patch_part(patch_of(f));
+        // Unguarded, this overwrote `Spinner::draw`'s own
+        // `ov.flags(StateFlags::BUSY)` with the empty state, so the case
+        // never once rendered a spinner in the state a spinner is.
+        if !f.forced().is_empty() {
+            s = s.state_override(f.forced());
+        }
+        s.draw(ui, area);
+    }
+
+    /// Deliberately **not** `Caps::REPORTS_STATUS`: that capability is the
+    /// obligation to paint §11.4's readiness affordance, and a `Spinner` does
+    /// not paint one — it *is* one.
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 1] = [StateFlags::empty()];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE: Spinner *is* §11.4's \
+         BUSY affordance rather than a component that enters BUSY. `draw` paints a \
+         `design.motion.spinner_frames` frame unconditionally under `ov.flags(StateFlags::BUSY)`, \
+         and which frame it shows is the `.frame(usize)` prop, not a state — so there is no \
+         not-spinning rendering for a second state to be distinguishable from. Nothing can give it \
+         one either: `Spinner` takes no `.status`, registers no ring entry and no region, and its \
+         only parts are ICON and LABEL."
+    }
+}
+
+const METER: Id = Id::root("conformance.meter");
+
+/// `Meter`: a ratio-driven compact meter.
+struct MeterCase;
+
+impl Conformance for MeterCase {
+    const NAME: &'static str = "meter";
+    const FAMILY: Family = Family::METER;
+    const PARTS: &'static [Part] = Meter::PARTS;
+    type State = ();
+    type Action = ();
+    type Cmd = ButtonCmd;
+
+    fn caps() -> Caps {
+        Caps::REPORTS_STATUS
+    }
+
+    fn id() -> Id {
+        METER
+    }
+
+    fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        let mut m = Meter::new(METER)
+            .ratio(0.65)
+            .value("65%")
+            .status(f.status())
+            .patch_part(patch_of(f));
+        if !f.forced().is_empty() {
+            m = m.state_override(f.forced());
+        }
+        m.draw(ui, area);
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 3] = [StateFlags::empty(), StateFlags::ERROR, StateFlags::BUSY];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED PRESSED DISABLED WARNING EDITING ACTIVE: Meter's live flags are \
+         `Status::flags()` alone — it never calls `Ui::state` — and it registers no ring entry and \
+         no region, so no runtime state reaches it; its parts are TRACK, THUMB, LABEL and ICON, with \
+         no MARKER for §11.4's WARNING rule to reach. BUSY and ERROR are kept: `Meter::icon` returns \
+         a `design.motion.spinner_frames` frame while busy and GlyphRole::Error while errored, and \
+         nothing at all at baseline."
+    }
+}
+
+const EMPTY: Id = Id::root("conformance.empty");
+
+fn empty_state(f: &Fixture) -> EmptyState<'static> {
+    match f.status() {
+        Status::Ready => EmptyState::Empty {
+            title: "No results",
+            hint: Some("Try a different filter"),
+        },
+        Status::Busy | Status::Loading => EmptyState::Loading { label: "Loading" },
+        Status::Error => EmptyState::Error {
+            message: "Unable to load",
+            detail: Some("Try again"),
+        },
+        _ => EmptyState::Empty {
+            title: "No results",
+            hint: None,
+        },
+    }
+}
+
+/// `Empty`: the shared empty/loading/error surface.
+struct EmptyCase;
+
+impl Conformance for EmptyCase {
+    const NAME: &'static str = "empty";
+    const FAMILY: Family = Family::EMPTY;
+    const PARTS: &'static [Part] = Empty::PARTS;
+    type State = ();
+    type Action = ();
+    type Cmd = ButtonCmd;
+
+    fn caps() -> Caps {
+        Caps::REPORTS_STATUS
+    }
+
+    fn id() -> Id {
+        EMPTY
+    }
+
+    fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        let mut e = Empty::new(EMPTY, empty_state(f)).patch_part(patch_of(f));
+        if !f.forced().is_empty() {
+            e = e.state_override(f.forced());
+        }
+        e.draw(ui, area);
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 3] = [StateFlags::empty(), StateFlags::ERROR, StateFlags::BUSY];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED PRESSED DISABLED WARNING EDITING ACTIVE: Empty registers no ring entry and \
+         no region and reads no runtime state, so nothing can focus, press, disable or edit it, and \
+         it has no rows to select and no strip to be ACTIVE in. WARNING has no referent either: the \
+         whole input is the `EmptyState` variant, whose arms are Empty, Loading, Partial and Error \
+         and never a warning. BUSY and ERROR are kept, and they are the largest difference in the \
+         suite: `EmptyState::draw` leads Loading/Partial with a spinner frame and Error with \
+         GlyphRole::Error, the title text changes with the arm (`No results` / `Loading` / `Unable \
+         to load`), and Loading has no detail line, so the block goes from three rows to one."
+    }
+}
+
+const BRAND: Id = Id::root("conformance.brand");
+
+/// `Brand`: a non-interactive application lockup.
+struct BrandCase;
+
+impl Conformance for BrandCase {
+    const NAME: &'static str = "brand";
+    const FAMILY: Family = Family::BRAND;
+    const PARTS: &'static [Part] = Brand::PARTS;
+    type State = ();
+    type Action = Activated;
+    type Cmd = ButtonCmd;
+
+    fn caps() -> Caps {
+        Caps::empty()
+    }
+
+    fn id() -> Id {
+        BRAND
+    }
+
+    fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<Activated> {
+        Response::ignored()
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
+        let mut b = Brand::new(BRAND, "Junie")
+            .tagline("Terminal tools")
+            .patch_part(patch_of(f));
+        if !f.forced().is_empty() {
+            b = b.state_override(f.forced());
+        }
+        b.draw(ui, area);
+    }
+
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 1] = [StateFlags::empty()];
+        &STATES
+    }
+    fn mono_narrowing_reason() -> &'static str {
+        "FOCUSED SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE: Brand is a stateless brand surface"
+    }
 }
 
 conformance_suite!(
@@ -836,6 +1914,20 @@ conformance_suite!(
     dialog => DialogCase,
     scroll_region => ScrollRegionCase,
     props => PropsCase,
+    text_area => TextAreaCase,
+    select => SelectCase,
+    radio_group => RadioGroupCase,
+    checkbox => CheckboxCase,
+    toggle => ToggleCase,
+    chip_bar => ChipBarCase,
+    status_bar => StatusBarCase,
+    hint_bar => HintBarCase,
+    key_hint => KeyHintCase,
+    progress_bar => ProgressBarCase,
+    spinner => SpinnerCase,
+    meter => MeterCase,
+    empty => EmptyCase,
+    brand => BrandCase,
 );
 
 /// §16.2 suite-level (MA-8): the states a component's capabilities imply are
@@ -870,6 +1962,51 @@ fn mono_states_required_by_is_a_union() {
     );
 }
 
+/// Every binding table `C` publishes over `states` is conflict-free.
+fn clean<C: Conformance>(states: &[StateFlags]) {
+    for f in states {
+        let st = BindingState { flags: *f };
+        let d = binding_conflicts(C::id(), KeyPhase::Bubble, C::bindings(st));
+        assert!(d.is_empty(), "{}: {d:?}", C::NAME);
+    }
+}
+
+/// One [`clean`] call per registered case: `clean` is generic, so the roster
+/// cannot be a slice. It lives beside the test rather than inside it so that
+/// registering the next component does not push the test over
+/// `clippy::too_many_lines`.
+fn every_registered_table_is_clean() {
+    let states = [
+        StateFlags::empty(),
+        StateFlags::FOCUSED,
+        StateFlags::EDITING,
+        StateFlags::DISABLED,
+    ];
+    clean::<ProbeCase>(&states);
+    clean::<ButtonCase>(&states);
+    clean::<TextInputCase>(&states);
+    clean::<FieldCase>(&states);
+    clean::<ListCase>(&states);
+    clean::<TabsCase>(&states);
+    clean::<DialogCase>(&states);
+    clean::<ScrollRegionCase>(&states);
+    clean::<PropsCase>(&states);
+    clean::<TextAreaCase>(&states);
+    clean::<SelectCase>(&states);
+    clean::<RadioGroupCase>(&states);
+    clean::<CheckboxCase>(&states);
+    clean::<ToggleCase>(&states);
+    clean::<ChipBarCase>(&states);
+    clean::<StatusBarCase>(&states);
+    clean::<HintBarCase>(&states);
+    clean::<KeyHintCase>(&states);
+    clean::<ProgressBarCase>(&states);
+    clean::<SpinnerCase>(&states);
+    clean::<MeterCase>(&states);
+    clean::<EmptyCase>(&states);
+    clean::<BrandCase>(&states);
+}
+
 /// §16.2 suite-level: two **visible** bindings on the same chord in one
 /// phase are a `Diagnostic::BindingConflict`. This is the check that makes
 /// the historically dead grid `Ctrl+D` detectable, so it is asserted twice:
@@ -894,13 +2031,6 @@ fn conflicting_visible_bindings_are_reported() {
             visible: false,
         },
     ];
-    fn clean<C: Conformance>(states: &[StateFlags]) {
-        for f in states {
-            let st = BindingState { flags: *f };
-            let d = binding_conflicts(C::id(), KeyPhase::Bubble, C::bindings(st));
-            assert!(d.is_empty(), "{}: {d:?}", C::NAME);
-        }
-    }
     const CLASH: [Binding<ProbeCmd>; 2] = [
         Binding {
             chord: Chord::key(KeyCode::Char('d')),
@@ -937,21 +2067,7 @@ fn conflicting_visible_bindings_are_reported() {
     assert!(binding_conflicts(OWNER, KeyPhase::Bubble, &ALIAS).is_empty());
 
     // and no registered component publishes a conflicting table
-    let states = [
-        StateFlags::empty(),
-        StateFlags::FOCUSED,
-        StateFlags::EDITING,
-        StateFlags::DISABLED,
-    ];
-    clean::<ProbeCase>(&states);
-    clean::<ButtonCase>(&states);
-    clean::<TextInputCase>(&states);
-    clean::<FieldCase>(&states);
-    clean::<ListCase>(&states);
-    clean::<TabsCase>(&states);
-    clean::<DialogCase>(&states);
-    clean::<ScrollRegionCase>(&states);
-    clean::<PropsCase>(&states);
+    every_registered_table_is_clean();
     // every selection mode and every strip configuration, not just the
     // fixture's own
     for m in [
@@ -989,10 +2105,8 @@ fn draw_registers_nothing_when_it_cannot_draw() {
             Rect::new(4, 4, 0, 6),
             Rect::new(4, 4, 20, 0),
         ] {
-            let f = Fixture {
-                area,
-                ..Fixture::default()
-            };
+            let mut f = Fixture::default();
+            f.area = area;
             let mut scene = Scene::new(C::NAME, f.theme.clone(), f.color, 30, 12);
             let st = C::State::default();
             scene.draw(|ui, _| C::draw(ui, area, &st, &f));
@@ -1011,6 +2125,20 @@ fn draw_registers_nothing_when_it_cannot_draw() {
     degenerate::<DialogCase>();
     degenerate::<ScrollRegionCase>();
     degenerate::<PropsCase>();
+    degenerate::<TextAreaCase>();
+    degenerate::<SelectCase>();
+    degenerate::<RadioGroupCase>();
+    degenerate::<CheckboxCase>();
+    degenerate::<ToggleCase>();
+    degenerate::<ChipBarCase>();
+    degenerate::<StatusBarCase>();
+    degenerate::<HintBarCase>();
+    degenerate::<KeyHintCase>();
+    degenerate::<ProgressBarCase>();
+    degenerate::<SpinnerCase>();
+    degenerate::<MeterCase>();
+    degenerate::<EmptyCase>();
+    degenerate::<BrandCase>();
 
     // §26 N1: a zero-size request resolves to `Rect::ZERO`, so the layer's
     // content is clipped away and registers nothing either.
@@ -1107,6 +2235,20 @@ mod registry {
                 "dialog",
                 "scroll_region",
                 "props",
+                "text_area",
+                "select",
+                "radio_group",
+                "checkbox",
+                "toggle",
+                "chip_bar",
+                "status_bar",
+                "hint_bar",
+                "key_hint",
+                "progress_bar",
+                "spinner",
+                "meter",
+                "empty",
+                "brand",
             ]
         );
     }
@@ -1120,5 +2262,19 @@ mod registry {
         check::<ListCase>(&[]);
         check::<TabsCase>(&[]);
         check::<ScrollRegionCase>(&[]);
+        check::<TextAreaCase>(&[]);
+        check::<SelectCase>(&[]);
+        check::<RadioGroupCase>(&[]);
+        check::<CheckboxCase>(&[]);
+        check::<ToggleCase>(&[]);
+        check::<ChipBarCase>(&[]);
+        check::<StatusBarCase>(&[]);
+        check::<HintBarCase>(&[]);
+        check::<KeyHintCase>(&[]);
+        check::<ProgressBarCase>(&[]);
+        check::<SpinnerCase>(&[]);
+        check::<MeterCase>(&[]);
+        check::<EmptyCase>(&[]);
+        check::<BrandCase>(&[]);
     }
 }
