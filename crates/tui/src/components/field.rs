@@ -69,7 +69,7 @@ use crate::ui::{FrameRead, Ui};
 ///
 /// ## Testing
 /// `FieldCase` (over a `TextInput`) with `FOCUSABLE | EDITS | CURSOR |
-/// TYPES`; `render::components::field::*`.
+/// TYPES | DISABLEABLE`; `render::components::field::*`.
 ///
 /// ## Invariants
 /// One id per field (no `DuplicateId`); the chrome never commits, cancels

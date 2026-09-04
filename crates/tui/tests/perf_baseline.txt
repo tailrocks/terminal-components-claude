@@ -30,6 +30,24 @@
 #                                     without colour under a variant that re-declares
 #                                     PRESSED. This is a one-shot theme operation,
 #                                     asserted never to appear in a `frame_*` profile.
+#
+# Added by the Slice 2 prototype package (components), all five §16.6 rows that
+# needed a component to exist:
+#
+#  list_1k_rows_render                the control arm of R1.
+#  list_100k_rows_render              < 500 allocs/frame (measures 0) and ns <= 1.5x
+#                                     the 1 k control; a 5 000-key selection is live so
+#                                     the per-visible-row `KeySet` lookup is in the
+#                                     measurement.
+#  list_100k_select_all               < 100 allocs (measures 0): `ToggledAll` is a
+#                                     set-level operation and never materialises
+#                                     100 000 `ItemKey`s (R7).
+#  event_dispatch_is_not_o_n          0 allocs; the raw 100k-vs-100 ns ratio is
+#                                     reported and asserted only under PERF_STRICT=1.
+#  frame_showcase_buttons_120x40      the migrated showcase Buttons page: nine buttons,
+#                                     two disabled, 0 allocs/frame, 9 hit regions and a
+#                                     7-entry ring.
+#
 #  every ns column                    re-measured on the blessing machine; ns is
 #                                     reported always and asserted only under
 #                                     PERF_STRICT=1, so these are a snapshot, not a

@@ -845,9 +845,17 @@ type PerfKeyFn = fn(&u32) -> tui_next::ItemKey;
 type PerfRowFn = fn(&u32, &mut tui_next::RowUi<'_>);
 
 fn perf_list<'a>() -> List<'a, u32, PerfKeyFn, PerfRowFn> {
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "the `&T` shape is `KeyFn<T>`'s, not a choice this fixture can make"
+    )]
     fn key(r: &u32) -> tui_next::ItemKey {
         tui_next::ItemKey::num(u64::from(*r))
     }
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "the `&T` shape is `RowFn<T>`'s, not a choice this fixture can make"
+    )]
     fn row(r: &u32, u: &mut tui_next::RowUi<'_>) {
         u.gutter();
         u.label_fmt(format_args!("row {r}"));
@@ -860,8 +868,10 @@ fn perf_list<'a>() -> List<'a, u32, PerfKeyFn, PerfRowFn> {
 
 /// One `List::draw` of `rows.len()` rows into a 120x40 scene, with `checked`
 /// keys already selected (the `KeySet` lookup per visible row is what §16.6's
-/// 1.5x bound is really about).
-fn bench_list_render(rows: &[u32], checked: usize) -> Stats {
+/// 1.5x bound is really about). Returns the per-frame stats and the number of
+/// regions the frame registered — the deterministic half of "render cost is a
+/// function of the viewport, not of the collection".
+fn bench_list_render(rows: &[u32], checked: usize) -> (Stats, usize) {
     let mut scene = Scene::new("list", Theme::junie(), ColorLevel::TrueColor, 120, 40);
     let mut st = ListState::default();
     for r in rows.iter().take(checked) {
@@ -871,24 +881,27 @@ fn bench_list_render(rows: &[u32], checked: usize) -> Stats {
     scene.draw(|ui, area| {
         perf_list().draw(ui, area, &st, rows);
     });
-    bench(2, iters(50), &mut || {
+    let s = bench(2, iters(50), &mut || {
         scene.draw(|ui, area| {
             black_box(perf_list().draw(ui, area, &st, rows));
         });
-    })
+    });
+    let regions = scene.registry().map_or(0, Registry::len);
+    (s, regions)
 }
 
 #[test]
 fn list_1k_rows_render() {
     let _g = lock();
     let rows = perf_rows(big(1_000));
-    let s = bench_list_render(&rows, 50);
+    let (s, regions) = bench_list_render(&rows, 50);
     report("list_1k_rows_render", &s);
     assert!(
         s.allocs < 500,
         "the 1 k control must already be flat: {} allocs",
         s.allocs
     );
+    assert!(regions > 0, "the control frame registered nothing");
 }
 
 #[test]
@@ -896,15 +909,25 @@ fn list_100k_rows_render() {
     let _g = lock();
     let small = perf_rows(big(1_000));
     let large = perf_rows(big(100_000));
-    let control = bench_list_render(&small, 50);
-    let s = bench_list_render(&large, 5_000);
+    let (control, control_regions) = bench_list_render(&small, 50);
+    let (s, regions) = bench_list_render(&large, 5_000);
     report("list_100k_rows_render", &s);
     assert!(
         s.allocs < 500,
         "R1: a 100 k list frame must stay under 500 allocations, got {}",
         s.allocs
     );
-    // only the viewport is painted, so a 100x larger list costs the same frame
+    // The binding half of R1 is deterministic, not statistical: only the
+    // viewport is painted, so a hundred-times-larger collection registers the
+    // same regions and paints the same rows. A wall-clock ratio taken from two
+    // adjacent benches on a loaded machine drifts by several x; this does not.
+    assert!(control_regions > 0);
+    assert_eq!(
+        regions, control_regions,
+        "a 100 k list must register exactly what the 1 k list does"
+    );
+    // …and the ns ratio is reported, asserted only under `PERF_STRICT=1` on a
+    // pinned runner, exactly like every other ns bound in this file.
     check_ratio(
         "list_100k_vs_1k_render",
         s.ns,
@@ -988,7 +1011,12 @@ fn list_100k_select_all() {
     // so one more press proves the set-level "everything" is reachable at all
     let _ = rt.handle(toggle());
     assert!(rt.app().st.checked().contains(tui_next::ItemKey::num(99)));
-    assert!(rt.app().st.checked().contains(tui_next::ItemKey::num(99_999)));
+    assert!(
+        rt.app()
+            .st
+            .checked()
+            .contains(tui_next::ItemKey::num(99_999))
+    );
 }
 
 /// Dispatch cost is a function of the **registered** regions, which is a

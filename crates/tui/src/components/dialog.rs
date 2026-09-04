@@ -502,8 +502,8 @@ impl<'a> Dialog<'a> {
         self.width.unwrap_or(d.size.dialog_width)
     }
 
-    /// `border(2) + title(1) + wrapped description + prompt + [blank + body]
-    /// + [blank + actions]` (§26 N1).
+    /// `border(2)` + `title(1)` + the wrapped description + the prompt +
+    /// `[blank + body]` + `[blank + actions]` (§26 N1).
     ///
     /// A pure function of the props and the design tokens, and the number
     /// [`Dialog::draw`] lays out against — the two share
@@ -693,13 +693,11 @@ impl<'a> Dialog<'a> {
                 }
                 let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 1, RowAlign::End);
                 for ((i, a), r) in self.actions.iter().take(n).enumerate().zip(rects) {
-                    let mut b = Button::new(self.action_id(i), a.label())
+                    Button::new(self.action_id(i), a.label())
                         .variant(self.variant_of(a))
-                        .disabled(!self.enabled(i, a, st));
-                    if forced {
-                        b = b.state_override(live);
-                    }
-                    b.draw(ui, r);
+                        .disabled(!self.enabled(i, a, st))
+                        .inherit_forced(ov.forced_state())
+                        .draw(ui, r);
                 }
             }
             Some(out)

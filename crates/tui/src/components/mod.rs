@@ -93,6 +93,25 @@ impl<'a> Overrides<'a> {
         self.state.is_some()
     }
 
+    /// The forced state, if any.
+    pub(crate) const fn forced_state(&self) -> Option<StateFlags> {
+        self.state
+    }
+
+    /// Adopt an owning container's forced state. This is the **composition**
+    /// half of A11: when a forced container draws a child component it owns
+    /// (a `Dialog`'s action buttons), the child must render that state and
+    /// register nothing too, or the reference rendering would put live,
+    /// clickable controls on the page. It is distinct from the public
+    /// `.state_override` builder, which is the showcase / fixture entry
+    /// point and the only way a *caller* can force a state.
+    pub(crate) const fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
+        if s.is_some() {
+            self.state = s;
+        }
+        self
+    }
+
     /// The live flags: the forced state when set, else `live`.
     pub(crate) fn flags(&self, live: StateFlags) -> StateFlags {
         self.state.unwrap_or(live)

@@ -184,12 +184,32 @@ impl App for ButtonsPage {
                 Track::Flex(1),
             ],
         );
-        let gap = ui.design().space.gap;
+        self.draw_playground(ui, rows[0]);
+        ui.rule(rows[1]);
+        ButtonsPage::draw_matrix(ui, rows[2]);
+        if let Some(last) = &self.last {
+            let text = format!("last: {last} · {} activations", self.clicks);
+            ui.with_part(
+                Family::PANEL,
+                Variant::DEFAULT,
+                Part::HELP,
+                StateFlags::empty(),
+                |ui, r| {
+                    let s = r.over(ui.surface_style());
+                    ui.paint_str(rows[3], &text, s);
+                },
+            );
+        }
+    }
+}
 
-        // the interactive playground
-        let mut y = rows[0].y;
+impl ButtonsPage {
+    /// The interactive playground: four captioned groups of real buttons.
+    fn draw_playground(&self, ui: &mut Ui<'_>, area: Rect) {
+        let gap = ui.design().space.gap;
+        let mut y = area.y;
         for (label, idx) in GROUPS {
-            if y + 1 >= rows[0].bottom() {
+            if y + 1 >= area.bottom() {
                 break;
             }
             caption(
@@ -197,7 +217,7 @@ impl App for ButtonsPage {
                 Rect {
                     y,
                     height: 1,
-                    ..rows[0]
+                    ..area
                 },
                 label,
             );
@@ -205,7 +225,7 @@ impl App for ButtonsPage {
                 .iter()
                 .map(|&i| {
                     self.button(i)
-                        .measure(ui, Constraints::loose(rows[0].width, 1))
+                        .measure(ui, Constraints::loose(area.width, 1))
                         .preferred
                         .0
                 })
@@ -213,7 +233,7 @@ impl App for ButtonsPage {
             let line = Rect {
                 y: y + 1,
                 height: 1,
-                ..rows[0]
+                ..area
             };
             for (&i, r) in idx
                 .iter()
@@ -223,23 +243,24 @@ impl App for ButtonsPage {
             }
             y += 3;
         }
+    }
 
-        ui.rule(rows[1]);
-
-        // the reference state matrix (A11): real buttons wearing a forced
-        // state, so it cannot drift from the widget the playground uses
+    /// The reference state matrix (A11): real buttons wearing a forced state,
+    /// so it cannot drift from the widget the playground uses.
+    fn draw_matrix(ui: &mut Ui<'_>, area: Rect) {
         let label_w = 15u16;
         let col_w = 15u16;
+        let col_x = |k: usize| area.x + label_w + col_w * k as u16;
         for (k, (_, name)) in MATRIX_VARIANTS.iter().enumerate() {
-            let x = rows[2].x + label_w + col_w * k as u16;
-            if x + col_w > rows[2].right() {
+            let x = col_x(k);
+            if x + col_w > area.right() {
                 break;
             }
             caption(
                 ui,
                 Rect {
                     x,
-                    y: rows[2].y,
+                    y: area.y,
                     width: col_w,
                     height: 1,
                 },
@@ -247,14 +268,14 @@ impl App for ButtonsPage {
             );
         }
         for (si, (sname, flags)) in MATRIX_STATES.iter().enumerate() {
-            let y = rows[2].y + 1 + si as u16;
-            if y >= rows[2].bottom() {
+            let y = area.y + 1 + si as u16;
+            if y >= area.bottom() {
                 break;
             }
             caption(
                 ui,
                 Rect {
-                    x: rows[2].x,
+                    x: area.x,
                     y,
                     width: label_w,
                     height: 1,
@@ -262,8 +283,8 @@ impl App for ButtonsPage {
                 sname,
             );
             for (k, (variant, _)) in MATRIX_VARIANTS.iter().enumerate() {
-                let x = rows[2].x + label_w + col_w * k as u16;
-                if x + col_w > rows[2].right() {
+                let x = col_x(k);
+                if x + col_w > area.right() {
                     break;
                 }
                 Button::new(MATRIX.index(si).index(k), "Label")
@@ -279,20 +300,6 @@ impl App for ButtonsPage {
                         },
                     );
             }
-        }
-
-        if let Some(last) = &self.last {
-            let text = format!("last: {last} · {} activations", self.clicks);
-            ui.with_part(
-                Family::PANEL,
-                Variant::DEFAULT,
-                Part::HELP,
-                StateFlags::empty(),
-                |ui, r| {
-                    let s = r.over(ui.surface_style());
-                    ui.paint_str(rows[3], &text, s);
-                },
-            );
         }
     }
 }

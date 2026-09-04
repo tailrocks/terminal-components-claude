@@ -18,8 +18,8 @@
 )]
 
 use tui_next::{
-    Button, Color, ColorLevel, Family, Id, Overlay, OverlayRule, Part, PartRef, Position, Rect,
-    Role, StateFlags, StylePatch, Theme, Ui, Variant,
+    Button, Cell, Color, ColorLevel, Family, Id, Overlay, OverlayRule, Part, PartRef, Position,
+    Rect, Role, StateFlags, StylePatch, Theme, Ui, Variant,
 };
 use tui_next_testing::Scene;
 
@@ -38,8 +38,15 @@ fn scene(name: &'static str, theme: Theme) -> Scene {
     Scene::new(name, theme, ColorLevel::TrueColor, 30, 6)
 }
 
+/// What one button's paint call looks like once the id, variant and rect are
+/// bound.
+type PaintOne<'a> = &'a dyn Fn(&mut Ui<'_>);
+/// A scope wrapper: it receives the button's index and the call that paints
+/// it, and may push a `with_overlay` scope around it.
+type Wrap<'a> = &'a dyn Fn(&mut Ui<'_>, usize, PaintOne<'_>);
+
 /// Paint the three buttons; `wrap` receives the index and may push a scope.
-fn paint(ui: &mut Ui<'_>, wrap: &dyn Fn(&mut Ui<'_>, usize, &dyn Fn(&mut Ui<'_>))) {
+fn paint(ui: &mut Ui<'_>, wrap: Wrap<'_>) {
     for (i, (id, variant, rect)) in LAYOUT.iter().enumerate() {
         wrap(ui, i, &|ui: &mut Ui<'_>| {
             Button::new(*id, "Label").variant(*variant).draw(ui, *rect);
@@ -47,7 +54,7 @@ fn paint(ui: &mut Ui<'_>, wrap: &dyn Fn(&mut Ui<'_>, usize, &dyn Fn(&mut Ui<'_>)
     }
 }
 
-fn plain(ui: &mut Ui<'_>, _i: usize, f: &dyn Fn(&mut Ui<'_>)) {
+fn plain(ui: &mut Ui<'_>, _i: usize, f: PaintOne<'_>) {
     f(ui);
 }
 
@@ -241,17 +248,17 @@ fn part_slot_replaces_the_part_and_keeps_hit_regions() {
 
     let r = LAYOUT[1].2;
     assert_eq!(
-        after.buffer().cell((r.x, r.y)).map(|c| c.symbol()),
+        after.buffer().cell((r.x, r.y)).map(Cell::symbol),
         Some("!"),
         "the slot paints the gutter cell"
     );
     assert_ne!(
-        before.buffer().cell((r.x, r.y)).map(|c| c.symbol()),
+        before.buffer().cell((r.x, r.y)).map(Cell::symbol),
         Some("!")
     );
     // the label is still the component's own
     assert_eq!(
-        after.buffer().cell((r.x + 1, r.y)).map(|c| c.symbol()),
+        after.buffer().cell((r.x + 1, r.y)).map(Cell::symbol),
         Some("L")
     );
     // …and the hit regions, the ring entry and the geometry are unchanged

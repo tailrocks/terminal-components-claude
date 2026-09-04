@@ -185,7 +185,7 @@ impl Conformance for ProbeCase {
 // ───────────────────────────── Slice 4 cases ─────────────────────────────
 
 fn patch_of(f: &Fixture) -> &[(Part, StylePatch)] {
-    f.patch.as_ref().map_or(&[], core::slice::from_ref)
+    f.patch.as_slice()
 }
 
 const BTN: Id = Id::root("conformance.button");
@@ -810,6 +810,29 @@ conformance_suite!(
 #[test]
 fn conflicting_visible_bindings_are_reported() {
     const OWNER: Id = Id::root("conformance.bindings");
+    const ALIAS: [Binding<ProbeCmd>; 2] = [
+        Binding {
+            chord: Chord::key(KeyCode::Char('d')),
+            cmd: ProbeCmd::Activate,
+            label: "Delete",
+            priority: 60,
+            visible: true,
+        },
+        Binding {
+            chord: Chord::key(KeyCode::Char('d')),
+            cmd: ProbeCmd::Activate,
+            label: "Delete",
+            priority: 10,
+            visible: false,
+        },
+    ];
+    fn clean<C: Conformance>(states: &[StateFlags]) {
+        for f in states {
+            let st = BindingState { flags: *f };
+            let d = binding_conflicts(C::id(), KeyPhase::Bubble, C::bindings(st));
+            assert!(d.is_empty(), "{}: {d:?}", C::NAME);
+        }
+    }
     const CLASH: [Binding<ProbeCmd>; 2] = [
         Binding {
             chord: Chord::key(KeyCode::Char('d')),
@@ -843,32 +866,9 @@ fn conflicting_visible_bindings_are_reported() {
 
     // a hidden alias on the same chord is not a conflict: every component
     // ships one (Space beside Enter, `j` beside Down)
-    const ALIAS: [Binding<ProbeCmd>; 2] = [
-        Binding {
-            chord: Chord::key(KeyCode::Char('d')),
-            cmd: ProbeCmd::Activate,
-            label: "Delete",
-            priority: 60,
-            visible: true,
-        },
-        Binding {
-            chord: Chord::key(KeyCode::Char('d')),
-            cmd: ProbeCmd::Activate,
-            label: "Delete",
-            priority: 10,
-            visible: false,
-        },
-    ];
     assert!(binding_conflicts(OWNER, KeyPhase::Bubble, &ALIAS).is_empty());
 
     // and no registered component publishes a conflicting table
-    fn clean<C: Conformance>(states: &[StateFlags]) {
-        for f in states {
-            let st = BindingState { flags: *f };
-            let d = binding_conflicts(C::id(), KeyPhase::Bubble, C::bindings(st));
-            assert!(d.is_empty(), "{}: {d:?}", C::NAME);
-        }
-    }
     let states = [
         StateFlags::empty(),
         StateFlags::FOCUSED,
@@ -921,8 +921,10 @@ fn draw_registers_nothing_when_it_cannot_draw() {
             Rect::new(4, 4, 0, 6),
             Rect::new(4, 4, 20, 0),
         ] {
-            let mut f = Fixture::default();
-            f.area = area;
+            let f = Fixture {
+                area,
+                ..Fixture::default()
+            };
             let mut scene = Scene::new(C::NAME, f.theme.clone(), f.color, 30, 12);
             let st = C::State::default();
             scene.draw(|ui, _| C::draw(ui, area, &st, &f));

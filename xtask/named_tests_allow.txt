@@ -63,7 +63,6 @@ view_grid_is_read_only_with_a_reason  # Slices 5-7 — apps/**
 frame_hintbar_derived  # Slices 4-7 — tests/perf.rs
 frame_tablepro_connection_form_120x40  # Slices 4-7 — tests/perf.rs
 frame_tablepro_query_editor_2k_lines  # Slices 4-7 — tests/perf.rs
-list_100k_select_all  # Slices 4-7 — tests/perf.rs
 
 # ── Slice 4 component state machines (`components/*.rs`, work packages 4A–4G) ──
 arrows_move_the_cursor_not_the_value_while_closed  # Slice 4 — components/*.rs

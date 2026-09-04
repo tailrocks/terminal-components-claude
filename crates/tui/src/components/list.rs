@@ -292,8 +292,10 @@ impl Reconcile for ListState {
 /// insert/remove/reorder. Every action carries an `ItemKey`.
 ///
 /// ## Testing
-/// `ListCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SCROLLS |
-/// CAPTURES`; `render::components::list::*`.
+/// `ListCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SCROLLS`;
+/// `render::components::list::*`. `CAPTURES` belongs to the embedded
+/// [`ScrollRegion`], whose thumb claims the capture, and is declared by
+/// `ScrollRegionCase`.
 ///
 /// ## Invariants
 /// `reconcile` runs before any action is emitted; only visible rows invoke

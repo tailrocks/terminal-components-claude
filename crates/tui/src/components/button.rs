@@ -236,6 +236,14 @@ impl<'a> Button<'a> {
         self
     }
 
+    /// Adopt an owning container's forced state (A11 composition, crate
+    /// internal): a `Dialog` drawn as a reference rendering must not leave
+    /// live action buttons behind it.
+    pub(crate) const fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
+        self.ov = self.ov.inherit_forced(s);
+        self
+    }
+
     const fn busy(&self) -> bool {
         matches!(self.status, Status::Busy | Status::Loading)
     }
