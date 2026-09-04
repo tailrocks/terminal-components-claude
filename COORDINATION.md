@@ -290,3 +290,47 @@ each was fixed at its root rather than in `Select`:**
 
 None was worked around, no assertion was weakened, and no conformance case was made to stop
 exercising its component. The registration is sound.
+
+## Incident 7 — a recorded ordering constraint was violated within hours (2026-09-04)
+
+`COMPONENT_ARCHITECTURE.md` §39.4 stated, with reasons, that §39's operator change **must land
+before the §36 first-generation bless**, because landing it after moves twelve truecolor keys —
+which `bless-guard` refuses outright and §20.10's closing clause makes a regression by
+construction — and item 19 may not be cited twice for the same key.
+
+**A parallel lead ran the bless anyway**, committing 920 baseline lines and a
+`docs/visual-changes.md` update in one commit, while §39 was in flight. §39 has now landed and
+the matrix reads 157 passed / **3 failed** — `progress_bar`, `meter` and `hint_bar` at
+`::disabled`, exactly the cells §39.4 named.
+
+**The blessed values for those three cells are wrong.** They were recorded from a tree in which
+the forced-state operator erased the props-derived half, so `progress_bar::disabled` is pinned as
+**a bar that is in error and paints no error glyph** — the precise rendering §39 exists to fix.
+§36.6 warned of this in the abstract: *"blessing today writes them from whatever the code
+currently produces, with no assertion having ever compared them."*
+
+`COORDINATION.md` reserves every `BLESS=1` run to Lane A. That was not honoured.
+
+**Three things now conflict and an adjudication is settling them:** the code is right, the
+baseline is wrong, and the guard forbids the correction.
+
+### What this says about the guard, recorded now rather than after the fix
+
+**`bless-guard` did not prevent it, and could not have.** The bless commit passed the guard,
+because at that moment nothing had *moved* — the keys were *added*. The truecolor refusal
+protects the **second** movement of a key and not the first, **and the first is the one that
+pinned the wrong pixels.**
+
+So the guard's design has a hole that a repository-state check may not be able to close: it
+cannot see that a value was generated from code known to be about to change. Whether that is
+closable at all is part of what is being adjudicated.
+
+### The rule, restated, and the reason it needs more than a rule
+
+**No lane may run `BLESS=1`.** Not "should not" — the ledger is Lane A's single-writer artefact
+and a bless is a repository-wide operation.
+
+But this session has spent itself establishing that **a rule nothing enforces is not a rule**, and
+this is now the seventh incident. A coordination document that has been violated seven times is
+evidence about the mechanism, not about the lanes. The adjudication is being asked what the tree
+needs so this cannot recur — not what the lanes should remember.
