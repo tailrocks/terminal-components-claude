@@ -140,7 +140,6 @@ pub struct CompletionState {
     owner: Option<Id>,
     anchor: Rect,
     replace_len: usize,
-    selected: Option<ItemKey>,
 }
 
 impl CompletionState {
@@ -151,21 +150,6 @@ impl CompletionState {
     /// Current key.
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
-    }
-
-    /// Current committed selection, if the owner has one.
-    pub const fn selected(&self) -> Option<ItemKey> {
-        self.selected
-    }
-
-    /// Point the suggestion cursor at `(index, key)` without accepting it.
-    pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
-        self.core.set_cursor(index, key);
-    }
-
-    /// Set the committed selection without moving the suggestion cursor.
-    pub const fn set_selected(&mut self, key: Option<ItemKey>) {
-        self.selected = key;
     }
     /// Bytes before the editor cursor replaced on acceptance.
     pub const fn replace_len(&self) -> usize {
@@ -438,15 +422,6 @@ impl<'a, T, R> Completion<'a, T, R> {
 }
 
 impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
-    fn reconcile_selected(state: &mut CompletionState, items: &[T]) {
-        if state
-            .selected
-            .is_some_and(|selected| !items.iter().any(|item| item.as_item().key == selected))
-        {
-            state.selected = None;
-        }
-    }
-
     fn key_at(items: &[T], i: usize) -> ItemKey {
         items
             .get(i)
@@ -570,7 +545,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         state: &mut CompletionState,
         items: &[T],
     ) -> Response<CompletionAction> {
-        Self::reconcile_selected(state, items);
         if !state.open {
             return Response::ignored();
         }
@@ -677,11 +651,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                     break;
                 };
                 let semantic = item.as_item();
-                let mut flags =
-                    ui.state(self.id) & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
-                if state.selected == Some(semantic.key) {
-                    flags |= StateFlags::SELECTED;
-                }
+                let mut flags = StateFlags::empty();
                 if state.core.cursor() == Some(semantic.key) {
                     flags |= StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE;
                 }
@@ -980,16 +950,5 @@ mod tests {
         let pressed = Some(PartRef::item(Part::ROW, SECOND));
         assert!(!Completion::<Item<'static>>::pressed_target(pressed, FIRST,));
         assert!(Completion::<Item<'static>>::pressed_target(pressed, SECOND,));
-    }
-
-    #[test]
-    fn selected_key_is_cleared_when_its_item_is_removed() {
-        let mut state = CompletionState::default();
-        state.set_selected(Some(FIRST));
-        Completion::<Item<'static>>::reconcile_selected(&mut state, ITEMS);
-        assert_eq!(state.selected(), Some(FIRST));
-
-        Completion::<Item<'static>>::reconcile_selected(&mut state, &[ITEMS[1]]);
-        assert_eq!(state.selected(), None);
     }
 }

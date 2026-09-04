@@ -475,10 +475,7 @@ impl<'a> Button<'a> {
                 let ms = style(ui, Part::MARKER);
                 let glyph = match ms.glyph {
                     Slot::Set(g) => Some(g),
-                    // A checked button is a semantic selection marker. Keep
-                    // its role stable across truecolor and mono; switches
-                    // own the `SwitchKnob` glyph in `Toggle`.
-                    Slot::Inherit if on => Some(GlyphRole::Checked),
+                    Slot::Inherit if on => Some(GlyphRole::SwitchKnob),
                     Slot::Inherit | Slot::Clear => None,
                 };
                 match glyph {

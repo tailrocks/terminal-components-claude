@@ -86,23 +86,12 @@ const BINDINGS: &[Binding<PickerChainCmd>] = &[
 pub struct PickerChainState {
     current: Option<ItemKey>,
     history: Vec<ItemKey>,
-    selected: Option<ItemKey>,
 }
 
 impl PickerChainState {
     /// Active stage.
     pub const fn current(&self) -> Option<ItemKey> {
         self.current
-    }
-
-    /// Current caller-owned selected stage, if one is supplied.
-    pub const fn selected(&self) -> Option<ItemKey> {
-        self.selected
-    }
-
-    /// Set the selected stage without changing the active stage.
-    pub const fn set_selected(&mut self, key: Option<ItemKey>) {
-        self.selected = key;
     }
 
     /// Enter a stage while retaining the earlier breadcrumb.
@@ -330,8 +319,7 @@ impl<'a> PickerChain<'a> {
             StateFlags::FOCUSED
                 | StateFlags::FOCUS_VISIBLE
                 | StateFlags::HOVERED
-                | StateFlags::PRESSED
-                | StateFlags::SELECTED,
+                | StateFlags::PRESSED,
         );
         ui.publish_bindings(self.id, live, BINDINGS);
         let base = self.ov.style(
@@ -375,7 +363,6 @@ impl<'a> PickerChain<'a> {
                 let runtime_hovered = FrameRead::hovered_part(ui, self.id)
                     == Some(PartRef::item(Part::LABEL, stage.key));
                 let current = st.current == Some(stage.key);
-                let selected = st.selected == Some(stage.key);
                 let ls = self.ov.style(
                     ui,
                     self.id,
@@ -386,11 +373,6 @@ impl<'a> PickerChain<'a> {
                         | if current {
                             StateFlags::ACTIVE
                                 | live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE)
-                        } else {
-                            StateFlags::empty()
-                        }
-                        | if selected {
-                            StateFlags::SELECTED
                         } else {
                             StateFlags::empty()
                         }

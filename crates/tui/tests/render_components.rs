@@ -36,7 +36,7 @@ use tui_next::{
     Chord, CodeEditor, CodeEditorState, ColorLevel, Column, ColumnKey, Completion, CompletionState,
     ContextMenu, Cx, Dialog, DialogState, DiffLineKind, DiffRow, DiffSource, DiffView,
     DiffViewState, Empty, EmptyState, Family, Field, FieldKind, FieldMut, FieldRef, FieldSpec,
-    FilterList, FilterListState, Form, FormData, FormState, GlyphRole, Grid, GridModel, GridState,
+    FilterList, FilterListState, Form, FormData, FormState, Grid, GridModel, GridState,
     HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Item, ItemKey,
     KeyCode, KeyHint, List, ListState, Menu, MenuBar, MenuItem, MenuState, Meter, NavList,
     NavListState, Panel, PanelKind, Part, PartRef, Picker, PickerChain, PickerChainState,
@@ -572,10 +572,6 @@ fn row_paint(r: &(&str, &str), u: &mut RowUi<'_>) {
     u.meta(r.1);
 }
 
-fn disabled_row(_: &(&str, &str)) -> bool {
-    true
-}
-
 fn tab_paint(r: &&'static str, u: &mut RowUi<'_>) {
     u.label(r);
 }
@@ -784,26 +780,19 @@ fn draw_list(st: St, ui: &mut Ui<'_>, area: Rect) {
     let key: fn(&(&str, &str)) -> ItemKey = row_key;
     let row: fn(&(&str, &str), &mut RowUi<'_>) = row_paint;
     let mut state = ListState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::text("Ada Lovelace"));
-    }
     if matches!(st, St::Selected) {
         state.choose(Some(ItemKey::text("Ada Lovelace")));
     }
-    let mut list = List::new(LIST).key(key).row(row);
-    if matches!(st, St::Disabled) {
-        list = list.disabled_item(&disabled_row);
-    }
-    list.draw(ui, area, &state, rows_for(st));
+    List::new(LIST)
+        .key(key)
+        .row(row)
+        .draw(ui, area, &state, rows_for(st));
 }
 
 fn draw_tabs(st: St, ui: &mut Ui<'_>, area: Rect) {
     let key: fn(&&'static str) -> ItemKey = tab_key;
     let row: fn(&&'static str, &mut RowUi<'_>) = tab_paint;
     let mut state = TabsState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::text("General"));
-    }
     if matches!(st, St::Selected) {
         state.set_active(0, ItemKey::text("General"));
     }
@@ -816,12 +805,6 @@ fn draw_tabs(st: St, ui: &mut Ui<'_>, area: Rect) {
 }
 
 fn draw_dialog(st: St, ui: &mut Ui<'_>, area: Rect) {
-    let disabled_actions = DIALOG_ACTIONS.map(|action| action.enabled(false));
-    let actions = if matches!(st, St::Disabled) {
-        &disabled_actions
-    } else {
-        &DIALOG_ACTIONS
-    };
     let d = if st.is_empty() {
         Dialog::new(DLG).body_rows(0)
     } else {
@@ -829,7 +812,7 @@ fn draw_dialog(st: St, ui: &mut Ui<'_>, area: Rect) {
             .title("Delete table")
             .description("This cannot be undone. Every row and every index goes with it.")
             .body_rows(0)
-            .actions(actions)
+            .actions(&DIALOG_ACTIONS)
             .cancel(ActionKey::CANCEL)
     };
     d.draw(ui, area, &DialogState::default(), |_, _| {});
@@ -886,10 +869,6 @@ fn draw_select(st: St, ui: &mut Ui<'_>, area: Rect) {
 fn draw_radio_group(st: St, ui: &mut Ui<'_>, area: Rect) {
     let key: fn(&(&str, &str)) -> ItemKey = row_key;
     let row: fn(&(&str, &str), &mut RowUi<'_>) = row_paint;
-    let mut state = RadioGroupState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::text("Ada Lovelace"));
-    }
     let mut radio = RadioGroup::new(RADIO_GROUP)
         .key(key)
         .row(row)
@@ -897,7 +876,7 @@ fn draw_radio_group(st: St, ui: &mut Ui<'_>, area: Rect) {
     if matches!(st, St::Selected) {
         radio = radio.value(ItemKey::text("Ada Lovelace"));
     }
-    radio.draw(ui, area, &state, rows_for(st));
+    radio.draw(ui, area, &RadioGroupState::default(), rows_for(st));
 }
 
 fn draw_checkbox(st: St, ui: &mut Ui<'_>, area: Rect) {
@@ -918,9 +897,6 @@ fn draw_chip_bar(st: St, ui: &mut Ui<'_>, area: Rect) {
     let key: fn(&(&str, &str)) -> ItemKey = row_key;
     let row: fn(&(&str, &str), &mut RowUi<'_>) = row_paint;
     let mut state = ChipBarState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::text("Ada Lovelace"));
-    }
     if matches!(st, St::Selected) {
         state.checked_mut().insert(ItemKey::text("Ada Lovelace"));
     }
@@ -1092,9 +1068,6 @@ fn draw_tree(st: St, ui: &mut Ui<'_>, area: Rect) {
     let mut state = TreeState::default();
     state.expand(ItemKey::num(1));
     state.expand(ItemKey::num(2));
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::num(1));
-    }
     if matches!(st, St::Selected) {
         state.choose(Some(ItemKey::num(3)));
     }
@@ -1109,9 +1082,6 @@ fn draw_tree(st: St, ui: &mut Ui<'_>, area: Rect) {
 fn draw_nav_list(st: St, ui: &mut Ui<'_>, area: Rect) {
     let rows = rows_for(st);
     let mut state = NavListState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::text("Ada Lovelace"));
-    }
     if matches!(st, St::Selected) {
         state.set_current(Some(ItemKey::text("Ada Lovelace")));
     }
@@ -1126,20 +1096,16 @@ fn draw_nav_list(st: St, ui: &mut Ui<'_>, area: Rect) {
 }
 
 fn draw_steps(st: St, ui: &mut Ui<'_>, area: Rect) {
-    let mut state = StepsState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::text("Ada Lovelace"));
-    }
     Steps::navigable(STEPS)
         .key(row_key as fn(&(&str, &str)) -> ItemKey)
         .row(row_paint as fn(&(&str, &str), &mut RowUi<'_>))
         .step(&(render_step as fn(&(&str, &str)) -> StepState))
         .disabled(matches!(st, St::Disabled))
-        .draw(ui, area, &state, rows_for(st));
+        .draw(ui, area, &StepsState::default(), rows_for(st));
 }
 
-fn draw_too_small(_st: St, ui: &mut Ui<'_>, area: Rect) {
-    TooSmall::new(TOO_SMALL, "Junie").draw(ui, area);
+fn draw_too_small(st: St, ui: &mut Ui<'_>, area: Rect) {
+    TooSmall::new(TOO_SMALL, if st.is_empty() { "" } else { "Junie" }).draw(ui, area);
 }
 
 fn draw_grid(st: St, ui: &mut Ui<'_>, area: Rect) {
@@ -1162,38 +1128,17 @@ fn render_items(st: St) -> ([Item<'static>; 3], usize) {
 
 fn draw_filter_list(st: St, ui: &mut Ui<'_>, area: Rect) {
     let (items, len) = render_items(st);
-    let mut state = FilterListState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::num(1));
-    }
-    if matches!(st, St::Selected) {
-        state.set_selected(Some(ItemKey::num(1)));
-    }
-    FilterList::new(FILTER_LIST).draw(ui, area, &state, &items[..len]);
+    FilterList::new(FILTER_LIST).draw(ui, area, &FilterListState::default(), &items[..len]);
 }
 
 fn draw_picker(st: St, ui: &mut Ui<'_>, area: Rect) {
     let (items, len) = render_items(st);
-    let mut state = PickerState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::num(1));
-    }
-    if matches!(st, St::Selected) {
-        state.set_selected(Some(ItemKey::num(1)));
-    }
-    Picker::new(PICKER).draw(ui, area, &state, &items[..len]);
+    Picker::new(PICKER).draw(ui, area, &PickerState::default(), &items[..len]);
 }
 
 fn draw_completion(st: St, ui: &mut Ui<'_>, area: Rect) {
     let (items, len) = render_items(st);
-    let mut state = CompletionState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0, ItemKey::num(1));
-    }
-    if matches!(st, St::Selected) {
-        state.set_selected(Some(ItemKey::num(1)));
-    }
-    Completion::new(COMPLETION).draw(ui, area, &state, &items[..len]);
+    Completion::new(COMPLETION).draw(ui, area, &CompletionState::default(), &items[..len]);
 }
 
 fn draw_form(st: St, ui: &mut Ui<'_>, area: Rect) {
@@ -1234,19 +1179,12 @@ fn draw_context_menu(st: St, ui: &mut Ui<'_>, area: Rect) {
     } else {
         &RENDER_MENU_ITEMS
     };
-    let mut state = MenuState::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_cursor(0);
-    }
-    if matches!(st, St::Selected) {
-        state.set_selected(Some(0));
-    }
     ContextMenu::new(
         CONTEXT_MENU,
         items,
         tui_next::Anchor::Screen(tui_next::ScreenAlign::Center),
     )
-    .draw(ui, area, &state);
+    .draw(ui, area, &MenuState::default());
 }
 
 fn draw_menu_bar(st: St, ui: &mut Ui<'_>, area: Rect) {
@@ -1259,11 +1197,7 @@ fn draw_menu_bar(st: St, ui: &mut Ui<'_>, area: Rect) {
     } else {
         &RENDER_MENUS
     };
-    let mut state = MenuState::default();
-    if matches!(st, St::Selected) {
-        state.set_selected(Some(0));
-    }
-    MenuBar::new(MENU_BAR, menus).draw(ui, area, &state);
+    MenuBar::new(MENU_BAR, menus).draw(ui, area, &MenuState::default());
 }
 
 fn draw_help_overlay(st: St, ui: &mut Ui<'_>, area: Rect) {
@@ -1293,12 +1227,7 @@ fn draw_picker_chain(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
     let mut state = PickerChainState::default();
     if !st.is_empty() {
         state.enter(ItemKey::num(1));
-        if !matches!(st, St::Selected) {
-            state.enter(ItemKey::num(2));
-        }
-        if matches!(st, St::Selected) {
-            state.set_selected(Some(ItemKey::num(1)));
-        }
+        state.enter(ItemKey::num(2));
     }
     PickerChain::new(PICKER_CHAIN, stages).draw(ui, area, &state);
 }
@@ -1310,11 +1239,7 @@ fn draw_wizard(st: St, ui: &mut Ui<'_>, area: Rect) {
         WizardStep::new(ItemKey::num(3), "Review").enabled(!matches!(st, St::Disabled)),
     ];
     let steps: &[WizardStep<'_>] = if st.is_empty() { &[] } else { &steps };
-    let mut state = WizardState::<()>::default();
-    if matches!(st, St::Focused | St::Pressed) {
-        state.set_current(ItemKey::num(2));
-    }
-    Wizard::new(WIZARD, steps).draw(ui, area, &state);
+    Wizard::new(WIZARD, steps).draw(ui, area, &WizardState::<()>::default());
 }
 
 /// Draw `comp` in state `st` into `area`.
@@ -1619,304 +1544,6 @@ fn readiness_failures(entries: &std::collections::BTreeMap<String, String>) -> V
     failures
 }
 
-#[derive(Clone, Copy)]
-struct VisualExemption {
-    component: &'static str,
-    state: St,
-    color: Option<&'static str>,
-    reason: &'static str,
-}
-
-impl VisualExemption {
-    const fn all(component: &'static str, state: St, reason: &'static str) -> Self {
-        Self {
-            component,
-            state,
-            color: None,
-            reason,
-        }
-    }
-
-    const fn color(
-        component: &'static str,
-        state: St,
-        color: &'static str,
-        reason: &'static str,
-    ) -> Self {
-        Self {
-            component,
-            state,
-            color: Some(color),
-            reason,
-        }
-    }
-
-    fn matches(self, component: &str, state: St, color: &str) -> bool {
-        self.component == component
-            && self.state == state
-            && self.color.is_none_or(|expected| expected == color)
-    }
-}
-
-/// A deliberately closed roster of states that have no corresponding
-/// component-owned visual affordance. Every entry is checked in both
-/// directions by `visual_state_failures`: a collision without an entry fails,
-/// and an entry whose output becomes distinct fails as stale. The one
-/// colour-qualified entry records the existing mono fallback on StatusBar;
-/// its truecolor surface has no focus affordance.
-const VISUAL_EXEMPTIONS: &[VisualExemption] = &[
-    VisualExemption::color(
-        "status_bar",
-        St::Focused,
-        "truecolor",
-        "StatusBar has no focus stop; mono's generic label fallback is incidental",
-    ),
-    VisualExemption::all(
-        "hint_bar",
-        St::Focused,
-        "HintBar is a passive hint strip, not a focus stop",
-    ),
-    VisualExemption::all(
-        "key_hint",
-        St::Focused,
-        "KeyHint is a passive hint, not a focus stop",
-    ),
-    VisualExemption::all("progress_bar", St::Focused, "ProgressBar is display-only"),
-    VisualExemption::all("spinner", St::Focused, "Spinner is display-only"),
-    VisualExemption::all("meter", St::Focused, "Meter is display-only"),
-    VisualExemption::all("empty", St::Focused, "Empty is display-only"),
-    VisualExemption::all("brand", St::Focused, "Brand is display-only"),
-    VisualExemption::all(
-        "scroll_region",
-        St::Focused,
-        "ScrollRegion owns scrolling, not focus",
-    ),
-    VisualExemption::all(
-        "too_small",
-        St::Focused,
-        "TooSmall is a passive recovery notice",
-    ),
-    VisualExemption::all("tabs", St::Disabled, "Tabs has no disabled prop"),
-    VisualExemption::all(
-        "scroll_region",
-        St::Disabled,
-        "ScrollRegion has no disabled prop",
-    ),
-    VisualExemption::all("spinner", St::Disabled, "Spinner has no disabled prop"),
-    VisualExemption::all("key_hint", St::Disabled, "KeyHint has no disabled prop"),
-    VisualExemption::all("brand", St::Disabled, "Brand has no disabled prop"),
-    VisualExemption::all("panel", St::Disabled, "Panel has no disabled prop"),
-    VisualExemption::all("split_pane", St::Disabled, "SplitPane has no disabled prop"),
-    VisualExemption::all(
-        "text_viewport",
-        St::Disabled,
-        "TextViewport has no disabled prop",
-    ),
-    VisualExemption::all("diff_view", St::Disabled, "DiffView has no disabled prop"),
-    VisualExemption::all("too_small", St::Disabled, "TooSmall has no disabled prop"),
-    VisualExemption::all("grid", St::Disabled, "Grid has no whole-grid disabled prop"),
-    VisualExemption::all(
-        "help_overlay",
-        St::Disabled,
-        "HelpOverlay has no disabled prop",
-    ),
-    VisualExemption::all(
-        "text_input",
-        St::Selected,
-        "TextInput has no selection model",
-    ),
-    VisualExemption::all(
-        "field",
-        St::Selected,
-        "Field delegates to a non-selecting editor",
-    ),
-    VisualExemption::all(
-        "dialog",
-        St::Selected,
-        "Dialog actions are not a selection model",
-    ),
-    VisualExemption::all(
-        "scroll_region",
-        St::Selected,
-        "ScrollRegion has no selection model",
-    ),
-    VisualExemption::all(
-        "text_area",
-        St::Selected,
-        "TextArea has no selection affordance",
-    ),
-    VisualExemption::all(
-        "select",
-        St::Selected,
-        "Select's value is not a selected row",
-    ),
-    VisualExemption::all("status_bar", St::Selected, "StatusBar is display-only"),
-    VisualExemption::all("hint_bar", St::Selected, "HintBar is display-only"),
-    VisualExemption::all("key_hint", St::Selected, "KeyHint is display-only"),
-    VisualExemption::all("progress_bar", St::Selected, "ProgressBar is display-only"),
-    VisualExemption::all("spinner", St::Selected, "Spinner is display-only"),
-    VisualExemption::all("meter", St::Selected, "Meter is display-only"),
-    VisualExemption::all("empty", St::Selected, "Empty is display-only"),
-    VisualExemption::all("brand", St::Selected, "Brand is display-only"),
-    VisualExemption::all("panel", St::Selected, "Panel has no selection model"),
-    VisualExemption::all(
-        "split_pane",
-        St::Selected,
-        "SplitPane has no selection model",
-    ),
-    VisualExemption::all(
-        "diff_view",
-        St::Selected,
-        "DiffView has no selection affordance in this fixture",
-    ),
-    VisualExemption::all(
-        "code_editor",
-        St::Selected,
-        "CodeEditor selection is an edit range, not a selected component state",
-    ),
-    VisualExemption::all(
-        "steps",
-        St::Selected,
-        "Steps is a lifecycle rail, not a selector",
-    ),
-    VisualExemption::all(
-        "too_small",
-        St::Selected,
-        "TooSmall is a passive recovery notice",
-    ),
-    VisualExemption::all(
-        "help_overlay",
-        St::Selected,
-        "HelpOverlay has no selection model",
-    ),
-    VisualExemption::all(
-        "wizard",
-        St::Selected,
-        "Wizard tracks progress, not a selected row",
-    ),
-];
-
-const VISUAL_STATES: [(St, &'static str); 3] = [
-    (St::Focused, "focused"),
-    (St::Disabled, "disabled"),
-    (St::Selected, "selected"),
-];
-
-/// Render the three visual states used by the focused state-distinctness
-/// gate. This intentionally does not read or write the baseline file.
-fn visual_entries() -> std::collections::BTreeMap<String, String> {
-    let mut out = std::collections::BTreeMap::new();
-    for (name, comp) in Comp::ALL {
-        for (state, state_name) in VISUAL_STATES.into_iter().chain([(St::Default, "default")]) {
-            for (theme_name, theme) in [("junie", Theme::junie()), ("paper", Theme::paper())] {
-                for (color_name, color) in [
-                    ("truecolor", ColorLevel::TrueColor),
-                    ("mono", ColorLevel::Mono),
-                ] {
-                    for (w, h) in SIZES {
-                        let mut scene = Scene::new("visual-state", theme.clone(), color, w, h);
-                        scene.draw(|ui, area| draw(comp, state, ui, area));
-                        out.insert(
-                            format!(
-                                "render::components::{name}::{state_name} {w} {h} {theme_name} {color_name}"
-                            ),
-                            format!("{:016x}", scene.digest()),
-                        );
-                    }
-                }
-            }
-        }
-    }
-    out
-}
-
-/// Return every focused/disabled/selected collision in fresh renders.
-fn visual_state_failures(entries: &std::collections::BTreeMap<String, String>) -> Vec<String> {
-    let mut failures = Vec::new();
-    let mut used = vec![false; VISUAL_EXEMPTIONS.len()];
-    for (name, _) in Comp::ALL {
-        for (state, state_name) in VISUAL_STATES {
-            for theme in THEME_NAMES {
-                for color in COLOR_NAMES {
-                    for (w, h) in SIZES {
-                        let cell = format!("{w} {h} {theme} {color}");
-                        let default_key = format!("render::components::{name}::default {cell}");
-                        let state_key = format!("render::components::{name}::{state_name} {cell}");
-                        let (Some(default), Some(state_digest)) =
-                            (entries.get(&default_key), entries.get(&state_key))
-                        else {
-                            failures.push(format!(
-                                "  {name} {state_name} {cell}: missing `{default_key}` or `{state_key}`"
-                            ));
-                            continue;
-                        };
-                        let exemption = VISUAL_EXEMPTIONS
-                            .iter()
-                            .enumerate()
-                            .find(|(_, item)| item.matches(name, state, color));
-                        match exemption {
-                            Some((index, item)) => {
-                                used[index] = true;
-                                if default != state_digest {
-                                    failures.push(format!(
-                                        "  {name} {state_name} {cell}: exemption is stale ({}) — {default} != {state_digest}",
-                                        item.reason
-                                    ));
-                                }
-                            }
-                            None if default == state_digest => failures.push(format!(
-                                "  {name} {state_name} {cell}: digest {default} collides with default; add a narrowly reasoned exemption or repair the fixture"
-                            )),
-                            None => {}
-                        }
-                    }
-                }
-            }
-        }
-        for first in 0..VISUAL_STATES.len() {
-            for second in first.saturating_add(1)..VISUAL_STATES.len() {
-                let (state_a, name_a) = VISUAL_STATES[first];
-                let (state_b, name_b) = VISUAL_STATES[second];
-                for theme in THEME_NAMES {
-                    for color in COLOR_NAMES {
-                        for (w, h) in SIZES {
-                            let cell = format!("{w} {h} {theme} {color}");
-                            let key_a = format!("render::components::{name}::{name_a} {cell}");
-                            let key_b = format!("render::components::{name}::{name_b} {cell}");
-                            let (Some(a), Some(b)) = (entries.get(&key_a), entries.get(&key_b))
-                            else {
-                                continue;
-                            };
-                            if a == b {
-                                let a_exempt = VISUAL_EXEMPTIONS
-                                    .iter()
-                                    .any(|item| item.matches(name, state_a, color));
-                                let b_exempt = VISUAL_EXEMPTIONS
-                                    .iter()
-                                    .any(|item| item.matches(name, state_b, color));
-                                if !(a_exempt && b_exempt) {
-                                    failures.push(format!(
-                                        "  {name} {name_a}/{name_b} {cell}: digest {a} collides between visual states; only states with exact exemptions may share a frame"
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    for (index, item) in VISUAL_EXEMPTIONS.iter().enumerate() {
-        if !used[index] {
-            failures.push(format!(
-                "  VISUAL_EXEMPTIONS entry ({}, {:?}, {:?}) names no collision cell: {}",
-                item.component, item.state, item.color, item.reason
-            ));
-        }
-    }
-    failures
-}
-
 mod theme {
     use super::*;
 
@@ -2046,110 +1673,6 @@ mod theme {
         );
         assert!(failures[0].contains("no baseline line"), "{failures:?}");
     }
-
-    /// Focus, disabled and selected are checked against fresh frame digests,
-    /// not the baseline. A first-generation baseline cannot prove that a
-    /// state is visible because it has no before-image; the exact exemptions
-    /// above are the only accepted equalities.
-    #[test]
-    fn focused_disabled_selected_states_are_digest_distinct() {
-        let failures = visual_state_failures(&visual_entries());
-        assert!(
-            failures.is_empty(),
-            "{} visual-state collision(s) or stale exemptions:\n{}",
-            failures.len(),
-            failures.join("\n")
-        );
-    }
-
-    #[test]
-    fn visual_state_gate_rejects_collisions_and_stale_exemptions() {
-        let mut collided = visual_entries();
-        let default = "render::components::button::default 120 40 junie truecolor";
-        let selected = "render::components::button::selected 120 40 junie truecolor";
-        let digest = collided
-            .get(default)
-            .cloned()
-            .expect("default button digest");
-        collided.insert(selected.to_owned(), digest);
-        let failures = visual_state_failures(&collided);
-        assert_eq!(failures.len(), 1, "{failures:?}");
-        assert!(failures[0].contains("button selected"), "{failures:?}");
-
-        let mut stale = visual_entries();
-        let selected = "render::components::text_input::selected 120 40 junie truecolor";
-        stale.insert(selected.to_owned(), "0000000000000000".to_owned());
-        let failures = visual_state_failures(&stale);
-        assert_eq!(failures.len(), 1, "{failures:?}");
-        assert!(failures[0].contains("exemption is stale"), "{failures:?}");
-    }
-}
-
-#[test]
-fn selected_picker_rows_use_the_canonical_chosen_marker() {
-    let chosen = Theme::junie().design.glyphs.get(GlyphRole::Chosen);
-    for comp in [
-        Comp::FilterList,
-        Comp::Picker,
-        Comp::Completion,
-        Comp::ContextMenu,
-    ] {
-        let mut scene = Scene::new("selected-marker", Theme::junie(), ColorLevel::Mono, 120, 40);
-        scene.draw(|ui, area| draw(comp, St::Selected, ui, area));
-        assert!(
-            scene.text().contains(chosen),
-            "{comp:?} selected state omitted the chosen marker {chosen:?}"
-        );
-    }
-}
-
-#[test]
-fn selected_menu_titles_use_the_canonical_chosen_marker() {
-    let chosen = Theme::junie().design.glyphs.get(GlyphRole::Chosen);
-    for color in [ColorLevel::TrueColor, ColorLevel::Mono] {
-        let mut scene = Scene::new("selected-menu-title", Theme::junie(), color, 120, 40);
-        scene.draw(|ui, area| draw(Comp::MenuBar, St::Selected, ui, area));
-        assert!(
-            scene.text().contains(chosen),
-            "selected menu title omitted the chosen marker {chosen:?} at {color:?}"
-        );
-    }
-}
-
-#[test]
-fn button_checked_glyph_is_stable_across_colour_levels() {
-    let chosen = Theme::junie().design.glyphs.get(GlyphRole::Checked);
-    for color in [ColorLevel::TrueColor, ColorLevel::Mono] {
-        let mut scene = Scene::new("button-selected", Theme::junie(), color, 40, 10);
-        scene.draw(|ui, area| draw(Comp::Button, St::Selected, ui, area));
-        assert_eq!(
-            scene
-                .buffer()
-                .cell(Position::new(1, 0))
-                .map(|cell| cell.symbol()),
-            Some(chosen),
-            "checked button marker changed at {color:?}"
-        );
-    }
-}
-
-#[test]
-fn too_small_and_panel_fixtures_keep_their_stateful_content() {
-    let mut too_small = Scene::new("too-small", Theme::junie(), ColorLevel::Mono, 40, 10);
-    too_small.draw(|ui, area| draw(Comp::TooSmall, St::Empty, ui, area));
-    assert!(too_small.text().contains("Junie"));
-
-    let mut panel_default = Scene::new("panel-default", Theme::junie(), ColorLevel::Mono, 40, 10);
-    panel_default.draw(|ui, area| draw(Comp::Panel, St::Default, ui, area));
-    let mut panel_focused = Scene::new("panel-focused", Theme::junie(), ColorLevel::Mono, 40, 10);
-    panel_focused.draw(|ui, area| draw(Comp::Panel, St::Focused, ui, area));
-    assert!(panel_default.text().contains("Inspector"));
-    assert!(panel_focused.text().contains("Inspector"));
-    assert_ne!(panel_default.digest(), panel_focused.digest());
-    let mut panel_empty = Scene::new("panel-empty", Theme::junie(), ColorLevel::Mono, 40, 10);
-    panel_empty.draw(|ui, area| draw(Comp::Panel, St::Empty, ui, area));
-    assert!(!panel_empty.text().contains("Inspector"));
-    assert!(!panel_empty.text().contains("Selected object details"));
 }
 
 #[test]

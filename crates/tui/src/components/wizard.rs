@@ -117,15 +117,6 @@ impl<S> WizardState<S> {
         self.current
     }
 
-    /// Set the active step for a controlled frame without changing history.
-    ///
-    /// This is useful when a caller restores a persisted flow or renders a
-    /// deterministic state; interactive navigation continues to use the
-    /// history-preserving commands.
-    pub fn set_current(&mut self, key: ItemKey) {
-        self.current = Some(key);
-    }
-
     /// The retained state for `key`, inserting it exactly once.
     pub fn state_mut(&mut self, key: ItemKey, init: impl FnOnce() -> S) -> &mut S {
         self.slots.entry(key).or_insert_with(init)
@@ -319,8 +310,7 @@ impl<'a> Wizard<'a> {
             StateFlags::FOCUSED
                 | StateFlags::FOCUS_VISIBLE
                 | StateFlags::HOVERED
-                | StateFlags::PRESSED
-                | StateFlags::SELECTED,
+                | StateFlags::PRESSED,
         );
         ui.publish_bindings(self.id, live, BINDINGS);
         let base = self.ov.style(
