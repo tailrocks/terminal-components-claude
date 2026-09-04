@@ -7349,3 +7349,54 @@ So it has **no ordering constraint of its own**, and it lands *after* §39 — b
 3. **Two declared parts are never resolved.** §33.4's rule verbatim: paint them or remove them.
 4. **`StylePatch` has no `clear_glyph`.**
 5. **This is cross-cutting across five Slice-4 packages** and needs a coordinator-serialised landing like §39, or four owners will each conclude "not mine" — §40.3's failure mode exactly.
+
+## §46 Record — Slice 5 cannot run as Appendix A specifies it <!-- amended by §46 -->
+
+**Status: recorded. Contains a blocker that needs adjudication before any Slice 5 code is written.** A read-only planning audit produced an executable Slice 5 plan and, in doing so, found that the slice's stated shape does not resolve.
+
+### §46.1 The rename produces a workspace cargo cannot resolve <!-- amended by §46 -->
+
+Appendix A says: *"delete the root package's `[lib]`, `src/`, `src/bin/*`, `default-run` and its `[[bin]]`s **as the apps move to `apps/*`**; then rename `tui-next` → `junie-tui`"*, and Appendix B.1 calls it "one scripted commit at the start of Slice 5" with "no behaviour change".
+
+It cannot be either.
+
+- The legacy root library **is** `junie_tui`, and **TablePro, Jackin and all 22 showcase pages compile against it**. Deleting the root `src/` deletes the library Slices 6 and 7 have not yet migrated away from.
+- The only other placement collides: exactly one crate may own `[lib] name = "junie_tui"`, or `cargo doc --workspace` fails on two crates writing the same doc path — which is §21's own recorded reason for rejecting `junie-tui-legacy`. And two packages named `junie-tui` at the same version is not a resolvable workspace at all.
+
+**So the two packages cannot coexist, and there is no compiling intermediate state.** The removal must complete *within* the rename commit, and the rename commit cannot happen while TablePro or Jackin still consume the legacy library.
+
+### §46.2 Creating `apps/` arms five checks immediately <!-- amended by §46 -->
+
+`xtask`'s scan roots read the **filesystem**, not the workspace members: the moment an `apps/` directory exists, `apps/*/src` joins every forbidden-pattern rule. **Rule 25** forbids `.child(`, `.owns(`, `.locate` and `WidgetId` with an allow-list CI requires to be **empty** — and legacy application source is saturated with both.
+
+**Therefore `apps/**/src` may never contain unmigrated code, not even for a single commit.** `git mv src/bin/tablepro apps/tablepro` before Slice 6 fails `xtask boundary` and CI on the spot.
+
+This kills every "move the tree first, migrate it later" staging plan, and it is the strongest independent argument for the sequencing question in §46.1.
+
+### §46.3 Zero of the 22 showcase pages can migrate yet <!-- amended by §46 -->
+
+**Every one of the 22 pages imports `Panel`**, and `panel.rs` does not exist — it is package 4E. Eighteen of Appendix B.2's thirty-six component files are unwritten, across packages 4A, 4C, 4E, 4F, 4H and 4I.
+
+After 4E lands, **three** pages become unblocked. The other nineteen additionally need 4C, 4F, 4H or 4I. **So Slice 5's parallelism is entirely a function of Slice 4's completion order, and 4E is the critical path** — which Appendix A's dependency summary does not say.
+
+### §46.4 The recommendation, and why it needs adjudication not a builder <!-- amended by §46 -->
+
+The audit recommends **deferring the rename until after Slice 7** and doing Slice 5's showcase migration on the temporary crate name. The cost is one extra mechanical rewrite of `apps/showcase`'s import lines — performed by the same script, in the same commit, at zero marginal cost — and it changes no recorded *rejection*.
+
+It also re-examined the alternative §21 rejected (`crates/legacy` with a non-colliding lib name) and found **§21's stated reason to be false**: it was rejected for "rewriting every `use junie_tui::` in 55K lines of apps **twice**", but Slices 6 and 7 rewrite those call sites anyway, so the throwaway rewrite is discarded by the very slices cited as its cost. That alternative fails §46.2 instead, unless the legacy app trees stay where they are.
+
+**Both options overturn recorded Appendix A text, so both need a fresh adjudication recorded here before any builder implements either.** A builder must not resolve this locally.
+
+### §46.5 The accounting that cannot close at Slice 5 <!-- amended by §46 -->
+
+Slice 5 owns only the showcase share of the 247 legacy tests. The correct, checkable invariant is:
+
+> After Slice 5, the legacy package reports exactly **247 − S**, where **S** is the measured showcase-binary count. Any other number is a regression, **in either direction**.
+
+The full partition closes at Slice 8, not Slice 5. **Anyone who tries to close it at Slice 5 will delete TablePro's and Jackin's tests along with the library they still need.**
+
+### §46.6 Documented artefacts Slice 5 depends on that do not exist <!-- amended by §46 -->
+
+Beyond `bless-guard` (now built) and `capture-matrix` (still absent and still asserted in the present indicative): **three architecture tests named in Appendix B as guarding the `apps/` boundary do not exist** — `binary_names_are_preserved`, `app_libs_are_not_published_and_are_not_depended_on_by_the_library`, and `applications_depend_only_on_the_library_facade`. Nothing pins the three binary names across the package split, which goal §21 requires.
+
+Six CI steps also run `cargo test --release --bin <name>`, and **all six break the moment the root binaries go**. Appendix A does not mention them.
