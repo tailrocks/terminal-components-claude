@@ -8,8 +8,8 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Style;
 use tui_next::{
     Anchor, App, Axis, BindingState, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic,
-    Flow, Focusability, Id, Invalidate, ItemKey, KeyCode, KeyModifiers, LayerId, LayerSize,
-    LayerSpec, MouseKind, Region, RegionKind, Response, Side, StateFlags, Theme, Ui,
+    Flow, Focusability, Id, Invalidate, ItemKey, KeyCode, KeyModifiers, LayerId, LayerKind,
+    LayerSize, LayerSpec, MouseKind, Region, RegionKind, Response, Side, StateFlags, Theme, Ui,
 };
 
 use super::{Caps, Conformance, Fixture};
@@ -432,6 +432,27 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
             C::caps()
         );
     }
+    let dropped: Vec<StateFlags> = super::DEFAULT_MONO_STATES
+        .iter()
+        .copied()
+        .filter(|s| !states.contains(s))
+        .collect();
+    let why = C::mono_narrowing_reason();
+    assert_eq!(
+        dropped.is_empty(),
+        why.is_empty(),
+        "{}: mono_narrowing_reason() must be non-empty exactly when mono_states() narrows",
+        C::NAME
+    );
+    for s in &dropped {
+        for (name, _) in s.iter_names() {
+            assert!(
+                why.contains(name),
+                "{}: mono_states() drops {name}, and mono_narrowing_reason() does not say why",
+                C::NAME
+            );
+        }
+    }
     let mut seen: Vec<(StateFlags, BTreeMap<(String, u16), usize>)> = Vec::new();
     for s in states {
         // `force` sets the props the forced state implies too, so a state
@@ -682,6 +703,12 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
 
 /// Case 14.
 pub fn focus_trap_and_restore<C: Conformance>() {
+    let traps_focus = has::<C>(Caps::TRAPS_FOCUS);
+    assert!(
+        !traps_focus || has::<C>(Caps::OVERLAY),
+        "{}: TRAPS_FOCUS requires OVERLAY",
+        C::NAME
+    );
     if !has::<C>(Caps::OVERLAY) {
         return;
     }
@@ -689,6 +716,7 @@ pub fn focus_trap_and_restore<C: Conformance>() {
     app.sentinels = true;
     let mut h = Harness::new(app, Theme::junie(), 40, 12);
     assert!(h.tab_to(C::id()));
+    let prior_focus = h.focus();
     let chord =
         C::open_chord().unwrap_or_else(|| panic!("{}: OVERLAY without an open chord", C::NAME));
     let _ = h.key_mod(chord.code, chord.mods);
@@ -698,22 +726,86 @@ pub fn focus_trap_and_restore<C: Conformance>() {
         "{}: {chord} did not open the layer",
         C::NAME
     );
-    let inside: Vec<Id> = h.ring().reachable().map(|e| e.id).collect();
+    // §29.8 modification 1: the OVERLAY/TRAPS_FOCUS split polices itself in
+    // both directions, so the trap half can never again be skipped by omission
+    // and the capability can never be a lie about the runtime.
+    let kind = h
+        .runtime()
+        .open_spec(layer)
+        .unwrap_or_else(|| {
+            panic!(
+                "{}: the layer it just opened has no live spec in the runtime",
+                C::NAME
+            )
+        })
+        .kind;
     assert!(
-        !inside.contains(&SENTINEL_BEFORE) && !inside.contains(&SENTINEL_AFTER),
-        "{}: trap leaks: {inside:?}",
+        traps_focus || kind != LayerKind::Modal,
+        "{}: opens a `LayerKind::Modal` without declaring `Caps::TRAPS_FOCUS`. A modal owns a \
+         focus scope (`LayerKind::Modal => ScopeMode::Trap`), so add `Caps::TRAPS_FOCUS` to \
+         `{}::caps()`; until then case 14's trap-leak, non-empty-trap, Tab-wrap and \
+         zero-size-still-traps assertions never execute for this component",
+        C::NAME,
         C::NAME
     );
-    if inside.len() > 1 {
+    assert!(
+        !traps_focus || h.ring().active_trap().is_some(),
+        "{}: declares `Caps::TRAPS_FOCUS` but no `ScopeMode::Trap` is armed once {chord} has \
+         opened the layer (its kind is {kind:?}). Either open a `LayerKind::Modal` or push a \
+         trap scope of the component's own, or drop `Caps::TRAPS_FOCUS` from `{}::caps()`",
+        C::NAME,
+        C::NAME
+    );
+    if traps_focus {
+        let inside: Vec<Id> = h.ring().reachable().map(|e| e.id).collect();
+        assert!(
+            !inside.contains(&SENTINEL_BEFORE) && !inside.contains(&SENTINEL_AFTER),
+            "{}: the trap leaks — a control outside the open layer is still reachable. \
+             Reachable inside the trap: {inside:?}, which must contain neither \
+             {SENTINEL_BEFORE:?} nor {SENTINEL_AFTER:?}",
+            C::NAME
+        );
+        // §29.8 modification 2: an empty trap would satisfy the leak assertion
+        // vacuously while focus reconciles to `None` and the opener loses
+        // `FOCUSED` under its own layer. Reject it, and check the wrap
+        // unconditionally rather than only when there is more than one stop.
+        assert!(
+            !inside.is_empty(),
+            "{}: the armed trap has no reachable focus stop. Nothing drawn inside the open \
+             layer registered a focusable control, so focus reconciles to `None` and the \
+             opener loses `FOCUSED` while its own layer is open; register at least one \
+             focusable control inside the layer",
+            C::NAME
+        );
         let first = h.focus();
+        assert!(
+            first.is_some(),
+            "{}: focus is `None` inside a non-empty trap over {inside:?}",
+            C::NAME
+        );
         for _ in 0..inside.len() {
             let _ = h.key(KeyCode::Tab);
         }
         assert_eq!(
             h.focus(),
             first,
-            "{}: Tab does not wrap inside the trap",
-            C::NAME
+            "{}: Tab does not wrap inside the trap — {} Tab press(es) over the {} reachable \
+             stop(s) {inside:?} must return focus to where it started",
+            C::NAME,
+            inside.len(),
+            inside.len()
+        );
+        for _ in 0..inside.len() {
+            let _ = h.key(KeyCode::BackTab);
+        }
+        assert_eq!(
+            h.focus(),
+            first,
+            "{}: reverse-Tab does not wrap inside the trap — {} reverse-Tab press(es) over the \
+             {} reachable stop(s) {inside:?} must return focus to where it started",
+            C::NAME,
+            inside.len(),
+            inside.len()
         );
     }
     let _ = h.key(KeyCode::Esc);
@@ -724,15 +816,17 @@ pub fn focus_trap_and_restore<C: Conformance>() {
     );
     assert_eq!(
         h.focus(),
-        Some(C::id()),
-        "{}: focus not restored to the opener",
+        prior_focus,
+        "{}: focus not restored to the pre-open focus",
         C::NAME
     );
-    // a layer that cannot draw still traps
-    let _ = h.key_mod(chord.code, chord.mods);
-    let _ = h.resize(1, 1);
-    assert!(h.is_open(layer));
-    assert!(h.top_layer() > LayerId::PAGE);
+    if traps_focus {
+        // a layer that cannot draw still traps
+        let _ = h.key_mod(chord.code, chord.mods);
+        let _ = h.resize(1, 1);
+        assert!(h.is_open(layer));
+        assert!(h.top_layer() > LayerId::PAGE);
+    }
 }
 
 /// Case 15.
