@@ -2058,7 +2058,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::no_domain_vocabulary_in_the_library` | grep allow-list over `crates/tui/src/**` for `(?i)\b(sql|schema|primary key|nullable|foreign|references|not null|tablepro|jackin|workspace|instance|daemon|capsule|construct|catalog)\b`, with an allow-list file `crates/tui/tests/allow/domain.txt` (currently empty) <!-- amended by §25 §4(j): scans **code lines only**, deliberately — `\bworkspace\b` and `\binstance\b` appear in ordinary architectural prose ("per-instance patch") and a reflowed `///` line must not fire it --> | DOM §7 acceptance conditions 1 and 2 |
 | `architecture::palette_literals_are_confined_to_theme_builtins` <!-- amended by §22 --> | grep for `Color::Rgb(` / `Color::from_u32(` / `#[0-9a-fA-F]{6}` over `crates/tui/src/**`, allow-listed to `theme/builtin/junie.rs`, `theme/builtin/paper.rs`, and `tests/fixtures/*.rs`, plus <!-- amended by §25 D‑10 --> the **path** allow-list entries `theme/downgrade.rs` and `theme/builder.rs` (computed `Color::Rgb(r, g, b)` from the downgrade and L\* derivation arithmetic; a path allow does not feed the "`legacy_api.txt` must be empty" condition, and the regex is never narrowed to hide it) (the `from_u32` arm is necessary: `Color::from_u32` is the one sanctioned literal constructor, §22 R‑10, and without it every literal would move one call deeper) | goal §25.5 |
 | `architecture::no_raw_background_parameter` | grep for `bg:\s*(ratatui_core::style::)?Color` in any `pub fn` signature under `crates/tui/src` <!-- amended by §22: rule 21 of `no_deprecated_or_legacy_api_usage` --> | The 24 `bg: Color` sites (**[F]** API §3.6) are gone; `Role::Custom(Color)` inside a `StylePatch` is the one allowed raw colour and is allow-listed by name |
-| `architecture::no_owns_or_locate_in_applications` | grep for `\.owns\(`, `\.locate`, `scrollbar::id_for`, `\.child\(` over `apps/**/src` | Target 0; the allow-list file `apps/allow/dispatch.txt` must be empty and any entry requires a justification comment that the test prints |
+| `architecture::no_owns_or_locate_in_applications` | grep for `\.owns\(`, `\.locate`, `scrollbar::id_for`, `\.child\(` over `apps/**/src` | Target 0; ~~the allow-list file `apps/allow/dispatch.txt` must be empty~~ — **struck by §48: no code reads that path, and no code ever has.** The mechanism that exists is forbidden-pattern **rule 25** over the scan roots (which already include `apps/*/src`), with the *legacy* allow-list. The row described a second, non-existent allow-list, which is how the check came to be unwritten under a description of a file that will never be created and any entry requires a justification comment that the test prints |
 | `architecture::no_generic_component_copies_in_applications` | grep for `fn render(` + `Style::new()` + `Block::default()` + `buf.set_string` over `apps/**/src`, allow-listed to `apps/jackin-preview/src/rain.rs` | goal §25.5 "application directories do not contain generic component copies"; rain is the single documented exception (goal §22.3) |
 | `architecture::no_public_geometry_or_cache` | grep for `pub area`, `pub areas`, `pub anchor`, `pub .*_rects`, `pub scroll` under `crates/tui/src` | Invariant S1; kills the 21 `pub area` + 3 `pub areas` sites (**[F]** API §3.8) |
 | `architecture::no_fn_pointer_extension_points` | grep for `: fn\(`, `Option<fn(`, `type \w+ = fn\(` under `crates/tui/src` | The 6 sites in **[F]** API §3.12 are gone (DOM §7 condition 6) |
@@ -7507,3 +7507,37 @@ Stated plainly, per the standard that no sequencing may rest on an absent gate:
 | The Slice 5 capture matrix | `xtask capture-matrix` | **no** — manual until it exists |
 
 Nothing in the accepted sequencing depends on a builder remembering anything: every obligation is either an existing gate, a gate this adjudication requires **before** `apps/` exists, or a number a builder can run.
+
+## §48 Record — thirty-three names were invisible to the gate that exists to see them <!-- amended by §48 -->
+
+**Status: recorded.** §47.4's blind spot is closed and measured.
+
+### §48.1 The measurement <!-- amended by §48 -->
+
+Extending `every_named_test_exists` to scan §16.5 moved its wanted set from **347 names to 380**. **Thirty-three were invisible, and the gate was green with nine of them absent.**
+
+The nine were enumerated rather than trusted, and the previously-suspected six are confirmed exactly — no additions, no removals. Three are now built; six are deferred with owners, which converts them from comments into a **countdown**. That property was demonstrated in both directions: adding one of the deferred tests makes the check fail as a *stale entry*, and deleting a deferral makes it fail as *missing*.
+
+**This is why the three `apps/` guards were found by a person reading the document rather than by a check.** Their absence was, structurally, unreportable.
+
+### §48.2 The guards fail closed, and one distinction is load-bearing <!-- amended by §48 -->
+
+Each asserts an expected set is **present**. Written as "scan `apps/**` and find no violations" all three would be green-and-empty today and stay so forever — §37.1's recorded failure verbatim.
+
+**`binary_names_are_preserved` is a multiset equality, not a set**, and that catches the case that actually matters: the instant the root and `apps/showcase` both declare `[[bin]] showcase`, the built artefact is **whichever finished last** and the capture harness silently captures the wrong program. **A set would not have seen it.** That is §21's own reason (2), still live, now demonstrated red.
+
+**The slice index is read off the tree, not off a constant.** §47.1 binds the root package to lose `[[bin]] X` in the same commit that adds `apps/X` — so "the root no longer declares it" *is* "the app is due", and no builder has to bump anything. Verified rather than assumed: **cargo autodiscovers `src/bin/<app>/main.rs` as a bin target**, so deleting the manifest stanza alone leaves the target in place. Both the stanza and the tree must go, which is exactly what §47.1 requires.
+
+**Two residuals stated in the checks' own doc comments**: the `publish` and lib-target assertions have no subject in-tree until Slice 5, as does the facade path scan. What is **not** vacuous in either is the due-set assertion, which makes *scanning nothing* a failure.
+
+The `cargo tree` third of the facade check was **deliberately not duplicated** — it already exists inside `dependency_graph_is_exactly_the_declared_set`, and duplicating it would produce two checks that fail together and one that could quietly stop being run.
+
+### §48.3 A §16.5 row describing a file that will never exist <!-- amended by §48 -->
+
+§16.5's `no_owns_or_locate_in_applications` row asserts that an allow-list at `apps/allow/dispatch.txt` must be empty. **No code reads that path and none ever has** — allow-lists resolve only under the library's test tree. The mechanism that exists is forbidden-pattern rule 25 over the scan roots, which already include `apps/*/src`, with the *legacy* allow-list.
+
+So the check was unwritten **under a description of a file that will never be created**. Struck in place, and the deferral entry records the real mechanism so it is not re-implemented from the wrong description.
+
+### §48.4 Owed, found incidentally <!-- amended by §48 -->
+
+A `boundary` run failed `no_domain_vocabulary_in_the_library` **with an empty error message**, and passed on re-run. Whatever the transient cause, **a check that can fail without saying why is a reportability defect** — a red with no message is indistinguishable from a red nobody can act on. Recorded as owed.
