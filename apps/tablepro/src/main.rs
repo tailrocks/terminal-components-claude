@@ -1,4 +1,4 @@
-//! TablePro binary entry point.
+//! `TablePro` binary entry point.
 
 use tablepro_app::TableProApp;
 

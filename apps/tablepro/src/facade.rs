@@ -1,4 +1,4 @@
-//! TablePro's facade-only application shell.
+//! `TablePro`'s facade-only application shell.
 
 use tui_next::{
     ActionKey, App, Chord, Cx, Field, Grid, GridAction, GridState, Id, KeyCode, KeyMap,
@@ -59,7 +59,7 @@ pub enum QueryOutcome {
     },
 }
 
-/// The TablePro product shell.
+/// The `TablePro` product shell.
 pub struct TableProApp {
     catalog: Catalog,
     connections: Vec<Connection>,
@@ -78,10 +78,17 @@ pub struct TableProApp {
 impl core::fmt::Debug for TableProApp {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("TableProApp")
+            .field("catalog", &self.catalog)
+            .field("connections", &self.connections.len())
             .field("connection", &self.connection.name)
+            .field("keymap", &"<keymap>")
+            .field("safe_mode", &self.safe_mode)
             .field("query", &"[redacted from debug output]")
-            .field("rows", &self.result.row_count())
-            .field("dirty_cells", &self.result.dirty_cell_count())
+            .field("query_state", &"<input state>")
+            .field("columns", &self.columns.len())
+            .field("result", &self.result)
+            .field("grid_state", &"<grid state>")
+            .field("status", &self.status)
             .field("quit", &self.quit)
             .finish()
     }
@@ -212,35 +219,36 @@ impl TableProApp {
                 self.status = outcome_message(&outcome);
                 outcome
             }
-            Decision::Run => match statement {
-                Statement::Select(select) => match sql::run_select(&self.catalog, &select) {
-                    Ok(result) => {
-                        let outcome = QueryOutcome::Executed {
-                            rows: result.rows.len(),
-                            editable: result.editable,
-                        };
-                        self.columns = result.columns.clone();
-                        self.result = ResultGrid::from_result(&result);
-                        self.grid_state = GridState::default();
-                        self.status = outcome_message(&outcome);
-                        outcome
+            Decision::Run => {
+                if let Statement::Select(select) = statement {
+                    match sql::run_select(&self.catalog, &select) {
+                        Ok(result) => {
+                            let outcome = QueryOutcome::Executed {
+                                rows: result.rows.len(),
+                                editable: result.editable,
+                            };
+                            self.columns.clone_from(&result.columns);
+                            self.result = ResultGrid::from_result(&result);
+                            self.grid_state = GridState::default();
+                            self.status = outcome_message(&outcome);
+                            outcome
+                        }
+                        Err(error) => {
+                            let outcome = QueryOutcome::Rejected {
+                                message: error.message,
+                            };
+                            self.status = outcome_message(&outcome);
+                            outcome
+                        }
                     }
-                    Err(error) => {
-                        let outcome = QueryOutcome::Rejected {
-                            message: error.message,
-                        };
-                        self.status = outcome_message(&outcome);
-                        outcome
-                    }
-                },
-                _ => {
+                } else {
                     let outcome = QueryOutcome::Rejected {
                         message: "The demo executor only runs SELECT statements".to_owned(),
                     };
                     self.status = outcome_message(&outcome);
                     outcome
                 }
-            },
+            }
         }
     }
 
@@ -284,7 +292,7 @@ impl TableProApp {
                 self.status = format!("Cell action {action:?} on {key:?}/{column:?}");
             }
             GridAction::FetchMore => {
-                self.status = "All deterministic demo rows are loaded".to_owned();
+                "All deterministic demo rows are loaded".clone_into(&mut self.status);
             }
             GridAction::Moved | GridAction::LeaveForward | GridAction::LeaveBackward => {}
         }
@@ -313,6 +321,34 @@ fn outcome_message(outcome: &QueryOutcome) -> String {
     }
 }
 
+fn query_input(value: Option<&str>) -> TextInput<'_> {
+    let input = TextInput::new(QUERY).placeholder("SELECT …");
+    match value {
+        Some(value) => input.value(value),
+        None => input,
+    }
+}
+
+fn results_grid<'a>(columns: &'a [tui_next::Column<'a>]) -> Grid<'a> {
+    Grid::new(RESULTS, columns)
+        .nav(tui_next::NavUnit::Cell)
+        .select_mode(tui_next::SelectMode::Multi)
+}
+
+fn results_panel(meta: &str) -> Panel<'_> {
+    Panel::new(RESULTS)
+        .kind(PanelKind::Framed)
+        .title("Results")
+        .meta(meta)
+}
+
+fn status_bar<'a>(left: &'a [StatusItem<'a>], right: &'a [StatusItem<'a>]) -> StatusBar<'a> {
+    StatusBar::new(STATUS)
+        .left(left)
+        .right(right)
+        .variant(Variant::DEFAULT)
+}
+
 impl App for TableProApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
@@ -331,16 +367,13 @@ impl App for TableProApp {
             }
         }
 
-        response |= TextInput::new(QUERY)
-            .placeholder("SELECT …")
+        response |= query_input(None)
             .update(cx, &mut self.query_state, &mut self.query)
             .erase();
 
         let editable = self.result.is_editable();
         let columns = Self::column_specs_for(&self.columns, editable);
-        let grid = Grid::new(RESULTS, &columns)
-            .nav(tui_next::NavUnit::Cell)
-            .select_mode(tui_next::SelectMode::Multi);
+        let grid = results_grid(&columns);
         let grid_response = if self.result.is_editable() {
             grid.update_editable(cx, &mut self.grid_state, &mut self.result)
         } else {
@@ -350,6 +383,8 @@ impl App for TableProApp {
             self.handle_grid_action(action);
         }
         response |= grid_response.erase();
+        let _ = results_panel("");
+        let _ = status_bar(&[], &[]);
         response
     }
 
@@ -366,39 +401,24 @@ impl App for TableProApp {
         let result_area = rows.get(1).copied().unwrap_or_else(|| ui.full());
         let status_area = rows.get(2).copied().unwrap_or_else(|| ui.full());
 
-        Field::new(
-            "SQL query",
-            TextInput::new(QUERY)
-                .value(&self.query)
-                .placeholder("SELECT …"),
-        )
-        .plain(true)
-        .draw(ui, query_area, &self.query_state);
+        Field::new("SQL query", query_input(Some(&self.query)))
+            .plain(true)
+            .draw(ui, query_area, &self.query_state);
 
         let columns = Self::column_specs_for(&self.columns, self.result.is_editable());
-        let grid = Grid::new(RESULTS, &columns)
-            .nav(tui_next::NavUnit::Cell)
-            .select_mode(tui_next::SelectMode::Multi);
+        let grid = results_grid(&columns);
         let meta = format!(
             "{} rows · {}",
             self.result.total(),
             self.result.source().unwrap_or("no relation")
         );
-        Panel::new(RESULTS)
-            .kind(PanelKind::Framed)
-            .title("Results")
-            .meta(&meta)
-            .draw(ui, result_area, |ui, body| {
-                grid.draw(ui, body, &self.grid_state, &self.result);
-            });
+        results_panel(&meta).draw(ui, result_area, |ui, body| {
+            grid.draw(ui, body, &self.grid_state, &self.result);
+        });
 
         let left = [StatusItem::new(&self.connection.name).strong()];
         let right = [StatusItem::new(&self.status)];
-        StatusBar::new(STATUS)
-            .left(&left)
-            .right(&right)
-            .variant(Variant::DEFAULT)
-            .draw(ui, status_area);
+        status_bar(&left, &right).draw(ui, status_area);
     }
 
     fn should_quit(&self) -> bool {

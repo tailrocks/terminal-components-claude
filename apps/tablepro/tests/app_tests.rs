@@ -1,4 +1,4 @@
-//! Deterministic TablePro application-boundary tests.
+//! Deterministic `TablePro` application-boundary tests.
 
 use tablepro_app::{
     TableProApp,
@@ -7,7 +7,7 @@ use tablepro_app::{
     sql::{self, Decision, Statement},
 };
 
-fn orders_table() -> Option<tablepro_app::db::Table> {
+fn orders_table() -> Option<db::Table> {
     db::Catalog::acme_prod()
         .find(Some("public"), "orders")
         .cloned()
@@ -18,7 +18,7 @@ fn query_safety_gate_is_conservative() {
     let parse = |query: &str| match sql::parse(query) {
         Ok(statement) => Some(statement),
         Err(error) => {
-            assert!(false, "query must parse: {}", error.message);
+            assert!(error.message.is_empty(), "query must parse: {}", error.message);
             None
         }
     };
@@ -42,8 +42,9 @@ fn query_safety_gate_is_conservative() {
 
 #[test]
 fn pending_edits_preview_preserves_original_keys_and_order() {
-    let Some(table) = orders_table() else {
-        assert!(false, "demo catalog must contain public.orders");
+    let table = orders_table();
+    assert!(table.is_some(), "demo catalog must contain public.orders");
+    let Some(table) = table else {
         return;
     };
     let columns = vec![
@@ -90,18 +91,18 @@ fn projected_result_is_read_only_when_no_key_is_selected() {
     let statement = match sql::parse("SELECT status FROM orders LIMIT 3") {
         Ok(Statement::Select(statement)) => statement,
         Ok(_) => {
-            assert!(false, "query must parse as SELECT");
+            assert!(matches!(sql::parse("SELECT status FROM orders LIMIT 3"), Ok(Statement::Select(_))));
             return;
         }
         Err(error) => {
-            assert!(false, "query must parse: {}", error.message);
+            assert!(error.message.is_empty(), "query must parse: {}", error.message);
             return;
         }
     };
     let result = match sql::run_select(&catalog, &statement) {
         Ok(result) => result,
         Err(error) => {
-            assert!(false, "query must execute: {}", error.message);
+            assert!(error.message.is_empty(), "query must execute: {}", error.message);
             return;
         }
     };

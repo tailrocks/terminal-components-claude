@@ -473,12 +473,23 @@ impl<'a> Dialog<'a> {
             let r = TextInput::new(self.input_id()).update(cx, &mut st.input, &mut st.draft);
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
             acc.fold(&r.erase());
-            if committed && self.prompt.is_some() {
-                // Enter in a prompt submits; in an acknowledgement it only arms
-                if let Some(i) = self.primary_index(st)
-                    && let Some(a) = self.actions.get(i)
+            if committed {
+                if self.prompt.is_some() {
+                    // Enter in a prompt submits.
+                    if let Some(i) = self.primary_index(st)
+                        && let Some(a) = self.actions.get(i)
+                    {
+                        acc.action(DialogAction::Action(a.key()));
+                    }
+                } else if self.ack.is_some()
+                    && self.armed(st)
+                    && let Some(i) = self.primary_index(st)
                 {
-                    acc.action(DialogAction::Action(a.key()));
+                    // A valid acknowledgement hands the next Enter to the
+                    // first enabled action instead of leaving focus in the
+                    // committed input.
+                    cx.focus(self.action_id(i));
+                    acc.changed();
                 }
             }
         }

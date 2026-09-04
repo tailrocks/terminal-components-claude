@@ -3,6 +3,14 @@
 //! in-memory engine evaluates the SQL subset the workbench needs, so every
 //! interaction is real while results stay reproducible.
 
+#![allow(
+    missing_docs,
+    clippy::arithmetic_side_effects,
+    clippy::indexing_slicing,
+    clippy::too_many_lines,
+    reason = "This migrated in-memory domain adapter preserves the product fixture vocabulary; generated values use bounded catalog data and deterministic arithmetic."
+)]
+
 // ------------------------------------------------------------------ catalog
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,7 +37,7 @@ impl Engine {
     }
 }
 
-/// TablePro's per-connection Safe Mode level (`SafeModeLevel.swift`).
+/// `TablePro`'s per-connection Safe Mode level (`SafeModeLevel.swift`).
 /// Destructive statements always confirm regardless of level.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SafeMode {
@@ -260,14 +268,13 @@ impl ColType {
     pub fn sql(self) -> &'static str {
         match self {
             ColType::Uuid => "uuid",
-            ColType::Text => "text",
+            ColType::Text | ColType::Enum => "text",
             ColType::Int => "integer",
             ColType::Numeric => "numeric(12,2)",
             ColType::Bool => "boolean",
             ColType::Timestamp => "timestamptz",
             ColType::Date => "date",
             ColType::Json => "jsonb",
-            ColType::Enum => "text",
         }
     }
 }
@@ -775,7 +782,7 @@ impl Value {
     }
 }
 
-/// Deterministic pseudo-random stream (SplitMix64).
+/// Deterministic pseudo-random stream (`SplitMix64`).
 #[derive(Clone)]
 struct Rng(u64);
 impl Rng {
@@ -1007,7 +1014,7 @@ pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
                         )
                     }
                 }
-                ("description", _) | ("notes", _) => {
+                ("description" | "notes", _) => {
                     if r.chance(45) {
                         Value::Null
                     } else {
@@ -1019,7 +1026,7 @@ pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
                 ("seats", _) => Value::Int(1 + r.below(120) as i64),
                 ("quantity", _) => Value::Int(1 + r.below(6) as i64),
                 ("orders", _) => Value::Int(200 + r.below(900) as i64),
-                ("customers", _) | ("month_offset", _) => Value::Int(r.below(1000) as i64),
+                ("customers" | "month_offset", _) => Value::Int(r.below(1000) as i64),
                 (_, ColType::Int) => Value::Int(r.below(10_000) as i64),
                 ("retained_pct", _) => Value::Num(20.0 + r.below(7500) as f64 / 100.0),
                 (_, ColType::Numeric) => {
@@ -1031,7 +1038,7 @@ pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
                 }
                 ("succeeded", _) => Value::Bool(r.chance(88)),
                 ("is_active", _) => Value::Bool(r.chance(85)),
-                ("marketing_opt_in", _) | ("is_gift", _) => Value::Bool(r.chance(20)),
+                ("marketing_opt_in" | "is_gift", _) => Value::Bool(r.chance(20)),
                 (_, ColType::Bool) => Value::Bool(r.chance(50)),
                 ("shipping_address", _) => {
                     if r.chance(10) {
@@ -1081,10 +1088,7 @@ pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
                     }
                 }
                 (_, ColType::Json) => Value::Null,
-                ("created_at", _)
-                | ("occurred_at", _)
-                | ("changed_at", _)
-                | ("attempted_at", _) => {
+                ("created_at" | "occurred_at" | "changed_at" | "attempted_at", _) => {
                     let year = 2024 + r.below(2) as i32;
                     Value::Text(timestamp(&mut r, year))
                 }

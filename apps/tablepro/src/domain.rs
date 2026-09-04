@@ -1,4 +1,4 @@
-//! TablePro's application-owned data adapter.
+//! `TablePro`'s application-owned data adapter.
 //!
 //! The generic grid owns navigation and edit lifecycle. This module owns the
 //! database-shaped rows, stable row keys, type-aware parsing, sorting, and
@@ -84,10 +84,10 @@ impl PendingEdits {
             if let Some(inserted) = self.inserted.get_mut(row) {
                 *inserted = false;
             }
-            if let Some(current) = self.current.get_mut(row) {
-                if let Some(original) = self.original.get(row) {
-                    *current = original.clone();
-                }
+            if let Some(current) = self.current.get_mut(row)
+                && let Some(original) = self.original.get(row)
+            {
+                current.clone_from(original);
             }
             return true;
         }
@@ -192,7 +192,7 @@ pub fn sql_literal(value: &Value) -> String {
     }
 }
 
-/// Build the statements TablePro would send for pending result edits.
+/// Build the statements `TablePro` would send for pending result edits.
 pub fn preview_sql(
     table: &Table,
     columns: &[(String, ColType)],
@@ -277,7 +277,6 @@ pub fn preview_sql(
                     values.join(", ")
                 ));
             }
-            continue;
         }
     }
 
@@ -310,6 +309,7 @@ pub struct ResultGrid {
     source: Option<String>,
     read_only_reason: Option<String>,
     display: Vec<Vec<String>>,
+    undo: Vec<PendingEdits>,
 }
 
 impl ResultGrid {
@@ -342,6 +342,7 @@ impl ResultGrid {
             source: result.source.clone(),
             read_only_reason,
             display: Vec::new(),
+            undo: Vec::new(),
         };
         grid.rebuild_display();
         grid
@@ -370,6 +371,70 @@ impl ResultGrid {
     /// Current pending-edit state.
     pub fn pending(&self) -> &PendingEdits {
         &self.pending
+    }
+
+    /// Number of pending row inserts/deletes and cell updates.
+    pub fn pending_total(&self) -> usize {
+        self.pending
+            .dirty_rows()
+            .len()
+            .saturating_add(self.pending.dirty_cell_count())
+    }
+
+    /// Insert a row with typed NULL/default values.
+    pub fn insert_row(&mut self) -> Option<usize> {
+        if !self.editable {
+            return None;
+        }
+        self.undo.push(self.pending.clone());
+        let row = self.pending.insert_row(self.types.len());
+        self.keys
+            .push(ItemKey::num((self.keys.len() as u64).saturating_add(1)));
+        self.rebuild_display();
+        Some(row)
+    }
+
+    /// Mark a row deleted, preserving it for undo/save preview.
+    pub fn delete_row(&mut self, row: usize) -> bool {
+        if !self.editable {
+            return false;
+        }
+        let before = self.pending.clone();
+        let changed = self.pending.delete_row(row);
+        if changed {
+            self.undo.push(before);
+            self.rebuild_display();
+        }
+        changed
+    }
+
+    /// Restore all cells and row lifecycle markers to the clean baseline.
+    pub fn discard(&mut self) {
+        self.undo.push(self.pending.clone());
+        self.pending.clear();
+        self.rebuild_display();
+    }
+
+    /// Restore the previous pending state, if one exists.
+    pub fn undo(&mut self) -> bool {
+        let Some(previous) = self.undo.pop() else {
+            return false;
+        };
+        self.pending = previous;
+        self.rebuild_display();
+        true
+    }
+
+    /// Expose a deterministic position label for app status bars.
+    pub fn position_label(&self, first_row: usize, visible_rows: usize) -> String {
+        if self.row_count() == 0 {
+            return "0 rows".to_owned();
+        }
+        let first = first_row.saturating_add(1).min(self.row_count());
+        let last = first
+            .saturating_add(visible_rows.saturating_sub(1))
+            .min(self.row_count());
+        format!("rows {first}–{last} of {}", self.total())
     }
 
     /// Number of changed cells.
@@ -467,11 +532,11 @@ impl GridModel for ResultGrid {
 
     fn row_decor(&self, row: usize) -> RowDecor<'_> {
         RowDecor {
-            flags: self
-                .pending
-                .is_dirty_row(row)
-                .then_some(StateFlags::DIRTY)
-                .unwrap_or_else(StateFlags::empty),
+            flags: if self.pending.is_dirty_row(row) {
+                StateFlags::DIRTY
+            } else {
+                StateFlags::empty()
+            },
             ..RowDecor::default()
         }
     }
@@ -514,13 +579,33 @@ impl GridEditor for ResultGrid {
             )
     }
 
-    fn apply_cycle(&mut self, _row: usize, _col: usize) {}
+    fn apply_cycle(&mut self, row: usize, col: usize) {
+        if !self.editable
+            || self.pending.is_deleted(row)
+            || self.pending.value(row, col).is_none()
+            || self.types.get(col) != Some(&ColType::Bool)
+        {
+            return;
+        }
+        let next = match self.pending.value(row, col) {
+            Some(Value::Bool(true)) => Value::Bool(false),
+            Some(Value::Bool(false)) => Value::Null,
+            _ => Value::Bool(true),
+        };
+        let before = self.pending.clone();
+        if self.pending.set(row, col, next) {
+            self.undo.push(before);
+            self.rebuild_display();
+        }
+    }
 
     fn commit_cell(&mut self, row: usize, col: usize, text: &str) -> Result<(), FieldError> {
         let value = self.parse_value(col, text)?;
+        let before = self.pending.clone();
         if !self.pending.set(row, col, value) {
             return Ok(());
         }
+        self.undo.push(before);
         self.rebuild_display();
         Ok(())
     }

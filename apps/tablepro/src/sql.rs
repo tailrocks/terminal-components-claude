@@ -2,6 +2,14 @@
 //! autocomplete, split statements, classify danger, evaluate the subset of
 //! SELECT the demo needs, and synthesize believable EXPLAIN plans.
 
+#![allow(
+    missing_docs,
+    clippy::arithmetic_side_effects,
+    clippy::indexing_slicing,
+    clippy::too_many_lines,
+    reason = "This migrated deterministic SQL adapter validates catalog-derived indexes and keeps parser/executor behavior aligned with the product subset."
+)]
+
 use crate::db::{Catalog, ColType, Table, Value};
 
 // ------------------------------------------------------------- tokenizer
@@ -418,11 +426,17 @@ pub struct ParseError {
     pub at: usize,
 }
 
+/// Parse one SQL statement in the deterministic `TablePro` subset.
+///
+/// # Errors
+///
+/// Returns a [`ParseError`] when the input is empty, malformed, or uses a
+/// statement form outside the supported subset.
 pub fn parse(stmt: &str) -> Result<Statement, ParseError> {
     let mut w = Words::new(stmt);
-    let err = |w: &Words, m: &str| ParseError {
+    let err = |w: &Words<'_>, m: &str| ParseError {
         message: m.to_owned(),
-        at: w.toks.get(w.pos).map(|t| t.start).unwrap_or(stmt.len()),
+        at: w.toks.get(w.pos).map_or(stmt.len(), |t| t.start),
     };
     match w.peek_up().as_str() {
         "SELECT" => parse_select(&mut w).map(Statement::Select),
@@ -448,10 +462,10 @@ pub fn parse(stmt: &str) -> Result<Statement, ParseError> {
                     break;
                 }
             }
-            let rest = &stmt[w.toks.get(w.pos).map(|t| t.start).unwrap_or(stmt.len())..];
+            let rest = &stmt[w.toks.get(w.pos).map_or(stmt.len(), |t| t.start)..];
             let inner = parse(rest).map_err(|e| ParseError {
                 message: e.message,
-                at: e.at + (stmt.len() - rest.len()),
+                at: e.at.saturating_add(stmt.len().saturating_sub(rest.len())),
             })?;
             Ok(Statement::Explain {
                 analyze,
@@ -546,10 +560,10 @@ pub fn parse(stmt: &str) -> Result<Statement, ParseError> {
     }
 }
 
-fn parse_select(w: &mut Words) -> Result<Select, ParseError> {
-    let err = |w: &Words, m: &str| ParseError {
+fn parse_select(w: &mut Words<'_>) -> Result<Select, ParseError> {
+    let err = |w: &Words<'_>, m: &str| ParseError {
         message: m.to_owned(),
-        at: w.toks.get(w.pos).map(|t| t.start).unwrap_or(w.src.len()),
+        at: w.toks.get(w.pos).map_or(w.src.len(), |t| t.start),
     };
     w.accept("SELECT");
     w.accept("DISTINCT");
@@ -608,7 +622,7 @@ fn parse_select(w: &mut Words) -> Result<Select, ParseError> {
             };
             let op = w
                 .next()
-                .map(|s| s.to_ascii_uppercase())
+                .map(str::to_ascii_uppercase)
                 .ok_or_else(|| err(w, "Expected an operator"))?;
             let (cmp, value) = match op.as_str() {
                 "=" => (Cmp::Eq, w.next().unwrap_or("").to_owned()),
@@ -714,7 +728,7 @@ pub fn tier(stmt: &Statement) -> Tier {
     }
 }
 
-/// TablePro's `isDangerousQuery`: destructive, or DELETE with no WHERE.
+/// `TablePro`'s `isDangerousQuery`: destructive, or DELETE with no WHERE.
 pub fn is_dangerous(stmt: &Statement) -> bool {
     match stmt {
         Statement::Explain { inner, .. } => is_dangerous(inner),
@@ -779,7 +793,7 @@ pub fn fmt_rows(n: usize) -> String {
 }
 
 pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
-    let rows = table.map(|t| t.row_count).unwrap_or(0);
+    let rows = table.map_or(0, |t| t.row_count);
     let t = tier(stmt);
     let dangerous = is_dangerous(stmt);
     let (action, scope, risk, reversible) = match stmt {
@@ -967,6 +981,11 @@ pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
 
 /// Evaluate a SELECT against the demo catalog. Scans a bounded window of
 /// generated rows (deterministic), filters, sorts and limits.
+///
+/// # Errors
+///
+/// Returns an [`ExecError`] when the relation, projected column, predicate,
+/// or order column is not present in the catalog.
 pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
@@ -1123,6 +1142,11 @@ pub struct PlanNode {
     pub children: Vec<PlanNode>,
 }
 
+/// Build a deterministic PostgreSQL-style plan for a SELECT.
+///
+/// # Errors
+///
+/// Returns an [`ExecError`] when the relation is not present in the catalog.
 pub fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
@@ -1220,8 +1244,7 @@ pub fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, E
                     fmt_int(table.row_count),
                     sel.predicates
                         .first()
-                        .map(|p| p.column.as_str())
-                        .unwrap_or("the filter column")
+                        .map_or("the filter column", |p| p.column.as_str())
                 )
             }),
             children: vec![],
@@ -1329,7 +1352,7 @@ pub fn fmt_int(n: usize) -> String {
     let s = n.to_string();
     let mut out = String::new();
     for (i, ch) in s.chars().enumerate() {
-        if i > 0 && (s.len() - i).is_multiple_of(3) {
+        if i > 0 && s.len().saturating_sub(i).is_multiple_of(3) {
             out.push(',');
         }
         out.push(ch);
@@ -1363,7 +1386,7 @@ pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
         out.push(format!("{indent}      {k}: {v}"));
     }
     for c in &node.children {
-        plan_text(c, depth + 1, out);
+        plan_text(c, depth.saturating_add(1), out);
     }
 }
 

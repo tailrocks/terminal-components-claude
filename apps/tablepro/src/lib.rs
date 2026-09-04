@@ -1,4 +1,4 @@
-//! TablePro application package.
+//! `TablePro` application package.
 //!
 //! Database semantics stay in application-owned adapters; terminal behavior
 //! is reached only through the public `tui-next` facade.
@@ -63,19 +63,16 @@ mod tablepro {
         let statement = match sql::parse("SELECT status FROM orders LIMIT 3") {
             Ok(Statement::Select(select)) => select,
             Ok(_) => {
-                assert!(false, "projection must parse as SELECT");
-                return;
+                panic!("projection must parse as SELECT");
             }
             Err(error) => {
-                assert!(false, "query must parse: {}", error.message);
-                return;
+                panic!("query must parse: {}", error.message);
             }
         };
         let result = match sql::run_select(&catalog, &statement) {
             Ok(result) => result,
             Err(error) => {
-                assert!(false, "query must execute: {}", error.message);
-                return;
+                panic!("query must execute: {}", error.message);
             }
         };
         let grid = ResultGrid::from_result(&result);
@@ -111,22 +108,19 @@ mod tablepro {
         let select = match sql::parse("SELECT * FROM orders") {
             Ok(statement) => statement,
             Err(error) => {
-                assert!(false, "query must parse: {}", error.message);
-                return;
+                panic!("query must parse: {}", error.message);
             }
         };
         let destructive = match sql::parse("DELETE FROM orders") {
             Ok(statement) => statement,
             Err(error) => {
-                assert!(false, "query must parse: {}", error.message);
-                return;
+                panic!("query must parse: {}", error.message);
             }
         };
         let scoped_write = match sql::parse("UPDATE orders SET status = 'paid' WHERE id = 7") {
             Ok(statement) => statement,
             Err(error) => {
-                assert!(false, "query must parse: {}", error.message);
-                return;
+                panic!("query must parse: {}", error.message);
             }
         };
 

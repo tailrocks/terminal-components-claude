@@ -1,4 +1,4 @@
-//! Deterministic replacements for the legacy TablePro performance entry points.
+//! Deterministic replacements for the historical `TablePro` performance entry points.
 //!
 //! These retain the named smoke-test contracts while exercising only the
 //! public application facade and domain adapter. Allocation budgets belong to
