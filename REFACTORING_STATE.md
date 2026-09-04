@@ -261,3 +261,15 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - §29 has not yet been appended.
 - McClintock ran no post-edit verification and made no commit or push.
 - McClintock made no Rust or allow-list edits; concurrent Rust and allow-list work remains untouched.
+
+## Session 3 checkpoint — Sagan's Q3/Fixture consumers (2026-09-04)
+
+- Sagan completed the Q3 machinery and Fixture consumer compile work. Changed only `crates/tui-testing/src/conformance/mod.rs`, `crates/tui-testing/src/conformance/driver.rs`, and `crates/tui/tests/conformance.rs` for this pass.
+- `rtk cargo test -p tui-next-testing --lib`: `3 passed; 1 ignored`; exit code `0`.
+- `rtk cargo test -p tui-next --test conformance --no-run`: exit code `0`.
+- `rtk cargo test -p tui-next --test conformance`: `457 passed; 10 failed`; exit code `101`.
+- `rtk git diff --check` on the owned files: exit code `0`.
+- Rustfmt on the owned files: exit code `0`.
+- Remaining conformance failures: ChipBar ×4, RadioGroup ×2, registry META declaration ×1, and TextArea ×3.
+- Q3 machinery and Fixture consumers compile, but the proof is not green. Sagan made no commit or push.
+- Sagan left `COMPONENT_ARCHITECTURE.md`, `REFACTORING_STATE.md`, `crates/tui/tests/render_components.rs`, `crates/tui/src/lib.rs`, and `crates/tui/src/components/mod.rs` untouched.
