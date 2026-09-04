@@ -245,3 +245,12 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - Pre-edit conformance passed with 194 tests; exit code `0`.
 - The existing baseline contains 384 lines. The expanded render matrix declares 20 components.
 - No commit has been made for this paused pass. `Select` registration remains open pending the overlay contract.
+
+## Session 3 checkpoint — Peirce's RowUi migration (2026-09-04)
+
+- Peirce resumed and changed `crates/tui/src/theme/resolve.rs`, `crates/tui/src/collection/rowui.rs`, `crates/tui/src/measure.rs`, `crates/tui/src/theme/mod.rs`, `crates/tui/src/components/hintbar.rs`, `crates/tui/src/components/meter.rs`, `crates/tui/src/components/progress.rs`, `crates/tui/src/components/select.rs`, `crates/tui/src/components/tabs.rs`, `crates/tui/src/components/textarea.rs`, `crates/tui/examples/12_author_component.rs`, and `crates/tui/tests/perf.rs`.
+- `PartMetrics.glyph` is now `Slot<GlyphRole>`.
+- Focused test command: `rtk cargo test -p tui-next --lib collection::rowui`; output: `6 passed; 258 filtered`; exit code `0`.
+- Current all-target build command: `rtk cargo build -p tui-next --all-targets`; output: `55 errors; 11 warnings`; exit code `101`. Remaining failures are only concurrent `crates/tui/tests/conformance.rs` and `tui-testing` `Fixture` changes: private fields, two `Slot`/`Option` matches, and two inference errors.
+- RowUi `Slot::Inherit` coverage is still missing.
+- No commit or push had been made for this migration at checkpoint time.
