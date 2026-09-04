@@ -15,6 +15,7 @@ mod app;
 mod arbiter;
 mod clock;
 pub mod domain;
+pub mod rain;
 mod scenario;
 pub mod screens;
 pub mod sim;
@@ -29,5 +30,13 @@ pub use scenario::{Motion, Scenario};
 
 /// Run the interactive preview through the public `tui-next` entry point.
 pub fn run() -> std::io::Result<()> {
-    tui_next::run(App::default(), tui_next::Theme::junie())
+    run_scenario(Scenario::Returning, Motion::Full, 0)
+}
+
+/// Run a pinned scenario through the public `tui-next` entry point.
+pub fn run_scenario(scenario: Scenario, motion: Motion, frame: u64) -> std::io::Result<()> {
+    tui_next::run(
+        App::for_scenario_at(scenario, motion, frame),
+        tui_next::Theme::junie(),
+    )
 }

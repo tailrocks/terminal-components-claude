@@ -54,7 +54,10 @@ impl Clock {
         let days = (secs + 7 * 3600).div_euclid(86_400);
         // 1970-01-01 was a Thursday
         const NAMES: [&str; 7] = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
-        NAMES[days.rem_euclid(7) as usize]
+        NAMES
+            .get(days.rem_euclid(7) as usize)
+            .copied()
+            .unwrap_or("Thu")
     }
 
     /// `just now`, `3 min ago`, `2 h ago`, `yesterday`, `3 d ago`.

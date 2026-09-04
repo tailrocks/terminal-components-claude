@@ -444,8 +444,11 @@ impl OverallSummary {
                 seen_single.entry(*surface).or_default().push(id);
                 continue;
             }
-            let unit = ws[0].0.unit;
-            let category = ws[0].0.category;
+            let Some((first_window, _)) = ws.first() else {
+                continue;
+            };
+            let unit = first_window.unit;
+            let category = first_window.category;
             if ws
                 .iter()
                 .any(|(w, _)| w.unit != unit || w.category != category)
@@ -472,7 +475,7 @@ impl OverallSummary {
             comparable.push(ComparableRollup {
                 surface: *surface,
                 window_id: id,
-                label: ws[0].0.label.clone(),
+                label: first_window.label.clone(),
                 unit,
                 accounts: ws.len(),
                 min_remaining_pct: rem.iter().copied().min().unwrap_or(0),

@@ -233,8 +233,10 @@ impl LaunchRun {
 
     pub fn cancel(&mut self) {
         self.cancelled = true;
-        if let Some(i) = self.current {
-            self.states[i] = StepState::Failed;
+        if let Some(i) = self.current
+            && let Some(state) = self.states.get_mut(i)
+        {
+            *state = StepState::Failed;
         }
     }
 
@@ -256,17 +258,25 @@ impl LaunchRun {
             ev.push(LaunchEvent::Activity(Stage::Identity.activity(self.agent)));
             return ev;
         };
-        let stage = Stage::ALL[i];
+        let Some(stage) = Stage::ALL.get(i).copied() else {
+            self.current = None;
+            return ev;
+        };
+        let Some(&duration) = self.durations.get(i) else {
+            self.current = None;
+            return ev;
+        };
         let elapsed = self.tick - self.stage_start;
         // stage-specific mid-stage events
         match stage {
             Stage::DerivedImage => {
-                let want = ((elapsed as usize) * BUILD_LOG.len() / self.durations[i] as usize)
-                    .min(BUILD_LOG.len());
+                let want =
+                    ((elapsed as usize) * BUILD_LOG.len() / duration as usize).min(BUILD_LOG.len());
                 while self.build_lines_emitted < want {
-                    ev.push(LaunchEvent::BuildLine(
-                        BUILD_LOG[self.build_lines_emitted].to_owned(),
-                    ));
+                    let Some(line) = BUILD_LOG.get(self.build_lines_emitted) else {
+                        break;
+                    };
+                    ev.push(LaunchEvent::BuildLine((*line).to_owned()));
                     self.build_lines_emitted += 1;
                 }
             }
@@ -286,7 +296,7 @@ impl LaunchRun {
             }
             _ => {}
         }
-        if elapsed < self.durations[i] {
+        if elapsed < duration {
             return ev;
         }
         // finish this stage
@@ -296,7 +306,9 @@ impl LaunchRun {
             (LaunchPlan::BlockedSidecar, Stage::Sidecar) => StepState::Blocked,
             _ => StepState::Done,
         };
-        self.states[i] = final_state;
+        if let Some(state) = self.states.get_mut(i) {
+            *state = final_state;
+        }
         ev.push(LaunchEvent::StageChanged(stage, final_state));
         if stage == Stage::Credentials {
             ev.push(LaunchEvent::CredentialsResolved {
@@ -336,11 +348,13 @@ impl LaunchRun {
             }
             _ => {}
         }
-        if i + 1 < Stage::ALL.len() {
-            let next = Stage::ALL[i + 1];
-            self.current = Some(i + 1);
+        let next_index = i.saturating_add(1);
+        if let Some(next) = Stage::ALL.get(next_index).copied() {
+            self.current = Some(next_index);
             self.stage_start = self.tick;
-            self.states[i + 1] = StepState::Running;
+            if let Some(state) = self.states.get_mut(next_index) {
+                *state = StepState::Running;
+            }
             ev.push(LaunchEvent::StageChanged(next, StepState::Running));
             ev.push(LaunchEvent::Activity(next.activity(self.agent)));
         } else {
@@ -348,6 +362,16 @@ impl LaunchRun {
             ev.push(LaunchEvent::Ready);
         }
         ev
+    }
+
+    /// Seek to a deterministic frame without consulting wall time.
+    pub fn seek(&mut self, frame: u64) {
+        for _ in 0..frame {
+            if self.is_terminal() {
+                break;
+            }
+            let _ = self.advance();
+        }
     }
 }
 

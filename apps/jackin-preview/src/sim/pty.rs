@@ -503,6 +503,12 @@ impl TextViewport {
     }
 }
 
+impl Default for TextViewport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// One deterministic process step.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Step {
@@ -1302,10 +1308,10 @@ impl Daemon {
             return true;
         }
         tab.root.remove_leaf(id);
-        if tab.focused == id {
-            if let Some(next) = tab.leaves().first().copied() {
-                tab.focused = next;
-            }
+        if tab.focused == id
+            && let Some(next) = tab.leaves().first().copied()
+        {
+            tab.focused = next;
         }
         if tab.zoomed == Some(id) {
             tab.zoomed = None;

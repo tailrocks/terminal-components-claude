@@ -123,7 +123,9 @@ impl OpFlowState {
 
     /// Selection at `stage`, if one exists.
     pub fn selected(&self, stage: OpFlowStage) -> Option<&str> {
-        self.selected[Self::index(stage)].as_deref()
+        self.selected
+            .get(Self::index(stage))
+            .and_then(Option::as_deref)
     }
 
     /// Begin a deterministic loading state for one stage.
@@ -141,7 +143,8 @@ impl OpFlowState {
             return None;
         }
         let stage = self.current;
-        self.selected[Self::index(stage)] = Some(id.clone());
+        let selection = self.selected.get_mut(Self::index(stage))?;
+        *selection = Some(id.clone());
         self.status = OpFlowStatus::Ready;
         match stage.next() {
             Some(next) => {
@@ -187,7 +190,9 @@ impl OpFlowState {
                 | OpError::MissingItem { .. }
                 | OpError::MissingField { .. }
                 | OpError::EmptyMaterial { .. }
-                | OpError::WrongFieldShape { .. } => "The referenced object changed; choose again.".into(),
+                | OpError::WrongFieldShape { .. } => {
+                    "The referenced object changed; choose again.".into()
+                }
             },
         };
     }
@@ -226,14 +231,20 @@ mod tests {
     #[test]
     fn flow_advances_and_rewinds_without_losing_prior_selection() {
         let mut state = OpFlowState::default();
-        assert_eq!(state.choose("acct").unwrap(), OpFlowAction::Entered {
-            stage: OpFlowStage::Vault,
-            id: "acct".into()
-        });
-        assert_eq!(state.choose("vault").unwrap(), OpFlowAction::Entered {
-            stage: OpFlowStage::Item,
-            id: "vault".into()
-        });
+        assert_eq!(
+            state.choose("acct").unwrap(),
+            OpFlowAction::Entered {
+                stage: OpFlowStage::Vault,
+                id: "acct".into()
+            }
+        );
+        assert_eq!(
+            state.choose("vault").unwrap(),
+            OpFlowAction::Entered {
+                stage: OpFlowStage::Item,
+                id: "vault".into()
+            }
+        );
         assert_eq!(state.back(), Some(OpFlowAction::Back(OpFlowStage::Vault)));
         assert_eq!(state.selected(OpFlowStage::Account), Some("acct"));
         assert_eq!(state.selected(OpFlowStage::Vault), Some("vault"));
@@ -244,8 +255,13 @@ mod tests {
         let mut state = OpFlowState::default();
         state.set_error(OpError::Locked);
         assert!(state.status().collection_status() == Status::Error);
-        assert!(!matches!(state.status(), OpFlowStatus::Error { message, .. } if message.contains("valid-ant")));
-        assert_eq!(state.retry(), Some(OpFlowAction::Retry(OpFlowStage::Account)));
+        assert!(
+            !matches!(state.status(), OpFlowStatus::Error { message, .. } if message.contains("valid-ant"))
+        );
+        assert_eq!(
+            state.retry(),
+            Some(OpFlowAction::Retry(OpFlowStage::Account))
+        );
         assert!(matches!(state.status(), OpFlowStatus::Loading { .. }));
     }
 }

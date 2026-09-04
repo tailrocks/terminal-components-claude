@@ -9,7 +9,8 @@ use std::collections::BTreeSet;
 
 use crate::domain::account::{
     Account, AccountId, AccountIdentity, AccountRegistry, Confidence, CredentialSource,
-    DetectedKind, IdentitySubject, Lifecycle, Provenance, ValidationLevel, ValidationState,
+    DetectedKind, IdentitySubject, IssueCode, Lifecycle, Provenance, Recoverability,
+    RecoverableIssue, ValidationLevel, ValidationState,
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{
@@ -245,7 +246,270 @@ pub fn fixture_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     };
     registry.insert(discovered);
 
+    // Keep the original Jackin fixture ids in addition to the compact ids
+    // above.  They are referenced by saved Workspace policies and by the
+    // migration journey; aliases are metadata-only and do not duplicate any
+    // credential material.  Every source remains either a reference, a
+    // synthetic tail/fingerprint, or a host path.
+    for account in legacy_fixture_accounts(op, now) {
+        registry.insert(account);
+    }
+
     registry
+}
+
+fn legacy_fixture_accounts(_op: &SimOnePassword, now: i64) -> Vec<Account> {
+    let mut out = Vec::new();
+
+    let mut personal = account_with_source(
+        "acct-claude-personal",
+        "Personal",
+        Provider::Anthropic,
+        CredentialSource::LocalFolder {
+            path: "~/.claude".into(),
+            detected: DetectedKind::ClaudeOAuthProfile,
+        },
+        now,
+    );
+    personal.identity = handle("alexey@donbeave.dev");
+    personal.identity.plan = Some("Max 5x".into());
+    personal.default_for_provider = true;
+    out.push(personal);
+
+    let mut work = account_with_source(
+        "acct-claude-work",
+        "Work",
+        Provider::Anthropic,
+        CredentialSource::OnePassword(op_reference(
+            "v_eng01",
+            "Engineering",
+            "it_ant01",
+            "Anthropic · Work",
+        )),
+        now,
+    );
+    work.identity = handle("alexey@chainargos.com");
+    work.identity.plan = Some("Team".into());
+    work.issue = Some(
+        RecoverableIssue::new(
+            IssueCode::Stale,
+            "Usage stale · last good 47 min ago",
+            Recoverability::Retryable,
+        )
+        .retry(now + 13 * 60),
+    );
+    work.usage.freshness = FreshnessInfo::stale(now - 47 * 60, now + 13 * 60);
+    out.push(work);
+
+    let mut primary = account_with_source(
+        "acct-codex-primary",
+        "Primary",
+        Provider::OpenAi,
+        CredentialSource::OnePassword(op_reference(
+            "v_eng01",
+            "Engineering",
+            "it_cdx01",
+            "OpenAI · Codex Primary",
+        )),
+        now,
+    );
+    primary.identity = handle("ChatGPT account org_7Hq2");
+    primary.identity.plan = Some("Pro 20x".into());
+    primary.default_for_provider = true;
+    out.push(primary);
+
+    let mut experiments = account_with_source(
+        "acct-codex-experiments",
+        "Experiments",
+        Provider::OpenAi,
+        CredentialSource::PlainApiKey {
+            fingerprint: "7f3a91c2".into(),
+            tail: "k7Qz".into(),
+        },
+        now,
+    );
+    experiments.identity = handle("ChatGPT account org_7Hq2");
+    experiments.identity.plan = Some("Plus".into());
+    experiments.confidence = Confidence::Estimated;
+    experiments.issue = Some(RecoverableIssue::new(
+        IssueCode::QuotaUnsupported,
+        "Quota not visible: OpenAI does not expose usage for API keys",
+        Recoverability::Unsupported,
+    ));
+    out.push(experiments);
+
+    let mut grok = account_with_source(
+        "acct-grok-team",
+        "Team",
+        Provider::XAi,
+        CredentialSource::OnePassword(op_reference(
+            "v_eng01",
+            "Engineering",
+            "it_grk01",
+            "xAI · Grok Team",
+        )),
+        now,
+    )
+    .with_endpoint("Grok Build (default)", "api.x.ai");
+    grok.identity = handle("team_chainargos");
+    grok.identity.plan = Some("Team · prepaid".into());
+    grok.default_for_provider = true;
+    out.push(grok);
+
+    let mut opencode = account_with_source(
+        "acct-opencode-go",
+        "Go subscription",
+        Provider::OpenCode,
+        CredentialSource::PlainApiKey {
+            fingerprint: "c41d0be9".into(),
+            tail: "m2Xa".into(),
+        },
+        now,
+    );
+    opencode.identity = handle("donbeave");
+    opencode.identity.plan = Some("OpenCode Go".into());
+    opencode.default_for_provider = true;
+    opencode.issue = Some(
+        RecoverableIssue::new(
+            IssueCode::RateLimited,
+            "Rate limited: retry after 25 min",
+            Recoverability::Retryable,
+        )
+        .detail("Last-good data kept from 3 h ago")
+        .retry(now + 25 * 60),
+    );
+    opencode.usage.freshness = FreshnessInfo::failed(Some(now - 3 * 3600), Some(now + 25 * 60));
+    out.push(opencode);
+
+    let mut archive = account_with_source(
+        "acct-claude-archive",
+        "Archived contractor laptop profile — do not use for production launches",
+        Provider::Anthropic,
+        CredentialSource::LocalFolder {
+            path: "~/Library/Application Support/jackin/profiles/claude-contractor-2025-archive"
+                .into(),
+            detected: DetectedKind::ClaudeApiKeyEnv,
+        },
+        now,
+    );
+    archive.enabled = false;
+    archive.confidence = Confidence::PresenceOnly;
+    archive.lifecycle = Lifecycle::NeedsLogin;
+    archive.issue = Some(RecoverableIssue::new(
+        IssueCode::IdentityUnresolved,
+        "Identity unresolved · showing usage without a public handle",
+        Recoverability::Unsupported,
+    ));
+    out.push(archive);
+
+    out.extend([
+        discovered_account(
+            "disc-amp",
+            "discovered",
+            Provider::Amp,
+            CredentialSource::LocalFolder {
+                path: "~/.config/amp/secrets.json".into(),
+                detected: DetectedKind::AmpSecrets,
+            },
+            now,
+        ),
+        discovered_account(
+            "disc-zai",
+            "discovered",
+            Provider::Zai,
+            CredentialSource::HostEnv {
+                var: "ZAI_API_KEY".into(),
+                detected: DetectedKind::ZaiApiKeyEnv,
+            },
+            now,
+        ),
+        discovered_account(
+            "disc-kimi",
+            "discovered",
+            Provider::Moonshot,
+            CredentialSource::LocalFolder {
+                path: "~/.kimi".into(),
+                detected: DetectedKind::KimiApiKeyEnv,
+            },
+            now,
+        ),
+        discovered_account(
+            "disc-minimax",
+            "discovered",
+            Provider::MiniMax,
+            CredentialSource::HostEnv {
+                var: "MINIMAX_API_TOKEN".into(),
+                detected: DetectedKind::MinimaxTokenEnv,
+            },
+            now,
+        ),
+        discovered_account(
+            "disc-opencode-ci",
+            "ci-bot",
+            Provider::OpenCode,
+            CredentialSource::LocalFolder {
+                path: "~/.local/share/opencode/auth.json".into(),
+                detected: DetectedKind::OpenCodeGoAuthJson,
+            },
+            now,
+        ),
+    ]);
+
+    out
+}
+
+fn account_with_source(
+    id: &str,
+    name: &str,
+    provider: Provider,
+    source: CredentialSource,
+    now: i64,
+) -> Account {
+    let mut account = Account::registered(id, name, provider, source);
+    account.lifecycle = Lifecycle::Available;
+    account.confidence = Confidence::Authoritative;
+    account.validation = ValidationState::Valid(ValidationLevel::QuotaReadable);
+    account.last_refresh_secs = Some(now);
+    account.usage = AccountUsage {
+        freshness: FreshnessInfo::current(now),
+        windows: provider::windows_for(provider, now, false),
+    };
+    account
+}
+
+fn discovered_account(
+    id: &str,
+    name: &str,
+    provider: Provider,
+    source: CredentialSource,
+    now: i64,
+) -> Account {
+    let mut account = Account::discovered(id, name, provider, source);
+    account.lifecycle = match provider {
+        Provider::Moonshot => Lifecycle::NeedsSecret,
+        Provider::MiniMax => Lifecycle::Unavailable,
+        Provider::OpenCode if id == "disc-opencode-ci" => Lifecycle::Unsupported,
+        _ => Lifecycle::Available,
+    };
+    account.confidence = Confidence::PresenceOnly;
+    account.validation = ValidationState::Valid(ValidationLevel::MaterialDiscovered);
+    account.last_refresh_secs = Some(now);
+    account.usage = AccountUsage {
+        freshness: if account.lifecycle == Lifecycle::Available {
+            FreshnessInfo::current(now)
+        } else {
+            FreshnessInfo::failed(Some(now), None)
+        },
+        windows: provider::windows_for(provider, now, false),
+    };
+    account
+}
+
+fn handle(subject: &str) -> AccountIdentity {
+    AccountIdentity {
+        subject: Some(IdentitySubject::Handle(subject.into())),
+        plan: None,
+    }
 }
 
 /// Roles visible in the role picker.
@@ -287,6 +551,85 @@ pub fn fixture_roles() -> Vec<RoleEntry> {
             load_error: None,
         },
     ]
+}
+
+/// Scenario-specific Role registry.  Hard-case fixtures intentionally carry
+/// a large registry so keyed pickers and scoped configuration do not regress
+/// to positional selection when more than one screenful is present.
+pub fn fixture_roles_for(scenario: crate::scenario::Scenario) -> Vec<RoleEntry> {
+    let mut roles = fixture_roles();
+    if scenario == crate::scenario::Scenario::HardCases {
+        roles.extend((1..=128).map(|index| RoleEntry {
+            namespace: "chainargos".into(),
+            name: format!("svc-{index:03}"),
+            source: RoleSource::Git {
+                url: "https://github.com/chainargos/roles".into(),
+                branch: "main".into(),
+            },
+            trusted: true,
+            in_registry: true,
+            description: format!("Generated service role #{index}"),
+            load_error: None,
+        }));
+    }
+    roles
+}
+
+/// Scenario-specific Workspace registry.  The extra records are durable
+/// fixture data; they are not inferred from live daemon snapshots.
+pub fn fixture_workspaces_for(scenario: crate::scenario::Scenario) -> Vec<Workspace> {
+    let mut workspaces = vec![fixture_workspace()];
+    if scenario == crate::scenario::Scenario::HardCases {
+        for (id, name) in [
+            (2, "infra-control-plane"),
+            (3, "release-automation"),
+            (4, "customer-portal"),
+            (5, "data-pipeline"),
+            (6, "docs-site"),
+            (7, "shared-libraries"),
+            (8, "mobile-shell"),
+            (9, "observability"),
+            (10, "sandbox"),
+        ] {
+            let mut workspace = Workspace::new(id, name, &format!("/workspace/{name}"));
+            workspace.roles = RolePolicy {
+                allowed: AllowedRoles::All,
+                default: Some("chainargos/the-architect".into()),
+                last: Some("chainargos/the-architect".into()),
+            };
+            workspaces.push(workspace);
+        }
+    }
+    workspaces
+}
+
+/// Hard-case account registry with the revoked xAI record added to the
+/// complete mixed-provider fixture.
+pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
+    let mut registry = fixture_accounts(op, now);
+    let mut revoked = account_with_source(
+        "acct-grok-revoked",
+        "Revoked key",
+        Provider::XAi,
+        CredentialSource::OnePassword(op_reference(
+            "v_eng01",
+            "Engineering",
+            "it_leg01",
+            "Legacy · Rotated key",
+        )),
+        now,
+    );
+    revoked.lifecycle = Lifecycle::NeedsLogin;
+    let issue = RecoverableIssue::new(
+        IssueCode::Unauthorized,
+        "Not authorized: xAI rejected the credential",
+        Recoverability::ActionRequired,
+    );
+    revoked.validation = ValidationState::Invalid(issue.clone());
+    revoked.issue = Some(issue);
+    revoked.usage.freshness = FreshnessInfo::failed(None, None);
+    registry.insert(revoked);
+    registry
 }
 
 /// The saved Workspace used by the manager and launch fixtures.

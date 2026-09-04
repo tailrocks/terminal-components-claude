@@ -14,29 +14,52 @@ use tui_next::{
 use crate::domain::account::Account;
 use crate::domain::agent::Agent;
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
+use crate::rain::{
+    HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
+};
 use crate::scenario::{Motion, Scenario};
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::world::{World, world_for};
 
+/// Root id for the Jackin Preview component tree.
 pub const APP: Id = Id::root("jackin.preview");
+/// Intro entry action id.
 pub const ENTER: Id = APP.sub("enter");
+/// Manager route button id.
 pub const MANAGER: Id = APP.sub("manager");
+/// Accounts route button id.
 pub const ACCOUNTS: Id = APP.sub("accounts");
+/// Usage route button id.
 pub const USAGE: Id = APP.sub("usage");
+/// Settings route button id.
 pub const SETTINGS: Id = APP.sub("settings");
+/// Capsule route button id.
 pub const CAPSULE: Id = APP.sub("capsule");
+/// Manager instance list id.
 pub const MANAGER_LIST: Id = APP.sub("manager-list");
+/// Accounts list id.
 pub const ACCOUNTS_LIST: Id = APP.sub("accounts-list");
+/// Launch action id.
 pub const LAUNCH: Id = APP.sub("launch");
+/// Add-account action id.
 pub const ACCOUNT_ADD: Id = APP.sub("account-add");
+/// Trust-local-role action id.
 pub const SETTINGS_TRUST: Id = APP.sub("settings-trust");
+/// Capsule tab strip id.
 pub const CAPSULE_TABS: Id = APP.sub("capsule-tabs");
+/// Capsule pane list id.
 pub const CAPSULE_PANES: Id = APP.sub("capsule-panes");
+/// Launch confirmation dialog id.
 pub const LAUNCH_DIALOG: Id = APP.sub("launch-dialog");
+/// Role control inside the launch dialog.
 pub const ROLE_CHOOSE: Id = LAUNCH_DIALOG.sub("role");
+/// Role picker overlay id.
 pub const ROLE_PICKER: Id = APP.sub("role-picker");
+/// Account picker overlay id.
 pub const ACCOUNT_PICKER: Id = APP.sub("account-picker");
+/// Launch cancellation action id.
 pub const LAUNCH_CANCEL: Id = APP.sub("launch-cancel");
+/// Launch retry action id.
 pub const LAUNCH_RETRY: Id = APP.sub("launch-retry");
 
 const CMD_QUIT: ActionKey = ActionKey::custom("jackin.quit");
@@ -45,18 +68,35 @@ const CMD_ACCOUNTS: ActionKey = ActionKey::custom("jackin.accounts");
 const CMD_USAGE: ActionKey = ActionKey::custom("jackin.usage");
 const CMD_SETTINGS: ActionKey = ActionKey::custom("jackin.settings");
 const CMD_CAPSULE: ActionKey = ActionKey::custom("jackin.capsule");
-const TICK_MS: u64 = 33;
+const TICK_MS: u64 = crate::rain::TICK_MS;
 
 /// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Route {
+    /// First-use entry ritual.
     Intro,
+    /// Workspace and running-instance manager.
     Manager,
+    /// New-workspace prelude.
+    Prelude,
+    /// Workspace configuration editor.
+    Editor,
+    /// Account and usage center.
     Accounts,
+    /// Usage summary.
     Usage,
+    /// Application settings.
     Settings,
+    /// Compatibility launch route.
     Launch,
+    /// Active launch cockpit.
+    Cockpit,
+    /// Cockpit-to-Capsule handoff.
+    Handoff,
+    /// Running Capsule view.
     Capsule,
+    /// Exit ritual.
+    Outro,
 }
 
 impl Route {
@@ -64,11 +104,34 @@ impl Route {
         match self {
             Self::Intro => "Welcome to Jackin",
             Self::Manager => "Workspaces & instances",
+            Self::Prelude => "Create workspace",
+            Self::Editor => "Workspace editor",
             Self::Accounts => "Account & Usage Center",
             Self::Usage => "Usage overview",
             Self::Settings => "Settings",
             Self::Launch => "Launch cockpit",
+            Self::Cockpit => "Launch cockpit",
+            Self::Handoff => "Opening Capsule",
             Self::Capsule => "Capsule",
+            Self::Outro => "Leaving the Construct",
+        }
+    }
+
+    /// Virtual time cadence for one application tick.
+    ///
+    /// This is intentionally separate from runtime repaint scheduling.  The
+    /// fixture clock and every deterministic state machine advance by this
+    /// product-owned cadence only.
+    pub const fn tick_ms(self) -> u64 {
+        match self {
+            Self::Intro | Self::Outro | Self::Handoff | Self::Cockpit | Self::Launch => TICK_MS,
+            Self::Capsule => 80,
+            Self::Manager
+            | Self::Prelude
+            | Self::Editor
+            | Self::Accounts
+            | Self::Usage
+            | Self::Settings => 200,
         }
     }
 }
@@ -120,12 +183,24 @@ pub struct App {
     launch: Option<LaunchRun>,
     status: Option<String>,
     trusted: bool,
+    intro: IntroState,
+    outro: Option<OutroState>,
+    handoff_frame: Option<u64>,
 }
 
 impl App {
     /// Build one deterministic app scenario.
     pub fn for_scenario(scenario: Scenario, motion: Motion) -> Self {
-        let world = world_for(scenario);
+        Self::for_scenario_at(scenario, motion, 0)
+    }
+
+    /// Build one deterministic app scenario at a pinned virtual frame.
+    ///
+    /// Captures use this constructor instead of wall-clock time.  Paused
+    /// mode remains frozen after construction, while full/reduced modes can
+    /// continue from the same reproducible boundary on the next tick.
+    pub fn for_scenario_at(scenario: Scenario, motion: Motion, frame: u64) -> Self {
+        let mut world = world_for(scenario);
         let roles = world
             .roles
             .iter()
@@ -157,14 +232,22 @@ impl App {
             .iter()
             .position(|role| role.key == "chainargos/the-architect")
             .unwrap_or(0);
-        let route = match scenario {
+        let mut route = match scenario {
+            Scenario::FirstUse if frame >= INTRO_END => Route::Manager,
             Scenario::FirstUse => Route::Intro,
             Scenario::AccountsMixed => Route::Accounts,
-            Scenario::LaunchRunning | Scenario::LaunchFailure => Route::Launch,
-            Scenario::CapsuleMulti | Scenario::OutroLast => Route::Capsule,
+            Scenario::LaunchRunning | Scenario::LaunchFailure => Route::Cockpit,
+            Scenario::CapsuleMulti => Route::Capsule,
+            Scenario::OutroLast if frame > 0 => Route::Outro,
+            Scenario::OutroLast => Route::Capsule,
             Scenario::Returning | Scenario::HardCases => Route::Manager,
         };
-        let launch = matches!(route, Route::Launch).then(|| {
+        world.clock.running = motion != Motion::Paused;
+        let frame_i64 = i64::try_from(frame).unwrap_or(i64::MAX);
+        let cadence_i64 = i64::try_from(route.tick_ms()).unwrap_or(i64::MAX);
+        world.clock.now_ms = frame_i64.saturating_mul(cadence_i64);
+        world.last_refresh_secs = world.now_secs();
+        let mut launch = matches!(route, Route::Launch | Route::Cockpit).then(|| {
             LaunchRun::new(
                 if scenario == Scenario::LaunchFailure {
                     LaunchPlan::FailNetwork
@@ -176,6 +259,12 @@ impl App {
                 crate::RunId::new(0x9c41_e2f0),
             )
         });
+        if let Some(run) = &mut launch {
+            run.seek(frame);
+            if run.done {
+                route = Route::Handoff;
+            }
+        }
         Self {
             world,
             route,
@@ -194,6 +283,10 @@ impl App {
             launch,
             status: None,
             trusted: false,
+            intro: IntroState::new(motion, frame),
+            outro: (scenario == Scenario::OutroLast && frame > 0)
+                .then(|| OutroState::new(motion, Some(8_040), frame)),
+            handoff_frame: (route == Route::Handoff).then_some(0),
         }
     }
 
@@ -207,6 +300,22 @@ impl App {
         self.motion
     }
 
+    /// The app's deterministic route cadence in milliseconds.
+    pub const fn route_tick_ms(&self) -> u64 {
+        self.route.tick_ms()
+    }
+
+    /// Current pinned virtual frame for ritual/cross-fade state.
+    pub fn frame(&self) -> u64 {
+        match self.route {
+            Route::Intro => self.intro.tick,
+            Route::Outro => self.outro.as_ref().map_or(0, |state| state.tick),
+            Route::Handoff => self.handoff_frame.unwrap_or(0),
+            Route::Launch | Route::Cockpit => self.launch.as_ref().map_or(0, |run| run.tick),
+            _ => self.world.now_ms().div_euclid(self.route_tick_ms() as i64) as u64,
+        }
+    }
+
     /// The current selected role label.
     pub fn selected_role(&self) -> &str {
         self.roles
@@ -217,6 +326,40 @@ impl App {
     /// The active launch run, if the app is in the cockpit.
     pub const fn launch(&self) -> Option<&LaunchRun> {
         self.launch.as_ref()
+    }
+
+    fn enter_button() -> Button<'static> {
+        Button::new(ENTER, "Enter Construct").variant(Variant::PRIMARY)
+    }
+
+    fn account_add_button() -> Button<'static> {
+        Button::new(ACCOUNT_ADD, "Choose 1Password reference…").variant(Variant::PRIMARY)
+    }
+
+    fn launch_button(disabled: bool) -> Button<'static> {
+        Button::new(LAUNCH, "Launch session")
+            .variant(Variant::PRIMARY)
+            .disabled(disabled)
+    }
+
+    fn settings_trust_button(checked: bool) -> Button<'static> {
+        Button::new(SETTINGS_TRUST, "Trust local incident role").checked(checked)
+    }
+
+    fn launch_retry_button() -> Button<'static> {
+        Button::new(LAUNCH_RETRY, "Retry").variant(Variant::PRIMARY)
+    }
+
+    fn role_picker() -> Picker<'static, RoleOption> {
+        Picker::new(ROLE_PICKER).title("Choose a role")
+    }
+
+    fn account_picker() -> Picker<'static, AccountOption> {
+        Picker::new(ACCOUNT_PICKER).title("Choose a configured account")
+    }
+
+    fn shell_panel<'a>(meta: &'a str) -> Panel<'a> {
+        Panel::new(APP).title("Jackin Preview").meta(meta)
     }
 
     fn manager_rows(&self) -> Vec<String> {
@@ -255,7 +398,7 @@ impl App {
             .collect()
     }
 
-    fn launch_dialog(&self) -> Dialog<'static> {
+    fn launch_dialog() -> Dialog<'static> {
         Dialog::confirm(
             LAUNCH_DIALOG,
             "Launch a new session",
@@ -265,20 +408,20 @@ impl App {
     }
 
     fn open_launch_dialog(&mut self, cx: &mut Cx<'_>) {
-        let dialog = self.launch_dialog();
+        let dialog = Self::launch_dialog();
         let spec = dialog.layer(cx);
         self.launch_dialog = DialogState::default();
         cx.open_layer(LAUNCH_DIALOG, spec);
     }
 
     fn open_role_picker(&mut self, cx: &mut Cx<'_>) {
-        let picker = Picker::new(ROLE_PICKER).title("Choose a role");
+        let picker = Self::role_picker();
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
     }
 
     fn open_account_picker(&mut self, cx: &mut Cx<'_>) {
-        let picker = Picker::new(ACCOUNT_PICKER).title("Choose a configured account");
+        let picker = Self::account_picker();
         let spec = picker.layer(cx, &self.account_options);
         cx.open_layer(ACCOUNT_PICKER, spec);
     }
@@ -295,7 +438,8 @@ impl App {
             "jackin-payments-platform",
             crate::RunId::new(0x9c41_e2f0),
         ));
-        self.route = Route::Launch;
+        self.route = Route::Cockpit;
+        self.handoff_frame = None;
         self.status = Some(format!(
             "Queued {} · {}",
             self.selected_role(),
@@ -311,7 +455,7 @@ impl App {
         // owners during the same update pass; returning early for the top
         // picker leaves those intents undelivered and makes nested overlays
         // noisy in diagnostics.
-        let dialog = self.launch_dialog();
+        let dialog = Self::launch_dialog();
         let response = dialog.update(cx, &mut self.launch_dialog);
         let action = response.action_ref().copied();
         result |= response.erase();
@@ -338,7 +482,7 @@ impl App {
             result |= Response::changed();
         }
 
-        let picker = Picker::new(ROLE_PICKER).title("Choose a role");
+        let picker = Self::role_picker();
         let response = picker.update(cx, &mut self.role_state, &self.roles);
         let action = response.action_ref().copied();
         result |= response.erase();
@@ -354,7 +498,7 @@ impl App {
             result |= Response::changed();
         }
 
-        let picker = Picker::new(ACCOUNT_PICKER).title("Choose a configured account");
+        let picker = Self::account_picker();
         let response = picker.update(cx, &mut self.account_state, &self.account_options);
         let action = response.action_ref().copied();
         result |= response.erase();
@@ -396,9 +540,7 @@ impl App {
     }
 
     fn update_intro(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let button = Button::new(ENTER, "Enter Construct")
-            .variant(Variant::PRIMARY)
-            .update(cx);
+        let button = Self::enter_button().update(cx);
         let chosen = button.activated();
         let result = button.erase();
         if chosen {
@@ -422,10 +564,7 @@ impl App {
             }
             result |= Response::changed();
         }
-        let button = Button::new(LAUNCH, "Launch session")
-            .variant(Variant::PRIMARY)
-            .disabled(self.world.workspaces.is_empty())
-            .update(cx);
+        let button = Self::launch_button(self.world.workspaces.is_empty()).update(cx);
         let chosen = button.activated();
         result |= button.erase();
         if chosen {
@@ -438,9 +577,7 @@ impl App {
         let rows = self.account_rows();
         let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts_state, &rows);
         let mut result = list.erase();
-        let add = Button::new(ACCOUNT_ADD, "Choose 1Password reference…")
-            .variant(Variant::PRIMARY)
-            .update(cx);
+        let add = Self::account_add_button().update(cx);
         let chosen = add.activated();
         result |= add.erase();
         if chosen {
@@ -450,9 +587,7 @@ impl App {
     }
 
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let button = Button::new(SETTINGS_TRUST, "Trust local incident role")
-            .checked(self.trusted)
-            .update(cx);
+        let button = Self::settings_trust_button(self.trusted).update(cx);
         let chosen = button.activated();
         let result = button.erase();
         if chosen {
@@ -476,9 +611,7 @@ impl App {
             return result;
         }
         if failed {
-            let retry = Button::new(LAUNCH_RETRY, "Retry")
-                .variant(Variant::PRIMARY)
-                .update(cx);
+            let retry = Self::launch_retry_button().update(cx);
             let retry_chosen = retry.activated();
             result |= retry.erase();
             if retry_chosen {
@@ -486,13 +619,14 @@ impl App {
                 return result;
             }
         }
-        if cx.update_cause() == UpdateCause::Tick && self.motion != Motion::Paused {
-            if let Some(launch) = &mut self.launch {
-                let events = launch.advance();
-                if !events.is_empty() {
-                    self.handle_launch_events(events);
-                    result |= Response::changed();
-                }
+        if cx.update_cause() == UpdateCause::Tick
+            && self.motion != Motion::Paused
+            && let Some(launch) = &mut self.launch
+        {
+            let events = launch.advance();
+            if !events.is_empty() {
+                self.handle_launch_events(events);
+                result |= Response::changed();
             }
         }
         if self
@@ -527,13 +661,21 @@ impl App {
                 LaunchEvent::CredentialError { message } => self.status = Some(message),
                 LaunchEvent::Failed(failure) => {
                     self.status = Some(format!("{} · {}", failure.stage.label(), failure.summary));
+                    if self.world.running_count() > 0 {
+                        self.route = Route::Manager;
+                        self.status = Some(format!(
+                            "Launch failed · {} · another instance is still running",
+                            failure.summary
+                        ));
+                    }
                 }
                 LaunchEvent::Ready => {
                     self.status = Some("Capsule ready".into());
-                    self.route = Route::Capsule;
+                    self.route = Route::Handoff;
+                    self.handoff_frame = Some(0);
                 }
-                LaunchEvent::StageChanged(stage, state) => {
-                    self.status = Some(format!("{} · {}", stage.label(), state.label()));
+                LaunchEvent::StageChanged(stage_kind, step_state) => {
+                    self.status = Some(format!("{} · {}", stage_kind.label(), step_state.label()));
                 }
             }
         }
@@ -550,16 +692,13 @@ impl App {
         match self.route {
             Route::Intro => self.update_intro(cx),
             Route::Manager => self.update_manager(cx),
+            Route::Prelude | Route::Editor => Response::ignored(),
             Route::Accounts => self.update_accounts(cx),
-            Route::Usage | Route::Capsule => {
-                if self.route == Route::Capsule {
-                    self.update_capsule(cx)
-                } else {
-                    Response::ignored()
-                }
-            }
+            Route::Usage => Response::ignored(),
             Route::Settings => self.update_settings(cx),
-            Route::Launch => self.update_launch(cx),
+            Route::Launch | Route::Cockpit => self.update_launch(cx),
+            Route::Handoff | Route::Outro => Response::ignored(),
+            Route::Capsule => self.update_capsule(cx),
         }
     }
 
@@ -592,6 +731,76 @@ impl App {
             }
             _ => None,
         }
+    }
+
+    fn advance_virtual_state(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() != UpdateCause::Tick || self.motion == Motion::Paused {
+            return Response::ignored();
+        }
+
+        let cadence = i64::try_from(self.route_tick_ms()).unwrap_or(i64::MAX);
+        let messages = self.world.tick(cadence);
+        let mut result = if messages.is_empty() {
+            Response::ignored()
+        } else {
+            Response::changed()
+        };
+        for message in messages {
+            match message {
+                crate::sim::world::Msg::WorkspaceSaved { id, ok } => {
+                    self.status = Some(if ok {
+                        format!("Workspace {id} saved")
+                    } else {
+                        format!("Workspace {id} save failed")
+                    });
+                }
+                crate::sim::world::Msg::Refreshed { ok } => {
+                    self.status = Some(if ok {
+                        "Refresh complete".into()
+                    } else {
+                        "Refresh failed; last good data retained".into()
+                    });
+                }
+                crate::sim::world::Msg::AccountRefreshed { account } => {
+                    self.status = Some(format!("Account {account} refreshed"));
+                }
+            }
+        }
+
+        match self.route {
+            Route::Intro => {
+                if self.intro.on_tick() && self.intro.is_done() {
+                    self.route = Route::Manager;
+                    self.world.arbiter.complete_entry(self.world.now_ms());
+                    result |= Response::changed();
+                }
+                cx.request_repaint_after(Duration::from_millis(TICK_MS));
+            }
+            Route::Outro => {
+                if let Some(outro) = &mut self.outro
+                    && outro.on_tick()
+                    && outro.is_done()
+                {
+                    self.quit = true;
+                    result |= Response::changed();
+                }
+                cx.request_repaint_after(Duration::from_millis(TICK_MS));
+            }
+            Route::Handoff => {
+                let next = self.handoff_frame.unwrap_or(0).saturating_add(1);
+                self.handoff_frame = Some(next);
+                if next >= HANDOFF_LEN {
+                    self.route = Route::Capsule;
+                }
+                result |= Response::changed();
+                cx.request_repaint_after(Duration::from_millis(TICK_MS));
+            }
+            Route::Cockpit | Route::Launch => {
+                cx.request_repaint_after(Duration::from_millis(TICK_MS));
+            }
+            _ => {}
+        }
+        result
     }
 
     fn draw_header(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -631,25 +840,118 @@ impl App {
 
     fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
         let style = ui.surface_style();
+        let message = match self.intro.phase() {
+            IntroPhase::Phrases => {
+                let index = self.intro.tick / P1_LEN;
+                PHRASES
+                    .get(usize::try_from(index).unwrap_or(0))
+                    .map_or("Stand up, operator…", |(text, _, _)| *text)
+            }
+            IntroPhase::Warp => "Knock, knock, operator. · opening the Construct",
+            IntroPhase::Done => "Construct ready. Choose a workspace to continue.",
+        };
         ui.paint_str(
             Rect {
                 height: area.height.min(1),
                 ..area
             },
-            "No running instances found. The first launch owns the Construct entry ritual.",
+            message,
             style,
         );
-        Button::new(ENTER, "Enter Construct")
-            .variant(Variant::PRIMARY)
-            .draw(
+        if self.intro.phase() == IntroPhase::Phrases {
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+                "No running instances found. The first launch owns the Construct entry ritual.",
+                style,
+            );
+            Self::enter_button().draw(
                 ui,
                 Rect {
-                    y: area.y.saturating_add(2),
+                    y: area.y.saturating_add(3),
                     width: area.width.min(24),
                     height: 1,
                     ..area
                 },
             );
+        }
+    }
+
+    fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map(|workspace| workspace.name.as_str())
+            .unwrap_or("new workspace");
+        let lines = [
+            "Create workspace · step 1 of 5",
+            "Source · choose a local repository",
+            "Destination · choose a Workspace name",
+            "Mounts and environment · review before save",
+            workspace,
+        ];
+        paint_lines(ui, area, &lines);
+    }
+
+    fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map(|workspace| workspace.name.as_str())
+            .unwrap_or("new workspace");
+        let lines = [
+            format!("{workspace} · edit"),
+            "Mounts · inherited defaults".to_owned(),
+            "Environments · references only; values stay masked".to_owned(),
+            format!("Roles · {} configured", self.world.roles.len()),
+            "Save workspace · Ctrl+S".to_owned(),
+        ];
+        paint_lines(ui, area, &lines);
+    }
+
+    fn draw_handoff(&self, ui: &mut Ui<'_>, area: Rect) {
+        let stage = crate::rain::handoff_stage(self.handoff_frame.unwrap_or(0));
+        let label = match stage {
+            crate::rain::HandoffStage::CockpitDim(step) => {
+                format!("Opening Capsule · fading launch cockpit ({step}/4)")
+            }
+            crate::rain::HandoffStage::Canvas => "Opening Capsule · settling canvas".into(),
+            crate::rain::HandoffStage::CapsuleDim(step) => {
+                format!("Opening Capsule · revealing panes ({step}/4)")
+            }
+            crate::rain::HandoffStage::Capsule => "Capsule ready".into(),
+        };
+        paint_lines(
+            ui,
+            area,
+            &[
+                label,
+                "The daemon owns pane state; the shell owns the handoff.".to_owned(),
+            ],
+        );
+    }
+
+    fn draw_outro(&self, ui: &mut Ui<'_>, area: Rect) {
+        let Some(outro) = &self.outro else {
+            paint_lines(ui, area, &["Detached from the Construct."]);
+            return;
+        };
+        let line = match outro.phase() {
+            OutroPhase::Warp => "Leaving the Construct · closing Capsule".to_owned(),
+            OutroPhase::Caption => outro
+                .caption()
+                .unwrap_or_else(|| "Leaving the Construct · goodbye, operator.".to_owned()),
+            OutroPhase::Done => "Detached from the Construct.".to_owned(),
+        };
+        paint_lines(
+            ui,
+            area,
+            &[
+                line,
+                "No host process or wall-clock state is consulted.".to_owned(),
+            ],
+        );
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -659,18 +961,15 @@ impl App {
             ..area
         };
         List::new(MANAGER_LIST).draw(ui, list_area, &self.manager_state, &rows);
-        Button::new(LAUNCH, "Launch session")
-            .variant(Variant::PRIMARY)
-            .disabled(self.world.workspaces.is_empty())
-            .draw(
-                ui,
-                Rect {
-                    y: area.bottom().saturating_sub(1),
-                    width: area.width.min(22),
-                    height: 1,
-                    ..area
-                },
-            );
+        Self::launch_button(self.world.workspaces.is_empty()).draw(
+            ui,
+            Rect {
+                y: area.bottom().saturating_sub(1),
+                width: area.width.min(22),
+                height: 1,
+                ..area
+            },
+        );
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -680,17 +979,15 @@ impl App {
             ..area
         };
         List::new(ACCOUNTS_LIST).draw(ui, list_area, &self.accounts_state, &rows);
-        Button::new(ACCOUNT_ADD, "Choose 1Password reference…")
-            .variant(Variant::PRIMARY)
-            .draw(
-                ui,
-                Rect {
-                    y: area.bottom().saturating_sub(1),
-                    width: area.width.min(34),
-                    height: 1,
-                    ..area
-                },
-            );
+        Self::account_add_button().draw(
+            ui,
+            Rect {
+                y: area.bottom().saturating_sub(1),
+                width: area.width.min(34),
+                height: 1,
+                ..area
+            },
+        );
     }
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -721,17 +1018,15 @@ impl App {
             "Secret policy · references only; resolved bytes are transient",
         ];
         paint_lines(ui, area, &lines);
-        Button::new(SETTINGS_TRUST, "Trust local incident role")
-            .checked(self.trusted)
-            .draw(
-                ui,
-                Rect {
-                    y: area.bottom().saturating_sub(1),
-                    width: area.width.min(30),
-                    height: 1,
-                    ..area
-                },
-            );
+        Self::settings_trust_button(self.trusted).draw(
+            ui,
+            Rect {
+                y: area.bottom().saturating_sub(1),
+                width: area.width.min(30),
+                height: 1,
+                ..area
+            },
+        );
     }
 
     fn draw_launch(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -781,12 +1076,10 @@ impl App {
             );
         }
         if launch.failure.is_some() {
-            Button::new(LAUNCH_RETRY, "Retry")
-                .variant(Variant::PRIMARY)
-                .draw(
-                    ui,
-                    Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1),
-                );
+            Self::launch_retry_button().draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1),
+            );
         } else {
             Button::new(LAUNCH_CANCEL, "Cancel").draw(
                 ui,
@@ -808,9 +1101,11 @@ impl App {
             .instances
             .iter()
             .find(|instance| instance.status == InstanceStatus::Running)
-            .and_then(|instance| match &instance.daemon {
-                DaemonSnapshot::Tabs(tabs) => Some(
-                    tabs.iter()
+            .map_or_else(
+                || vec!["Capsule is empty".into()],
+                |instance| match &instance.daemon {
+                    DaemonSnapshot::Tabs(tabs) => tabs
+                        .iter()
                         .flat_map(|tab| tab.panes.iter())
                         .map(|pane| {
                             format!(
@@ -825,11 +1120,10 @@ impl App {
                             )
                         })
                         .collect::<Vec<_>>(),
-                ),
-                DaemonSnapshot::Unavailable => Some(vec!["Daemon unavailable".into()]),
-                DaemonSnapshot::NoTabs => Some(vec!["No tabs reported".into()]),
-            })
-            .unwrap_or_else(|| vec!["Capsule is empty".into()]);
+                    DaemonSnapshot::Unavailable => vec!["Daemon unavailable".into()],
+                    DaemonSnapshot::NoTabs => vec!["No tabs reported".into()],
+                },
+            );
         List::new(CAPSULE_PANES).draw(ui, pane_area, &ListState::default(), &rows);
     }
 
@@ -839,27 +1133,31 @@ impl App {
             .draw(ui, area, |ui, inner| match self.route {
                 Route::Intro => self.draw_intro(ui, inner),
                 Route::Manager => self.draw_manager(ui, inner),
+                Route::Prelude => self.draw_prelude(ui, inner),
+                Route::Editor => self.draw_editor(ui, inner),
                 Route::Accounts => self.draw_accounts(ui, inner),
                 Route::Usage => self.draw_usage(ui, inner),
                 Route::Settings => self.draw_settings(ui, inner),
-                Route::Launch => self.draw_launch(ui, inner),
+                Route::Launch | Route::Cockpit => self.draw_launch(ui, inner),
+                Route::Handoff => self.draw_handoff(ui, inner),
                 Route::Capsule => self.draw_capsule(ui, inner),
+                Route::Outro => self.draw_outro(ui, inner),
             });
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
         let role_label = self.selected_role().to_owned();
-        let dialog = self.launch_dialog();
+        let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
                 Button::new(ROLE_CHOOSE, &role_label).draw(ui, body)
             })
         });
-        let role_picker = Picker::new(ROLE_PICKER).title("Choose a role");
+        let role_picker = Self::role_picker();
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let account_picker = Picker::new(ACCOUNT_PICKER).title("Choose a configured account");
+        let account_picker = Self::account_picker();
         let _ = ui.layer(ACCOUNT_PICKER, |ui, area| {
             account_picker.draw(ui, area, &self.account_state, &self.account_options)
         });
@@ -868,12 +1166,18 @@ impl App {
 
 impl TuiApp for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        // Keep the shell's configured props owned by one constructor.  The
+        // runtime only updates parts here; drawing consumes the same panel
+        // shape below, so the app cannot drift between update and draw.
+        let meta = format!("scenario · {}", self.world.scenario.name());
+        let _shell = Self::shell_panel(&meta);
+        let mut result = self.advance_virtual_state(cx);
         if let Some(command) = cx.command()
             && let Some(result) = self.update_command(cx, command)
         {
             return result;
         }
-        let mut result = self.update_overlays(cx);
+        result |= self.update_overlays(cx);
         if cx.is_open(ROLE_PICKER) || cx.is_open(ACCOUNT_PICKER) || cx.is_open(LAUNCH_DIALOG) {
             return result;
         }
@@ -887,44 +1191,41 @@ impl TuiApp for App {
     fn draw(&self, ui: &mut Ui<'_>) {
         let full = ui.full();
         let meta = format!("scenario · {}", self.world.scenario.name());
-        Panel::new(APP)
-            .title("Jackin Preview")
-            .meta(&meta)
-            .draw(ui, full, |ui, inner| {
-                let header_height = inner.height.min(3);
-                let footer_height = inner.height.saturating_sub(header_height).min(2);
-                let header = Rect {
-                    height: header_height,
-                    ..inner
-                };
-                let footer_y = inner.bottom().saturating_sub(footer_height);
-                let content = Rect {
-                    y: header.bottom(),
-                    height: footer_y.saturating_sub(header.bottom()),
-                    ..inner
-                };
-                let footer = Rect {
-                    y: footer_y,
-                    height: footer_height,
-                    ..inner
-                };
-                if self.route == Route::Intro {
-                    self.draw_intro(ui, content);
-                } else {
-                    self.draw_header(ui, header);
-                    self.draw_content(ui, content);
-                }
-                let style = ui.surface_style();
-                if let Some(status) = &self.status {
-                    ui.paint_str(footer, status, style);
-                } else {
-                    ui.paint_str(
-                        footer,
-                        "q quit · m manager · a accounts · u usage · s settings",
-                        style,
-                    );
-                }
-            });
+        Self::shell_panel(&meta).draw(ui, full, |ui, inner| {
+            let header_height = inner.height.min(3);
+            let footer_height = inner.height.saturating_sub(header_height).min(2);
+            let header = Rect {
+                height: header_height,
+                ..inner
+            };
+            let footer_y = inner.bottom().saturating_sub(footer_height);
+            let content = Rect {
+                y: header.bottom(),
+                height: footer_y.saturating_sub(header.bottom()),
+                ..inner
+            };
+            let footer = Rect {
+                y: footer_y,
+                height: footer_height,
+                ..inner
+            };
+            if self.route == Route::Intro {
+                self.draw_intro(ui, content);
+            } else {
+                self.draw_header(ui, header);
+                self.draw_content(ui, content);
+            }
+            let style = ui.surface_style();
+            if let Some(status) = &self.status {
+                ui.paint_str(footer, status, style);
+            } else {
+                ui.paint_str(
+                    footer,
+                    "q quit · m manager · a accounts · u usage · s settings",
+                    style,
+                );
+            }
+        });
         self.draw_layers(ui);
     }
 
@@ -944,11 +1245,30 @@ impl TuiApp for App {
     }
 
     fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-        if self.route != Route::Manager {
+        if self.route == Route::Outro {
+            self.quit = true;
+            return Response::changed();
+        }
+        if self.route == Route::Capsule && self.world.scenario == Scenario::OutroLast {
+            self.status = Some("Detached from Capsule; closing the Construct…".into());
+            self.outro = Some(OutroState::new(
+                self.motion,
+                Some((self.world.now_ms().max(0) as u64) / 1000),
+                0,
+            ));
+            self.route = Route::Outro;
+            return Response::changed();
+        }
+        if self.route == Route::Capsule && self.world.running_count() > 1 {
+            self.status = Some("Still inside the Construct · another instance is running".into());
             self.route = Route::Manager;
+            return Response::changed();
+        }
+        if self.route == Route::Manager {
+            self.quit = true;
             Response::changed()
         } else {
-            self.quit = true;
+            self.route = Route::Manager;
             Response::changed()
         }
     }
@@ -1007,6 +1327,22 @@ fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
     }
 }
 
+impl Default for App {
+    fn default() -> Self {
+        Self::for_scenario(Scenario::Returning, Motion::Full)
+    }
+}
+
+impl From<&Account> for AccountOption {
+    fn from(account: &Account) -> Self {
+        Self {
+            key: account.id.clone(),
+            label: account.title(),
+            detail: account.source.safe_detail(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1029,21 +1365,5 @@ mod tests {
         assert_eq!(format!("{a:?}"), format!("{b:?}"));
         assert_eq!(a.route(), Route::Accounts);
         assert_eq!(a.motion(), Motion::Paused);
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self::for_scenario(Scenario::Returning, Motion::Full)
-    }
-}
-
-impl From<&Account> for AccountOption {
-    fn from(account: &Account) -> Self {
-        Self {
-            key: account.id.clone(),
-            label: account.title(),
-            detail: account.source.safe_detail(),
-        }
     }
 }

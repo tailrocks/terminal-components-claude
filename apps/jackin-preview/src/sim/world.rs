@@ -8,7 +8,8 @@ use crate::clock::{Clock, EPOCH_SECS};
 use crate::domain::account::{AccountId, AccountRegistry};
 use crate::domain::agent::{Agent, AuthMode, Provider};
 use crate::domain::fixtures::{
-    self, HOME, fixture_accounts, fixture_instance, fixture_roles, fixture_workspace,
+    self, HOME, fixture_accounts, fixture_hard_accounts, fixture_instance, fixture_roles_for,
+    fixture_workspaces_for,
 };
 use crate::domain::instance::{Instance, InstanceStatus};
 use crate::domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
@@ -233,13 +234,21 @@ pub fn world_for(scenario: Scenario) -> World {
     let now = EPOCH_SECS;
     let op = SimOnePassword::fixture(now);
     let populated = scenario != Scenario::FirstUse;
-    let workspaces = populated.then(|| fixture_workspace()).into_iter().collect();
+    let workspaces = if populated {
+        fixture_workspaces_for(scenario)
+    } else {
+        Vec::new()
+    };
     let accounts = if populated {
-        fixture_accounts(&op, now)
+        if scenario == Scenario::HardCases {
+            fixture_hard_accounts(&op, now)
+        } else {
+            fixture_accounts(&op, now)
+        }
     } else {
         AccountRegistry::default()
     };
-    let roles = fixture_roles();
+    let roles = fixture_roles_for(scenario);
     let mut instances = Vec::new();
     if populated && !matches!(scenario, Scenario::LaunchRunning | Scenario::LaunchFailure) {
         instances.push(fixture_instance(
@@ -255,6 +264,28 @@ pub fn world_for(scenario: Scenario) -> World {
             crate::domain::instance::RunId::new(0x0011_2233),
             now,
             crate::domain::instance::DaemonSnapshot::Unavailable,
+        ));
+    }
+    if scenario == Scenario::CapsuleMulti {
+        let mut secondary = fixture_instance(
+            InstanceStatus::Running,
+            crate::domain::instance::RunId::new(0x0a0b_0c0d),
+            now,
+            fixtures::live_capsule(),
+        );
+        secondary.id = "jk-ops".into();
+        secondary.container = "jackin-ops-platform".into();
+        secondary.role = "chainargos/reviewer".into();
+        instances.push(secondary);
+    }
+    if scenario == Scenario::LaunchFailure {
+        // A failed launch leaves an already-running session attachable.  The
+        // manager must remain useful instead of presenting an empty shell.
+        instances.push(fixture_instance(
+            InstanceStatus::Running,
+            crate::domain::instance::RunId::new(0x0e0f_1011),
+            now,
+            fixtures::live_capsule(),
         ));
     }
     if scenario == Scenario::HardCases {
