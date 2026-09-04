@@ -3095,16 +3095,50 @@ fn diff_baseline(
     (moved, added)
 }
 
-/// Every item number declared in `COMPONENT_ARCHITECTURE.md` §20.10.
+/// What a §20.10 row's `{scope: …}` tag says the item is allowed to account
+/// for (§49.3).
 ///
-/// §20.10 is **three** tables — items 1–16, then 17 alone, then 18 and 19 as
-/// separate one-row tables. A parser that takes "the first table after the
-/// heading" silently gets 1–16 and then rejects a correct citation of item 19,
-/// the item that governs the first-generation digests. This scans the whole
-/// section for table rows whose first cell is a number, so a further split
-/// costs nothing.
-fn visual_change_items(doc: &str) -> BTreeSet<u32> {
-    let mut out = BTreeSet::new();
+/// **Fail-closed.** The absence of a tag is `MonoOnly`, so items 1–19 keep
+/// exactly the behaviour §36.5 shipped and every widening is an explicit,
+/// reviewable edit in `COMPONENT_ARCHITECTURE.md`. There is deliberately no
+/// flag, allow-list or environment variable that reaches this decision: §35.2
+/// named the suppression class and §49.3 rejected reintroducing it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+enum ItemScope {
+    /// No `{scope: …}` tag. The item may account for mono movements only; a
+    /// moved `truecolor` key citing it is refused.
+    #[default]
+    MonoOnly,
+    /// `{scope: truecolor}` — the item may account for a moved `truecolor`
+    /// key. Items 7, 11, 16 and 17 each anticipate truecolor movement and
+    /// could not otherwise ever be discharged.
+    TrueColor,
+    /// `{scope: first-generation}` — the item covers the **first** recording
+    /// of a key only. A *moved* key citing it is refused outright, which is
+    /// what makes item 19's "may not be cited again for the same key"
+    /// machine-checked rather than merely read.
+    FirstGeneration,
+    /// A `{scope: …}` tag whose value this guard does not know. Treated as
+    /// `MonoOnly` for every refusal and additionally reported, so a typo
+    /// widens nothing.
+    Unrecognised,
+}
+
+/// Every item number declared in `COMPONENT_ARCHITECTURE.md` §20.10, with the
+/// scope its row declares.
+///
+/// §20.10 is **five** tables — items 1–16, then 17, 18, 19 and 20 as separate
+/// one-row tables. A parser that takes "the first table after the heading"
+/// silently gets 1–16 and then rejects a correct citation of item 19, the item
+/// that governs the first-generation digests. This scans the whole section for
+/// table rows whose first cell is a number, so a further split costs nothing.
+///
+/// The scope tag is read from the whole row, not from a fixed cell, because
+/// the tag belongs to the sentence that describes the change and the row's
+/// cell boundaries are not stable.
+fn visual_change_items(doc: &str) -> BTreeMap<u32, ItemScope> {
+    let scope_re = Regex::new(r"\{\s*scope\s*:\s*([A-Za-z-]+)\s*\}").ok();
+    let mut out = BTreeMap::new();
     let mut inside = false;
     for line in doc.lines() {
         if line.starts_with("### 20.10") {
@@ -3128,10 +3162,58 @@ fn visual_change_items(doc: &str) -> BTreeSet<u32> {
             .unwrap_or("")
             .trim();
         if let Ok(n) = cell.parse::<u32>() {
-            out.insert(n);
+            let scope = scope_re
+                .as_ref()
+                .and_then(|re| re.captures(trimmed))
+                .and_then(|c| c.get(1))
+                .map_or(ItemScope::MonoOnly, |m| match m.as_str() {
+                    "truecolor" => ItemScope::TrueColor,
+                    "first-generation" => ItemScope::FirstGeneration,
+                    _ => ItemScope::Unrecognised,
+                });
+            out.insert(n, scope);
         }
     }
     out
+}
+
+/// Every **declared** blocking marker in `COMPONENT_ARCHITECTURE.md`, as
+/// `(1-based line number, the line)` (§49.4).
+///
+/// A marker is a section `**Status:` line that reads `BLOCKS the … bless`.
+/// Only status lines are scanned: §49.4 itself quotes the marker in prose and
+/// names its own pattern in backticks, and a scan of every line would match
+/// those two and could never be discharged — a check that cannot go green is
+/// as useless as one that cannot go red.
+///
+/// **What this proves, exactly.** It proves a blocker was *declared* and is
+/// still standing. It does **not** prove that an undeclared blocker was
+/// respected, and nothing here should be read as evidence of ordering: §36.5
+/// is right that a committed tree is a state and not a history. A lane that
+/// never writes the marker defeats this check completely; what the check buys
+/// is that a blocker someone did write down cannot then be walked past
+/// silently, because discharging it means editing one sentence in a
+/// single-writer file, which is visible in a diff.
+fn blocking_bless_markers(doc: &str) -> Result<Vec<(usize, String)>, String> {
+    // `\bBLOCKS\b` is case-sensitive on purpose: "Unblocks the §39 re-bless"
+    // is the *discharge* wording used by the same headers and must not match.
+    // The `?` is why this returns a Result rather than an empty vector: a
+    // refusal that degrades to "found nothing" when its own pattern fails to
+    // build is a gate that cannot fail, which is the class this guard exists
+    // inside.
+    let marker = Regex::new(r"\bBLOCKS\b.*\bbless\b")
+        .map_err(|e| format!("blocking-marker pattern does not compile: {e}"))?;
+    let mut out = Vec::new();
+    for (i, line) in doc.lines().enumerate() {
+        let trimmed = line.trim();
+        if !trimmed.trim_start_matches('*').starts_with("Status:") {
+            continue;
+        }
+        if marker.is_match(&trimmed.replace('*', "")) {
+            out.push((i.saturating_add(1), trimmed.to_owned()));
+        }
+    }
+    Ok(out)
 }
 
 /// Expands `{a,b,c}` alternation groups into the full cross product, so one
@@ -3388,13 +3470,11 @@ fn claim_covers(claim: &str, key: &str) -> bool {
 /// the accounted key set equals the moved-and-added key set — plus the citation
 /// and the two refusals.
 fn report_baseline_moves(
-    doc: &str,
-    ledger: &str,
+    items: &BTreeMap<u32, ItemScope>,
+    entries: &[LedgerEntry],
     moved: &[Movement],
     added: &[Addition],
 ) -> Result<(), String> {
-    let items = visual_change_items(doc);
-    let entries = parse_ledger(ledger);
     let mut problems: Vec<String> = Vec::new();
     if items.is_empty() {
         return Err(
@@ -3450,10 +3530,16 @@ fn report_baseline_moves(
         }
         match e.cited {
             None => problems.push(format!("  {}: cites no numbered §20.10 item", e.label)),
-            Some(n) if !items.contains(&n) => problems.push(format!(
+            Some(n) if !items.contains_key(&n) => problems.push(format!(
                 "  {}: cites §20.10 item {n}, which does not exist (§20.10 declares {:?})",
                 e.label,
-                items.iter().copied().collect::<Vec<u32>>()
+                items.keys().copied().collect::<Vec<u32>>()
+            )),
+            Some(n) if items.get(&n) == Some(&ItemScope::Unrecognised) => problems.push(format!(
+                "  {}: cites §20.10 item {n}, whose row declares a `{{scope: …}}` tag that is \
+                 neither `truecolor` nor `first-generation`. An unknown tag widens nothing and \
+                 is reported rather than ignored (§49.3, fail-closed).",
+                e.label
             )),
             Some(_) => {}
         }
@@ -3554,6 +3640,7 @@ fn evaluate_bless_guard(
         .collect();
     let mut moved: Vec<Movement> = Vec::new();
     let mut added: Vec<Addition> = Vec::new();
+    let mut digest_files: BTreeSet<String> = BTreeSet::new();
     for (path, base, work) in files {
         let Some(kind) = classify_baseline(path) else {
             continue;
@@ -3561,19 +3648,10 @@ fn evaluate_bless_guard(
         if kind == BaselineKind::Frozen {
             continue;
         }
-        let (m, a) = diff_baseline(path, kind, base, work);
         if kind == BaselineKind::Digest {
-            for mv in &m {
-                if mv.key.rsplit(' ').next() == Some("truecolor") {
-                    refusals.push(format!(
-                        "  {path}: `{}` MOVED ({} → {}) and its colour field is `truecolor`. \
-                         §20.10's closing clause makes that a regression by construction, so it is \
-                         refused outright and is not classifiable.",
-                        mv.key, mv.old, mv.new
-                    ));
-                }
-            }
+            digest_files.insert(path.clone());
         }
+        let (m, a) = diff_baseline(path, kind, base, work);
         moved.extend(m);
         added.extend(a);
     }
@@ -3583,15 +3661,148 @@ fn evaluate_bless_guard(
         added.len(),
         files.len()
     );
+
+    let items = visual_change_items(doc);
+    let entries = parse_ledger(ledger);
+    refusals.extend(refuse_while_a_bless_is_blocked(
+        doc,
+        &moved,
+        &added,
+        &digest_files,
+    )?);
+    refusals.extend(refuse_moved_digest_keys(
+        &items,
+        &entries,
+        &moved,
+        &digest_files,
+    ));
+
     if !refusals.is_empty() {
-        let mut msg = String::from("baseline changes refused outright (§36.5):\n");
+        let mut msg = String::from("baseline changes refused outright (§36.5, §49.3, §49.4):\n");
         for r in &refusals {
             msg.push_str(r);
             msg.push('\n');
         }
         return Err(msg);
     }
-    report_baseline_moves(doc, ledger, &moved, &added)
+    report_baseline_moves(&items, &entries, &moved, &added)
+}
+
+/// §49.4: refuse **any** digest addition or movement while
+/// `COMPONENT_ARCHITECTURE.md` declares a live `BLOCKS the … bless` marker.
+///
+/// Coarse on purpose. A blocker on the bless is a blocker on the bless, so no
+/// attempt is made to decide which keys a particular blocker covers — §36.5 is
+/// right that ordering is not provable on a committed tree, and a check that
+/// tried to scope the marker would be inventing the history it cannot read.
+///
+/// **What a green result proves, and only this: that no blocker was left
+/// standing in the document.** It does not prove that an undeclared blocker
+/// was respected, and it is not evidence about the order in which the tree
+/// reached its state. Its whole force is that discharging it means editing one
+/// sentence in a single-writer file, which a reviewer sees in the diff, rather
+/// than walking past a marker silently — which is what happened in the
+/// incident §49.4 records.
+fn refuse_while_a_bless_is_blocked(
+    doc: &str,
+    moved: &[Movement],
+    added: &[Addition],
+    digest_files: &BTreeSet<String>,
+) -> Result<Vec<String>, String> {
+    let touched = moved.iter().any(|m| digest_files.contains(&m.file))
+        || added.iter().any(|a| digest_files.contains(&a.file));
+    if !touched {
+        return Ok(Vec::new());
+    }
+    Ok(blocking_bless_markers(doc)?
+        .into_iter()
+        .map(|(line, text)| {
+            // the status line carries a whole paragraph after the marker; quote
+            // enough to identify the sentence and no more
+            let quoted: String = text.chars().take(120).collect();
+            let ellipsis = if text.chars().count() > 120 {
+                "…"
+            } else {
+                ""
+            };
+            format!(
+                "  COMPONENT_ARCHITECTURE.md:{line}: a blocking marker is still declared — \
+                 \"{quoted}{ellipsis}\". No digest baseline key may be added or moved while it \
+                 stands (§49.4). Discharge it by editing that `Status:` line in the same commit \
+                 that lands the blocking change."
+            )
+        })
+        .collect())
+}
+
+/// §49.3's two refusals over the moved digest keys.
+///
+/// 1. A moved `truecolor` key is refused **unless** an entry accounting for it
+///    cites a §20.10 item whose row declares `{scope: truecolor}`. §36.5
+///    justified the old unconditional refusal by §20.10's closing clause, but
+///    that clause's predicate is *not on this list*, not *truecolor*; the two
+///    coincide only while every numbered item is mono-only, and items 7, 11,
+///    16 and 17 each anticipate truecolor movement. Refusing unconditionally
+///    refuses those four items' own discharge, permanently.
+/// 2. A moved key whose entry cites a `{scope: first-generation}` item is
+///    refused outright, whatever its colour. That is item 19's "may not be
+///    cited again for the same key", machine-checked instead of read.
+///
+/// Untagged items stay mono-only, so items 1–19 keep exactly today's
+/// behaviour and widening one is an explicit edit in a single-writer file.
+fn refuse_moved_digest_keys(
+    items: &BTreeMap<u32, ItemScope>,
+    entries: &[LedgerEntry],
+    moved: &[Movement],
+    digest_files: &BTreeSet<String>,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    for mv in moved {
+        if !digest_files.contains(&mv.file) {
+            continue;
+        }
+        let cited: Vec<(u32, ItemScope)> = entries
+            .iter()
+            .filter(|e| e.moved.iter().any(|c| claim_covers(c, &mv.key)))
+            .filter_map(|e| e.cited)
+            .map(|n| (n, items.get(&n).copied().unwrap_or_default()))
+            .collect();
+        for (n, scope) in &cited {
+            if *scope == ItemScope::FirstGeneration {
+                out.push(format!(
+                    "  {}: `{}` MOVED ({} → {}) and the entry accounting for it cites §20.10 \
+                     item {n}, whose row declares `{{scope: first-generation}}`. That item covers \
+                     the FIRST recording of a key only and may not be cited again for the same \
+                     key (§20.10 item 19, §49.2), so the movement is refused outright.",
+                    mv.file, mv.key, mv.old, mv.new
+                ));
+            }
+        }
+        if mv.key.rsplit(' ').next() != Some("truecolor") {
+            continue;
+        }
+        if cited.iter().any(|(_, s)| *s == ItemScope::TrueColor) {
+            continue;
+        }
+        let who = if cited.is_empty() {
+            "no ledger entry accounts for it".to_owned()
+        } else {
+            format!(
+                "the entry accounting for it cites §20.10 item(s) {:?}, none of which declares \
+                 that tag",
+                cited.iter().map(|(n, _)| *n).collect::<Vec<u32>>()
+            )
+        };
+        out.push(format!(
+            "  {}: `{}` MOVED ({} → {}) and its colour field is `truecolor`. A moved truecolor \
+             key is refused unless the entry accounting for it cites a §20.10 item whose row \
+             declares `{{scope: truecolor}}`; {who}. An item with no `{{scope: …}}` tag is \
+             mono-only, and §20.10's closing clause makes anything not on the list a regression \
+             by construction (§49.3).",
+            mv.file, mv.key, mv.old, mv.new
+        ));
+    }
+    out
 }
 
 // ── the git and filesystem half ──
@@ -3708,8 +3919,9 @@ fn discover_baselines() -> BTreeSet<String> {
 
 /// §16.3 as amended by §36, §20.10 and §36.5: every moved or added baseline key
 /// is accounted for by a `docs/visual-changes.md` entry citing a numbered
-/// §20.10 item, frozen evidence is never touched, and a moved `truecolor` key
-/// is refused outright.
+/// §20.10 item, frozen evidence is never touched, a moved `truecolor` key needs
+/// an item explicitly scoped for truecolor, and a first-generation item cannot
+/// account for a moved key.
 fn baseline_moves_are_classified() -> Result<(), String> {
     let base = bless_guard_base()?;
     let (renames, touched) = diff_name_status(&base)?;
@@ -3777,7 +3989,7 @@ mod tests {
 
     // ── bless-guard (§16.3, §20.10, §36.5) ──
 
-    /// A §20.10 stand-in that reproduces the real document's **three** tables.
+    /// A §20.10 stand-in that reproduces the real document's **five** tables.
     const DOC: &str = "\
 ### 20.10 Intentional visual changes
 
@@ -3790,6 +4002,28 @@ mod tests {
 
 
 | 18 | **Mono `DISABLED` gains `DIM`** | … | … |
+
+| 19 | **First-generation digests**; may not be cited again for the same key. \
+`{scope: first-generation}` | … | … |
+
+| 20 | **Forcing stops erasing the props half.** `{scope: truecolor}` | … | … |
+
+## Appendix A — Slice plan
+";
+
+    /// The same §20.10, in a document that still declares a live blocking
+    /// marker on its own status line — the shape §49.4 records the bless
+    /// commit's tree as having had.
+    const DOC_BLOCKED: &str = "\
+## §39 Adjudication — forcing substitutes for the runtime
+
+**Status: accepted. BLOCKS the §36 first-generation bless — see §39.4.** Fresh adjudication.
+
+### 20.10 Intentional visual changes
+
+| # | Change | Why | How it is reviewed |
+|---|---|---|---|
+| 1 | **Mono legibility fallbacks** | … | … |
 
 ## Appendix A — Slice plan
 ";
@@ -3830,6 +4064,45 @@ captures / classification: `(pending — filled when the change lands)`
 - added:     none
 - class:     fix
 - reason:    §20.10 item 1 (mono legibility fallbacks).
+```
+";
+
+    /// An entry that cites the `{scope: truecolor}` item and claims both the
+    /// mono and the truecolor movement of the same key.
+    const LEDGER_ITEM_20_TRUECOLOR: &str = "\
+# Visual changes ledger
+
+## Item 20 — forcing stops erasing the props half
+
+```
+- surface:   tui-next/tabs/pressed @ 120x40 / junie
+- captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
+- tests:     crates/tui/tests/baselines/components.txt
+- moved:     2 lines:
+  render::components::tabs::pressed 120 40 junie mono 5517de00b23ac747 → 8531aef99ed82a7c
+  render::components::tabs::pressed 120 40 junie truecolor aaaaaaaaaaaaaaaa → bbbbbbbbbbbbbbbb
+- added:     none
+- class:     fix
+- reason:    §20.10 item 20 (forcing stops erasing the props half).
+```
+";
+
+    /// An entry that cites the `{scope: first-generation}` item for a key the
+    /// diff **moved** — the second citation item 19 forbids.
+    const LEDGER_ITEM_19_FIRST_GEN: &str = "\
+# Visual changes ledger
+
+## Item 19 — first-generation component digests
+
+```
+- surface:   tui-next/tabs/pressed @ 120x40 / junie / mono
+- captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
+- tests:     crates/tui/tests/baselines/components.txt
+- moved:     1 line:
+  render::components::tabs::pressed 120 40 junie mono 5517de00b23ac747 → 8531aef99ed82a7c
+- added:     none
+- class:     intended
+- reason:    §20.10 item 19 (first-generation digests).
 ```
 ";
 
@@ -3890,14 +4163,223 @@ captures / classification: `(pending — filled when the change lands)`
         .expect("an unchanged tree has nothing to classify");
     }
 
-    /// §20.10 is three tables. A parser that takes the first one gets 1–16 and
+    /// §20.10 is five tables. A parser that takes the first one gets 1–16 and
     /// then rejects a correct citation of item 19.
     #[test]
     fn the_2010_item_list_survives_the_split_tables() {
         let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
         let items = visual_change_items(&doc);
-        let want: BTreeSet<u32> = (1..=19).collect();
-        assert_eq!(items, want, "§20.10 item numbers");
+        let want: BTreeSet<u32> = (1..=20).collect();
+        assert_eq!(
+            items.keys().copied().collect::<BTreeSet<u32>>(),
+            want,
+            "§20.10 item numbers"
+        );
+    }
+
+    /// §49.3's two scope tags must actually be present on the rows the guard
+    /// resolves them from, or the refusals it derives from them are decoration.
+    ///
+    /// Item 19 is the first-generation item: without `{scope: first-generation}`
+    /// its "may not be cited again for the same key" clause is read by people
+    /// and enforced by nothing. Item 20 is the first `{scope: truecolor}` item:
+    /// without the tag it cannot discharge its own truecolor movement.
+    #[test]
+    fn the_2010_scope_tags_are_declared_where_the_guard_needs_them() {
+        let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
+        let items = visual_change_items(&doc);
+        assert_eq!(
+            items.get(&19),
+            Some(&ItemScope::FirstGeneration),
+            "§20.10 item 19's row must end its `Change` cell with the literal text \
+             `{{scope: first-generation}}` (COMPONENT_ARCHITECTURE.md is single-writer, so this \
+             is Lane A's edit). Without it, item 19 is treated as mono-only and a second \
+             movement of a first-generation key citing item 19 is refused only when the key is \
+             truecolor."
+        );
+        assert_eq!(
+            items.get(&20),
+            Some(&ItemScope::TrueColor),
+            "§20.10 item 20's row must carry the literal text `{{scope: truecolor}}`"
+        );
+    }
+
+    /// The tag is read from the row text, wherever in the row it sits, and an
+    /// untagged row is mono-only. This is the green half of
+    /// `the_2010_scope_tags_are_declared_where_the_guard_needs_them`, proven
+    /// on a fixture because `COMPONENT_ARCHITECTURE.md` is single-writer.
+    #[test]
+    fn the_scope_tag_is_read_from_the_row_text() {
+        let items = visual_change_items(DOC);
+        assert_eq!(items.get(&1), Some(&ItemScope::MonoOnly), "untagged");
+        assert_eq!(items.get(&18), Some(&ItemScope::MonoOnly), "untagged");
+        assert_eq!(items.get(&19), Some(&ItemScope::FirstGeneration));
+        assert_eq!(items.get(&20), Some(&ItemScope::TrueColor));
+    }
+
+    /// An unrecognised tag must widen nothing and must be reported, not
+    /// silently read as "untagged".
+    #[test]
+    fn an_unrecognised_scope_tag_is_mono_only_and_reported() {
+        let doc = DOC.replace("{scope: truecolor}", "{scope: everything}");
+        assert_eq!(
+            visual_change_items(&doc).get(&20),
+            Some(&ItemScope::Unrecognised)
+        );
+        // it does not widen: the truecolor movement is still refused
+        let work = WORK_BASELINE.replace("aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb");
+        let err = evaluate_bless_guard(
+            &doc,
+            LEDGER_ITEM_20_TRUECOLOR,
+            &one_file(BASE_BASELINE, &work),
+            &[],
+        )
+        .expect_err("an unknown tag may not discharge the truecolor refusal");
+        assert!(
+            err.contains("refused unless the entry accounting for it cites"),
+            "{err}"
+        );
+        // and it is named, rather than being read as an untagged row
+        let mono_only = LEDGER_ITEM_20_TRUECOLOR
+            .replace(
+                "  render::components::tabs::pressed 120 40 junie truecolor aaaaaaaaaaaaaaaa →                  bbbbbbbbbbbbbbbb\n",
+                "",
+            )
+            .replace("2 lines", "1 line");
+        let err = evaluate_bless_guard(
+            &doc,
+            &mono_only,
+            &one_file(BASE_BASELINE, WORK_BASELINE),
+            &[],
+        )
+        .expect_err("an unknown tag is reported");
+        assert!(
+            err.contains("neither `truecolor` nor `first-generation`"),
+            "{err}"
+        );
+    }
+
+    /// §49.3, half one: a `{scope: truecolor}` item discharges its own
+    /// truecolor movement. Without this the four already-numbered items that
+    /// anticipate truecolor movement — 7, 11, 16 and 17 — could never be
+    /// discharged at all.
+    #[test]
+    fn a_moved_truecolor_key_is_allowed_by_an_item_tagged_truecolor() {
+        let work = WORK_BASELINE.replace("aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb");
+        evaluate_bless_guard(
+            DOC,
+            LEDGER_ITEM_20_TRUECOLOR,
+            &one_file(BASE_BASELINE, &work),
+            &[],
+        )
+        .expect("an item declaring `{scope: truecolor}` accounts for its own truecolor movement");
+    }
+
+    /// §49.3, half two: item 19's "may not be cited again for the same key",
+    /// machine-checked. The key here is `mono`, so nothing but the
+    /// first-generation tag can refuse it.
+    #[test]
+    fn a_moved_key_citing_a_first_generation_item_is_refused() {
+        let err = evaluate_bless_guard(
+            DOC,
+            LEDGER_ITEM_19_FIRST_GEN,
+            &one_file(BASE_BASELINE, WORK_BASELINE),
+            &[],
+        )
+        .expect_err("a first-generation item may not account for a movement");
+        assert!(err.contains("first-generation"), "{err}");
+        assert!(err.contains("item 19"), "{err}");
+    }
+
+    /// §49.4: a declared blocker refuses every digest change while it stands.
+    #[test]
+    fn a_live_blocking_marker_refuses_every_digest_change() {
+        let err = evaluate_bless_guard(
+            DOC_BLOCKED,
+            LEDGER_WITH_ENTRY,
+            &one_file(BASE_BASELINE, WORK_BASELINE),
+            &[],
+        )
+        .expect_err("a declared blocker refuses the bless");
+        assert!(err.contains("blocking marker is still declared"), "{err}");
+        assert!(
+            err.contains("BLOCKS the §36 first-generation bless"),
+            "{err}"
+        );
+    }
+
+    /// …and stops refusing the moment that sentence is edited. Discharge is an
+    /// edit to one line of a single-writer file, visible in the diff.
+    #[test]
+    fn a_discharged_blocking_marker_stops_refusing() {
+        let doc = DOC_BLOCKED.replace(
+            "BLOCKS the §36 first-generation bless — see §39.4.",
+            "Landed; the §36 first-generation bless is unblocked (§49).",
+        );
+        assert!(
+            blocking_bless_markers(&doc)
+                .expect("pattern compiles")
+                .is_empty(),
+            "the discharged wording must not match"
+        );
+        evaluate_bless_guard(
+            &doc,
+            LEDGER_WITH_ENTRY,
+            &one_file(BASE_BASELINE, WORK_BASELINE),
+            &[],
+        )
+        .expect("a discharged marker refuses nothing");
+    }
+
+    /// The refusal is on the *change*, not on the marker: a tree that moves no
+    /// digest key passes with the marker standing, so the check cannot be
+    /// mistaken for a blanket veto on committing while a blocker exists.
+    #[test]
+    fn a_blocking_marker_alone_refuses_nothing() {
+        evaluate_bless_guard(
+            DOC_BLOCKED,
+            LEDGER_WITHOUT_ENTRY,
+            &one_file(BASE_BASELINE, BASE_BASELINE),
+            &[],
+        )
+        .expect("no digest key moved or was added");
+    }
+
+    /// §49.6: the guard's base falls back to `HEAD` when nothing sets one, and
+    /// CI runs on **push to `main`** as well as on pull requests. On the push
+    /// leg there is no `GITHUB_BASE_REF`, so without an explicit base a clean
+    /// checkout is diffed against itself and the guard reports `0 moved,
+    /// 0 added` on every direct commit — which is what it did for this whole
+    /// session. The push leg must therefore name a base explicitly.
+    #[test]
+    fn the_ci_push_leg_gives_the_bless_guard_a_base() {
+        let ci = read(&root().join(".github/workflows/ci.yml"));
+        assert!(
+            ci.contains("  push:"),
+            "the workflow no longer has a push leg; this check is about that leg"
+        );
+        let lines: Vec<&str> = ci.lines().collect();
+        // the `run:` step, not the gate→requirement comment block at the head
+        // of the file, which names the same command
+        let run = lines
+            .iter()
+            .position(|l| {
+                !l.trim_start().starts_with('#')
+                    && l.contains("run: cargo run -p xtask -- bless-guard")
+            })
+            .expect("ci.yml has a step that runs the bless guard");
+        let start = run.saturating_sub(8);
+        let window = lines.get(start..run).unwrap_or_default().join("\n");
+        assert!(
+            window.contains("BLESS_GUARD_BASE:"),
+            "the bless-guard step must set BLESS_GUARD_BASE; without it the push leg diffs \
+             the tree against itself. Step context:\n{window}"
+        );
+        assert!(
+            window.contains("github.event.before"),
+            "BLESS_GUARD_BASE on the push leg must be `${{{{ github.event.before }}}}` — the \
+             commit the push moved `main` off. Step context:\n{window}"
+        );
     }
 
     /// The defence against the third vacuous-pass mode: discovery patterns that
@@ -3913,15 +4395,24 @@ captures / classification: `(pending — filled when the change lands)`
         }
     }
 
-    /// A moved `truecolor` key is refused without classification, even when the
-    /// ledger accounts for it.
+    /// A moved `truecolor` key whose entry cites an **untagged** item is
+    /// refused, even when the ledger otherwise accounts for it. No item before
+    /// 20 carries `{scope: truecolor}`, so this is §36.5's behaviour unchanged.
+    ///
+    /// The assertion names the refusal sentence, not merely the word
+    /// `truecolor`: with the refusal removed this input still fails the
+    /// *completeness* check, so a weaker assertion would pass on a guard that
+    /// had stopped refusing anything.
     #[test]
     fn a_moved_truecolor_key_is_refused_outright() {
         let work = WORK_BASELINE.replace("aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb");
         let err =
             evaluate_bless_guard(DOC, LEDGER_WITH_ENTRY, &one_file(BASE_BASELINE, &work), &[])
                 .expect_err("a truecolor movement is a regression by construction");
-        assert!(err.contains("truecolor"), "{err}");
+        assert!(
+            err.contains("refused unless the entry accounting for it cites"),
+            "{err}"
+        );
     }
 
     /// `regression` is the ledger's own "must be fixed, never blessed".

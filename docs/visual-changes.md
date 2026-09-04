@@ -365,3 +365,78 @@ these components *as pictures* is the Slice-5 capture matrix.
              are a pin against future drift, **not** an approval of present
              appearance, and the item may never be cited again for the same key.
 ```
+
+## Item 20 — Forced state preserves the props-derived readiness state (§49)
+
+### 20a — disabled readiness reporters paint their error affordance
+
+**§20.10 classification line:** forcing `DISABLED` substitutes for the runtime state only;
+the props-derived `ERROR` state remains present, so readiness-reporting components paint their
+declared error affordance in truecolor and mono.
+
+**What changed.** `render::components::{hint_bar,meter,progress_bar}::disabled` supplies
+`Status::Error` while forcing `DISABLED`. Before §39's two-half state operator, the forced state
+erased the props-derived `ERROR` bit, leaving each component's declared error recipe inert. The
+corrected operator combines forced runtime state with props-derived state. A discarded scratch
+bless measured exactly 22 moved keys: 8 HintBar, 6 Meter and 8 ProgressBar; 12 truecolor and 10
+mono. No key was added.
+
+**Independent visual review: PASS.** A fresh read-only visual analyst who did not generate the
+lines reviewed the six corrected `junie` 120×40 frames (three components × truecolor and mono).
+Each frame contains the declared `GlyphRole::Error` (`!`); the supplied labels, tracks and `65%`
+remain intact; no error affordance appears in a ready-state cell; movement is confined to the
+disabled baseline keys. Review criteria were §20.10 item 20's five rejection conditions: reject
+if the error affordance is absent, appears for `Status::Ready`, changes a label, changes track
+arithmetic or the percentage column beyond the affordance and its reserved columns, or occupies
+no `GlyphSet` slot. **Review limit:** the evidence has no textual before-frame dumps, so exclusion
+of unrelated changes relies on the exact 22-key digest scope plus the six reviewed after-frames;
+the style half remains machine-asserted rather than visually recoverable from frame text.
+
+```
+- surface:   tui-next/{hint_bar,meter,progress_bar}/disabled
+             @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under `shots/` — this is a headless `Scene` matrix and
+             `tools/capture.sh` cannot address it. Reviewable after-frame artefacts:
+             `/tmp/fable49-evidence-lStqI4/artifacts/hint-bar-disabled-junie-truecolor-frame.log`,
+             `/tmp/fable49-evidence-lStqI4/artifacts/hint-bar-disabled-junie-mono-frame.log`,
+             `/tmp/fable49-evidence-lStqI4/artifacts/meter-disabled-junie-truecolor-frame.log`,
+             `/tmp/fable49-evidence-lStqI4/artifacts/meter-disabled-junie-mono-frame.log`,
+             `/tmp/fable49-evidence-lStqI4/artifacts/progress-bar-disabled-junie-truecolor-frame.log`,
+             and `/tmp/fable49-evidence-lStqI4/artifacts/progress-bar-disabled-junie-mono-frame.log`.
+             Exact scope evidence is
+             `/tmp/fable49-evidence-lStqI4/artifacts/components-scratch-bless.diff` and
+             `/tmp/fable49-evidence-lStqI4/artifacts/moved-keys-exact.txt`.
+- tests:     crates/tui/tests/baselines/components.txt (disabled lines only),
+             render::components::{hint_bar,meter,progress_bar}::disabled,
+             components::a_forced_component_resolves_its_props_derived_state,
+             theme::readiness_states_are_digest_distinct
+- moved:     22 keys (HintBar 8, Meter 6, ProgressBar 8; 12 truecolor, 10 mono):
+  render::components::hint_bar::disabled 120 40 junie mono f19ec0db80c3b5ce → f5fc6531be4cfe81
+  render::components::hint_bar::disabled 120 40 junie truecolor 8486cfc84d1044b4 → 9e0c5d44f19bd3fc
+  render::components::hint_bar::disabled 120 40 paper mono 270944ce827da10c → b8930e040b525b61
+  render::components::hint_bar::disabled 120 40 paper truecolor 36fd1a4de917c1ea → d28c51d6fda7fba2
+  render::components::hint_bar::disabled 40 10 junie mono 5e3cb57795df81ce → ab06451beff9e981
+  render::components::hint_bar::disabled 40 10 junie truecolor bb413216f6341e24 → 5a556c0a72d55bac
+  render::components::hint_bar::disabled 40 10 paper mono 96e5d9b1527eaa2c → 733043d7bddd5701
+  render::components::hint_bar::disabled 40 10 paper truecolor 5652e7475dd3bfea → e21dd9a6697609a2
+  render::components::meter::disabled 120 40 junie mono 42061673f3aa7732 → c3944936b57ee94a
+  render::components::meter::disabled 120 40 junie truecolor 100a588eaff7313c → 1b281fdd0019d6fd
+  render::components::meter::disabled 120 40 paper truecolor ae585925d5bcadcd → da64fde7430c6d53
+  render::components::meter::disabled 40 10 junie mono 393701c0748961da → 9ef934503dd41e92
+  render::components::meter::disabled 40 10 junie truecolor b0cce946b4a54db4 → 811f5d08644e57d5
+  render::components::meter::disabled 40 10 paper truecolor 7d92440289fcdb09 → 9913b064c201a977
+  render::components::progress_bar::disabled 120 40 junie mono 498e91dddd35d5c0 → ef46093a72cdf519
+  render::components::progress_bar::disabled 120 40 junie truecolor fd048ee1e85160fe → 7233e64a8496e588
+  render::components::progress_bar::disabled 120 40 paper mono 0e05654797fcb6f2 → c13aab919eb20ccf
+  render::components::progress_bar::disabled 120 40 paper truecolor 876e5d3a314c2c66 → 15a0109f80ae29c6
+  render::components::progress_bar::disabled 40 10 junie mono 16ade91bcaec3208 → 50c4f3da93780841
+  render::components::progress_bar::disabled 40 10 junie truecolor 716d8ca6f6ff5f0e → 5001dc42873b02d8
+  render::components::progress_bar::disabled 40 10 paper mono c0fdab768ae9f842 → 6fea492cd57e287f
+  render::components::progress_bar::disabled 40 10 paper truecolor 481ea61b5734b122 → f6decdbd451ab17a
+- added:     none
+- class:     fix
+- reason:    §20.10 item 20 (forced state preserves the props-derived readiness state).
+             The old output erased `ERROR`, making HintBar and ProgressBar error fixtures
+             byte-identical to their ready defaults at truecolor and leaving Meter's declared
+             error rule unreachable; the corrected output paints the specified error affordance.
+```

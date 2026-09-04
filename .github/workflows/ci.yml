@@ -27,12 +27,16 @@ name: CI
 #   allow-list emptiness
 #       §25.12 F9 pass condition: crates/tui/tests/allow/{legacy_api,domain}.txt are empty.
 #   cargo run -p xtask -- bless-guard
-#       §16.3 (as amended by §36), §20.10 and §36.5 — the `baseline_moves_are_classified`
-#       boundary check. Every baseline key the diff moved or added must be accounted for
-#       by a `docs/visual-changes.md` entry citing a numbered §20.10 item; a moved
-#       `truecolor` key and any change to the frozen pre-refactor evidence are refused
-#       outright. It needs the merge base, which is why `actions/checkout` below sets
-#       `fetch-depth: 0`: without full history `origin/$GITHUB_BASE_REF` does not resolve.
+#       §16.3 (as amended by §36), §20.10, §36.5 and §49.3/§49.4 — the
+#       `baseline_moves_are_classified` boundary check. Every baseline key the diff moved
+#       or added must be accounted for by a `docs/visual-changes.md` entry citing a
+#       numbered §20.10 item. Refused outright: any change to the frozen pre-refactor
+#       evidence; a moved `truecolor` key whose entry cites no §20.10 item tagged
+#       `{scope: truecolor}`; a moved key whose entry cites an item tagged
+#       `{scope: first-generation}`; and any digest addition or movement while
+#       COMPONENT_ARCHITECTURE.md still declares a live `BLOCKS the … bless` marker.
+#       It needs a real base, which is why `actions/checkout` below sets `fetch-depth: 0`
+#       and why the step sets `BLESS_GUARD_BASE` (§49.6).
 #   cargo run -p xtask -- doc-check
 #       §16.5 / §21 item 34 — every `Ident::method` in the document resolves.
 #   cargo check -p tui-next --no-default-features
@@ -129,9 +133,22 @@ jobs:
       - name: Boundary and dependency checks (§16.5, §22.7)
         run: cargo run -p xtask -- boundary
 
-      # §16.3 (as amended by §36) / §20.10 / §36.5 — every moved or added baseline key
-      # is classified in docs/visual-changes.md against a numbered §20.10 item.
-      - name: Baseline bless guard (§16.3, §36.5)
+      # §16.3 (as amended by §36) / §20.10 / §36.5 / §49.3 / §49.4 — every moved or added
+      # baseline key is classified in docs/visual-changes.md against a numbered §20.10 item.
+      #
+      # §49.6: `BLESS_GUARD_BASE` is what makes this step mean anything on the PUSH leg.
+      # The resolver's order is `$BLESS_GUARD_BASE`, then `origin/$GITHUB_BASE_REF`, then
+      # `HEAD`. `GITHUB_BASE_REF` is set on `pull_request` only, so on a push to `main` the
+      # base fell through to `HEAD` — a clean checkout diffed against itself, reporting
+      # `0 moved, 0 added` on every direct commit. `github.event.before` is the commit the
+      # push moved `main` off, and is empty on `pull_request`, where the expression yields
+      # the empty string and the resolver falls through to `origin/$GITHUB_BASE_REF` as
+      # before. Fail-closed: if `before` is the null OID (a force-push or a branch's first
+      # push) the revision does not resolve and the guard STOPS rather than comparing the
+      # tree with itself.
+      - name: Baseline bless guard (§16.3, §36.5, §49.6)
+        env:
+          BLESS_GUARD_BASE: ${{ github.event.before }}
         run: cargo run -p xtask -- bless-guard
 
       # §25.12 F9 pass condition: both allow-lists are EMPTY, not merely present.
