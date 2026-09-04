@@ -1051,7 +1051,7 @@ This replaces the hand-written 30-field macro and the Junie-only `for_level`, so
 | `ERROR` | trailing `GlyphRole::Error` in `Part::MARKER` + `UNDERLINED` on `Part::FIELD` |
 | `WARNING` / `DIRTY` | `GlyphRole::Dirty` in `Part::MARKER` |
 | `EDITING` | `UNDERLINED` on `Part::TEXT` + the hardware cursor |
-| `BUSY` / `LOADING` | **a component obligation, not a `StateRule`**: a component that can enter `BUSY`/`LOADING` paints `Part::ICON` with `design.motion.spinner_frames`. The spinner is a *symbol*, so it satisfies case 9 without any theme rule, and a `StateRule` could not express it — a rule binds one `GlyphRole`, the spinner is a frame sequence. A component with no icon slot must not accept `.status(…)`. ~~spinner glyph in `Part::ICON`~~ read as a mono `StateRule` obligation and produced none: no mono rule mentions `BUSY` or `LOADING`. <!-- amended by §28 --> |
+| `BUSY` / `LOADING` | **a component obligation, not a `StateRule`**: a component that can enter `BUSY`/`LOADING` paints `Part::ICON` with `design.motion.spinner_frames`. The spinner is a *symbol*, so it satisfies case 9 without any theme rule, and a `StateRule` could not express it — a rule binds one `GlyphRole`, the spinner is a frame sequence. A component that **accepts a readiness prop** (`.status(Status)`, or an `EmptyState`) **must declare `Part::ICON` in its `PARTS` and must paint it for `BUSY`/`LOADING` and for `ERROR`. A component that will not paint it must not accept the prop.** The obligation is declared to the conformance suite as `Caps::REPORTS_STATUS` (§16.2) and checked there: the capability forces `BUSY` and `ERROR` into `mono_states()`, so it cannot be narrowed away in prose. ~~A component with no icon slot must not accept `.status(…)`.~~ — struck by §33: "no icon slot" was the wrong predicate. The property that matters is **paints**, not **declares**: `TextArea` and `List` both accept the prop, fold `BUSY`/`LOADING` into their live flags, and paint nothing, and `List` has `ICON` available through `row_like` and still paints nothing. Those two are the only violations, and neither was visible to the old wording. <!-- amended by §28; §33 --> ~~spinner glyph in `Part::ICON`~~ read as a mono `StateRule` obligation and produced none: no mono rule mentions `BUSY` or `LOADING`. <!-- amended by §28 --> |
 | `ACTIVE` (tabs) | `Part::RULE` glyph = `RuleActive` + `BOLD` label |
 
 Test `conformance::mono_states_are_distinguishable` compares `(symbol, modifier)` pairs only, colour excluded, for every component × every state. <!-- amended by §25 MI‑13 --> `apply_mono_fallbacks` appends its rules to the family's part maps **and** to every variant map, because under the §11.3 precedence a variant that re-declares `PRESSED` would otherwise beat the mono bracket rule; the interaction is recorded here so it is not rediscovered. It appends the same rules to **`Recipes::neutral`**, which is a resolvable recipe outside `by_family` (§11.2, §11.3): an undeclared `Family::custom(..)` resolves through it, so a pass over `by_family` alone left the whole downstream default path with zero of the eighteen rules and rendered mono `DISABLED` and `ERROR` black-on-black — the §28 P6 defect surviving on the one path P did not sweep. The rules themselves are unchanged; `MONO_RULES_PER_FAMILY` is now per **resolvable recipe**, `by_family` and `neutral` alike. No geometry changes: the one glyph-binding rule that could, `LABEL`/`PRESSED` → `PressLeft`, is a component obligation discharged only by a component that reserved the cells (§29 Q1). <!-- amended by §31 -->
@@ -6962,3 +6962,47 @@ It was flagged rather than changed, and that judgement is endorsed: the false gr
 ### §37.3 The residual exemption <!-- amended by §37 -->
 
 `no_todo_or_unimplemented` exempts any line containing the check's own name, so a real `todo!` on a line that also names the check is invisible. Narrow, and tightening it risks the self-reference the exemption exists for. Recorded, not changed.
+
+## §38 Adjudication — readiness is a declared capability, not a sentence <!-- amended by §38 -->
+
+**Status: accepted.** Fresh read-only `opus-analyst` adjudication of the contradiction between §11.4's readiness rule and the `mono_narrowing_reason()` strings. Change control at line 3 is engaged twice: §11.4's `BUSY`/`LOADING` obligation is restated as a positive, machine-checked rule, and §29.3's enumerated table is replaced by a pointer.
+
+### §38.1 The rule was right and its predicate was wrong <!-- amended by §38 -->
+
+§11.4 said *"a component with no icon slot must not accept `.status(…)`"*. **"No icon slot" is the wrong predicate.** Two components accept the prop, fold `BUSY`/`LOADING` into their live flags, and paint no affordance — and one of them, `List`, has `ICON` available through `row_like` and still paints nothing. Neither was visible to the old wording. The property that matters is **paints**, not **declares**.
+
+The audit that found this checked all eight components the coordinator suspected and cleared **every one of them**: `ProgressBar`, `Spinner`, `Meter`, `StatusBar`, `HintBar`, `Empty`, `ScrollRegion` and `Dialog` are all compliant with §11.4 as restated. The two real violations — `TextArea` and `List` — were not on the list. That is the value of checking a handed premise rather than acting on it.
+
+### §38.2 Per-component verdicts <!-- amended by §38 -->
+
+**KEEP STATE** — the affordance exists, is painted, and the narrowing was false: `progress_bar` (`BUSY`, `ERROR` — the spinner frame and the error glyph, both into `Part::ICON`), `meter` (same recipe), `status_bar` (`BUSY`, `ERROR`, `WARNING` — a three-branch leading-cell affordance that also shifts every item right, so the outputs differ in more than one cell), `hint_bar` (the same three; the glyph also changes the status width and therefore how many hints fit), `empty` (`BUSY`, `ERROR` — the variant changes the spinner/error glyph, **the title text itself**, and the row count from 1 to 3, so the three renderings share almost no cells).
+
+**KEEP NARROWING, with an honest reason** — `spinner`. It has no not-spinning state to be distinguishable *from*: `draw` paints unconditionally and the frame is a **prop**, so no `StateFlags` value changes any symbol. The coordinator's reading — that a spinner narrowing `BUSY` inverts §11.4 — was wrong on the mechanism and right on the smell: §11.4 obliges a component *that can enter* `BUSY` to paint a spinner, and `Spinner` **is** the paint, not the enterer.
+
+**KEEP STATE, after adding the affordance** — `scroll_region`. `PRESSED` was narrowed with the reason "no stateful content affordance", which **converted a missing affordance into a claimed property**. The state is reachable in production (a live capture holds it), the only `THUMB`/`PRESSED` rule was colour-only, and case 9 excludes colour — so at `Mono` a dragged thumb was invisible. The rule now exists; the narrowing was *forced* by a gap in §11.4's table, not by an honest absence.
+
+**KEEP NARROWING, restated as an owned obligation** — `dialog`. Its `id()` is the launcher `Button` and `draw` forces state only on that button, so every symbol case 9 compares is a `Button` symbol and the case proves nothing about `Dialog`. Widening the fixture does **not** fix it: `Dialog` paints no `MARKER` and no `ICON`, so `ERROR`, `WARNING` and `BUSY` would still have no affordance. The reason is restated naming Slice 4 package 4F as owner and the re-entry condition, modelled on `ListCase`'s reason — the one in the file that already does this properly.
+
+### §38.3 A fixture bug that disabled six cases <!-- amended by §38 -->
+
+`Overrides::flags` is `self.state.unwrap_or(live)`, and `state_override(x)` sets `Some(x)` **including `Some(StateFlags::empty())`**. Six cases — `status_bar`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — call `.state_override(f.forced())` **unconditionally**, so whenever nothing is forced they **erase the component's own derived base flags**. Every other case guards with `if !f.forced().is_empty()`.
+
+The concrete consequence: `Spinner::draw` sets `live = ov.flags(StateFlags::BUSY)` and the fixture clobbers it, so **the Spinner conformance case has never rendered a spinner in its own declared state.**
+
+Note that "not forced" and "forced to nothing" are the **same value** here — which is precisely the `Option`-versus-`Slot` argument §29 already settled once for `Resolved.glyph`, where distinguishing "explicitly cleared" from "never set" justified a type migration. Whether the same migration is owed here is under separate adjudication.
+
+### §38.4 Why a stricter reason string cannot work <!-- amended by §38 -->
+
+Two mechanisms were considered and **rejected with evidence**, and the reasoning is recorded because a third attempt is otherwise inevitable:
+
+**Requiring the reason to cite a `file:line` or a test name.** It proves a name exists, not that the named thing proves anything — and the repository already demonstrates the failure mode: five component doc comments cite `render::components::*::{busy, error}`, tests that **do not exist**. A citation requirement buys a compiling lie one refactor later.
+
+**Requiring a test that output is identical with and without each narrowed state forced.** Provably wrong here: forcing `DISABLED` on a `ProgressBar` is **not** identical to forcing nothing, because the mono rule puts `DIM` on `Part::LABEL` and `ProgressBar` paints `Part::LABEL`. That check would force five components to assert states none of them can enter. It is stricter *and* more wrong — it measures "renders distinguishably" and calls it "can enter".
+
+The root cause is that `mono_states()` **conflates two properties and only one is observable**: *which states can this component enter* (not observable from `draw` at all) versus *which does it render distinguishably without colour* (already checked correctly by case 9). The fix moves the first out of prose and into `Caps`, where the driver can see it. `mono_narrowing_reason()` survives with a **smaller** job: it may excuse only states that no declared capability implies — a scope a sentence can honestly carry.
+
+**What this still misses, stated rather than implied:** a case that declines to declare `REPORTS_STATUS` while its component accepts the prop. A text check on `impl Conformance` bodies is defeated by a component taking readiness through a differently-named prop — which is exactly `Empty`, via `EmptyState`. So **one** case must be hand-declared and review is the gate for that one. One, named — not nine.
+
+### §38.5 §29.3's table is replaced by a pointer <!-- amended by §38 -->
+
+§29.3 enumerated required dropped-state names for **9** implementations while **23** are registered. A hand-maintained duplicate of a machine-checked property drifts, and this one drifted *within a single slice*. Completing it to 23 rows buys a second drift in Slice 5. The authority is `conformance_suite!` and case 9; this document states the rule the code enforces and does not restate the data.

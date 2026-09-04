@@ -238,9 +238,12 @@ impl Reconcile for SelectState {
 /// field row; `0×0` registers nothing (R5).
 ///
 /// ## Parts
-/// `FIELD` (the closed row), `LABEL` (the value, through [`RowUi`]),
-/// `MARKER` (the indicator and the popup's chosen mark), `ROW` (a popup
-/// row), `TRACK` / `THUMB` (the popup scrollbar), `EMPTY` (no options).
+/// In paint order: `FIELD` (the closed row), `GUTTER` (the focus bar, in
+/// the closed field's first column and in each popup row's), `LABEL` (the
+/// value, through [`RowUi`]), `PLACEHOLDER` (what the closed field shows
+/// while there is no value), `MARKER` (the indicator and the popup's chosen
+/// mark), `ROW` (a popup row), `TRACK` / `THUMB` (the popup scrollbar),
+/// `EMPTY` (no options).
 ///
 /// ## Overrides
 /// `.patch`, `.patch_part`, `.slot` on `MARKER` and `EMPTY`; `FIELD` and
@@ -259,7 +262,10 @@ impl Reconcile for SelectState {
 /// `select::standalone_select_takes_items_per_phase`.
 ///
 /// ## Invariants
-/// `reconcile` runs before any action is emitted; the cursor is separate
+/// `reconcile` runs before any action is emitted, and is skipped entirely
+/// while `disabled`, which reports no action of its own — the one action a
+/// disabled select can still emit is the `Closed` of a layer it opened
+/// before it was disabled, and that carries no item; the cursor is separate
 /// from the value and Esc restores it; the component re-asserts its layer's
 /// size and anchor every `update` (invariant D1, §26 N1), so a changing
 /// option list corrects the popup on the next draw without the opener
@@ -311,7 +317,9 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::FIELD,
+        Part::GUTTER,
         Part::LABEL,
+        Part::PLACEHOLDER,
         Part::MARKER,
         Part::ROW,
         Part::TRACK,
@@ -561,12 +569,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.action(SelectAction::Chose(key));
     }
 
-    /// The update phase: reconcile, re-assert the layer, then drain keys,
-    /// pointer intents and the layer's lifecycle events.
+    /// The update phase: reconcile when enabled, re-assert the layer, then
+    /// drain keys, pointer intents and the layer's lifecycle events.
     ///
-    /// It runs **unconditionally**, whether or not the popup is open (§13,
-    /// §28 P3): a dismissal is delivered in the pass after the layer closed,
-    /// and a gated call would drain nothing.
+    /// The body runs **unconditionally**, whether or not the popup is open
+    /// (§13, §28 P3): a dismissal is delivered in the pass after the layer
+    /// closed, and a gated call would drain nothing. Only the durable-state
+    /// half — the reconcile and the cursor seed — is gated on `disabled`
+    /// (§16.2 case 1), because a disabled control must not mutate the
+    /// caller's state; the intent drain, the layer bookkeeping and the
+    /// dismissal that closes a popup opened before the control was disabled
+    /// all still run.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -574,13 +587,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         items: &[T],
     ) -> Response<SelectAction> {
         let len = items.len();
-        let _ = st.reconcile(len, |i| self.key_at(items, i));
-        if st.core.cursor().is_none() && len > 0 {
-            let i = st
-                .value
-                .and_then(|v| self.index_of(items, v, None))
-                .unwrap_or(0);
-            st.core.set_cursor(i, self.key_at(items, i));
+        if !self.disabled {
+            let _ = st.reconcile(len, |i| self.key_at(items, i));
+            if st.core.cursor().is_none() && len > 0 {
+                let i = st
+                    .value
+                    .and_then(|v| self.index_of(items, v, None))
+                    .unwrap_or(0);
+                st.core.set_cursor(i, self.key_at(items, i));
+            }
         }
         let open = st.open && cx.is_open(self.id);
         if open {
