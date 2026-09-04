@@ -933,16 +933,34 @@ impl<'a> MenuBar<'a> {
         MenuAction::Opened(index)
     }
 
+    /// Close a dropdown whose owning declaration is no longer present.
+    ///
+    /// `MenuBar` owns both the durable open index and the runtime layer.  A
+    /// borrowed menu slice may change between phases, so clearing only the
+    /// index would leave a live, unowned layer behind.  Treat that transition
+    /// like any other programmatic dismissal and report it to the caller.
+    fn close_missing(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
+        let had_open_state = st.open.take().is_some();
+        let had_live_layer = cx.is_open(self.id);
+        if !had_open_state && !had_live_layer {
+            return Response::ignored();
+        }
+        cx.close_layer(self.id, None);
+        Response::action(MenuAction::Closed(DismissReason::Programmatic)).for_id(self.id)
+    }
+
     /// Handle bar navigation and the active dropdown.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
         if self.menus.is_empty() {
+            let response = self.close_missing(cx, st);
             for _ in cx.intents(self.id) {}
-            return Response::ignored();
+            return response;
         }
         if let Some(open) = st.open {
             let Some(dropdown) = self.dropdown(cx, open) else {
-                st.open = None;
-                return Response::ignored();
+                let response = self.close_missing(cx, st);
+                for _ in cx.intents(self.id) {}
+                return response;
             };
             let response = dropdown.update(cx, st);
             if matches!(
@@ -1268,6 +1286,44 @@ mod tests {
         }
     }
 
+    const SHRINKING_MENUS: [Menu<'static>; 2] =
+        [Menu::new("File", &ITEMS), Menu::new("Edit", &ITEMS)];
+
+    struct ShrinkingMenuBarApp {
+        state: MenuState,
+        shrink: bool,
+        closed: Option<DismissReason>,
+    }
+
+    impl App for ShrinkingMenuBarApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let menus = if self.shrink {
+                &SHRINKING_MENUS[..1]
+            } else {
+                &SHRINKING_MENUS[..]
+            };
+            let response =
+                MenuBar::new(Id::root("menu.bar.shrinking"), menus).update(cx, &mut self.state);
+            if let Some(MenuAction::Closed(reason)) = response.action_ref() {
+                self.closed = Some(*reason);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let menus = if self.shrink {
+                &SHRINKING_MENUS[..1]
+            } else {
+                &SHRINKING_MENUS[..]
+            };
+            let _ = MenuBar::new(Id::root("menu.bar.shrinking"), menus).draw(
+                ui,
+                Rect::new(0, 0, 40, 10),
+                &self.state,
+            );
+        }
+    }
+
     impl App for MenuApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let response = ContextMenu::at(Id::root("menu.runtime"), &ITEMS, Position::new(0, 0))
@@ -1305,6 +1361,40 @@ mod tests {
         runtime.draw_buffer(area, &mut buffer);
         runtime.draw_buffer(area, &mut buffer);
         (runtime, buffer)
+    }
+
+    #[test]
+    fn menu_bar_closes_live_layer_and_reports_close_when_open_menu_shrinks() {
+        let area = Rect::new(0, 0, 40, 10);
+        let mut buffer = Buffer::empty(area);
+        let mut runtime = Runtime::new(
+            ShrinkingMenuBarApp {
+                state: MenuState::default(),
+                shrink: false,
+                closed: None,
+            },
+            Theme::junie(),
+        );
+        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer);
+        let _ = runtime.handle(Input::Key(key(KeyCode::Right)));
+        runtime.draw_buffer(area, &mut buffer);
+        let _ = runtime.handle(Input::Key(key(KeyCode::Enter)));
+        runtime.draw_buffer(area, &mut buffer);
+
+        assert_eq!(runtime.app().state.open, Some(1));
+        assert!(runtime.is_open(Id::root("menu.bar.shrinking")));
+
+        runtime.app_mut().shrink = true;
+        let _ = runtime.handle(Input::Tick);
+
+        assert_eq!(
+            runtime.app().closed,
+            Some(DismissReason::Programmatic),
+            "shrinking away the open menu must emit its lifecycle close"
+        );
+        assert_eq!(runtime.app().state.open, None);
+        assert!(!runtime.is_open(Id::root("menu.bar.shrinking")));
     }
 
     #[test]

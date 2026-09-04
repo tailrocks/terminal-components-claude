@@ -217,8 +217,40 @@ impl CompletionController {
         cx.close_layer(self.popup_id, None);
     }
 
+    /// Dismiss suggestions after the editor moves independently.
+    ///
+    /// The editor owns its buffer and emits its own action, so this hook is
+    /// called by the composition that observes an editor-motion action.  It
+    /// returns whether an open completion was actually dismissed.
+    pub fn dismiss_on_editor_motion(&self, cx: &mut Cx<'_>, state: &mut CompletionState) -> bool {
+        if !state.open {
+            return false;
+        }
+        self.dismiss(cx, state);
+        true
+    }
+
+    /// Splice and dismiss one accepted semantic item as one lifecycle step.
+    ///
+    /// The replacement length belongs to [`CompletionState`], so callers
+    /// cannot accidentally splice one range and dismiss a different request.
+    /// Dismissal is performed even when the buffer rejects an empty insertion;
+    /// the semantic item was still accepted and the popup must not remain
+    /// live after that decision.
+    pub fn accept(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut CompletionState,
+        buffer: &mut TextBuffer,
+        item: Item<'_>,
+    ) -> bool {
+        let inserted = Self::splice(buffer, state.replace_len, item);
+        self.dismiss(cx, state);
+        inserted
+    }
+
     /// Splice one semantic item's insertion text into an editor buffer.
-    pub fn accept(buffer: &mut TextBuffer, replace_len: usize, item: Item<'_>) -> bool {
+    fn splice(buffer: &mut TextBuffer, replace_len: usize, item: Item<'_>) -> bool {
         let end = buffer.cursor_offset();
         let start = end.saturating_sub(replace_len);
         buffer.select_range(start, end);
@@ -415,6 +447,64 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         acc.action(CompletionAction::Moved);
     }
 
+    fn handle_editor_intent(
+        &self,
+        controller: CompletionController,
+        cx: &mut Cx<'_>,
+        state: &mut CompletionState,
+        items: &[T],
+        intent: Intent<'_>,
+        acc: &mut Acc<CompletionAction>,
+    ) {
+        match intent {
+            Intent::Binding(action) => match Binding::command(BINDINGS, action) {
+                Some(cmd) => {
+                    let cur = state.core.cursor_index();
+                    let page = state.core.scroll().viewport_len().max(1);
+                    match cmd {
+                        CompletionCmd::Up => {
+                            Self::move_to(state, items, cur.saturating_sub(1), acc);
+                        }
+                        CompletionCmd::Down => {
+                            Self::move_to(state, items, cur.saturating_add(1), acc);
+                        }
+                        CompletionCmd::PageUp => {
+                            Self::move_to(state, items, cur.saturating_sub(page), acc);
+                        }
+                        CompletionCmd::PageDown => {
+                            Self::move_to(state, items, cur.saturating_add(page), acc);
+                        }
+                        CompletionCmd::Accept => match items.get(cur).map(AsItem::as_item) {
+                            Some(item) if !item.disabled => {
+                                acc.action(CompletionAction::Accepted(item.key));
+                            }
+                            _ => acc.consumed(),
+                        },
+                        CompletionCmd::Dismiss => {
+                            state.open = false;
+                            state.owner = None;
+                            cx.close_layer(self.id, None);
+                            acc.action(CompletionAction::Dismissed);
+                        }
+                    }
+                }
+                None => {
+                    if controller.dismiss_on_editor_motion(cx, state) {
+                        acc.action(CompletionAction::Dismissed);
+                    }
+                }
+            },
+            Intent::FocusOut { .. } | Intent::Cancel
+                if controller.dismiss_on_editor_motion(cx, state) =>
+            {
+                acc.action(CompletionAction::Dismissed);
+            }
+            // Text and paste intents remain available to the editor so it can
+            // refresh completion items after a content change.
+            _ => {}
+        }
+    }
+
     fn row_is_pressed(&self, ui: &Ui<'_>, key: ItemKey) -> bool {
         Self::pressed_target(FrameRead::pressed_part(ui, self.id), key)
     }
@@ -479,39 +569,9 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
             .update(cx, state.core.scroll_mut(), items.len());
         let mut acc = Acc::new();
         acc.fold(&bar);
-        let page = state.core.scroll().viewport_len().max(1);
+        let controller = CompletionController::new(owner, self.id);
         for intent in cx.intents(owner) {
-            if let Intent::Binding(action) = intent
-                && let Some(cmd) = Binding::command(BINDINGS, action)
-            {
-                let cur = state.core.cursor_index();
-                match cmd {
-                    CompletionCmd::Up => {
-                        Self::move_to(state, items, cur.saturating_sub(1), &mut acc);
-                    }
-                    CompletionCmd::Down => {
-                        Self::move_to(state, items, cur.saturating_add(1), &mut acc);
-                    }
-                    CompletionCmd::PageUp => {
-                        Self::move_to(state, items, cur.saturating_sub(page), &mut acc);
-                    }
-                    CompletionCmd::PageDown => {
-                        Self::move_to(state, items, cur.saturating_add(page), &mut acc);
-                    }
-                    CompletionCmd::Accept => match items.get(cur).map(AsItem::as_item) {
-                        Some(item) if !item.disabled => {
-                            acc.action(CompletionAction::Accepted(item.key));
-                        }
-                        _ => acc.consumed(),
-                    },
-                    CompletionCmd::Dismiss => {
-                        state.open = false;
-                        state.owner = None;
-                        cx.close_layer(self.id, None);
-                        acc.action(CompletionAction::Dismissed);
-                    }
-                }
-            }
+            self.handle_editor_intent(controller, cx, state, items, intent, &mut acc);
         }
         for intent in cx.intents(self.id) {
             match intent {
@@ -725,11 +785,101 @@ mod tests {
         (runtime, buffer)
     }
 
+    struct ControllerApp {
+        controller: CompletionController,
+        completion: CompletionState,
+        buffer: TextBuffer,
+        request: bool,
+        accept: bool,
+        editor_motion: bool,
+    }
+
+    impl App for ControllerApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if self.request {
+                self.controller
+                    .request(cx, &mut self.completion, Rect::new(2, 1, 1, 1), 3, ITEMS);
+                self.request = false;
+            }
+            if self.accept {
+                let _ =
+                    self.controller
+                        .accept(cx, &mut self.completion, &mut self.buffer, ITEMS[0]);
+                self.accept = false;
+            }
+            if self.editor_motion {
+                self.controller
+                    .dismiss_on_editor_motion(cx, &mut self.completion);
+                self.editor_motion = false;
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            if self.completion.is_open() {
+                let completion = Completion::<Item<'_>>::new(POPUP);
+                let _ = ui.layer(POPUP, |ui, area| {
+                    completion.draw(ui, area, &self.completion, ITEMS);
+                });
+            }
+        }
+    }
+
+    fn controller_runtime() -> Runtime<ControllerApp> {
+        Runtime::new(
+            ControllerApp {
+                controller: CompletionController::new(EDITOR, POPUP),
+                completion: CompletionState::default(),
+                buffer: TextBuffer::single("SEL cou"),
+                request: false,
+                accept: false,
+                editor_motion: false,
+            },
+            Theme::junie(),
+        )
+    }
+
+    #[test]
+    fn completion_controller_accept_splices_and_dismisses_atomically() {
+        let mut runtime = controller_runtime();
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.app_mut().request = true;
+        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(AREA, &mut buffer);
+        assert!(runtime.app().completion.is_open());
+        assert!(runtime.is_open(POPUP));
+
+        runtime.app_mut().accept = true;
+        let _ = runtime.handle(Input::Tick);
+
+        assert_eq!(runtime.app().buffer.text(), "SEL alpha");
+        assert!(!runtime.app().completion.is_open());
+        assert!(!runtime.is_open(POPUP));
+    }
+
+    #[test]
+    fn completion_controller_dismisses_on_editor_motion() {
+        let mut runtime = controller_runtime();
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.app_mut().request = true;
+        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(AREA, &mut buffer);
+        assert!(runtime.is_open(POPUP));
+
+        runtime.app_mut().editor_motion = true;
+        let _ = runtime.handle(Input::Tick);
+
+        assert!(!runtime.app().completion.is_open());
+        assert!(!runtime.is_open(POPUP));
+    }
+
     #[test]
     fn distinct_insert_text_is_spliced() {
         let mut buffer = TextBuffer::single("SEL cou");
         let item = Item::new(ItemKey::num(1), "count").insert("COUNT(");
-        assert!(CompletionController::accept(&mut buffer, 3, item));
+        assert!(CompletionController::splice(&mut buffer, 3, item));
         assert_eq!(buffer.text(), "SEL COUNT(");
     }
 
@@ -737,7 +887,7 @@ mod tests {
     fn none_insert_uses_label() {
         let mut buffer = TextBuffer::single("SEL cou");
         let item = Item::new(ItemKey::num(1), "count");
-        assert!(CompletionController::accept(&mut buffer, 3, item));
+        assert!(CompletionController::splice(&mut buffer, 3, item));
         assert_eq!(buffer.text(), "SEL count");
     }
 
