@@ -823,10 +823,22 @@ const CHECKS: &[Check] = &[
         applications_depend_only_on_the_library_facade,
     ),
     (
+        "no_generic_component_copies_in_applications",
+        no_generic_component_copies_in_applications,
+    ),
+    (
+        "no_owns_or_locate_in_applications",
+        no_owns_or_locate_in_applications,
+    ),
+    (
         "baseline_moves_are_classified",
         baseline_moves_are_classified,
     ),
     ("props_are_built_once", props_are_built_once),
+    (
+        "showcase_covers_every_public_component",
+        showcase_covers_every_public_component,
+    ),
 ];
 
 fn boundary(only: Option<&str>) -> Result<(), String> {
@@ -3756,6 +3768,7 @@ fn showcase_covers_every_public_component() -> Result<(), String> {
 /// name moves rather than changes.
 fn binary_names_are_preserved() -> Result<(), String> {
     let md = metadata()?;
+    let root_name = root_package(&md).map(|package| package.name.as_str());
     let mut found: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut tooling: Vec<String> = Vec::new();
     for p in md.workspace_packages() {
@@ -3798,6 +3811,29 @@ fn binary_names_are_preserved() -> Result<(), String> {
                 a.dir
             )),
             Some(_) => {}
+        }
+        let targets = md
+            .workspace_packages()
+            .iter()
+            .filter_map(|package| {
+                package
+                    .targets
+                    .iter()
+                    .find(|target| target.name == a.bin)
+                    .map(|target| BinaryTarget {
+                        package: package.name.to_string(),
+                        source: target.src_path.as_std_path().to_path_buf(),
+                    })
+            })
+            .collect::<Vec<_>>();
+        if let Some(target) = targets.first() {
+            errors.extend(binary_target_layout_hits(
+                a,
+                root_name == Some(target.package.as_str()),
+                root_name,
+                &target.package,
+                &target.source,
+            ));
         }
     }
     let want: BTreeSet<&str> = APPS.iter().map(|a| a.bin).collect();
