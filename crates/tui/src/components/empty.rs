@@ -59,13 +59,20 @@ use crate::ui::Ui;
 /// rect paints nothing (R5).
 ///
 /// ## Parts
-/// `EMPTY` (the whole slot; the part a container reserves for it). The
-/// title, detail and readiness glyph are painted by [`EmptyState::draw`]
-/// under `Family::EMPTY`'s `TITLE`, `HELP` and `ICON`, which is the one
-/// renderer every collection shares.
+/// `EMPTY` (the whole slot; the part a container reserves for it, filled on
+/// every non-degenerate frame), then the three parts [`EmptyState::draw`]
+/// paints under `Family::EMPTY` — the one renderer every collection shares:
+/// `TITLE` (the primary line, on every frame), `HELP` (the wrapped detail,
+/// only when the state carries one and the block has three rows) and `ICON`
+/// (the readiness glyph: the spinner frame for `Loading`/`Partial`, the error
+/// glyph for `Error`, nothing for `Empty`). `EMPTY` is first because it is
+/// the only one painted unconditionally, and `PARTS[0]` is what §16.2 case 10
+/// patches when it asserts an instance patch reaches the surface.
 ///
 /// ## Overrides
-/// `.patch` and `.patch_part` reach `EMPTY`; `.slot(Part::EMPTY, …)`
+/// `.patch` and `.patch_part` reach `EMPTY`; `TITLE`, `HELP` and `ICON` are
+/// resolved by the shared [`EmptyState::draw`] straight from the theme, so a
+/// per-part patch aimed at them is not honoured. `.slot(Part::EMPTY, …)`
 /// replaces the whole surface, which is the documented way to put an
 /// illustration or an action row where the default text goes.
 ///
@@ -75,7 +82,10 @@ use crate::ui::Ui;
 ///
 /// ## Testing
 /// `EmptyCase` with no capabilities;
-/// `render::components::empty::{default, busy, error, empty}`.
+/// `collection::empty::tests::empty_state_covers_empty_loading_partial_error`;
+/// the render matrix names states, not readiness, so the four surfaces are
+/// `render::components::empty::{default, editing, disabled, empty}` — the
+/// matrix maps `editing` onto `Loading` and `disabled` onto `Error`.
 ///
 /// ## Invariants
 /// The readiness glyph is a *symbol* — the spinner frame for
@@ -103,7 +113,7 @@ impl fmt::Debug for Empty<'_> {
 
 impl<'a> Empty<'a> {
     /// The parts this component styles.
-    pub const PARTS: &'static [Part] = &[Part::EMPTY];
+    pub const PARTS: &'static [Part] = &[Part::EMPTY, Part::TITLE, Part::HELP, Part::ICON];
 
     /// The surface for `state`.
     pub const fn new(id: Id, state: EmptyState<'a>) -> Self {

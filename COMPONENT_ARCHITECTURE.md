@@ -5735,7 +5735,7 @@ Example 9's opener becomes `cx.open_layer(CONFIRM, confirm_dialog().layer(cx));`
 
 ### 26.2 N2 — `Measure` cannot resolve styles
 
-**Decision.** `Measure::measure(&self, ui: &Ui<'_>, c: Constraints) -> Size` **stands unchanged**. `Ui` gains a `&self` resolution path that bypasses the memo and records nothing; `Theme` gains the surface-independent half for `update`-phase sizing. `Ui::style` / `Ui::style_patched` keep `&mut self` and remain the **only** queries that record roles or styled parts.
+**Decision.** `Measure::measure(&self, ui: &Ui<'_>, c: Constraints) -> Size` **stands unchanged**. `Ui` gains a `&self` resolution path that bypasses the memo and records nothing; `Theme` gains the surface-independent half for `update`-phase sizing. `Ui::style` / `Ui::style_patched` keep `&mut self` and remain the **only** queries that record roles. ~~or styled parts~~ — struck by §33: they record roles and do **not** record styled parts. Recording a styled part is an opt-in `Ui::note_styled` call with four call sites, so a component drawing on the bare `author` surface records nothing and its parts check passes vacuously.
 
 ```rust
 // crates/tui/src/ui/mod.rs
@@ -6612,7 +6612,7 @@ migrated screens, if a Slice-5/6/7 app test asserts the old swallow.
 
 ### §30.1 Decision <!-- amended by §30 -->
 
-`ChipBar` must declare and paint a `Part::MARKER` for `SELECTED`. In the existing leading one-cell pad, `SELECTED` paints the canonical `GlyphRole::Check` through the normal resolved-slot path (`RowUi::marker`); the unselected state leaves that cell blank. `Slot::Set`/`Slot::Clear` continue to override or suppress the fallback without changing the reserved cell's width.
+`ChipBar` must declare and paint a `Part::MARKER` for `SELECTED`. In the existing leading one-cell pad, `SELECTED` paints the canonical `GlyphRole::Checked` <!-- corrected by §33: there is no `Check` variant --> through the normal resolved-slot path (`RowUi::marker`); the unselected state leaves that cell blank. `Slot::Set`/`Slot::Clear` continue to override or suppress the fallback without changing the reserved cell's width.
 
 The exact public parts contract changes from `{CONTAINER, LABEL, CLOSE, OVERFLOW}` to `{CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW}`; `OVERFLOW` was already declared and is already painted (`chip.rs`'s truncation glyph, resolved and registered on the truncation cell) and is retained. The inline A7 declaration is amended accordingly. ~~The exact public parts contract changes from `{CONTAINER, LABEL, CLOSE}` to `{CONTAINER, MARKER, LABEL, CLOSE}`. No `OVERFLOW` part is added by this decision.~~ — struck: the prior contract was the **four**-part list, recorded as fact [F6] in `docs/reviews/adjudication-q-residuals.md`, and dropping `OVERFLOW` from the declaration while the component still paints it would fail `registry::declared_parts_are_the_parts_actually_styled` on truncation. <!-- corrected by §32 -->
 
@@ -6626,7 +6626,7 @@ Rejected: removing `SELECTED` from the required mono states; adding a color-only
 
 ### §30.3 Acceptance and scope <!-- amended by §30 -->
 
-The implementation must make `ChipBar::PARTS` exactly `[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW]`, <!-- corrected by §32 --> paint `GlyphRole::Check` only in the already-reserved leading marker cell for `SELECTED`, keep the label/width/close/bracket geometry byte-stable, and pass the existing declared-parts and mono-state conformance checks. The separate ChipBar add-action question remains open; §30 makes no decision between `Activated`, `Added` and `AddRequested`.
+The implementation must make `ChipBar::PARTS` exactly `[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW]`, <!-- corrected by §32 --> paint `GlyphRole::Checked` <!-- corrected by §33: there is no `Check` variant --> only in the already-reserved leading marker cell for `SELECTED`, keep the label/width/close/bracket geometry byte-stable, and pass the existing declared-parts and mono-state conformance checks. The separate ChipBar add-action question remains open; §30 makes no decision between `Activated`, `Added` and `AddRequested`.
 
 The unresolved questions listed in §29.7 remain unresolved. In particular, §30 does not decide the `FieldControl` item channel, RadioGroup's documented `.value(ItemKey)`, StatusBar hover data, or any future action-variant naming. The `Caps::OVERLAY`/`TRAPS_FOCUS` split is already decided in §29.6. <!-- amended by §30; §29 -->
 
@@ -6726,3 +6726,107 @@ Underneath sits a real contradiction with §11.4, which says "A component with n
 ### §32.5 Change-control gaps <!-- amended by §32 -->
 
 §29.3's table enumerates required dropped-state names for **9** implementations while **23** are registered. A hand-maintained duplicate of a machine-checked property will drift again; its disposition is folded into §32.4's open adjudication. §30 was not mirrored in `REFACTORING_STATE.md` although its own header invokes the line-3 rule; that is corrected in the ledger. The eight §29 citation sites all resolve to real content, but their line numbers have drifted as §29–§32 were appended; `CONTINUE_PROMPT.md`'s claims that "§29 does not exist" and that "A4 fails as written" are both stale and are struck in the ledger.
+
+## §33 Adjudication — `PARTS` is a styling contract, not an override surface <!-- amended by §33 -->
+
+**Status: accepted.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged: it corrects an invariant (§16.2's registry check), an exact type (`Conformance::PARTS`'s meaning), and strikes an overclaim in §26.2 N2.
+
+### §33.1 The conflation <!-- amended by §33 -->
+
+`Conformance::PARTS` was trying to be **two** things: the parts a component's own `draw` resolves, and the parts a caller may address through `.patch_part` / `.slot` and `RowUi`. Both readings are live in the same `const`, which is why no equality ever held.
+
+The evidence is symmetric and damning in both directions. `ChipBar` declared `Part::META` for the *override* reading — its own rustdoc says "painted by the caller through `RowUi`" — and **cannot paint it itself**. `Select` painted `Part::GUTTER` and `Part::PLACEHOLDER` and declared **neither**; `GUTTER` was waved through by the check's `extra` escape hatch, and `PLACEHOLDER` stayed invisible only because the fixture commits a value so the placeholder branch is never taken.
+
+**The union reading is not merely expensive, it is impossible.** `RowUi::part(p, w)` accepts an **arbitrary** `Part`, including `Part::custom(…)`, so the caller-reachable set is unbounded and can never be a `const`. Under that reading `styled == PARTS` is unsatisfiable and `styled ⊆ PARTS` is not provable either — the suite is green only because the fixtures' row closures happen to use declared parts.
+
+### §33.2 Decision — Invariant P <!-- amended by §33 -->
+
+> For every registered component `C`, the set of parts `C`'s own `draw` resolves — unioned over the driver's fixture sweep and including parts resolved by components `C` composes **under its own `Id`** — is **exactly** `C::PARTS`. Parts resolved by a caller-supplied row closure are attributed to the row, not to `C`, and are never in `C::PARTS`.
+
+The override surface keeps the home it already has: every component's `## Overrides` rustdoc section, whose presence is already machine-checked. It does not need a second `const`, and a second `const` is a second thing to drift.
+
+**The structural fix is attribution, not an allow-list.** The enabling condition is that `note_styled` stamps `(owner, part)` with the *component's* id for parts the *caller's* closure chose, so the instrument cannot tell "ChipBar styled META" from "the caller styled META through ChipBar's RowUi". Under `cfg(feature = "testing")`, the record carries a `StyledBy { Component, Row }`: `Overrides::style` records `Component`, every `RowUi` resolution records `Row` — **including the four that record nothing at all today**: `RowUi::new`'s container fill, `gutter`, `label_patched` and `trailing`. Then `ChipBar` drops `META`, `List` drops `LABEL` and `META`, and no exemption is needed for either.
+
+Rejected: recording `RowUi` resolutions under a derived id so the existing owner filter drops them. Cheaper, but it lies about the owner in `styled_queries`, which §16.4's theme-coupling migration contract reads and which needs the real owner and family.
+
+### §33.3 The `extra` escape hatch is deleted <!-- amended by §33 -->
+
+`check::<C>()` takes no argument. The hatch was two unrelated things wearing one name: `FieldCase`'s use is **composition under one `Id`**, which is legitimate; `SelectCase`'s use was a **suppressed genuine defect**. Spelling them the same way is how `Select`'s two undeclared parts survived.
+
+Composition is expressed the way the project already expresses it — `List::PARTS` lists `TRACK`/`THUMB` explicitly even though `ScrollRegion` resolves them — so `Field::PARTS` lists the control's parts explicitly. The residual duplication risk is closed by a one-line containment test, not by a hatch.
+
+**An exemption list whose entries are indistinguishable between "legitimate composition" and "we styled a part we never declared" makes the gate decorative, and here it demonstrably did.**
+
+### §33.4 Conditional parts are driven, not declared — and no reason string <!-- amended by §33 -->
+
+`PARTS ⊆ styled` genuinely fails under a single fixture for `List::EMPTY`, `ChipBar::{OVERFLOW, CLOSE, MARKER}`, `Select::{ROW, TRACK, THUMB, EMPTY, PLACEHOLDER}` and `TextInput::ICON`.
+
+A `conditional_parts()` hook with a stated reason is **rejected**, and the precedent is decisive. §32.4 records that `mono_narrowing_reason()`'s containment check is satisfied by all 23 cases while nine reasons say something false about their own component — and that this is the *second* time the property has been asserted and not held, after §28.6's doc comments. A reason string is checkable for **shape**, never for **truth**. A conditional-parts reason would be **worse** than the precedent: `mono_narrowing_reason()` at least sits beside case 9, which independently proves the kept states are distinguishable, so the string is a supplement — a conditional-parts reason would be the entire contract with nothing proving anything.
+
+Instead the check unions over a **driver-derived** sweep, built only from data the `Conformance` impl already supplies, so there is nothing new to lie in: the default fixture; one per `mono_states()` entry through `Fixture::force` (which already couples `status`, so readiness affordances are real); an empty-rows fixture; a disabled fixture; a narrowed-area fixture; and one drawn after `update` has been fed `activation_chords().first()` — which opens `Select`'s popover **through the component's own public path**, needing no test-only opener.
+
+The residue is closed by the case's props, not by an exemption: `ChipBar::CLOSE` is unreachable because the fixture never sets `.closable(true)`, so the fixture sets it. **After the sweep a part still unpainted has exactly two legal outcomes — paint it, or remove it from `PARTS`.** There is no third, and that is a real choice with a real consequence, which a sentence is not.
+
+### §33.5 `PARTS` ordering ceases to be load-bearing <!-- amended by §33 -->
+
+Case 10 patched `C::PARTS.first()`, an undocumented driver detail — §16.2's own spec for case 10 says only that "the overridden part's `Resolved` differs while the un-overridden sibling's does not". It is replaced by an explicit `Conformance::patch_part()` hook defaulting to `PARTS[0]`, documented as "a part this component resolves on **every** frame under the default fixture".
+
+**No component needs to override it today**, and that is itself the proof that every registered component's first declared part is unconditional — case 10 is green on all 23. The hook buys no fix now; it buys the removal of a hidden ordering dependency, so that a later alphabetical sort of a `PARTS` const — which nothing in this document forbids — cannot make case 10 fail mysteriously.
+
+Rejected: patching every part in turn and asserting at least one moves the digest. Stronger in one way, but it makes case 10 `O(|PARTS|)` full draws and fuses it with the conditional-parts question, which has its own answer.
+
+### §33.6 Two further defects found while adjudicating <!-- amended by §33 -->
+
+**The parts check silently omits three of the twenty-three registered components.** `ProbeCase`, `DialogCase` and `PropsCase` are registered but never passed to `check`. Nothing asserts the two lists agree, so adding a component and forgetting its check line passes CI. A hand-maintained enumeration of a registry-wide invariant has already drifted; `every_registered_case_is_parts_checked` closes it.
+
+**`ChipBar`'s `SELECTED` marker is unreachable in live use.** §30 requires the marker to paint for `SELECTED` and the rustdoc calls `MARKER` "the checked affordance", but the code gates the marker on `StateFlags::SELECTED` while setting `StateFlags::CHECKED` for keys in the checked set — and `SELECTED` is added only under `forced`. So a genuinely checked chip paints no marker outside a forced reference rendering, §30's decision is not discharged, and `MARKER` is an unpaintable declared part. Recorded as an open obligation against `chip.rs`.
+
+### §33.7 Open obligation — resolution does not record itself <!-- amended by §33 -->
+
+§26.2 N2 claimed `Ui::style` / `Ui::style_patched` "remain the only queries that record roles **or styled parts**". They record roles. They do **not** record styled parts: recording is an opt-in `Ui::note_styled` call with exactly four call sites. A component drawing on the bare `author` surface therefore records nothing and its parts check passes **vacuously** — and two such components exist, `ProbeCase` and `examples/12`'s `Segmented`, the latter being this document's own authoring template.
+
+Closing it properly needs an owner scope on `Ui` (`ui.with_owner(id, …)`), which touches every component's `draw` and is out of scope here. The interim guard is that the registry check asserts each case records **at least one** resolution — which catches the zero case but not partial under-recording. **This obligation must be carried in the ledger or `Ui::style`'s missing owner survives forever.**
+
+## §34 Adjudication — capability detection belongs to `run`, and the mono review has never executed <!-- amended by §34 -->
+
+**Status: accepted.** Fresh read-only `opus-analyst` adjudication of finding F6. Change control at line 3 is engaged: it changes the described behaviour of the named public function `run` (§17.0 A1) and adds a binding clause to §11.4.
+
+### §34.1 The defect <!-- amended by §34 -->
+
+Colour capability is resolved **nowhere** on the default path. `Theme::junie()` and `Theme::from_tokens` hard-code `ColorLevel::TrueColor`; `run` passes the theme into `Runtime::new` untouched and contains no environment read of any kind; `ColorLevel::detect()` exists and **has no caller**. `NO_COLOR=1` therefore produces truecolor RGB output, and `TERM=dumb` does too — and would still return `Ansi16` even if `detect()` were called, because `detect()` has no `dumb` arm. That is a second, independent bug inside `detect()`. Nothing covers any of it: `theme/tokens.rs` has no test module at all.
+
+**`Theme::junie()`'s hard-coded `TrueColor` is not the defect** — it is the declared *ceiling*, the depth the theme is authored for. The defect is that nothing narrows it.
+
+### §34.2 Decision — `run` owns it, and nothing else may <!-- amended by §34 -->
+
+A theme is constructed before the terminal is known and performs no I/O, so a caller cannot fill `capability` correctly at construction; the only place in the library that knows the answer is the one that opens the terminal. `run`/`TerminalSession` is that place by this document's own words — "the only file that names raw-mode / alternate-screen commands". And §20.10 item 1 presumes library ownership: under caller ownership its `NO_COLOR=1` premise is false for all three binaries unless each duplicates the same decision.
+
+**Determinism is the hard constraint and it rules out every other site.** `Runtime::new` is disqualified because `Harness::new`, `Scene::new` and the crate front-page doc example all call it — every digest would become a function of the CI runner's `TERM`. A `Theme` constructor is disqualified more sharply: `theme_label` in both harnesses identifies a theme by comparing against `Theme::junie()`, so an environment-aware constructor would write a **mono digest onto a line labelled `junie truecolor`** — it would *create* the mislabelling this adjudication exists to prevent. `run` is safe precisely because no test can call it.
+
+### §34.3 The API — narrowing, not downgrading <!-- amended by §34 -->
+
+`run` calls `theme.for_terminal()`, which is `for_level(ColorLevel::detect())`, which is `downgrade(self.capability.color.narrow_to(detected))`. **Narrowing never widens**, so a caller who hands `run` an already-downgraded theme keeps its choice.
+
+Three defects rule out the naive `theme.downgrade(ColorLevel::detect())`: it can silently **widen** a deliberately-downgraded theme, leaving `capability.color` lying about the tokens; it **double-applies** at `Mono`; and it is untestable. `Theme::downgrade` gains a guard returning `self.clone()` when the level already matches, which makes it idempotent per level — the **precondition** for `run` applying it unconditionally, because §31 recorded that `apply_mono_fallbacks` itself is not idempotent and an unguarded second `downgrade(Mono)` doubles all eighteen rules on every resolvable recipe.
+
+**No `run_with`.** A caller wanting a fixed level hands `run` a theme at that level. The one case narrowing cannot express — forcing colour *up*, against `NO_COLOR` or a pipe — belongs to `CLICOLOR_FORCE` inside `detect()`, not to a second public entry point.
+
+`detect()` splits into a pure `from_env` decision table plus a four-line wrapper. That split is not stylistic: edition 2024 makes `std::env::set_var` `unsafe` and `lib.rs` is `#![forbid(unsafe_code)]` — `forbid`, which no inner `allow` lifts, including in `#[cfg(test)]`. **No test in this crate can set an environment variable**, so a table taking its inputs as arguments is the only way to test any of it. Consequently the tests need no mutex, no serial harness and no thread pinning.
+
+The table: `TERM == "dumb"` is `Mono` and outranks everything including `CLICOLOR_FORCE`, because it is a fact about the device rather than a preference; `CLICOLOR_FORCE` set and not `"0"` overrides `NO_COLOR` and the tty check; `NO_COLOR` present and non-empty is `Mono` for any value, empty is not (no-color.org verbatim, which the existing code already gets right and which a test now pins against "simplification" to `is_some()`); a non-tty stdout is `Mono` unless forced; `TERM` unset or empty stays `Ansi16`, deliberately, because Windows sets no `TERM` and crossterm enables VT processing.
+
+### §34.4 The finding that outranks the bug — §20.10 item 1 has never run <!-- amended by §34 -->
+
+§20.10 item 1's review mechanism is "capture matrix `tools/capture.sh` with `NO_COLOR=1`". `tools/capture.sh` reads `env -u NO_COLOR TERM=xterm-256color COLORTERM=truecolor …` — it **unsets `NO_COLOR` unconditionally** and forces truecolor, and it has no colour-level parameter.
+
+So the correct statement is **not** "recorded evidence is invalid". It is: **§20.10 item 1's stated review mechanism is unexecutable as written, and has been since it was written.** There are two independent blockers and both must be fixed before Slice 8's definition-of-done visual review can sign anything — the script strips `NO_COLOR`, and even if it did not, `run` would ignore it. Fixing only the second is not enough.
+
+Recorded evidence itself is **sound**: every `mono` digest line was produced by an explicit `Scene::new(…, ColorLevel::Mono, …)`, and the label is written from the same value that produced the theme, so label and content cannot disagree. `docs/visual-changes.md` item 1a already records "captures: none under `shots/`". No artefact is mislabelled; the mono review simply produced nothing.
+
+**Compounding with §31, confirmed:** before this fix the default path never reaches `Mono` at all, so §31's neutral-recipe correction has **no reachable effect in any shipped binary**. §31 and §34 are one repair; landing §31 without §34 leaves it dead code on the default path.
+
+### §34.5 Blast radius <!-- amended by §34 -->
+
+**No baseline moves, by construction.** Every digest is produced by `Scene::new`, which downgrades from its explicit `color` argument, and every `Harness` assertion starts at `TrueColor` and downgrades only on an explicit `with_color`. Neither reads the environment, neither calls `run`, and `detect()` is on no render path. This fix classifies under **no** numbered §20.10 item and needs no `docs/visual-changes.md` entry — which is the strongest argument that the design is placed correctly.
+
+What changes is the runtime behaviour of the three binaries under `NO_COLOR`, `TERM=dumb`, `CLICOLOR_FORCE` and a redirected stdout — none of which any digest covers, which is exactly why the defect survived.
