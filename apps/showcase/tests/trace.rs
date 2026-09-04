@@ -28,3 +28,11 @@ fn trace_forms() {
     let _ = h.key(KeyCode::Enter); dump("commit", &h);
     let _ = h.ctrl('s'); dump("done", &h);
 }
+
+#[test]
+fn trace_resize() {
+    let mut h = Harness::new(App::with_page(PageId::Buttons), Theme::junie(), 60, 15);
+    println!("tiny: {}", h.text().lines().next().unwrap_or(""));
+    let _ = h.resize(120, 40);
+    println!("large: {}", h.text().lines().find(|l| l.contains("Buttons") || l.contains("Playground") || l.contains("Terminal too small")).unwrap_or("<missing>"));
+}

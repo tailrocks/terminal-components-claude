@@ -71,6 +71,13 @@ impl Page for DialogsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
+        if self.open == OpenDialog::Confirm && !cx.is_open(CONFIRM) {
+            self.result = String::from("Cancelled");
+            self.open = OpenDialog::None;
+        } else if self.open == OpenDialog::Prompt && !cx.is_open(PROMPT) {
+            self.result = String::from("Rename cancelled");
+            self.open = OpenDialog::None;
+        }
         let confirm_button = Button::new(OPEN_CONFIRM, "Run task now")
             .variant(Variant::PRIMARY)
             .update(cx);

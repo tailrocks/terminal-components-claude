@@ -75,14 +75,18 @@ pub(crate) struct ScrollingPage {
 
 impl ScrollingPage {
     pub(crate) fn new() -> Self {
+        let mut prose_state = ViewportState::default();
+        prose_state.set_follow(false);
+        let mut list_state = ViewportState::default();
+        list_state.set_follow(false);
         let mut log_state = ViewportState::default();
         log_state.set_follow(true);
         Self {
             prose: PROSE.lines().map(ViewportLine::Plain).collect(),
             list: rows(),
             log: log_rows(),
-            prose_state: ViewportState::default(),
-            list_state: ViewportState::default(),
+            prose_state,
+            list_state,
             log_state,
             last: "top of document",
         }

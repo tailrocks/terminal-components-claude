@@ -9,6 +9,21 @@ use super::{Page, frame, lines};
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
 
+const MULTI_LANGUAGES: &[&str] = &[
+    "Rust",
+    "TypeScript",
+    "Python",
+    "Kotlin",
+    "Go",
+    "Java",
+    "Swift",
+    "C#",
+    "Ruby",
+    "Scala",
+    "Elixir",
+    "C++",
+];
+
 fn language_key(value: &&'static str) -> ItemKey {
     ItemKey::text(value)
 }
@@ -18,7 +33,7 @@ fn language_row(value: &&'static str, row: &mut RowUi<'_>) {
 }
 
 fn unavailable(value: &&'static str) -> bool {
-    *value == "C#"
+    matches!(*value, "Kotlin" | "C++")
 }
 
 fn single_list() -> List<
@@ -77,7 +92,7 @@ impl Page for ListsPage {
             self.last = "single selection committed";
         }
         response |= one.erase();
-        let many = multi_list().update(cx, &mut self.multi, LANGUAGES);
+        let many = multi_list().update(cx, &mut self.multi, MULTI_LANGUAGES);
         if many.action_ref().is_some() {
             self.last = "multi selection changed";
         }
@@ -89,14 +104,14 @@ impl Page for ListsPage {
         frame(ui, area, self.title(), "keyed rows · arrows · Enter · Space · wheel", |ui, body| {
             let (left, right) = layout::split_h(body, body.width / 2);
             single_list().draw(ui, left, &self.single, LANGUAGES);
-            multi_list().draw(ui, right, &self.multi, LANGUAGES);
+            multi_list().draw(ui, right, &self.multi, MULTI_LANGUAGES);
             let chosen = self
                 .chosen
                 .and_then(|key| LANGUAGES.iter().find(|value| language_key(value) == key).copied())
                 .unwrap_or("none");
             let summary = format!(
                 "Chosen: {chosen} · checked rows: {} · {}",
-                self.multi.checked().len_in(LANGUAGES.len()),
+                self.multi.checked().len_in(MULTI_LANGUAGES.len()),
                 self.last
             );
             let footer = Rect {
@@ -112,7 +127,7 @@ impl Page for ListsPage {
                     height: 1,
                     ..body
                 },
-                &["C# is disabled to demonstrate non-activatable collection rows."],
+                &["Kotlin and C++ are disabled to demonstrate non-activatable collection rows."],
             );
         });
     }

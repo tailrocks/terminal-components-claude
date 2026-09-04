@@ -72,7 +72,7 @@ impl Page for GridPage {
             metrics().draw(ui, grid_area, &self.state, &MetricModel);
             let selected = self.selected.map_or_else(|| "none".to_owned(), |key| format!("{key:?}"));
             let _ = ui.paint_str(Rect { y: grid_area.bottom(), height: 1, ..body }, &format!("selected metric: {selected}"), ui.surface_style());
-            lines(ui, Rect { y: grid_area.bottom().saturating_add(1), height: 1, ..body }, &["The model supplies borrowed cells; Grid owns cursor, selection and viewport state."]);
+            lines(ui, Rect { y: grid_area.bottom().saturating_add(1), height: 1, ..body }, &["read-only: model supplies borrowed cells; no editor capability is exposed."]);
         });
     }
 }

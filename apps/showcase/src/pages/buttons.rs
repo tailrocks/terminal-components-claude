@@ -161,7 +161,7 @@ impl Page for ButtonsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "hover · click · Tab · Enter / Space", |ui, body| {
+        frame(ui, area, self.title(), "Playground · State matrix · hover · click · Tab · Enter / Space", |ui, body| {
             let regions = layout::rows(
                 body,
                 &[
