@@ -1046,7 +1046,7 @@ mod tests {
     use ratatui_core::layout::{Position, Rect};
 
     use super::*;
-    use crate::event::{Input, MouseKind};
+    use crate::event::MouseKind;
     use crate::runtime::stub::{Stub, key, mouse};
     use crate::runtime::{App, Runtime};
     use crate::secret::Secret;
