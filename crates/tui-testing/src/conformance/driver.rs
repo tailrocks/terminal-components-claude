@@ -702,6 +702,11 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
 }
 
 /// Case 14.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one case: the OVERLAY half, the §29.8 capability/kind correspondence in both \
+              directions, and the trap half (non-empty, wrap, still-traps-at-zero-size)"
+)]
 pub fn focus_trap_and_restore<C: Conformance>() {
     let traps_focus = has::<C>(Caps::TRAPS_FOCUS);
     assert!(
@@ -826,6 +831,18 @@ pub fn focus_trap_and_restore<C: Conformance>() {
         let _ = h.resize(1, 1);
         assert!(h.is_open(layer));
         assert!(h.top_layer() > LayerId::PAGE);
+        let _ = h.resize(0, 0);
+        assert!(
+            h.is_open(layer),
+            "{}: zero-area resize closed the opened modal layer",
+            C::NAME
+        );
+        assert_eq!(
+            h.ring().active_trap(),
+            Some(tui_next::ScopeId::new(layer)),
+            "{}: zero-area resize did not preserve the opened modal's active trap",
+            C::NAME
+        );
     }
 }
 
