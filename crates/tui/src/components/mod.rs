@@ -21,8 +21,8 @@ pub(crate) mod meter;
 pub(crate) mod progress;
 pub(crate) mod props;
 pub(crate) mod scroll_region;
-pub(crate) mod status;
 pub(crate) mod select;
+pub(crate) mod status;
 pub(crate) mod tabs;
 pub(crate) mod textarea;
 
@@ -43,8 +43,8 @@ pub use meter::{Meter, MeterTone, MeterVisual};
 pub use progress::{ProgressBar, Spinner};
 pub use props::Props;
 pub use scroll_region::ScrollRegion;
-pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
 pub use select::{LabelSelect, Select, SelectAction, SelectCmd, SelectState};
+pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
 pub use tabs::{Tabs, TabsAction, TabsCmd, TabsState};
 pub use textarea::{TextArea, TextAreaState};
 
@@ -197,12 +197,20 @@ pub(crate) const fn first_row(area: Rect) -> Rect {
     }
 }
 
-/// A one-cell-wide column of `area` at `x`.
+/// A one-cell-wide column of `area` at `x`, or an empty rect when `x` is
+/// outside `area`.
+///
+/// The bound is enforced on **both** sides. Callers anchor a cell to the right
+/// edge with `area.right().saturating_sub(n)`, which lands left of `area.x`
+/// whenever `area.width < n` — at `area.width == 1`, `right() - 2` is
+/// `area.x - 1`. Checking only the right edge made that a paintable cell one
+/// column outside the component, so the helper enforces the whole extent its
+/// name promises rather than leaving each caller to clamp.
 pub(crate) const fn cell_at(area: Rect, x: u16) -> Rect {
     Rect {
         x,
         y: area.y,
-        width: if x < area.x.saturating_add(area.width) {
+        width: if x >= area.x && x < area.x.saturating_add(area.width) {
             1
         } else {
             0
@@ -284,5 +292,65 @@ impl<A> Acc<A> {
             Invalidate::Layout => r.relayout(),
         };
         r.for_id(id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::layout::Rect;
+
+    use super::cell_at;
+
+    const AREA: Rect = Rect {
+        x: 4,
+        y: 5,
+        width: 3,
+        height: 2,
+    };
+
+    /// `cell_at` names a cell **of `area`**, so it must yield a zero-width
+    /// rect for every `x` outside `area`'s horizontal extent — to the left of
+    /// `area.x` exactly as much as at or past `area.x + area.width`. Only the
+    /// right edge was enforced, so a caller computing a right-anchored column
+    /// with `saturating_sub` (`Select`'s trailing indicator,
+    /// `cell_at(area, area.right() - 2)` at `area.width == 1`) got a paintable
+    /// cell one column outside the component.
+    #[test]
+    fn cell_at_is_empty_for_every_x_outside_the_area_on_either_side() {
+        // left of `area.x`: empty, both one short and far short
+        assert_eq!(cell_at(AREA, AREA.x - 1).width, 0);
+        assert_eq!(cell_at(AREA, 0).width, 0);
+        // the `Select` case verbatim: a 1-wide area's `right() - 2` is `x - 1`
+        let narrow = Rect { width: 1, ..AREA };
+        assert_eq!(cell_at(narrow, narrow.right().saturating_sub(2)).width, 0);
+        // a zero-width area has no cells at all, including at its own `x`
+        let empty = Rect { width: 0, ..AREA };
+        assert_eq!(cell_at(empty, empty.x).width, 0);
+
+        // unchanged: every in-range `x` is a one-cell column of `area`
+        for x in AREA.x..AREA.right() {
+            assert_eq!(
+                cell_at(AREA, x),
+                Rect {
+                    x,
+                    y: AREA.y,
+                    width: 1,
+                    height: AREA.height,
+                }
+            );
+        }
+
+        // unchanged: at or past the right edge is empty, and keeps `x`, `y`
+        // and `height` as they were
+        assert_eq!(
+            cell_at(AREA, AREA.right()),
+            Rect {
+                x: AREA.right(),
+                y: AREA.y,
+                width: 0,
+                height: AREA.height,
+            }
+        );
+        assert_eq!(cell_at(AREA, AREA.right() + 1).width, 0);
     }
 }
