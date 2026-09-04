@@ -2367,28 +2367,6 @@ mod tests {
     }
 
     #[test]
-    fn classifying_secret_slot_redacts_preexisting_local_error() {
-        let mut data = Data::default();
-        data.secret.set("swordfish");
-        let fields = fields();
-        let mut state = FormState::default();
-        state.reconcile_fields(&fields);
-        state.set_error(SECRET, Some(FieldError::new("swordfish")));
-        let index = fields
-            .iter()
-            .position(|field| field.id == SECRET)
-            .expect("secret field");
-        let (value, _) = data.value_and_options(SECRET);
-        let _ = Form::prepare_slot(&mut state, index, SECRET, &value);
-        assert_eq!(
-            state
-                .error(SECRET)
-                .map(|error| error.message.as_ref()),
-            Some("Invalid value")
-        );
-    }
-
-    #[test]
     fn sensitive_form_state_clone_and_equality_do_not_copy_draft() {
         let mut left = FormState::default();
         left.reconcile_fields(&fields());
@@ -2424,6 +2402,26 @@ mod tests {
             Some("Invalid value")
         );
         assert!(!format!("{copy:?}").contains("swordfish"));
+    }
+
+    #[test]
+    fn form_update_classifies_secret_before_retaining_local_error() {
+        let mut app = FieldsApp::default();
+        app.data.secret.set("swordfish");
+        app.state
+            .set_error(SECRET, Some(FieldError::new("swordfish")));
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = runtime.handle(Input::Tick);
+        assert_eq!(
+            runtime
+                .app()
+                .state
+                .error(SECRET)
+                .map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
     }
 
     #[test]
