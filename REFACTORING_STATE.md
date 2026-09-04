@@ -957,3 +957,32 @@ truthful "unreachable" sentence, so it did not write one.
 Two gate-failure observations recorded: widening `status_bar` to all ten states makes `SELECTED`
 collide with the empty state, and declaring `REPORTS_STATUS` while narrowing `BUSY` away fails
 with the capability-implies message. Both reverted.
+
+## Measured gate state at `52da837` (coordinator, 2026-09-04)
+
+Run by me after committing the wave-1 foundations, not reported by a builder:
+
+| target | result |
+|---|---|
+| `tui-next --lib` | **292 passed / 0 failed** |
+| `--test conformance` | **488 passed / 0 failed** |
+| `--test render` | 8 passed / 0 failed |
+| `--test perf` | 27 passed / 0 failed |
+| `--test overrides` / `overlay` / `showcase_buttons` | 5 / 4 / 4, all green |
+| `tui-next-testing --lib` | 5 passed / 0 failed |
+| legacy root package | 76 + 67 + 33 + 41 + 30 = **247 passed**, unchanged |
+| `xtask doc-check` | exit 0 |
+| `xtask boundary` | **24 of 25 ok** |
+
+**Exactly three reds remain, and all three are understood:**
+
+1. `--test architecture` 28/1 — `every_named_test_exists` on the `capsule_pane_clone_4x2000`
+   row. **Correct.** It stays red until Slice 7 deletes the benchmark, and it is red because the
+   check was *fixed* this session: it previously read a file that had never contained the row.
+2. `--test render_components` 45/115 — the pending first-generation bless. **112 are missing
+   baselines and 3 are genuine mismatches.** Blocked on §39 landing first (see the blocking
+   entry above) and on `docs/visual-changes.md` entry 19a being rewritten as a machine-expandable
+   pattern, which `bless-guard` now requires and which was measured, not assumed.
+3. `--test status_bar_hover` 0/1 — another lane's untracked, deliberately-uncommitted test.
+
+Nothing else in the workspace is failing.
