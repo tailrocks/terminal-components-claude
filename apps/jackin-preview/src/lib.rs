@@ -16,6 +16,7 @@ mod arbiter;
 mod clock;
 pub mod domain;
 mod scenario;
+pub mod screens;
 pub mod sim;
 
 pub use app::{
