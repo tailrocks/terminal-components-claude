@@ -7209,3 +7209,31 @@ A review that reads this document and confirms the code matches it **will** rubb
 > **Which invariant is asserted by a mechanism that shares the defect's enabling condition?**
 
 §31 found a test that enumerated `by_family` exactly as the buggy code did, and §39 found that the mechanism added to make forcing honest is the mechanism that hid the operator's defect.
+
+## §43 Record — the examples, and a gate that got *more* convincing while staying decorative <!-- amended by §43 -->
+
+**Status: recorded.** Three of the four missing §17 examples now exist, written to assert properties rather than merely compile, each assertion demonstrated able to fail.
+
+### §43.1 The gate now reads more convincingly and is no less vacuous <!-- amended by §43 -->
+
+`examples_are_external_consumers` now prints **13 example(s)**: nine pre-existing §17 examples, the three new ones, and `showcase_buttons.rs`. **§17 example 13 still does not exist.** So the count now *coincidentally matches* §16.5's "the 13 §17 examples compile" claim — which makes the decorative gate **read more convincingly than before**, while asserting exactly what it asserted before, namely that the count is non-zero.
+
+That is worth naming as its own hazard. The other nine decorative gates were found because something looked wrong. This one now looks right. It needs a **named-file list**, which its sibling `all_examples_compile`'s doc comment already falsely claims to have.
+
+### §43.2 Three divergences between §17's blocks and what compiles <!-- amended by §43 -->
+
+- **Block 4's listing cannot demonstrate its own claim.** It declares `when(HOVERED)` *before* `when(HOVERED | PRESSED)` and then closes by saying the two-flag rule wins by specificity. In that order **last-write-wins and specificity predict the same result**, so the listing demonstrates nothing. The example declares the two-flag rule first, where the two principles disagree and only specificity explains the outcome.
+- **Block 2's colour literals fail this repository's own §26 gate.** Six-digit hex with no separator trips `clippy::unreadable_literal`, which `-D warnings` makes an error. Transcribing the block verbatim produces a file that fails the required gate.
+- **Blocks 3 and 4 assert nothing that ever runs** — one puts its assertion in `main`, which CI builds but never executes, and the other binds and drops the result.
+
+### §43.3 A behavioural finding: seed setters do not cascade <!-- amended by §43 -->
+
+`ThemeBuilder` derives the syntax diagnostic colours from `danger`/`warning` and the three meter bands from `success`/`warning`/`danger` — but `ThemeBuilder::danger`, `::warning` and `::success` reset only the tint and on-colour group and **never those**. Observed directly: with `success` overridden, the low meter band stays at the default green; `Theme::junie().builder().danger(crimson).build()` still shows the default red for error diagnostics and the high meter band.
+
+Example 03's `every_other_token_is_byte_identical_to_junie` currently **pins this as correct**, because "untouched roles inherit byte-for-byte" was the specified property. **If the intended contract is that seed setters cascade, that test is the thing to change, and it needs a §20.10 entry.** Recorded as an open question rather than silently decided either way.
+
+### §43.4 A facade inconsistency, and an undeclared exemption <!-- amended by §43 -->
+
+`ColorTokens`, `DesignTokens`, `Density`, `Resolved` and `Slot` are on the curated root list; `SyntaxTokens`, `MeterTokens`, `BorderSet`, `border`, `RecipeEdit`, `PartEdit` and `Capability` are not. So writing the **complete** `ColorTokens` literal that Appendix B.3's argument depends on forces a downstream author into the `theme::` submodule for two of its own fields, while the struct itself sits at the root.
+
+Separately: `crates/tui/examples/` is **outside every palette rule's reach**, because those rules scan the source roots only. A custom-theme example is exactly where literal colours belong, so the exemption is almost certainly right — but it is **declared nowhere**, and an undeclared exemption is how the `extra` hatch and the allow-lists became load-bearing.
