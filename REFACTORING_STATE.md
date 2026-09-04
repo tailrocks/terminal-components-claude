@@ -720,3 +720,70 @@ substring gate above.
 
 488 was measured while another lead's guards were in place. 467 is the count with the guards
 removed and `Select` withheld. Recorded so the drop is not later read as a regression.
+
+### §35 and §36 — accepted, recorded (2026-09-04)
+
+- **§35 (`Ui::scroll_region` struck).** Declared in §12.2 in the present indicative, never
+  implemented, recorded open **three** times without being decided. Struck, not deferred a
+  fourth time. Never implementable as written — the same sentence that declares it fixes the
+  scrollbar as `TRACK`/`THUMB` of its container and `ScrollRegion::PARTS` is a hard constant, so
+  there is no caller-chosen part; and it blocked nothing, since `Select`, `TextArea` and `List`
+  have all landed calling `ScrollRegion` directly. The API is `ScrollRegion::new(id).draw(...)`.
+  A prior claim that the seven `on_scrollbar` copies are application code migrated in Slices 6–7
+  is **false**: they are legacy library widgets owned by 4C, 4E, 4H and 4I.
+  **The general finding matters more:** a Decision section may assert an executable artefact in
+  the present indicative, and every mechanism that could contradict it has a documented way to
+  be silenced. `doc-check` *did* see `Ui::scroll_region`, *did* find it unresolved, and was
+  silenced by an allow-list with no owner, no expiry and no staleness check — the same shape as
+  §33.3's `extra` hatch. The entry is deleted, making it a live gate. Also discovered:
+  **`xtask doc-check` does not compile §17's examples and never has** — it checks that names
+  exist, which is why two declared `Ui` signatures are wrong today and green.
+  The ASCII `GlyphSet` table leaves 4E: it touches no file 4E owns, so "4E" was a date, not an
+  owner. It becomes a serial package with its own visual adjudication, and its date goes into
+  Appendix A or the split re-creates the deferral §27.2 rejected.
+
+- **§36 (first-generation digests → §20.10 item 19).** 896 lines for fourteen components, ten of
+  which appear in no numbered item, against a closing clause that makes anything not on the list
+  a regression by construction. Item 19 covers first generation **only** and may never be cited
+  twice for the same key. Its review column states without laundering that a first-generation
+  digest **cannot** be reviewed as a digest: the glyph half is read as frame text by a fresh
+  reviewer who did not generate it, against six named rejection conditions, and **the style half
+  is reviewed by nobody** and is asserted by the conformance matrix instead. A first-generation
+  line is a pin against drift, not an approval of appearance.
+  §16.3 corrected: `bless-guard` **does not exist**, ordering is not machine-checkable on a
+  committed tree, **completeness** is and is what the guard must check, and the reviewable
+  artefact for a headless `Scene` baseline is the frame text, not a `shots/` capture that cannot
+  exist. Item 18's tail extended to containers drawing a `Button` through `inherit_forced`.
+
+- **COORDINATOR CORRECTION, second of this session.** I reported "3 genuine digest movements, all
+  at `120 40 junie mono`". **Wrong.** Those are three failing *test functions*;
+  `Scene::assert_against` panics on the first failing cell and each test owns **eight**, so 24
+  cells are covered of which 6 are known unchanged, 3 known changed, and **15 were never
+  evaluated** — including paper truecolor. The truecolor question could not be answered from that
+  failure list at all. A grep bounds it structurally for the two bracket cases
+  (`PressLeft`/`PressRight` appear nowhere outside `downgrade.rs`, `glyph.rs`, `components/` —
+  I ran it, empty); `field::disabled` has **no** such argument and must not be classified before
+  its frame text is read.
+  **The moved set cannot be known before it is generated.** Procedure, now recorded rather than
+  folklore: bless into a scratch tree, read `git diff`, `git checkout --` the baseline to discard
+  it, classify from that diff, then bless again and commit.
+
+- **The mono `THUMB`/`PRESSED` rule moves no baseline — measured, not assumed.** The thumb takes
+  its flags from the container's *runtime* state and a static digest render never installs a live
+  pointer capture, which is exactly why the defect survived. At mono the dragged thumb's resolved
+  style was not colour-only but **entirely empty** — no fg, no bg, no modifier.
+
+### Open, owed, and sequenced
+
+- `Scene::assert_against`'s `Missing` branch must print `text()`. **Blocking** item 19's review.
+- `crates/tui/tests/perf_baseline.txt`: `style_downgrade_theme_all_levels` is over budget
+  (1129 vs 1079 allocations) **before** the nineteenth mono rule, from other in-flight work. Owed
+  a re-bless with a documented stanza. Not done: `PERF_BLESS` is repository-wide and reserved.
+- `xtask bless-guard` owed, with its three checks specified in §36.5.
+- `doc_check_allow.txt` owed a `KIND` column and three staleness rules (§35.2), or this becomes
+  the fourth instance.
+- §33's work packages: attribution (`StyledBy`) first, then the registry rewrite, the
+  `patch_part()` hook, `Select::PARTS`, `List::PARTS`.
+- §34's `run` half in flight; until it lands `NO_COLOR=1` still yields truecolor and
+  `COLOR=mono tools/capture.sh` **must not be run** — it would produce truecolor frames under
+  mono names.
