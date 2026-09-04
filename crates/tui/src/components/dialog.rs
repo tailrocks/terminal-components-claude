@@ -19,7 +19,7 @@ use crate::layer::{DismissReason, LayerEvent, LayerSize, LayerSpec};
 use crate::layout::{RowAlign, action_row};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::secret::SecretPolicy;
+use crate::secret::{Secret, SecretPolicy};
 use crate::text::{width, wrap, wrapped_rows};
 use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
@@ -101,6 +101,7 @@ const INFO_ACTIONS: [Action<'static>; 1] = [Action::new(ActionKey::CLOSE, "Close
 pub struct DialogState {
     input: TextInputState,
     draft: String,
+    ack_draft: Secret,
 }
 
 impl Clone for DialogState {
@@ -112,6 +113,7 @@ impl Clone for DialogState {
             } else {
                 self.draft.clone()
             },
+            ack_draft: Secret::new(redacted_text(self.ack_draft.expose())),
         }
     }
 }
@@ -134,6 +136,7 @@ impl fmt::Debug for DialogState {
         f.debug_struct("DialogState")
             .field("input", &self.input)
             .field("draft", &"[redacted]")
+            .field("ack_draft", &"[redacted]")
             .finish()
     }
 }
@@ -153,6 +156,19 @@ impl DialogState {
     pub fn zeroize(&mut self) {
         self.input.zeroize();
         zeroize_string(&mut self.draft);
+        self.ack_draft.zeroize();
+    }
+
+    fn set_secret_mode(&mut self, secret: bool) {
+        if self.input.is_sensitive() == secret {
+            return;
+        }
+        if secret {
+            zeroize_string(&mut self.draft);
+        } else {
+            self.ack_draft.zeroize();
+        }
+        self.input.set_sensitive(secret);
     }
 }
 
@@ -457,7 +473,8 @@ impl<'a> Dialog<'a> {
     }
 
     fn armed(&self, st: &DialogState) -> bool {
-        self.ack.is_none_or(|tok| st.draft.trim() == tok)
+        self.ack
+            .is_none_or(|tok| st.ack_draft.expose().trim() == tok)
     }
 
     fn enabled(&self, i: usize, a: &Action<'_>, st: &DialogState) -> bool {
@@ -523,13 +540,16 @@ impl<'a> Dialog<'a> {
                 _ => {}
             }
         }
+        let is_ack = self.ack.is_some();
+        st.set_secret_mode(is_ack);
         if self.has_input() {
-            if self.ack.is_some() {
-                st.input.mark_sensitive();
-            }
-            let r = self
-                .input_control()
-                .update(cx, &mut st.input, &mut st.draft);
+            let r = if is_ack {
+                self.input_control()
+                    .update_in_form(cx, &mut st.input, &mut st.ack_draft, false)
+            } else {
+                self.input_control()
+                    .update(cx, &mut st.input, &mut st.draft)
+            };
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
             acc.fold(&r.erase());
             if committed && self.prompt.is_some() {
@@ -786,7 +806,12 @@ impl<'a> Dialog<'a> {
                     width: inner.width.saturating_add(1),
                     height: field_h.min(actions_y.saturating_sub(y)),
                 };
-                let input = self.input_control().value(&st.draft);
+                let value = if self.ack.is_some() {
+                    st.ack_draft.expose()
+                } else {
+                    &st.draft
+                };
+                let input = self.input_control().value(value);
                 let label = self.prompt.unwrap_or("Type the token to confirm");
                 Field::new(label, input).plain(true).draw(ui, r, &st.input);
                 y = y.saturating_add(field_h);
@@ -1282,15 +1307,16 @@ mod tests {
         let d = Dialog::acknowledge(DLG, "Delete", TOKEN).actions(&actions);
         let mut st = DialogState::default();
         assert!(!d.enabled(0, &action, &st));
-        st.draft.push_str(TOKEN);
-        st.input.mark_sensitive();
+        st.ack_draft.set(TOKEN);
+        st.set_secret_mode(true);
         assert!(
             st.draft().is_empty(),
             "acknowledgement state exposed its token"
         );
         let copy = st.clone();
-        assert_eq!(copy.draft, "••••••");
-        assert!(!copy.draft.contains(TOKEN));
+        assert_eq!(copy.ack_draft.expose(), "••••••");
+        assert!(!copy.ack_draft.expose().contains(TOKEN));
+        assert!(!d.enabled(0, &action, &copy));
         assert!(d.enabled(0, &action, &st));
     }
 
@@ -1298,7 +1324,8 @@ mod tests {
     fn acknowledgement_frame_masks_confirmation_token() {
         let (mut rt, mut buf) = scene();
         let mut st = DialogState::default();
-        st.draft.push_str(TOKEN);
+        st.ack_draft.set(TOKEN);
+        st.set_secret_mode(true);
         rt.draw_scene(SCREEN, &mut buf, |ui, area| {
             acknowledge().draw(ui, area, &st, |_, _| {});
         });
