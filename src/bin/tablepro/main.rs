@@ -16,17 +16,19 @@ mod visual_tests;
 mod workbench;
 
 use junie_tui::core::event::{Input, Outcome};
-use junie_tui::theme::{ColorLevel, Theme};
+use junie_tui::theme::{ColorLevel, Theme, ThemeKind};
 
 use crate::app::App;
 
 struct Options {
     level: ColorLevel,
+    theme: ThemeKind,
     connect: Option<String>,
 }
 
 fn parse_args() -> Options {
     let mut level = ColorLevel::detect();
+    let mut theme = ThemeKind::Junie;
     let mut connect = None;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
@@ -43,11 +45,20 @@ fn parse_args() -> Options {
                     }
                 };
             }
+            "--theme" | "-t" => {
+                theme = match args.next().as_deref().and_then(ThemeKind::from_name) {
+                    Some(theme) => theme,
+                    None => {
+                        eprintln!("unknown --theme value; use junie|paper");
+                        std::process::exit(2);
+                    }
+                };
+            }
             "--connect" => connect = args.next(),
             "-h" | "--help" => {
                 println!(
                     "tablepro — TablePro's core workflow as a terminal application\n\n\
-                     USAGE: tablepro [--color truecolor|256|16|none] [--connect NAME]\n\n\
+                     USAGE: tablepro [--theme junie|paper] [--color truecolor|256|16|none] [--connect NAME]\n\n\
                      Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit"
                 );
                 std::process::exit(0);
@@ -55,12 +66,16 @@ fn parse_args() -> Options {
             _ => {}
         }
     }
-    Options { level, connect }
+    Options {
+        level,
+        theme,
+        connect,
+    }
 }
 
 fn main() -> std::io::Result<()> {
     let opts = parse_args();
-    let theme = Theme::for_level(opts.level);
+    let theme = Theme::for_theme(opts.theme, opts.level);
     let mut app = App::new(theme);
     if let Some(name) = opts.connect {
         if let Some(i) = app

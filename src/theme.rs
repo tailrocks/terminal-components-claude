@@ -52,6 +52,35 @@ impl ColorLevel {
     }
 }
 
+/// Built-in application themes accepted by the capture harness and shipped
+/// binaries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThemeKind {
+    /// The dark Junie-inspired palette.
+    Junie,
+    /// The light paper palette used for custom-theme coverage.
+    Paper,
+}
+
+impl ThemeKind {
+    /// The command-line spelling for this theme.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Junie => "junie",
+            Self::Paper => "paper",
+        }
+    }
+
+    /// Parse a command-line theme name.
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "junie" => Some(Self::Junie),
+            "paper" => Some(Self::Paper),
+            _ => None,
+        }
+    }
+}
+
 /// Raw palette. Values are the Junie references (see module docs).
 mod palette {
     use ratatui::style::Color;
@@ -92,6 +121,40 @@ mod palette {
     pub const RED_45: Color = rgb(0x7a2a2a);
     pub const AMBER: Color = rgb(0xf59e09);
     pub const PURPLE: Color = rgb(0x8787ff);
+
+    // Paper seeds mirror the approved light theme in the new library. They
+    // stay here because the legacy applications still use this token shape
+    // until their Slice 5 migration lands.
+    pub const PAPER_CANVAS: Color = rgb(0xfbfaf8);
+    pub const PAPER_SURFACE: Color = rgb(0xf2f0ec);
+    pub const PAPER_ELEVATED: Color = rgb(0xe8e5df);
+    pub const PAPER_OVERLAY: Color = rgb(0xded9d0);
+    pub const PAPER_FIELD: Color = rgb(0xffffff);
+    pub const PAPER_FIELD_HOVER: Color = rgb(0xf2f0ec);
+    pub const PAPER_POPOVER: Color = rgb(0xffffff);
+    pub const PAPER_HIGHLIGHT: Color = rgb(0xdce4ff);
+    pub const PAPER_HIGHLIGHT_DANGER: Color = rgb(0xf1c8c8);
+    pub const PAPER_ERROR_SOFT: Color = rgb(0xa23b3b);
+    pub const PAPER_BORDER_SUBTLE: Color = rgb(0xded9d0);
+    pub const PAPER_BORDER_STRONG: Color = rgb(0x9c948a);
+    pub const PAPER_TEXT_PRIMARY: Color = rgb(0x1b1a17);
+    pub const PAPER_TEXT_SECONDARY: Color = rgb(0x4a463f);
+    pub const PAPER_TEXT_MUTED: Color = rgb(0x77716a);
+    pub const PAPER_TEXT_FAINT: Color = rgb(0x9c948a);
+    pub const PAPER_TEXT_GHOST: Color = rgb(0xc6c0b6);
+    pub const PAPER_TEXT_ON_ACCENT: Color = rgb(0xffffff);
+    pub const PAPER_ACCENT: Color = rgb(0x3b5bdb);
+    pub const PAPER_ACCENT_HOVER: Color = rgb(0x324fc5);
+    pub const PAPER_ACCENT_PRESSED: Color = rgb(0x283fa0);
+    pub const PAPER_ACCENT_BG: Color = rgb(0xdce4ff);
+    pub const PAPER_ACCENT_BG_SUBTLE: Color = rgb(0xeef1ff);
+    pub const PAPER_FOCUS: Color = rgb(0x3b5bdb);
+    pub const PAPER_DISABLED: Color = rgb(0x9c948a);
+    pub const PAPER_ERROR: Color = rgb(0xb02525);
+    pub const PAPER_ERROR_BG: Color = rgb(0xfbe8e8);
+    pub const PAPER_WARNING: Color = rgb(0xa86400);
+    pub const PAPER_SUCCESS: Color = rgb(0x1f7a3d);
+    pub const PAPER_INFO: Color = rgb(0x2b6cb0);
 }
 
 /// Semantic tokens. Field names are the vocabulary used everywhere else.
@@ -179,9 +242,56 @@ impl Theme {
         }
     }
 
+    /// The distinct light theme used by the capture matrix and custom-theme
+    /// coverage.
+    pub const fn paper() -> Self {
+        use palette::*;
+        Self {
+            level: ColorLevel::TrueColor,
+            canvas: PAPER_CANVAS,
+            surface: PAPER_SURFACE,
+            surface_elevated: PAPER_ELEVATED,
+            surface_overlay: PAPER_OVERLAY,
+            field: PAPER_FIELD,
+            field_hover: PAPER_FIELD_HOVER,
+            popover: PAPER_POPOVER,
+            highlight: PAPER_HIGHLIGHT,
+            highlight_danger: PAPER_HIGHLIGHT_DANGER,
+            error_soft: PAPER_ERROR_SOFT,
+            border_subtle: PAPER_BORDER_SUBTLE,
+            border_strong: PAPER_BORDER_STRONG,
+            text_primary: PAPER_TEXT_PRIMARY,
+            text_secondary: PAPER_TEXT_SECONDARY,
+            text_muted: PAPER_TEXT_MUTED,
+            text_faint: PAPER_TEXT_FAINT,
+            text_ghost: PAPER_TEXT_GHOST,
+            text_on_accent: PAPER_TEXT_ON_ACCENT,
+            accent: PAPER_ACCENT,
+            accent_hover: PAPER_ACCENT_HOVER,
+            accent_pressed: PAPER_ACCENT_PRESSED,
+            accent_bg: PAPER_ACCENT_BG,
+            accent_bg_subtle: PAPER_ACCENT_BG_SUBTLE,
+            focus: PAPER_FOCUS,
+            disabled: PAPER_DISABLED,
+            error: PAPER_ERROR,
+            error_bg: PAPER_ERROR_BG,
+            warning: PAPER_WARNING,
+            success: PAPER_SUCCESS,
+            info: PAPER_INFO,
+        }
+    }
+
     /// Junie theme resolved for the given colour capability.
     pub fn for_level(level: ColorLevel) -> Self {
-        let mut t = Self::junie();
+        Self::for_theme(ThemeKind::Junie, level)
+    }
+
+    /// Resolve a built-in theme for the given colour capability.
+    pub fn for_theme(theme: ThemeKind, level: ColorLevel) -> Self {
+        let mut t = match theme {
+            ThemeKind::Junie => Self::junie(),
+            ThemeKind::Paper => Self::paper(),
+        };
         t.level = level;
         if level == ColorLevel::TrueColor {
             return t;
@@ -643,6 +753,26 @@ fn nearest_16(r: u8, g: u8, b: u8) -> Color {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn theme_names_round_trip() {
+        for theme in [ThemeKind::Junie, ThemeKind::Paper] {
+            assert_eq!(ThemeKind::from_name(theme.name()), Some(theme));
+        }
+        assert_eq!(ThemeKind::from_name("unknown"), None);
+    }
+
+    #[test]
+    fn paper_is_distinct_and_survives_downgrade() {
+        let junie = Theme::junie();
+        let paper = Theme::paper();
+        assert_ne!(paper.canvas, junie.canvas);
+        assert_ne!(paper.accent, junie.accent);
+        assert_eq!(
+            Theme::for_theme(ThemeKind::Paper, ColorLevel::Ansi16).level,
+            ColorLevel::Ansi16
+        );
+    }
 
     #[test]
     fn accent_survives_downgrade() {

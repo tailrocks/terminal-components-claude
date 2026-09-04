@@ -228,6 +228,11 @@ mod architecture {
         check("binary_names_are_preserved");
     }
 
+    #[test]
+    fn capture_matrix_contract() {
+        check("capture_matrix_contract");
+    }
+
     /// §16.5 / §21 item 23 / §47.5. A slice-indexed expected set —
     /// `{showcase_app}` from Slice 5, `+ tablepro_app` from 6, `+ jackin_app`
     /// from 7 — where **a missing expected member is a failure, not a pass**.

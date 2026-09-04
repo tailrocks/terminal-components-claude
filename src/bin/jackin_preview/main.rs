@@ -21,13 +21,14 @@ mod sim;
 mod visual_tests;
 
 use junie_tui::core::event::{Input, Outcome};
-use junie_tui::theme::{ColorLevel, Theme};
+use junie_tui::theme::{ColorLevel, Theme, ThemeKind};
 
 use crate::app::App;
 use crate::scenario::{Motion, Scenario};
 
 struct Options {
     level: ColorLevel,
+    theme: ThemeKind,
     scenario: Scenario,
     motion: Motion,
     frame: u64,
@@ -35,6 +36,7 @@ struct Options {
 
 fn parse_args() -> Options {
     let mut level = ColorLevel::detect();
+    let mut theme = ThemeKind::Junie;
     let mut scenario = Scenario::FirstUse;
     let mut motion = None;
     let mut frame = 0;
@@ -49,6 +51,15 @@ fn parse_args() -> Options {
                     Some("none") | Some("mono") => ColorLevel::Mono,
                     other => {
                         eprintln!("unknown --color value {other:?}; use truecolor|256|16|none");
+                        std::process::exit(2);
+                    }
+                };
+            }
+            "--theme" | "-t" => {
+                theme = match args.next().as_deref().and_then(ThemeKind::from_name) {
+                    Some(theme) => theme,
+                    None => {
+                        eprintln!("unknown --theme value; use junie|paper");
                         std::process::exit(2);
                     }
                 };
@@ -86,7 +97,7 @@ fn parse_args() -> Options {
             "-h" | "--help" => {
                 println!(
                     "jackin-preview — Jackin redesigned on the Junie design system (deterministic preview)\n\n\
-                     USAGE: jackin-preview [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
+                     USAGE: jackin-preview [--theme junie|paper] [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
                      Scenarios: first-use, returning, accounts-mixed, launch-running, launch-failure, capsule-multi, outro-last, hard-cases\n\
                      Motion:    explicit --motion wins; otherwise JACKIN_NO_MOTION=1 selects reduced motion\n\
                      Frame:     with --motion paused, the exact fixture tick to render (intro, cockpit, outro phases)\n\n\
@@ -101,6 +112,7 @@ fn parse_args() -> Options {
     let no_motion = std::env::var_os("JACKIN_NO_MOTION").is_some_and(|v| !v.is_empty() && v != "0");
     Options {
         level,
+        theme,
         scenario,
         motion: Motion::resolve(motion, no_motion),
         frame,
@@ -109,7 +121,7 @@ fn parse_args() -> Options {
 
 fn main() -> std::io::Result<()> {
     let opts = parse_args();
-    let theme = Theme::for_level(opts.level);
+    let theme = Theme::for_theme(opts.theme, opts.level);
     let mut app = App::for_scenario(opts.scenario, opts.motion, opts.frame, theme);
     // stale key presses from the launching shell must not skip the ritual
     let _ = junie_tui::runtime::drain_pending_input();

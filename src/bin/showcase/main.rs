@@ -10,15 +10,17 @@ mod perf_tests;
 
 use crate::app::{App, PageId};
 use junie_tui::core::event::{Input, Outcome};
-use junie_tui::theme::{ColorLevel, Theme};
+use junie_tui::theme::{ColorLevel, Theme, ThemeKind};
 
 struct Options {
     level: ColorLevel,
+    theme: ThemeKind,
     page: Option<PageId>,
 }
 
 fn parse_args() -> Options {
     let mut level = ColorLevel::detect();
+    let mut theme = ThemeKind::Junie;
     let mut page = None;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
@@ -35,6 +37,15 @@ fn parse_args() -> Options {
                     }
                 };
             }
+            "--theme" | "-t" => {
+                theme = match args.next().as_deref().and_then(ThemeKind::from_name) {
+                    Some(theme) => theme,
+                    None => {
+                        eprintln!("unknown --theme value; use junie|paper");
+                        std::process::exit(2);
+                    }
+                };
+            }
             "--page" | "-p" => {
                 let name = args.next().unwrap_or_default();
                 page = PageId::from_name(&name);
@@ -46,7 +57,7 @@ fn parse_args() -> Options {
             "-h" | "--help" => {
                 println!(
                     "junie-tui — Junie-inspired Ratatui design system laboratory\n\n\
-                     USAGE: junie-tui [--color truecolor|256|16|none] [--page NAME]\n\n\
+                     USAGE: junie-tui [--theme junie|paper] [--color truecolor|256|16|none] [--page NAME]\n\n\
                      Keys: Tab/Shift+Tab focus · arrows move · Enter/Space activate · Esc back · [ ] pages · ? help · q quit"
                 );
                 std::process::exit(0);
@@ -54,12 +65,12 @@ fn parse_args() -> Options {
             _ => {}
         }
     }
-    Options { level, page }
+    Options { level, theme, page }
 }
 
 fn main() -> std::io::Result<()> {
     let opts = parse_args();
-    let theme = Theme::for_level(opts.level);
+    let theme = Theme::for_theme(opts.theme, opts.level);
     let mut app = App::new(theme);
     if let Some(p) = opts.page {
         app.goto(p);

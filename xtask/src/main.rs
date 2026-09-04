@@ -5,8 +5,8 @@
 //! cargo run -p xtask -- boundary                 # every §16.5 / §22.7 grep and metadata check
 //! cargo run -p xtask -- boundary --check <name>  # one named check
 //! cargo run -p xtask -- bless-guard              # §16.3 / §36.5 baseline bless guard
-//! cargo run -p xtask -- capture-matrix            # capture the showcase matrix into shots/
-//! cargo run -p xtask -- list                     # the check names
+//! cargo run -p xtask -- capture-matrix            # capture the app matrix into shots/
+//! cargo run -p xtask -- list                     # commands and check names
 //! ```
 //!
 //! Exit status is non-zero on any failure; `crates/tui/tests/architecture.rs`
@@ -33,11 +33,37 @@ fn root() -> PathBuf {
 const CAPTURE_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (160, 50)];
 const CAPTURE_COLORS: [&str; 4] = ["truecolor", "256", "16", "mono"];
 const CAPTURE_THEMES: [&str; 2] = ["junie", "paper"];
-const CAPTURE_BINARY: &str = "showcase";
+const CAPTURE_APPS: [CaptureApp; 3] = [
+    CaptureApp {
+        name: "showcase",
+        binary: "showcase",
+        extra_args: "",
+    },
+    CaptureApp {
+        name: "tablepro",
+        binary: "tablepro",
+        extra_args: "",
+    },
+    CaptureApp {
+        name: "jackin-preview",
+        binary: "jackin-preview",
+        // A paused frame makes the capture deterministic and avoids waiting
+        // for the intro animation on every matrix cell.
+        extra_args: "--motion paused --frame 0",
+    },
+];
 const CAPTURE_MANIFEST: &str = "shots/capture-matrix.tsv";
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct CaptureApp {
+    name: &'static str,
+    binary: &'static str,
+    extra_args: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct CaptureCase {
+    app: CaptureApp,
     width: u16,
     height: u16,
     color: &'static str,
@@ -50,7 +76,13 @@ impl CaptureCase {
     }
 
     fn shot_name(self) -> String {
-        format!("showcase_{}_{}_{}", self.theme, self.color, self.size())
+        format!(
+            "{}_{}_{}_{}",
+            self.app.name,
+            self.theme,
+            self.color,
+            self.size()
+        )
     }
 }
 
@@ -63,15 +95,18 @@ struct CaptureRecord {
 }
 
 fn capture_matrix_cases() -> Vec<CaptureCase> {
-    CAPTURE_SIZES
+    CAPTURE_APPS
         .into_iter()
-        .flat_map(|(width, height)| {
-            CAPTURE_COLORS.into_iter().flat_map(move |color| {
-                CAPTURE_THEMES.into_iter().map(move |theme| CaptureCase {
-                    width,
-                    height,
-                    color,
-                    theme,
+        .flat_map(|app| {
+            CAPTURE_SIZES.into_iter().flat_map(move |(width, height)| {
+                CAPTURE_COLORS.into_iter().flat_map(move |color| {
+                    CAPTURE_THEMES.into_iter().map(move |theme| CaptureCase {
+                        app,
+                        width,
+                        height,
+                        color,
+                        theme,
+                    })
                 })
             })
         })
@@ -84,9 +119,13 @@ fn capture_matrix() -> Result<(), String> {
         return Err(format!("capture script is missing: {}", rel(&script)));
     }
 
-    let owners = showcase_binary_owners()?;
-    let binary = capture_binary_path();
-    validate_capture_binary(&binary, &owners)?;
+    let mut binaries = BTreeMap::new();
+    for app in CAPTURE_APPS {
+        let owners = binary_owners(app.binary)?;
+        let binary = capture_binary_path(app.binary);
+        validate_capture_binary(app.binary, &binary, &owners)?;
+        binaries.insert(app.name, binary);
+    }
 
     let shots = root().join("shots");
     fs::create_dir_all(&shots).map_err(|error| {
@@ -96,35 +135,37 @@ fn capture_matrix() -> Result<(), String> {
         )
     })?;
 
-    let manifest = root().join(CAPTURE_MANIFEST);
-    remove_file_if_present(&manifest)?;
-
     let cases = capture_matrix_cases();
     let mut records = Vec::with_capacity(cases.len());
     for (index, case) in cases.iter().copied().enumerate() {
         println!(
-            "capture {}/{}: {} / {} / {}",
+            "capture {}/{}: {} / {} / {} / {}",
             index.saturating_add(1),
             cases.len(),
+            case.app.name,
             case.size(),
             case.theme,
             case.color
         );
         remove_capture_artifacts(case)?;
 
+        let binary = binaries
+            .get(case.app.name)
+            .ok_or_else(|| format!("capture app is not declared: {}", case.app.name))?;
+
         let start_args = vec![
             "start".to_owned(),
             case.width.to_string(),
             case.height.to_string(),
         ];
-        if let Err(error) = run_capture_script(&script, &start_args, case, &binary) {
-            let _ = stop_capture(&script, case, &binary);
+        if let Err(error) = run_capture_script(&script, &start_args, case, binary) {
+            let _ = stop_capture(&script, case, binary);
             return Err(error);
         }
 
         let shot_args = vec!["shot".to_owned(), case.shot_name()];
-        let shot_result = run_capture_script(&script, &shot_args, case, &binary);
-        let stop_result = stop_capture(&script, case, &binary);
+        let shot_result = run_capture_script(&script, &shot_args, case, binary);
+        let stop_result = stop_capture(&script, case, binary);
         shot_result?;
         stop_result?;
 
@@ -132,6 +173,7 @@ fn capture_matrix() -> Result<(), String> {
     }
 
     validate_capture_records(&cases, &records)?;
+    let manifest = root().join(CAPTURE_MANIFEST);
     write_capture_manifest(&manifest, &records)?;
     println!(
         "capture-matrix: wrote {} ({} cells)",
@@ -141,14 +183,12 @@ fn capture_matrix() -> Result<(), String> {
     Ok(())
 }
 
-fn showcase_binary_owners() -> Result<Vec<String>, String> {
+fn binary_owners(binary: &str) -> Result<Vec<String>, String> {
     let md = metadata()?;
     let mut owners = Vec::new();
     for package in md.workspace_packages() {
         for target in &package.targets {
-            if target.name == CAPTURE_BINARY
-                && target.kind.contains(&cargo_metadata::TargetKind::Bin)
-            {
+            if target.name == binary && target.kind.contains(&cargo_metadata::TargetKind::Bin) {
                 owners.push(format!("{} ({})", package.name, target.src_path));
             }
         }
@@ -156,8 +196,16 @@ fn showcase_binary_owners() -> Result<Vec<String>, String> {
     Ok(owners)
 }
 
-fn capture_binary_path() -> PathBuf {
-    match std::env::var_os("BIN") {
+fn capture_binary_path(binary: &str) -> PathBuf {
+    let variable = format!("BIN_{}", binary.replace('-', "_").to_ascii_uppercase());
+    let configured = std::env::var_os(&variable).or_else(|| {
+        if binary == "showcase" {
+            std::env::var_os("BIN")
+        } else {
+            None
+        }
+    });
+    match configured {
         Some(path) if !path.is_empty() => {
             let path = PathBuf::from(path);
             if path.is_absolute() {
@@ -166,19 +214,33 @@ fn capture_binary_path() -> PathBuf {
                 root().join(path)
             }
         }
-        _ => root().join("target/debug/showcase"),
+        _ => {
+            let target = std::env::var_os("CARGO_TARGET_DIR")
+                .map(PathBuf::from)
+                .map_or_else(
+                    || root().join("target"),
+                    |path| {
+                        if path.is_absolute() {
+                            path
+                        } else {
+                            root().join(path)
+                        }
+                    },
+                );
+            target.join("debug").join(binary)
+        }
     }
 }
 
-fn validate_capture_binary(path: &Path, owners: &[String]) -> Result<(), String> {
+fn validate_capture_binary(binary: &str, path: &Path, owners: &[String]) -> Result<(), String> {
     if owners.is_empty() {
         return Err(format!(
-            "capture binary `{CAPTURE_BINARY}` is missing from workspace metadata"
+            "capture binary `{binary}` is missing from workspace metadata"
         ));
     }
     if owners.len() > 1 {
         return Err(format!(
-            "duplicate capture binary `{CAPTURE_BINARY}` targets: {}",
+            "duplicate capture binary `{binary}` targets: {}",
             owners.join(", ")
         ));
     }
@@ -219,10 +281,7 @@ fn run_capture_script(
         .current_dir(root())
         .env("BIN", binary_arg)
         .env("COLOR", case.color)
-        .env(
-            "ARGS",
-            format!("--theme {} --color {}", case.theme, case.color),
-        )
+        .env("ARGS", capture_arguments(case))
         .output()
         .map_err(|error| {
             format!(
@@ -254,6 +313,19 @@ fn run_capture_script(
             output.status
         ))
     }
+}
+
+fn capture_color_arg(color: &str) -> &str {
+    if color == "mono" { "none" } else { color }
+}
+
+fn capture_arguments(case: CaptureCase) -> String {
+    format!(
+        "{} --theme {} --color {}",
+        case.app.extra_args,
+        case.theme,
+        capture_color_arg(case.color)
+    )
 }
 
 fn stop_capture(script: &Path, case: CaptureCase, binary: &Path) -> Result<(), String> {
@@ -332,7 +404,13 @@ fn file_digest(path: &Path) -> Result<(u64, String), String> {
 }
 
 fn case_label(case: CaptureCase) -> String {
-    format!("{} / {} / {}", case.size(), case.theme, case.color)
+    format!(
+        "{} / {} / {} / {}",
+        case.app.name,
+        case.size(),
+        case.theme,
+        case.color
+    )
 }
 
 fn validate_capture_records(
@@ -420,6 +498,39 @@ fn write_capture_manifest(path: &Path, records: &[CaptureRecord]) -> Result<(), 
     Ok(())
 }
 
+/// §74.2 / §16.5. Keep the executable capture command tied to the complete
+/// declared matrix. This is intentionally a cheap boundary check: the
+/// capture itself is an explicit opt-in command, while this check makes a
+/// missing app, axis, or script visible in `boundary` and `list`.
+fn capture_matrix_contract() -> Result<(), String> {
+    let script = root().join("tools/capture.sh");
+    if !script.is_file() {
+        return Err(format!("capture script is missing: {}", rel(&script)));
+    }
+
+    let expected_apps = ["showcase", "tablepro", "jackin-preview"];
+    let actual_apps: Vec<&str> = CAPTURE_APPS.iter().map(|app| app.name).collect();
+    if actual_apps != expected_apps {
+        return Err(format!(
+            "capture apps are {actual_apps:?}, expected {expected_apps:?}"
+        ));
+    }
+
+    let expected_cells = CAPTURE_SIZES
+        .len()
+        .saturating_mul(CAPTURE_THEMES.len())
+        .saturating_mul(CAPTURE_COLORS.len())
+        .saturating_mul(CAPTURE_APPS.len());
+    let actual_cells = capture_matrix_cases().len();
+    if actual_cells != expected_cells {
+        return Err(format!(
+            "capture matrix declares {actual_cells} cells, expected {expected_cells}"
+        ));
+    }
+
+    Ok(())
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let result = match args.first().map(String::as_str) {
@@ -436,6 +547,7 @@ fn main() -> ExitCode {
         Some("bless-guard") => boundary(Some("baseline_moves_are_classified")),
         Some("capture-matrix") => capture_matrix(),
         Some("list") => {
+            println!("capture-matrix");
             for name in CHECKS.iter().map(|c| c.0) {
                 println!("{name}");
             }
@@ -647,6 +759,7 @@ const CHECKS: &[Check] = &[
         reference_rendering_is_ui_scoped,
     ),
     ("binary_names_are_preserved", binary_names_are_preserved),
+    ("capture_matrix_contract", capture_matrix_contract),
     (
         "app_libs_are_not_published_and_are_not_depended_on_by_the_library",
         app_libs_are_not_published_and_are_not_depended_on_by_the_library,
@@ -6539,27 +6652,30 @@ captures / classification: `(pending — filled when the change lands)`
     }
 
     #[test]
-    fn capture_matrix_is_exact_cartesian_product() {
+    fn capture_matrix_covers_every_declared_cell() {
         let expected: BTreeSet<CaptureCase> = CAPTURE_SIZES
             .into_iter()
             .flat_map(|(width, height)| {
                 CAPTURE_COLORS.into_iter().flat_map(move |color| {
-                    CAPTURE_THEMES.into_iter().map(move |theme| CaptureCase {
-                        width,
-                        height,
-                        color,
-                        theme,
+                    CAPTURE_THEMES.into_iter().flat_map(move |theme| {
+                        CAPTURE_APPS.into_iter().map(move |app| CaptureCase {
+                            app,
+                            width,
+                            height,
+                            color,
+                            theme,
+                        })
                     })
                 })
             })
             .collect();
         let actual: BTreeSet<CaptureCase> = capture_matrix_cases().into_iter().collect();
         assert_eq!(actual, expected);
-        assert_eq!(actual.len(), 4 * 4 * 2);
+        assert_eq!(actual.len(), 3 * 4 * 4 * 2);
     }
 
     #[test]
-    fn capture_matrix_rejects_missing_cell() {
+    fn capture_matrix_fails_closed_on_a_missing_cell() {
         let expected = capture_matrix_cases();
         let mut records: Vec<CaptureRecord> = expected
             .iter()
@@ -6577,5 +6693,21 @@ captures / classification: `(pending — filled when the change lands)`
             .expect_err("a missing matrix cell must fail closed");
         assert!(error.contains("missing capture cell(s)"), "{error}");
         assert!(error.contains("160x50"), "{error}");
+    }
+
+    #[test]
+    fn capture_matrix_passes_theme_and_color_to_each_app() {
+        let [_, _, app] = CAPTURE_APPS;
+        let case = CaptureCase {
+            app,
+            width: 120,
+            height: 40,
+            color: "mono",
+            theme: "paper",
+        };
+        assert_eq!(
+            capture_arguments(case),
+            "--motion paused --frame 0 --theme paper --color none"
+        );
     }
 }
