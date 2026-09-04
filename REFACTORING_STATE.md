@@ -45,7 +45,7 @@ Interrupted packages and what each had produced:
 - L (§22): ratatui-core + ratatui-crossterm (normal dep; `crossterm` feature gates only the session), no ratatui/ratatui-widgets/macros; one width fn via CellWidth; set_stringn/set_line/set_span painters; Stylize banned; Masked forbidden; BorderSet = alias of symbols::border::Set; bitflags yes, smallvec no; 20 rules R-1..R-20 + 26 forbidden patterns; lints block; MSRV 1.88 with `cargo +1.88.0 check` gate.
 - M (§24): no rename of our Size/Span; ratatui text types only in `author::raw`; `theme::border::ASCII` const; `FieldKind` closed over Label* aliases; `FormData::{options,value_and_options}`.
 - Slice 3 foundations review (docs/reviews/slice3-foundations-review.md) — ACCEPTED in full: 7 BLOCKERS (BL-1 precedence variant-after-state-rules; BL-2 spin-loop "unreachable"; BL-3 Ui::raw marks clip/clobbers roles; BL-4 paint_spans allocates; BL-5 Ansi16 CIE76 → restore legacy categorical metric; BL-6 set_cursor first-writer; BL-7 Harness::resolved hardcodes BUTTON), 14 MAJOR, 16 MINOR; fix list F1–F26; 8 adjudications (crossterm normal dep confirmed; Id structural derive confirmed; CIE76 rejected; fit split inline/wide; §22.7(2) split 2a–2d; intents-drain probe counts; Track::Auto accepted + rows_measured; style bound per-frame ≤5% + cache hit ≥90%); deviations D-1..D-13 (D-3 rejected, D-10 broad regex + path allow, D-11 `GlyphRole::SecretMask`).
-- N (docs/reviews/adjudication-n-layer-measure.md) — ACCEPTED: `LayerSpec.size: LayerSize{Fill,Fixed}` replaces `min_size`; `Cx::resize_layer/reanchor_layer`; `Anchor::Point` flips; Dialog sizes its own layer (`Dialog::layer(cx)`, `measured_width/height`, `body_rows`, `text::wrapped_rows`); `Ui::resolve(&self)` uncached no-record path, `Ui::glyph_str`, `Theme::metrics/PartMetrics`, `Ui::with_part`, `Ui::surface_style`, `Resolved::over`. `Ui::scroll_region` open for 4E.
+- N (docs/reviews/adjudication-n-layer-measure.md) — ACCEPTED: `LayerSpec.size: LayerSize{Fill,Fixed}` replaces `min_size`; `Cx::resize_layer/reanchor_layer`; `Anchor::Point` flips; Dialog sizes its own layer (`Dialog::layer(cx)`, `measured_width/height`, `body_rows`, `text::wrapped_rows`); `Ui::resolve(&self)` uncached no-record path, `Ui::glyph_str`, `Theme::metrics/PartMetrics`, `Ui::with_part`, `Ui::surface_style`, `Resolved::over`. `Ui::scroll_region` STRUCK by §35: no such method; the API is `ScrollRegion::new(id).draw(...)`. 4E was never blocked.
 
 ## File ownership (active)
 
@@ -100,12 +100,11 @@ Interrupted packages and what each had produced:
 - Three names declared by the `arch-amend` builder because the accepted decisions plus the §17 self-check forced them, but which neither review spelled out — flag to the next fresh `opus-analyst` for confirmation: `Picker::measured_size(&self, cx, items) -> LayerSize` and the same on `Select` (§26 N1 mandates the popover `.size(...)` but names no method); `Props::measure(&self, ui, c) -> Size` (the review's example-9 rewrite calls it); the `Dialog::body_rows` values used in examples 9 and 10 (derived arithmetic, not from the review).
 - `docs/visual-changes.md` needs an entry for §20.10 item 17 (`Anchor::Point` flip) before any tooltip or context-menu baseline is blessed.
 - §25.3's ΔE figures are carried through as the review marked them — hand arithmetic, to be re-derived before blessing.
-- Open, not decided: `Ui::scroll_region(id, part, …)` (Slice-3-owned, blocks 4E); rustdoc-json upgrades for `every_foreign_type_in_the_public_surface_is_re_exported` and `xtask doc-check`, both deferred to Slice 8.
+- Open, not decided: rustdoc-json upgrades for `every_foreign_type_in_the_public_surface_is_re_exported` and `xtask doc-check`, both deferred to Slice 8.
 
 - F1–F26 correction obligations (slice3-foundations-review.md §5) and N1/N2 code changes not applied.
 - Components WIP state unknown; `cargo test -p tui-next --all-targets` must be re-run first.
 - Perf findings P1 (viewport double relayout), P2 (debug/release 1-alloc delta; review adjudicated tolerance ≤1) — P1 addressed by §20.9 item 7 (Slice 4E).
-- Open for 4E: `Ui::scroll_region` convenience.
 
 ## Next action (Resume) — session 3
 

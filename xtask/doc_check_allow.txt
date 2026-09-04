@@ -11,10 +11,9 @@ Interaction::focus_hidden
 #
 # Named by the document as a REJECTED alternative or an OPEN item, so it must
 # not resolve: `LayerSize::Measured` is Adjudication N1's rejected variant, and
-# `Ui::scroll_region` is §12.2's declared-but-unimplemented convenience,
+# `Ui::scroll_region` was struck entirely by §35 and its entry removed,
 # recorded by the Slice 3 review §4(h) as a 4E blocker.
 LayerSize::Measured
-Ui::scroll_region
 Button
 TextInput
 TextInputState
