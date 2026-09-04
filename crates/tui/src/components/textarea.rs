@@ -5,10 +5,15 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::input::{BlurPolicy, EditPhase, TextAction, TextCmd, TextTarget, byte_at_col};
+use super::input::{
+    BlurPolicy, EditPhase, EditorDraft, ErrorState, TextAction, TextCmd, TextTarget, byte_at_col,
+    discard_error,
+};
 use super::scroll_region::ScrollRegion;
 use super::{Acc, Overrides, SlotFn, cell_at, first_row};
+use crate::SecretPolicy;
 use crate::action::ActionKey;
+use crate::collection::CellUi;
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
@@ -18,7 +23,8 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
+use crate::text::measure::graphemes;
+use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
@@ -246,13 +252,49 @@ const BINDINGS: &[Binding<TextCmd>] = &[
 
 /// Durable state of a [`TextArea`]: the in-flight draft, the phase, the
 /// vertical scroll and the last validation error. `Debug` redacts the draft.
-#[derive(Clone, Default, PartialEq, Eq)]
+/// `Clone` makes a redacted snapshot for secret state, not a continuation that
+/// can commit the secret.
+#[derive(Default)]
 pub struct TextAreaState {
-    draft: TextEditorCore,
+    draft: EditorDraft,
     phase: EditPhase,
     scroll: ScrollState,
-    error: Option<FieldError>,
+    error: Option<ErrorState>,
 }
+
+impl Clone for TextAreaState {
+    fn clone(&self) -> Self {
+        TextAreaState {
+            draft: self.draft.clone_snapshot(),
+            phase: self.phase,
+            scroll: self.scroll,
+            error: self.error.as_ref().map(ErrorState::clone_snapshot),
+        }
+    }
+}
+
+impl PartialEq for TextAreaState {
+    fn eq(&self, other: &Self) -> bool {
+        if self.is_sensitive() || other.is_sensitive() {
+            self.is_sensitive() == other.is_sensitive()
+                && self.phase == other.phase
+                && self.scroll == other.scroll
+                && self.error.as_ref().map(ErrorState::is_sensitive)
+                    == other.error.as_ref().map(ErrorState::is_sensitive)
+        } else {
+            self.draft.same(&other.draft)
+                && self.phase == other.phase
+                && self.scroll == other.scroll
+                && match (&self.error, &other.error) {
+                    (Some(left), Some(right)) => left.same(right),
+                    (None, None) => true,
+                    _ => false,
+                }
+        }
+    }
+}
+
+impl Eq for TextAreaState {}
 
 impl fmt::Debug for TextAreaState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -261,7 +303,8 @@ impl fmt::Debug for TextAreaState {
             .field("draft_len", &self.draft.text().len())
             .field("phase", &self.phase)
             .field("scroll", &self.scroll)
-            .field("error", &self.error)
+            .field("error", &self.error.as_ref().map(|_| "[redacted]"))
+            .field("sensitive", &self.is_sensitive())
             .finish()
     }
 }
@@ -277,6 +320,14 @@ impl TextAreaState {
         self.phase
     }
 
+    pub(crate) const fn is_sensitive(&self) -> bool {
+        self.draft.is_sensitive()
+    }
+
+    pub(crate) const fn is_classified(&self) -> bool {
+        self.draft.is_classified()
+    }
+
     /// The vertical scroll.
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
@@ -289,12 +340,48 @@ impl TextAreaState {
 
     /// The last validation error.
     pub const fn error(&self) -> Option<&FieldError> {
-        self.error.as_ref()
+        match &self.error {
+            Some(error) => Some(error.as_ref()),
+            None => None,
+        }
+    }
+
+    pub(crate) fn set_sensitive(&mut self, sensitive: bool) {
+        let was_classified = self.draft.is_classified();
+        let was_redacted = self.draft.is_redacted();
+        let changed = self.is_sensitive() != sensitive;
+        self.draft.set_sensitive(sensitive);
+        if !was_classified || was_redacted || changed {
+            self.phase = EditPhase::Idle;
+        }
+
+        let error = self.error.take();
+        self.error = match (sensitive, error) {
+            (true, Some(ErrorState::Sensitive)) => Some(ErrorState::Sensitive),
+            (true, Some(ErrorState::Pending(error) | ErrorState::Plain(error))) => {
+                drop(error);
+                Some(ErrorState::sensitive())
+            }
+            (true | false, None) | (false, Some(ErrorState::Sensitive)) => None,
+            (false, Some(ErrorState::Pending(error) | ErrorState::Plain(error))) => {
+                Some(ErrorState::Plain(error))
+            }
+        };
     }
 
     /// Set (or clear) the error from an external / async validation.
     pub fn set_error(&mut self, e: Option<FieldError>) {
-        self.error = e;
+        self.clear_error();
+        if let Some(error) = e {
+            self.error = Some(if self.is_sensitive() {
+                discard_error(error);
+                ErrorState::sensitive()
+            } else if self.draft.is_classified() {
+                ErrorState::plain(error)
+            } else {
+                ErrorState::pending(error)
+            });
+        }
     }
 
     /// Begin an edit over `current` (a no-op while editing).
@@ -302,7 +389,10 @@ impl TextAreaState {
         if self.is_editing() {
             return;
         }
-        self.draft = TextEditorCore::multi(current);
+        if !self.draft.is_classified() || self.draft.is_redacted() {
+            self.set_sensitive(self.is_sensitive());
+        }
+        self.draft.begin_multi(current);
         self.phase = EditPhase::Editing;
     }
 
@@ -320,14 +410,12 @@ impl TextAreaState {
         v: &impl Validate,
     ) -> Result<(), FieldError> {
         self.write_target(value);
-        let r = v.check(value.expose());
-        self.error = r.clone().err();
-        r
+        self.finish_validation(v.check(value.expose()))
     }
 
     fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
-        if self.is_editing() {
-            value.set(self.draft.text());
+        if self.is_editing() && self.draft.is_committable() {
+            value.set(self.draft.text(), self.is_sensitive());
         }
         self.phase = EditPhase::Idle;
         self.draft.zeroize();
@@ -337,6 +425,9 @@ impl TextAreaState {
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
         self.draft.zeroize();
+        if self.is_sensitive() {
+            self.clear_error();
+        }
     }
 
     /// Apply the blur policy.
@@ -376,14 +467,37 @@ impl TextAreaState {
     /// Overwrite the draft bytes.
     pub fn zeroize(&mut self) {
         self.draft.zeroize();
+        self.clear_error();
     }
 
     fn apply(&mut self, a: EditAction<'_>) -> EditOutcome {
         self.draft.apply(a)
     }
+
+    fn finish_validation(&mut self, result: Result<(), FieldError>) -> Result<(), FieldError> {
+        self.clear_error();
+        match result {
+            Ok(()) => Ok(()),
+            Err(error) if self.is_sensitive() => {
+                discard_error(error);
+                self.error = Some(ErrorState::sensitive());
+                Err(FieldError::new("Invalid value"))
+            }
+            Err(error) => {
+                self.error = Some(ErrorState::plain(error.clone()));
+                Err(error)
+            }
+        }
+    }
+
+    fn clear_error(&mut self) {
+        if let Some(error) = self.error.take() {
+            error.discard();
+        }
+    }
 }
 
-/// A multi-line text control over the shared [`TextEditorCore`], with an
+/// A multi-line text control over the shared [`crate::text::TextEditorCore`], with an
 /// explicit edit lifecycle, a scroll region and grapheme-correct editing.
 ///
 /// ## Construction
@@ -401,8 +515,8 @@ impl TextAreaState {
 /// `.value(&str)` (draw), `.placeholder(&str)`, `.validate(&dyn Validate)`
 /// (`NoValidate`), `.blur(BlurPolicy)` (**`Commit`** — a document is
 /// committed, not cancelled, when focus leaves it, §15), `.rows(u16)`,
-/// `.read_only(bool)`, `.disabled(bool)`, `.status(Status)`, `.patch`,
-/// `.patch_part`, `.slot`.
+/// `.secret(SecretPolicy)`, `.read_only(bool)`, `.disabled(bool)`,
+/// `.status(Status)`, `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::TEXTAREA`, `DEFAULT` only.
@@ -476,6 +590,7 @@ pub struct TextArea<'a> {
     placeholder: Option<&'a str>,
     validate: Option<&'a dyn Validate>,
     blur: BlurPolicy,
+    secret: Option<SecretPolicy>,
     read_only: bool,
     disabled: bool,
     status: crate::collection::Status,
@@ -490,6 +605,7 @@ impl fmt::Debug for TextArea<'_> {
             .field("value", &self.value.map(|_| "[redacted]"))
             .field("placeholder", &self.placeholder)
             .field("blur", &self.blur)
+            .field("secret", &self.secret)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .field("status", &self.status)
@@ -521,6 +637,7 @@ impl<'a> TextArea<'a> {
             placeholder: None,
             validate: None,
             blur: BlurPolicy::Commit,
+            secret: None,
             read_only: false,
             disabled: false,
             status: crate::collection::Status::Ready,
@@ -555,6 +672,17 @@ impl<'a> TextArea<'a> {
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
         self
+    }
+
+    /// Mask the text, including the in-flight draft.
+    #[must_use]
+    pub const fn secret(mut self, policy: SecretPolicy) -> Self {
+        self.secret = Some(policy);
+        self
+    }
+
+    pub(crate) const fn is_secret(&self) -> bool {
+        self.secret.is_some()
     }
 
     /// The height of the text region, in rows.
@@ -622,6 +750,7 @@ impl<'a> TextArea<'a> {
             placeholder: self.placeholder,
             validate: self.validate,
             blur: self.blur,
+            secret: self.secret,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
             status: self.status,
@@ -701,6 +830,7 @@ impl<'a> TextArea<'a> {
         st: &mut TextAreaState,
         value: &mut T,
     ) -> Response<TextAction> {
+        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
         let mut acc = Acc::<TextAction>::new();
         let editable = self.editable();
         let lines = if st.is_editing() {
@@ -814,7 +944,7 @@ impl<'a> TextArea<'a> {
 
     fn live_validate(&self, st: &mut TextAreaState) {
         if st.error.is_some() {
-            st.error = self.validator().check(st.draft.text()).err();
+            let _ = st.finish_validation(self.validator().check(st.draft.text()));
         }
     }
 
@@ -1007,7 +1137,14 @@ impl<'a> TextArea<'a> {
                         height: 1,
                         ..inner
                     };
-                    let total = usize::from(width(line));
+                    let secret_policy = self
+                        .secret
+                        .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
+                    let total = if secret_policy.is_some() {
+                        graphemes(line).count()
+                    } else {
+                        usize::from(width(line))
+                    };
                     let overflow = total > hs.saturating_add(usize::from(inner.width));
                     let run = Rect {
                         width: if overflow {
@@ -1017,8 +1154,12 @@ impl<'a> TextArea<'a> {
                         },
                         ..row
                     };
-                    let from = byte_at_col(line, hs);
-                    ui.paint_str(run, line.get(from..).unwrap_or(""), ts.style);
+                    if let Some(policy) = secret_policy {
+                        paint_masked_line(ui, run, line, hs, policy, ts.style);
+                    } else {
+                        let from = byte_at_col(line, hs);
+                        ui.paint_str(run, line.get(from..).unwrap_or(""), ts.style);
+                    }
                     if overflow {
                         ui.glyph(
                             cell_at(row, row.right().saturating_sub(1)),
@@ -1132,6 +1273,7 @@ impl<'a> TextArea<'a> {
     ) -> Rect {
         self.with_inherited_disabled(inherited_disabled)
             .value(value.expose())
+            .secret(self.secret.unwrap_or_default())
             .draw(ui, area, st)
     }
 
@@ -1144,6 +1286,19 @@ impl<'a> TextArea<'a> {
         }
         .fit(c)
     }
+}
+
+fn paint_masked_line(
+    ui: &mut Ui<'_>,
+    run: Rect,
+    line: &str,
+    skip: usize,
+    policy: SecretPolicy,
+    style: ratatui_core::style::Style,
+) {
+    let total = graphemes(line).count().saturating_sub(skip);
+    let mut cells = CellUi::new(ui.reborrow(), run, style);
+    cells.glyphs(policy.mask, total);
 }
 
 /// `line`'s sub-rect between display columns `a` and `b`.
@@ -1204,12 +1359,52 @@ mod tests {
     use ratatui_core::buffer::Buffer;
 
     use super::*;
+    use crate::event::{Input, Key, KeyCode, KeyModifiers};
+    use crate::runtime::App;
     use crate::runtime::Runtime;
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::theme::Theme;
     use crate::{ReferenceState, ReferenceTarget};
 
     const ID: Id = Id::root("textarea.tests");
+
+    struct SecretTextAreaApp {
+        state: TextAreaState,
+        value: String,
+    }
+
+    impl App for SecretTextAreaApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextArea::new(ID, 3)
+                .secret(SecretPolicy::default())
+                .update(cx, &mut self.state, &mut self.value)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextArea::new(ID, 3)
+                .secret(SecretPolicy::default())
+                .value(&self.value)
+                .draw(ui, SCREEN, &self.state);
+        }
+    }
+
+    fn secret_state() -> TextAreaState {
+        let mut runtime = Runtime::new(
+            SecretTextAreaApp {
+                state: TextAreaState::default(),
+                value: "one\ntwo".to_owned(),
+            },
+            Theme::junie(),
+        );
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = runtime.handle(Input::Key(Key {
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
+        }));
+        runtime.app().state.clone()
+    }
 
     #[test]
     fn parts_include_every_owned_scroll_region_part() {
@@ -1252,6 +1447,87 @@ mod tests {
         Err(FieldError::new("never valid"))
     }
 
+    #[test]
+    fn sensitive_state_masks_when_control_policy_is_removed() {
+        const SECRET: &str = "one\ntwo";
+        let mut state = secret_state();
+        state.begin(SECRET);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let area = Rect::new(0, 0, 24, 3);
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            TextArea::new(ID, 3).value(SECRET).draw(ui, area, &state);
+        });
+        let frame: String = buffer
+            .content()
+            .iter()
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect();
+        let mask = Theme::junie()
+            .design
+            .glyphs
+            .get(SecretPolicy::default().mask);
+        assert!(
+            !frame.contains(SECRET),
+            "the sensitive area reached the frame"
+        );
+        assert!(
+            frame.matches(mask).count() >= 6,
+            "the sensitive area did not paint its mask: {frame}"
+        );
+    }
+
+    #[test]
+    fn sensitive_state_equality_ignores_draft_contents() {
+        let mut left = secret_state();
+        left.cancel();
+        left.begin("one");
+        let mut right = secret_state();
+        right.cancel();
+        right.begin("different");
+        assert_eq!(left, right);
+        let copy = left.clone();
+        assert_eq!(copy.draft.text(), "•••");
+        assert!(!copy.draft.text().contains("one"));
+    }
+
+    #[test]
+    fn sensitive_clone_is_not_a_committable_draft() {
+        let mut state = secret_state();
+        state.begin("one");
+        let mut copy = state.clone();
+        let mut value = "unchanged".to_owned();
+        copy.commit(&mut value, &NoValidate)
+            .expect("redacted clone validates");
+        assert_eq!(value, "unchanged");
+    }
+
+    #[test]
+    fn sensitive_validator_error_is_generic_and_not_retained() {
+        const SECRET: &str = "one\ntwo";
+        let validator = |value: &str| Err(FieldError::new(format!("invalid {value}")));
+        let mut state = secret_state();
+        state.begin(SECRET);
+        state.set_error(Some(FieldError::new(SECRET)));
+        assert_eq!(
+            state.error().map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        let mut value = String::new();
+        let error = state
+            .commit(&mut value, &validator)
+            .expect_err("the validator must reject the secret");
+        assert_eq!(error.message, "Invalid value");
+        assert_eq!(
+            state.error().map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{state:?}").contains(SECRET));
+        state.zeroize();
+        assert!(state.error().is_none());
+        value.clear();
+    }
+
     /// §16.1: a text area's blur policy is `Commit`, not
     /// `CommitAndValidate` — a document is written out when focus leaves it
     /// and the validator does not run, so a half-typed paragraph is never
@@ -1279,6 +1555,19 @@ mod tests {
         );
         assert!(st.error().is_some());
         assert!(!format!("{st:?}").contains("first"));
+    }
+
+    #[test]
+    fn secret_blur_keep_policy_leaves_the_draft() {
+        let mut st = secret_state();
+        st.cancel();
+        let mut value = "one".to_owned();
+        st.begin(&value);
+        let _ = st.apply(EditAction::Insert('!'));
+        assert!(st.blur(&mut value, &always_bad, BlurPolicy::Keep).is_ok());
+        assert!(st.is_editing(), "secret Keep must preserve the draft");
+        assert_eq!(st.draft.text(), "one!");
+        assert_eq!(value, "one");
     }
 
     #[test]

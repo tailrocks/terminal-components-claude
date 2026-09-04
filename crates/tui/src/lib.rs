@@ -86,11 +86,12 @@ pub use theme::{
 // layout and measurement
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
 pub use measure::{Constraints, Measure, Size};
-// text — `text` is `pub(crate)` (Appendix B.3 item 2): `grapheme_width`,
-// `is_word_char` and `thousands` are internal, and the rest is curated here
+// text — `text` is `pub(crate)` (Appendix B.3 item 2): `TextBuffer` and
+// `TextEditorCore` stay implementation details so raw editing storage cannot
+// be cloned or re-exported as a secret-safe public type.
 pub use text::{
-    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
-    truncate, truncate_middle, width, wrap, wrapped_rows,
+    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, fuzzy, truncate, truncate_middle,
+    width, wrap, wrapped_rows,
 };
 // collections
 pub use collection::{

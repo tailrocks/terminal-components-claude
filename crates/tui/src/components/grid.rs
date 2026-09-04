@@ -1970,7 +1970,7 @@ impl Grid<'_> {
             Begin::External => acc.action(GridAction::EditRequested(key, ck)),
             Begin::Refuse(reason) => {
                 st.editor
-                    .set_error(Some(crate::validate::FieldError::new(reason)));
+                    .set_plain_error(Some(crate::validate::FieldError::new(reason)));
                 acc.changed();
             }
         }
@@ -3174,7 +3174,7 @@ mod tests {
         state.edit = Some((ItemKey::num(20), ColumnKey::num(2)));
         state
             .editor
-            .set_error(Some(FieldError::coded("bad", "typed")));
+            .set_plain_error(Some(FieldError::coded("bad", "typed")));
 
         assert_eq!(state.cursor(), Some((ItemKey::num(20), ColumnKey::num(2))));
         assert!(state.selected_rows().contains(ItemKey::num(20)));

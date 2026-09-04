@@ -237,7 +237,14 @@ impl CompletionController {
     /// Dismissal is performed even when the buffer rejects an empty insertion;
     /// the semantic item was still accepted and the popup must not remain
     /// live after that decision.
-    pub fn accept(
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "completion acceptance is exercised by component tests"
+        )
+    )]
+    pub(crate) fn accept(
         &self,
         cx: &mut Cx<'_>,
         state: &mut CompletionState,
@@ -250,6 +257,13 @@ impl CompletionController {
     }
 
     /// Splice one semantic item's insertion text into an editor buffer.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "completion acceptance is exercised by component tests"
+        )
+    )]
     fn splice(buffer: &mut TextBuffer, replace_len: usize, item: Item<'_>) -> bool {
         let end = buffer.cursor_offset();
         let start = end.saturating_sub(replace_len);
