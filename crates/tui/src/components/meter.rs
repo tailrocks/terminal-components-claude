@@ -150,8 +150,36 @@ pub enum MeterVisual {
 /// One `Id` per instance; no items.
 ///
 /// ## Testing
-/// `MeterCase` with no capabilities;
-/// `render::components::meter::{default, busy, error, empty}`.
+/// `MeterCase` in `crates/tui/tests/conformance.rs`, declaring
+/// `Caps::empty()`, so twelve of its twenty-one `meter::*` cases are
+/// capability-gated and return immediately;
+/// `mono_states_are_distinguishable` is narrowed to the single default
+/// state and so compares one rendering against nothing.
+///
+/// The render matrix in `crates/tui/tests/render_components.rs` generates
+/// exactly eight cells per component, one per `St` variant, so there is no
+/// `render::components::meter::busy` and no `::error` to cite. Readiness
+/// arrives through the matrix's `status_for` mapping: `::pressed` draws
+/// `Status::Busy`, `::editing` `Status::Loading`, `::disabled`
+/// `Status::Error`, and the other five cells `Status::Ready`. `Meter::icon`
+/// reads `self.status` rather than the resolved flags, so the spinner and
+/// the `GlyphRole::Error` fallback really are painted — and pinned as
+/// digests — by those three cells.
+///
+/// The threshold mapping is unit-tested in this module by
+/// `tone_follows_the_design_thresholds_not_a_hard_coded_match` and
+/// `every_tone_names_a_meter_role`.
+///
+/// Exercised by no test, recorded as a gap rather than covered with a
+/// neighbouring citation: nothing draws `MeterVisual::Block`, nothing calls
+/// `.tone(…)`, and nothing draws a meter without a `.ratio`, so the
+/// `Stale`, `Unknown` and `Series` runs, the block mode's `OnAccent`
+/// overlay and the value-only path have no coverage at all. The recipe's
+/// own `.when(ERROR)` rule on `Part::ICON` never fires either: every
+/// fixture calls `.state_override`, and `Overrides::flags` replaces the
+/// status-derived `ERROR` with the forced state, which is why the error
+/// glyph above reaches the row through the `Slot::Inherit` fallback rather
+/// than through the recipe.
 ///
 /// ## Invariants
 /// The tone is a function of the ratio and `design.meter`, never of a

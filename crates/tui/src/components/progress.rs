@@ -154,8 +154,43 @@ pub(crate) fn run_of(
 /// One `Id` per instance; no items.
 ///
 /// ## Testing
-/// `ProgressBarCase` with no capabilities;
-/// `render::components::progress_bar::{default, busy, error, empty}`.
+/// `ProgressBarCase` in `crates/tui/tests/conformance.rs`, declaring
+/// `Caps::empty()`. Twelve of the twenty-one generated `progress_bar::*`
+/// cases are capability-gated and return immediately, so the ones that do
+/// work are `name_matches_the_module`, `hover_does_not_steal_focus`,
+/// `draw_twice_is_byte_identical`, `draw_twice_leaves_state_equal`,
+/// `draw_stays_inside_its_area`, `local_override_does_not_mutate_the_theme`,
+/// `id_separator_collision_free`, `survives_tiny_rects_0x0_to_3x3` and
+/// `mono_states_are_distinguishable` — and that last one is narrowed to the
+/// single default state, so it compares one rendering against nothing.
+///
+/// The render matrix in `crates/tui/tests/render_components.rs` generates
+/// exactly eight cells per component, one per `St` variant, so there is no
+/// `render::components::progress_bar::busy` and no `::error` to cite.
+/// Readiness reaches the bar through the matrix's `status_for` mapping
+/// instead: `::pressed` draws `Status::Busy`, `::editing` draws
+/// `Status::Loading`, `::disabled` draws `Status::Error`, and `::default`,
+/// `::focused`, `::hovered`, `::selected` and `::empty` draw
+/// `Status::Ready`. `draw` reads `self.status` rather than the resolved
+/// flags to pick the spinner, so the spinner really is painted — and pinned
+/// as a digest — by `::pressed` and `::editing`.
+///
+/// The span and percentage arithmetic is unit-tested in this module by
+/// `a_determinate_span_starts_at_zero_and_rounds`,
+/// `the_indeterminate_sweep_crosses_the_track_and_stays_inside_it` and
+/// `percentages_format_without_allocating`.
+///
+/// Exercised by no test, recorded as a gap rather than covered with a
+/// neighbouring citation: the recipe's `ERROR → GlyphRole::Error` and
+/// `CHECKED → GlyphRole::ProgressDone` rules never fire. Every fixture
+/// calls `.state_override`, and `Overrides::flags` **replaces** the
+/// status-derived flags with the forced ones, so the `::disabled` cell sets
+/// `Status::Error` and then hands the recipe `DISABLED`. Nothing draws an
+/// *indeterminate* bar either — every fixture calls `.ratio` — and nothing
+/// sets `.done(true)` or `.icon(…)`. The sub-`MIN_TRACK` fallback is
+/// reached only inside `progress_bar::survives_tiny_rects_0x0_to_3x3`,
+/// which asserts that the bar neither panics nor paints outside its rect,
+/// never what it paints.
 ///
 /// ## Invariants
 /// Discharges §11.4's readiness obligation: a `BUSY`/`LOADING` bar paints
@@ -525,8 +560,16 @@ fn percent(r: f64) -> u16 {
 /// One `Id` per instance; no items.
 ///
 /// ## Testing
-/// `SpinnerCase` with no capabilities;
-/// `render::components::spinner::{default, empty}`.
+/// `SpinnerCase` in `crates/tui/tests/conformance.rs` with `Caps::empty()`,
+/// under the same twelve-of-twenty-one gating as `ProgressBar`, plus the
+/// eight `render::components::spinner::*` cells the matrix generates —
+/// `default`, `focused`, `hovered`, `pressed`, `disabled`, `selected`,
+/// `editing` and `empty`. A spinner takes no `Status`, so the matrix's
+/// `status_for` mapping never reaches it: the eight cells differ only in
+/// the forced `StateFlags` they hand the recipe and, for `::empty`, in
+/// dropping the label. Because `.state_override` replaces the `BUSY` flag
+/// `draw` would otherwise resolve with, no test resolves a spinner's parts
+/// under `BUSY`.
 ///
 /// ## Invariants
 /// Reads `design.motion.spinner_frames`, never a baked-in table (A4). Never
