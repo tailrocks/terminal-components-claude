@@ -6752,7 +6752,7 @@ The evidence is symmetric and damning in both directions. `ChipBar` declared `Pa
 
 > For every registered component `C`, the set of parts `C`'s own `draw` resolves — unioned over the driver's fixture sweep and including parts resolved by components `C` composes **under its own `Id`** — is **exactly** `C::PARTS`. Parts resolved by a caller-supplied row closure are attributed to the row, not to `C`, and are never in `C::PARTS`.
 
-The override surface keeps the home it already has: every component's `## Overrides` rustdoc section, whose presence is already machine-checked. It does not need a second `const`, and a second `const` is a second thing to drift.
+The override surface keeps the home it already has: every component's `## Overrides` rustdoc section, whose presence is already machine-checked <!-- amended by §45: true and insufficient. Presence is checked by a rustdoc-json **heading** scan; **content was checked by nothing**, so this sentence moved the override surface into exactly the artefact class §33.4 rejects two paragraphs below — checkable for shape, never for truth. Seven of eighteen sections were wrong when §45 measured them. The decision stands; §45 supplies the missing check. -->. It does not need a second `const`, and a second `const` is a second thing to drift.
 
 **The structural fix is attribution, not an allow-list.** The enabling condition is that `note_styled` stamps `(owner, part)` with the *component's* id for parts the *caller's* closure chose, so the instrument cannot tell "ChipBar styled META" from "the caller styled META through ChipBar's RowUi". Under `cfg(feature = "testing")`, the record carries a `StyledBy { Component, Row }`: `Overrides::style` records `Component`, every `RowUi` resolution records `Row` — **including the four that record nothing at all today**: `RowUi::new`'s container fill, `gutter`, `label_patched` and `trailing`. Then `ChipBar` drops `META`, `List` drops `LABEL` and `META`, and no exemption is needed for either.
 
@@ -7097,13 +7097,13 @@ That is the enabling condition for a red that is permanently explained away. Eac
 ### §40.4 Numeric corrections <!-- amended by §40 -->
 
 - `MONO_RULES_PER_FAMILY` is **19**. The document said 18 in five places and §20.10 item 18 named its own review as "== 18". Corrected. The 19th rule — `(THUMB, PRESSED)` — still has **no numbered §20.10 item**, and §20.10's closing clause makes anything not on the list a regression by construction.
-- **22 components are registered, not 23.** §32.4, §32.5, §33.4, §33.5 and §33.6 all rest on a tree that briefly had `Select` registered.
+- ~~**22 components are registered, not 23.**~~ — **corrected by §45: it is 23.** `select` was registered while §40 was being written. §32.4, §32.5, §33.4, §33.5 and §33.6 all rest on a tree that briefly had `Select` registered.
 - **Conformance is 467 = 22 × 21 + 5**, derived structurally. The ledger's explanation — that the 488→467 drop was partly the removed guards — is **wrong**: removing a guard from inside a case body changes pass/fail, never the count. The entire delta is −21, **exactly one component's worth**, all of it `Select`.
 - §16.6's "Before" column is in better shape than reported: **six** rows carry correction markers and every one matches the root baseline exactly, and the wrong-file naming is fixed. Two rows remain unit-ambiguous. The "nine wrong rows" claim is itself now the stale artefact.
 
 ### §40.5 The blocker for the pending bless <!-- amended by §40 -->
 
-§20.10 item 19's review column says the style half "is asserted instead by the 20-case conformance matrix **already registered for each of these components**". **`select` is one of the fourteen and is not registered.** For its 64 lines the style half is asserted by nobody, and item 19's own justification is false for that component. Either exclude `select` from the bless or amend item 19 to say so — as written it cites a review mechanism that cannot run, which is exactly what §36.2 rejected for item 1.
+§20.10 item 19's review column says the style half "is asserted instead by the 20-case conformance matrix **already registered for each of these components**". ~~**`select` is one of the fourteen and is not registered.**~~ — **corrected by §45**: `select` **is** registered and parts-checked. Item 19's review column is true for it and the exclusion §40.5 demanded is **no longer owed**. This correction bears on the pending bless and lands with it. For its 64 lines the style half is asserted by nobody, and item 19's own justification is false for that component. Either exclude `select` from the bless or amend item 19 to say so — as written it cites a review mechanism that cannot run, which is exactly what §36.2 rejected for item 1.
 
 ## §41 Record — the eighth instance, and two real API gaps <!-- amended by §41 -->
 
@@ -7281,3 +7281,71 @@ The four worth naming here:
 2. **Bless the fourteen unblessed component matrices first.** Only six components have baseline rows, so four "already duplicated" dispositions currently point at red tests. They panic on the missing baseline rather than passing vacuously, so this is visible rather than silent — but it must be closed before the map is relied on.
 3. **Land the `StatusBar` hover test green.** Done.
 4. **Write GAP-1 through GAP-11 into `crates/tui` before the deletion.** Afterwards there is nothing left to write them from.
+
+## §45 Adjudication — the override surface was delegated to prose, and nothing read the prose <!-- amended by §45 -->
+
+**Status: accepted.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged three times: it changes §13.2's `## Overrides` heading from documentation into a **contract**, adds a suite-level invariant to §16.2, and adds a binding clause to §11.4's `BUSY`/`LOADING` row.
+
+### §45.1 The measurement <!-- amended by §45 -->
+
+Eighteen components expose `.slot(Part, SlotFn)`. Comparing each one's `## Overrides` section against its `slot_for` call sites: **eleven agree, six over-claim, one under-claims.**
+
+- **`StatusBar` declares `.slot`, declares seven parts, grants six — and calls `slot_for` zero times.**
+- `HintBar` grants eight and delivers **one**.
+- `Meter` grants four and delivers `TRACK`.
+- `List` grants `TRACK`/`THUMB` and constructs its `ScrollRegion` **bare**, dropping `.patch`, `.patch_part` **and** `.slot`.
+- `ProgressBar` drops `META`.
+- **`Button` honours `Part::ICON` for `.icon(g)` and silently drops it in the `busy()` arm** — one component, two answers, one `Part`.
+- `Select` honours `Part::GUTTER` **without granting it**, which is why the check must assert **equality**, not containment.
+
+Two adjacent defects, neither previously recorded. **Nested components are constructed bare** at four sites, so a container's `.patch_part` on a delegated part is dropped as surely as its `.slot` — and Invariant P cannot see this, because the nested component styles those parts under the *container's* own `Id`. And **two declared parts are never resolved at all**, invisible because the parts check is one-directional (§41.1).
+
+### §45.2 The class — third instance, and this one was created by a decision <!-- amended by §45 -->
+
+§33.2 settled the right question — `PARTS` is a styling contract, not an override surface — and, **in the very next sentence**, delegated the override surface to a prose field on the strength of a check that reads only that field's **heading**. §33.4 rejects that artefact class **two paragraphs later**: *"checkable for shape, never for truth."*
+
+The failure rate is the same as §32.4's nine false narrowing reasons: **7 of 18** against 9 of 22.
+
+> **A contract whose only enforcement is a sentence written by the same builder, in the same edit, as the code it describes.**
+
+§42.6's pre-registered question — *which invariant is asserted by a mechanism that shares the defect's enabling condition?* — has a fourth answer, and here the mechanism does not merely *share* the enabling condition: **it is the enabling condition.** One distinction from §39 worth keeping: §39's builders had no decision to follow, whereas here the decision exists, is correct, and only its enforcement is decorative.
+
+### §45.3 Decision — Invariant R <!-- amended by §45 -->
+
+> For every component exposing `.slot`, the set of `Part` constants named as slot-addressable in its `## Overrides` section **equals** the set of parts for which installing `.slot(p, …)` changes its painted cells, over §33.4's driver-derived fixture sweep. Neither containment alone, and the set is non-empty.
+
+`## Overrides` becomes a contract and §13.2 says so. **"any part" and "both parts" are forbidden phrasings** — a set the reader cannot diff is a set nothing can check, and **all four** of the "any part" sections were wrong.
+
+No second `const`: §33.2's own objection applies, and it would drift *silently*, being written in the same edit as the prose it duplicates. **No reason string** (§33.4, §38.4): for a part granted but dropped there are exactly two legal outcomes — honour the slot, or remove it from the sentence.
+
+### §45.4 `Slot::Clear` and the readiness affordance — a rule, not a list <!-- amended by §45 -->
+
+**`.slot(ICON, …)` is honoured.** A slot is *substitution, not suppression*: it keeps layout, hit registration, focus and state, so the §11.4 obligation is discharged by the **default** painter while the author keeps the authority they already hold over `MARKER`. `TextArea` is the existing correct pattern. Five components that read `spinner_frames` without first consulting the slot are wrong.
+
+**A glyph slot on `ICON` is inert while `BUSY | LOADING` is live.** `Slot<GlyphRole>` names one glyph and the spinner is a frame sequence — the same reason this row is a component obligation rather than a `StateRule` — so `Slot::Set` cannot *be* the spinner and `Slot::Clear` cannot be its absence. The decisive argument is the gate: **the spinner is the only symbol distinguishing `BUSY` from `Ready` at `ColorLevel::Mono`**, so a clearable glyph would let a theme make them indistinguishable **while conformance case 9 stayed green**, because case 9 resolves through the theme it is asserting about.
+
+**Answering §33.3 head-on**, since it deleted an exemption list: the `extra` hatch was a **per-component list of names** whose entries were indistinguishable between legitimate composition and a suppressed defect. This is a **universally-quantified stateful predicate** with no entries, nothing to add when a component is added, and nothing to drift. §11.4's `PRESSED` bracket clause is already exactly this shape. **§33.3 deleted a list of names; it did not forbid a rule.**
+
+Recorded and **not** settled: `StylePatch` has `clear_fg` and `clear_bg` and **no `clear_glyph`**, so at the instance level `Slot::Clear` on a glyph is reachable only by a struct literal. Omission or decision, undecided.
+
+### §45.5 A measuring query on a painting path <!-- amended by §45 -->
+
+Two components resolve the *glyph* through `Ui::resolve` and the *style* for the same cell through the overrides. `Ui::resolve` is §26 N2's `&self` **measuring** path that **excludes precedence 6**, so an instance `.patch_part` reaches the colour and an instance glyph choice cannot reach the glyph.
+
+The structural finding is larger than the two sites: **`Ui::resolve` is reachable from `draw` and nothing distinguishes the two call sites.** A `resolve`-painted part also records nothing, so it is invisible to §33's parts check — **§33.7's vacuity hole, second instance**, carried forward unclosed.
+
+### §45.6 Ordering — after the bless, behind §39 <!-- amended by §45 -->
+
+**Digest-neutral by construction**, and this was checked rather than argued: `slot_for` answers `None` when no slot is installed, and **no fixture installs one** — `Fixture` has no `SlotFn` field and the render matrix varies only forced flags and status. No mono rule changes; `MONO_RULES_PER_FAMILY` stays 19.
+
+So it has **no ordering constraint of its own**, and it lands *after* §39 — because §39 moves 24 keys across three of the four files this change also touches, and **§39's movement must be attributable to §39 alone, or §20.10 item 19's "nothing moves" premise cannot be checked.** Manufacturing a second blocker for a change that moves nothing would devalue §39's.
+
+**Standing hazard, recorded so the neutrality claim cannot rot silently:** if a future fixture installs `patch_part` on `MARKER`, §45.5's fix stops being digest-neutral and acquires §39's ordering constraint.
+
+### §45.7 Open obligations <!-- amended by §45 -->
+
+1. **`Ui::resolve` is reachable from `draw`**, and a part painted through it is invisible to the parts check. §33.7's owner scope would close both; carried, not closed.
+2. **Four nested components are constructed bare** — a one-line fix each, recorded so the `patch_part` half is not forgotten when the `slot` half lands.
+3. **Two declared parts are never resolved.** §33.4's rule verbatim: paint them or remove them.
+4. **`StylePatch` has no `clear_glyph`.**
+5. **This is cross-cutting across five Slice-4 packages** and needs a coordinator-serialised landing like §39, or four owners will each conclude "not mine" — §40.3's failure mode exactly.
