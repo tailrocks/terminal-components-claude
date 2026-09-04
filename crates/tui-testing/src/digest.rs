@@ -224,7 +224,9 @@ impl Scene {
         )
     }
 
-    /// Compare against (or, under `BLESS=1`, merge into) a baseline file.
+    /// Compare against (or, under `BLESS=1` / `UPDATE_BASELINE=1`, merge into)
+    /// a baseline file. `BLESS` is canonical and takes precedence when both
+    /// variables are present.
     ///
     /// Thread- and process-safe in both directions: blessing merges one
     /// entry under a lock, comparing reads the file at most once per
@@ -255,8 +257,16 @@ impl Scene {
 }
 
 /// Whether this process was asked to rewrite baselines.
+///
+/// `UPDATE_BASELINE` is the documented compatibility alias for `BLESS`, but
+/// an explicitly supplied `BLESS` value always wins. This makes `BLESS=0`
+/// fail closed even when a caller's environment also contains the alias.
 fn bless_enabled() -> bool {
-    std::env::var_os("BLESS").is_some_and(|v| !v.is_empty() && v != "0")
+    let enabled = |v: std::ffi::OsString| !v.is_empty() && v != "0";
+    match std::env::var_os("BLESS") {
+        Some(value) => enabled(value),
+        None => std::env::var_os("UPDATE_BASELINE").is_some_and(enabled),
+    }
 }
 
 /// The outcome of one baseline lookup; the expected text is cloned only
@@ -414,10 +424,10 @@ mod tests {
         "bless.42", "bless.43", "bless.44", "bless.45", "bless.46", "bless.47",
     ];
 
-    /// The regression worker, driven as a child process so `BLESS` can be
-    /// set without mutating this process's environment. Every thread builds
+    /// The regression worker, driven as a child process so baseline flags can
+    /// be set without mutating this process's environment. Every thread builds
     /// its scenes, waits on a barrier so the writes collide as hard as the
-    /// scheduler allows, then asserts (or, under `BLESS=1`, records) them.
+    /// scheduler allows, then asserts (or, under blessing, records) them.
     #[test]
     #[ignore = "spawned by the concurrent-bless driver tests"]
     fn bless_worker() {
@@ -472,16 +482,99 @@ mod tests {
 
     /// Run the worker over `path` for `slice`, with or without `BLESS`.
     fn run_worker(path: &Path, slice: usize, bless: bool) -> std::process::Output {
+        run_worker_with_flags(path, slice, bless.then_some("1"), None)
+    }
+
+    /// Run the worker with explicit baseline environment values. Removing both
+    /// variables first keeps each child independent of the test runner's
+    /// environment and makes precedence cases deterministic.
+    fn run_worker_with_flags(
+        path: &Path,
+        slice: usize,
+        bless: Option<&str>,
+        update_baseline: Option<&str>,
+    ) -> std::process::Output {
         let exe = std::env::current_exe().expect("test binary");
         let mut cmd = Command::new(exe);
         cmd.args(["--exact", WORKER, "--ignored", "--nocapture"])
             .env(PATH_ENV, path)
             .env(SLICE_ENV, slice.to_string())
-            .env_remove("BLESS");
-        if bless {
-            cmd.env("BLESS", "1");
+            .env_remove("BLESS")
+            .env_remove("UPDATE_BASELINE");
+        if let Some(value) = bless {
+            cmd.env("BLESS", value);
+        }
+        if let Some(value) = update_baseline {
+            cmd.env("UPDATE_BASELINE", value);
         }
         cmd.output().expect("run worker")
+    }
+
+    #[test]
+    fn update_baseline_is_an_alias_with_bless_precedence() {
+        let cases = [
+            ("alias", None, Some("1"), true),
+            ("canonical", Some("1"), Some("0"), true),
+            ("canonical_false", Some("0"), Some("1"), false),
+        ];
+        for (tag, bless, update_baseline, writes) in cases {
+            let path = temp_baseline(tag);
+            let out = run_worker_with_flags(&path, 0, bless, update_baseline);
+            assert_eq!(
+                out.status.success(),
+                writes,
+                "unexpected baseline mode for {tag}: {}",
+                output_text(&out)
+            );
+            assert_eq!(path.exists(), writes, "baseline write decision for {tag}");
+            if writes {
+                let text = std::fs::read_to_string(&path).expect("baseline written");
+                assert!(text.starts_with(HEADER), "header lost for {tag}: {text}");
+            }
+            let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
+        }
+    }
+
+    #[test]
+    fn baseline_false_values_do_not_write_or_leak_environment_values() {
+        let cases = [
+            ("bless-empty", Some(""), None),
+            ("bless-zero", Some("0"), None),
+            ("alias-empty", None, Some("")),
+            ("alias-zero", None, Some("0")),
+        ];
+        for (tag, bless, update_baseline) in cases {
+            let path = temp_baseline(tag);
+            let out = run_worker_with_flags(&path, 0, bless, update_baseline);
+            assert!(!out.status.success(), "false value blessed for {tag}");
+            assert!(!path.exists(), "false value wrote a baseline for {tag}");
+            let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
+        }
+
+        let secret = "baseline-secret-must-not-escape";
+        let path = temp_baseline("secret-value");
+        let out = run_worker_with_flags(&path, 0, None, Some(secret));
+        assert!(out.status.success(), "a truthy alias must bless");
+        let text = std::fs::read_to_string(&path).expect("baseline written");
+        assert!(
+            !text.contains(secret),
+            "baseline contents leaked the flag value"
+        );
+        assert!(
+            !output_text(&out).contains(secret),
+            "baseline flag value leaked into worker output"
+        );
+        let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
+
+        let path = temp_baseline("ignored-secret");
+        let out = run_worker_with_flags(&path, 0, Some("0"), Some(secret));
+        assert!(!out.status.success(), "BLESS=0 must remain fail-closed");
+        assert!(!path.exists(), "ignored alias must not write a baseline");
+        assert!(
+            !output_text(&out).contains(secret),
+            "baseline flag value leaked into worker output"
+        );
+        let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
     }
 
     fn entry_lines(text: &str) -> Vec<&str> {
