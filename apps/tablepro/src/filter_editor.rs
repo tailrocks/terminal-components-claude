@@ -1,8 +1,8 @@
-//! TablePro's typed filter editor and local filtering policy.
+//! `TablePro`'s typed filter editor and local filtering policy.
 
 use crate::db::{ColType, Value};
 
-/// All operators exposed by the legacy filter editor.
+/// All operators exposed by the filter editor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilterOp {
     /// Equal.
@@ -246,11 +246,17 @@ impl Filter {
 /// Controlled filter form state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FilterDraft {
+    /// Available column names.
     pub columns: Vec<String>,
+    /// Selected column index.
     pub column: usize,
+    /// Selected operator.
     pub op: FilterOp,
+    /// Primary value.
     pub value: String,
+    /// Secondary value for range predicates.
     pub value2: String,
+    /// Whether the editor is open.
     pub open: bool,
 }
 impl FilterDraft {
@@ -319,7 +325,8 @@ fn wildcard(value: &str, pattern: &str) -> bool {
         let Some(offset) = rest.find(part) else {
             return false;
         };
-        at = at.saturating_add(offset + part.len());
+        let consumed = offset.saturating_add(part.len());
+        at = at.saturating_add(consumed);
     }
     pattern.ends_with('*') || at == value.len()
 }

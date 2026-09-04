@@ -32,7 +32,8 @@ use junie_tui::{
     Family, FieldKind, FieldMut, FieldRef, FieldSpec, FocusRing, Focusability, Form, FormData,
     FormState, FrameRead, Headroom, Highlighter, HintBar, Id, Input, Intent, KeyCode, KeyModifiers,
     LayerId, Overlay, OverlayRule, Part, Position, Rect, Registry, Response, Role, Runtime, Slot,
-    StateFlags, StylePatch, SyntaxRole, Theme, Ui, Variant,
+    StateFlags, StylePatch, SyntaxRole, TextViewport, Theme, Ui, Variant, ViewportLine,
+    ViewportState,
 };
 use junie_tui_testing::perf::{
     Counting, bench, check_ratio, env_flag, iters, lock, measure_once, report, unicode_line,
@@ -890,6 +891,19 @@ fn perf_rows(n: usize) -> Vec<u32> {
     (0..n).map(|i| i as u32).collect()
 }
 
+#[test]
+fn list_100k_rows_construct() {
+    let _g = lock();
+    let n = big(100_000);
+    let s = bench(0, iters(3), &mut || {
+        black_box(perf_rows(n));
+    });
+    println!(
+        "PERF list_100k_rows_construct ns={} allocs={} bytes={}",
+        s.ns, s.allocs, s.bytes
+    );
+}
+
 type PerfKeyFn = fn(&u32) -> junie_tui::ItemKey;
 type PerfRowFn = fn(&u32, &mut junie_tui::RowUi<'_>);
 
@@ -983,6 +997,54 @@ fn list_100k_rows_render() {
         control.ns,
         1.5,
         env_flag("PERF_STRICT"),
+    );
+}
+
+#[test]
+fn no_full_collection_clone_per_frame() {
+    let _g = lock();
+    let rows = perf_rows(big(100_000));
+    let (list_stats, list_regions) = bench_list_render(&rows, 5_000);
+
+    let lines: Vec<ViewportLine<'static>> = (0..big(100_000))
+        .map(|_| ViewportLine::Plain("row: lorem ipsum dolor sit amet"))
+        .collect();
+    let viewport = TextViewport::new(Id::root("perf.no-full-collection-clone")).wrap(true);
+    let state = ViewportState::default();
+    let mut scene = Scene::new(
+        "no-full-collection-clone",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        80,
+        40,
+    );
+    scene.draw(|ui, area| {
+        viewport.draw(ui, area, &state, &lines);
+    });
+    let viewport_stats = bench(1, iters(2), &mut || {
+        scene.draw(|ui, area| {
+            black_box(viewport.draw(ui, area, &state, &lines));
+        });
+    });
+    println!(
+        "PERF no_full_collection_clone_per_frame list={{ns:{} allocs:{} bytes:{} regions:{}}} viewport={{ns:{} allocs:{} bytes:{}}}",
+        list_stats.ns,
+        list_stats.allocs,
+        list_stats.bytes,
+        list_regions,
+        viewport_stats.ns,
+        viewport_stats.allocs,
+        viewport_stats.bytes,
+    );
+    assert!(
+        list_stats.bytes < 64 * 1024,
+        "list frame copied {} bytes",
+        list_stats.bytes
+    );
+    assert!(
+        viewport_stats.bytes < 64 * 1024,
+        "viewport frame copied {} bytes",
+        viewport_stats.bytes
     );
 }
 

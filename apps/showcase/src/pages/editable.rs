@@ -52,6 +52,16 @@ fn task_list() -> List<
     List::new(ROWS).key(row_key).row(row_view)
 }
 
+fn name_input() -> TextInput<'static> {
+    TextInput::new(NAME).placeholder("Task name")
+}
+
+fn changes_input() -> TextInput<'static> {
+    TextInput::new(CHANGES)
+        .placeholder("Changes")
+        .validate(&whole_number)
+}
+
 fn whole_number(value: &str) -> Result<(), FieldError> {
     if value.is_empty() || value.chars().all(|c| c.is_ascii_digit()) {
         Ok(())
@@ -118,11 +128,7 @@ impl Page for EditablePage {
         }
         result |= list.erase();
         if let Some(row) = self.rows.get_mut(self.selected) {
-            let name = TextInput::new(NAME).placeholder("Task name").update(
-                cx,
-                &mut self.name_state,
-                &mut row.name,
-            );
+            let name = name_input().update(cx, &mut self.name_state, &mut row.name);
             if let Some(action) = name.action_ref() {
                 self.message = match action {
                     junie_tui::TextAction::Committed => "name committed",
@@ -134,10 +140,7 @@ impl Page for EditablePage {
                 };
             }
             result |= name.erase();
-            let changes = TextInput::new(CHANGES)
-                .placeholder("Changes")
-                .validate(&whole_number)
-                .update(cx, &mut self.changes_state, &mut row.changes);
+            let changes = changes_input().update(cx, &mut self.changes_state, &mut row.changes);
             let changes_action = changes.action_ref().copied();
             if let Some(action) = changes_action {
                 self.message = match action {
@@ -183,23 +186,16 @@ impl Page for EditablePage {
                 task_list().draw(ui, list_area, &self.list_state, &self.rows);
                 let edit_rows = super::rows(editor_area, 4);
                 if let Some(row) = self.rows.get(self.selected) {
-                    TextInput::new(NAME)
-                        .value(&row.name)
-                        .placeholder("Task name")
-                        .draw(
-                            ui,
-                            edit_rows.first().copied().unwrap_or(editor_area),
-                            &self.name_state,
-                        );
-                    TextInput::new(CHANGES)
-                        .value(&row.changes)
-                        .placeholder("Changes")
-                        .validate(&whole_number)
-                        .draw(
-                            ui,
-                            edit_rows.get(1).copied().unwrap_or(editor_area),
-                            &self.changes_state,
-                        );
+                    name_input().value(&row.name).draw(
+                        ui,
+                        edit_rows.first().copied().unwrap_or(editor_area),
+                        &self.name_state,
+                    );
+                    changes_input().value(&row.changes).draw(
+                        ui,
+                        edit_rows.get(1).copied().unwrap_or(editor_area),
+                        &self.changes_state,
+                    );
                     let info = format!(
                         "#{} · owner={} · status={:?}",
                         row.id, row.owner, row.status

@@ -66,6 +66,16 @@ fn member_list()
     List::new(MEMBERS).key(member_key).row(member_row)
 }
 
+fn invite_button() -> Button<'static> {
+    Button::new(INVITE, "Invite member").variant(Variant::SECONDARY)
+}
+
+fn remove_button(has_members: bool) -> Button<'static> {
+    Button::new(REMOVE, "Remove member")
+        .variant(Variant::DANGER)
+        .disabled(!has_members)
+}
+
 fn remove_dialog() -> Dialog<'static> {
     Dialog::destructive(
         REMOVE_DIALOG,
@@ -145,17 +155,12 @@ impl Page for SettingsPage {
             self.message = "member selected";
         }
         result |= list.erase();
-        let invite = Button::new(INVITE, "Invite member")
-            .variant(Variant::SECONDARY)
-            .update(cx);
+        let invite = invite_button().update(cx);
         if invite.activated() {
             self.message = "invite flow ready";
         }
         result |= invite.erase();
-        let remove = Button::new(REMOVE, "Remove member")
-            .variant(Variant::DANGER)
-            .disabled(self.members.is_empty())
-            .update(cx);
+        let remove = remove_button(!self.members.is_empty()).update(cx);
         if remove.activated() && self.selected_member().is_some() && !cx.is_open(REMOVE_DIALOG) {
             self.remove_open = true;
             cx.open_layer(REMOVE_DIALOG, remove_dialog().layer(cx));
@@ -195,12 +200,8 @@ impl Page for SettingsPage {
                 let (members_area, actions) = layout::split_v(rest, rest.height.saturating_sub(5));
                 member_list().draw(ui, members_area, &self.member_state, &self.members);
                 let action_rows = super::rows(actions, 3);
-                Button::new(INVITE, "Invite member")
-                    .variant(Variant::SECONDARY)
-                    .draw(ui, action_rows.first().copied().unwrap_or(actions));
-                Button::new(REMOVE, "Remove member")
-                    .variant(Variant::DANGER)
-                    .disabled(self.members.is_empty())
+                invite_button().draw(ui, action_rows.first().copied().unwrap_or(actions));
+                remove_button(!self.members.is_empty())
                     .draw(ui, action_rows.get(1).copied().unwrap_or(actions));
                 let count = format!("{} members · {}", self.members.len(), self.message);
                 let _ = ui.paint_str(

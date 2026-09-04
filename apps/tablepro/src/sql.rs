@@ -1394,8 +1394,33 @@ pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
 mod tests {
     use super::*;
 
+    fn parse_statement(source: &str) -> Result<Statement, String> {
+        parse(source).map_err(|error| format!("parse at {}: {}", error.at, error.message))
+    }
+
+    fn parse_select(source: &str) -> Result<Select, String> {
+        match parse_statement(source)? {
+            Statement::Select(select) => Ok(select),
+            statement => Err(format!("expected SELECT, got {statement:?}")),
+        }
+    }
+
+    fn execution_error<T>(result: Result<T, ExecError>) -> Result<ExecError, String> {
+        match result {
+            Ok(_) => Err("expected the operation to fail".to_owned()),
+            Err(error) => Ok(error),
+        }
+    }
+
+    fn parse_error(source: &str) -> Result<ParseError, String> {
+        match parse(source) {
+            Ok(_) => Err("expected the parser to fail".to_owned()),
+            Err(error) => Ok(error),
+        }
+    }
+
     #[test]
-    fn splits_and_finds_statement_at_cursor() {
+    fn splits_and_finds_statement_at_cursor() -> Result<(), String> {
         let src = "SELECT 1;\n\nSELECT * FROM orders -- ; in comment\nWHERE status = 'a;b';\nDELETE FROM x";
         let s = split_statements(src);
         assert_eq!(s.len(), 3);
@@ -1403,144 +1428,167 @@ mod tests {
             &src[s[1].0..s[1].1],
             "SELECT * FROM orders -- ; in comment\nWHERE status = 'a;b'"
         );
-        let at = statement_at(src, 15).unwrap();
+        let at = statement_at(src, 15).ok_or_else(|| "cursor was not in a statement".to_owned())?;
         assert_eq!(at, s[1]);
+        Ok(())
     }
 
     #[test]
-    fn parses_select_with_predicates_order_limit() {
-        let st = parse("select id, status from public.orders o where status = 'pending' and total_amount >= 100 order by created_at desc limit 50").unwrap();
-        let Statement::Select(s) = st else { panic!() };
+    fn parses_select_with_predicates_order_limit() -> Result<(), String> {
+        let s = parse_select(
+            "select id, status from public.orders o where status = 'pending' and total_amount >= 100 order by created_at desc limit 50",
+        )?;
         assert_eq!(s.table, "orders");
         assert_eq!(s.schema.as_deref(), Some("public"));
         assert_eq!(s.predicates.len(), 2);
         assert_eq!(s.order, Some(("created_at".into(), false)));
         assert_eq!(s.limit, Some(50));
+        Ok(())
     }
 
     #[test]
-    fn classifies_like_tablepro() {
+    fn classifies_like_tablepro() -> Result<(), String> {
         use crate::db::SafeMode as L;
-        let p = |s: &str| parse(s).unwrap();
-        assert_eq!(tier(&p("SELECT * FROM orders")), Tier::Safe);
-        assert_eq!(tier(&p("UPDATE orders SET x = 1")), Tier::Write);
+        let p = |source: &str| parse_statement(source);
+        assert_eq!(tier(&p("SELECT * FROM orders")?), Tier::Safe);
+        assert_eq!(tier(&p("UPDATE orders SET x = 1")?), Tier::Write);
         assert!(
-            !is_dangerous(&p("UPDATE orders SET x = 1")),
+            !is_dangerous(&p("UPDATE orders SET x = 1")?),
             "UPDATE without WHERE is a plain write"
         );
-        assert!(is_dangerous(&p("DELETE FROM orders")));
-        assert!(!is_dangerous(&p("DELETE FROM orders WHERE id = 'x'")));
-        assert_eq!(tier(&p("DROP TABLE orders")), Tier::Destructive);
-        assert_eq!(tier(&p("TRUNCATE orders")), Tier::Destructive);
+        assert!(is_dangerous(&p("DELETE FROM orders")?));
+        assert!(!is_dangerous(&p("DELETE FROM orders WHERE id = 'x'")?));
+        assert_eq!(tier(&p("DROP TABLE orders")?), Tier::Destructive);
+        assert_eq!(tier(&p("TRUNCATE orders")?), Tier::Destructive);
         assert_eq!(
-            tier(&p("ALTER TABLE orders DROP COLUMN notes")),
+            tier(&p("ALTER TABLE orders DROP COLUMN notes")?),
             Tier::Destructive
         );
-        assert_eq!(tier(&p("ALTER TABLE orders ADD COLUMN x int")), Tier::Write);
-        assert_eq!(tier(&p("EXPLAIN ANALYZE DELETE FROM orders")), Tier::Write);
-        assert!(is_dangerous(&p("EXPLAIN ANALYZE DELETE FROM orders")));
+        assert_eq!(
+            tier(&p("ALTER TABLE orders ADD COLUMN x int")?),
+            Tier::Write
+        );
+        assert_eq!(tier(&p("EXPLAIN ANALYZE DELETE FROM orders")?), Tier::Write);
+        assert!(is_dangerous(&p("EXPLAIN ANALYZE DELETE FROM orders")?));
         // gate
         assert_eq!(
-            gate(L::Silent, &p("UPDATE orders SET x = 1")),
+            gate(L::Silent, &p("UPDATE orders SET x = 1")?),
             Decision::Run
         );
         assert_eq!(
-            gate(L::Silent, &p("DELETE FROM orders")),
+            gate(L::Silent, &p("DELETE FROM orders")?),
             Decision::Confirm { deliberate: false }
         );
         assert_eq!(
-            gate(L::Silent, &p("DROP TABLE orders")),
+            gate(L::Silent, &p("DROP TABLE orders")?),
             Decision::Confirm { deliberate: false }
         );
         assert_eq!(
-            gate(L::Alert, &p("UPDATE orders SET x = 1 WHERE id = 1")),
+            gate(L::Alert, &p("UPDATE orders SET x = 1 WHERE id = 1")?),
             Decision::Confirm { deliberate: false }
         );
-        assert_eq!(gate(L::Alert, &p("SELECT 1 FROM orders")), Decision::Run);
+        assert_eq!(gate(L::Alert, &p("SELECT 1 FROM orders")?), Decision::Run);
         assert_eq!(
-            gate(L::AlertFull, &p("SELECT 1 FROM orders")),
+            gate(L::AlertFull, &p("SELECT 1 FROM orders")?),
             Decision::Confirm { deliberate: false }
         );
         assert_eq!(
-            gate(L::Safe, &p("INSERT INTO orders VALUES (1)")),
+            gate(L::Safe, &p("INSERT INTO orders VALUES (1)")?),
             Decision::Confirm { deliberate: true }
         );
-        assert_eq!(gate(L::Safe, &p("SELECT 1 FROM orders")), Decision::Run);
+        assert_eq!(gate(L::Safe, &p("SELECT 1 FROM orders")?), Decision::Run);
         assert_eq!(
-            gate(L::SafeFull, &p("SELECT 1 FROM orders")),
+            gate(L::SafeFull, &p("SELECT 1 FROM orders")?),
             Decision::Confirm { deliberate: true }
         );
         assert_eq!(
-            gate(L::ReadOnly, &p("UPDATE orders SET x = 1 WHERE id = 1")),
+            gate(L::ReadOnly, &p("UPDATE orders SET x = 1 WHERE id = 1")?),
             Decision::Deny
         );
-        assert_eq!(gate(L::ReadOnly, &p("SELECT 1 FROM orders")), Decision::Run);
-        assert_eq!(gate(L::ReadOnly, &p("DROP TABLE orders")), Decision::Deny);
+        assert_eq!(
+            gate(L::ReadOnly, &p("SELECT 1 FROM orders")?),
+            Decision::Run
+        );
+        assert_eq!(gate(L::ReadOnly, &p("DROP TABLE orders")?), Decision::Deny);
+        Ok(())
     }
 
     #[test]
-    fn runs_filtered_sorted_select() {
+    fn runs_filtered_sorted_select() -> Result<(), String> {
         let cat = Catalog::acme_prod();
-        let Statement::Select(s) = parse(
+        let s = parse_select(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
-        )
-        .unwrap() else {
-            panic!()
-        };
-        let rs = run_select(&cat, &s).unwrap();
+        )?;
+        let rs = run_select(&cat, &s).map_err(|error| error.message)?;
         assert_eq!(rs.rows.len(), 20);
-        let status_i = rs.columns.iter().position(|c| c.0 == "status").unwrap();
-        assert!(rs.rows.iter().all(|r| r[status_i].display() == "pending"));
+        let status_i = rs
+            .columns
+            .iter()
+            .position(|c| c.0 == "status")
+            .ok_or_else(|| "result did not contain status".to_owned())?;
+        assert!(rs.rows.iter().all(|row| {
+            row.get(status_i)
+                .is_some_and(|value| value.display() == "pending")
+        }));
         let amt = rs
             .columns
             .iter()
             .position(|c| c.0 == "total_amount")
-            .unwrap();
-        let a = rs.rows[0][amt].as_f64().unwrap();
-        let b = rs.rows[19][amt].as_f64().unwrap();
-        assert!(a >= b);
+            .ok_or_else(|| "result did not contain total_amount".to_owned())?;
+        let first = rs
+            .rows
+            .first()
+            .and_then(|row| row.get(amt))
+            .ok_or_else(|| "result had no first amount".to_owned())?
+            .as_f64()
+            .ok_or_else(|| "first amount was not numeric".to_owned())?;
+        let last = rs
+            .rows
+            .last()
+            .and_then(|row| row.get(amt))
+            .ok_or_else(|| "result had no last amount".to_owned())?
+            .as_f64()
+            .ok_or_else(|| "last amount was not numeric".to_owned())?;
+        assert!(first >= last);
         assert!(rs.editable);
+        Ok(())
     }
 
     #[test]
-    fn errors_are_specific() {
+    fn errors_are_specific() -> Result<(), String> {
         let cat = Catalog::acme_prod();
-        let Statement::Select(s) = parse("SELECT nope FROM orders").unwrap() else {
-            panic!()
-        };
-        let e = run_select(&cat, &s).unwrap_err();
+        let s = parse_select("SELECT nope FROM orders")?;
+        let e = execution_error(run_select(&cat, &s))?;
         assert!(e.message.contains("column \"nope\""));
-        let Statement::Select(s) = parse("SELECT * FROM ordres").unwrap() else {
-            panic!()
-        };
-        assert!(
-            run_select(&cat, &s)
-                .unwrap_err()
-                .message
-                .contains("relation")
-        );
-        let e = parse("SELEC * FROM orders").unwrap_err();
+        let s = parse_select("SELECT * FROM ordres")?;
+        let e = execution_error(run_select(&cat, &s))?;
+        assert!(e.message.contains("relation"));
+        let e = parse_error("SELEC * FROM orders")?;
         assert_eq!(e.at, 0);
+        Ok(())
     }
 
     #[test]
-    fn explain_builds_tree() {
+    fn explain_builds_tree() -> Result<(), String> {
         let cat = Catalog::acme_prod();
-        let Statement::Select(s) =
-            parse("SELECT * FROM orders WHERE notes LIKE '%gift%' ORDER BY created_at LIMIT 10")
-                .unwrap()
-        else {
-            panic!()
-        };
-        let plan = explain(&cat, &s, true).unwrap();
+        let s = parse_select(
+            "SELECT * FROM orders WHERE notes LIKE '%gift%' ORDER BY created_at LIMIT 10",
+        )?;
+        let plan = explain(&cat, &s, true).map_err(|error| error.message)?;
         assert_eq!(plan.op, "Limit");
-        assert_eq!(plan.children[0].op, "Sort");
-        assert!(
-            plan.children[0].children[0].op.contains("Gather")
-                || plan.children[0].children[0].op.contains("Scan")
-        );
+        let sort = plan
+            .children
+            .first()
+            .ok_or_else(|| "limit node had no child".to_owned())?;
+        assert_eq!(sort.op, "Sort");
+        let scan = sort
+            .children
+            .first()
+            .ok_or_else(|| "sort node had no child".to_owned())?;
+        assert!(scan.op.contains("Gather") || scan.op.contains("Scan"));
         let mut lines = vec![];
         plan_text(&plan, 0, &mut lines);
-        assert!(lines[0].starts_with("Limit"));
+        assert!(lines.first().is_some_and(|line| line.starts_with("Limit")));
+        Ok(())
     }
 }

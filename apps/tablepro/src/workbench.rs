@@ -1,4 +1,4 @@
-//! TablePro workbench state: explorer, tabs, history and query routing.
+//! `TablePro` workbench state: explorer, tabs, history and query routing.
 
 use crate::db::{Catalog, Connection, ObjectKind};
 use crate::filter_editor::Filter;
@@ -143,7 +143,7 @@ impl Workbench {
     /// Toggle the active table's structure view.
     pub fn toggle_structure(&mut self) -> bool {
         self.active_table_mut()
-            .map(|table| table.toggle_structure())
+            .map(TableTab::toggle_structure)
             .is_some()
     }
     /// Toggle maximisation.
@@ -151,6 +151,11 @@ impl Workbench {
         self.maximized = !self.maximized;
     }
     /// Execute the active query and record successful/failed history.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the active tab is not a query or its SQL cannot
+    /// be executed by the deterministic catalog.
     pub fn execute_active(&mut self) -> Result<usize, String> {
         let (query, source) = match self.active() {
             Some(Tab::Query(tab)) => (tab.query.clone(), HistorySource::Editor),

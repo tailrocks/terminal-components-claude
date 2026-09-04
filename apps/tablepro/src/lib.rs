@@ -3,26 +3,6 @@
 //! Database semantics stay in application-owned adapters; terminal behavior
 //! is reached only through the public `junie-tui` facade.
 #![forbid(unsafe_code)]
-#![allow(missing_docs, unused_qualifications)]
-#![allow(
-    clippy::all,
-    clippy::pedantic,
-    clippy::arithmetic_side_effects,
-    unused_imports
-)]
-#![cfg_attr(
-    test,
-    allow(
-        clippy::indexing_slicing,
-        clippy::unwrap_used,
-        clippy::expect_used,
-        clippy::panic,
-        clippy::arithmetic_side_effects,
-        clippy::too_many_lines,
-        clippy::module_name_repetitions,
-        reason = "deterministic application tests use direct assertions"
-    )
-)]
 
 pub mod connections;
 pub mod db;
@@ -46,6 +26,17 @@ mod tablepro {
         sql::{self, Statement},
     };
     use junie_tui::{ColumnKey, EditIntent, GridEditor, GridModel, ItemKey, SortDir};
+
+    fn parse_statement(source: &str) -> Result<Statement, String> {
+        sql::parse(source).map_err(|error| format!("parse at {}: {}", error.at, error.message))
+    }
+
+    fn parse_select(source: &str) -> Result<sql::Select, String> {
+        match parse_statement(source)? {
+            Statement::Select(select) => Ok(select),
+            statement => Err(format!("expected SELECT, got {statement:?}")),
+        }
+    }
 
     #[test]
     fn grid_adapter_keeps_every_pending_change_capability() {
@@ -71,28 +62,16 @@ mod tablepro {
     }
 
     #[test]
-    fn view_grid_is_read_only_with_a_reason() {
+    fn view_grid_is_read_only_with_a_reason() -> Result<(), String> {
         let catalog = db::Catalog::acme_prod();
-        let statement = match sql::parse("SELECT status FROM orders LIMIT 3") {
-            Ok(Statement::Select(select)) => select,
-            Ok(_) => {
-                panic!("projection must parse as SELECT");
-            }
-            Err(error) => {
-                panic!("query must parse: {}", error.message);
-            }
-        };
-        let result = match sql::run_select(&catalog, &statement) {
-            Ok(result) => result,
-            Err(error) => {
-                panic!("query must execute: {}", error.message);
-            }
-        };
+        let statement = parse_select("SELECT status FROM orders LIMIT 3")?;
+        let result = sql::run_select(&catalog, &statement).map_err(|error| error.message)?;
         let grid = ResultGrid::from_result(&result);
 
         assert!(!grid.is_editable());
         assert!(grid.read_only_reason().is_some());
         assert!(matches!(grid.edit_intent(0, 0), EditIntent::Refuse { .. }));
+        Ok(())
     }
 
     #[test]
@@ -117,25 +96,10 @@ mod tablepro {
     }
 
     #[test]
-    fn query_safety_gate_preserves_safe_mode_policy() {
-        let select = match sql::parse("SELECT * FROM orders") {
-            Ok(statement) => statement,
-            Err(error) => {
-                panic!("query must parse: {}", error.message);
-            }
-        };
-        let destructive = match sql::parse("DELETE FROM orders") {
-            Ok(statement) => statement,
-            Err(error) => {
-                panic!("query must parse: {}", error.message);
-            }
-        };
-        let scoped_write = match sql::parse("UPDATE orders SET status = 'paid' WHERE id = 7") {
-            Ok(statement) => statement,
-            Err(error) => {
-                panic!("query must parse: {}", error.message);
-            }
-        };
+    fn query_safety_gate_preserves_safe_mode_policy() -> Result<(), String> {
+        let select = parse_statement("SELECT * FROM orders")?;
+        let destructive = parse_statement("DELETE FROM orders")?;
+        let scoped_write = parse_statement("UPDATE orders SET status = 'paid' WHERE id = 7")?;
 
         assert_eq!(sql::gate(SafeMode::Silent, &select), sql::Decision::Run);
         assert_eq!(
@@ -146,5 +110,6 @@ mod tablepro {
             sql::gate(SafeMode::ReadOnly, &scoped_write),
             sql::Decision::Deny
         );
+        Ok(())
     }
 }

@@ -46,6 +46,19 @@ fn steps()
         .step(&step_state)
         .row(step_row)
 }
+
+fn run_button(running: bool) -> Button<'static> {
+    Button::new(RUN, "Run pipeline")
+        .variant(Variant::PRIMARY)
+        .disabled(running)
+}
+
+fn cancel_button(running: bool) -> Button<'static> {
+    Button::new(CANCEL, "Cancel pipeline")
+        .variant(Variant::DANGER)
+        .disabled(!running)
+}
+
 fn cancel_dialog() -> Dialog<'static> {
     Dialog::confirm(
         CANCEL_DIALOG,
@@ -141,18 +154,12 @@ impl Page for TaskRunnerPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
-        let run = Button::new(RUN, "Run pipeline")
-            .variant(Variant::PRIMARY)
-            .disabled(self.running)
-            .update(cx);
+        let run = run_button(self.running).update(cx);
         if run.activated() {
             self.start();
         }
         result |= run.erase();
-        let cancel = Button::new(CANCEL, "Cancel pipeline")
-            .variant(Variant::DANGER)
-            .disabled(!self.running)
-            .update(cx);
+        let cancel = cancel_button(self.running).update(cx);
         if cancel.activated() && !cx.is_open(CANCEL_DIALOG) {
             cx.open_layer(CANCEL_DIALOG, cancel_dialog().layer(cx));
         }
@@ -203,13 +210,8 @@ impl Page for TaskRunnerPage {
                 let (rail_area, actions) = layout::split_v(body, body.height.saturating_sub(6));
                 steps().draw(ui, rail_area, &self.state, &self.steps);
                 let action_rows = super::rows(actions, 3);
-                Button::new(RUN, "Run pipeline")
-                    .variant(Variant::PRIMARY)
-                    .disabled(self.running)
-                    .draw(ui, action_rows.first().copied().unwrap_or(actions));
-                Button::new(CANCEL, "Cancel pipeline")
-                    .variant(Variant::DANGER)
-                    .disabled(!self.running)
+                run_button(self.running).draw(ui, action_rows.first().copied().unwrap_or(actions));
+                cancel_button(self.running)
                     .draw(ui, action_rows.get(1).copied().unwrap_or(actions));
                 let progress = format!(
                     "Pipeline · {} · {}% · frame={} · {}",

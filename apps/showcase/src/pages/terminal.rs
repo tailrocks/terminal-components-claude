@@ -11,6 +11,18 @@ use super::{Page, frame, lines};
 const OUTPUT: Id = id!("terminal.output");
 const PANEL: Id = id!("terminal.panel");
 
+fn output() -> TextArea<'static> {
+    TextArea::new(OUTPUT, 12)
+        .read_only(true)
+        .status(Status::Ready)
+}
+
+fn panel() -> Panel<'static> {
+    Panel::new(PANEL)
+        .kind(PanelKind::Card)
+        .title("build output")
+}
+
 /// Terminal output is a real read-only `TextArea` so wheel, `PageDown` and its
 /// scrollbar share the same semantics as editable multiline text.
 #[derive(Debug)]
@@ -40,11 +52,11 @@ impl Page for TerminalPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        TextArea::new(OUTPUT, 12)
-            .read_only(true)
-            .status(Status::Ready)
+        let response = output()
             .update(cx, &mut self.state, &mut self.output)
-            .erase()
+            .erase();
+        let _ = panel();
+        response
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -54,16 +66,9 @@ impl Page for TerminalPage {
             self.title(),
             "read-only output · paging",
             |ui, body| {
-                Panel::new(PANEL)
-                    .kind(PanelKind::Card)
-                    .title("build output")
-                    .draw(ui, body, |ui, inner| {
-                        TextArea::new(OUTPUT, 12)
-                            .value(&self.output)
-                            .read_only(true)
-                            .status(Status::Ready)
-                            .draw(ui, inner, &self.state);
-                    });
+                panel().draw(ui, body, |ui, inner| {
+                    output().value(&self.output).draw(ui, inner, &self.state);
+                });
                 lines(
                     ui,
                     Rect {

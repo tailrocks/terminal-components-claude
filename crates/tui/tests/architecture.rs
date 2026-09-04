@@ -233,6 +233,16 @@ mod architecture {
         check("capture_matrix_contract");
     }
 
+    #[test]
+    fn app_baselines_exist() {
+        check("app_baselines_exist");
+    }
+
+    #[test]
+    fn workspace_root_is_virtual() {
+        check("workspace_root_is_virtual");
+    }
+
     /// §16.5 / §21 item 23 / §47.5. A slice-indexed expected set —
     /// `{showcase_app}` from Slice 5, `+ tablepro_app` from 6, `+ jackin_app`
     /// from 7 — where **a missing expected member is a failure, not a pass**.

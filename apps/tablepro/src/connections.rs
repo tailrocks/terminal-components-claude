@@ -15,20 +15,36 @@ pub const FORM: Id = Id::root("tablepro.connections.form");
 /// Stable form field ids.
 pub mod field {
     use junie_tui::Id;
+
+    /// Connection name field.
     pub const NAME: Id = Id::root("tablepro.connections.form.name");
+    /// Database engine field.
     pub const ENGINE: Id = Id::root("tablepro.connections.form.engine");
+    /// Host name field.
     pub const HOST: Id = Id::root("tablepro.connections.form.host");
+    /// Port field.
     pub const PORT: Id = Id::root("tablepro.connections.form.port");
+    /// Database name field.
     pub const DATABASE: Id = Id::root("tablepro.connections.form.database");
+    /// User name field.
     pub const USER: Id = Id::root("tablepro.connections.form.user");
+    /// Password field.
     pub const PASSWORD: Id = Id::root("tablepro.connections.form.password");
+    /// Prompt-for-password field.
     pub const ASK_PASSWORD: Id = Id::root("tablepro.connections.form.ask-password");
+    /// Environment field.
     pub const ENVIRONMENT: Id = Id::root("tablepro.connections.form.environment");
+    /// Connection group field.
     pub const GROUP: Id = Id::root("tablepro.connections.form.group");
+    /// Safe-mode field.
     pub const SAFE_MODE: Id = Id::root("tablepro.connections.form.safe-mode");
+    /// TLS toggle field.
     pub const SSL: Id = Id::root("tablepro.connections.form.ssl");
+    /// SSH tunnel toggle field.
     pub const SSH: Id = Id::root("tablepro.connections.form.ssh");
+    /// SSH host field.
     pub const SSH_HOST: Id = Id::root("tablepro.connections.form.ssh-host");
+    /// Startup command field.
     pub const STARTUP: Id = Id::root("tablepro.connections.form.startup");
 }
 
@@ -76,7 +92,10 @@ fn valid_port(value: &str) -> Result<(), junie_tui::FieldError> {
 
 /// The public `Form` declaration for the complete connection editor.
 pub fn form_fields() -> [FieldSpec<'static>; 15] {
-    use field::*;
+    use field::{
+        ASK_PASSWORD, DATABASE, ENGINE, ENVIRONMENT, GROUP, HOST, NAME, PASSWORD, PORT, SAFE_MODE,
+        SSH, SSH_HOST, SSL, STARTUP, USER,
+    };
     [
         FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME)))
             .required(true)
@@ -246,8 +265,12 @@ impl ConnectionDraft {
     }
 
     /// Validate required fields and the port.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first invalid field and its user-facing validation error.
     pub fn validate_all(&self) -> Result<(), (Id, junie_tui::FieldError)> {
-        use field::*;
+        use field::{DATABASE, NAME, PORT};
         if self.name.trim().is_empty() {
             return Err((
                 NAME,
@@ -331,7 +354,10 @@ impl ConnectionDraft {
 
 impl FormData for ConnectionDraft {
     fn value(&self, id: Id) -> FieldRef<'_> {
-        use field::*;
+        use field::{
+            ASK_PASSWORD, DATABASE, ENGINE, ENVIRONMENT, GROUP, HOST, NAME, PASSWORD, PORT,
+            SAFE_MODE, SSH, SSH_HOST, SSL, STARTUP, USER,
+        };
         match id {
             NAME => FieldRef::Text(&self.name),
             ENGINE => FieldRef::Choice(self.engine),
@@ -353,7 +379,10 @@ impl FormData for ConnectionDraft {
     }
 
     fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
-        use field::*;
+        use field::{
+            ASK_PASSWORD, DATABASE, ENGINE, ENVIRONMENT, GROUP, HOST, NAME, PASSWORD, PORT,
+            SAFE_MODE, SSH, SSH_HOST, SSL, STARTUP, USER,
+        };
         match id {
             NAME => FieldMut::Text(&mut self.name),
             ENGINE => FieldMut::Choice(&mut self.engine),

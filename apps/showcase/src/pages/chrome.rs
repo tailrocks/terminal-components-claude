@@ -16,6 +16,21 @@ const RIGHT: [StatusItem<'static>; 2] = [
     StatusItem::new("ready").tone(Role::Success),
 ];
 
+fn brand() -> Brand<'static> {
+    Brand::new(BRAND, "Junie")
+        .tagline("deliberate terminal interfaces")
+        .clickable(true)
+}
+
+fn status_bar<'a>(center: &'a [StatusItem<'a>], frame: usize) -> StatusBar<'a> {
+    StatusBar::new(BAR)
+        .left(&LEFT)
+        .center(center)
+        .right(&RIGHT)
+        .status(Status::Ready)
+        .frame(frame)
+}
+
 /// Chrome keeps a clickable brand and a deterministic status strip in state.
 #[derive(Debug, Default)]
 pub(crate) struct ChromePage {
@@ -35,14 +50,12 @@ impl Page for ChromePage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let brand = Brand::new(BRAND, "Junie")
-            .tagline("application chrome")
-            .clickable(true)
-            .update(cx);
+        let brand = brand().update(cx);
         if brand.activated() {
             self.brand_clicks = self.brand_clicks.saturating_add(1);
         }
-        brand.erase()
+        let strip = status_bar(&CENTER, self.frame).update(cx);
+        brand.erase() | strip.erase()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
@@ -53,19 +66,10 @@ impl Page for ChromePage {
             "brand · status · meter",
             |ui, body| {
                 let (brand_area, rest) = layout::split_v(body, 4);
-                Brand::new(BRAND, "Junie")
-                    .tagline("deliberate terminal interfaces")
-                    .clickable(true)
-                    .draw(ui, brand_area);
+                brand().draw(ui, brand_area);
                 let (status_area, notes) = layout::split_v(rest, 1);
                 let center = [StatusItem::new("tests 24/24").meter(0.96), CENTER[0]];
-                StatusBar::new(BAR)
-                    .left(&LEFT)
-                    .center(&center)
-                    .right(&RIGHT)
-                    .status(Status::Ready)
-                    .frame(self.frame)
-                    .draw(ui, status_area);
+                status_bar(&center, self.frame).draw(ui, status_area);
                 let clicks = format!(
                     "brand activations: {} · status strip is keyed and width-aware",
                     self.brand_clicks

@@ -1,7 +1,7 @@
 //! Application shell for the migrated showcase binary.
 
 use junie_tui::{
-    ActionKey, App as TuiApp, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState, Id,
+    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState, Id,
     ItemKey, KeyCode, KeyMap, KeyPhase, NavList, NavListAction, NavListState, Panel, PanelKind,
     Response, Size, Status, StatusBar, StatusItem, Theme, TooSmall, Ui, id, layout,
 };
@@ -372,6 +372,27 @@ fn nav() -> NavList<
         .row(nav_row)
 }
 
+fn shell_brand() -> Brand<'static> {
+    Brand::new(BRAND, "SHOWCASE").tagline("public junie-tui API")
+}
+
+fn shell_status() -> StatusBar<'static> {
+    StatusBar::new(STATUS)
+        .left(&STATUS_LEFT)
+        .right(&STATUS_RIGHT)
+        .status(Status::Ready)
+}
+
+fn missing_page_panel() -> Panel<'static> {
+    Panel::new(BRAND)
+        .kind(PanelKind::Framed)
+        .title("Missing page")
+}
+
+fn too_small_notice() -> TooSmall<'static> {
+    TooSmall::new(TOO_SMALL, "showcase").minimum(72, 20)
+}
+
 fn page(kind: PageId) -> Box<dyn Page> {
     match kind {
         PageId::Overview => Box::new(OverviewPage::new()),
@@ -529,6 +550,14 @@ impl Default for App {
 impl TuiApp for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
+        response |= shell_brand().update(cx).erase();
+        response |= shell_status().update(cx).erase();
+        // These stateless shell props have no update phase of their own, but
+        // the same constructors must remain the source of truth in both
+        // runtime phases.  Calling them here also keeps the minimum-size and
+        // fallback branches construction-safe under the props guard.
+        let _ = too_small_notice();
+        let _ = missing_page_panel();
         let command = cx.command();
         match command {
             Some(QUIT | QUIT_CTRL) => {
@@ -598,33 +627,22 @@ impl TuiApp for App {
     fn draw(&self, ui: &mut Ui<'_>) {
         let full = ui.full();
         if full.width < 72 || full.height < 20 {
-            TooSmall::new(TOO_SMALL, "showcase")
-                .minimum(72, 20)
-                .draw(ui, full);
+            too_small_notice().draw(ui, full);
             return;
         }
         let (without_status, status_area) = layout::split_v(full, full.height.saturating_sub(1));
         let (header, body) = layout::split_v(without_status, 3);
         let (sidebar, content) = layout::split_h(body, 24);
-        junie_tui::Brand::new(BRAND, "SHOWCASE")
-            .tagline("public junie-tui API")
-            .draw(ui, header);
+        shell_brand().draw(ui, header);
         nav().draw(ui, sidebar, &self.nav_state, NAV_ENTRIES);
         if let Some(active) = self.active() {
             active.draw(ui, content);
         } else {
-            Panel::new(BRAND)
-                .kind(PanelKind::Framed)
-                .title("Missing page")
-                .draw(ui, content, |ui, area| {
-                    let _ = ui.paint_str(area, "No page selected", ui.surface_style());
-                });
+            missing_page_panel().draw(ui, content, |ui, area| {
+                let _ = ui.paint_str(area, "No page selected", ui.surface_style());
+            });
         }
-        StatusBar::new(STATUS)
-            .left(&STATUS_LEFT)
-            .right(&STATUS_RIGHT)
-            .status(Status::Ready)
-            .draw(ui, status_area);
+        shell_status().draw(ui, status_area);
         ui.layer(HELP, |ui, area| {
             Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
                 let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());

@@ -1,8 +1,9 @@
 //! Code editor page with cursor, insert mode and diagnostics.
 
 use junie_tui::{
-    CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx, Id, Rect, Response,
-    Ui, id,
+    CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Completion,
+    CompletionState, Cx, DiffView, DiffViewState, Id, Item, ItemKey, Rect, Response, Ui, id,
+    layout,
 };
 
 use crate::data::CODE;
@@ -10,9 +11,24 @@ use crate::data::CODE;
 use super::{Page, frame, lines};
 
 const EDITOR: Id = id!("editor.code");
+const COMPLETION: Id = id!("editor.completion");
+const DIFF: Id = id!("editor.diff");
+const SUGGESTIONS: &[Item<'static>] = &[
+    Item::new(ItemKey::Num(101), "fn").detail("function keyword"),
+    Item::new(ItemKey::Num(102), "let").detail("binding keyword"),
+    Item::new(ItemKey::Num(103), "match").detail("pattern match"),
+];
 
 fn editor() -> CodeEditor<'static> {
     CodeEditor::new(EDITOR, 12).placeholder("Start typing Rust…")
+}
+
+fn completion() -> Completion<'static, Item<'static>> {
+    Completion::new(COMPLETION).max_rows(3)
+}
+
+fn diff() -> DiffView<'static> {
+    DiffView::new(DIFF, None)
 }
 
 /// The editor's durable document is initialized from the legacy sample and
@@ -20,6 +36,8 @@ fn editor() -> CodeEditor<'static> {
 #[derive(Debug)]
 pub(crate) struct EditorPage {
     state: CodeEditorState,
+    completion_state: CompletionState,
+    diff_state: DiffViewState,
     last: &'static str,
 }
 
@@ -33,6 +51,8 @@ impl EditorPage {
         )]);
         Self {
             state,
+            completion_state: CompletionState::default(),
+            diff_state: DiffViewState::default(),
             last: "read-only preview",
         }
     }
@@ -50,8 +70,8 @@ impl Page for EditorPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let result = editor().update(cx, &mut self.state);
-        if let Some(action) = result.action_ref() {
+        let editor_response = editor().update(cx, &mut self.state);
+        if let Some(action) = editor_response.action_ref() {
             self.last = match action {
                 CodeAction::Changed => "document changed",
                 CodeAction::CursorMoved => "cursor moved",
@@ -59,6 +79,11 @@ impl Page for EditorPage {
                 CodeAction::Leave { .. } => "focus moved",
             };
         }
+        let mut result = editor_response.erase();
+        result |= completion()
+            .update_for(EDITOR, cx, &mut self.completion_state, SUGGESTIONS)
+            .erase();
+        result |= diff().update(cx, &mut self.diff_state).erase();
         result.erase()
     }
 
@@ -69,34 +94,27 @@ impl Page for EditorPage {
             self.title(),
             "code editor · diagnostics · insert mode",
             |ui, body| {
-                let code_area = Rect {
-                    height: body.height.saturating_sub(2),
-                    ..body
-                };
+                let (code_area, lower) = layout::split_v(body, body.height.saturating_sub(8));
                 editor().draw(ui, code_area, &self.state);
+                let (status_area, lower) = layout::split_v(lower, 1);
                 let status = format!(
                     "lines={} · diagnostics={} · {}",
                     self.state.text().lines().count(),
                     self.state.diagnostics().len(),
                     self.last
                 );
-                let _ = ui.paint_str(
-                    Rect {
-                        y: code_area.bottom(),
-                        height: 1,
-                        ..body
-                    },
-                    &status,
-                    ui.surface_style(),
-                );
+                let _ = ui.paint_str(status_area, &status, ui.surface_style());
+                let (diff_area, completion_area) = layout::split_h(lower, lower.width / 2);
+                diff().draw(ui, diff_area, &self.diff_state);
+                completion().draw(ui, completion_area, &self.completion_state, SUGGESTIONS);
                 lines(
                     ui,
                     Rect {
-                        y: code_area.bottom().saturating_add(1),
+                        y: lower.bottom().saturating_sub(1),
                         height: 1,
-                        ..body
+                        ..lower
                     },
-                    &["F2/Insert edits; Esc/Enter commits through the public editor lifecycle."],
+                    &["F2/Insert edits; the review and completion panes use public components."],
                 );
             },
         );

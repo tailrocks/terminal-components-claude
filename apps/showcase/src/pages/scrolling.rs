@@ -5,13 +5,13 @@
 //! only scroll, selection, follow-tail, and pointer capture state.
 
 use junie_tui::{
-    Cx, Id, Panel, PanelKind, Rect, Response, TextViewport, Ui, ViewportAction, ViewportLine,
-    ViewportState, id, layout,
+    Cx, Id, Panel, PanelKind, Rect, Response, ScrollRegion, ScrollState, TextViewport, Ui,
+    ViewportAction, ViewportLine, ViewportState, id, layout,
 };
 
 use crate::data::{PROSE, SCROLL_ROWS};
 
-use super::{Page, frame, lines};
+use super::{Page, frame};
 
 const PROSE_VIEW: Id = id!("scrolling.prose");
 const LIST_VIEW: Id = id!("scrolling.list");
@@ -19,6 +19,7 @@ const LOG_VIEW: Id = id!("scrolling.log");
 const PROSE_PANEL: Id = id!("scrolling.prose.panel");
 const LIST_PANEL: Id = id!("scrolling.list.panel");
 const LOG_PANEL: Id = id!("scrolling.log.panel");
+const SCROLL_REGION: Id = id!("scrolling.region");
 
 fn prose_view() -> TextViewport<'static> {
     TextViewport::new(PROSE_VIEW).wrap(true)
@@ -30,6 +31,10 @@ fn list_view() -> TextViewport<'static> {
 
 fn log_view() -> TextViewport<'static> {
     TextViewport::new(LOG_VIEW)
+}
+
+fn scroll_region() -> ScrollRegion<'static> {
+    ScrollRegion::new(SCROLL_REGION)
 }
 
 fn rows() -> Vec<ViewportLine<'static>> {
@@ -77,6 +82,7 @@ pub(crate) struct ScrollingPage {
     prose_state: ViewportState,
     list_state: ViewportState,
     log_state: ViewportState,
+    region_state: ScrollState,
     last: &'static str,
 }
 
@@ -95,6 +101,7 @@ impl ScrollingPage {
             prose_state,
             list_state,
             log_state,
+            region_state: ScrollState::default(),
             last: "top of document",
         }
     }
@@ -133,6 +140,9 @@ impl Page for ScrollingPage {
         let log = log_view().update(cx, &mut self.log_state, &self.log);
         self.note(log.action_ref());
         response |= log.erase();
+        response |= scroll_region()
+            .update(cx, &mut self.region_state, 24)
+            .erase();
         response
     }
 
@@ -143,7 +153,8 @@ impl Page for ScrollingPage {
             self.title(),
             "wheel · PageUp/PageDown · drag scrollbar · select text",
             |ui, body| {
-                let (left, rest) = layout::split_h(body, body.width / 3);
+                let (panel_body, footer) = layout::split_v(body, body.height.saturating_sub(2));
+                let (left, rest) = layout::split_h(panel_body, panel_body.width / 3);
                 let (middle, right) = layout::split_h(rest, rest.width / 2);
                 let panels = [
                     (
@@ -169,11 +180,7 @@ impl Page for ScrollingPage {
                 list_view().draw(ui, list_inner, &self.list_state, &self.list);
                 let log_inner = draw_panel(ui, panels[2].0, panels[2].1, panels[2].3, panels[2].4);
                 log_view().draw(ui, log_inner, &self.log_state, &self.log);
-                let status = Rect {
-                    y: body.bottom().saturating_sub(1),
-                    height: 1,
-                    ..body
-                };
+                let (status, rail) = layout::split_v(footer, 1);
                 let summary = format!(
                     "prose={} · list={} · log={} · {}",
                     self.prose_state.scroll().offset(),
@@ -182,14 +189,11 @@ impl Page for ScrollingPage {
                     self.last,
                 );
                 let _ = ui.paint_str(status, &summary, ui.surface_style());
-                lines(
-                    ui,
-                    Rect {
-                        y: status.y.saturating_sub(1),
-                        height: 1,
-                        ..body
-                    },
-                    &["Each pane keeps its own offset and stable pointer-capture track."],
+                let rail_content = scroll_region().draw(ui, rail, &self.region_state, 24);
+                let _ = ui.paint_str(
+                    rail_content,
+                    "ScrollRegion · shared track contract",
+                    ui.surface_style(),
                 );
             },
         );

@@ -1,4 +1,4 @@
-//! TablePro tab models.  Each tab owns product state; terminal components
+//! `TablePro` tab models. Each tab owns product state; terminal components
 //! only receive controlled values and generic grid adapters.
 
 use crate::db::{Catalog, ColType, Table, Value};
@@ -10,7 +10,9 @@ use crate::sql::{self, PlanNode};
 /// Table tab body.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableMode {
+    /// Data grid mode.
     Data,
+    /// Structure grid mode.
     Structure,
 }
 
@@ -156,6 +158,11 @@ impl QueryTab {
         }
     }
     /// Execute this query through the deterministic app-owned engine.
+    ///
+    /// # Errors
+    ///
+    /// Returns a parser or executor message when the query is unsupported or
+    /// the catalog cannot evaluate it.
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
@@ -168,6 +175,11 @@ impl QueryTab {
         Ok(rows)
     }
     /// Build an explain plan for this query.
+    ///
+    /// # Errors
+    ///
+    /// Returns a parser or planner message when the query is not a supported
+    /// `SELECT` statement.
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
@@ -222,8 +234,11 @@ impl HistoryTab {
 /// Product tab union.
 #[derive(Debug, Clone)]
 pub enum Tab {
+    /// Table data or structure tab.
     Table(TableTab),
+    /// SQL query tab.
     Query(QueryTab),
+    /// Query history tab.
     History(HistoryTab),
 }
 
@@ -246,9 +261,13 @@ impl Tab {
 /// One explorer row.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExplorerItem {
+    /// Schema name.
     pub schema: String,
+    /// Object name.
     pub name: String,
+    /// Catalog object kind.
     pub kind: crate::db::ObjectKind,
+    /// Estimated row count.
     pub rows: usize,
 }
 

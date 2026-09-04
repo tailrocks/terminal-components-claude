@@ -1,8 +1,10 @@
 //! Form-like composition with required-field validation.
 
 use junie_tui::{
-    ActionKey, Button, Checkbox, Cx, Id, ItemKey, Rect, Response, Select, SelectState, TextArea,
-    TextAreaState, TextInput, TextInputState, Ui, Variant, id, layout,
+    ActionKey, Button, Checkbox, Cx, Field, FieldKind, FieldMut, FieldRef, FieldSpec, Form,
+    FormData, FormState, Id, ItemKey, Rect, Response, Role, Select, SelectState, TextArea,
+    TextAreaState, TextInput, TextInputState, Ui, Variant, Wizard, WizardState, WizardStep, id,
+    layout,
 };
 
 use super::{Page, frame, lines, rows};
@@ -15,6 +17,50 @@ const DETAILS: Id = id!("forms.details");
 const PRIORITY: Id = id!("forms.priority");
 const CONFIRM: Id = id!("forms.confirm");
 const SAVE: Id = id!("forms.save");
+const PUBLIC_FORM: Id = id!("forms.public");
+const PUBLIC_NOTE: Id = id!("forms.public.note");
+const FIELD: Id = id!("forms.field");
+const WIZARD: Id = id!("forms.wizard");
+const NOTES: &[(&str, Role)] = &[("Values stay with the application owner.", Role::Info)];
+const PUBLIC_FIELDS: &[FieldSpec<'static>] = &[FieldSpec::new(
+    PUBLIC_NOTE,
+    "FormData note",
+    FieldKind::Note,
+)];
+const WIZARD_STEPS: &[WizardStep<'static>] = &[
+    WizardStep::new(ItemKey::Num(201), "Draft"),
+    WizardStep::new(ItemKey::Num(202), "Review"),
+    WizardStep::new(ItemKey::Num(203), "Done"),
+];
+
+#[derive(Debug, Default)]
+struct PublicFormData;
+
+impl FormData for PublicFormData {
+    fn value(&self, _id: Id) -> FieldRef<'_> {
+        FieldRef::Note(NOTES)
+    }
+
+    fn value_mut(&mut self, _id: Id) -> FieldMut<'_> {
+        FieldMut::ReadOnly
+    }
+}
+
+fn public_form() -> Form<'static> {
+    Form::new(PUBLIC_FORM, PUBLIC_FIELDS)
+}
+
+fn api_field() -> Field<'static, Checkbox<'static>> {
+    Field::new(
+        "Public field",
+        Checkbox::new(FIELD, "draw-time chrome").disabled(true),
+    )
+    .help("Field owns labels; the control owns state.")
+}
+
+fn wizard() -> Wizard<'static> {
+    Wizard::new(WIZARD, WIZARD_STEPS)
+}
 
 /// A composed form owns each field's controlled value and validation state.
 #[derive(Debug)]
@@ -24,6 +70,8 @@ pub(crate) struct FormsPage {
     summary_state: TextInputState,
     details_state: TextAreaState,
     priority: SelectState,
+    public_form: FormState,
+    wizard: WizardState,
     confirm: bool,
     error: Option<&'static str>,
     submitted: bool,
@@ -39,6 +87,8 @@ impl FormsPage {
             summary_state: TextInputState::default(),
             details_state: TextAreaState::default(),
             priority,
+            public_form: FormState::default(),
+            wizard: WizardState::default(),
             confirm: false,
             error: None,
             submitted: false,
@@ -55,6 +105,16 @@ impl FormsPage {
 
     fn priority() -> Select<'static, &'static str> {
         Select::new(PRIORITY).placeholder("Priority")
+    }
+
+    fn confirmation() -> Checkbox<'static> {
+        Checkbox::new(CONFIRM, "I reviewed the rollback plan")
+    }
+
+    fn save_button(confirmed: bool) -> Button<'static> {
+        Button::new(SAVE, "Create task")
+            .variant(Variant::PRIMARY)
+            .disabled(!confirmed)
     }
 
     fn validate(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -104,17 +164,18 @@ impl Page for FormsPage {
         result |= Self::priority()
             .update(cx, &mut self.priority, &["Normal", "High", "Urgent"])
             .erase();
-        result |= Checkbox::new(CONFIRM, "I reviewed the rollback plan")
-            .update(cx, &mut self.confirm)
-            .erase();
-        let save = Button::new(SAVE, "Create task")
-            .variant(Variant::PRIMARY)
-            .disabled(!self.confirm)
-            .update(cx);
+        result |= Self::confirmation().update(cx, &mut self.confirm).erase();
+        let save = Self::save_button(self.confirm).update(cx);
         if save.activated() {
             result |= self.validate(cx);
         }
         result |= save.erase();
+        let mut data = PublicFormData;
+        result |= public_form()
+            .update(cx, &mut self.public_form, &mut data)
+            .erase();
+        result |= wizard().update(cx, &mut self.wizard).erase();
+        let _ = api_field();
         result
     }
 
@@ -143,13 +204,11 @@ impl Page for FormsPage {
                     &self.priority,
                     &["Normal", "High", "Urgent"],
                 );
-                Checkbox::new(CONFIRM, "I reviewed the rollback plan")
+                Self::confirmation()
                     .checked(self.confirm)
                     .draw(ui, left_rows.get(3).copied().unwrap_or(left));
                 let right_rows = rows(right, 4);
-                Button::new(SAVE, "Create task")
-                    .variant(Variant::PRIMARY)
-                    .disabled(!self.confirm)
+                Self::save_button(self.confirm)
                     .draw(ui, right_rows.first().copied().unwrap_or(right));
                 let status = self.error.unwrap_or(if self.submitted {
                     "Creating task"
@@ -169,6 +228,14 @@ impl Page for FormsPage {
                         "Select commits its value only after a choice.",
                     ],
                 );
+                if let Some(area) = right_rows.get(3).copied() {
+                    let (form_area, field_area) = layout::split_v(area, 4);
+                    let data = PublicFormData;
+                    public_form().draw(ui, form_area, &self.public_form, &data);
+                    let (field_area, wizard_area) = layout::split_v(field_area, 1);
+                    api_field().draw(ui, field_area, &());
+                    wizard().draw(ui, wizard_area, &self.wizard);
+                }
             },
         );
     }

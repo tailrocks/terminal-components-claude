@@ -8,10 +8,15 @@ use crate::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
 /// Origin of a history entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HistorySource {
+    /// Editor execution.
     Editor,
+    /// Explain-plan execution.
     Explain,
+    /// Table browsing.
     Browsing,
+    /// Row edits.
     RowEdits,
+    /// Structure inspection.
     Structure,
 }
 
@@ -83,7 +88,7 @@ impl HistoryEntry {
             None => "–".to_owned(),
             Some(0) => "<1 ms".to_owned(),
             Some(n) if n < 1_000 => format!("{n} ms"),
-            Some(n) if n < 60_000 => format!("{:.2} s", n as f64 / 1_000.0),
+            Some(n) if n < 60_000 => format!("{:.2} s", f64::from(n) / 1_000.0),
             Some(n) => format!("{}m {}s", n / 60_000, (n % 60_000) / 1_000),
         }
     }
@@ -92,6 +97,7 @@ impl HistoryEntry {
 /// Bounded newest-first history.
 #[derive(Debug, Clone, Default)]
 pub struct History {
+    /// Entries, newest first.
     pub entries: Vec<HistoryEntry>,
     next_id: usize,
 }
@@ -204,7 +210,7 @@ impl History {
     ) -> Vec<&'a HistoryEntry> {
         let terms: Vec<String> = query
             .split_whitespace()
-            .map(|s| s.to_ascii_lowercase())
+            .map(str::to_ascii_lowercase)
             .collect();
         self.entries
             .iter()
@@ -224,27 +230,39 @@ impl History {
 /// Completion item category.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompletionKind {
+    /// SQL keyword.
     Keyword,
+    /// Relation name.
     Table,
+    /// Column name.
     Column,
+    /// SQL function.
     Function,
 }
 
 /// SQL completion item.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Completion {
+    /// Text inserted into the editor.
     pub text: String,
+    /// Display label.
     pub label: String,
+    /// Completion category.
     pub kind: CompletionKind,
+    /// Fuzzy-match score.
     pub score: u32,
 }
 
 /// SQL context at a cursor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Clause {
+    /// Beginning of a statement.
     Statement,
+    /// After a relation-introducing clause.
     Relation,
+    /// After a projection or predicate clause.
     Column,
+    /// General expression context.
     Expression,
 }
 
@@ -343,30 +361,39 @@ pub fn complete(source: &str, cursor: usize, catalog: &Catalog) -> Vec<Completio
 pub fn auto_trigger(source: &str, cursor: usize) -> bool {
     let prefix = source.get(..cursor.min(source.len())).unwrap_or(source);
     let ch = prefix.chars().next_back();
-    matches!(ch, Some('.') | Some(' ') | Some('\n') | None)
+    matches!(ch, Some('.' | ' ' | '\n') | None)
 }
 
 /// A quick-switcher target kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SwitchTarget {
+    /// Relation.
     Table,
+    /// Query history entry.
     Query,
+    /// Connection.
     Connection,
 }
 
 /// One quick-switcher result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SwitchItem {
+    /// Stable item key.
     pub key: String,
+    /// Main label.
     pub label: String,
+    /// Secondary metadata.
     pub detail: String,
+    /// Target category.
     pub target: SwitchTarget,
+    /// Fuzzy-match score.
     pub score: u32,
 }
 
 /// Search index for quick switching.
 #[derive(Debug, Clone, Default)]
 pub struct SwitcherIndex {
+    /// Indexed switch targets.
     pub items: Vec<SwitchItem>,
 }
 

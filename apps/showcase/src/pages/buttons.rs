@@ -5,14 +5,28 @@
 //! props used by the live controls, so captures cannot drift from behavior.
 
 use junie_tui::{
-    Button, Constraints, Cx, FrameRead, Id, Part, PartRef, Rect, ReferenceState, ReferenceTarget,
-    Response, RowAlign, StateFlags, Status, Ui, Variant, id, layout,
+    Button, Constraints, Cx, FrameRead, Id, ItemKey, Part, PartRef, RadioGroup, RadioGroupState,
+    Rect, ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Toggle, Ui,
+    Variant, id, layout,
 };
 
 use super::{Page, frame};
 
 const BUTTONS: Id = id!("buttons");
 const MATRIX: Id = id!("buttons.matrix");
+const TOGGLE: Id = id!("buttons.toggle");
+const RADIO: Id = id!("buttons.radio");
+const RADIO_OPTIONS: &[&str] = &["Primary", "Secondary", "Danger"];
+
+fn api_toggle() -> Toggle<'static> {
+    Toggle::new(TOGGLE, "API toggle").on(true).disabled(true)
+}
+
+fn api_radio() -> RadioGroup<'static, &'static str> {
+    RadioGroup::new(RADIO)
+        .value(ItemKey::index(0))
+        .disabled(true)
+}
 
 /// The nine playground buttons, in the legacy declaration order.
 const SPECS: [(&str, Variant, bool, Option<bool>); 9] = [
@@ -85,6 +99,7 @@ pub(crate) struct ButtonsPage {
     clicks: u32,
     last: Option<String>,
     busy_frames: u32,
+    radio_state: RadioGroupState,
 }
 
 impl ButtonsPage {
@@ -94,6 +109,7 @@ impl ButtonsPage {
             clicks: 0,
             last: None,
             busy_frames: 0,
+            radio_state: RadioGroupState::default(),
         };
         for (slot, (_, _, _, checked)) in page.checked.iter_mut().zip(SPECS) {
             *slot = checked;
@@ -167,6 +183,8 @@ impl Page for ButtonsPage {
                 response = Response::changed();
             }
         }
+        let _ = api_toggle().update(cx, &mut false);
+        let _ = api_radio().update(cx, &mut self.radio_state, RADIO_OPTIONS);
         response
     }
 
@@ -189,10 +207,15 @@ impl Page for ButtonsPage {
                 self.draw_playground(ui, regions.first().copied().unwrap_or(body));
                 ui.rule(regions.get(1).copied().unwrap_or(body));
                 Self::draw_matrix(ui, regions.get(2).copied().unwrap_or(body));
-                if let Some(last) = &self.last {
-                    let status = regions.get(3).copied().unwrap_or(body);
-                    let text = format!("last: {last} · {} activations", self.clicks);
-                    let _ = ui.paint_str(status, &text, ui.surface_style());
+                if let Some(status) = regions.get(3).copied() {
+                    let (last_area, controls) = layout::split_v(status, 1);
+                    if let Some(last) = &self.last {
+                        let text = format!("last: {last} · {} activations", self.clicks);
+                        let _ = ui.paint_str(last_area, &text, ui.surface_style());
+                    }
+                    let (toggle_area, radio_area) = layout::split_v(controls, 2);
+                    api_toggle().draw(ui, toggle_area);
+                    api_radio().draw(ui, radio_area, &self.radio_state, RADIO_OPTIONS);
                 }
             },
         );

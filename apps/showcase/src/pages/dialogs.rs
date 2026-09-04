@@ -17,6 +17,14 @@ const DIALOG_LABEL_PATCH: junie_tui::StylePatch = junie_tui::StylePatch::new()
 const DIALOG_PARTS: &[(junie_tui::Part, junie_tui::StylePatch)] =
     &[(junie_tui::Part::TITLE, DIALOG_LABEL_PATCH)];
 
+fn confirm_button() -> Button<'static> {
+    Button::new(OPEN_CONFIRM, "Run task now").variant(Variant::PRIMARY)
+}
+
+fn prompt_button() -> Button<'static> {
+    Button::new(OPEN_PROMPT, "Rename task").variant(Variant::SECONDARY)
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum OpenDialog {
     None,
@@ -77,17 +85,13 @@ impl Page for DialogsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
-        let confirm_button = Button::new(OPEN_CONFIRM, "Run task now")
-            .variant(Variant::PRIMARY)
-            .update(cx);
+        let confirm_button = confirm_button().update(cx);
         if confirm_button.activated() && !cx.is_open(CONFIRM) {
             self.open = OpenDialog::Confirm;
             cx.open_layer(CONFIRM, Self::confirm().layer(cx));
         }
         response |= confirm_button.erase();
-        let prompt_button = Button::new(OPEN_PROMPT, "Rename task")
-            .variant(Variant::SECONDARY)
-            .update(cx);
+        let prompt_button = prompt_button().update(cx);
         if prompt_button.activated() && !cx.is_open(PROMPT) {
             self.open = OpenDialog::Prompt;
             cx.open_layer(PROMPT, Self::prompt().layer(cx));
@@ -146,12 +150,8 @@ impl Page for DialogsPage {
             |ui, body| {
                 let (actions, status) = layout::split_v(body, 4);
                 let action_rows = super::rows(actions, 2);
-                Button::new(OPEN_CONFIRM, "Run task now")
-                    .variant(Variant::PRIMARY)
-                    .draw(ui, action_rows.first().copied().unwrap_or(actions));
-                Button::new(OPEN_PROMPT, "Rename task")
-                    .variant(Variant::SECONDARY)
-                    .draw(ui, action_rows.get(1).copied().unwrap_or(actions));
+                confirm_button().draw(ui, action_rows.first().copied().unwrap_or(actions));
+                prompt_button().draw(ui, action_rows.get(1).copied().unwrap_or(actions));
                 let _ = ui.paint_str(status, &self.result, ui.surface_style());
                 lines(
                     ui,

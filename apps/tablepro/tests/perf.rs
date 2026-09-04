@@ -4,7 +4,7 @@
 //! public application facade and domain adapter. Allocation budgets belong to
 //! a separate harness because the old backend is outside this package.
 
-use junie_tui::{Axis, KeyCode, Theme};
+use junie_tui::{Axis, ColumnKey, GridModel, ItemKey, KeyCode, SortDir, Theme};
 use junie_tui_testing::{Harness, perf};
 use tablepro_app::{QueryOutcome, TableProApp};
 
@@ -50,6 +50,35 @@ fn key_tablepro_grid_sort_local() {
 
     assert_eq!(harness.app().result().row_count(), 500);
     assert!(harness.diagnostics().is_empty());
+}
+
+#[test]
+fn grid_100k_local_sort() {
+    let _guard = perf::lock();
+    let n = perf::big(100_000);
+    let result = tablepro_app::sql::ResultSet {
+        columns: vec![("id".to_owned(), tablepro_app::db::ColType::Int)],
+        rows: (0..n)
+            .rev()
+            .map(|value| vec![tablepro_app::db::Value::Int(value as i64)])
+            .collect(),
+        total: n,
+        source: Some("public.orders".to_owned()),
+        duration_ms: 0,
+        editable: false,
+    };
+    let mut grid = tablepro_app::domain::ResultGrid::from_result(&result);
+    let stats = perf::bench(0, perf::iters(2), &mut || {
+        grid.sort(ColumnKey::num(1), SortDir::Asc);
+        grid.sort(ColumnKey::num(1), SortDir::Desc);
+    });
+    perf::report_to(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt"),
+        "grid_100k_local_sort",
+        &stats,
+    );
+    assert_eq!(grid.row_key(0), ItemKey::num(1));
+    assert_eq!(grid.row_count(), n);
 }
 
 #[test]

@@ -6,6 +6,10 @@ use super::{Page, frame, lines, rows};
 
 const BODY: Id = id!("textareas.body");
 
+fn body_area() -> TextArea<'static> {
+    TextArea::new(BODY, 8).placeholder("Write a checklist")
+}
+
 fn checklist() -> String {
     (1..=28)
         .map(|line| match line % 4 {
@@ -49,9 +53,7 @@ impl Page for TextAreasPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let edit = TextArea::new(BODY, 8)
-            .placeholder("Write a checklist")
-            .update(cx, &mut self.state, &mut self.value);
+        let edit = body_area().update(cx, &mut self.state, &mut self.value);
         if let Some(action) = edit.action_ref() {
             self.last = match action {
                 TextAction::Changed => "draft changed",
@@ -71,7 +73,7 @@ impl Page for TextAreasPage {
             "multiline · wheel · arrows · Enter commit",
             |ui, body| {
                 let regions = rows(body, 3);
-                TextArea::new(BODY, 8).value(&self.value).draw(
+                body_area().value(&self.value).draw(
                     ui,
                     regions.first().copied().unwrap_or(body),
                     &self.state,

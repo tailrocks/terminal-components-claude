@@ -1,4 +1,4 @@
-//! TablePro application shell built only on the public `junie-tui` facade.
+//! `TablePro` application shell built only on the public `junie-tui` facade.
 
 use junie_tui::{
     Action, ActionKey, App, Chord, ColorLevel, Cx, Field, Form, FormAction, FormState, Grid,
@@ -31,11 +31,13 @@ const HELP: ActionKey = ActionKey::custom("tablepro.help");
 /// Product-level screen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
+    /// Connection list and initial landing screen.
     Connections,
+    /// Connected database workbench.
     Workbench,
 }
 
-/// Named visual surfaces retained from the legacy showcase matrix.
+/// Named visual surfaces retained from the historical showcase matrix.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Surface {
     /// Connection list.
@@ -197,7 +199,7 @@ fn fallback_connection(catalog: &Catalog) -> Connection {
     }
 }
 
-/// TablePro state and app-owned adapters.
+/// `TablePro` state and app-owned adapters.
 pub struct TableProApp {
     catalog: Catalog,
     connections: Vec<Connection>,
@@ -229,15 +231,26 @@ pub struct TableProApp {
 impl core::fmt::Debug for TableProApp {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("TableProApp")
+            .field("catalog", &self.catalog)
             .field("screen", &self.screen)
             .field("surface", &self.surface)
             .field("connections", &self.connections.len())
             .field("connection", &self.connection.name)
+            .field("keymap", &"<keymap>")
             .field("safe_mode", &self.safe_mode)
             .field("query", &"[redacted]")
+            .field("query_state", &"<input state>")
             .field("columns", &self.columns.len())
             .field("result", &self.result)
+            .field("grid_state", &"<grid state>")
             .field("status", &self.status)
+            .field("quit", &self.quit)
+            .field("connections_screen", &self.connections_screen)
+            .field("workbench", &self.workbench)
+            .field("draft", &self.draft.as_ref().map(|_| "[redacted]"))
+            .field("form_state", &"<form state>")
+            .field("form_fields", &self.form_fields.len())
+            .field("form_actions", &self.form_actions.len())
             .field("form_open", &self.form_open)
             .finish()
     }
@@ -408,8 +421,8 @@ impl TableProApp {
                 self.status = outcome_message(&out);
                 out
             }
-            crate::sql::Decision::Run => match statement {
-                crate::sql::Statement::Select(select) => {
+            crate::sql::Decision::Run => {
+                if let crate::sql::Statement::Select(select) = statement {
                     match crate::sql::run_select(&self.catalog, &select) {
                         Ok(result) => {
                             let out = QueryOutcome::Executed {
@@ -430,15 +443,14 @@ impl TableProApp {
                             out
                         }
                     }
-                }
-                _ => {
+                } else {
                     let out = QueryOutcome::Rejected {
                         message: "The demo executor only runs SELECT statements".to_owned(),
                     };
                     self.status = outcome_message(&out);
                     out
                 }
-            },
+            }
         }
     }
     fn column_specs(columns: &[(String, ColType)], editable: bool) -> Vec<junie_tui::Column<'_>> {
@@ -473,17 +485,17 @@ impl TableProApp {
                 self.status = format!("Sorted column {}", key.raw());
             }
             GridAction::Copy(text) => {
-                self.status = format!("Copied {} cells", text.lines().count())
+                self.status = format!("Copied {} cells", text.lines().count());
             }
             GridAction::Activated(key) => self.status = format!("Activated row {key:?}"),
             GridAction::EditRequested(key, column) => {
-                self.status = format!("Edit requested for {key:?}, column {column:?}")
+                self.status = format!("Edit requested for {key:?}, column {column:?}");
             }
             GridAction::CellAction(key, column, action) => {
-                self.status = format!("Cell action {action:?} on {key:?}/{column:?}")
+                self.status = format!("Cell action {action:?} on {key:?}/{column:?}");
             }
             GridAction::FetchMore => {
-                self.status = "All deterministic demo rows are loaded".to_owned()
+                "All deterministic demo rows are loaded".clone_into(&mut self.status);
             }
             GridAction::Moved | GridAction::LeaveForward | GridAction::LeaveBackward => {}
         }
@@ -494,13 +506,29 @@ impl TableProApp {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryOutcome {
     /// Query returned rows.
-    Executed { rows: usize, editable: bool },
+    Executed {
+        /// Number of returned rows.
+        rows: usize,
+        /// Whether the result supports cell edits.
+        editable: bool,
+    },
     /// Safety gate requires confirmation.
-    ConfirmationRequired { deliberate: bool, summary: String },
+    ConfirmationRequired {
+        /// Whether the acknowledgement must name the target.
+        deliberate: bool,
+        /// Human-readable safety summary.
+        summary: String,
+    },
     /// Read-only policy denied a write.
-    Denied { summary: String },
+    Denied {
+        /// Human-readable denial reason.
+        summary: String,
+    },
     /// Parse/execution rejection.
-    Rejected { message: String },
+    Rejected {
+        /// Parser or executor message.
+        message: String,
+    },
 }
 
 fn outcome_message(outcome: &QueryOutcome) -> String {
@@ -614,18 +642,15 @@ impl App for TableProApp {
                             self.form_open = false;
                             self.draft = None;
                         }
-                        FormAction::Action(ActionKey::SAVE)
-                        | FormAction::Action(connections::SAVE_CONNECT) => {
-                            if let Ok(()) = draft.validate_all() {
-                                if let Some(connection) =
+                        FormAction::Action(ActionKey::SAVE | connections::SAVE_CONNECT) => {
+                            if draft.validate_all().is_ok()
+                                && let Some(connection) =
                                     draft.to_connection(Some(&self.connection))
-                                {
-                                    self.connections.push(connection.clone());
-                                    if action == &FormAction::Action(connections::SAVE_CONNECT) {
-                                        let _ =
-                                            self.connect(self.connections.len().saturating_sub(1));
-                                        self.form_open = false;
-                                    }
+                            {
+                                self.connections.push(connection.clone());
+                                if action == &FormAction::Action(connections::SAVE_CONNECT) {
+                                    let _ = self.connect(self.connections.len().saturating_sub(1));
+                                    self.form_open = false;
                                 }
                             }
                         }
@@ -727,7 +752,12 @@ impl App for TableProApp {
     }
 }
 
-/// Start the interactive TablePro binary.
+/// Start the interactive `TablePro` binary.
+///
+/// # Errors
+///
+/// Returns the terminal runtime's I/O error when the session cannot start
+/// or restore the terminal.
 pub fn run() -> std::io::Result<()> {
     let mut theme = Theme::junie();
     let mut requested_color = None;
