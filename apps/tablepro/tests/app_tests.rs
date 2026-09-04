@@ -18,7 +18,11 @@ fn query_safety_gate_is_conservative() {
     let parse = |query: &str| match sql::parse(query) {
         Ok(statement) => Some(statement),
         Err(error) => {
-            assert!(error.message.is_empty(), "query must parse: {}", error.message);
+            assert!(
+                error.message.is_empty(),
+                "query must parse: {}",
+                error.message
+            );
             None
         }
     };
@@ -91,18 +95,29 @@ fn projected_result_is_read_only_when_no_key_is_selected() {
     let statement = match sql::parse("SELECT status FROM orders LIMIT 3") {
         Ok(Statement::Select(statement)) => statement,
         Ok(_) => {
-            assert!(matches!(sql::parse("SELECT status FROM orders LIMIT 3"), Ok(Statement::Select(_))));
+            assert!(matches!(
+                sql::parse("SELECT status FROM orders LIMIT 3"),
+                Ok(Statement::Select(_))
+            ));
             return;
         }
         Err(error) => {
-            assert!(error.message.is_empty(), "query must parse: {}", error.message);
+            assert!(
+                error.message.is_empty(),
+                "query must parse: {}",
+                error.message
+            );
             return;
         }
     };
     let result = match sql::run_select(&catalog, &statement) {
         Ok(result) => result,
         Err(error) => {
-            assert!(error.message.is_empty(), "query must execute: {}", error.message);
+            assert!(
+                error.message.is_empty(),
+                "query must execute: {}",
+                error.message
+            );
             return;
         }
     };

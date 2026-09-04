@@ -1231,6 +1231,61 @@ mod tests {
         assert!(d.enabled(0, &action, &st));
     }
 
+    #[test]
+    fn acknowledgement_enter_moves_focus_to_first_enabled_action() {
+        #[derive(Default)]
+        struct AcknowledgeApp {
+            state: DialogState,
+            opened: bool,
+            action: Option<ActionKey>,
+        }
+
+        impl App for AcknowledgeApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let dialog = acknowledge();
+                if !self.opened {
+                    self.opened = true;
+                    cx.open_layer(DLG, dialog.layer(cx));
+                }
+                let response = dialog.update(cx, &mut self.state);
+                if let Some(DialogAction::Action(action)) = response.action_ref() {
+                    self.action = Some(*action);
+                }
+                response.erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let dialog = acknowledge();
+                ui.layer(DLG, |ui, area| {
+                    dialog.draw(ui, area, &self.state, |_, _| {});
+                });
+            }
+        }
+
+        let key = |code| {
+            Input::Key(Key {
+                code,
+                mods: KeyModifiers::NONE,
+            })
+        };
+        let dialog = acknowledge();
+        let mut runtime = Runtime::new(AcknowledgeApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.set_focus(Some(dialog.input_id()));
+        let _ = runtime.handle(Input::Tick);
+        for ch in TOKEN.chars() {
+            let _ = runtime.handle(key(KeyCode::Char(ch)));
+        }
+        let _ = runtime.handle(key(KeyCode::Enter));
+
+        assert_eq!(runtime.app().state.draft(), TOKEN);
+        assert_eq!(runtime.focus(), Some(dialog.action_id(1)));
+        assert_eq!(runtime.app().action, None);
+    }
+
     /// §28 P4: the prompt's `Field` gets exactly the rows `input_rows`
     /// charged for it, so a prompt is never silently squeezed out of the
     /// layer its own `measured_height` asked for.
