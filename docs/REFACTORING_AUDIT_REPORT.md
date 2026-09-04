@@ -6,10 +6,10 @@ Auditors: 8 delegated subagents, all gpt-5.6-luna, reasoning max
 
 ## Result
 
-Estimated implementation completion: **about 42%**.  
-Current acceptance/proof readiness: **about 35%**.
+Estimated implementation completion: **about 45%**.
+Current acceptance/proof readiness: **about 40%**.
 
-This is an evidence-based estimate, not a claim that the repository defines a mathematically exact percentage. Independent audits produced a 30–57% range. The center is about 42% because the new library foundation is substantial, while the required application migration and legacy removal are still effectively untouched.
+This is an evidence-based estimate, not a claim that the repository defines a mathematically exact percentage. Independent audits produced a 30–57% range. Current code and live gates support a 40–50% range; the center is about 45% because the new library foundation and quality gates are substantial, while the required application migration and legacy removal are still effectively untouched.
 
 The markdown ledgers were used as a rubric. Code, tests, command output, and current package structure were treated as authoritative.
 
@@ -18,7 +18,7 @@ The markdown ledgers were used as a rubric. Code, tests, command output, and cur
 - tui-next exists as a separate library with a curated public facade.
 - The new library contains 37 component modules and a broad component export catalog.
 - Foundation work exists for IDs, focus, hit testing, pointer capture, layers, runtime state, themes, overrides, collections, validation, secrets, and rendering contracts.
-- tui-next library tests pass: **672 passed**.
+- tui-next library tests pass: **679 passed**.
 - tui-next checks pass with and without default features.
 - tui-next examples build.
 - Workspace rustdoc with '-D warnings' passes.
@@ -77,14 +77,14 @@ Current Paper/Junie captures, responsive sizes, overlays, mouse/scroll/resize be
 | 'git diff --check' | Pass |
 | 'cargo check -p tui-next --all-features' | Pass |
 | 'cargo check -p tui-next --no-default-features' | Pass |
-| 'cargo test -p tui-next --lib --all-features' | 672 passed |
+| 'cargo test -p tui-next --lib --all-features' | 679 passed |
 | 'cargo build -p tui-next --examples --all-features' | Pass |
 | 'cargo test -p junie-tui --all-targets' | 247 passed |
-| 'cargo test --workspace --all-targets --all-features' | 919 passed, 1 failed |
-| strict workspace build | Fails on unused props_built_once_hits |
-| strict workspace clippy | Fails on diagnostic println! in an uncommitted test change |
+| 'cargo test --workspace --all-targets --all-features' | 926 passed, 1 failed |
+| strict workspace build | Pass |
+| strict workspace clippy | Pass |
 | 'xtask boundary' | Structural checks pass; app scans are vacuous; baseline guard lacks base |
-| 'xtask doc-check' | Exit 0, but 37 references are allow-listed |
+| 'xtask doc-check' | Exit 0; 853 references resolved, with a non-empty allowlist |
 | current visual completion | Not proven; state records failure |
 
 The one workspace test failure is the baseline guard refusing to run without BLESS_GUARD_BASE. Running it with BLESS_GUARD_BASE=a1759b2 showed zero moved or added baseline keys; that proves guard execution, not fresh visual correctness.
@@ -106,7 +106,7 @@ This is the audit snapshot. Delegated worktree edits may have changed results af
 
 ## Worktree note
 
-HEAD remains '26913cc' and the worktree is dirty with delegated uncommitted changes. Those changes were not reverted. Preserve and inspect them before execution. Uncommitted code does not count as completed delivery until it passes the final gates and is intentionally integrated.
+The audit ran on clean HEAD '0877cda'. No application migration exists at that commit. Preserve any later user or delegated changes; uncommitted code does not count as completed delivery until it passes the final gates and is intentionally integrated.
 
 ## Bottom line
 
