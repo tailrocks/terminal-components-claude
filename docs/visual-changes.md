@@ -1205,7 +1205,7 @@ are now recorded below; frame review remains separate from hash approval.
 - tests:     apps/showcase/tests/visual.rs::showcase_visual_baseline, apps/tablepro/tests/visual.rs::tablepro_visual_baseline, apps/jackin-preview/tests/preview.rs::jackin_visual_baseline
 - moved:     none
 - added:     936 keys: showcase 704 (22×4×2×4), tablepro 168 (21×2×2×2), jackin-preview 64 (8×2×2×2)
-             ` {Buttons,Chips,Chrome,Data,Dialogs,Editable,Editor,Forms,Inputs,Lists,Overview,Panels,Pickers,Progress,Scrolling,Settings,Sidebars,Tables,Task,Terminal,Text,Trees} {80 24,100 30,120 40,160 50} {junie,paper} {truecolor,256,16,mono}`
+             `{Buttons,Chips,Chrome,Data,Dialogs,Editable,Editor,Forms,Inputs,Lists,Overview,Panels,Pickers,Progress,Scrolling,Settings,Sidebars,Tables,Task,Terminal,Text,Trees} {80 24,100 30,120 40,160 50} {junie,paper} {truecolor,256,16,mono}`
              `{completion-popup,connections,connections-failed,error-result,explain-plan,explorer-focused,filter-editor,grid-cell-editing,help-dialog,history-tab,maximised-tab,pending-change-bar,query-editing,quick-switcher,results-grid,safe-mode-picker,safety-dialog-typed-ack,structure-view,tab-list-picker,table-grid,workbench-default} {80 24,120 40} {junie,paper} {truecolor,mono}`
              `{accounts-mixed,capsule-multi,first-use,hard-cases,launch-failure,launch-running,outro-last,returning} {100 30,120 40} {junie,paper} {truecolor,mono}`
 - class:     intended
@@ -1245,8 +1245,13 @@ remains frozen; later allocation or byte growth is a regression.
 - **Consequence.** Items 27, 30, 31 and every other Slice-4 first-generation item remain
   **unblessed**. §72's closing sentence stands verbatim: independent frame review and separate
   bless authorization remain required, and no retained baseline change is authorized.
-- **Findings.** The itemised FAIL findings are owned by the review itself and are **not yet
-  attached to this ledger**. They must be attached here, each mapped to a numbered §20.10 item and
-  classified *intended* / *fix* / *regression*, **before** any bless run. A bless executed while
-  this section reads FAIL with no attached findings is a violation of the fixed order
-  change → capture → classify → bless, not an exception to it.
+- **Attached findings.** The independent app-frame review also found two fix-class defects, both
+  mapped before any bless run:
+  1. **TablePro 80×24 header collision** — the right overflow count overwrote the final visible
+     header title (`shots/tablepro_junie_truecolor_80x24.txt:5`); the geometry fix belongs to
+     §20.10 item 7.
+  2. **TablePro mono active-cell collapse** — `GRID/CELL + ACTIVE` changed only a color, so the
+     mono frame had no visible state distinction (`shots/tablepro_junie_mono_120x40.txt:6`);
+     the non-color affordance belongs to §20.10 item 1.
+  Both are **class: fix**, and neither authorizes a bless until corrected captures pass a fresh
+  independent review.
