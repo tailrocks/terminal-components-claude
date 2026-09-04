@@ -107,7 +107,7 @@ fn key_jackin_manager_move() {
     let stats = perf::bench(10, perf::iters(1000), &mut || {
         let code = if down { KeyCode::Down } else { KeyCode::Up };
         down = !down;
-        black_box(harness.handle(Input::Key(Key {
+        let _ = black_box(harness.handle(Input::Key(Key {
             code,
             mods: KeyModifiers::NONE,
         })));

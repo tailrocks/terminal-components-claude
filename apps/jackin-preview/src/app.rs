@@ -182,6 +182,11 @@ impl AsItem for AccountOption {
 pub struct App {
     /// Deterministic services and durable state exposed for focused tests.
     pub world: World,
+    /// Stable manager row projections; rebuilt only when the fixture is built.
+    ///
+    /// The manager key path must not format or allocate merely to reconcile a
+    /// list whose durable instance set is unchanged.
+    manager_rows: Vec<String>,
     route: Route,
     motion: Motion,
     quit: bool,
@@ -217,6 +222,7 @@ impl App {
     /// continue from the same reproducible boundary on the next tick.
     pub fn for_scenario_at(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         let mut world = world_for(scenario);
+        let manager_rows = Self::build_manager_rows(&world);
         let roles = world
             .roles
             .iter()
@@ -283,6 +289,7 @@ impl App {
         }
         Self {
             world,
+            manager_rows,
             route,
             motion,
             quit: false,
@@ -379,11 +386,8 @@ impl App {
         Panel::new(APP).title("Jackin Preview").meta(meta)
     }
 
-    fn manager_rows(&self) -> Vec<String> {
-        if self.world.instances.is_empty() {
-            return Vec::new();
-        }
-        self.world
+    fn build_manager_rows(world: &World) -> Vec<String> {
+        world
             .instances
             .iter()
             .filter(|instance| !instance.status.hidden())
@@ -495,8 +499,7 @@ impl App {
         let response = dialog.update(cx, &mut self.launch_dialog);
         let action = response.action_ref().copied();
         result |= response.erase();
-        let role_label = self.selected_role().to_owned();
-        let role = Button::new(ROLE_CHOOSE, &role_label).update(cx);
+        let role = Button::new(ROLE_CHOOSE, self.selected_role()).update(cx);
         let role_chosen = role.activated();
         result |= role.erase();
         if role_chosen && cx.is_open(LAUNCH_DIALOG) && !cx.is_open(ROLE_PICKER) {
@@ -587,8 +590,7 @@ impl App {
     }
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let rows = self.manager_rows();
-        let list = List::new(MANAGER_LIST).update(cx, &mut self.manager_state, &rows);
+        let list = List::new(MANAGER_LIST).update(cx, &mut self.manager_state, &self.manager_rows);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
         if matches!(
@@ -997,12 +999,11 @@ impl App {
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
-        let rows = self.manager_rows();
         let list_area = Rect {
             height: area.height.saturating_sub(3),
             ..area
         };
-        List::new(MANAGER_LIST).draw(ui, list_area, &self.manager_state, &rows);
+        List::new(MANAGER_LIST).draw(ui, list_area, &self.manager_state, &self.manager_rows);
         Self::launch_button(self.world.workspaces.is_empty()).draw(
             ui,
             Rect {
@@ -1222,11 +1223,6 @@ impl App {
 
 impl TuiApp for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        // Keep the shell's configured props owned by one constructor.  The
-        // runtime only updates parts here; drawing consumes the same panel
-        // shape below, so the app cannot drift between update and draw.
-        let meta = format!("scenario · {}", self.world.scenario.name());
-        let _shell = Self::shell_panel(&meta);
         let mut result = self.advance_virtual_state(cx);
         if let Some(command) = cx.command()
             && let Some(result) = self.update_command(cx, command)
