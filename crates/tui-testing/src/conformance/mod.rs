@@ -41,6 +41,11 @@ bitflags! {
         /// The focus entry sets `swallows_typing`; bare `Char` chords are
         /// exempt from case 20's reverse direction.
         const TYPES       = 1 << 10;
+        /// Opens a layer that traps focus; implies [`Caps::OVERLAY`].
+        const TRAPS_FOCUS = 1 << 11;
+        /// Accepts a readiness prop (`.status(Status)` or an `EmptyState`)
+        /// and therefore owes §11.4's `BUSY`/`ERROR` affordance.
+        const REPORTS_STATUS = 1 << 12;
     }
 }
 
@@ -73,14 +78,18 @@ pub struct Fixture {
     /// Real rows; `update`/`draw` borrow from here and `reorder` permutes it.
     pub rows: Vec<FixtureRow>,
     /// Forced state flags (`state_override`) for the mono case.
-    pub state_override: StateFlags,
+    ///
+    /// Private so [`Fixture::force`] remains the only way to set a forced
+    /// state and its coupled readiness status.
+    state_override: StateFlags,
     /// An instance patch for the override case.
     pub patch: Option<(Part, StylePatch)>,
     /// Secret bytes to type for the secret case.
     pub secret: Option<&'static str>,
     /// Data readiness, derived from [`Fixture::force`] so that a state whose
     /// affordance comes from *props* (the spinner) is actually reachable.
-    pub status: Status,
+    /// Private for the same reason as [`Fixture::state_override`].
+    status: Status,
 }
 
 impl Default for Fixture {
@@ -108,6 +117,18 @@ impl Default for Fixture {
 }
 
 impl Fixture {
+    /// The forced state flags, if any.
+    #[must_use]
+    pub const fn forced(&self) -> StateFlags {
+        self.state_override
+    }
+
+    /// The readiness coupled to the forced state.
+    #[must_use]
+    pub const fn status(&self) -> Status {
+        self.status
+    }
+
     /// Force `s` **and make it real**: a state whose affordance comes from
     /// props rather than from a theme rule (`BUSY`/`LOADING`/`ERROR` drive
     /// `Status`, and `Status` drives the spinner) is unreachable through
@@ -171,6 +192,12 @@ pub fn mono_states_required_by(caps: Caps) -> Vec<StateFlags> {
     if caps.contains(Caps::COLLECTION) {
         out.push(StateFlags::SELECTED);
     }
+    if caps.contains(Caps::REPORTS_STATUS) {
+        // §11.4: a component that takes a readiness prop owes the spinner and
+        // the error affordance, so neither state may be narrowed away.
+        out.push(StateFlags::BUSY);
+        out.push(StateFlags::ERROR);
+    }
     out
 }
 
@@ -233,6 +260,20 @@ pub trait Conformance: 'static {
     fn mono_states() -> &'static [StateFlags] {
         DEFAULT_MONO_STATES
     }
+    /// Explain every state omitted by [`Self::mono_states`]. Case 9 checks
+    /// that this is empty exactly when the default state set is unchanged and
+    /// that every dropped flag name appears in the explanation.
+    ///
+    /// Its scope is deliberately small: it may excuse **only** states that no
+    /// declared capability implies. A capability-implied state cannot be
+    /// dropped at all — [`mono_states_required_by`] fails case 9 before this
+    /// string is ever read — so a narrowing reason can never be the place a
+    /// §11.4 affordance goes missing. The sentence therefore answers one
+    /// question, "why is this state out of scope for a component that cannot
+    /// enter it", and never stands in as evidence that an affordance exists.
+    fn mono_narrowing_reason() -> &'static str {
+        ""
+    }
     /// The chord that opens the component's layer (`OVERLAY`); defaults to
     /// the first activation chord.
     fn open_chord() -> Option<Chord> {
@@ -294,4 +335,29 @@ macro_rules! conformance_suite {
             vec![$(<$case as $crate::Conformance>::NAME),+]
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Caps, StateFlags, mono_states_required_by};
+
+    #[test]
+    fn reports_status_requires_busy_and_error() {
+        let reports = mono_states_required_by(Caps::REPORTS_STATUS);
+        assert!(
+            reports.contains(&StateFlags::BUSY),
+            "REPORTS_STATUS must imply BUSY, got {reports:?}"
+        );
+        assert!(
+            reports.contains(&StateFlags::ERROR),
+            "REPORTS_STATUS must imply ERROR, got {reports:?}"
+        );
+
+        // Neither bit is implied by the empty capability set, so the gate stays
+        // off for components that never take a readiness prop.
+        assert_eq!(
+            mono_states_required_by(Caps::empty()),
+            vec![StateFlags::empty()]
+        );
+    }
 }
