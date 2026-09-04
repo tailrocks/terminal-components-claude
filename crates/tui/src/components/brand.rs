@@ -79,6 +79,15 @@ use crate::ui::{Cx, FrameRead, Ui};
 /// `BrandCase` with no capabilities;
 /// `render::components::brand::{default, pressed, empty}`.
 ///
+/// `BrandCase` declares `Caps::empty()` and never sets `.clickable`, and no
+/// fixture in `crates/tui/tests` does either, so the whole clickable branch
+/// is covered by the unit tests in this module instead:
+/// `only_a_clickable_lockup_registers_a_click_only_control_and_a_label_part`,
+/// `only_a_clickable_lockup_emits_activated_on_a_click` and
+/// `only_a_clickable_lockup_lifts_to_accent_hover_under_the_pointer`. Each
+/// asserts the plain lockup does **none** of it, so a lockup that became
+/// unconditionally clickable fails all three.
+///
 /// ## Invariants
 /// The mono `PRESSED` bracket rule (§11.4) is honoured only when the lockup
 /// has room for both brackets — a `.compact(true)` lockup reserves no padding
@@ -293,5 +302,219 @@ impl<'a> Brand<'a> {
     /// The natural size: one row, the lockup plus any tagline.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(ui), 1).fit(c)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Position;
+    use ratatui_core::style::Color;
+
+    use super::*;
+    use crate::event::MouseKind;
+    use crate::id::PartRef;
+    use crate::runtime::stub::{SCREEN, mouse};
+    use crate::runtime::{App, Runtime};
+    use crate::theme::resolve::bind_role;
+    use crate::theme::{Role, Surface, Theme};
+
+    const MARK: Id = Id::root("brand.tests");
+    const OTHER: Id = Id::root("brand.tests.stop");
+    const TEXT: &str = "Junie";
+    /// `pad + "Junie" + pad`: what `draw` returns and what it registers.
+    const LOCKUP: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 7,
+        height: 1,
+    };
+    const STOP: Rect = Rect {
+        x: 0,
+        y: 3,
+        width: 10,
+        height: 1,
+    };
+
+    /// One lockup plus one ordinary focus stop, so "the lockup is not in the
+    /// ring" is asserted against a ring that is non-empty for another reason
+    /// rather than against an empty one.
+    #[derive(Default)]
+    struct BrandPage {
+        clickable: bool,
+        activations: usize,
+        /// Frames on which `Brand::update` consumed a pointer intent.
+        pointer_frames: usize,
+    }
+
+    impl BrandPage {
+        fn brand(&self) -> Brand<'static> {
+            Brand::new(MARK, TEXT).clickable(self.clickable)
+        }
+    }
+
+    impl App for BrandPage {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let mut r = self.brand().update(cx);
+            if r.is_consumed() {
+                self.pointer_frames = self.pointer_frames.saturating_add(1);
+            }
+            if r.take_action() == Some(Activated) {
+                self.activations = self.activations.saturating_add(1);
+            }
+            for _ in cx.intents(OTHER) {}
+            r.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.brand().draw(ui, SCREEN);
+            ui.register_control(OTHER, STOP, Focusability::Focusable);
+        }
+    }
+
+    /// A page that has drawn twice: the first draw settles focus, the second
+    /// paints it, exactly as the harness does.
+    fn page(clickable: bool) -> (Runtime<BrandPage>, Buffer) {
+        let app = BrandPage {
+            clickable,
+            ..BrandPage::default()
+        };
+        let mut rt = Runtime::new(app, Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf);
+        (rt, buf)
+    }
+
+    fn bg_at(buf: &Buffer, x: u16, y: u16) -> Option<Color> {
+        buf.cell(Position::new(x, y)).map(|c| c.bg)
+    }
+
+    /// The centre of the lockup, in both the clickable and the plain case.
+    const fn pointer() -> (u16, u16) {
+        (LOCKUP.x + LOCKUP.width / 2, LOCKUP.y)
+    }
+
+    /// GAP-1, half one: what `.clickable(true)` puts in the registry, and
+    /// that `.clickable(false)` puts nothing there. Successor to the legacy
+    /// `widgets::brand::tests::clickable_lockup_registers_and_lifts_on_hover`.
+    #[test]
+    fn only_a_clickable_lockup_registers_a_click_only_control_and_a_label_part() {
+        let (rt, _buf) = page(true);
+        assert_eq!(
+            rt.area_of(MARK),
+            Some(LOCKUP),
+            "a clickable lockup is a hit target over its own rect"
+        );
+        assert_eq!(
+            rt.area_of_part(MARK, PartRef::of(Part::LABEL)),
+            Some(LOCKUP),
+            "and registers its LABEL part over the same rect"
+        );
+        assert!(
+            !rt.ring().is_registered(MARK),
+            "ClickOnly: an identity mark is never a tab stop"
+        );
+        assert!(
+            rt.ring().is_registered(OTHER),
+            "the ring is non-empty, so the assertion above is not vacuous"
+        );
+
+        let (rt, _buf) = page(false);
+        assert_eq!(
+            rt.area_of(MARK),
+            None,
+            "a plain lockup registers no control at all"
+        );
+        assert_eq!(
+            rt.area_of_part(MARK, PartRef::of(Part::LABEL)),
+            None,
+            "and no LABEL part"
+        );
+        assert!(!rt.ring().is_registered(MARK));
+    }
+
+    /// GAP-1, half two: the action. A plain lockup never even sees a pointer
+    /// intent, because it registered nothing to be addressed through.
+    #[test]
+    fn only_a_clickable_lockup_emits_activated_on_a_click() {
+        let (x, y) = pointer();
+
+        let (mut rt, mut buf) = page(true);
+        let _ = rt.handle(mouse(MouseKind::Down, x, y));
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(
+            rt.app().activations,
+            0,
+            "the press alone is not an activation"
+        );
+        assert_eq!(
+            rt.app().pointer_frames,
+            1,
+            "but the press did reach `Brand::update`"
+        );
+        let _ = rt.handle(mouse(MouseKind::Up, x, y));
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(
+            rt.app().activations,
+            1,
+            "the release completes the click and emits `Activated`"
+        );
+
+        let (mut rt, mut buf) = page(false);
+        let _ = rt.handle(mouse(MouseKind::Down, x, y));
+        let _ = rt.handle(mouse(MouseKind::Up, x, y));
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(
+            rt.app().activations,
+            0,
+            "a plain lockup emits nothing on a click"
+        );
+        assert_eq!(
+            rt.app().pointer_frames,
+            0,
+            "and consumes no pointer intent at all"
+        );
+    }
+
+    /// GAP-1, half three: the painted hover affordance. The legacy test
+    /// asserted `accent_hover` under the pointer; this asserts it from the
+    /// buffer, and asserts the plain lockup stays on the accent plane.
+    #[test]
+    fn only_a_clickable_lockup_lifts_to_accent_hover_under_the_pointer() {
+        let theme = Theme::junie();
+        let accent = bind_role(&theme, Role::Accent, Surface::Canvas);
+        let accent_hover = bind_role(&theme, Role::AccentHover, Surface::Canvas);
+        assert!(
+            accent.is_some() && accent != accent_hover,
+            "the two accent planes must differ, or this test cannot fail"
+        );
+        let (x, y) = pointer();
+
+        let (mut rt, mut buf) = page(true);
+        assert_eq!(bg_at(&buf, x, y), accent, "unhovered: the accent plane");
+        let _ = rt.handle(mouse(MouseKind::Move, x, y));
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(rt.hover(), Some(MARK), "the pointer is over the lockup");
+        assert_eq!(
+            bg_at(&buf, x, y),
+            accent_hover,
+            "a hovered clickable lockup lifts to the hover plane"
+        );
+        assert_eq!(
+            bg_at(&buf, LOCKUP.x, y),
+            accent_hover,
+            "the whole lockup lifts, padding included"
+        );
+
+        let (mut rt, mut buf) = page(false);
+        let _ = rt.handle(mouse(MouseKind::Move, x, y));
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(rt.hover(), None, "a plain lockup is not a hit target");
+        assert_eq!(
+            bg_at(&buf, x, y),
+            accent,
+            "and never leaves the accent plane"
+        );
     }
 }

@@ -298,6 +298,11 @@ pub enum StatusAction {
 /// `survivors` directly: `a_wide_row_keeps_every_item`,
 /// `narrow_rows_drop_centre_then_right_then_left_and_keep_the_name`,
 /// `ties_take_the_later_item_first` and `items_past_the_cap_are_ignored`.
+/// Those masks say which items survive and nothing about where they land, so
+/// the placement itself is covered by
+/// `the_left_group_starts_at_the_gutter_the_right_is_flush_and_the_centre_sits_between`,
+/// which reads the three groups' columns back out of the painted buffer
+/// rather than out of any of the helpers above.
 ///
 /// Exercised by no test: the painted `Part::OVERFLOW` ellipsis — the drop
 /// loop is asserted, the truncation marker it leaves behind is not — and
@@ -873,7 +878,13 @@ impl<'a> StatusBar<'a> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Position;
+
     use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::Stub;
+    use crate::theme::Theme;
 
     const LEFT: [StatusItem<'static>; 2] = [
         StatusItem::new("payments-platform").strong().priority(9),
@@ -942,5 +953,109 @@ mod tests {
         assert_eq!(plain.columns(16), 3);
         assert_eq!(StatusItem::new("abc").chip().columns(16), 5);
         assert_eq!(StatusItem::new("abc").meter(0.5).columns(16), 3 + 1 + 16);
+    }
+
+    /// The painted row of `buf`, one `char` per column.
+    ///
+    /// Every fixture label below is ASCII, so a byte offset into this string
+    /// is the column the label starts at.
+    fn painted_row(buf: &Buffer, w: u16) -> String {
+        let mut row = String::new();
+        for x in 0..w {
+            if let Some(cell) = buf.cell(Position::new(x, 0)) {
+                row.push_str(cell.symbol());
+            }
+        }
+        row
+    }
+
+    /// GAP-8: where the three groups actually land, read back out of the
+    /// painted buffer.
+    ///
+    /// Successor to the legacy
+    /// `widgets::statusbar::tests::groups_keep_their_order_and_sides`. The
+    /// replacement `survivors` returns keep-masks and never geometry, so a
+    /// strip that right-aligned its left group would keep every item and pass
+    /// every other test in this module. Asserting this against `survivors`,
+    /// or against any other accessor of the strip's own arithmetic, would
+    /// reproduce that defect one layer down; the buffer is the only witness
+    /// that cannot agree with a wrong implementation.
+    #[test]
+    fn the_left_group_starts_at_the_gutter_the_right_is_flush_and_the_centre_sits_between() {
+        const ROW: Rect = Rect {
+            x: 0,
+            y: 0,
+            width: 60,
+            height: 1,
+        };
+        const L: [StatusItem<'static>; 2] = [
+            StatusItem::new("alpha").priority(9),
+            StatusItem::new("bravo").priority(8),
+        ];
+        const C: [StatusItem<'static>; 1] = [StatusItem::new("charlie").priority(7)];
+        const R: [StatusItem<'static>; 2] = [
+            StatusItem::new("delta").priority(6),
+            StatusItem::new("echo").priority(5),
+        ];
+
+        let theme = Theme::junie();
+        let edge = theme.design.space.gutter.max(1);
+        let bar = StatusBar::new(Id::root("status.geometry"))
+            .left(&L)
+            .center(&C)
+            .right(&R);
+        let mut rt = Runtime::new(Stub::default(), theme);
+        let mut buf = Buffer::empty(ROW);
+        rt.draw_scene(ROW, &mut buf, |ui, area| {
+            bar.draw(ui, area);
+        });
+        let row = painted_row(&buf, ROW.width);
+
+        let at = |needle: &str| -> u16 {
+            let found = row.find(needle);
+            assert!(found.is_some(), "{needle:?} is not painted in {row:?}");
+            found
+                .and_then(|i| u16::try_from(i).ok())
+                .unwrap_or_default()
+        };
+        let end = |needle: &str| -> u16 { at(needle).saturating_add(width(needle)) };
+
+        // `at` panics on a label the strip did not paint, so reaching the
+        // assertions below is itself the statement that this row is wide
+        // enough for all five items and nothing dropped
+
+        // left: the leading group starts one gutter in from the left edge
+        assert_eq!(
+            at("alpha"),
+            ROW.x.saturating_add(edge),
+            "the left group starts at the gutter, in {row:?}"
+        );
+        assert!(
+            end("alpha") < at("bravo"),
+            "left items run left-to-right in declaration order, in {row:?}"
+        );
+
+        // right: the trailing group ends flush one gutter in from the right
+        assert_eq!(
+            end("echo"),
+            ROW.right().saturating_sub(edge),
+            "the right group is flush against the trailing gutter, in {row:?}"
+        );
+        assert!(
+            end("delta") < at("echo"),
+            "right items run left-to-right in declaration order, in {row:?}"
+        );
+
+        // centre: strictly between the two, and centred in what they leave
+        assert!(
+            end("bravo") < at("charlie") && end("charlie") < at("delta"),
+            "the centre group sits strictly between left and right, in {row:?}"
+        );
+        let before = at("charlie").saturating_sub(end("bravo"));
+        let after = at("delta").saturating_sub(end("charlie"));
+        assert!(
+            before.abs_diff(after) <= 1,
+            "the centre group is centred in the free span: {before} before, {after} after, in {row:?}"
+        );
     }
 }
