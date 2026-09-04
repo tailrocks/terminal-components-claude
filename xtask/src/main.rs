@@ -3841,20 +3841,29 @@ fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
     ))
 }
 
-/// `$BLESS_GUARD_BASE`, else `origin/$GITHUB_BASE_REF`, else `HEAD`. A base that
-/// is *set but does not resolve* is an error, never a fallback.
-fn bless_guard_base() -> Result<String, String> {
-    if let Ok(v) = std::env::var("BLESS_GUARD_BASE")
-        && !v.trim().is_empty()
-    {
+/// Resolve the guard base from the explicit CI variable, or from the pull
+/// request base ref. Missing both is an error: falling back to `HEAD` would
+/// compare the tree with itself and pass vacuously.
+fn bless_guard_base_from(
+    explicit: Option<&str>,
+    github_base_ref: Option<&str>,
+) -> Result<String, String> {
+    if let Some(v) = explicit.filter(|v| !v.trim().is_empty()) {
         return resolve_rev(v.trim(), "BLESS_GUARD_BASE");
     }
-    if let Ok(v) = std::env::var("GITHUB_BASE_REF")
-        && !v.trim().is_empty()
-    {
+    if let Some(v) = github_base_ref.filter(|v| !v.trim().is_empty()) {
         return resolve_rev(&format!("origin/{}", v.trim()), "GITHUB_BASE_REF");
     }
-    resolve_rev("HEAD", "the default")
+    Err(
+        "bless-guard has no base revision. Set BLESS_GUARD_BASE explicitly (or provide GITHUB_BASE_REF on a pull request); comparing against HEAD is refused because it passes vacuously. CI checkouts must use `fetch-depth: 0`."
+            .to_owned(),
+    )
+}
+
+fn bless_guard_base() -> Result<String, String> {
+    let explicit = std::env::var("BLESS_GUARD_BASE").ok();
+    let github_base_ref = std::env::var("GITHUB_BASE_REF").ok();
+    bless_guard_base_from(explicit.as_deref(), github_base_ref.as_deref())
 }
 
 /// `git diff -M --name-status <base>`: `(new path -> base path)` for renames,
@@ -4380,6 +4389,22 @@ captures / classification: `(pending — filled when the change lands)`
             "BLESS_GUARD_BASE on the push leg must be `${{{{ github.event.before }}}}` — the \
              commit the push moved `main` off. Step context:\n{window}"
         );
+    }
+
+    #[test]
+    fn missing_guard_base_is_refused_instead_of_defaulting_to_head() {
+        let err = bless_guard_base_from(None, None)
+            .expect_err("a guard without an explicit or pull-request base must stop");
+        assert!(err.contains("no base revision"), "{err}");
+        assert!(err.contains("BLESS_GUARD_BASE"), "{err}");
+    }
+
+    #[test]
+    fn invalid_explicit_guard_base_does_not_fall_back_to_pull_request_base() {
+        let err = bless_guard_base_from(Some("not-a-real-revision"), Some("main"))
+            .expect_err("an invalid explicit base must stop");
+        assert!(err.contains("not-a-real-revision"), "{err}");
+        assert!(err.contains("does not resolve"), "{err}");
     }
 
     /// The defence against the third vacuous-pass mode: discovery patterns that

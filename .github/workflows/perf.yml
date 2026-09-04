@@ -44,8 +44,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      # The guard must compare this revision with the pushed commit or PR base;
+      # a shallow checkout or a HEAD fallback would make the check vacuous.
+      - name: Baseline bless guard
+        env:
+          BLESS_GUARD_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: cargo run -p xtask -- bless-guard
       # The default `run` shell is `bash -e -o pipefail`, so a cargo failure ahead of
       # `tee` still fails the step.
       - name: Library and foundation perf
