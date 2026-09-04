@@ -93,7 +93,10 @@ impl TextBuffer {
     pub fn zeroize(&mut self) {
         let mut bytes = core::mem::take(&mut self.text).into_bytes();
         bytes.fill(0);
+        core::hint::black_box(&bytes);
+        core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
         bytes.clear();
+        drop(bytes);
         self.text = String::new();
         self.cursor = 0;
         self.anchor = None;
