@@ -4,7 +4,7 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, SlotFn, cell_at, first_row, shift};
+use super::{Overrides, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::collection::Status;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -14,7 +14,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Activated, Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// The const-constructible command a button chord maps to.
@@ -345,10 +345,10 @@ impl<'a> Button<'a> {
         } else {
             let g = style(ui, Part::GUTTER);
             match g.glyph {
-                Some(glyph) => {
+                Slot::Set(glyph) => {
                     ui.glyph(gutter_cell, glyph, g.style);
                 }
-                None => ui.fill(gutter_cell, g.style),
+                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
 
@@ -385,11 +385,11 @@ impl<'a> Button<'a> {
                 f(ui, marker_cell);
             } else {
                 let ms = style(ui, Part::MARKER);
-                let glyph = ms.glyph.or(if on {
-                    Some(GlyphRole::SwitchKnob)
-                } else {
-                    None
-                });
+                let glyph = match ms.glyph {
+                    Slot::Set(g) => Some(g),
+                    Slot::Inherit if on => Some(GlyphRole::SwitchKnob),
+                    Slot::Inherit | Slot::Clear => None,
+                };
                 match glyph {
                     Some(g) => {
                         ui.glyph(marker_cell, g, ms.style);
@@ -403,13 +403,16 @@ impl<'a> Button<'a> {
             f(ui, text);
         } else {
             let ls = style(ui, Part::LABEL);
-            if ls.glyph == Some(GlyphRole::PressLeft) {
-                // the mono PRESSED rule: `[label]`
-                let used = ui.glyph(text, GlyphRole::PressLeft, ls.style);
-                let mut t = shift(text, used);
-                let used = ui.paint_str(t, self.label, ls.style);
-                t = shift(t, used);
-                ui.glyph(t, GlyphRole::PressRight, ls.style);
+            if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
+                ui.paint_str(text, self.label, ls.style);
+                if area.width >= 2 {
+                    paint_pressed_bracket(
+                        ui,
+                        gutter_cell,
+                        cell_at(area, area.right().saturating_sub(1)),
+                        ls.style,
+                    );
+                }
             } else {
                 ui.paint_str(text, self.label, ls.style);
             }
@@ -420,6 +423,49 @@ impl<'a> Button<'a> {
     /// The natural size: one row, the label plus its chrome.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(ui), 1).fit(c)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::{Position, Rect};
+
+    use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::Stub;
+    use crate::theme::{ColorLevel, Theme};
+
+    const BUTTON: Id = Id::root("button.tests");
+    const AREA: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 12,
+        height: 1,
+    };
+
+    fn row_text(buf: &Buffer, width: u16) -> String {
+        let mut text = String::new();
+        for x in 0..width {
+            if let Some(cell) = buf.cell(Position::new(x, 0)) {
+                text.push_str(cell.symbol());
+            }
+        }
+        text
+    }
+
+    #[test]
+    fn mono_pressed_does_not_truncate_the_label() {
+        const LABEL: &str = "Full width";
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            Button::new(BUTTON, LABEL)
+                .state_override(StateFlags::PRESSED.union(StateFlags::FOCUSED))
+                .draw(ui, area);
+        });
+
+        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
 }
 

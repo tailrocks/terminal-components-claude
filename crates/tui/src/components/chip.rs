@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Acc, Overrides, SlotFn, cell_at, first_row, shift};
+use super::{Acc, Overrides, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, RowFn, RowUi,
     SelectMode,
@@ -18,7 +18,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// What a chip bar reports; every variant carries the chip's key.
@@ -758,14 +758,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 // the pad cells the chip already reserves, so a mono fallback
                 // never changes geometry
                 let ls = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::LABEL, flags);
-                if ls.glyph == Some(GlyphRole::PressLeft) {
-                    ui.glyph(cell_at(chip, chip.x), GlyphRole::PressLeft, ls.style);
+                if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
                     let right = chip
                         .right()
                         .saturating_sub(1)
                         .saturating_sub(close_w)
                         .max(chip.x);
-                    ui.glyph(cell_at(chip, right), GlyphRole::PressRight, ls.style);
+                    paint_pressed_bracket(
+                        ui,
+                        cell_at(chip, chip.x),
+                        cell_at(chip, right),
+                        ls.style,
+                    );
                 }
             }
             if self.closable {
@@ -774,7 +778,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     f(ui, close_cell);
                 } else {
                     let xs = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::CLOSE, flags);
-                    ui.glyph(close_cell, xs.glyph.unwrap_or(GlyphRole::Close), xs.style);
+                    match xs.glyph {
+                        Slot::Set(g) => {
+                            ui.glyph(close_cell, g, xs.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(close_cell, GlyphRole::Close, xs.style);
+                        }
+                        Slot::Clear => {
+                            ui.fill(close_cell, xs.style);
+                        }
+                    }
                 }
                 ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
             }
@@ -794,7 +808,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     Part::OVERFLOW,
                     StateFlags::empty(),
                 );
-                ui.glyph(cell, os.glyph.unwrap_or(GlyphRole::Ellipsis), os.style);
+                match os.glyph {
+                    Slot::Set(g) => {
+                        ui.glyph(cell, g, os.style);
+                    }
+                    Slot::Inherit => {
+                        ui.glyph(cell, GlyphRole::Ellipsis, os.style);
+                    }
+                    Slot::Clear => {
+                        ui.fill(cell, os.style);
+                    }
+                }
             }
             ui.register_part(self.id, PartRef::of(Part::OVERFLOW), cell);
         }
@@ -872,10 +896,32 @@ impl<T, K, R> Bindings for ChipBar<'_, T, K, R> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::{Position, Rect};
+
     use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::Stub;
+    use crate::theme::{ColorLevel, Theme};
 
     const BAR: Id = Id::root("chip.tests");
     const ADD: ItemKey = ItemKey::index(9999);
+    const AREA: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 12,
+        height: 1,
+    };
+
+    fn row_text(buf: &Buffer, width: u16) -> String {
+        let mut text = String::new();
+        for x in 0..width {
+            if let Some(cell) = buf.cell(Position::new(x, 0)) {
+                text.push_str(cell.symbol());
+            }
+        }
+        text
+    }
 
     #[test]
     fn the_add_affordance_is_the_last_cursor_stop() {
@@ -925,5 +971,21 @@ mod tests {
         plain.close(&mut st, &items, 0, &mut acc);
         let r = acc.finish(BAR);
         assert!(r.is_consumed() && r.action_ref().is_none());
+    }
+
+    #[test]
+    fn mono_pressed_brackets_the_reserved_pad_cells() {
+        const LABEL: &str = "Full width";
+        let items = [LABEL];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
+        let mut buffer = Buffer::empty(AREA);
+        let state = ChipBarState::default();
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            ChipBar::new(BAR)
+                .state_override(StateFlags::PRESSED.union(StateFlags::FOCUSED))
+                .draw(ui, area, &state, &items);
+        });
+
+        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
 }

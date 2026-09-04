@@ -51,10 +51,11 @@ pub use textarea::{TextArea, TextAreaState};
 use core::fmt;
 
 use ratatui_core::layout::Rect;
+use ratatui_core::style::Style;
 
 use crate::id::{Id, Part};
 use crate::response::StateFlags;
-use crate::theme::{Family, Resolved, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Resolved, StylePatch, Variant};
 use crate::ui::Ui;
 
 /// A replaced part: the component keeps layout, hit registration, focus and
@@ -208,6 +209,12 @@ pub(crate) const fn cell_at(area: Rect, x: u16) -> Rect {
         },
         height: area.height,
     }
+}
+
+/// Paint the mono pressed bracket into two cells reserved by the component.
+pub(crate) fn paint_pressed_bracket(ui: &mut Ui<'_>, left: Rect, right: Rect, style: Style) {
+    ui.glyph(left, GlyphRole::PressLeft, style);
+    ui.glyph(right, GlyphRole::PressRight, style);
 }
 
 /// `area` shifted right by `by` columns, shrinking its width.

@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Acc, Overrides, cell_at, first_row};
+use super::{Acc, Overrides, cell_at, first_row, paint_pressed_bracket};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, Status,
 };
@@ -16,7 +16,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 /// What a tab strip reports; every tab action carries the tab's key.
@@ -622,11 +622,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 StateFlags::empty(),
             );
             for col in rr.columns() {
-                ui.glyph(
-                    col,
-                    quiet.glyph.unwrap_or(GlyphRole::RuleQuiet),
-                    quiet.style,
-                );
+                match quiet.glyph {
+                    Slot::Set(glyph) => {
+                        ui.glyph(col, glyph, quiet.style);
+                    }
+                    Slot::Inherit => {
+                        ui.glyph(col, GlyphRole::RuleQuiet, quiet.style);
+                    }
+                    Slot::Clear => {
+                        ui.fill(col, quiet.style);
+                    }
+                }
             }
         }
         let last = ui.layout(self.id);
@@ -718,18 +724,29 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             // (§16.2 case 9, MA-8).
             if flags.contains(StateFlags::PRESSED) {
                 let ls = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::LABEL, flags);
-                if ls.glyph == Some(GlyphRole::PressLeft) {
-                    ui.glyph(cell_at(tab, tab.x), GlyphRole::PressLeft, ls.style);
-                    let right = tab.x.saturating_add(1).saturating_add(label_w);
-                    if right < tab.right() {
-                        ui.glyph(cell_at(tab, right), GlyphRole::PressRight, ls.style);
-                    }
+                if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
+                    paint_pressed_bracket(
+                        ui,
+                        cell_at(tab, tab.x),
+                        cell_at(tab, tab.x.saturating_add(1).saturating_add(label_w)),
+                        ls.style,
+                    );
                 }
             }
             if self.closable {
                 let close_cell = cell_at(tab, tab.right().saturating_sub(2));
                 let cs = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::CLOSE, flags);
-                ui.glyph(close_cell, cs.glyph.unwrap_or(GlyphRole::Close), cs.style);
+                match cs.glyph {
+                    Slot::Set(glyph) => {
+                        ui.glyph(close_cell, glyph, cs.style);
+                    }
+                    Slot::Inherit => {
+                        ui.glyph(close_cell, GlyphRole::Close, cs.style);
+                    }
+                    Slot::Clear => {
+                        ui.fill(close_cell, cs.style);
+                    }
+                }
             }
             if is_active && let Some(rr) = rule_row {
                 let rs = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::RULE, flags);
@@ -739,7 +756,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     ..rr
                 };
                 for col in span.columns() {
-                    ui.glyph(col, rs.glyph.unwrap_or(GlyphRole::RuleActive), rs.style);
+                    match rs.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(col, glyph, rs.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(col, GlyphRole::RuleActive, rs.style);
+                        }
+                        Slot::Clear => {
+                            ui.fill(col, rs.style);
+                        }
+                    }
                 }
             }
             ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
@@ -835,7 +862,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 StateFlags::empty(),
             );
             let inner = super::shift(cell, 1);
-            ui.glyph(inner, ns.glyph.unwrap_or(GlyphRole::NewTab), ns.style);
+            match ns.glyph {
+                Slot::Set(glyph) => {
+                    ui.glyph(inner, glyph, ns.style);
+                }
+                Slot::Inherit => {
+                    ui.glyph(inner, GlyphRole::NewTab, ns.style);
+                }
+                Slot::Clear => {
+                    ui.fill(inner, ns.style);
+                }
+            }
             ui.register_part(self.id, PartRef::of(Part::NEW), cell);
         }
         ui.report_layout(self.id, LayoutFacts::new(fit, len, used.height, used.width));
@@ -879,7 +916,31 @@ impl<T, K, R> Bindings for Tabs<'_, T, K, R> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::{Position, Rect};
+
     use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::Stub;
+    use crate::theme::{ColorLevel, Theme};
+
+    const TABS: Id = Id::root("tabs.tests");
+    const AREA: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 12,
+        height: 2,
+    };
+
+    fn row_text(buf: &Buffer, width: u16) -> String {
+        let mut text = String::new();
+        for x in 0..width {
+            if let Some(cell) = buf.cell(Position::new(x, 0)) {
+                text.push_str(cell.symbol());
+            }
+        }
+        text
+    }
 
     #[test]
     fn close_targets_the_logical_tab_after_a_reorder() {
@@ -909,5 +970,21 @@ mod tests {
         assert_eq!(digits(7, &mut buf), "7");
         assert_eq!(digits(42, &mut buf), "42");
         assert_eq!(digits(500, &mut buf), "99");
+    }
+
+    #[test]
+    fn mono_pressed_brackets_the_reserved_pad_cells() {
+        const LABEL: &str = "Full width";
+        let items = [LABEL];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
+        let mut buffer = Buffer::empty(AREA);
+        let state = TabsState::default();
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            Tabs::new(TABS)
+                .state_override(StateFlags::PRESSED.union(StateFlags::FOCUSED))
+                .draw(ui, area, &state, &items);
+        });
+
+        assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
 }
