@@ -1,7 +1,7 @@
 //! Workspace checks (`COMPONENT_ARCHITECTURE.md` §16.5, §21 item 34, §22.7).
 //!
 //! ```text
-//! cargo run -p xtask -- doc-check                # §3–§17 and §21–§23 references resolve
+//! cargo run -p xtask -- doc-check                # §3–§17 and §21-end references resolve
 //! cargo run -p xtask -- boundary                 # every §16.5 / §22.7 grep and metadata check
 //! cargo run -p xtask -- boundary --check <name>  # one named check
 //! cargo run -p xtask -- bless-guard              # §16.3 / §36.5 baseline bless guard
@@ -563,15 +563,74 @@ const RULES: &[Rule] = &[
     },
 ];
 
-fn scan_roots() -> Vec<PathBuf> {
+/// Return a diagnostic when a required source root cannot provide any input.
+///
+/// A missing or empty root is not equivalent to a clean scan: a moved package
+/// can otherwise make every forbidden-pattern rule green by removing the files
+/// it was meant to inspect (§47.5).
+fn scan_root_error(path: &Path, is_dir: bool, rust_file_count: usize) -> Option<String> {
+    if !is_dir {
+        return Some(format!(
+            "scan root {} is missing or not a directory",
+            rel(path)
+        ));
+    }
+    if rust_file_count == 0 {
+        return Some(format!(
+            "scan root {} contains no Rust files; an empty scan is not a pass",
+            rel(path)
+        ));
+    }
+    None
+}
+
+fn checked_scan_root(path: &Path) -> Result<Vec<PathBuf>, String> {
+    let files = rust_files(path);
+    if let Some(error) = scan_root_error(path, path.is_dir(), files.len()) {
+        Err(error)
+    } else {
+        Ok(files)
+    }
+}
+
+/// Source roots for the forbidden-pattern scan.
+///
+/// The two library roots are always due. `apps/*/src` roots become due when an
+/// `apps` tree is present; an empty `apps` directory or an application without
+/// a Rust source file fails closed instead of making the scan green-empty.
+fn scan_roots() -> Result<Vec<PathBuf>, String> {
     let r = root();
     let mut v = vec![r.join("crates/tui/src"), r.join("crates/tui-testing/src")];
-    if let Ok(apps) = std::fs::read_dir(r.join("apps")) {
-        for a in apps.filter_map(Result::ok) {
-            v.push(a.path().join("src"));
+    let apps = r.join("apps");
+    if apps.exists() {
+        if !apps.is_dir() {
+            return Err(format!(
+                "scan root {} is missing or not a directory",
+                rel(&apps)
+            ));
+        }
+        let mut app_count = 0usize;
+        for entry in std::fs::read_dir(&apps)
+            .map_err(|e| format!("cannot enumerate scan root {}: {e}", rel(&apps)))?
+        {
+            let entry = entry.map_err(|e| format!("cannot read {} entry: {e}", rel(&apps)))?;
+            if !entry.path().is_dir() {
+                continue;
+            }
+            app_count = app_count.saturating_add(1);
+            v.push(entry.path().join("src"));
+        }
+        if app_count == 0 {
+            return Err(format!(
+                "scan root {} contains no application roots; an empty scan is not a pass",
+                rel(&apps)
+            ));
         }
     }
-    v
+    for path in &v {
+        checked_scan_root(path)?;
+    }
+    Ok(v)
 }
 
 fn read_allow(name: &str) -> BTreeMap<String, String> {
@@ -594,14 +653,15 @@ fn no_deprecated_or_legacy_api_usage() -> Result<(), String> {
         println!("legacy_api allow-list: {entry}  # {why}");
     }
     let mut hits = Vec::new();
+    let roots = scan_roots()?;
     for rule in RULES {
         let re = Regex::new(rule.re).map_err(|e| e.to_string())?;
         let only_if = rule
             .only_if
             .map(|r| Regex::new(r).map_err(|e| e.to_string()))
             .transpose()?;
-        for dir in scan_roots() {
-            for file in rust_files(&dir) {
+        for dir in &roots {
+            for file in rust_files(dir) {
                 let path = rel(&file);
                 if rule.allowed.iter().any(|a| path.contains(a)) {
                     continue;
@@ -3764,7 +3824,9 @@ fn foreign_members() -> BTreeSet<(String, String)> {
         ),
         (
             "Color",
-            &["from_u32", "Rgb", "Reset", "Black", "White", "Indexed"][..],
+            &[
+                "from_u32", "Rgb", "Reset", "Black", "DarkGray", "White", "Indexed",
+            ][..],
         ),
         ("Style", &["new", "patch", "default"][..]),
         (
@@ -3897,27 +3959,114 @@ fn foreign_members() -> BTreeSet<(String, String)> {
     m
 }
 
-/// Names of `junie_tui::` imports used in the document's examples that are
-/// not yet built (Slice 4 components and their vocabulary).
-fn doc_allow() -> BTreeSet<String> {
-    read(&root().join("xtask/doc_check_allow.txt"))
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty() && !l.starts_with('#'))
-        .map(|l| l.split_whitespace().next().unwrap_or("").to_owned())
+/// One suppression in `xtask/doc_check_allow.txt`, retaining its source line
+/// so stale and duplicate entries can be reported precisely.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DocAllowEntry {
+    name: String,
+    line: usize,
+}
+
+/// Parse names of `junie_tui::` imports and `Type::member` references used in
+/// the document's examples that are not yet built. The list is intentionally
+/// a one-name-per-line format: deleting a line is the only normal way for it
+/// to change as code lands.
+fn parse_doc_allow(text: &str) -> Vec<DocAllowEntry> {
+    text.lines()
+        .enumerate()
+        .filter_map(|(i, raw)| {
+            let line = raw.trim();
+            if line.is_empty() || line.starts_with('#') {
+                return None;
+            }
+            let entry = line.split('#').next().unwrap_or_default().trim();
+            let name = entry.split_whitespace().next().unwrap_or_default();
+            (!name.is_empty()).then_some(DocAllowEntry {
+                name: name.to_owned(),
+                line: i.saturating_add(1),
+            })
+        })
         .collect()
 }
 
+fn doc_allow_entries() -> Vec<DocAllowEntry> {
+    parse_doc_allow(&read(&root().join("xtask/doc_check_allow.txt")))
+}
+
+/// A bare `Type` suppression covers `Type::member` references; a qualified
+/// entry covers only itself. Every entry must cover at least one unresolved
+/// reference in the current authoritative document, or it is stale.
+fn allow_covers(entry: &str, hit: &str) -> bool {
+    hit == entry
+        || hit
+            .strip_prefix(entry)
+            .is_some_and(|rest| rest.starts_with("::"))
+}
+
+fn stale_doc_allow_entries(
+    entries: &[DocAllowEntry],
+    allowed_hits: &BTreeMap<String, usize>,
+) -> Vec<String> {
+    let mut issues = Vec::new();
+    let mut seen: BTreeMap<&str, usize> = BTreeMap::new();
+    for entry in entries {
+        if let Some(first) = seen.insert(&entry.name, entry.line) {
+            issues.push(format!(
+                "duplicate entry `{}` at lines {first} and {}",
+                entry.name, entry.line
+            ));
+        }
+        if !allowed_hits
+            .keys()
+            .any(|hit| allow_covers(&entry.name, hit))
+        {
+            issues.push(format!(
+                "stale entry `{}` at line {}: it suppresses no unresolved reference",
+                entry.name, entry.line
+            ));
+        }
+    }
+    issues
+}
+
+/// Parse a top-level architecture heading. Historical headings use both
+/// `## 27.` and `## §27`; the section marker is decoration, not part of the
+/// number. Subheadings and Appendix headings are deliberately excluded.
+fn top_level_doc_section_number(line: &str) -> Option<u32> {
+    let mut rest = line.strip_prefix("## ")?;
+    if let Some(number) = rest.strip_prefix('§') {
+        rest = number;
+    }
+    let digits = rest.bytes().take_while(|b| b.is_ascii_digit()).count();
+    if digits == 0 {
+        return None;
+    }
+    let number = rest.get(..digits)?.parse().ok()?;
+    let after = rest.get(digits..).unwrap_or_default();
+    if after.is_empty()
+        || after.starts_with('.')
+        || after
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_whitespace())
+    {
+        Some(number)
+    } else {
+        None
+    }
+}
+
 fn doc_sections(text: &str) -> String {
-    // §3–§17 and §21–§26
+    // §3–§17 and §21 through the authoritative tail. The latter is open-ended
+    // because this document records numbered adjudications over time; a fixed
+    // upper bound is the scope hole that made §27–§72 invisible.
     let mut out = String::new();
     let mut keep = false;
     for line in text.lines() {
-        if let Some(rest) = line.strip_prefix("## ") {
-            let n: Option<u32> = rest.split('.').next().and_then(|s| s.trim().parse().ok());
+        if let Some(n) = top_level_doc_section_number(line) {
             // §24–§26 carry the M-, K- and correction-pass amendments; the
-            // range stopped at §23 and left them unchecked (MA-14, F23)
-            keep = matches!(n, Some(3..=17 | 21..=26));
+            // old range stopped at §23 and left them unchecked (MA-14, F23).
+            keep = matches!(n, 3..=17 | 21..=u32::MAX);
         }
         if keep {
             out.push_str(line);
@@ -3932,7 +4081,8 @@ fn doc_check() -> Result<(), String> {
     let scoped = doc_sections(&text);
     let api = collect_api();
     let foreign = foreign_members();
-    let allow = doc_allow();
+    let allow_entries = doc_allow_entries();
+    let allow: BTreeSet<String> = allow_entries.iter().map(|e| e.name.clone()).collect();
     let member_re = Regex::new(r"`([A-Z][A-Za-z0-9_]*)::([A-Za-z_][A-Za-z0-9_]*)`")
         .map_err(|e| e.to_string())?;
     let mut unresolved: BTreeMap<String, usize> = BTreeMap::new();
@@ -3996,13 +4146,27 @@ fn doc_check() -> Result<(), String> {
             println!("  {k} ({n})");
         }
     }
+    let allow_issues = stale_doc_allow_entries(&allow_entries, &allowed_hits);
     if unresolved.is_empty() {
-        Ok(())
+        if allow_issues.is_empty() {
+            Ok(())
+        } else {
+            Err(format!(
+                "doc-check: stale or duplicate allow-list entries:\n  {}",
+                allow_issues.join("\n  ")
+            ))
+        }
     } else {
         let mut msg =
             String::from("doc-check: unresolved references (build them or allow-list them):\n");
         for (k, n) in &unresolved {
             msg.push_str(&format!("  {k} ({n})\n"));
+        }
+        if !allow_issues.is_empty() {
+            msg.push_str("doc-check: stale or duplicate allow-list entries:\n");
+            for issue in &allow_issues {
+                msg.push_str(&format!("  {issue}\n"));
+            }
         }
         Err(msg)
     }
@@ -5000,6 +5164,68 @@ fn baseline_moves_are_classified() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn doc_section_parser_reaches_the_authoritative_tail() {
+        assert_eq!(
+            top_level_doc_section_number("## §27 Adjudication"),
+            Some(27)
+        );
+        assert_eq!(top_level_doc_section_number("## 68. Tail"), Some(68));
+        assert_eq!(top_level_doc_section_number("### §27.1 Detail"), None);
+        assert_eq!(top_level_doc_section_number("## Appendix A"), None);
+
+        let scoped = doc_sections(
+            "## 18. Migration\nskipped\n## §27 Adjudication\nkept\n### §27.1 Detail\nkept\n## 68. Tail\ntail\n",
+        );
+        assert!(!scoped.contains("skipped"), "§18 is outside the gate scope");
+        assert!(scoped.contains("kept"), "§27 must be included");
+        assert!(
+            scoped.contains("tail"),
+            "the open-ended tail must be included"
+        );
+    }
+
+    #[test]
+    fn doc_allow_list_rejects_stale_and_duplicate_entries() {
+        let entries = parse_doc_allow("Live::member\nStale\nLive::member\n");
+        let hits = BTreeMap::from([("Live::member".to_owned(), 1usize)]);
+        let issues = stale_doc_allow_entries(&entries, &hits);
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("stale entry `Stale`")),
+            "a satisfied allow-list must reject stale entries: {issues:?}"
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("duplicate entry `Live::member`")),
+            "a satisfied allow-list must reject duplicates: {issues:?}"
+        );
+
+        let live = parse_doc_allow("Live\n");
+        assert!(
+            stale_doc_allow_entries(&live, &hits).is_empty(),
+            "a live entry covering an unresolved hit is the green case"
+        );
+    }
+
+    #[test]
+    fn required_scan_roots_reject_missing_and_empty_inputs() {
+        let missing = scan_root_error(Path::new("crates/missing/src"), false, 0)
+            .expect("a missing required root must fail");
+        assert!(missing.contains("missing or not a directory"), "{missing}");
+
+        let empty = scan_root_error(Path::new("crates/empty/src"), true, 0)
+            .expect("an empty required root must fail");
+        assert!(empty.contains("no Rust files"), "{empty}");
+
+        assert!(
+            scan_root_error(Path::new("crates/tui/src"), true, 1).is_none(),
+            "a present root with Rust input is the green case"
+        );
+    }
 
     fn signature_spec<'a>(
         component: &'a str,
