@@ -114,6 +114,37 @@ fn live_hover_moves_between_keyed_labels_and_keyboard_suppression() {
 }
 
 #[test]
+fn live_hover_ignores_unkeyed_labels_and_blank_space() {
+    let theme = hover_theme();
+    let base_bg = theme.bg(Surface::Surface);
+    let hover_bg = theme.bg(Surface::Elevated);
+    let mut h = Harness::new(StatusApp::default(), theme, 32, 2);
+    let first_part = PartRef::item(Part::LABEL, FIRST);
+    let second_part = PartRef::item(Part::LABEL, SECOND);
+    let first_area = h.area_of_part(BAR, first_part).unwrap_or_default();
+    let second_area = h.area_of_part(BAR, second_part).unwrap_or_default();
+    let plain_x = text_start(&h, "plain");
+    let blank_x = second_area.right().saturating_add(1);
+    assert!(blank_x < 32, "fixture must leave a blank area");
+
+    let _ = h.mouse(MouseKind::Move, center(first_area).0, center(first_area).1);
+    assert_eq!(h.app().hover_samples[0], Some(first_part));
+    assert_eq!(h.cell(first_area.x, first_area.y).bg, hover_bg);
+
+    let _ = h.mouse(MouseKind::Move, plain_x, first_area.y);
+    assert_eq!(h.app().hover_samples[1], None);
+    assert_eq!(h.cell(first_area.x, first_area.y).bg, base_bg);
+    assert_eq!(h.cell(plain_x, first_area.y).bg, base_bg);
+    assert_eq!(h.cell(second_area.x, second_area.y).bg, base_bg);
+
+    let _ = h.mouse(MouseKind::Move, blank_x, first_area.y);
+    assert_eq!(h.app().hover_samples[2], None);
+    assert_eq!(h.cell(first_area.x, first_area.y).bg, base_bg);
+    assert_eq!(h.cell(plain_x, first_area.y).bg, base_bg);
+    assert_eq!(h.cell(second_area.x, second_area.y).bg, base_bg);
+}
+
+#[test]
 fn forced_hover_reaches_keyed_and_unkeyed_labels_and_clears_stale_live_hover() {
     let theme = hover_theme();
     let base_bg = theme.bg(Surface::Surface);
