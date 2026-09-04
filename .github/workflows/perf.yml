@@ -25,11 +25,10 @@ name: Perf
 # wants a quiet machine for stable wall times, which is exactly what the PERF_STRICT
 # job asserts against. Removing it would make the strict job noisier, not wrong.
 #
-# `--workspace --test perf --test perf_collections` selects the legacy root
-# `tests/perf.rs` plus both isolated crates/tui processes (`perf.rs` foundations and
-# `perf_collections.rs` collections; §66). The three `--bin … perf_tests` runs are the
-# application-shell benchmarks, which live inside the legacy root binaries until
-# Slices 5–7 move them to `apps/*/tests/perf.rs` (Appendix A, WP-0 note 5).
+# `-p junie-tui --test perf --test perf_collections` selects the two library perf
+# processes (`perf.rs` foundations and `perf_collections.rs` collections; §66).
+# Each application owns an integration benchmark at `apps/<app>/tests/perf.rs`,
+# with its own package-qualified command and baseline below.
 
 on:
   push:
@@ -59,20 +58,20 @@ jobs:
       # `tee` still fails the step.
       - name: Library perf (foundation and collections)
         run: |
-          cargo test --workspace --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
+          cargo test -p junie-tui --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
       - name: Showcase perf
         run: |
-          cargo test --release --bin showcase perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-showcase.log
+          cargo test -p showcase --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-showcase.log
       - name: TablePro perf
         run: |
-          cargo test --release --bin tablepro perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-tablepro.log
+          cargo test -p tablepro --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-tablepro.log
       - name: Jackin perf
         run: |
-          cargo test --release --bin jackin-preview perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-jackin.log
+          cargo test -p jackin-preview --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-jackin.log
       # §25.12 F18: a perf run must never re-bless. Only PERF_BLESS=1 rewrites these,
       # and that happens in the commit that changes the code, reviewed in the diff.
       - name: Baselines were not re-blessed (§25.12 F18)
-        run: git diff --exit-code crates/tui/tests/perf_baseline.txt tests/perf_baseline.txt
+        run: git diff --exit-code tests/perf_baseline.txt crates/tui/tests/perf_baseline.txt apps/showcase/tests/perf_baseline.txt apps/tablepro/tests/perf_baseline.txt apps/jackin-preview/tests/perf_baseline.txt
       # §16.6 / goal §30 item 13.
       - name: Collect PERF lines
         if: always()
@@ -99,16 +98,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Library perf (foundation and collections, strict)
         run: |
-          cargo test --workspace --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-lib.log
+          cargo test -p junie-tui --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-lib.log
       - name: Showcase perf (strict)
         run: |
-          cargo test --release --bin showcase perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-showcase.log
+          cargo test -p showcase --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-showcase.log
       - name: TablePro perf (strict)
         run: |
-          cargo test --release --bin tablepro perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-tablepro.log
+          cargo test -p tablepro --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-tablepro.log
       - name: Jackin perf (strict)
         run: |
-          cargo test --release --bin jackin-preview perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-jackin.log
+          cargo test -p jackin-preview --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-jackin.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

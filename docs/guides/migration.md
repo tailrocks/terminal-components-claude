@@ -1,8 +1,9 @@
 # Migration from the old experimental API
 
 This maps the pre-refactor `junie-tui` (the root package, `src/core/`,
-`src/ui/`, `src/widgets/`) onto the new library (`crates/tui`, which becomes
-`junie-tui` / `junie_tui` at Slice 5).
+`src/ui/`, `src/widgets/`) onto the new library (`crates/tui`, temporarily
+`tui-next` / `tui_next` through Slices 5–7, then `junie-tui` / `junie_tui` in
+one scripted commit between Slice 7 and Slice 8).
 
 Two ground rules for reading it:
 
@@ -14,7 +15,7 @@ Two ground rules for reading it:
   something that is not there.
 
 See the note at the top of [`quickstart.md`](quickstart.md) about the
-temporary crate name (`tui-next` until Slice 5).
+temporary crate name (`tui-next` through Slices 5–7).
 
 ---
 
@@ -187,10 +188,10 @@ whole draw subtree inert at the `Ui` boundary and, when testing runtime-owned pa
 one target:
 
 ```rust
-use tui_next::{ReferenceState, ReferenceTarget, Ui};
+use junie_tui::{ReferenceState, ReferenceTarget, Ui};
 
 let target = ReferenceTarget::new(SAVE, ReferenceState::FOCUSED)
-    .part(tui_next::PartRef::of(tui_next::Part::CONTAINER));
+    .part(junie_tui::PartRef::of(junie_tui::Part::CONTAINER));
 ui.reference(Some(target), |ui| {
     Button::new(SAVE, "Save").draw(ui, area);
 });
@@ -482,8 +483,9 @@ Only visible rows invoke the renderer. Selection lives in the caller-owned
 
 Status is against the current **Slice 4** library tree. "not yet" means the
 type does not exist; it is scheduled, not silently dropped. A ✅ library API
-does not mean the Slice 5 crate rename or either application migration has
-happened.
+does not mean the staged application moves have happened: the apps land in
+`apps/showcase`, `apps/tablepro`, and `apps/jackin-preview` across Slices 5–7,
+while `tui-next` remains the library package until the post-Slice-7 rename.
 
 | Old module | New | Status | Notes |
 |---|---|---|---|

@@ -298,18 +298,15 @@ Widgets are plain state structs with `render(area, buf, ctx)` — which draws
 Pages own their widgets and route events; the app owns focus, hover, pressed
 state and dialogs.
 
-## Towards a reusable library
+## Library boundary
 
-- `core/`, `theme.rs`, `ui/`, `widgets/` and `runtime.rs` are the library
-  today (`junie_tui`); both binaries consume it only through its public API.
-  `ui::ctx::RenderCtx` is the seam between library and app.
-- Widgets need three small generalisations: a trait over the `render` /
-  `on_*` pair so pages can hold `Vec<Box<dyn Widget>>`, a `Theme` trait (or a
-  second concrete theme) to prove the tokens are not Junie-only, and builder
-  options for the few hard-coded choices (gutter glyph, marker glyphs).
-- The page-level routing (`locate`/`owns` helpers on lists, trees and tables)
-  should become a `Container` helper so a page can dispatch clicks with one
-  call.
+- `crates/tui/src/` is the reusable library (`junie_tui`); `apps/showcase`,
+  `apps/tablepro`, and `apps/jackin-preview` consume it only through its public
+  API.
+- `crates/tui/examples/` are external-style consumers of the same facade, so
+  application code and examples exercise one supported API boundary.
+- Application packages own their domain models and screen composition; the
+  library owns runtime dispatch, components, layout, theme, and text handling.
 - Keep the rule that made this prototype coherent: **no widget chooses a
   colour; it asks the theme for a style given its `VisualState`.**
 
@@ -324,7 +321,7 @@ pages, `t_*` the workbench, `j_*` the Jackin preview (`BIN=target/debug/jackin-p
 ARGS="--scenario returning --motion reduced"`; use the tmux key name `Escape`,
 not `Esc`, when scripting).
 
-The showcase also carries a visual baseline (`tests/showcase_baseline.txt`):
+The showcase also carries a visual baseline (`apps/showcase/tests/baselines/showcase.txt`):
 a digest of every page at 120×40 and 80×24, excluding the navigation sidebar.
-`cargo test` fails when a page changes; regenerate deliberately with
-`UPDATE_BASELINE=1 cargo test --bin showcase showcase_visual_baseline`.
+The showcase visual test fails when a page changes; regenerate deliberately
+with `UPDATE_BASELINE=1 cargo test -p showcase --test visual showcase_visual_baseline`.

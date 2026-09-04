@@ -14,9 +14,9 @@ name: CI
 #       §16.5 `architecture::public_items_are_documented` (the other half of
 #       `#![deny(missing_docs)]`). Set through the job-level `RUSTDOCFLAGS` env below,
 #       which also hardens the doc-test step.
-#   cargo build -p tui-next --examples
+#   cargo build -p junie-tui --examples
 #       §16.5 `architecture::examples_are_external_consumers` / `all_examples_compile`.
-#   cargo test -p tui-next --test render --test render_components
+#   cargo test -p junie-tui --test render --test render_components
 #       §16.3 + §28 P2. During Slices 3–4 the matrix lives in TWO targets; a gate
 #       naming only `--test render` silently runs half of it. Both are named here.
 #   cargo test --workspace -- --list | grep -c '^render::components::'
@@ -39,7 +39,7 @@ name: CI
 #       and why the step sets `BLESS_GUARD_BASE` (§49.6).
 #   cargo run -p xtask -- doc-check
 #       §16.5 / §21 item 34 — every `Ident::method` in the document resolves.
-#   cargo check -p tui-next --no-default-features
+#   cargo check -p junie-tui --no-default-features
 #       §16.5 CI gate `core_is_backend_free` / §22.1: nothing outside
 #       runtime/session.rs needs a backend.
 #   cargo check --workspace --all-targets --all-features on the pinned 1.88.0 leg
@@ -47,9 +47,11 @@ name: CI
 #       proves the FIELD, this job proves the code compiles on the floor. Without it a
 #       builder could use a 1.95 API on a 1.98 toolchain and every other gate would pass.
 #
-# Naming note (§21 item 31): `tui-next` is the TEMPORARY Slice 3–4 package name of
-# `crates/tui`; it is renamed to `junie-tui` in one scripted commit at the start of
-# Slice 5, at which point the four `-p tui-next` gates below read `-p junie-tui`.
+# Naming note (§47.1): `tui-next` / `tui_next` remains the temporary package/lib
+# name through Slices 5–7 while `showcase`, `tablepro`, and `jackin-preview` move
+# into `apps/`. After Slice 7, one scripted commit removes the root legacy package
+# and renames the library to `junie-tui` / `junie_tui`. The package-specific gates
+# below use that final name.
 
 on:
   push:
@@ -95,7 +97,7 @@ jobs:
 
       # §22.1 / §16.5 core_is_backend_free.
       - name: Backend-free core (§22.1)
-        run: cargo check -p tui-next --no-default-features
+        run: cargo check -p junie-tui --no-default-features
 
       - name: Format (§26)
         run: cargo fmt --all --check
@@ -109,14 +111,14 @@ jobs:
       # §16.5 examples_are_external_consumers — the §17 examples compile against the
       # public API only.
       - name: Examples (§16.5)
-        run: cargo build -p tui-next --examples
+        run: cargo build -p junie-tui --examples
 
       - name: Test (§26)
         run: cargo test --workspace --all-targets --all-features
 
       # §16.3 + §28 P2: BOTH render targets, or the gate runs half the matrix.
       - name: Render matrix, both targets (§16.3)
-        run: cargo test -p tui-next --test render --test render_components
+        run: cargo test -p junie-tui --test render --test render_components
 
       # §25.12 / §28 P2: the documented `render::components::*` path is reachable.
       - name: Render matrix is reachable under its documented path (§25.12)
