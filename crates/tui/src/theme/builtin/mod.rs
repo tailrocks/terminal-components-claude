@@ -977,10 +977,10 @@ mod tests {
                     .style
                     .fg
                     .unwrap_or_else(|| panic!("{base:?}/{level:?} MENU/TITLE has no fg"));
-                let title_bg = menu_title.style.bg.unwrap_or(container_bg);
+                let title_surface_bg = menu_title.style.bg.unwrap_or(container_bg);
                 assert!(
-                    contrast(title_fg, title_bg) >= 3.0,
-                    "{base:?}/{level:?} MENU/TITLE: {title_fg:?} on {title_bg:?} is below 3:1"
+                    contrast(title_fg, title_surface_bg) >= 3.0,
+                    "{base:?}/{level:?} MENU/TITLE: {title_fg:?} on {title_surface_bg:?} is below 3:1"
                 );
                 assert!(
                     menu_title.style.add_modifier.contains(Modifier::DIM),
@@ -1025,7 +1025,7 @@ mod tests {
     #[test]
     fn grid_pressed_cell_is_explicit_inversion_after_semantic_cell_states() {
         for base in [Theme::junie(), Theme::paper()] {
-            for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
+            for theme in [base.clone(), base.downgrade(ColorLevel::Mono)] {
                 let pressed = theme.resolve(
                     Family::GRID,
                     Variant::DEFAULT,
@@ -1065,7 +1065,7 @@ mod tests {
         assert!(picker.parts.get(Part::TITLE).is_none());
 
         for base in [Theme::junie(), Theme::paper()] {
-            for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
+            for theme in [base.clone(), base.downgrade(ColorLevel::Mono)] {
                 let resolve = |part, flags| {
                     theme.resolve(
                         Family::PICKER,

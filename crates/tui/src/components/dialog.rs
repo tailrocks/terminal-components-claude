@@ -1522,7 +1522,7 @@ mod tests {
     fn reference_dialog_targets_one_owned_control_without_broadcasting() {
         let render = |dialog: Dialog<'_>, target| {
             let (mut runtime, mut buffer) = scene();
-            runtime.set_theme(Theme::junie().downgrade(crate::ColorLevel::Mono));
+            runtime.set_theme(Theme::junie().downgrade(ColorLevel::Mono));
             runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
                 ui.reference(target, |ui| {
                     dialog.draw(ui, area, &DialogState::default(), |_, _| {});

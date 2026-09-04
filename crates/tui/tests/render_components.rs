@@ -1662,7 +1662,7 @@ impl VisualExemption {
 /// component-owned visual affordance. Every entry is checked in both
 /// directions by `visual_state_failures`: a collision without an entry fails,
 /// and an entry whose output becomes distinct fails as stale. The one
-/// colour-qualified entry records the existing mono fallback on StatusBar;
+/// colour-qualified entry records the existing mono fallback on `StatusBar`;
 /// its truecolor surface has no focus affordance.
 const VISUAL_EXEMPTIONS: &[VisualExemption] = &[
     VisualExemption::color(
@@ -1796,7 +1796,7 @@ const VISUAL_EXEMPTIONS: &[VisualExemption] = &[
     ),
 ];
 
-const VISUAL_STATES: [(St, &'static str); 3] = [
+const VISUAL_STATES: [(St, &str); 3] = [
     (St::Focused, "focused"),
     (St::Disabled, "disabled"),
     (St::Selected, "selected"),
@@ -1873,10 +1873,8 @@ fn visual_state_failures(entries: &std::collections::BTreeMap<String, String>) -
                 }
             }
         }
-        for first in 0..VISUAL_STATES.len() {
-            for second in first.saturating_add(1)..VISUAL_STATES.len() {
-                let (state_a, name_a) = VISUAL_STATES[first];
-                let (state_b, name_b) = VISUAL_STATES[second];
+        for (first, (state_a, name_a)) in VISUAL_STATES.iter().copied().enumerate() {
+            for (state_b, name_b) in VISUAL_STATES.iter().copied().skip(first.saturating_add(1)) {
                 for theme in THEME_NAMES {
                     for color in COLOR_NAMES {
                         for (w, h) in SIZES {
@@ -2126,7 +2124,7 @@ fn button_checked_glyph_is_stable_across_colour_levels() {
             scene
                 .buffer()
                 .cell(Position::new(1, 0))
-                .map(|cell| cell.symbol()),
+                .map(ratatui_core::buffer::Cell::symbol),
             Some(chosen),
             "checked button marker changed at {color:?}"
         );

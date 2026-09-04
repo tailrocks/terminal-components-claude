@@ -2215,8 +2215,13 @@ impl Conformance for TextViewportCase {
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &ViewportState, f: &Fixture) {
         let mut reference = st.clone();
         reference.set_follow(false);
-        reference.set_caret(Some(CellPos::new(reference.scroll().offset(), 0)));
-        text_viewport(f).draw(ui, area, &reference, &viewport_lines(f));
+        let lines = viewport_lines(f);
+        // The scroll offset counts visual rows, not logical lines. Anchor the
+        // cursor to the last logical line, which is visible in this tailing
+        // fixture even when a prior zero-width update produced a stale visual
+        // offset that draw must clamp.
+        reference.set_caret(lines.len().checked_sub(1).map(|line| CellPos::new(line, 0)));
+        text_viewport(f).draw(ui, area, &reference, &lines);
     }
 
     fn activation_part() -> PartRef {

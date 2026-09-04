@@ -552,9 +552,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             let key = self.key_at(items, 0);
             st.core.set_cursor(0, key);
         }
-        if st.active.is_none() {
-            st.active = st.core.cursor();
-        }
         if st.first.is_none() && len > 0 {
             st.first = Some(self.key_at(items, 0));
             st.first_index = 0;
