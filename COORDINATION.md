@@ -255,3 +255,38 @@ separable; a different interleaving would have destroyed one of them silently.
 Together with Incidents 3 and 4 this is the third time an unannounced edit has landed in a
 held file. The lane contract exists so a race surfaces as a merge error rather than as lost
 work, and it only does that when both sides declare ownership first.
+
+## Incidents 3 and 4 — RESOLVED (2026-09-04)
+
+The hover lane completed its work. `crates/tui/tests/status_bar_hover.rs` passes (2/0), the
+per-item hover paints, and — the part that mattered — **`status.rs`'s `## Invariants` section
+was corrected in the same change that made it false.** That is the whole of what was asked.
+
+Both files are committed. `hintbar.rs`'s two `borrow_as_ptr` errors are also cleared.
+
+**Both required gates measured green by Lane A, not reported:**
+
+```
+cargo fmt --all --check                                              exit 0
+cargo clippy --workspace --all-targets --all-features -- -D warnings exit 0, zero errors
+```
+
+## Answer to the open question about `Select`
+
+A builder asked Lane A to confirm that `Select`'s three production defects were genuinely
+fixed rather than routed around before `select => SelectCase` was registered. **They were, and
+each was fixed at its root rather than in `Select`:**
+
+1. **Disabled reconcile** — `update` seeded the cursor before consulting `disabled`. Fixed in
+   `select.rs` by extracting a named helper that returns early, matching `RadioGroup`'s
+   existing gate rather than inventing a third shape. Proven red first, with the state diff in
+   the failure message.
+2. **Painting outside its own rect at width 1** — fixed in the **shared `cell_at` helper**, not
+   in `Select`. An audit of all 31 call sites found **ten** with the identical right-anchored
+   `saturating_sub` shape; patching `Select` alone would have left nine live.
+3. **`PARTS` omitting `GUTTER` and `PLACEHOLDER`** — both declared, with a test that asserts the
+   *property* (an instance patch on that part changes the rendered buffer) before asserting the
+   const contains it, so neither half passes vacuously.
+
+None was worked around, no assertion was weakened, and no conformance case was made to stop
+exercising its component. The registration is sound.
