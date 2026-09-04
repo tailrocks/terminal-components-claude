@@ -1205,6 +1205,9 @@ are now recorded below; frame review remains separate from hash approval.
 - tests:     apps/showcase/tests/visual.rs::showcase_visual_baseline, apps/tablepro/tests/visual.rs::tablepro_visual_baseline, apps/jackin-preview/tests/preview.rs::jackin_visual_baseline
 - moved:     none
 - added:     936 keys: showcase 704 (22×4×2×4), tablepro 168 (21×2×2×2), jackin-preview 64 (8×2×2×2)
+             ` {Buttons,Chips,Chrome,Data,Dialogs,Editable,Editor,Forms,Inputs,Lists,Overview,Panels,Pickers,Progress,Scrolling,Settings,Sidebars,Tables,Task,Terminal,Text,Trees} {80 24,100 30,120 40,160 50} {junie,paper} {truecolor,256,16,mono}`
+             `{completion-popup,connections,connections-failed,error-result,explain-plan,explorer-focused,filter-editor,grid-cell-editing,help-dialog,history-tab,maximised-tab,pending-change-bar,query-editing,quick-switcher,results-grid,safe-mode-picker,safety-dialog-typed-ack,structure-view,tab-list-picker,table-grid,workbench-default} {80 24,120 40} {junie,paper} {truecolor,mono}`
+             `{accounts-mixed,capsule-multi,first-use,hard-cases,launch-failure,launch-running,outro-last,returning} {100 30,120 40} {junie,paper} {truecolor,mono}`
 - class:     intended
 - reason:    §20.10 item 32; each migrated app now has cell-exact, theme-aware evidence owned beside its tests, reviewed against running captures and frozen before evidence where available.
 ```

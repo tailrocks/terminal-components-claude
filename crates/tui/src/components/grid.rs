@@ -2030,6 +2030,16 @@ impl Grid<'_> {
 }
 
 impl Grid<'_> {
+    fn right_overflow_rect(head: Rect, hidden_right: usize) -> Rect {
+        let count = Num::new(hidden_right);
+        let indicator_width = width(count.as_str()).saturating_add(1).min(head.width);
+        Rect {
+            x: head.right().saturating_sub(indicator_width),
+            width: indicator_width,
+            ..head
+        }
+    }
+
     fn register_sort_headers(&self, ui: &mut Ui<'_>, head: Rect, geometry: &Geometry) {
         if ui.is_inert() {
             return;
@@ -2091,12 +2101,7 @@ impl Grid<'_> {
         }
         if geometry.hidden_right > 0 {
             let count = Num::new(geometry.hidden_right);
-            let width = width(count.as_str()).saturating_add(1).min(head.width);
-            let at = Rect {
-                x: head.right().saturating_sub(width),
-                width,
-                ..head
-            };
+            let at = Self::right_overflow_rect(head, geometry.hidden_right);
             let used = ui.paint_str(at, count.as_str(), style);
             ui.glyph(
                 Rect {
@@ -2137,11 +2142,20 @@ impl Grid<'_> {
             live,
         );
         ui.fill(head, hs.style);
+        let right_overflow = (g.hidden_right > 0)
+            .then(|| Self::right_overflow_rect(head, g.hidden_right));
         for i in 0..g.n {
-            let rect = g.cell(i, head.y);
+            let raw_rect = g.cell(i, head.y);
             let Some(col) = self.columns.get(i) else {
                 break;
             };
+            let rect = right_overflow.map_or(raw_rect, |overflow| Rect {
+                width: raw_rect
+                    .right()
+                    .min(overflow.x)
+                    .saturating_sub(raw_rect.x),
+                ..raw_rect
+            });
             if rect.width == 0 {
                 continue;
             }
@@ -2961,6 +2975,58 @@ mod tests {
             column.key = ColumnKey::num(1);
         }
         Grid::new(ID, &columns).assert_distinct_column_keys();
+    }
+
+    #[test]
+    fn right_header_overflow_reserves_space_before_truncating_the_title() {
+        let columns = [
+            Column {
+                key: ColumnKey::num(1),
+                title: "total_amount_and_more",
+                subtitle: None,
+                align: Align::Left,
+                min_width: 18,
+                max_width: 18,
+                sortable: false,
+                editable: false,
+                sticky: false,
+                prefix_glyph: None,
+                badge: None,
+            },
+            Column {
+                key: ColumnKey::num(2),
+                title: "second",
+                subtitle: None,
+                align: Align::Left,
+                min_width: 8,
+                max_width: 8,
+                sortable: false,
+                editable: false,
+                sticky: false,
+                prefix_glyph: None,
+                badge: None,
+            },
+        ];
+        let model = Model::two();
+        let area = Rect::new(0, 0, 20, 5);
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_scene(area, &mut buffer, |ui, _| {
+            Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
+        });
+
+        assert_eq!(
+            buffer.cell(Position::new(17, 0)).map(|cell| cell.symbol()),
+            Some("…")
+        );
+        assert_eq!(
+            buffer.cell(Position::new(18, 0)).map(|cell| cell.symbol()),
+            Some("1")
+        );
+        assert_eq!(
+            buffer.cell(Position::new(19, 0)).map(|cell| cell.symbol()),
+            Some("›")
+        );
     }
 
     /// The check is wired to the entry points, not merely available.

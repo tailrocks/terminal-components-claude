@@ -1,6 +1,6 @@
 # COMPONENT_ARCHITECTURE.md
 
-**Status:** Accepted through §70. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
+**Status:** Accepted through §74. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
 
 Sections §40–§49 record subsequent gate, API, migration and baseline findings; §§50–§55 are
 accepted fresh adjudications for choice semantics, StatusBar hover, Grid ownership, incremental
@@ -11,6 +11,8 @@ Tree indexing, Jackin timing/status/dimming, and closure-bearing containers. <!-
 **Inputs adjudicated:** `docs/audit/api-audit.md` (API), `docs/audit/app-audit.md` (APP), `docs/audit/domain-boundary-audit.md` (DOM), `docs/audit/interaction-audit.md` (INT), `docs/audit/architecture-research.md` (RES). `docs/audit/performance-audit.md` (PERF) landed after §1–§15 were written; §20.9 folds its obligations in and amends earlier decisions where needed. `docs/audit/modern-api-audit.md` (MOD), `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K) and `docs/reviews/adjudication-m-small-items.md` (ADJ‑M) landed after §21; §22, §23 and §24 record them as binding, and every earlier section they change carries an inline `<!-- amended by §22 -->` / `<!-- amended by §23 -->` / `<!-- amended by §24 -->` marker. `docs/reviews/slice3-foundations-review.md` (the fresh read-only Slice 3 foundations review, at commit `18afddd`) and `docs/reviews/adjudication-n-layer-measure.md` (ADJ‑N) landed after §24; §25 and §26 record them as binding, and every earlier section they change carries an inline `<!-- amended by §25 -->` / `<!-- amended by §26 -->` marker. `docs/reviews/adjudication-o-foundations-followups.md` (ADJ‑O) landed after §26; §27 records it as binding, and every earlier section it changes carries an inline `<!-- amended by §27 -->` marker.
 
 `docs/reviews/adjudication-p...` and `docs/reviews/adjudication-q-residuals.md` are the binding §28/§29 review inputs; the Q and §30 records below preserve unresolved API questions rather than deciding them implicitly. <!-- amended by §29; §30 -->
+
+Sections §74.1–§74.3 record the accepted Slice-5 color, capture, and per-app evidence contracts. <!-- amended by §74 -->
 
 Every claim tagged **[F]** is a collected fact carried from an audit with its citation. Everything else is a decision or its rationale.
 
@@ -2123,7 +2125,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::conformance_covers_every_public_component` | `syn` scan of `pub struct`s in `components/**` vs the `conformance_suite!` list | G10 / §16.2 |
 | `architecture::every_named_test_exists` <!-- amended by §25 F12: must exist in `xtask`'s `CHECKS` and `tests/architecture.rs`; it was absent at `18afddd` and is the gate that makes §25's renamed/missing names visible --> | one-directional and scoped (§21 item 28): every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo test --workspace -- --list`; §16.6 perf names are checked against `cargo test --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases against `tests/ui/*.rs` filenames; extra tests are allowed | Documentation and the suite cannot drift; the `capsule_pane_clone_4x2000` deletion is asserted by line-absence in `perf_baseline.txt` |
 | `architecture::binary_names_are_preserved` | `cargo metadata` target names | `showcase`, `tablepro`, `jackin-preview` (goal §21) |
-| `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list`; it reads `tools/capture.sh` | `xtask capture-matrix` exists, uses exactly `showcase` × `tablepro` × `jackin-preview`, `80×24|100×30|120×40|160×50`, `junie|paper` and `truecolor|256|16|mono` (96 cells), and proves the script consumes `BIN`, `COLOR`, `ARGS`, tmux capture and PNG conversion before a visual review |
+| `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list`; it reads `tools/capture.sh` and validates `shots/capture-matrix.tsv` plus `shots/capture-provenance.json` | `xtask capture-matrix` exists, uses exactly `showcase` × `tablepro` × `jackin-preview`, `80×24|100×30|120×40|160×50`, `junie|paper` and `truecolor|256|16|mono` (96 cells), proves the script consumes `BIN`, `COLOR`, `ARGS`, tmux capture and PNG conversion, and verifies all checked-in cell/artifact hashes before a visual review |
 | `architecture::app_baselines_exist` | `xtask` checks each migrated app's checked-in paths | `apps/<app>/tests/baselines/<app>.txt` and `apps/<app>/tests/perf_baseline.txt` exist and are non-empty; missing paths fail closed |
 | `architecture::workspace_root_is_virtual` | `cargo metadata` plus filesystem checks from `xtask` | the root has no Cargo package, no root `src/` tree, and no detached root application sources after the workspace split |
 | `architecture::msrv_and_edition_are_unchanged` <!-- amended by §22 --> | `cargo metadata` **plus** the blocking CI job `msrv`: `cargo +1.88.0 check --workspace --all-targets --all-features` — the metadata proves the *field*, the job proves the code compiles on 1.88 (on a 1.98 toolchain a builder could otherwise use a 1.95 API and every gate would pass) | edition 2024, `rust-version = "1.88"` on every package, held deliberately (§22 §5) |
@@ -8482,7 +8484,13 @@ not evidence.
 
 **Acceptance.** `xtask::capture_matrix_covers_every_declared_cell` and
 `xtask::capture_matrix_fails_closed_on_a_missing_cell`, plus `capture-matrix` joining the named-test
-and gate lists so its absence becomes reportable rather than invisible (§47.4).
+and gate lists so its absence becomes reportable rather than invisible (§47.4). The command also
+validates the checked-in TSV and JSON evidence before it reports success: all 96 cells must be
+present, each of the 480 artifact files must have the recorded byte count and SHA-256, stderr must
+be empty, and every record must describe a successful capture with one resolved source revision.
+`boundary` repeats the same validation against the checked-in evidence. The shell producer uses a
+worktree-scoped tmux session and a fail-closed capture lock, so concurrent worktrees cannot race on
+one session or silently overwrite a run.
 
 **Implementation pin.** `xtask` independently asserts the exact four sizes `80×24`, `100×30`,
 `120×40`, `160×50`, the exact colour axis `truecolor|256|16|mono`, the exact theme axis

@@ -558,7 +558,10 @@ fn grid(m: &mut PartMap<PartRecipe>) {
     row_like(m);
     part(m, Part::ROW, p());
     part(m, Part::CELL, p())
-        .when(StateFlags::ACTIVE, p().set_bg(Role::AccentTint))
+        .when(
+            StateFlags::ACTIVE,
+            p().set_bg(Role::AccentTint).add(Modifier::BOLD),
+        )
         .when(StateFlags::ERROR, p().set_fg(Role::Danger))
         .when(StateFlags::DIRTY, p().set_fg(Role::Warning))
         .when(
@@ -916,6 +919,22 @@ mod tests {
                 assert!(!pressed.style.add_modifier.contains(Modifier::REVERSED));
                 assert!(pressed.style.sub_modifier.contains(Modifier::REVERSED));
             }
+        }
+    }
+
+    #[test]
+    fn grid_active_cell_keeps_a_non_color_affordance_at_mono() {
+        for base in [Theme::junie(), Theme::paper()] {
+            let active = base
+                .downgrade(crate::ColorLevel::Mono)
+                .resolve(
+                    Family::GRID,
+                    Variant::DEFAULT,
+                    Part::CELL,
+                    StateFlags::ACTIVE,
+                    Surface::Canvas,
+                );
+            assert!(active.style.add_modifier.contains(Modifier::BOLD));
         }
     }
 
