@@ -76,23 +76,6 @@ cast_sign_loss = "allow"                      #   (ratatui-core-0.1.2/Cargo.toml
 cast_precision_loss = "allow"                 #   consistent with the ecosystem we live inside
 cast_possible_wrap = "allow"
 
-[package]
-name = "junie-tui"
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.88"
-description = "Junie-inspired Ratatui design-system laboratory"
-license = "MIT"
-
-[lib]
-name = "junie_tui"
-path = "src/lib.rs"
-
-[dependencies]
-ratatui = { version = "0.30", features = ["crossterm_0_29"] }
-unicode-width = "0.2"
-unicode-segmentation = "1"
-
 [profile.release]
 lto = "thin"
 codegen-units = 1
