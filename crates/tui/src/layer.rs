@@ -855,11 +855,14 @@ mod runtime_tests {
     use ratatui_core::layout::{Position, Rect};
 
     use super::*;
+    use crate::diagnostics::Diagnostic;
     use crate::event::{KeyCode, MouseKind};
+    use crate::focus::ScopeId;
     use crate::intent::Intent;
     use crate::runtime::stub::{Control, Stub, key, mouse, runtime, step};
 
     const PAGE_A: Id = Id::root("page.a");
+    const PAGE_B: Id = Id::root("page.b");
     const DLG: Id = Id::root("dlg");
     const OK: Id = Id::root("dlg.ok");
     const INPUT: Id = Id::root("dlg.input");
@@ -879,6 +882,21 @@ mod runtime_tests {
                     },
                 ],
             )],
+            consume_keys: false,
+            ..Stub::default()
+        }
+    }
+
+    /// Two page controls and a popover that registers one control of its
+    /// own, so that `Tab` off the opener lands on a control which is
+    /// genuinely outside the popover's scope.
+    fn popover_stub() -> Stub {
+        Stub {
+            page: vec![
+                Control::new(PAGE_A, Rect::new(0, 0, 10, 1)),
+                Control::new(PAGE_B, Rect::new(0, 2, 10, 1)),
+            ],
+            layers: vec![(PICK, vec![Control::new(ROW, Rect::new(20, 4, 5, 1))])],
             consume_keys: false,
             ..Stub::default()
         }
@@ -1017,6 +1035,74 @@ mod runtime_tests {
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 1, 0));
         assert!(!rt.is_open(DLG));
         assert!(!rt.app().saw(PAGE_A, "Press"));
+    }
+
+    /// §29.8 D2: `Dismiss.focus_out` has a producer.
+    ///
+    /// A `Popover` is a pointer barrier, not a focus trap, so nothing stops
+    /// `Tab` — runtime focus policy, intercepted before any intent is
+    /// enqueued — from parking focus on a control *behind* an open popup.
+    /// The runtime closes the layer instead, with `DismissReason::FocusOut`,
+    /// and the focus restore that `LayerSpec::popover` arms must **not**
+    /// fire: restoring to the opener would make `Tab` a no-op and re-create
+    /// the legacy key swallow by accident. A `Modal` is excluded by
+    /// `dismisses_on_focus_out` itself, whatever its `Dismiss` says.
+    #[test]
+    fn focus_out_dismisses_a_popover_but_never_a_modal() {
+        let (mut rt, mut buf) = runtime(popover_stub());
+        assert_eq!(rt.focus(), Some(PAGE_A));
+        rt.app_mut().open_request = Some((
+            PICK,
+            LayerSpec::popover(PICK, Anchor::Point(Position::new(20, 4))).dismiss(Dismiss::ALL),
+        ));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
+        assert!(rt.is_open(PICK));
+        assert_eq!(
+            rt.focus(),
+            Some(PAGE_A),
+            "the opener keeps focus while open"
+        );
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
+        assert!(
+            !rt.is_open(PICK),
+            "focus left the popover's scope, so the popover is dismissed"
+        );
+        assert!(
+            rt.app().saw(PICK, "Dismissed(FocusOut)"),
+            "the owner must be told why: {:?}",
+            rt.app().log
+        );
+        assert_eq!(
+            rt.focus(),
+            Some(PAGE_B),
+            "focus is on the Tab target, not restored to the opener"
+        );
+        assert!(
+            !rt.diagnostics()
+                .iter()
+                .any(|d| matches!(d, Diagnostic::FocusTransitionDidNotSettle { .. })),
+            "the dismissal is one more pass, not an unsettled loop: {:?}",
+            rt.diagnostics()
+        );
+
+        // the other direction: a modal asking for `Dismiss::ALL` still never
+        // dismisses on focus-out, and its trap keeps focus in its own scope
+        let (mut rt, mut buf) = runtime(dialog_stub());
+        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).dismiss(Dismiss::ALL)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
+        assert!(rt.is_open(DLG));
+        assert_eq!(rt.focus(), Some(OK), "the trap moved focus into the modal");
+        for _ in 0..3 {
+            let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
+            assert!(rt.is_open(DLG), "a modal never dismisses on focus-out");
+            let focused = rt.focus().expect("the trap is not empty");
+            assert_eq!(
+                rt.ring().entry(focused).map(|e| e.scope),
+                Some(ScopeId::new(DLG)),
+                "focus never left the modal's scope"
+            );
+        }
+        assert!(!rt.app().saw(DLG, "Dismissed(FocusOut)"));
     }
 
     #[test]

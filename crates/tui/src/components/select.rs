@@ -18,7 +18,7 @@ use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
-use crate::layer::{Anchor, CrossAlign, LayerEvent, LayerSize, LayerSpec, Side};
+use crate::layer::{Anchor, CrossAlign, Dismiss, LayerEvent, LayerSize, LayerSpec, Side};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
@@ -205,14 +205,19 @@ impl Reconcile for SelectState {
 ///
 /// ## Actions
 /// [`SelectAction`]: `Chose(k)` (`Enter` / `Space` / a click on a row),
-/// `Opened`, `Closed` (Esc, an outside click, or the toggle). Moving the
+/// `Opened`, `Closed` (Esc, an outside click, focus leaving the field, or
+/// the toggle). Moving the
 /// cursor — open or closed — reports nothing: the cursor is not the value.
 ///
 /// ## Focus
 /// One `Focusable` stop (`FocusableReadOnly` / `Disabled`); does not
 /// swallow typing. The popup is a `Popover`, which is a **pointer barrier
-/// only** (§9.1): the select keeps focus while it is open, which is the
-/// legacy one-focus-stop contract, and the popup registers no focus stop.
+/// only** (§9.1): it registers no focus stop of its own, so the field
+/// remains the one stop, which is the legacy one-focus-stop contract.
+/// Focus is not *retained* there, though — the popup opens with
+/// [`Dismiss::ALL`], so moving focus off the field (`Tab` is runtime focus
+/// policy and never reaches a component) dismisses the layer with
+/// `DismissReason::FocusOut` and leaves focus on its new target (§29.8).
 ///
 /// ## Keyboard
 /// `Enter` / `Space` open the popup and commit the cursor option once it is
@@ -481,8 +486,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
     /// The layer this popup wants. Call it at the moment of opening —
     /// `cx.open_layer(id, select().layer(cx, items))` — and let
     /// [`Select::update`] re-assert it every frame (§26 N1, invariant D1).
+    /// The popup opens with [`Dismiss::ALL`] (§29.8 D1): a `Popover` is a
+    /// pointer barrier only, so focus-out dismissal — not a focus trap and
+    /// not key swallowing — is what keeps focus off a control behind the
+    /// open popup.
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
-        LayerSpec::popover(self.id, self.anchor(cx)).size(self.measured_size(cx, items))
+        LayerSpec::popover(self.id, self.anchor(cx))
+            .dismiss(Dismiss::ALL)
+            .size(self.measured_size(cx, items))
     }
 
     fn move_cursor(
@@ -996,12 +1007,104 @@ impl<T, K, R> Bindings for Select<'_, T, K, R> {
 mod tests {
     use super::*;
     use crate::collection::RowUi;
-    use crate::runtime::Runtime;
+    use crate::event::{Input, Key, KeyModifiers};
     use crate::runtime::stub::{SCREEN, Stub};
+    use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
     use ratatui_core::buffer::Buffer;
 
     const SEL: Id = Id::root("select.tests");
+    const OTHER: Id = Id::root("select.tests.other");
+
+    /// A page with a select and one other focus stop, driven by the real
+    /// runtime — the only way to reach `Tab`, which is runtime focus policy
+    /// and never becomes a component intent.
+    #[derive(Default)]
+    struct SelectPage {
+        st: SelectState,
+        items: Vec<&'static str>,
+        closed: usize,
+    }
+
+    impl App for SelectPage {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let s: Select<'_, &str> = Select::new(SEL);
+            let mut r = s.update(cx, &mut self.st, &self.items);
+            if r.take_action() == Some(SelectAction::Closed) {
+                self.closed = self.closed.saturating_add(1);
+            }
+            // the other control drains its own bucket, or the focus pair the
+            // runtime addressed to it is reported as undelivered
+            for _ in cx.intents(OTHER) {}
+            r.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let s: Select<'_, &str> = Select::new(SEL);
+            s.draw(ui, Rect::new(0, 0, 20, 1), &self.st, &self.items);
+            ui.register_control(OTHER, Rect::new(0, 3, 10, 1), Focusability::Focusable);
+        }
+    }
+
+    fn press(code: KeyCode) -> Input {
+        Input::Key(Key {
+            code,
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    /// §29.8 D1: the popup opens with `Dismiss::ALL`, so the runtime closes
+    /// it the moment focus leaves the field.
+    ///
+    /// The legacy widget held this invariant twice over — it cleared `open`
+    /// whenever it drew unfocused, and it swallowed every unhandled key
+    /// while open. Neither route survives: the popup is a `Popover`, which
+    /// is a pointer barrier only, and `Tab` is intercepted as runtime focus
+    /// policy before any intent is enqueued. Focus-out dismissal is the
+    /// replacement, and it must leave focus on the `Tab` target rather than
+    /// restoring it to the field.
+    #[test]
+    fn an_open_popup_closes_when_focus_leaves_the_field() {
+        let mut st = SelectState::default();
+        st.set_value(Some(ItemKey::index(0)));
+        let app = SelectPage {
+            st,
+            items: vec!["a", "b", "c"],
+            closed: 0,
+        };
+        let mut rt = Runtime::new(app, Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(rt.focus(), Some(SEL));
+        let _ = rt.handle(press(KeyCode::Enter));
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert!(rt.app().st.is_open(), "Enter opened the popup");
+        assert!(rt.is_open(SEL), "the popover layer is open");
+        // browse away from the committed value without committing
+        let _ = rt.handle(press(KeyCode::Down));
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(rt.app().st.cursor(), Some(ItemKey::index(1)));
+        assert_eq!(rt.app().st.value(), Some(ItemKey::index(0)));
+        assert_eq!(rt.app().closed, 0);
+
+        let _ = rt.handle(press(KeyCode::Tab));
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(rt.focus(), Some(OTHER), "Tab moved focus off the field");
+        assert!(!rt.is_open(SEL), "the popover layer was dismissed");
+        assert!(!rt.app().st.is_open(), "the component agrees it is closed");
+        assert_eq!(
+            rt.app().st.cursor(),
+            Some(ItemKey::index(0)),
+            "the cursor is restored to the committed value"
+        );
+        assert_eq!(rt.app().st.value(), Some(ItemKey::index(0)));
+        assert_eq!(rt.app().closed, 1, "`Closed` is reported exactly once");
+        assert!(
+            rt.diagnostics().is_empty(),
+            "no diagnostic on the dismissal pass: {:?}",
+            rt.diagnostics()
+        );
+    }
 
     /// §16.1: Esc dismisses the popup and puts the cursor back on the
     /// committed value, so a cancelled dropdown leaves no half-made choice

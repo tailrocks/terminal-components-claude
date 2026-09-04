@@ -50,7 +50,7 @@ impl LayoutFacts {
 pub(crate) struct Snapshot {
     pub(crate) focus: Option<Id>,
     pub(crate) focus_visible: bool,
-    pub(crate) hover: Option<Id>,
+    pub(crate) hover: Option<(Id, PartRef)>,
     pub(crate) hover_suppressed: bool,
     pub(crate) pressed: Option<Id>,
     pub(crate) capture: Option<Id>,
@@ -77,7 +77,7 @@ impl LastFrame {
                 f |= StateFlags::FOCUS_VISIBLE;
             }
         }
-        if s.hover == Some(id) && !s.hover_suppressed {
+        if s.hover.is_some_and(|(owner, _)| owner == id) && !s.hover_suppressed {
             f |= StateFlags::HOVERED;
         }
         if s.pressed == Some(id) || s.capture == Some(id) {
@@ -99,6 +99,18 @@ impl LastFrame {
             .find(|(i, _)| *i == id)
             .map(|(_, l)| *l)
     }
+
+    /// The hovered part of `owner`, unless keyboard input currently suppresses
+    /// hover styling.
+    pub(crate) fn hovered_part(&self, owner: Id) -> Option<PartRef> {
+        if self.snapshot.hover_suppressed {
+            return None;
+        }
+        self.snapshot
+            .hover
+            .filter(|(id, _)| *id == owner)
+            .map(|(_, part)| part)
+    }
 }
 
 /// Shared read accessors — one vocabulary for both phases.
@@ -106,6 +118,11 @@ pub trait FrameRead {
     /// Runtime-resolved focus / hover / press / disabled flags for `id`,
     /// plus whatever `id` declared last frame.
     fn state(&self, id: Id) -> StateFlags;
+    /// The hovered sub-region of `owner`, or `None` when no live hover matches.
+    /// Keyboard input suppresses this result until the pointer moves.
+    fn hovered_part(&self, _owner: Id) -> Option<PartRef> {
+        None
+    }
     /// The theme.
     fn theme(&self) -> &Theme;
     /// The design tokens.
@@ -336,6 +353,10 @@ impl FrameRead for Cx<'_> {
         self.last.state(id)
     }
 
+    fn hovered_part(&self, owner: Id) -> Option<PartRef> {
+        self.last.hovered_part(owner)
+    }
+
     fn theme(&self) -> &Theme {
         self.theme
     }
@@ -350,5 +371,13 @@ impl FrameRead for Cx<'_> {
 
     fn layout(&self, id: Id) -> Option<LayoutFacts> {
         self.last.layout_of(id)
+    }
+}
+
+impl super::Ui<'_> {
+    /// The hovered sub-region of `owner`, or `None` when keyboard input
+    /// currently suppresses hover styling.
+    pub fn hovered_part(&self, owner: Id) -> Option<PartRef> {
+        self.last.hovered_part(owner)
     }
 }

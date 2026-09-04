@@ -18,7 +18,7 @@ use crate::capture::Capture;
 use crate::cursor::{self, CursorDecision};
 use crate::diagnostics::Diagnostic;
 use crate::event::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
-use crate::focus::{FocusRing, FocusState, ScopeMode};
+use crate::focus::{FocusRing, FocusState, ScopeId, ScopeMode};
 use crate::hit::{Hit, RegionKind};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
@@ -113,6 +113,9 @@ pub struct Runtime<A: App> {
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
     layer_events_pending: Vec<(Id, LayerEvent)>,
+    /// Layers closed by `DismissReason::FocusOut` since the last settle
+    /// (§29.8 D2). Drained in lockstep with `services.closed_layers`.
+    focus_out_closed: Vec<Id>,
     unsettled: usize,
 }
 
@@ -150,6 +153,7 @@ impl<A: App> Runtime<A> {
             keymap_conflicts: Vec::new(),
             staged_focus: None,
             layer_events_pending: Vec::new(),
+            focus_out_closed: Vec::new(),
             unsettled: 0,
         }
     }
@@ -266,7 +270,52 @@ impl<A: App> Runtime<A> {
         }
         self.focus.set(to);
         self.last.snapshot.focus = to;
+        self.dismiss_on_focus_out(to);
         true
+    }
+
+    /// Whether `to` is *known* to sit outside `scope`.
+    ///
+    /// An unregistered target is deliberately not "outside": a layer's own
+    /// controls are absent from the last frame's ring until they first draw,
+    /// so a `LayerSpec::initial_focus` into a freshly opened layer would
+    /// otherwise read as a focus-out and dismiss the layer that asked for
+    /// it. Focus at `None` is outside every scope.
+    fn focus_left_scope(&self, to: Option<Id>, scope: ScopeId) -> bool {
+        let Some(id) = to else {
+            return true;
+        };
+        self.last
+            .ring
+            .entry(id)
+            .is_some_and(|e| !self.last.ring.within(e.scope, scope))
+    }
+
+    /// §29.8 D2: close every top layer that dismisses on focus-out and whose
+    /// scope no longer contains the new focus target.
+    ///
+    /// This is the producer `DismissReason::FocusOut` never had, and it is
+    /// what keeps focus from resting on a control *behind* an open popover:
+    /// `Tab` is runtime focus policy, intercepted before any intent is
+    /// enqueued, so the component itself can never see it.
+    ///
+    /// The walk stops at the first layer that keeps the target or refuses
+    /// focus-out dismissal. A `Modal` refuses through
+    /// `LayerSpec::dismisses_on_focus_out` itself, which is the only
+    /// exclusion there is; and because `LayerStack::close` takes everything
+    /// above a layer with it, stopping there is also what stops a popover
+    /// underneath a modal being closed out from under a modal that
+    /// legitimately holds focus.
+    fn dismiss_on_focus_out(&mut self, to: Option<Id>) {
+        while let Some(top) = self.services.layers.top_layer().copied() {
+            if !top.spec.dismisses_on_focus_out() || !self.focus_left_scope(to, top.scope()) {
+                break;
+            }
+            self.focus_out_closed.push(top.id);
+            if !self.dismiss_top(DismissReason::FocusOut) {
+                break;
+            }
+        }
     }
 
     fn swallows_typing(&self) -> bool {
@@ -373,7 +422,7 @@ impl<A: App> Runtime<A> {
                 self.inter.hover = hit
                     .filter(|h| self.deliverable(*h))
                     .map(|h| (h.owner, h.part));
-                self.last.snapshot.hover = self.inter.hover.map(|(o, _)| o);
+                self.last.snapshot.hover = self.inter.hover;
             }
             MouseKind::Down => {
                 if outside {
@@ -576,6 +625,7 @@ impl<A: App> Runtime<A> {
         if closed.is_empty() {
             return;
         }
+        let focus_out = core::mem::take(&mut self.focus_out_closed);
         for l in &closed {
             if let Some(c) = self.services.capture.get()
                 && self.last.registry.layer_of(c.owner) == Some(l.layer)
@@ -584,9 +634,14 @@ impl<A: App> Runtime<A> {
                 self.last.snapshot.capture = None;
             }
         }
-        // the lowest closed layer's restore target wins
+        // The lowest closed layer's restore target wins — except on the
+        // focus-out path (§29.8 D2). `LayerSpec::popover` sets
+        // `restore_focus`, so restoring here would put focus straight back
+        // on the opener, making the `Tab` that dismissed the layer a no-op
+        // and re-creating the legacy key swallow by accident.
         if let Some(first) = closed.first()
             && first.spec.restore_focus
+            && !focus_out.contains(&first.id)
         {
             let target = first
                 .restore_to
@@ -615,6 +670,10 @@ impl<A: App> Runtime<A> {
         loop {
             self.pump_layer_events();
             self.apply_staged_focus();
+            // a focus-out dismissal fired inside `apply_staged_focus` staged
+            // its `Dismissed(FocusOut)` after the pump above; deliver it in
+            // this same pass rather than a frame later (§29.8 D2)
+            self.pump_layer_events();
             self.services.focus_request = None;
             let events = core::mem::take(&mut self.layer_events_pending);
             self.services.events.extend(events);
