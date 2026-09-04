@@ -14,12 +14,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
-use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Write};
+use std::fs::{self, File};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
-#[cfg(test)]
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use regex::Regex;
 use sha2::{Digest, Sha256};
@@ -35,25 +33,23 @@ fn root() -> PathBuf {
 const CAPTURE_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (160, 50)];
 const CAPTURE_COLORS: [&str; 4] = ["truecolor", "256", "16", "mono"];
 const CAPTURE_THEMES: [&str; 2] = ["junie", "paper"];
-const NO_CAPTURE_ARGS: &[&str] = &[];
-const JACKIN_CAPTURE_ARGS: &[&str] = &["--motion", "paused", "--frame", "0"];
 const CAPTURE_APPS: [CaptureApp; 3] = [
     CaptureApp {
         name: "showcase",
         binary: "showcase",
-        extra_args: NO_CAPTURE_ARGS,
+        extra_args: "",
     },
     CaptureApp {
         name: "tablepro",
         binary: "tablepro",
-        extra_args: NO_CAPTURE_ARGS,
+        extra_args: "",
     },
     CaptureApp {
         name: "jackin-preview",
         binary: "jackin-preview",
         // A paused frame makes the capture deterministic and avoids waiting
         // for the intro animation on every matrix cell.
-        extra_args: JACKIN_CAPTURE_ARGS,
+        extra_args: "--motion paused --frame 0",
     },
 ];
 const CAPTURE_MANIFEST: &str = "shots/capture-matrix.tsv";
@@ -70,7 +66,7 @@ const EXPECTED_CAPTURE_APPS: [&str; 3] = ["showcase", "tablepro", "jackin-previe
 struct CaptureApp {
     name: &'static str,
     binary: &'static str,
-    extra_args: &'static [&'static str],
+    extra_args: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -125,58 +121,6 @@ fn capture_matrix_cases() -> Vec<CaptureCase> {
         .collect()
 }
 
-#[derive(Debug)]
-struct CaptureMatrixLock {
-    path: PathBuf,
-}
-
-impl Drop for CaptureMatrixLock {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir(&self.path);
-    }
-}
-
-fn ensure_capture_directory(path: &Path) -> Result<(), String> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
-            "capture output directory is a symlink: {}",
-            path.display()
-        )),
-        Ok(metadata) if !metadata.is_dir() => Err(format!(
-            "capture output path is not a directory: {}",
-            path.display()
-        )),
-        Ok(_) => Ok(()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            fs::create_dir(path).map_err(|create_error| {
-                format!(
-                    "cannot create capture output directory {}: {create_error}",
-                    rel(path)
-                )
-            })
-        }
-        Err(error) => Err(format!(
-            "cannot inspect capture output directory {}: {error}",
-            rel(path)
-        )),
-    }
-}
-
-fn acquire_capture_matrix_lock(shots: &Path) -> Result<CaptureMatrixLock, String> {
-    let path = shots.join(".capture-matrix.lock");
-    match fs::create_dir(&path) {
-        Ok(()) => Ok(CaptureMatrixLock { path }),
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Err(format!(
-            "capture matrix is already running (lock: {})",
-            rel(&path)
-        )),
-        Err(error) => Err(format!(
-            "cannot acquire capture matrix lock {}: {error}",
-            rel(&path)
-        )),
-    }
-}
-
 fn capture_matrix() -> Result<(), String> {
     let script = root().join("tools/capture.sh");
     if !script.is_file() {
@@ -192,8 +136,12 @@ fn capture_matrix() -> Result<(), String> {
     }
 
     let shots = root().join("shots");
-    ensure_capture_directory(&shots)?;
-    let _matrix_lock = acquire_capture_matrix_lock(&shots)?;
+    fs::create_dir_all(&shots).map_err(|error| {
+        format!(
+            "cannot create capture output directory {}: {error}",
+            rel(&shots)
+        )
+    })?;
 
     let cases = capture_matrix_cases();
     let mut records = Vec::with_capacity(cases.len());
@@ -207,69 +155,29 @@ fn capture_matrix() -> Result<(), String> {
             case.theme,
             case.color
         );
-        remove_capture_artifacts(&shots, case)?;
+        remove_capture_artifacts(case)?;
 
         let binary = binaries
             .get(case.app.name)
             .ok_or_else(|| format!("capture app is not declared: {}", case.app.name))?;
 
-        let run_id = capture_run_id(case, index);
-        if capture_run_state_exists(&shots, &run_id)? {
-            return Err(format!(
-                "capture run state already exists before start for {}: {}",
-                case_label(case),
-                shots.join(".capture-state").join(&run_id).display()
-            ));
-        }
-        let mut start_args = vec![
+        let start_args = vec![
             "start".to_owned(),
             case.width.to_string(),
             case.height.to_string(),
-            "--".to_owned(),
-            binary
-                .strip_prefix(root())
-                .unwrap_or(binary)
-                .to_string_lossy()
-                .into_owned(),
         ];
-        start_args.extend(capture_arguments(case));
-        if let Err(error) = run_capture_script(&script, &start_args, case, binary, &run_id) {
-            match capture_run_state_exists(&shots, &run_id) {
-                Ok(true) => {
-                    if let Err(cleanup) = stop_capture(&script, case, binary, &run_id) {
-                        return Err(format!(
-                            "{error}; cleanup stop failed for {}: {cleanup}",
-                            case_label(case)
-                        ));
-                    }
-                }
-                Ok(false) => {}
-                Err(state_error) => {
-                    return Err(format!(
-                        "{error}; cannot inspect cleanup state for {}: {state_error}",
-                        case_label(case)
-                    ));
-                }
-            }
+        if let Err(error) = run_capture_script(&script, &start_args, case, binary) {
+            let _ = stop_capture(&script, case, binary);
             return Err(error);
         }
 
         let shot_args = vec!["shot".to_owned(), case.shot_name()];
-        let shot_result = run_capture_script(&script, &shot_args, case, binary, &run_id);
-        let stop_result = stop_capture(&script, case, binary, &run_id);
-        match (shot_result, stop_result) {
-            (Ok(()), Ok(())) => {}
-            (Err(shot), Ok(())) => return Err(shot),
-            (Ok(()), Err(stop)) => return Err(stop),
-            (Err(shot), Err(stop)) => {
-                return Err(format!(
-                    "{shot}; cleanup stop failed for {}: {stop}",
-                    case_label(case)
-                ));
-            }
-        }
+        let shot_result = run_capture_script(&script, &shot_args, case, binary);
+        let stop_result = stop_capture(&script, case, binary);
+        shot_result?;
+        stop_result?;
 
-        records.push(capture_record(&shots, case)?);
+        records.push(capture_record(case)?);
     }
 
     validate_capture_records(&cases, &records)?;
@@ -369,7 +277,6 @@ fn run_capture_script(
     args: &[String],
     case: CaptureCase,
     binary: &Path,
-    run_id: &str,
 ) -> Result<(), String> {
     let binary_arg = binary
         .strip_prefix(root())
@@ -382,16 +289,7 @@ fn run_capture_script(
         .current_dir(root())
         .env("BIN", binary_arg)
         .env("COLOR", case.color)
-        .env("CAPTURE_RUN_ID", run_id)
-        .env("CAPTURE_DIR", root().join("shots"))
-        .env(
-            "CAPTURE_MANIFEST",
-            root().join("shots/capture-provenance.json"),
-        )
-        .env("CAPTURE_STATE_DIR", root().join("shots/.capture-state"))
-        .env_remove("ARGS")
-        .env_remove("THEME")
-        .env_remove("PY")
+        .env("ARGS", capture_arguments(case))
         .output()
         .map_err(|error| {
             format!(
@@ -429,81 +327,21 @@ fn capture_color_arg(color: &str) -> &str {
     if color == "mono" { "none" } else { color }
 }
 
-fn capture_arguments(case: CaptureCase) -> Vec<String> {
-    let mut arguments = case
-        .app
-        .extra_args
-        .iter()
-        .map(|argument| (*argument).to_owned())
-        .collect::<Vec<_>>();
-    arguments.extend([
-        "--theme".to_owned(),
-        case.theme.to_owned(),
-        "--color".to_owned(),
-        capture_color_arg(case.color).to_owned(),
-    ]);
-    arguments
+fn capture_arguments(case: CaptureCase) -> String {
+    format!(
+        "{} --theme {} --color {}",
+        case.app.extra_args,
+        case.theme,
+        capture_color_arg(case.color)
+    )
 }
 
-fn capture_run_id(case: CaptureCase, index: usize) -> String {
-    format!("{}-{}-{}", case.shot_name(), std::process::id(), index)
+fn stop_capture(script: &Path, case: CaptureCase, binary: &Path) -> Result<(), String> {
+    run_capture_script(script, &["stop".to_owned()], case, binary)
 }
 
-fn stop_capture(
-    script: &Path,
-    case: CaptureCase,
-    binary: &Path,
-    run_id: &str,
-) -> Result<(), String> {
-    run_capture_script(script, &["stop".to_owned()], case, binary, run_id)
-}
-
-fn capture_run_state_exists(shots: &Path, run_id: &str) -> Result<bool, String> {
-    let state_root = shots.join(".capture-state");
-    let run_dir = state_root.join(run_id);
-    match fs::symlink_metadata(&state_root) {
-        Ok(metadata) if metadata.file_type().is_symlink() => {
-            return Err(format!(
-                "capture state directory is a symlink: {}",
-                state_root.display()
-            ));
-        }
-        Ok(metadata) if !metadata.is_dir() => {
-            return Err(format!(
-                "capture state path is not a directory: {}",
-                state_root.display()
-            ));
-        }
-        Ok(_) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
-        Err(error) => {
-            return Err(format!(
-                "cannot inspect capture state directory {}: {error}",
-                state_root.display()
-            ));
-        }
-    }
-    match fs::symlink_metadata(&run_dir) {
-        Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
-            "capture run state is a symlink: {}",
-            run_dir.display()
-        )),
-        Ok(metadata) if !metadata.is_dir() => Err(format!(
-            "capture run state is not a directory: {}",
-            run_dir.display()
-        )),
-        Ok(_) => Ok(true),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(error) => Err(format!(
-            "cannot inspect capture run state {}: {error}",
-            run_dir.display()
-        )),
-    }
-}
-
-fn remove_capture_artifacts(shots: &Path, case: CaptureCase) -> Result<(), String> {
-    ensure_capture_directory(shots)?;
-    let base = shots.join(case.shot_name());
+fn remove_capture_artifacts(case: CaptureCase) -> Result<(), String> {
+    let base = root().join("shots").join(case.shot_name());
     for extension in ["ansi", "cursor", "html", "png", "txt"] {
         remove_file_if_present(&base.with_extension(extension))?;
     }
@@ -511,24 +349,17 @@ fn remove_capture_artifacts(shots: &Path, case: CaptureCase) -> Result<(), Strin
 }
 
 fn remove_file_if_present(path: &Path) -> Result<(), String> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
-            "refusing to remove symlink capture artifact: {}",
-            path.display()
-        )),
-        Ok(metadata) if !metadata.is_file() => Err(format!(
-            "capture artifact is not a regular file: {}",
-            path.display()
-        )),
-        Ok(_) => fs::remove_file(path)
-            .map_err(|error| format!("cannot remove {}: {error}", path.display())),
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(format!("cannot inspect {}: {error}", path.display())),
+        Err(error) => Err(format!("cannot remove {}: {error}", path.display())),
     }
 }
 
-fn capture_record(shots: &Path, case: CaptureCase) -> Result<CaptureRecord, String> {
-    let path = shots.join(format!("{}.png", case.shot_name()));
+fn capture_record(case: CaptureCase) -> Result<CaptureRecord, String> {
+    let path = root()
+        .join("shots")
+        .join(format!("{}.png", case.shot_name()));
     let (bytes, sha256) = file_digest(&path)?;
     Ok(CaptureRecord {
         case,
@@ -538,29 +369,8 @@ fn capture_record(shots: &Path, case: CaptureCase) -> Result<CaptureRecord, Stri
     })
 }
 
-#[cfg(unix)]
-fn open_capture_artifact(path: &Path) -> Result<File, String> {
-    use std::os::unix::fs::OpenOptionsExt;
-
-    OpenOptions::new()
-        .read(true)
-        // O_NOFOLLOW closes the lstat/open symlink race. O_NONBLOCK keeps a
-        // raced FIFO/device from blocking before descriptor validation.
-        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
-        .open(path)
-        .map_err(|error| format!("cannot read capture artifact {}: {error}", path.display()))
-}
-
-#[cfg(not(unix))]
-fn open_capture_artifact(path: &Path) -> Result<File, String> {
-    Err(format!(
-        "cannot safely hash capture artifact without O_NOFOLLOW on this platform: {}",
-        path.display()
-    ))
-}
-
 fn file_digest(path: &Path) -> Result<(u64, String), String> {
-    let metadata = fs::symlink_metadata(path).map_err(|error| {
+    let metadata = fs::metadata(path).map_err(|error| {
         if error.kind() == std::io::ErrorKind::NotFound {
             format!("capture artifact is missing: {}", path.display())
         } else {
@@ -570,25 +380,18 @@ fn file_digest(path: &Path) -> Result<(u64, String), String> {
             )
         }
     })?;
-    if metadata.file_type().is_symlink() || !metadata.is_file() {
+    if !metadata.is_file() {
         return Err(format!(
             "capture artifact is not a regular file: {}",
             path.display()
         ));
     }
-    let mut file = open_capture_artifact(path)?;
-    let opened_metadata = file.metadata().map_err(|error| {
-        format!(
-            "cannot inspect opened capture artifact {}: {error}",
-            path.display()
-        )
-    })?;
-    if !opened_metadata.is_file() || opened_metadata.len() == 0 {
-        return Err(format!(
-            "opened capture artifact is not a non-empty regular file: {}",
-            path.display()
-        ));
+    if metadata.len() == 0 {
+        return Err(format!("capture artifact is zero-size: {}", path.display()));
     }
+
+    let mut file = File::open(path)
+        .map_err(|error| format!("cannot read capture artifact {}: {error}", path.display()))?;
     let mut hasher = Sha256::new();
     let mut buffer = [0_u8; 16 * 1024];
     let mut bytes = 0_u64;
@@ -693,86 +496,9 @@ fn write_capture_manifest(path: &Path, records: &[CaptureRecord]) -> Result<(), 
         .map_err(|error| format!("cannot format capture manifest: {error}"))?;
     }
 
-    let parent = path
-        .parent()
-        .ok_or_else(|| format!("capture manifest has no parent: {}", path.display()))?;
-    ensure_capture_directory(parent)?;
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_symlink() => {
-            return Err(format!(
-                "refusing to replace symlink capture manifest: {}",
-                path.display()
-            ));
-        }
-        Ok(metadata) if !metadata.is_file() => {
-            return Err(format!(
-                "capture manifest is not a regular file: {}",
-                path.display()
-            ));
-        }
-        Ok(_) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => {
-            return Err(format!(
-                "cannot inspect capture manifest {}: {error}",
-                path.display()
-            ));
-        }
-    }
-
-    let file_name = path
-        .file_name()
-        .ok_or_else(|| format!("capture manifest has no file name: {}", path.display()))?
-        .to_string_lossy();
-    let mut temporary_file = None;
-    let mut temporary_path = None;
-    for attempt in 0..100_u32 {
-        let candidate = parent.join(format!(
-            ".{file_name}.{}.{}.tmp",
-            std::process::id(),
-            attempt
-        ));
-        match OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&candidate)
-        {
-            Ok(file) => {
-                temporary_file = Some(file);
-                temporary_path = Some(candidate);
-                break;
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(error) => {
-                return Err(format!(
-                    "cannot create temporary capture manifest {}: {error}",
-                    candidate.display()
-                ));
-            }
-        }
-    }
-    let Some(mut temporary_file) = temporary_file else {
-        return Err(format!(
-            "cannot allocate a unique temporary capture manifest beside {}",
-            path.display()
-        ));
-    };
-    let temporary = temporary_path.expect("temporary file has a path");
-    if let Err(error) = temporary_file.write_all(manifest.as_bytes()) {
-        let _ = fs::remove_file(&temporary);
-        return Err(format!(
-            "cannot write temporary capture manifest {}: {error}",
-            temporary.display()
-        ));
-    }
-    if let Err(error) = temporary_file.sync_all() {
-        let _ = fs::remove_file(&temporary);
-        return Err(format!(
-            "cannot sync temporary capture manifest {}: {error}",
-            temporary.display()
-        ));
-    }
-    drop(temporary_file);
+    let temporary = path.with_extension("tsv.tmp");
+    fs::write(&temporary, manifest)
+        .map_err(|error| format!("cannot write {}: {error}", temporary.display()))?;
     if let Err(error) = fs::rename(&temporary, path) {
         let _ = fs::remove_file(&temporary);
         return Err(format!("cannot finalize {}: {error}", path.display()));
@@ -788,16 +514,7 @@ fn capture_script_contract_hits(script: &str) -> Vec<String> {
     [
         ("required BIN", ": \"${BIN:?"),
         ("COLOR default", "COLOR=${COLOR:-truecolor}"),
-        ("explicit argv", "APP_ARGV=("),
-        ("opaque argv expansion", "\"${APP_ARGV[@]}\""),
-        ("capture runner", "capture_exec.sh"),
-        ("run identity", "CAPTURE_RUN_ID"),
-        ("owned session id", "#{session_id}"),
-        ("safe capture name", "validate_capture_name"),
-        ("Bash 3.2 environment probe", "${!name+x}"),
-        ("failed-start cleanup", "cleanup_failed_start"),
-        ("failed-start trap", "trap 'cleanup_failed_start"),
-        ("provenance helper", "capture_provenance.py"),
+        ("ARGS expansion", "${ARGS:-}"),
         ("COLOR dispatch", "case \"$COLOR\" in"),
         ("truecolor branch", "truecolor)"),
         ("256-color branch", "256)"),
@@ -810,11 +527,6 @@ fn capture_script_contract_hits(script: &str) -> Vec<String> {
     .into_iter()
     .filter(|(_, fragment)| !script.contains(fragment))
     .map(|(label, fragment)| format!("capture script lacks {label}: `{fragment}`"))
-    .chain((script.contains("${ARGS") || script.contains("${app_env} ${BIN}"))
-        .then(|| {
-            "capture script interpolates legacy BIN/ARGS shell source; use explicit argv"
-                .to_owned()
-        }))
     .chain((script.contains("BIN=${BIN:-target/debug/showcase}")).then(|| {
         "capture script still has the legacy showcase BIN default; the binary owner must be explicit"
             .to_owned()
@@ -865,50 +577,11 @@ fn capture_matrix_contract() -> Result<(), String> {
         .map_err(|error| format!("cannot read capture script {}: {error}", rel(&script)))?;
     let mut errors = capture_axes_contract_hits();
     errors.extend(capture_script_contract_hits(&script_text));
-    let runner = root().join("tools/capture_exec.sh");
-    if !runner.is_file() {
-        errors.push(format!("capture runner is missing: {}", rel(&runner)));
-    } else {
-        let runner_text = fs::read_to_string(&runner)
-            .map_err(|error| format!("cannot read capture runner {}: {error}", rel(&runner)))?;
-        errors.extend(capture_exec_contract_hits(&runner_text));
-    }
     if !errors.is_empty() {
         return Err(errors.join("\n"));
     }
 
     Ok(())
-}
-
-fn capture_exec_contract_hits(script: &str) -> Vec<String> {
-    [
-        ("opaque command execution", "\"$@\" 2>\"$stderr_path\""),
-        (
-            "atomic exit status recording",
-            "printf '%s\\n' \"$rc\" > \"$exit_tmp\"",
-        ),
-        (
-            "atomic exit status publication",
-            "mv -f \"$exit_tmp\" \"$exit_path\"",
-        ),
-    ]
-    .into_iter()
-    .filter(|(_, fragment)| !script.contains(fragment))
-    .map(|(label, fragment)| format!("capture runner lacks {label}: `{fragment}`"))
-    .chain(
-        (script.contains("$BIN") || script.contains("$ARGS")).then(|| {
-            "capture runner interpolates BIN/ARGS into shell source; use its opaque argv".to_owned()
-        }),
-    )
-    .collect()
-}
-
-#[cfg(test)]
-fn capture_name_is_safe(name: &str) -> bool {
-    let mut chars = name.chars();
-    matches!(chars.next(), Some(first) if first.is_ascii_alphanumeric())
-        && chars
-            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-'))
 }
 
 fn main() -> ExitCode {
@@ -7210,9 +6883,6 @@ fn baseline_moves_are_classified() -> Result<(), String> {
 mod tests {
     use super::*;
 
-    #[cfg(unix)]
-    use std::os::unix::fs::symlink;
-
     #[test]
     fn doc_section_parser_reaches_the_authoritative_tail() {
         assert_eq!(
@@ -8602,17 +8272,17 @@ captures / classification: `(pending — filled when the change lands)`
             CaptureApp {
                 name: "showcase",
                 binary: "showcase",
-                extra_args: NO_CAPTURE_ARGS,
+                extra_args: "",
             },
             CaptureApp {
                 name: "tablepro",
                 binary: "tablepro",
-                extra_args: NO_CAPTURE_ARGS,
+                extra_args: "",
             },
             CaptureApp {
                 name: "jackin-preview",
                 binary: "jackin-preview",
-                extra_args: JACKIN_CAPTURE_ARGS,
+                extra_args: "--motion paused --frame 0",
             },
         ];
         let expected: BTreeSet<CaptureCase> = expected_sizes
@@ -8639,8 +8309,7 @@ captures / classification: `(pending — filled when the change lands)`
     #[test]
     fn capture_contract_rejects_axis_and_script_shortcuts() {
         assert!(capture_axes_contract_hits().is_empty());
-        let missing_png =
-            "BIN=ok\nCOLOR=${COLOR:-truecolor}\ncase \"$COLOR\" in\ntruecolor)\n256)\n16)\nmono)\n";
+        let missing_png = "BIN=ok\nCOLOR=${COLOR:-truecolor}\ncase \"$COLOR\" in\ntruecolor)\n256)\n16)\nmono)\n${ARGS:-}\n";
         let errors = capture_script_contract_hits(missing_png);
         assert!(
             errors.iter().any(|error| error.contains("required BIN")),
@@ -8657,15 +8326,6 @@ captures / classification: `(pending — filled when the change lands)`
             "{errors:?}"
         );
 
-        let unsafe_launch = r#"tmux new-session "${app_env} ${BIN} ${ARGS:-}""#;
-        let errors = capture_script_contract_hits(unsafe_launch);
-        assert!(
-            errors
-                .iter()
-                .any(|error| error.contains("interpolates legacy")),
-            "shell source assembled from BIN/ARGS must fail: {errors:?}"
-        );
-
         let legacy_default = "BIN=${BIN:-target/debug/showcase}\n: \"${BIN:?x}\"";
         let errors = capture_script_contract_hits(legacy_default);
         assert!(
@@ -8673,28 +8333,6 @@ captures / classification: `(pending — filled when the change lands)`
                 .iter()
                 .any(|error| error.contains("legacy showcase BIN default")),
             "the old implicit binary owner must fail: {errors:?}"
-        );
-
-        // Keep the runner's required contract fragments in this fixture so
-        // this assertion proves the unsafe-launch diagnostic itself rather
-        // than merely reporting unrelated omissions.
-        let unsafe_runner = r#"
-"$@" 2>"$stderr_path"
-printf '%s\n' "$rc" > "$exit_tmp"
-mv -f "$exit_tmp" "$exit_path"
-"$BIN $ARGS" 2>$stderr_path
-"#;
-        let errors = capture_exec_contract_hits(unsafe_runner);
-        assert!(
-            errors
-                .iter()
-                .any(|error| error.contains("interpolates BIN/ARGS")),
-            "runner shell interpolation must fail: {errors:?}"
-        );
-        assert_eq!(
-            errors.len(),
-            1,
-            "unsafe launch is the sole defect: {errors:?}"
         );
     }
 
@@ -8731,285 +8369,7 @@ mv -f "$exit_tmp" "$exit_path"
         };
         assert_eq!(
             capture_arguments(case),
-            vec![
-                "--motion".to_owned(),
-                "paused".to_owned(),
-                "--frame".to_owned(),
-                "0".to_owned(),
-                "--theme".to_owned(),
-                "paper".to_owned(),
-                "--color".to_owned(),
-                "none".to_owned(),
-            ]
+            "--motion paused --frame 0 --theme paper --color none"
         );
-    }
-
-    #[test]
-    fn capture_names_cannot_escape_the_artifact_directory() {
-        for valid in ["showcase_junie_truecolor_120x40", "a-1", "A_2"] {
-            assert!(capture_name_is_safe(valid), "{valid}");
-        }
-        for invalid in [
-            "",
-            ".",
-            "..",
-            "../escape",
-            "nested/name",
-            "has space",
-            "a.b",
-        ] {
-            assert!(!capture_name_is_safe(invalid), "{invalid}");
-        }
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn capture_matrix_rejects_a_symlinked_output_directory() {
-        let directory = std::env::temp_dir().join(format!(
-            "terminal-components-capture-shots-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("clock after epoch")
-                .as_nanos()
-        ));
-        fs::create_dir(&directory).expect("create isolated output fixture");
-        let target = directory.join("target");
-        fs::create_dir(&target).expect("create symlink target");
-        let shots = directory.join("shots");
-        symlink(&target, &shots).expect("create output symlink");
-
-        let error = ensure_capture_directory(&shots)
-            .expect_err("a symlinked capture output directory must fail closed");
-        assert!(error.contains("symlink"), "{error}");
-        fs::remove_dir_all(directory).expect("remove isolated output fixture");
-    }
-
-    #[test]
-    fn capture_matrix_lock_rejects_a_concurrent_owner() {
-        let directory = std::env::temp_dir().join(format!(
-            "terminal-components-capture-lock-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("clock after epoch")
-                .as_nanos()
-        ));
-        fs::create_dir(&directory).expect("create isolated lock fixture");
-        let shots = directory.join("shots");
-        fs::create_dir(&shots).expect("create lock output directory");
-
-        let owner = acquire_capture_matrix_lock(&shots).expect("acquire first matrix lock");
-        let error =
-            acquire_capture_matrix_lock(&shots).expect_err("a concurrent matrix must be rejected");
-        assert!(error.contains("already running"), "{error}");
-        drop(owner);
-        let released = acquire_capture_matrix_lock(&shots).expect("reacquire released lock");
-        drop(released);
-        fs::remove_dir_all(directory).expect("remove isolated lock fixture");
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn capture_cleanup_and_hashing_reject_artifact_symlinks() {
-        let directory = std::env::temp_dir().join(format!(
-            "terminal-components-capture-artifact-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("clock after epoch")
-                .as_nanos()
-        ));
-        fs::create_dir(&directory).expect("create isolated artifact fixture");
-        let target = directory.join("target");
-        fs::write(&target, b"must remain").expect("write artifact target");
-        let artifact = directory.join("capture.png");
-        symlink(&target, &artifact).expect("create artifact symlink");
-
-        let cleanup_error = remove_file_if_present(&artifact)
-            .expect_err("pre-clean must reject a symlink artifact");
-        assert!(cleanup_error.contains("symlink"), "{cleanup_error}");
-        let open_error =
-            open_capture_artifact(&artifact).expect_err("O_NOFOLLOW open must reject a symlink");
-        assert!(open_error.contains("cannot read"), "{open_error}");
-        let hash_error =
-            file_digest(&artifact).expect_err("hashing must reject a symlink artifact");
-        assert!(hash_error.contains("regular file"), "{hash_error}");
-        assert_eq!(
-            fs::read(&target).expect("read artifact target"),
-            b"must remain"
-        );
-        fs::remove_dir_all(directory).expect("remove isolated artifact fixture");
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn capture_manifest_temp_file_does_not_follow_a_symlink() {
-        let directory = std::env::temp_dir().join(format!(
-            "terminal-components-capture-manifest-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("clock after epoch")
-                .as_nanos()
-        ));
-        fs::create_dir(&directory).expect("create isolated manifest fixture");
-        let manifest = directory.join("capture-matrix.tsv");
-        let target = directory.join("outside");
-        fs::write(&target, b"sentinel").expect("write manifest target");
-        let temporary = directory.join(format!(".capture-matrix.tsv.{}.0.tmp", std::process::id()));
-        symlink(&target, &temporary).expect("create temporary symlink");
-        let record = CaptureRecord {
-            case: capture_matrix_cases()[0],
-            path: PathBuf::from("shots/example.png"),
-            bytes: 1,
-            sha256: "0".repeat(64),
-        };
-
-        write_capture_manifest(&manifest, &[record]).expect("write manifest beside symlink");
-        assert_eq!(
-            fs::read(&target).expect("read manifest target"),
-            b"sentinel"
-        );
-        assert!(
-            temporary.is_symlink(),
-            "existing temporary symlink was replaced"
-        );
-        assert!(
-            fs::read_to_string(&manifest)
-                .expect("read generated manifest")
-                .starts_with("path\tsize\tcolor\ttheme\tbytes\tsha256\n")
-        );
-        fs::remove_dir_all(directory).expect("remove isolated manifest fixture");
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn failed_capture_start_removes_its_partial_run_state() {
-        let directory = std::env::temp_dir().join(format!(
-            "terminal-components-capture-start-failure-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("clock after epoch")
-                .as_nanos()
-        ));
-        fs::create_dir(&directory).expect("create isolated start fixture");
-        let state_root = directory.join("state");
-        let output = Command::new("bash")
-            .arg(root().join("tools/capture.sh"))
-            .arg("start")
-            .arg("80")
-            .arg("24")
-            .arg("--")
-            .arg(std::env::current_exe().expect("locate test executable"))
-            .env(
-                "BIN",
-                std::env::current_exe().expect("locate test executable"),
-            )
-            .env("COLOR", "invalid")
-            .env("CAPTURE_RUN_ID", "partial-start")
-            .env("CAPTURE_DIR", directory.join("shots"))
-            .env("CAPTURE_MANIFEST", directory.join("manifest.json"))
-            .env("CAPTURE_STATE_DIR", &state_root)
-            .output()
-            .expect("run capture start failure fixture");
-        assert!(!output.status.success(), "invalid color must fail");
-        assert!(
-            !state_root.join("partial-start").exists(),
-            "failed start leaked run state: {}",
-            state_root.join("partial-start").display()
-        );
-        fs::remove_dir_all(directory).expect("remove isolated start fixture");
-    }
-
-    #[test]
-    fn capture_script_receives_canonical_paths_and_no_legacy_overrides() {
-        let directory = std::env::temp_dir().join(format!(
-            "terminal-components-capture-env-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("clock after epoch")
-                .as_nanos()
-        ));
-        fs::create_dir(&directory).expect("create isolated environment fixture");
-        let script = directory.join("check-env.sh");
-        fs::write(
-            &script,
-            r#"#!/usr/bin/env bash
-set -eu
-[[ "$BIN" == "target/debug/showcase" ]]
-[[ "$COLOR" == "mono" ]]
-[[ "$CAPTURE_RUN_ID" == "env-contract" ]]
-[[ "$CAPTURE_DIR" == "$PWD/shots" ]]
-[[ "$CAPTURE_MANIFEST" == "$PWD/shots/capture-provenance.json" ]]
-[[ "$CAPTURE_STATE_DIR" == "$PWD/shots/.capture-state" ]]
-[[ -z "${ARGS+x}" ]]
-[[ -z "${THEME+x}" ]]
-[[ -z "${PY+x}" ]]
-"#,
-        )
-        .expect("write environment fixture");
-        let case = CaptureCase {
-            app: CAPTURE_APPS[0],
-            width: 80,
-            height: 24,
-            color: "mono",
-            theme: "junie",
-        };
-        run_capture_script(
-            &script,
-            &["environment-check".to_owned()],
-            case,
-            &root().join("target/debug/showcase"),
-            "env-contract",
-        )
-        .expect("capture runner environment contract");
-        fs::remove_dir_all(directory).expect("remove isolated environment fixture");
-    }
-
-    #[test]
-    fn capture_run_ids_are_matrix_names_with_safe_suffixes() {
-        for (index, case) in capture_matrix_cases().into_iter().enumerate() {
-            let run_id = capture_run_id(case, index);
-            assert!(capture_name_is_safe(&run_id), "{run_id}");
-            assert!(run_id.starts_with(&case.shot_name()), "{run_id}");
-        }
-    }
-
-    #[test]
-    fn capture_runner_preserves_spaced_and_injection_shaped_arguments() {
-        let suffix = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock after epoch")
-            .as_nanos();
-        let directory = std::env::temp_dir().join(format!(
-            "terminal-components-capture-runner-{}-{suffix}",
-            std::process::id()
-        ));
-        fs::create_dir(&directory).expect("create isolated runner fixture");
-        let stderr = directory.join("stderr");
-        let exit = directory.join("exit");
-        let marker = directory.join("must-not-exist");
-        let shaped = format!("$(touch {})", marker.display());
-        let output = Command::new("bash")
-            .arg(root().join("tools/capture_exec.sh"))
-            .arg(&stderr)
-            .arg(&exit)
-            .arg("/usr/bin/printf")
-            .arg("%s\\n")
-            .arg("argument with spaces")
-            .arg(&shaped)
-            .output()
-            .expect("run capture runner fixture");
-        assert!(output.status.success(), "{output:?}");
-        assert_eq!(
-            String::from_utf8_lossy(&output.stdout),
-            format!("argument with spaces\n{shaped}\n")
-        );
-        assert_eq!(fs::read_to_string(&exit).expect("exit state"), "0\n");
-        assert!(!marker.exists(), "injection-shaped argv was evaluated");
-        fs::remove_dir_all(directory).expect("remove isolated runner fixture");
     }
 }

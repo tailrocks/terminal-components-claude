@@ -313,17 +313,13 @@ state and dialogs.
 ## Visual review tooling
 
 `tools/capture.sh` runs a binary in a fixed-size tmux pane (`BIN=target/debug/tablepro
-tools/capture.sh start 120 40 -- target/debug/tablepro --connect Production`),
-sends keys and SGR mouse events, and captures the pane with colours;
-`tools/ansi2png.py` rasterises the capture with JetBrains Mono so rendered
-output can be inspected as an image. Screens in `shots/` were produced this
-way: `f_*` are the showcase, `s_*` the new component pages, `t_*` the
-workbench, and `j_*` the Jackin preview (`tools/capture.sh start 120 40 --
-target/debug/jackin-preview --scenario returning --motion reduced`; use the
-tmux key name `Escape`, not `Esc`, when scripting). Each start prints a unique
-run id; pass it as `CAPTURE_RUN_ID` to `shot` and `stop`. The capture manifest
-records the exact argv, binary hash, Git dirty state, environment, and tool
-versions.
+ARGS="--connect Production"`), sends keys and SGR mouse events, and captures the
+pane with colours; `tools/ansi2png.py` rasterises the capture with JetBrains
+Mono so rendered output can be inspected as an image. Screens in `shots/`
+were produced this way: `f_*` are the showcase, `s_*` the new component
+pages, `t_*` the workbench, `j_*` the Jackin preview (`BIN=target/debug/jackin-preview
+ARGS="--scenario returning --motion reduced"`; use the tmux key name `Escape`,
+not `Esc`, when scripting).
 
 The showcase also carries a visual baseline (`apps/showcase/tests/baselines/showcase.txt`):
 a digest of every page at 120×40 and 80×24, excluding the navigation sidebar.
