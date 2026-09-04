@@ -86,7 +86,7 @@ pub use picker_chain::{
     PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,
 };
 pub use progress::{ProgressBar, Spinner};
-pub use props::Props;
+pub use props::{Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue};
 pub use scroll_region::ScrollRegion;
 pub use select::{LabelSelect, Select, SelectAction, SelectCmd, SelectState};
 pub use split::{SplitAction, SplitCmd, SplitPane, SplitPaneState};
