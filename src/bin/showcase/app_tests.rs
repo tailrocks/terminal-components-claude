@@ -408,7 +408,6 @@ fn list_scrolling_and_selection() {
         h.key(KeyCode::Down);
     }
     assert!(h.text().contains("Erlang"));
-    assert!(!h.text().contains("Rust\n") || true);
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Chosen: Erlang"));
     // multi list toggles
