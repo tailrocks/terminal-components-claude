@@ -986,3 +986,30 @@ Run by me after committing the wave-1 foundations, not reported by a builder:
 3. `--test status_bar_hover` 0/1 — another lane's untracked, deliberately-uncommitted test.
 
 Nothing else in the workspace is failing.
+
+## Slice 4 wave-1 verification checkpoint — evidence at `463efca` (2026-09-04)
+
+The pushed implementation evidence is present in the current history: `739754c` contains the
+`Select` production fixes (the disabled-input guard and `PARTS` declaration; the current case-19
+lower-bound geometry fix is already present), `eeee504` contains the Dialog/Select conformance
+changes, and `a1dadc5` contains the case-14 zero-area trap proof. The measured stable evidence
+baseline is pushed `463efca`.
+
+| gate | exact result |
+|---|---|
+| `rtk cargo build -p tui-next --all-targets` | exit 0; 12.518s; 1 warning |
+| `rtk cargo test -p tui-next --lib` | exit 0; 292 passed / 0 failed |
+| focused Select conformance | 21 passed / 0 failed |
+| focused Dialog conformance | 21 passed / 0 failed |
+| full conformance | 488 passed / 0 failed |
+| `rtk cargo test -p tui-next-testing --lib` | 5 passed / 0 failed; 1 ignored |
+| `rtk cargo fmt --all -- --check` | exit 0 |
+
+The canonical `architecture::every_named_test_exists` check exited 101 only because
+`tests/perf_baseline.txt:3` still contains `capsule_pane_clone_4x2000`. §21 item 10 / §16.6
+deletes that benchmark for the out-of-scope Slice 7 `apps/jackin-preview` work; this is deferred
+baseline drift, not a Slice 4 defect or fix. Architecture is complete through §41, so no new
+architecture section is added.
+
+At append time, shared `main` had advanced to `1b580d7` through later pushed documentation
+commits; `463efca` remains an ancestor and is the gate-evidence baseline recorded above.
