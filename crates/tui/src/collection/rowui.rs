@@ -742,7 +742,7 @@ mod tests {
         let mut core = UiCore::default();
         let last = LastFrame::default();
         {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
             let mut r = RowUi::new(
                 &mut ui,
                 OWNER,

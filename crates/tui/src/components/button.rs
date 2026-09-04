@@ -426,6 +426,14 @@ impl<'a> Button<'a> {
     }
 }
 
+impl Bindings for Button<'_> {
+    type Cmd = ButtonCmd;
+
+    fn bindings(&self, _s: BindingState) -> &'static [Binding<ButtonCmd>] {
+        BINDINGS
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ratatui_core::buffer::Buffer;
@@ -466,13 +474,5 @@ mod tests {
         });
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
-    }
-}
-
-impl Bindings for Button<'_> {
-    type Cmd = ButtonCmd;
-
-    fn bindings(&self, _s: BindingState) -> &'static [Binding<ButtonCmd>] {
-        BINDINGS
     }
 }
