@@ -549,7 +549,12 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::SCROLLBAR => scrollbar(&mut r.parts),
             Family::SPLIT => split(&mut r.parts),
             Family::VIEWPORT | Family::DIFF => viewport(&mut r.parts),
-            Family::STATUSBAR | Family::HINTBAR => bars(&mut r.parts),
+            Family::STATUSBAR => {
+                bars(&mut r.parts);
+                part(&mut r.parts, Part::LABEL, p())
+                    .when(StateFlags::HOVERED, p().set_bg(Role::RaisedSurface));
+            }
+            Family::HINTBAR => bars(&mut r.parts),
             Family::KEYHINT => keyhint(&mut r.parts),
             Family::PROGRESS | Family::METER => progress(&mut r.parts),
             Family::EMPTY => empty(&mut r.parts),

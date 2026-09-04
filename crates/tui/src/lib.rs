@@ -108,6 +108,11 @@ pub use components::{
     LabelSelect, RadioGroup, RadioGroupAction, RadioGroupState, Select, SelectAction, SelectCmd,
     SelectState, TextArea, TextAreaState, Toggle,
 };
+// components — work package 4G (status, hints, progress and chrome)
+pub use components::{
+    Brand, Emphasis, Empty, Group, HintBar, KeyHint, MAX_ITEMS, Meter, MeterTone, MeterVisual,
+    ProgressBar, Spinner, StatusAction, StatusBar, StatusItem,
+};
 // fields and secrets
 pub use field_control::FieldControl;
 pub use secret::{Secret, SecretPolicy};

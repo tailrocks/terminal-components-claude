@@ -18,7 +18,7 @@ use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy};
 use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 
@@ -821,10 +821,10 @@ impl<'a> TextInput<'a> {
         } else {
             let g = style(ui, Part::GUTTER);
             match g.glyph {
-                Some(glyph) => {
+                Slot::Set(glyph) => {
                     ui.glyph(gutter_cell, glyph, g.style);
                 }
-                None => ui.fill(gutter_cell, g.style),
+                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
         let shown = if editing {
@@ -907,7 +907,7 @@ impl<'a> TextInput<'a> {
                 f(ui, marker_cell);
             } else {
                 let ms = style(ui, Part::MARKER);
-                if let Some(g) = ms.glyph {
+                if let Slot::Set(g) = ms.glyph {
                     ui.glyph(marker_cell, g, ms.style);
                 }
             }

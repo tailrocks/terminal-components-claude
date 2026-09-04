@@ -717,6 +717,10 @@ impl FrameRead for Ui<'_> {
         self.last.state(id)
     }
 
+    fn hovered_part(&self, owner: Id) -> Option<PartRef> {
+        self.last.hovered_part(owner)
+    }
+
     fn theme(&self) -> &Theme {
         self.theme
     }

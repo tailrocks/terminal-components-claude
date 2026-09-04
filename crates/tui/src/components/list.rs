@@ -20,7 +20,7 @@ use crate::layer::LayerSize;
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, StylePatch, Variant};
+use crate::theme::{Family, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// What a list reports; every item action carries the item's key.
@@ -768,10 +768,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             } else {
                 let g = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::GUTTER, flags);
                 match g.glyph {
-                    Some(glyph) => {
+                    Slot::Set(glyph) => {
                         ui.glyph(gutter_cell, glyph, g.style);
                     }
-                    None => ui.fill(gutter_cell, g.style),
+                    Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                 }
             }
             // marker
@@ -781,10 +781,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             } else {
                 let m = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::MARKER, flags);
                 match m.glyph {
-                    Some(glyph) => {
+                    Slot::Set(glyph) => {
                         ui.glyph(marker_cell, glyph, m.style);
                     }
-                    None => ui.fill(marker_cell, m.style),
+                    Slot::Inherit | Slot::Clear => ui.fill(marker_cell, m.style),
                 }
             }
             let rest = Rect {

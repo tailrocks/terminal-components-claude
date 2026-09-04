@@ -24,8 +24,10 @@ pub struct Resolved {
     /// The style, with colours bound; apply over the inherited surface
     /// style with `inherited.patch(resolved.style)` (§22 R‑9).
     pub style: Style,
-    /// The glyph the part must paint when `Some` (§5 R9).
-    pub glyph: Option<GlyphRole>,
+    /// The glyph binding for the part. `Set` paints that glyph, `Inherit`
+    /// leaves the caller's fallback in control, and `Clear` suppresses it
+    /// (§5 R9).
+    pub glyph: Slot<GlyphRole>,
     /// The part's size, if the recipe sets one.
     pub size: Option<u16>,
     /// The part's text alignment, if the recipe sets one.
@@ -59,8 +61,10 @@ impl Resolved {
 /// `Surface` (Adjudication N2).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct PartMetrics {
-    /// The glyph the part must paint when `Some` (§5 R9).
-    pub glyph: Option<GlyphRole>,
+    /// The glyph binding for the part. `Set` paints that glyph, `Inherit`
+    /// leaves the caller's fallback in control, and `Clear` suppresses it
+    /// (§5 R9).
+    pub glyph: Slot<GlyphRole>,
     /// The part's size, if the recipe sets one.
     pub size: Option<u16>,
     /// The part's text alignment, if the recipe sets one.
@@ -77,7 +81,7 @@ impl From<Resolved> for PartMetrics {
 /// and `Theme::metrics` read `glyph`/`size`/`align`, so they cannot drift.
 pub(crate) fn metrics_of(acc: &StylePatch) -> PartMetrics {
     PartMetrics {
-        glyph: acc.glyph.get(),
+        glyph: acc.glyph,
         size: acc.size.get(),
         align: acc.align.get(),
     }
@@ -256,7 +260,7 @@ pub(crate) fn bind(
     let m = metrics_of(&acc);
     Resolved {
         style,
-        glyph: m.glyph,
+        glyph: acc.glyph,
         size: m.size,
         align: m.align,
     }
@@ -629,7 +633,7 @@ mod tests {
             StateFlags::FOCUSED,
             Surface::Canvas,
         );
-        assert_eq!(focused.glyph, Some(GlyphRole::FocusBar));
+        assert_eq!(focused.glyph, Slot::Set(GlyphRole::FocusBar));
         assert_eq!(focused.style.fg, Some(t.color.focus));
     }
 

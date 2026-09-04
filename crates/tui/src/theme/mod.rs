@@ -253,7 +253,7 @@ mod tests {
         for st in [StateFlags::empty(), StateFlags::FOCUSED, StateFlags::ERROR] {
             let m = t.metrics(Family::FIELD, Variant::DEFAULT, Part::FIELD, st);
             assert_eq!(m.size, Some(3));
-            assert_eq!(m.glyph, Some(GlyphRole::FocusBar));
+            assert_eq!(m.glyph, Slot::Set(GlyphRole::FocusBar));
             // the draw phase resolves the same numbers on every surface
             for s in [Surface::Canvas, Surface::Field, Surface::Overlay] {
                 let r = t.resolve(Family::FIELD, Variant::DEFAULT, Part::FIELD, st, s);
@@ -394,7 +394,7 @@ mod tests {
             StateFlags::empty(),
             Surface::Canvas,
         );
-        assert_eq!(g.glyph, Some(GlyphRole::FocusBar));
+        assert_eq!(g.glyph, Slot::Set(GlyphRole::FocusBar));
         let v = Theme::junie().override_variant(Family::BUTTON, Variant::DANGER, |r| {
             r.part(Part::LABEL)
                 .base(StylePatch::new().set_fg(Role::Info));

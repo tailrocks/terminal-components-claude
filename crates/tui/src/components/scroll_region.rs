@@ -11,7 +11,7 @@ use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 /// A vertical scroll region: wheel routing, a scrollbar with track
@@ -143,28 +143,44 @@ impl<'a> ScrollRegion<'a> {
         st: &mut ScrollState,
         content_len: usize,
     ) -> Response<()> {
+        let track_len = self.prepare(cx, st, content_len);
+        let mut r = Response::ignored();
+        for it in cx.intents(self.id) {
+            r |= self.handle_intent(cx, st, track_len, it);
+        }
+        r.for_id(self.id)
+    }
+
+    /// Apply last frame's layout facts without touching the intent queue.
+    pub(crate) fn prepare(&self, cx: &Cx<'_>, st: &mut ScrollState, content_len: usize) -> u16 {
         let viewport = cx
             .layout(self.id)
             .map_or(st.viewport_len(), |l| l.viewport_len);
         st.apply_layout(viewport, content_len);
-        let track_len = cx
-            .layout(self.id)
-            .map_or(viewport.min(usize::from(u16::MAX)) as u16, |l| l.rows);
-        let mut r = Response::ignored();
-        for it in cx.intents(self.id) {
-            match it {
-                Intent::Wheel { delta, .. } => {
-                    r |= st.wheel(delta);
-                }
-                Intent::Pointer {
-                    phase, part, local, ..
-                } if part.part == Part::TRACK || part.part == Part::THUMB => {
-                    r |= self.pointer(cx, st, phase, part.part, local, track_len);
-                }
-                _ => {}
+        cx.layout(self.id)
+            .map_or(viewport.min(usize::from(u16::MAX)) as u16, |l| l.rows)
+    }
+
+    /// Handle one intent that belongs to the scroll region.
+    ///
+    /// Non-scroll intents are deliberately ignored so a parent control can
+    /// route the same owner bucket to its own editor or interaction logic.
+    pub(crate) fn handle_intent(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ScrollState,
+        track_len: u16,
+        it: Intent<'_>,
+    ) -> Response<()> {
+        match it {
+            Intent::Wheel { delta, .. } => st.wheel(delta),
+            Intent::Pointer {
+                phase, part, local, ..
+            } if part.part == Part::TRACK || part.part == Part::THUMB => {
+                self.pointer(cx, st, phase, part.part, local, track_len)
             }
+            _ => Response::ignored(),
         }
-        r.for_id(self.id)
     }
 
     fn pointer(
@@ -268,23 +284,33 @@ impl<'a> ScrollRegion<'a> {
         if let Some(f) = ov.slot_for(Part::TRACK) {
             f(ui, bar);
         } else {
+            let glyph = match track.glyph {
+                Slot::Set(g) => Some(g),
+                Slot::Inherit => Some(GlyphRole::ScrollTrack),
+                Slot::Clear => None,
+            };
             for row in bar.rows() {
-                ui.glyph(
-                    row,
-                    track.glyph.unwrap_or(GlyphRole::ScrollTrack),
-                    track.style,
-                );
+                if let Some(g) = glyph {
+                    ui.glyph(row, g, track.style);
+                } else {
+                    ui.fill(row, track.style);
+                }
             }
         }
         if let Some(f) = ov.slot_for(Part::THUMB) {
             f(ui, thumb_rect);
         } else {
+            let glyph = match thumb.glyph {
+                Slot::Set(g) => Some(g),
+                Slot::Inherit => Some(GlyphRole::ScrollThumb),
+                Slot::Clear => None,
+            };
             for row in thumb_rect.rows() {
-                ui.glyph(
-                    row,
-                    thumb.glyph.unwrap_or(GlyphRole::ScrollThumb),
-                    thumb.style,
-                );
+                if let Some(g) = glyph {
+                    ui.glyph(row, g, thumb.style);
+                } else {
+                    ui.fill(row, thumb.style);
+                }
             }
         }
         ui.register_part(self.id, PartRef::of(Part::TRACK), bar);

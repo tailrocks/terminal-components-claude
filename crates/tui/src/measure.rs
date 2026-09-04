@@ -82,7 +82,7 @@ mod tests {
     use crate::id::Part;
     use crate::response::StateFlags;
     use crate::theme::PartMetrics;
-    use crate::theme::{Family, GlyphRole, Role, StylePatch, Surface, Theme, Variant};
+    use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Surface, Theme, Variant};
     use crate::ui::cx::{FrameRead, LastFrame};
     use crate::ui::{FrameState, UiCore};
 
@@ -229,10 +229,13 @@ mod tests {
         impl Measure for Gutterful<'_> {
             fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
                 let flags = ui.state(crate::id::Id::root("m.button"));
-                let g = ui
+                let g = match ui
                     .resolve(Family::BUTTON, Variant::DEFAULT, Part::GUTTER, flags)
                     .glyph
-                    .map_or(0, |r| crate::text::width(ui.glyph_str(r)));
+                {
+                    Slot::Set(r) => crate::text::width(ui.glyph_str(r)),
+                    Slot::Inherit | Slot::Clear => 0,
+                };
                 let pad = 1u16;
                 let w = g
                     .saturating_add(pad)

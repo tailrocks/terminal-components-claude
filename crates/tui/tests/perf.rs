@@ -27,8 +27,8 @@ use std::hint::black_box;
 
 use tui_next::{
     App, Axes, ColorLevel, Cx, Family, FocusRing, Focusability, Headroom, Id, Input, LayerId,
-    Overlay, OverlayRule, Part, Position, Rect, Registry, Response, Role, Runtime, StateFlags,
-    StylePatch, Theme, Ui, Variant,
+    Overlay, OverlayRule, Part, Position, Rect, Registry, Response, Role, Runtime, Slot,
+    StateFlags, StylePatch, Theme, Ui, Variant,
 };
 use tui_next_testing::perf::{
     Counting, bench, check_ratio, env_flag, iters, lock, measure_once, report, unicode_line,
@@ -574,7 +574,10 @@ fn measure_is_allocation_free() {
             for i in 0..100u32 {
                 let flags = STATES[(i as usize) % STATES.len()];
                 let g = ui.resolve(Family::BUTTON, Variant::DEFAULT, Part::GUTTER, flags);
-                let w = g.glyph.map_or(0, |r| tui_next::width(ui.glyph_str(r)));
+                let w = match g.glyph {
+                    Slot::Set(r) => tui_next::width(ui.glyph_str(r)),
+                    Slot::Inherit | Slot::Clear => 0,
+                };
                 let h = ui
                     .resolve(Family::BUTTON, Variant::DEFAULT, Part::CONTAINER, flags)
                     .size

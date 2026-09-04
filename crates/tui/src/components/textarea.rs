@@ -18,7 +18,7 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 
@@ -419,17 +419,20 @@ impl TextAreaState {
 ///
 /// ## Layout
 /// `rows` rows (clamped to `area`): a gutter column, a two-cell indent, the
-/// text window, and a scrollbar column while the document overflows.
+/// text window, a reserved trailing pad column (the error marker and the
+/// readiness spinner share it), and a scrollbar column while the document
+/// overflows.
 /// `measure` is `(12…40, rows)`; `draw` paints the rows it used and returns
 /// them; `0×0` registers nothing (R5).
 ///
 /// ## Parts
 /// `FIELD` (the body fill), `TEXT` (the value / draft), `PLACEHOLDER`,
 /// `ROW` (the selection run), `MARKER` (the trailing error glyph), `GUTTER`
-/// (the focus bar), `TRACK` / `THUMB` (the scrollbar).
+/// (the focus bar), `ICON` (the readiness spinner, in that same trailing
+/// cell), `TRACK` / `THUMB` (the scrollbar).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER` and
+/// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER`, `ICON` and
 /// `PLACEHOLDER`; `FIELD` and `TEXT` cannot be replaced.
 ///
 /// ## Identity
@@ -438,7 +441,9 @@ impl TextAreaState {
 /// ## Testing
 /// `TextAreaCase` with `FOCUSABLE | EDITS | CURSOR | TYPES | SCROLLS |
 /// DISABLEABLE`; `render::components::text_area::*`;
-/// `textarea::blur_commits_without_validation`.
+/// `textarea::blur_commits_without_validation`;
+/// `textarea::busy_and_loading_paint_the_readiness_spinner`;
+/// `textarea::the_icon_slot_replaces_the_readiness_spinner`.
 ///
 /// ## Invariants
 /// `draw` never commits, cancels or validates (it takes `&TextAreaState`);
@@ -482,6 +487,7 @@ impl<'a> TextArea<'a> {
         Part::ROW,
         Part::MARKER,
         Part::GUTTER,
+        Part::ICON,
         Part::TRACK,
         Part::THUMB,
     ];
@@ -605,6 +611,11 @@ impl<'a> TextArea<'a> {
     }
 
     /// Columns between the gutter indent and the right pad.
+    ///
+    /// The three columns are the gutter, its one-cell indent, and the
+    /// trailing pad — reserved unconditionally, on every frame, so the
+    /// error marker and the readiness spinner that share it never move the
+    /// text (§29 Q1's geometry discipline).
     const fn inner_width(width: u16) -> u16 {
         width.saturating_sub(3)
     }
@@ -624,10 +635,18 @@ impl<'a> TextArea<'a> {
         } else {
             line_count(value)
         };
-        let bar = ScrollRegion::new(self.id).update(cx, &mut st.scroll, lines);
-        acc.fold(&bar);
+        let scroll = ScrollRegion::new(self.id);
+        let track_len = if self.disabled {
+            None
+        } else {
+            Some(scroll.prepare(cx, &mut st.scroll, lines))
+        };
         let page = st.scroll.viewport_len().max(1);
         for it in cx.intents(self.id) {
+            if let Some(track_len) = track_len {
+                let bar = scroll.handle_intent(cx, &mut st.scroll, track_len, it);
+                acc.fold(&bar);
+            }
             match it {
                 Intent::FocusIn { .. } => {
                     if editable {
@@ -663,6 +682,8 @@ impl<'a> TextArea<'a> {
                         acc.consumed();
                     }
                 }
+                Intent::Pointer { part, .. }
+                    if part.part == Part::TRACK || part.part == Part::THUMB => {}
                 Intent::Pointer {
                     phase: Phase::Press | Phase::Click,
                     local,
@@ -694,8 +715,10 @@ impl<'a> TextArea<'a> {
         }
         if st.is_editing() {
             let cur = st.draft.cursor_pos();
-            st.scroll.set_content(st.draft.line_count());
-            st.scroll.ensure_visible(cur.line);
+            if !self.disabled {
+                st.scroll.set_content(st.draft.line_count());
+                st.scroll.ensure_visible(cur.line);
+            }
             if let Some(a) = cx.area(self.id) {
                 st.draft.scroll_into_view(Self::inner_width(a.width));
             }
@@ -786,10 +809,11 @@ impl<'a> TextArea<'a> {
     }
 
     /// The draw phase: the body fill, the gutter column, the visible lines,
-    /// the selection run, the scrollbar and the cursor request.
+    /// the selection run, the scrollbar, the cursor request and the trailing
+    /// readiness affordance.
     #[expect(
         clippy::too_many_lines,
-        reason = "one pass over the body, the visible lines and the trailing marker"
+        reason = "one pass over the body, the visible lines and the shared trailing cell"
     )]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TextAreaState) -> Rect {
         let rows = self.body_rows(area);
@@ -842,6 +866,13 @@ impl<'a> TextArea<'a> {
         };
         let lines = line_count(shown);
         let content = ScrollRegion::new(self.id).draw(ui, body, &st.scroll, lines);
+        let inner = Rect {
+            x: content.x.saturating_add(2),
+            y: content.y,
+            width: Self::inner_width(content.width),
+            height: content.height,
+        };
+        ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         if !self.ov.is_forced() {
             ui.register_editor(self.id, body, focusability, declared);
         }
@@ -853,20 +884,13 @@ impl<'a> TextArea<'a> {
             } else {
                 let g = style(ui, Part::GUTTER, live);
                 match g.glyph {
-                    Some(glyph) => {
+                    Slot::Set(glyph) => {
                         ui.glyph(gutter_cell, glyph, g.style);
                     }
-                    None => ui.fill(gutter_cell, g.style),
+                    Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                 }
             }
         }
-        let inner = Rect {
-            x: content.x.saturating_add(2),
-            y: content.y,
-            width: Self::inner_width(content.width),
-            height: content.height,
-        };
-        ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         if inner.is_empty() {
             return body;
         }
@@ -948,18 +972,35 @@ impl<'a> TextArea<'a> {
                 }
             }
         }
+        // The trailing pad column `inner_width` reserves on every frame
+        // carries the readiness affordance §11.4 obliges a component that
+        // accepts `.status(…)` to render. The error glyph and the spinner
+        // share it, error winning, exactly as in `TextInput`; the spinner is
+        // a *symbol*, so it survives `Mono` without a theme rule.
+        let trailing = cell_at(
+            first_row(content),
+            content.right().saturating_sub(1).max(content.x),
+        );
         if error {
-            let marker_cell = cell_at(
-                first_row(content),
-                content.right().saturating_sub(1).max(content.x),
-            );
             if let Some(f) = ov.slot_for(Part::MARKER) {
-                f(ui, marker_cell);
+                f(ui, trailing);
             } else {
                 let ms = style(ui, Part::MARKER, live);
-                if let Some(g) = ms.glyph {
-                    ui.glyph(marker_cell, g, ms.style);
+                match ms.glyph {
+                    Slot::Set(g) => {
+                        ui.glyph(trailing, g, ms.style);
+                    }
+                    Slot::Inherit | Slot::Clear => {}
                 }
+            }
+        } else if live.intersects(StateFlags::BUSY | StateFlags::LOADING) {
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, trailing);
+            } else {
+                let is = style(ui, Part::ICON, live);
+                let frames = ui.design().motion.spinner_frames;
+                let frame = frames.first().copied().unwrap_or("");
+                ui.paint_str(trailing, frame, is.style);
             }
         }
         body
@@ -1034,7 +1075,14 @@ impl FieldControl for TextArea<'_> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+
     use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::theme::Theme;
+
+    const ID: Id = Id::root("textarea.tests");
 
     fn always_bad(_s: &str) -> Result<(), FieldError> {
         Err(FieldError::new("never valid"))
@@ -1092,5 +1140,134 @@ mod tests {
         assert_eq!(line_count("a\nb\n"), 3);
         assert_eq!(column_span(Rect::new(4, 0, 10, 1), 2, 5).x, 6);
         assert_eq!(column_span(Rect::new(4, 0, 10, 1), 2, 5).width, 3);
+    }
+
+    /// Draw a four-row text area at `status` over the stub screen, with an
+    /// optional forced state (`.state_override`).
+    fn draw_with_forced(status: crate::collection::Status, forced: Option<StateFlags>) -> Buffer {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = TextAreaState::default();
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            let mut t = TextArea::new(ID, 4).value("hello").status(status);
+            if let Some(f) = forced {
+                t = t.state_override(f);
+            }
+            t.draw(ui, a, &st);
+        });
+        buf
+    }
+
+    /// Draw a four-row text area at `status` over the stub screen.
+    fn draw_with(status: crate::collection::Status) -> Buffer {
+        draw_with_forced(status, None)
+    }
+
+    /// The symbol painted at `(x, y)`.
+    fn symbol_at(buf: &Buffer, x: u16, y: u16) -> String {
+        buf.cell(Position::new(x, y))
+            .map_or_else(String::new, |c| c.symbol().to_owned())
+    }
+
+    /// The columns of row 0 left of the reserved trailing pad.
+    fn text_run(buf: &Buffer) -> String {
+        (0..SCREEN.width - 1)
+            .map(|x| symbol_at(buf, x, 0))
+            .collect()
+    }
+
+    /// The trailing pad column of the first body row — the cell
+    /// `inner_width`'s `- 3` already reserves and the error marker already
+    /// uses.
+    const READINESS_X: u16 = SCREEN.width - 1;
+
+    /// §11.4: a component that accepts `.status(…)` must render readiness.
+    /// `BUSY` and `LOADING` paint `design.motion.spinner_frames[0]` into the
+    /// trailing pad column, which `inner_width` reserves on **every** frame,
+    /// so the text run does not move (§29 Q1's geometry discipline).
+    #[test]
+    fn busy_and_loading_paint_the_readiness_spinner() {
+        let design = Theme::junie().design;
+        let frame = design.motion.spinner_frames.first().copied().unwrap();
+        let ready = draw_with(crate::collection::Status::Ready);
+        for status in [
+            crate::collection::Status::Busy,
+            crate::collection::Status::Loading,
+        ] {
+            let buf = draw_with(status);
+            assert_eq!(
+                symbol_at(&buf, READINESS_X, 0),
+                frame,
+                "{status:?}: the readiness affordance was not painted"
+            );
+            assert_eq!(
+                text_run(&buf),
+                text_run(&ready),
+                "{status:?}: the affordance moved the text"
+            );
+            // `Overrides::flags` *replaces* the live flags with the forced
+            // state, so a rule that read only those flags would be
+            // unreachable under `.state_override`. `draw` or-s the status
+            // flags back in afterwards, so the affordance still fires.
+            let forced = draw_with_forced(status, Some(StateFlags::FOCUSED));
+            assert_eq!(
+                symbol_at(&forced, READINESS_X, 0),
+                frame,
+                "{status:?}: unreachable under a forced state"
+            );
+        }
+    }
+
+    /// §11.4: `ERROR` keeps the marker glyph in that same cell — the error
+    /// glyph wins the shared cell, as it does in `TextInput`.
+    ///
+    /// This assertion held **before** the readiness spinner was added (the
+    /// `MARKER` path is pre-existing), so it certifies the existing error
+    /// affordance and guards it against the spinner stealing the cell; it is
+    /// not evidence for the spinner itself.
+    #[test]
+    fn error_keeps_the_marker_glyph_in_the_readiness_cell() {
+        let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
+        let buf = draw_with(crate::collection::Status::Error);
+        assert_eq!(symbol_at(&buf, READINESS_X, 0), glyph);
+    }
+
+    /// §11.4: a ready text area paints no readiness affordance at all — the
+    /// reserved pad column stays blank.
+    ///
+    /// Like the `ERROR` case this held before the spinner was added; its
+    /// value is as the negative half of the busy assertion.
+    #[test]
+    fn ready_paints_no_readiness_affordance() {
+        let design = Theme::junie().design;
+        let cell = symbol_at(&draw_with(crate::collection::Status::Ready), READINESS_X, 0);
+        assert_ne!(cell, design.motion.spinner_frames.first().copied().unwrap());
+        assert_ne!(cell, design.glyphs.get(GlyphRole::Error));
+        assert_eq!(cell, " ", "the reserved pad column must stay blank");
+    }
+
+    /// §12.1: the readiness affordance resolves through the slot path, so
+    /// `.slot(Part::ICON, …)` replaces it.
+    #[test]
+    fn the_icon_slot_replaces_the_readiness_spinner() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = TextAreaState::default();
+        let icon = |ui: &mut Ui<'_>, r: Rect| {
+            let s = ui.surface_style();
+            ui.paint_str(r, "Z", s);
+        };
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            TextArea::new(ID, 4)
+                .value("hello")
+                .status(crate::collection::Status::Busy)
+                .slot(Part::ICON, &icon)
+                .draw(ui, a, &st);
+        });
+        assert_eq!(
+            symbol_at(&buf, READINESS_X, 0),
+            "Z",
+            "the ICON slot did not replace the readiness affordance"
+        );
     }
 }

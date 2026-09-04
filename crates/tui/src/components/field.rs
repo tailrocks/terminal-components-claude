@@ -11,7 +11,7 @@ use crate::id::{Part, PartRef};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Label, required / optional marker, help and error rows around a control.
@@ -235,12 +235,13 @@ impl<'a, C: FieldControl> Field<'a, C> {
             let cell = cell_at(text, text.x.saturating_add(used).saturating_add(1));
             let ms = style(ui, Part::MARKER);
             match ms.glyph {
-                Some(g) => {
+                Slot::Set(g) => {
                     ui.glyph(cell, g, ms.style);
                 }
-                None => {
+                Slot::Inherit => {
                     ui.paint_str(cell, "*", ms.style);
                 }
+                Slot::Clear => ui.fill(cell, ms.style),
             }
         } else if show_optional {
             let rest = Rect {
@@ -295,11 +296,13 @@ impl<'a, C: FieldControl> Field<'a, C> {
         let msg = self.error.or(self.help);
         if let Some(m) = msg {
             let hs = style(ui, Part::HELP);
-            if self.error.is_some()
-                && let Some(g) = hs.glyph
-            {
-                let used = ui.glyph(msg_row, g, hs.style);
-                ui.paint_str(super::shift(msg_row, used.saturating_add(1)), m, hs.style);
+            if self.error.is_some() {
+                if let Slot::Set(g) = hs.glyph {
+                    let used = ui.glyph(msg_row, g, hs.style);
+                    ui.paint_str(super::shift(msg_row, used.saturating_add(1)), m, hs.style);
+                } else {
+                    ui.paint_str(msg_row, m, hs.style);
+                }
             } else {
                 ui.paint_str(msg_row, m, hs.style);
             }

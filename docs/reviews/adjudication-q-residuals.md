@@ -1,6 +1,6 @@
 # Adjudication Q — three residuals from the Adjudication P code pass
 
-**Status:** proposed. Read-only pass at `HEAD 0f66160`; no command was executed. Facts marked **[F]** were read from the tree in this pass; everything else is inference or decision. One premise handed to me (Q1's byte-identity observation) I could **not** reproduce statically — that is recorded as R1 and does not change the decision.
+**Status:** accepted and applied for Q1–Q3 in the current tree. The source review was read-only at `HEAD 0f66160`; implementation follow-up evidence is recorded below. Facts marked **[F]** describe that review snapshot; later execution and source corrections are recorded as applied evidence. One premise handed to the review (Q1's byte-identity observation) could not be reproduced statically — R1 is now closed by the three-phase execution record. This status does not claim that the concurrent Slice 4 wave or the full workspace gate is green.
 
 ---
 
@@ -30,17 +30,19 @@
 
 **(a) is not a new affordance; it is compliance with §11.4 as already written [F5].** The `PRESSED` row requires the bracket *in addition to* the `CONTAINER` rule. `Button` discharges it; `Tabs` now discharges it. What was missing from the spec is the sentence saying who paints it, and Adjudication P's table assumed every component paints its own label the way `Button` does.
 
+**R1 is proven in three phases.** With the Tabs bracket block enabled, `conformance::tabs::mono_states_are_distinguishable` exited `0`. With only `tabs.rs:719–728` disabled, the same test exited nonzero because `TabsCase` reported mono `PRESSED`/`FOCUSED` equality. Restoring that block returned the test to exit `0`. The `CONTAINER` rule's `BOLD` alone therefore did not distinguish this pair; the reserved-cell bracket is independently required.
+
 **Why the bracket cannot move into `RowUi` (rejects (c) as stated).** The bracket needs two columns that are not the label's. `Button` has a gutter and a trailing pad; a tab has two pad cells [F2]; a `List`/`Tree`/`Props`/`Grid` row has none — `RowUi::label` fills the whole remainder (`rowui.rs:170-188`). Teaching `label` to bracket would take two content columns from every pressed row and pull the ellipsis in by two — a mono fallback changing geometry, which §28.6 already rejected in terms ("a bracket glyph steals two columns … a mono fallback must never change geometry", `COMPONENT_ARCHITECTURE.md:6171`). `RowUi` has no information with which to reserve those columns; only the component that laid out the row does. This is structurally the same conclusion §28.6(b) reached for the spinner: **the theme rule states the affordance; the component that owns the cells paints it.**
 
 **Why (b) is rejected.** A `(Part::TAB, PRESSED)` modifier rule is per-family-part, so it does not scale — chips would need `(CHIP, PRESSED)`, steps `(STEP, PRESSED)`, and each new part needs a modifier not already spoken for by `FOCUSED` (BOLD), `DISABLED` (DIM) or `ERROR`/`EDITING` (UNDERLINED). Worse, it makes `PRESSED` mean something different for a tab than for a button, which destroys the single mono vocabulary case 9's pairwise comparison rests on. It also hides that `CONTAINER`'s rule already fires.
 
 **Is `RowUi` ignoring the glyph slot itself a defect? Yes for `marker` and `part`; no for `label`.** A part that owns a **cell** must paint `Resolved.glyph` when `Some` — that is what `gutter()` does [F1], what `List` does for its own gutter/marker [F3], and what `Tabs` does for `CLOSE` (`tabs.rs:732`). `RowUi::marker(g)` violates it outright: it resolves `Part::MARKER` and then throws the answer away, so every mono `MARKER` rule (`SELECTED→Chosen`, `CHECKED→Checked`, `ERROR→Error`, `WARNING/DIRTY→Dirty`, `DISABLED→` clear) is inert for any component that uses it [F1][F4]. `RowUi::part` drops `glyph`, `size` and `align` for the same reason. `Part::LABEL` is different in kind: it is a **text run with no reserved glyph cell**, so "paint the resolved glyph" has no defined placement there, and §12.2 currently says nothing either way (`COMPONENT_ARCHITECTURE.md:1088-1122`).
 
-**The `marker`/`part` fix is real but cannot land as a one-liner, and I am not deciding it here.** `Resolved.glyph` is `Option<GlyphRole>` (`COMPONENT_ARCHITECTURE.md:965`), so `Slot::Clear` and "unset" collapse to `None`; `RowUi::marker(g)` therefore cannot tell "the recipe cleared the marker" (mono `DISABLED`) from "the recipe says nothing, use the caller's glyph". The structural fix is `Resolved.glyph: Slot<GlyphRole>`, a §11.2 amendment. Recorded as a **named obligation blocking the first package that ships a `RowUi::marker` caller** (4B chips / 4D steps), with the deferred root cause stated. No Slice-3 caller exists; the acceptance condition below proves that and turns the day it stops being true into a gate failure.
+**The `marker`/`part` correction is applied.** `Resolved.glyph` and `PartMetrics.glyph` are now `Slot<GlyphRole>`, so `Slot::Clear` remains distinct from `Slot::Inherit`; cell-owning `RowUi` methods honor `Inherit`, `Set` and `Clear` without changing reserved geometry. The existing callers in `crates/tui/examples/07_borrowed_rows.rs` and `crates/tui/examples/08_dynamic_tabs.rs` are live regression coverage. Label methods remain text-run methods with no automatic glyph placement.
 
 **Scaling to Slice 4** (this is the answer the question asks for): chips are tab-shaped [F6] and use the same reserved-pad bracket; menu items, steps, picker rows and radio rows are list-shaped and need **nothing** — `CONTAINER`'s reverse + `BOLD` already carries `PRESSED`, as `ListCase` proves [F3]. So the rule is one sentence, not five implementations.
 
-**Residual finding (must be settled with the amendment, not after).** The two existing bracket implementations disagree: `Tabs` brackets into reserved pads and cannot truncate; `Button` brackets **inside its text run** and shifts the label right by one (`button.rs:406-412`), so a label that exactly fills the run loses a column at mono — the geometry change §28.6 forbids. The shared helper must take two **reserved** cells, and `Button` must pass its gutter/trailing pad (or widen `natural_width` by 2 when the recipe binds `PressLeft`).
+**Applied geometry rule.** The shared bracket helper takes two already-reserved cells and does not resize, shift, measure or truncate the label. `Button` passes its gutter and trailing pad; `Tabs` (and ChipBar) pass their existing pads. The label rectangle, total width and close-cell geometry remain unchanged.
 
 ---
 
@@ -111,21 +113,54 @@ Unlike the grep, this survives a file move, cannot be satisfied by a comment abo
 
 ---
 
+## Fresh analyst adjudications carried forward
+
+These Slice 4 findings were supplied after the Q pass. The decisions are recorded here for
+status; the open items remain open. They add no new Q architecture.
+
+**`OVERLAY` versus `TRAPS_FOCUS` — decision.** `Caps::OVERLAY` means that a component opens a
+layer. `Caps::TRAPS_FOCUS` is separate, implies `OVERLAY`, and is reserved for a real focus
+scope; modal cases declare both. `Select` opens a pointer-barrier `Popover`, so it declares
+`OVERLAY` only and remains non-trapping with focus on its field. Focus-out dismissal is the
+separate popover property; it does not turn a `Popover` into a focus trap. The capability split
+and its self-policing case-14 rules are recorded in architecture §29.6/§29.8.
+
+**`FieldControl` item channel — decision with an open follow-up.** The scalar
+`FieldControl::draw` shape cannot carry per-phase items. Item-bearing choice controls therefore
+stay on their direct per-phase paths; `Form` drives the three choice controls directly. Whether
+to add an item-aware composition path or widen the scalar trait remains open. Q does not widen
+the trait or move items into props.
+
+**`RadioGroup::value(ItemKey)` — open contract question.** The draw-time controlled prop and
+cursor/value separation exist in code, but §17.0 A7 does not document them. The public contract
+wording and controlled-state adjudication remain open; Q records no replacement API.
+
+**`ChipBar` `Activated(add_key)` — open action-naming question.** The add affordance uses the
+caller-stated `add_key` and currently emits the existing `Activated(ItemKey)` action. There is
+no `Added`/`AddRequested` variant. Whether that action should be renamed or split remains open;
+Q does not change the current behavior.
+
+**`StatusBar` `hovered_part` — open integration question.** The analyst found that a stateless
+status bar could not paint per-item hover from the old frame snapshot. A `FrameRead::hovered_part`
+primitive is now present in the concurrent tree, but `StatusBar` still does not consume it.
+Whether per-item hover becomes a StatusBar contract and test remains open; Q does not claim the
+visual gap closed.
+
 ## Risks
 
-1. **R1 — I could not reproduce Q1's premise.** Statically, mono `PRESSED` on `Tabs` should already differ from `FOCUSED`: `RowUi::new` fills `Part::CONTAINER` with the row's flags (`rowui.rs:66-68`), the mono `(CONTAINER, PRESSED)` rule adds `BOLD` (`downgrade.rs:276-282`), and neither `Ui::fill` nor `Ui::paint_style` clears an inserted modifier (`ui/paint.rs:121-145`). Either a resolution detail I did not trace removes it, or the observation was of a different pair. **This does not change the decision** — [F5] requires the bracket independently of whether `CONTAINER` alone would have passed — but the builder must confirm which, because if `CONTAINER` already distinguished them, the *reported* reason for the change is wrong and would mislead the next reader. Acceptance condition A1 pins it.
+1. **R1 is closed.** The enabled → bracket-disabled → restored sequence above proves that this Tabs pair needs the reserved-cell bracket in addition to `CONTAINER`'s `BOLD`.
 2. **Q1 is a per-component obligation, so it can be forgotten.** Mitigated by the shared helper plus the boundary condition A3: no component may open-code `GlyphRole::PressLeft`.
-3. **`Button`'s inline bracket can truncate a full-width label** (residual finding above). Unblessed today; fixing it moves `render::components::button::pressed`'s **mono** line and needs a §20.10 item 18 entry before the bless.
-4. **Q3 turns the suite red until ~8 reason strings are written.** Bounded, mechanical, and the failure message names the missing state.
+3. **The Button mono baseline is intentionally eligible to move.** The bracket now uses reserved cells, so its mono line requires the §20.10 item 18 capture/classify/bless sequence before blessing.
+4. **Q3's reason check is now a maintained invariant.** Any future narrowing without a reason, or any omitted state name, fails case 9.
 5. **Q2 is a `tui-next-testing` public-API break** (two fields). Dev-only crate, `publish = false` (`COMPONENT_ARCHITECTURE.md:1665`); no consumer outside the workspace.
-6. **The `RowUi::marker`/`part` defect is deferred, not fixed.** Named root cause: `Resolved.glyph: Option<GlyphRole>` cannot express `Slot::Clear`. If a Slice-4 package adds a `marker()` caller before that is decided, A4 fails and the package is blocked — by design.
+6. **The `RowUi::marker`/`part` defect is fixed in the current source.** The `Slot<GlyphRole>` migration and the two existing example callers are covered by the applied A4 contract.
 
 ---
 
 ## Exact document amendments
 
 1. **§11.4, `PRESSED` row (`COMPONENT_ARCHITECTURE.md:1041`)** — append: *"The `CONTAINER` half is a `StateRule`. The bracket is a **component obligation**, like the `BUSY` spinner two rows down and for the same reason: a rule binds a glyph but cannot reserve the two columns it needs. A component that reserves pad cells around its label (`Button`'s gutter and trailing pad, a tab's or a chip's pads) paints `PressLeft`/`PressRight` **into those cells**, never into the label's own run, so a mono fallback never changes geometry. A component whose row has no spare pad — every `RowUi`-labelled collection row — expresses `PRESSED` through the `CONTAINER` rule alone, which is already distinguishable (`conformance::list::mono_states_are_distinguishable`). `RowUi` does not paint the bracket. <!-- amended by §29 -->"*
-2. **§12.2, after the `RowUi` block (`:1122`)** — add: *"**The glyph slot (binding).** A `RowUi` method that paints a part owning a **cell** must paint `Resolved.glyph` when it is `Some` — `gutter()` does. `marker()` and `part()` currently discard it, which is a recorded defect: every mono `MARKER` rule is inert for any component that uses them. The structural fix is `Resolved.glyph: Slot<GlyphRole>` (`Option` cannot distinguish `Slot::Clear` from unset, so a corrected `marker()` cannot honour mono `DISABLED`'s cleared marker); it is a §11.2 amendment and a **named obligation on the first package that ships a `RowUi::marker` caller** (4B/4D), which must not proceed without it. `label`, `label_patched`, `label_spans` and `label_fmt` are **not** in scope: `Part::LABEL` is a text run with no reserved glyph cell, so the resolved glyph has no defined placement there — see §11.4's `PRESSED` row. <!-- amended by §29 -->"*
+2. **§12.2, after the `RowUi` block (`:1122`)** — add: *"**The glyph slot (binding).** `Resolved.glyph` and `PartMetrics.glyph` are `Slot<GlyphRole>`, preserving `Inherit`, `Set` and `Clear`. Cell-owning `RowUi` methods honor the resolved slot and reserved geometry; `label`, `label_patched`, `label_spans` and `label_fmt` remain text-run methods without automatic glyph placement. The existing example callers are regression coverage. <!-- amended by §29 -->"*
 3. **§16.2's `Fixture` declaration (`:1782-1786`)** — replace with the real eight-field shape of Q2 above, `state_override` and `status` private, and add: *"`force(StateFlags)` is the only way to set a forced state; it sets `status` alongside the flags, so P6(iii)'s props-driven-affordance gap cannot be re-opened by a later case. `forced()` and `status()` are the reads."*
 4. **§16.2 case 9 (`:1828`)** — append: *"Every narrowing carries a machine-checked reason: `Conformance::mono_narrowing_reason()` is non-empty exactly when `mono_states()` narrows, and names every state dropped (checked by `iter_names()` containment inside this case). The grep §28.6 named in its place could never exit 0 and did not express the property. <!-- amended by §29 -->"*
 5. **§28.6, Tests paragraph (`:6173`)** — strike the `! rg -n 'fn mono_states' …` sentence; replace with: *"~~The narrowing must stay visible in one place…~~ **Struck (§29 Q3):** the grep always matched the `StateFlags::empty(),` line every case has and could never exit 0, and four of the five narrowings did not in fact name the states they dropped. Replaced by `Conformance::mono_narrowing_reason()`, asserted inside case 9."*
@@ -156,11 +191,13 @@ cargo test -p tui-next --test conformance conformance::list::mono_states_are_dis
 # ── A3: exactly one implementation of the bracket
 test "$(rg -c -- 'GlyphRole::PressLeft' crates/tui/src/components/ | rg -v 'mod\.rs' | wc -l)" -eq 0
 
-# ── A4: the deferred RowUi::marker defect has no caller yet (and blocks 4B/4D when it does)
-! rg -n '\.marker\(' crates/tui/src/components crates/tui/tests crates/tui/examples
+# ── A4: live RowUi callers exercise the Slot contract
+rg -n '\.marker\(' crates/tui/examples/07_borrowed_rows.rs crates/tui/examples/08_dynamic_tabs.rs
+rtk cargo test -p tui-next --lib collection::rowui
 
 # ── A5: Q2 — the forced state is unsettable except through `force`
-! rg -n '\.state_override\s*=|\.status\s*=' crates/tui-testing/src crates/tui/tests
+! rg -n 'pub (state_override|status)\s*:' crates/tui-testing/src/conformance/mod.rs
+rg -n 'state_override\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs
 cargo test -p tui-next --test conformance          # every case compiles against forced()/status()
 rg -n 'state_override: StateFlags,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
 

@@ -12,7 +12,7 @@ use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
 use crate::response::{Activated, Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// The product mark: the one lockup that fills with the accent.
@@ -257,7 +257,7 @@ impl<'a> Brand<'a> {
             let s = ov.style(ui, self.id, Family::BRAND, self.variant, Part::LABEL, live);
             ui.fill(lockup, s.style);
             let pad = self.pad();
-            let bracketed = s.glyph == Some(GlyphRole::PressLeft)
+            let bracketed = matches!(s.glyph, Slot::Set(GlyphRole::PressLeft))
                 && lockup.width >= width(self.text).saturating_add(2);
             if bracketed {
                 // §11.4's mono `PRESSED` rule: `[mark]`, painted into the

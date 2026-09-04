@@ -5,7 +5,7 @@ use ratatui_core::layout::Rect;
 use crate::id::Part;
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Variant};
+use crate::theme::{Family, GlyphRole, Slot, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Data readiness of a component; the runtime maps it onto
@@ -130,11 +130,11 @@ impl EmptyState<'_> {
                     .get(frame.checked_rem(frames.len()).unwrap_or(0))
                     .copied()
             }
-            EmptyState::Error { .. } => Some(
-                ui.design()
-                    .glyphs
-                    .get(icon.glyph.unwrap_or(GlyphRole::Error)),
-            ),
+            EmptyState::Error { .. } => match icon.glyph {
+                Slot::Set(g) => Some(ui.design().glyphs.get(g)),
+                Slot::Inherit => Some(ui.design().glyphs.get(GlyphRole::Error)),
+                Slot::Clear => None,
+            },
             EmptyState::Empty { .. } => None,
         };
         let prefix_w = glyph.map_or(0, |g| width(g).saturating_add(1));
