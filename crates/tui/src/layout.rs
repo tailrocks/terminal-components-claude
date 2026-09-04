@@ -30,7 +30,8 @@ pub enum RowAlign {
     End,
 }
 
-/// Asymmetric insets; the symmetric case is `Rect::inner(Margin)`.
+/// Asymmetric insets; the symmetric case is `Rect::inner(Margin)` wherever
+/// that answers a non-empty rect (see [`inset`]).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Insets {
     /// Left.
@@ -286,17 +287,35 @@ pub fn action_row(area: Rect, widths: &[u16], spacing: u16, align: RowAlign) -> 
     stack(base, widths, spacing, false)
 }
 
-/// Shrink by asymmetric insets, saturating. Symmetric insets go through
-/// `Rect::inner(Margin)`.
+/// Shrink by asymmetric insets, saturating.
+///
+/// The result is always a subrect of `area`, **including when the insets do
+/// not fit**: a saturating inset answers an empty rect anchored where the
+/// content would have started (`area.x + l`, `area.y + t`, each clamped into
+/// `area`), never `Rect::ZERO` at the screen corner. A caller that reads
+/// `.x`/`.y` before checking `.is_empty()` therefore stays inside its own
+/// container.
+///
+/// Symmetric insets go through `Rect::inner(Margin)` (§22 R‑12) wherever it
+/// answers a non-empty rect, which is every case in which the two agree.
 pub fn inset(area: Rect, i: Insets) -> Rect {
     if i.l == i.r && i.t == i.b {
-        return area.inner(Margin::new(i.l, i.t));
+        let r = area.inner(Margin::new(i.l, i.t));
+        // `Rect::inner` answers `Rect::ZERO` when the margin does not fit, and
+        // `Rect::ZERO`'s origin is the top-left of the *screen*, not `area`'s —
+        // so its empty answer sits outside the container it was asked to inset.
+        // `.is_empty()` cannot see that, because an empty rect at the wrong
+        // origin is still empty. Fall through to the clamped arithmetic below,
+        // which anchors the empty answer at the container. Where `Rect::inner`
+        // returns a non-empty rect the two are identical by construction, so
+        // the branch is an optimisation and not a second behaviour.
+        if !r.is_empty() {
+            return r;
+        }
     }
-    let x = area.x.saturating_add(i.l);
-    let y = area.y.saturating_add(i.t);
     Rect {
-        x: x.min(area.right()),
-        y: y.min(area.bottom()),
+        x: area.x.saturating_add(i.l).min(area.right()),
+        y: area.y.saturating_add(i.t).min(area.bottom()),
         width: area.width.saturating_sub(i.l).saturating_sub(i.r),
         height: area.height.saturating_sub(i.t).saturating_sub(i.b),
     }
@@ -656,10 +675,32 @@ mod tests {
         assert_eq!(cols[0].width, 4);
     }
 
+    /// The symmetric branch of [`inset`] is `Rect::inner(Margin)` (§22 R‑12),
+    /// which answers `Rect::ZERO` when the margin does not fit — and
+    /// `Rect::ZERO`'s origin is the top-left of the **screen**, not the
+    /// container's. Asserting only `.is_empty()` cannot see that, because an
+    /// empty rect at the wrong origin is still empty; that blind spot is why
+    /// §18.2's `panel` row was attributed to the component's own `x + 2`
+    /// arithmetic when the shared helper had the same hole. So this asserts the
+    /// **origin** of the saturating results, and then sweeps every tiny rect for
+    /// the property the origin exists to protect: an inset is a subrect of its
+    /// own container.
     #[test]
     fn inset_saturates_on_tiny_rects() {
-        // the symmetric case is `Rect::inner`, which yields an empty rect when the margin does not fit
-        assert!(inset(Rect::new(0, 0, 2, 2), Insets::all(3)).is_empty());
+        // the symmetric case is `Rect::inner`, which yields an empty rect when
+        // the margin does not fit — anchored at the container, not at (0, 0)
+        assert_eq!(
+            inset(Rect::new(0, 0, 2, 2), Insets::all(3)),
+            Rect::new(2, 2, 0, 0)
+        );
+        let area = Rect::new(3, 2, 3, 4);
+        let tight = inset(area, Insets::all(2));
+        assert!(tight.is_empty(), "{tight:?} should be empty");
+        assert_eq!(
+            (tight.x, tight.y),
+            (5, 4),
+            "a saturating symmetric inset lost {area:?}'s origin: {tight:?}"
+        );
         assert_eq!(
             inset(
                 Rect::new(5, 5, 10, 4),
@@ -692,6 +733,59 @@ mod tests {
             split_h(Rect::new(0, 0, 3, 2), 1),
             (Rect::new(0, 0, 1, 2), Rect::new(1, 0, 2, 2))
         );
+        // no inset, symmetric or asymmetric, escapes the rect it was given
+        for w in 0u16..=8 {
+            for h in 0u16..=8 {
+                for n in 0u16..=4 {
+                    let area = Rect {
+                        x: 3,
+                        y: 2,
+                        width: w,
+                        height: h,
+                    };
+                    for i in [
+                        Insets::all(n),
+                        Insets::symmetric(n, 1),
+                        Insets {
+                            l: n,
+                            t: 1,
+                            r: 0,
+                            b: 2,
+                        },
+                        Insets {
+                            l: 0,
+                            t: n,
+                            r: 2,
+                            b: n,
+                        },
+                        // the two shapes real callers pass: `Panel`'s
+                        // card-with-a-title chrome, and `Dialog`'s
+                        // horizontal-only padding
+                        Insets {
+                            l: n,
+                            t: 2,
+                            r: n,
+                            b: 1,
+                        },
+                        Insets {
+                            l: n,
+                            t: 0,
+                            r: n,
+                            b: 0,
+                        },
+                    ] {
+                        let r = inset(area, i);
+                        assert!(
+                            r.x >= area.x
+                                && r.y >= area.y
+                                && r.right() <= area.right()
+                                && r.bottom() <= area.bottom(),
+                            "inset({area:?}, {i:?}) = {r:?} escapes its container"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     #[test]
