@@ -10,7 +10,7 @@ use crate::id::{Id, Part, PartRef};
 use crate::layout::{Insets, inset};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
-use crate::theme::{Family, GlyphRole, Slot, Surface, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// How a panel marks its edge.
@@ -253,7 +253,7 @@ impl<'a> Panel<'a> {
             PanelKind::Card => ui.design().space.card_inset,
             PanelKind::Framed => ui.design().space.frame_inset,
         };
-        inset(
+        let r = inset(
             area,
             Insets {
                 l: side,
@@ -261,7 +261,22 @@ impl<'a> Panel<'a> {
                 r: side,
                 b: 1,
             },
-        )
+        );
+        if r.is_empty() {
+            // `Rect::inner` — the symmetric branch of `layout::inset` — answers
+            // `Rect::ZERO` when the margin does not fit, and `Rect::ZERO`'s
+            // origin is `(0, 0)`, not the panel's. An empty rect is the right
+            // answer; an empty rect *somewhere else on the screen* is the
+            // escape §18.2 asks to fix, because a caller that reads `.x`
+            // before checking `.is_empty()` lands outside the panel.
+            return Rect {
+                x: area.x,
+                y: area.y,
+                width: 0,
+                height: 0,
+            };
+        }
+        r
     }
 
     /// The natural size: the chrome plus one content cell.
@@ -276,7 +291,7 @@ impl<'a> Panel<'a> {
         let meta_w = self.meta.map_or(0, crate::text::width);
         let head = title_w
             .saturating_add(meta_w)
-            .saturating_add(if meta_w == 0 { 0 } else { 1 })
+            .saturating_add(u16::from(meta_w != 0))
             .saturating_add(2);
         Size {
             min: (chrome_w.saturating_add(1), chrome_h.saturating_add(1)),
@@ -424,5 +439,254 @@ impl<'a> Panel<'a> {
                 ui.fill(cell_at(head, x.saturating_add(used)), fill);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Position;
+
+    use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::theme::{Role, Theme};
+
+    const ID: Id = Id::root("panel.tests");
+
+    fn symbol_at(buf: &Buffer, x: u16, y: u16) -> String {
+        buf.cell(Position::new(x, y))
+            .map_or_else(String::new, |c| c.symbol().to_owned())
+    }
+
+    /// §18.2's `panel` row: *"framed inner rect escaping the panel for
+    /// `width ≤ 4` **fixed**"*. The legacy arithmetic was
+    /// `area.inner(Margin(1, 1))` followed by `x + 2` and
+    /// `width.saturating_sub(3)`, which put the inner rect's origin outside
+    /// `area` for every narrow panel — a caller that painted into it wrote
+    /// over its neighbour. The fix is structural: the inset goes through
+    /// [`crate::layout::inset`], which clamps, so there is no arithmetic left
+    /// that can escape.
+    #[test]
+    fn the_inner_rect_never_escapes_the_panel() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            for kind in [PanelKind::Card, PanelKind::Framed] {
+                for title in [None, Some("t")] {
+                    for w in 0u16..=9 {
+                        for h in 0u16..=5 {
+                            let area = Rect {
+                                x: 3,
+                                y: 2,
+                                width: w,
+                                height: h,
+                            };
+                            let mut p = Panel::new(ID).kind(kind);
+                            if let Some(t) = title {
+                                p = p.title(t);
+                            }
+                            let inner = p.inner(ui, area);
+                            assert!(
+                                inner.x >= area.x
+                                    && inner.y >= area.y
+                                    && inner.right() <= area.right()
+                                    && inner.bottom() <= area.bottom(),
+                                "{kind:?} {title:?} {w}x{h}: {inner:?} escapes {area:?}"
+                            );
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /// The head row is confined to `area.x + 1 ..= area.right() - 2`, so a
+    /// framed panel's four corner glyphs survive a title and a meta that are
+    /// both far too long for the row. Without the confinement the title runs
+    /// over the top-right corner and the frame stops reading as a frame.
+    #[test]
+    fn a_framed_head_row_keeps_the_corner_columns() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 20,
+            height: 5,
+        };
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            Panel::new(ID)
+                .kind(PanelKind::Framed)
+                .title("a title far too long for this panel")
+                .meta("and a meta as well")
+                .draw(ui, area, |_, inner| inner);
+        });
+        let b = Theme::junie().design.borders;
+        assert_eq!(symbol_at(&buf, 0, 0), b.top_left);
+        assert_eq!(symbol_at(&buf, 19, 0), b.top_right);
+        assert_eq!(symbol_at(&buf, 0, 4), b.bottom_left);
+        assert_eq!(symbol_at(&buf, 19, 4), b.bottom_right);
+    }
+
+    /// `.focused(true)` is the **props-derived** half of §39's Invariant Q:
+    /// the panel registers no focus stop, so the runtime can never supply
+    /// `FOCUSED`, and the only way the container focus bar can appear is the
+    /// prop. It must appear, and it must not appear otherwise — that one
+    /// glyph is the whole of the panel's focus affordance at
+    /// `ColorLevel::Mono`.
+    #[test]
+    fn the_focus_bar_is_painted_from_the_props_and_only_then() {
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 14,
+            height: 4,
+        };
+        let bar = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);
+        let render = |focused: bool| {
+            let mut rt = Runtime::new(Stub::default(), Theme::junie());
+            let mut buf = Buffer::empty(SCREEN);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                Panel::new(ID)
+                    .title("Files")
+                    .focused(focused)
+                    .draw(ui, area, |_, inner| inner);
+            });
+            symbol_at(&buf, 1, 0)
+        };
+        assert_eq!(render(true), bar, "a focused panel paints no focus bar");
+        assert_ne!(
+            render(false),
+            bar,
+            "an unfocused panel paints the focus bar"
+        );
+    }
+
+    /// A `Panel` is a container: every region it registers is `Decorative`,
+    /// so it never enters the focus ring and an intent that resolves to it is
+    /// discarded silently (§6.1, §21's decorative-owner rule).
+    #[test]
+    fn a_panel_registers_no_focus_stop() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            Panel::new(ID)
+                .kind(PanelKind::Framed)
+                .title("Files")
+                .draw(ui, a, |_, inner| inner);
+        });
+        assert!(!rt.ring().is_registered(ID));
+        assert_eq!(rt.ring().reachable().count(), 0);
+        assert!(rt.area_of(ID).is_some(), "the container is not addressable");
+    }
+
+    /// A forced rendering (A11) registers nothing at all, so a reference
+    /// panel on a showcase page cannot become a live hit target.
+    #[test]
+    fn a_forced_panel_registers_nothing() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            Panel::new(ID)
+                .kind(PanelKind::Framed)
+                .title("Files")
+                .state_override(StateFlags::FOCUSED)
+                .draw(ui, a, |_, inner| inner);
+        });
+        assert!(rt.area_of(ID).is_none());
+    }
+
+    /// §33's Invariant P, in the direction the conformance registry cannot
+    /// check on its own: **every** declared part must be one this component
+    /// actually resolves, proven by the property — a per-part patch on it
+    /// changes the painted cells — and not by reading the const back. A part
+    /// declared and never painted is `PARTS` lying about the styling surface.
+    #[test]
+    fn every_declared_part_is_one_a_drawn_panel_styles() {
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 24,
+            height: 5,
+        };
+        let render = |patched: Option<Part>| {
+            let ps: [(Part, StylePatch); 1] = [(
+                patched.unwrap_or(Part::CONTAINER),
+                StylePatch::new().set_fg(Role::Warning).set_bg(Role::Danger),
+            )];
+            let mut rt = Runtime::new(Stub::default(), Theme::junie());
+            let mut buf = Buffer::empty(SCREEN);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                let mut p = Panel::new(ID)
+                    .kind(PanelKind::Framed)
+                    .title("Files")
+                    .meta("12")
+                    .focused(true);
+                if patched.is_some() {
+                    p = p.patch_part(&ps);
+                }
+                p.draw(ui, area, |_, inner| inner);
+            });
+            buf
+        };
+        let plain = render(None);
+        for part in Panel::PARTS {
+            assert_ne!(
+                render(Some(*part)),
+                plain,
+                "Panel declares {part:?} and paints nothing with it"
+            );
+        }
+    }
+
+    /// §45's Invariant R: the `## Overrides` section is a contract, so the
+    /// parts it names as slot-addressable are **exactly** the parts for which
+    /// installing a slot changes the painted cells. Both directions are
+    /// asserted, because §45.1 found six components over-claiming and one
+    /// under-claiming.
+    #[test]
+    fn the_slot_addressable_parts_are_exactly_the_documented_ones() {
+        let area = Rect {
+            x: 0,
+            y: 0,
+            width: 24,
+            height: 5,
+        };
+        let marker = |ui: &mut Ui<'_>, r: Rect| {
+            let s = ui.surface_style();
+            ui.paint_str(r, "ZZZZ", s);
+        };
+        let render = |slot: Option<Part>| {
+            let mut rt = Runtime::new(Stub::default(), Theme::junie());
+            let mut buf = Buffer::empty(SCREEN);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                let mut p = Panel::new(ID)
+                    .kind(PanelKind::Framed)
+                    .title("Files")
+                    .meta("12")
+                    .focused(true);
+                if let Some(part) = slot {
+                    p = p.slot(part, &marker);
+                }
+                p.draw(ui, area, |_, inner| inner);
+            });
+            buf
+        };
+        let plain = render(None);
+        // documented as slot-addressable
+        for part in [Part::GUTTER, Part::TITLE, Part::DETAIL, Part::BORDER] {
+            assert_ne!(
+                render(Some(part)),
+                plain,
+                "`## Overrides` grants a slot on {part:?} and it is dropped"
+            );
+        }
+        // documented as NOT slot-addressable
+        assert_eq!(
+            render(Some(Part::CONTAINER)),
+            plain,
+            "a slot on Part::CONTAINER changes cells, and `## Overrides` says it does not"
+        );
     }
 }

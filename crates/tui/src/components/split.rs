@@ -12,7 +12,6 @@
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Modifier;
 
 use super::{Acc, Overrides, SlotFn};
 use crate::event::{Chord, KeyCode};
@@ -23,7 +22,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::layout::{Maximized, SplitAxis, SplitModel};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::theme::{Family, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// The percent a [`SplitCmd::Reset`] returns the seam to.
@@ -202,12 +201,12 @@ impl SplitPaneState {
 /// that sets `.resizable(true)`; `render::components::split_pane::*`.
 ///
 /// ## Invariants
-/// The seam is painted with the quiet rule glyph, the **active** rule glyph
-/// while pressed, and the quiet glyph plus `Modifier::BOLD` while focused,
-/// so all three states differ by a symbol or a modifier and survive
-/// `ColorLevel::Mono` — the recipe's own `SEAM` rules are colour-only. The
-/// container rect `update` reads back through `Cx::area` is the one `draw`
-/// registered, so no caller stores it.
+/// The seam is painted with the **quiet** rule glyph at rest, the **active**
+/// rule glyph while pressed, and `GlyphRole::FocusBar` while focused, so all
+/// three states differ by a symbol and survive `ColorLevel::Mono` — the
+/// recipe's own `SEAM` rules are colour-only, and R-8 forbids a component
+/// assembling a `Style` of its own. The container rect `update` reads back
+/// through `Cx::area` is the one `draw` registered, so no caller stores it.
 pub struct SplitPane<'a> {
     id: Id,
     axis: SplitAxis,
@@ -313,7 +312,7 @@ impl<'a> SplitPane<'a> {
     }
 
     /// The layout model for `st` under this instance's configuration.
-    const fn model(&self, st: &SplitPaneState) -> SplitModel {
+    const fn model(&self, st: SplitPaneState) -> SplitModel {
         let mut m = SplitModel::new(self.axis, st.percent, self.min_first, self.min_second);
         m.maximized = st.maximized;
         m
@@ -321,13 +320,13 @@ impl<'a> SplitPane<'a> {
 
     /// The two pane rects for `area`, without painting anything.
     pub fn panes(&self, st: &SplitPaneState, area: Rect) -> (Rect, Rect) {
-        self.model(st).layout(area, self.gap)
+        self.model(*st).layout(area, self.gap)
     }
 
     /// The seam strip for `area`; empty when a pane is maximised, when the
     /// split collapsed, or when `gap` is `0`.
     pub fn seam(&self, st: &SplitPaneState, area: Rect) -> Rect {
-        self.model(st).handle(area, self.gap)
+        self.model(*st).handle(area, self.gap)
     }
 
     /// The binding table: empty unless the split is resizable, so the hint
@@ -350,7 +349,7 @@ impl<'a> SplitPane<'a> {
         acc: &mut Acc<SplitAction>,
     ) {
         let before = st.percent;
-        let mut m = self.model(st);
+        let mut m = self.model(*st);
         f(&mut m);
         st.percent = m.percent;
         st.maximized = m.maximized;
@@ -386,9 +385,10 @@ impl<'a> SplitPane<'a> {
                 },
                 Intent::Pointer {
                     phase,
-                    part: PartRef {
-                        part: Part::SEAM, ..
-                    },
+                    part:
+                        PartRef {
+                            part: Part::SEAM, ..
+                        },
                     pos,
                     ..
                 } => self.pointer(cx, st, phase, pos, area, &mut acc),
@@ -413,7 +413,13 @@ impl<'a> SplitPane<'a> {
                 let _ = cx.capture(self.id, PartRef::of(Part::SEAM));
                 acc.consumed();
             }
-            Phase::Drag => self.apply(st, |m| drop(m.drag_to(area, gap, pos)), acc),
+            Phase::Drag => self.apply(
+                st,
+                |m| {
+                    let _ = m.drag_to(area, gap, pos);
+                },
+                acc,
+            ),
             Phase::Release | Phase::DragEnd => {
                 if cx.capture_owner() == Some(self.id) {
                     cx.release_capture();
@@ -464,12 +470,16 @@ impl<'a> SplitPane<'a> {
 
     /// Paint the gap strip.
     ///
-    /// The `SEAM` recipe distinguishes hovered and pressed by colour alone,
-    /// which `ColorLevel::Mono` erases, so the symbol carries the press and
-    /// a modifier carries the focus — the same shape §11.4 gives the mono
-    /// `PRESSED` bracket, and for the same reason: a `StateRule` binds a
-    /// style, and only the component knows which of two rule glyphs the
-    /// strip should be drawn from.
+    /// The `SEAM` recipe distinguishes hovered, focused and pressed by colour
+    /// alone, and `ColorLevel::Mono` erases colour, so the **symbol** carries
+    /// all three — the same shape §11.4 gives the mono `PRESSED` bracket and
+    /// the mono focus bar, and for the same reason: a `StateRule` binds one
+    /// glyph to one part, and only the component knows which of the theme's
+    /// three glyphs this strip should be drawn from. R-8 rules out the
+    /// alternative, which is assembling a `Style` here.
+    ///
+    /// A pressed seam beats a focused one: a seam being dragged is being
+    /// dragged whatever the focus ring says.
     fn paint_seam(&self, ui: &mut Ui<'_>, seam: Rect, live: StateFlags) {
         let s = self.ov.style(
             ui,
@@ -479,20 +489,20 @@ impl<'a> SplitPane<'a> {
             Part::SEAM,
             live,
         );
-        let pressed = live.contains(StateFlags::PRESSED);
-        let set = if pressed {
-            ui.design().glyphs.rule_active()
+        let rule = if live.contains(StateFlags::PRESSED) {
+            let set = ui.design().glyphs.rule_active();
+            match self.axis {
+                SplitAxis::Horizontal => set.vertical,
+                SplitAxis::Vertical => set.horizontal,
+            }
+        } else if live.contains(StateFlags::FOCUSED) {
+            ui.glyph_str(GlyphRole::FocusBar)
         } else {
-            ui.design().glyphs.rule_quiet()
-        };
-        let rule = match self.axis {
-            SplitAxis::Horizontal => set.vertical,
-            SplitAxis::Vertical => set.horizontal,
-        };
-        let style = if live.contains(StateFlags::FOCUSED) {
-            s.style.add_modifier(Modifier::BOLD)
-        } else {
-            s.style
+            let set = ui.design().glyphs.rule_quiet();
+            match self.axis {
+                SplitAxis::Horizontal => set.vertical,
+                SplitAxis::Vertical => set.horizontal,
+            }
         };
         match s.glyph {
             Slot::Set(g) => {
@@ -503,13 +513,13 @@ impl<'a> SplitPane<'a> {
                         width: 1,
                         height: 1,
                     };
-                    ui.glyph(one, g, style);
+                    ui.glyph(one, g, s.style);
                 }
             }
-            Slot::Clear => ui.fill(seam, style),
+            Slot::Clear => ui.fill(seam, s.style),
             Slot::Inherit => {
                 for cell in seam.positions() {
-                    ui.paint_cell(cell, rule, style);
+                    ui.paint_cell(cell, rule, s.style);
                 }
             }
         }
@@ -539,5 +549,239 @@ impl Bindings for SplitPane<'_> {
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<SplitCmd>] {
         self.table()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Position;
+
+    use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::theme::{ColorLevel, Role, Theme};
+
+    const ID: Id = Id::root("split.tests");
+
+    const AREA: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 40,
+        height: 10,
+    };
+
+    /// The two panes and the seam tile the container exactly: no cell belongs
+    /// to two of them and no cell belongs to none. This is what lets the
+    /// caller delete its `seam_container: Rect` field (§18.2) — the component
+    /// is the only thing that knows the partition, so the partition has to be
+    /// total.
+    #[test]
+    fn the_panes_and_the_seam_tile_the_container() {
+        for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+            for percent in [5u8, 30, 50, 95] {
+                for gap in [0u16, 1, 2] {
+                    let sp = SplitPane::new(ID, axis).gap(gap);
+                    let st = SplitPaneState::new(percent);
+                    let (a, b) = sp.panes(&st, AREA);
+                    let seam = sp.seam(&st, AREA);
+                    let mut seen: Vec<u32> = vec![0; (AREA.width * AREA.height) as usize];
+                    for r in [a, b, seam] {
+                        for p in r.positions() {
+                            let i = (p.y * AREA.width + p.x) as usize;
+                            seen[i] += 1;
+                        }
+                    }
+                    assert!(
+                        seen.iter().all(|n| *n == 1),
+                        "{axis:?} {percent}% gap {gap}: panes {a:?} {b:?} seam {seam:?} \
+                         do not tile {AREA:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// `.resizable(false)` — the default, and what the legacy mouse-only
+    /// `Splitter` did — must leave the split out of the focus ring **and**
+    /// out of the hint bar. A visible chord for a resize that cannot happen
+    /// is exactly the drift §16.2 case 20 exists to catch, so the table is
+    /// empty rather than merely unreachable.
+    #[test]
+    fn a_non_resizable_split_declares_no_bindings_and_no_focus_stop() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = SplitPaneState::default();
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            SplitPane::new(ID, SplitAxis::Horizontal).draw(ui, a, &st);
+        });
+        assert!(!rt.ring().is_registered(ID));
+        assert!(
+            SplitPane::new(ID, SplitAxis::Horizontal)
+                .bindings(BindingState::default())
+                .is_empty()
+        );
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            SplitPane::new(ID, SplitAxis::Horizontal)
+                .resizable(true)
+                .draw(ui, a, &st);
+        });
+        assert!(rt.ring().is_registered(ID), "a resizable split has no stop");
+        assert_eq!(
+            SplitPane::new(ID, SplitAxis::Horizontal)
+                .resizable(true)
+                .bindings(BindingState::default())
+                .len(),
+            3
+        );
+    }
+
+    /// The `SPLIT` recipe separates the seam's default, hovered and pressed
+    /// looks by **colour alone**, and `ColorLevel::Mono` erases colour, so
+    /// the component owes the symbol and the modifier (§11.4's `PRESSED`
+    /// row, same mechanism as the mono bracket). Compares the `(symbol,
+    /// modifier)` multiset of the seam cells, colour excluded — conformance
+    /// case 9's own comparison, run here so the property is owned by the
+    /// component rather than only asserted about it.
+    #[test]
+    fn the_seam_distinguishes_focus_and_press_without_colour() {
+        let theme = Theme::junie().downgrade(ColorLevel::Mono);
+        let seam_cells = |forced: StateFlags| -> BTreeMap<(String, u16), usize> {
+            let mut rt = Runtime::new(Stub::default(), theme.clone());
+            let mut buf = Buffer::empty(SCREEN);
+            let st = SplitPaneState::default();
+            let sp = SplitPane::new(ID, SplitAxis::Horizontal)
+                .resizable(true)
+                .state_override(forced);
+            let seam = sp.seam(&st, AREA);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                sp.draw(ui, AREA, &st);
+            });
+            let mut out = BTreeMap::new();
+            for p in seam.positions() {
+                if let Some(c) = buf.cell(Position::new(p.x, p.y)) {
+                    *out.entry((c.symbol().to_owned(), c.modifier.bits()))
+                        .or_insert(0) += 1;
+                }
+            }
+            out
+        };
+        let base = seam_cells(StateFlags::empty());
+        let focused = seam_cells(StateFlags::FOCUSED);
+        let pressed = seam_cells(StateFlags::PRESSED);
+        assert!(!base.is_empty(), "the seam painted nothing");
+        assert_ne!(base, focused, "focused is indistinguishable from default");
+        assert_ne!(base, pressed, "pressed is indistinguishable from default");
+        assert_ne!(
+            focused, pressed,
+            "pressed is indistinguishable from focused"
+        );
+    }
+
+    /// The minima are enforced once, in [`SplitModel`], and the component
+    /// inherits the documented rule: when both minima cannot fit, the first
+    /// pane wins on **both** axes. A caller relies on this for
+    /// narrow-collapse, so it is asserted through the component's own API and
+    /// not only through the layout primitive.
+    #[test]
+    fn the_first_pane_wins_when_the_minima_do_not_fit() {
+        for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+            let sp = SplitPane::new(ID, axis).min_first(30).min_second(30);
+            let st = SplitPaneState::default();
+            let (a, b) = sp.panes(&st, AREA);
+            assert_eq!(a, AREA, "{axis:?}: the first pane did not take the area");
+            assert!(b.is_empty(), "{axis:?}: the second pane survived");
+            assert!(sp.seam(&st, AREA).is_empty(), "{axis:?}: a seam survived");
+        }
+    }
+
+    /// A forced rendering (A11) registers nothing, so a reference split on a
+    /// showcase page is not a live drag target.
+    #[test]
+    fn a_forced_split_registers_nothing() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = SplitPaneState::default();
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            SplitPane::new(ID, SplitAxis::Horizontal)
+                .resizable(true)
+                .state_override(StateFlags::FOCUSED)
+                .draw(ui, a, &st);
+        });
+        assert!(rt.area_of(ID).is_none());
+        assert!(!rt.ring().is_registered(ID));
+    }
+
+    /// §33's Invariant P: every declared part is one a drawn split actually
+    /// resolves, proven by the property (a per-part patch changes the painted
+    /// cells) rather than by reading the const back.
+    #[test]
+    fn every_declared_part_is_one_a_drawn_split_styles() {
+        let st = SplitPaneState::default();
+        let render = |patched: Option<Part>| {
+            let ps: [(Part, StylePatch); 1] = [(
+                patched.unwrap_or(Part::SEAM),
+                StylePatch::new().set_fg(Role::Warning).set_bg(Role::Danger),
+            )];
+            let mut rt = Runtime::new(Stub::default(), Theme::junie());
+            let mut buf = Buffer::empty(SCREEN);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                let mut sp = SplitPane::new(ID, SplitAxis::Horizontal).resizable(true);
+                if patched.is_some() {
+                    sp = sp.patch_part(&ps);
+                }
+                sp.draw(ui, AREA, &st);
+            });
+            buf
+        };
+        let plain = render(None);
+        for part in SplitPane::PARTS {
+            assert_ne!(
+                render(Some(*part)),
+                plain,
+                "SplitPane declares {part:?} and paints nothing with it"
+            );
+        }
+    }
+
+    /// §45's Invariant R: `## Overrides` names `Part::SEAM` and nothing else,
+    /// so a slot on the seam must replace the strip and a slot on anything
+    /// else must be inert.
+    #[test]
+    fn the_slot_addressable_parts_are_exactly_the_documented_ones() {
+        let st = SplitPaneState::default();
+        let marker = |ui: &mut Ui<'_>, r: Rect| {
+            let s = ui.surface_style();
+            ui.paint_str(r, "ZZZZ", s);
+        };
+        let render = |slot: Option<Part>| {
+            let mut rt = Runtime::new(Stub::default(), Theme::junie());
+            let mut buf = Buffer::empty(SCREEN);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                let mut sp = SplitPane::new(ID, SplitAxis::Horizontal).resizable(true);
+                if let Some(part) = slot {
+                    sp = sp.slot(part, &marker);
+                }
+                sp.draw(ui, AREA, &st);
+            });
+            buf
+        };
+        let plain = render(None);
+        assert_ne!(
+            render(Some(Part::SEAM)),
+            plain,
+            "`## Overrides` grants a slot on Part::SEAM and it is dropped"
+        );
+        for part in [Part::CONTAINER, Part::LABEL] {
+            assert_eq!(
+                render(Some(part)),
+                plain,
+                "a slot on {part:?} changes cells, and `## Overrides` says it does not"
+            );
+        }
     }
 }
