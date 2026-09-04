@@ -247,6 +247,28 @@ fn field_like(m: &mut PartMap<PartRecipe>) {
     );
 }
 
+/// Code editors fill a surface of their own. Keep that surface visibly
+/// disabled in truecolor too; the generic mono `TEXT` fallback is not enough
+/// because syntax spans intentionally replace the text foreground.
+fn code_like(m: &mut PartMap<PartRecipe>) {
+    field_like(m);
+    part(m, Part::CONTAINER, p().set_bg(Role::CurrentSurface)).when(
+        StateFlags::DISABLED,
+        p().set_fg(Role::DisabledFg).set_bg(Role::DisabledBg),
+    );
+}
+
+/// Wizard labels and markers are the only stateful parts of this compact
+/// stepper. A disabled step must remain visibly disabled in truecolor.
+fn wizard(m: &mut PartMap<PartRecipe>) {
+    container_like(m);
+    part(m, Part::LABEL, p()).when(
+        StateFlags::DISABLED,
+        p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
+    );
+    part(m, Part::MARKER, p()).when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+}
+
 fn container_like(m: &mut PartMap<PartRecipe>) {
     part(
         m,
@@ -341,10 +363,19 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD),
         );
-    part(m, Part::TITLE, p()).when(
-        StateFlags::PRESSED,
-        p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
-    );
+    part(m, Part::TITLE, p())
+        .when(
+            StateFlags::PRESSED,
+            p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::SELECTED,
+            p().set_glyph(GlyphRole::Chosen).add(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::DISABLED,
+            p().set_fg(Role::DisabledFg).add(Modifier::DIM),
+        );
     part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
     part(
         r.variant_mut(Variant::DANGER),
@@ -574,10 +605,16 @@ fn grid(m: &mut PartMap<PartRecipe>) {
 
 fn picker(m: &mut PartMap<PartRecipe>) {
     row_like(m);
-    part(m, Part::LABEL, p()).when(
-        StateFlags::ACTIVE | StateFlags::FOCUSED,
-        p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
-    );
+    part(m, Part::LABEL, p())
+        .when(
+            StateFlags::ACTIVE | StateFlags::FOCUSED,
+            p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
+        )
+        .when(
+            StateFlags::SELECTED,
+            p().set_fg(Role::Accent)
+                .add(Modifier::BOLD | Modifier::UNDERLINED),
+        );
 }
 
 fn button(r: &mut Recipe) {
@@ -612,12 +649,14 @@ pub(crate) fn default_recipes() -> Recipes {
         match f {
             Family::BUTTON => button(r),
             Family::MENU => menu(r),
-            Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::CODE | Family::SELECT => {
+            Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::SELECT => {
                 field_like(&mut r.parts);
             }
-            Family::PANEL | Family::DIALOG | Family::OVERLAY | Family::FORM | Family::WIZARD => {
+            Family::CODE => code_like(&mut r.parts),
+            Family::PANEL | Family::DIALOG | Family::OVERLAY | Family::FORM => {
                 container_like(&mut r.parts);
             }
+            Family::WIZARD => wizard(&mut r.parts),
             Family::HELP => help(r),
             Family::TABS => tabs(&mut r.parts),
             Family::SCROLLBAR => scrollbar(&mut r.parts),
