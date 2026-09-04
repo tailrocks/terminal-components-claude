@@ -630,6 +630,15 @@ impl<'a> StatusBar<'a> {
                         r = Response::action(StatusAction::Chose(k));
                     }
                 }
+                // Per-item hover styling is read back from
+                // `FrameRead::hovered_part`, and the runtime repaints exactly
+                // when that hovered `(Id, PartRef)` changes (§3.3 step 3).
+                // Answering `changed()` to a `Move` repainted the whole strip
+                // on every pointer motion across one item, with no hover
+                // transition to show for it.
+                Intent::Pointer {
+                    phase: Phase::Move, ..
+                } => {}
                 Intent::Pointer { .. } if r.action_ref().is_none() => r = Response::changed(),
                 _ => {}
             }
@@ -933,6 +942,7 @@ mod tests {
 
     use super::*;
     use crate::event::MouseKind;
+    use crate::response::Invalidate;
     use crate::runtime::stub::{Stub, mouse};
     use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
@@ -1071,6 +1081,66 @@ mod tests {
         let _ = runtime.handle(mouse(MouseKind::Up, x, item.y));
 
         assert_eq!(runtime.app().action, Some(StatusAction::Chose(CLICK_KEY)));
+    }
+
+    const HOVER_ID: Id = Id::root("status.hover");
+    const FIRST: ItemKey = ItemKey::num(1);
+    const SECOND: ItemKey = ItemKey::num(2);
+    const HOVER_ITEMS: [StatusItem<'static>; 2] = [
+        StatusItem::new("alpha").key(FIRST),
+        StatusItem::new("bravo").key(SECOND),
+    ];
+    const HOVER_ROW: Rect = Rect::new(0, 0, 40, 1);
+
+    struct HoverApp;
+
+    impl App for HoverApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            StatusBar::new(HOVER_ID)
+                .left(&HOVER_ITEMS)
+                .update(cx)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            StatusBar::new(HOVER_ID)
+                .left(&HOVER_ITEMS)
+                .draw(ui, HOVER_ROW);
+        }
+    }
+
+    /// S4: the strip paints per-item hover from `FrameRead::hovered_part`,
+    /// and the runtime repaints exactly when that hovered `(Id, PartRef)`
+    /// changes. A `Move` inside one item has no transition to show, so it
+    /// must not repaint; crossing to the next item must.
+    #[test]
+    fn a_pointer_move_without_a_hover_transition_does_not_repaint() {
+        let mut runtime = Runtime::new(HoverApp, Theme::junie());
+        let mut buffer = Buffer::empty(HOVER_ROW);
+        runtime.draw_buffer(HOVER_ROW, &mut buffer);
+        let area = |runtime: &Runtime<HoverApp>, k: ItemKey| {
+            runtime
+                .area_of_part(HOVER_ID, PartRef::item(Part::LABEL, k))
+                .unwrap_or(Rect::ZERO)
+        };
+        let first = area(&runtime, FIRST);
+        let second = area(&runtime, SECOND);
+        assert!(first.width >= 2 && !second.is_empty());
+
+        let entered = runtime.handle(mouse(MouseKind::Move, first.x, first.y));
+        runtime.draw_buffer(HOVER_ROW, &mut buffer);
+        let stayed = runtime.handle(mouse(MouseKind::Move, first.x.saturating_add(1), first.y));
+        runtime.draw_buffer(HOVER_ROW, &mut buffer);
+        let crossed = runtime.handle(mouse(MouseKind::Move, second.x, second.y));
+        runtime.draw_buffer(HOVER_ROW, &mut buffer);
+
+        assert_eq!(entered.invalidate(), Invalidate::Paint);
+        assert_eq!(
+            stayed.invalidate(),
+            Invalidate::None,
+            "moving inside one item repainted the whole strip"
+        );
+        assert_eq!(crossed.invalidate(), Invalidate::Paint);
     }
 
     /// The painted row of `buf`, one `char` per column.

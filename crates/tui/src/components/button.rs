@@ -44,6 +44,16 @@ const BINDINGS: &[Binding<ButtonCmd>] = &[
     },
 ];
 
+/// The `.autofocus()` one-shot, held in the runtime-owned derived cache.
+///
+/// Nothing semantic lives here (§5 R8): losing the entry costs one repeated
+/// focus request when the instance reappears after a whole frame away, which
+/// is the same thing a freshly built instance does.
+#[derive(Default)]
+struct Autofocus {
+    spent: bool,
+}
+
 /// A one-row push button: ` label ` with a focus gutter, no box.
 ///
 /// ## Construction
@@ -77,8 +87,16 @@ const BINDINGS: &[Binding<ButtonCmd>] = &[
 ///
 /// ## Focus
 /// `Focusability::Focusable` (`Disabled` when disabled; `ClickOnly` never).
-/// Does not swallow typing. `.autofocus()` requests focus on the first
-/// `update` that runs before the button has ever been drawn.
+/// Does not swallow typing. `.autofocus()` requests focus on the **first**
+/// `update` of the instance and never again: the one-shot is held in the
+/// runtime-owned derived cache, so a button that stops drawing — scrolled
+/// out of view, or made inert by a modal opening over it — cannot request
+/// focus a second time and take it back from the layer above. A button that
+/// is disabled on that first `update` spends the one-shot without
+/// requesting anything: `autofocus` is evaluated when the instance appears,
+/// not re-armed when `.disabled(false)` returns later. Should the instance
+/// leave the tree for a whole frame, its cache entry is dropped and the
+/// one-shot arms again with the new instance.
 ///
 /// ## Keyboard
 /// Every state: `Enter` → `Activate`, `Space` → `Activate` (hidden hint).
@@ -192,7 +210,9 @@ impl<'a> Button<'a> {
         self
     }
 
-    /// Request focus on the first `update` before the button has been drawn.
+    /// Request focus once, on this instance's first `update`.
+    ///
+    /// A disabled button spends the one-shot without requesting focus.
     #[must_use]
     pub const fn autofocus(mut self) -> Self {
         self.autofocus = true;
@@ -258,9 +278,7 @@ impl<'a> Button<'a> {
 
     /// The update phase.
     pub fn update(&self, cx: &mut Cx<'_>) -> Response<Activated> {
-        if self.autofocus && cx.area(self.id).is_none() {
-            cx.focus(self.id);
-        }
+        self.autofocus_once(cx);
         let mut r: Response<Activated> = Response::ignored();
         let can = self.can_activate();
         for it in cx.intents(self.id) {
@@ -274,11 +292,40 @@ impl<'a> Button<'a> {
                     phase: Phase::Click | Phase::DoubleClick,
                     ..
                 } if can => r = Response::action(Activated),
+                // A `Move` is hover bookkeeping the runtime already owns: it
+                // repaints exactly on a hover transition (§3.3 step 3), so a
+                // component that answered `changed()` here repainted on every
+                // pointer motion inside its own area for no visual change.
+                Intent::Pointer {
+                    phase: Phase::Move, ..
+                } => {}
                 Intent::Pointer { .. } if can && !r.activated() => r = Response::changed(),
                 _ => {}
             }
         }
         r.for_id(self.id)
+    }
+
+    /// The `.autofocus()` one-shot.
+    ///
+    /// The latch lives in the runtime-owned derived cache, which is keyed by
+    /// this button's id and dropped only when the instance misses a whole
+    /// frame. `cx.area(self.id).is_none()` was the previous test and is not
+    /// a first-update test at all: it is true again on every frame the
+    /// button does not draw, so a button that a modal made inert re-requested
+    /// focus every frame and pulled it out of the layer above.
+    fn autofocus_once(&self, cx: &mut Cx<'_>) {
+        if !self.autofocus {
+            return;
+        }
+        let latch = cx.cache::<Autofocus>(self.id);
+        if latch.spent {
+            return;
+        }
+        latch.spent = true;
+        if !self.disabled {
+            cx.focus(self.id);
+        }
     }
 
     pub(crate) fn update_in_form(
@@ -494,8 +541,10 @@ mod tests {
     use ratatui_core::style::Modifier;
 
     use super::*;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
+    use crate::event::{Input, MouseKind};
+    use crate::response::Invalidate;
+    use crate::runtime::stub::{Stub, key, mouse};
+    use crate::runtime::{App, Runtime};
     use crate::theme::{ColorLevel, Theme};
 
     const BUTTON: Id = Id::root("button.tests");
@@ -606,5 +655,136 @@ mod tests {
                 .cell(Position::new(1, 0))
                 .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
         );
+    }
+
+    const OTHER: Id = Id::root("button.tests.other");
+    const SCREEN: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 20,
+        height: 4,
+    };
+
+    /// A page whose plain control is registered **first**, so the first
+    /// draw's focus reconciliation lands on `OTHER` and every later move to
+    /// `BUTTON` is the button's own doing.
+    #[derive(Default)]
+    struct AutofocusApp {
+        disabled: bool,
+    }
+
+    impl AutofocusApp {
+        /// The one constructor both phases use (§13.1 "props are built once").
+        fn button(&self) -> Button<'static> {
+            Button::new(BUTTON, "Go")
+                .disabled(self.disabled)
+                .autofocus()
+        }
+    }
+
+    impl App for AutofocusApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.button().update(cx).erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(OTHER, Rect::new(0, 2, 8, 1), Focusability::Focusable);
+            self.button().draw(ui, AREA);
+        }
+    }
+
+    /// S1: `.autofocus()` is a one-shot. The old test — "the button has no
+    /// area yet" — is true again on **every** frame the button does not
+    /// draw, so the request came back and took focus off whatever the user
+    /// had moved to.
+    #[test]
+    fn autofocus_fires_once_and_never_takes_focus_back() {
+        let mut runtime = Runtime::new(AutofocusApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        assert_eq!(runtime.focus(), Some(OTHER));
+
+        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        assert_eq!(runtime.focus(), Some(BUTTON), "autofocus must fire once");
+
+        let _ = runtime.handle(key(KeyCode::Tab));
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        assert_eq!(runtime.focus(), Some(OTHER));
+
+        for _ in 0..3 {
+            let _ = runtime.handle(Input::Tick);
+            runtime.draw_buffer(SCREEN, &mut buffer);
+        }
+        assert_eq!(
+            runtime.focus(),
+            Some(OTHER),
+            "a spent autofocus must never request focus again"
+        );
+    }
+
+    /// S1: a disabled button is in the ring and unreachable, so its
+    /// `.autofocus()` spends its one-shot without asking for anything — and
+    /// the runtime refuses the target anyway.
+    #[test]
+    fn a_disabled_autofocus_button_never_takes_focus() {
+        let mut runtime = Runtime::new(AutofocusApp { disabled: true }, Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        assert_eq!(runtime.focus(), Some(OTHER));
+        assert!(runtime.ring().is_registered(BUTTON));
+        assert!(!runtime.ring().contains(BUTTON));
+
+        for _ in 0..3 {
+            let _ = runtime.handle(Input::Tick);
+            runtime.draw_buffer(SCREEN, &mut buffer);
+        }
+
+        assert_eq!(
+            runtime.focus(),
+            Some(OTHER),
+            "a disabled button must not be focused by autofocus"
+        );
+    }
+
+    struct HoverApp;
+
+    impl App for HoverApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            Button::new(BUTTON, "Go").update(cx).erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            Button::new(BUTTON, "Go").draw(ui, AREA);
+        }
+    }
+
+    /// S4: hover is runtime state and the runtime repaints exactly on a
+    /// hover transition. A `Move` inside the same part must therefore cost
+    /// no repaint, while entering, leaving and pressing still do.
+    #[test]
+    fn a_pointer_move_without_a_hover_transition_does_not_repaint() {
+        let mut runtime = Runtime::new(HoverApp, Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+
+        let entered = runtime.handle(mouse(MouseKind::Move, 1, 0));
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let stayed = runtime.handle(mouse(MouseKind::Move, 2, 0));
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        assert_eq!(runtime.hover(), Some(BUTTON));
+        let pressed = runtime.handle(mouse(MouseKind::Down, 2, 0));
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let left = runtime.handle(mouse(MouseKind::Up, 2, 0));
+        runtime.draw_buffer(SCREEN, &mut buffer);
+
+        assert_eq!(entered.invalidate(), Invalidate::Paint);
+        assert_eq!(
+            stayed.invalidate(),
+            Invalidate::None,
+            "moving inside one part repainted with nothing to show"
+        );
+        assert_eq!(pressed.invalidate(), Invalidate::Paint);
+        assert_eq!(left.invalidate(), Invalidate::Paint);
     }
 }

@@ -271,7 +271,53 @@ impl<A: App> Runtime<A> {
         }
     }
 
+    /// Whether `to` may be staged as a focus target.
+    ///
+    /// Every producer of a transition — `Tab` traversal, a press, a layer
+    /// restore, `Cx::focus` and `LayerSpec::initial_focus` — funnels through
+    /// [`Self::stage_focus`], so this is the one place a target is judged.
+    /// A target is refused only when the last frame *proves* it cannot hold
+    /// focus:
+    ///
+    /// * the ring holds it as `Disabled`, so it is registered and never
+    ///   reachable;
+    /// * the ring holds it outside the armed trap, which is what a trap
+    ///   means;
+    /// * the ring holds it on a layer the live stack has since made inert —
+    ///   the frame in which a modal opens over a control that is still in
+    ///   last frame's ring;
+    /// * it registered a region last frame but took no ring entry at all,
+    ///   which is `Focusability::ClickOnly` and a decoration-only owner.
+    ///
+    /// An id the last frame never saw is **unknown**, not proven bad, and is
+    /// admitted. A layer's own controls are absent from the ring until they
+    /// first draw, so `LayerSpec::initial_focus` names an unknown id by
+    /// construction, and so does the §21 item 15 restore to an opener a
+    /// modal had made inert. Step 14 reconciliation settles those against
+    /// the ring the next frame actually produces.
+    ///
+    /// A refusal is silent: `Diagnostic` has no variant for a rejected focus
+    /// target and adding one is a §17.0 A9 amendment, not an implementation
+    /// choice.
+    fn focus_target_admissible(&self, to: Id) -> bool {
+        match self.last.ring.entry(to) {
+            Some(e) => {
+                !e.disabled
+                    && self
+                        .last
+                        .ring
+                        .active_trap()
+                        .is_none_or(|t| self.last.ring.within(e.scope, t))
+                    && e.layer >= self.services.layers.inert_floor()
+            }
+            None => !self.last.registry.has_owner(to),
+        }
+    }
+
     fn stage_focus(&mut self, to: Option<Id>, via: FocusVia) {
+        if to.is_some_and(|id| !self.focus_target_admissible(id)) {
+            return;
+        }
         self.staged_focus = Some((to, via));
     }
 
@@ -2308,5 +2354,92 @@ mod tests {
         assert!(rt.state_of(B).contains(StateFlags::DISABLED));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
         assert_eq!(rt.focus(), Some(C));
+    }
+
+    /// S1: a `Cx::focus` naming a `Disabled` entry is refused outright — not
+    /// applied for one frame and then undone by step 14 reconciliation,
+    /// which would deliver `FocusIn` to a control that can never be focused.
+    #[test]
+    fn a_programmatic_focus_request_for_a_disabled_control_is_refused() {
+        let mut s = three();
+        s.page[1].focus = Focusability::Disabled;
+        s.focus_request = Some(B);
+        let (mut rt, mut buf) = runtime(s);
+        assert_eq!(rt.focus(), Some(A));
+
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+
+        assert_eq!(rt.focus(), Some(A), "focus must not move to a disabled id");
+        assert!(!rt.app().saw(B, "FocusIn"), "{:?}", rt.app().log);
+        assert!(!rt.app().saw(A, "FocusOut"), "{:?}", rt.app().log);
+    }
+
+    /// S1: `ClickOnly` is "a hit target, never in the ring". Such an id is
+    /// registered in the *registry* but has no ring entry, and that pair is
+    /// exactly the proof a focus request naming it is wrong.
+    #[test]
+    fn a_programmatic_focus_request_for_a_click_only_control_is_refused() {
+        let mut s = three();
+        s.page[1].focus = Focusability::ClickOnly;
+        s.focus_request = Some(B);
+        let (mut rt, mut buf) = runtime(s);
+        assert!(!rt.ring().is_registered(B));
+        assert!(rt.registry().has_owner(B));
+
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+
+        assert_eq!(rt.focus(), Some(A));
+        assert!(!rt.app().saw(B, "FocusIn"), "{:?}", rt.app().log);
+    }
+
+    /// S1: opening a modal makes the page inert in the very same pass, while
+    /// the page controls are still in *last* frame's ring. A focus request
+    /// naming one of them is refused, so nothing behind the modal can take
+    /// focus out of it.
+    #[test]
+    fn a_focus_request_for_a_control_the_open_modal_made_inert_is_refused() {
+        const DLG: Id = Id::root("runtime.inert-dialog");
+        const OK: Id = Id::root("runtime.inert-dialog.ok");
+        let mut s = three();
+        s.layers = vec![(DLG, vec![Control::new(OK, Rect::new(2, 2, 6, 1))])];
+        let (mut rt, mut buf) = runtime(s);
+        assert_eq!(rt.focus(), Some(A));
+
+        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
+        rt.app_mut().focus_request = Some(B);
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
+
+        assert!(rt.open_spec(DLG).is_some_and(|s| s.inert_below));
+        assert_ne!(rt.focus(), Some(B), "an inert page control took focus");
+        assert!(!rt.app().saw(B, "FocusIn"), "{:?}", rt.app().log);
+        assert_eq!(
+            rt.focus(),
+            Some(OK),
+            "step 14 reconciliation puts focus inside the modal instead"
+        );
+    }
+
+    /// S1's counterpart: an id the last frame never saw is *unknown*, not
+    /// proven unreachable, and must still be admitted — a layer's own
+    /// controls are absent from the ring until they first draw, so
+    /// `LayerSpec::initial_focus` names an unknown id by construction.
+    #[test]
+    fn initial_focus_into_a_layer_that_has_never_drawn_is_still_admitted() {
+        const DLG: Id = Id::root("runtime.initial-focus-dialog");
+        const OK: Id = Id::root("runtime.initial-focus-dialog.ok");
+        let mut s = three();
+        s.layers = vec![(DLG, vec![Control::new(OK, Rect::new(2, 2, 6, 1))])];
+        let (mut rt, _buf) = runtime(s);
+        assert!(!rt.ring().is_registered(OK));
+        assert!(!rt.registry().has_owner(OK));
+
+        rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).initial_focus(OK)));
+        let _ = rt.handle(key(KeyCode::Char('x')));
+
+        assert_eq!(
+            rt.focus(),
+            Some(OK),
+            "the named target holds focus before the layer has ever drawn"
+        );
     }
 }
