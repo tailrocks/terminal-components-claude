@@ -412,12 +412,12 @@ mod tests {
 
     #[test]
     fn credential_error_holds_until_retry() {
-    let mut r = LaunchRun::new(
-        LaunchPlan::CredentialsLocked,
-        Agent::Codex,
-        "c",
-        RunId::new(4),
-    );
+        let mut r = LaunchRun::new(
+            LaunchPlan::CredentialsLocked,
+            Agent::Codex,
+            "c",
+            RunId::new(4),
+        );
         let mut held = false;
         for _ in 0..200 {
             let ev = r.advance();

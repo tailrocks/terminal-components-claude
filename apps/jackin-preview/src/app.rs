@@ -146,7 +146,11 @@ impl App {
             .map(|account| AccountOption {
                 key: account.id.clone(),
                 label: account.title(),
-                detail: format!("{} · {}", account.status_word(), account.source.safe_detail()),
+                detail: format!(
+                    "{} · {}",
+                    account.status_word(),
+                    account.source.safe_detail()
+                ),
             })
             .collect::<Vec<_>>();
         let selected_role = roles
@@ -292,7 +296,11 @@ impl App {
             crate::RunId::new(0x9c41_e2f0),
         ));
         self.route = Route::Launch;
-        self.status = Some(format!("Queued {} · {}", self.selected_role(), plan_label(plan)));
+        self.status = Some(format!(
+            "Queued {} · {}",
+            self.selected_role(),
+            plan_label(plan)
+        ));
     }
 
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -319,9 +327,10 @@ impl App {
             let action = response.action_ref().copied();
             let mut result = response.erase();
             if let Some(PickerAction::Chosen(key)) = action
-                && let Some(account) = self.account_options.iter().find(|account| {
-                    ItemKey::text(&account.key) == key
-                })
+                && let Some(account) = self
+                    .account_options
+                    .iter()
+                    .find(|account| ItemKey::text(&account.key) == key)
             {
                 self.status = Some(format!("Selected reference · {}", account.detail));
                 cx.close_layer(ACCOUNT_PICKER, Some(ActionKey::CONFIRM));
@@ -371,7 +380,9 @@ impl App {
             (CAPSULE, "Capsule", Route::Capsule),
         ];
         for (id, label, route) in nav {
-            let button = Button::new(id, label).checked(self.route == route).update(cx);
+            let button = Button::new(id, label)
+                .checked(self.route == route)
+                .update(cx);
             let chosen = button.activated();
             result |= button.erase();
             if chosen {
@@ -383,7 +394,9 @@ impl App {
     }
 
     fn update_intro(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let button = Button::new(ENTER, "Enter Construct").variant(Variant::PRIMARY).update(cx);
+        let button = Button::new(ENTER, "Enter Construct")
+            .variant(Variant::PRIMARY)
+            .update(cx);
         let chosen = button.activated();
         let result = button.erase();
         if chosen {
@@ -398,7 +411,10 @@ impl App {
         let list = List::new(MANAGER_LIST).update(cx, &mut self.manager_state, &rows);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
-        if matches!(list_action, Some(ListAction::Activated(_) | ListAction::Chose(_))) {
+        if matches!(
+            list_action,
+            Some(ListAction::Activated(_) | ListAction::Chose(_))
+        ) {
             if self.world.running_count() == 1 {
                 self.route = Route::Capsule;
             }
@@ -458,7 +474,9 @@ impl App {
             return result;
         }
         if failed {
-            let retry = Button::new(LAUNCH_RETRY, "Retry").variant(Variant::PRIMARY).update(cx);
+            let retry = Button::new(LAUNCH_RETRY, "Retry")
+                .variant(Variant::PRIMARY)
+                .update(cx);
             let retry_chosen = retry.activated();
             result |= retry.erase();
             if retry_chosen {
@@ -475,7 +493,11 @@ impl App {
                 }
             }
         }
-        if self.launch.as_ref().is_some_and(|launch| !launch.is_terminal()) {
+        if self
+            .launch
+            .as_ref()
+            .is_some_and(|launch| !launch.is_terminal())
+        {
             cx.request_repaint_after(Duration::from_millis(TICK_MS));
         }
         result
@@ -517,7 +539,9 @@ impl App {
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let tabs = capsule_tabs();
-        Tabs::new(CAPSULE_TABS).update(cx, &mut self.tabs_state, &tabs).erase()
+        Tabs::new(CAPSULE_TABS)
+            .update(cx, &mut self.tabs_state, &tabs)
+            .erase()
     }
 
     fn update_route(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -734,7 +758,12 @@ impl App {
                 break;
             }
             let state = launch.states.get(index).copied().unwrap_or_default();
-            let line = format!("{:>2}. {:<16} {}", index.saturating_add(1), stage.label(), state.label());
+            let line = format!(
+                "{:>2}. {:<16} {}",
+                index.saturating_add(1),
+                stage.label(),
+                state.label()
+            );
             ui.paint_str(Rect::new(area.x, y, area.width, 1), &line, style);
             y = y.saturating_add(1);
         }
@@ -752,10 +781,15 @@ impl App {
         if launch.failure.is_some() {
             Button::new(LAUNCH_RETRY, "Retry")
                 .variant(Variant::PRIMARY)
-                .draw(ui, Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1));
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1),
+                );
         } else {
-            Button::new(LAUNCH_CANCEL, "Cancel")
-                .draw(ui, Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1));
+            Button::new(LAUNCH_CANCEL, "Cancel").draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 12, 1),
+            );
         }
     }
 
@@ -781,7 +815,11 @@ impl App {
                                 "{} · {} · {}",
                                 pane.label,
                                 pane.state.label(),
-                                if pane.focused { "focused" } else { "idle focus" }
+                                if pane.focused {
+                                    "focused"
+                                } else {
+                                    "idle focus"
+                                }
                             )
                         })
                         .collect::<Vec<_>>(),
@@ -878,7 +916,11 @@ impl TuiApp for App {
                 if let Some(status) = &self.status {
                     ui.paint_str(footer, status, style);
                 } else {
-                    ui.paint_str(footer, "q quit · m manager · a accounts · u usage · s settings", style);
+                    ui.paint_str(
+                        footer,
+                        "q quit · m manager · a accounts · u usage · s settings",
+                        style,
+                    );
                 }
             });
         self.draw_layers(ui);
@@ -913,11 +955,27 @@ impl TuiApp for App {
 fn app_keymap() -> KeyMap {
     KeyMap::new()
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('q')), CMD_QUIT)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('m')), CMD_MANAGER)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('a')), CMD_ACCOUNTS)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('m')),
+            CMD_MANAGER,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('a')),
+            CMD_ACCOUNTS,
+        )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), CMD_USAGE)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), CMD_SETTINGS)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('c')), CMD_CAPSULE)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('s')),
+            CMD_SETTINGS,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('c')),
+            CMD_CAPSULE,
+        )
 }
 
 fn plan_label(plan: LaunchPlan) -> &'static str {
@@ -936,7 +994,9 @@ fn capsule_tabs() -> Vec<String> {
 fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
     let style = ui.surface_style();
     for (index, line) in lines.iter().enumerate() {
-        let Ok(offset) = u16::try_from(index) else { break };
+        let Ok(offset) = u16::try_from(index) else {
+            break;
+        };
         let y = area.y.saturating_add(offset);
         if y >= area.bottom() {
             break;
@@ -954,7 +1014,10 @@ mod tests {
         let app = App::default();
         assert_eq!(app.route(), Route::Manager);
         assert_eq!(app.world.running_count(), 1);
-        assert_eq!(app.world.instances[0].run_id, crate::RunId::new(0x9c41_e2f0));
+        assert_eq!(
+            app.world.instances[0].run_id,
+            crate::RunId::new(0x9c41_e2f0)
+        );
     }
 
     #[test]

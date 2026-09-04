@@ -115,9 +115,7 @@ impl World {
     pub fn instances_of(&self, workspace: Option<WorkspaceId>) -> Vec<&Instance> {
         self.instances
             .iter()
-            .filter(|instance| {
-                instance.workspace == workspace && !instance.status.hidden()
-            })
+            .filter(|instance| instance.workspace == workspace && !instance.status.hidden())
             .collect()
     }
 

@@ -138,9 +138,7 @@ pub fn resolve_account(
 
 fn ready_for(id: &str, provider: Provider, registry: &AccountRegistry) -> bool {
     registry.get(id).is_some_and(|account| {
-        account.provider == provider
-            && account.enabled
-            && account.lifecycle == Lifecycle::Available
+        account.provider == provider && account.enabled && account.lifecycle == Lifecycle::Available
     })
 }
 
@@ -320,12 +318,7 @@ pub fn fixture_workspace() -> Workspace {
         EnvVar::host("TERM_PROGRAM", "TERM_PROGRAM"),
         EnvVar::op(
             "DEPLOY_TOKEN",
-            op_reference(
-                "v_eng01",
-                "Engineering",
-                "it_dep01",
-                "Prod · Deploy token",
-            ),
+            op_reference("v_eng01", "Engineering", "it_dep01", "Prod · Deploy token"),
         ),
     ];
     workspace.keep_awake = true;
