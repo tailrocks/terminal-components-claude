@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/tui", "crates/tui-testing", "apps/showcase", "xtask"]
+members = ["crates/tui", "crates/tui-testing", "xtask"]
 # The root package itself is automatically a member; `cargo build` never compiles xtask.
-default-members = [".", "crates/tui", "crates/tui-testing", "apps/showcase"]
+default-members = [".", "crates/tui", "crates/tui-testing"]
 
 [workspace.package]
 version = "0.1.0"
@@ -70,9 +70,15 @@ rust-version = "1.88"
 description = "Junie-inspired Ratatui design-system laboratory"
 license = "MIT"
 
+default-run = "showcase"
+
 [lib]
 name = "junie_tui"
 path = "src/lib.rs"
+
+[[bin]]
+name = "showcase"
+path = "src/bin/showcase/main.rs"
 
 [[bin]]
 name = "tablepro"

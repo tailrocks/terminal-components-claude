@@ -1,6 +1,5 @@
 //! Junie-inspired design system for Ratatui: tokens, interaction primitives
-//! and components. The legacy TablePro and Jackin previews remain in `src/bin`
-//! until their application slices move them to dedicated packages.
+//! and components. Applications (the showcase, TablePro) live in `src/bin`.
 
 pub mod core;
 pub mod runtime;
