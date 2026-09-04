@@ -7104,3 +7104,57 @@ That is the enabling condition for a red that is permanently explained away. Eac
 ### §40.5 The blocker for the pending bless <!-- amended by §40 -->
 
 §20.10 item 19's review column says the style half "is asserted instead by the 20-case conformance matrix **already registered for each of these components**". **`select` is one of the fourteen and is not registered.** For its 64 lines the style half is asserted by nobody, and item 19's own justification is false for that component. Either exclude `select` from the bless or amend item 19 to say so — as written it cites a review mechanism that cannot run, which is exactly what §36.2 rejected for item 1.
+
+## §41 Record — the eighth instance, and two real API gaps <!-- amended by §41 -->
+
+**Status: recorded.** A read-only audit swept §3–§28 for present-indicative assertions of executable artefacts, then swept the inverse direction for load-bearing things documented nowhere.
+
+### §41.1 The eighth instance — suite-level gates are hand-written call lists <!-- amended by §41 -->
+
+§16.2 asserts that `registry::declared_parts_are_the_parts_actually_styled` proves "the parts a component resolves at draw time **equal** `Self::PARTS`", and that `draw_registers_nothing_when_it_cannot_draw` covers the 0×0 case "**across the whole registry**".
+
+Neither iterates the registry. Both are **hand-written lists of `check::<XCase>()` / `degenerate::<XCase>()` calls** beside a macro that generates the other twenty cases from `registered_cases()`. Nothing cross-checks the two lists against it, so **a component can be registered, pass the coverage gate, and be absent from both suite-level cases with nothing firing.**
+
+**And the omission is already in use.** `SelectCase` is deliberately absent from the parts check, with a source comment saying `Select::draw` styles `Part::GUTTER` and `Part::PLACEHOLDER` while `Select::PARTS` declares neither. So §16.2's asserted property **is false today for `Select`**, and the mechanism that would say so has been told not to — by deleting one line and writing a prose reason no gate reads.
+
+A second weakness in the same check: it asserts `styled ⊆ PARTS ∪ extra` where §16.2 says **equal**. A part declared and never painted passes silently — which is exactly the example-12 `Part::CONTAINER` defect, and why that had to be found by hand.
+
+**Structural fix:** generate both suite-level cases from `conformance_suite!`, from the same list `registered_cases()` returns. A hand-written call list beside a macro-generated registry *is* the defect; there is no reason these two cases are hand-written when the other twenty are not.
+
+### §41.2 `all_examples_compile` pins nothing <!-- amended by §41 -->
+
+Its own doc comment says it "pins that all thirteen §17 example files exist and are named, so a deleted example is visible". The mechanism it delegates to scans for `#[path]`/`include!`, asserts the count is non-zero, and runs `cargo build --examples`. **There is no count, no name list, no §17 cross-reference. Four deleted examples are invisible.**
+
+That is the direct cause of three standing falsehoods: §16.5's "The 13 §17 examples compile", Appendix B.5's "The thirteen §17 examples live in `crates/tui/examples/`", and §17's stronger "Every file is complete — a `main` or a `#[test]`, **every `use` list exact**".
+
+**Nine of thirteen exist.** `02_custom_theme.rs`, `03_partial_theme.rs` and `04_family_recipe.rs` are absent and **their APIs are fully present** — they can be written today, and §0.2 names example 02 as **Scenario B's executable proof** *and* Appendix B.3 uses it as the justification for `ColorTokens` not being `#[non_exhaustive]`, a justification currently resting on a file that does not exist. `13_connection_form.rs` **cannot** be written: the `Form` vocabulary is not in the facade. That distinction — "nobody wrote it" versus "cannot be written" — is the one the count hid.
+
+### §41.3 Two examples do not match their own §17 blocks <!-- amended by §41 -->
+
+**Example 10 is not example 10.** Its own header says "**with `Picker` replaced by a `List` in a popover**". The §17 block uses `Picker`, `PickerAction`, `PickerState` and `Picker::measured_size` — none of which is in the facade, so **the §17 block cannot compile**, and §17's "compiles them verbatim" is false for it. The file admits the substitution; the document does not.
+
+**Example 12's block omits `Slot` from its `use` list** while matching on `Slot::Set`/`Inherit`/`Clear`, so it does not compile either.
+
+**And the block teaches a defect.** It uses `b.chord == k.chord()`; the real file uses `Binding::lookup`, with a comment and a regression test proving the `==` form **silently drops every shifted character chord**. `Binding::lookup` and `Chord::matches` are declared nowhere in §17.0. **The document is teaching downstream authors the buggy idiom, in the one example whose entire purpose is to be the Scenario G template.**
+
+### §41.4 Root cause of the signature drift — doc-check cannot see arity <!-- amended by §41 -->
+
+The resolver stores `(type_name, fn_name)` and **discards the signature**. So a declared signature in §17.0 can be wrong in every particular except the name and still pass. That is why `register_editor` is declared with two arguments where it takes four, and `styled_parts` is declared returning a five-tuple where it returns a two-tuple and the five-tuple lives in a different field entirely.
+
+§16.5 describes doc-check as resolving "against the library's **rustdoc-json**". It does not; it is a `syn` plus regex heuristic. The resolver is recorded as a deviation; **the arity blindness is not**, and it is the actual enabling condition.
+
+### §41.5 Two real API gaps — Scenario G is not reachable for a sizing overlay <!-- amended by §41 -->
+
+Appendix B.4 opens "Everything needed … **and nothing more**", so it is a closed list, and §16.5 leans on it. It has diverged from `author.rs` **in both directions**.
+
+**In B.4, missing from `author.rs`: `LayerSize` and `PartMetrics`.** Both were added to B.4 by §26 and never landed. §26 N1 makes "the component supplies the size" binding — `Dialog::layer`, `Picker::measured_size` and `Select::measured_size` all return `LayerSize` — and §26 N2 makes `Theme::metrics -> PartMetrics` the sizing path for `update`. **So a downstream author using only `author::*` cannot name the return type of the method §26 obliges them to write.** Both are present at the root facade and absent from the author facade.
+
+**In `author.rs`, missing from B.4:** `Action`/`ActionKey` (B.4 has no action line at all), `ScrollState` (no scroll line at all), `TextBuffer`/`Extend`/`Motion`, `Activated`, `OverlayRule`, `CollectionCore`, `binding_conflicts`, and — the one worth a second look — **`resolve_anchor` and `backdrop_area`**, which re-open the rect-computation surface §9.2 closes with a grep asserting that no overlay component computes a rect.
+
+Related: Appendix B.3 argues `text` stays private because "a `pub mod text` leaks `TextBuffer` … **none of which appears in B.4's list**". `TextBuffer` is re-exported at **both** the root and author facades. The argument is half wrong.
+
+### §41.6 A check that runs but is invisible to the way checks are run <!-- amended by §41 -->
+
+`inherit_forced_stays_crate_internal` is registered and runs under `xtask boundary`, but has **no `#[test]` wrapper** in `architecture.rs` — every other registered check does — and **no §16.5 row**. So it is invisible to `cargo test --workspace --test architecture`, which §16.5 and §16.1 both present as the way architecture checks run. Same omission shape as `bless-guard`, weaker instance because the check does at least execute.
+
+Its own doc comment states why it matters: if `inherit_forced` becomes public outside the `FieldControl` default, an application can force a component's state without writing `.state_override(`, **and the A11 boundary check becomes decorative.**
