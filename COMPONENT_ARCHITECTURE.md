@@ -4020,7 +4020,7 @@ Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**,
 
   **Start of Slice 5, one commit, no behaviour change:** delete the root package's `[lib]`, `src/`, `src/bin/*`, `default-run` and its `[[bin]]`s as the apps move to `apps/*`; then rename `tui-next` → `junie-tui` / `tui_next` → `junie_tui` by scripted `sed` over a closed, slice-owned file set (`crates/tui/**`, `crates/tui-testing/**`, `xtask/**`, `crates/tui/examples/**`, `crates/tui/tests/**`). Re-run the full Slice-4 gate. Apps' `use junie_tui::…` lines are then written **once**, in their own migration slice, where the diff belongs.
 
-  **Rejected staging** (review §7): renaming the root package to `junie-tui-legacy` inside one workspace — (1) doc-target collision: two crates with `[lib] name = "junie_tui"` both write `target/doc/junie_tui/`, fatal under `RUSTDOCFLAGS="-D warnings"`, and avoiding it by renaming the legacy lib rewrites every `use junie_tui::` in 55K lines of apps twice; (2) duplicate `showcase`/`tablepro`/`jackin-preview` bin names from Slice 5 make `cargo run --bin showcase` ambiguous and `target/debug/showcase` whichever package built last, silently corrupting `tools/capture.sh`; (3) `default-run` is a package key with no workspace equivalent, so `cargo run` at the root would resolve to the legacy showcase for Slices 3–7. Also rejected: keeping `junie-tui` on the new crate and renaming the root package's lib — the root binaries reference their own lib by its `[lib] name`, so that rename also rewrites all three apps twice.
+  **Rejected staging** (review §7): renaming the root package to `junie-tui-legacy` inside one workspace — (1) doc-target collision: two crates with `[lib] name = "junie_tui"` both write `target/doc/junie_tui/`, fatal under `RUSTDOCFLAGS="-D warnings"`, and ~~avoiding it by renaming the legacy lib rewrites every `use junie_tui::` in 55K lines of apps twice~~ — **struck by §47: that premise is false.** Slices 5–7 rewrite every one of those call sites as part of migration under *every* plan, so the throwaway rewrite is discarded by the very slices cited as its cost; the marginal cost is one scripted `sed`. **The rejection stands on reason (1) alone, which is structural.** Reasons (2) and (3) below are **contingent and do not discriminate** — they arise under *every* plan that adds `apps/X` while the root still declares `[[bin]] X`, and both are removed by §47's binding obligation: **a root `[[bin]] X` and any `default-run` naming it are dropped in the same commit that adds `apps/X`**; (2) duplicate `showcase`/`tablepro`/`jackin-preview` bin names from Slice 5 make `cargo run --bin showcase` ambiguous and `target/debug/showcase` whichever package built last, silently corrupting `tools/capture.sh`; (3) `default-run` is a package key with no workspace equivalent, so `cargo run` at the root would resolve to the legacy showcase for Slices 3–7. ~~Also rejected: keeping `junie-tui` on the new crate and renaming the root package's lib — … so that rename also rewrites all three apps twice.~~ — **struck by §47 for the same false premise.** The alternative is rejected instead on Appendix B.1(d): it front-loads a scripted rewrite of code **scheduled for deletion** into the same commit as the showcase migration and the crate rename, which is exactly the diff-classification cost B.1(d) already refuses.
 
   **Five recorded risks** (mirror them in `REFACTORING_STATE.md` so a resumed or compacted session does not "correct" the temporary name):
   1. The name `tui-next` is deliberate and temporary; the rename is a scheduled Slice-5 step, not a defect.
@@ -7438,3 +7438,72 @@ That is the same shape as §39 — one missing decision every builder made local
 Both sets assert the **negative** half as well, because a test that only proves the clickable path works would not catch a lockup that became unconditionally clickable. The `StatusBar` test rebuilds the row from the **painted buffer** and never calls an internal accessor — asserting against `survivors` or `group_columns` would have reproduced the very defect the gap named, one layer down.
 
 Seven deliberate breaks; every test seen red before being trusted. The right-align break failed exactly one test while the other five `status` tests stayed green — which is precisely the defect GAP-8 predicted.
+
+## §47 Adjudication — the rename is deferred past Slice 7 <!-- amended by §47 -->
+
+**Status: accepted. Unblocks Slice 5.** Change control at line 3 is engaged four times: it strikes two clauses of Appendix A's Slice 3 rejection, replaces Appendix A's Slice 5 row, replaces Appendix B.1's staging paragraph, and adds four checkable invariants.
+
+### §47.1 Verdict <!-- amended by §47 -->
+
+> `crates/tui` stays `tui-next`/`tui_next` through Slices 5, 6 and 7. The legacy root package stays exactly as it is, **losing one `[[bin]]` and its `src/bin/<app>/**` in the same commit that adds each `apps/<app>` package** — showcase at Slice 5, tablepro at 6, jackin-preview at 7. After Slice 7 the root package holds no binaries and no consumers, and **one commit between Slice 7 and Slice 8** deletes the root `src/`, `[package]`, `[lib]`, `[[bin]]`s and `default-run`, turning the root manifest virtual, and performs the rename by a single scripted pass.
+
+**Appendix A's Slice 5 row was written before anyone traced what the root package holds, and the row contains the evidence.** Its clause "**as the apps move to `apps/*`**" describes an *incremental* removal; Appendix B.1 calls the same thing "**one scripted commit** at the start of Slice 5". Those are two different plans and neither is executable.
+
+### §47.2 §21's rejection: one true reason, two false or contingent <!-- amended by §47 -->
+
+The "rewrites 55K lines **twice**" claim is **false** and is struck in place. Slices 5–7 rewrite every one of those call sites under *every* plan, so the second rewrite is a cost of the refactor, not of the alternative.
+
+Reasons **(2)** duplicate bin names and **(3)** stale `default-run` are **contingent, not discriminating**: they arise under *every* plan that adds `apps/X` while the root still declares `[[bin]] X`, **Option A included**. Recording them as reasons to reject one option, when they bind every option, is the second defect in that paragraph. Both are removed by one obligation, now binding for all plans: **a root `[[bin]] X` and any `default-run` naming it are dropped in the same commit that adds `apps/X`.**
+
+**The rejection survives on reason (1) alone**, which is structural and is the whole of §46.1. What actually decides A over B is Appendix B.1(d): B front-loads a scripted rewrite of **code scheduled for deletion** into the same commit as the showcase migration and the crate rename. A's marginal cost is one extra `sed` target in a commit already running `sed`, at a point where the legacy tree no longer exists.
+
+### §47.3 Four checkable invariants <!-- amended by §47 -->
+
+- **Invariant S — single ownership.** At *every* commit, exactly **one** lib target in the workspace is named `junie_tui`. Zero or two is §46.1's unresolvable state.
+- **Invariant S2 — the rename gate.** With `L` = count of legacy root sources and `A` = count of files still naming the temporary crate: the rename commit is the **unique** commit where `A` goes from `> 0` to `0`, and it is admissible **only if `L == 0` in that same tree**. **A commit with `L > 0 && A == 0` must never exist** — that is the two-`junie_tui` workspace.
+- **Invariant T — `apps/` is never a staging area.** For *every* commit in which `apps/` exists, the forbidden-pattern and todo checks exit 0 and the legacy allow-list is empty. **Not at slice end — at every commit.** This is what forbids `git mv src/bin/<app> apps/<app>`.
+- **Invariant U — the test accounting.** After each slice the legacy package reports exactly `N0 − S`, `N0 − S − T`, `N0 − S − T − J`, reaching **0 only at the rename commit**. Any other number is a regression **in either direction**. The full 247-way partition closes at **Slice 8, never at Slice 5**.
+
+### §47.4 A structural blind spot covering *every* §16.5 boundary check <!-- amended by §47 -->
+
+The three missing `apps/` guard tests were found by a person reading the document, and they could **only** have been found that way.
+
+`every_named_test_exists` scopes its wanted set to §16.1, §16.2's suite-level bullets, §16.4's application list and §16.6's table. **§16.5 is not scanned.** All three tests are named only in §16.5 and Appendix B, are absent from the deferral list, and **their absence can never fail any gate.**
+
+That is not three missing tests. It is a blind spot covering every §16.5 boundary check, and **six more are missing on identical terms**: `no_owns_or_locate_in_applications`, `no_generic_component_copies_in_applications`, `props_are_built_once`, `every_component_doc_has_the_standard_sections`, `showcase_covers_every_public_component`, `field_kind_has_no_type_parameters`.
+
+**Structural fix:** extend the wanted set with §16.5's table, and put every §16.5 name that does not yet exist into the deferral list with its owning slice — which can only shrink. Without it, the next missing gates will be found the same way these were.
+
+### §47.5 The three guards must exist *before* `apps/` and must fail closed <!-- amended by §47 -->
+
+**Before, not after.** The boundary they guard is the one §46.2 says cannot be violated even briefly, so **a check that arrives after the tree is a check that could not have prevented the thing it exists to prevent.** Concretely: the instant root and `apps/showcase` both declare `[[bin]] showcase`, `target/debug/showcase` is whichever built last and the capture harness silently captures the wrong program — §21's own reason (2), still live, now against Option A too.
+
+**And each must carry an expected set it asserts is *present*.** Written as "scan `apps/**` and find no violations", all three are green-and-empty today and stay green-and-empty if `apps/showcase` is never added — which is §37.1's recorded failure verbatim, where a check "returns `ok` at its first line and has asserted nothing for the whole refactor". So: the multiset of workspace bin target names must **equal** `{showcase, tablepro, jackin-preview}`; each expected app lib must **exist**, be unpublished and be absent from the library's closure; **a missing expected member is a failure, not a pass.**
+
+### §47.6 A move that the bless-guard refuses outright <!-- amended by §47 -->
+
+Appendix B.1 item 6 says `tests/showcase_baseline.txt` moves into `apps/` at Slice 5. **It cannot.** That file is classified frozen pre-refactor evidence; a rename puts its *source* path into git's touched set, and any touched frozen path is an **unconditional refusal** with the remedy "revert, do not classify" and **no ledger escape**. The guard's own comment believes rename detection handles it — it handles the digest half, not the frozen source.
+
+**The plan changes, not the guard.** The frozen file stays as the before-image; the Slice-5 baseline is a **new** file whose keys are first-generation additions under §20.10 item 19.
+
+Related document gap: the moved application benchmark rows have **nowhere legal to land**. Appendix B.2's `apps/*/tests/` lists must gain `perf_baseline.txt`, because the root perf baseline is frozen and any edit to it is refused.
+
+### §47.7 Ten CI steps break, and Appendix A names none of them <!-- amended by §47 -->
+
+Six `--bin` steps die with the root binaries, three per-app pairs across two jobs; the perf baseline diff step names only the two existing files and would leave the new per-app baselines unguarded; the header comment map describes the deleted steps; and the artefact globs reference logs that stop being produced, hidden by `|| true`. Three `-p tui-next` gate strings and two `xtask` constants change at the rename commit.
+
+### §47.8 Steps whose safety rests on a gate that does not exist <!-- amended by §47 -->
+
+Stated plainly, per the standard that no sequencing may rest on an absent gate:
+
+| Step | Gate | Exists |
+|---|---|---|
+| Never staging unmigrated code in `apps/` | forbidden-pattern + empty allow-list | **yes** — safe |
+| Preserving the three binary names across the split | `binary_names_are_preserved` | **no** — not safe yet |
+| `apps/showcase` reaches only the public facade | `applications_depend_only_on_the_library_facade` | **partly** — the dependency third exists; the path scan does not |
+| The app lib is unpublished and not depended on | `app_libs_are_not_published…` | **no** — not safe yet |
+| Any §16.5 check is actually present | §16.5 in the named-test scan | **no** — the absence is itself unreportable |
+| Moving the frozen showcase baseline | a guard tolerating a frozen rename | **no — the guard actively refuses it** |
+| The Slice 5 capture matrix | `xtask capture-matrix` | **no** — manual until it exists |
+
+Nothing in the accepted sequencing depends on a builder remembering anything: every obligation is either an existing gate, a gate this adjudication requires **before** `apps/` exists, or a number a builder can run.
