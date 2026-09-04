@@ -54,29 +54,41 @@ impl Page for TextAreasPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "multiline · wheel · arrows · Enter commit", |ui, body| {
-            let regions = rows(body, 3);
-            TextArea::new(BODY, 8)
-                .value(&self.value)
-                .draw(ui, regions.first().copied().unwrap_or(body), &self.state);
-            let phase = if self.state.is_editing() { "editing" } else { "idle" };
-            let info = format!(
-                "document: {} lines · scroll={} · {} ({})",
-                self.value.lines().count(),
-                self.state.scroll().offset(),
-                self.last,
-                phase
-            );
-            let facts = regions.get(1).copied().unwrap_or(body);
-            let _ = ui.paint_str(facts, &info, ui.surface_style());
-            lines(
-                ui,
-                regions.get(2).copied().unwrap_or(body),
-                &[
-                    "Wheel moves the owned viewport while focus stays on the editor.",
-                    "The 28-step checklist keeps clipping behavior observable in tests.",
-                ],
-            );
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "multiline · wheel · arrows · Enter commit",
+            |ui, body| {
+                let regions = rows(body, 3);
+                TextArea::new(BODY, 8).value(&self.value).draw(
+                    ui,
+                    regions.first().copied().unwrap_or(body),
+                    &self.state,
+                );
+                let phase = if self.state.is_editing() {
+                    "editing"
+                } else {
+                    "idle"
+                };
+                let info = format!(
+                    "document: {} lines · scroll={} · {} ({})",
+                    self.value.lines().count(),
+                    self.state.scroll().offset(),
+                    self.last,
+                    phase
+                );
+                let facts = regions.get(1).copied().unwrap_or(body);
+                let _ = ui.paint_str(facts, &info, ui.surface_style());
+                lines(
+                    ui,
+                    regions.get(2).copied().unwrap_or(body),
+                    &[
+                        "Wheel moves the owned viewport while focus stays on the editor.",
+                        "The 28-step checklist keeps clipping behavior observable in tests.",
+                    ],
+                );
+            },
+        );
     }
 }

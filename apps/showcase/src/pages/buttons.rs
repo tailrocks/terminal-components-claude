@@ -1,12 +1,12 @@
 //! Button playground and the complete inert state reference matrix.
 //!
 //! The nine controls and six-by-four matrix are the legacy showcase fixture.
-//! The matrix uses the public Ui::reference scope around the same Button
+//! The matrix uses the public `Ui::reference` scope around the same Button
 //! props used by the live controls, so captures cannot drift from behavior.
 
 use tui_next::{
-    Button, Constraints, Cx, FrameRead, Id, Part, PartRef, Rect, ReferenceState,
-    ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, id, layout,
+    Button, Constraints, Cx, FrameRead, Id, Part, PartRef, Rect, ReferenceState, ReferenceTarget,
+    Response, RowAlign, StateFlags, Status, Ui, Variant, id, layout,
 };
 
 use super::{Page, frame};
@@ -40,7 +40,10 @@ const LONG_JOB: usize = 8;
 const MATRIX_STATES: [(&str, StateFlags); 6] = [
     ("default", StateFlags::empty()),
     ("hover", StateFlags::HOVERED),
-    ("focus", StateFlags::FOCUSED.union(StateFlags::FOCUS_VISIBLE)),
+    (
+        "focus",
+        StateFlags::FOCUSED.union(StateFlags::FOCUS_VISIBLE),
+    ),
     (
         "focus + hover",
         StateFlags::FOCUSED
@@ -92,8 +95,8 @@ impl ButtonsPage {
             last: None,
             busy_frames: 0,
         };
-        for (index, (_, _, _, checked)) in SPECS.iter().enumerate() {
-            page.checked[index] = *checked;
+        for (slot, (_, _, _, checked)) in page.checked.iter_mut().zip(SPECS) {
+            *slot = checked;
         }
         page
     }
@@ -102,25 +105,29 @@ impl ButtonsPage {
         BUTTONS.index(index)
     }
 
-    fn button(&self, index: usize) -> Button<'static> {
-        let (label, variant, disabled, _) = SPECS[index];
+    fn button(&self, index: usize) -> Option<Button<'static>> {
+        let (label, variant, disabled, _) = SPECS.get(index).copied()?;
         let mut button = Button::new(Self::button_id(index), label)
             .variant(variant)
             .disabled(disabled);
-        if let Some(checked) = self.checked[index] {
+        if let Some(checked) = self.checked.get(index).copied().flatten() {
             button = button.checked(checked);
         }
         if index == LONG_JOB && self.busy_frames > 0 {
             button = button.status(Status::Busy);
         }
-        button
+        Some(button)
     }
 
     fn activated(&mut self, index: usize) {
         self.clicks = self.clicks.saturating_add(1);
-        let (label, _, _, _) = SPECS[index];
-        if let Some(value) = self.checked[index] {
-            self.checked[index] = Some(!value);
+        let Some((label, _, _, _)) = SPECS.get(index).copied() else {
+            return;
+        };
+        if let Some(value) = self.checked.get(index).copied().flatten() {
+            if let Some(slot) = self.checked.get_mut(index) {
+                *slot = Some(!value);
+            }
             self.last = Some(format!("{label} {}", if value { "off" } else { "on" }));
         } else {
             self.last = Some(format!("{label} ✓"));
@@ -152,7 +159,10 @@ impl Page for ButtonsPage {
         }
         let mut response = Response::ignored();
         for index in 0..SPECS.len() {
-            if self.button(index).update(cx).activated() {
+            if self
+                .button(index)
+                .is_some_and(|button| button.update(cx).activated())
+            {
                 self.activated(index);
                 response = Response::changed();
             }
@@ -161,25 +171,31 @@ impl Page for ButtonsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "Playground · State matrix · hover · click · Tab · Enter / Space", |ui, body| {
-            let regions = layout::rows(
-                body,
-                &[
-                    tui_next::Track::Fixed(15),
-                    tui_next::Track::Fixed(1),
-                    tui_next::Track::Fixed(8),
-                    tui_next::Track::Flex(1),
-                ],
-            );
-            self.draw_playground(ui, regions.first().copied().unwrap_or(body));
-            ui.rule(regions.get(1).copied().unwrap_or(body));
-            self.draw_matrix(ui, regions.get(2).copied().unwrap_or(body));
-            if let Some(last) = &self.last {
-                let status = regions.get(3).copied().unwrap_or(body);
-                let text = format!("last: {last} · {} activations", self.clicks);
-                let _ = ui.paint_str(status, &text, ui.surface_style());
-            }
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "Playground · State matrix · hover · click · Tab · Enter / Space",
+            |ui, body| {
+                let regions = layout::rows(
+                    body,
+                    &[
+                        tui_next::Track::Fixed(15),
+                        tui_next::Track::Fixed(1),
+                        tui_next::Track::Fixed(8),
+                        tui_next::Track::Flex(1),
+                    ],
+                );
+                self.draw_playground(ui, regions.first().copied().unwrap_or(body));
+                ui.rule(regions.get(1).copied().unwrap_or(body));
+                Self::draw_matrix(ui, regions.get(2).copied().unwrap_or(body));
+                if let Some(last) = &self.last {
+                    let status = regions.get(3).copied().unwrap_or(body);
+                    let text = format!("last: {last} · {} activations", self.clicks);
+                    let _ = ui.paint_str(status, &text, ui.surface_style());
+                }
+            },
+        );
     }
 }
 
@@ -191,28 +207,45 @@ impl ButtonsPage {
             if y.saturating_add(1) >= area.bottom() {
                 break;
             }
-            let _ = ui.paint_str(Rect { y, height: 1, ..area }, caption, ui.surface_style());
+            let _ = ui.paint_str(
+                Rect {
+                    y,
+                    height: 1,
+                    ..area
+                },
+                caption,
+                ui.surface_style(),
+            );
             let widths: Vec<u16> = indices
                 .iter()
                 .map(|&index| {
-                    self.button(index)
-                        .measure(ui, Constraints::loose(area.width, 1))
-                        .preferred
-                        .0
+                    self.button(index).map_or(0, |button| {
+                        button
+                            .measure(ui, Constraints::loose(area.width, 1))
+                            .preferred
+                            .0
+                    })
                 })
                 .collect();
-            let line = Rect { y: y.saturating_add(1), height: 1, ..area };
-            for (&index, button_area) in indices
-                .iter()
-                .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
+            let line = Rect {
+                y: y.saturating_add(1),
+                height: 1,
+                ..area
+            };
+            for (&index, button_area) in
+                indices
+                    .iter()
+                    .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
             {
-                self.button(index).draw(ui, button_area);
+                if let Some(button) = self.button(index) {
+                    button.draw(ui, button_area);
+                }
             }
             y = y.saturating_add(3);
         }
     }
 
-    fn draw_matrix(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn draw_matrix(ui: &mut Ui<'_>, area: Rect) {
         let label_width = 15u16;
         let column_width = 15u16;
         let column_x = |index: usize| {
@@ -226,7 +259,12 @@ impl ButtonsPage {
                 break;
             }
             let _ = ui.paint_str(
-                Rect { x, y: area.y, width: column_width, height: 1 },
+                Rect {
+                    x,
+                    y: area.y,
+                    width: column_width,
+                    height: 1,
+                },
                 title,
                 ui.surface_style(),
             );
@@ -237,7 +275,12 @@ impl ButtonsPage {
                 break;
             }
             let _ = ui.paint_str(
-                Rect { x: area.x, y, width: label_width, height: 1 },
+                Rect {
+                    x: area.x,
+                    y,
+                    width: label_width,
+                    height: 1,
+                },
                 name,
                 ui.surface_style(),
             );
@@ -254,7 +297,15 @@ impl ButtonsPage {
                     Button::new(id, "Label")
                         .variant(*variant)
                         .disabled(flags.contains(StateFlags::DISABLED))
-                        .draw(ui, Rect { x, y, width: column_width, height: 1 });
+                        .draw(
+                            ui,
+                            Rect {
+                                x,
+                                y,
+                                width: column_width,
+                                height: 1,
+                            },
+                        );
                 });
             }
         }

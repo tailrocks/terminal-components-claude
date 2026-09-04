@@ -1,6 +1,8 @@
 //! Keyed tree navigation with stable branch expansion.
 
-use tui_next::{Cx, Id, ItemKey, Rect, Response, RowUi, Tree, TreeAction, TreeNode, TreeState, Ui, id};
+use tui_next::{
+    Cx, Id, ItemKey, Rect, Response, RowUi, Tree, TreeAction, TreeNode, TreeState, Ui, id,
+};
 
 use crate::data::{TREE, TREE_LABELS};
 
@@ -30,12 +32,8 @@ fn node_row(node: &TreeNode, row: &mut RowUi<'_>) {
     row.meta(meta);
 }
 
-fn project_tree() -> Tree<
-    'static,
-    TreeNode,
-    impl Fn(&TreeNode) -> ItemKey,
-    impl Fn(&TreeNode, &mut RowUi<'_>),
-> {
+fn project_tree()
+-> Tree<'static, TreeNode, impl Fn(&TreeNode) -> ItemKey, impl Fn(&TreeNode, &mut RowUi<'_>)> {
     Tree::new(PROJECT)
         .key(node_key)
         .node(&node_copy)
@@ -54,7 +52,10 @@ pub(crate) struct TreesPage {
 impl TreesPage {
     pub(crate) fn new() -> Self {
         let mut state = TreeState::new();
-        for key in [1_u64, 2, 6, 10, 14, 19, 22] {
+        // Match the legacy tree's first-level-open presentation. Descendants
+        // remain closed until the user opens them, so keyboard expansion has
+        // a deterministic, visible state transition.
+        for key in [1_u64, 20, 26] {
             state.expand(ItemKey::Num(key));
         }
         Self {
@@ -93,40 +94,45 @@ impl Page for TreesPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "keyed branches · ←/→ expand · Enter select", |ui, body| {
-            let tree_area = Rect {
-                height: body.height.saturating_sub(3),
-                ..body
-            };
-            project_tree().draw(ui, tree_area, &self.state, TREE);
-            let selected = self
-                .chosen
-                .and_then(|key| match key {
-                    ItemKey::Num(n) => TREE_LABELS.get(n.saturating_sub(1) as usize),
-                    _ => None,
-                })
-                .map(|(name, _)| *name)
-                .unwrap_or("none");
-            let summary = format!(
-                "selected: {selected} · expanded: {} · {}",
-                self.state.expanded().len_in(TREE.len()),
-                self.last
-            );
-            let summary_area = Rect {
-                y: tree_area.bottom(),
-                height: 1,
-                ..body
-            };
-            let _ = ui.paint_str(summary_area, &summary, ui.surface_style());
-            lines(
-                ui,
-                Rect {
-                    y: summary_area.y.saturating_add(1),
+        frame(
+            ui,
+            area,
+            self.title(),
+            "keyed branches · ←/→ expand · Enter select",
+            |ui, body| {
+                let tree_area = Rect {
+                    height: body.height.saturating_sub(3),
+                    ..body
+                };
+                project_tree().draw(ui, tree_area, &self.state, TREE);
+                let selected = self
+                    .chosen
+                    .and_then(|key| match key {
+                        ItemKey::Num(n) => TREE_LABELS.get(n.saturating_sub(1) as usize),
+                        _ => None,
+                    })
+                    .map_or("none", |(name, _)| *name);
+                let summary = format!(
+                    "selected: {selected} · expanded: {} · {}",
+                    self.state.expanded().len_in(TREE.len()),
+                    self.last
+                );
+                let summary_area = Rect {
+                    y: tree_area.bottom(),
                     height: 1,
                     ..body
-                },
-                &["Rows keep their identity while the visible pre-order window changes."],
-            );
-        });
+                };
+                let _ = ui.paint_str(summary_area, &summary, ui.surface_style());
+                lines(
+                    ui,
+                    Rect {
+                        y: summary_area.y.saturating_add(1),
+                        height: 1,
+                        ..body
+                    },
+                    &["Rows keep their identity while the visible pre-order window changes."],
+                );
+            },
+        );
     }
 }

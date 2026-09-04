@@ -1,12 +1,12 @@
 //! Three scroll surfaces from the legacy scrolling page.
 //!
 //! Prose, a 120-row list, and a following log remain separate stateful
-//! viewports. Their source lines are app-owned fixtures; TextViewport owns
+//! viewports. Their source lines are app-owned fixtures; `TextViewport` owns
 //! only scroll, selection, follow-tail, and pointer capture state.
 
 use tui_next::{
-    Cx, Id, Panel, PanelKind, Rect, Response, TextViewport, Ui, ViewportAction,
-    ViewportLine, ViewportState, id, layout,
+    Cx, Id, Panel, PanelKind, Rect, Response, TextViewport, Ui, ViewportAction, ViewportLine,
+    ViewportState, id, layout,
 };
 
 use crate::data::{PROSE, SCROLL_ROWS};
@@ -16,6 +16,9 @@ use super::{Page, frame, lines};
 const PROSE_VIEW: Id = id!("scrolling.prose");
 const LIST_VIEW: Id = id!("scrolling.list");
 const LOG_VIEW: Id = id!("scrolling.log");
+const PROSE_PANEL: Id = id!("scrolling.prose.panel");
+const LIST_PANEL: Id = id!("scrolling.list.panel");
+const LOG_PANEL: Id = id!("scrolling.log.panel");
 
 fn prose_view() -> TextViewport<'static> {
     TextViewport::new(PROSE_VIEW).wrap(true)
@@ -30,7 +33,11 @@ fn log_view() -> TextViewport<'static> {
 }
 
 fn rows() -> Vec<ViewportLine<'static>> {
-    SCROLL_ROWS.iter().copied().map(ViewportLine::Plain).collect()
+    SCROLL_ROWS
+        .iter()
+        .copied()
+        .map(ViewportLine::Plain)
+        .collect()
 }
 
 fn log_rows() -> Vec<ViewportLine<'static>> {
@@ -130,35 +137,62 @@ impl Page for ScrollingPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "wheel · PageUp/PageDown · drag scrollbar · select text", |ui, body| {
-            let (left, rest) = layout::split_h(body, body.width / 3);
-            let (middle, right) = layout::split_h(rest, rest.width / 2);
-            let panels = [
-                (left, PROSE_VIEW, "Wrapped text", "wheel · selection"),
-                (middle, LIST_VIEW, "Long list", "Row 001 … Row 120"),
-                (right, LOG_VIEW, "Log", "following tail"),
-            ];
-            let prose_inner = draw_panel(ui, panels[0].0, panels[0].1, panels[0].2, panels[0].3);
-            prose_view().draw(ui, prose_inner, &self.prose_state, &self.prose);
-            let list_inner = draw_panel(ui, panels[1].0, panels[1].1, panels[1].2, panels[1].3);
-            list_view().draw(ui, list_inner, &self.list_state, &self.list);
-            let log_inner = draw_panel(ui, panels[2].0, panels[2].1, panels[2].2, panels[2].3);
-            log_view().draw(ui, log_inner, &self.log_state, &self.log);
-            let status = Rect { y: body.bottom().saturating_sub(1), height: 1, ..body };
-            let summary = format!(
-                "prose={} · list={} · log={} · {}",
-                self.prose_state.scroll().offset(),
-                self.list_state.scroll().offset(),
-                self.log_state.scroll().offset(),
-                self.last,
-            );
-            let _ = ui.paint_str(status, &summary, ui.surface_style());
-            lines(
-                ui,
-                Rect { y: status.y.saturating_sub(1), height: 1, ..body },
-                &["Each pane keeps its own offset and stable pointer-capture track."],
-            );
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "wheel · PageUp/PageDown · drag scrollbar · select text",
+            |ui, body| {
+                let (left, rest) = layout::split_h(body, body.width / 3);
+                let (middle, right) = layout::split_h(rest, rest.width / 2);
+                let panels = [
+                    (
+                        left,
+                        PROSE_PANEL,
+                        PROSE_VIEW,
+                        "Wrapped text",
+                        "wheel · selection",
+                    ),
+                    (
+                        middle,
+                        LIST_PANEL,
+                        LIST_VIEW,
+                        "Long list",
+                        "120 rows · wheel",
+                    ),
+                    (right, LOG_PANEL, LOG_VIEW, "Log", "following tail"),
+                ];
+                let prose_inner =
+                    draw_panel(ui, panels[0].0, panels[0].1, panels[0].3, panels[0].4);
+                prose_view().draw(ui, prose_inner, &self.prose_state, &self.prose);
+                let list_inner = draw_panel(ui, panels[1].0, panels[1].1, panels[1].3, panels[1].4);
+                list_view().draw(ui, list_inner, &self.list_state, &self.list);
+                let log_inner = draw_panel(ui, panels[2].0, panels[2].1, panels[2].3, panels[2].4);
+                log_view().draw(ui, log_inner, &self.log_state, &self.log);
+                let status = Rect {
+                    y: body.bottom().saturating_sub(1),
+                    height: 1,
+                    ..body
+                };
+                let summary = format!(
+                    "prose={} · list={} · log={} · {}",
+                    self.prose_state.scroll().offset(),
+                    self.list_state.scroll().offset(),
+                    self.log_state.scroll().offset(),
+                    self.last,
+                );
+                let _ = ui.paint_str(status, &summary, ui.surface_style());
+                lines(
+                    ui,
+                    Rect {
+                        y: status.y.saturating_sub(1),
+                        height: 1,
+                        ..body
+                    },
+                    &["Each pane keeps its own offset and stable pointer-capture track."],
+                );
+            },
+        );
     }
 }
 

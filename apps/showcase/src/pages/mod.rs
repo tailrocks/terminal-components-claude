@@ -14,7 +14,11 @@ pub(crate) trait Page: Send {
     /// Drain this screen's runtime intents.
     fn update(&mut self, cx: &mut tui_next::Cx<'_>) -> Response<()>;
     /// Handle an application-level command before component intents run.
-    fn command(&mut self, _cx: &mut tui_next::Cx<'_>, _action: tui_next::ActionKey) -> Response<()> {
+    fn command(
+        &mut self,
+        _cx: &mut tui_next::Cx<'_>,
+        _action: tui_next::ActionKey,
+    ) -> Response<()> {
         Response::ignored()
     }
     /// Draw this screen into the shell's content rectangle.
@@ -29,6 +33,11 @@ pub(crate) fn frame(
     meta: &'static str,
     body: impl FnOnce(&mut Ui<'_>, Rect),
 ) {
+    // At the minimum supported size the content frame is intentionally
+    // narrow.  Keep the page identity visible instead of letting a long
+    // metadata string consume the title's cells; the full metadata returns
+    // as soon as the frame has room for both labels.
+    let meta = if area.width < 60 { "" } else { meta };
     Panel::new(id!("page.frame"))
         .kind(PanelKind::Framed)
         .title(title)
@@ -61,12 +70,16 @@ pub(crate) fn rows(area: Rect, count: u16) -> Vec<Rect> {
         return Vec::new();
     }
     let gap = count.saturating_sub(1);
-    let height = area.height.saturating_sub(gap) / count;
+    let height = area
+        .height
+        .saturating_sub(gap)
+        .checked_div(count)
+        .unwrap_or(0);
     let mut result = Vec::with_capacity(usize::from(count));
     let mut y = area.y;
     for index in 0..count {
         let remaining = area.bottom().saturating_sub(y);
-        let row_height = if index + 1 == count {
+        let row_height = if index.checked_add(1) == Some(count) {
             remaining
         } else {
             height
@@ -82,8 +95,8 @@ pub(crate) fn rows(area: Rect, count: u16) -> Vec<Rect> {
     result
 }
 
-pub(crate) mod buttons;
 pub(crate) mod author;
+pub(crate) mod buttons;
 pub(crate) mod chips;
 pub(crate) mod chrome;
 pub(crate) mod dialogs;

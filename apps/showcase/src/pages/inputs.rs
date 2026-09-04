@@ -1,6 +1,9 @@
 //! Single-line controlled editing with commit, cancel and validation feedback.
 
-use tui_next::{BlurPolicy, Cx, Id, Panel, PanelKind, Rect, Response, TextAction, TextInput, TextInputState, Ui, id};
+use tui_next::{
+    BlurPolicy, Cx, Id, Panel, PanelKind, Rect, Response, TextAction, TextInput, TextInputState,
+    Ui, id,
+};
 
 use super::{Page, frame, lines, rows};
 
@@ -73,39 +76,61 @@ impl Page for InputsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "controlled values · Enter commit · Esc cancel", |ui, body| {
-            let regions = rows(body, 3);
-            let fields = regions.first().copied().unwrap_or(body);
-            Panel::new(CARD)
-                .kind(PanelKind::Card)
-                .title("Edit fields")
-                .draw(ui, fields, |ui, inner| {
-                    let field_rows = rows(inner, 2);
-                    TextInput::new(NAME)
-                        .value(&self.name)
-                        .placeholder("Your name")
-                        .draw(ui, field_rows.first().copied().unwrap_or(inner), &self.name_state);
-                    TextInput::new(BRANCH)
-                        .value(&self.branch)
-                        .placeholder("Branch name")
-                        .draw(ui, field_rows.get(1).copied().unwrap_or(inner), &self.branch_state);
-                });
-            let facts = regions.get(1).copied().unwrap_or(body);
-            let name_phase = if self.name_state.is_editing() { "editing" } else { "idle" };
-            let branch_phase = if self.branch_state.is_editing() { "editing" } else { "idle" };
-            let info = format!(
-                "name={} [{}] · branch={} [{}] · {}",
-                self.name, name_phase, self.branch, branch_phase, self.last
-            );
-            let _ = ui.paint_str(facts, &info, ui.surface_style());
-            lines(
-                ui,
-                regions.get(2).copied().unwrap_or(body),
-                &[
-                    "The draft lives in TextInputState until Enter commits it.",
-                    "Esc cancels the draft without changing the controlled value.",
-                ],
-            );
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "controlled values · Enter commit · Esc cancel",
+            |ui, body| {
+                let regions = rows(body, 3);
+                let fields = regions.first().copied().unwrap_or(body);
+                Panel::new(CARD)
+                    .kind(PanelKind::Card)
+                    .title("Edit fields")
+                    .draw(ui, fields, |ui, inner| {
+                        let field_rows = rows(inner, 2);
+                        TextInput::new(NAME)
+                            .value(&self.name)
+                            .placeholder("Your name")
+                            .draw(
+                                ui,
+                                field_rows.first().copied().unwrap_or(inner),
+                                &self.name_state,
+                            );
+                        TextInput::new(BRANCH)
+                            .value(&self.branch)
+                            .placeholder("Branch name")
+                            .draw(
+                                ui,
+                                field_rows.get(1).copied().unwrap_or(inner),
+                                &self.branch_state,
+                            );
+                    });
+                let facts = regions.get(1).copied().unwrap_or(body);
+                let name_phase = if self.name_state.is_editing() {
+                    "editing"
+                } else {
+                    "idle"
+                };
+                let branch_phase = if self.branch_state.is_editing() {
+                    "editing"
+                } else {
+                    "idle"
+                };
+                let info = format!(
+                    "name={} [{}] · branch={} [{}] · {}",
+                    self.name, name_phase, self.branch, branch_phase, self.last
+                );
+                let _ = ui.paint_str(facts, &info, ui.surface_style());
+                lines(
+                    ui,
+                    regions.get(2).copied().unwrap_or(body),
+                    &[
+                        "The draft lives in TextInputState until Enter commits it.",
+                        "Esc cancels the draft without changing the controlled value.",
+                    ],
+                );
+            },
+        );
     }
 }

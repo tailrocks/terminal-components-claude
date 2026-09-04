@@ -1,4 +1,4 @@
-//! A small downstream-authored component using only tui_next::author.
+//! A small downstream-authored component using only `tui_next::author`.
 //!
 //! This is intentionally kept in the application package. It proves that an
 //! app-owned control can register focus and parts, receive pointer intents,

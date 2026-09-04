@@ -2,7 +2,7 @@
 
 use tui_next::{Brand, Id, Props, Rect, Response, Ui, id, layout};
 
-use super::{Page, frame, lines, author::AuthorBadge};
+use super::{Page, author::AuthorBadge, frame, lines};
 
 const BRAND: Id = id!("overview.brand");
 const AUTHOR: Id = id!("overview.author");

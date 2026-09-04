@@ -1,6 +1,9 @@
 //! Modal confirmation and prompt flows.
 
-use tui_next::{ActionKey, Button, Cx, Dialog, DialogAction, DialogState, Id, Rect, Response, Ui, Variant, id, layout};
+use tui_next::{
+    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, Id, Rect, Response, Ui, Variant, id,
+    layout,
+};
 
 use super::{Page, frame, lines};
 
@@ -41,13 +44,16 @@ impl DialogsPage {
     }
 
     fn confirm() -> Dialog<'static> {
-        Dialog::confirm(CONFIRM, "Run task now?", "The task will be queued for the workspace.")
-            .patch_part(DIALOG_PARTS)
+        Dialog::confirm(
+            CONFIRM,
+            "Run task now?",
+            "The task will be queued for the workspace.",
+        )
+        .patch_part(DIALOG_PARTS)
     }
 
     fn prompt() -> Dialog<'static> {
-        Dialog::prompt(PROMPT, "Rename task", "Task name")
-            .patch_part(DIALOG_PARTS)
+        Dialog::prompt(PROMPT, "Rename task", "Task name").patch_part(DIALOG_PARTS)
     }
 
     fn close(&mut self, cx: &mut Cx<'_>, id: Id) {
@@ -71,13 +77,6 @@ impl Page for DialogsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
-        if self.open == OpenDialog::Confirm && !cx.is_open(CONFIRM) {
-            self.result = String::from("Cancelled");
-            self.open = OpenDialog::None;
-        } else if self.open == OpenDialog::Prompt && !cx.is_open(PROMPT) {
-            self.result = String::from("Rename cancelled");
-            self.open = OpenDialog::None;
-        }
         let confirm_button = Button::new(OPEN_CONFIRM, "Run task now")
             .variant(Variant::PRIMARY)
             .update(cx);
@@ -99,7 +98,9 @@ impl Page for DialogsPage {
         // runtime before the app update, and Dialog drains that dismissal
         // action from its durable state on the following frame.
         let action = Self::confirm().update(cx, &mut self.confirm_state);
-        if let Some(action) = action.action_ref() {
+        if self.open == OpenDialog::Confirm
+            && let Some(action) = action.action_ref()
+        {
             match action {
                 DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
                     self.result = String::from("Task started");
@@ -113,7 +114,9 @@ impl Page for DialogsPage {
         }
         response |= action.erase();
         let action = Self::prompt().update(cx, &mut self.prompt_state);
-        if let Some(action) = action.action_ref() {
+        if self.open == OpenDialog::Prompt
+            && let Some(action) = action.action_ref()
+        {
             match action {
                 DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
                     let name = self.prompt_state.draft().trim();
@@ -135,29 +138,35 @@ impl Page for DialogsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "layers · focus trap · Esc dismiss", |ui, body| {
-            let (actions, status) = layout::split_v(body, 4);
-            let action_rows = super::rows(actions, 2);
-            Button::new(OPEN_CONFIRM, "Run task now")
-                .variant(Variant::PRIMARY)
-                .draw(ui, action_rows.first().copied().unwrap_or(actions));
-            Button::new(OPEN_PROMPT, "Rename task")
-                .variant(Variant::SECONDARY)
-                .draw(ui, action_rows.get(1).copied().unwrap_or(actions));
-            let _ = ui.paint_str(status, &self.result, ui.surface_style());
-            lines(
-                ui,
-                Rect {
-                    y: status.y.saturating_add(1),
-                    height: status.height.saturating_sub(1),
-                    ..status
-                },
-                &[
-                    "A modal traps focus in its prompt/actions and restores the launcher.",
-                    "Prompt submission rejects empty values before closing the layer.",
-                ],
-            );
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "layers · focus trap · Esc dismiss",
+            |ui, body| {
+                let (actions, status) = layout::split_v(body, 4);
+                let action_rows = super::rows(actions, 2);
+                Button::new(OPEN_CONFIRM, "Run task now")
+                    .variant(Variant::PRIMARY)
+                    .draw(ui, action_rows.first().copied().unwrap_or(actions));
+                Button::new(OPEN_PROMPT, "Rename task")
+                    .variant(Variant::SECONDARY)
+                    .draw(ui, action_rows.get(1).copied().unwrap_or(actions));
+                let _ = ui.paint_str(status, &self.result, ui.surface_style());
+                lines(
+                    ui,
+                    Rect {
+                        y: status.y.saturating_add(1),
+                        height: status.height.saturating_sub(1),
+                        ..status
+                    },
+                    &[
+                        "A modal traps focus in its prompt/actions and restores the launcher.",
+                        "Prompt submission rejects empty values before closing the layer.",
+                    ],
+                );
+            },
+        );
         ui.layer(CONFIRM, |ui, layer| {
             Self::confirm().draw(ui, layer, &self.confirm_state, |ui, body| {
                 let _ = ui.paint_str(body, "Enter confirms · Esc cancels", ui.surface_style());

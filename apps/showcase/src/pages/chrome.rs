@@ -46,35 +46,44 @@ impl Page for ChromePage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: tui_next::Rect) {
-        frame(ui, area, self.title(), "brand · status · meter", |ui, body| {
-            let (brand_area, rest) = layout::split_v(body, 4);
-            Brand::new(BRAND, "Junie")
-                .tagline("deliberate terminal interfaces")
-                .clickable(true)
-                .draw(ui, brand_area);
-            let (status_area, notes) = layout::split_v(rest, 1);
-            let center = [StatusItem::new("tests 24/24").meter(0.96), CENTER[0]];
-            StatusBar::new(BAR)
-                .left(&LEFT)
-                .center(&center)
-                .right(&RIGHT)
-                .status(Status::Ready)
-                .frame(self.frame)
-                .draw(ui, status_area);
-            let clicks = format!("brand activations: {} · status strip is keyed and width-aware", self.brand_clicks);
-            let _ = ui.paint_str(notes, &clicks, ui.surface_style());
-            lines(
-                ui,
-                tui_next::Rect {
-                    y: notes.y.saturating_add(2),
-                    height: notes.height.saturating_sub(2),
-                    ..notes
-                },
-                &[
-                    "Chrome owns no business data: it composes public primitives.",
-                    "Narrow terminals drop lower-priority status items first.",
-                ],
-            );
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "brand · status · meter",
+            |ui, body| {
+                let (brand_area, rest) = layout::split_v(body, 4);
+                Brand::new(BRAND, "Junie")
+                    .tagline("deliberate terminal interfaces")
+                    .clickable(true)
+                    .draw(ui, brand_area);
+                let (status_area, notes) = layout::split_v(rest, 1);
+                let center = [StatusItem::new("tests 24/24").meter(0.96), CENTER[0]];
+                StatusBar::new(BAR)
+                    .left(&LEFT)
+                    .center(&center)
+                    .right(&RIGHT)
+                    .status(Status::Ready)
+                    .frame(self.frame)
+                    .draw(ui, status_area);
+                let clicks = format!(
+                    "brand activations: {} · status strip is keyed and width-aware",
+                    self.brand_clicks
+                );
+                let _ = ui.paint_str(notes, &clicks, ui.surface_style());
+                lines(
+                    ui,
+                    tui_next::Rect {
+                        y: notes.y.saturating_add(2),
+                        height: notes.height.saturating_sub(2),
+                        ..notes
+                    },
+                    &[
+                        "Chrome owns no business data: it composes public primitives.",
+                        "Narrow terminals drop lower-priority status items first.",
+                    ],
+                );
+            },
+        );
     }
 }

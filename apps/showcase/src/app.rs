@@ -6,6 +6,8 @@ use tui_next::{
     Response, Size, Status, StatusBar, StatusItem, Theme, TooSmall, Ui, id, layout,
 };
 
+use crate::pages::forms::SUBMIT as FORM_SUBMIT;
+use crate::pages::taskrunner::RUN_COMMAND;
 use crate::pages::{
     Page, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage, dialogs::DialogsPage,
     editable::EditablePage, editor::EditorPage, forms::FormsPage, grid::GridPage,
@@ -14,8 +16,6 @@ use crate::pages::{
     sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage, terminal::TerminalPage,
     textareas::TextAreasPage, trees::TreesPage,
 };
-use crate::pages::forms::SUBMIT as FORM_SUBMIT;
-use crate::pages::taskrunner::RUN_COMMAND;
 
 const NAV: Id = id!("navigation");
 const BRAND: Id = id!("brand");
@@ -176,7 +176,7 @@ impl PageId {
         let normalized = |input: &str| {
             input
                 .chars()
-                .filter(|character| character.is_ascii_alphanumeric())
+                .filter(char::is_ascii_alphanumeric)
                 .map(|character| character.to_ascii_lowercase())
                 .collect::<String>()
         };
@@ -421,7 +421,11 @@ fn keymap() -> KeyMap {
         )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char(']')), NEXT_PAGE)
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('[')), PREV_PAGE)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('r')), RUN_COMMAND)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('r')),
+            RUN_COMMAND,
+        )
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('s'), tui_next::KeyModifiers::CONTROL),
@@ -532,14 +536,24 @@ impl TuiApp for App {
                 cx.quit();
             }
             Some(NEXT_PAGE) => {
-                let next = (self.page.index() + 1) % PageId::ALL.len();
-                if let Some(page) = PageId::ALL.get(next).copied() {
+                let next = self
+                    .page
+                    .index()
+                    .checked_add(1)
+                    .and_then(|index| PageId::ALL.get(index).copied())
+                    .or_else(|| PageId::ALL.first().copied());
+                if let Some(page) = next {
                     self.goto(page);
                 }
             }
             Some(PREV_PAGE) => {
-                let previous = self.page.index().checked_sub(1).unwrap_or(PageId::ALL.len() - 1);
-                if let Some(page) = PageId::ALL.get(previous).copied() {
+                let previous = self
+                    .page
+                    .index()
+                    .checked_sub(1)
+                    .and_then(|index| PageId::ALL.get(index).copied())
+                    .or_else(|| PageId::ALL.last().copied());
+                if let Some(page) = previous {
                     self.goto(page);
                 }
             }
@@ -549,7 +563,10 @@ impl TuiApp for App {
             _ => {}
         }
         if let Some(action) = command
-            && !matches!(action, QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND)
+            && !matches!(
+                action,
+                QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND
+            )
             && let Some(active) = self
                 .pages
                 .iter_mut()

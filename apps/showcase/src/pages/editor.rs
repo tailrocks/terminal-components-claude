@@ -1,6 +1,9 @@
 //! Code editor page with cursor, insert mode and diagnostics.
 
-use tui_next::{CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx, Id, Rect, Response, Ui, id};
+use tui_next::{
+    CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Cx, Id, Rect, Response,
+    Ui, id,
+};
 
 use crate::data::CODE;
 
@@ -28,16 +31,23 @@ impl EditorPage {
             CodeSeverity::Info,
             "entry point",
         )]);
-        Self { state, last: "read-only preview" }
+        Self {
+            state,
+            last: "read-only preview",
+        }
     }
 }
 
 impl Default for EditorPage {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Page for EditorPage {
-    fn title(&self) -> &'static str { "Editor" }
+    fn title(&self) -> &'static str {
+        "Editor"
+    }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let result = editor().update(cx, &mut self.state);
@@ -53,12 +63,42 @@ impl Page for EditorPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "code editor · diagnostics · insert mode", |ui, body| {
-            let code_area = Rect { height: body.height.saturating_sub(2), ..body };
-            editor().draw(ui, code_area, &self.state);
-            let status = format!("lines={} · diagnostics={} · {}", self.state.text().lines().count(), self.state.diagnostics().len(), self.last);
-            let _ = ui.paint_str(Rect { y: code_area.bottom(), height: 1, ..body }, &status, ui.surface_style());
-            lines(ui, Rect { y: code_area.bottom().saturating_add(1), height: 1, ..body }, &["F2/Insert edits; Esc/Enter commits through the public editor lifecycle."]);
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "code editor · diagnostics · insert mode",
+            |ui, body| {
+                let code_area = Rect {
+                    height: body.height.saturating_sub(2),
+                    ..body
+                };
+                editor().draw(ui, code_area, &self.state);
+                let status = format!(
+                    "lines={} · diagnostics={} · {}",
+                    self.state.text().lines().count(),
+                    self.state.diagnostics().len(),
+                    self.last
+                );
+                let _ = ui.paint_str(
+                    Rect {
+                        y: code_area.bottom(),
+                        height: 1,
+                        ..body
+                    },
+                    &status,
+                    ui.surface_style(),
+                );
+                lines(
+                    ui,
+                    Rect {
+                        y: code_area.bottom().saturating_add(1),
+                        height: 1,
+                        ..body
+                    },
+                    &["F2/Insert edits; Esc/Enter commits through the public editor lifecycle."],
+                );
+            },
+        );
     }
 }

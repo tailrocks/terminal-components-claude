@@ -1,6 +1,9 @@
 //! Editable task rows: keyed selection, commit/cancel and field validation.
 
-use tui_next::{Cx, FieldError, Id, ItemKey, List, ListAction, ListState, Rect, Response, RowUi, TextInput, TextInputState, Ui, id, layout};
+use tui_next::{
+    Cx, FieldError, Id, ItemKey, List, ListAction, ListState, Rect, Response, RowUi, TextInput,
+    TextInputState, Ui, id, layout,
+};
 
 use crate::data::{TASKS, TaskRow, TaskStatus};
 
@@ -40,7 +43,12 @@ fn row_view(row: &EditableRow, view: &mut RowUi<'_>) {
     view.meta(row.owner);
 }
 
-fn task_list() -> List<'static, EditableRow, impl Fn(&EditableRow) -> ItemKey, impl Fn(&EditableRow, &mut RowUi<'_>)> {
+fn task_list() -> List<
+    'static,
+    EditableRow,
+    impl Fn(&EditableRow) -> ItemKey,
+    impl Fn(&EditableRow, &mut RowUi<'_>),
+> {
     List::new(ROWS).key(row_key).row(row_view)
 }
 
@@ -77,7 +85,9 @@ impl EditablePage {
     }
 
     fn selected_key(&self) -> ItemKey {
-        self.rows.get(self.selected).map(row_key).unwrap_or(ItemKey::Num(0))
+        self.rows
+            .get(self.selected)
+            .map_or(ItemKey::Num(0), row_key)
     }
 }
 
@@ -108,15 +118,19 @@ impl Page for EditablePage {
         }
         result |= list.erase();
         if let Some(row) = self.rows.get_mut(self.selected) {
-            let name = TextInput::new(NAME)
-                .placeholder("Task name")
-                .update(cx, &mut self.name_state, &mut row.name);
+            let name = TextInput::new(NAME).placeholder("Task name").update(
+                cx,
+                &mut self.name_state,
+                &mut row.name,
+            );
             if let Some(action) = name.action_ref() {
                 self.message = match action {
                     tui_next::TextAction::Committed => "name committed",
                     tui_next::TextAction::Cancelled => "name edit cancelled",
                     tui_next::TextAction::Changed => "name draft changed",
-                    tui_next::TextAction::MoveNext | tui_next::TextAction::MovePrev => "focus moved",
+                    tui_next::TextAction::MoveNext | tui_next::TextAction::MovePrev => {
+                        "focus moved"
+                    }
                 };
             }
             result |= name.erase();
@@ -124,13 +138,27 @@ impl Page for EditablePage {
                 .placeholder("Changes")
                 .validate(&whole_number)
                 .update(cx, &mut self.changes_state, &mut row.changes);
-            if let Some(action) = changes.action_ref() {
+            let changes_action = changes.action_ref().copied();
+            if let Some(action) = changes_action {
                 self.message = match action {
                     tui_next::TextAction::Committed => "changes committed",
                     tui_next::TextAction::Cancelled => "changes edit cancelled",
                     tui_next::TextAction::Changed => "changes draft changed",
-                    tui_next::TextAction::MoveNext | tui_next::TextAction::MovePrev => "focus moved",
+                    tui_next::TextAction::MoveNext | tui_next::TextAction::MovePrev => {
+                        "focus moved"
+                    }
                 };
+            }
+            let invalid_commit = matches!(changes_action, Some(tui_next::TextAction::Committed))
+                && self.changes_state.error().is_some();
+            if invalid_commit {
+                // TextInput ends a failed commit in Idle after writing the
+                // controlled value. Re-arm the same field so the invalid
+                // draft remains editable until the user fixes or cancels it.
+                self.changes_state.begin(&row.changes);
+                cx.focus(CHANGES);
+            } else if matches!(changes_action, Some(tui_next::TextAction::Cancelled)) {
+                self.changes_state.set_error(None);
             }
             result |= changes.erase();
             if let Some(error) = self.changes_state.error() {
@@ -145,32 +173,69 @@ impl Page for EditablePage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "keyed rows · Enter edits · Esc cancels invalid drafts", |ui, body| {
-            let (list_area, editor_area) = layout::split_h(body, body.width / 2);
-            task_list().draw(ui, list_area, &self.list_state, &self.rows);
-            let edit_rows = super::rows(editor_area, 4);
-            if let Some(row) = self.rows.get(self.selected) {
-                TextInput::new(NAME)
-                    .value(&row.name)
-                    .placeholder("Task name")
-                    .draw(ui, edit_rows.first().copied().unwrap_or(editor_area), &self.name_state);
-                TextInput::new(CHANGES)
-                    .value(&row.changes)
-                    .placeholder("Changes")
-                    .validate(&whole_number)
-                    .draw(ui, edit_rows.get(1).copied().unwrap_or(editor_area), &self.changes_state);
-                let info = format!("#{} · owner={} · status={:?}", row.id, row.owner, row.status);
-                let _ = ui.paint_str(edit_rows.get(2).copied().unwrap_or(editor_area), &info, ui.surface_style());
-            }
-            let mode = if self.name_state.is_editing() || self.changes_state.is_editing() { "EDIT" } else { "view" };
-            let status = format!("{mode} · key={:?} · {}", self.selected_key(), self.message);
-            let status_area = edit_rows.get(3).copied().unwrap_or(editor_area);
-            let _ = ui.paint_str(status_area, &status, ui.surface_style());
-            lines(
-                ui,
-                Rect { y: status_area.y.saturating_add(1), height: 1, ..status_area },
-                &["Validation is attached to the changes field; invalid commits stay in EDIT."],
-            );
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "keyed rows · Enter edits · Esc cancels invalid drafts",
+            |ui, body| {
+                let (list_area, editor_area) = layout::split_h(body, body.width / 2);
+                task_list().draw(ui, list_area, &self.list_state, &self.rows);
+                let edit_rows = super::rows(editor_area, 4);
+                if let Some(row) = self.rows.get(self.selected) {
+                    TextInput::new(NAME)
+                        .value(&row.name)
+                        .placeholder("Task name")
+                        .draw(
+                            ui,
+                            edit_rows.first().copied().unwrap_or(editor_area),
+                            &self.name_state,
+                        );
+                    TextInput::new(CHANGES)
+                        .value(&row.changes)
+                        .placeholder("Changes")
+                        .validate(&whole_number)
+                        .draw(
+                            ui,
+                            edit_rows.get(1).copied().unwrap_or(editor_area),
+                            &self.changes_state,
+                        );
+                    let info = format!(
+                        "#{} · owner={} · status={:?}",
+                        row.id, row.owner, row.status
+                    );
+                    let _ = ui.paint_str(
+                        edit_rows.get(2).copied().unwrap_or(editor_area),
+                        &info,
+                        ui.surface_style(),
+                    );
+                }
+                let mode = if self.name_state.is_editing() || self.changes_state.is_editing() {
+                    "EDIT"
+                } else {
+                    "view"
+                };
+                let status = if self.changes_state.error().is_some() {
+                    // Keep validation evidence visible as a complete message;
+                    // the compact split view still has room for the editing
+                    // affordance itself, which proves the invalid draft stayed
+                    // in the edit lifecycle.
+                    format!("EDIT · {}", self.message)
+                } else {
+                    format!("{mode} · key={:?} · {}", self.selected_key(), self.message)
+                };
+                let status_area = edit_rows.get(3).copied().unwrap_or(editor_area);
+                let _ = ui.paint_str(status_area, &status, ui.surface_style());
+                lines(
+                    ui,
+                    Rect {
+                        y: status_area.y.saturating_add(1),
+                        height: 1,
+                        ..status_area
+                    },
+                    &["Validation is attached to the changes field; invalid commits stay in EDIT."],
+                );
+            },
+        );
     }
 }
