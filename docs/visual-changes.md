@@ -1,107 +1,142 @@
 # Visual changes ledger
 
-**What this is.** The ledger `COMPONENT_ARCHITECTURE.md` §20.10 requires and `xtask bless-guard` (§16.3) reads. No baseline file (`crates/tui/tests/baselines/components.txt`, `apps/*/tests/baselines/*.txt`, `perf_baseline.txt` hit counts) may be regenerated without an entry here that names a §20.10 item **and** a capture path under `shots/`. Every entry classifies a difference as *intended* (matches the §20.10 item), *fix* (a demonstrated defect in the old output) or *regression* (must be fixed, never blessed).
+**What this is.** The ledger `COMPONENT_ARCHITECTURE.md` §20.10 requires and `xtask bless-guard` (§16.3) reads. No baseline file (`crates/tui/tests/baselines/components.txt`, `apps/*/tests/baselines/*.txt`, `perf_baseline.txt` hit counts) may be regenerated without an entry here that names a numbered §20.10 item, **accounts for every baseline key the diff moved or added**, and names the reviewable artefact — a capture path under `shots/` for a baseline produced by a running application, **or** the frame-text dump for a baseline produced headlessly by a `Scene`, named explicitly (§16.3 as amended by §36). Every entry classifies a difference as *intended* (matches the §20.10 item), *fix* (a demonstrated defect in the old output) or *regression* (must be fixed, never blessed).
 
 **Order, fixed (review A14, §21 item 30): change → capture → classify → bless.**
 
 1. **Change** — land the code change on the working tree.
-2. **Capture** — `tools/capture.sh` / `xtask capture-matrix` writes the before/after captures into `shots/`; digest tests go red.
-3. **Classify** — add or extend the entry under the matching §20.10 item below: capture paths, the affected tests/baseline lines, and the classification with its reason.
-4. **Bless** — `BLESS=1 cargo test --workspace --test render --test visual` (or `PERF_BLESS=1` for hit counts). `xtask bless-guard` runs in CI on the committed tree and fails the commit if step 3 is missing.
+2. **Capture** — for an application baseline, `tools/capture.sh` / `xtask capture-matrix` writes the before/after captures into `shots/`. For a headless `Scene` matrix there is no capture and there can be none (`tools/capture.sh` drives a terminal session and cannot address a `Scene`, §36): the artefact is the frame text the failing run prints. Digest tests go red either way.
+3. **Classify** — add or extend the entry under the matching §20.10 item below: the reviewable artefact, the affected tests/baseline lines, the moved and added keys, and the classification with its reason.
+4. **Bless** — `BLESS=1 cargo test --workspace --test render --test render_components --test visual` (or `PERF_BLESS=1` for hit counts). `xtask bless-guard` is specified in §16.3 and **is not implemented yet**; until it lands this ledger is convention enforced by review.
 
 A capture cannot exist before the change, so `bless-guard` never runs locally against an unchanged tree. No baseline is regenerated because a test failed; the classification comes first.
 
-**Entry format** (one per affected surface):
+**Entry format** (one per affected surface). Every field of an entry lives inside **one** fenced block, so a reader that strips fences loses neither the classification, nor the citation, nor the evidence:
 
 ```
 - surface:   <app>/<page or component>/<state> @ <w>x<h> / <theme> / <color level>
 - captures:  shots/<before>.png  →  shots/<after>.png
+             — for a headless `Scene` matrix instead: `none under shots/`, the reason,
+               and the named frame-text dump that replaces it
 - tests:     <baseline file>:<line or name>, <test names>
+- moved:     <key> <old hash> → <new hash>, one line per baseline key whose hash
+             changed; `none` when nothing moved
+- added:     <key>, one line per baseline key recorded for the first time; a key
+             *pattern* with its exact count is admissible when one matrix generates
+             the whole set; `none` when nothing was added
 - class:     intended | fix | regression
-- reason:    <one sentence tying it to the §20.10 item>
+- reason:    <one sentence tying it to the numbered §20.10 item>
 ```
+
+**`- moved:` is read, never predicted.** The moved set cannot be known before it is generated, so this field is produced by `git diff <baseline file>` **after a scratch bless that is then discarded** (§36.3): bless into the working tree, read the diff, `git checkout --` the baseline to throw the scratch bless away, write this field from what the diff said, then bless again and commit. The discarded bless is an instrument for reading the diff; the committed bless follows the classification, so the fixed order is not violated.
+
+**`- moved:` and `- added:` partition the diff.** A key that has a previous hash is *moved*; a key recorded for the first time is *added*. Every key the diff touches appears in exactly one of the two fields — that equality, not co-presence of an entry, is what §36.5 makes the checkable property.
+
+**`- captures:` admits two artefacts, and only two.** A capture path under `shots/` for a baseline produced by a running application; or, for a baseline produced headlessly by a `Scene`, the statement that no capture exists or can exist plus the **name** of the frame-text dump that stands in for it — the `Mismatch` / `Missing` branch output of `Scene::assert_against`, which prints the frame text in both cases. §36 established that `tools/capture.sh` drives a terminal session and cannot address a `Scene` at all, so requiring a `shots/` path universally would make the component matrix unblessable by its own rule.
 
 ---
 
 ## Item 1 — Mono legibility fallbacks (§11.4, §21 item 25)
 
-### 1a — mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background (§28 P6)
+### 1a — `Tabs` paints §11.4's mono `PRESSED` bracket
 
-**§20.10 classification line:** mono DISABLED gains DIM on FIELD/TEXT and stops
-tinting the foreground into the background.
+**§20.10 classification line:** at `ColorLevel::Mono` every state gains a symbol or
+modifier — for `PRESSED`, explicit reverse + `BOLD` + `PressLeft`/`PressRight`
+brackets (§21 item 25).
 
-**What changed.** §11.4's `DISABLED` row prescribed `fg = Role::Fg(Faint)`. At
-`ColorLevel::Mono` that is a defect, not a downgrade: `mono()` maps every step
-below `Y = 0.35` to `Black`, and `junie`'s `disabled_fg` (`#4d4d4d`), `Fg(Faint)`
-(`#262626`) and `surfaces[0]` (`#000000`) are all below it — a disabled control
-was painted **black on black**, unreadable rather than merely colourless
-(goal §29 asks for readable). The mono table also reached no part a *text*
-control paints for its own content, so a disabled `TextInput` was
-indistinguishable from an enabled one under `Mono` at all.
-
-Three rule changes in `crates/tui/src/theme/downgrade.rs::mono_rules()`
-(`MONO_RULES_PER_FAMILY` 16 → 18):
-
-- new `(Part::FIELD, DISABLED)` and `(Part::TEXT, DISABLED)`:
-  `set_fg(Fg(Primary)).remove(Modifier::all()).add(Modifier::DIM)`;
-- amended `(Part::LABEL, DISABLED)` and `(Part::MARKER, DISABLED)`:
-  `Fg(Faint)` → `Fg(Primary)`, same reason.
-
-`PLACEHOLDER` needs no rule (it inherits the `FIELD` fill's modifiers per cell)
-and `CONTAINER` needs none (a text control fills `FIELD`). The new rules are
-declared **before** the `ERROR` rules, so `ERROR`'s `UNDERLINED` is not erased
-by `remove(Modifier::all())`.
-
-**Second change in the same table pass:** `Tabs` now paints §11.4's mono
-`PRESSED` bracket (`[label]`) into the pad cells the tab already reserves —
-geometry is identical — because the row fn paints the tab label through
-`RowUi`, which cannot consult the `LABEL` glyph slot the way `Button::draw`
-does. Without it a pressed tab and a focused tab are the same picture without
-colour.
+**What changed.** §11.4's `PRESSED` row already mandated the `[label]` bracket and
+never said **who paints it**. `Button::draw` consults the `LABEL` glyph slot and
+painted it; the `Tabs` row fn paints its label through `RowUi`, which cannot consult
+that slot, so a tab never got the bracket. `Tabs` now paints it into the pad cells
+the tab already reserves — geometry is identical. Without it a pressed tab and a
+focused tab are the same picture under `Mono`: the mono `PRESSED` and `FOCUSED`
+styles differ only in colour, and at `Mono` there is no colour.
 
 ```
-- surface:   tui-next/{text_input,field,list,button,tabs,dialog}/disabled and tabs/pressed
-             @ {120x40, 40x10} / {junie, paper} / mono   (truecolor cells are untouched:
-             mono rules are appended only at `ColorLevel::Mono`)
-- captures:  none under `shots/` — this matrix is a headless digest matrix, not a
-             running app: `tools/capture.sh` drives a terminal session and cannot
-             address a `Scene`. The reviewable artifact is the digest diff of
-             `crates/tui/tests/baselines/components.txt` in the same commit; the
-             painted **text** is byte-identical in every moved cell (the panic
-             output shows it), so the whole difference is style.
+- surface:   tui-next/tabs/pressed @ {120x40, 40x10} / {junie, paper} / mono
+             (truecolor cells are untouched: the bracket branch is gated on
+             `Slot::Set(GlyphRole::PressLeft)`, and that slot is set only by a rule
+             appended at `ColorLevel::Mono`)
+- captures:  none under `shots/` — this is a headless digest matrix, not a running
+             app: `tools/capture.sh` drives a terminal session and cannot address a
+             `Scene`. The reviewable artefact is the frame text the failing
+             `Scene::assert_against` printed for each moved cell, alongside the
+             digest diff of `crates/tui/tests/baselines/components.txt` in the same
+             commit; the painted **text** gains the two bracket glyphs in cells the
+             tab already reserved as padding, and nothing else moves.
 - tests:     crates/tui/tests/baselines/components.txt (mono lines only),
-             render::components::{text_input,field,list,button,tabs,dialog}::disabled,
-             render::components::tabs::pressed
-- moved:     20 lines, every one `mono` (`git diff crates/tui/tests/baselines/components.txt`):
-```
-  render::components::button::disabled 120 40 junie mono 023bd60f5b1ae845 → d20bb906fcfe3dd1
-  render::components::button::disabled 40 10 junie mono 15af984dfc54c7c5 → bfe7ea91b76bd751
-  render::components::dialog::disabled 120 40 junie mono 3162b7d5bbf2a5f5 → 2d6a3cd4c020d7e5
-  render::components::dialog::disabled 40 10 junie mono 03fb01cee70da7f5 → 3ef081624f0f1fa5
-  render::components::field::disabled 120 40 junie mono ee232d54d927e1b4 → 399b0a5bc31c9d66
-  render::components::field::disabled 120 40 paper mono 2ce10fc98c3c6524 → e0d02bbbddbfe054
-  render::components::field::disabled 40 10 junie mono bb701f176484fbb4 → d8fb0563075c66a6
-  render::components::field::disabled 40 10 paper mono 8850862fa2588ec4 → 55505cb874284414
-  render::components::list::disabled 120 40 junie mono 8ef3444eee52116d → 5c5f27303fa8adf5
-  render::components::list::disabled 40 10 junie mono 6dc1b708da3a1a6d → 86dd18d3924968f5
-  render::components::tabs::disabled 120 40 junie mono 35a3a27d0daf3a0c → 383875a51445a582
-  render::components::tabs::disabled 40 10 junie mono f3715f8ca6758086 → d48c88f61b9cf638
+             render::components::tabs::pressed,
+             conformance::tabs::mono_states_are_distinguishable
+- moved:     4 lines, every one `mono` (`git diff crates/tui/tests/baselines/components.txt`):
   render::components::tabs::pressed 120 40 junie mono 5517de00b23ac747 → 8531aef99ed82a7c
   render::components::tabs::pressed 120 40 paper mono ca497a2a34358f51 → 57bc3c9afc387ab6
   render::components::tabs::pressed 40 10 junie mono 8a4bc1549eca3857 → a1ca30a076849608
   render::components::tabs::pressed 40 10 paper mono dfaa198c140af319 → 35b0ee5d62f85452
-  render::components::text_input::disabled 120 40 junie mono f32a4730f22cd73a → 1db1055714d0b91e
-  render::components::text_input::disabled 120 40 paper mono 44f4c6f88a4aec46 → d36c9e02c6aca8be
-  render::components::text_input::disabled 40 10 junie mono 8725f1e9f6355d3a → 1e91d7e4d1cdcfde
-  render::components::text_input::disabled 40 10 paper mono d63984c2d12b1c26 → 5257f3bad4cc42be
-```
+- added:     none
 - class:     fix
-- reason:    §20.10 item 1 (mono legibility fallbacks). The old output was
-             unreadable at `Mono` (black on black) and gave a text control's
-             disabled state no signal at all; the new output is `DIM` over the
-             primary foreground, which §16.2 case 9 can see and a reader can
-             read. `conformance::text_input::mono_states_are_distinguishable`
-             now keeps `DISABLED` instead of narrowing it away (MA-8).
+- reason:    §20.10 item 1 (mono legibility fallbacks). §11.4 already prescribed the
+             `PRESSED` bracket; `Tabs` did not paint it, so under `Mono` a pressed
+             tab was byte-identical to a focused one — a declared rule that produced
+             no output, which is a demonstrated defect in the old picture rather than
+             a downgrade of it.
+```
+
+### 1b — `field::disabled`'s mono line, provisional (§29 `Slot<GlyphRole>` migration)
+
+**PROVISIONAL — NOT CLASSIFIED, NOT BLESSABLE AS WRITTEN.** This entry is a
+placeholder for a movement whose **cause has not been established**. §36.3 says so
+explicitly: the structural argument that bounds the `PRESSED` bracket to mono cells
+(the bracket branch is gated on a slot only a mono rule sets) has **no counterpart
+for `field::disabled`**, and that cell "must not be classified before its frame text
+is read".
+
+**This is a *second* movement of keys entry 18a already recorded.** The four
+`field::disabled` mono keys moved once under §28's mono `DISABLED` rules (18a below)
+and are moving again in the pending Slice-4 wave-1 bless. §20.10's closing clause and
+item 19's "may not be cited again" rule both apply: a second movement must classify
+under items 1–18 on its own evidence or it is a regression. The hashes recorded in
+18a are that movement's `→` side and are this movement's *old* side; they are not
+re-listed here, and the keys are counted once in each entry's own `- moved:` field.
+
+**Who fills this in, and from what.** The Slice-4 wave-1 blessing builder, from the
+frame text `Scene::assert_against` prints for `render::components::field::disabled`
+at `junie mono` 120×40 on the unblessed tree, read against the same cell's previous
+frame. One of exactly three outcomes must be recorded here, and the entry rewritten
+accordingly:
+
+1. **The reserved cell is now cleared.** The likely reading: §29's `Slot<GlyphRole>`
+   migration made `Slot::Clear` distinguishable from `Slot::Inherit`, so the mono
+   `DISABLED` rules for `GUTTER` and `MARKER` that carry `Slot::Clear` now actually
+   clear the reserved cell instead of inheriting into it — a rule that was declared
+   and inert now executes. That stays under **item 1** and classifies `fix`.
+2. **The frame text is unchanged and the difference is a `DIM` / `Fg(Primary)`
+   restyle.** Then it is the same change as §20.10 item 18 and the entry **moves to
+   item 18**; it does not belong here.
+3. **Neither.** Then it is a **regression**, §20.10's closing clause applies, and
+   **the line must not be blessed at all** — the movement is fixed in the code, not
+   recorded in this ledger.
+
+```
+- surface:   tui-next/field/disabled @ {120x40, 40x10} / {junie, paper} / mono
+- captures:  none under `shots/` — headless `Scene` matrix (see 1a). PLACEHOLDER:
+             the frame-text dump for the four `field::disabled` mono cells is not
+             yet produced; the Slice-4 wave-1 blessing builder produces it by running
+             `cargo test -p tui-next --test render_components field::disabled`
+             with no `BLESS` set and attaching the printed frames.
+- tests:     crates/tui/tests/baselines/components.txt (mono lines only),
+             render::components::field::disabled
+- moved:     PLACEHOLDER — NOT YET KNOWN. Filled by the Slice-4 wave-1 blessing
+             builder from `git diff crates/tui/tests/baselines/components.txt` after
+             a scratch bless that is then discarded (§36.3). No hash may be written
+             here from prediction. Every key recorded here must end in `mono`; a
+             `truecolor` key means the change escaped the mono rules and the bless
+             stops (§36.5's unconditional refusal).
+- added:     none
+- class:     PLACEHOLDER — NOT YET CLASSIFIED. One of `fix` (outcome 1),
+             `regression` (outcome 3), or this entry is deleted and the keys are
+             recorded under item 18 (outcome 2).
+- reason:    PLACEHOLDER — written only once the frame text has been read. Citing
+             §20.10 item 1 before that is exactly the untrue citation §36.2 refuses.
 ```
 
 ## Item 2 — Layer compositing order (§5 R7, §3.3 step 12)
@@ -169,3 +204,200 @@ captures / classification: `(pending — filled when the change lands)`
 Per affected test: old reachable count, new reachable count, the `Harness::ring().reachable()` listing, and the reason — written **before** the expected value in the test is edited. Also the home for `frame_showcase_lists_120x40`'s classified hit-count growth (§16.6, P8).
 
 captures / classification: `(pending — filled when the change lands)`
+
+## Item 16 — Display width follows `CellWidth::cell_width`, not raw `unicode-width` (§22)
+
+Any string containing U+FF9E/U+FF9F measures one column wider per mark, so every cell whose line moves is enumerated with the string that re-measured.
+
+captures / classification: `(pending — filled when the change lands)`
+
+## Item 17 — `Anchor::Point` flips instead of covering the pointer (§26, Adjudication N1)
+
+**Already recorded as owed.** §26 risk 6 states that the flip is a visual change for
+any existing tooltip or context menu near a screen edge, and that an entry under this
+item is required **before any baseline that moves is blessed**. No tooltip or
+context-menu baseline may be blessed until this section carries a real entry.
+
+captures / classification: `(pending — filled when the change lands)`
+
+## Item 18 — Mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background (§28, Adjudication P6)
+
+### 18a — the mono `DISABLED` rules
+
+**§20.10 classification line:** mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and
+stops tinting the foreground into the background.
+
+**What changed.** §11.4's `DISABLED` row prescribed `fg = Role::Fg(Faint)`. At
+`ColorLevel::Mono` that is a defect, not a downgrade: `mono()` maps every step
+below `Y = 0.35` to `Black`, and `junie`'s `disabled_fg` (`#4d4d4d`), `Fg(Faint)`
+(`#262626`) and `surfaces[0]` (`#000000`) are all below it — a disabled control
+was painted **black on black**, unreadable rather than merely colourless
+(goal §29 asks for readable). The mono table also reached no part a *text*
+control paints for its own content, so a disabled `TextInput` was
+indistinguishable from an enabled one under `Mono` at all.
+
+Three rule changes in `crates/tui/src/theme/downgrade.rs::mono_rules()`
+(`MONO_RULES_PER_FAMILY` 16 → 18):
+
+- new `(Part::FIELD, DISABLED)` and `(Part::TEXT, DISABLED)`:
+  `set_fg(Fg(Primary)).remove(Modifier::all()).add(Modifier::DIM)`;
+- amended `(Part::LABEL, DISABLED)` and `(Part::MARKER, DISABLED)`:
+  `Fg(Faint)` → `Fg(Primary)`, same reason.
+
+`Part::PLACEHOLDER` needs no rule (it inherits the `FIELD` fill's modifiers per cell)
+and `Part::CONTAINER` needs none (a text control fills `FIELD`). The new rules are
+declared **before** the `ERROR` rules, so `ERROR`'s `UNDERLINED` is not erased
+by `remove(Modifier::all())`.
+
+```
+- surface:   tui-next/{text_input,field,list,button,tabs,dialog}/disabled
+             @ {120x40, 40x10} / {junie, paper} / mono   (truecolor cells are untouched:
+             mono rules are appended only at `ColorLevel::Mono`)
+- captures:  none under `shots/` — this matrix is a headless digest matrix, not a
+             running app: `tools/capture.sh` drives a terminal session and cannot
+             address a `Scene`. The reviewable artefact is the frame text
+             `Scene::assert_against` printed for each moved cell, alongside the digest
+             diff of `crates/tui/tests/baselines/components.txt` in the same commit;
+             the painted **text** is byte-identical in every moved cell (the panic
+             output shows it), so the whole difference is style.
+- tests:     crates/tui/tests/baselines/components.txt (mono lines only),
+             render::components::{text_input,field,list,button,tabs,dialog}::disabled
+- moved:     16 lines, every one `mono` (`git diff crates/tui/tests/baselines/components.txt`):
+  render::components::button::disabled 120 40 junie mono 023bd60f5b1ae845 → d20bb906fcfe3dd1
+  render::components::button::disabled 40 10 junie mono 15af984dfc54c7c5 → bfe7ea91b76bd751
+  render::components::dialog::disabled 120 40 junie mono 3162b7d5bbf2a5f5 → 2d6a3cd4c020d7e5
+  render::components::dialog::disabled 40 10 junie mono 03fb01cee70da7f5 → 3ef081624f0f1fa5
+  render::components::field::disabled 120 40 junie mono ee232d54d927e1b4 → 399b0a5bc31c9d66
+  render::components::field::disabled 120 40 paper mono 2ce10fc98c3c6524 → e0d02bbbddbfe054
+  render::components::field::disabled 40 10 junie mono bb701f176484fbb4 → d8fb0563075c66a6
+  render::components::field::disabled 40 10 paper mono 8850862fa2588ec4 → 55505cb874284414
+  render::components::list::disabled 120 40 junie mono 8ef3444eee52116d → 5c5f27303fa8adf5
+  render::components::list::disabled 40 10 junie mono 6dc1b708da3a1a6d → 86dd18d3924968f5
+  render::components::tabs::disabled 120 40 junie mono 35a3a27d0daf3a0c → 383875a51445a582
+  render::components::tabs::disabled 40 10 junie mono f3715f8ca6758086 → d48c88f61b9cf638
+  render::components::text_input::disabled 120 40 junie mono f32a4730f22cd73a → 1db1055714d0b91e
+  render::components::text_input::disabled 120 40 paper mono 44f4c6f88a4aec46 → d36c9e02c6aca8be
+  render::components::text_input::disabled 40 10 junie mono 8725f1e9f6355d3a → 1e91d7e4d1cdcfde
+  render::components::text_input::disabled 40 10 paper mono d63984c2d12b1c26 → 5257f3bad4cc42be
+- added:     none
+- class:     fix
+- reason:    §20.10 item 18 (mono `DISABLED` gains `DIM` and stops tinting the
+             foreground into the background). The old output was unreadable at
+             `Mono` (black on black) and gave a text control's disabled state no
+             signal at all; the new output is `DIM` over the primary foreground,
+             which §16.2 case 9 can see and a reader can read.
+             `conformance::text_input::mono_states_are_distinguishable` now keeps
+             `DISABLED` instead of narrowing it away (MA-8).
+```
+
+### 18b — `Button`'s mono `PRESSED` bracket moves out of the text run (§29 Q1), and `Dialog`'s action row moves with it
+
+**What changes.** Under §29 Q1 `Button` stops painting the `PressLeft`/`PressRight`
+bracket **inside** its text run and paints it into the cells the button reserves
+around the label. The old in-run bracket consumed two columns of the label's own
+run, so a label that exactly filled the button was **truncated** by the very glyphs
+that were supposed to make it legible under `Mono` — a demonstrated defect in the
+old output, not a restyle, which is why the class below is `fix` and not `intended`.
+
+`Dialog` moves in the same pass and for the same reason: it does not draw its own
+action buttons, it draws `Button` through `inherit_forced`, so every `Dialog` state
+that paints an action row inherits the new bracket placement. §20.10 item 18's tail
+clause, as extended by §36, names exactly this pair — `render::components::button::pressed`'s
+mono line **together with the same state of every component that draws a `Button`
+through `inherit_forced`, `Dialog`'s action row in the current matrix**.
+
+```
+- surface:   tui-next/{button,dialog}/pressed @ {120x40, 40x10} / {junie, paper} / mono
+- captures:  none under `shots/` — headless `Scene` matrix (see 18a). The reviewable
+             artefact is the frame text `Scene::assert_against` prints for each moved
+             cell, which is the artefact that shows the bracket leaving the text run
+             and the label ceasing to truncate. PLACEHOLDER: not yet produced; the
+             Slice-4 wave-1 blessing builder produces it by running
+             `cargo test -p tui-next --test render_components` with no `BLESS` set.
+- tests:     crates/tui/tests/baselines/components.txt (mono lines only),
+             render::components::button::pressed, render::components::dialog::pressed,
+             conformance::button::mono_states_are_distinguishable
+- moved:     PLACEHOLDER — NOT YET KNOWN. Filled by the Slice-4 wave-1 blessing
+             builder from `git diff crates/tui/tests/baselines/components.txt` after
+             a scratch bless that is then discarded (§36.3); one `<key> <old> → <new>`
+             line per moved key, no hash written from prediction. **Every key
+             recorded here must end in `mono`.** A `truecolor` key here stops the
+             bless outright: the bracket branch is gated on
+             `Slot::Set(GlyphRole::PressLeft)`, that slot is set only by a rule
+             appended at `ColorLevel::Mono`, so a truecolor movement means the change
+             escaped its gate and §20.10's closing clause makes it a regression
+             (§36.5's unconditional refusal).
+- added:     none
+- class:     fix
+- reason:    §20.10 item 18, tail clause as extended by §36. The old in-run bracket
+             truncated a label that filled the button, so the old output is
+             demonstrably wrong rather than merely different; `Dialog` moves because
+             it draws its buttons through `inherit_forced` and has no bracket of its
+             own.
+```
+
+## Item 19 — First-generation `render::components::*` digests for the Slice-4 component matrix (§36)
+
+**First generation only.** Nothing moves: the component did not exist in the reviewed
+tree, so no cell has a before-image and no cell is a difference from anything. The
+second time one of these keys changes it classifies under items 1–18 or it is a
+regression, and **this item may not be cited again for the same key**.
+
+### 19a — the fourteen Slice-4 components record their first digest lines
+
+**What is recorded.** Fourteen components — `text_area`, `select`, `radio_group`,
+`checkbox`, `toggle`, `chip_bar`, `status_bar`, `hint_bar`, `key_hint`,
+`progress_bar`, `spinner`, `meter`, `empty`, `brand` — each generate
+8 states (`default`, `focused`, `hovered`, `pressed`, `disabled`, `selected`,
+`editing`, `empty`) × {junie, paper} × {truecolor, mono} × {120×40, 40×10} = **64**
+lines, **896** in total. One matrix (`crates/tui/tests/render_components.rs::run`)
+generates the whole set from one loop nest, which is why the `- added:` field below
+is a key pattern with an exact count rather than 896 transcribed keys.
+
+**What this entry is not.** It is not an approval of how these components look. A
+first-generation digest cannot be reviewed as a digest: the hash is not inspectable
+and there is no before-image to diff. What is reviewed is the **frame**, and only its
+glyph half; the style half — `fg`, `bg`, `modifier` — is reviewed by nobody here and
+is asserted instead by the 20-case conformance matrix and the `theme::*` contrast and
+mono-legibility tests. A first-generation line is a **pin against future drift, not
+an approval of present appearance** (§20.10 item 19, §36.4); the first review of
+these components *as pictures* is the Slice-5 capture matrix.
+
+```
+- surface:   tui-next/{text_area,select,radio_group,checkbox,toggle,chip_bar,
+             status_bar,hint_bar,key_hint,progress_bar,spinner,meter,empty,brand}
+             / {default,focused,hovered,pressed,disabled,selected,editing,empty}
+             @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under `shots/`, and none can exist — the matrix is headless:
+             `Scene` draws into a `TestBackend` buffer and `tools/capture.sh` drives a
+             terminal session, so it cannot address a `Scene` at all (§36.4).
+             The artefact that replaces it is the **frame-text dump**: the `Missing`
+             branch of `Scene::assert_against` prints `text()` for every unrecorded
+             cell. PLACEHOLDER — the dump file does not exist yet. It is produced by
+             the Slice-4 wave-1 blessing builder running
+             `cargo test -p tui-next --test render_components` with **no** `BLESS`
+             set, capturing the printed frames, and committing them as
+             `docs/frames/slice4-first-generation.txt` in the same commit as the
+             bless; §20.10 item 19 then requires a **fresh read-only `opus-analyst`
+             visual reviewer, never the builder who generated the lines**, to read
+             the `junie truecolor` and `junie mono` 120×40 frames of all eight states
+             of each component against its six named rejection conditions.
+- tests:     crates/tui/tests/baselines/components.txt,
+             render::components::{text_area,select,radio_group,checkbox,toggle,
+             chip_bar,status_bar,hint_bar,key_hint,progress_bar,spinner,meter,empty,
+             brand}::{default,focused,hovered,pressed,disabled,selected,editing,empty}
+- moved:     none. No key in this entry has a previous hash; the components did not
+             exist in the reviewed tree, so no cell has a before-image.
+- added:     896 keys, the complete cross product of the pattern
+             `render::components::<component>::<state> <w> <h> <theme> <color>`
+             over the fourteen components × eight states × {junie, paper} ×
+             {truecolor, mono} × {120 40, 40 10} — 64 per component, 896 in total.
+             One matrix generates the whole set, so the pattern with its exact count
+             is the admissible form of this field.
+- class:     intended
+- reason:    §20.10 item 19 (first-generation `render::components::*` digests for the
+             Slice-4 component matrix). §16.3 requires one digest line per component
+             × state × theme × colour × size and these fourteen had none; the lines
+             are a pin against future drift, **not** an approval of present
+             appearance, and the item may never be cited again for the same key.
+```
