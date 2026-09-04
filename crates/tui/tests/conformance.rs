@@ -31,15 +31,14 @@ use tui_next::{
     ListAction, ListCmd, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Meter, NavList,
     NavListAction, NavListCmd, NavListState, NavUnit, Panel, Picker, PickerAction, PickerChain,
     PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState, ProgressBar,
-    Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, RadioGroup, RadioGroupAction,
-    RadioGroupState, Role, RowUi, ScreenAlign, ScrollRegion, Secret, SecretPolicy, Select,
-    SelectAction, SelectCmd, SelectMode, SelectState, Slot, Span, Spinner, SplitAction, SplitAxis,
-    SplitCmd, SplitPane, SplitPaneState, Status, StatusAction, StatusBar, StatusItem, StepState,
-    Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction, TabsCmd, TextAction, TextArea,
-    TextAreaState, TextCmd, TextInput, TextInputState, TextViewport, Theme, Toggle, TooSmall, Tree,
-    TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction, ViewportCmd, ViewportLine,
-    ViewportState, Wizard, WizardAction, WizardCmd, WizardState, WizardStep, binding_conflicts,
-    resolve_anchor,
+    Props, RadioGroup, RadioGroupAction, RadioGroupState, Role, RowUi, ScreenAlign, ScrollRegion,
+    Secret, SecretPolicy, Select, SelectAction, SelectCmd, SelectMode, SelectState, Slot, Span,
+    Spinner, SplitAction, SplitAxis, SplitCmd, SplitPane, SplitPaneState, Status, StatusAction,
+    StatusBar, StatusItem, StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction,
+    TabsCmd, TextAction, TextArea, TextAreaState, TextCmd, TextInput, TextInputState, TextViewport,
+    Theme, Toggle, TooSmall, Tree, TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction,
+    ViewportCmd, ViewportLine, ViewportState, Wizard, WizardAction, WizardCmd, WizardState,
+    WizardStep, binding_conflicts, resolve_anchor,
 };
 use tui_next_testing::conformance::{
     Caps, Conformance, Fixture, FixtureRow, PointerGesture, mono_states_required_by,
@@ -961,107 +960,6 @@ impl Conformance for PropsCase {
     }
     fn mono_narrowing_reason() -> &'static str {
         "FOCUSED SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE: Props is a stateless label/value surface"
-    }
-}
-
-const PROPS_LIST: Id = Id::root("conformance.props-list");
-
-/// `PropsList`: keyed, focusable, scrollable label / value rows.
-struct PropsListCase;
-
-fn props_list_rows(f: &Fixture) -> Vec<PropsRow<'_>> {
-    f.rows
-        .iter()
-        .map(|row| PropsRow::new(row.key, &row.label, &row.meta).copyable())
-        .collect()
-}
-
-impl Conformance for PropsListCase {
-    const NAME: &'static str = "props_list";
-    const FAMILY: Family = Family::PROPS;
-    const PARTS: &'static [Part] = PropsList::PARTS;
-    type State = PropsState;
-    type Action = PropsAction;
-    type Cmd = PropsCmd;
-
-    fn caps() -> Caps {
-        Caps::ACTIVATES | Caps::FOCUSABLE | Caps::COLLECTION | Caps::SCROLLS
-    }
-
-    fn id() -> Id {
-        PROPS_LIST
-    }
-
-    fn update(cx: &mut Cx<'_>, st: &mut PropsState, f: &Fixture) -> Response<PropsAction> {
-        let rows = props_list_rows(f);
-        PropsList::new(PROPS_LIST).update(cx, st, &rows)
-    }
-
-    fn draw(ui: &mut Ui<'_>, area: Rect, st: &PropsState, f: &Fixture) {
-        let rows = props_list_rows(f);
-        PropsList::new(PROPS_LIST)
-            .patch_part(patch_of(f))
-            .draw(ui, area, st, &rows);
-    }
-
-    fn activation_chords() -> &'static [Chord] {
-        const CHORDS: &[Chord] = &[Chord::key(KeyCode::Char('y')), Chord::key(KeyCode::Enter)];
-        CHORDS
-    }
-
-    fn activation_part() -> PartRef {
-        PartRef::item(Part::ROW, ItemKey::num(100))
-    }
-
-    fn bindings(state: BindingState) -> &'static [Binding<PropsCmd>] {
-        PropsList::new(PROPS_LIST).bindings(state)
-    }
-
-    fn prepare_scroll_fixture(f: &mut Fixture) {
-        while f.rows.len() < 12 {
-            let index = f.rows.len();
-            f.rows.push(FixtureRow {
-                key: ItemKey::num(100 + index as u64),
-                label: format!("row {index}"),
-                meta: format!("meta {index}"),
-                disabled: false,
-            });
-        }
-    }
-
-    fn item_keys(f: &Fixture) -> Vec<ItemKey> {
-        f.rows.iter().map(|row| row.key).collect()
-    }
-
-    fn reorder(f: &mut Fixture, perm: &[usize]) {
-        let before = f.rows.clone();
-        f.rows = perm
-            .iter()
-            .filter_map(|index| before.get(*index).cloned())
-            .collect();
-    }
-
-    fn reveal_item_chords(_key: ItemKey, _f: &Fixture) -> Vec<Chord> {
-        vec![Chord::key(KeyCode::End)]
-    }
-
-    fn action_key_of(action: &PropsAction) -> Option<ItemKey> {
-        match action {
-            PropsAction::Copy(key) => Some(*key),
-        }
-    }
-
-    fn mono_states() -> &'static [StateFlags] {
-        const STATES: &[StateFlags] = &[
-            StateFlags::empty(),
-            StateFlags::FOCUSED,
-            StateFlags::PRESSED,
-        ];
-        STATES
-    }
-
-    fn mono_narrowing_reason() -> &'static str {
-        "SELECTED DISABLED ERROR WARNING EDITING BUSY ACTIVE: PropsList navigates and copies borrowed rows; it has no selection, disabled, readiness, editing, or active-item state"
     }
 }
 
@@ -3963,7 +3861,6 @@ conformance_suite!(
     dialog => DialogCase,
     scroll_region => ScrollRegionCase,
     props => PropsCase,
-    props_list => PropsListCase,
     text_area => TextAreaCase,
     select => SelectCase,
     radio_group => RadioGroupCase,
@@ -4072,7 +3969,6 @@ fn every_registered_table_is_clean() {
     clean::<DialogCase>(&states);
     clean::<ScrollRegionCase>(&states);
     clean::<PropsCase>(&states);
-    clean::<PropsListCase>(&states);
     clean::<TextAreaCase>(&states);
     clean::<SelectCase>(&states);
     clean::<RadioGroupCase>(&states);
@@ -4221,7 +4117,6 @@ fn draw_registers_nothing_when_it_cannot_draw() {
     degenerate::<DialogCase>();
     degenerate::<ScrollRegionCase>();
     degenerate::<PropsCase>();
-    degenerate::<PropsListCase>();
     degenerate::<TextAreaCase>();
     degenerate::<SelectCase>();
     degenerate::<RadioGroupCase>();
@@ -4342,7 +4237,6 @@ mod registry {
                 "dialog",
                 "scroll_region",
                 "props",
-                "props_list",
                 "text_area",
                 "select",
                 "radio_group",
@@ -4390,8 +4284,6 @@ mod registry {
         check::<ListCase>(&[]);
         check::<TabsCase>(&[]);
         check::<ScrollRegionCase>(&[]);
-        check::<PropsCase>(&[]);
-        check::<PropsListCase>(&[]);
         check::<TextAreaCase>(&[]);
         check::<SelectCase>(&[]);
         check::<RadioGroupCase>(&[]);

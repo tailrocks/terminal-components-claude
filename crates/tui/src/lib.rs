@@ -100,9 +100,8 @@ pub use collection::{
 // components (Slice 4, append-only region, alphabetical)
 pub use components::{
     BlurPolicy, Button, ButtonCmd, Dialog, DialogAction, DialogCmd, DialogState, EditPhase, Field,
-    List, ListAction, ListCmd, ListState, Props, PropsAction, PropsCmd, PropsList, PropsRow,
-    PropsState, PropsValue, ScrollRegion, Tabs, TabsAction, TabsCmd, TabsState, TextAction,
-    TextCmd, TextInput, TextInputState,
+    List, ListAction, ListCmd, ListState, Props, ScrollRegion, Tabs, TabsAction, TabsCmd,
+    TabsState, TextAction, TextCmd, TextInput, TextInputState,
 };
 // components — work package 4B (fields, inputs, textarea, select, choice, chips),
 // appended as its own line so the shared list above is never rewritten
