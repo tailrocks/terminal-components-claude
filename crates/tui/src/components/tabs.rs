@@ -591,7 +591,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         if !self.ov.is_forced() {
             ui.register_control(self.id, used, Focusability::Focusable);
         }
-        let live = self.ov.flags(ui.state(self.id)) | self.status.flags();
+        let live = self.ov.flags(ui.state(self.id), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let strip = ov.style(

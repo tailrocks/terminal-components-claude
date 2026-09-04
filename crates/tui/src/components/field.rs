@@ -201,10 +201,14 @@ impl<'a, C: FieldControl> Field<'a, C> {
             return area;
         }
         let id = self.control.id();
-        let mut live = self.ov.flags(ui.state(id));
-        if self.error.is_some() {
-            live |= StateFlags::ERROR;
-        }
+        // runtime: the wrapped control's frame state; derived: the `ERROR`
+        // the caller's own `.error` message implies
+        let derived = if self.error.is_some() {
+            StateFlags::ERROR
+        } else {
+            StateFlags::empty()
+        };
+        let live = self.ov.flags(ui.state(id), derived);
         let ov = self.ov;
         let forced = ov.is_forced();
         let style = |ui: &mut Ui<'_>, part: Part| {

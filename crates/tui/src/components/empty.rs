@@ -184,7 +184,11 @@ impl<'a> Empty<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = self.ov.flags(self.state.status().flags());
+        // runtime: none; derived: the readiness of the surface the caller
+        // handed us (`EmptyState::status`)
+        let live = self
+            .ov
+            .flags(StateFlags::empty(), self.state.status().flags());
         let ov = self.ov;
         if let Some(f) = ov.slot_for(Part::EMPTY) {
             f(ui, area);

@@ -707,15 +707,20 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
     /// The live state flags of the closed field: the frame's own flags plus
     /// the ones this instance forces.
     fn live_flags(&self, ui: &Ui<'_>, st: &SelectState) -> StateFlags {
-        let mut live = self.ov.flags(ui.state(self.id));
+        // runtime: the frame's own focus/hover/press; derived: the caller's
+        // `.read_only` and `.disabled` props and the caller-owned `st.open`
+        let mut derived = StateFlags::empty();
         if st.open {
-            live |= StateFlags::EXPANDED;
+            derived |= StateFlags::EXPANDED;
         }
         if self.read_only {
-            live |= StateFlags::READ_ONLY;
+            derived |= StateFlags::READ_ONLY;
         }
         if self.disabled {
-            live |= StateFlags::DISABLED;
+            derived |= StateFlags::DISABLED;
+        }
+        let mut live = self.ov.flags(ui.state(self.id), derived);
+        if self.disabled {
             live = live.difference(StateFlags::HOVERED);
         }
         live

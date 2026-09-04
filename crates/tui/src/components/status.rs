@@ -743,7 +743,7 @@ impl<'a> StatusBar<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = self.ov.flags(ui.state(self.id)) | self.status.flags();
+        let live = self.ov.flags(ui.state(self.id), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let d = ui.design();

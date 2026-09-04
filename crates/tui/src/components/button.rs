@@ -320,16 +320,22 @@ impl<'a> Button<'a> {
             };
             ui.register_control(self.id, area, f);
         }
-        let mut live = self.ov.flags(ui.state(self.id)) | self.status.flags();
+        // runtime: the frame's own focus/hover/press; derived: `.status`,
+        // `.disabled` and `.checked`. The subtractions stay after the union —
+        // they remove states the props forbid, whoever supplied them.
+        let mut derived = self.status.flags();
         if self.disabled {
-            live |= StateFlags::DISABLED;
+            derived |= StateFlags::DISABLED;
+        }
+        if self.checked == Some(true) {
+            derived |= StateFlags::CHECKED;
+        }
+        let mut live = self.ov.flags(ui.state(self.id), derived);
+        if self.disabled {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
         if self.busy() {
             live = live.difference(StateFlags::PRESSED);
-        }
-        if self.checked == Some(true) {
-            live |= StateFlags::CHECKED;
         }
         let ov = self.ov;
         let style = |ui: &mut Ui<'_>, part: Part| {

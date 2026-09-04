@@ -137,9 +137,19 @@ impl<'a> Overrides<'a> {
         self
     }
 
-    /// The live flags: the forced state when set, else `live`.
-    pub(crate) fn flags(&self, live: StateFlags) -> StateFlags {
-        self.state.unwrap_or(live)
+    /// The flags a part resolves under (§39.2, Invariant Q).
+    ///
+    /// The two halves have **opposite ownership**. `runtime` is what the
+    /// frame supplies — `Ui::state(id)`, the focus, hover and press the
+    /// snapshot carries. `derived` is what the caller's own props imply —
+    /// `Status::flags`, a `DISABLED` from a `.disabled` builder, a `CHECKED`
+    /// from a `.checked` one. **A forced state substitutes for the runtime
+    /// and never for the props**, so `flags(r, d) ⊇ d` holds unconditionally:
+    /// a reference rendering may show a state the runtime never produced, and
+    /// may never hide a state the props declare.
+    pub(crate) fn flags(&self, runtime: StateFlags, derived: StateFlags) -> StateFlags {
+        self.state
+            .map_or(runtime | derived, |forced| forced | derived)
     }
 
     /// The instance patch for `part`: `.patch` merged with every matching
@@ -297,9 +307,19 @@ impl<A> Acc<A> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
 
-    use super::cell_at;
+    use super::{Overrides, cell_at};
+    use crate::collection::Status;
+    use crate::components::{HintBar, Meter, ProgressBar};
+    use crate::event::{Chord, KeyCode};
+    use crate::id::Id;
+    use crate::keymap::{Hint, HintLayer};
+    use crate::response::StateFlags;
+    use crate::theme::{GlyphRole, Theme};
+    use crate::ui::cx::LastFrame;
+    use crate::ui::{FrameState, Ui, UiCore};
 
     const AREA: Rect = Rect {
         x: 4,
@@ -352,5 +372,214 @@ mod tests {
             }
         );
         assert_eq!(cell_at(AREA, AREA.right() + 1).width, 0);
+    }
+
+    /// §39.2, Invariant Q — the operator law. A forced state substitutes for
+    /// the **runtime** half the frame supplies and never for the **derived**
+    /// half the caller's own props imply, so the flags a part resolves under
+    /// are `forced.map_or(runtime | derived, |f| f | derived)` and
+    /// `flags(r, d) ⊇ d` holds unconditionally.
+    ///
+    /// Before this, `Overrides::flags` took one argument and answered
+    /// `self.state.unwrap_or(live)`, so a forced state *replaced* the
+    /// props-derived half: `.status(Error).state_override(DISABLED)`
+    /// resolved to `DISABLED` alone and meant "disabled and **not** in
+    /// error", a rendering no caller can ask for by any other route.
+    #[test]
+    fn forcing_adds_to_the_derived_state_and_never_erases_it() {
+        let unforced = Overrides::new();
+        let runtime = StateFlags::HOVERED | StateFlags::FOCUSED;
+        let derived = StateFlags::ERROR;
+
+        // unforced: the plain union of the two halves
+        assert_eq!(unforced.flags(runtime, derived), runtime | derived);
+        assert_eq!(
+            unforced.flags(StateFlags::empty(), StateFlags::empty()),
+            StateFlags::empty()
+        );
+
+        // forcing substitutes for the runtime half, so a `HOVERED` the
+        // snapshot still carries from a previous frame is gone — the job A11
+        // exists for
+        let forced = Overrides::new().state_override(StateFlags::DISABLED);
+        assert_eq!(
+            forced.flags(runtime, StateFlags::empty()),
+            StateFlags::DISABLED
+        );
+
+        // and never for the derived half: this is §39.1's defect, verbatim
+        assert_eq!(
+            forced.flags(runtime, derived),
+            StateFlags::DISABLED | StateFlags::ERROR
+        );
+
+        // forcing *nothing* adds nothing, which is why §39.2 keeps the
+        // `Option` an `Option` instead of promoting it to a `Slot`
+        let forced_empty = Overrides::new().state_override(StateFlags::empty());
+        assert_eq!(
+            forced_empty.flags(StateFlags::empty(), derived),
+            unforced.flags(StateFlags::empty(), derived)
+        );
+        assert_eq!(forced_empty.flags(runtime, derived), derived);
+
+        // `flags(r, d) ⊇ d`, swept over every pairing of a representative set
+        let set = [
+            StateFlags::empty(),
+            StateFlags::DISABLED,
+            StateFlags::ERROR,
+            StateFlags::BUSY | StateFlags::LOADING,
+            StateFlags::HOVERED | StateFlags::PRESSED,
+            StateFlags::CHECKED | StateFlags::SELECTED,
+            StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::EDITING,
+        ];
+        for r in set {
+            for d in set {
+                assert!(
+                    unforced.flags(r, d).contains(d),
+                    "unforced dropped the derived half: r={r:?} d={d:?}"
+                );
+                assert_eq!(unforced.flags(r, d), r | d, "r={r:?} d={d:?}");
+                for f in set {
+                    let ov = Overrides::new().state_override(f);
+                    let got = ov.flags(r, d);
+                    assert!(
+                        got.contains(d),
+                        "forcing {f:?} erased the derived half: r={r:?} d={d:?} -> {got:?}"
+                    );
+                    assert_eq!(got, f | d, "r={r:?} d={d:?} f={f:?}");
+                }
+            }
+        }
+    }
+
+    const ROW: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 60,
+        height: 1,
+    };
+
+    /// Paints `f` onto a one-row screen and returns the row's text together
+    /// with the theme's `GlyphRole::Error` string.
+    fn painted(f: impl FnOnce(&mut Ui<'_>, Rect)) -> (String, &'static str) {
+        let theme = Theme::junie();
+        let mut fs = FrameState::default();
+        fs.reset(1, ROW);
+        let mut page = Buffer::empty(ROW);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let glyph = {
+            let mut ui = Ui::new(&mut fs, &mut page, &mut core, &theme, &last);
+            let g = ui.glyph_str(GlyphRole::Error);
+            f(&mut ui, ROW);
+            g
+        };
+        let mut text = String::new();
+        for x in 0..ROW.width {
+            if let Some(c) = page.cell((x, 0)) {
+                text.push_str(c.symbol());
+            }
+        }
+        (text, glyph)
+    }
+
+    /// §39.1's visible consequence. The render matrix forces `DISABLED` onto
+    /// a component whose props say `Status::Error`, and under the replacing
+    /// operator the forced state won outright: the bar **was** in error and
+    /// painted no error glyph, contradicting `Caps::REPORTS_STATUS`'s own
+    /// obligation and §11.4. Under Invariant Q the props-derived `ERROR`
+    /// survives the forcing and the recipe's `.when(ERROR)` rule fires.
+    ///
+    /// `Status::Ready` is the control on every component here: the same
+    /// forced state with no error in the props must *not* paint the glyph, so
+    /// neither half of the assertion passes vacuously.
+    #[test]
+    fn a_forced_component_resolves_its_props_derived_state() {
+        let id = Id::root("q");
+
+        // ProgressBar: the trailing `Part::ICON` takes the recipe's
+        // `ERROR -> GlyphRole::Error` rule
+        let (bar, glyph) = painted(|ui, area| {
+            ProgressBar::new(id)
+                .ratio(0.65)
+                .status(Status::Error)
+                .state_override(StateFlags::DISABLED)
+                .draw(ui, area);
+        });
+        assert!(
+            bar.contains(glyph),
+            "a forced, erroring progress bar painted no error glyph: {bar:?}"
+        );
+        let (bar_ready, _) = painted(|ui, area| {
+            ProgressBar::new(id)
+                .ratio(0.65)
+                .status(Status::Ready)
+                .state_override(StateFlags::DISABLED)
+                .draw(ui, area);
+        });
+        assert!(
+            !bar_ready.contains(glyph),
+            "a forced, ready progress bar painted an error glyph: {bar_ready:?}"
+        );
+
+        // Meter: the same recipe, and its `icon` fallback reads the resolved
+        // flags rather than `self.status`, so the glyph has one source
+        let (meter, _) = painted(|ui, area| {
+            Meter::new(id)
+                .ratio(0.65)
+                .value("65%")
+                .status(Status::Error)
+                .state_override(StateFlags::DISABLED)
+                .draw(ui, area);
+        });
+        assert!(
+            meter.contains(glyph),
+            "a forced, erroring meter painted no error glyph: {meter:?}"
+        );
+        let (meter_ready, _) = painted(|ui, area| {
+            Meter::new(id)
+                .ratio(0.65)
+                .value("65%")
+                .status(Status::Ready)
+                .state_override(StateFlags::DISABLED)
+                .draw(ui, area);
+        });
+        assert!(
+            !meter_ready.contains(glyph),
+            "a forced, ready meter painted an error glyph: {meter_ready:?}"
+        );
+
+        // HintBar: `status_glyph` answered `None` for `DISABLED` alone, so
+        // the two columns the message reserves for it stayed blank
+        let layer = HintLayer {
+            hints: vec![Hint {
+                chord: Chord::key(KeyCode::Enter),
+                label: "Open",
+                priority: 0,
+            }],
+            badge: None,
+            status: Some("Unable to load".into()),
+            centered: false,
+        };
+        let (hints, _) = painted(|ui, area| {
+            HintBar::new(id, &layer)
+                .status(Status::Error)
+                .state_override(StateFlags::DISABLED)
+                .draw(ui, area);
+        });
+        assert!(
+            hints.contains(glyph),
+            "a forced, erroring hint bar painted no status glyph: {hints:?}"
+        );
+        let (hints_ready, _) = painted(|ui, area| {
+            HintBar::new(id, &layer)
+                .status(Status::Ready)
+                .state_override(StateFlags::DISABLED)
+                .draw(ui, area);
+        });
+        assert!(
+            !hints_ready.contains(glyph),
+            "a forced, ready hint bar painted a status glyph: {hints_ready:?}"
+        );
     }
 }

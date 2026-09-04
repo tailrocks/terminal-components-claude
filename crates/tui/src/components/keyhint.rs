@@ -238,7 +238,8 @@ impl<'a> KeyHint<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = self.ov.flags(StateFlags::empty());
+        // neither half: a key hint is static chrome
+        let live = self.ov.flags(StateFlags::empty(), StateFlags::empty());
         let ov = self.ov;
         let key_text = ChordText::of(self.chord);
         let key_cell = Rect {

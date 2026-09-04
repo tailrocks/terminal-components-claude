@@ -254,7 +254,8 @@ impl<'a> ScrollRegion<'a> {
             width: area.width.saturating_sub(1),
             ..area
         };
-        let live = self.ov.flags(ui.state(self.id));
+        // runtime only: a scroll region has no props that imply a state
+        let live = self.ov.flags(ui.state(self.id), StateFlags::empty());
         let track_len = usize::from(bar.height);
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;

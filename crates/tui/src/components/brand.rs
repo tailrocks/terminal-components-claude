@@ -254,11 +254,16 @@ impl<'a> Brand<'a> {
         if self.clickable && !forced {
             ui.register_control(self.id, lockup, Focusability::ClickOnly);
         }
-        let live = self.ov.flags(if self.clickable {
-            ui.state(self.id)
-        } else {
-            StateFlags::empty()
-        });
+        // runtime only, and only while clickable — an unclickable lockup
+        // registers nothing, so the snapshot has nothing to say about it
+        let live = self.ov.flags(
+            if self.clickable {
+                ui.state(self.id)
+            } else {
+                StateFlags::empty()
+            },
+            StateFlags::empty(),
+        );
         let ov = self.ov;
         if let Some(f) = ov.slot_for(Part::LABEL) {
             f(ui, lockup);

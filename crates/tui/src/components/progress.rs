@@ -180,14 +180,18 @@ pub(crate) fn run_of(
 /// `the_indeterminate_sweep_crosses_the_track_and_stays_inside_it` and
 /// `percentages_format_without_allocating`.
 ///
+/// The recipe's `ERROR → GlyphRole::Error` rule **does** fire, and
+/// `components::a_forced_component_resolves_its_props_derived_state` pins
+/// it: `Overrides::flags` substitutes a forced state for the *runtime* half
+/// only (§39.2), so the `::disabled` cell's `Status::Error` survives its
+/// forced `DISABLED` and the bar paints the glyph. This block previously
+/// asserted the opposite.
+///
 /// Exercised by no test, recorded as a gap rather than covered with a
-/// neighbouring citation: the recipe's `ERROR → GlyphRole::Error` and
-/// `CHECKED → GlyphRole::ProgressDone` rules never fire. Every fixture
-/// calls `.state_override`, and `Overrides::flags` **replaces** the
-/// status-derived flags with the forced ones, so the `::disabled` cell sets
-/// `Status::Error` and then hands the recipe `DISABLED`. Nothing draws an
-/// *indeterminate* bar either — every fixture calls `.ratio` — and nothing
-/// sets `.done(true)` or `.icon(…)`. The sub-`MIN_TRACK` fallback is
+/// neighbouring citation: the recipe's `CHECKED → GlyphRole::ProgressDone`
+/// rule, because nothing sets `.done(true)` — §39.6 obligation 2 holds it
+/// open. Nothing draws an *indeterminate* bar either — every fixture calls
+/// `.ratio` — and nothing calls `.icon(…)`. The sub-`MIN_TRACK` fallback is
 /// reached only inside `progress_bar::survives_tiny_rects_0x0_to_3x3`,
 /// which asserts that the bar neither panics nor paints outside its rect,
 /// never what it paints.
@@ -375,7 +379,9 @@ impl<'a> ProgressBar<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = self.ov.flags(self.flags());
+        // runtime: none — a bar is a readout and registers no control;
+        // derived: `self.flags()`, the `.status` readiness plus `.done`
+        let live = self.ov.flags(StateFlags::empty(), self.flags());
         let ov = self.ov;
         let id = self.id;
         let style = |ui: &mut Ui<'_>, part: Part| {
@@ -688,7 +694,8 @@ impl<'a> Spinner<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = self.ov.flags(StateFlags::BUSY);
+        // derived: a spinner is busy by construction
+        let live = self.ov.flags(StateFlags::empty(), StateFlags::BUSY);
         let ov = self.ov;
         let frame = Self::glyph(ui, self.frame);
         let icon = Rect {

@@ -161,10 +161,10 @@ pub enum MeterVisual {
 /// `render::components::meter::busy` and no `::error` to cite. Readiness
 /// arrives through the matrix's `status_for` mapping: `::pressed` draws
 /// `Status::Busy`, `::editing` `Status::Loading`, `::disabled`
-/// `Status::Error`, and the other five cells `Status::Ready`. `Meter::icon`
-/// reads `self.status` rather than the resolved flags, so the spinner and
-/// the `GlyphRole::Error` fallback really are painted — and pinned as
-/// digests — by those three cells.
+/// `Status::Error`, and the other five cells `Status::Ready`, so the spinner
+/// and the error glyph really are painted — and pinned as digests — by those
+/// three cells. `Meter::icon` reads the **resolved flags** for the glyph
+/// (§39.2); only the spinner branch reads `self.status`, through `busy`.
 ///
 /// The threshold mapping is unit-tested in this module by
 /// `tone_follows_the_design_thresholds_not_a_hard_coded_match` and
@@ -174,12 +174,12 @@ pub enum MeterVisual {
 /// neighbouring citation: nothing draws `MeterVisual::Block`, nothing calls
 /// `.tone(…)`, and nothing draws a meter without a `.ratio`, so the
 /// `Stale`, `Unknown` and `Series` runs, the block mode's `OnAccent`
-/// overlay and the value-only path have no coverage at all. The recipe's
-/// own `.when(ERROR)` rule on `Part::ICON` never fires either: every
-/// fixture calls `.state_override`, and `Overrides::flags` replaces the
-/// status-derived `ERROR` with the forced state, which is why the error
-/// glyph above reaches the row through the `Slot::Inherit` fallback rather
-/// than through the recipe.
+/// overlay and the value-only path have no coverage at all. The recipe's own
+/// `.when(ERROR)` rule on `Part::ICON` **does** fire, and
+/// `components::a_forced_component_resolves_its_props_derived_state` pins
+/// it: a forced state no longer erases the status-derived `ERROR`, so the
+/// glyph reaches the row through the recipe and carries `Role::Danger` with
+/// it. This block previously asserted the opposite.
 ///
 /// ## Invariants
 /// The tone is a function of the ratio and `design.meter`, never of a
@@ -331,7 +331,18 @@ impl<'a> Meter<'a> {
     }
 
     /// The trailing readiness glyph, or the spinner frame.
-    fn icon(&self, ui: &Ui<'_>, from_recipe: Slot<GlyphRole>) -> Option<&'static str> {
+    ///
+    /// The `Slot::Inherit` fallback reads `live` and not `self.status`
+    /// (§39.2): the recipe above it is matched against the resolved flags, so
+    /// a fallback keyed on the prop would give one glyph two sources of truth
+    /// and let them disagree the moment a state is forced. `StatusBar` and
+    /// `HintBar` already read the resolved flags here; this is the same shape.
+    fn icon(
+        &self,
+        ui: &Ui<'_>,
+        from_recipe: Slot<GlyphRole>,
+        live: StateFlags,
+    ) -> Option<&'static str> {
         if self.busy() {
             let frames = ui.design().motion.spinner_frames;
             return frames
@@ -340,11 +351,8 @@ impl<'a> Meter<'a> {
         }
         let g = match from_recipe {
             Slot::Set(g) => Some(g),
-            Slot::Inherit => match self.status {
-                Status::Error => Some(GlyphRole::Error),
-                _ => None,
-            },
-            Slot::Clear => None,
+            Slot::Inherit if live.contains(StateFlags::ERROR) => Some(GlyphRole::Error),
+            Slot::Inherit | Slot::Clear => None,
         };
         g.map(|g| ui.glyph_str(g))
     }
@@ -392,7 +400,9 @@ impl<'a> Meter<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = self.ov.flags(self.status.flags());
+        // runtime: none — a meter is a readout and registers no control;
+        // derived: the readiness the caller's `.status` declares
+        let live = self.ov.flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let tone = self.resolved_tone(ui);
@@ -402,7 +412,7 @@ impl<'a> Meter<'a> {
 
         let label = ov.style(ui, id, Family::METER, self.variant, Part::LABEL, live);
         let icon_style = ov.style(ui, id, Family::METER, self.variant, Part::ICON, live);
-        let glyph = self.icon(ui, icon_style.glyph);
+        let glyph = self.icon(ui, icon_style.glyph, live);
         let icon_w = glyph.map_or(0, |g| width(g).saturating_add(1));
 
         let Some(ratio) = self.ratio else {

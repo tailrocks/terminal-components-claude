@@ -381,15 +381,22 @@ impl<'a> Checkbox<'a> {
         if area.is_empty() {
             return area;
         }
-        let mut live = self.ov.flags(crate::ui::FrameRead::state(ui, self.id));
+        // runtime: the frame's own focus/hover/press; derived: the box's
+        // `.checked`, `.read_only` and `.disabled` props
+        let mut derived = StateFlags::empty();
         if self.checked {
-            live |= StateFlags::CHECKED;
+            derived |= StateFlags::CHECKED;
         }
         if self.read_only {
-            live |= StateFlags::READ_ONLY;
+            derived |= StateFlags::READ_ONLY;
         }
         if self.disabled {
-            live |= StateFlags::DISABLED;
+            derived |= StateFlags::DISABLED;
+        }
+        let mut live = self
+            .ov
+            .flags(crate::ui::FrameRead::state(ui, self.id), derived);
+        if self.disabled {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
         if !self.ov.is_forced() {
@@ -655,15 +662,22 @@ impl<'a> Toggle<'a> {
         if area.is_empty() {
             return area;
         }
-        let mut live = self.ov.flags(crate::ui::FrameRead::state(ui, self.id));
+        // runtime: the frame's own focus/hover/press; derived: the switch's
+        // `.on`, `.read_only` and `.disabled` props
+        let mut derived = StateFlags::empty();
         if self.on {
-            live |= StateFlags::CHECKED;
+            derived |= StateFlags::CHECKED;
         }
         if self.read_only {
-            live |= StateFlags::READ_ONLY;
+            derived |= StateFlags::READ_ONLY;
         }
         if self.disabled {
-            live |= StateFlags::DISABLED;
+            derived |= StateFlags::DISABLED;
+        }
+        let mut live = self
+            .ov
+            .flags(crate::ui::FrameRead::state(ui, self.id), derived);
+        if self.disabled {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
         if !self.ov.is_forced() {
@@ -1288,7 +1302,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             return used;
         }
         self.register(ui, used);
-        let live = self.ov.flags(crate::ui::FrameRead::state(ui, self.id));
+        // runtime: the group's own frame state; derived: none — the group's
+        // `.disabled` and `.read_only` enter per row, in `row_flags`
+        let live = self.ov.flags(
+            crate::ui::FrameRead::state(ui, self.id),
+            StateFlags::empty(),
+        );
         let cursor = st.core.cursor();
         let rows = usize::from(used.height);
         for (i, item) in items.iter().enumerate().take(rows) {

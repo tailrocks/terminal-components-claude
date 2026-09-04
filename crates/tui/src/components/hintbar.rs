@@ -115,10 +115,14 @@ use crate::ui::{FrameRead, Ui};
 /// fixture, `fitting` keeps both hints at 40 and at 120 columns whether or
 /// not a readiness glyph takes its two cells, so no matrix cell reaches the
 /// `Part::OVERFLOW` branch, and the unit test stops at `fitting`'s counts.
-/// The error glyph is untested too: `draw` resolves `live` through
-/// `Overrides::flags`, which **replaces** the status-derived `ERROR` with
-/// the forced state, so the `::disabled` cell sets `Status::Error` and then
-/// asks `status_glyph` about `DISABLED`, which answers `None`.
+///
+/// The error glyph **is** painted, and
+/// `components::a_forced_component_resolves_its_props_derived_state` pins
+/// it: `draw` resolves `live` through `Overrides::flags`, which substitutes
+/// a forced state for the *runtime* half only (§39.2), so the `::disabled`
+/// cell's `Status::Error` reaches `status_glyph` alongside its forced
+/// `DISABLED` and the glyph takes its two reserved columns. This block
+/// previously asserted the opposite.
 ///
 /// ## Invariants
 /// Overflow drops from the **right** and always leaves the marker, so the
@@ -349,7 +353,9 @@ impl<'a> HintBar<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = self.ov.flags(self.status.flags());
+        // runtime: none — the bar is chrome and registers no control of
+        // its own; derived: the readiness the caller's `.status` declares
+        let live = self.ov.flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
@@ -462,7 +468,7 @@ impl<'a> HintBar<'a> {
 
     /// The natural size: one row wide enough for every hint.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let live = self.ov.flags(self.status.flags());
+        let live = self.ov.flags(StateFlags::empty(), self.status.flags());
         let hints: u16 = (0..self.layer.hints.len())
             .filter_map(|i| self.hint(i))
             .fold(0u16, |acc, h| {

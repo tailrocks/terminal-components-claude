@@ -718,7 +718,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             };
             ui.register_control(self.id, row0, f);
         }
-        let live = self.ov.flags(ui.state(self.id));
+        // runtime: the strip's own frame state; derived: none — the bar's
+        // `.disabled` and `.read_only` enter per row, not on the container
+        let live = self.ov.flags(ui.state(self.id), StateFlags::empty());
         let forced = self.ov.is_forced();
         let ov = self.ov;
         let id = self.id;

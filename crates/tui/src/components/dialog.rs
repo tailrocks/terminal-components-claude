@@ -574,7 +574,9 @@ impl<'a> Dialog<'a> {
         let ov = self.ov;
         let id = self.id;
         let forced = ov.is_forced();
-        let live = ov.flags(StateFlags::empty());
+        // neither half: a dialog frame registers no control and declares no
+        // readiness, so only a forced state can put flags on it
+        let live = ov.flags(StateFlags::empty(), StateFlags::empty());
         ui.with_surface(Surface::Elevated, |ui| {
             let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
                 ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)

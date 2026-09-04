@@ -838,18 +838,23 @@ impl<'a> TextArea<'a> {
         } else {
             StateFlags::empty()
         };
-        let mut live = self.ov.flags(ui.state(self.id)) | self.status.flags();
+        // runtime: the frame's own focus/hover/press; derived: `.status`,
+        // the edit phase, the error, `.read_only` and `.disabled`
+        let mut derived = self.status.flags();
         if editing {
-            live |= StateFlags::EDITING;
+            derived |= StateFlags::EDITING;
         }
         if error {
-            live |= StateFlags::ERROR;
+            derived |= StateFlags::ERROR;
         }
         if self.read_only {
-            live |= StateFlags::READ_ONLY;
+            derived |= StateFlags::READ_ONLY;
         }
         if self.disabled {
-            live |= StateFlags::DISABLED;
+            derived |= StateFlags::DISABLED;
+        }
+        let mut live = self.ov.flags(ui.state(self.id), derived);
+        if self.disabled {
             live = live.difference(StateFlags::HOVERED);
         }
         let ov = self.ov;

@@ -682,7 +682,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         if !self.ov.is_forced() {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
-        let live = self.ov.flags(ui.state(self.id)) | self.status.flags();
+        let live = self.ov.flags(ui.state(self.id), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let container = ov.style(
