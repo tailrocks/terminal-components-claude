@@ -1,6 +1,6 @@
 # Quick start
 
-`junie-tui` is a component library for terminal user interfaces, built on
+`tui-next` is a component library for terminal user interfaces, built on
 [`ratatui-core`](https://docs.rs/ratatui-core). It gives you buttons, text
 inputs, lists, tabs, dialogs, overlays and a semantic theme system, and it
 owns the parts of a TUI that are tedious and easy to get wrong: hit testing,
@@ -9,13 +9,20 @@ routing and layer z-order.
 
 ---
 
-> ## Note on the crate name
+> ## Current package names
 >
-> The library is **`junie-tui`** (Rust path `junie_tui`), and every example in
-> these guides is written against that name.
+> The component library in this workspace is **`tui-next`** (Rust path
+> `tui_next`, source `crates/tui`). The repository root's **`junie-tui`**
+> package (`junie_tui`) still contains the legacy tree, including the root
+> `showcase` and `jackin-preview` binaries; `apps/tablepro` uses `tui-next`.
 >
-> The library is **`junie-tui`** (Rust path `junie_tui`). The three application
-> packages live under `apps/`; examples and guides use the final public names.
+> The snippets and examples in this guide target the current component library,
+> so their imports use `tui_next`. Architecture text about a later
+> `junie-tui` / `junie_tui` rename is migration history, not the current
+> `crates/tui` package name.
+>
+> The in-tree examples under `crates/tui/examples/` use the same `tui_next`
+> package name.
 
 ---
 
@@ -26,10 +33,10 @@ you what job you are doing.
 
 | You are… | You import | You get |
 |---|---|---|
-| writing an application | `junie_tui::*` | `App`, `run`, every component, the theme, layout, the collection vocabulary |
-| writing a **component** | `junie_tui::author::*` | the same theme and layout vocabulary, plus `Ui`'s registration services: focus, hit regions, parts, capture, cursor, scroll, layers |
+| writing an application | `tui_next::*` | `App`, `run`, every component, the theme, layout, the collection vocabulary |
+| writing a **component** | `tui_next::author::*` | the same theme and layout vocabulary, plus `Ui`'s registration services: focus, hit regions, parts, capture, cursor, scroll, layers |
 
-`junie_tui::author` deliberately does **not** re-export `Runtime`, `run`,
+`tui_next::author` deliberately does **not** re-export `Runtime`, `run`,
 `TerminalSession`, `Registry`, `FocusRing`, `FocusState`, `App` or the
 concrete components — a component author drives none of those. It also does
 not require any private access: everything a downstream component needs is
@@ -88,7 +95,7 @@ Two consequences you will notice immediately:
 `crates/tui/examples/01_button.rs`, in full:
 
 ```rust
-use junie_tui::{App, Button, Cx, Id, Insets, Response, Theme, Ui, id, layout, run};
+use tui_next::{App, Button, Cx, Id, Insets, Response, Theme, Ui, id, layout, run};
 
 const SAVE: Id = id!("save");
 
@@ -131,7 +138,7 @@ Components hold **durable interaction state only** (a scroll offset, a
 cursor, an in-flight edit). The value being edited is yours:
 
 ```rust
-use junie_tui::{Cx, Id, Rect, Response, TextInput, TextInputState, Ui, id};
+use tui_next::{Cx, Id, Rect, Response, TextInput, TextInputState, Ui, id};
 
 const NAME: Id = id!("name");
 
@@ -165,7 +172,7 @@ pass is a compile error.
 uses, so downgrade explicitly at startup:
 
 ```rust
-use junie_tui::{App, ColorLevel, Theme, run};
+use tui_next::{App, ColorLevel, Theme, run};
 
 fn start<A: App>(app: A) -> std::io::Result<()> {
     run(app, Theme::junie().downgrade(ColorLevel::detect()))
@@ -204,7 +211,7 @@ r
 |---|---|
 | [`theming.md`](theming.md) | the twelve customisation scenarios, the six-level precedence chain, `Slot` merge semantics, capability downgrade |
 | [`overrides.md`](overrides.md) | `patch`, `patch_part`, part slots, custom variants, recipes — and when to reach for each |
-| [`authoring.md`](authoring.md) | writing a component on `junie_tui::author`, and registering it with the twenty-case conformance suite |
+| [`authoring.md`](authoring.md) | writing a component on `tui_next::author`, and registering it with the twenty-case conformance suite |
 | [`migration.md`](migration.md) | the old experimental API mapped to the new one, module by module |
 
 Runnable examples live in `crates/tui/examples/`:
@@ -212,6 +219,9 @@ Runnable examples live in `crates/tui/examples/`:
 | File | Shows |
 |---|---|
 | `01_button.rs` | the minimal application above |
+| `02_custom_theme.rs` | a complete custom palette and border set |
+| `03_partial_theme.rs` | a partial theme override with safe derivation |
+| `04_family_recipe.rs` | a global family recipe override |
 | `05_instance_patch.rs` | two buttons, one locally overridden |
 | `06_validated_field.rs` | a text field with external validation and an async server error |
 | `07_borrowed_rows.rs` | a list over borrowed domain objects with a custom row renderer |
@@ -219,28 +229,32 @@ Runnable examples live in `crates/tui/examples/`:
 | `09_composed_dialog.rs` | a modal with an arbitrary body closure |
 | `10_nested_overlay.rs` | a popover opened on top of a dialog |
 | `11_small_app.rs` | a complete application on shared focus and dispatch |
-| `12_author_component.rs` | a downstream component using only `junie_tui::author` |
+| `12_author_component.rs` | a downstream component using only `tui_next::author` |
+| `13_connection_form.rs` | a fifteen-field form built from the public `Form` API |
 
-Examples 02, 03 and 04 (a complete custom theme, a partial theme override and
-a global recipe override) are not yet files in `crates/tui/examples/` as of
-Slice 4; their code is reproduced and verified in
-[`theming.md`](theming.md).
+Examples 02, 03 and 04 are runnable theme examples. The form example also
+shows how the public `Form` API composes text, choice, toggle and secret
+controls without application-side field plumbing.
 
-## What does not exist yet
+## Current component surface
 
-These guides describe the implementation that exists. As of Slice 4 the
-component set is:
+The current component library exports these component types from `tui_next`
+(see [`crates/tui/src/lib.rs`](../../crates/tui/src/lib.rs) and
+[`components/mod.rs`](../../crates/tui/src/components/mod.rs)):
 
 `Brand`, `Button`, `Checkbox`, `ChipBar`, `Dialog`, `Empty`, `Field`,
 `HintBar`, `KeyHint`, `List`, `Meter`, `ProgressBar`, `Props`, `RadioGroup`,
 `ScrollRegion`, `Select`, `Spinner`, `StatusBar`, `Tabs`, `TextArea`,
-`TextInput`, `Toggle`.
+`TextInput`, `Toggle`, `Panel`, `PropsList`, `SplitPane`, `TextViewport`,
+`Tree`, `TooSmall`, `NavList`, and `Steps`.
 
-Not yet implemented, and therefore not documented as if they were:
-`Picker`, `FilterList`, `CommandPalette`, `Menu`/`ContextMenu`, `Tree`,
-`Grid`, `Form`, `Wizard`, `TextViewport`, `CodeEditor`, `Completion`,
-`DiffView`, `SplitPane`, `Panel`, `NavList`, `Steps`, `HelpOverlay`,
-`TooSmall`. Where a guide would naturally use one of these it says so and
-substitutes what exists — for instance `crates/tui/examples/10_nested_overlay.rs`
-implements architecture example 10's "nested picker" with a `List` in a
-popover, because `Picker` does not exist yet.
+The library also exports `CodeEditor`, `CommandPalette`, `Completion`,
+`ContextMenu`, `DiffView`, `FilterList`, `Form`, `Grid`, `HelpOverlay`,
+`Menu`, `MenuBar`, `Picker`, `PickerChain`, and `Wizard`, plus the labeled
+variants and each component's public state/action/command types where
+applicable. `CommandPalette` is the public picker alias.
+
+`DataTable` and `ScrollPanel` remain deleted legacy names: table behavior is
+provided by `Grid`, and scrollable text by `TextViewport`. The
+`10_nested_overlay.rs` example intentionally keeps its historical
+List-in-a-popover fixture; it does not indicate that `Picker` is unavailable.
