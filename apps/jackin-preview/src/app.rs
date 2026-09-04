@@ -1223,6 +1223,7 @@ impl App {
 
 impl TuiApp for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let _ = Self::shell_panel("");
         let mut result = self.advance_virtual_state(cx);
         if let Some(command) = cx.command()
             && let Some(result) = self.update_command(cx, command)
