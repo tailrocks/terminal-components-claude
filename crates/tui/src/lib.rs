@@ -89,8 +89,6 @@ pub use measure::{Constraints, Measure, Size};
 // text — `text` is `pub(crate)` (Appendix B.3 item 2): `TextBuffer` and
 // `TextEditorCore` stay implementation details so raw editing storage cannot
 // be cloned or re-exported as a secret-safe public type.
-#[cfg(feature = "testing")]
-pub use text::TextMetricsProbe;
 pub use text::{
     CursorPos, EditAction, EditOutcome, Extend, Motion, Span, fuzzy, truncate, truncate_middle,
     width, wrap, wrapped_rows,

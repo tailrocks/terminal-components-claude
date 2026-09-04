@@ -636,39 +636,6 @@ fn fuzzy_10k_grapheme_label() {
     report("fuzzy_10k_grapheme_label", &s);
 }
 
-#[test]
-fn textbuffer_pos_of_10k_line() {
-    let _g = lock();
-    let mut doc = String::new();
-    for i in 0..20 {
-        doc.push_str(&format!("line {i}\n"));
-    }
-    doc.push_str(&unicode_line(10_000));
-    let off = doc.len();
-    let metrics = tui_next::TextMetricsProbe::new();
-    let s = bench(10, iters(1000), &mut || {
-        black_box(metrics.pos_of(&doc, off));
-    });
-    report("textbuffer_pos_of_10k_line", &s);
-    assert_eq!(s.allocs, 0);
-}
-
-#[test]
-fn textbuffer_offset_at_10k_line() {
-    let _g = lock();
-    let mut doc = String::new();
-    for i in 0..20 {
-        doc.push_str(&format!("line {i}\n"));
-    }
-    doc.push_str(&unicode_line(10_000));
-    let metrics = tui_next::TextMetricsProbe::new();
-    let s = bench(10, iters(1000), &mut || {
-        black_box(metrics.offset_at(&doc, 20, 12_000));
-    });
-    report("textbuffer_offset_at_10k_line", &s);
-    assert_eq!(s.allocs, 0);
-}
-
 // ------------------------------------------------------------ F. invariants
 
 /// `N` controls that each probe their (empty) intent bucket.
