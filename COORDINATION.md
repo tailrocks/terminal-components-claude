@@ -334,3 +334,26 @@ But this session has spent itself establishing that **a rule nothing enforces is
 this is now the seventh incident. A coordination document that has been violated seven times is
 evidence about the mechanism, not about the lanes. The adjudication is being asked what the tree
 needs so this cannot recur — not what the lanes should remember.
+
+## Incident 8 — I did it again (2026-09-04)
+
+Commit `a2dba29`, whose message describes only §39's forced-state operator change, also swept up
+**two in-progress drafts of package 4E** — `panel.rs` and `split.rs` — and mentions neither.
+
+**This is mine, and it is the second time this session**, after Incident 5. The consequence was
+real rather than cosmetic: `HEAD` briefly carried two component files that would have **failed
+`xtask boundary`** if they had been wired in — one calling the shared inset helper unguarded, the
+other assembling a `Style` by hand in violation of a forbidden-pattern rule.
+
+Incident 5 already wrote the rule I broke: **run `git status --short` immediately before every
+`git add`, name every path explicitly, and never rely on the index being clean.** I wrote that rule
+and then used `git add crates/tui/src/components/` — a directory, not a path list — which is
+exactly what the rule forbids.
+
+**Amended rule, binding on Lane A including me:** `git add` takes **explicit file paths only**.
+No directories, no globs, no `-A`, no `-u`. If a change genuinely spans many files, they are
+enumerated. A commit message must account for every file in its diff, and a commit whose message
+does not mention a source file it contains is unreviewable — which this session has spent itself
+demonstrating the cost of.
+
+The finished versions are committed separately with their own message.
