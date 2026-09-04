@@ -2,6 +2,10 @@
 
 **Status:** Accepted, with the Slice 2 review corrections of §21 (Adjudication J), the modern-API and dependency policy of §22 (Adjudication L), the `Form` API / `Grid::update` decisions of §23 (Adjudication K) the re-export / ASCII-border / `FieldKind` decisions of §24 (Adjudication M), the Slice 3 foundations review's eight adjudications, thirteen deviation verdicts and correction obligations F1–F26 of §25, the layer-sizing / `Measure` style-access decisions of §26 (Adjudication N), the Slice 3 foundations follow-ups of §27 (Adjudication O), the prototype decisions of §28 (Adjudication P), the Slice 3 residual decisions of §29 (Adjudication Q), and the Slice 4 ChipBar decision of §30, the neutral-recipe mono correction of §31, the Q/P audit corrections of §32, the `PARTS` styling-contract decision of §33, the capability-detection decision of §34, the `Ui::scroll_region` strike of §35, the first-generation digest item of §36, the gate audit of §37, the readiness-capability decision of §38, and the forced-state operator decision of §39 applied. <!-- amended by §39: this list was stale through §31–§37 although four of those sections each declare in their own header that this rule is engaged --> This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
 
+Sections §40–§49 record subsequent gate, API, migration and baseline findings; §§50–§55 are
+accepted fresh adjudications for choice semantics, StatusBar hover, Grid ownership, incremental
+Tree indexing, Jackin timing/status/dimming, and closure-bearing containers. <!-- amended by §55 -->
+
 **Authority:** `REFACTORING_GOAL.md` › `DESIGN.md` › existing rendered output/tests › current source. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each.
 
 **Inputs adjudicated:** `docs/audit/api-audit.md` (API), `docs/audit/app-audit.md` (APP), `docs/audit/domain-boundary-audit.md` (DOM), `docs/audit/interaction-audit.md` (INT), `docs/audit/architecture-research.md` (RES). `docs/audit/performance-audit.md` (PERF) landed after §1–§15 were written; §20.9 folds its obligations in and amends earlier decisions where needed. `docs/audit/modern-api-audit.md` (MOD), `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K) and `docs/reviews/adjudication-m-small-items.md` (ADJ‑M) landed after §21; §22, §23 and §24 record them as binding, and every earlier section they change carries an inline `<!-- amended by §22 -->` / `<!-- amended by §23 -->` / `<!-- amended by §24 -->` marker. `docs/reviews/slice3-foundations-review.md` (the fresh read-only Slice 3 foundations review, at commit `18afddd`) and `docs/reviews/adjudication-n-layer-measure.md` (ADJ‑N) landed after §24; §25 and §26 record them as binding, and every earlier section they change carries an inline `<!-- amended by §25 -->` / `<!-- amended by §26 -->` marker. `docs/reviews/adjudication-o-foundations-followups.md` (ADJ‑O) landed after §26; §27 records it as binding, and every earlier section it changes carries an inline `<!-- amended by §27 -->` marker.
@@ -342,7 +346,7 @@ The seven concerns of goal §11 have exactly one home each.
 
 ## 5. Rendering rules
 
-**R1** `draw` signature is fixed. Leaf: `fn draw(&self, ui: &mut Ui<'_>, area: Rect[, st: &XState]) -> Rect` (returns the rect actually occupied, for decoration and chaining). Container: `fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R`. No other shapes.
+**R1** `draw` signature is fixed. Leaf: `fn draw(&self, ui: &mut Ui<'_>, area: Rect[, st: &XState]) -> Rect` (returns the rect actually occupied, for decoration and chaining). One-slot container: `fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R`. The sole two-slot exception is `SplitPane`, whose one body closure receives logical first and second `Rect`s and returns `R` (§56). No other shapes. <!-- amended by §56 -->
 
 **R2** `draw` may: write cells through `Ui` painting methods; register hit/scroll/focus regions; report layout facts; report a cursor request; declare next-frame state flags (`Ui::declare_state`, §17.0 A2 — a non-semantic draw-phase write the runtime reads on the **next** frame, the same one-frame contract as `report_layout` and `cx.area`, §25 D‑6) <!-- amended by §25 -->; push style scopes, surfaces, focus scopes and layers. It may not mutate the app, the state, or the theme — enforced by `&self`/`&XState`/`&Theme`.
 
@@ -446,7 +450,9 @@ impl std::ops::BitOrAssign for Response<()> { /* … */ }
 
 `StateFlags` (16 bits, `bitflags`): `FOCUSED, FOCUS_VISIBLE, HOVERED, PRESSED, SELECTED, ACTIVE, CHECKED, DISABLED, READ_ONLY, ERROR, WARNING, BUSY, EDITING, DIRTY, EXPANDED, LOADING`.
 
-Per-component actions are small, `Copy` where possible, and **carry `ItemKey`, never `usize`**:
+Per-component actions are small and `Copy` where possible. **Every action targeting an existing
+collection item carries `ItemKey`, never `usize`; collection-level affordances carry no
+fabricated or sentinel `ItemKey`**: <!-- amended by §50 -->
 
 ```rust
 pub struct Activated;                                         // Button, MenuItem, Chip activation
@@ -464,7 +470,7 @@ pub enum PickerAction { Chosen(ItemKey), ChosenAlt(ItemKey), Secondary(ItemKey),
 pub enum DialogAction { Action(ActionKey), Dismissed(DismissReason) }
 pub enum SelectAction     { Chose(ItemKey), Opened, Closed }                     // <!-- amended by §24 M3: declared by the §17 self-check -->
 pub enum RadioGroupAction { Chose(ItemKey) }                                     // cursor motion is `Moved`-less: cursor ≠ value (§15)
-pub enum ChipBarAction    { Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey) }
+pub enum ChipBarAction    { Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey), AddRequested }
 pub enum ViewportAction { Copy(String), SelectionChanged, FollowChanged(bool) }
 ```
 
@@ -1267,7 +1273,7 @@ Additional binding rules: no boolean parameter soup (typed enums for semanticall
 
 **A layer owner's `update` runs unconditionally (binding).** A component that owns a layer runs its `update` **every frame**, whether or not the layer is open. `cx.is_open(id)` guards the work the **caller** does besides the component — opening the layer, sizing it from live data, closing it from an action — never the component's own `update`: dismissal is delivered as intents addressed to the layer's owner in the pass **after** the layer closed, and a gated call drains nothing, so the guard skips exactly the pass carrying the event its author wanted (§28 P3). <!-- amended by §28 -->
 
-**Props are built once (binding).** A component instance with any configuration beyond `new(id, …)` is built by exactly one private constructor function on the owning screen, called from both phases. The constructor takes the fields it needs as parameters, never `&self`, so `update` can still pass `&mut` to disjoint fields; a controlled `.value(&T)` added in `draw` is the documented per-phase difference. `architecture::props_are_built_once` (a `syn` check that no configured `X::new(` appears more than once per screen module for the same `const Id`) reports violations. `Form` (J2, §15.1) declares each field once as a `FieldSpec::new(id, …)` inside the `&[FieldSpec]` returned by one private constructor, and `Form` drives both phases <!-- amended by §23 -->. Without this, a `disabled(…)` predicate applied in `draw` but forgotten in `update` is a silent bug the compiler cannot see.
+**Props are built once (binding).** A component instance with any configuration beyond `new(id, …)` is built by exactly one private constructor function on the owning screen, called from both phases. The constructor takes the fields it needs as parameters, never `&self`, so `update` can still pass `&mut` to disjoint fields. Controlled props are supplied identically to both phases: `RadioGroup::value(ItemKey)` may seed a missing cursor during `update` and alone decides the checked glyph during `draw`; it is not a draw-only exception. `architecture::props_are_built_once` (a `syn` check that no configured `X::new(` appears more than once per screen module for the same `const Id`) reports violations. `Form` (J2, §15.1) declares each field once as a `FieldSpec::new(id, …)` inside the `&[FieldSpec]` returned by one private constructor, and `Form` drives both phases <!-- amended by §23; §50 -->. Without this, a `disabled(…)` predicate applied in `draw` but forgotten in `update` is a silent bug the compiler cannot see.
 
 ### 13.2 Per-component rustdoc template (goal §10, M31)
 
@@ -2660,6 +2666,7 @@ impl<'a, T, K: KeyFn<T>, R: RowFn<T>> Select<'a, T, K, R> {
 impl<'a, T> RadioGroup<'a, T, ByIndex, DefaultRow> { pub fn new(id: Id) -> Self; }
 impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
+    pub const fn value(self, value: ItemKey) -> Self;
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> RadioGroup<'a, T, K2, R>;
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> RadioGroup<'a, T, K, R2>;
     pub fn read_only(self, yes: bool) -> Self;   pub fn disabled(self, yes: bool) -> Self;
@@ -2673,7 +2680,8 @@ impl<'a, T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'a, T, K, R> {
 }
 impl<'a, T> ChipBar<'a, T, ByIndex, DefaultRow> { pub fn new(id: Id) -> Self; }
 impl<'a, T, K, R> ChipBar<'a, T, K, R> {
-    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::MARKER, Part::LABEL, Part::CLOSE, Part::OVERFLOW]; // <!-- amended by §30; corrected by §32 -->
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::MARKER, Part::LABEL, Part::CLOSE, Part::OVERFLOW, Part::NEW]; // <!-- amended by §30; corrected by §32; §50 -->
+    pub const fn add(self, label: &'a str) -> Self;
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> ChipBar<'a, T, K2, R>;
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> ChipBar<'a, T, K, R2>;   // Part::LABEL pre-styled per chip
     pub fn select_mode(self, m: SelectMode) -> Self;   pub fn closable(self, yes: bool) -> Self;
@@ -2728,7 +2736,7 @@ impl<'a> Dialog<'a> {
     /// without the opener predicting anything (`dialog::a_growing_body_resizes_the_layer_on_the_next_frame`).
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction>;
     pub fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, st: &DialogState,
-                   body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R>;
+                   body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R;
     // convenience constructors over the same path (§9.2; `dialog::convenience_constructors_render_through_the_body_slot`)
     pub fn confirm(id: Id, title: &'a str, question: &'a str) -> Self;
     pub fn destructive(id: Id, title: &'a str, question: &'a str) -> Self;
@@ -2757,7 +2765,7 @@ pub struct RadioGroupState { /* cursor key, gen stamp — the VALUE is controlle
 pub struct ChipBarState    { /* cursor key, checked KeySet, strip window, gen stamp */ }
 #[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum SelectAction { Chose(ItemKey), Opened, Closed }   // §6.1 <!-- amended by §24 -->
 #[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum RadioGroupAction { Chose(ItemKey) }
-#[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum ChipBarAction { Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey) }
+#[derive(Clone, Copy, PartialEq, Eq, Debug)] pub enum ChipBarAction { Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey), AddRequested }
 
 // ---- A8. Status, capability and small value types (§21 items 13, 19, 20, 21, 22) ----
 /// Data readiness of a component; the runtime maps it onto `StateFlags::{BUSY, LOADING, ERROR}`.
@@ -3967,7 +3975,7 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 
 | 18 | **Mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background** <!-- amended by §28 (Adjudication P6) -->. At `ColorLevel::Mono` the `DISABLED` rules add `DIM` (and remove every other modifier) on `LABEL`, `MARKER`, `FIELD` and `TEXT`, and set `fg = Role::Fg(Primary)` instead of `Role::Fg(Faint)`. `MONO_RULES_PER_FAMILY` goes 16 → 18, and **19** once §33's `THUMB`/`PRESSED` rule lands. <!-- corrected by §40 --> `TextInput` additionally paints `design.motion.spinner_frames[0]` in its trailing marker cell for `BUSY`/`LOADING` and declares `Part::ICON`. | Two defects in one place. (a) No mono rule reached the parts a *text control* paints (`FIELD`, `TEXT`), so a disabled `TextInput` was indistinguishable from an enabled one and `TextInputCase` narrowed `DISABLED` away rather than fail. (b) Worse, `Fg(Faint) #262626` and `disabled_fg #4d4d4d` both have `Y < 0.35`, which `mono()` maps to `Black` on a `Black` canvas under `Theme::junie()` — a disabled control was **invisible**, not merely colourless, and goal §29 asks for *readable*. `Theme::paper()` escaped only by landing in the `Reset` band. | `theme::mono_disabled_is_dim_and_readable` (the `fg != bg(Surface::Canvas)` assertion that would have caught it); `theme::mono_appends_one_state_rule_per_family` (**== 19**; it was 16, then 18, then 19) <!-- corrected by §40 -->; `conformance::{text_input,button,field,list,tabs}::mono_states_are_distinguishable` with the un-narrowed state lists; the **mono half only** of `render::components::{text_input,field,list,button,tabs}::disabled` in `crates/tui/tests/baselines/components.txt` re-blessed in the fixed order **change → capture → classify → bless**, with a `docs/visual-changes.md` entry under this item before the bless (truecolor lines are untouched — mono rules are appended only at `ColorLevel::Mono`); and, under §29 Q1, `render::components::button::pressed`'s mono line if `Button`'s bracket moves out of the text run, **together with the same state of every component that draws a `Button` through `inherit_forced` — `Dialog`'s action row in the current matrix** <!-- amended by §29; extended by §36 --> |
 
-| 19 | **First-generation `render::components::*` digests for the Slice-4 component matrix** <!-- added by §36 -->. Fourteen components record their first digest lines — `text_area`, `select`, `radio_group`, `checkbox`, `toggle`, `chip_bar`, `status_bar`, `hint_bar`, `key_hint`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — 8 states × {junie, paper} × {truecolor, mono} × {120×40, 40×10} = 64 lines each, 896 in total. **Nothing moves**: the component did not exist in the reviewed tree, so no cell has a before-image and no cell is a difference from anything. This item covers **first generation only**. The second time one of these lines changes it classifies under items 1–18 or it is a regression, and this item may not be cited again for the same key. | §16.3 requires one digest line per component × state × theme × colour × size, and Appendix A's Slice-4 amendment makes that digest one of the proofs a family package must produce, precisely because Slice-4 owners touch no application. Ten of the fourteen appear in no other item at all; the four named elsewhere are named for a *difference* — item 9 for `StatusBar`'s adopted drop order, item 10 for hint text derived from bindings, item 3 for `RadioGroup`'s cursor/value split — whose review mechanisms are application captures and a showcase digest that do not exist before Slice 5. Filing 896 lines under an item that describes neither the change nor a runnable review destroys the item→change mapping the guard's citation check depends on, and would attach them to item 1, whose stated mechanism §34.4 proved has never executed. | **A first-generation digest cannot be reviewed as a digest, and this item does not pretend that it can.** The hash is not inspectable and there is no before-image to diff, so what is reviewed is the *frame*, and only its glyph half. (1) The generating run prints the frame text of every unrecorded cell — the `Missing` branch of `Scene::assert_against` prints `text()` exactly as the `Mismatch` branch already does — and the dump is attached to the `docs/visual-changes.md` entry; a review mechanism that cannot be executed is decoration (§34.4). (2) A **fresh read-only `opus-analyst` visual reviewer, never the builder who generated the lines**, reads the `junie truecolor` and `junie mono` frames at 120×40 for all eight states of each component, and **rejects** on any of: a cell painted outside the component's own rect; an empty frame where the fixture supplies content; content in the `empty` state, or the empty affordance in a state that is not `empty`; truncation or an ellipsis at 120×40; a state textually identical to another under `mono` where §11.4 prescribes a distinguishing symbol and conformance case 9 does not already cover that pair; a glyph occupying no `GlyphSet` slot; or a label that is not the one the fixture supplies. (3) **The style half of the digest — `fg`, `bg`, `modifier` — is reviewed by nobody, and this item says so rather than implying otherwise.** It is asserted instead by the 20-case conformance matrix already registered for each of these components and by the `theme::*` contrast and mono-legibility tests. A first-generation line is therefore a **pin against future drift, not an approval of present appearance**; the first review of these components *as pictures* is the Slice-5 capture matrix. (4) No `shots/` capture exists or can exist: the matrix is headless — `Scene` draws into a `TestBackend` buffer and `tools/capture.sh` drives a terminal session — so the ledger's `- captures:` field records that fact and names the frame-text dump in its place (§16.3 as amended by §36). |
+| 19 | **First-generation `render::components::*` digests for the Slice-4 component matrix** <!-- added by §36 -->. Fourteen components record their first digest lines — `text_area`, `select`, `radio_group`, `checkbox`, `toggle`, `chip_bar`, `status_bar`, `hint_bar`, `key_hint`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — 8 states × {junie, paper} × {truecolor, mono} × {120×40, 40×10} = 64 lines each, 896 in total. **Nothing moves**: the component did not exist in the reviewed tree, so no cell has a before-image and no cell is a difference from anything. This item covers **first generation only**. The second time one of these lines changes it classifies under items 1–18 or it is a regression, and this item may not be cited again for the same key. `{scope: first-generation}` | §16.3 requires one digest line per component × state × theme × colour × size, and Appendix A's Slice-4 amendment makes that digest one of the proofs a family package must produce, precisely because Slice-4 owners touch no application. Ten of the fourteen appear in no other item at all; the four named elsewhere are named for a *difference* — item 9 for `StatusBar`'s adopted drop order, item 10 for hint text derived from bindings, item 3 for `RadioGroup`'s cursor/value split — whose review mechanisms are application captures and a showcase digest that do not exist before Slice 5. Filing 896 lines under an item that describes neither the change nor a runnable review destroys the item→change mapping the guard's citation check depends on, and would attach them to item 1, whose stated mechanism §34.4 proved has never executed. | **A first-generation digest cannot be reviewed as a digest, and this item does not pretend that it can.** The hash is not inspectable and there is no before-image to diff, so what is reviewed is the *frame*, and only its glyph half. (1) The generating run prints the frame text of every unrecorded cell — the `Missing` branch of `Scene::assert_against` prints `text()` exactly as the `Mismatch` branch already does — and the dump is attached to the `docs/visual-changes.md` entry; a review mechanism that cannot be executed is decoration (§34.4). (2) A **fresh read-only `opus-analyst` visual reviewer, never the builder who generated the lines**, reads the `junie truecolor` and `junie mono` frames at 120×40 for all eight states of each component, and **rejects** on any of: a cell painted outside the component's own rect; an empty frame where the fixture supplies content; content in the `empty` state, or the empty affordance in a state that is not `empty`; truncation or an ellipsis at 120×40; a state textually identical to another under `mono` where §11.4 prescribes a distinguishing symbol and conformance case 9 does not already cover that pair; a glyph occupying no `GlyphSet` slot; or a label that is not the one the fixture supplies. (3) **The style half of the digest — `fg`, `bg`, `modifier` — is reviewed by nobody, and this item says so rather than implying otherwise.** It is asserted instead by the 20-case conformance matrix already registered for each of these components and by the `theme::*` contrast and mono-legibility tests. A first-generation line is therefore a **pin against future drift, not an approval of present appearance**; the first review of these components *as pictures* is the Slice-5 capture matrix. (4) No `shots/` capture exists or can exist: the matrix is headless — `Scene` draws into a `TestBackend` buffer and `tools/capture.sh` drives a terminal session — so the ledger's `- captures:` field records that fact and names the frame-text dump in its place (§16.3 as amended by §36). |
 
 | 20 | **The forced-state operator stops erasing the props-derived half, so a component in error paints its error affordance** <!-- added by §49 -->. Under §39.2's Invariant Q a forced state substitutes for the runtime half only, so `render::components::{progress_bar,meter,hint_bar}::disabled` — whose fixture supplies `Status::Error` while forcing `DISABLED` — now resolve `ERROR` as well as `DISABLED`. This item covers **truecolor and mono alike**, and it covers a **second** movement of keys first generated under item 19, which may not be cited for them again. `{scope: truecolor}` | **A demonstrated defect in the old output, measurable from the baseline file alone and without reference to §39.** At truecolor the blessed `progress_bar::disabled` and `hint_bar::disabled` digests were **byte-identical to their own `::default` cells**, although the fixture gives one `Status::Error` and the other `Status::Ready` — two states of one component, differing in a prop that component declares it reports, pinned as one picture. A component declaring `Caps::REPORTS_STATUS` reporting nothing. The `ERROR → GlyphRole::Error` recipe rules were declared and produced no output, which is item 1a's reason verbatim, and §38.2 had already cleared all three as KEEP STATE. `Meter`'s cell differed from its own `::default` only because `DISABLED` moves its own parts; its rule never matched either. | The frame-text dump printed by the no-`BLESS` runs, read by a **fresh read-only `opus-analyst` who did not generate the lines**, at `junie` 120×40 in truecolor **and** mono, rejecting on: no error affordance in the corrected frame; an affordance in a cell whose fixture supplies `Status::Ready`; any change to the label, the track arithmetic or the percentage column beyond the affordance and the columns it reserves; or a glyph occupying no `GlyphSet` slot. Machine half: `components::a_forced_component_resolves_its_props_derived_state` (§39) and `theme::readiness_states_are_digest_distinct` (§49.5), which fails on the pre-§39 values at truecolor. |
 
@@ -6610,20 +6618,20 @@ migrated screens, if a Slice-5/6/7 app test asserts the old swallow.
 §29 does not decide the following separate questions:
 
 1. `FieldControl::draw` has no item channel while §24 M3 requires per-phase items for `Select` and `RadioGroup`. Whether to add an item-aware composition path or widen the scalar trait is unresolved.
-2. `RadioGroup` already has controlled `.value(ItemKey)` behavior in code, but its A7 documentation omits it. The public contract wording and controlled-state adjudication remain unresolved.
-3. `ChipBar`'s add affordance currently emits `Activated(ItemKey)` and has no dedicated `Added`/`AddRequested` variant. The action naming contract remains unresolved.
-4. A `FrameRead::hovered_part` primitive is present in the concurrent tree, but `StatusBar` does not consume it. Whether per-item hover becomes a `StatusBar` contract and test remains unresolved.
+2. ~~`RadioGroup` already has controlled `.value(ItemKey)` behavior in code, but its A7 documentation omits it. The public contract wording and controlled-state adjudication remain unresolved.~~ Resolved by §50.
+3. ~~`ChipBar`'s add affordance currently emits `Activated(ItemKey)` and has no dedicated `Added`/`AddRequested` variant. The action naming contract remains unresolved.~~ Resolved by §50.
+4. ~~A `FrameRead::hovered_part` primitive is present in the concurrent tree, but `StatusBar` does not consume it. Whether per-item hover becomes a `StatusBar` contract and test remains unresolved.~~ Resolved by §51.
 5. Separate Choice/Brand bracket implementations and their reserved-pad obligations are not adjudicated by Q1; this record does not change those contracts.
 
 ---
 
-## §30 Adjudication — Slice 4 `ChipBar` selected marker <!-- amended by §30 -->
+## §30 Adjudication — Slice 4 `ChipBar` checked marker <!-- amended by §30; §50 -->
 
 **Status: accepted.** This is Dewey's fresh Slice 4 decision, recorded separately from §29 because it changes a Slice 4 public parts invariant.
 
 ### §30.1 Decision <!-- amended by §30 -->
 
-`ChipBar` must declare and paint a `Part::MARKER` for `SELECTED`. In the existing leading one-cell pad, `SELECTED` paints the canonical `GlyphRole::Checked` <!-- corrected by §33: there is no `Check` variant --> through the normal resolved-slot path (`RowUi::marker`); the unselected state leaves that cell blank. `Slot::Set`/`Slot::Clear` continue to override or suppress the fallback without changing the reserved cell's width.
+`ChipBar` must declare and paint a `Part::MARKER` for `CHECKED`. In the existing leading one-cell pad, checked-set membership derives `CHECKED`, which paints the canonical `GlyphRole::Checked` <!-- corrected by §33: there is no `Check` variant --> through the normal resolved-slot path (`RowUi::marker`); an unchecked chip leaves that cell blank. Production code never synthesizes `SELECTED` for this purpose. `Slot::Set`/`Slot::Clear` continue to override or suppress the fallback without changing the reserved cell's width. <!-- amended by §50 -->
 
 The exact public parts contract changes from `{CONTAINER, LABEL, CLOSE, OVERFLOW}` to `{CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW}`; `OVERFLOW` was already declared and is already painted (`chip.rs`'s truncation glyph, resolved and registered on the truncation cell) and is retained. The inline A7 declaration is amended accordingly. ~~The exact public parts contract changes from `{CONTAINER, LABEL, CLOSE}` to `{CONTAINER, MARKER, LABEL, CLOSE}`. No `OVERFLOW` part is added by this decision.~~ — struck: the prior contract was the **four**-part list, recorded as fact [F6] in `docs/reviews/adjudication-q-residuals.md`, and dropping `OVERFLOW` from the declaration while the component still paints it would fail `registry::declared_parts_are_the_parts_actually_styled` on truncation. <!-- corrected by §32 -->
 
@@ -6639,7 +6647,7 @@ Rejected: removing `SELECTED` from the required mono states; adding a color-only
 
 The implementation must make `ChipBar::PARTS` exactly `[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW]`, <!-- corrected by §32 --> paint `GlyphRole::Checked` <!-- corrected by §33: there is no `Check` variant --> only in the already-reserved leading marker cell for `SELECTED`, keep the label/width/close/bracket geometry byte-stable, and pass the existing declared-parts and mono-state conformance checks. The separate ChipBar add-action question remains open; §30 makes no decision between `Activated`, `Added` and `AddRequested`.
 
-The unresolved questions listed in §29.7 remain unresolved. In particular, §30 does not decide the `FieldControl` item channel, RadioGroup's documented `.value(ItemKey)`, StatusBar hover data, or any future action-variant naming. The `Caps::OVERLAY`/`TRAPS_FOCUS` split is already decided in §29.6. <!-- amended by §30; §29 -->
+The `FieldControl` item channel remains unresolved. RadioGroup's controlled value, ChipBar action naming and StatusBar hover are resolved by §§50–51. The `Caps::OVERLAY`/`TRAPS_FOCUS` split is already decided in §29.6. <!-- amended by §30; §29; §§50–51 -->
 
 ## §31 Adjudication — mono fallbacks must reach the neutral recipe <!-- amended by §31 -->
 
@@ -7011,7 +7019,7 @@ The root cause is that `mono_states()` **conflates two properties and only one i
 
 ## §39 Adjudication — forcing substitutes for the runtime, never for the props <!-- amended by §39 -->
 
-**Status: accepted. BLOCKS the §36 first-generation bless — see §39.4.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged three times: it changes the exact type of `Overrides::flags`, adds an invariant to §12.1's A11 clause, and changes the exact type of `Fixture::forced` in §16.2.
+**Status: accepted and implemented. Unblocks the §36 first-generation correction — see §39.4 and §49.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged three times: it changes the exact type of `Overrides::flags`, adds an invariant to §12.1's A11 clause, and changes the exact type of `Fixture::forced` in §16.2. <!-- implementation completed in Session 5: the two-half operator, `Option<StateFlags>` fixture contract, Empty forwarding, and Progress done-rule proof -->
 
 ### §39.0 Corrections to the finding that prompted it <!-- amended by §39 -->
 
@@ -7607,3 +7615,178 @@ The resolver's own error text names this failure mode, and the default path perf
 The moved set is read from a **discarded** scratch bless, never transcribed from §39.4's prediction. The guard must be **red before §49.3 lands and green after**, demonstrated in that order. The blocking-marker check and the distinctness test must each be demonstrated red on a broken input. The matrix ends 160/160, and item 20's frame review is signed by an analyst who did not generate the lines.
 
 **Numbering:** this claims item **20**; §40.4's outstanding `(THUMB, PRESSED)` mono rule takes item **21**.
+
+## §50 Adjudication — choice controls use semantic state and real identity <!-- amended by §50 -->
+
+**Status: accepted.** Fresh read-only analyst decision. This changes the exact `ChipBarAction`,
+`ChipBar::add`, `ChipBar::PARTS`, marker predicate, and the documented controlled-value contract
+of `RadioGroup`; change control is engaged.
+
+### §50.1 Chip checked marker
+
+Checked-set membership derives `StateFlags::CHECKED`; the reserved leading marker cell paints
+`GlyphRole::Checked` exactly when `CHECKED` is present. Production never synthesizes `SELECTED`
+for checked membership. Generic A11 conformance forcing of `SELECTED` maps the fixture's stand-in
+key into the checked set, as Checkbox does, rather than changing production semantics. Geometry
+and `Slot::{Set,Clear}` behavior remain unchanged.
+
+### §50.2 Add is a collection request, not a fabricated item
+
+The exact action set is
+`ChipBarAction::{Toggled(ItemKey), Closed(ItemKey), Activated(ItemKey), AddRequested}`.
+`ChipBar::add(label)` takes no key and registers `PartRef::of(Part::NEW)`. `Activated(k)` applies
+only to a real item. The exact public parts list is
+`[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW, NEW]`. A fabricated add key is rejected because it
+can collide with a real item and route the add click through item lookup. `Added` is rejected
+because the component does not mutate caller data; `AddRequested` matches the request vocabulary.
+Caller row renderers may still paint `RowUi::meta`; that resolution is attributed to
+`StyledBy::Row`, not ChipBar, and therefore `META` is deliberately absent from `ChipBar::PARTS`
+and from its component-owned override promise. The existing component slot set remains CLOSE and
+OVERFLOW only; adding NEW to `PARTS` does not silently create a NEW slot contract. MARKER is
+component-owned and consults the resolved glyph binding from `.patch`/`.patch_part`: for a checked
+chip `Set(g)` paints `g`, `Inherit` paints `GlyphRole::Checked`, and `Clear` blanks the reserved
+cell. This is not a `SlotFn` contract and `slot_for(MARKER)` remains unused. <!-- fresh §50 follow-ups -->
+
+`CONTAINER` and `LABEL` are painted through caller-supplied `RowUi`, but remain ChipBar-owned
+override parts. A crate-private RowUi construction path carries only the merged component patch
+for its automatic container fill and label methods. It must not carry `Overrides` or a generic
+part callback: META, CELL, MARKER and arbitrary row parts stay row-owned. Explicit
+`label_patched` wins over the forwarded component patch. Resolution attribution remains
+`StyledBy::Row`; patch source and query ownership are distinct. <!-- fresh §50 patch-forwarding follow-up -->
+
+### §50.3 Radio value remains caller-owned
+
+`RadioGroup::value(ItemKey)` sets an immutable `Option<ItemKey>` prop; omission means `None`.
+Both phases receive the same prop. Update may use it only to seed a missing cursor; an established
+cursor never follows a later external value. Draw alone derives `RadioOn` from the current prop.
+`RadioGroupState` owns cursor and reconciliation state, never the value. Commit emits `Chose(k)`
+and the caller rebuilds with the new value. State-owned value, hidden `&mut ItemKey` mutation,
+and cursor/check naming are rejected because they conflate navigation with controlled selection.
+
+### §50.4 Acceptance
+
+Named unit tests cover a live checked set without state override, blank unchecked marker,
+resolved MARKER glyph set/clear bindings, the exact CLOSE/OVERFLOW `SlotFn` set,
+keyboard/mouse `AddRequested`, real-item identity collision, caller-controlled
+radio value, and missing/vanished values. ChipBar and RadioGroup mono conformance remain green;
+`doc-check` and `boundary` resolve the new action and part names.
+
+## §51 Adjudication — StatusBar hover is keyed and runtime-owned <!-- amended by §51 -->
+
+**Status: accepted.** Retain the implementation committed in `e72aef5`; earlier §29.7 and §30.3
+claims that the contract was unresolved are struck.
+
+Only a keyed `StatusItem` registers `PartRef::item(Part::LABEL, key)`. For live pointer state,
+only the matching keyed label retains `HOVERED`; every sibling label strips it. Keyboard input
+suppresses `FrameRead::hovered_part`; a later pointer move restores it. Unkeyed labels are static
+and unaddressable, not disabled. Forced `HOVERED` is intentionally component-wide and affects all
+labels; any forced state substitutes for stale runtime hover and registers no parts. StatusBar has
+no live disabled API. Other owner parts are outside this decision.
+
+Acceptance is the existing two hover integration tests plus a new move onto an unkeyed label or
+blank area proving `hovered_part == None` and every label returns to its base style. The component
+documentation must declare `Caps::REPORTS_STATUS` and mono states empty, pressed, error, warning,
+and busy; the stale `Caps::empty()` sentence is false.
+
+## §52 Adjudication — Grid exposes requests and owned state, never domain ordering <!-- amended by §52 -->
+
+**Status: accepted.** Binding input is `docs/reviews/laneB-grid-contract.md`.
+
+The model/adapter owns display order and domain comparison, including NULLs-last and numeric
+semantics. Grid owns sortable-column affordance and emits `GridAction::Sort(ColumnKey, SortDir)`;
+it owns no comparator or permutation. Reordering the model must preserve cursor, range, checked
+rows, and edit identity through stable keys.
+
+`GridState` exposes only state it owns: `cursor() -> Option<(ItemKey, ColumnKey)>`,
+`selected_rows() -> &KeySet`, `is_editing() -> bool`,
+`edit_error() -> Option<&FieldError>`, and `col_offset() -> usize`. It exposes no full column
+window because the visible end depends on `Grid`, area, model, and measured rows. Any future
+window query belongs on Grid with those inputs.
+
+Zero-area focus is never smuggled through `register_control`. Add explicit
+`Ui::register_focus_only(id, Focusability)`: it contributes a `Rect::ZERO` ring entry and no hit
+region. `ClickOnly` is a no-op. `area_of(id)` remains `None`; click delivery is ignored and reports
+`Diagnostic::UnaddressableId`. This preserves R5 for ordinary zero-area components while making
+the TablePro drawer transition intentional.
+
+## §53 Adjudication — Tree retains the cached keyed incremental index <!-- amended by §53 -->
+
+**Status: accepted.** The current untracked full-scan draft is rejected; §20.9-8 remains binding.
+
+`TreeState` owns semantic state only: collection cursor/reconciliation, expanded keys, chosen key,
+and monotonic structural/source generations. Runtime owns private `TreeIndex` in the shared
+derived cache. Its rows contain only source index, stable key, depth, and node kind—never borrowed
+text or `T`. Initial build, explicit source invalidation, or query revision change may scan once.
+Unchanged update and draw visit only viewport rows. Expand scans and splices the affected source
+subtree; collapse drains its visible descendant range. Cursor and choice reconcile by stable key.
+
+Filtering uses a borrowed matcher plus a caller-owned stable `u64` revision/hash; changing the
+predicate's meaning requires changing the revision. An active matcher is a strict result
+projection: every match and every ancestor of a match is visible regardless persisted expansion.
+Persisted expansion is ignored for inclusion and never mutated; unrelated expanded branches and
+unmatched children of a matching parent stay excluded. Clearing the matcher restores the exact
+unfiltered projection. Filter-forced ancestor rows render expanded but cannot collapse and hide
+results; Left moves to the visible parent, Right to a visible descendant, and `*`/`-` are disabled
+during query. Chosen keys remain source-semantic while filtered out; cursor reconciles over visible
+stable keys. Matching causes one index rebuild without per-node lowercase conversion or allocation.
+The cache is available to both phases through crate-private runtime plumbing; public
+`Tree::update` and borrowed item ownership remain unchanged. <!-- amended by fresh §53 query follow-up -->
+
+Acceptance uses deterministic node-access counters, not allocation counts alone: warmed 100k
+draw and no-intent update are O(viewport); small-subtree toggle touches that subtree; invalidate
+and query change each rebuild once; a second unchanged draw does not. The named perf tests
+`tree_100k_nodes_flatten`, `tree_100k_nodes_render`, and `key_tree_toggle_10k` remain mandatory,
+plus cache-clear and keyed reorder regressions.
+
+## §54 Adjudication — Jackin status, ticks, and dimming preserve product time <!-- amended by §54 -->
+
+**Status: accepted for the library contract.** Binding input is
+`docs/reviews/laneC-app-tick.md`; implementation remains blocked on Slice 4 and atomic app move.
+
+`Screen::strip_right` is replaced by a pure draw-time projection of prioritized, toned
+`StatusItem`s from current screen state; no mutable Jx cache duplicates that projection. Runtime
+exposes update cause `Bootstrap | Event | Tick | Settle`; tick is reported only on the first
+settle pass. Terminal and headless runtimes share bootstrap scheduling. Repaint deadlines persist
+and the earliest deadline wins; idle time creates no unsolicited ticks. Jackin alone maps `Tick`
+to its active `Route::tick_ms`; library design tokens and wall time never replace that delta.
+
+`Ui::dim_layer(0)` is identity. Higher steps use the existing Muted/Faint/Ghost semantic ladder
+and erase at the terminal step; mapping every non-ladder role directly to Muted is rejected.
+Acceptance covers first-frame 33 ms scheduling, exact deadline persistence/consumption,
+tick-vs-event separation, deterministic headless ticks, all 28 Jackin tests and 36 digests.
+
+## §55 Adjudication — closure-bearing containers traverse exactly once <!-- amended by §55 -->
+
+**Status: accepted.** §5 R1 remains binding for Panel and Dialog. Their exact public signatures
+return bare `R`, never `Option<R>`. The body closure runs exactly once for every input area,
+including zero width/height, undersized Dialog, and collapsed inner rect. It receives an empty
+rect anchored inside the requested component rect and runs under both the container surface and
+`Ui::with_area(empty)`, so paint and registration are clipped away. `Ui::layer` alone returns
+`Option<R>` because a closed or duplicate layer has no draw target; wrapping a total container in
+it must not create `Option<Option<R>>`.
+
+R5 is clarified: a nondrawable leaf or chrome component registers and paints nothing, while a
+closure-bearing container still invokes its body once under an empty clip. Acceptance asserts a
+bare typed sentinel, one call across empty/tiny sizes, anchored empty rects, no escaped paint or
+regions from a malicious body, and preserved chrome for a valid body. A signature gate must parse
+closure-bearing public component draws and require generic return `R`; `&self` alone is too weak.
+SplitPane's distinct two-pane composition shape is adjudicated separately rather than silently
+forced through this ruling.
+
+## §56 Adjudication — SplitPane is the sole two-slot container <!-- amended by §56 -->
+
+**Status: accepted.** Its exact signature is
+`draw<R>(&self, ui, area, state, body: impl FnOnce(&mut Ui, Rect, Rect) -> R) -> R`.
+The two rects are logical first/second: left/right horizontally and top/bottom vertically. The
+closure runs exactly once for every area and returns bare `R`. It runs under `Ui::with_area(area)`;
+an empty input yields two empty rects anchored at the input origin, and a collapsed or maximized
+split passes one empty rect without making the result optional. Split paints/registers its seam
+before invoking the body, and pane rects exclude that seam. Geometry helpers are private or
+crate-private so callers cannot bypass clipped traversal.
+
+This is R1's only two-slot exception. Tuple-return geometry, two separate closures, and a public
+`SplitAreas` type are rejected because they bypass total clipped traversal or add needless public
+surface. Acceptance asserts one invocation and a bare sentinel across normal, empty, tiny,
+collapsed and maximized states; logical ordering; nonzero-origin empty anchors; malicious-body
+clipping; seam preservation; and an AST signature gate covering Panel/Dialog one-slot and
+SplitPane two-slot forms.

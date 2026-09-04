@@ -1063,3 +1063,81 @@ in dependency order, with what blocks what.
 established, at the cost of ten decorative gates and three contracts asserted by a mechanism
 sharing their defect's enabling condition: **a check that has never been observed failing is not
 evidence.**
+
+## Session 5 — Codex continuation measurement (2026-09-04)
+
+The previous goal turn made progress: commits through `aed6f41` changed authoritative state.
+This continuation re-measured the current tree before relying on that record.
+
+### Measured state
+
+- `rtk cargo build -p tui-next --all-targets`: exit 0.
+- `rtk cargo test -p tui-next -p tui-next-testing --all-targets --all-features`: exit 101.
+  The library portion passed 303 tests; architecture failed only
+  `every_named_test_exists`, `conformance_covers_every_public_component`, and
+  `no_deprecated_or_legacy_api_usage`.
+- `rtk cargo run -p xtask -- doc-check`: exit 0, 71 Rust blocks and 618 references,
+  but the fresh gate audit proved this is incomplete evidence: the scanner omits post-§26
+  adjudications and permits unresolved allow-listed names.
+- `rtk cargo run -p xtask -- boundary`: exit 1 on the same three checks. A builder has since
+  corrected the four forbidden-pattern hits and removed the three stale named-test deferrals;
+  its re-run left only dormant component registrations red.
+- `rtk cargo test --all-targets`: exit 101 only through those architecture wrappers; legacy
+  targets passed 76 + 67 + 33 + 41 + 30 = 247 tests.
+- `rtk cargo test -p xtask --bin xtask`: 21 passed / 1 failed. The failure correctly proves
+  §20.10 item 19 still lacks `{scope: first-generation}`.
+
+### Current owned work
+
+- Dirty §49 owner: `.github/workflows/ci.yml`, `xtask/src/main.rs`, and
+  `crates/tui/tests/render_components.rs`.
+- Dirty §45 owner: `components/{brand,keyhint}.rs`; shared tiny-rect correction:
+  `crates/tui/src/layout.rs`.
+- Dormant Slice-4 work: untracked `components/{too_small,nav_list,steps,tree,grid}.rs`.
+  These are intentionally not exported yet; green library builds do not compile them.
+- Fresh Lane-B decision/status records now exist at
+  `docs/reviews/laneB-grid-contract.md` and `docs/status/laneB.md`.
+- Lane-C decision/status record creation is in flight at
+  `docs/reviews/laneC-app-tick.md` and `docs/status/laneC.md`.
+
+### Newly proven blockers and decisions
+
+- Grid Q1–Q3 are adjudicated in the Lane-B record: model owns ordering/comparison; Grid emits
+  `Sort(ColumnKey, SortDir)`; `GridState` exposes only state it owns; zero-area focus uses an
+  explicit focus-only registration API with no hit region. Architecture transcription and
+  implementation remain.
+- Current Tree draft contradicts the accepted cached incremental `TreeIndex` decision and must
+  not land until a fresh adjudication is recorded and implemented.
+- §39 is not closed: `Fixture::forced()` still returned `StateFlags`, leaving 21 manual guards;
+  a builder owns that correction. `Empty` nested override forwarding and Progress done-rule
+  reachability are a separate builder package.
+- Slice 5 and both app migrations have not started. No `apps/` directory exists. TablePro legacy
+  proof is 41 tests / 23 app test attributes / 42 digests; Jackin legacy proof is 67 tests,
+  including 22 app + 6 chrome, and 36 digests.
+
+### Next action
+
+Finish fresh choice, StatusBar, Tree, and 4E adjudications; transcribe accepted decisions into
+`COMPONENT_ARCHITECTURE.md`; finish §39; close §49 and the 160-cell render matrix; then integrate
+and certify dormant Slice-4 packages in dependency order. No slice-completion claim is made.
+
+### Session 5 progress after initial measurement
+
+- §39 is implemented: the two-half forced-state operator was already present; Fixture now
+  preserves `None` versus `Some(empty)` and removed 21 truthiness guards; Empty forwards nested
+  override state/patches; Progress `done(true)` reaches the CHECKED recipe. Independent focused
+  evidence: testing lib 6 passed / 1 ignored, conformance 488 passed before later choice changes,
+  component lib 306 passed, focused clippy clean.
+- §49 scratch evidence is under `/tmp/fable49-evidence-lStqI4/`. A discarded bless measured
+  **22 moved keys**, correcting the prior predicted 24: HintBar 8, Meter 6, ProgressBar 8;
+  12 truecolor and 10 mono. Scratch matrix passed 164/164. Xtask passed 22/22 and each changed
+  guard was demonstrated red on a broken isolated input and green on the fixed one.
+- A fresh independent visual analyst accepted all six Junie 120×40 corrected frames: each has
+  the declared `GlyphRole::Error` (`!`), with labels, tracks and `65%` intact; movement is confined
+  to disabled keys. Evidence lacks textual before-frames, so the sign-off relies on exact digest
+  scope plus reviewed after-frames for unrelated-change exclusion.
+- Accepted adjudications §§50–§56 now cover Choice identity/controlled value, StatusBar keyed
+  hover, Grid ownership/focus-only registration, cached incremental Tree/query projection,
+  Jackin status/tick/dimming, total closure containers, and SplitPane's two-slot closure.
+- §49 classification/bless is in flight. Tree, Choice, 4E and dormant-family review/fixes remain
+  active; no Slice-4 completion claim is made.
