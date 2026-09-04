@@ -1013,3 +1013,53 @@ architecture section is added.
 
 At append time, shared `main` had advanced to `1b580d7` through later pushed documentation
 commits; `463efca` remains an ancestor and is the gate-evidence baseline recorded above.
+
+## Critical path — the remaining work, ordered (2026-09-04)
+
+The stop-hook check is right: Slice 4 wave 1 is closed, and **the goal is not**. What remains,
+in dependency order, with what blocks what.
+
+### Blocking chain to the bless
+
+1. **§39 — the forced-state operator.** 21 `ov.flags(` call sites across 18 files. **Atomic** —
+   it changes a shared signature, so every site moves in one commit or the crate does not
+   compile. **In flight, single owner.** Classifying each site's argument into runtime and
+   derived *is* the work; it must be read, not pattern-matched.
+2. **The 896-line bless.** Blocked on §39, because landing after it would move **12 truecolor
+   keys**, which the guard refuses outright and §20.10's closing clause makes a regression by
+   construction — and item 19 may not be cited twice for the same key. Also owes
+   `docs/visual-changes.md` entry 19a rewritten as a machine-expandable pattern, which
+   `bless-guard` now requires; measured by appending a key and watching it report
+   `added, unaccounted`.
+3. **§45 — the slot contract**, across five Slice-4 packages. Deliberately **after** §39, because
+   §39 moves 24 keys across three of the four files §45 also touches, and §39's movement must be
+   attributable to §39 alone or item 19's "nothing moves" premise cannot be checked.
+
+### Blocking chain to Slice 5
+
+4. **Eighteen of thirty-six component files are unwritten.** **4E is the critical path**: every
+   one of the 22 showcase pages imports `Panel`, so **zero pages can migrate until it lands.**
+   In flight. After 4E, three pages unblock; the other nineteen need 4C, 4F, 4H or 4I.
+5. **The three `apps/` boundary guards must exist *before* `apps/` is created** (§47.5), each
+   asserting an expected set is **present** — written as "scan and find no violations" they are
+   green-and-empty today and stay so forever, which is §37.1's recorded failure verbatim. In
+   flight, together with the §16.5 scan gap that made their absence unreportable.
+6. **`every_named_test_exists` is correctly red** on the Slice-7 benchmark row and will get
+   *more* red as the §16.5 names are enumerated. **That report is the deliverable**, not a
+   regression.
+
+### Then
+
+7. Slice 4 wave 1 remainder (4A `too_small`), wave 2 (4C, 4F, 4H, 4I).
+8. Slice 5 per §47's deferred-rename sequencing, with Invariants S, S2, T and U.
+9. Slices 6 and 7 — Lanes B and C.
+10. Slice 8: the legacy deletion per §44.6's four preconditions, the rename commit, `DESIGN.md`'s
+    ten divergences, the README rewrite and five guides, then a fresh architecture review and a
+    **separate** fresh visual review — the latter needing the **first mono capture ever taken**,
+    since §34.4 established that review has never executed.
+11. The §30 final report, fifteen items.
+
+**Not a single one of these may be closed by an aggregate argument.** The standard this session
+established, at the cost of ten decorative gates and three contracts asserted by a mechanism
+sharing their defect's enabling condition: **a check that has never been observed failing is not
+evidence.**
