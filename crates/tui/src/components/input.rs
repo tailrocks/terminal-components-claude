@@ -314,12 +314,50 @@ const BINDINGS: &[Binding<TextCmd>] = &[
 
 /// Durable state of a [`TextInput`]: the in-flight draft, the phase and the
 /// last validation error. `Debug` redacts the draft.
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Default)]
 pub struct TextInputState {
     draft: TextEditorCore,
     phase: EditPhase,
     error: Option<FieldError>,
+    sensitive: bool,
 }
+
+impl Clone for TextInputState {
+    fn clone(&self) -> Self {
+        TextInputState {
+            draft: if self.sensitive {
+                let mut draft = TextEditorCore::single(&redacted_text(self.draft.text()));
+                draft.set_cursor_line_col(0, self.draft.cursor_pos().col);
+                draft
+            } else {
+                self.draft.clone()
+            },
+            phase: self.phase,
+            error: if self.sensitive {
+                self.error
+                    .as_ref()
+                    .map(|_| FieldError::new("Invalid value"))
+            } else {
+                self.error.clone()
+            },
+            sensitive: self.sensitive,
+        }
+    }
+}
+
+impl PartialEq for TextInputState {
+    fn eq(&self, other: &Self) -> bool {
+        if self.sensitive || other.sensitive {
+            self.sensitive == other.sensitive
+                && self.phase == other.phase
+                && self.error.is_some() == other.error.is_some()
+        } else {
+            self.draft == other.draft && self.phase == other.phase && self.error == other.error
+        }
+    }
+}
+
+impl Eq for TextInputState {}
 
 impl fmt::Debug for TextInputState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -327,7 +365,8 @@ impl fmt::Debug for TextInputState {
             .field("draft", &"[redacted]")
             .field("draft_len", &self.draft.text().len())
             .field("phase", &self.phase)
-            .field("error", &self.error)
+            .field("error", &self.error.as_ref().map(|_| "[redacted]"))
+            .field("sensitive", &self.sensitive)
             .finish()
     }
 }
@@ -343,6 +382,10 @@ impl TextInputState {
         self.phase
     }
 
+    pub(crate) const fn is_sensitive(&self) -> bool {
+        self.sensitive
+    }
+
     /// The last validation error.
     pub const fn error(&self) -> Option<&FieldError> {
         self.error.as_ref()
@@ -350,7 +393,23 @@ impl TextInputState {
 
     /// Set (or clear) the error from an external / async validation.
     pub fn set_error(&mut self, e: Option<FieldError>) {
-        self.error = e;
+        self.clear_error();
+        if self.sensitive {
+            if let Some(error) = e {
+                discard_error(error);
+                self.error = Some(FieldError::new("Invalid value"));
+            }
+        } else {
+            self.error = e;
+        }
+    }
+
+    pub(crate) fn mark_sensitive(&mut self) {
+        self.sensitive = true;
+        if let Some(error) = self.error.take() {
+            discard_error(error);
+            self.error = Some(FieldError::new("Invalid value"));
+        }
     }
 
     /// Begin an edit over `current` (a no-op while editing).
@@ -376,9 +435,7 @@ impl TextInputState {
         v: &impl Validate,
     ) -> Result<(), FieldError> {
         self.write_target(value);
-        let r = v.check(value.expose());
-        self.error = r.clone().err();
-        r
+        self.finish_validation(v.check(value.expose()))
     }
 
     fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
@@ -393,6 +450,9 @@ impl TextInputState {
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
         self.draft.zeroize();
+        if self.sensitive {
+            self.clear_error();
+        }
     }
 
     /// Apply the blur policy.
@@ -424,6 +484,10 @@ impl TextInputState {
                 self.cancel();
                 Ok(())
             }
+            BlurPolicy::Keep if self.sensitive => {
+                self.cancel();
+                Ok(())
+            }
             BlurPolicy::Keep => Ok(()),
         }
     }
@@ -431,11 +495,62 @@ impl TextInputState {
     /// Overwrite the draft bytes.
     pub fn zeroize(&mut self) {
         self.draft.zeroize();
+        self.clear_error();
     }
 
     fn apply(&mut self, a: EditAction<'_>) -> EditOutcome {
         self.draft.apply(a)
     }
+
+    fn finish_validation(&mut self, result: Result<(), FieldError>) -> Result<(), FieldError> {
+        self.clear_error();
+        match result {
+            Ok(()) => Ok(()),
+            Err(error) if self.sensitive => {
+                discard_error(error);
+                let safe = FieldError::new("Invalid value");
+                self.error = Some(safe.clone());
+                Err(safe)
+            }
+            Err(error) => {
+                self.error = Some(error.clone());
+                Err(error)
+            }
+        }
+    }
+
+    fn clear_error(&mut self) {
+        if let Some(error) = self.error.take() {
+            discard_error(error);
+        }
+    }
+}
+
+fn discard_error(error: FieldError) {
+    if let std::borrow::Cow::Owned(mut message) = error.message {
+        zeroize_string(&mut message);
+    }
+}
+
+fn zeroize_string(value: &mut String) {
+    let mut bytes = core::mem::take(value).into_bytes();
+    bytes.fill(0);
+    core::hint::black_box(&bytes);
+    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
+    bytes.clear();
+}
+
+pub(crate) fn redacted_text(text: &str) -> String {
+    let mut redacted = String::new();
+    for (line, segment) in text.split('\n').enumerate() {
+        if line > 0 {
+            redacted.push('\n');
+        }
+        for _ in graphemes(segment) {
+            redacted.push('•');
+        }
+    }
+    redacted
 }
 
 /// A single-line text control with an explicit edit lifecycle.
@@ -712,6 +827,9 @@ impl<'a> TextInput<'a> {
         st: &mut TextInputState,
         value: &mut T,
     ) -> Response<TextAction> {
+        if self.secret.is_some() {
+            st.mark_sensitive();
+        }
         let mut acc = super::Acc::<TextAction>::new();
         let editable = self.editable();
         for it in cx.intents(self.id) {
@@ -789,7 +907,7 @@ impl<'a> TextInput<'a> {
 
     fn live_validate(&self, st: &mut TextInputState) {
         if st.error.is_some() {
-            st.error = self.validator().check(st.draft.text()).err();
+            let _ = st.finish_validation(self.validator().check(st.draft.text()));
         }
     }
 
@@ -962,7 +1080,10 @@ impl<'a> TextInput<'a> {
             } else {
                 0
             };
-            let total = match self.secret {
+            let secret_policy = self
+                .secret
+                .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
+            let total = match secret_policy {
                 Some(_) => graphemes(shown).count(),
                 None => usize::from(width(shown)),
             };
@@ -976,7 +1097,7 @@ impl<'a> TextInput<'a> {
             if overflow_right {
                 run.width = run.width.saturating_sub(1);
             }
-            if let Some(policy) = self.secret {
+            if let Some(policy) = secret_policy {
                 paint_masked(ui, run, shown, skip, editing, policy, ts.style);
             } else {
                 let start = byte_at_col(shown, skip);
@@ -1060,8 +1181,11 @@ impl<'a> TextInput<'a> {
         value: &Secret,
         inherited_disabled: bool,
     ) -> Rect {
-        self.with_inherited_disabled(inherited_disabled)
+        let control = self.with_inherited_disabled(inherited_disabled);
+        let policy = control.secret.unwrap_or_default();
+        control
             .value(value.expose())
+            .secret(policy)
             .draw(ui, area, st)
     }
 
@@ -1409,6 +1533,79 @@ mod tests {
             tail.chars().all(|c| c.is_ascii_alphanumeric()),
             "tail {tail} is not synthetic"
         );
+    }
+
+    #[test]
+    fn sensitive_state_clone_keeps_shape_without_copying_draft() {
+        let mut state = TextInputState::default();
+        state.mark_sensitive();
+        state.begin("hunter2");
+        let copy = state.clone();
+        assert_eq!(copy.draft.text(), "•••••••");
+        assert!(!copy.draft.text().contains("hunter2"));
+    }
+
+    #[test]
+    fn sensitive_state_equality_ignores_draft_contents() {
+        let mut left = TextInputState::default();
+        left.mark_sensitive();
+        left.begin("hunter2");
+        let mut right = TextInputState::default();
+        right.mark_sensitive();
+        right.begin("different");
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn sensitive_state_masks_when_control_policy_is_removed() {
+        const SECRET: &str = "hunter2";
+        let mut state = TextInputState::default();
+        state.mark_sensitive();
+        state.begin(SECRET);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            TextInput::new(ID).value(SECRET).draw(ui, area, &state);
+        });
+        let frame: String = buffer
+            .content()
+            .iter()
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect();
+        let mask = Theme::junie()
+            .design
+            .glyphs
+            .get(SecretPolicy::default().mask);
+        assert!(
+            !frame.contains(SECRET),
+            "the sensitive state reached the frame"
+        );
+        assert!(
+            frame.matches(mask).count() >= SECRET.chars().count(),
+            "the sensitive state did not paint its mask: {frame}"
+        );
+    }
+
+    #[test]
+    fn sensitive_validator_error_is_generic_and_not_retained() {
+        const SECRET: &str = "hunter2";
+        let validator = |value: &str| Err(FieldError::new(format!("invalid {value}")));
+        let mut state = TextInputState::default();
+        state.mark_sensitive();
+        state.begin(SECRET);
+        let mut value = String::new();
+        let error = state
+            .commit(&mut value, &validator)
+            .expect_err("the validator must reject the secret");
+        assert_eq!(error.message, "Invalid value");
+        assert_eq!(
+            state.error().map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{state:?}").contains(SECRET));
+        state.zeroize();
+        assert!(state.error().is_none());
+        value.clear();
     }
 
     #[test]
