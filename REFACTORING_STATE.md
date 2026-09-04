@@ -1455,3 +1455,64 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   global metadata. Same-length edits require `ViewportState::invalidate`; saturated generation
   disables reuse. §20.9-7/§12.4/§16.6 corrected; no visual-change item and no baseline movement
   authorized.
+
+## Session 5 continuation checkpoint — AUTHORITATIVE (2026-09-05, HEAD `a1759b2`)
+
+This checkpoint supersedes the "Current", "Next", and "Blocker" claims of the immediately preceding
+`CONTINUE / HANDOFF — central Ui::reference migration` section. That text is retained unedited as
+historical evidence; where it conflicts with this checkpoint, this checkpoint governs.
+
+### Measured state at HEAD `a1759b2`
+
+- HEAD is `a1759b2` ("feat(tui): complete component architecture slice"). Remote `origin/main`
+  matches the same commit; nothing is unpushed.
+- Slice 4 code is integrated into the live tree. The live components baseline SHA-256 is
+  `4c4dd527261acc03431858db024f884385463a40131b16ae340564da9ca42299`.
+- Baseline movement accounting is exact and classified in `docs/visual-changes.md`: **280 moved**
+  component keys and **1,280 first-generation component additions**, plus **6** numeric perf
+  additions.
+- Independent visual review of the **640** review frames returned **PASS**.
+- Full workspace tests, all targets and all features: **2,298 passed / 1 ignored**.
+- Strict workspace Clippy: **PASS**.
+- `cargo fmt --check`, `xtask doc-check`, boundary gate, and `xtask bless-guard` with
+  `BLESS_GUARD_BASE=f28a81e`: all **PASS**.
+
+### Slice 4 closure status
+
+- Slice 4 is not closed. Closure awaits the currently running fresh Opus 5 / high read-only
+  public-API and architecture audit. No Slice 4 closeout may be declared before that audit returns
+  and any findings are adjudicated.
+
+### Slices 5–7 status — unstarted
+
+- Slice 5, Slice 6, and Slice 7 remain unstarted.
+- There is no `apps/` directory.
+- The repository root still owns three binaries.
+- The `tui-next` crate name remains temporary. It stays temporary until an accepted ownership
+  transition is adjudicated and recorded; renaming is not authorized by this checkpoint.
+
+### Active read-only audits (fresh Opus 5 / high)
+
+Six read-only audits are active concurrently:
+
+1. Slice 5
+2. Slice 6
+3. Slice 7
+4. §29
+5. Slice 4 public API
+6. Documentation / CI / security / performance
+
+All six are read-only. There are no file ownership conflicts among them and none with any
+implementation worker, because no implementation package is dispatched while they run.
+
+### Next action
+
+1. Consume the six audit reports as they return.
+2. Adjudicate every architectural, public-API, security, performance, or visual-design finding and
+   record the accepted decisions.
+3. Dispatch disjoint `fable-builder` implementation packages against the adjudicated scope, with
+   non-overlapping file ownership.
+
+### Blocker
+
+- None.
