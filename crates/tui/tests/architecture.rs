@@ -180,6 +180,40 @@ mod architecture {
         check("examples_are_external_consumers");
     }
 
+    /// §12.4 / §28 P5. Registered in `xtask`'s `CHECKS` since it was written,
+    /// but with **no wrapper here** until §47.5's pass — so `cargo test --test
+    /// architecture` never ran it and only a full `xtask boundary` did.
+    #[test]
+    fn inherit_forced_stays_crate_internal() {
+        check("inherit_forced_stays_crate_internal");
+    }
+
+    /// §16.5 / §47.5. The multiset of workspace `bin` target names **equals**
+    /// `{showcase, tablepro, jackin-preview}`. An equality over a multiset
+    /// catches a rename and a duplicate; the duplicate is the one that makes
+    /// `target/debug/showcase` whichever built last.
+    #[test]
+    fn binary_names_are_preserved() {
+        check("binary_names_are_preserved");
+    }
+
+    /// §16.5 / §21 item 23 / §47.5. A slice-indexed expected set —
+    /// `{showcase_app}` from Slice 5, `+ tablepro_app` from 6, `+ jackin_app`
+    /// from 7 — where **a missing expected member is a failure, not a pass**.
+    #[test]
+    fn app_libs_are_not_published_and_are_not_depended_on_by_the_library() {
+        check("app_libs_are_not_published_and_are_not_depended_on_by_the_library");
+    }
+
+    /// §16.5 / §47.5. The path scan and the `#[path]`/`include!` prohibition.
+    /// The `cargo tree` third of this row is asserted by
+    /// `dependency_graph_is_exactly_the_declared_set` item (3) and is not
+    /// duplicated.
+    #[test]
+    fn applications_depend_only_on_the_library_facade() {
+        check("applications_depend_only_on_the_library_facade");
+    }
+
     /// §16.3 as amended by §36, and §36.5: every moved or added baseline key is
     /// accounted for by a `docs/visual-changes.md` entry citing a numbered
     /// §20.10 item. `cargo run -p xtask -- bless-guard` is the same check.

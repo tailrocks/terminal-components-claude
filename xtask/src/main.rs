@@ -234,6 +234,15 @@ const CHECKS: &[Check] = &[
         "inherit_forced_stays_crate_internal",
         inherit_forced_stays_crate_internal,
     ),
+    ("binary_names_are_preserved", binary_names_are_preserved),
+    (
+        "app_libs_are_not_published_and_are_not_depended_on_by_the_library",
+        app_libs_are_not_published_and_are_not_depended_on_by_the_library,
+    ),
+    (
+        "applications_depend_only_on_the_library_facade",
+        applications_depend_only_on_the_library_facade,
+    ),
     (
         "baseline_moves_are_classified",
         baseline_moves_are_classified,
@@ -865,6 +874,12 @@ fn every_named_test_exists() -> Result<(), String> {
         "**New application coverage**",
         "### 16.5",
     )));
+    // §16.5: the architecture-check table. Its absence was a blind spot
+    // covering EVERY boundary check (§47.4): all nine names that follow are
+    // listed only here and in Appendix B, so until this line existed their
+    // absence could not fail any gate — which is how three missing `apps/`
+    // guards came to be found by a person reading the document.
+    want.extend(doc_table_names(&doc_section(&doc, "### 16.5", "### 16.6")));
     want.extend(doc_table_names(&doc_section(&doc, "### 16.6", "## 17.")));
 
     let have = declared_test_names();
@@ -882,7 +897,7 @@ fn every_named_test_exists() -> Result<(), String> {
         missing.push(name.clone());
     }
     println!(
-        "every_named_test_exists: {} names in §16.1/§16.2/§16.4/§16.6, {} present, {deferred} deferred (xtask/named_tests_allow.txt)",
+        "every_named_test_exists: {} names in §16.1/§16.2/§16.4/§16.5/§16.6, {} present, {deferred} deferred (xtask/named_tests_allow.txt)",
         want.len(),
         want.len()
             .saturating_sub(missing.len())
@@ -1460,6 +1475,554 @@ fn library_has_no_application_dependency() -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("library depends on {bad:?}"))
+    }
+}
+
+// ─────────────── the `apps/` boundary guards (§16.5, §47.5) ───────────────
+
+/// One application package: its `[[bin]]` name, its `apps/` directory, its
+/// `[lib]` target name and the slice that owns the migration (§47.1).
+///
+/// The binary name doubles as the package name: Appendix B.3 item 7 gives each
+/// app a package with a `[lib]` (`showcase_app`, …) and a thin `[[bin]]` whose
+/// `main` calls `<app>::run()`.
+struct AppPackage {
+    bin: &'static str,
+    dir: &'static str,
+    lib: &'static str,
+    slice: &'static str,
+}
+
+/// The three applications, in the order §47.1 migrates them.
+const APPS: [AppPackage; 3] = [
+    AppPackage {
+        bin: "showcase",
+        dir: "apps/showcase",
+        lib: "showcase_app",
+        slice: "Slice 5",
+    },
+    AppPackage {
+        bin: "tablepro",
+        dir: "apps/tablepro",
+        lib: "tablepro_app",
+        slice: "Slice 6",
+    },
+    AppPackage {
+        bin: "jackin-preview",
+        dir: "apps/jackin-preview",
+        lib: "jackin_app",
+        slice: "Slice 7",
+    },
+];
+
+/// The workspace's tooling package. Its binary is the checker itself, not a
+/// shipped application, and is excluded from `binary_names_are_preserved` by
+/// **package name** so that a second tooling binary still fails.
+const TOOLING: &str = "xtask";
+
+/// The `bin` target names of the **legacy root package**, as cargo resolves
+/// them — which includes autodiscovery, not only explicit `[[bin]]` sections.
+///
+/// That distinction is load-bearing and was verified rather than assumed:
+/// deleting `[[bin]] showcase` while `src/bin/showcase/main.rs` remains leaves
+/// the target in place, so the slice index below correctly reports the
+/// migration as *not started*. §47.1 requires the section **and** the
+/// `src/bin/<app>/**` tree to go in the same commit, and this reads the same
+/// thing cargo does.
+///
+/// Empty once the root manifest goes virtual (§47.1, the commit between
+/// Slice 7 and Slice 8), which is the correct reading: no root package
+/// declares no binaries, so every application is due.
+fn root_package_bins(md: &cargo_metadata::Metadata) -> BTreeSet<String> {
+    md.packages
+        .iter()
+        .filter(|p| p.manifest_path.parent() == Some(md.workspace_root.as_path()))
+        .flat_map(|p| p.targets.iter())
+        .filter(|t| t.kind.contains(&cargo_metadata::TargetKind::Bin))
+        .map(|t| t.name.clone())
+        .collect()
+}
+
+/// The applications whose migration has **started**, and which must therefore
+/// be present in full.
+///
+/// The slice index is read off the tree rather than off a constant a builder
+/// has to bump: §47.1 binds the root package to lose `[[bin]] X` **in the same
+/// commit** that adds `apps/X`, so "the root no longer declares `[[bin]] X`"
+/// is exactly "`apps/X` is due". A builder who drops the root binary without
+/// adding the package fails here; one who adds the package without dropping
+/// the root binary fails here *and* in `binary_names_are_preserved`, which
+/// sees the duplicate.
+fn due_apps(md: &cargo_metadata::Metadata) -> Vec<&'static AppPackage> {
+    let root_bins = root_package_bins(md);
+    APPS.iter().filter(|a| !root_bins.contains(a.bin)).collect()
+}
+
+/// §16.5 / §47.5. The multiset of `bin` target names across every workspace
+/// member equals `{showcase, tablepro, jackin-preview}`.
+///
+/// **An equality over a multiset, deliberately.** Containment would miss a
+/// rename; a set would miss the migration's real hazard, which §47.5 states
+/// as: the instant the root package and `apps/showcase` both declare
+/// `[[bin]] showcase`, `target/debug/showcase` is whichever built last and the
+/// capture harness silently captures the wrong program. That shows up only as
+/// a *count* of two.
+///
+/// This check is meaningful on today's tree — the three names are the root
+/// package's binaries — and stays meaningful after each migration, because the
+/// name moves rather than changes.
+fn binary_names_are_preserved() -> Result<(), String> {
+    let md = metadata()?;
+    let mut found: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut tooling: Vec<String> = Vec::new();
+    for p in md.workspace_packages() {
+        for t in &p.targets {
+            if !t.kind.contains(&cargo_metadata::TargetKind::Bin) {
+                continue;
+            }
+            if p.name.as_str() == TOOLING {
+                tooling.push(t.name.clone());
+                continue;
+            }
+            found
+                .entry(t.name.clone())
+                .or_default()
+                .push(p.name.as_str().to_owned());
+        }
+    }
+    let mut errors = Vec::new();
+    // the tooling exclusion is by package, and the package is pinned to one bin
+    if tooling != vec![TOOLING.to_owned()] {
+        errors.push(format!(
+            "the `{TOOLING}` package declares bins {tooling:?}, expected exactly [\"{TOOLING}\"] \
+             — the tooling exclusion covers that one binary and nothing else"
+        ));
+    }
+    for a in &APPS {
+        match found.get(a.bin) {
+            None => errors.push(format!(
+                "`[[bin]] {}` is missing from the workspace (owner {}): goal §21 preserves all \
+                 three binary names across the split",
+                a.bin, a.slice
+            )),
+            Some(pkgs) if pkgs.len() > 1 => errors.push(format!(
+                "`[[bin]] {}` is declared by {} packages {pkgs:?} — `target/debug/{}` is whichever \
+                 built last and the capture harness captures the wrong program (§47.5); §47.1 \
+                 drops the root binary in the same commit that adds `{}`",
+                a.bin,
+                pkgs.len(),
+                a.bin,
+                a.dir
+            )),
+            Some(_) => {}
+        }
+    }
+    let want: BTreeSet<&str> = APPS.iter().map(|a| a.bin).collect();
+    for (name, pkgs) in &found {
+        if !want.contains(name.as_str()) {
+            errors.push(format!(
+                "unexpected `[[bin]] {name}` in {pkgs:?}: the workspace ships exactly {want:?}"
+            ));
+        }
+    }
+    if errors.is_empty() {
+        let where_from: Vec<String> = APPS
+            .iter()
+            .map(|a| {
+                let pkg = found
+                    .get(a.bin)
+                    .and_then(|p| p.first())
+                    .map_or("?", String::as_str);
+                format!("{}({pkg})", a.bin)
+            })
+            .collect();
+        println!(
+            "binary_names_are_preserved: {} — plus the `{TOOLING}` tooling binary",
+            where_from.join(", ")
+        );
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+/// §16.5 / §21 item 23 / §47.5. Every **due** application lib exists, is
+/// `publish = false`, and no workspace member other than the library itself is
+/// in the library's normal dependency closure.
+///
+/// **The expected set is slice-indexed and a missing member is a failure**
+/// (§47.5): `{showcase_app}` from Slice 5, `+ tablepro_app` from 6,
+/// `+ jackin_app` from 7, with `due_apps` reading the index off the root
+/// package's remaining `[[bin]]`s rather than off a hand-maintained constant.
+///
+/// **Honest statement of what is vacuous today.** No `apps/` package exists,
+/// so the expected set is empty and the *publish* and *lib-target* assertions
+/// have nothing to run against; they are **vacuous until Slice 5**. Two halves
+/// are not: the pairing assertion (a root `[[bin]]` dropped without its
+/// package, or a package added while the root binary survives) is checkable on
+/// today's tree, and the absent-from-closure half is asserted against **every
+/// workspace member**, not only the three app libs — so the day the library
+/// takes a path dependency on any member other than itself, this fails. That
+/// generalisation is what makes the closure half demonstrable red today
+/// instead of waiting for a package that does not exist.
+fn app_libs_are_not_published_and_are_not_depended_on_by_the_library() -> Result<(), String> {
+    let md = metadata()?;
+    let root_bins = root_package_bins(&md);
+    let members = md.workspace_packages();
+    let mut errors = Vec::new();
+    let mut present: Vec<&str> = Vec::new();
+    for a in &APPS {
+        let due = !root_bins.contains(a.bin);
+        let pkg = members.iter().find(|p| p.name.as_str() == a.bin);
+        match (due, pkg) {
+            (true, None) => errors.push(format!(
+                "{}: the root package no longer declares `[[bin]] {}`, so `{}` with `[lib] {}` is \
+                 DUE and must exist — a missing expected member is a failure, not a pass (§47.5)",
+                a.slice, a.bin, a.dir, a.lib
+            )),
+            (false, Some(_)) => errors.push(format!(
+                "package `{}` exists while the root package still declares `[[bin]] {}`: §47.1 \
+                 drops the root binary in the same commit that adds `{}`",
+                a.bin, a.bin, a.dir
+            )),
+            (false, None) => {}
+            (true, Some(p)) => {
+                present.push(a.lib);
+                if !p
+                    .targets
+                    .iter()
+                    .any(|t| t.kind.contains(&cargo_metadata::TargetKind::Lib) && t.name == a.lib)
+                {
+                    let libs: Vec<&str> = p
+                        .targets
+                        .iter()
+                        .filter(|t| t.kind.contains(&cargo_metadata::TargetKind::Lib))
+                        .map(|t| t.name.as_str())
+                        .collect();
+                    errors.push(format!(
+                        "package `{}` has lib target(s) {libs:?}, expected `[lib] {}` (§21 item \
+                         23: the tests link the lib, so a binary-only package cannot host them)",
+                        a.bin, a.lib
+                    ));
+                }
+                if !p.publish.as_ref().is_some_and(Vec::is_empty) {
+                    errors.push(format!(
+                        "package `{}` has publish = {:?}, expected `publish = false` (§21 item 23)",
+                        a.bin, p.publish
+                    ));
+                }
+            }
+        }
+    }
+    // the absent-from-closure half, generalised past the three app libs
+    let closure: BTreeSet<String> = lib_tree(false)?.into_iter().map(|(n, _, _)| n).collect();
+    let mut intruders: Vec<String> = Vec::new();
+    for p in &members {
+        let name = p.name.as_str();
+        if name != LIB && closure.contains(name) {
+            intruders.push(name.to_owned());
+        }
+    }
+    for a in &APPS {
+        if closure.contains(a.lib) {
+            intruders.push(a.lib.to_owned());
+        }
+    }
+    if !intruders.is_empty() {
+        intruders.sort_unstable();
+        intruders.dedup();
+        errors.push(format!(
+            "workspace member(s) {intruders:?} are in `{LIB}`'s normal dependency closure: the \
+             library depends on no application and on no other workspace member (§16.5, §21 item \
+             23)"
+        ));
+    }
+    if errors.is_empty() {
+        println!(
+            "app_libs_are_not_published_and_are_not_depended_on_by_the_library: {} of {} app \
+             lib(s) due and present {present:?}; {} workspace member(s) absent from `{LIB}`'s \
+             normal closure",
+            present.len(),
+            APPS.len(),
+            members.len().saturating_sub(1)
+        );
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+/// Every root-level public name of the library: `pub mod` idents, the leaves
+/// of the root's `pub use` trees, and every `#[macro_export]` macro (which
+/// lives at the crate root wherever it is written).
+///
+/// Derived from the source rather than hard-coded, so the facade cannot grow a
+/// module that this check silently blesses or forbids.
+fn library_facade_roots() -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let lib = root().join("crates/tui/src/lib.rs");
+    if let Ok(file) = syn::parse_file(&read(&lib)) {
+        for item in &file.items {
+            match item {
+                syn::Item::Mod(m) if matches!(m.vis, syn::Visibility::Public(_)) => {
+                    out.insert(m.ident.to_string());
+                }
+                syn::Item::Use(u) if matches!(u.vis, syn::Visibility::Public(_)) => {
+                    use_leaves(&u.tree, &mut out);
+                }
+                _ => {}
+            }
+        }
+    }
+    let Ok(re) = Regex::new(r"macro_rules!\s*([A-Za-z_][A-Za-z0-9_]*)") else {
+        return out;
+    };
+    for file in rust_files(&root().join("crates/tui/src")) {
+        let text = read(&file);
+        let lines: Vec<&str> = text.lines().collect();
+        for (i, line) in lines.iter().enumerate() {
+            if !line.trim_start().starts_with("#[macro_export]") {
+                continue;
+            }
+            for l in lines.iter().skip(i.saturating_add(1)).take(4) {
+                if let Some(c) = re.captures(l) {
+                    if let Some(m) = c.get(1) {
+                        out.insert(m.as_str().to_owned());
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    out
+}
+
+/// The names a `pub use` tree brings into the crate root.
+fn use_leaves(tree: &syn::UseTree, out: &mut BTreeSet<String>) {
+    match tree {
+        syn::UseTree::Path(p) => use_leaves(&p.tree, out),
+        syn::UseTree::Name(n) => {
+            out.insert(n.ident.to_string());
+        }
+        syn::UseTree::Rename(r) => {
+            out.insert(r.rename.to_string());
+        }
+        syn::UseTree::Group(g) => {
+            for t in &g.items {
+                use_leaves(t, out);
+            }
+        }
+        syn::UseTree::Glob(_) => {}
+    }
+}
+
+/// Collects the segment an application names **immediately after** the library
+/// crate: `junie_tui::author::raw::Line` yields `author`, `use junie_tui::{Id,
+/// author::Foo}` yields `Id` and `author`.
+///
+/// Token-based, never a regex: `use junie_tui::{A, b::C}` puts the interesting
+/// idents inside a brace group that a regex over `crate::(\w+)` cannot see at
+/// all.
+struct FacadeUse {
+    krate: &'static [&'static str],
+    seen: BTreeSet<String>,
+}
+
+impl FacadeUse {
+    fn use_tree(&mut self, tree: &syn::UseTree) {
+        match tree {
+            syn::UseTree::Path(p) => {
+                if self.krate.contains(&p.ident.to_string().as_str()) {
+                    self.after_crate(&p.tree);
+                } else {
+                    self.use_tree(&p.tree);
+                }
+            }
+            syn::UseTree::Group(g) => {
+                for t in &g.items {
+                    self.use_tree(t);
+                }
+            }
+            syn::UseTree::Name(_) | syn::UseTree::Rename(_) | syn::UseTree::Glob(_) => {}
+        }
+    }
+
+    fn after_crate(&mut self, tree: &syn::UseTree) {
+        match tree {
+            syn::UseTree::Path(p) => {
+                self.seen.insert(p.ident.to_string());
+            }
+            syn::UseTree::Name(n) => {
+                self.seen.insert(n.ident.to_string());
+            }
+            syn::UseTree::Rename(r) => {
+                self.seen.insert(r.ident.to_string());
+            }
+            syn::UseTree::Glob(_) => {
+                self.seen.insert("*".to_owned());
+            }
+            syn::UseTree::Group(g) => {
+                for t in &g.items {
+                    self.after_crate(t);
+                }
+            }
+        }
+    }
+}
+
+impl syn::visit::Visit<'_> for FacadeUse {
+    fn visit_item_use(&mut self, node: &syn::ItemUse) {
+        self.use_tree(&node.tree);
+        syn::visit::visit_item_use(self, node);
+    }
+
+    fn visit_path(&mut self, node: &syn::Path) {
+        let mut it = node.segments.iter();
+        if let (Some(first), Some(second)) = (it.next(), it.next())
+            && self.krate.contains(&first.ident.to_string().as_str())
+        {
+            self.seen.insert(second.ident.to_string());
+        }
+        syn::visit::visit_path(self, node);
+    }
+}
+
+/// The crate names the library answers to: the Slice 3–4 temporary name and
+/// the name it takes at the rename commit (§21 item 31, §47.1). Both are
+/// scanned so this check does not go silently blind for one commit.
+const LIB_CRATE_IDENTS: &[&str] = &["tui_next", "junie_tui"];
+
+/// The first line of `text` naming `<crate>::<segment>`, 1-based.
+fn first_facade_line(text: &str, segment: &str) -> usize {
+    for ident in LIB_CRATE_IDENTS {
+        let needle = format!("{ident}::{segment}");
+        for (i, line) in text.lines().enumerate() {
+            if line.contains(&needle) {
+                return i.saturating_add(1);
+            }
+        }
+    }
+    for (i, line) in text.lines().enumerate() {
+        if line.contains(segment) {
+            return i.saturating_add(1);
+        }
+    }
+    0
+}
+
+/// §16.5 / §47.5 / §47.8. The two thirds of "applications reach only the
+/// public facade" that no other check performs.
+///
+/// **The third that is not here.** `cargo tree -p <app> -e normal --depth 1`
+/// prints `junie-tui` and nothing else — that is asserted by
+/// `dependency_graph_is_exactly_the_declared_set` item (3), whose app-package
+/// loop already requires each app's direct normal dependencies to be exactly
+/// the library. It is *not* duplicated here; duplicating it would produce two
+/// checks that fail together and one that could quietly stop being run.
+///
+/// **What is here**: every path an application names under the library
+/// resolves against the library's *root* public surface (`pub mod`s, root
+/// `pub use` leaves, `#[macro_export]` macros — `author` and `author::raw`
+/// among them), and no `#[path]` attribute or `include!` smuggles library
+/// source into an application. §16.5 records that the *enforcement* is
+/// structural — a separate crate cannot name a `pub(crate)` item — so this is
+/// the belt-and-braces report that names the offender.
+///
+/// **Honest statement of what is vacuous today.** `apps/` does not exist, so
+/// the path scan and the `#[path]`/`include!` prohibition have no input and
+/// are **vacuous until Slice 5**; they were demonstrated red on a scratch
+/// `apps/showcase` tree outside the repository, per `COORDINATION.md`. What is
+/// not vacuous today is the due-set assertion: an application whose root
+/// `[[bin]]` has been dropped must have an `apps/<app>/src` that this scan
+/// actually read, so the check cannot pass by scanning nothing.
+fn applications_depend_only_on_the_library_facade() -> Result<(), String> {
+    let md = metadata()?;
+    let due = due_apps(&md);
+    let facade = library_facade_roots();
+    let mut errors = Vec::new();
+    let mut scanned = 0usize;
+    let Ok(path_attr) = Regex::new(r"#\s*\[\s*path\s*=") else {
+        return Err("bad #[path] regex".to_owned());
+    };
+    let Ok(include) = Regex::new(r"\binclude!\s*\(") else {
+        return Err("bad include! regex".to_owned());
+    };
+    let apps_dir = root().join("apps");
+    let mut app_dirs: Vec<PathBuf> = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&apps_dir) {
+        for e in entries.filter_map(Result::ok) {
+            let src = e.path().join("src");
+            if src.is_dir() {
+                app_dirs.push(src);
+            }
+        }
+    }
+    app_dirs.sort();
+    for a in &due {
+        let src = root().join(a.dir).join("src");
+        if !app_dirs.contains(&src) {
+            errors.push(format!(
+                "{}/src is missing, yet `{}` is due at {} (the root package no longer declares \
+                 `[[bin]] {}`): this check must never pass by scanning nothing (§47.5)",
+                a.dir, a.bin, a.slice, a.bin
+            ));
+        }
+    }
+    for dir in &app_dirs {
+        for file in rust_files(dir) {
+            let text = read(&file);
+            let Ok(ast) = syn::parse_file(&text) else {
+                errors.push(format!("{} does not parse", rel(&file)));
+                continue;
+            };
+            scanned = scanned.saturating_add(1);
+            let mut visitor = FacadeUse {
+                krate: LIB_CRATE_IDENTS,
+                seen: BTreeSet::new(),
+            };
+            syn::visit::Visit::visit_file(&mut visitor, &ast);
+            for segment in &visitor.seen {
+                if facade.contains(segment) {
+                    continue;
+                }
+                errors.push(format!(
+                    "{}:{}: `{segment}` is not part of the library's root facade — an application \
+                     names only the crate root or `author` (§16.5, §22 §1.2)",
+                    rel(&file),
+                    first_facade_line(&text, segment)
+                ));
+            }
+            for (n, line) in non_test_lines(&text) {
+                let code = code_line(line);
+                if path_attr.is_match(code) {
+                    errors.push(format!(
+                        "{}:{n}: `#[path]` is forbidden in an application — a module reached by \
+                         path is not a facade consumer (§16.5)",
+                        rel(&file)
+                    ));
+                }
+                if include.is_match(code) {
+                    errors.push(format!(
+                        "{}:{n}: `include!` is forbidden in an application — included source \
+                         bypasses the crate boundary the workspace exists to create (§16.5)",
+                        rel(&file)
+                    ));
+                }
+            }
+        }
+    }
+    if errors.is_empty() {
+        println!(
+            "applications_depend_only_on_the_library_facade: {} application source file(s) \
+             scanned across {} due app(s) against {} facade root(s); the `cargo tree` third is \
+             asserted by dependency_graph_is_exactly_the_declared_set (3), not duplicated here",
+            scanned,
+            due.len(),
+            facade.len()
+        );
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
     }
 }
 

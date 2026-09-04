@@ -1,4 +1,4 @@
-# Named tests (§16.1 / §16.2 suite-level / §16.4 / §16.6) that do not exist yet.
+# Named tests (§16.1 / §16.2 suite-level / §16.4 / §16.5 / §16.6) that do not exist yet.
 #
 # `architecture::every_named_test_exists` is ONE-DIRECTIONAL and SCOPED (§21 item 28):
 # every documented name must exist, extra tests are allowed. A name may sit here only
@@ -7,6 +7,20 @@
 #
 # Recorded by the Slice 3 foundations correction pass. Every Slice-3-owned name in
 # §16.1 now exists; everything below belongs to a later work package.
+#
+# §16.5 was added to the scan by §47.4. Until then the section was not scanned at all,
+# so the absence of any §16.5 boundary check could not fail any gate — which is how
+# three missing `apps/` guards came to be found by a person reading the document
+# rather than by a check. The six names below are what that blind spot was hiding;
+# the three `apps/` guards it also hid now exist.
+
+# ── §16.5 architecture checks not yet built (§47.4) ──
+every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.5 records the rustdoc-json resolver as a Slice-8 upgrade
+field_kind_has_no_type_parameters  # Slice 4F — components/form.rs (FieldKind does not exist yet)
+no_generic_component_copies_in_applications  # Slice 5 — apps/**/src (first apps package)
+no_owns_or_locate_in_applications  # Slice 5 — apps/**/src; §16.5's row describes an `apps/allow/dispatch.txt` that no code reads: the live mechanism is forbidden-pattern rule 25
+props_are_built_once  # Slice 5 — apps/**/src + crates/tui/examples/**
+showcase_covers_every_public_component  # Slice 5 — apps/showcase page registry
 
 # ── 4F `components/dialog.rs` (Adjudication N1) ──
 a_growing_body_resizes_the_layer_on_the_next_frame  # Slice 4F — components/dialog.rs
