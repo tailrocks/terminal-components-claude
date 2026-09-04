@@ -127,8 +127,14 @@ pub(crate) const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴"
 pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
     [
         "▎", "›", "✓", "[✓]", "[ ]", "(●)", "(○)", "●", "•", "+", "−", "!", "▲", "▸", "▾", "▴",
-        "▾", "∇", "▪", "▪", "→", "↓", "‹", "›", "…", "×", "›", "◆", "◇", "─", "━", "│", "┃", "✓",
-        "∥", "+", "[", "]", "•",
+        "▾", "∇", "▪", "▪", "→", "↓", "‹", "›", "…", "×", "›", "◆", "◇",
+        // Indices 29–32 (`RuleQuiet`, `RuleActive`, `ScrollTrack`,
+        // `ScrollThumb`) are **dead**: `GlyphSet::get`/`set` route those four
+        // roles to the typed `line`/`scrollbar` sets below and never index the
+        // array (Adjudication O2). They are kept empty so the array keeps one
+        // entry per `GlyphRole` and nobody edits them expecting an effect.
+        "", "", "", "", //
+        "✓", "∥", "+", "[", "]", "•",
     ],
     scrollbar::Set {
         track: "│",

@@ -194,6 +194,25 @@ fn style_resolve_10k_parts() {
         rate >= 0.90,
         "style memo hit rate {rate:.3} < 0.90 (hits={hits}, misses={misses})"
     );
+    if env_flag("PERF_STRICT") {
+        // Adjudication O4a correction 2: the *binding* style budget lives
+        // here, not in `style_resolve_per_frame`'s differential. This is a
+        // pure resolution loop of exactly 10 000 queries with no differencing,
+        // so it is the low-noise measurement; §25.8's own arithmetic —
+        // "≈ 13 ns per query × ~2 000 queries per realistic frame ≈ 26 µs,
+        // under 0.2 % of a 16 ms budget" — turned into code is
+        // `ns / 10 000 × 2 000 <= 32 000`, i.e. <= 16.0 ns per query.
+        const QUERIES: u128 = 10_000;
+        const FRAME_QUERIES: u128 = 2_000;
+        const BUDGET_NS: u128 = 32_000;
+        let per_frame_2k = s.ns / QUERIES * FRAME_QUERIES;
+        assert!(
+            per_frame_2k <= BUDGET_NS,
+            "style resolution is {} ns/query, so a 2 000-query frame costs \
+             {per_frame_2k} ns, over the 32 µs (0.2 % of 16 ms) budget",
+            s.ns / QUERIES
+        );
+    }
 }
 
 /// Adjudication 2.8: §20.9-1's "ns ≤ 2× the pre-refactor `Theme::row`+`gutter`
@@ -208,6 +227,11 @@ fn style_resolve_10k_parts() {
 /// measured frames paint **identically** and differ only in whether the five
 /// part styles are resolved per row or hoisted, so the difference is the
 /// style-resolution cost and nothing else.
+///
+/// This test deliberately calls no `report`, so it carries **no** line in
+/// `perf_baseline.txt` (named there in the `#` header): it measures a
+/// difference of two medians, and a baselined `ns` for a differential invites
+/// a meaningless `× 1.2` regression check (Adjudication O4a correction 3).
 #[test]
 fn style_resolve_per_frame() {
     let _g = lock();
@@ -271,16 +295,24 @@ fn style_resolve_per_frame() {
     let share = resolution_ns as f64 / a.ns.max(1) as f64;
     println!(
         "PERF style_resolve_per_frame ns={} hoisted_ns={} resolution_ns={resolution_ns} \
-         share={share:.3} queries=200",
+         share={share:.3} queries_a=200 queries_b=40 delta=160",
         a.ns, b.ns
     );
     assert_eq!(a.allocs, 0);
     if env_flag("PERF_STRICT") {
-        // The adjudication's own arithmetic is the machine-independent bound:
-        // ~13 ns per query × ~2 000 queries per realistic frame ≈ 26 µs,
-        // "under 0.2 % of a 16 ms budget". Asserted here against a 32 µs
-        // ceiling (0.2 % of 16 ms), scaled from this frame's 200 queries.
-        let per_frame_2k = resolution_ns.saturating_mul(10);
+        // Adjudication O4a correction 1: the difference covers `DELTA`
+        // queries, not `QUERIES_A`. The old `× 10` extrapolated to 1 600
+        // queries while claiming 2 000, making the assertion ~20 % weaker
+        // than it read. Correction 2: this differential is now the *second*,
+        // looser net — the binding per-query budget is asserted in
+        // `style_resolve_10k_parts`, which does no differencing — and it is
+        // kept because it is the only measurement that includes real painting
+        // alongside resolution, and the number Slice 5 will compare against
+        // `frame_showcase_lists_120x40`.
+        const QUERIES_A: u128 = 200; // 40 rows × 5 parts
+        const QUERIES_B: u128 = 40; // 8 states × 5 parts, hoisted
+        const DELTA: u128 = QUERIES_A - QUERIES_B; // 160
+        let per_frame_2k = resolution_ns.saturating_mul(2_000) / DELTA;
         assert!(
             per_frame_2k <= 32_000,
             "style resolution extrapolates to {per_frame_2k} ns for a 2 000-query frame, \
@@ -710,9 +742,18 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
     );
     assert_eq!(s500.allocs, 0);
 
-    // with an intent in the queue, each `cx.intents` call performs exactly
-    // one probe: the 500-control frame costs exactly 480 probes more than the
-    // 20-control frame, and neither allocates
+    // With an intent in the queue, each `cx.intents` call performs exactly one
+    // probe: the 500-control frame costs exactly 480 probes more than the
+    // 20-control frame, and neither allocates. The difference is the asserted
+    // form because `intent_probes()` is cumulative since construction and also
+    // counts the enqueue path, so no absolute count is stable.
+    //
+    // Adjudication O4b correction 2: the constant 480 encodes **one update
+    // pass**. `Runtime::handle`'s focus re-run loop is bounded at four passes
+    // (§3.3 step 7), so a legitimate second pass makes the delta 960 — which
+    // is a real behaviour change and is exactly what this equality is here to
+    // catch. Do **not** relax it to `% 480 == 0`; re-adjudicate the pass count
+    // instead.
     let key = || {
         Input::Key(tui_next::Key {
             code: tui_next::KeyCode::Enter,
@@ -733,7 +774,8 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
     assert_eq!(
         p500 - p20,
         480,
-        "one probe per drain call: {p500} - {p20} != 480"
+        "one probe per drain call in one update pass: {p500} - {p20} != 480 \
+         (960 would mean a second focus pass, not a drain regression)"
     );
     let (mut two, _) = probe_runtime(500);
     let s2 = bench(2, iters(200), &mut || {

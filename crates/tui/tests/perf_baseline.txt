@@ -53,6 +53,29 @@
 #                                     PERF_STRICT=1, so these are a snapshot, not a
 #                                     contract. The allocation and byte columns are the
 #                                     hard assertions.
+#
+# Recorded by Adjudication O (docs/reviews/adjudication-o-foundations-followups.md):
+#
+#  style_resolve_10k_parts            memo hit rate 0.997, measured on the shipped
+#                                     two-way set-associative memo (hits=907088,
+#                                     misses=2912; 32 keys over 128 two-way sets,
+#                                     PERF-CACHE line). O1: a one-way table of the same
+#                                     256 entries measures 0.872 on this key set and a
+#                                     broken key ~0.003, so the >= 0.90 gate is a
+#                                     key-correctness floor, not a performance bound --
+#                                     diagnose the geometry from PERF-CACHE before
+#                                     suspecting the key. O4a moves the binding style
+#                                     budget here, the low-noise pure-resolution loop:
+#                                     under PERF_STRICT, ns / 10 000 x 2 000 <= 32 000,
+#                                     i.e. <= 16.0 ns per query (blessed at 12.0).
+#  style_resolve_per_frame            deliberately carries NO row below. It reports a
+#                                     difference of two medians (styles resolved per row
+#                                     minus hoisted), and a baselined ns for a
+#                                     differential invites a meaningless x1.2 regression
+#                                     check (O4a correction 3). Its strict net
+#                                     extrapolates the 160-query difference -- 200 in
+#                                     arm A minus 40 in arm B, not 200 -- to 2 000
+#                                     queries against the same 32 us ceiling.
 event_dispatch_is_not_o_n 135185 0 0
 fit_10k_grapheme_line_to_80 156980 0 0
 fit_10k_grapheme_line_to_80_wide 333847 7 224

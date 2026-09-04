@@ -12,7 +12,7 @@ use ratatui_core::style::Color;
 use super::Theme;
 use super::border::BorderSet;
 use super::downgrade::{lab_of, luminance, rgb_of};
-use super::glyph::GlyphRole;
+use super::glyph::{ASCII_RULE_ACTIVE, ASCII_RULE_QUIET, ASCII_SCROLLBAR, GlyphRole};
 use super::role::{FG_STEPS, SURFACE_LEVELS};
 use super::tokens::{ColorTokens, Density, MotionTokens, SizeTokens, SpaceTokens};
 
@@ -199,23 +199,48 @@ impl ThemeBuilder {
         self
     }
 
+    /// Rebind every glyph whose Junie default falls in the box-drawing block
+    /// (`U+2500..=U+257F`) to its ASCII equivalent: the quiet rule (`-`), the
+    /// active rule (`=`) and the scrollbar track (`|`), thumb (`#`) and caps
+    /// (`|`).
+    ///
+    /// The whole typed `line` and `scrollbar` sets are replaced, not the four
+    /// glyphs a [`GlyphRole`] names, so the seam junctions of `line::Set` and
+    /// `scrollbar::Set`'s `begin`/`end` — which no role reaches — are covered
+    /// too (Adjudication O2).
+    ///
+    /// This is the box-drawing block **only**: the remaining ~31 roles (`›`,
+    /// `✓`, `…`, `×`, the spinner frames) stay unicode, and a full `GlyphSet`
+    /// ASCII table is a separate visual-design decision (§24 M2 risk 3).
+    ///
+    /// Idempotent, and "last write wins": call [`ThemeBuilder::glyph`]
+    /// **after** this to override any of them.
+    #[must_use]
+    pub fn ascii_glyphs(mut self) -> Self {
+        let g = &mut self.theme.design.glyphs;
+        g.set_rule_quiet(ASCII_RULE_QUIET);
+        g.set_rule_active(ASCII_RULE_ACTIVE);
+        g.set_scrollbar(ASCII_SCROLLBAR);
+        self
+    }
+
     /// Set the border glyph set.
     ///
-    /// Choosing [`border::ASCII`](crate::theme::border::ASCII) also swaps the
-    /// **rule** and **scrollbar** glyphs to ASCII (`-`, `=`, `|`, `#`): those
-    /// come from typed `line`/`scrollbar` sets rather than from the border
-    /// set, and an "ASCII theme" that still paints `─` in a divider is not
-    /// one (§24 M2, `theme::ascii_theme_renders_without_box_drawing_glyphs`).
-    /// Override any of the four afterwards with [`ThemeBuilder::glyph`].
+    /// Choosing [`border::ASCII`](crate::theme::border::ASCII) also applies
+    /// [`ThemeBuilder::ascii_glyphs`]: the rules and the scrollbar come from
+    /// typed `line`/`scrollbar` sets rather than from the border set, and an
+    /// "ASCII theme" that still paints `─` in a divider is ASCII at the edges
+    /// and unicode everywhere else — the outcome §24 M2 called worse than
+    /// either consistent choice (`theme::ascii_theme_renders_without_box_drawing_glyphs`).
+    ///
+    /// The swap is sticky: `borders_set(ASCII).borders_set(PLAIN)` keeps the
+    /// ASCII rules, because restoring the theme's own glyphs would clobber a
+    /// deliberate [`ThemeBuilder::glyph`]. Override afterwards instead.
     #[must_use]
     pub fn borders_set(mut self, b: BorderSet) -> Self {
         self.theme.design.borders = b;
         if b == crate::theme::border::ASCII {
-            let g = &mut self.theme.design.glyphs;
-            g.set(GlyphRole::RuleQuiet, "-");
-            g.set(GlyphRole::RuleActive, "=");
-            g.set(GlyphRole::ScrollTrack, "|");
-            g.set(GlyphRole::ScrollThumb, "#");
+            self = self.ascii_glyphs();
         }
         self
     }
@@ -506,6 +531,36 @@ mod tests {
         c.syntax = SyntaxTokens::derive(c.accent, c.success, c.warning);
         c.meter = MeterTokens::derive(c.success, c.warning, c.danger);
         c
+    }
+
+    /// Adjudication O2: `ascii_glyphs` is a whole-set replacement, so applying
+    /// it twice changes nothing, and it is "last write wins" against an
+    /// explicit `.glyph(..)` that follows it.
+    #[test]
+    fn ascii_glyphs_is_idempotent_and_glyph_overrides_it() {
+        let once = Theme::junie().builder().ascii_glyphs().build();
+        let twice = Theme::junie()
+            .builder()
+            .ascii_glyphs()
+            .ascii_glyphs()
+            .build();
+        assert_eq!(once.design.glyphs, twice.design.glyphs);
+        // and it is exactly what `borders_set(ASCII)` applies
+        let via_borders = Theme::junie()
+            .builder()
+            .borders_set(crate::theme::border::ASCII)
+            .build();
+        assert_eq!(once.design.glyphs, via_borders.design.glyphs);
+
+        let overridden = Theme::junie()
+            .builder()
+            .borders_set(crate::theme::border::ASCII)
+            .glyph(GlyphRole::RuleQuiet, "~")
+            .build();
+        assert_eq!(overridden.design.glyphs.get(GlyphRole::RuleQuiet), "~");
+        // the rest of the ASCII swap survives the override
+        assert_eq!(overridden.design.glyphs.get(GlyphRole::RuleActive), "=");
+        assert_eq!(overridden.design.glyphs.scrollbar().begin, "|");
     }
 
     #[test]

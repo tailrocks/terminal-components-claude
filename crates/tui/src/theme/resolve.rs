@@ -4,7 +4,8 @@
 //! specificity), theme-level global override, scope overlay stack (outermost
 //! → innermost), per-instance patch. Then, and only then, roles bind to
 //! colours against `(theme.color, surface, theme.capability)`. Steps 1–5 are
-//! memoised in a statically sized direct-mapped cache keyed by a 64-bit mix.
+//! memoised in a statically sized two-way set-associative cache (256 entries
+//! in 128 sets) keyed by a 64-bit mix.
 
 use ratatui_core::style::{Color, Style};
 
@@ -268,8 +269,8 @@ const CACHE_SLOTS: usize = 256;
 /// `CACHE_SLOTS / WAYS` sets so that two hot keys landing on one set do not
 /// evict each other on every access.
 ///
-/// A **direct-mapped** table of 256 entries cannot meet §16.6's ≥ 90 % hit
-/// rate for a realistic frame: with `k` hot keys the expected number of
+/// A **one-way** table of 256 entries cannot meet §16.6's ≥ 90 % hit rate
+/// for a realistic frame: with `k` hot keys the expected number of
 /// colliding pairs is `C(k,2)/256`, and a colliding pair in a hot loop misses
 /// on *every* access. `style_resolve_10k_parts` touches 32 keys — 4 parts × 8
 /// states — so ≈2 pairs collide by construction and the measured rate is
@@ -309,8 +310,20 @@ impl StyleCache {
     }
 
     /// Invalidate every entry (theme change, new frame).
+    ///
+    /// The stamp must not wrap silently: `wrapping_add(1).max(1)` returns to 1
+    /// after 2³² clears, at which point a slot still stamped with the original
+    /// generation 1 becomes a false hit serving a stale `StylePatch`. At
+    /// `u32::MAX` the slots are filled and the stamp restarts at 1 — one
+    /// comparison per frame, and the 256-entry fill runs once per 2³² frames
+    /// (§20.9-2, Adjudication O1).
     pub(crate) fn clear(&mut self) {
-        self.generation = self.generation.wrapping_add(1).max(1);
+        if self.generation == u32::MAX {
+            self.slots.fill((0, 0, StylePatch::new()));
+            self.generation = 1;
+        } else {
+            self.generation = self.generation.saturating_add(1);
+        }
     }
 
     /// `(hits, misses)` since construction. Promoted from `#[cfg(test)]` by
@@ -724,5 +737,42 @@ mod tests {
         assert!(rule.matches(StateFlags::FOCUSED));
         let r = PartRecipe::default();
         assert!(r.apply(StylePatch::new(), StateFlags::empty()).is_empty());
+    }
+
+    /// §20.9-2 (Adjudication O1): the generation stamp must not wrap onto a
+    /// live entry. A slot seeded at generation 1 must not be served again once
+    /// the stamp has been round-tripped through `u32::MAX`.
+    #[test]
+    fn cache_generation_wrap_does_not_serve_a_stale_entry() {
+        let t = theme();
+        let mut c = StyleCache::new();
+        let f = Family::custom("t");
+        let query = |c: &mut StyleCache| {
+            c.accumulate(
+                &t,
+                f,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::FOCUSED,
+                &[],
+                0,
+            )
+        };
+        assert_eq!(c.generation, 1, "a fresh cache stamps at generation 1");
+        let seeded = query(&mut c);
+        assert_eq!(c.stats(), (0, 1), "the first query is a miss");
+
+        // one clear short of the wrap: the stamp restarts at 1, and the slot
+        // seeded at generation 1 is still in the array
+        c.generation = u32::MAX;
+        c.clear();
+        assert_eq!(c.generation, 1, "the stamp restarts at 1 after u32::MAX");
+        let after = query(&mut c);
+        assert_eq!(
+            c.stats(),
+            (0, 2),
+            "the seeded key must miss after the stamp wraps, not serve a stale patch"
+        );
+        assert_eq!(seeded, after, "and the recomputed patch is the same value");
     }
 }

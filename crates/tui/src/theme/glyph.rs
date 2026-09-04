@@ -199,6 +199,33 @@ impl GlyphSet {
         }
     }
 
+    /// Replace the typed scrollbar set.
+    ///
+    /// [`GlyphRole::ScrollTrack`] and [`GlyphRole::ScrollThumb`] read `track`
+    /// and `thumb` from it; `begin` and `end` — the caps a scroll region
+    /// paints — are named by no [`GlyphRole`] and are reachable **only** here
+    /// (§11.2, Adjudication O2).
+    pub const fn set_scrollbar(&mut self, s: scrollbar::Set<'static>) {
+        self.scroll = s;
+    }
+
+    /// Replace the typed quiet-rule line set.
+    ///
+    /// [`GlyphRole::RuleQuiet`] reads `horizontal`; the vertical, the cross
+    /// and the eight corner/tee junctions are the seam glyphs (§22.2 item 12)
+    /// and are reachable only here.
+    pub const fn set_rule_quiet(&mut self, s: line::Set<'static>) {
+        self.rule_quiet = s;
+    }
+
+    /// Replace the typed active-rule line set.
+    ///
+    /// [`GlyphRole::RuleActive`] reads `horizontal`; the rest are seams, as
+    /// for [`GlyphSet::set_rule_quiet`].
+    pub const fn set_rule_active(&mut self, s: line::Set<'static>) {
+        self.rule_active = s;
+    }
+
     /// The typed scrollbar set.
     pub fn scrollbar(&self) -> scrollbar::Set<'static> {
         self.scroll.clone()
@@ -215,6 +242,66 @@ impl GlyphSet {
     }
 }
 
+/// ASCII scrollbar: `|` track and caps, `#` thumb.
+///
+/// Crate-private, like every other item of this module that is not re-exported
+/// by `theme`: the public entry point is
+/// [`ThemeBuilder::ascii_glyphs`](crate::theme::ThemeBuilder::ascii_glyphs),
+/// and a theme author who wants a bespoke set writes one and passes it to
+/// [`GlyphSet::set_scrollbar`].
+///
+/// The thumb must read **denser** than its track where colour is gone
+/// (`DESIGN.md:491`, `:560`): `|` is one stroke, `#` a crosshatch, which is
+/// the conventional ASCII thumb. `+` was rejected because it collides with
+/// [`border::ASCII`](crate::theme::border::ASCII)'s corners, `*` reads as a
+/// marker and `H` as a letter. Applied by
+/// [`ThemeBuilder::ascii_glyphs`](crate::theme::ThemeBuilder::ascii_glyphs).
+pub(crate) const ASCII_SCROLLBAR: scrollbar::Set<'static> = scrollbar::Set {
+    track: "|",
+    thumb: "#",
+    begin: "|",
+    end: "|",
+};
+
+/// ASCII quiet rule: `-` horizontal, `|` vertical, `+` at every junction.
+///
+/// `-` is the direct one-stroke equivalent of `─` (`DESIGN.md:555`); the
+/// seams follow [`border::ASCII`](crate::theme::border::ASCII), so a rule and
+/// a frame meeting in one cell agree.
+pub(crate) const ASCII_RULE_QUIET: line::Set<'static> = line::Set {
+    vertical: "|",
+    horizontal: "-",
+    top_right: "+",
+    top_left: "+",
+    bottom_right: "+",
+    bottom_left: "+",
+    vertical_left: "+",
+    vertical_right: "+",
+    horizontal_down: "+",
+    horizontal_up: "+",
+    cross: "+",
+};
+
+/// ASCII active rule: `=` horizontal, `|` vertical, `+` at every junction.
+///
+/// An active rule must read **heavier** than a quiet one (`DESIGN.md:557`).
+/// `=` is two strokes against `-`'s one, which survives monochrome, where
+/// weight is the only channel left; `#` was rejected because it reads as
+/// hatch or fill rather than as a rule.
+pub(crate) const ASCII_RULE_ACTIVE: line::Set<'static> = line::Set {
+    vertical: "|",
+    horizontal: "=",
+    top_right: "+",
+    top_left: "+",
+    bottom_right: "+",
+    bottom_left: "+",
+    vertical_left: "+",
+    vertical_right: "+",
+    horizontal_down: "+",
+    horizontal_up: "+",
+    cross: "+",
+};
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -227,5 +314,64 @@ mod tests {
             assert_eq!(g.get(r), "y", "{r:?}");
         }
         assert_eq!(g.scrollbar().thumb, "y");
+    }
+
+    /// Adjudication O2: `borders_set(border::ASCII)` must leave **nothing** in
+    /// the box-drawing block, including the fields no `GlyphRole` names —
+    /// `scrollbar::Set`'s `begin`/`end` and `line::Set`'s seam junctions. This
+    /// is component-free, so it is not hostage to which painters exist; the
+    /// whole-frame render test can only approximate it.
+    #[test]
+    fn ascii_glyph_set_has_no_box_drawing() {
+        let t = crate::theme::Theme::junie()
+            .builder()
+            .borders_set(crate::theme::border::ASCII)
+            .build();
+        let g = &t.design.glyphs;
+        let check = |what: &str, s: &'static str| {
+            for c in s.chars() {
+                assert!(
+                    !('\u{2500}'..='\u{257F}').contains(&c),
+                    "{what} is {s:?}, which contains box drawing U+{:04X}",
+                    c as u32
+                );
+            }
+        };
+        for r in GlyphRole::ALL {
+            check(&format!("{r:?}"), g.get(r));
+        }
+        let sb = g.scrollbar();
+        for (name, s) in [
+            ("scrollbar.track", sb.track),
+            ("scrollbar.thumb", sb.thumb),
+            ("scrollbar.begin", sb.begin),
+            ("scrollbar.end", sb.end),
+        ] {
+            check(name, s);
+        }
+        for (set_name, l) in [
+            ("rule_quiet", g.rule_quiet()),
+            ("rule_active", g.rule_active()),
+        ] {
+            for (name, s) in [
+                ("vertical", l.vertical),
+                ("horizontal", l.horizontal),
+                ("top_right", l.top_right),
+                ("top_left", l.top_left),
+                ("bottom_right", l.bottom_right),
+                ("bottom_left", l.bottom_left),
+                ("vertical_left", l.vertical_left),
+                ("vertical_right", l.vertical_right),
+                ("horizontal_down", l.horizontal_down),
+                ("horizontal_up", l.horizontal_up),
+                ("cross", l.cross),
+            ] {
+                check(&format!("{set_name}.{name}"), s);
+            }
+        }
+        // not vacuous: plain Junie does bind these to box drawing
+        let j = crate::theme::Theme::junie();
+        assert_eq!(j.design.glyphs.scrollbar().begin, "│");
+        assert_eq!(j.design.glyphs.rule_quiet().cross, "┼");
     }
 }
