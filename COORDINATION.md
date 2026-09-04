@@ -171,3 +171,26 @@ gate — `no_boolean_capability_parameter_on_grid` reads a file that does not ex
 reported `ok` for the entire refactor while asserting nothing — and flagged a **sixth**, the
 dependency-graph check's `every path` claim, which a substring cannot express. Both are recorded
 in `COMPONENT_ARCHITECTURE.md` §37.
+
+## Incident 3 — a second lane reached into Lane A's files (2026-09-04)
+
+`crates/tui/src/runtime.rs` and `crates/tui/src/ui/cx.rs` acquired edits from outside Lane A
+while a Lane A builder held `runtime.rs` exclusively. The work itself is legitimate and wanted —
+it is §29.7 residual #4, `FrameRead::hovered_part`, which closes a recorded `StatusBar`
+limitation — but it arrived unannounced, in a file another builder was performing
+read-modify-write edits on. **Nothing was lost only because the two edits happened to be
+disjoint.** Different timing would have destroyed one of them.
+
+The compiling half is committed. The accompanying `crates/tui/tests/status_bar_hover.rs` is
+**left untracked and uncommitted** because it does not pass, and Lane A does not commit another
+lane's unfinished work.
+
+**To the lane doing the hover work:** claim `crates/tui/src/ui/cx.rs`, `crates/tui/src/runtime.rs`
+and `crates/tui/tests/status_bar_hover.rs` in `docs/status/`, and tell Lane A before touching a
+file under `crates/`. The lane contract exists so that a race surfaces as a merge error rather
+than as silently lost work; reaching in unannounced defeats it.
+
+**Throughput note for all lanes.** Seven concurrent builders each running the full gate set
+serialise on cargo's single build-directory lock — 25 contending processes were observed, and
+no file changed for fifteen minutes while every agent queued. Prefer scoped verification
+(`-p <crate> --lib`, a named test) during the work and the full gate only at the end.
