@@ -567,3 +567,37 @@ resolve, but their line numbers drifted as §29–§32 were appended.
 F1, §32 is the Q/P audit corrections. The `Select` focus-trap question — which another lead
 proposed to record as §31 — will take the next free number if and when its adjudication is
 accepted.
+
+## Latest checkpoint — Slice 4 wave 1 focused results (2026-09-04)
+
+- Avicenna, Carver and Anscombe's `crates/tui/src/components/chip.rs` work now includes the
+  disabled-input guard, the `Part::MARKER`/canonical `Check` affordance, metadata-safe
+  `painted_width()`, and no debug output.
+- Measured ChipBar proof after those changes:
+  - `rtk cargo test -p tui-next --test conformance chip_bar`: **21 passed; 467 filtered
+    out**, exit code `0`.
+  - `rtk cargo test -p tui-next --lib chip`: **4 passed; 267 filtered out**, exit code `0`.
+  - `rtk cargo build -p tui-next --all-targets`: exit code `0`.
+  - `rtk git diff --check` for `chip.rs`: exit code `0`.
+- Jason's conformance-fixture changes produced **21 passed; 446 filtered out** for focused
+  TextArea conformance and **465 passed / 2 failed** for full conformance before the ChipBar
+  fixes. Those two historical failures were the ChipBar reorder-identity and styled-`META`
+  checks; the count is not a current full-suite claim.
+- Mencius added `Caps::TRAPS_FOCUS` and split case 14: `rtk cargo test
+  -p tui-next-testing --lib` reported **3 passed; 1 ignored**, exit code `0`; the focused
+  `focus_trap_and_restore` case reported **22 passed; 445 filtered out**, exit code `0`.
+- Zeno's Select wiring measured **21 passed** for Select, **23 passed** for case 14, and
+  **488 passed** for full conformance, all exit code `0`. It is not closure evidence yet:
+  Select's `Caps` still lacks `COLLECTION | SCROLLS`, the declared-parts registry list omits
+  Select, and its architecture amendment was placed/texted as §31 even though §31 is already
+  occupied by the mono-fallback adjudication. No Select commit was made.
+- Fresh analyst findings recorded:
+  - Hilbert: ChipBar's styled `META` is a fixture mismatch; use the existing `row_label`
+    callback, not a public `META` contract.
+  - Godel: ChipBar's metadata-width failure is production-side; right-aligned metadata must
+    not inflate the label-owned width.
+  - Bohr: TextArea's `BUSY` narrowing is fixture-only; no readiness spinner was added.
+- Remaining: correct Select's capability and declared-parts contract, move/amend its
+  architecture text to the next free section, and re-measure the affected gates. Zeno made no
+  Select source commit; concurrent builders have since landed `98c7ac5` and `7994804`, while
+  other source/docs edits remain dirty. This checkpoint changes only this ledger.
