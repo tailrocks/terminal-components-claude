@@ -83,3 +83,25 @@ fn debug_and_release_alloc_counts_match() {
 
     assert_eq!(first, second);
 }
+
+#[test]
+fn frame_tablepro_connection_form_120x40() {
+    let mut app = TableProApp::default();
+    app.begin_connection_form();
+    let harness = Harness::new(app, Theme::junie(), 120, 40);
+    assert!(harness.find("Connect to database").is_some());
+    assert!(harness.diagnostics().is_empty());
+}
+
+#[test]
+fn frame_tablepro_query_editor_2k_lines() {
+    let mut app = TableProApp::default();
+    let query = format!(
+        "-- generated query\n{}",
+        "SELECT * FROM orders\n".repeat(2_000)
+    );
+    let _ = app.run_query(query);
+    let harness = Harness::new(app, Theme::junie(), 120, 40);
+    assert!(harness.find("TablePro").is_some());
+    assert!(harness.diagnostics().is_empty());
+}

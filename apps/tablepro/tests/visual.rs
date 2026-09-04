@@ -1,17 +1,33 @@
-//! Deterministic facade rendering smoke test.
+//! `TablePro`'s 21-surface × 2-size deterministic visual matrix.
 
-use tablepro_app::TableProApp;
+use tablepro_app::{Surface, TableProApp};
 use tui_next::Theme;
 use tui_next_testing::Harness;
 
+fn scene(surface: Surface, width: u16, height: u16) -> (String, String) {
+    let mut app = TableProApp::default();
+    app.set_surface(surface);
+    let harness = Harness::new(app, Theme::junie(), width, height);
+    (harness.snapshot().key(), harness.text())
+}
+
 #[test]
 fn tablepro_visual_baseline() {
-    let first = Harness::new(TableProApp::default(), Theme::junie(), 120, 40)
-        .snapshot()
-        .key();
-    let second = Harness::new(TableProApp::default(), Theme::junie(), 120, 40)
-        .snapshot()
-        .key();
-
-    assert_eq!(first, second);
+    for (width, height) in [(120, 40), (80, 24)] {
+        for surface in Surface::ALL {
+            let (first, text) = scene(surface, width, height);
+            let (second, _) = scene(surface, width, height);
+            assert_eq!(
+                first,
+                second,
+                "{width}x{height} {} is not deterministic",
+                surface.label()
+            );
+            assert!(
+                text.contains(surface.label()),
+                "surface label missing: {}",
+                surface.label()
+            );
+        }
+    }
 }

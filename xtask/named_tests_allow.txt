@@ -21,21 +21,13 @@ every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.
 author_component_page_participates_in_focus_and_hover  # Slices 5-7 — apps/**
 complete_flow_keyboard_first  # Slices 5-7 — apps/**
 complete_navigation_visits_every_page_and_every_state  # Slices 5-7 — apps/**
-connection_form_focuses_the_first_invalid_field  # Slices 5-7 — apps/**
-connection_form_keyboard_and_mouse_reach_every_field  # Slices 5-7 — apps/**
-connection_password_is_masked_and_absent_from_the_frame  # Slices 5-7 — apps/**
 custom_theme_injection_repaints_every_page  # Slices 5-7 — apps/**
-focus_is_restored_after_every_overlay_closes  # Slices 5-7 — apps/**
 form_dialog_secret_never_reaches_the_screen_as_a_string  # Slices 5-7 — apps/**
 form_dialog_toggles_visibility_and_keeps_drafts  # Slices 5-7 — apps/**
-keyboard_flow_full_journey  # Slices 5-7 — apps/**
 local_override_page_shows_three_distinct_buttons  # Slices 5-7 — apps/**
-mouse_flow_full_journey  # Slices 5-7 — apps/**
 nested_overlay_picker_inside_dialog  # Slices 5-7 — apps/**
-resize_across_every_supported_size  # Slices 5-7 — apps/**
 
 # ── §16.6 benchmarks whose subject does not exist yet ──
-frame_tablepro_connection_form_120x40  # Slices 4-7 — tests/perf.rs
 
 # ── Slice 4 component state machines (`components/*.rs`, work packages 4A–4G) ──
 range_selection_uses_the_anchor  # Slice 4 — components/*.rs

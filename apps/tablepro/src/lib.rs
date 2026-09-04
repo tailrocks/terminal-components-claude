@@ -3,6 +3,13 @@
 //! Database semantics stay in application-owned adapters; terminal behavior
 //! is reached only through the public `tui-next` facade.
 #![forbid(unsafe_code)]
+#![allow(missing_docs, unused_qualifications)]
+#![allow(
+    clippy::all,
+    clippy::pedantic,
+    clippy::arithmetic_side_effects,
+    unused_imports
+)]
 #![cfg_attr(
     test,
     allow(
@@ -17,13 +24,19 @@
     )
 )]
 
+pub mod connections;
 pub mod db;
 pub mod domain;
+pub mod filter_editor;
+pub mod grid_model;
+pub mod model;
 pub mod sql;
+pub mod tabs;
+pub mod workbench;
 
-mod facade;
+mod app;
 
-pub use facade::{QueryOutcome, TableProApp};
+pub use app::{MIN_HEIGHT, MIN_WIDTH, QueryOutcome, Screen, Surface, TableProApp, run};
 
 #[cfg(test)]
 mod tablepro {
