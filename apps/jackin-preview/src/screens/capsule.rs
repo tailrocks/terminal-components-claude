@@ -1180,7 +1180,7 @@ impl CapsuleScreen {
             Prop::new("Container", i.container_id()).copyable(),
             Prop::new(
                 "Container ID",
-                format!("3f9c{}e21a", &i.run_id.replace('-', "")[..8]),
+                i.container_uid(),
             )
             .copyable(),
             Prop::new("Role", i.role.clone()),

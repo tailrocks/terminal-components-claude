@@ -1,8 +1,20 @@
 [workspace]
 resolver = "3"
-members = ["crates/tui", "crates/tui-testing", "xtask", "apps/tablepro"]
+members = [
+    "crates/tui",
+    "crates/tui-testing",
+    "xtask",
+    "apps/tablepro",
+    "apps/jackin-preview",
+]
 # The root package itself is automatically a member; `cargo build` never compiles xtask.
-default-members = [".", "crates/tui", "crates/tui-testing", "apps/tablepro"]
+default-members = [
+    ".",
+    "crates/tui",
+    "crates/tui-testing",
+    "apps/tablepro",
+    "apps/jackin-preview",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -80,9 +92,6 @@ path = "src/lib.rs"
 name = "showcase"
 path = "src/bin/showcase/main.rs"
 
-[[bin]]
-name = "jackin-preview"
-path = "src/bin/jackin_preview/main.rs"
 
 [dependencies]
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }

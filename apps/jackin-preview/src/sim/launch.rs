@@ -5,6 +5,7 @@
 use junie_tui::widgets::steps::StepState;
 
 use crate::domain::agent::Agent;
+use crate::domain::instance::RunId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Stage {
@@ -116,7 +117,7 @@ pub enum LaunchEvent {
 #[derive(Debug, Clone)]
 pub struct LaunchRun {
     pub plan: LaunchPlan,
-    pub run_id: String,
+    pub run_id: RunId,
     pub container: String,
     pub agent: Agent,
     pub states: [StepState; 11],
@@ -183,12 +184,12 @@ pub const BUILD_LOG: [&str; 44] = [
 ];
 
 impl LaunchRun {
-    pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: &str) -> Self {
+    pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: RunId) -> Self {
         // durations in ticks (33 ms)
         let durations = [14, 18, 26, 30, 8, 92, 22, 20, 18, 34, 16];
         Self {
             plan,
-            run_id: run_id.to_owned(),
+            run_id,
             container: container.to_owned(),
             agent,
             states: [StepState::Queued; 11],
@@ -372,7 +373,7 @@ mod tests {
             LaunchPlan::Clean,
             Agent::ClaudeCode,
             "c",
-            "run",
+            RunId::new(1),
         ));
         assert!(r.done);
         let running: Vec<Stage> = ev
@@ -395,7 +396,7 @@ mod tests {
             LaunchPlan::FailNetwork,
             Agent::Codex,
             "c",
-            "run",
+            RunId::new(2),
         ));
         assert_eq!(r.failure.as_ref().map(|f| f.stage), Some(Stage::Network));
         assert!(ev.iter().any(|e| matches!(e, LaunchEvent::Failed(_))));
@@ -404,14 +405,19 @@ mod tests {
             LaunchPlan::BlockedSidecar,
             Agent::Codex,
             "c",
-            "run",
+            RunId::new(3),
         ));
         assert_eq!(b.blocked_at, Some(Stage::Sidecar));
     }
 
     #[test]
     fn credential_error_holds_until_retry() {
-        let mut r = LaunchRun::new(LaunchPlan::CredentialsLocked, Agent::Codex, "c", "run");
+    let mut r = LaunchRun::new(
+        LaunchPlan::CredentialsLocked,
+        Agent::Codex,
+        "c",
+        RunId::new(4),
+    );
         let mut held = false;
         for _ in 0..200 {
             let ev = r.advance();

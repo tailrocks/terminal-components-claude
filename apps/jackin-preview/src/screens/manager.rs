@@ -503,7 +503,7 @@ impl ManagerScreen {
                 format!(
                     "jackin/derived:{}-{}",
                     i.workdir.trim_start_matches("/workspace/"),
-                    &i.run_id[4..8]
+                    i.run_id.short()
                 ),
             ),
             Prop::new(
@@ -530,7 +530,7 @@ impl ManagerScreen {
                     plural(ws.map(|x| x.mounts.len()).unwrap_or(1), "mount", "mounts")
                 ),
             ),
-            Prop::new("Run id", i.run_id.clone()).copyable(),
+            Prop::new("Run id", i.run_id.to_string()).copyable(),
             Prop::new("Lifecycle", i.status.label()).tone(if i.status.is_live() {
                 Tone::Normal
             } else {

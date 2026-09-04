@@ -12,7 +12,7 @@ use crate::domain::account::{
 };
 use crate::domain::agent::{Agent, AuthMode, Provider};
 use crate::domain::instance::{
-    DaemonSnapshot, Instance, InstanceStatus, ManifestError, SessionRecord, SessionStatus,
+    DaemonSnapshot, Instance, InstanceStatus, ManifestError, RunId, SessionRecord, SessionStatus,
 };
 use crate::domain::onepassword::OpReference;
 use crate::domain::usage::{
@@ -466,7 +466,7 @@ fn instance(
         status,
         created_secs: created,
         last_seen_secs: last_seen,
-        run_id: format!("run-{}", &id[3..]),
+        run_id: run_id_for(id),
         sessions: Ok(vec![]),
         daemon: DaemonSnapshot::Unavailable,
         branch: None,
@@ -476,6 +476,13 @@ fn instance(
         unpushed: 0,
         accounts: vec![],
     }
+}
+
+fn run_id_for(instance_id: &str) -> RunId {
+    let suffix = instance_id.strip_prefix("jk-").unwrap_or(instance_id);
+    u64::from_str_radix(suffix, 16)
+        .map(RunId::new)
+        .unwrap_or_else(|_| RunId::from_label(instance_id))
 }
 
 fn global(rich: bool) -> GlobalConfig {

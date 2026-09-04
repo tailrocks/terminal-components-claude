@@ -2,10 +2,60 @@
 //! snapshots. The three are kept apart on purpose: a persisted record can
 //! outlive its daemon, and a daemon snapshot is never invented from records.
 
+use core::fmt;
+
 use super::agent::Agent;
 use super::workspace::WorkspaceId;
 
 pub type InstanceId = String;
+
+/// Stable numeric identity for one launch attempt.
+///
+/// Keeping this separate from instance and workspace names prevents the
+/// capsule from accidentally treating arbitrary display text as a run id.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct RunId(u64);
+
+impl RunId {
+    /// Construct a fixture or persisted run identity.
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// The numeric identity.
+    pub const fn value(self) -> u64 {
+        self.0
+    }
+
+    /// Construct a stable identity from arbitrary fixture text.
+    ///
+    /// The input is hashed instead of sliced or copied into a display token,
+    /// so short and malformed producer values remain total.
+    pub fn from_label(label: &str) -> Self {
+        let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+        for byte in label.bytes() {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x1000_0000_01b3);
+        }
+        Self(hash)
+    }
+
+    /// A bounded display form. This never slices a short identifier.
+    pub fn short(self) -> String {
+        format!("{:08x}", self.0)
+    }
+
+    /// The public short container identifier used by Capsule diagnostics.
+    pub fn container_uid(self) -> String {
+        format!("3f9c{}e21a", self.short())
+    }
+}
+
+impl fmt::Display for RunId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "run-{}", self.short())
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InstanceStatus {
@@ -106,7 +156,7 @@ pub struct Instance {
     pub status: InstanceStatus,
     pub created_secs: i64,
     pub last_seen_secs: i64,
-    pub run_id: String,
+    pub run_id: RunId,
     /// Persisted session records (manifest).
     pub sessions: Result<Vec<SessionRecord>, ManifestError>,
     /// Live daemon snapshot; independent from the manifest.
@@ -124,6 +174,11 @@ pub struct Instance {
 }
 
 impl Instance {
+    /// The public short container id shown by Capsule's debug information.
+    pub fn container_uid(&self) -> String {
+        self.run_id.container_uid()
+    }
+
     pub fn container_id(&self) -> String {
         format!("{}-{}", self.container, self.id.trim_start_matches("jk-"))
     }

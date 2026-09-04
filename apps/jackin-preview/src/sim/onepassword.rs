@@ -3,6 +3,8 @@
 //! inside [`SimOnePassword::resolve_into`]'s closure; nothing else in the
 //! preview can observe it.
 
+use std::fmt;
+
 use crate::domain::agent::Provider;
 use crate::domain::onepassword::OpReference;
 
@@ -111,7 +113,7 @@ impl FieldKind {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct OpField {
     pub id: String,
     pub label: String,
@@ -120,6 +122,18 @@ pub struct OpField {
     material: Option<String>,
     /// Synthetic four-character tail for masked previews.
     pub tail: String,
+}
+
+impl fmt::Debug for OpField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("OpField")
+            .field("id", &self.id)
+            .field("label", &self.label)
+            .field("kind", &self.kind)
+            .field("material", &"[redacted]")
+            .field("tail", &self.tail)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -572,11 +586,12 @@ impl SimOnePassword {
     ) -> Result<R, OpError> {
         let desc = self.describe(r)?;
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id)?;
-        let f = it
-            .fields
-            .iter()
-            .find(|f| f.id == r.field_id)
-            .expect("described");
+        let Some(f) = it.fields.iter().find(|f| f.id == r.field_id) else {
+            return Err(OpError::MissingField {
+                field: r.field_id.clone(),
+                item: it.title.clone(),
+            });
+        };
         let secret = Secret {
             bytes: f.material.clone().unwrap_or_default().into_bytes(),
         };

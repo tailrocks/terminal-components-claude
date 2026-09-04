@@ -25,7 +25,7 @@ use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
 use crate::domain::fixtures::PrecedenceLevel;
-use crate::domain::instance::{Instance, InstanceStatus};
+use crate::domain::instance::{Instance, InstanceStatus, RunId};
 use crate::domain::workspace::WorkspaceId;
 use crate::scenario::Motion;
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun, Stage};
@@ -81,14 +81,13 @@ impl CockpitScreen {
         let instance_id = w.new_instance_id();
         let suffix = instance_id.trim_start_matches("jk-").to_owned();
         let container = format!("jackin-{wsname}-{suffix}");
-        let run_id = format!(
+        let run_label = format!(
             "run-{}-{suffix}",
             crate::clock::Clock::stamp(w.now_secs())
                 .replace([' ', ':'], "-")
-                .replace('-', "")[..12]
-                .to_owned()
+                .replace('-', "")
         );
-        let run = LaunchRun::new(plan, agent, &container, &run_id);
+        let run = LaunchRun::new(plan, agent, &container, RunId::from_label(&run_label));
         let steps = Stage::ALL.iter().map(|s| Step::new(s.label())).collect();
         let mut log = TextViewport::new(LOG).wrap(true).max_lines(5_000);
         log.follow = true;
@@ -363,7 +362,7 @@ impl CockpitScreen {
         self.failure_shown = true;
         let props = vec![
             Prop::new("Stage", f.stage.label()).tone(Tone::Error),
-            Prop::new("Run id", self.run.run_id.clone()).copyable(),
+            Prop::new("Run id", self.run.run_id.to_string()).copyable(),
             Prop::new("Next step", f.next_step.clone()).wrap(),
             Prop::new(
                 "Container",
@@ -407,7 +406,7 @@ impl CockpitScreen {
                         .unwrap_or("host profile".into())
                 ),
             ),
-            Prop::new("Run id", self.run.run_id.clone()).copyable(),
+            Prop::new("Run id", self.run.run_id.to_string()).copyable(),
             Prop::new("jackin", "0.6.4 · preview"),
         ];
         if let Some(c) = &self.container {
@@ -416,7 +415,10 @@ impl CockpitScreen {
         if self.debug {
             props.push(Prop::new(
                 "Telemetry",
-                format!("run {} -> otlp://collector.internal:4317", self.run.run_id),
+                format!(
+                    "run {} -> otlp://collector.internal:4317",
+                    self.run.run_id
+                ),
             ));
         }
         let d =

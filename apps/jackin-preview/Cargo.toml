@@ -1,0 +1,25 @@
+[package]
+name = "jackin-preview"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "jackin_app"
+path = "src/lib.rs"
+
+[[bin]]
+name = "jackin-preview"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+tui-next.workspace = true
+
+[dev-dependencies]
+tui-next-testing.workspace = true

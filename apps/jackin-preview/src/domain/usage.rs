@@ -193,8 +193,8 @@ impl QuotaWindow {
             (_, _, _, QuotaStatus::NotStarted) => "not started".into(),
             (Some(u), Some(l), _, _) if self.unit != WindowUnit::Percent => format!(
                 "{} / {} {}",
-                junie_tui::ui::text::thousands(u as usize),
-                junie_tui::ui::text::thousands(l as usize),
+                thousands(u as usize),
+                thousands(l as usize),
                 self.unit.label()
             ),
             (_, _, Some(p), _) => format!("{p}% used"),
@@ -212,6 +212,18 @@ impl QuotaWindow {
                 QuotaStatus::Unsupported | QuotaStatus::Unavailable | QuotaStatus::Error
             )
     }
+}
+
+fn thousands(value: usize) -> String {
+    let digits = value.to_string();
+    let mut out = String::with_capacity(digits.len().saturating_add(digits.len() / 3));
+    for (index, ch) in digits.chars().enumerate() {
+        if index > 0 && (digits.len().saturating_sub(index)).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    out
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
