@@ -1,7 +1,7 @@
   Jackin Preview                                           scenario · returning
 
   Workspaces & instances
-  ▎● Manager     Accounts    Usage       Settings    Capsule
+   ● Manager     Accounts    Usage       Settings    Capsule
 
     Workspaces & instances
 

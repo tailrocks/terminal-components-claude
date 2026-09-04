@@ -2,7 +2,7 @@
 
 
  Foundations
-▎›• Overview
+ ›• Overview
 
  Components
   • Buttons
