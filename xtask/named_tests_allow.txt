@@ -8,10 +8,6 @@
 # Recorded by the Slice 3 foundations correction pass. Every Slice-3-owned name in
 # §16.1 now exists; everything below belongs to a later work package.
 
-# ── §16.2 suite-level: `crates/tui/tests/conformance.rs` (Slice 4 components builder) ──
-conflicting_visible_bindings_are_reported  # Slice 4 — conformance.rs
-draw_registers_nothing_when_it_cannot_draw  # Slice 4 — conformance.rs
-
 # ── 4F `components/dialog.rs` (Adjudication N1) ──
 a_growing_body_resizes_the_layer_on_the_next_frame  # Slice 4F — components/dialog.rs
 action_arming_is_evaluated_in_update  # Slice 4F — components/dialog.rs
@@ -59,7 +55,6 @@ keyboard_flow_full_journey  # Slices 5-7 — apps/**
 local_override_page_shows_three_distinct_buttons  # Slices 5-7 — apps/**
 mouse_flow_full_journey  # Slices 5-7 — apps/**
 nested_overlay_picker_inside_dialog  # Slices 5-7 — apps/**
-no_diagnostics_are_emitted_during_the_journey  # Slices 5-7 — apps/**
 resize_across_every_supported_size  # Slices 5-7 — apps/**
 result_grid_sorts_locally_and_refuses_edits  # Slices 5-7 — apps/**
 view_grid_is_read_only_with_a_reason  # Slices 5-7 — apps/**

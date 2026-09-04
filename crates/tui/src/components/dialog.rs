@@ -14,12 +14,12 @@ use crate::event::{Chord, KeyCode};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::Intent;
 use crate::keymap::{Binding, BindingState, Bindings};
-use crate::layer::{DismissReason, LayerEvent};
+use crate::layer::{DismissReason, LayerEvent, LayerSize, LayerSpec};
 use crate::layout::{RowAlign, action_row};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::text::wrap;
-use crate::theme::{Family, StylePatch, Surface, Variant};
+use crate::text::{wrap, wrapped_rows};
+use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// What a dialog reports.
@@ -123,8 +123,9 @@ impl DialogState {
 /// `.title(&str)`, `.description(&str)`, `.actions(&[Action])`,
 /// `.cancel(ActionKey)` (the action Esc stands for), `.width(u16)`
 /// (`design.size.dialog_width`), `.body_rows(u16)` (rows for the body slot;
-/// `code_preview_lines` for `new`, `0` for the conveniences), `.patch`,
-/// `.patch_part`.
+/// `code_preview_lines` for `new`, `0` for the conveniences — the dialog
+/// never sees the body closure before `draw`, so the caller states it),
+/// `.patch`, `.patch_part`.
 ///
 /// ## Variants
 /// `Family::DIALOG`, `DEFAULT` only; the action buttons carry their
@@ -133,6 +134,8 @@ impl DialogState {
 /// ## States
 /// None of its own; the border is painted strong (the legacy focused
 /// frame); action buttons derive `DISABLED` from arming.
+/// `.state_override` forces the state its parts and its action buttons
+/// resolve with, for a reference rendering (A11).
 ///
 /// ## Actions
 /// `Action(key)` when a button fires, `Dismissed(reason)` when the layer
@@ -151,17 +154,22 @@ impl DialogState {
 /// and the prompt take their own pointer intents.
 ///
 /// ## Layout
-/// Centred in `area`, `min(width, area.width - 4)` wide, rows for title,
-/// description, prompt, body and actions; `draw` runs the body slot and
-/// returns `Some(R)`, or `None` when nothing fits. `measure` is the
-/// dialog's preferred size.
+/// The dialog computes a **size**, never a rect: `measured_width` /
+/// `measured_height` are pure functions of the props and the design tokens,
+/// [`Dialog::layer`] hands them to the one layer resolver, and
+/// [`Dialog::update`] re-asserts them every frame (§26 N1). `draw` lays out
+/// from `area`'s origin against that measurement — title, description,
+/// prompt, a blank row, the body slot, a blank row, the action row — runs
+/// the body slot and returns `Some(R)`, or `None` when nothing fits.
+/// `measure` returns the same size.
 ///
 /// ## Parts
 /// `CONTAINER`, `BORDER`, `TITLE`, `DETAIL` (the description), `BODY`,
 /// `ACTIONS`, `BACKDROP` (painted by the runtime).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part`; no slots (the body is the slot).
+/// `.patch`, `.patch_part`, `.state_override`; no slots (the body is the
+/// slot).
 ///
 /// ## Identity
 /// Child ids: the prompt is `id.part(Part::FIELD)`, action `i` is
@@ -344,6 +352,15 @@ impl<'a> Dialog<'a> {
         self
     }
 
+    /// Showcase / fixture use only (A11): resolve the dialog's own parts —
+    /// and draw its action buttons — in a forced state. A forced dialog
+    /// registers no decorative region.
+    #[must_use]
+    pub const fn state_override(mut self, s: StateFlags) -> Self {
+        self.ov = self.ov.state_override(s);
+        self
+    }
+
     const fn has_input(&self) -> bool {
         self.prompt.is_some() || self.ack.is_some()
     }
@@ -375,11 +392,25 @@ impl<'a> Dialog<'a> {
     /// The update phase: the prompt, the action buttons, `←`/`→` and the
     /// layer's lifecycle events.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
+        // invariant D1: the dialog re-asserts its size every frame, so a
+        // description that grows or a theme swap corrects the layer on the
+        // next draw without the opener predicting anything (§26 N1).
+        let size = LayerSize::Fixed(
+            self.measured_width(cx.design()),
+            self.measured_height(cx.design()),
+        );
+        cx.resize_layer(self.id, size);
         let mut acc = Acc::<DialogAction>::new();
         for it in cx.intents(self.id) {
             match it {
                 Intent::Layer(LayerEvent::Dismissed(r)) => acc.action(DialogAction::Dismissed(r)),
-                Intent::Layer(_) | Intent::Cancel => acc.changed(),
+                // A lifecycle notification is drained and repainted but NOT
+                // consumed: `Opened` arrives in the same `update` as the key
+                // that is still travelling the Esc ladder (§3.3 step 8), and
+                // consuming it would make the first Esc after opening a modal
+                // do nothing.
+                Intent::Layer(_) => acc.repaint(),
+                Intent::Cancel => acc.changed(),
                 _ => {}
             }
         }
@@ -441,49 +472,80 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// The dialog rect inside `area` for its content height.
-    fn frame_rect(&self, ui: &Ui<'_>, area: Rect) -> (Rect, u16) {
-        let design = ui.design();
-        let width = self
-            .width
-            .unwrap_or(design.size.dialog_width)
-            .min(area.width.saturating_sub(4))
-            .max(20)
-            .min(area.width);
-        let inner_w = width.saturating_sub(6);
-        let desc_h = self.description.map_or(0, |d| {
-            wrap(d, inner_w).len().min(usize::from(u16::MAX)) as u16
-        });
-        let input_h = if self.prompt.is_some() {
-            design.size.field_height
+    /// Columns available to the content: the frame minus one border column
+    /// and `design.space.dialog_inset` on each side (§26 N1).
+    fn inner_width(&self, d: &DesignTokens) -> u16 {
+        self.measured_width(d)
+            .saturating_sub(2)
+            .saturating_sub(d.space.dialog_inset.saturating_mul(2))
+    }
+
+    /// Rows the prompt / acknowledgement control needs, `0` when there is none.
+    fn input_rows(&self, d: &DesignTokens) -> u16 {
+        if self.prompt.is_some() {
+            d.size.field_height
         } else if self.ack.is_some() {
-            design.size.field_height.saturating_add(1)
+            d.size.field_height.saturating_add(1)
         } else {
             0
-        };
-        let body_h = self.body_rows.unwrap_or(design.size.code_preview_lines);
-        let actions_h: u16 = if self.actions.is_empty() { 0 } else { 2 };
-        // border(2) + pad(1) + title(1) + gap(1) + body + pad(1)
-        let height = 2u16
-            .saturating_add(1)
-            .saturating_add(1)
-            .saturating_add(1)
-            .saturating_add(desc_h)
-            .saturating_add(input_h)
-            .saturating_add(body_h)
-            .saturating_add(actions_h)
-            .saturating_add(1)
-            .min(area.height);
-        let x = area.x.saturating_add(area.width.saturating_sub(width) / 2);
-        let y = area
-            .y
-            .saturating_add(area.height.saturating_sub(height) / 2);
+        }
+    }
+
+    /// Rows the body slot needs, plus the blank row that separates it.
+    fn body_block(&self, d: &DesignTokens) -> u16 {
+        let rows = self.body_rows.unwrap_or(d.size.code_preview_lines);
+        if rows == 0 { 0 } else { rows.saturating_add(1) }
+    }
+
+    /// `.width(w)` when set, else `design.size.dialog_width` (§26 N1).
+    pub fn measured_width(&self, d: &DesignTokens) -> u16 {
+        self.width.unwrap_or(d.size.dialog_width)
+    }
+
+    /// `border(2) + title(1) + wrapped description + prompt + [blank + body]
+    /// + [blank + actions]` (§26 N1).
+    ///
+    /// A pure function of the props and the design tokens, and the number
+    /// [`Dialog::draw`] lays out against — the two share
+    /// [`wrapped_rows`](crate::text::wrapped_rows), so a description that
+    /// rewraps moves both together.
+    pub fn measured_height(&self, d: &DesignTokens) -> u16 {
+        let inner = self.inner_width(d);
+        let desc = self.description.map_or(0, |s| wrapped_rows(s, inner));
+        let actions: u16 = if self.actions.is_empty() { 0 } else { 2 };
+        3u16.saturating_add(desc)
+            .saturating_add(self.input_rows(d))
+            .saturating_add(self.body_block(d))
+            .saturating_add(actions)
+    }
+
+    /// The layer this dialog wants: a modal sized from the props and the
+    /// design tokens. Call it at the moment of opening —
+    /// `cx.open_layer(id, dialog().layer(cx))` — and let [`Dialog::update`]
+    /// re-assert it every frame (§26 N1, invariant D1).
+    pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
+        let d = cx.design();
+        LayerSpec::modal(self.id).size(LayerSize::Fixed(
+            self.measured_width(d),
+            self.measured_height(d),
+        ))
+    }
+
+    /// The rect the dialog paints into: `area`'s origin, sized to what it
+    /// asked the resolver for and clamped to `area`. Anchoring, flipping and
+    /// centring belong to the one layer resolver (§9.1, §26 N1); no component
+    /// computes a screen rect.
+    fn frame_rect(&self, ui: &Ui<'_>, area: Rect) -> (Rect, u16) {
+        let d = ui.design();
+        let desc_h = self
+            .description
+            .map_or(0, |s| wrapped_rows(s, self.inner_width(d)));
         (
             Rect {
-                x,
-                y,
-                width,
-                height,
+                x: area.x,
+                y: area.y,
+                width: self.measured_width(d).min(area.width),
+                height: self.measured_height(d).min(area.height),
             },
             desc_h,
         )
@@ -511,23 +573,30 @@ impl<'a> Dialog<'a> {
         }
         let ov = self.ov;
         let id = self.id;
+        let forced = ov.is_forced();
+        let live = ov.flags(StateFlags::empty());
         ui.with_surface(Surface::Elevated, |ui| {
             let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
-                ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags)
+                ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)
             };
             let container = style(ui, Part::CONTAINER, StateFlags::empty());
             ui.fill(rect, container.style);
             let border = style(ui, Part::BORDER, StateFlags::FOCUSED);
             let framed = ui.frame(rect, border.style);
-            ui.register_decor(id, PartRef::of(Part::CONTAINER), rect);
-            ui.register_decor(id, PartRef::of(Part::BORDER), rect);
+            if !forced {
+                ui.register_decor(id, PartRef::of(Part::CONTAINER), rect);
+                ui.register_decor(id, PartRef::of(Part::BORDER), rect);
+            }
+            // the horizontal inset `measured_height` wraps the description
+            // against; vertically the frame is the padding (§26 N1)
+            let pad = ui.design().space.dialog_inset;
             let inner = crate::layout::inset(
                 framed,
                 crate::layout::Insets {
-                    l: 2,
-                    t: 1,
-                    r: 2,
-                    b: 1,
+                    l: pad,
+                    t: 0,
+                    r: pad,
+                    b: 0,
                 },
             );
             if inner.is_empty() {
@@ -542,9 +611,11 @@ impl<'a> Dialog<'a> {
                     ..inner
                 };
                 ui.paint_str(row, t, ts.style);
-                ui.register_decor(id, PartRef::of(Part::TITLE), row);
-                y = y.saturating_add(2);
+                if !forced {
+                    ui.register_decor(id, PartRef::of(Part::TITLE), row);
+                }
             }
+            y = y.saturating_add(1);
             let actions_y = if self.actions.is_empty() {
                 inner.bottom()
             } else {
@@ -581,15 +652,23 @@ impl<'a> Dialog<'a> {
                     y = y.saturating_add(1);
                 }
             }
+            // one blank row separates the body from what precedes it, exactly
+            // as `measured_height`'s `[blank + body]` term says
+            let body_top = if self.body_block(ui.design()) == 0 {
+                y
+            } else {
+                y.saturating_add(1)
+            };
+            let body_bottom = actions_y.saturating_sub(u16::from(!self.actions.is_empty()));
             let body_rect = Rect {
                 x: inner.x,
-                y: y.min(actions_y),
+                y: body_top.min(inner.bottom()),
                 width: inner.width,
-                height: actions_y
-                    .saturating_sub(y)
-                    .saturating_sub(u16::from(!self.actions.is_empty())),
+                height: body_bottom.saturating_sub(body_top),
             };
-            ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
+            if !forced {
+                ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
+            }
             let out = ui.with_area(body_rect, |ui| body(ui, body_rect));
             if !self.actions.is_empty() {
                 let row = Rect {
@@ -598,7 +677,9 @@ impl<'a> Dialog<'a> {
                     width: inner.width,
                     height: 1,
                 };
-                ui.register_decor(id, PartRef::of(Part::ACTIONS), row);
+                if !forced {
+                    ui.register_decor(id, PartRef::of(Part::ACTIONS), row);
+                }
                 let mut widths = [0u16; 8];
                 let n = self.actions.len().min(widths.len());
                 for (i, a) in self.actions.iter().take(n).enumerate() {
@@ -612,30 +693,26 @@ impl<'a> Dialog<'a> {
                 }
                 let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 1, RowAlign::End);
                 for ((i, a), r) in self.actions.iter().take(n).enumerate().zip(rects) {
-                    Button::new(self.action_id(i), a.label())
+                    let mut b = Button::new(self.action_id(i), a.label())
                         .variant(self.variant_of(a))
-                        .disabled(!self.enabled(i, a, st))
-                        .draw(ui, r);
+                        .disabled(!self.enabled(i, a, st));
+                    if forced {
+                        b = b.state_override(live);
+                    }
+                    b.draw(ui, r);
                 }
             }
             Some(out)
         })
     }
 
-    /// The preferred size.
+    /// The preferred size: exactly what [`Dialog::layer`] asks the resolver
+    /// for.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let (rect, _) = self.frame_rect(
-            ui,
-            Rect {
-                x: 0,
-                y: 0,
-                width: c.max.0,
-                height: c.max.1,
-            },
-        );
+        let d = ui.design();
         Size {
             min: (20, 6),
-            preferred: (rect.width, rect.height),
+            preferred: (self.measured_width(d), self.measured_height(d)),
         }
         .fit(c)
     }

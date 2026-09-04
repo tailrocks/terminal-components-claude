@@ -203,6 +203,13 @@ impl<A> Acc<A> {
         self.invalidate = self.invalidate.max(crate::response::Invalidate::Paint);
     }
 
+    /// Request a repaint **without** consuming: a notification the component
+    /// drains and reacts to, but which must not swallow the input that is
+    /// still being dispatched.
+    pub(crate) fn repaint(&mut self) {
+        self.invalidate = self.invalidate.max(crate::response::Invalidate::Paint);
+    }
+
     pub(crate) fn action(&mut self, a: A) {
         self.changed();
         self.action = Some(a);
@@ -218,7 +225,8 @@ impl<A> Acc<A> {
         let r = match self.action {
             Some(a) => Response::action(a),
             None if self.consumed => Response::consumed(),
-            None => return Response::ignored(),
+            None if self.invalidate == Invalidate::None => return Response::ignored(),
+            None => Response::ignored(),
         };
         let r = match self.invalidate {
             Invalidate::None => r,

@@ -19,12 +19,13 @@ use tui_next::author::{
     ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
 use tui_next::{
-    ActionKey, Button, ButtonCmd, Dialog, DialogAction, Field, LayerSpec, List, ListAction,
-    ListCmd, Props, RowUi, ScrollRegion, Tabs, TabsAction, TabsCmd, TextCmd, TextInput,
-    TextInputState,
+    ActionKey, Anchor, Button, ButtonCmd, Diagnostic, Dialog, DialogAction, Field, KeyPhase,
+    LayerSize, LayerSpec, List, ListAction, ListCmd, Props, RowUi, ScreenAlign, ScrollRegion,
+    SelectMode, Tabs, TabsAction, TabsCmd, TextCmd, TextInput, TextInputState, Theme,
+    binding_conflicts, resolve_anchor,
 };
 use tui_next_testing::conformance::{Caps, Conformance, Fixture, FixtureRow};
-use tui_next_testing::{Scene, conformance_suite};
+use tui_next_testing::{Harness, Scene, conformance_suite};
 
 const PROBE: Id = Id::root("conformance.probe");
 
@@ -366,15 +367,18 @@ impl Conformance for FieldCase {
 
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &InputState, f: &Fixture) {
         let error = f.state_override.contains(StateFlags::ERROR);
-        Field::new(
+        let mut field = Field::new(
             "Label",
             text_input(FIELD_INPUT, f).value(shown_value(st, f)),
         )
         .required(true)
         .help("Help text")
         .error(error.then_some("Something is wrong"))
-        .patch_part(patch_of(f))
-        .draw(ui, area, &st.st);
+        .patch_part(patch_of(f));
+        if !f.state_override.is_empty() {
+            field = field.state_override(f.state_override);
+        }
+        field.draw(ui, area, &st.st);
     }
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
@@ -382,8 +386,13 @@ impl Conformance for FieldCase {
     }
 
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 3] =
-            [StateFlags::empty(), StateFlags::FOCUSED, StateFlags::ERROR];
+        const STATES: [StateFlags; 5] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::EDITING,
+            StateFlags::DISABLED,
+            StateFlags::ERROR,
+        ];
         &STATES
     }
 }
@@ -476,6 +485,22 @@ impl Conformance for ListCase {
             ListAction::Moved | ListAction::ToggledAll => None,
         }
     }
+
+    /// A list never edits and is never the `ACTIVE` element of a strip;
+    /// `BUSY`/`LOADING` are the two readiness states §11.4 gives no mono
+    /// rule, so they are narrowed out rather than asserted (MA-8).
+    fn mono_states() -> &'static [StateFlags] {
+        const STATES: [StateFlags; 7] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::SELECTED,
+            StateFlags::PRESSED,
+            StateFlags::DISABLED,
+            StateFlags::ERROR,
+            StateFlags::WARNING,
+        ];
+        &STATES
+    }
 }
 
 const TABS: Id = Id::root("conformance.tabs");
@@ -563,9 +588,10 @@ impl Conformance for TabsCase {
     }
 
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 3] = [
+        const STATES: [StateFlags; 4] = [
             StateFlags::empty(),
             StateFlags::FOCUSED,
+            StateFlags::SELECTED,
             StateFlags::DISABLED,
         ];
         &STATES
@@ -656,7 +682,11 @@ impl Conformance for DialogCase {
     }
 
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 2] = [StateFlags::empty(), StateFlags::FOCUSED];
+        const STATES: [StateFlags; 3] = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::PRESSED,
+        ];
         &STATES
     }
 }
@@ -694,6 +724,9 @@ impl Conformance for ScrollRegionCase {
         }
         let content = sr.draw(ui, area, st, SCROLL_ROWS);
         let view = ScrollRegion::view(st, content, SCROLL_ROWS);
+        // the rows are the *container's* content, not a part of the scroll
+        // region, so they are painted with a plain style query (which records
+        // nothing) rather than through `RowUi`
         let style = ui
             .style(
                 Family::LIST,
@@ -703,17 +736,7 @@ impl Conformance for ScrollRegionCase {
             )
             .style;
         for (row, i) in content.rows().zip(view.visible_range()) {
-            let mut r = RowUi::new(
-                ui,
-                SCROLL,
-                Family::LIST,
-                Variant::DEFAULT,
-                StateFlags::empty(),
-                ItemKey::index(i),
-                row,
-            );
-            r.label_fmt(format_args!("row {i}"));
-            let _ = style;
+            ui.paint_str(row, &format!("row {i}"), style);
         }
     }
 
@@ -778,6 +801,193 @@ conformance_suite!(
     scroll_region => ScrollRegionCase,
     props => PropsCase,
 );
+
+/// §16.2 suite-level: two **visible** bindings on the same chord in one
+/// phase are a `Diagnostic::BindingConflict`. This is the check that makes
+/// the historically dead grid `Ctrl+D` detectable, so it is asserted twice:
+/// the detector fires on a table built to conflict, and every table every
+/// registered component publishes is clean under it.
+#[test]
+fn conflicting_visible_bindings_are_reported() {
+    const OWNER: Id = Id::root("conformance.bindings");
+    const CLASH: [Binding<ProbeCmd>; 2] = [
+        Binding {
+            chord: Chord::key(KeyCode::Char('d')),
+            cmd: ProbeCmd::Activate,
+            label: "Delete",
+            priority: 60,
+            visible: true,
+        },
+        Binding {
+            chord: Chord::key(KeyCode::Char('d')),
+            cmd: ProbeCmd::Activate,
+            label: "Duplicate",
+            priority: 60,
+            visible: true,
+        },
+    ];
+    let found = binding_conflicts(OWNER, KeyPhase::Bubble, &CLASH);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert!(
+        matches!(
+            found.first(),
+            Some(Diagnostic::BindingConflict {
+                chord,
+                phase: KeyPhase::Bubble,
+                a,
+                b,
+            }) if *chord == Chord::key(KeyCode::Char('d')) && *a == OWNER && *b == OWNER
+        ),
+        "{found:?}"
+    );
+
+    // a hidden alias on the same chord is not a conflict: every component
+    // ships one (Space beside Enter, `j` beside Down)
+    const ALIAS: [Binding<ProbeCmd>; 2] = [
+        Binding {
+            chord: Chord::key(KeyCode::Char('d')),
+            cmd: ProbeCmd::Activate,
+            label: "Delete",
+            priority: 60,
+            visible: true,
+        },
+        Binding {
+            chord: Chord::key(KeyCode::Char('d')),
+            cmd: ProbeCmd::Activate,
+            label: "Delete",
+            priority: 10,
+            visible: false,
+        },
+    ];
+    assert!(binding_conflicts(OWNER, KeyPhase::Bubble, &ALIAS).is_empty());
+
+    // and no registered component publishes a conflicting table
+    fn clean<C: Conformance>(states: &[StateFlags]) {
+        for f in states {
+            let st = BindingState { flags: *f };
+            let d = binding_conflicts(C::id(), KeyPhase::Bubble, C::bindings(st));
+            assert!(d.is_empty(), "{}: {d:?}", C::NAME);
+        }
+    }
+    let states = [
+        StateFlags::empty(),
+        StateFlags::FOCUSED,
+        StateFlags::EDITING,
+        StateFlags::DISABLED,
+    ];
+    clean::<ProbeCase>(&states);
+    clean::<ButtonCase>(&states);
+    clean::<TextInputCase>(&states);
+    clean::<FieldCase>(&states);
+    clean::<ListCase>(&states);
+    clean::<TabsCase>(&states);
+    clean::<DialogCase>(&states);
+    clean::<ScrollRegionCase>(&states);
+    clean::<PropsCase>(&states);
+    // every selection mode and every strip configuration, not just the
+    // fixture's own
+    for m in [
+        SelectMode::Single,
+        SelectMode::Multi,
+        SelectMode::Range,
+        SelectMode::None,
+    ] {
+        let t = List::<FixtureRow>::new(LIST).select_mode(m);
+        assert!(
+            binding_conflicts(LIST, KeyPhase::Bubble, t.bindings(BindingState::default()))
+                .is_empty()
+        );
+    }
+    for (closable, allow_new) in [(false, false), (true, false), (false, true), (true, true)] {
+        let t = Tabs::<FixtureRow>::new(TABS)
+            .closable(closable)
+            .allow_new(allow_new);
+        assert!(
+            binding_conflicts(TABS, KeyPhase::Bubble, t.bindings(BindingState::default()))
+                .is_empty()
+        );
+    }
+}
+
+/// §16.2 suite-level: a component that cannot draw registers nothing — the
+/// `0×0` case across the whole registry, extended by §26 N1 to a
+/// `LayerSize::Fixed(0, h)` request, which is an **empty layer** and never
+/// the screen.
+#[test]
+fn draw_registers_nothing_when_it_cannot_draw() {
+    fn degenerate<C: Conformance>() {
+        for area in [
+            Rect::new(4, 4, 0, 0),
+            Rect::new(4, 4, 0, 6),
+            Rect::new(4, 4, 20, 0),
+        ] {
+            let mut f = Fixture::default();
+            f.area = area;
+            let mut scene = Scene::new(C::NAME, f.theme.clone(), f.color, 30, 12);
+            let st = C::State::default();
+            scene.draw(|ui, _| C::draw(ui, area, &st, &f));
+            let regions = scene.registry().map_or(0, |r| r.regions().len());
+            assert_eq!(regions, 0, "{}: {area:?} registered {regions}", C::NAME);
+            let ring = scene.ring().map_or(0, |r| r.reachable().count());
+            assert_eq!(ring, 0, "{}: {area:?} left {ring} ring entries", C::NAME);
+        }
+    }
+    degenerate::<ProbeCase>();
+    degenerate::<ButtonCase>();
+    degenerate::<TextInputCase>();
+    degenerate::<FieldCase>();
+    degenerate::<ListCase>();
+    degenerate::<TabsCase>();
+    degenerate::<DialogCase>();
+    degenerate::<ScrollRegionCase>();
+    degenerate::<PropsCase>();
+
+    // §26 N1: a zero-size request resolves to `Rect::ZERO`, so the layer's
+    // content is clipped away and registers nothing either.
+    let screen = Rect::new(0, 0, 40, 12);
+    assert_eq!(
+        resolve_anchor(
+            screen,
+            Anchor::Screen(ScreenAlign::Center),
+            LayerSize::Fixed(0, 8)
+        ),
+        Rect::ZERO
+    );
+    assert_eq!(
+        resolve_anchor(screen, Anchor::Screen(ScreenAlign::Center), LayerSize::Fill),
+        screen
+    );
+    let mut h = Harness::new(ZeroLayer, Theme::junie(), 40, 12).with_auto_draw(true);
+    let _ = h.tick();
+    assert!(h.is_open(ZERO), "the layer is open, it is merely empty");
+    assert_eq!(
+        h.runtime().region_count(),
+        0,
+        "a zero-size layer's content registers nothing"
+    );
+    assert_eq!(h.focus(), None);
+}
+
+const ZERO: Id = Id::root("conformance.zero_layer");
+
+/// An app whose only layer asks for `LayerSize::Fixed(0, h)`.
+struct ZeroLayer;
+
+impl tui_next::App for ZeroLayer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !cx.is_open(ZERO) {
+            cx.open_layer(ZERO, LayerSpec::modal(ZERO).size(LayerSize::Fixed(0, 8)));
+        }
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        ui.layer(ZERO, |ui, a| {
+            assert!(a.is_empty(), "a zero-size layer resolves to an empty rect");
+            Button::new(BTN, "Never").draw(ui, a);
+        });
+    }
+}
 
 mod registry {
     use super::*;

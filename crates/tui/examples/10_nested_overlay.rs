@@ -33,7 +33,7 @@ struct Screen {
 }
 
 fn dialog() -> Dialog<'static> {
-    Dialog::new(DLG).title("Edit task")
+    Dialog::new(DLG).title("Edit task").body_rows(1)
 }
 
 fn owner_picker()
@@ -48,7 +48,7 @@ fn owner_picker()
 
 impl Screen {
     fn open(&mut self, cx: &mut Cx<'_>) {
-        cx.open_layer(DLG, LayerSpec::modal(DLG));
+        cx.open_layer(DLG, dialog().layer(cx));
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -78,11 +78,17 @@ impl Screen {
                             align: CrossAlign::Start,
                         },
                     )
-                    .dismiss(Dismiss::ESC_AND_OUTSIDE),
+                    .dismiss(Dismiss::ESC_AND_OUTSIDE)
+                    // the list's OWN arithmetic over the items it receives per
+                    // phase (§26 N1); the opener re-asserts it below with
+                    // `cx.resize_layer` while the popover is open
+                    .size(owner_picker().measured_size(cx, &self.people)),
                 )
             });
 
         if cx.is_open(OWNER_PICK) {
+            let size = owner_picker().measured_size(cx, &self.people);
+            cx.resize_layer(OWNER_PICK, size);
             r |= owner_picker()
                 .update(cx, &mut self.pick, &self.people)
                 .on_action(|a| {

@@ -35,13 +35,18 @@
 #                                     PERF_STRICT=1, so these are a snapshot, not a
 #                                     contract. The allocation and byte columns are the
 #                                     hard assertions.
+event_dispatch_is_not_o_n 135185 0 0
 fit_10k_grapheme_line_to_80 156980 0 0
 fit_10k_grapheme_line_to_80_wide 333847 7 224
 focus_tab_traversal_ring_200 381966 0 0
+frame_showcase_buttons_120x40 8275 0 0 9 7
 frame_testbackend_empty_120x40 24886 0 0
 fuzzy_10k_grapheme_label 323778 15 262232
 hit_registry_size_is_bounded 4040 0 0 80 40
 intents_drain_is_o_1_when_the_queue_is_empty 632 0 0
+list_100k_rows_render 130740 0 0
+list_100k_select_all 63000 0 0
+list_1k_rows_render 131116 0 0
 measure_is_allocation_free 7619 0 0
 mouse_move_over_1000_regions 7261112 0 0
 paint_spans_500_rows_is_allocation_free 113159 0 0

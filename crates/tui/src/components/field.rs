@@ -29,14 +29,15 @@ use crate::ui::{FrameRead, Ui};
 /// (`true`; paints `optional` when not required and the row is wide
 /// enough), `.help(&str)`, `.error(Option<&str>)` (wins over help),
 /// `.plain(bool)` (`false`; suppresses the optional suffix),
-/// `.patch_part`.
+/// `.patch_part`, `.state_override`.
 ///
 /// ## Variants
 /// `Family::FIELD`, `DEFAULT` only.
 ///
 /// ## States
 /// Reads the control's runtime flags (`FOCUSED`, `DISABLED`) and adds
-/// `ERROR` when `.error` is `Some`.
+/// `ERROR` when `.error` is `Some`; `.state_override` replaces the runtime
+/// half for a reference rendering (A11).
 ///
 /// ## Actions
 /// None.
@@ -164,6 +165,15 @@ impl<'a, C: FieldControl> Field<'a, C> {
         self
     }
 
+    /// Showcase / fixture use only (A11): render the chrome in a forced
+    /// state instead of the control's runtime state. A forced field
+    /// registers no decorative region.
+    #[must_use]
+    pub const fn state_override(mut self, s: StateFlags) -> Self {
+        self.ov = self.ov.state_override(s);
+        self
+    }
+
     /// The control.
     pub const fn control(&self) -> &C {
         &self.control
@@ -176,17 +186,20 @@ impl<'a, C: FieldControl> Field<'a, C> {
             return area;
         }
         let id = self.control.id();
-        let mut live = ui.state(id);
+        let mut live = self.ov.flags(ui.state(id));
         if self.error.is_some() {
             live |= StateFlags::ERROR;
         }
         let ov = self.ov;
+        let forced = ov.is_forced();
         let style = |ui: &mut Ui<'_>, part: Part| {
             ov.style(ui, id, Family::FIELD, Variant::DEFAULT, part, live)
         };
         let container = style(ui, Part::CONTAINER);
         ui.fill(area, container.style);
-        ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
+        if !forced {
+            ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
+        }
 
         // label row
         let label_row = first_row(area);
@@ -223,7 +236,9 @@ impl<'a, C: FieldControl> Field<'a, C> {
             let hs = style(ui, Part::HELP);
             ui.paint_str(rest, "optional", hs.style);
         }
-        ui.register_decor(id, PartRef::of(Part::LABEL), label_row);
+        if !forced {
+            ui.register_decor(id, PartRef::of(Part::LABEL), label_row);
+        }
         if area.height < 2 {
             return label_row;
         }
@@ -275,7 +290,9 @@ impl<'a, C: FieldControl> Field<'a, C> {
             }
             let _ = GlyphRole::Error;
         }
-        ui.register_decor(id, PartRef::of(Part::HELP), msg_row);
+        if !forced {
+            ui.register_decor(id, PartRef::of(Part::HELP), msg_row);
+        }
         Rect {
             height: used_h.saturating_add(1).min(area.height),
             ..area

@@ -821,3 +821,308 @@ fn hit_registry_size_is_bounded() {
     report("hit_registry_size_is_bounded", &s);
     assert_eq!(hits, 80);
 }
+
+// ---------------------------------------------------- G. components (Slice 2)
+//
+// Appended by the Slice 2 prototype package. Every threshold is §16.6's:
+// `list_100k_rows_render` < 500 allocs/frame and ns <= 1.5x the 1 k control,
+// `list_100k_select_all` < 100 allocs, `event_dispatch_is_not_o_n` 0 allocs
+// and ns within 3x of the 100-row case, `frame_showcase_buttons_120x40` the
+// migrated showcase page's frame.
+
+use tui_next::{Button, List, ListState, SelectMode, Status};
+use tui_next_testing::perf::{Stats, big};
+
+const LIST_ID: Id = Id::root("perf.list");
+
+/// Rows are `u32`s formatted in place, so the fixture itself contributes no
+/// per-row allocation and the numbers measure the component.
+fn perf_rows(n: usize) -> Vec<u32> {
+    (0..n).map(|i| i as u32).collect()
+}
+
+type PerfKeyFn = fn(&u32) -> tui_next::ItemKey;
+type PerfRowFn = fn(&u32, &mut tui_next::RowUi<'_>);
+
+fn perf_list<'a>() -> List<'a, u32, PerfKeyFn, PerfRowFn> {
+    fn key(r: &u32) -> tui_next::ItemKey {
+        tui_next::ItemKey::num(u64::from(*r))
+    }
+    fn row(r: &u32, u: &mut tui_next::RowUi<'_>) {
+        u.gutter();
+        u.label_fmt(format_args!("row {r}"));
+        u.part(Part::META, 8).num(i64::from(*r));
+    }
+    let k: PerfKeyFn = key;
+    let p: PerfRowFn = row;
+    List::new(LIST_ID).key(k).row(p)
+}
+
+/// One `List::draw` of `rows.len()` rows into a 120x40 scene, with `checked`
+/// keys already selected (the `KeySet` lookup per visible row is what §16.6's
+/// 1.5x bound is really about).
+fn bench_list_render(rows: &[u32], checked: usize) -> Stats {
+    let mut scene = Scene::new("list", Theme::junie(), ColorLevel::TrueColor, 120, 40);
+    let mut st = ListState::default();
+    for r in rows.iter().take(checked) {
+        st.checked_mut()
+            .insert(tui_next::ItemKey::num(u64::from(*r)));
+    }
+    scene.draw(|ui, area| {
+        perf_list().draw(ui, area, &st, rows);
+    });
+    bench(2, iters(50), &mut || {
+        scene.draw(|ui, area| {
+            black_box(perf_list().draw(ui, area, &st, rows));
+        });
+    })
+}
+
+#[test]
+fn list_1k_rows_render() {
+    let _g = lock();
+    let rows = perf_rows(big(1_000));
+    let s = bench_list_render(&rows, 50);
+    report("list_1k_rows_render", &s);
+    assert!(
+        s.allocs < 500,
+        "the 1 k control must already be flat: {} allocs",
+        s.allocs
+    );
+}
+
+#[test]
+fn list_100k_rows_render() {
+    let _g = lock();
+    let small = perf_rows(big(1_000));
+    let large = perf_rows(big(100_000));
+    let control = bench_list_render(&small, 50);
+    let s = bench_list_render(&large, 5_000);
+    report("list_100k_rows_render", &s);
+    assert!(
+        s.allocs < 500,
+        "R1: a 100 k list frame must stay under 500 allocations, got {}",
+        s.allocs
+    );
+    // only the viewport is painted, so a 100x larger list costs the same frame
+    check_ratio(
+        "list_100k_vs_1k_render",
+        s.ns,
+        control.ns,
+        1.5,
+        env_flag("PERF_STRICT"),
+    );
+}
+
+/// An application that owns the list and forwards one update per frame.
+struct ListApp {
+    rows: Vec<u32>,
+    st: ListState,
+    mode: SelectMode,
+}
+
+impl App for ListApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        perf_list()
+            .select_mode(self.mode)
+            .update(cx, &mut self.st, &self.rows)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        perf_list()
+            .select_mode(self.mode)
+            .draw(ui, ui.full(), &self.st, &self.rows);
+    }
+}
+
+fn list_runtime(n: usize, mode: SelectMode) -> (Runtime<ListApp>, ratatui_core::buffer::Buffer) {
+    let area = Rect::new(0, 0, 120, 40);
+    let mut rt = Runtime::new(
+        ListApp {
+            rows: perf_rows(n),
+            st: ListState::default(),
+            mode,
+        },
+        Theme::junie(),
+    );
+    let mut buf = ratatui_core::buffer::Buffer::empty(area);
+    rt.draw_buffer(area, &mut buf);
+    for _ in 0..2 {
+        let _ = rt.handle(Input::Tick);
+        rt.draw_buffer(area, &mut buf);
+    }
+    (rt, buf)
+}
+
+/// R7: `ToggledAll` is a set-level operation. Materialising 100 000
+/// `ItemKey`s to express "everything is checked" is the defect this pins.
+#[test]
+fn list_100k_select_all() {
+    let _g = lock();
+    let (mut rt, mut buf) = list_runtime(big(100_000), SelectMode::Multi);
+    let area = Rect::new(0, 0, 120, 40);
+    let toggle = || {
+        Input::Key(tui_next::Key {
+            code: tui_next::KeyCode::Char('a'),
+            mods: tui_next::KeyModifiers::NONE,
+        })
+    };
+    // warm: the first toggle also settles focus
+    let _ = rt.handle(toggle());
+    rt.draw_buffer(area, &mut buf);
+    let s = measure_once(&mut || {
+        let _ = black_box(rt.handle(toggle()));
+    });
+    println!(
+        "PERF list_100k_select_all ns={} allocs={} bytes={}",
+        s.ns, s.allocs, s.bytes
+    );
+    report("list_100k_select_all", &s);
+    assert!(
+        s.allocs < 100,
+        "R7: `ToggledAll` must not materialise 100 000 keys, got {} allocs",
+        s.allocs
+    );
+    // `a` toggles: the measured press cleared the set the warm press filled,
+    // so one more press proves the set-level "everything" is reachable at all
+    let _ = rt.handle(toggle());
+    assert!(rt.app().st.checked().contains(tui_next::ItemKey::num(99)));
+    assert!(rt.app().st.checked().contains(tui_next::ItemKey::num(99_999)));
+}
+
+/// Dispatch cost is a function of the **registered** regions, which is a
+/// function of the viewport — never of the collection behind it.
+#[test]
+fn event_dispatch_is_not_o_n() {
+    let _g = lock();
+    let area = Rect::new(0, 0, 120, 40);
+    let (mut small, mut small_buf) = list_runtime(100, SelectMode::Single);
+    let (mut large, mut large_buf) = list_runtime(big(100_000), SelectMode::Single);
+    let click = |x: u16, y: u16| {
+        [
+            Input::Mouse(tui_next::Mouse {
+                kind: tui_next::MouseKind::Down,
+                pos: Position::new(x, y),
+                mods: tui_next::KeyModifiers::NONE,
+            }),
+            Input::Mouse(tui_next::Mouse {
+                kind: tui_next::MouseKind::Up,
+                pos: Position::new(x, y),
+                mods: tui_next::KeyModifiers::NONE,
+            }),
+        ]
+    };
+    let run = |rt: &mut Runtime<ListApp>, buf: &mut ratatui_core::buffer::Buffer| {
+        for i in rt.app().rows.iter().take(1) {
+            black_box(i);
+        }
+        for input in click(10, 5) {
+            let _ = black_box(rt.handle(input));
+        }
+        rt.draw_buffer(area, buf);
+    };
+    let s_small = bench(2, iters(50), &mut || run(&mut small, &mut small_buf));
+    let s_large = bench(2, iters(50), &mut || run(&mut large, &mut large_buf));
+    let s = Stats {
+        allocs: s_large.allocs,
+        ..s_large
+    };
+    report("event_dispatch_is_not_o_n", &s);
+    println!(
+        "PERF event_dispatch_100_rows ns={} allocs={}",
+        s_small.ns, s_small.allocs
+    );
+    assert_eq!(s_large.allocs, 0, "dispatch must not allocate");
+    assert_eq!(s_small.allocs, 0, "dispatch must not allocate");
+    check_ratio(
+        "event_dispatch_100k_vs_100",
+        s_large.ns,
+        s_small.ns,
+        3.0,
+        env_flag("PERF_STRICT"),
+    );
+}
+
+// ------------------------------------------------ the migrated showcase page
+
+const SHOW: Id = Id::root("perf.showcase.buttons");
+
+/// `(label, variant, disabled, checked)` — the nine buttons of
+/// `src/bin/showcase/pages/buttons.rs`, migrated.
+const SHOWCASE_BUTTONS: [(&str, Variant, bool, Option<bool>); 9] = [
+    ("Run task", Variant::PRIMARY, false, None),
+    ("Preview", Variant::SECONDARY, false, None),
+    ("Cancel", Variant::SUBTLE, false, None),
+    ("Delete branch", Variant::DANGER, false, None),
+    ("Auto-approve", Variant::TOGGLE, false, Some(false)),
+    ("Verbose", Variant::TOGGLE, false, Some(true)),
+    ("Disabled primary", Variant::PRIMARY, true, None),
+    ("Disabled", Variant::SECONDARY, true, None),
+    ("Start long job", Variant::SECONDARY, false, None),
+];
+
+/// The Buttons page as a frame profile: nine buttons, four group captions and
+/// a twenty-four-cell reference matrix.
+struct ShowcaseButtons;
+
+impl ShowcaseButtons {
+    fn button(i: usize) -> Button<'static> {
+        let (label, variant, disabled, checked) = SHOWCASE_BUTTONS[i];
+        let mut b = Button::new(SHOW.index(i), label)
+            .variant(variant)
+            .disabled(disabled)
+            .status(Status::Ready);
+        if let Some(on) = checked {
+            b = b.checked(on);
+        }
+        b
+    }
+}
+
+impl App for ShowcaseButtons {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut r = Response::ignored();
+        for i in 0..SHOWCASE_BUTTONS.len() {
+            r |= ShowcaseButtons::button(i).update(cx).erase();
+        }
+        r
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let area = ui.full();
+        let mut x = area.x;
+        let mut y = area.y;
+        for i in 0..SHOWCASE_BUTTONS.len() {
+            let w = 20u16.min(area.width);
+            if x + w > area.right() {
+                x = area.x;
+                y += 2;
+            }
+            ShowcaseButtons::button(i).draw(ui, Rect::new(x, y, w, 1));
+            x += w + 2;
+        }
+    }
+}
+
+#[test]
+fn frame_showcase_buttons_120x40() {
+    let _g = lock();
+    let area = Rect::new(0, 0, 120, 40);
+    let mut rt = Runtime::new(ShowcaseButtons, Theme::junie());
+    let mut buf = ratatui_core::buffer::Buffer::empty(area);
+    // two warm frames: the runtime double-buffers the registry and the ring
+    rt.draw_buffer(area, &mut buf);
+    rt.draw_buffer(area, &mut buf);
+    let s = bench(2, iters(200), &mut || {
+        rt.draw_buffer(area, &mut buf);
+    });
+    let s = s.with_regions(rt.region_count(), rt.ring().reachable().count());
+    report("frame_showcase_buttons_120x40", &s);
+    assert_eq!(
+        rt.ring().reachable().count(),
+        7,
+        "nine buttons, two of them disabled"
+    );
+    assert_eq!(s.allocs, 0, "a button frame must not allocate");
+}

@@ -242,7 +242,10 @@ impl Reconcile for TabsState {
 ///
 /// ## States
 /// The strip wears `FOCUSED`/`FOCUS_VISIBLE`/`HOVERED`/`PRESSED` from the
-/// runtime; the active tab derives `ACTIVE`, the cursor tab `FOCUSED`.
+/// runtime; the active tab derives `ACTIVE`, the cursor tab `FOCUSED`. Under
+/// `.state_override` the first tab in the window stands in for the cursor,
+/// and it derives `ACTIVE` only when the forced state contains `SELECTED` —
+/// a strip's selection *is* its active tab.
 ///
 /// ## Actions
 /// `Activated(k)`, `Close(k)`, `New`.
@@ -268,7 +271,9 @@ impl Reconcile for TabsState {
 /// `update` keeps the active tab inside the window.
 ///
 /// ## Parts
-/// `CONTAINER`, `TAB`, `CLOSE`, `NEW`, `RULE`, `OVERFLOW`, `BADGE`.
+/// `CONTAINER`, `TAB` (one tab's plane), `LABEL` and `META` (what the
+/// `.row` painter writes through [`RowUi`]), `CLOSE`, `NEW`, `RULE`,
+/// `OVERFLOW`, `BADGE`.
 ///
 /// ## Overrides
 /// `.patch`, `.patch_part`; no slots.
@@ -326,6 +331,8 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::TAB,
+        Part::LABEL,
+        Part::META,
         Part::CLOSE,
         Part::NEW,
         Part::RULE,
@@ -648,9 +655,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if avail < 3 {
                 break;
             }
-            let is_cursor = cursor == Some(key) || (forced && cursor.is_none() && i == first_index);
-            let is_active =
-                st.active == Some(key) || (forced && st.active.is_none() && i == first_index);
+            // A11 reference rendering: with no real state the first tab in the
+            // window stands in for the cursor, and it becomes the *active* tab
+            // only when the forced state names the strip's selection. A tab
+            // strip's `SELECTED` is its active tab, so keeping `ACTIVE` off the
+            // merely-focused tab is what makes `focused` and `selected`
+            // distinguishable without colour (§11.4, §16.2 case 9).
+            let forced_first = forced && i == first_index;
+            let is_cursor = cursor == Some(key) || (forced_first && cursor.is_none());
+            let is_active = st.active == Some(key)
+                || (forced_first && st.active.is_none() && live.contains(StateFlags::SELECTED));
             let mut flags = StateFlags::empty();
             if is_active {
                 flags |= StateFlags::ACTIVE;

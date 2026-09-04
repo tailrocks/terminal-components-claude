@@ -8,6 +8,7 @@ use super::{Overrides, SlotFn};
 use crate::hit::Axes;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{Intent, Phase};
+use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, StylePatch, Variant};
@@ -55,9 +56,11 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 ///
 /// ## Layout
 /// `draw` returns the content rect: `area` minus one scrollbar column when
-/// the content overflows the viewport, else `area` unchanged. Degenerate
-/// rects register nothing (R5). `viewport_len` / `content_len` are
-/// reported through `LayoutFacts` and consumed by the next `update`.
+/// the content overflows the viewport, else `area` unchanged. `measure`
+/// takes whatever the container offers (minimum `2 × 1`: the bar column plus
+/// one content column). Degenerate rects register nothing (R5).
+/// `viewport_len` / `content_len` are reported through `LayoutFacts` and
+/// consumed by the next `update`.
 ///
 /// ## Parts
 /// `CONTAINER` (the whole region), `TRACK` (the bar column), `THUMB` (the
@@ -287,6 +290,16 @@ impl<'a> ScrollRegion<'a> {
         ui.register_part(self.id, PartRef::of(Part::TRACK), bar);
         ui.register_part(self.id, PartRef::of(Part::THUMB), thumb_rect);
         content
+    }
+
+    /// A scroll region takes whatever its container gives it; the minimum is
+    /// the bar column plus one content column.
+    pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
+        Size {
+            min: (2, 1),
+            preferred: c.max,
+        }
+        .fit(c)
     }
 }
 

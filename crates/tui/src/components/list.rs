@@ -16,6 +16,7 @@ use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
+use crate::layer::LayerSize;
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
@@ -249,7 +250,9 @@ impl Reconcile for ListState {
 /// The list wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the
 /// runtime and `BUSY`/`LOADING`/`ERROR` from `.status`; the cursor row
 /// derives `FOCUSED`/`PRESSED`, a chosen row `SELECTED`, a checked row
-/// `CHECKED`, a disabled item `DISABLED`.
+/// `CHECKED`, a disabled item `DISABLED`. The readiness flags reach every
+/// row as well as the container, so an errored or stale list is visible
+/// without colour.
 ///
 /// ## Actions
 /// `Moved`, `Chose(k)` (Space / click, `Single`), `Toggled(k)` (Space /
@@ -271,8 +274,10 @@ impl Reconcile for ListState {
 ///
 /// ## Layout
 /// One row per item; gutter, marker, then the renderer's row; a scrollbar
-/// column when the items overflow. `measure` is `(24…, items)`; `draw`
-/// returns `area`. `0×0` registers nothing (R5).
+/// column when the items overflow. `measure` is `(24…, items)`;
+/// `measured_size` is the same arithmetic as a [`LayerSize`] for a list used
+/// as popover content (§26 N1); `draw` returns `area`. `0×0` registers
+/// nothing (R5).
 ///
 /// ## Parts
 /// `CONTAINER`, `GUTTER`, `MARKER`, `LABEL`, `META`, `TRACK`, `THUMB`,
@@ -345,6 +350,10 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         Part::THUMB,
         Part::EMPTY,
     ];
+
+    /// The width `measure` prefers and `measured_size` clamps into the
+    /// design's popup band.
+    pub const PREFERRED_WIDTH: u16 = 24;
 
     /// The id.
     pub const fn id(&self) -> Id {
@@ -705,11 +714,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let view = ScrollRegion::view(st.core.scroll(), content, len);
         let cursor = st.core.cursor();
         let forced = self.ov.is_forced();
+        // Data readiness is a property of the whole list, but the rows are the
+        // only surface it has: a list whose `.status` is `Error` must say so in
+        // the row chrome, or it is indistinguishable from a healthy one once
+        // colour is removed (§11.4, §16.2 case 9).
+        let status = live
+            & (StateFlags::ERROR | StateFlags::WARNING | StateFlags::BUSY | StateFlags::LOADING);
         for (row_i, i) in view.visible_range().enumerate() {
             let Some(item) = items.get(i) else { break };
             let key = self.key.key(item, i);
             let is_cursor = cursor == Some(key) || (forced && cursor.is_none() && row_i == 0);
-            let mut flags = StateFlags::empty();
+            let mut flags = status;
             if is_cursor {
                 flags |=
                     live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::PRESSED);
@@ -788,9 +803,28 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
-            preferred: (24, c.max.1),
+            preferred: (Self::PREFERRED_WIDTH, c.max.1),
         }
         .fit(c)
+    }
+
+    /// The layer size this list wants as popover content (§26 N1): its
+    /// natural width clamped into the design's popup band, and one row per
+    /// item up to `popup_max_rows`.
+    ///
+    /// The list does not own the layer — whoever opened it does — so the
+    /// opener passes this to `LayerSpec::size` and, if the item slice can
+    /// change while the popover is open, re-asserts it every frame with
+    /// [`Cx::resize_layer`].
+    pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
+        let d = cx.design();
+        let w = Self::PREFERRED_WIDTH.clamp(d.size.popup_min_width, d.size.popup_max_width);
+        let h = items
+            .len()
+            .min(usize::from(d.size.popup_max_rows))
+            .max(1)
+            .min(usize::from(u16::MAX)) as u16;
+        LayerSize::Fixed(w, h)
     }
 }
 
