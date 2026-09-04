@@ -7,7 +7,7 @@ use ratatui_core::layout::Rect;
 use super::button::Button;
 use super::chip::{ChipBarState, LabelChips};
 use super::choice::{Checkbox, LabelRadio, RadioGroupAction, RadioGroupState, Toggle};
-use super::input::{TextAction, TextInput, TextInputState};
+use super::input::{ErrorState, TextAction, TextInput, TextInputState, discard_error};
 use super::keyhint::ChordText;
 use super::scroll_region::ScrollRegion;
 use super::select::{LabelSelect, SelectAction, SelectState};
@@ -327,6 +327,35 @@ enum SlotValue {
     Chips(KeySet),
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum FieldShape {
+    Text,
+    Area,
+    Other,
+}
+
+fn field_shape(kind: &FieldKind<'_>) -> FieldShape {
+    match kind {
+        FieldKind::Text(_) => FieldShape::Text,
+        FieldKind::Area(_) => FieldShape::Area,
+        FieldKind::Select(_)
+        | FieldKind::Radio(_)
+        | FieldKind::Chips(_)
+        | FieldKind::Check(_)
+        | FieldKind::Toggle(_)
+        | FieldKind::Chooser(_)
+        | FieldKind::Note => FieldShape::Other,
+    }
+}
+
+fn field_is_secret(field: &FieldSpec<'_>) -> bool {
+    match &field.kind {
+        FieldKind::Text(control) => control.is_secret(),
+        FieldKind::Area(control) => control.is_secret(),
+        _ => false,
+    }
+}
+
 impl fmt::Debug for SlotValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -342,6 +371,7 @@ impl fmt::Debug for SlotValue {
 #[derive(Clone, PartialEq, Eq)]
 struct FieldSlot {
     id: Id,
+    shape: FieldShape,
     value: SlotValue,
     input: TextInputState,
     area: TextAreaState,
@@ -354,6 +384,7 @@ impl FieldSlot {
     fn new(id: Id) -> Self {
         FieldSlot {
             id,
+            shape: FieldShape::Other,
             value: SlotValue::None,
             input: TextInputState::default(),
             area: TextAreaState::default(),
@@ -371,12 +402,51 @@ impl FieldSlot {
         }
         self.value = SlotValue::None;
     }
+
+    fn set_shape(&mut self, shape: FieldShape) {
+        if self.shape == shape {
+            return;
+        }
+        self.input.zeroize();
+        self.area.zeroize();
+        self.input.set_sensitive(false);
+        self.area.set_sensitive(false);
+        self.shape = shape;
+    }
+
+    fn set_sensitive(&mut self, sensitive: bool) -> bool {
+        let was_sensitive = self.is_sensitive();
+        match self.shape {
+            FieldShape::Text => {
+                self.input.set_sensitive(sensitive);
+                self.area.set_sensitive(false);
+            }
+            FieldShape::Area => {
+                self.input.set_sensitive(false);
+                self.area.set_sensitive(sensitive);
+            }
+            FieldShape::Other => {
+                self.input.set_sensitive(false);
+                self.area.set_sensitive(false);
+            }
+        }
+        was_sensitive != self.is_sensitive()
+    }
+
+    fn is_sensitive(&self) -> bool {
+        match self.shape {
+            FieldShape::Text => self.input.is_sensitive(),
+            FieldShape::Area => self.area.is_sensitive(),
+            FieldShape::Other => false,
+        }
+    }
 }
 
 impl fmt::Debug for FieldSlot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("FieldSlot")
             .field("id", &self.id)
+            .field("shape", &self.shape)
             .field("value", &self.value)
             .field("input", &self.input)
             .field("area", &self.area)
@@ -388,21 +458,65 @@ impl fmt::Debug for FieldSlot {
 }
 
 /// Durable form control state. It stores no field declarations or other props.
-#[derive(Clone, PartialEq, Eq, Default)]
+#[derive(Default)]
 pub struct FormState {
     slots: Vec<FieldSlot>,
     scroll: ScrollState,
-    errors: Vec<(Id, FieldError)>,
+    errors: Vec<(Id, ErrorState)>,
     dirty: bool,
     reveal: Option<Id>,
 }
+
+impl Clone for FormState {
+    fn clone(&self) -> Self {
+        FormState {
+            slots: self.slots.clone(),
+            scroll: self.scroll,
+            errors: self
+                .errors
+                .iter()
+                .map(|(id, error)| {
+                    if self.slot_is_sensitive(*id) {
+                        (*id, ErrorState::sensitive())
+                    } else {
+                        (*id, error.clone())
+                    }
+                })
+                .collect(),
+            dirty: self.dirty,
+            reveal: self.reveal,
+        }
+    }
+}
+
+impl PartialEq for FormState {
+    fn eq(&self, other: &Self) -> bool {
+        self.slots == other.slots
+            && self.scroll == other.scroll
+            && self.errors.len() == other.errors.len()
+            && self.errors.iter().zip(&other.errors).all(
+                |((id, error), (other_id, other_error))| {
+                    id == other_id
+                        && (self.slot_is_sensitive(*id)
+                            || other.slot_is_sensitive(*other_id)
+                            || error.is_sensitive()
+                            || other_error.is_sensitive()
+                            || error.same(other_error))
+                },
+            )
+            && self.dirty == other.dirty
+            && self.reveal == other.reveal
+    }
+}
+
+impl Eq for FormState {}
 
 impl fmt::Debug for FormState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("FormState")
             .field("slots", &self.slots)
             .field("scroll", &self.scroll)
-            .field("errors", &self.errors)
+            .field("errors", &(!self.errors.is_empty()).then_some("[redacted]"))
             .field("dirty", &self.dirty)
             .field("reveal", &self.reveal)
             .finish()
@@ -425,30 +539,60 @@ impl FormState {
         self.errors
             .iter()
             .find(|(key, _)| *key == id)
-            .map(|(_, e)| e)
+            .map(|(_, e)| e.as_ref())
     }
 
     /// Set or clear a local validation error.
     pub fn set_error(&mut self, id: Id, error: Option<FieldError>) {
+        let error = error.map(|error| {
+            if self.slot_is_sensitive(id) {
+                discard_error(error);
+                ErrorState::sensitive()
+            } else {
+                ErrorState::Plain(error)
+            }
+        });
         if let Some(index) = self.errors.iter().position(|(key, _)| *key == id) {
-            match error {
-                Some(error) => {
-                    if let Some((_, current)) = self.errors.get_mut(index) {
-                        *current = error;
-                    }
+            if let Some(error) = error {
+                if let Some((_, current)) = self.errors.get_mut(index) {
+                    let old = core::mem::replace(current, error);
+                    old.discard();
                 }
-                None => {
-                    self.errors.remove(index);
-                }
+            } else {
+                let (_, old) = self.errors.remove(index);
+                old.discard();
             }
         } else if let Some(error) = error {
             self.errors.push((id, error));
         }
     }
 
+    fn slot_is_sensitive(&self, id: Id) -> bool {
+        self.slots
+            .iter()
+            .find(|slot| slot.id == id)
+            .is_some_and(FieldSlot::is_sensitive)
+    }
+
+    fn redact_error(&mut self, id: Id) {
+        if let Some((_, current)) = self.errors.iter_mut().find(|(key, _)| *key == id) {
+            let old = core::mem::replace(current, ErrorState::sensitive());
+            old.discard();
+        }
+    }
+
+    fn clear_error(&mut self, id: Id) {
+        if let Some(index) = self.errors.iter().position(|(key, _)| *key == id) {
+            let (_, old) = self.errors.remove(index);
+            old.discard();
+        }
+    }
+
     /// Clear every local validation error.
     pub fn clear_errors(&mut self) {
-        self.errors.clear();
+        for (_, error) in self.errors.drain(..) {
+            error.discard();
+        }
     }
 
     /// Request reveal after the next update-side layout.
@@ -461,6 +605,8 @@ impl FormState {
         for slot in &mut self.slots {
             slot.zeroize();
         }
+        self.clear_errors();
+        self.reveal = None;
     }
 
     fn reconcile_fields(&mut self, fields: &[FieldSpec<'_>]) {
@@ -469,17 +615,23 @@ impl FormState {
                 .slots
                 .iter()
                 .zip(fields)
-                .all(|(slot, field)| slot.id == field.id)
+                .all(|(slot, field)| slot.id == field.id && slot.shape == field_shape(&field.kind))
         {
             return;
         }
+        self.clear_errors();
         let mut old = core::mem::take(&mut self.slots);
         self.slots.reserve(fields.len());
         for field in fields {
+            let shape = field_shape(&field.kind);
             if let Some(index) = old.iter().position(|slot| slot.id == field.id) {
-                self.slots.push(old.remove(index));
+                let mut slot = old.remove(index);
+                slot.set_shape(shape);
+                self.slots.push(slot);
             } else {
-                self.slots.push(FieldSlot::new(field.id));
+                let mut slot = FieldSlot::new(field.id);
+                slot.set_shape(shape);
+                self.slots.push(slot);
             }
         }
         for slot in &mut old {
@@ -767,6 +919,28 @@ impl<'a> Form<'a> {
         };
     }
 
+    fn prepare_slot<'s>(
+        st: &'s mut FormState,
+        index: usize,
+        field: &FieldSpec<'_>,
+        value: &FieldMut<'_>,
+    ) -> Option<&'s mut FieldSlot> {
+        let secret = field_is_secret(field) || matches!(value, FieldMut::Secret(_));
+        let id = field.id;
+        let changed;
+        {
+            let slot = st.slots.get_mut(index)?;
+            changed = slot.set_sensitive(secret);
+            Self::set_slot_value(slot, value);
+        }
+        if changed && !secret {
+            st.clear_error(id);
+        } else if secret {
+            st.redact_error(id);
+        }
+        st.slots.get_mut(index)
+    }
+
     fn remember_action(first: &mut Option<FormAction>, action: FormAction) {
         if first.is_none() {
             *first = Some(action);
@@ -888,14 +1062,27 @@ impl<'a> Form<'a> {
                 continue;
             }
             if let Err(error) = data.validate(field.id, data.value(field.id)) {
-                st.set_error(field.id, Some(error));
+                st.set_error(
+                    field.id,
+                    Some(Self::safe_error(
+                        data,
+                        field_is_secret(field),
+                        field.id,
+                        error,
+                    )),
+                );
                 st.reveal(field.id);
                 cx.focus(field.id);
                 return FormAction::Invalid(field.id);
             }
         }
         if let Err((id, error)) = data.validate_all() {
-            st.set_error(id, Some(error));
+            let declared_secret = self
+                .fields
+                .iter()
+                .find(|field| field.id == id)
+                .is_some_and(field_is_secret);
+            st.set_error(id, Some(Self::safe_error(data, declared_secret, id, error)));
             st.reveal(id);
             cx.focus(id);
             return FormAction::Invalid(id);
@@ -959,10 +1146,9 @@ impl<'a> Form<'a> {
             }
             let disabled = data.disabled(field.id);
             let (value, options) = data.value_and_options(field.id);
-            let Some(slot) = st.slots.get_mut(placement.index) else {
+            let Some(slot) = Self::prepare_slot(st, placement.index, field, &value) else {
                 continue;
             };
-            Self::set_slot_value(slot, &value);
             let response = Self::update_field(field, cx, slot, value, options, disabled);
             if let Some(action) = response.action_ref().copied() {
                 if matches!(action, FormAction::Committed(_)) {
@@ -1011,11 +1197,29 @@ impl<'a> Form<'a> {
     fn field_error<'d, D: FormData + ?Sized>(
         st: &'d FormState,
         data: &'d D,
-        id: Id,
+        field: &FieldSpec<'_>,
     ) -> Option<&'d str> {
+        let id = field.id;
+        if field_is_secret(field) || matches!(data.value(id), FieldRef::Secret(_)) {
+            return (st.error(id).is_some() || data.error(id).is_some()).then_some("Invalid value");
+        }
         st.error(id)
             .map(|error| error.message.as_ref())
             .or_else(|| data.error(id))
+    }
+
+    fn safe_error<D: FormData + ?Sized>(
+        data: &D,
+        declared_secret: bool,
+        id: Id,
+        error: FieldError,
+    ) -> FieldError {
+        if declared_secret || matches!(data.value(id), FieldRef::Secret(_)) {
+            discard_error(error);
+            FieldError::new("Invalid value")
+        } else {
+            error
+        }
     }
 
     /// Draw the visible fields and action row. This method never mutates state.
@@ -1166,7 +1370,7 @@ impl<'a> Form<'a> {
         data: &D,
     ) {
         let disabled = data.disabled(field.id);
-        let error = Self::field_error(st, data, field.id);
+        let error = Self::field_error(st, data, field);
         let options = data.options(field.id);
         let control_area = self.draw_chrome(ui, area, field, error);
         match (&field.kind, data.value(field.id)) {
@@ -1375,15 +1579,32 @@ mod tests {
         fail_name: bool,
     }
 
-    #[derive(Default)]
     struct Data {
         name: String,
         hidden: String,
         flag: bool,
         choice: usize,
         secret: Secret,
+        secret_text: String,
+        secret_mode: bool,
         chips: KeySet,
         flags: TestFlags,
+    }
+
+    impl Default for Data {
+        fn default() -> Self {
+            Data {
+                name: String::new(),
+                hidden: String::new(),
+                flag: false,
+                choice: 0,
+                secret: Secret::default(),
+                secret_text: String::new(),
+                secret_mode: true,
+                chips: KeySet::default(),
+                flags: TestFlags::default(),
+            }
+        }
     }
 
     impl FormData for Data {
@@ -1393,7 +1614,8 @@ mod tests {
                 HIDDEN => FieldRef::Text(&self.hidden),
                 FLAG => FieldRef::Flag(self.flag),
                 CHOICE => FieldRef::Choice(self.choice),
-                SECRET => FieldRef::Secret(&self.secret),
+                SECRET if self.secret_mode => FieldRef::Secret(&self.secret),
+                SECRET => FieldRef::Text(&self.secret_text),
                 NOTE => FieldRef::Note(NOTES),
                 CHOOSER => FieldRef::Display {
                     value: "chosen",
@@ -1409,7 +1631,8 @@ mod tests {
                 HIDDEN => FieldMut::Text(&mut self.hidden),
                 FLAG => FieldMut::Flag(&mut self.flag),
                 CHOICE => FieldMut::Choice(&mut self.choice),
-                SECRET => FieldMut::Secret(&mut self.secret),
+                SECRET if self.secret_mode => FieldMut::Secret(&mut self.secret),
+                SECRET => FieldMut::Text(&mut self.secret_text),
                 NOTE | CHOOSER => FieldMut::ReadOnly,
                 _ => FieldMut::Chips(&mut self.chips),
             }
@@ -1444,6 +1667,15 @@ mod tests {
     }
 
     fn fields() -> [FieldSpec<'static>; 7] {
+        fields_with_secret_policy(true)
+    }
+
+    fn fields_with_secret_policy(secret: bool) -> [FieldSpec<'static>; 7] {
+        let secret_control = if secret {
+            TextInput::new(SECRET).secret(SecretPolicy::default())
+        } else {
+            TextInput::new(SECRET)
+        };
         [
             FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))),
             FieldSpec::new(HIDDEN, "Hidden", FieldKind::Text(TextInput::new(HIDDEN))),
@@ -1453,11 +1685,7 @@ mod tests {
                 "Choice",
                 FieldKind::Select(LabelSelect::new(CHOICE)),
             ),
-            FieldSpec::new(
-                SECRET,
-                "Secret",
-                FieldKind::Text(TextInput::new(SECRET).secret(SecretPolicy::default())),
-            ),
+            FieldSpec::new(SECRET, "Secret", FieldKind::Text(secret_control)),
             FieldSpec::new(NOTE, "", FieldKind::Note),
             FieldSpec::new(
                 CHOOSER,
@@ -1476,6 +1704,26 @@ mod tests {
             Form::new(FORM, &fields).draw(ui, area, state, data);
         });
         (runtime, buffer)
+    }
+
+    fn initialized_secret_state() -> FormState {
+        let mut app = FieldsApp::default();
+        app.data.secret.set("swordfish");
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.app().state.clone()
+    }
+
+    fn draw_secret_field(data: &Data, state: &mut FormState, kind: FieldKind<'static>) -> Buffer {
+        let fields = [FieldSpec::new(SECRET, "Secret", kind)];
+        state.reconcile_fields(&fields);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            Form::new(FORM, &fields).draw(ui, area, state, data);
+        });
+        buffer
     }
 
     fn press(code: KeyCode) -> Input {
@@ -1699,6 +1947,7 @@ mod tests {
         data: Data,
         last: Option<FormAction>,
         area: Rect,
+        plain_secret_control: bool,
     }
 
     impl Default for FieldsApp {
@@ -1708,20 +1957,21 @@ mod tests {
                 data: Data::default(),
                 last: None,
                 area: SCREEN,
+                plain_secret_control: false,
             }
         }
     }
 
     impl App for FieldsApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let fields = fields();
+            let fields = fields_with_secret_policy(!self.plain_secret_control);
             let response = Form::new(FORM, &fields).update(cx, &mut self.state, &mut self.data);
             self.last = response.action_ref().copied();
             response.erase()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            let fields = fields();
+            let fields = fields_with_secret_policy(!self.plain_secret_control);
             Form::new(FORM, &fields).draw(ui, self.area, &self.state, &self.data);
         }
     }
@@ -2128,6 +2378,214 @@ mod tests {
         }
         state.zeroize();
         assert!(!format!("{state:?}").contains("swordfish"));
+    }
+
+    #[test]
+    fn secret_field_frame_masks_even_without_control_policy() {
+        let mut data = Data::default();
+        data.secret.set("swordfish");
+        let mut state = FormState::default();
+        let buffer = draw_secret_field(&data, &mut state, FieldKind::Text(TextInput::new(SECRET)));
+        let frame: String = buffer
+            .content()
+            .iter()
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect();
+        assert!(
+            !frame.contains("swordfish"),
+            "secret field reached the frame"
+        );
+        let mask = Theme::junie()
+            .design
+            .glyphs
+            .get(SecretPolicy::default().mask);
+        assert!(
+            frame.matches(mask).count()
+                >= "swordfish"
+                    .chars()
+                    .count()
+                    .saturating_sub(SecretPolicy::default().synthetic_tail),
+            "secret field did not paint its mask: {frame}"
+        );
+    }
+
+    #[test]
+    fn secret_area_frame_is_masked_instead_of_painting_plaintext() {
+        let mut data = Data::default();
+        data.secret.set("swordfish");
+        let mut state = FormState::default();
+        let buffer =
+            draw_secret_field(&data, &mut state, FieldKind::Area(TextArea::new(SECRET, 3)));
+        let frame: String = buffer
+            .content()
+            .iter()
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect();
+        assert!(
+            !frame.contains("swordfish"),
+            "secret area reached the frame"
+        );
+        let mask = Theme::junie()
+            .design
+            .glyphs
+            .get(SecretPolicy::default().mask);
+        assert!(
+            frame.matches(mask).count() >= "swordfish".chars().count(),
+            "secret area did not paint its mask: {frame}"
+        );
+    }
+
+    #[test]
+    fn secret_field_errors_are_generic_in_the_frame_and_cleared_on_zeroize() {
+        let mut data = Data::default();
+        data.secret.set("swordfish");
+        let mut state = initialized_secret_state();
+        state.set_error(SECRET, Some(FieldError::new("swordfish")));
+        let (_, buffer) = draw(&data, &mut state);
+        let frame: String = buffer
+            .content()
+            .iter()
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect();
+        assert!(
+            !frame.contains("swordfish"),
+            "secret error reached the frame"
+        );
+        assert_eq!(
+            state.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        state.zeroize();
+        assert!(state.error(SECRET).is_none());
+    }
+
+    #[test]
+    fn secret_validator_error_is_generic_before_form_state_retention() {
+        let mut data = Data::default();
+        data.secret.set("swordfish");
+        let mut state = FormState::default();
+        state.reconcile_fields(&fields());
+        let error = FieldError::new(format!("invalid {}", data.secret.expose()));
+        let safe = Form::safe_error(&data, true, SECRET, error);
+        state.set_error(SECRET, Some(safe));
+        assert_eq!(
+            state.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{state:?}").contains("swordfish"));
+    }
+
+    #[test]
+    fn sensitive_form_state_clone_and_equality_do_not_copy_draft() {
+        let mut left = initialized_secret_state();
+        let mut right = initialized_secret_state();
+        for (state, value) in [(&mut left, "swordfish"), (&mut right, "different")] {
+            let slot = state
+                .slots
+                .iter_mut()
+                .find(|slot| slot.id == SECRET)
+                .expect("secret slot");
+            slot.input.begin(value);
+        }
+        left.set_error(NAME, Some(FieldError::coded("name required", "required")));
+        right.set_error(NAME, Some(FieldError::coded("name required", "required")));
+        left.set_error(SECRET, Some(FieldError::new("swordfish")));
+        right.set_error(SECRET, Some(FieldError::new("different")));
+        assert_eq!(left, right);
+        let copy = left.clone();
+        let slot = copy
+            .slots
+            .iter()
+            .find(|slot| slot.id == SECRET)
+            .expect("cloned secret slot");
+        assert!(slot.input.is_sensitive());
+        assert_eq!(
+            copy.error(NAME).map(|error| error.message.as_ref()),
+            Some("name required")
+        );
+        assert_eq!(
+            copy.error(NAME).and_then(|error| error.code),
+            Some("required")
+        );
+        assert_eq!(
+            copy.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{copy:?}").contains("swordfish"));
+    }
+
+    #[test]
+    fn form_update_classifies_secret_before_retaining_local_error() {
+        let mut app = FieldsApp::default();
+        app.data.secret.set("swordfish");
+        app.state.reconcile_fields(&fields());
+        app.state.set_error(
+            SECRET,
+            Some(FieldError::new(format!(
+                "invalid {}",
+                app.data.secret.expose()
+            ))),
+        );
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = runtime.handle(Input::Tick);
+        assert_eq!(
+            runtime
+                .app()
+                .state
+                .error(SECRET)
+                .map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{:?}", runtime.app().state).contains("swordfish"));
+    }
+
+    #[test]
+    fn form_reconciles_secret_and_text_values_in_both_directions() {
+        let mut app = FieldsApp::default();
+        app.data.secret.set("swordfish");
+        app.data.secret_text = "ordinary".to_owned();
+        app.plain_secret_control = true;
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        {
+            let state = &mut runtime.app_mut().state;
+            let slot = state
+                .slots
+                .iter_mut()
+                .find(|slot| slot.id == SECRET)
+                .expect("secret slot");
+            slot.input.begin("swordfish");
+            slot.input.set_error(Some(FieldError::new("secret detail")));
+            assert!(slot.input.is_sensitive());
+        }
+
+        runtime.app_mut().data.secret_mode = false;
+        let _ = runtime.handle(Input::Tick);
+        let slot = runtime
+            .app()
+            .state
+            .slots
+            .iter()
+            .find(|slot| slot.id == SECRET)
+            .expect("text slot");
+        assert!(!slot.input.is_sensitive());
+        assert!(!slot.input.is_editing());
+        assert!(slot.input.error().is_none());
+
+        runtime.app_mut().data.secret_mode = true;
+        let _ = runtime.handle(Input::Tick);
+        let slot = runtime
+            .app()
+            .state
+            .slots
+            .iter()
+            .find(|slot| slot.id == SECRET)
+            .expect("secret slot restored");
+        assert!(slot.input.is_sensitive());
+        assert!(!slot.input.is_editing());
     }
 
     #[test]
