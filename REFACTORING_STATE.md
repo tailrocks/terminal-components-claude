@@ -227,3 +227,12 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
     ```
 
     Exit code: `0`.
+
+## Session 3 evidence — Arendt's Q1/Q2 result (2026-09-04)
+
+- **R1 focused conformance sequence:** with the Tabs bracket enabled, the focused conformance test exited `0`; with only `tabs.rs:719-728` disabled, it exited nonzero specifically because `TabsCase` reported mono `PRESSED`/`FOCUSED` equality; after restoring `tabs.rs:719-728`, it exited `0`.
+- **Q1 remains blocked** pending the `Slot<GlyphRole>` migration. The shared build exited `101` with 22 incomplete-migration errors. No Q1 files, baselines, or docs changed.
+- **Q2 implementation changed only** `crates/tui-testing/src/conformance/mod.rs`: `state_override` and `status` are private, `forced()` and `status()` accessors were added, and `force` is the sole writer.
+- `git diff --check` exited `0`.
+- `rtk cargo test -p tui-next-testing --lib` exited `101` with 22 compile errors and no tests, because `conformance.rs` consumers remain unmigrated.
+- **Open follow-up:** finish the `Slot` migration and migrate `Fixture` consumers, then rerun Q1.
