@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/tui", "crates/tui-testing", "xtask"]
+members = ["crates/tui", "crates/tui-testing", "xtask", "apps/tablepro"]
 # The root package itself is automatically a member; `cargo build` never compiles xtask.
-default-members = [".", "crates/tui", "crates/tui-testing"]
+default-members = [".", "crates/tui", "crates/tui-testing", "apps/tablepro"]
 
 [workspace.package]
 version = "0.1.0"
@@ -79,10 +79,6 @@ path = "src/lib.rs"
 [[bin]]
 name = "showcase"
 path = "src/bin/showcase/main.rs"
-
-[[bin]]
-name = "tablepro"
-path = "src/bin/tablepro/main.rs"
 
 [[bin]]
 name = "jackin-preview"

@@ -1050,11 +1050,17 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     let mut all = crate::db::rows(table, 0, scan);
     all.retain(|r| sel.predicates.iter().all(|p| matches(p, table, r)));
     if let Some((c, asc)) = &sel.order {
-        let ci = table
+        let Some(ci) = table
             .columns
             .iter()
             .position(|tc| tc.name.eq_ignore_ascii_case(c))
-            .unwrap();
+        else {
+            return Err(ExecError {
+                message: format!("column \"{c}\" does not exist"),
+                detail: None,
+                at: None,
+            });
+        };
         all.sort_by(|a, b| {
             let o = cmp_values(&a[ci], &b[ci]);
             if *asc { o } else { o.reverse() }
@@ -1140,15 +1146,17 @@ pub fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, E
     };
     let out_rows = ((n * selectivity).round() as usize).max(1);
     let scan = if let Some(p) = indexed_pred {
-        let index = table
-            .indexes
-            .iter()
-            .find(|i| {
-                i.columns
-                    .first()
-                    .is_some_and(|c| c.eq_ignore_ascii_case(&p.column))
-            })
-            .unwrap();
+        let Some(index) = table.indexes.iter().find(|i| {
+            i.columns
+                .first()
+                .is_some_and(|c| c.eq_ignore_ascii_case(&p.column))
+        }) else {
+            return Err(ExecError {
+                message: format!("no index available for column \"{}\"", p.column),
+                detail: None,
+                at: None,
+            });
+        };
         PlanNode {
             op: "Index Scan".into(),
             relation: Some(table.qualified()),
