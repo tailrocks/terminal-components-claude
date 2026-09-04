@@ -14,7 +14,7 @@ use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
 use crate::text::{Span, width};
-use crate::theme::{Align, Family, GlyphRole, Role, StylePatch, Variant};
+use crate::theme::{Align, Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Maximum columns `RowUi::columns` lays out without allocating.
@@ -117,12 +117,34 @@ impl<'u> RowUi<'u> {
         r.style
     }
 
-    /// Paint a marker glyph at the left, then a gap.
+    /// Paint a marker glyph at the left, then a gap. A resolved `Set`
+    /// overrides `g`; `Clear` suppresses the marker while keeping its cell.
     pub fn marker(&mut self, g: GlyphRole) {
-        let s = self.style_of(Part::MARKER);
+        let r = self
+            .ui
+            .style(self.family, self.variant, Part::MARKER, self.flags);
+        #[cfg(feature = "testing")]
+        self.ui
+            .note_styled(self.owner, self.family, self.variant, Part::MARKER, r);
         let area = self.remaining();
-        let used = self.ui.glyph(area, g, s);
-        self.left = self.left.saturating_add(used).saturating_add(1);
+        let cell = Rect {
+            width: area.width.min(1),
+            ..area
+        };
+        match r.glyph {
+            Slot::Set(glyph) => {
+                let used = self.ui.glyph(area, glyph, r.style);
+                self.left = self.left.saturating_add(used).saturating_add(1);
+            }
+            Slot::Inherit => {
+                let used = self.ui.glyph(area, g, r.style);
+                self.left = self.left.saturating_add(used).saturating_add(1);
+            }
+            Slot::Clear => {
+                self.ui.fill(cell, r.style);
+                self.left = self.left.saturating_add(2);
+            }
+        }
     }
 
     /// Paint the focus gutter (`GlyphRole::FocusBar` when the recipe says so,
@@ -137,10 +159,10 @@ impl<'u> RowUi<'u> {
             ..area
         };
         match r.glyph {
-            Some(g) => {
+            Slot::Set(g) => {
                 self.ui.glyph(cell, g, r.style);
             }
-            None => self.ui.fill(cell, r.style),
+            Slot::Inherit | Slot::Clear => self.ui.fill(cell, r.style),
         }
         self.left = self.left.saturating_add(1);
     }
@@ -267,7 +289,7 @@ impl<'u> RowUi<'u> {
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, p, r);
-        CellUi::new(self.ui.reborrow(), cell, r.style)
+        CellUi::with_resolved_glyph(self.ui.reborrow(), cell, r.style, r.glyph)
     }
 
     /// Split what is left into columns.
@@ -341,6 +363,7 @@ pub struct CellUi<'u> {
     tone: Option<Role>,
     add: Modifier,
     patch: Option<StylePatch>,
+    resolved_glyph: Slot<GlyphRole>,
 }
 
 impl fmt::Debug for CellUi<'_> {
@@ -355,6 +378,15 @@ impl fmt::Debug for CellUi<'_> {
 
 impl<'u> CellUi<'u> {
     pub(crate) fn new(ui: Ui<'u>, area: Rect, style: Style) -> Self {
+        Self::with_resolved_glyph(ui, area, style, Slot::Inherit)
+    }
+
+    fn with_resolved_glyph(
+        ui: Ui<'u>,
+        area: Rect,
+        style: Style,
+        resolved_glyph: Slot<GlyphRole>,
+    ) -> Self {
         CellUi {
             ui,
             area,
@@ -364,16 +396,63 @@ impl<'u> CellUi<'u> {
             tone: None,
             add: Modifier::empty(),
             patch: None,
+            resolved_glyph,
+        }
+    }
+
+    /// Columns the resolved glyph slot reserves at the end of the cell.
+    ///
+    /// `Set` reserves the resolved glyph's own width. `Clear` reserves one
+    /// blank cell: an explicitly cleared glyph keeps the geometry it would
+    /// have had, exactly as `RowUi::marker` keeps the marker cell and its gap
+    /// (§12.2; §29.1 requires `Clear` to stay distinguishable from
+    /// `Inherit`). `Inherit` reserves nothing, leaving caller content or a
+    /// `suffix` authoritative.
+    fn resolved_glyph_width(&self) -> u16 {
+        match self.resolved_glyph {
+            Slot::Set(g) => width(self.ui.design().glyphs.get(g)),
+            Slot::Clear => 1,
+            Slot::Inherit => 0,
         }
     }
 
     fn free(&self) -> Rect {
+        let reserved = self.resolved_glyph_width();
         Rect {
             x: self.area.x.saturating_add(self.used),
             y: self.area.y,
-            width: self.area.width.saturating_sub(self.used),
+            width: self
+                .area
+                .width
+                .saturating_sub(self.used)
+                .saturating_sub(reserved),
             height: 1,
         }
+    }
+
+    fn paint_resolved_glyph(&mut self) {
+        let reserved = self.resolved_glyph_width();
+        let free = self.area.width.saturating_sub(self.used);
+        if reserved == 0 || free == 0 {
+            return;
+        }
+        let cell = Rect {
+            x: self.area.x.saturating_add(self.used),
+            y: self.area.y,
+            width: reserved.min(free),
+            height: 1,
+        };
+        let used = match self.resolved_glyph {
+            Slot::Set(g) => self.ui.glyph(cell, g, self.style),
+            // The reservation is kept and shown blank, so a cleared glyph is
+            // not the same picture as an inherited one (§29.1).
+            Slot::Clear => {
+                self.ui.fill(cell, self.style);
+                cell.width
+            }
+            Slot::Inherit => 0,
+        };
+        self.used = self.used.saturating_add(used);
     }
 
     /// Paint text.
@@ -457,6 +536,7 @@ impl<'u> CellUi<'u> {
 
 impl Drop for CellUi<'_> {
     fn drop(&mut self) {
+        self.paint_resolved_glyph();
         let used = self.used.min(self.area.width);
         if used == 0 {
             return;
@@ -646,6 +726,16 @@ mod tests {
     /// Paint one row and return the page buffer.
     fn paint(row: Rect, f: impl FnOnce(&mut RowUi<'_>)) -> Buffer {
         let theme = Theme::junie();
+        paint_with(&theme, Family::LIST, StateFlags::empty(), row, f)
+    }
+
+    fn paint_with(
+        theme: &Theme,
+        family: Family,
+        flags: StateFlags,
+        row: Rect,
+        f: impl FnOnce(&mut RowUi<'_>),
+    ) -> Buffer {
         let mut frame = FrameState::default();
         frame.reset(1, SCREEN);
         let mut page = Buffer::empty(SCREEN);
@@ -656,15 +746,21 @@ mod tests {
             let mut r = RowUi::new(
                 &mut ui,
                 OWNER,
-                Family::LIST,
+                family,
                 Variant::DEFAULT,
-                StateFlags::empty(),
+                flags,
                 ItemKey::index(0),
                 row,
             );
             f(&mut r);
         }
         page
+    }
+
+    fn theme_with_part_glyph(part: Part, glyph: Slot<GlyphRole>) -> Theme {
+        let mut theme = Theme::junie();
+        theme.recipes.get_mut(Family::LIST).parts.entry(part).glyph = glyph;
+        theme
     }
 
     fn row_text(buf: &Buffer, y: u16, from: u16, to: u16) -> String {
@@ -716,6 +812,81 @@ mod tests {
         // exactly at the boundary (need + 2 == width) it still fits
         let page = paint(Rect::new(0, 0, 4, 1), |r| r.meta("42"));
         assert_eq!(row_text(&page, 0, 0, 4), "  42");
+    }
+
+    #[test]
+    fn row_ui_marker_honours_resolved_glyph_slot() {
+        let set = theme_with_part_glyph(Part::MARKER, Slot::Set(GlyphRole::Checked));
+        let page = paint_with(
+            &set,
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 8, 1),
+            |r| {
+                r.marker(GlyphRole::WarningMark);
+                r.label("item");
+            },
+        );
+        assert_eq!(row_text(&page, 0, 0, 2), "✓ ");
+
+        let clear = theme_with_part_glyph(Part::MARKER, Slot::Clear);
+        let page = paint_with(
+            &clear,
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 8, 1),
+            |r| {
+                r.marker(GlyphRole::WarningMark);
+                r.label("item");
+            },
+        );
+        assert_eq!(row_text(&page, 0, 0, 2), "  ");
+    }
+
+    #[test]
+    fn row_ui_part_paints_a_resolved_glyph_as_a_reserved_suffix() {
+        let theme = theme_with_part_glyph(Part::META, Slot::Set(GlyphRole::Checked));
+        let page = paint_with(
+            &theme,
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 8, 1),
+            |r| {
+                r.part(Part::META, 4).text("x");
+            },
+        );
+        assert_eq!(row_text(&page, 0, 4, 8), "x✓  ");
+    }
+
+    /// §29.1: at a `part`, `Slot::Clear` stays distinguishable from
+    /// `Slot::Inherit` — it paints a blank cell and still consumes the width a
+    /// `Slot::Set` glyph would have reserved, so the caller's content is
+    /// truncated identically under `Set` and `Clear`.
+    #[test]
+    fn row_ui_part_clear_reserves_a_blank_cell_and_differs_from_inherit() {
+        let cell_text = |glyph| {
+            let theme = theme_with_part_glyph(Part::META, glyph);
+            let page = paint_with(
+                &theme,
+                Family::LIST,
+                StateFlags::empty(),
+                Rect::new(0, 0, 8, 1),
+                |r| {
+                    r.part(Part::META, 4).text("xyzw");
+                },
+            );
+            row_text(&page, 0, 4, 8)
+        };
+        let set = cell_text(Slot::Set(GlyphRole::Checked));
+        let clear = cell_text(Slot::Clear);
+        let inherit = cell_text(Slot::Inherit);
+        // `Set` reserves the glyph's width and paints it.
+        assert_eq!(set, "xyz✓");
+        // `Clear` reserves the same cell and paints it blank.
+        assert_eq!(clear, "xyz ");
+        // `Inherit` reserves nothing: the caller's content owns the cell.
+        assert_eq!(inherit, "xyzw");
+        assert_ne!(clear, inherit);
     }
 
     /// Columns are clipped to the row: nothing is written past `row.right()`,

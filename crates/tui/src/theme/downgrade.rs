@@ -9,7 +9,7 @@ use ratatui_core::style::{Color, Modifier};
 use super::Theme;
 use super::glyph::GlyphRole;
 use super::patch::{Slot, StylePatch};
-use super::recipe::Recipes;
+use super::recipe::{Recipe, Recipes};
 use super::role::{FgStep, Role, Surface};
 use super::tokens::ColorLevel;
 use crate::id::Part;
@@ -382,32 +382,58 @@ fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 3] {
     ]
 }
 
-/// The number of rules `apply_mono_fallbacks` appends per family.
+/// The number of rules `apply_mono_fallbacks` appends per **resolvable
+/// recipe** — every declared family *and* the neutral recipe that undeclared
+/// families resolve through (`Recipes`' resolvable-set invariant).
+///
+/// The name is historical (§16.1 cites it) and is kept deliberately: the
+/// count is unchanged, only the set it applies to is stated correctly.
 pub const MONO_RULES_PER_FAMILY: usize = 18;
 
+/// Append the §11.4 mono rules to one recipe.
+///
+/// Split out of [`Recipes::apply_mono_fallbacks`] so the rules are written
+/// once and the *enumeration* of recipes is a separate, auditable decision:
+/// the enumeration is what previously omitted the neutral recipe.
+fn apply_mono_fallbacks_to(recipe: &mut Recipe) {
+    let rules = mono_rules();
+    let extra = mono_rules_extra();
+    for (part, when, patch) in rules.iter().chain(extra.iter()) {
+        recipe.parts.entry(*part).when(*when, *patch);
+    }
+    // MI-13: the fallbacks must reach the variant maps too. §11.3's
+    // step 3 merges family and variant state rules in one specificity
+    // order, so a variant that re-declares `PRESSED` would otherwise
+    // be applied after the family's mono rule and erase the bracket
+    // glyph that makes `pressed` distinguishable without colour.
+    for (_, map) in &mut recipe.variants {
+        for (part, when, patch) in rules.iter().chain(extra.iter()) {
+            if map.get(*part).is_some() {
+                map.entry(*part).when(*when, *patch);
+            }
+        }
+    }
+}
+
 impl Recipes {
-    /// Append the §11.4 mono rules to every family, so state survives
-    /// without hue. A mono `PRESSED` label whose glyph resolves to
-    /// `PressLeft` is painted bracketed: `PressLeft`, label, `PressRight`.
+    /// Append the §11.4 mono rules to every recipe resolution can reach, so
+    /// state survives without hue. A mono `PRESSED` label whose glyph
+    /// resolves to `PressLeft` is painted bracketed: `PressLeft`, label,
+    /// `PressRight`.
+    ///
+    /// "Every recipe resolution can reach" is `Recipes::resolvable_mut`: the
+    /// declared families **and** the neutral recipe. An undeclared
+    /// `Family::custom` paints through the neutral recipe, so covering only
+    /// the declared families left it with no non-colour state signal at all
+    /// (F1).
+    ///
+    /// Not idempotent: each call appends its rules unconditionally, so a
+    /// chained `.downgrade(Mono).downgrade(Mono)` doubles them. Harmless in
+    /// effect — the duplicates are identical patches applied in order — but
+    /// it means rule counts are only meaningful against a single downgrade.
     pub fn apply_mono_fallbacks(&mut self) {
-        let rules = mono_rules();
-        let extra = mono_rules_extra();
-        for (_, recipe) in self.iter_mut() {
-            for (part, when, patch) in rules.iter().chain(extra.iter()) {
-                recipe.parts.entry(*part).when(*when, *patch);
-            }
-            // MI-13: the fallbacks must reach the variant maps too. §11.3's
-            // step 3 merges family and variant state rules in one specificity
-            // order, so a variant that re-declares `PRESSED` would otherwise
-            // be applied after the family's mono rule and erase the bracket
-            // glyph that makes `pressed` distinguishable without colour.
-            for (_, map) in &mut recipe.variants {
-                for (part, when, patch) in rules.iter().chain(extra.iter()) {
-                    if map.get(*part).is_some() {
-                        map.entry(*part).when(*when, *patch);
-                    }
-                }
-            }
+        for recipe in self.resolvable_mut() {
+            apply_mono_fallbacks_to(recipe);
         }
     }
 }
@@ -575,6 +601,75 @@ mod tests {
         );
         assert_eq!(pressed.glyph, Slot::Set(GlyphRole::PressLeft));
         assert!(pressed.add.contains(Modifier::BOLD));
+    }
+
+    /// F1: the mono fallbacks must reach the **neutral** recipe, not only the
+    /// declared families. `Recipes::get_or_neutral` makes the neutral recipe a
+    /// live painting path for every family nobody declared — exactly what
+    /// `examples/12_author_component.rs` writes with `Family::custom` and no
+    /// `define_family` — so a pass that enumerates `by_family` alone leaves
+    /// that path with no non-colour state signal at all at `Mono`.
+    ///
+    /// `mono_appends_one_state_rule_per_family` is structurally unable to see
+    /// this: it iterates `t.recipes.iter()`, the same `by_family`-only
+    /// enumeration as the code it checks. The assertions below therefore go
+    /// through `Theme::resolve`, the path painting uses, so a fix that only
+    /// inflates a rule counter cannot satisfy them.
+    #[test]
+    fn mono_fallbacks_reach_the_neutral_recipe() {
+        let states =
+            |r: &Recipe| -> usize { r.parts.iter().map(|(_, p)| p.states.len()).sum::<usize>() };
+        let f = Family::custom("segmented");
+        for base in [Theme::junie(), Theme::paper()] {
+            // The fixture must stay undeclared, or the test silently stops
+            // exercising the neutral path and asserts nothing.
+            assert!(
+                base.recipes.get(f).is_none(),
+                "`segmented` is now a declared family; pick an undeclared fixture"
+            );
+            let m = base.downgrade(ColorLevel::Mono);
+            assert!(m.recipes.get(f).is_none(), "`segmented` became declared");
+
+            assert_eq!(
+                states(m.recipes.neutral()).saturating_sub(states(base.recipes.neutral())),
+                MONO_RULES_PER_FAMILY,
+                "the neutral recipe did not receive the mono fallbacks"
+            );
+
+            // …and they are observable where it counts.
+            let at = |p: Part, s: StateFlags| m.resolve(f, Variant::DEFAULT, p, s, Surface::Canvas);
+            assert!(
+                at(Part::LABEL, StateFlags::FOCUSED)
+                    .style
+                    .add_modifier
+                    .contains(Modifier::BOLD),
+                "mono FOCUSED label of an undeclared family carries no BOLD"
+            );
+            assert_eq!(
+                at(Part::MARKER, StateFlags::ERROR).glyph,
+                Slot::Set(GlyphRole::Error),
+                "mono ERROR marker of an undeclared family has no glyph"
+            );
+
+            // Expressed as DIM plus "not the canvas colour" rather than as a
+            // literal token, so it stays a readability assertion instead of a
+            // theme-palette snapshot.
+            let canvas = crate::theme::resolve::bind_role(
+                &m,
+                Role::Surface(Surface::Canvas),
+                Surface::Canvas,
+            );
+            let disabled = at(Part::LABEL, StateFlags::DISABLED);
+            assert!(
+                disabled.style.add_modifier.contains(Modifier::DIM),
+                "mono DISABLED label of an undeclared family carries no DIM"
+            );
+            assert!(
+                disabled.style.fg.is_some() && disabled.style.fg != canvas,
+                "mono DISABLED label of an undeclared family has fg {:?}, the canvas {canvas:?}",
+                disabled.style.fg
+            );
+        }
     }
 
     /// §29 + §11.4: at `Mono` a disabled control must stay **readable**, not

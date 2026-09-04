@@ -19,7 +19,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
-use crate::ui::{Cx, FrameRead, Ui};
+use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 /// What a chip bar reports; every variant carries the chip's key.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -209,8 +209,27 @@ impl ChipBarState {
 }
 
 impl Reconcile for ChipBarState {
+    /// Reconcile the cursor and the checked set, then repair the window.
+    ///
+    /// The window head is a **key**, not a position: an item that moves keeps
+    /// the strip anchored on it, exactly as the cursor and the checked set
+    /// keep their items (§16.2 case 12). Only a head that has left the data
+    /// falls back to its old position, clamped.
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
-        self.core.reconcile(len, key)
+        let r = self.core.reconcile(len, &key);
+        match self.first {
+            Some(f) => {
+                if let Some(i) = (0..len).find(|&i| key(i) == f) {
+                    self.first_index = i;
+                } else {
+                    let i = self.first_index.min(len.saturating_sub(1));
+                    self.first_index = i;
+                    self.first = (len > 0).then(|| key(i));
+                }
+            }
+            None => self.first_index = 0,
+        }
+        r
     }
 
     fn invalidate(&mut self) {
@@ -267,14 +286,18 @@ impl Reconcile for ChipBarState {
 ///
 /// ## Layout
 /// One row of tight chips: `gutter | label | pad [ × pad ]`, one blank
-/// column between chips, then the add affordance. A chip that does not fit
-/// is replaced by the `OVERFLOW` glyph and the strip stops. `measure` is
-/// `(8…, 1)`; `draw` returns the row it used; `0×0` registers nothing (R5).
+/// column between chips, then the add affordance. The strip starts at the
+/// window head ([`ChipBarState::first`]) and the window follows the cursor,
+/// so the cursor chip is always painted and always addressable. A chip that
+/// does not fit is replaced by the `OVERFLOW` glyph and the strip stops.
+/// `measure` is `(8…, 1)`; `draw` returns the row it used; `0×0` registers
+/// nothing (R5).
 ///
 /// ## Parts
-/// `CONTAINER` (the strip and each chip's fill), `LABEL` (the chip content,
-/// through [`RowUi`]), `CLOSE` (the `×`), `OVERFLOW` (the truncation
-/// glyph).
+/// `CONTAINER` (the strip and each chip's fill), `MARKER` (the checked
+/// affordance in the leading pad cell, §30), `LABEL` and `META` (the chip
+/// content, painted by the caller through [`RowUi`]), `CLOSE` (the `×`),
+/// `OVERFLOW` (the truncation glyph).
 ///
 /// ## Overrides
 /// `.patch`, `.patch_part`, `.slot` on `CLOSE` and `OVERFLOW`.
@@ -292,7 +315,9 @@ impl Reconcile for ChipBarState {
 ///
 /// ## Invariants
 /// `reconcile` runs before any action is emitted; the cursor is separate
-/// from the checked set; a chip that does not fit is never half-painted.
+/// from the checked set; a chip that does not fit is never half-painted;
+/// the window head and the cursor are keys, so both follow their item
+/// through an insert, a removal or a reorder.
 pub struct ChipBar<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -339,7 +364,14 @@ impl<T> ChipBar<'_, T, ByIndex, DefaultRow> {
 
 impl<'a, T, K, R> ChipBar<'a, T, K, R> {
     /// The parts this component styles.
-    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::LABEL, Part::CLOSE, Part::OVERFLOW];
+    pub const PARTS: &'static [Part] = &[
+        Part::CONTAINER,
+        Part::MARKER,
+        Part::LABEL,
+        Part::META,
+        Part::CLOSE,
+        Part::OVERFLOW,
+    ];
 
     /// The id.
     pub const fn id(&self) -> Id {
@@ -505,6 +537,32 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         acc.changed();
     }
 
+    /// Keep the cursor chip inside the window, using last frame's `fit`.
+    ///
+    /// The strip is one row, so a chip outside the window is not merely
+    /// scrolled out of sight: it registers no part and is unreachable by
+    /// pointer. The window therefore follows the cursor the way `Tabs`'
+    /// follows its active tab.
+    fn follow(&self, st: &mut ChipBarState, items: &[T], fit: usize) {
+        if st.on_add {
+            return;
+        }
+        let Some(cursor) = st.core.cursor() else {
+            return;
+        };
+        let Some(ci) = self.index_of(items, cursor, Some(st.core.cursor_index())) else {
+            return;
+        };
+        if ci < st.first_index {
+            st.first_index = ci;
+            st.first = Some(cursor);
+        } else if fit > 0 && ci >= st.first_index.saturating_add(fit) {
+            let i = ci.saturating_add(1).saturating_sub(fit);
+            st.first_index = i;
+            st.first = Some(self.key_at(items, i));
+        }
+    }
+
     /// The stop the cursor currently names.
     fn cursor_stop(st: &ChipBarState, items: &[T]) -> usize {
         if st.on_add {
@@ -557,20 +615,22 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         items: &[T],
     ) -> Response<ChipBarAction> {
         let len = items.len();
-        let _ = st.core.reconcile(len, |i| self.key_at(items, i));
-        if st.core.cursor().is_none() && len > 0 {
-            st.set_cursor(0, self.key_at(items, 0));
-        }
-        if len == 0 && self.add.is_some() {
-            st.on_add = true;
-        }
-        if st.first.is_none() && len > 0 {
-            st.first = Some(self.key_at(items, 0));
-            st.first_index = 0;
+        let can = self.editable();
+        if !self.disabled {
+            let _ = st.reconcile(len, |i| self.key_at(items, i));
+            if st.core.cursor().is_none() && len > 0 {
+                st.set_cursor(0, self.key_at(items, 0));
+            }
+            if len == 0 && self.add.is_some() {
+                st.on_add = true;
+            }
+            if st.first.is_none() && len > 0 {
+                st.first = Some(self.key_at(items, 0));
+                st.first_index = 0;
+            }
         }
         let mut acc = Acc::<ChipBarAction>::new();
         let table = self.table();
-        let can = self.editable();
         for it in cx.intents(self.id) {
             match it {
                 Intent::Key(k) if can => {
@@ -631,6 +691,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 _ => {}
             }
         }
+        if let Some(l) = cx.layout(self.id) {
+            self.follow(st, items, l.viewport_len);
+        }
         acc.finish(self.id)
     }
 
@@ -672,18 +735,24 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             .add
             .map_or(0, |(l, _)| crate::text::width(l).saturating_add(3));
         let right_limit = row0.right().saturating_sub(add_w);
+        let first_index = st
+            .first
+            .and_then(|f| self.index_of(items, f, Some(st.first_index)))
+            .unwrap_or(0)
+            .min(items.len());
         let mut x = row0.x;
         let cursor = st.core.cursor();
         let mut truncated = false;
-        for (i, item) in items.iter().enumerate() {
+        let mut fit = 0usize;
+        for (i, item) in items.iter().enumerate().skip(first_index) {
             let key = self.key.key(item, i);
             let avail = right_limit.saturating_sub(x);
             if avail < 4 {
                 truncated = i < items.len();
                 break;
             }
-            let is_cursor =
-                (!st.on_add && cursor == Some(key)) || (forced && cursor.is_none() && i == 0);
+            let is_cursor = (!st.on_add && cursor == Some(key))
+                || (forced && cursor.is_none() && i == first_index);
             let mut flags = StateFlags::empty();
             if is_cursor {
                 flags |= live
@@ -753,6 +822,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 flags,
             );
             ui.paint_style(cell_at(chip, chip.x), cs.style);
+            if flags.contains(StateFlags::SELECTED) {
+                let mut marker = RowUi::new(
+                    ui,
+                    id,
+                    Family::CHIP,
+                    Variant::DEFAULT,
+                    flags,
+                    key,
+                    cell_at(chip, chip.x),
+                );
+                marker.marker(GlyphRole::Checked);
+            }
             if flags.contains(StateFlags::PRESSED) {
                 // §11.4's mono `PRESSED` affordance: `[label]`, painted into
                 // the pad cells the chip already reserves, so a mono fallback
@@ -794,6 +875,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             }
             ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
             x = chip.right().saturating_add(1);
+            fit = fit.saturating_add(1);
         }
         if truncated {
             let cell = cell_at(row0, x.min(row0.right().saturating_sub(1)));
@@ -852,6 +934,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 ui.register_part(self.id, PartRef::item(Part::LABEL, key), cell);
             }
         }
+        ui.report_layout(
+            self.id,
+            LayoutFacts::new(fit, items.len(), row0.height, row0.width),
+        );
         row0
     }
 
@@ -866,23 +952,36 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
     }
 }
 
-/// Columns of `row` painted with a non-blank symbol, measured from its left.
+/// Width of the label painted at the left of `row`.
 ///
-/// A chip is as wide as what its row painter actually put down, and a
-/// `RowFn` reports nothing: the strip measures the cells instead, exactly as
-/// `Tabs` measures a tab.
+/// `RowUi::meta` is right-aligned after a two-cell gap. Ignore that suffix so
+/// metadata cannot make a keyed label appear wider than the chip's available
+/// width.
 fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
     ui.with_area(row, |ui| {
         let (buf, clip) = ui.raw();
         let mut last = 0u16;
+        let mut blank_run = 0u16;
+        let mut gap_start = None;
         for x in clip.columns().map(|c| c.x) {
-            if let Some(c) = buf.cell(Position::new(x, clip.y))
-                && c.symbol() != " "
-            {
+            let non_blank = buf
+                .cell(Position::new(x, clip.y))
+                .is_some_and(|c| c.symbol() != " ");
+            if non_blank {
+                if blank_run >= 2 {
+                    gap_start = Some(x.saturating_sub(blank_run).saturating_sub(clip.x));
+                }
+                blank_run = 0;
                 last = x.saturating_sub(clip.x).saturating_add(1);
+            } else {
+                blank_run = blank_run.saturating_add(1);
             }
         }
-        last
+        if last == clip.width {
+            gap_start.unwrap_or(last)
+        } else {
+            last
+        }
     })
 }
 
@@ -971,6 +1070,54 @@ mod tests {
         plain.close(&mut st, &items, 0, &mut acc);
         let r = acc.finish(BAR);
         assert!(r.is_consumed() && r.action_ref().is_none());
+    }
+
+    /// The window head is a key, so a chip that moves stays painted and stays
+    /// addressable. Before the window was honoured, `draw` always started at
+    /// item 0 and a chip pushed past the strip's right edge by a reorder
+    /// registered no part at all — a pointer could no longer name it.
+    #[test]
+    fn the_strip_window_is_keyed_so_a_reordered_chip_stays_addressable() {
+        const STRIP: Rect = Rect {
+            x: 0,
+            y: 0,
+            width: 12,
+            height: 1,
+        };
+        let by_text: fn(&&str) -> ItemKey = |s| ItemKey::text(s);
+        let bar = ChipBar::new(BAR).key(by_text);
+        let head = ItemKey::text("alpha");
+        let items = ["alpha", "beta", "gamma", "delta"];
+        let mut st = ChipBarState::default();
+        let _ = st.reconcile(items.len(), |i| bar.key_at(&items, i));
+        st.set_cursor(0, head);
+        st.first = Some(head);
+
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(STRIP);
+        runtime.draw_scene(STRIP, &mut buffer, |ui, area| {
+            bar.draw(ui, area, &st, &items);
+        });
+        let before = runtime.area_of_part(BAR, PartRef::item(Part::LABEL, head));
+        assert_eq!(
+            before.map(|r| r.x),
+            Some(0),
+            "the window head is the leftmost chip"
+        );
+
+        let reversed = ["delta", "gamma", "beta", "alpha"];
+        let _ = st.reconcile(reversed.len(), |i| bar.key_at(&reversed, i));
+        assert_eq!(st.first(), Some(head), "the window head keeps its key");
+        assert_eq!(st.first_index, 3, "and follows it to its new position");
+        let mut buffer = Buffer::empty(STRIP);
+        runtime.draw_scene(STRIP, &mut buffer, |ui, area| {
+            bar.draw(ui, area, &st, &reversed);
+        });
+        assert_eq!(
+            runtime.area_of_part(BAR, PartRef::item(Part::LABEL, head)),
+            before,
+            "and the chip is painted and addressable in the same cells"
+        );
     }
 
     #[test]
