@@ -10,6 +10,9 @@
 
 use core::fmt;
 
+/// Borrowed replacement painter for one component part.
+pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
+
 /// Borrowed per-instance styling and painting overrides.
 ///
 /// `PartStyle` is the component-author counterpart to the library's internal
@@ -26,7 +29,7 @@ use core::fmt;
 pub struct PartStyle<'a> {
     pub(crate) patch: Option<&'a StylePatch>,
     pub(crate) parts: &'a [(Part, StylePatch)],
-    pub(crate) slot: Option<(Part, &'a dyn Fn(&mut Ui<'_>, Rect))>,
+    pub(crate) slot: Option<(Part, &'a PartPainter<'a>)>,
 }
 
 impl fmt::Debug for PartStyle<'_> {
@@ -78,7 +81,7 @@ impl<'a> PartStyle<'a> {
     /// Replace the painter for `part` while preserving the component's geometry
     /// and interaction registrations.
     #[must_use]
-    pub const fn slot(mut self, part: Part, painter: &'a dyn Fn(&mut Ui<'_>, Rect)) -> Self {
+    pub const fn slot(mut self, part: Part, painter: &'a PartPainter<'a>) -> Self {
         self.slot = Some((part, painter));
         self
     }
@@ -104,7 +107,7 @@ impl<'a> PartStyle<'a> {
     }
 
     /// Return the replacement painter for `part`, if one was configured.
-    pub fn slot_for(&self, part: Part) -> Option<&'a dyn Fn(&mut Ui<'_>, Rect)> {
+    pub fn slot_for(&self, part: Part) -> Option<&'a PartPainter<'a>> {
         match self.slot {
             Some((named, painter)) if named == part => Some(painter),
             _ => None,
@@ -146,6 +149,12 @@ impl<'a> PartStyle<'a> {
         ui.note_styled(owner, family, variant, part, resolved);
         #[cfg(not(feature = "testing"))]
         let _ = (ui, owner, family, variant, part, resolved);
+    }
+}
+
+impl Default for PartStyle<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
