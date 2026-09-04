@@ -7237,3 +7237,47 @@ Example 03's `every_other_token_is_byte_identical_to_junie` currently **pins thi
 `ColorTokens`, `DesignTokens`, `Density`, `Resolved` and `Slot` are on the curated root list; `SyntaxTokens`, `MeterTokens`, `BorderSet`, `border`, `RecipeEdit`, `PartEdit` and `Capability` are not. So writing the **complete** `ColorTokens` literal that Appendix B.3's argument depends on forces a downstream author into the `theme::` submodule for two of its own fields, while the struct itself sits at the root.
 
 Separately: `crates/tui/examples/` is **outside every palette rule's reach**, because those rules scan the source roots only. A custom-theme example is exactly where literal colours belong, so the exemption is almost certainly right — but it is **declared nowhere**, and an undeclared exemption is how the `extra` hatch and the allow-lists became load-bearing.
+
+## §44 Record — the legacy test disposition, and a latent defect it exposed <!-- amended by §44 -->
+
+**Status: recorded.** `docs/audit/legacy-test-disposition.md` maps all 247 legacy tests. This had to happen **before** Slice 5, because the deletion destroys the evidence needed to write it.
+
+### §44.1 The accounting closes <!-- amended by §44 -->
+
+Per-target, attributed for the first time: **76** library, **33** showcase, **41** tablepro, **67** jackin, **30** perf. The recorded `76 + 67 + 33 + 41 + 30` split was right; nobody had said which number was which, and the 67 is jackin, not showcase.
+
+**`247 = 54 already duplicated + 183 migrating + 10 dying with a reason.`** Nothing unclassified.
+
+### §44.2 GAP-2 — a live latent defect, not a coverage gap <!-- amended by §44 -->
+
+**Nothing asserts that `DISABLED` absorbs `HOVERED`.**
+
+In the legacy theme that was a rule. In the new one it is an **emergent consequence of `.when` declaration order** in `theme/builtin/mod.rs`: `HOVERED` is declared before `DISABLED`, both are single-flag, so they store at equal specificity and tie-break by declaration order.
+
+**Swap those two lines and a disabled button hovers again — and no test in the tree fails.** `disabled_cannot_activate` tests behaviour, not style, so it stays green.
+
+This is the same shape §31 named: an invariant whose only enforcement shares the enabling condition it is supposed to guard. The rule is now load-bearing on line ordering that nothing pins.
+
+### §44.3 Thirteen more assertions with no successor <!-- amended by §44 -->
+
+The four worth naming here:
+
+- **`Brand::clickable` is never called anywhere in `crates/tui`.** The feature exists with full rustdoc; `BrandCase` declares `Caps::empty()` and narrows every state away, and the render fixture never sets it. **The entire clickable branch of `update`, its `PartRef` registration and its hover painting are unexecuted.** The legacy test that did execute them is the one being deleted.
+- **`StatusBar` placement geometry is unasserted.** The legacy test pinned left-at-`x=1`, right flush at `width−1`, centre strictly between. The successor returns keep-masks and never geometry, so **a `StatusBar` that right-aligned its left group would keep every item and pass.**
+- **`MeterVisual::Block` is drawn by nothing**, and `meter.rs`'s own rustdoc already says so. A *documented* gap is about to become an *undocumented* one.
+- **The `StatusBar` hover successor exists, is better, and was red** when the map was written. Deleting the legacy test while that is true would have left the property with zero coverage. It is green and committed now.
+
+### §44.4 An eighth decorative gate, found incidentally <!-- amended by §44 -->
+
+`perf::no_full_collection_clone_per_frame` gates **both** its assertions behind `PERF_TARGET`. §16.6 records `PERF_TARGET` as folded into `PERF_STRICT`, and **nothing sets it**. Seven of the thirty root perf tests are gated the same way. §16.6 keeps the name and the 64 KiB threshold, so **it migrates as decoration** unless someone makes it live.
+
+### §44.5 The application accounting does not close either <!-- amended by §44 -->
+
+§16.4 retains **87** tests by name; the three binary targets hold **141**. §16.6 covers the 17 in-binary perf tests and the Slice 6/7 gates cover the 2 visual tests. That leaves **35 tests named nowhere** — tablepro's `model`/`sql` and jackin's `domain`/`sim`/`screens::inspect` — including `sim::onepassword::tests::resolves_only_inside_the_closure` and `sim::changes::tests::no_secret_shaped_content`, **the two strongest secret-containment assertions in the repository**. Lower risk than the library set, since those modules move with their app rather than being deleted, but they are now enumerated rather than assumed.
+
+### §44.6 Four preconditions for Slice 5 <!-- amended by §44 -->
+
+1. **Do not delete the root `src/` before packages 4C, 4D, 4E, 4F, 4H and 4I land.** 32 library tests and 10 perf tests name destinations that do not exist: there is no `grid.rs`, `menu.rs`, `picker.rs`, `tree.rs`, `steps.rs`, `viewport.rs`, `diff.rs`, `split.rs` or `panel.rs`.
+2. **Bless the fourteen unblessed component matrices first.** Only six components have baseline rows, so four "already duplicated" dispositions currently point at red tests. They panic on the missing baseline rather than passing vacuously, so this is visible rather than silent — but it must be closed before the map is relied on.
+3. **Land the `StatusBar` hover test green.** Done.
+4. **Write GAP-1 through GAP-11 into `crates/tui` before the deletion.** Afterwards there is nothing left to write them from.
