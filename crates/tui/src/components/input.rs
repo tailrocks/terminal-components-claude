@@ -36,7 +36,7 @@ mod text_target {
 /// forms to edit `Secret` in place, without cloning it or widening the API.
 pub(crate) trait TextTarget: text_target::Sealed {
     fn expose(&self) -> &str;
-    fn set(&mut self, value: &str, sensitive: bool);
+    fn set(&mut self, value: &str, wipe_old: bool);
     fn is_sensitive(&self) -> bool;
 }
 
@@ -45,10 +45,15 @@ impl TextTarget for String {
         self
     }
 
-    fn set(&mut self, value: &str, _sensitive: bool) {
-        let replacement = String::from(value);
-        zeroize_string(self);
-        *self = replacement;
+    fn set(&mut self, value: &str, wipe_old: bool) {
+        if wipe_old {
+            let mut replacement = String::from(value);
+            zeroize_string(self);
+            core::mem::swap(self, &mut replacement);
+        } else {
+            self.clear();
+            self.push_str(value);
+        }
     }
 
     fn is_sensitive(&self) -> bool {
@@ -378,10 +383,14 @@ impl EditorDraft {
         };
     }
 
-    pub(crate) fn begin_single(&mut self, current: &str) {
+    pub(crate) fn begin_single(&mut self, current: &str, secure_storage: bool) {
         let sensitive = self.is_sensitive();
         self.zeroize();
-        let editor = TextEditorCore::single(current);
+        let editor = if sensitive || secure_storage {
+            TextEditorCore::secret_single(current)
+        } else {
+            TextEditorCore::single(current)
+        };
         *self = if sensitive {
             EditorDraft::Secret(editor)
         } else {
@@ -389,10 +398,14 @@ impl EditorDraft {
         };
     }
 
-    pub(crate) fn begin_multi(&mut self, current: &str) {
+    pub(crate) fn begin_multi(&mut self, current: &str, secure_storage: bool) {
         let sensitive = self.is_sensitive();
         self.zeroize();
-        let editor = TextEditorCore::multi(current);
+        let editor = if sensitive || secure_storage {
+            TextEditorCore::secret_multi(current)
+        } else {
+            TextEditorCore::multi(current)
+        };
         *self = if sensitive {
             EditorDraft::Secret(editor)
         } else {
@@ -474,15 +487,22 @@ impl EditorDraft {
 
     pub(crate) fn zeroize(&mut self) {
         match self {
-            EditorDraft::Unclassified(editor)
-            | EditorDraft::Plain(editor)
-            | EditorDraft::Secret(editor)
-            | EditorDraft::RedactedSecret(editor) => editor.zeroize(),
+            EditorDraft::Unclassified(editor) | EditorDraft::Plain(editor) => {
+                editor.clear_draft();
+            }
+            EditorDraft::Secret(editor) | EditorDraft::RedactedSecret(editor) => {
+                editor.zeroize();
+            }
         }
     }
 
     pub(crate) fn same(&self, other: &Self) -> bool {
         match (self, other) {
+            (EditorDraft::Plain(left), EditorDraft::Plain(right))
+                if left.is_sensitive_storage() || right.is_sensitive_storage() =>
+            {
+                true
+            }
             (EditorDraft::Unclassified(left), EditorDraft::Unclassified(right))
             | (EditorDraft::Plain(left), EditorDraft::Plain(right)) => left == right,
             (
@@ -499,19 +519,13 @@ impl EditorDraft {
     pub(crate) fn clone_snapshot(&self) -> Self {
         match self {
             EditorDraft::Unclassified(_) => EditorDraft::Unclassified(TextEditorCore::default()),
-            EditorDraft::Plain(editor) => EditorDraft::Plain(editor.clone_plain()),
-            EditorDraft::Secret(editor) => {
-                let mut snapshot = if editor.is_multiline() {
-                    TextEditorCore::multi(&redacted_text(editor.text()))
-                } else {
-                    TextEditorCore::single(&redacted_text(editor.text()))
-                };
-                let cursor = editor.cursor_pos();
-                snapshot.set_cursor_line_col(cursor.line, cursor.col);
-                EditorDraft::RedactedSecret(snapshot)
+            EditorDraft::Plain(editor) if editor.is_sensitive_storage() => {
+                EditorDraft::RedactedSecret(editor.redacted_clone())
             }
+            EditorDraft::Plain(editor) => EditorDraft::Plain(editor.clone_plain()),
+            EditorDraft::Secret(editor) => EditorDraft::RedactedSecret(editor.redacted_clone()),
             EditorDraft::RedactedSecret(editor) => {
-                EditorDraft::RedactedSecret(editor.clone_plain())
+                EditorDraft::RedactedSecret(editor.redacted_clone())
             }
         }
     }
@@ -620,6 +634,7 @@ pub struct TextInputState {
     draft: EditorDraft,
     phase: EditPhase,
     error: Option<ErrorState>,
+    target_sensitive: bool,
 }
 
 impl Clone for TextInputState {
@@ -628,6 +643,7 @@ impl Clone for TextInputState {
             draft: self.draft.clone_snapshot(),
             phase: self.phase,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
+            target_sensitive: self.target_sensitive,
         }
     }
 }
@@ -636,11 +652,13 @@ impl PartialEq for TextInputState {
     fn eq(&self, other: &Self) -> bool {
         if self.is_sensitive() || other.is_sensitive() {
             self.is_sensitive() == other.is_sensitive()
+                && self.target_sensitive == other.target_sensitive
                 && self.phase == other.phase
                 && self.error.as_ref().map(ErrorState::is_sensitive)
                     == other.error.as_ref().map(ErrorState::is_sensitive)
         } else {
             self.draft.same(&other.draft)
+                && self.target_sensitive == other.target_sensitive
                 && self.phase == other.phase
                 && match (&self.error, &other.error) {
                     (Some(left), Some(right)) => left.same(right),
@@ -661,6 +679,7 @@ impl fmt::Debug for TextInputState {
             .field("phase", &self.phase)
             .field("error", &self.error.as_ref().map(|_| "[redacted]"))
             .field("sensitive", &self.is_sensitive())
+            .field("target_sensitive", &self.target_sensitive)
             .finish()
     }
 }
@@ -693,6 +712,9 @@ impl TextInputState {
     }
 
     pub(crate) fn set_sensitive(&mut self, sensitive: bool) {
+        if sensitive {
+            self.target_sensitive = true;
+        }
         let was_classified = self.draft.is_classified();
         let was_redacted = self.draft.is_redacted();
         let changed = self.is_sensitive() != sensitive;
@@ -714,6 +736,12 @@ impl TextInputState {
                 Some(ErrorState::Plain(error))
             }
         };
+    }
+
+    pub(crate) fn observe_target_sensitivity(&mut self, sensitive: bool) {
+        if sensitive {
+            self.target_sensitive = true;
+        }
     }
 
     /// Set (or clear) the error from an external / async validation.
@@ -746,7 +774,7 @@ impl TextInputState {
         if !self.draft.is_classified() || self.draft.is_redacted() {
             self.set_sensitive(self.is_sensitive());
         }
-        self.draft.begin_single(current);
+        self.draft.begin_single(current, self.target_sensitive);
         self.phase = EditPhase::Editing;
     }
 
@@ -769,7 +797,9 @@ impl TextInputState {
 
     fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
         if self.is_editing() && self.draft.is_committable() {
-            value.set(self.draft.text(), self.is_sensitive());
+            let wipe_old = self.target_sensitive || self.is_sensitive() || value.is_sensitive();
+            value.set(self.draft.text(), wipe_old);
+            self.target_sensitive = self.is_sensitive() || value.is_sensitive();
         }
         self.phase = EditPhase::Idle;
         self.draft.zeroize();
@@ -1142,6 +1172,7 @@ impl<'a> TextInput<'a> {
         if !st.is_editing() {
             return false;
         }
+        st.observe_target_sensitivity(self.secret.is_some() || value.is_sensitive());
         let _ = st.commit_target(value, &self.validator());
         true
     }
@@ -1152,7 +1183,9 @@ impl<'a> TextInput<'a> {
         st: &mut TextInputState,
         value: &mut T,
     ) -> Response<TextAction> {
-        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        let target_sensitive = self.secret.is_some() || value.is_sensitive();
+        st.observe_target_sensitivity(target_sensitive);
+        st.set_sensitive(target_sensitive);
         let mut acc = super::Acc::<TextAction>::new();
         let editable = self.editable();
         for it in cx.intents(self.id) {
@@ -1637,6 +1670,37 @@ mod tests {
         }
     }
 
+    struct TransitionInputApp {
+        state: TextInputState,
+        value: String,
+        secret: bool,
+    }
+
+    impl App for TransitionInputApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let input = TextInput::new(ID);
+            if self.secret {
+                input
+                    .secret(SecretPolicy::default())
+                    .update(cx, &mut self.state, &mut self.value)
+                    .erase()
+            } else {
+                input.update(cx, &mut self.state, &mut self.value).erase()
+            }
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let input = TextInput::new(ID).value(&self.value);
+            if self.secret {
+                input
+                    .secret(SecretPolicy::default())
+                    .draw(ui, SCREEN, &self.state);
+            } else {
+                input.draw(ui, SCREEN, &self.state);
+            }
+        }
+    }
+
     fn secret_state() -> TextInputState {
         let mut runtime = Runtime::new(
             SecretInputApp {
@@ -1981,6 +2045,62 @@ mod tests {
         assert!(
             runtime.app().value.capacity() < old_capacity,
             "secret commit retained the old String allocation"
+        );
+    }
+
+    #[test]
+    fn public_secret_to_plain_transition_wipes_before_plain_reuse() {
+        let mut value = String::with_capacity(128);
+        value.push_str("old-secret");
+        let mut runtime = Runtime::new(
+            TransitionInputApp {
+                state: TextInputState::default(),
+                value,
+                secret: true,
+            },
+            Theme::junie(),
+        );
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.set_focus(Some(ID));
+        let _ = runtime.handle(Input::Tick);
+        let _ = runtime.handle(Input::Key(Key {
+            code: KeyCode::Char('x'),
+            mods: KeyModifiers::NONE,
+        }));
+        let _ = runtime.handle(Input::Key(Key {
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
+        }));
+        let secret_capacity = runtime.app().value.capacity();
+
+        runtime.set_focus(None);
+        let _ = runtime.handle(Input::Tick);
+        runtime.app_mut().secret = false;
+        runtime.set_focus(Some(ID));
+        let _ = runtime.handle(Input::Tick);
+        assert!(runtime.app().state.is_editing());
+        assert!(!runtime.app().state.is_sensitive());
+        assert!(matches!(
+            &runtime.app().state.draft,
+            EditorDraft::Plain(editor) if editor.is_sensitive_storage()
+        ));
+        let _ = runtime.handle(Input::Key(Key {
+            code: KeyCode::Char('l'),
+            mods: KeyModifiers::CONTROL,
+        }));
+        let _ = runtime.handle(Input::Key(Key {
+            code: KeyCode::Char('p'),
+            mods: KeyModifiers::NONE,
+        }));
+        let _ = runtime.handle(Input::Key(Key {
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
+        }));
+        assert_eq!(runtime.app().value, "p");
+        assert!(
+            runtime.app().value.capacity() < secret_capacity,
+            "plain transition reused the prior secret allocation"
         );
     }
 

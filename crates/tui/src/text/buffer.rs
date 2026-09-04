@@ -19,25 +19,41 @@ pub struct CursorPos {
     pub col: usize,
 }
 
-/// Text-coordinate storage retained for the testing-only perf facade.
+/// Text, cursor, selection anchor and the single/multi-line flag.
 ///
-/// Production callers cannot construct or inspect this type through the
-/// default facade. Its public surface is limited to allocation-free position
-/// queries; editing storage remains private to the text editor.
-#[cfg_attr(
-    not(feature = "testing"),
-    expect(
-        unreachable_pub,
-        reason = "the coordinate facade is re-exported only for testing"
-    )
-)]
-#[derive(Default, PartialEq, Eq)]
+/// Public constructors create ordinary text storage. Secret editor drafts use
+/// private sensitivity-tagged constructors; their mutation paths rebuild and
+/// wipe allocations, and `Clone` returns a redacted snapshot rather than
+/// copying secret bytes.
+#[derive(Default)]
 pub struct TextBuffer {
     text: String,
     cursor: usize,
     anchor: Option<usize>,
     multiline: bool,
+    sensitive: bool,
 }
+
+impl Clone for TextBuffer {
+    fn clone(&self) -> Self {
+        if self.sensitive {
+            self.redacted_clone()
+        } else {
+            self.clone_plain()
+        }
+    }
+}
+
+impl PartialEq for TextBuffer {
+    fn eq(&self, other: &Self) -> bool {
+        self.text == other.text
+            && self.cursor == other.cursor
+            && self.anchor == other.anchor
+            && self.multiline == other.multiline
+    }
+}
+
+impl Eq for TextBuffer {}
 
 impl fmt::Debug for TextBuffer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -47,6 +63,7 @@ impl fmt::Debug for TextBuffer {
             .field("cursor", &self.cursor)
             .field("anchor", &self.anchor)
             .field("multiline", &self.multiline)
+            .field("sensitive", &self.sensitive)
             .finish()
     }
 }
@@ -58,60 +75,86 @@ impl Drop for TextBuffer {
 }
 
 impl TextBuffer {
+    pub(crate) const fn is_sensitive_storage(&self) -> bool {
+        self.sensitive
+    }
+
     /// A single-line buffer with the cursor at the end.
-    pub(crate) fn single(text: impl Into<String>) -> Self {
-        let text = text.into();
+    pub fn single(text: impl Into<String>) -> Self {
+        Self::with_sensitivity(text.into(), false)
+    }
+
+    /// A single-line buffer whose allocation is treated as sensitive.
+    pub(crate) fn secret_single(text: impl Into<String>) -> Self {
+        Self::with_sensitivity(text.into(), true)
+    }
+
+    fn with_sensitivity(text: String, sensitive: bool) -> Self {
         TextBuffer {
             cursor: text.len(),
             text,
             anchor: None,
             multiline: false,
+            sensitive,
         }
     }
 
     /// A multi-line buffer with the cursor at the end.
-    #[cfg_attr(
-        not(feature = "testing"),
-        expect(
-            unreachable_pub,
-            reason = "the coordinate facade is re-exported only for testing"
-        )
-    )]
     pub fn multi(text: impl Into<String>) -> Self {
-        let text = text.into();
+        Self::with_multiline_sensitivity(text.into(), false)
+    }
+
+    /// A multi-line buffer whose allocation is treated as sensitive.
+    pub(crate) fn secret_multi(text: impl Into<String>) -> Self {
+        Self::with_multiline_sensitivity(text.into(), true)
+    }
+
+    fn with_multiline_sensitivity(text: String, sensitive: bool) -> Self {
+        let text_len = text.len();
         TextBuffer {
-            cursor: text.len(),
+            cursor: text_len,
             text,
             anchor: None,
             multiline: true,
+            sensitive,
         }
     }
 
     /// The text.
-    pub(crate) fn text(&self) -> &str {
+    pub fn text(&self) -> &str {
         &self.text
     }
 
     /// Whether the text is empty.
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.text.is_empty()
     }
 
     /// Whether newlines are accepted.
-    pub(crate) const fn is_multiline(&self) -> bool {
+    pub const fn is_multiline(&self) -> bool {
         self.multiline
     }
 
     /// The cursor byte offset.
-    pub(crate) const fn cursor_offset(&self) -> usize {
+    pub const fn cursor_offset(&self) -> usize {
         self.cursor
     }
 
     /// Overwrite every byte with zero, then clear (§15 `zeroize`).
-    pub(crate) fn zeroize(&mut self) {
+    pub fn zeroize(&mut self) {
         crate::secret::zeroize_string(&mut self.text);
         self.cursor = 0;
         self.anchor = None;
+    }
+
+    pub(crate) fn clear_draft(&mut self) {
+        if self.sensitive {
+            self.zeroize();
+        } else {
+            self.text.clear();
+            self.cursor = 0;
+            self.anchor = None;
+        }
     }
 
     pub(crate) fn clone_plain(&self) -> Self {
@@ -120,14 +163,41 @@ impl TextBuffer {
             cursor: self.cursor,
             anchor: self.anchor,
             multiline: self.multiline,
+            sensitive: false,
         }
     }
 
+    pub(crate) fn redacted_clone(&self) -> Self {
+        let mut text = String::with_capacity(self.text.len());
+        for (_, grapheme) in graphemes(&self.text) {
+            if grapheme == "\n" {
+                text.push('\n');
+            } else {
+                text.push('•');
+            }
+        }
+        let cursor = self.cursor_pos();
+        let anchor = self.anchor.map(|at| Self::pos_of(&self.text, at));
+        let mut snapshot = if self.multiline {
+            Self::with_multiline_sensitivity(text, true)
+        } else {
+            Self::with_sensitivity(text, true)
+        };
+        snapshot.cursor = snapshot.offset_at(cursor.line, cursor.col);
+        snapshot.anchor = anchor.map(|at| snapshot.offset_at(at.line, at.col));
+        snapshot
+    }
+
     /// Replace the text; cursor at the end, no selection.
-    pub(crate) fn set_text(&mut self, text: &str) {
-        let replacement = String::from(text);
-        crate::secret::zeroize_string(&mut self.text);
-        self.text = replacement;
+    pub fn set_text(&mut self, text: &str) {
+        if self.sensitive {
+            let mut replacement = String::from(text);
+            crate::secret::zeroize_string(&mut self.text);
+            core::mem::swap(&mut self.text, &mut replacement);
+        } else {
+            self.text.clear();
+            self.text.push_str(text);
+        }
         self.cursor = self.text.len();
         self.anchor = None;
     }
@@ -140,21 +210,25 @@ impl TextBuffer {
         if required <= self.text.capacity() {
             return;
         }
-        let mut replacement = String::with_capacity(required);
-        replacement.push_str(&self.text);
-        crate::secret::zeroize_string(&mut self.text);
-        self.text = replacement;
+        if self.sensitive {
+            let mut replacement = String::with_capacity(required);
+            replacement.push_str(&self.text);
+            crate::secret::zeroize_string(&mut self.text);
+            self.text = replacement;
+        } else {
+            self.text.reserve(additional);
+        }
     }
 
     /// Select `a..b` (either order), cursor at `b`.
-    pub(crate) fn select_range(&mut self, a: usize, b: usize) {
+    pub fn select_range(&mut self, a: usize, b: usize) {
         let len = self.text.len();
         self.anchor = Some(self.snap(a.min(len)));
         self.cursor = self.snap(b.min(len));
     }
 
     /// The selection, if non-empty.
-    pub(crate) fn selection(&self) -> Option<Range<usize>> {
+    pub fn selection(&self) -> Option<Range<usize>> {
         let a = self.anchor?;
         if a == self.cursor {
             return None;
@@ -163,27 +237,23 @@ impl TextBuffer {
     }
 
     /// The selected text, if any.
-    pub(crate) fn selected_text(&self) -> Option<&str> {
+    pub fn selected_text(&self) -> Option<&str> {
         self.selection().and_then(|r| self.text.get(r))
     }
 
     /// Select everything.
-    pub(crate) fn select_all(&mut self) {
+    pub fn select_all(&mut self) {
         self.anchor = Some(0);
         self.cursor = self.text.len();
     }
 
     /// Drop the selection.
-    pub(crate) fn clear_selection(&mut self) {
+    pub fn clear_selection(&mut self) {
         self.anchor = None;
     }
 
     /// First and last line touched by the selection (or the cursor line).
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "retained for text-core unit coverage")
-    )]
-    pub(crate) fn selection_lines(&self) -> (usize, usize) {
+    pub fn selection_lines(&self) -> (usize, usize) {
         if let Some(r) = self.selection() {
             let a = Self::pos_of(&self.text, r.start).line;
             let b = Self::pos_of(&self.text, r.end.saturating_sub(1).max(r.start)).line;
@@ -268,7 +338,7 @@ impl TextBuffer {
     }
 
     /// Move left one grapheme (collapsing a selection to its start).
-    pub(crate) fn move_left(&mut self, select: bool) {
+    pub fn move_left(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
             self.anchor = None;
             self.cursor = r.start;
@@ -279,7 +349,7 @@ impl TextBuffer {
     }
 
     /// Move right one grapheme (collapsing a selection to its end).
-    pub(crate) fn move_right(&mut self, select: bool) {
+    pub fn move_right(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
             self.anchor = None;
             self.cursor = r.end;
@@ -290,43 +360,43 @@ impl TextBuffer {
     }
 
     /// Move to the previous word start.
-    pub(crate) fn move_word_left(&mut self, select: bool) {
+    pub fn move_word_left(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.prev_word(self.cursor);
     }
 
     /// Move to the next word end.
-    pub(crate) fn move_word_right(&mut self, select: bool) {
+    pub fn move_word_right(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.next_word(self.cursor);
     }
 
     /// Move to the line start.
-    pub(crate) fn move_home(&mut self, select: bool) {
+    pub fn move_home(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.line_start(self.cursor);
     }
 
     /// Move to the line end.
-    pub(crate) fn move_end(&mut self, select: bool) {
+    pub fn move_end(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.line_end(self.cursor);
     }
 
     /// Move to the document start.
-    pub(crate) fn move_doc_start(&mut self, select: bool) {
+    pub fn move_doc_start(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = 0;
     }
 
     /// Move to the document end.
-    pub(crate) fn move_doc_end(&mut self, select: bool) {
+    pub fn move_doc_end(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.text.len();
     }
 
     /// Move to the same display column on the previous line.
-    pub(crate) fn move_up(&mut self, select: bool) -> bool {
+    pub fn move_up(&mut self, select: bool) -> bool {
         if !self.multiline {
             return false;
         }
@@ -340,7 +410,7 @@ impl TextBuffer {
     }
 
     /// Move to the same display column on the next line.
-    pub(crate) fn move_down(&mut self, select: bool) -> bool {
+    pub fn move_down(&mut self, select: bool) -> bool {
         if !self.multiline {
             return false;
         }
@@ -354,7 +424,7 @@ impl TextBuffer {
     }
 
     /// Place the cursor at `(line, col)`, dropping the selection.
-    pub(crate) fn set_cursor_line_col(&mut self, line: usize, col: usize) {
+    pub fn set_cursor_line_col(&mut self, line: usize, col: usize) {
         self.anchor = None;
         self.cursor = self.offset_at(line, col);
     }
@@ -376,23 +446,27 @@ impl TextBuffer {
     /// allocation, so every deletion and selection replacement goes through
     /// this path.
     fn replace_range(&mut self, range: Range<usize>, replacement: &str) {
-        let retained = range.end.saturating_sub(range.start);
-        let capacity = self
-            .text
-            .len()
-            .saturating_sub(retained)
-            .saturating_add(replacement.len());
-        let mut next = String::with_capacity(capacity);
-        next.push_str(&self.text[..range.start]);
-        next.push_str(replacement);
-        next.push_str(&self.text[range.end..]);
-        crate::secret::zeroize_string(&mut self.text);
-        self.text = next;
+        if self.sensitive {
+            let retained = range.end.saturating_sub(range.start);
+            let capacity = self
+                .text
+                .len()
+                .saturating_sub(retained)
+                .saturating_add(replacement.len());
+            let mut next = String::with_capacity(capacity);
+            next.push_str(&self.text[..range.start]);
+            next.push_str(replacement);
+            next.push_str(&self.text[range.end..]);
+            crate::secret::zeroize_string(&mut self.text);
+            self.text = next;
+        } else {
+            self.text.replace_range(range, replacement);
+        }
     }
 
     /// Insert a character (a newline is rejected in single-line mode).
     /// Returns whether the text changed.
-    pub(crate) fn insert_char(&mut self, c: char) -> bool {
+    pub fn insert_char(&mut self, c: char) -> bool {
         if c == '\n' && !self.multiline {
             return false;
         }
@@ -404,7 +478,7 @@ impl TextBuffer {
     }
 
     /// Insert text (newlines are stripped in single-line mode).
-    pub(crate) fn insert_str(&mut self, s: &str) -> bool {
+    pub fn insert_str(&mut self, s: &str) -> bool {
         self.delete_selection();
         let before = self.text.len();
         if self.multiline {
@@ -429,7 +503,7 @@ impl TextBuffer {
     }
 
     /// Delete the grapheme before the cursor (or the selection).
-    pub(crate) fn backspace(&mut self) -> bool {
+    pub fn backspace(&mut self) -> bool {
         if self.delete_selection() {
             return true;
         }
@@ -443,7 +517,7 @@ impl TextBuffer {
     }
 
     /// Delete the grapheme after the cursor (or the selection).
-    pub(crate) fn delete(&mut self) -> bool {
+    pub fn delete(&mut self) -> bool {
         if self.delete_selection() {
             return true;
         }
@@ -456,7 +530,7 @@ impl TextBuffer {
     }
 
     /// Delete to the previous word start (or the selection).
-    pub(crate) fn delete_word_left(&mut self) -> bool {
+    pub fn delete_word_left(&mut self) -> bool {
         if self.delete_selection() {
             return true;
         }
@@ -470,7 +544,7 @@ impl TextBuffer {
     }
 
     /// Delete to the line end (or the selection).
-    pub(crate) fn delete_to_line_end(&mut self) -> bool {
+    pub fn delete_to_line_end(&mut self) -> bool {
         if self.delete_selection() {
             return true;
         }
@@ -483,7 +557,7 @@ impl TextBuffer {
     }
 
     /// Delete to the line start (or the selection).
-    pub(crate) fn delete_to_line_start(&mut self) -> bool {
+    pub fn delete_to_line_start(&mut self) -> bool {
         if self.delete_selection() {
             return true;
         }
@@ -497,23 +571,16 @@ impl TextBuffer {
     }
 
     /// The line count (one more than the newline count).
-    pub(crate) fn line_count(&self) -> usize {
+    pub fn line_count(&self) -> usize {
         self.text.split('\n').count()
     }
 
     /// The cursor as `(line, display column)`.
-    pub(crate) fn cursor_pos(&self) -> CursorPos {
+    pub fn cursor_pos(&self) -> CursorPos {
         Self::pos_of(&self.text, self.cursor)
     }
 
     /// `(line, display column)` of a byte offset in `text`.
-    #[cfg_attr(
-        not(feature = "testing"),
-        expect(
-            unreachable_pub,
-            reason = "the coordinate facade is re-exported only for testing"
-        )
-    )]
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
         let before = text.get(..offset.min(text.len())).unwrap_or("");
         let line = before.matches('\n').count();
@@ -523,13 +590,6 @@ impl TextBuffer {
     }
 
     /// Byte offset of `(line, display column)`, clamped to the line.
-    #[cfg_attr(
-        not(feature = "testing"),
-        expect(
-            unreachable_pub,
-            reason = "the coordinate facade is re-exported only for testing"
-        )
-    )]
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         let mut start = 0usize;
         for (i, l) in self.text.split('\n').enumerate() {
@@ -550,11 +610,7 @@ impl TextBuffer {
     }
 
     /// Display width of the whole text (single-line).
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "retained for text-core unit coverage")
-    )]
-    pub(crate) fn width(&self) -> u16 {
+    pub fn width(&self) -> u16 {
         width(&self.text)
     }
 }
@@ -692,16 +748,34 @@ mod tests {
         assert_eq!(b.text(), "again");
     }
 
+    #[test]
+    fn sensitive_clone_is_redacted_while_plain_clone_preserves_text() {
+        let plain = TextBuffer::single("visible");
+        assert_eq!(plain.clone().text(), "visible");
+        let secret = TextBuffer::secret_single("hunter2");
+        let copy = secret.clone();
+        assert_eq!(copy.text(), "•••••••");
+        assert!(!copy.text().contains("hunter2"));
+        assert!(!copy.is_multiline());
+        assert!(copy.sensitive);
+        let multiline = TextBuffer::secret_multi("one\ntwo");
+        let multiline_copy = multiline.clone();
+        assert_eq!(multiline_copy.text(), "•••\n•••");
+        assert!(multiline_copy.is_multiline());
+    }
+
     fn forced_capacity(text: &str) -> TextBuffer {
         let mut owned = String::with_capacity(128);
         owned.push_str(text);
-        TextBuffer::single(owned)
+        assert_eq!(owned.capacity(), 128);
+        TextBuffer::secret_single(owned)
     }
 
     fn forced_multiline_capacity(text: &str) -> TextBuffer {
         let mut owned = String::with_capacity(128);
         owned.push_str(text);
-        TextBuffer::multi(owned)
+        assert_eq!(owned.capacity(), 128);
+        TextBuffer::secret_multi(owned)
     }
 
     fn assert_rebuilt(
@@ -710,6 +784,7 @@ mod tests {
         mutate: impl FnOnce(&mut TextBuffer) -> bool,
     ) {
         let old_capacity = buffer.text.capacity();
+        assert_eq!(old_capacity, 128, "test fixture lost its forced allocation");
         assert!(mutate(&mut buffer));
         assert_eq!(buffer.text(), expected);
         assert!(
@@ -772,10 +847,24 @@ mod tests {
 
     #[test]
     fn insertion_growth_uses_a_wiped_replacement_allocation() {
-        let mut b = TextBuffer::single("a");
+        let mut b = forced_capacity("a");
         let old_capacity = b.text.capacity();
         b.insert_str(&"x".repeat(old_capacity.saturating_add(1)));
         assert!(b.text.len() > old_capacity);
+        assert!(b.text.capacity() > old_capacity);
         assert_eq!(b.text.chars().next(), Some('a'));
+    }
+
+    #[test]
+    fn plain_mutations_reuse_capacity_when_growth_is_not_needed() {
+        let mut b = TextBuffer::single(String::with_capacity(128));
+        b.set_text("hunter2");
+        let old_capacity = b.text.capacity();
+        assert!(b.backspace());
+        assert_eq!(b.text(), "hunter");
+        assert_eq!(b.text.capacity(), old_capacity);
+        assert!(b.insert_str("!"));
+        assert_eq!(b.text(), "hunter!");
+        assert_eq!(b.text.capacity(), old_capacity);
     }
 }

@@ -260,6 +260,7 @@ pub struct TextAreaState {
     phase: EditPhase,
     scroll: ScrollState,
     error: Option<ErrorState>,
+    target_sensitive: bool,
 }
 
 impl Clone for TextAreaState {
@@ -269,6 +270,7 @@ impl Clone for TextAreaState {
             phase: self.phase,
             scroll: self.scroll,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
+            target_sensitive: self.target_sensitive,
         }
     }
 }
@@ -277,12 +279,14 @@ impl PartialEq for TextAreaState {
     fn eq(&self, other: &Self) -> bool {
         if self.is_sensitive() || other.is_sensitive() {
             self.is_sensitive() == other.is_sensitive()
+                && self.target_sensitive == other.target_sensitive
                 && self.phase == other.phase
                 && self.scroll == other.scroll
                 && self.error.as_ref().map(ErrorState::is_sensitive)
                     == other.error.as_ref().map(ErrorState::is_sensitive)
         } else {
             self.draft.same(&other.draft)
+                && self.target_sensitive == other.target_sensitive
                 && self.phase == other.phase
                 && self.scroll == other.scroll
                 && match (&self.error, &other.error) {
@@ -305,6 +309,7 @@ impl fmt::Debug for TextAreaState {
             .field("scroll", &self.scroll)
             .field("error", &self.error.as_ref().map(|_| "[redacted]"))
             .field("sensitive", &self.is_sensitive())
+            .field("target_sensitive", &self.target_sensitive)
             .finish()
     }
 }
@@ -347,6 +352,9 @@ impl TextAreaState {
     }
 
     pub(crate) fn set_sensitive(&mut self, sensitive: bool) {
+        if sensitive {
+            self.target_sensitive = true;
+        }
         let was_classified = self.draft.is_classified();
         let was_redacted = self.draft.is_redacted();
         let changed = self.is_sensitive() != sensitive;
@@ -367,6 +375,12 @@ impl TextAreaState {
                 Some(ErrorState::Plain(error))
             }
         };
+    }
+
+    pub(crate) fn observe_target_sensitivity(&mut self, sensitive: bool) {
+        if sensitive {
+            self.target_sensitive = true;
+        }
     }
 
     /// Set (or clear) the error from an external / async validation.
@@ -392,7 +406,7 @@ impl TextAreaState {
         if !self.draft.is_classified() || self.draft.is_redacted() {
             self.set_sensitive(self.is_sensitive());
         }
-        self.draft.begin_multi(current);
+        self.draft.begin_multi(current, self.target_sensitive);
         self.phase = EditPhase::Editing;
     }
 
@@ -415,7 +429,9 @@ impl TextAreaState {
 
     fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
         if self.is_editing() && self.draft.is_committable() {
-            value.set(self.draft.text(), self.is_sensitive());
+            let wipe_old = self.target_sensitive || self.is_sensitive() || value.is_sensitive();
+            value.set(self.draft.text(), wipe_old);
+            self.target_sensitive = self.is_sensitive() || value.is_sensitive();
         }
         self.phase = EditPhase::Idle;
         self.draft.zeroize();
@@ -816,6 +832,7 @@ impl<'a> TextArea<'a> {
         if !st.is_editing() {
             return false;
         }
+        st.observe_target_sensitivity(self.secret.is_some() || value.is_sensitive());
         let _ = st.blur_target(value, &self.validator(), BlurPolicy::Commit);
         true
     }
@@ -830,7 +847,9 @@ impl<'a> TextArea<'a> {
         st: &mut TextAreaState,
         value: &mut T,
     ) -> Response<TextAction> {
-        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        let target_sensitive = self.secret.is_some() || value.is_sensitive();
+        st.observe_target_sensitivity(target_sensitive);
+        st.set_sensitive(target_sensitive);
         let mut acc = Acc::<TextAction>::new();
         let editable = self.editable();
         let lines = if st.is_editing() {

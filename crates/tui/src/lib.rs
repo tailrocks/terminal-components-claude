@@ -86,15 +86,11 @@ pub use theme::{
 // layout and measurement
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
 pub use measure::{Constraints, Measure, Size};
-// text — `text` is `pub(crate)` (Appendix B.3 item 2). `TextEditorCore` and
-// editing methods stay implementation details; the testing-only TextBuffer
-// facade retains the allocation-free coordinate perf probes without exposing
-// its text or mutation methods.
-#[cfg(feature = "testing")]
-pub use text::TextBuffer;
+// text — `text` is `pub(crate)` (Appendix B.3 item 2): `grapheme_width`,
+// `is_word_char` and `thousands` are internal, and the rest is curated here.
 pub use text::{
-    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, fuzzy, truncate, truncate_middle,
-    width, wrap, wrapped_rows,
+    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
+    truncate, truncate_middle, width, wrap, wrapped_rows,
 };
 // collections
 pub use collection::{

@@ -28,6 +28,19 @@ pub enum Input {
     Tick,
 }
 
+impl Clone for Input {
+    fn clone(&self) -> Self {
+        match self {
+            Input::Key(key) => Input::Key(*key),
+            Input::Mouse(mouse) => Input::Mouse(*mouse),
+            Input::Resize(width, height) => Input::Resize(*width, *height),
+            // Each owned payload is independently wiped by `Drop`.
+            Input::Paste(text) => Input::Paste(text.clone()),
+            Input::Tick => Input::Tick,
+        }
+    }
+}
+
 impl fmt::Debug for Input {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -400,5 +413,12 @@ mod tests {
         let input = Input::Paste("hunter2".to_owned());
         assert!(!format!("{input:?}").contains("hunter2"));
         assert!(core::mem::needs_drop::<Input>());
+    }
+
+    #[test]
+    fn paste_clone_does_not_duplicate_raw_text() {
+        let input = Input::Paste("hunter2".to_owned());
+        let clone = input.clone();
+        assert!(matches!(&clone, Input::Paste(text) if text == "hunter2"));
     }
 }

@@ -6,13 +6,8 @@ pub(crate) mod fuzzy;
 pub(crate) mod measure;
 pub(crate) mod span;
 
-pub use buffer::CursorPos;
-#[cfg(feature = "testing")]
-pub use buffer::TextBuffer;
-#[cfg(not(feature = "testing"))]
-pub(crate) use buffer::TextBuffer;
-pub(crate) use editor::TextEditorCore;
-pub use editor::{EditAction, EditOutcome, Extend, Motion};
+pub use buffer::{CursorPos, TextBuffer};
+pub use editor::{EditAction, EditOutcome, Extend, Motion, TextEditorCore};
 pub use fuzzy::fuzzy;
 pub use measure::{truncate, truncate_middle, width, wrap, wrapped_rows};
 pub use span::Span;

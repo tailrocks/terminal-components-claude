@@ -99,8 +99,8 @@ impl EditOutcome {
 }
 
 /// Buffer, cursor, selection, horizontal scroll and the multi-line flag.
-#[derive(Default, PartialEq, Eq)]
-pub(crate) struct TextEditorCore {
+#[derive(Clone, Default, PartialEq, Eq)]
+pub struct TextEditorCore {
     buf: TextBuffer,
     hscroll: u16,
 }
@@ -115,69 +115,83 @@ impl fmt::Debug for TextEditorCore {
 }
 
 impl TextEditorCore {
+    pub(crate) const fn is_sensitive_storage(&self) -> bool {
+        self.buf.is_sensitive_storage()
+    }
+
     /// A single-line editor.
-    pub(crate) fn single(text: &str) -> Self {
+    pub fn single(text: &str) -> Self {
         TextEditorCore {
             buf: TextBuffer::single(text),
             hscroll: 0,
         }
     }
 
+    pub(crate) fn secret_single(text: &str) -> Self {
+        TextEditorCore {
+            buf: TextBuffer::secret_single(text),
+            hscroll: 0,
+        }
+    }
+
     /// A multi-line editor.
-    pub(crate) fn multi(text: &str) -> Self {
+    pub fn multi(text: &str) -> Self {
         TextEditorCore {
             buf: TextBuffer::multi(text),
             hscroll: 0,
         }
     }
 
+    pub(crate) fn secret_multi(text: &str) -> Self {
+        TextEditorCore {
+            buf: TextBuffer::secret_multi(text),
+            hscroll: 0,
+        }
+    }
+
     /// The text.
-    pub(crate) fn text(&self) -> &str {
+    pub fn text(&self) -> &str {
         self.buf.text()
     }
 
     /// Whether the text is empty.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "retained for text-core unit coverage")
-    )]
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.buf.is_empty()
     }
 
     /// Whether newlines are accepted.
-    pub(crate) const fn is_multiline(&self) -> bool {
+    pub const fn is_multiline(&self) -> bool {
         self.buf.is_multiline()
     }
 
     /// The selection as a byte range.
-    pub(crate) fn selection(&self) -> Option<Range<usize>> {
+    pub fn selection(&self) -> Option<Range<usize>> {
         self.buf.selection()
     }
 
     /// The selected text.
-    pub(crate) fn selected_text(&self) -> Option<&str> {
+    pub fn selected_text(&self) -> Option<&str> {
         self.buf.selected_text()
     }
 
     /// The cursor as `(line, display column)`.
-    pub(crate) fn cursor_pos(&self) -> CursorPos {
+    pub fn cursor_pos(&self) -> CursorPos {
         self.buf.cursor_pos()
     }
 
     /// The cursor byte offset.
-    pub(crate) const fn cursor_offset(&self) -> usize {
+    pub const fn cursor_offset(&self) -> usize {
         self.buf.cursor_offset()
     }
 
     /// The horizontal scroll, in columns.
-    pub(crate) const fn hscroll(&self) -> u16 {
+    pub const fn hscroll(&self) -> u16 {
         self.hscroll
     }
 
     /// Keep the cursor visible inside a viewport `width` columns wide;
     /// returns the resulting horizontal scroll.
-    pub(crate) fn scroll_into_view(&mut self, width: u16) -> u16 {
+    pub fn scroll_into_view(&mut self, width: u16) -> u16 {
         let col = self.buf.cursor_pos().col.min(usize::from(u16::MAX)) as u16;
         if width == 0 || col < self.hscroll {
             self.hscroll = col;
@@ -188,18 +202,33 @@ impl TextEditorCore {
     }
 
     /// The buffer's line count.
-    pub(crate) fn line_count(&self) -> usize {
+    pub fn line_count(&self) -> usize {
         self.buf.line_count()
     }
 
     /// Place the cursor at `(line, col)`.
-    pub(crate) fn set_cursor_line_col(&mut self, line: usize, col: usize) {
+    pub fn set_cursor_line_col(&mut self, line: usize, col: usize) {
         self.buf.set_cursor_line_col(line, col);
     }
 
+    /// Byte offset of `(line, display column)`.
+    pub fn offset_at(&self, line: usize, col: usize) -> usize {
+        self.buf.offset_at(line, col)
+    }
+
+    /// Select `a..b` (either order), cursor at `b`.
+    pub fn select_range(&mut self, a: usize, b: usize) {
+        self.buf.select_range(a, b);
+    }
+
     /// Overwrite bytes before drop (§15).
-    pub(crate) fn zeroize(&mut self) {
+    pub fn zeroize(&mut self) {
         self.buf.zeroize();
+        self.hscroll = 0;
+    }
+
+    pub(crate) fn clear_draft(&mut self) {
+        self.buf.clear_draft();
         self.hscroll = 0;
     }
 
@@ -210,8 +239,15 @@ impl TextEditorCore {
         }
     }
 
+    pub(crate) fn redacted_clone(&self) -> Self {
+        TextEditorCore {
+            buf: self.buf.redacted_clone(),
+            hscroll: self.hscroll,
+        }
+    }
+
     /// The only mutation entry point.
-    pub(crate) fn apply(&mut self, a: EditAction<'_>) -> EditOutcome {
+    pub fn apply(&mut self, a: EditAction<'_>) -> EditOutcome {
         let b = &mut self.buf;
         let changed = |yes: bool| {
             if yes {
