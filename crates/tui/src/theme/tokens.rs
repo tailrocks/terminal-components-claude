@@ -562,6 +562,39 @@ impl ColorLevel {
         ColorLevel::Ansi16
     }
 
+    /// How much colour this level can paint, as a rank: `Mono` is 0 and
+    /// `TrueColor` is 3.
+    ///
+    /// Private, and deliberately *not* a `PartialOrd`/`Ord` derive: the enum
+    /// is declared richest-first so that reading it top-to-bottom is reading
+    /// the downgrade ladder, and a derived order would therefore call
+    /// `TrueColor` the *smallest* level. Every comparison would read backwards
+    /// at the call site.
+    const fn depth(self) -> u8 {
+        match self {
+            ColorLevel::Mono => 0,
+            ColorLevel::Ansi16 => 1,
+            ColorLevel::Ansi256 => 2,
+            ColorLevel::TrueColor => 3,
+        }
+    }
+
+    /// The poorer of the two levels (§34.3).
+    ///
+    /// The operation [`Theme::for_level`](crate::theme::Theme::for_level) is
+    /// built from: a theme's own `capability.color` is the depth its tokens
+    /// are already at, so combining it with a detected level may only take
+    /// colour away. Commutative, associative and idempotent; `TrueColor` is
+    /// its identity and `Mono` absorbs.
+    #[must_use]
+    pub const fn narrow_to(self, other: ColorLevel) -> ColorLevel {
+        if self.depth() <= other.depth() {
+            self
+        } else {
+            other
+        }
+    }
+
     /// A short label.
     pub const fn label(self) -> &'static str {
         match self {
@@ -672,6 +705,26 @@ mod tests {
             ),
             ColorLevel::Mono
         );
+    }
+
+    /// `narrow_to` is a meet on the colour ladder: it never widens, `Mono`
+    /// absorbs and `TrueColor` is the identity. Pinned as a table because the
+    /// ranking is hand-written — a derived `Ord` would read backwards against
+    /// the enum's richest-first declaration order.
+    #[test]
+    fn narrow_to_returns_the_poorer_level() {
+        use ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
+        const LADDER: [ColorLevel; 4] = [Mono, Ansi16, Ansi256, TrueColor];
+        for (i, a) in LADDER.into_iter().enumerate() {
+            for (j, b) in LADDER.into_iter().enumerate() {
+                let expected = if i <= j { a } else { b };
+                assert_eq!(a.narrow_to(b), expected, "{a:?}.narrow_to({b:?})");
+                assert_eq!(a.narrow_to(b), b.narrow_to(a), "{a:?}/{b:?} not symmetric");
+            }
+            assert_eq!(a.narrow_to(a), a, "{a:?} not idempotent");
+            assert_eq!(a.narrow_to(TrueColor), a, "TrueColor is the identity");
+            assert_eq!(a.narrow_to(Mono), Mono, "Mono absorbs");
+        }
     }
 
     /// Windows sets no `TERM` and crossterm enables VT processing, so an

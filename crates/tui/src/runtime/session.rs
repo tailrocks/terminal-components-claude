@@ -126,11 +126,31 @@ impl Drop for TerminalSession {
 /// cadence when a repaint is pending, at the idle cadence otherwise),
 /// handle, repeat until `App::should_quit` or `Cx::quit`.
 ///
+/// `theme` is narrowed once, here, by [`Theme::for_terminal`] (§34.2). This is
+/// the only place in the library that resolves colour capability: a theme is
+/// built before the terminal is known, and this is the function that opens it.
+/// [`Runtime::new`] deliberately does **not** do it — `Harness`, `Scene` and
+/// the crate's front-page doc example all call it, so an environment read there
+/// would make every render digest a function of the CI runner's `TERM`.
+///
+/// Narrowing means a caller who hands `run` a theme already at a chosen level
+/// keeps it; forcing colour *up* is `CLICOLOR_FORCE`'s job inside
+/// [`ColorLevel::detect`](crate::theme::ColorLevel::detect), which is why there
+/// is no `run_with`.
+///
 /// # Errors
 /// Terminal I/O errors.
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "`theme: Theme` is the published signature (§17.0 A1) and §34 fixes \
+              it in place; `for_terminal` borrows, so the value is not consumed, \
+              but narrowing to `&Theme` is a public API change out of this scope \
+              and would make every caller keep a theme alive beside the narrowed \
+              copy the runtime already owns"
+)]
 pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
     let mut session = TerminalSession::enter()?;
-    let mut rt = Runtime::new(app, theme);
+    let mut rt = Runtime::new(app, theme.for_terminal());
     let tick = Duration::from_millis(rt.theme().design.motion.tick_ms);
     let idle = Duration::from_millis(rt.theme().design.motion.idle_tick_ms);
     loop {

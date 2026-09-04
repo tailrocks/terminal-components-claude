@@ -241,8 +241,18 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
 impl Theme {
     /// Every token mapped through [`downgrade_color`]; at `Mono` the mono
     /// fallback rules are appended (§11.4). Works for any theme.
+    ///
+    /// A theme already at `level` is returned unchanged. That guard is a
+    /// **precondition**, not an optimisation: [`Recipes::apply_mono_fallbacks`]
+    /// is deliberately not idempotent (§31), so a second `downgrade(Mono)`
+    /// would append all [`MONO_RULES_PER_FAMILY`] rules again to every
+    /// resolvable recipe. [`Theme::for_level`] — and through it `run`, which
+    /// downgrades unconditionally — relies on this (§34.3).
     #[must_use]
     pub fn downgrade(&self, level: ColorLevel) -> Theme {
+        if self.capability.color == level {
+            return self.clone();
+        }
         let mut out = self.clone();
         out.capability.color = level;
         out.color = self.color.map_colors(&mut |c| downgrade_color(c, level));
@@ -250,6 +260,27 @@ impl Theme {
             out.recipes.apply_mono_fallbacks();
         }
         out
+    }
+
+    /// This theme narrowed to what `detected` can paint. Pure: the testable
+    /// seam under [`Theme::for_terminal`] (§34.3).
+    ///
+    /// Narrows and **never widens**, because `capability.color` is the depth
+    /// the theme's tokens are actually at, not a request. A plain
+    /// `downgrade(detected)` would raise the field on a theme a caller had
+    /// deliberately taken down to `Mono`, leaving it claiming `TrueColor` over
+    /// black-and-white tokens — a field lying about its own content, which then
+    /// mis-binds [`Role::Custom`].
+    #[must_use]
+    pub fn for_level(&self, detected: ColorLevel) -> Theme {
+        self.downgrade(self.capability.color.narrow_to(detected))
+    }
+
+    /// [`Theme::for_level`] at [`ColorLevel::detect`] — the one impure call,
+    /// made once by `run` when the terminal is finally known.
+    #[must_use]
+    pub fn for_terminal(&self) -> Theme {
+        self.for_level(ColorLevel::detect())
     }
 }
 
@@ -579,6 +610,104 @@ mod tests {
         assert_eq!(at16(Color::Rgb(0x2b, 0x86, 0x32)), Color::Green);
         assert_eq!(at16(Color::Rgb(0x7a, 0x2a, 0x2a)), Color::Red);
         assert_eq!(at16(c.info), Color::LightBlue);
+    }
+
+    /// The **precondition** for `run` applying a downgrade unconditionally
+    /// (§34.3), and the evidence that `Theme::downgrade`'s same-level guard is
+    /// load-bearing rather than tidy-up.
+    ///
+    /// `Recipes::apply_mono_fallbacks` is deliberately *not* idempotent (§31):
+    /// each call appends its rules again, to every resolvable recipe. Without
+    /// the guard the first three levels below pass and the `Mono` arm fails,
+    /// because only `Mono` reaches the fallback pass — so the second half here,
+    /// which counts rules after **two** downgrades, is the assertion that would
+    /// have caught an unguarded `run`.
+    #[test]
+    fn downgrade_is_idempotent_per_level() {
+        let t = Theme::junie();
+        for level in LEVELS {
+            let once = t.downgrade(level);
+            assert_eq!(
+                once,
+                once.downgrade(level),
+                "downgrade({level:?}) is not idempotent"
+            );
+        }
+
+        let states =
+            |r: &Recipe| -> usize { r.parts.iter().map(|(_, p)| p.states.len()).sum::<usize>() };
+        let twice = t.downgrade(ColorLevel::Mono).downgrade(ColorLevel::Mono);
+        for (f, before) in t.recipes.iter() {
+            let after = twice.recipes.get(f).map_or(0, states);
+            assert_eq!(
+                after.saturating_sub(states(before)),
+                MONO_RULES_PER_FAMILY,
+                "{f:?} received the mono fallbacks more than once"
+            );
+        }
+        assert_eq!(
+            states(twice.recipes.neutral()).saturating_sub(states(t.recipes.neutral())),
+            MONO_RULES_PER_FAMILY,
+            "the neutral recipe received the mono fallbacks more than once"
+        );
+    }
+
+    /// §34.3: `for_level` narrows and never widens.
+    ///
+    /// The widening case is the one with teeth. `capability.color` is a claim
+    /// about the tokens, so raising it on an already-mono theme would leave the
+    /// field asserting `TrueColor` over black-and-white colours — and both
+    /// halves are checked here, because a fix that only pinned the field would
+    /// still be wrong if the colours moved.
+    #[test]
+    fn for_level_narrows_but_never_widens() {
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let widened = mono.for_level(ColorLevel::TrueColor);
+        assert_eq!(
+            widened.capability.color,
+            ColorLevel::Mono,
+            "for_level widened a deliberately downgraded theme"
+        );
+        for c in widened.color.colors() {
+            assert!(
+                matches!(c, Color::Black | Color::White | Color::Reset),
+                "{c:?} came back after a widening for_level"
+            );
+        }
+        assert_eq!(
+            widened, mono,
+            "for_level is not a no-op when it cannot narrow"
+        );
+
+        assert_eq!(
+            Theme::junie().for_level(ColorLevel::Mono),
+            Theme::junie().downgrade(ColorLevel::Mono),
+            "for_level did not narrow a TrueColor theme to Mono"
+        );
+
+        assert_eq!(
+            Theme::junie().for_level(ColorLevel::TrueColor),
+            Theme::junie(),
+            "for_level changed a theme already at the detected level"
+        );
+    }
+
+    /// Composes with `mono_fallbacks_reach_the_neutral_recipe`: the pass has
+    /// to reach the neutral recipe *through* `for_level`, and exactly once.
+    /// This is the shape `run` takes, so it is where a double application
+    /// would land in a shipped binary.
+    #[test]
+    fn for_level_reaches_the_neutral_recipe_once() {
+        let states =
+            |r: &Recipe| -> usize { r.parts.iter().map(|(_, p)| p.states.len()).sum::<usize>() };
+        let base = Theme::junie();
+        let m = base.for_level(ColorLevel::Mono);
+        assert_eq!(m.capability.color, ColorLevel::Mono);
+        assert_eq!(
+            states(m.recipes.neutral()).saturating_sub(states(base.recipes.neutral())),
+            MONO_RULES_PER_FAMILY,
+            "for_level(Mono) did not apply the mono fallbacks to the neutral recipe exactly once"
+        );
     }
 
     #[test]
