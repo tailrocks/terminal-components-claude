@@ -1222,7 +1222,7 @@ remains frozen; later allocation or byte growth is a regression.
 - captures:  none under shots/ — performance evidence is the `PERF` line emitted by each package-qualified target and the uploaded CI log
 - tests:     apps/showcase/tests/perf_baseline.txt, apps/tablepro/tests/perf_baseline.txt, apps/jackin-preview/tests/perf_baseline.txt; perf_showcase_baseline, perf_tablepro_baseline, perf_jackin_baseline
 - moved:     none
-- added:     3 rows: `frame_showcase_lists_120x40`, `frame_tablepro_grid_500x12_120x40`, `frame_jackin_manager_100rows_120x40`
+- added:     4 rows: `frame_showcase_lists_120x40`, `frame_tablepro_grid_500x12_120x40`, `frame_jackin_capsule_4panes_120x40`, `frame_jackin_manager_100rows_120x40`
 - class:     intended
 - reason:    §20.10 item 33; each migrated app now records its own measured frame row without modifying the frozen pre-refactor baseline.
 ```
@@ -1290,3 +1290,162 @@ remains frozen; later allocation or byte growth is a regression.
 This is an attached current FAIL, not a reclassification of the historical Slice-4 review above.
 The contrast fix is classified under §20.10 item 32; fresh captures and a new independent review
 are required before blessing.
+### Item 34 — Migrated app visual repair baselines
+
+The current digest movement is classified before the refreshed capture matrix and independent review. The exact old→new pairs are retained so a later bless cannot hide an unreviewed movement.
+
+```
+- surface:   showcase digest repair @ 22 pages / all four sizes / paper + shared Grid/Table cells / all relevant colour levels
+- captures:  `shots/capture-matrix.tsv` and corresponding app artifacts; current matrix refresh and independent review are required before approval
+- tests:     apps/showcase/tests/baselines/showcase.txt, `showcase_visual_baseline`
+- moved:     144 keys:
+  Buttons 100 30 paper 16 558271144e30b31c → Buttons 100 30 paper 16 3f31309902fbc2cc
+  Buttons 120 40 paper 16 dccc8772b87f1a48 → Buttons 120 40 paper 16 1ed30c75fec13f90
+  Buttons 160 50 paper 16 47ad839b761e5410 → Buttons 160 50 paper 16 139920a7b61b8f78
+  Buttons 80 24 paper 16 1beae9a30e6e8259 → Buttons 80 24 paper 16 f16961098f9ca069
+  Chips & selects 100 30 paper 16 e9235e5d3f165898 → Chips & selects 100 30 paper 16 2d5b5de5ceb4b7c4
+  Chips & selects 120 40 paper 16 19b1aa15b2cf0c37 → Chips & selects 120 40 paper 16 60de18f009c46a4b
+  Chips & selects 160 50 paper 16 0bf97215d5b26e9f → Chips & selects 160 50 paper 16 75a9d36d5ca4f913
+  Chips & selects 80 24 paper 16 1e5e5c5424b37043 → Chips & selects 80 24 paper 16 58e73fc0c981688b
+  Chrome 100 30 paper 16 d650923b4f37cd40 → Chrome 100 30 paper 16 30a4effa148b24d0
+  Chrome 120 40 paper 16 d41f054d4c1b966e → Chrome 120 40 paper 16 4a55eaaab393617e
+  Chrome 160 50 paper 16 db5205ad78ac03fe → Chrome 160 50 paper 16 d05870fe5101df8e
+  Chrome 80 24 paper 16 d337323e6754cccc → Chrome 80 24 paper 16 79ea53f3c60abf6c
+  Data grid 100 30 junie 16 44c31f31011020ac → Data grid 100 30 junie 16 d09e81e22aaddfd5
+  Data grid 100 30 junie 256 4e5326bce6a037f3 → Data grid 100 30 junie 256 40bf28e3a6147096
+  Data grid 100 30 junie mono 5044d0254653b4fa → Data grid 100 30 junie mono 9a450827ade2e249
+  Data grid 100 30 junie truecolor 27d79eab0db00a5d → Data grid 100 30 junie truecolor 62f0178a5371cb62
+  Data grid 100 30 paper 16 1dc77a0e6d81bce0 → Data grid 100 30 paper 16 28796d034234542f
+  Data grid 100 30 paper 256 df434a9363579ae3 → Data grid 100 30 paper 256 3c2185e9aedaea7a
+  Data grid 100 30 paper mono 00c47eb286838116 → Data grid 100 30 paper mono eee115b41b760955
+  Data grid 100 30 paper truecolor 21d9faae4242509d → Data grid 100 30 paper truecolor a5e47ca5e066cb98
+  Data grid 120 40 junie 16 115389ca7a77e057 → Data grid 120 40 junie 16 13e26f3af2ee1268
+  Data grid 120 40 junie 256 0f00eada3f782d85 → Data grid 120 40 junie 256 ae996e9a7f270d40
+  Data grid 120 40 junie mono 68f57e777c8f6573 → Data grid 120 40 junie mono 8f0f39215ca7b908
+  Data grid 120 40 junie truecolor b6df914b59e711e5 → Data grid 120 40 junie truecolor 95e4d2bddf60df36
+  Data grid 120 40 paper 16 b5f8fe1d8db21c53 → Data grid 120 40 paper 16 7ed0138d4e1fe4a6
+  Data grid 120 40 paper 256 16e7c675af1e1e56 → Data grid 120 40 paper 256 d6cf6485e6624d0f
+  Data grid 120 40 paper mono 09bc1c05cd28e187 → Data grid 120 40 paper mono 7a2e61e7f6dd9364
+  Data grid 120 40 paper truecolor f2cfc94a2375ff99 → Data grid 120 40 paper truecolor e0cceb143a7020dc
+  Data grid 160 50 junie 16 bf9dc961b8941e3f → Data grid 160 50 junie 16 4fef292f60d67d78
+  Data grid 160 50 junie 256 1ca7b7e186865b65 → Data grid 160 50 junie 256 9985f8f164e4cc30
+  Data grid 160 50 junie mono 63dbf452609390db → Data grid 160 50 junie mono 59ff3cd8db2c4e00
+  Data grid 160 50 junie truecolor 7905116f77960a91 → Data grid 160 50 junie truecolor 71760b1cab5d4cc2
+  Data grid 160 50 paper 16 8682785125adc363 → Data grid 160 50 paper 16 0723611b493d9616
+  Data grid 160 50 paper 256 b17cfcc5f528d1be → Data grid 160 50 paper 256 dcda04a28cc5d467
+  Data grid 160 50 paper mono 9ddde3595e42ca67 → Data grid 160 50 paper mono 6b09d44d3b5e0ea4
+  Data grid 160 50 paper truecolor 0109e59e243084bd → Data grid 160 50 paper truecolor 5cf8d8d416ec2200
+  Data grid 80 24 junie 16 5bbafcce6df367cd → Data grid 80 24 junie 16 672d85934ec1bf20
+  Data grid 80 24 junie 256 2cf4106a7a122c70 → Data grid 80 24 junie 256 c854ab232e0800b9
+  Data grid 80 24 junie mono 2104f1bee57c0a53 → Data grid 80 24 junie mono 2eb45a78a230d024
+  Data grid 80 24 junie truecolor 925c3b9732c11c6d → Data grid 80 24 junie truecolor 3cca73dc989b1b2e
+  Data grid 80 24 paper 16 f6c7898b9c2fdd19 → Data grid 80 24 paper 16 8abc95eb7e26d4a6
+  Data grid 80 24 paper 256 32f0120dd1967618 → Data grid 80 24 paper 256 a9b8877cacf4feb5
+  Data grid 80 24 paper mono 34dd9f59bf53ad7d → Data grid 80 24 paper mono 45a50905805f6fb6
+  Data grid 80 24 paper truecolor e546efc9235e4d38 → Data grid 80 24 paper truecolor c161ac56c4546925
+  Dialogs 100 30 paper 16 e89751811a23d73f → Dialogs 100 30 paper 16 128403b53fc64a2f
+  Dialogs 120 40 paper 16 f23e7d9c13c4c0da → Dialogs 120 40 paper 16 5b156793c36370aa
+  Dialogs 160 50 paper 16 9cffaeccb4bad8a2 → Dialogs 160 50 paper 16 83bc30ade4e2f672
+  Dialogs 80 24 paper 16 18a0c064898558fc → Dialogs 80 24 paper 16 fabbcc82a14d342c
+  Editable tables 100 30 paper 16 11d4331f22b4dd35 → Editable tables 100 30 paper 16 83ccd9efa11010f9
+  Editable tables 120 40 paper 16 e2f59f75614792a7 → Editable tables 120 40 paper 16 a565f6f2468966d3
+  Editable tables 160 50 paper 16 567f3dbfce920c5e → Editable tables 160 50 paper 16 9240b9c63217159a
+  Editable tables 80 24 paper 16 5c993d9d02a1f7d7 → Editable tables 80 24 paper 16 a1d6196b14827017
+  Editor 100 30 paper 16 47510e498b919135 → Editor 100 30 paper 16 b4b6d77a739c95b5
+  Editor 120 40 paper 16 2093ad11ae705a1a → Editor 120 40 paper 16 0ac5fe44b20b6992
+  Editor 160 50 paper 16 0df51f7ef6cd05e2 → Editor 160 50 paper 16 34d1889625615c7a
+  Editor 80 24 paper 16 0be8238a36bbb9d9 → Editor 80 24 paper 16 7af410a3832f9eed
+  Forms 100 30 paper 16 85480ab95e2cc5c6 → Forms 100 30 paper 16 23b79924e3c87282
+  Forms 120 40 paper 16 8fc0fe65a04d0575 → Forms 120 40 paper 16 4598392a22f1900d
+  Forms 160 50 paper 16 d2f72dc024e8994b → Forms 160 50 paper 16 92047362ec8a49cf
+  Forms 80 24 paper 16 dd62419daa857585 → Forms 80 24 paper 16 bbc8af7aad4ae931
+  Inputs 100 30 paper 16 38e9f496420f44a6 → Inputs 100 30 paper 16 932a354c9ec61bf6
+  Inputs 120 40 paper 16 cc36ec6140116d07 → Inputs 120 40 paper 16 543c48b3b277a1f7
+  Inputs 160 50 paper 16 db27ce5eaba0db57 → Inputs 160 50 paper 16 4debb3cfee5f4147
+  Inputs 80 24 paper 16 8007b71c7e161854 → Inputs 80 24 paper 16 2b84370996d88fc4
+  Lists 100 30 paper 16 3531f6c6b52615a0 → Lists 100 30 paper 16 24216c59acac2590
+  Lists 120 40 paper 16 e8d3761dbe48471e → Lists 120 40 paper 16 f150abcd819df40e
+  Lists 160 50 paper 16 b7128328d0af1296 → Lists 160 50 paper 16 263ba361ff0c9646
+  Lists 80 24 paper 16 ee385ce725a3935d → Lists 80 24 paper 16 d283cdbdd6840319
+  Overview 100 30 paper 16 a978ad29d923fee7 → Overview 100 30 paper 16 778034a14d0376e7
+  Overview 120 40 paper 16 2417bdb9924cba28 → Overview 120 40 paper 16 1026eba325858ffc
+  Overview 160 50 paper 16 9971bb8d0bac611c → Overview 160 50 paper 16 c145cc173575d73c
+  Overview 80 24 paper 16 3abb74290d9b4fdb → Overview 80 24 paper 16 b53cd06e40bb3ee3
+  Panels 100 30 paper 16 cc6bd43739327287 → Panels 100 30 paper 16 a5bb826cffba04d7
+  Panels 120 40 paper 16 87188d44fc85b652 → Panels 120 40 paper 16 b98658ad7d4d8782
+  Panels 160 50 paper 16 b44f1720123000f8 → Panels 160 50 paper 16 f23ce255f1671428
+  Panels 80 24 paper 16 fbc641b8ae46ea7a → Panels 80 24 paper 16 49079bc8a9e6f18a
+  Pickers 100 30 paper 16 168754257d557b71 → Pickers 100 30 paper 16 dcddf7ece4e3c6e5
+  Pickers 120 40 paper 16 4c7e6581d406bd6e → Pickers 120 40 paper 16 6f582461c4898442
+  Pickers 160 50 paper 16 fb0a886c48e1d2cd → Pickers 160 50 paper 16 c7a240a931e14f05
+  Pickers 80 24 paper 16 8d6dd5e48e445bce → Pickers 80 24 paper 16 645bed658ef8b4ba
+  Progress 100 30 paper 16 93de8b4e18bae9a0 → Progress 100 30 paper 16 e14866d3cfe61ff0
+  Progress 120 40 paper 16 6ad45ae774945cb8 → Progress 120 40 paper 16 87fc8e8585b12bf8
+  Progress 160 50 paper 16 388d40e1e107ae5c → Progress 160 50 paper 16 4288e343372058bc
+  Progress 80 24 paper 16 35470b6298cfa87d → Progress 80 24 paper 16 b75eab2e7aa32739
+  Scrolling 100 30 paper 16 a1cd37a2668f5742 → Scrolling 100 30 paper 16 772406b3cf8ba652
+  Scrolling 120 40 paper 16 b4f6be9cde8c27fc → Scrolling 120 40 paper 16 803759e23bcd20b4
+  Scrolling 160 50 paper 16 94b35a043aaf363d → Scrolling 160 50 paper 16 5069f5b16b54794d
+  Scrolling 80 24 paper 16 446838cff6525808 → Scrolling 80 24 paper 16 6b3a9d64cd3f6ebc
+  Settings 100 30 paper 16 4bb2221fd4521547 → Settings 100 30 paper 16 1929d7c4db2655c7
+  Settings 120 40 paper 16 e92e15d5c83d3ffc → Settings 120 40 paper 16 8d1668810e8d321c
+  Settings 160 50 paper 16 d584feea44b2cba4 → Settings 160 50 paper 16 bf360a9410212844
+  Settings 80 24 paper 16 333afaab7d70eb68 → Settings 80 24 paper 16 232485ed5e28dfa4
+  Sidebars 100 30 paper 16 77318c5412d99330 → Sidebars 100 30 paper 16 e91d08fd58611120
+  Sidebars 120 40 paper 16 22873fd53c970f30 → Sidebars 120 40 paper 16 190d35dd9900a5c0
+  Sidebars 160 50 paper 16 e9fa817b546f7e0b → Sidebars 160 50 paper 16 dc863ea86a8da69b
+  Sidebars 80 24 paper 16 2fd6e96cf453e3b5 → Sidebars 80 24 paper 16 179360e0e2808085
+  Tables 100 30 junie 16 e965123995c05745 → Tables 100 30 junie 16 33902d75922de664
+  Tables 100 30 junie 256 e6d6826bf03a9454 → Tables 100 30 junie 256 3e9af10c2a5e5e0b
+  Tables 100 30 junie mono 3b0a3c094c884934 → Tables 100 30 junie mono 26a19bf34bec53a7
+  Tables 100 30 junie truecolor 6bc75591a99f8299 → Tables 100 30 junie truecolor d02470a233b6684a
+  Tables 100 30 paper 16 576de12d927c81bb → Tables 100 30 paper 16 55468d7cee898120
+  Tables 100 30 paper 256 23fe9a6c057f2203 → Tables 100 30 paper 256 9bfb9897144c024a
+  Tables 100 30 paper mono 25d0eb8b47e3014e → Tables 100 30 paper mono 27c73976616c2ca9
+  Tables 100 30 paper truecolor 89d13a52813ae4ec → Tables 100 30 paper truecolor 64522c741e260e1f
+  Tables 120 40 junie 16 f69625d6eda10b69 → Tables 120 40 junie 16 998267e3cadd15f8
+  Tables 120 40 junie 256 6355036929f6a9da → Tables 120 40 junie 256 a1597be77dc34f85
+  Tables 120 40 junie mono 06a237372ad099cf → Tables 120 40 junie mono 7e6c63ea6874e29c
+  Tables 120 40 junie truecolor 506e870e013bac68 → Tables 120 40 junie truecolor 787ba406b60d7ed1
+  Tables 120 40 paper 16 88081a0c66b9fec5 → Tables 120 40 paper 16 6c779f5143b99d74
+  Tables 120 40 paper 256 1bd765d18abba950 → Tables 120 40 paper 256 db218eac7c2196ad
+  Tables 120 40 paper mono 57ad91272844df65 → Tables 120 40 paper mono 4b54535694b24562
+  Tables 120 40 paper truecolor f758ecdabfd99388 → Tables 120 40 paper truecolor 0f3680938fe3cee9
+  Tables 160 50 junie 16 5e8a3df8d0925550 → Tables 160 50 junie 16 79eac3e1bb808cb9
+  Tables 160 50 junie 256 ac63846e2546c297 → Tables 160 50 junie 256 7d4c08a9f045ccd8
+  Tables 160 50 junie mono e451345cfe00e87c → Tables 160 50 junie mono 5219b568ef9972f7
+  Tables 160 50 junie truecolor 69c0287a01c857c3 → Tables 160 50 junie truecolor b6a107ce2e3f4502
+  Tables 160 50 paper 16 1aab54cb3ca99e1c → Tables 160 50 paper 16 ed61b2e9e08ef219
+  Tables 160 50 paper 256 b29926c1951a92f3 → Tables 160 50 paper 256 542b2c462ea100e6
+  Tables 160 50 paper mono db42cdf699d08ce2 → Tables 160 50 paper mono 1e4241f13f0acc1d
+  Tables 160 50 paper truecolor 3b092e224a697c2d → Tables 160 50 paper truecolor 36797e5cd89530c8
+  Tables 80 24 junie 16 a9d1eccad95120fd → Tables 80 24 junie 16 a31d5256122a5e94
+  Tables 80 24 junie 256 2901c8b5cdc895db → Tables 80 24 junie 256 1575db1ef0431e38
+  Tables 80 24 junie mono a88a358a1ff92324 → Tables 80 24 junie mono 8f5b063a1c5da6a3
+  Tables 80 24 junie truecolor b06721de063eda80 → Tables 80 24 junie truecolor 5231b5d33ae9856f
+  Tables 80 24 paper 16 a07ffcecfacaa031 → Tables 80 24 paper 16 83bc3073229fc2f6
+  Tables 80 24 paper 256 714649b9c70fe153 → Tables 80 24 paper 256 23f6d8c17a4884f2
+  Tables 80 24 paper mono d87f9f51e703c318 → Tables 80 24 paper mono ef0d1fa7db2f08bf
+  Tables 80 24 paper truecolor d7e085b5ed31447f → Tables 80 24 paper truecolor 718b302f31ff7518
+  Task runner 100 30 paper 16 7146985c63bd828d → Task runner 100 30 paper 16 e93219e16f8791ed
+  Task runner 120 40 paper 16 1e9511ee1ebfd683 → Task runner 120 40 paper 16 0841bf75618ae303
+  Task runner 160 50 paper 16 3619ac69a64ebddb → Task runner 160 50 paper 16 2a1875dfb6abf55b
+  Task runner 80 24 paper 16 89d45c30580e70d5 → Task runner 80 24 paper 16 60f4c6c229a2a42d
+  Terminal 100 30 paper 16 e42cafd0c0b06a7c → Terminal 100 30 paper 16 d4f7ba97711b99b0
+  Terminal 120 40 paper 16 3edf58443f103232 → Terminal 120 40 paper 16 7951fccdb947dc06
+  Terminal 160 50 paper 16 41b72f7208f2e3ca → Terminal 160 50 paper 16 655db358adebb1fe
+  Terminal 80 24 paper 16 ffdfa274c744e237 → Terminal 80 24 paper 16 b40ac4371613b6cf
+  Text areas 100 30 paper 16 70c1332c2313c3da → Text areas 100 30 paper 16 473a15728b296f6e
+  Text areas 120 40 paper 16 50a2a3cfde198232 → Text areas 120 40 paper 16 dad5ae35430aa5fe
+  Text areas 160 50 paper 16 0fc760ba987d74aa → Text areas 160 50 paper 16 6ca46a05385e2976
+  Text areas 80 24 paper 16 5ba16bbee0111897 → Text areas 80 24 paper 16 bf0e5286ae1ae863
+  Trees 100 30 paper 16 3f8150c8cd97f60d → Trees 100 30 paper 16 e0bd6c6e1ce24e89
+  Trees 120 40 paper 16 fec9af252fdb0ef4 → Trees 120 40 paper 16 afc9ec8f0f02f1f8
+  Trees 160 50 paper 16 bc787b4071a8ef4c → Trees 160 50 paper 16 9b5a29124c278550
+  Trees 80 24 paper 16 3f798680854e9339 → Trees 80 24 paper 16 a2ab802e3e241399
+- added:     none
+- class:     fix
+- reason:    §20.10 item 34; the Paper/ANSI16 contrast repair and shared Grid/Table geometry correction changed only the exact cells listed above.
+```
+
+ ## Review status — Slice 4 component matrix, independent visual review (2026-09-05)
