@@ -40,6 +40,10 @@ fn wheel(h: &mut Harness<App>, axis: Axis, delta: i16, x: u16, y: u16) {
     let _ = h.wheel(axis, delta, x, y);
 }
 
+#[expect(
+    clippy::panic,
+    reason = "a missing fixture is a real test failure, never a skipped scenario"
+)]
 fn require<T>(value: Option<T>, message: &str) -> T {
     match value {
         Some(value) => value,

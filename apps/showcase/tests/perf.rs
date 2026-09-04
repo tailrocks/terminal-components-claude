@@ -5,6 +5,10 @@ use showcase_app::{App, PageId};
 use tui_next::{Axis, KeyCode, Theme};
 use tui_next_testing::Harness;
 
+#[expect(
+    clippy::panic,
+    reason = "a missing benchmark target is a real test failure, never a skipped run"
+)]
 fn require<T>(value: Option<T>, message: &str) -> T {
     match value {
         Some(value) => value,
