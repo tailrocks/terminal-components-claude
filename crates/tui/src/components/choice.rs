@@ -25,7 +25,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Activated, Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, Ui};
 
 /// What a radio group reports; the cursor moving is **not** an action —
@@ -138,10 +138,10 @@ impl FlagRow<'_> {
         } else {
             let g = style(ui, Part::GUTTER);
             match g.glyph {
-                Some(glyph) => {
+                Slot::Set(glyph) => {
                     ui.glyph(gutter_cell, glyph, g.style);
                 }
-                None => ui.fill(gutter_cell, g.style),
+                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
         let marker_cell = Rect {
@@ -170,7 +170,7 @@ impl FlagRow<'_> {
             f(ui, text);
         } else {
             let ls = style(ui, Part::LABEL);
-            let used = if ls.glyph == Some(GlyphRole::PressLeft) {
+            let used = if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
                 // §11.4's mono `PRESSED` affordance: `[label]`
                 let l = ui.glyph(text, GlyphRole::PressLeft, ls.style);
                 let mut t = super::shift(text, l);
@@ -1049,27 +1049,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.action(RadioGroupAction::Chose(key));
     }
 
-    /// The update phase: reconcile, then move the cursor or commit it.
+    /// The update phase: reconcile when enabled, then move the cursor or
+    /// commit it.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
         st: &mut RadioGroupState,
         items: &[T],
     ) -> Response<RadioGroupAction> {
+        let can = self.editable();
         let len = items.len();
-        let _ = st.core.reconcile(len, |i| self.key_at(items, i));
-        if st.core.cursor().is_none() && len > 0 {
-            // the cursor starts on the value when there is one, else on the
-            // first option
-            let i = self
-                .value
-                .and_then(|v| self.index_of(items, v, None))
-                .unwrap_or(0);
-            let key = self.key_at(items, i);
-            st.core.set_cursor(i, key);
+        if !self.disabled {
+            let _ = st.core.reconcile(len, |i| self.key_at(items, i));
+            if st.core.cursor().is_none() && len > 0 {
+                // the cursor starts on the value when there is one, else on
+                // the first option
+                let i = self
+                    .value
+                    .and_then(|v| self.index_of(items, v, None))
+                    .unwrap_or(0);
+                let key = self.key_at(items, i);
+                st.core.set_cursor(i, key);
+            }
         }
         let mut acc = Acc::<RadioGroupAction>::new();
-        let can = self.editable();
         for it in cx.intents(self.id) {
             match it {
                 Intent::Key(k) if can => {
@@ -1115,34 +1118,179 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.finish(self.id)
     }
 
+    /// The rect the group paints into: one row per option that fits `area`.
+    fn used_rect(area: Rect, len: usize) -> Rect {
+        let rows = usize::from(area.height).min(len);
+        Rect {
+            height: rows.min(usize::from(u16::MAX)) as u16,
+            ..area
+        }
+    }
+
+    /// Registers the group as one control over `used`.
+    ///
+    /// A forced state paints a reference rendering and registers nothing, so
+    /// the A11 sheet cannot take focus away from the live frame.
+    fn register(&self, ui: &mut Ui<'_>, used: Rect) {
+        if self.ov.is_forced() {
+            return;
+        }
+        let f = if self.disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        };
+        ui.register_control(self.id, used, f);
+    }
+
+    /// The state flags row `i` paints with, and whether that row carries the
+    /// value.
+    ///
+    /// A11 reference rendering: with no live cursor the first row stands in
+    /// for it, so a forced state paints something.
+    fn row_flags(
+        &self,
+        live: StateFlags,
+        cursor: Option<ItemKey>,
+        i: usize,
+        key: ItemKey,
+    ) -> (StateFlags, bool) {
+        let forced = self.ov.is_forced();
+        let is_cursor = cursor == Some(key) || (forced && cursor.is_none() && i == 0);
+        let on =
+            self.value == Some(key) || (forced && is_cursor && live.contains(StateFlags::SELECTED));
+        let mut flags = StateFlags::empty();
+        if is_cursor {
+            flags |= live
+                & (StateFlags::FOCUSED
+                    | StateFlags::FOCUS_VISIBLE
+                    | StateFlags::PRESSED
+                    | StateFlags::HOVERED);
+        }
+        if on {
+            flags |= StateFlags::SELECTED;
+        }
+        if self.read_only {
+            flags |= StateFlags::READ_ONLY;
+        }
+        if self.disabled || live.contains(StateFlags::DISABLED) {
+            flags |= StateFlags::DISABLED;
+            flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
+        }
+        (flags, on)
+    }
+
+    /// Paints the gutter column of one option row.
+    fn paint_gutter(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags) {
+        if let Some(f) = self.ov.slot_for(Part::GUTTER) {
+            f(ui, cell);
+            return;
+        }
+        let g = self.ov.style(
+            ui,
+            self.id,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            flags,
+        );
+        match g.glyph {
+            Slot::Set(glyph) => {
+                ui.glyph(cell, glyph, g.style);
+            }
+            Slot::Inherit | Slot::Clear => ui.fill(cell, g.style),
+        }
+    }
+
+    /// Paints the radio marker of one option row.
+    fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, on: bool) {
+        if let Some(f) = self.ov.slot_for(Part::MARKER) {
+            f(ui, cell);
+            return;
+        }
+        let ms = self.ov.style(
+            ui,
+            self.id,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::MARKER,
+            flags,
+        );
+        let g = if on {
+            GlyphRole::RadioOn
+        } else {
+            GlyphRole::RadioOff
+        };
+        ui.glyph(cell, g, ms.style);
+    }
+
+    /// Paints one option row: the container surface, the gutter, the marker
+    /// and the caller's row body.
+    fn paint_row(
+        &self,
+        ui: &mut Ui<'_>,
+        row: Rect,
+        item: &T,
+        key: ItemKey,
+        flags: StateFlags,
+        on: bool,
+    ) {
+        let container = self.ov.style(
+            ui,
+            self.id,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            flags,
+        );
+        ui.fill(row, container.style);
+        self.paint_gutter(ui, cell_at(row, row.x), flags);
+        let marker_cell = Rect {
+            x: row.x.saturating_add(1),
+            y: row.y,
+            width: Self::MARKER_W.min(row.width.saturating_sub(1)),
+            height: 1,
+        };
+        self.paint_marker(ui, marker_cell, flags, on);
+        let rest = Rect {
+            x: row
+                .x
+                .saturating_add(1)
+                .saturating_add(Self::MARKER_W)
+                .saturating_add(1),
+            y: row.y,
+            width: row.width.saturating_sub(2).saturating_sub(Self::MARKER_W),
+            height: 1,
+        };
+        if !rest.is_empty() {
+            let mut r = RowUi::new(
+                ui,
+                self.id,
+                Family::CHOICE,
+                Variant::DEFAULT,
+                flags,
+                key,
+                rest,
+            );
+            self.row.row(item, &mut r);
+        }
+    }
+
     /// The draw phase: one row per option.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
         }
-        let rows = usize::from(area.height).min(items.len());
-        let used = Rect {
-            height: rows.min(usize::from(u16::MAX)) as u16,
-            ..area
-        };
+        let used = Self::used_rect(area, items.len());
         if used.is_empty() {
             return used;
         }
-        if !self.ov.is_forced() {
-            let f = if self.disabled {
-                Focusability::Disabled
-            } else if self.read_only {
-                Focusability::FocusableReadOnly
-            } else {
-                Focusability::Focusable
-            };
-            ui.register_control(self.id, used, f);
-        }
+        self.register(ui, used);
         let live = self.ov.flags(crate::ui::FrameRead::state(ui, self.id));
-        let forced = self.ov.is_forced();
         let cursor = st.core.cursor();
-        let ov = self.ov;
-        let id = self.id;
+        let rows = usize::from(used.height);
         for (i, item) in items.iter().enumerate().take(rows) {
             let key = self.key.key(item, i);
             let row = Rect {
@@ -1151,95 +1299,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                 width: used.width,
                 height: 1,
             };
-            // A11 reference rendering: with no live cursor the first row
-            // stands in for it, so a forced state paints something.
-            let is_cursor = cursor == Some(key) || (forced && cursor.is_none() && i == 0);
-            let on = self.value == Some(key)
-                || (forced && is_cursor && live.contains(StateFlags::SELECTED));
-            let mut flags = StateFlags::empty();
-            if is_cursor {
-                flags |= live
-                    & (StateFlags::FOCUSED
-                        | StateFlags::FOCUS_VISIBLE
-                        | StateFlags::PRESSED
-                        | StateFlags::HOVERED);
-            }
-            if on {
-                flags |= StateFlags::SELECTED;
-            }
-            if self.read_only {
-                flags |= StateFlags::READ_ONLY;
-            }
-            if self.disabled || live.contains(StateFlags::DISABLED) {
-                flags |= StateFlags::DISABLED;
-                flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
-            }
-            let container = ov.style(
-                ui,
-                id,
-                Family::CHOICE,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                flags,
-            );
-            ui.fill(row, container.style);
-            let gutter_cell = cell_at(row, row.x);
-            if let Some(f) = ov.slot_for(Part::GUTTER) {
-                f(ui, gutter_cell);
-            } else {
-                let g = ov.style(
-                    ui,
-                    id,
-                    Family::CHOICE,
-                    Variant::DEFAULT,
-                    Part::GUTTER,
-                    flags,
-                );
-                match g.glyph {
-                    Some(glyph) => {
-                        ui.glyph(gutter_cell, glyph, g.style);
-                    }
-                    None => ui.fill(gutter_cell, g.style),
-                }
-            }
-            let marker_cell = Rect {
-                x: row.x.saturating_add(1),
-                y: row.y,
-                width: Self::MARKER_W.min(row.width.saturating_sub(1)),
-                height: 1,
-            };
-            if let Some(f) = ov.slot_for(Part::MARKER) {
-                f(ui, marker_cell);
-            } else {
-                let ms = ov.style(
-                    ui,
-                    id,
-                    Family::CHOICE,
-                    Variant::DEFAULT,
-                    Part::MARKER,
-                    flags,
-                );
-                let g = if on {
-                    GlyphRole::RadioOn
-                } else {
-                    GlyphRole::RadioOff
-                };
-                ui.glyph(marker_cell, g, ms.style);
-            }
-            let rest = Rect {
-                x: row
-                    .x
-                    .saturating_add(1)
-                    .saturating_add(Self::MARKER_W)
-                    .saturating_add(1),
-                y: row.y,
-                width: row.width.saturating_sub(2).saturating_sub(Self::MARKER_W),
-                height: 1,
-            };
-            if !rest.is_empty() {
-                let mut r = RowUi::new(ui, id, Family::CHOICE, Variant::DEFAULT, flags, key, rest);
-                self.row.row(item, &mut r);
-            }
+            let (flags, on) = self.row_flags(live, cursor, i, key);
+            self.paint_row(ui, row, item, key, flags, on);
             ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
         }
         used
@@ -1266,12 +1327,39 @@ impl<T, K, R> Bindings for RadioGroup<'_, T, K, R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::Runtime;
+    use crate::event::Input;
     use crate::runtime::stub::{SCREEN, Stub};
+    use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
     use ratatui_core::buffer::Buffer;
 
     const RG: Id = Id::root("choice.tests.radio");
+
+    #[derive(Default)]
+    struct DisabledRadioApp {
+        state: RadioGroupState,
+    }
+
+    impl App for DisabledRadioApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let items = ["alpha", "beta"];
+            RadioGroup::new(RG)
+                .disabled(true)
+                .update(cx, &mut self.state, &items)
+                .erase()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+    }
+
+    /// A disabled collection remains drawable from its current item slice,
+    /// but its update phase must not initialize or reconcile persistent state.
+    #[test]
+    fn disabled_update_does_not_initialize_collection_state() {
+        let mut runtime = Runtime::new(DisabledRadioApp::default(), Theme::junie());
+        let _ = runtime.handle(Input::Tick);
+        assert_eq!(runtime.app().state, RadioGroupState::default());
+    }
 
     /// §16.1 / §20.10 item 3: arrows move the cursor and commit nothing; the
     /// value changes only on `Space` / `Enter` / a click, and it is the

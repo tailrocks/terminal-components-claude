@@ -18,7 +18,9 @@ use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, MeterRole, MeterThresholds, Role, StylePatch, Variant};
+use crate::theme::{
+    Family, GlyphRole, MeterRole, MeterThresholds, Role, Slot, StylePatch, Variant,
+};
 use crate::ui::{FrameRead, Ui};
 
 /// What a meter's run says about the value it reports.
@@ -301,16 +303,20 @@ impl<'a> Meter<'a> {
     }
 
     /// The trailing readiness glyph, or the spinner frame.
-    fn icon(&self, ui: &Ui<'_>, from_recipe: Option<GlyphRole>) -> Option<&'static str> {
+    fn icon(&self, ui: &Ui<'_>, from_recipe: Slot<GlyphRole>) -> Option<&'static str> {
         if self.busy() {
             let frames = ui.design().motion.spinner_frames;
             return frames
                 .get(self.frame.checked_rem(frames.len()).unwrap_or(0))
                 .copied();
         }
-        let g = match self.status {
-            Status::Error => Some(from_recipe.unwrap_or(GlyphRole::Error)),
-            _ => from_recipe,
+        let g = match from_recipe {
+            Slot::Set(g) => Some(g),
+            Slot::Inherit => match self.status {
+                Status::Error => Some(GlyphRole::Error),
+                _ => None,
+            },
+            Slot::Clear => None,
         };
         g.map(|g| ui.glyph_str(g))
     }
@@ -329,7 +335,11 @@ impl<'a> Meter<'a> {
 
     /// The run tone layered over `base`, with the caller's instance patch on
     /// top (the `CellUi::tone` shape: a role delta, never a colour).
-    fn toned(&self, ui: &Ui<'_>, base: Style, fg: Option<Role>, bg: Option<Role>) -> Style {
+    ///
+    /// Every input is a parameter — the tone the caller wants is already
+    /// resolved by [`Self::resolved_tone`] — so this is an associated
+    /// function, not a method.
+    fn toned(ui: &Ui<'_>, base: Style, fg: Option<Role>, bg: Option<Role>) -> Style {
         let mut delta = StylePatch::new();
         if let Some(r) = fg {
             delta = delta.set_fg(r);
@@ -402,7 +412,7 @@ impl<'a> Meter<'a> {
                 } else {
                     let rest = ov.style(ui, id, Family::METER, self.variant, Part::TRACK, live);
                     let thumb = ov.style(ui, id, Family::METER, self.variant, Part::THUMB, live);
-                    let fill = self.toned(ui, thumb.style, Some(Role::Meter(tone.role())), None);
+                    let fill = Self::toned(ui, thumb.style, Some(Role::Meter(tone.role())), None);
                     super::progress::run_of(ui, track, GlyphRole::RuleQuiet, rest.style);
                     let filled = Rect {
                         width: (f64::from(track_w) * ratio).round() as u16,
@@ -445,7 +455,7 @@ impl<'a> Meter<'a> {
                     let rest = ov.style(ui, id, Family::METER, self.variant, Part::TRACK, live);
                     let thumb = ov.style(ui, id, Family::METER, self.variant, Part::THUMB, live);
                     let rest_bg =
-                        self.toned(ui, rest.style, None, Some(Role::Meter(MeterRole::FillRest)));
+                        Self::toned(ui, rest.style, None, Some(Role::Meter(MeterRole::FillRest)));
                     ui.fill(bar, rest_bg);
                     // the value sits inside the bar; the used share is
                     // restyled over it, so one string keeps two planes
@@ -460,7 +470,7 @@ impl<'a> Meter<'a> {
                         ..bar
                     };
                     if !filled.is_empty() {
-                        let on_fill = self.toned(
+                        let on_fill = Self::toned(
                             ui,
                             thumb.style,
                             Some(Role::OnAccent),

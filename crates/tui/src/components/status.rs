@@ -5,7 +5,7 @@
 //! This one component replaces both the legacy `statusbar` and `segments`:
 //! `Left`/`Center`/`Right` groups of priority-ordered items, one drop order,
 //! one truncation rule, inline meters and clickable item ids. The two
-//! hand-written priority-drop loops in TablePro's identity strip and grid
+//! hand-written priority-drop loops in `TablePro`'s identity strip and grid
 //! status line become consumers of this strip in Slice 6.
 
 use core::fmt;
@@ -22,7 +22,7 @@ use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Role, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// Items per group laid out without allocating.
@@ -309,6 +309,19 @@ impl fmt::Debug for StatusBar<'_> {
 /// Which items survive, one bit per item, one mask per group.
 type Keep = [u32; 3];
 
+/// The mask with the low `n` bits set: every item of an `n`-item group alive.
+///
+/// A group with more items than the mask has bits keeps every bit set, which
+/// is what the drop loop wants — the strip is full and items start leaving.
+fn all_alive(n: usize) -> u32 {
+    let n = u32::try_from(n).unwrap_or(u32::BITS);
+    // `u32::MAX >> (32 - n)`. `checked_shr` answers `None` for a shift of 32
+    // or more, which is exactly `n == 0`: the empty group, no bits set.
+    u32::MAX
+        .checked_shr(u32::BITS.saturating_sub(n))
+        .unwrap_or(0)
+}
+
 impl<'a> StatusBar<'a> {
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
@@ -444,17 +457,21 @@ impl<'a> StatusBar<'a> {
                 .copied();
         }
         if live.contains(StateFlags::ERROR) {
-            let g = ui
-                .resolve(Family::STATUSBAR, self.variant, Part::MARKER, live)
-                .glyph
-                .unwrap_or(GlyphRole::Error);
+            let resolved = ui.resolve(Family::STATUSBAR, self.variant, Part::MARKER, live);
+            let g = match resolved.glyph {
+                Slot::Set(g) => g,
+                Slot::Inherit => GlyphRole::Error,
+                Slot::Clear => return None,
+            };
             return Some(ui.glyph_str(g));
         }
         if live.contains(StateFlags::WARNING) {
-            let g = ui
-                .resolve(Family::STATUSBAR, self.variant, Part::MARKER, live)
-                .glyph
-                .unwrap_or(GlyphRole::Dirty);
+            let resolved = ui.resolve(Family::STATUSBAR, self.variant, Part::MARKER, live);
+            let g = match resolved.glyph {
+                Slot::Set(g) => g,
+                Slot::Inherit => GlyphRole::Dirty,
+                Slot::Clear => return None,
+            };
             return Some(ui.glyph_str(g));
         }
         None
@@ -479,6 +496,11 @@ impl<'a> StatusBar<'a> {
         }
     }
 
+    /// The keep mask with every item of every group alive.
+    fn all_alive_keep(&self) -> Keep {
+        Group::ALL.map(|g| all_alive(self.group(g).len()))
+    }
+
     /// Columns the whole strip needs under `keep`.
     fn needed(&self, keep: Keep, mw: u16, gap: u16, edge: u16, lead: u16) -> u16 {
         let ws = Group::ALL.map(|g| self.group_columns(g, keep, mw, gap));
@@ -499,10 +521,7 @@ impl<'a> StatusBar<'a> {
     /// items 9 and 11 delete can be replaced without a visual review of
     /// every width.
     fn survivors(&self, total: u16, mw: u16, gap: u16, edge: u16, lead: u16) -> Keep {
-        let mut keep: Keep = Group::ALL.map(|g| {
-            let n = self.group(g).len();
-            if n >= 32 { u32::MAX } else { (1u32 << n) - 1 }
-        });
+        let mut keep: Keep = self.all_alive_keep();
         while self.needed(keep, mw, gap, edge, lead) > total {
             let mut victim: Option<(u8, usize, usize)> = None;
             for g in [Group::Center, Group::Right, Group::Left] {
@@ -566,9 +585,14 @@ impl<'a> StatusBar<'a> {
     /// emphasis and tone, layered as a role delta (the `CellUi::tone` shape,
     /// never a colour).
     fn item_style(&self, ui: &mut Ui<'_>, it: &StatusItem<'_>, live: StateFlags) -> Style {
-        let base = self
-            .ov
-            .style(ui, self.id, Family::STATUSBAR, self.variant, Part::LABEL, live);
+        let base = self.ov.style(
+            ui,
+            self.id,
+            Family::STATUSBAR,
+            self.variant,
+            Part::LABEL,
+            live,
+        );
         let mut delta = StylePatch::new();
         match it.emphasis {
             // caller-declared emphasis, the `CellUi::italic` shape: the
@@ -628,7 +652,17 @@ impl<'a> StatusBar<'a> {
                 width: 1,
                 ..cell
             };
-            ui.glyph(last, s.glyph.unwrap_or(GlyphRole::Ellipsis), s.style);
+            match s.glyph {
+                Slot::Set(g) => {
+                    ui.glyph(last, g, s.style);
+                }
+                Slot::Inherit => {
+                    ui.glyph(last, GlyphRole::Ellipsis, s.style);
+                }
+                Slot::Clear => {
+                    ui.fill(last, s.style);
+                }
+            }
         }
         if let Some(k) = it.key
             && !self.ov.is_forced()
@@ -639,11 +673,7 @@ impl<'a> StatusBar<'a> {
         if it.ratio.is_some() {
             let m = Rect {
                 x: cell.x.saturating_add(label_w).saturating_add(1),
-                width: cell
-                    .width
-                    .saturating_sub(label_w)
-                    .saturating_sub(1)
-                    .min(mw),
+                width: cell.width.saturating_sub(label_w).saturating_sub(1).min(mw),
                 ..cell
             };
             if !m.is_empty() {
@@ -678,7 +708,14 @@ impl<'a> StatusBar<'a> {
         let gap = d.space.gap.max(1);
         let edge = d.space.gutter.max(1);
         let mw = Self::meter_columns(ui);
-        let container = ov.style(ui, id, Family::STATUSBAR, self.variant, Part::CONTAINER, live);
+        let container = ov.style(
+            ui,
+            id,
+            Family::STATUSBAR,
+            self.variant,
+            Part::CONTAINER,
+            live,
+        );
         ui.fill(area, container.style);
 
         // the readiness affordance leads the strip
@@ -781,10 +818,7 @@ impl<'a> StatusBar<'a> {
         let mw = Self::meter_columns(ui);
         let gap = ui.design().space.gap.max(1);
         let edge = ui.design().space.gutter.max(1);
-        let full = Group::ALL.map(|g| {
-            let n = self.group(g).len();
-            if n >= 32 { u32::MAX } else { (1u32 << n) - 1 }
-        });
+        let full = self.all_alive_keep();
         let preferred = self.needed(full, mw, gap, edge, 0);
         let strongest = self
             .group(Group::Left)

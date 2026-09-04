@@ -6,6 +6,7 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
+use ratatui_core::style::Style;
 
 use super::scroll_region::ScrollRegion;
 use super::{Acc, Overrides, SlotFn, cell_at, first_row};
@@ -20,7 +21,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::layer::{Anchor, CrossAlign, LayerEvent, LayerSize, LayerSpec, Side};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::theme::{Family, GlyphRole, StylePatch, Surface, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// What a select reports.
@@ -664,12 +665,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    /// The draw phase: the closed field, and the popup inside its layer.
-    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &SelectState, items: &[T]) -> Rect {
-        let area = first_row(area);
-        if area.is_empty() {
-            return area;
-        }
+    /// The live state flags of the closed field: the frame's own flags plus
+    /// the ones this instance forces.
+    fn live_flags(&self, ui: &Ui<'_>, st: &SelectState) -> StateFlags {
         let mut live = self.ov.flags(ui.state(self.id));
         if st.open {
             live |= StateFlags::EXPANDED;
@@ -681,84 +679,163 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             live |= StateFlags::DISABLED;
             live = live.difference(StateFlags::HOVERED);
         }
-        if !self.ov.is_forced() {
-            let f = if self.disabled {
-                Focusability::Disabled
-            } else if self.read_only {
-                Focusability::FocusableReadOnly
-            } else {
-                Focusability::Focusable
-            };
-            ui.register_control(self.id, area, f);
+        live
+    }
+
+    /// Registers the closed field as this component's one control.
+    ///
+    /// A forced state paints a reference rendering and registers nothing.
+    fn register_field(&self, ui: &mut Ui<'_>, area: Rect) {
+        if self.ov.is_forced() {
+            return;
         }
-        let ov = self.ov;
-        let id = self.id;
-        let field = ov.style(ui, id, Family::SELECT, Variant::DEFAULT, Part::FIELD, live);
-        ui.fill(area, field.style);
-        let gutter_cell = cell_at(area, area.x);
-        if let Some(f) = ov.slot_for(Part::GUTTER) {
-            f(ui, gutter_cell);
+        let f = if self.disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
         } else {
-            let g = ov.style(ui, id, Family::SELECT, Variant::DEFAULT, Part::GUTTER, live);
-            match g.glyph {
-                Some(glyph) => {
-                    ui.glyph(gutter_cell, glyph, g.style);
-                }
-                None => ui.fill(gutter_cell, g.style),
+            Focusability::Focusable
+        };
+        ui.register_control(self.id, area, f);
+    }
+
+    /// Paints the gutter column of the closed field.
+    fn paint_gutter(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags) {
+        if let Some(f) = self.ov.slot_for(Part::GUTTER) {
+            f(ui, cell);
+            return;
+        }
+        let g = self.ov.style(
+            ui,
+            self.id,
+            Family::SELECT,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            live,
+        );
+        match g.glyph {
+            Slot::Set(glyph) => {
+                ui.glyph(cell, glyph, g.style);
+            }
+            Slot::Inherit | Slot::Clear => ui.fill(cell, g.style),
+        }
+    }
+
+    /// Paints the value cell: the chosen option's row body, or the
+    /// placeholder when nothing is chosen.
+    fn paint_value(
+        &self,
+        ui: &mut Ui<'_>,
+        cell: Rect,
+        st: &SelectState,
+        items: &[T],
+        live: StateFlags,
+        field: Style,
+    ) {
+        if cell.is_empty() {
+            return;
+        }
+        let chosen = st
+            .value
+            .and_then(|v| self.index_of(items, v, None))
+            .and_then(|i| items.get(i).map(|it| (i, it)));
+        let Some((i, item)) = chosen else {
+            if let Some(p) = self.placeholder {
+                let ps = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::SELECT,
+                    Variant::DEFAULT,
+                    Part::PLACEHOLDER,
+                    live,
+                );
+                ui.paint_str(cell, p, ps.style);
+            }
+            return;
+        };
+        let key = self.key.key(item, i);
+        {
+            let mut r = RowUi::new(
+                ui,
+                self.id,
+                Family::SELECT,
+                Variant::DEFAULT,
+                live,
+                key,
+                cell,
+            );
+            self.row.row(item, &mut r);
+        }
+        // the value sits on the FIELD surface, not on a row surface:
+        // `RowUi` fills with the family's `CONTAINER` style, so the
+        // field's own colours are re-applied over the painted symbols
+        ui.paint_style(cell, field);
+    }
+
+    /// Paints the open/closed indicator: the recipe's glyph when it has one
+    /// (the mono `SELECTED` / `ERROR` rules bind it), else the arrow.
+    fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags, open: bool) {
+        if let Some(f) = self.ov.slot_for(Part::MARKER) {
+            f(ui, cell);
+            return;
+        }
+        let ms = self.ov.style(
+            ui,
+            self.id,
+            Family::SELECT,
+            Variant::DEFAULT,
+            Part::MARKER,
+            live,
+        );
+        let arrow = if open {
+            GlyphRole::Collapsed
+        } else {
+            GlyphRole::Expanded
+        };
+        match ms.glyph {
+            Slot::Set(glyph) => {
+                ui.glyph(cell, glyph, ms.style);
+            }
+            Slot::Inherit => {
+                ui.glyph(cell, arrow, ms.style);
+            }
+            Slot::Clear => {
+                ui.fill(cell, ms.style);
             }
         }
+    }
+
+    /// The draw phase: the closed field, and the popup inside its layer.
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &SelectState, items: &[T]) -> Rect {
+        let area = first_row(area);
+        if area.is_empty() {
+            return area;
+        }
+        let live = self.live_flags(ui, st);
+        self.register_field(ui, area);
+        let field = self.ov.style(
+            ui,
+            self.id,
+            Family::SELECT,
+            Variant::DEFAULT,
+            Part::FIELD,
+            live,
+        );
+        ui.fill(area, field.style);
+        self.paint_gutter(ui, cell_at(area, area.x), live);
         let value = Rect {
             x: area.x.saturating_add(2),
             y: area.y,
             width: area.width.saturating_sub(4),
             height: 1,
         };
-        let chosen = st.value.and_then(|v| self.index_of(items, v, None));
-        match (
-            chosen.and_then(|i| items.get(i).map(|it| (i, it))),
-            value.is_empty(),
-        ) {
-            (Some((i, item)), false) => {
-                let key = self.key.key(item, i);
-                {
-                    let mut r =
-                        RowUi::new(ui, id, Family::SELECT, Variant::DEFAULT, live, key, value);
-                    self.row.row(item, &mut r);
-                }
-                // the value sits on the FIELD surface, not on a row surface:
-                // `RowUi` fills with the family's `CONTAINER` style, so the
-                // field's own colours are re-applied over the painted symbols
-                ui.paint_style(value, field.style);
-            }
-            (None, false) => {
-                if let Some(p) = self.placeholder {
-                    let ps = ov.style(
-                        ui,
-                        id,
-                        Family::SELECT,
-                        Variant::DEFAULT,
-                        Part::PLACEHOLDER,
-                        live,
-                    );
-                    ui.paint_str(value, p, ps.style);
-                }
-            }
-            (_, true) => {}
-        }
-        // the indicator: the recipe's glyph when it has one (the mono
-        // `SELECTED` / `ERROR` rules bind it), else the open/closed arrow
-        let marker_cell = cell_at(area, area.right().saturating_sub(2));
-        if let Some(f) = ov.slot_for(Part::MARKER) {
-            f(ui, marker_cell);
-        } else {
-            let ms = ov.style(ui, id, Family::SELECT, Variant::DEFAULT, Part::MARKER, live);
-            let arrow = if st.open {
-                GlyphRole::Collapsed
-            } else {
-                GlyphRole::Expanded
-            };
-            ui.glyph(marker_cell, ms.glyph.unwrap_or(arrow), ms.style);
-        }
+        self.paint_value(ui, value, st, items, live, field.style);
+        self.paint_marker(
+            ui,
+            cell_at(area, area.right().saturating_sub(2)),
+            live,
+            st.open,
+        );
         ui.register_part(self.id, PartRef::of(Part::FIELD), area);
         self.draw_popup(ui, st, items);
         area
@@ -862,10 +939,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                         flags,
                     );
                     match g.glyph {
-                        Some(glyph) => {
+                        Slot::Set(glyph) => {
                             ui.glyph(cell_at(row, row.x), glyph, g.style);
                         }
-                        None => ui.fill(cell_at(row, row.x), g.style),
+                        Slot::Inherit | Slot::Clear => {
+                            ui.fill(cell_at(row, row.x), g.style);
+                        }
                     }
                     let ms = ov.style(
                         ui,
@@ -876,11 +955,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                         flags,
                     );
                     let marker_cell = cell_at(row, row.x.saturating_add(1));
-                    match ms.glyph.or_else(|| {
-                        flags
+                    let glyph = match ms.glyph {
+                        Slot::Set(glyph) => Some(glyph),
+                        Slot::Inherit => flags
                             .contains(StateFlags::SELECTED)
-                            .then_some(GlyphRole::Chosen)
-                    }) {
+                            .then_some(GlyphRole::Chosen),
+                        Slot::Clear => None,
+                    };
+                    match glyph {
                         Some(glyph) => {
                             ui.glyph(marker_cell, glyph, ms.style);
                         }

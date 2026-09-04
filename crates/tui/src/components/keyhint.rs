@@ -232,7 +232,7 @@ impl<'a> KeyHint<'a> {
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = Rect {
             width: self.width().min(area.width),
-            height: if area.height == 0 { 0 } else { 1 },
+            height: u16::from(area.height != 0),
             ..area
         };
         if area.is_empty() {
