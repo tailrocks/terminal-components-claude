@@ -8,6 +8,8 @@ pub(crate) mod span;
 
 pub use buffer::CursorPos;
 pub(crate) use buffer::TextBuffer;
+#[cfg(feature = "testing")]
+pub use buffer::TextMetricsProbe;
 pub(crate) use editor::TextEditorCore;
 pub use editor::{EditAction, EditOutcome, Extend, Motion};
 pub use fuzzy::fuzzy;

@@ -478,8 +478,12 @@ impl TextBuffer {
 
     /// Byte offset of `(line, display column)`, clamped to the line.
     pub(crate) fn offset_at(&self, line: usize, col: usize) -> usize {
+        Self::offset_at_text(&self.text, line, col)
+    }
+
+    fn offset_at_text(text: &str, line: usize, col: usize) -> usize {
         let mut start = 0usize;
-        for (i, l) in self.text.split('\n').enumerate() {
+        for (i, l) in text.split('\n').enumerate() {
             if i == line {
                 let mut w = 0usize;
                 for (gi, g) in graphemes(l) {
@@ -493,7 +497,7 @@ impl TextBuffer {
             }
             start = start.saturating_add(l.len()).saturating_add(1);
         }
-        self.text.len()
+        text.len()
     }
 
     /// Display width of the whole text (single-line).
@@ -503,6 +507,48 @@ impl TextBuffer {
     )]
     pub(crate) fn width(&self) -> u16 {
         width(&self.text)
+    }
+}
+
+/// Allocation-free coordinate probe for the performance harness.
+///
+/// This type is available only with the `testing` feature. It is deliberately
+/// zero-sized: it borrows text only for the duration of each query, owns no
+/// editing storage, and exposes no mutation or raw-text path. The production
+/// [`TextBuffer`] remains crate-private and cannot be reintroduced through
+/// this probe.
+#[cfg(feature = "testing")]
+pub struct TextMetricsProbe;
+
+#[cfg(feature = "testing")]
+impl fmt::Debug for TextMetricsProbe {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("TextMetricsProbe")
+    }
+}
+
+#[cfg(feature = "testing")]
+impl Default for TextMetricsProbe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(feature = "testing")]
+impl TextMetricsProbe {
+    /// Construct a zero-sized coordinate probe.
+    pub const fn new() -> Self {
+        TextMetricsProbe
+    }
+
+    /// Return the display position at a byte offset without allocating.
+    pub fn pos_of(&self, text: &str, offset: usize) -> CursorPos {
+        TextBuffer::pos_of(text, offset)
+    }
+
+    /// Return the byte offset at a display position without allocating.
+    pub fn offset_at(&self, text: &str, line: usize, col: usize) -> usize {
+        TextBuffer::offset_at_text(text, line, col)
     }
 }
 
