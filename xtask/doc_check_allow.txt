@@ -52,6 +52,9 @@ List::EMPTY
 ManagerScreen::apply_msg
 Overrides::inherit_forced
 Panel::bg_override
+Page::draw
+Page::update
+PageId::ALL
 Probes::draw
 Probes::update
 RecipeEdit::when

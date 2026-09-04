@@ -525,9 +525,8 @@ fn capture_script_contract_hits(script: &str) -> Vec<String> {
         ("PNG conversion", "ansi2png.py"),
     ]
     .into_iter()
-    .filter_map(|(label, fragment)| {
-        (!script.contains(fragment)).then(|| format!("capture script lacks {label}: `{fragment}`"))
-    })
+    .filter(|(_, fragment)| !script.contains(fragment))
+    .map(|(label, fragment)| format!("capture script lacks {label}: `{fragment}`"))
     .chain((script.contains("BIN=${BIN:-target/debug/showcase}")).then(|| {
         "capture script still has the legacy showcase BIN default; the binary owner must be explicit"
             .to_owned()
@@ -3047,11 +3046,12 @@ fn page_variant_path(path: &syn::Path) -> Option<String> {
 
 fn page_variant_expr(expr: &syn::Expr, context: &str) -> Result<String, String> {
     let syn::Expr::Path(path) = ungroup_expr(expr) else {
-        return Err(format!("{context} must be a `PageId::Variant` or `Self::Variant` path"));
+        return Err(format!(
+            "{context} must be a `PageId::Variant` or `Self::Variant` path"
+        ));
     };
-    page_variant_path(&path.path).ok_or_else(|| {
-        format!("{context} must be a `PageId::Variant` or `Self::Variant` path")
-    })
+    page_variant_path(&path.path)
+        .ok_or_else(|| format!("{context} must be a `PageId::Variant` or `Self::Variant` path"))
 }
 
 fn page_variant_array(expr: &syn::Expr, context: &str) -> Result<Vec<String>, String> {
@@ -3077,9 +3077,11 @@ fn nav_entries_expr(expr: &syn::Expr, context: &str) -> Result<Vec<String>, Stri
                 "{context}[{index}] must be a NavEntry struct with an `id` field"
             ));
         };
-        let Some(id) = entry.fields.iter().find(|field| {
-            matches!(&field.member, syn::Member::Named(name) if name == "id")
-        }) else {
+        let Some(id) = entry
+            .fields
+            .iter()
+            .find(|field| matches!(&field.member, syn::Member::Named(name) if name == "id"))
+        else {
             return Err(format!(
                 "{context}[{index}] has no `id` field; a sentinel or helper is not a page"
             ));
@@ -3217,10 +3219,9 @@ impl<'ast> syn::visit::Visit<'ast> for PagePatternUses {
     fn visit_pat(&mut self, node: &'ast syn::Pat) {
         if let syn::Pat::Path(path) = node
             && let Some(variant) = page_variant_path(&path.path)
+            && self.seen.insert(variant.clone())
         {
-            if self.seen.insert(variant.clone()) {
-                self.variants.push(variant);
-            }
+            self.variants.push(variant);
         }
         syn::visit::visit_pat(self, node);
     }
@@ -3263,9 +3264,7 @@ fn collect_page_contract_items(
                     .map(|variant| variant.ident.to_string())
                     .collect();
             }
-            syn::Item::Impl(item)
-                if matches!(&*item.self_ty, syn::Type::Path(ty) if ty.path.segments.last().is_some_and(|segment| segment.ident == "PageId")) =>
-            {
+            syn::Item::Impl(item) if matches!(&*item.self_ty, syn::Type::Path(ty) if ty.path.segments.last().is_some_and(|segment| segment.ident == "PageId")) => {
                 for impl_item in &item.items {
                     if let syn::ImplItem::Const(constant) = impl_item
                         && constant.ident == "ALL"
@@ -3273,12 +3272,10 @@ fn collect_page_contract_items(
                     {
                         *all_found = all_found.saturating_add(1);
                         if *all_found > 1 {
-                            return Err("showcase contains more than one production `PageId::ALL`".to_owned());
+                            return Err("showcase contains more than one production `PageId::ALL`"
+                                .to_owned());
                         }
-                        contract.all_variants = page_variant_array(
-                            &constant.expr,
-                            "PageId::ALL",
-                        )?;
+                        contract.all_variants = page_variant_array(&constant.expr, "PageId::ALL")?;
                     }
                 }
             }
@@ -3287,7 +3284,9 @@ fn collect_page_contract_items(
             {
                 *nav_found = nav_found.saturating_add(1);
                 if *nav_found > 1 {
-                    return Err("showcase contains more than one production `NAV_ENTRIES`".to_owned());
+                    return Err(
+                        "showcase contains more than one production `NAV_ENTRIES`".to_owned()
+                    );
                 }
                 contract.nav_variants = nav_entries_expr(&item.expr, "NAV_ENTRIES")?;
             }
@@ -3296,14 +3295,19 @@ fn collect_page_contract_items(
             {
                 *nav_found = nav_found.saturating_add(1);
                 if *nav_found > 1 {
-                    return Err("showcase contains more than one production `NAV_ENTRIES`".to_owned());
+                    return Err(
+                        "showcase contains more than one production `NAV_ENTRIES`".to_owned()
+                    );
                 }
                 contract.nav_variants = nav_entries_expr(&item.expr, "NAV_ENTRIES")?;
             }
             syn::Item::Fn(item) if item.sig.ident == "page" => {
                 *dispatch_found = dispatch_found.saturating_add(1);
                 if *dispatch_found > 1 {
-                    return Err("showcase contains more than one production `page` dispatch function".to_owned());
+                    return Err(
+                        "showcase contains more than one production `page` dispatch function"
+                            .to_owned(),
+                    );
                 }
                 if !page_function_takes_page_id(item) {
                     return Err("showcase `page` dispatch must take a `PageId` argument".to_owned());
@@ -3314,7 +3318,9 @@ fn collect_page_contract_items(
                 };
                 syn::visit::Visit::visit_block(&mut uses, &item.block);
                 if uses.matches == 0 {
-                    return Err("showcase `page` dispatch has no production match on PageId".to_owned());
+                    return Err(
+                        "showcase `page` dispatch has no production match on PageId".to_owned()
+                    );
                 }
                 contract.dispatch_variants = uses.variants;
             }
@@ -3387,9 +3393,7 @@ fn validate_showcase_page_contract(contract: &ShowcasePageContract) -> Result<()
     }
 }
 
-fn showcase_page_contract(
-    files: &[(PathBuf, String)],
-) -> Result<ShowcasePageContract, String> {
+fn showcase_page_contract(files: &[(PathBuf, String)]) -> Result<ShowcasePageContract, String> {
     let mut contract = ShowcasePageContract::default();
     let mut nav_found = 0usize;
     let mut all_found = 0usize;
@@ -3465,7 +3469,8 @@ fn showcase_page_sources(
                 missing.push(variant.clone());
             } else {
                 return Err(format!(
-                    "showcase registry entry `{variant}` resolves to {} page source files; +                     exactly one named page module is required",
+                    "showcase registry entry `{variant}` resolves to {} page source files; \
+                     exactly one named page module is required",
                     matches.len()
                 ));
             }
@@ -3484,7 +3489,8 @@ fn showcase_page_sources(
     selected.dedup_by(|a, b| a.0 == b.0);
     if selected.len() != variants.len() {
         return Err(format!(
-            "showcase registry resolves {} page source file(s) for {} page identities; +             every one of the exact {SHOWCASE_PAGE_COUNT} pages needs its own module",
+            "showcase registry resolves {} page source file(s) for {} page identities; \
+             every one of the exact {SHOWCASE_PAGE_COUNT} pages needs its own module",
             selected.len(),
             variants.len()
         ));
@@ -3768,8 +3774,7 @@ fn showcase_covers_every_public_component() -> Result<(), String> {
 /// name moves rather than changes.
 fn binary_names_are_preserved() -> Result<(), String> {
     let md = metadata()?;
-    let root_name = root_package(&md).map(|package| package.name.as_str());
-    let mut found: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut found: BTreeMap<String, Vec<BinaryTarget>> = BTreeMap::new();
     let mut tooling: Vec<String> = Vec::new();
     for p in md.workspace_packages() {
         for t in &p.targets {
@@ -3780,13 +3785,21 @@ fn binary_names_are_preserved() -> Result<(), String> {
                 tooling.push(t.name.clone());
                 continue;
             }
-            found
-                .entry(t.name.clone())
-                .or_default()
-                .push(p.name.as_str().to_owned());
+            found.entry(t.name.clone()).or_default().push(BinaryTarget {
+                package: p.name.as_str().to_owned(),
+                source: t.src_path.as_std_path().to_path_buf(),
+            });
         }
     }
     let mut errors = Vec::new();
+    let root_bins = root_package_bins(&md);
+    let root_package = root_package(&md);
+    if !root_bins.is_empty() && root_package.map(|p| p.name.as_str()) != Some("junie-tui") {
+        errors.push(format!(
+            "the legacy root package must remain named `junie-tui` while it owns binaries; found {:?}",
+            root_package.map(|p| p.name.as_str())
+        ));
+    }
     // the tooling exclusion is by package, and the package is pinned to one bin
     if tooling != vec![TOOLING.to_owned()] {
         errors.push(format!(
@@ -3795,52 +3808,43 @@ fn binary_names_are_preserved() -> Result<(), String> {
         ));
     }
     for a in &APPS {
-        match found.get(a.bin) {
+        match found.get(a.bin).map(Vec::as_slice) {
             None => errors.push(format!(
                 "`[[bin]] {}` is missing from the workspace (owner {}): goal §21 preserves all \
                  three binary names across the split",
                 a.bin, a.slice
             )),
-            Some(pkgs) if pkgs.len() > 1 => errors.push(format!(
-                "`[[bin]] {}` is declared by {} packages {pkgs:?} — `target/debug/{}` is whichever \
+            Some(targets) if targets.len() > 1 => errors.push(format!(
+                "`[[bin]] {}` is declared by {} packages {:?} — `target/debug/{}` is whichever \
                  built last and the capture harness captures the wrong program (§47.5); §47.1 \
                  drops the root binary in the same commit that adds `{}`",
                 a.bin,
-                pkgs.len(),
+                targets.len(),
+                targets
+                    .iter()
+                    .map(|target| &target.package)
+                    .collect::<Vec<_>>(),
                 a.bin,
                 a.dir
             )),
+            Some([target]) => {
+                errors.extend(binary_target_layout_hits(
+                    a,
+                    root_bins.contains(a.bin),
+                    root_package.map(|p| p.name.as_str()),
+                    &target.package,
+                    &target.source,
+                ));
+            }
             Some(_) => {}
-        }
-        let targets = md
-            .workspace_packages()
-            .iter()
-            .filter_map(|package| {
-                package
-                    .targets
-                    .iter()
-                    .find(|target| target.name == a.bin)
-                    .map(|target| BinaryTarget {
-                        package: package.name.to_string(),
-                        source: target.src_path.as_std_path().to_path_buf(),
-                    })
-            })
-            .collect::<Vec<_>>();
-        if let Some(target) = targets.first() {
-            errors.extend(binary_target_layout_hits(
-                a,
-                root_name == Some(target.package.as_str()),
-                root_name,
-                &target.package,
-                &target.source,
-            ));
         }
     }
     let want: BTreeSet<&str> = APPS.iter().map(|a| a.bin).collect();
     for (name, pkgs) in &found {
         if !want.contains(name.as_str()) {
             errors.push(format!(
-                "unexpected `[[bin]] {name}` in {pkgs:?}: the workspace ships exactly {want:?}"
+                "unexpected `[[bin]] {name}` in packages {:?}: the workspace ships exactly {want:?}",
+                pkgs.iter().map(|target| &target.package).collect::<Vec<_>>()
             ));
         }
     }
@@ -3851,7 +3855,7 @@ fn binary_names_are_preserved() -> Result<(), String> {
                 let pkg = found
                     .get(a.bin)
                     .and_then(|p| p.first())
-                    .map_or("?", String::as_str);
+                    .map_or("?", |target| target.package.as_str());
                 format!("{}({pkg})", a.bin)
             })
             .collect();
@@ -3870,8 +3874,8 @@ fn binary_names_are_preserved() -> Result<(), String> {
 /// in the library's normal dependency closure.
 ///
 /// **The expected set is slice-indexed and a missing member is a failure**
-/// (§47.5): `{showcase_app}` from Slice 5, `+ tablepro_app` from 6,
-/// `+ jackin_app` from 7, with `due_apps` reading the index off the root
+/// (§47.5): `{showcase_app}` from Slice 5, `tablepro_app` from 6,
+/// `jackin_app` from 7, with `due_apps` reading the index off the root
 /// package's remaining `[[bin]]`s rather than off a hand-maintained constant.
 ///
 /// **Honest statement of what is vacuous today.** No `apps/` package exists,
@@ -3907,22 +3911,77 @@ fn app_libs_are_not_published_and_are_not_depended_on_by_the_library() -> Result
             (false, None) => {}
             (true, Some(p)) => {
                 present.push(a.lib);
+                let expected_manifest = root().join(a.dir).join("Cargo.toml");
+                if p.manifest_path.as_std_path() != expected_manifest {
+                    errors.push(format!(
+                        "package `{}` is loaded from `{}`, expected `{}` (§47.1 app package layout)",
+                        a.bin,
+                        rel(p.manifest_path.as_std_path()),
+                        rel(&expected_manifest)
+                    ));
+                }
+                let libs: Vec<&cargo_metadata::Target> = p
+                    .targets
+                    .iter()
+                    .filter(|t| t.kind.contains(&cargo_metadata::TargetKind::Lib))
+                    .collect();
                 if !p
                     .targets
                     .iter()
                     .any(|t| t.kind.contains(&cargo_metadata::TargetKind::Lib) && t.name == a.lib)
                 {
-                    let libs: Vec<&str> = p
-                        .targets
-                        .iter()
-                        .filter(|t| t.kind.contains(&cargo_metadata::TargetKind::Lib))
-                        .map(|t| t.name.as_str())
-                        .collect();
                     errors.push(format!(
-                        "package `{}` has lib target(s) {libs:?}, expected `[lib] {}` (§21 item \
+                        "package `{}` has lib target(s) {:?}, expected `[lib] {}` (§21 item \
                          23: the tests link the lib, so a binary-only package cannot host them)",
-                        a.bin, a.lib
+                        a.bin,
+                        libs.iter()
+                            .map(|target| target.name.as_str())
+                            .collect::<Vec<_>>(),
+                        a.lib
                     ));
+                } else if libs.len() != 1 {
+                    errors.push(format!(
+                        "package `{}` declares {} library targets {:?}; expected exactly `[lib] {}`",
+                        a.bin,
+                        libs.len(),
+                        libs.iter().map(|target| target.name.as_str()).collect::<Vec<_>>(),
+                        a.lib
+                    ));
+                } else if let Some(lib) = libs.first() {
+                    let expected_source = root().join(a.dir).join("src/lib.rs");
+                    if lib.src_path.as_std_path() != expected_source {
+                        errors.push(format!(
+                            "package `{}` lib source is `{}`, expected `{}`",
+                            a.bin,
+                            rel(lib.src_path.as_std_path()),
+                            rel(&expected_source)
+                        ));
+                    }
+                }
+                let bins: Vec<&cargo_metadata::Target> = p
+                    .targets
+                    .iter()
+                    .filter(|t| {
+                        t.kind.contains(&cargo_metadata::TargetKind::Bin) && t.name == a.bin
+                    })
+                    .collect();
+                if bins.len() != 1 {
+                    errors.push(format!(
+                        "package `{}` has {} binary target(s) named `{}`; expected exactly one thin app binary",
+                        a.bin,
+                        bins.len(),
+                        a.bin
+                    ));
+                } else if let Some(bin) = bins.first() {
+                    let expected_source = migrated_binary_source(a);
+                    if bin.src_path.as_std_path() != expected_source {
+                        errors.push(format!(
+                            "package `{}` binary source is `{}`, expected `{}`",
+                            a.bin,
+                            rel(bin.src_path.as_std_path()),
+                            rel(&expected_source)
+                        ));
+                    }
                 }
                 if !p.publish.as_ref().is_some_and(Vec::is_empty) {
                     errors.push(format!(
@@ -4157,6 +4216,7 @@ fn first_facade_line(text: &str, segment: &str) -> usize {
 fn applications_depend_only_on_the_library_facade() -> Result<(), String> {
     let md = metadata()?;
     let due = due_apps(&md);
+    let app_files = application_source_files(&md)?;
     let facade = library_facade_roots();
     let mut errors = Vec::new();
     let mut scanned = 0usize;
@@ -4166,67 +4226,44 @@ fn applications_depend_only_on_the_library_facade() -> Result<(), String> {
     let Ok(include) = Regex::new(r"\binclude!\s*\(") else {
         return Err("bad include! regex".to_owned());
     };
-    let apps_dir = root().join("apps");
-    let mut app_dirs: Vec<PathBuf> = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(&apps_dir) {
-        for e in entries.filter_map(Result::ok) {
-            let src = e.path().join("src");
-            if src.is_dir() {
-                app_dirs.push(src);
+    for file in &app_files {
+        let text = read(file);
+        let Ok(ast) = syn::parse_file(&text) else {
+            errors.push(format!("{} does not parse", rel(file)));
+            continue;
+        };
+        scanned = scanned.saturating_add(1);
+        let mut visitor = FacadeUse {
+            krate: LIB_CRATE_IDENTS,
+            seen: BTreeSet::new(),
+        };
+        syn::visit::Visit::visit_file(&mut visitor, &ast);
+        for segment in &visitor.seen {
+            if facade.contains(segment) {
+                continue;
             }
-        }
-    }
-    app_dirs.sort();
-    for a in &due {
-        let src = root().join(a.dir).join("src");
-        if !app_dirs.contains(&src) {
             errors.push(format!(
-                "{}/src is missing, yet `{}` is due at {} (the root package no longer declares \
-                 `[[bin]] {}`): this check must never pass by scanning nothing (§47.5)",
-                a.dir, a.bin, a.slice, a.bin
+                "{}:{}: `{segment}` is not part of the library's root facade — an application \
+                 names only the crate root or `author` (§16.5, §22 §1.2)",
+                rel(file),
+                first_facade_line(&text, segment)
             ));
         }
-    }
-    for dir in &app_dirs {
-        for file in rust_files(dir) {
-            let text = read(&file);
-            let Ok(ast) = syn::parse_file(&text) else {
-                errors.push(format!("{} does not parse", rel(&file)));
-                continue;
-            };
-            scanned = scanned.saturating_add(1);
-            let mut visitor = FacadeUse {
-                krate: LIB_CRATE_IDENTS,
-                seen: BTreeSet::new(),
-            };
-            syn::visit::Visit::visit_file(&mut visitor, &ast);
-            for segment in &visitor.seen {
-                if facade.contains(segment) {
-                    continue;
-                }
+        for (n, line) in non_test_lines(&text) {
+            let code = code_line(line);
+            if path_attr.is_match(code) {
                 errors.push(format!(
-                    "{}:{}: `{segment}` is not part of the library's root facade — an application \
-                     names only the crate root or `author` (§16.5, §22 §1.2)",
-                    rel(&file),
-                    first_facade_line(&text, segment)
+                    "{}:{n}: `#[path]` is forbidden in an application — a module reached by \
+                     path is not a facade consumer (§16.5)",
+                    rel(file)
                 ));
             }
-            for (n, line) in non_test_lines(&text) {
-                let code = code_line(line);
-                if path_attr.is_match(code) {
-                    errors.push(format!(
-                        "{}:{n}: `#[path]` is forbidden in an application — a module reached by \
-                         path is not a facade consumer (§16.5)",
-                        rel(&file)
-                    ));
-                }
-                if include.is_match(code) {
-                    errors.push(format!(
-                        "{}:{n}: `include!` is forbidden in an application — included source \
-                         bypasses the crate boundary the workspace exists to create (§16.5)",
-                        rel(&file)
-                    ));
-                }
+            if include.is_match(code) {
+                errors.push(format!(
+                    "{}:{n}: `include!` is forbidden in an application — included source \
+                     bypasses the crate boundary the workspace exists to create (§16.5)",
+                    rel(file)
+                ));
             }
         }
     }
@@ -7002,7 +7039,8 @@ struct Demo;
 impl Page for Demo {
     fn draw(&self) { Button::new(ID); }
     fn update(&mut self) { Button::new(ID); }
-}".to_owned(),
+}"
+                .to_owned(),
             ),
             (
                 "apps/showcase/src/pages/dialogs.rs".to_owned(),
@@ -7011,7 +7049,8 @@ struct DialogDemo;
 impl Page for DialogDemo {
     fn draw(&self) { Dialog::confirm(ID); }
     fn update(&mut self) { Dialog::confirm(ID); }
-}".to_owned(),
+}"
+                .to_owned(),
             ),
         ];
         assert!(
@@ -8153,14 +8192,27 @@ captures / classification: `(pending — filled when the change lands)`
         assert!(capture_axes_contract_hits().is_empty());
         let missing_png = "BIN=ok\nCOLOR=${COLOR:-truecolor}\ncase \"$COLOR\" in\ntruecolor)\n256)\n16)\nmono)\n${ARGS:-}\n";
         let errors = capture_script_contract_hits(missing_png);
-        assert!(errors.iter().any(|error| error.contains("required BIN")), "{errors:?}");
-        assert!(errors.iter().any(|error| error.contains("terminal dimensions")), "{errors:?}");
-        assert!(errors.iter().any(|error| error.contains("PNG conversion")), "{errors:?}");
+        assert!(
+            errors.iter().any(|error| error.contains("required BIN")),
+            "{errors:?}"
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("terminal dimensions")),
+            "{errors:?}"
+        );
+        assert!(
+            errors.iter().any(|error| error.contains("PNG conversion")),
+            "{errors:?}"
+        );
 
         let legacy_default = "BIN=${BIN:-target/debug/showcase}\n: \"${BIN:?x}\"";
         let errors = capture_script_contract_hits(legacy_default);
         assert!(
-            errors.iter().any(|error| error.contains("legacy showcase BIN default")),
+            errors
+                .iter()
+                .any(|error| error.contains("legacy showcase BIN default")),
             "the old implicit binary owner must fail: {errors:?}"
         );
     }

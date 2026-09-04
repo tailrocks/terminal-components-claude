@@ -250,6 +250,27 @@ mod architecture {
         check("applications_depend_only_on_the_library_facade");
     }
 
+    /// §16.5 / §47.5. Applications compose generic components through the
+    /// public facade; raw renderers and cell painting are not application API.
+    #[test]
+    fn no_generic_component_copies_in_applications() {
+        check("no_generic_component_copies_in_applications");
+    }
+
+    /// §16.5 / §47.5. Runtime dispatch owns hit-testing and child routing;
+    /// application code may not carry the retired `owns`/`locate` helpers.
+    #[test]
+    fn no_owns_or_locate_in_applications() {
+        check("no_owns_or_locate_in_applications");
+    }
+
+    /// §16.5 / §47.5. The showcase registry must reach every public component
+    /// in the shared conformance suite once the showcase app is migrated.
+    #[test]
+    fn showcase_covers_every_public_component() {
+        check("showcase_covers_every_public_component");
+    }
+
     /// §16.3 as amended by §36, and §36.5: every moved or added baseline key is
     /// accounted for by a `docs/visual-changes.md` entry citing a numbered
     /// §20.10 item. `cargo run -p xtask -- bless-guard` is the same check.

@@ -16,9 +16,6 @@
 
 # ── §16.5 architecture checks not yet built (§47.4) ──
 every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.5 records the rustdoc-json resolver as a Slice-8 upgrade
-no_generic_component_copies_in_applications  # Slice 5 — apps/**/src (first apps package)
-no_owns_or_locate_in_applications  # Slice 5 — apps/**/src; §16.5's row describes an `apps/allow/dispatch.txt` that no code reads: the live mechanism is forbidden-pattern rule 25
-showcase_covers_every_public_component  # Slice 5 — apps/showcase page registry
 
 # ── Slices 5–7 application integration tests (`apps/**/tests`) ──
 author_component_page_participates_in_focus_and_hover  # Slices 5-7 — apps/**
