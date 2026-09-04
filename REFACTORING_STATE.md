@@ -1666,3 +1666,21 @@ the review.
 
 - **Yes.** Slice 4 closure is blocked on the independent visual FAIL findings being recorded and
   adjudicated. §73 is blocked on `opus-analyst` supplying its verdict and acceptance conditions.
+
+## Slice 5 boundary-guard hardening — working-tree checkpoint (2026-09-05)
+
+This checkpoint supersedes the stale guard-only counts and implementation claims above; earlier
+sections remain historical evidence. The current architecture inventory is **386 named checks: 364
+present and 22 deferred**, not the earlier 380-name snapshot.
+
+- Application guards keep the explicit pre-Slice-5 no-`apps/` pass only while the root package owns
+  all three binaries. Once an app is due, both `apps/<app>/src` Rust input and
+  `apps/<app>/Cargo.toml` are required; a missing root or manifest fails closed.
+- Showcase coverage now requires exactly 22 production `PageId` identities in the enum,
+  `PageId::ALL`, literal `NAV_ENTRIES`, and `page(PageId)` dispatch, in one order, with one named
+  page module per identity. Component mentions count only from bodies reachable from production
+  `Page::draw` and `Page::update`; imports, signatures, dead helpers and tests do not count.
+- The capture contract independently pins `80x24|100x30|120x40|160x50`,
+  `truecolor|256|16|mono`, `junie|paper`, and `showcase|tablepro|jackin-preview` (96 cells), and
+  verifies `tools/capture.sh` consumes explicit `BIN`, `COLOR`, `ARGS`, tmux capture and PNG output.
+  The harness no longer defaults `BIN` to the legacy showcase path.

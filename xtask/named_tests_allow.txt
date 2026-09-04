@@ -8,13 +8,11 @@
 # Recorded by the Slice 3 foundations correction pass. Every Slice-3-owned name in
 # §16.1 now exists; everything below belongs to a later work package.
 #
-# §16.5 was added to the scan by §47.4. Until then the section was not scanned at all,
-# so the absence of any §16.5 boundary check could not fail any gate — which is how
-# three missing `apps/` guards came to be found by a person reading the document
-# rather than by a check. The names below are what that blind spot was still hiding;
-# the three `apps/` guards it also hid now exist, and §73 built `props_are_built_once`,
-# scoped to `apps/**/src`, `crates/tui/examples/**` and `crates/tui/src/components/**` —
-# the composite components build child props across both phases exactly like a screen.
+# §16.5 is included in the scan by §47.4. The historical blind spot is retained in
+# §47 as evidence; it no longer makes a missing boundary test invisible. The three
+# `apps/` guards now exist, and §73 built `props_are_built_once`, scoped to
+# `apps/**/src`, `crates/tui/examples/**` and `crates/tui/src/components/**` — the
+# composite components build child props across both phases exactly like a screen.
 
 # ── §16.5 architecture checks not yet built (§47.4) ──
 every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.5 records the rustdoc-json resolver as a Slice-8 upgrade

@@ -2123,16 +2123,16 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::conformance_covers_every_public_component` | `syn` scan of `pub struct`s in `components/**` vs the `conformance_suite!` list | G10 / §16.2 |
 | `architecture::every_named_test_exists` <!-- amended by §25 F12: must exist in `xtask`'s `CHECKS` and `tests/architecture.rs`; it was absent at `18afddd` and is the gate that makes §25's renamed/missing names visible --> | one-directional and scoped (§21 item 28): every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo test --workspace -- --list`; §16.6 perf names are checked against `cargo test --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases against `tests/ui/*.rs` filenames; extra tests are allowed | Documentation and the suite cannot drift; the `capsule_pane_clone_4x2000` deletion is asserted by line-absence in `perf_baseline.txt` |
 | `architecture::binary_names_are_preserved` | `cargo metadata` target names | `showcase`, `tablepro`, `jackin-preview` (goal §21) |
-| `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list` | `xtask capture-matrix` exists, uses the complete `showcase` × `tablepro` × `jackin-preview` app axis, and declares every size × theme × colour cell before a visual review |
+| `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list`; it reads `tools/capture.sh` | `xtask capture-matrix` exists, uses exactly `showcase` × `tablepro` × `jackin-preview`, `80×24|100×30|120×40|160×50`, `junie|paper` and `truecolor|256|16|mono` (96 cells), and proves the script consumes `BIN`, `COLOR`, `ARGS`, tmux capture and PNG conversion before a visual review |
 | `architecture::msrv_and_edition_are_unchanged` <!-- amended by §22 --> | `cargo metadata` **plus** the blocking CI job `msrv`: `cargo +1.88.0 check --workspace --all-targets --all-features` — the metadata proves the *field*, the job proves the code compiles on 1.88 (on a 1.98 toolchain a builder could otherwise use a 1.95 API and every gate would pass) | edition 2024, `rust-version = "1.88"` on every package, held deliberately (§22 §5) |
 | `architecture::cache_types_are_derived_only` <!-- §21 item 2 --> | `syn` scan in `xtask`: every `T` used as `ui.cache::<T>(…)` | `T` appears in no `Response` and no `XState` (R8) |
-| `architecture::app_libs_are_not_published_and_are_not_depended_on_by_the_library` <!-- §21 item 23 --> | `cargo metadata` | `showcase_app`, `tablepro_app`, `jackin_app` have `publish = false` and are absent from the library's dependency closure |
+| `architecture::app_libs_are_not_published_and_are_not_depended_on_by_the_library` <!-- §21 item 23 --> | `cargo metadata` | every scheduled app has its `apps/<app>/Cargo.toml` and expected lib/bin targets, `publish = false`, and is absent from the library's dependency closure; a missing due manifest is a failure |
 | `architecture::props_are_built_once` <!-- §21 item 30 --> | `syn` scan over `apps/**/src` and `crates/tui/examples/**` | no configured `X::new(` for the same `const Id` appears more than once per screen module (§13) |
 | `architecture::legacy_forced_state_apis_are_absent` <!-- §72 --> | source scan over production Rust | component `state_override` and `inherit_forced` declarations/calls are absent; test-only historical strings do not create an API |
 | `architecture::reference_rendering_is_ui_scoped` <!-- §72 --> | source scan plus public-API inventory | reference calls are confined to application/fixture/testing paths, and reference matrices use `Ui::reference` with an exact `ReferenceTarget` or inert `None` scope |
 | `architecture::every_component_doc_has_the_standard_sections` <!-- §21 item 33 --> | rustdoc-json heading scan | every public component's docs carry the 15 §13.2 headings in order |
 | `architecture::no_todo_or_unimplemented` <!-- §21 item 33 --> | grep for `todo!`, `unimplemented!`, `TODO`, `FIXME` over `crates/**` and `apps/**`, empty allow-list | goal §29 "no material TODO, stub, placeholder" |
-| `architecture::showcase_covers_every_public_component` <!-- §21 item 33 --> | cross-check the `conformance_suite!` list against the showcase page registry | goal §29 "the showcase demonstrates every public component" |
+| `architecture::showcase_covers_every_public_component` <!-- §21 item 33 --> | structural cross-check of `PageId`, `PageId::ALL`, literal `NAV_ENTRIES`, and `page(PageId)` dispatch, then a reachable-body scan from production `Page::draw`/`Page::update` | exactly 22 pages in the same order, one named page module per identity, and every conformance component is used by live production draw/update code; imports, signatures, dead helpers and test-only items do not count |
 | `architecture::no_deprecated_or_legacy_api_usage` <!-- §22; amended by §25: rules 27 and 27a added; the scan covers whole files — `non_test_lines` skips only the `#[cfg(test)]`-attributed item, never the file tail (F9, MA‑2) --> | `xtask` scan of `crates/tui/src/**`, `crates/tui-testing/src/**`, `apps/**/src/**` against the forbidden-pattern table of §22 §6.2 (26 rows + 27, 27a); allow-list `crates/tui/tests/allow/legacy_api.txt`, every entry with a same-line justification the test prints on failure **and** on success | the allow-list is **empty**; no deprecated `Buffer::get`, raw `\x1b[`, `Stylize`, `Masked`, `SmallVec`, umbrella-crate / `ratatui_widgets::` / `ratatui_macros::` paths, `KeyboardEnhancementFlags`, `LazyLock`/`OnceLock`/`static mut`, `#[allow(`, nested `for y … for x` over a rect, `Style::default()`, or off-theme `.fg(`/`.bg(` |
 | `architecture::dependency_graph_is_exactly_the_declared_set` <!-- §22 --> | `xtask`, `cargo metadata` | (1) `junie-tui`'s direct normal deps are exactly `{ratatui-core, ratatui-crossterm, unicode-width, unicode-segmentation, bitflags}`; (2) <!-- amended by §25 (adjudication 5) --> split into 2a–2d as §22.7 records: `ratatui`/`ratatui-widgets`/`ratatui-macros` absent from the **entire** closure; `critical-section`/`palette` absent from the **entire** closure; `smallvec`, `parking_lot*`, `lock_api`, `scopeguard`, `libc`, `mio`, `signal-hook*` reachable **only beneath `ratatui-crossterm`** (inverted-tree assertion); no direct `smallvec` and no direct `crossterm`; (3) each app's direct normal deps are exactly `{junie-tui}`; (4) `unicode-width`, `unicode-segmentation`, `bitflags` each resolve to **one** version (a second `unicode-width` would mean two disagreeing width tables — R‑1 rests on this); (5) `ratatui-core`'s enabled features are exactly `{std, underline-color}` |
 | `architecture::every_foreign_type_in_the_public_surface_is_re_exported` <!-- §24 M1; amended by §25 MA‑11: at `18afddd` this is a substring grep over `lib.rs`, recorded as a **deviation** with a Slice‑8 upgrade to the rustdoc-json form below — the grep cannot detect a `pub` signature naming an unexported foreign type --> | `xtask`, rustdoc-json: for every non-local type named in a `pub` item reachable from `junie_tui::`, a `pub use` path exists under `junie_tui::`; likewise for `junie_tui::author::` | the facade is *complete*, not merely the only edge: the day a `ratatui_core::text::Line` enters a signature the check fails and prints the type, the signature that names it and the missing facade line — instead of a downstream `ratatui-core` dependency line appearing |
@@ -4543,7 +4543,7 @@ What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `
 
 * The thirteen §17 examples live in `crates/tui/examples/` and are built by `cargo build -p junie-tui --examples` in every slice gate. Because Cargo compiles examples as separate crates linked against `junie_tui`, they see exactly the public API and nothing else — the "external-style consumer" requirement of goal §21 is satisfied structurally, not by convention.
 * Doctests carry the condensed forms of examples 1–10 on the corresponding types and run under `cargo test --workspace --doc`.
-* `tools/capture.sh` changes in two places, both in Slice 5: `BIN` defaults to `target/debug/showcase` (the current default names a binary that does not exist), and `ARGS` gains documented `--theme {junie|paper}` and `--color {truecolor|256|16|none}` pass-through so the §20.10 review matrix is scriptable. `xtask capture-matrix` drives it over the full size × theme × colour × app grid and writes into `shots/`, so the visual reviewer receives a complete, reproducible set rather than ad-hoc screenshots.
+* `tools/capture.sh` changes in two places, both in Slice 5: `BIN` is required explicitly (an implicit legacy default could capture the wrong owner), and `ARGS` gains documented `--theme {junie|paper}` and `--color {truecolor|256|16|none}` pass-through so the §20.10 review matrix is scriptable. `xtask capture-matrix` drives it over the full size × theme × colour × app grid and writes into `shots/`, so the visual reviewer receives a complete, reproducible set rather than ad-hoc screenshots.
 
 ---
 
@@ -7559,7 +7559,7 @@ Reasons **(2)** duplicate bin names and **(3)** stale `default-run` are **contin
 
 The three missing `apps/` guard tests were found by a person reading the document, and they could **only** have been found that way.
 
-`every_named_test_exists` scopes its wanted set to §16.1, §16.2's suite-level bullets, §16.4's application list and §16.6's table. **§16.5 is not scanned.** All three tests are named only in §16.5 and Appendix B, are absent from the deferral list, and **their absence can never fail any gate.**
+~~`every_named_test_exists` scopes its wanted set to §16.1, §16.2's suite-level bullets, §16.4's application list and §16.6's table. **§16.5 is not scanned.** All three tests are named only in §16.5 and Appendix B, are absent from the deferral list, and **their absence can never fail any gate.**~~ **Superseded by the implementation below:** the wanted set now includes the §16.5 table, and the three application guards are registered in `xtask` and `crates/tui/tests/architecture.rs`.
 
 That is not three missing tests. It is a blind spot covering every §16.5 boundary check, and **six more are missing on identical terms**: `no_owns_or_locate_in_applications`, `no_generic_component_copies_in_applications`, `props_are_built_once`, `every_component_doc_has_the_standard_sections`, `showcase_covers_every_public_component`, `field_kind_has_no_type_parameters`.
 
@@ -7590,12 +7590,12 @@ Stated plainly, per the standard that no sequencing may rest on an absent gate:
 | Step | Gate | Exists |
 |---|---|---|
 | Never staging unmigrated code in `apps/` | forbidden-pattern + empty allow-list | **yes** — safe |
-| Preserving the three binary names across the split | `binary_names_are_preserved` | **no** — not safe yet |
-| `apps/showcase` reaches only the public facade | `applications_depend_only_on_the_library_facade` | **partly** — the dependency third exists; the path scan does not |
-| The app lib is unpublished and not depended on | `app_libs_are_not_published…` | **no** — not safe yet |
-| Any §16.5 check is actually present | §16.5 in the named-test scan | **no** — the absence is itself unreportable |
+| Preserving the three binary names across the split | `binary_names_are_preserved` | **yes** — multiset equality |
+| `apps/showcase` reaches only the public facade | `applications_depend_only_on_the_library_facade` | **yes** — dependency and source checks |
+| The app lib is unpublished and not depended on | `app_libs_are_not_published…` | **yes** — due members fail closed |
+| Any §16.5 check is actually present | §16.5 in the named-test scan | **yes** — names are reportable |
 | Moving the frozen showcase baseline | a guard tolerating a frozen rename | **no — the guard actively refuses it** |
-| The Slice 5 capture matrix | `xtask capture-matrix` | **no** — manual until it exists |
+| The Slice 5 capture matrix | `xtask capture-matrix` | **yes** — exact axes and script contract |
 
 Nothing in the accepted sequencing depends on a builder remembering anything: every obligation is either an existing gate, a gate this adjudication requires **before** `apps/` exists, or a number a builder can run.
 
@@ -7605,7 +7605,7 @@ Nothing in the accepted sequencing depends on a builder remembering anything: ev
 
 ### §48.1 The measurement <!-- amended by §48 -->
 
-Extending `every_named_test_exists` to scan §16.5 moved its wanted set from **347 names to 380**. **Thirty-three were invisible, and the gate was green with nine of them absent.**
+Extending `every_named_test_exists` to scan §16.5 moved its wanted set from **347 names to 386**. The current check reports **364 present and 22 deferred**; the earlier **380-name** snapshot is superseded. The original thirty-three invisible names and the nine absent names remain historical evidence, not the current count.
 
 The nine were enumerated rather than trusted, and the previously-suspected six are confirmed exactly — no additions, no removals. Three are now built; six are deferred with owners, which converts them from comments into a **countdown**. That property was demonstrated in both directions: adding one of the deferred tests makes the check fail as a *stale entry*, and deleting a deferral makes it fail as *missing*.
 
@@ -7620,6 +7620,19 @@ Each asserts an expected set is **present**. Written as "scan `apps/**` and find
 **The slice index is read off the tree, not off a constant.** §47.1 binds the root package to lose `[[bin]] X` in the same commit that adds `apps/X` — so "the root no longer declares it" *is* "the app is due", and no builder has to bump anything. Verified rather than assumed: **cargo autodiscovers `src/bin/<app>/main.rs` as a bin target**, so deleting the manifest stanza alone leaves the target in place. Both the stanza and the tree must go, which is exactly what §47.1 requires.
 
 **Two residuals stated in the checks' own doc comments**: the `publish` and lib-target assertions have no subject in-tree until Slice 5, as does the facade path scan. What is **not** vacuous in either is the due-set assertion, which makes *scanning nothing* a failure.
+
+The application scan now has one additional fail-closed condition: every scheduled app must have both
+`apps/<app>/src` Rust input and `apps/<app>/Cargo.toml`. The pre-Slice-5 no-`apps/` state remains green
+only while the root package still owns all three application binaries; once a root binary is removed,
+its app root and manifest are due in the same commit. A missing manifest is therefore a migration
+failure, not an empty-scan pass.
+
+The showcase guard is structural at the page boundary. Production syntax must contain exactly
+`SHOWCASE_PAGE_COUNT = 22` identities in `PageId`, `PageId::ALL`, the literal `NAV_ENTRIES` `id`
+fields, and the `page(PageId)` match, in the same order; each identity must resolve to one named
+`src/pages/<page>.rs` module. Component coverage is then collected only from function bodies reachable
+from production `Page::draw` and `Page::update` methods. Imports, return/argument signatures, dead
+helpers and `#[cfg(test)]` items cannot satisfy it.
 
 The `cargo tree` third of the facade check was **deliberately not duplicated** — it already exists inside `dependency_graph_is_exactly_the_declared_set`, and duplicating it would produce two checks that fail together and one that could quietly stop being run.
 
@@ -8435,12 +8448,14 @@ question. It is deliberately left undecided here; nothing else in D1 depends on 
 
 ### 74.2 D2 — `xtask capture-matrix` must exist before Slice 5's visual review
 
-**The defect.** `xtask capture-matrix` is asserted in the present indicative in four places and does
+~~**The defect.** `xtask capture-matrix` is asserted in the present indicative in four places and does
 not exist: §20.10 item 1's review mechanism, step 2 of `docs/visual-changes.md`, §20.10 item 19
 point (4) — *"the first review of these components as pictures is the Slice-5 capture matrix"* — and
 §47.8's table, where it is the single row whose gate reads **"no — manual until it exists"**. Every
 Slice-4 first-generation component key was pinned on the explicit promise that Slice 5 would review
-those components as pictures. That promise is currently owed to an `xtask` subcommand nobody wrote.
+those components as pictures. That promise is currently owed to an `xtask` subcommand nobody wrote.~~
+**Superseded:** the command and its boundary contract now exist; the table and acceptance text below
+describe the live obligation.
 
 **Accepted, as an obligation with an order.** `xtask capture-matrix` **exists and passes before**
 any Slice 5 visual review is conducted and before any Slice 5 baseline is blessed. Not after, and
@@ -8463,6 +8478,13 @@ not evidence.
 **Acceptance.** `xtask::capture_matrix_covers_every_declared_cell` and
 `xtask::capture_matrix_fails_closed_on_a_missing_cell`, plus `capture-matrix` joining the named-test
 and gate lists so its absence becomes reportable rather than invisible (§47.4).
+
+**Implementation pin.** `xtask` independently asserts the exact four sizes `80×24`, `100×30`,
+`120×40`, `160×50`, the exact colour axis `truecolor|256|16|mono`, the exact theme axis
+`junie|paper`, and the three app owners `showcase|tablepro|jackin-preview` (96 cells). The check
+also reads `tools/capture.sh` and requires explicit `BIN`, `COLOR` branching, `${ARGS:-}`
+consumption, tmux dimensions/pane capture and the `ansi2png.py` conversion. The harness rejects the
+legacy implicit showcase binary, so a capture cannot silently use the wrong owner.
 
 ### 74.3 D3 — per-app baselines have declared locations, and two new ledger items
 

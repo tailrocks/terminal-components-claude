@@ -54,6 +54,14 @@ const CAPTURE_APPS: [CaptureApp; 3] = [
 ];
 const CAPTURE_MANIFEST: &str = "shots/capture-matrix.tsv";
 
+// Independent acceptance pins for the visual review contract. Keep these
+// literals separate from the generation axes: changing both declarations in
+// one edit must not make a shortened matrix look complete.
+const EXPECTED_CAPTURE_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (160, 50)];
+const EXPECTED_CAPTURE_COLORS: [&str; 4] = ["truecolor", "256", "16", "mono"];
+const EXPECTED_CAPTURE_THEMES: [&str; 2] = ["junie", "paper"];
+const EXPECTED_CAPTURE_APPS: [&str; 3] = ["showcase", "tablepro", "jackin-preview"];
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct CaptureApp {
     name: &'static str,
@@ -502,30 +510,76 @@ fn write_capture_manifest(path: &Path, records: &[CaptureRecord]) -> Result<(), 
 /// declared matrix. This is intentionally a cheap boundary check: the
 /// capture itself is an explicit opt-in command, while this check makes a
 /// missing app, axis, or script visible in `boundary` and `list`.
+fn capture_script_contract_hits(script: &str) -> Vec<String> {
+    [
+        ("required BIN", ": \"${BIN:?"),
+        ("COLOR default", "COLOR=${COLOR:-truecolor}"),
+        ("ARGS expansion", "${ARGS:-}"),
+        ("COLOR dispatch", "case \"$COLOR\" in"),
+        ("truecolor branch", "truecolor)"),
+        ("256-color branch", "256)"),
+        ("16-color branch", "16)"),
+        ("mono branch", "mono)"),
+        ("terminal dimensions", "-x \"$cols\" -y \"$rows\""),
+        ("tmux pane capture", "tmux capture-pane"),
+        ("PNG conversion", "ansi2png.py"),
+    ]
+    .into_iter()
+    .filter_map(|(label, fragment)| {
+        (!script.contains(fragment)).then(|| format!("capture script lacks {label}: `{fragment}`"))
+    })
+    .chain((script.contains("BIN=${BIN:-target/debug/showcase}")).then(|| {
+        "capture script still has the legacy showcase BIN default; the binary owner must be explicit"
+            .to_owned()
+    }))
+    .collect()
+}
+
+fn capture_axes_contract_hits() -> Vec<String> {
+    let mut hits = Vec::new();
+    if CAPTURE_SIZES != EXPECTED_CAPTURE_SIZES {
+        hits.push(format!(
+            "capture sizes are {CAPTURE_SIZES:?}, expected {EXPECTED_CAPTURE_SIZES:?}"
+        ));
+    }
+    if CAPTURE_COLORS != EXPECTED_CAPTURE_COLORS {
+        hits.push(format!(
+            "capture colors are {CAPTURE_COLORS:?}, expected {EXPECTED_CAPTURE_COLORS:?}"
+        ));
+    }
+    if CAPTURE_THEMES != EXPECTED_CAPTURE_THEMES {
+        hits.push(format!(
+            "capture themes are {CAPTURE_THEMES:?}, expected {EXPECTED_CAPTURE_THEMES:?}"
+        ));
+    }
+    let actual_apps: Vec<&str> = CAPTURE_APPS.iter().map(|app| app.name).collect();
+    if actual_apps != EXPECTED_CAPTURE_APPS {
+        hits.push(format!(
+            "capture apps are {actual_apps:?}, expected {EXPECTED_CAPTURE_APPS:?}"
+        ));
+    }
+    let expected_cells = 4usize * 4 * 2 * 3;
+    let actual_cells = capture_matrix_cases().len();
+    if actual_cells != expected_cells {
+        hits.push(format!(
+            "capture matrix declares {actual_cells} cells, expected {expected_cells}"
+        ));
+    }
+    hits
+}
+
 fn capture_matrix_contract() -> Result<(), String> {
     let script = root().join("tools/capture.sh");
     if !script.is_file() {
         return Err(format!("capture script is missing: {}", rel(&script)));
     }
 
-    let expected_apps = ["showcase", "tablepro", "jackin-preview"];
-    let actual_apps: Vec<&str> = CAPTURE_APPS.iter().map(|app| app.name).collect();
-    if actual_apps != expected_apps {
-        return Err(format!(
-            "capture apps are {actual_apps:?}, expected {expected_apps:?}"
-        ));
-    }
-
-    let expected_cells = CAPTURE_SIZES
-        .len()
-        .saturating_mul(CAPTURE_THEMES.len())
-        .saturating_mul(CAPTURE_COLORS.len())
-        .saturating_mul(CAPTURE_APPS.len());
-    let actual_cells = capture_matrix_cases().len();
-    if actual_cells != expected_cells {
-        return Err(format!(
-            "capture matrix declares {actual_cells} cells, expected {expected_cells}"
-        ));
+    let script_text = fs::read_to_string(&script)
+        .map_err(|error| format!("cannot read capture script {}: {error}", rel(&script)))?;
+    let mut errors = capture_axes_contract_hits();
+    errors.extend(capture_script_contract_hits(&script_text));
+    if !errors.is_empty() {
+        return Err(errors.join("\n"));
     }
 
     Ok(())
@@ -2630,6 +2684,1061 @@ fn root_package_bins(md: &cargo_metadata::Metadata) -> BTreeSet<String> {
 fn due_apps(md: &cargo_metadata::Metadata) -> Vec<&'static AppPackage> {
     let root_bins = root_package_bins(md);
     APPS.iter().filter(|a| !root_bins.contains(a.bin)).collect()
+}
+
+fn root_package(md: &cargo_metadata::Metadata) -> Option<&cargo_metadata::Package> {
+    md.packages
+        .iter()
+        .find(|package| package.manifest_path.parent() == Some(md.workspace_root.as_path()))
+}
+
+fn legacy_binary_source(app: &AppPackage) -> PathBuf {
+    root()
+        .join("src/bin")
+        .join(app.bin.replace('-', "_"))
+        .join("main.rs")
+}
+
+fn migrated_binary_source(app: &AppPackage) -> PathBuf {
+    root().join(app.dir).join("src/main.rs")
+}
+
+#[derive(Debug)]
+struct BinaryTarget {
+    package: String,
+    source: PathBuf,
+}
+
+fn binary_target_layout_hits(
+    app: &AppPackage,
+    root_owned: bool,
+    root_package: Option<&str>,
+    actual_package: &str,
+    actual_source: &Path,
+) -> Vec<String> {
+    let expected_package = if root_owned {
+        root_package
+    } else {
+        Some(app.bin)
+    };
+    let mut hits = Vec::new();
+    if expected_package != Some(actual_package) {
+        hits.push(format!(
+            "`[[bin]] {}` belongs to package `{actual_package}` at the wrong migration boundary; expected {expected_package:?}",
+            app.bin
+        ));
+    }
+    let expected_source = if root_owned {
+        legacy_binary_source(app)
+    } else {
+        migrated_binary_source(app)
+    };
+    if actual_source != expected_source {
+        hits.push(format!(
+            "`[[bin]] {}` source is `{}`, expected `{}`",
+            app.bin,
+            rel(actual_source),
+            rel(&expected_source)
+        ));
+    }
+    hits
+}
+
+/// Return the migration error for a missing `apps/` root. `None` is the one
+/// accepted pre-Slice-5 state: the root package still owns every app binary.
+fn missing_apps_for_due(due: &[&'static AppPackage]) -> Option<String> {
+    if due.is_empty() {
+        return None;
+    }
+    let expected = due
+        .iter()
+        .map(|app| format!("{}/src", app.dir))
+        .collect::<Vec<_>>()
+        .join(", ");
+    Some(format!(
+        "apps/ is missing while migrated application source is due: expected {expected} — the \
+         no-app state is accepted only while the root package still declares every \
+         application binary (§47.5)"
+    ))
+}
+
+fn missing_application_manifest(app: &AppPackage) -> String {
+    format!(
+        "{} is missing for due application `{}` — the migrated app root must contain its \
+         Cargo.toml manifest before boundary scanning can pass (§47.1/§47.5)",
+        Path::new(app.dir).join("Cargo.toml").display(),
+        app.bin
+    )
+}
+
+/// Rust source files in the migrated application packages.
+///
+/// Before Slice 5 the accepted tree has no `apps/` directory and the root
+/// package still owns all three binaries. That is an explicit, temporary
+/// state — not an empty scan. Once any root binary is dropped, its application
+/// source root is due and every due root must exist and contain Rust input.
+/// Application directories that appear before their root binary is dropped are
+/// rejected as staging, even when their contents happen to be clean.
+fn application_source_files(md: &cargo_metadata::Metadata) -> Result<Vec<PathBuf>, String> {
+    let r = root();
+    let apps = r.join("apps");
+    let due = due_apps(md);
+    if !apps.exists() {
+        if due.is_empty() {
+            return Ok(Vec::new());
+        }
+        return match missing_apps_for_due(&due) {
+            Some(error) => Err(error),
+            None => Err("application migration due-set became empty during the scan".to_owned()),
+        };
+    }
+    if !apps.is_dir() {
+        return Err(format!(
+            "application scan root {} is not a directory",
+            rel(&apps)
+        ));
+    }
+
+    let due_names: BTreeSet<&str> = due.iter().map(|a| a.dir).collect();
+    let mut errors = Vec::new();
+    let mut dirs = Vec::new();
+    let entries =
+        std::fs::read_dir(&apps).map_err(|e| format!("cannot enumerate {}: {e}", rel(&apps)))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("cannot read {} entry: {e}", rel(&apps)))?;
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let Some(app) = APPS.iter().find(|a| r.join(a.dir) == path) else {
+            errors.push(format!(
+                "{} is not one of the declared application roots {:?}",
+                rel(&path),
+                APPS.iter().map(|a| a.dir).collect::<Vec<_>>()
+            ));
+            continue;
+        };
+        if !due_names.contains(app.dir) {
+            errors.push(format!(
+                "{} exists while the root package still declares `[[bin]] {}` — \
+                 applications must be added atomically with removal of the root binary (§47.1)",
+                app.dir, app.bin
+            ));
+        }
+        if !path.join("Cargo.toml").is_file() {
+            errors.push(missing_application_manifest(app));
+        }
+        let src = path.join("src");
+        if !src.is_dir() {
+            errors.push(format!(
+                "{}/src is missing or not a directory for due application `{}`",
+                app.dir, app.bin
+            ));
+            continue;
+        }
+        let mut files = rust_files(&src);
+        files.sort();
+        if files.is_empty() {
+            errors.push(format!(
+                "{}/src contains no Rust files; an application root cannot be a green-empty \
+                 scan (§47.5)",
+                app.dir
+            ));
+        }
+        dirs.push((app.dir, files));
+    }
+
+    for app in &due {
+        if !dirs.iter().any(|(dir, _)| *dir == app.dir) {
+            errors.push(format!(
+                "{}/src is missing for due application `{}` — the root package no longer \
+                 declares `[[bin]] {}` (§47.5)",
+                app.dir, app.bin, app.bin
+            ));
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors.join("\n"));
+    }
+
+    let mut files = dirs
+        .into_iter()
+        .flat_map(|(_, files)| files)
+        .collect::<Vec<_>>();
+    files.sort();
+    if files.is_empty() {
+        return Err(
+            "apps/ exists but no due application source files were discovered; refusing a \
+             green-empty boundary scan (§47.5)"
+                .to_owned(),
+        );
+    }
+    Ok(files)
+}
+
+/// One source line that matches an application-boundary pattern.
+fn application_pattern_hits(path: &str, source: &str, patterns: &[(&str, &str)]) -> Vec<String> {
+    let regexes = patterns
+        .iter()
+        .filter_map(|(name, pattern)| Regex::new(pattern).ok().map(|re| (*name, re)))
+        .collect::<Vec<_>>();
+    if regexes.len() != patterns.len() {
+        return vec![format!(
+            "{path}: application-boundary scanner has an invalid pattern"
+        )];
+    }
+    non_test_lines(source)
+        .into_iter()
+        .filter_map(|(line_number, line)| {
+            let code = code_line(line);
+            let matched = regexes
+                .iter()
+                .filter(|(_, re)| re.is_match(code))
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>();
+            if matched.is_empty() {
+                None
+            } else {
+                Some(format!(
+                    "{path}:{line_number}: {} — application code must use the public \
+                     component/runtime API",
+                    matched.join(", ")
+                ))
+            }
+        })
+        .collect()
+}
+
+const GENERIC_COMPONENT_COPY_PATTERNS: [(&str, &str); 4] = [
+    ("fn render", r"\bfn\s+render\s*\("),
+    ("Style::new()", r"\bStyle\s*::\s*new\s*\(\s*\)"),
+    ("Block::default()", r"\bBlock\s*::\s*default\s*\(\s*\)"),
+    ("buf.set_string", r"\b(?:buf|buffer)\s*\.\s*set_string\s*\("),
+];
+
+const DISPATCH_COPY_PATTERNS: [(&str, &str); 4] = [
+    (".owns()", r"\.\s*owns\s*\("),
+    (".locate", r"\.\s*locate\b"),
+    ("scrollbar::id_for", r"\bscrollbar\s*::\s*id_for\b"),
+    (".child()", r"\.\s*child\s*\("),
+];
+
+fn generic_component_copy_hits(path: &str, source: &str) -> Vec<String> {
+    // Jackin's animated rain is the one documented app-owned renderer. Its
+    // exception is path-specific and cannot widen to a module or directory.
+    if path.trim_start_matches("./") == "apps/jackin-preview/src/rain.rs" {
+        return Vec::new();
+    }
+    application_pattern_hits(path, source, &GENERIC_COMPONENT_COPY_PATTERNS)
+}
+
+fn owns_or_locate_hits(path: &str, source: &str) -> Vec<String> {
+    application_pattern_hits(path, source, &DISPATCH_COPY_PATTERNS)
+}
+
+/// §16.5 / §47.5. Applications compose the library; they do not copy generic
+/// renderers, style construction, block framing or raw cell painting.
+fn no_generic_component_copies_in_applications() -> Result<(), String> {
+    let md = metadata()?;
+    let files = application_source_files(&md)?;
+    let mut hits = Vec::new();
+    for file in &files {
+        let path = rel(file);
+        hits.extend(generic_component_copy_hits(&path, &read(file)));
+    }
+    if hits.is_empty() {
+        if files.is_empty() {
+            println!(
+                "no_generic_component_copies_in_applications: accepted temporary no-app state \
+                 (root package still owns every application binary)"
+            );
+        } else {
+            println!(
+                "no_generic_component_copies_in_applications: {} application source file(s) \
+                 scanned",
+                files.len()
+            );
+        }
+        Ok(())
+    } else {
+        Err(format!(
+            "generic component-copy patterns are forbidden in applications (rain.rs is the \
+             only named exception):\n{}",
+            hits.join("\n")
+        ))
+    }
+}
+
+/// §16.5 / §47.5. Runtime dispatch owns focus, hit-testing and child routing;
+/// application screens may not carry the retired `owns`/`locate` machinery.
+fn no_owns_or_locate_in_applications() -> Result<(), String> {
+    let md = metadata()?;
+    let files = application_source_files(&md)?;
+    let mut hits = Vec::new();
+    for file in &files {
+        let path = rel(file);
+        hits.extend(owns_or_locate_hits(&path, &read(file)));
+    }
+    if hits.is_empty() {
+        if files.is_empty() {
+            println!(
+                "no_owns_or_locate_in_applications: accepted temporary no-app state (root \
+                 package still owns every application binary)"
+            );
+        } else {
+            println!(
+                "no_owns_or_locate_in_applications: {} application source file(s) scanned",
+                files.len()
+            );
+        }
+        Ok(())
+    } else {
+        Err(format!(
+            "application dispatch copies are forbidden (`owns`, `locate`, `id_for`, `child`):\n{}",
+            hits.join("\n")
+        ))
+    }
+}
+
+const SHOWCASE_PAGE_COUNT: usize = 22;
+
+/// The page axes are parsed from production syntax, not inferred from any
+/// identifier appearing in a helper. Every page must occur in the enum, the
+/// complete `ALL` list, the literal navigation registry and the runtime
+/// dispatch match.
+#[derive(Debug, Default, Eq, PartialEq)]
+struct ShowcasePageContract {
+    enum_variants: Vec<String>,
+    all_variants: Vec<String>,
+    nav_variants: Vec<String>,
+    dispatch_variants: Vec<String>,
+}
+
+fn ungroup_expr(expr: &syn::Expr) -> &syn::Expr {
+    match expr {
+        syn::Expr::Group(group) => ungroup_expr(&group.expr),
+        syn::Expr::Paren(paren) => ungroup_expr(&paren.expr),
+        syn::Expr::Reference(reference) => ungroup_expr(&reference.expr),
+        _ => expr,
+    }
+}
+
+fn page_variant_path(path: &syn::Path) -> Option<String> {
+    let mut segments = path.segments.iter();
+    let first = segments.next()?.ident.to_string();
+    let second = segments.next()?.ident.to_string();
+    if segments.next().is_some() || !matches!(first.as_str(), "PageId" | "Self") {
+        return None;
+    }
+    Some(second)
+}
+
+fn page_variant_expr(expr: &syn::Expr, context: &str) -> Result<String, String> {
+    let syn::Expr::Path(path) = ungroup_expr(expr) else {
+        return Err(format!("{context} must be a `PageId::Variant` or `Self::Variant` path"));
+    };
+    page_variant_path(&path.path).ok_or_else(|| {
+        format!("{context} must be a `PageId::Variant` or `Self::Variant` path")
+    })
+}
+
+fn page_variant_array(expr: &syn::Expr, context: &str) -> Result<Vec<String>, String> {
+    let syn::Expr::Array(array) = ungroup_expr(expr) else {
+        return Err(format!("{context} must be a literal array"));
+    };
+    array
+        .elems
+        .iter()
+        .enumerate()
+        .map(|(index, item)| page_variant_expr(item, &format!("{context}[{index}]")))
+        .collect()
+}
+
+fn nav_entries_expr(expr: &syn::Expr, context: &str) -> Result<Vec<String>, String> {
+    let syn::Expr::Array(array) = ungroup_expr(expr) else {
+        return Err(format!("{context} must be a literal entry array"));
+    };
+    let mut variants = Vec::with_capacity(array.elems.len());
+    for (index, item) in array.elems.iter().enumerate() {
+        let syn::Expr::Struct(entry) = ungroup_expr(item) else {
+            return Err(format!(
+                "{context}[{index}] must be a NavEntry struct with an `id` field"
+            ));
+        };
+        let Some(id) = entry.fields.iter().find(|field| {
+            matches!(&field.member, syn::Member::Named(name) if name == "id")
+        }) else {
+            return Err(format!(
+                "{context}[{index}] has no `id` field; a sentinel or helper is not a page"
+            ));
+        };
+        variants.push(page_variant_expr(
+            &id.expr,
+            &format!("{context}[{index}].id"),
+        )?);
+    }
+    Ok(variants)
+}
+
+fn cfg_test_only(attrs: &[syn::Attribute]) -> bool {
+    attrs.iter().any(|attribute| {
+        if !attribute.path().is_ident("cfg") {
+            return false;
+        }
+        let syn::Meta::List(meta) = &attribute.meta else {
+            return false;
+        };
+        meta.tokens
+            .to_string()
+            .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+            .any(|token| token == "test")
+    })
+}
+
+#[cfg(test)]
+fn nav_entries_in_items(
+    items: &[syn::Item],
+    found: &mut Vec<(PathBuf, String, Vec<String>)>,
+    module: &mut Vec<String>,
+    path: &Path,
+) -> Result<(), String> {
+    for item in items {
+        match item {
+            syn::Item::Const(item)
+                if item.ident == "NAV_ENTRIES" && !cfg_test_only(&item.attrs) =>
+            {
+                let name = if module.is_empty() {
+                    "NAV_ENTRIES".to_owned()
+                } else {
+                    format!("{}::NAV_ENTRIES", module.join("::"))
+                };
+                found.push((
+                    path.to_path_buf(),
+                    name.clone(),
+                    nav_entries_expr(&item.expr, &name)?,
+                ));
+            }
+            syn::Item::Static(item)
+                if item.ident == "NAV_ENTRIES" && !cfg_test_only(&item.attrs) =>
+            {
+                let name = if module.is_empty() {
+                    "NAV_ENTRIES".to_owned()
+                } else {
+                    format!("{}::NAV_ENTRIES", module.join("::"))
+                };
+                found.push((
+                    path.to_path_buf(),
+                    name.clone(),
+                    nav_entries_expr(&item.expr, &name)?,
+                ));
+            }
+            syn::Item::Mod(item) if !cfg_test_only(&item.attrs) => {
+                if let Some((_, inner)) = &item.content {
+                    module.push(item.ident.to_string());
+                    nav_entries_in_items(inner, found, module, path)?;
+                    module.pop();
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+/// Extract the one authoritative showcase page registry from source files.
+#[cfg(test)]
+fn showcase_nav_registry(
+    files: &[(PathBuf, String)],
+) -> Result<(PathBuf, BTreeSet<String>), String> {
+    let mut found = Vec::new();
+    for (path, source) in files {
+        let ast =
+            syn::parse_file(source).map_err(|e| format!("{} does not parse: {e}", rel(path)))?;
+        nav_entries_in_items(&ast.items, &mut found, &mut Vec::new(), path)?;
+    }
+    match found.as_slice() {
+        [] => Err(
+            "apps/showcase/src has no `NAV_ENTRIES` registry; showcase coverage cannot be \
+             established"
+                .to_owned(),
+        ),
+        [(_, name, variants)] if variants.is_empty() => Err(format!(
+            "showcase registry `{name}` contains no `PageId` entries; refusing a \
+             green-empty coverage scan"
+        )),
+        [(path, _name, variants)] => Ok((path.clone(), variants.iter().cloned().collect())),
+        many => Err(format!(
+            "showcase source contains {} `NAV_ENTRIES` registries ({:?}); \
+             coverage requires exactly one authoritative page registry",
+            many.len(),
+            many.iter().map(|(_, name, _)| name).collect::<Vec<_>>()
+        )),
+    }
+}
+
+struct PageDispatchUses {
+    variants: Vec<String>,
+    matches: usize,
+}
+
+impl<'ast> syn::visit::Visit<'ast> for PageDispatchUses {
+    fn visit_expr_match(&mut self, node: &'ast syn::ExprMatch) {
+        self.matches = self.matches.saturating_add(1);
+        for arm in &node.arms {
+            let mut patterns = PagePatternUses {
+                variants: Vec::new(),
+                seen: BTreeSet::new(),
+            };
+            syn::visit::Visit::visit_pat(&mut patterns, &arm.pat);
+            self.variants.extend(patterns.variants);
+        }
+        syn::visit::visit_expr_match(self, node);
+    }
+}
+
+struct PagePatternUses {
+    variants: Vec<String>,
+    seen: BTreeSet<String>,
+}
+
+impl<'ast> syn::visit::Visit<'ast> for PagePatternUses {
+    fn visit_pat(&mut self, node: &'ast syn::Pat) {
+        if let syn::Pat::Path(path) = node
+            && let Some(variant) = page_variant_path(&path.path)
+        {
+            if self.seen.insert(variant.clone()) {
+                self.variants.push(variant);
+            }
+        }
+        syn::visit::visit_pat(self, node);
+    }
+}
+
+fn is_page_id_type(ty: &syn::Type) -> bool {
+    matches!(ty, syn::Type::Path(path) if path.path.segments.last().is_some_and(|segment| segment.ident == "PageId"))
+}
+
+fn page_function_takes_page_id(function: &syn::ItemFn) -> bool {
+    function.sig.inputs.iter().any(|input| match input {
+        syn::FnArg::Typed(typed) => is_page_id_type(&typed.ty),
+        syn::FnArg::Receiver(_) => false,
+    })
+}
+
+fn collect_page_contract_items(
+    items: &[syn::Item],
+    contract: &mut ShowcasePageContract,
+    nav_found: &mut usize,
+    all_found: &mut usize,
+    dispatch_found: &mut usize,
+    path: &Path,
+) -> Result<(), String> {
+    for item in items {
+        if cfg_test_only(item_attrs(item)) {
+            continue;
+        }
+        match item {
+            syn::Item::Enum(item) if item.ident == "PageId" => {
+                if !contract.enum_variants.is_empty() {
+                    return Err(format!(
+                        "{} contains more than one production `PageId` enum",
+                        rel(path)
+                    ));
+                }
+                contract.enum_variants = item
+                    .variants
+                    .iter()
+                    .map(|variant| variant.ident.to_string())
+                    .collect();
+            }
+            syn::Item::Impl(item)
+                if matches!(&*item.self_ty, syn::Type::Path(ty) if ty.path.segments.last().is_some_and(|segment| segment.ident == "PageId")) =>
+            {
+                for impl_item in &item.items {
+                    if let syn::ImplItem::Const(constant) = impl_item
+                        && constant.ident == "ALL"
+                        && !cfg_test_only(&constant.attrs)
+                    {
+                        *all_found = all_found.saturating_add(1);
+                        if *all_found > 1 {
+                            return Err("showcase contains more than one production `PageId::ALL`".to_owned());
+                        }
+                        contract.all_variants = page_variant_array(
+                            &constant.expr,
+                            "PageId::ALL",
+                        )?;
+                    }
+                }
+            }
+            syn::Item::Const(item)
+                if item.ident == "NAV_ENTRIES" && !cfg_test_only(&item.attrs) =>
+            {
+                *nav_found = nav_found.saturating_add(1);
+                if *nav_found > 1 {
+                    return Err("showcase contains more than one production `NAV_ENTRIES`".to_owned());
+                }
+                contract.nav_variants = nav_entries_expr(&item.expr, "NAV_ENTRIES")?;
+            }
+            syn::Item::Static(item)
+                if item.ident == "NAV_ENTRIES" && !cfg_test_only(&item.attrs) =>
+            {
+                *nav_found = nav_found.saturating_add(1);
+                if *nav_found > 1 {
+                    return Err("showcase contains more than one production `NAV_ENTRIES`".to_owned());
+                }
+                contract.nav_variants = nav_entries_expr(&item.expr, "NAV_ENTRIES")?;
+            }
+            syn::Item::Fn(item) if item.sig.ident == "page" => {
+                *dispatch_found = dispatch_found.saturating_add(1);
+                if *dispatch_found > 1 {
+                    return Err("showcase contains more than one production `page` dispatch function".to_owned());
+                }
+                if !page_function_takes_page_id(item) {
+                    return Err("showcase `page` dispatch must take a `PageId` argument".to_owned());
+                }
+                let mut uses = PageDispatchUses {
+                    variants: Vec::new(),
+                    matches: 0,
+                };
+                syn::visit::Visit::visit_block(&mut uses, &item.block);
+                if uses.matches == 0 {
+                    return Err("showcase `page` dispatch has no production match on PageId".to_owned());
+                }
+                contract.dispatch_variants = uses.variants;
+            }
+            syn::Item::Mod(item) => {
+                if let Some((_, inner)) = &item.content {
+                    collect_page_contract_items(
+                        inner,
+                        contract,
+                        nav_found,
+                        all_found,
+                        dispatch_found,
+                        path,
+                    )?;
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn page_axis_set(label: &str, values: &[String]) -> Result<BTreeSet<String>, String> {
+    if values.len() != SHOWCASE_PAGE_COUNT {
+        return Err(format!(
+            "showcase {label} has {} page(s), expected exactly {SHOWCASE_PAGE_COUNT}",
+            values.len()
+        ));
+    }
+    let set: BTreeSet<String> = values.iter().cloned().collect();
+    if set.len() != SHOWCASE_PAGE_COUNT {
+        return Err(format!(
+            "showcase {label} contains duplicate page identities: {values:?}"
+        ));
+    }
+    Ok(set)
+}
+
+fn validate_showcase_page_contract(contract: &ShowcasePageContract) -> Result<(), String> {
+    let enum_set = page_axis_set("PageId", &contract.enum_variants)?;
+    let all_set = page_axis_set("PageId::ALL", &contract.all_variants)?;
+    let nav_set = page_axis_set("NAV_ENTRIES", &contract.nav_variants)?;
+    let dispatch_set = page_axis_set("page dispatch", &contract.dispatch_variants)?;
+    let mut errors = Vec::new();
+    for (label, set) in [
+        ("PageId::ALL", &all_set),
+        ("NAV_ENTRIES", &nav_set),
+        ("page dispatch", &dispatch_set),
+    ] {
+        if set != &enum_set {
+            errors.push(format!(
+                "showcase {label} does not exactly match PageId: expected {enum_set:?}, got {set:?}"
+            ));
+        }
+    }
+    for (label, values) in [
+        ("PageId::ALL", &contract.all_variants),
+        ("NAV_ENTRIES", &contract.nav_variants),
+        ("page dispatch", &contract.dispatch_variants),
+    ] {
+        if values != &contract.enum_variants {
+            errors.push(format!(
+                "showcase {label} order differs from PageId declaration; dead or reordered pages are not accepted"
+            ));
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+fn showcase_page_contract(
+    files: &[(PathBuf, String)],
+) -> Result<ShowcasePageContract, String> {
+    let mut contract = ShowcasePageContract::default();
+    let mut nav_found = 0usize;
+    let mut all_found = 0usize;
+    let mut dispatch_found = 0usize;
+    for (path, source) in files {
+        let ast = syn::parse_file(source)
+            .map_err(|error| format!("{} does not parse: {error}", rel(path)))?;
+        collect_page_contract_items(
+            &ast.items,
+            &mut contract,
+            &mut nav_found,
+            &mut all_found,
+            &mut dispatch_found,
+            path,
+        )?;
+    }
+    if nav_found == 0 {
+        return Err("showcase source has no production `NAV_ENTRIES` registry".to_owned());
+    }
+    if all_found == 0 {
+        return Err("showcase source has no production `PageId::ALL` list".to_owned());
+    }
+    if dispatch_found == 0 {
+        return Err("showcase source has no production `page(PageId)` dispatch".to_owned());
+    }
+    validate_showcase_page_contract(&contract)?;
+    Ok(contract)
+}
+
+fn page_name_variants(name: &str) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let compact = name
+        .chars()
+        .flat_map(char::to_lowercase)
+        .collect::<String>();
+    out.insert(compact);
+    let mut snake = String::new();
+    for (i, c) in name.chars().enumerate() {
+        if c.is_ascii_uppercase() && i != 0 {
+            snake.push('_');
+        }
+        snake.extend(c.to_lowercase());
+    }
+    out.insert(snake);
+    out
+}
+
+/// Page source files reachable from the `PageId` variants in `NAV_ENTRIES`.
+/// A page left on disk but removed from the registry is deliberately excluded.
+fn showcase_page_sources(
+    files: &[(PathBuf, String)],
+    variants: &BTreeSet<String>,
+) -> Result<Vec<(String, String)>, String> {
+    let mut selected = Vec::new();
+    let mut missing = Vec::new();
+    for variant in variants {
+        let candidates = page_name_variants(variant);
+        let matches = files
+            .iter()
+            .filter(|(path, _)| {
+                let path_text = path.to_string_lossy().replace('\\', "/");
+                if !path_text.contains("/src/pages/") || path_text.ends_with("/pages/mod.rs") {
+                    return false;
+                }
+                path.file_stem()
+                    .and_then(|stem| stem.to_str())
+                    .is_some_and(|stem| candidates.contains(stem))
+            })
+            .map(|(path, source)| (rel(path), source.clone()))
+            .collect::<Vec<_>>();
+        if matches.len() != 1 {
+            if matches.is_empty() {
+                missing.push(variant.clone());
+            } else {
+                return Err(format!(
+                    "showcase registry entry `{variant}` resolves to {} page source files; +                     exactly one named page module is required",
+                    matches.len()
+                ));
+            }
+        } else {
+            selected.extend(matches);
+        }
+    }
+    if !missing.is_empty() {
+        return Err(format!(
+            "showcase registry entries {:?} have no reachable page source; \
+             coverage cannot be proven",
+            missing
+        ));
+    }
+    selected.sort_by(|a, b| a.0.cmp(&b.0));
+    selected.dedup_by(|a, b| a.0 == b.0);
+    if selected.len() != variants.len() {
+        return Err(format!(
+            "showcase registry resolves {} page source file(s) for {} page identities; +             every one of the exact {SHOWCASE_PAGE_COUNT} pages needs its own module",
+            selected.len(),
+            variants.len()
+        ));
+    }
+    if selected.is_empty() {
+        return Err(
+            "showcase page registry resolved to no source files; refusing a green-empty \
+             coverage scan"
+                .to_owned(),
+        );
+    }
+    // A common `pages/mod.rs` is part of every page's Rust module graph. The
+    // migration uses it for shared page implementations (including the
+    // component demos); include it so coverage follows the actual module
+    // boundary rather than only the tiny per-page wrappers.
+    if let Some((path, source)) = files
+        .iter()
+        .find(|(path, _)| rel(path) == "apps/showcase/src/pages/mod.rs")
+    {
+        selected.push((rel(path), source.clone()));
+    }
+    // The app root owns the registry and its always-visible chrome (for
+    // example the navigation list and help dialog), so those public
+    // components are demonstrations too.
+    if let Some((path, source)) = files
+        .iter()
+        .find(|(path, _)| rel(path) == "apps/showcase/src/app.rs")
+    {
+        selected.push((rel(path), source.clone()));
+    }
+    Ok(selected)
+}
+
+fn showcase_component_name(case: &str) -> Option<String> {
+    let name = case.strip_suffix("Case")?;
+    (name != "Probe").then(|| name.to_owned())
+}
+
+/// A production function body and its local calls. A component mention only
+/// counts after a `Page::draw` or `Page::update` root reaches this body. This
+/// deliberately ignores imports, signatures, dead helpers and test items.
+#[derive(Debug, Default)]
+struct ShowcaseFunction {
+    name: String,
+    root_draw: bool,
+    root_update: bool,
+    calls: BTreeSet<String>,
+    names: BTreeSet<String>,
+}
+
+struct ShowcaseBodyUses {
+    calls: BTreeSet<String>,
+    names: BTreeSet<String>,
+}
+
+impl<'ast> syn::visit::Visit<'ast> for ShowcaseBodyUses {
+    fn visit_expr_call(&mut self, node: &'ast syn::ExprCall) {
+        if let syn::Expr::Path(path) = node.func.as_ref()
+            && let Some(segment) = path.path.segments.last()
+        {
+            self.calls.insert(segment.ident.to_string());
+        }
+        syn::visit::visit_expr_call(self, node);
+    }
+
+    fn visit_expr_method_call(&mut self, node: &'ast syn::ExprMethodCall) {
+        self.calls.insert(node.method.to_string());
+        syn::visit::visit_expr_method_call(self, node);
+    }
+
+    fn visit_path(&mut self, path: &'ast syn::Path) {
+        self.names.extend(
+            path.segments
+                .iter()
+                .map(|segment| segment.ident.to_string()),
+        );
+        syn::visit::visit_path(self, path);
+    }
+}
+
+fn showcase_function_from_body(
+    name: &syn::Ident,
+    block: &syn::Block,
+    root_draw: bool,
+    root_update: bool,
+) -> ShowcaseFunction {
+    let mut uses = ShowcaseBodyUses {
+        calls: BTreeSet::new(),
+        names: BTreeSet::new(),
+    };
+    syn::visit::Visit::visit_block(&mut uses, block);
+    ShowcaseFunction {
+        name: name.to_string(),
+        root_draw,
+        root_update,
+        calls: uses.calls,
+        names: uses.names,
+    }
+}
+
+fn collect_showcase_functions(items: &[syn::Item], functions: &mut Vec<ShowcaseFunction>) {
+    for item in items {
+        if cfg_test_only(item_attrs(item)) {
+            continue;
+        }
+        match item {
+            syn::Item::Fn(function) => functions.push(showcase_function_from_body(
+                &function.sig.ident,
+                &function.block,
+                false,
+                false,
+            )),
+            syn::Item::Impl(item_impl) => {
+                let page_impl = item_impl
+                    .trait_
+                    .as_ref()
+                    .and_then(|(_, path, _)| path.segments.last())
+                    .is_some_and(|segment| segment.ident == "Page");
+                for item in &item_impl.items {
+                    let syn::ImplItem::Fn(function) = item else {
+                        continue;
+                    };
+                    if cfg_test_only(&function.attrs) {
+                        continue;
+                    }
+                    functions.push(showcase_function_from_body(
+                        &function.sig.ident,
+                        &function.block,
+                        page_impl && function.sig.ident == "draw",
+                        page_impl && function.sig.ident == "update",
+                    ));
+                }
+            }
+            syn::Item::Mod(item) => {
+                if let Some((_, inner)) = &item.content {
+                    collect_showcase_functions(inner, functions);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn showcase_component_names(pages: &[(String, String)]) -> Result<BTreeSet<String>, Vec<String>> {
+    let mut functions = Vec::new();
+    let mut errors = Vec::new();
+    for (path, source) in pages {
+        match syn::parse_file(source) {
+            Ok(ast) => collect_showcase_functions(&ast.items, &mut functions),
+            Err(error) => errors.push(format!("{path} does not parse: {error}")),
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    let has_draw = functions.iter().any(|function| function.root_draw);
+    let has_update = functions.iter().any(|function| function.root_update);
+    if !has_draw || !has_update {
+        return Err(vec![
+            "showcase has no reachable production `Page::draw` and `Page::update` roots".to_owned(),
+        ]);
+    }
+
+    let mut reachable = BTreeSet::new();
+    let mut pending = functions
+        .iter()
+        .filter(|function| function.root_draw || function.root_update)
+        .map(|function| function.name.clone())
+        .collect::<Vec<_>>();
+    let mut visited = BTreeSet::new();
+    while let Some(name) = pending.pop() {
+        if !visited.insert(name.clone()) {
+            continue;
+        }
+        for function in functions.iter().filter(|function| function.name == name) {
+            reachable.extend(function.names.iter().cloned());
+            pending.extend(function.calls.iter().cloned());
+        }
+    }
+    Ok(reachable)
+}
+
+/// The pure coverage relation used by the filesystem check and its red-proof
+/// fixtures. Every registered conformance case except the test-only probe must
+/// occur in a page source reached through the page registry.
+fn showcase_coverage_hits(
+    cases: &BTreeSet<String>,
+    registry_variants: &BTreeSet<String>,
+    pages: &[(String, String)],
+) -> Vec<String> {
+    let mut hits = Vec::new();
+    if registry_variants.is_empty() {
+        hits.push("showcase page registry has no entries".to_owned());
+    }
+    if pages.is_empty() {
+        hits.push("showcase page registry reaches no page source".to_owned());
+    }
+    let page_names = match showcase_component_names(pages) {
+        Ok(names) => names,
+        Err(errors) => {
+            hits.extend(errors);
+            BTreeSet::new()
+        }
+    };
+    for case in cases {
+        let Some(component) = showcase_component_name(case) else {
+            continue;
+        };
+        if !page_names.contains(&component) {
+            hits.push(format!(
+                "{case}: no registered showcase page names public component `{component}`"
+            ));
+        }
+    }
+    hits
+}
+
+/// §16.5 / §47.5. The showcase page registry must reach every public
+/// component represented by the shared conformance suite.
+fn showcase_covers_every_public_component() -> Result<(), String> {
+    let md = metadata()?;
+    let due = due_apps(&md);
+    let apps = root().join("apps");
+    if !apps.exists() && due.is_empty() {
+        println!(
+            "showcase_covers_every_public_component: accepted temporary no-app state (root \
+             package still owns every application binary)"
+        );
+        return Ok(());
+    }
+    if !due.iter().any(|a| a.bin == "showcase") {
+        return Err(
+            "showcase coverage is due only after the showcase binary leaves the root package; \
+             an active apps/ tree without that atomic migration is invalid"
+                .to_owned(),
+        );
+    }
+    let _ = application_source_files(&md)?;
+    let showcase_src = root().join("apps/showcase/src");
+    let mut files = rust_files(&showcase_src)
+        .into_iter()
+        .map(|path| {
+            let source = read(&path);
+            (path, source)
+        })
+        .collect::<Vec<_>>();
+    files.sort_by(|a, b| a.0.cmp(&b.0));
+    let contract = showcase_page_contract(&files)?;
+    let variants: BTreeSet<String> = contract.nav_variants.iter().cloned().collect();
+    let pages = showcase_page_sources(&files, &variants)?;
+    let cases = registered_conformance_cases(&root().join("crates/tui/tests/conformance.rs"))?;
+    let hits = showcase_coverage_hits(&cases, &variants, &pages);
+    if hits.is_empty() {
+        println!(
+            "showcase_covers_every_public_component: {} public conformance component(s) \
+             reached through {} registered page(s)",
+            cases
+                .iter()
+                .filter(|c| showcase_component_name(c).is_some())
+                .count(),
+            variants.len()
+        );
+        Ok(())
+    } else {
+        Err(hits.join("\n"))
+    }
 }
 
 /// §16.5 / §47.5. The multiset of `bin` target names across every workspace
@@ -5740,6 +6849,315 @@ mod tests {
         );
     }
 
+    #[test]
+    fn application_scan_rejects_a_due_app_without_apps_root() {
+        let error = missing_apps_for_due(&[&APPS[0]])
+            .expect("a due application must not pass with no apps root");
+        assert!(error.contains("apps/ is missing"), "{error}");
+        assert!(error.contains("apps/showcase/src"), "{error}");
+        assert!(
+            missing_apps_for_due(&[]).is_none(),
+            "the accepted pre-Slice-5 state"
+        );
+    }
+
+    #[test]
+    fn application_scan_rejects_a_due_app_without_manifest() {
+        let error = missing_application_manifest(&APPS[0]);
+        assert!(error.contains("apps/showcase/Cargo.toml"), "{error}");
+        assert!(error.contains("due application `showcase`"), "{error}");
+    }
+
+    #[test]
+    fn binary_layout_gate_reports_wrong_owner_and_source() {
+        let app = &APPS[0];
+        let broken = binary_target_layout_hits(
+            app,
+            false,
+            None,
+            "wrong-package",
+            Path::new("apps/showcase/src/other.rs"),
+        );
+        assert_eq!(
+            broken.len(),
+            2,
+            "owner and path must both be checked: {broken:?}"
+        );
+        assert!(
+            broken
+                .iter()
+                .any(|hit| hit.contains("wrong migration boundary"))
+        );
+        assert!(
+            broken
+                .iter()
+                .any(|hit| hit.contains("apps/showcase/src/main.rs"))
+        );
+        assert!(
+            binary_target_layout_hits(
+                app,
+                true,
+                Some("junie-tui"),
+                "junie-tui",
+                &legacy_binary_source(app),
+            )
+            .is_empty()
+        );
+    }
+
+    #[test]
+    fn generic_component_copy_gate_reports_broken_fixture_and_allows_rain() {
+        let broken = "\
+fn render(&mut self) {}\n
+let style = Style::new();\n
+let block = Block::default();\n
+buf.set_string(x, y, text, style);\n";
+        let hits = generic_component_copy_hits("apps/showcase/src/page.rs", broken);
+        assert_eq!(
+            hits.len(),
+            4,
+            "every forbidden shape must be reported: {hits:?}"
+        );
+        assert!(hits.iter().any(|hit| hit.contains("fn render")), "{hits:?}");
+        assert!(
+            generic_component_copy_hits("apps/jackin-preview/src/rain.rs", broken).is_empty(),
+            "rain.rs is the sole named exception"
+        );
+        let fixture = "#[cfg(test)]\nmod tests {\nfn render(&mut self) {}\n}\n";
+        assert!(
+            generic_component_copy_hits("apps/showcase/src/page.rs", fixture).is_empty(),
+            "test-only helpers are not shipped application code"
+        );
+    }
+
+    #[test]
+    fn application_dispatch_gate_reports_broken_fixture_and_skips_tests() {
+        let broken = "\
+fn owns(x: Id) { registry.owns(x); }\n
+fn locate(x: Id) { registry.locate(x); }\n
+let _ = scrollbar::id_for(x);\n
+let _ = parent.child(x);\n";
+        let hits = owns_or_locate_hits("apps/showcase/src/page.rs", broken);
+        assert_eq!(
+            hits.len(),
+            4,
+            "every retired dispatch shape must be reported: {hits:?}"
+        );
+        let fixture = "#[cfg(test)]\nmod tests {\nfn route(x: Id) { registry.owns(x); }\n}\n";
+        assert!(
+            owns_or_locate_hits("apps/showcase/src/page.rs", fixture).is_empty(),
+            "test-only helpers are not shipped application code"
+        );
+    }
+
+    #[test]
+    fn showcase_coverage_gate_reports_missing_public_component() {
+        let cases = BTreeSet::from([
+            "ProbeCase".to_owned(),
+            "ButtonCase".to_owned(),
+            "DialogCase".to_owned(),
+        ]);
+        let registry = BTreeSet::from(["Buttons".to_owned(), "Dialogs".to_owned()]);
+        let pages = vec![
+            (
+                "apps/showcase/src/pages/buttons.rs".to_owned(),
+                "trait Page {}
+struct Demo;
+impl Page for Demo {
+    fn draw(&self) { Button::new(ID); }
+    fn update(&mut self) { Button::new(ID); }
+}".to_owned(),
+            ),
+            (
+                "apps/showcase/src/pages/dialogs.rs".to_owned(),
+                "trait Page {}
+struct DialogDemo;
+impl Page for DialogDemo {
+    fn draw(&self) { Dialog::confirm(ID); }
+    fn update(&mut self) { Dialog::confirm(ID); }
+}".to_owned(),
+            ),
+        ];
+        assert!(
+            showcase_coverage_hits(&cases, &registry, &pages).is_empty(),
+            "probe is test-only and the two public components are covered"
+        );
+
+        let missing = BTreeSet::from(["Buttons".to_owned()]);
+        let hits = showcase_coverage_hits(&cases, &missing, &pages[..1]);
+        assert_eq!(hits.len(), 1, "{hits:?}");
+        assert!(hits[0].contains("DialogCase"), "{hits:?}");
+
+        let empty = showcase_coverage_hits(&cases, &registry, &[]);
+        assert!(
+            empty
+                .iter()
+                .any(|hit| hit.contains("no registered showcase page")),
+            "a missing page source must fail closed: {empty:?}"
+        );
+
+        let prose = vec![(
+            "apps/showcase/src/pages/buttons.rs".to_owned(),
+            "fn page() { let _label = \"Dialog\"; /* Button */ }".to_owned(),
+        )];
+        let prose_hits = showcase_coverage_hits(&cases, &registry, &prose);
+        assert!(
+            prose_hits.iter().any(|hit| hit.contains("ButtonCase"))
+                && prose_hits.iter().any(|hit| hit.contains("DialogCase")),
+            "comments and strings must not count as a component demonstration: {prose_hits:?}"
+        );
+
+        let imports = vec![(
+            "apps/showcase/src/pages/buttons.rs".to_owned(),
+            "use tui_next::Button; fn page() {}".to_owned(),
+        )];
+        let import_hits = showcase_coverage_hits(&cases, &registry, &imports);
+        assert!(
+            import_hits.iter().any(|hit| hit.contains("ButtonCase")),
+            "an import alone must not count as a component demonstration: {import_hits:?}"
+        );
+
+        let test_only = vec![(
+            "apps/showcase/src/pages/buttons.rs".to_owned(),
+            "trait Page {}
+struct Demo;
+impl Page for Demo { fn draw(&self) {} fn update(&mut self) {} }
+#[cfg(test)]
+const BUTTON: Option<Button> = None;
+#[cfg(test)]
+impl Demo { fn draw(&self) { Dialog::new(ID); } }
+"
+            .to_owned(),
+        )];
+        let names = showcase_component_names(&test_only).expect("production roots parse");
+        assert!(
+            !names.contains("Button") && !names.contains("Dialog"),
+            "test-only items must not count as showcase demonstrations: {names:?}"
+        );
+    }
+
+    #[test]
+    fn showcase_coverage_rejects_dead_helpers_and_signature_only_mentions() {
+        let cases = BTreeSet::from(["ButtonCase".to_owned()]);
+        let registry = BTreeSet::from(["Buttons".to_owned()]);
+        let dead = vec![(
+            "apps/showcase/src/pages/buttons.rs".to_owned(),
+            "trait Page {}
+struct Demo;
+fn helper(_component: Button) {}
+impl Page for Demo { fn draw(&self) {} fn update(&mut self) {} }
+"
+            .to_owned(),
+        )];
+        let hits = showcase_coverage_hits(&cases, &registry, &dead);
+        assert!(
+            hits.iter().any(|hit| hit.contains("ButtonCase")),
+            "a dead helper/signature must not prove coverage: {hits:?}"
+        );
+
+        let reachable = vec![(
+            "apps/showcase/src/pages/buttons.rs".to_owned(),
+            "trait Page {}
+struct Demo;
+fn helper() { Button::new(ID); }
+impl Page for Demo {
+    fn draw(&self) { helper(); }
+    fn update(&mut self) { helper(); }
+}
+"
+            .to_owned(),
+        )];
+        assert!(
+            showcase_coverage_hits(&cases, &registry, &reachable).is_empty(),
+            "a helper reached from both production phases is real coverage"
+        );
+    }
+
+    #[test]
+    fn showcase_nav_registry_is_structural_and_non_empty() {
+        let files = vec![(
+            PathBuf::from("apps/showcase/src/app.rs"),
+            "const NAV_ENTRIES: &[NavEntry] = &[NavEntry { id: PageId::Buttons }];".to_owned(),
+        )];
+        let (_, variants) = showcase_nav_registry(&files).expect("registry parses");
+        assert_eq!(variants, BTreeSet::from(["Buttons".to_owned()]));
+
+        let empty = vec![(
+            PathBuf::from("apps/showcase/src/app.rs"),
+            "const NAV_ENTRIES: &[NavEntry] = &[];".to_owned(),
+        )];
+        let error = showcase_nav_registry(&empty).expect_err("empty registry must fail closed");
+        assert!(error.contains("no `PageId` entries"), "{error}");
+
+        let test_only = vec![(
+            PathBuf::from("apps/showcase/src/app.rs"),
+            "#[cfg(test)]\nconst NAV_ENTRIES: &[NavEntry] = &[NavEntry { id: PageId::Buttons }];"
+                .to_owned(),
+        )];
+        let error = showcase_nav_registry(&test_only)
+            .expect_err("a test-only registry must not satisfy production coverage");
+        assert!(error.contains("no `NAV_ENTRIES` registry"), "{error}");
+    }
+
+    fn page_contract_fixture(
+        nav: &[&str],
+        all: &[&str],
+        dispatch: &[&str],
+    ) -> Vec<(PathBuf, String)> {
+        let variants: Vec<String> = (0..SHOWCASE_PAGE_COUNT).map(|i| format!("P{i}")).collect();
+        let enum_body = variants.join(", ");
+        let nav_body = nav
+            .iter()
+            .map(|variant| format!("NavEntry {{ id: PageId::{variant} }}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let all_body = all
+            .iter()
+            .map(|variant| format!("Self::{variant}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let dispatch_body = dispatch
+            .iter()
+            .map(|variant| format!("PageId::{variant} => ()"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        vec![(
+            PathBuf::from("apps/showcase/src/app.rs"),
+            format!(
+                "enum PageId {{ {enum_body} }}
+impl PageId {{ const ALL: [Self; 22] = [{all_body}]; }}
+struct NavEntry;
+const NAV_ENTRIES: &[NavEntry] = &[{nav_body}];
+fn page(page: PageId) {{ match page {{ {dispatch_body} }} }}"
+            ),
+        )]
+    }
+
+    #[test]
+    fn showcase_page_contract_rejects_short_duplicate_and_dead_axes() {
+        let variants: Vec<String> = (0..SHOWCASE_PAGE_COUNT).map(|i| format!("P{i}")).collect();
+        let refs: Vec<&str> = variants.iter().map(String::as_str).collect();
+        let valid = showcase_page_contract(&page_contract_fixture(&refs, &refs, &refs));
+        assert!(valid.is_ok(), "{valid:?}");
+
+        let mut missing = refs.clone();
+        missing.pop();
+        let error = showcase_page_contract(&page_contract_fixture(&missing, &refs, &refs))
+            .expect_err("a missing NAV page must fail closed");
+        assert!(error.contains("NAV_ENTRIES has 21 page(s)"), "{error}");
+
+        let mut duplicate = refs.clone();
+        duplicate[21] = duplicate[0];
+        let error = showcase_page_contract(&page_contract_fixture(&duplicate, &refs, &refs))
+            .expect_err("a duplicate NAV page must fail closed");
+        assert!(error.contains("NAV_ENTRIES contains duplicate"), "{error}");
+
+        let empty = page_contract_fixture(&refs, &refs, &[]);
+        let error = showcase_page_contract(&empty)
+            .expect_err("a dead dispatch helper with no match arms must fail closed");
+        assert!(error.contains("page dispatch has 0 page(s)"), "{error}");
+    }
+
     fn signature_spec<'a>(
         component: &'a str,
         source: &'a str,
@@ -6653,12 +8071,32 @@ captures / classification: `(pending — filled when the change lands)`
 
     #[test]
     fn capture_matrix_covers_every_declared_cell() {
-        let expected: BTreeSet<CaptureCase> = CAPTURE_SIZES
+        let expected_sizes = [(80, 24), (100, 30), (120, 40), (160, 50)];
+        let expected_colors = ["truecolor", "256", "16", "mono"];
+        let expected_themes = ["junie", "paper"];
+        let expected_apps = [
+            CaptureApp {
+                name: "showcase",
+                binary: "showcase",
+                extra_args: "",
+            },
+            CaptureApp {
+                name: "tablepro",
+                binary: "tablepro",
+                extra_args: "",
+            },
+            CaptureApp {
+                name: "jackin-preview",
+                binary: "jackin-preview",
+                extra_args: "--motion paused --frame 0",
+            },
+        ];
+        let expected: BTreeSet<CaptureCase> = expected_sizes
             .into_iter()
             .flat_map(|(width, height)| {
-                CAPTURE_COLORS.into_iter().flat_map(move |color| {
-                    CAPTURE_THEMES.into_iter().flat_map(move |theme| {
-                        CAPTURE_APPS.into_iter().map(move |app| CaptureCase {
+                expected_colors.into_iter().flat_map(move |color| {
+                    expected_themes.into_iter().flat_map(move |theme| {
+                        expected_apps.into_iter().map(move |app| CaptureCase {
                             app,
                             width,
                             height,
@@ -6672,6 +8110,23 @@ captures / classification: `(pending — filled when the change lands)`
         let actual: BTreeSet<CaptureCase> = capture_matrix_cases().into_iter().collect();
         assert_eq!(actual, expected);
         assert_eq!(actual.len(), 3 * 4 * 4 * 2);
+    }
+
+    #[test]
+    fn capture_contract_rejects_axis_and_script_shortcuts() {
+        assert!(capture_axes_contract_hits().is_empty());
+        let missing_png = "BIN=ok\nCOLOR=${COLOR:-truecolor}\ncase \"$COLOR\" in\ntruecolor)\n256)\n16)\nmono)\n${ARGS:-}\n";
+        let errors = capture_script_contract_hits(missing_png);
+        assert!(errors.iter().any(|error| error.contains("required BIN")), "{errors:?}");
+        assert!(errors.iter().any(|error| error.contains("terminal dimensions")), "{errors:?}");
+        assert!(errors.iter().any(|error| error.contains("PNG conversion")), "{errors:?}");
+
+        let legacy_default = "BIN=${BIN:-target/debug/showcase}\n: \"${BIN:?x}\"";
+        let errors = capture_script_contract_hits(legacy_default);
+        assert!(
+            errors.iter().any(|error| error.contains("legacy showcase BIN default")),
+            "the old implicit binary owner must fail: {errors:?}"
+        );
     }
 
     #[test]
