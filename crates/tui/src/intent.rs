@@ -8,7 +8,6 @@
 //! borrows only the queue, so services on `Cx` stay usable inside the loop.
 
 use core::cell::Cell;
-use core::fmt;
 use core::ops::Range;
 
 use ratatui_core::layout::Position;
@@ -20,7 +19,7 @@ use crate::layer::LayerEvent;
 
 /// What a component actually receives.
 #[non_exhaustive]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Intent<'f> {
     /// A declared component action resolved through its effective chord.
     Binding(ActionKey),
@@ -67,50 +66,6 @@ pub enum Intent<'f> {
     Layer(LayerEvent),
     /// Esc reached this owner after layer dismissal.
     Cancel,
-}
-
-impl fmt::Debug for Intent<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Intent::Binding(action) => f.debug_tuple("Binding").field(action).finish(),
-            Intent::Key(key) => f.debug_tuple("Key").field(key).finish(),
-            Intent::Paste(text) => f
-                .debug_struct("Paste")
-                .field("len", &text.len())
-                .field("text", &"[redacted]")
-                .finish(),
-            Intent::Pointer {
-                phase,
-                part,
-                pos,
-                local,
-                mods,
-            } => f
-                .debug_struct("Pointer")
-                .field("phase", phase)
-                .field("part", part)
-                .field("pos", pos)
-                .field("local", local)
-                .field("mods", mods)
-                .finish(),
-            Intent::Wheel {
-                axis,
-                delta,
-                part,
-                pos,
-            } => f
-                .debug_struct("Wheel")
-                .field("axis", axis)
-                .field("delta", delta)
-                .field("part", part)
-                .field("pos", pos)
-                .finish(),
-            Intent::FocusIn { via } => f.debug_struct("FocusIn").field("via", via).finish(),
-            Intent::FocusOut { to } => f.debug_struct("FocusOut").field("to", to).finish(),
-            Intent::Layer(event) => f.debug_tuple("Layer").field(event).finish(),
-            Intent::Cancel => f.write_str("Cancel"),
-        }
-    }
 }
 
 /// Pointer phases.
@@ -193,6 +148,7 @@ const TABLE: usize = 32;
 const TABLE_MAX_OWNERS: usize = 24;
 
 /// The per-frame intent queue, keyed by owner.
+#[derive(Debug)]
 pub(crate) struct IntentQueue {
     arena: String,
     buckets: Vec<Bucket>,
@@ -226,9 +182,9 @@ impl IntentQueue {
         self.probes.get()
     }
 
-    /// Empty the queue, keeping bucket allocations while wiping paste data.
+    /// Empty the queue, keeping every allocation (buckets are reused).
     pub(crate) fn clear(&mut self) {
-        zeroize_string(&mut self.arena);
+        self.arena.clear();
         for b in &mut self.buckets {
             b.items.clear();
             b.drained.set(false);
@@ -510,37 +466,6 @@ impl IntentQueue {
     }
 }
 
-impl fmt::Debug for IntentQueue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut debug = f.debug_struct("IntentQueue");
-        debug
-            .field("arena", &"[redacted]")
-            .field("arena_len", &self.arena.len())
-            .field("buckets", &self.buckets)
-            .field("used", &self.used)
-            .field("table", &self.table)
-            .field("overflow", &self.overflow);
-        #[cfg(feature = "testing")]
-        debug.field("probes", &self.probes);
-        debug.finish()
-    }
-}
-
-impl Drop for IntentQueue {
-    fn drop(&mut self) {
-        zeroize_string(&mut self.arena);
-    }
-}
-
-fn zeroize_string(value: &mut String) {
-    let mut bytes = core::mem::take(value).into_bytes();
-    bytes.fill(0);
-    core::hint::black_box(&bytes);
-    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-    bytes.clear();
-    *value = String::new();
-}
-
 /// Iterator over one owner's intents for the frame. A named type so it can
 /// outlive the `&Cx` borrow that produced it (§22.3).
 #[derive(Debug, Clone)]
@@ -585,18 +510,6 @@ mod tests {
         assert_eq!(q.iter(b).count(), 0);
         assert!(q.was_drained(a));
         assert!(!q.was_drained(b));
-    }
-
-    #[test]
-    fn paste_debug_output_redacts_payload_and_queue_arena() {
-        let mut q = IntentQueue::new();
-        let owner = Id::root("debug");
-        q.paste(owner, "hunter2");
-        let intent = q.iter(owner).next().expect("paste intent");
-        assert!(!format!("{intent:?}").contains("hunter2"));
-        assert!(!format!("{q:?}").contains("hunter2"));
-        q.clear();
-        assert!(!format!("{q:?}").contains("hunter2"));
     }
 
     #[test]

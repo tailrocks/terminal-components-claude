@@ -7,7 +7,7 @@ use ratatui_core::layout::Rect;
 
 use super::button::Button;
 use super::field::Field;
-use super::input::{TextAction, TextInput, TextInputState, redacted_text};
+use super::input::{TextAction, TextInput, TextInputState};
 use super::keyhint::ChordText;
 use super::{Acc, Overrides};
 use crate::action::{Action, ActionKey};
@@ -19,7 +19,6 @@ use crate::layer::{DismissReason, LayerEvent, LayerSize, LayerSpec};
 use crate::layout::{RowAlign, action_row};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::secret::{Secret, SecretPolicy};
 use crate::text::{width, wrap, wrapped_rows};
 use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
@@ -97,87 +96,34 @@ const INFO_ACTIONS: [Action<'static>; 1] = [Action::new(ActionKey::CLOSE, "Close
 ///
 /// The draft is uncontrolled (S4's documented exception: a throwaway
 /// field); read it with [`DialogState::draft`]. `Debug` redacts it.
-#[derive(Default)]
+#[derive(Clone, PartialEq, Eq, Default)]
 pub struct DialogState {
     input: TextInputState,
     draft: String,
-    ack_draft: Secret,
 }
-
-impl Clone for DialogState {
-    fn clone(&self) -> Self {
-        DialogState {
-            input: self.input.clone(),
-            draft: if self.input.is_sensitive() {
-                redacted_text(&self.draft)
-            } else {
-                self.draft.clone()
-            },
-            ack_draft: Secret::new(redacted_text(self.ack_draft.expose())),
-        }
-    }
-}
-
-impl PartialEq for DialogState {
-    fn eq(&self, other: &Self) -> bool {
-        self.input == other.input
-            && if self.input.is_sensitive() || other.input.is_sensitive() {
-                true
-            } else {
-                self.draft == other.draft
-            }
-    }
-}
-
-impl Eq for DialogState {}
 
 impl fmt::Debug for DialogState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DialogState")
             .field("input", &self.input)
             .field("draft", &"[redacted]")
-            .field("ack_draft", &"[redacted]")
             .finish()
     }
 }
 
 impl DialogState {
-    /// The committed prompt text. Acknowledgement drafts return an empty
-    /// string; the token is only compared inside the dialog.
+    /// The committed prompt text.
     pub fn draft(&self) -> &str {
-        if self.input.is_sensitive() {
-            ""
-        } else {
-            &self.draft
-        }
+        &self.draft
     }
 
     /// Overwrite the drafts.
     pub fn zeroize(&mut self) {
         self.input.zeroize();
-        zeroize_string(&mut self.draft);
-        self.ack_draft.zeroize();
+        let mut bytes = core::mem::take(&mut self.draft).into_bytes();
+        bytes.fill(0);
+        self.draft = String::new();
     }
-
-    fn set_secret_mode(&mut self, secret: bool) {
-        if self.input.is_sensitive() == secret {
-            return;
-        }
-        if secret {
-            zeroize_string(&mut self.draft);
-        } else {
-            self.ack_draft.zeroize();
-        }
-        self.input.set_sensitive(secret);
-    }
-}
-
-fn zeroize_string(value: &mut String) {
-    let mut bytes = core::mem::take(value).into_bytes();
-    bytes.fill(0);
-    core::hint::black_box(&bytes);
-    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-    bytes.clear();
 }
 
 /// A titled surface with a description, an optional prompt or typed
@@ -463,18 +409,8 @@ impl<'a> Dialog<'a> {
         self.prompt.is_some() || self.ack.is_some()
     }
 
-    fn input_control(&self) -> TextInput<'static> {
-        let input = TextInput::new(self.input_id());
-        if self.ack.is_some() {
-            input.secret(SecretPolicy::default())
-        } else {
-            input
-        }
-    }
-
     fn armed(&self, st: &DialogState) -> bool {
-        self.ack
-            .is_none_or(|tok| st.ack_draft.expose().trim() == tok)
+        self.ack.is_none_or(|tok| st.draft.trim() == tok)
     }
 
     fn enabled(&self, i: usize, a: &Action<'_>, st: &DialogState) -> bool {
@@ -520,36 +456,21 @@ impl<'a> Dialog<'a> {
         );
         cx.resize_layer(self.id, size);
         let mut acc = Acc::<DialogAction>::new();
-        let mut action_fired = false;
         for it in cx.intents(self.id) {
             match it {
-                Intent::Layer(LayerEvent::Dismissed(r)) => {
-                    st.zeroize();
-                    acc.action(DialogAction::Dismissed(r));
-                }
+                Intent::Layer(LayerEvent::Dismissed(r)) => acc.action(DialogAction::Dismissed(r)),
                 // A lifecycle notification is drained and repainted but NOT
                 // consumed: `Opened` arrives in the same `update` as the key
                 // that is still travelling the Esc ladder (§3.3 step 8), and
                 // consuming it would make the first Esc after opening a modal
                 // do nothing.
                 Intent::Layer(_) => acc.repaint(),
-                Intent::Cancel => {
-                    st.zeroize();
-                    acc.changed();
-                }
+                Intent::Cancel => acc.changed(),
                 _ => {}
             }
         }
-        let is_ack = self.ack.is_some();
-        st.set_secret_mode(is_ack);
         if self.has_input() {
-            let r = if is_ack {
-                self.input_control()
-                    .update_in_form(cx, &mut st.input, &mut st.ack_draft, false)
-            } else {
-                self.input_control()
-                    .update(cx, &mut st.input, &mut st.draft)
-            };
+            let r = TextInput::new(self.input_id()).update(cx, &mut st.input, &mut st.draft);
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
             acc.fold(&r.erase());
             if committed && self.prompt.is_some() {
@@ -558,7 +479,6 @@ impl<'a> Dialog<'a> {
                     && let Some(a) = self.actions.get(i)
                 {
                     acc.action(DialogAction::Action(a.key()));
-                    action_fired = true;
                 }
             }
         }
@@ -571,7 +491,6 @@ impl<'a> Dialog<'a> {
                 .update(cx);
             if r.activated() {
                 acc.action(DialogAction::Action(a.key()));
-                action_fired = true;
             } else {
                 acc.fold(&r.erase());
             }
@@ -592,20 +511,15 @@ impl<'a> Dialog<'a> {
                         }
                         Some(DialogCmd::Activate) if enabled => {
                             acc.action(DialogAction::Action(a.key()));
-                            action_fired = true;
                         }
                         Some(DialogCmd::Activate) => acc.consumed(),
                         None if action == a.key() && enabled => {
                             acc.action(DialogAction::Action(a.key()));
-                            action_fired = true;
                         }
                         None => {}
                     }
                 }
             }
-        }
-        if action_fired && self.ack.is_some() {
-            st.zeroize();
         }
         acc.finish(self.id)
     }
@@ -806,12 +720,7 @@ impl<'a> Dialog<'a> {
                     width: inner.width.saturating_add(1),
                     height: field_h.min(actions_y.saturating_sub(y)),
                 };
-                let value = if self.ack.is_some() {
-                    st.ack_draft.expose()
-                } else {
-                    &st.draft
-                };
-                let input = self.input_control().value(value);
+                let input = TextInput::new(self.input_id()).value(&st.draft);
                 let label = self.prompt.unwrap_or("Type the token to confirm");
                 Field::new(label, input).plain(true).draw(ui, r, &st.input);
                 y = y.saturating_add(field_h);
@@ -1307,44 +1216,8 @@ mod tests {
         let d = Dialog::acknowledge(DLG, "Delete", TOKEN).actions(&actions);
         let mut st = DialogState::default();
         assert!(!d.enabled(0, &action, &st));
-        st.ack_draft.set(TOKEN);
-        st.set_secret_mode(true);
-        assert!(
-            st.draft().is_empty(),
-            "acknowledgement state exposed its token"
-        );
-        let copy = st.clone();
-        assert_eq!(copy.ack_draft.expose(), "••••••");
-        assert!(!copy.ack_draft.expose().contains(TOKEN));
-        assert!(!d.enabled(0, &action, &copy));
+        st.draft.push_str(TOKEN);
         assert!(d.enabled(0, &action, &st));
-    }
-
-    #[test]
-    fn acknowledgement_frame_masks_confirmation_token() {
-        let (mut rt, mut buf) = scene();
-        let mut st = DialogState::default();
-        st.ack_draft.set(TOKEN);
-        st.set_secret_mode(true);
-        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
-            acknowledge().draw(ui, area, &st, |_, _| {});
-        });
-        let frame: String = buf
-            .content()
-            .iter()
-            .map(ratatui_core::buffer::Cell::symbol)
-            .collect();
-        assert!(
-            !frame.contains(TOKEN),
-            "acknowledgement token reached the frame"
-        );
-        let policy = SecretPolicy::default();
-        let mask = Theme::junie().design.glyphs.get(policy.mask);
-        assert!(
-            frame.matches(mask).count()
-                >= TOKEN.chars().count().saturating_sub(policy.synthetic_tail),
-            "acknowledgement field did not paint its mask: {frame}"
-        );
     }
 
     /// §28 P4: the prompt's `Field` gets exactly the rows `input_rows`
