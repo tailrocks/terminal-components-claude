@@ -4,6 +4,7 @@ members = [
     "crates/tui",
     "crates/tui-testing",
     "xtask",
+    "apps/showcase",
     "apps/tablepro",
     "apps/jackin-preview",
 ]
@@ -12,6 +13,7 @@ default-members = [
     ".",
     "crates/tui",
     "crates/tui-testing",
+    "apps/showcase",
     "apps/tablepro",
     "apps/jackin-preview",
 ]
@@ -82,16 +84,9 @@ rust-version = "1.88"
 description = "Junie-inspired Ratatui design-system laboratory"
 license = "MIT"
 
-default-run = "showcase"
-
 [lib]
 name = "junie_tui"
 path = "src/lib.rs"
-
-[[bin]]
-name = "showcase"
-path = "src/bin/showcase/main.rs"
-
 
 [dependencies]
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }
