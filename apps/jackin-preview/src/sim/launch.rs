@@ -348,8 +348,25 @@ impl LaunchRun {
             }
             _ => {}
         }
-        let next_index = i.saturating_add(1);
-        if let Some(next) = Stage::ALL.get(next_index).copied() {
+        let mut next_index = i.saturating_add(1);
+        loop {
+            let Some(next) = Stage::ALL.get(next_index).copied() else {
+                self.done = true;
+                ev.push(LaunchEvent::Ready);
+                break;
+            };
+            if self.plan == LaunchPlan::Clean && next == Stage::AgentBinaries {
+                // Keep the ordered stage event contract for observers while
+                // making the final state immediate: cached binaries consume
+                // no virtual ticks and never remain queued in the rail.
+                ev.push(LaunchEvent::StageChanged(next, StepState::Running));
+                if let Some(state) = self.states.get_mut(next_index) {
+                    *state = StepState::Skipped;
+                }
+                ev.push(LaunchEvent::StageChanged(next, StepState::Skipped));
+                next_index = next_index.saturating_add(1);
+                continue;
+            }
             self.current = Some(next_index);
             self.stage_start = self.tick;
             if let Some(state) = self.states.get_mut(next_index) {
@@ -357,9 +374,7 @@ impl LaunchRun {
             }
             ev.push(LaunchEvent::StageChanged(next, StepState::Running));
             ev.push(LaunchEvent::Activity(next.activity(self.agent)));
-        } else {
-            self.done = true;
-            ev.push(LaunchEvent::Ready);
+            break;
         }
         ev
     }

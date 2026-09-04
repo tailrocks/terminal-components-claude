@@ -13,6 +13,15 @@ pub struct Secret {
     bytes: Vec<u8>,
 }
 
+impl fmt::Debug for Secret {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Secret")
+            .field("bytes", &"[redacted]")
+            .finish()
+    }
+}
+
 impl Secret {
     /// Which provider family the material belongs to, and whether the
     /// provider would accept it. This is the only question a provider

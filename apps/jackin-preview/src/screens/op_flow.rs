@@ -128,6 +128,29 @@ impl OpFlowState {
             .and_then(Option::as_deref)
     }
 
+    /// Reconcile one selected provider key against the latest collection.
+    ///
+    /// A picker may outlive an asynchronous refresh.  If its selected item
+    /// disappeared, clear that key and every dependent breadcrumb rather
+    /// than dispatching an action for stale provider data.
+    pub fn reconcile_selection(&mut self, stage: OpFlowStage, valid: &[String]) -> bool {
+        let index = Self::index(stage);
+        let Some(selected) = self.selected.get(index).and_then(Option::as_deref) else {
+            return false;
+        };
+        if valid.iter().any(|candidate| candidate == selected) {
+            return false;
+        }
+        for slot in self.selected.iter_mut().skip(index) {
+            *slot = None;
+        }
+        if Self::index(self.current) >= index {
+            self.current = stage;
+        }
+        self.status = OpFlowStatus::Ready;
+        true
+    }
+
     /// Begin a deterministic loading state for one stage.
     pub fn begin_load(&mut self, stage: OpFlowStage, label: impl Into<String>) {
         self.current = stage;
@@ -263,5 +286,16 @@ mod tests {
             Some(OpFlowAction::Retry(OpFlowStage::Account))
         );
         assert!(matches!(state.status(), OpFlowStatus::Loading { .. }));
+    }
+
+    #[test]
+    fn selected_keys_are_cleared_when_a_provider_collection_changes() {
+        let mut state = OpFlowState::default();
+        let _ = state.choose("acct");
+        let _ = state.choose("vault");
+        assert!(state.reconcile_selection(OpFlowStage::Account, &["other".into()]));
+        assert_eq!(state.current(), OpFlowStage::Account);
+        assert_eq!(state.selected(OpFlowStage::Account), None);
+        assert_eq!(state.selected(OpFlowStage::Vault), None);
     }
 }

@@ -65,30 +65,32 @@ pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
         Tone::Accent if dim == 1 => theme.color.fg.get(3).copied().unwrap_or(Color::Reset),
         Tone::Accent => theme.color.accent,
     };
-    Some(Style::default().fg(color))
+    let mut style = Style::new();
+    style.fg = Some(color);
+    Some(style)
 }
 
 /// Fill a field with the theme canvas colour.
 pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
-    buf.set_style(area, Style::default().bg(theme.color.surfaces[0]));
+    let mut style = Style::new();
+    style.bg = Some(theme.color.surfaces[0]);
+    buf.set_style(area, style);
 }
 
 /// Dim existing cells by replacing their foreground with a ladder step.
 /// Caller-owned background and glyphs remain untouched.
 pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
-    for y in area.top()..area.bottom() {
-        for x in area.left()..area.right() {
-            if let Some(cell) = buf.cell_mut((x, y)) {
-                let fg = cell.fg;
-                let level = theme
-                    .color
-                    .fg
-                    .iter()
-                    .position(|candidate| *candidate == fg)
-                    .unwrap_or(4);
-                let next = level.saturating_sub(usize::from(steps)).min(4);
-                cell.set_fg(theme.color.fg.get(next).copied().unwrap_or(Color::Reset));
-            }
+    for pos in area.positions() {
+        if let Some(cell) = buf.cell_mut((pos.x, pos.y)) {
+            let fg = cell.fg;
+            let level = theme
+                .color
+                .fg
+                .iter()
+                .position(|candidate| *candidate == fg)
+                .unwrap_or(4);
+            let next = level.saturating_sub(usize::from(steps)).min(4);
+            cell.set_fg(theme.color.fg.get(next).copied().unwrap_or(Color::Reset));
         }
     }
 }
@@ -282,12 +284,17 @@ impl IntroState {
     }
 
     /// Advance one virtual frame.
-    pub fn on_tick(&mut self) -> bool {
+    pub fn advance(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
             return false;
         }
         self.tick = self.tick.saturating_add(1);
         true
+    }
+
+    /// Compatibility spelling for callers that model one runtime tick.
+    pub fn on_tick(&mut self) -> bool {
+        Self::advance(self)
     }
 
     /// Skip phrases to warp, then warp to done.
@@ -369,12 +376,17 @@ impl OutroState {
     }
 
     /// Advance one virtual frame.
-    pub fn on_tick(&mut self) -> bool {
+    pub fn advance(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
             return false;
         }
         self.tick = self.tick.saturating_add(1);
         true
+    }
+
+    /// Compatibility spelling for callers that model one runtime tick.
+    pub fn on_tick(&mut self) -> bool {
+        Self::advance(self)
     }
 
     /// Skip warp to caption, then caption to done.
@@ -448,34 +460,34 @@ pub fn paint_atmosphere(
     frozen: bool,
     theme: &Theme,
 ) {
-    for x in area.left()..area.right() {
+    for pos in area.positions() {
+        let x = pos.x;
+        let y = pos.y;
         if pct(mix(u64::from(x), 11, 0)) >= 18 {
             continue;
         }
         let head = (frame + (mix(u64::from(x), 12, 0) % u64::from(area.height.max(1))))
             % u64::from(area.height.max(1));
-        for y in area.top()..area.bottom() {
-            if exclude.iter().any(|rect| rect.contains((x, y).into())) {
-                continue;
-            }
-            let distance = (u64::from(y.saturating_sub(area.y)) + u64::from(area.height) - head)
-                % u64::from(area.height.max(1));
-            if distance > 2 {
-                continue;
-            }
-            let tone = if distance == 0 && running && !frozen && frame >= 15 {
-                Tone::Accent
-            } else {
-                Tone::Ladder(1u8.saturating_sub(distance as u8))
-            };
-            if let Some(resolved) = style(theme, tone, 0) {
-                buf.set_string(
-                    x,
-                    y,
-                    glyph(u64::from(x), u64::from(y), frame >> 3).to_string(),
-                    resolved,
-                );
-            }
+        if exclude.iter().any(|rect| rect.contains((x, y).into())) {
+            continue;
+        }
+        let distance = (u64::from(y.saturating_sub(area.y)) + u64::from(area.height) - head)
+            % u64::from(area.height.max(1));
+        if distance > 2 {
+            continue;
+        }
+        let tone = if distance == 0 && running && !frozen && frame >= 15 {
+            Tone::Accent
+        } else {
+            Tone::Ladder(1u8.saturating_sub(distance as u8))
+        };
+        if let Some(resolved) = style(theme, tone, 0) {
+            buf.set_string(
+                x,
+                y,
+                glyph(u64::from(x), u64::from(y), frame >> 3).to_string(),
+                resolved,
+            );
         }
     }
 }

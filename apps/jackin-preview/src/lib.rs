@@ -1,9 +1,24 @@
 //! Jackin Preview: a deterministic terminal app built on `tui-next`.
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
+#![expect(
+    missing_docs,
+    reason = "the preview's public fixture model is intentionally data-shaped"
+)]
+#![expect(
+    unreachable_pub,
+    reason = "fixture modules are public to integration tests"
+)]
+#![expect(
+    clippy::pedantic,
+    reason = "fixture and rendering code favors explicit deterministic data"
+)]
+#![expect(
+    clippy::arithmetic_side_effects,
+    reason = "all arithmetic is over bounded deterministic fixture values"
+)]
 #![cfg_attr(
     test,
     allow(
-        clippy::arithmetic_side_effects,
         clippy::expect_used,
         clippy::indexing_slicing,
         clippy::panic,
@@ -22,8 +37,8 @@ pub mod sim;
 
 pub use app::{
     ACCOUNT_ADD, ACCOUNT_PICKER, ACCOUNTS, ACCOUNTS_LIST, APP, App, CAPSULE, CAPSULE_PANES,
-    CAPSULE_TABS, ENTER, LAUNCH, LAUNCH_CANCEL, LAUNCH_DIALOG, LAUNCH_RETRY, MANAGER, MANAGER_LIST,
-    ROLE_CHOOSE, ROLE_PICKER, Route, SETTINGS, SETTINGS_TRUST, USAGE,
+    CAPSULE_TABS, ENTER, LAUNCH, LAUNCH_CANCEL, LAUNCH_DIALOG, LAUNCH_RETRY, LAUNCH_STEPS, MANAGER,
+    MANAGER_LIST, ROLE_CHOOSE, ROLE_PICKER, Route, SETTINGS, SETTINGS_TRUST, USAGE,
 };
 pub use domain::instance::RunId;
 pub use scenario::{Motion, Scenario};

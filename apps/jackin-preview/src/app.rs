@@ -8,7 +8,8 @@ use std::time::Duration;
 use tui_next::{
     ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction, DialogState, Id,
     Item, ItemKey, KeyCode, KeyMap, KeyPhase, List, ListAction, ListState, Panel, Picker,
-    PickerAction, PickerState, Rect, Response, Tabs, TabsState, Ui, UpdateCause, Variant,
+    PickerAction, PickerState, Rect, Response, StepState, Steps, StepsState, Tabs, TabsState, Ui,
+    UpdateCause, Variant,
 };
 
 use crate::domain::account::Account;
@@ -61,6 +62,8 @@ pub const ACCOUNT_PICKER: Id = APP.sub("account-picker");
 pub const LAUNCH_CANCEL: Id = APP.sub("launch-cancel");
 /// Launch retry action id.
 pub const LAUNCH_RETRY: Id = APP.sub("launch-retry");
+/// Launch lifecycle rail id.
+pub const LAUNCH_STEPS: Id = APP.sub("launch-steps");
 
 const CMD_QUIT: ActionKey = ActionKey::custom("jackin.quit");
 const CMD_MANAGER: ActionKey = ActionKey::custom("jackin.manager");
@@ -156,6 +159,18 @@ struct AccountOption {
     detail: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct LaunchStep {
+    stage: Stage,
+    state: StepState,
+}
+
+impl std::fmt::Display for LaunchStep {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.stage.label().fmt(formatter)
+    }
+}
+
 impl AsItem for AccountOption {
     fn as_item(&self) -> Item<'_> {
         Item::new(ItemKey::text(&self.key), &self.label).detail(&self.detail)
@@ -174,6 +189,7 @@ pub struct App {
     manager_state: ListState,
     accounts_state: ListState,
     tabs_state: TabsState,
+    launch_steps_state: StepsState,
     launch_dialog: DialogState,
     role_state: PickerState,
     account_state: PickerState,
@@ -274,6 +290,7 @@ impl App {
             manager_state: ListState::default(),
             accounts_state: ListState::default(),
             tabs_state: TabsState::default(),
+            launch_steps_state: StepsState::default(),
             launch_dialog: DialogState::default(),
             role_state: PickerState::default(),
             account_state: PickerState::default(),
@@ -380,6 +397,25 @@ impl App {
                 )
             })
             .collect()
+    }
+
+    fn launch_steps(&self) -> Vec<LaunchStep> {
+        let states = self
+            .launch
+            .as_ref()
+            .map(|launch| launch.states)
+            .unwrap_or([StepState::Queued; Stage::ALL.len()]);
+        Stage::ALL
+            .into_iter()
+            .zip(states)
+            .map(|(stage, state)| LaunchStep { stage, state })
+            .collect()
+    }
+
+    fn launch_steps_component<'a>(
+        state_of: &'a dyn Fn(&LaunchStep) -> StepState,
+    ) -> Steps<'a, LaunchStep> {
+        Steps::new(LAUNCH_STEPS).step(state_of)
     }
 
     fn account_rows(&self) -> Vec<String> {
@@ -598,6 +634,12 @@ impl App {
 
     fn update_launch(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+        let steps = self.launch_steps();
+        let state_of = |step: &LaunchStep| step.state;
+        let rail = Self::launch_steps_component(&state_of);
+        result |= rail
+            .update(cx, &mut self.launch_steps_state, &steps)
+            .erase();
         let failed = self
             .launch
             .as_ref()
@@ -769,7 +811,7 @@ impl App {
 
         match self.route {
             Route::Intro => {
-                if self.intro.on_tick() && self.intro.is_done() {
+                if self.intro.advance() && self.intro.is_done() {
                     self.route = Route::Manager;
                     self.world.arbiter.complete_entry(self.world.now_ms());
                     result |= Response::changed();
@@ -778,7 +820,7 @@ impl App {
             }
             Route::Outro => {
                 if let Some(outro) = &mut self.outro
-                    && outro.on_tick()
+                    && outro.advance()
                     && outro.is_done()
                 {
                     self.quit = true;
@@ -1049,20 +1091,34 @@ impl App {
             &header,
             style,
         );
-        let mut y = area.y.saturating_add(1);
-        for (index, stage) in Stage::ALL.iter().enumerate() {
-            if y >= area.bottom().saturating_sub(2) {
-                break;
-            }
-            let state = launch.states.get(index).copied().unwrap_or_default();
-            let line = format!(
-                "{:>2}. {:<16} {}",
-                index.saturating_add(1),
-                stage.label(),
-                state.label()
+        let steps = self.launch_steps();
+        let state_of = |step: &LaunchStep| step.state;
+        let rail = Self::launch_steps_component(&state_of);
+        let rail_area = Rect {
+            width: area.width.min(42),
+            height: area.height.saturating_sub(3),
+            ..area
+        };
+        rail.draw(ui, rail_area, &self.launch_steps_state, &steps);
+        let log_x = area.x.saturating_add(44).min(area.right());
+        let log_width = area.right().saturating_sub(log_x);
+        if log_width > 0 {
+            let log_lines: Vec<String> = if launch.build_lines_emitted == 0 {
+                vec!["Docker build · waiting for Derived Image".into()]
+            } else {
+                crate::sim::launch::BUILD_LOG
+                    .iter()
+                    .take(launch.build_lines_emitted)
+                    .rev()
+                    .take(5)
+                    .map(|line| (*line).to_owned())
+                    .collect()
+            };
+            paint_lines(
+                ui,
+                Rect::new(log_x, area.y, log_width, area.height),
+                &log_lines,
             );
-            ui.paint_str(Rect::new(area.x, y, area.width, 1), &line, style);
-            y = y.saturating_add(1);
         }
         if let Some(status) = &self.status {
             ui.paint_str(
