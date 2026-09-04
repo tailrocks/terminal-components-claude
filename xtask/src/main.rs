@@ -3502,16 +3502,6 @@ fn showcase_page_sources(
                 .to_owned(),
         );
     }
-    // A common `pages/mod.rs` is part of every page's Rust module graph. The
-    // migration uses it for shared page implementations (including the
-    // component demos); include it so coverage follows the actual module
-    // boundary rather than only the tiny per-page wrappers.
-    if let Some((path, source)) = files
-        .iter()
-        .find(|(path, _)| rel(path) == "apps/showcase/src/pages/mod.rs")
-    {
-        selected.push((rel(path), source.clone()));
-    }
     // The app root owns the registry and its always-visible chrome (for
     // example the navigation list and help dialog), so those public
     // components are demonstrations too.
@@ -3530,8 +3520,9 @@ fn showcase_component_name(case: &str) -> Option<String> {
 }
 
 /// A production function body and its local calls. A component mention only
-/// counts after a `Page::draw` or `Page::update` root reaches this body. This
-/// deliberately ignores imports, signatures, dead helpers and test items.
+/// counts after the same page module's `Page::draw` or `Page::update` root
+/// reaches this body. This deliberately ignores shared `pages/mod.rs` helpers,
+/// imports, signatures, dead helpers and test items.
 #[derive(Debug, Default)]
 struct ShowcaseFunction {
     name: String,
@@ -3634,43 +3625,75 @@ fn collect_showcase_functions(items: &[syn::Item], functions: &mut Vec<ShowcaseF
     }
 }
 
-fn showcase_component_names(pages: &[(String, String)]) -> Result<BTreeSet<String>, Vec<String>> {
-    let mut functions = Vec::new();
-    let mut errors = Vec::new();
-    for (path, source) in pages {
-        match syn::parse_file(source) {
-            Ok(ast) => collect_showcase_functions(&ast.items, &mut functions),
-            Err(error) => errors.push(format!("{path} does not parse: {error}")),
-        }
-    }
-    if !errors.is_empty() {
-        return Err(errors);
-    }
-    let has_draw = functions.iter().any(|function| function.root_draw);
-    let has_update = functions.iter().any(|function| function.root_update);
-    if !has_draw || !has_update {
-        return Err(vec![
-            "showcase has no reachable production `Page::draw` and `Page::update` roots".to_owned(),
-        ]);
-    }
+fn showcase_page_path(path: &str) -> bool {
+    let path = path.replace('\\', "/");
+    path.contains("/src/pages/") && !path.ends_with("/src/pages/mod.rs")
+}
 
+fn showcase_component_names(pages: &[(String, String)]) -> Result<BTreeSet<String>, Vec<String>> {
     let mut reachable = BTreeSet::new();
-    let mut pending = functions
-        .iter()
-        .filter(|function| function.root_draw || function.root_update)
-        .map(|function| function.name.clone())
-        .collect::<Vec<_>>();
-    let mut visited = BTreeSet::new();
-    while let Some(name) = pending.pop() {
-        if !visited.insert(name.clone()) {
+    let mut errors = Vec::new();
+    let mut page_count = 0usize;
+    for (path, source) in pages {
+        if !showcase_page_path(path) {
             continue;
         }
-        for function in functions.iter().filter(|function| function.name == name) {
-            reachable.extend(function.names.iter().cloned());
-            pending.extend(function.calls.iter().cloned());
+        page_count = page_count.saturating_add(1);
+        let mut functions = Vec::new();
+        match syn::parse_file(source) {
+            Ok(ast) => {
+                collect_showcase_functions(&ast.items, &mut functions);
+                let has_draw = functions.iter().any(|function| function.root_draw);
+                let has_update = functions.iter().any(|function| function.root_update);
+                if !has_draw || !has_update {
+                    errors.push(format!(
+                        "{path}: every named page module must own production `Page::draw` and \
+                         `Page::update`; a shared `pages/mod.rs` implementation cannot satisfy \
+                         page coverage"
+                    ));
+                }
+            }
+            Err(error) => errors.push(format!("{path} does not parse: {error}")),
         }
+        if errors.last().is_some_and(|error| error.starts_with(path)) {
+            continue;
+        }
+        let mut pending = functions
+            .iter()
+            .filter(|function| function.root_draw || function.root_update)
+            .map(|function| function.name.clone())
+            .collect::<Vec<_>>();
+        let mut visited = BTreeSet::new();
+        let mut page_reachable = BTreeSet::new();
+        while let Some(name) = pending.pop() {
+            if !visited.insert(name.clone()) {
+                continue;
+            }
+            for function in functions.iter().filter(|function| function.name == name) {
+                page_reachable.extend(function.names.iter().cloned());
+                pending.extend(function.calls.iter().cloned());
+            }
+        }
+        if page_reachable.is_empty() {
+            errors.push(format!(
+                "{path}: production page roots reach no component usage; shared helpers outside \
+                 this page cannot satisfy the roster"
+            ));
+        }
+        reachable.extend(page_reachable);
     }
-    Ok(reachable)
+    if page_count == 0 {
+        errors.push(
+            "showcase has no named page modules with production Page roots; refusing shared-only \
+             coverage"
+                .to_owned(),
+        );
+    }
+    if errors.is_empty() {
+        Ok(reachable)
+    } else {
+        Err(errors)
+    }
 }
 
 /// The pure coverage relation used by the filesystem check and its red-proof
@@ -7096,7 +7119,10 @@ impl Page for DialogDemo {
             "apps/showcase/src/pages/buttons.rs".to_owned(),
             "trait Page {}
 struct Demo;
-impl Page for Demo { fn draw(&self) {} fn update(&mut self) {} }
+impl Page for Demo {
+    fn draw(&self) { Panel::new(ID); }
+    fn update(&mut self) { Panel::new(ID); }
+}
 #[cfg(test)]
 const BUTTON: Option<Button> = None;
 #[cfg(test)]
@@ -7145,6 +7171,99 @@ impl Page for Demo {
         assert!(
             showcase_coverage_hits(&cases, &registry, &reachable).is_empty(),
             "a helper reached from both production phases is real coverage"
+        );
+    }
+
+    #[test]
+    fn showcase_coverage_rejects_shared_demo_page_wrappers() {
+        // This is the rejected fbaf994 shape: twenty-two one-line modules
+        // expand a macro, while pages/mod.rs owns one generic DemoPage that
+        // paints the whole component roster. The shared implementation must
+        // not be able to impersonate twenty-two page owners.
+        let variants = [
+            "Overview",
+            "Buttons",
+            "Inputs",
+            "TextAreas",
+            "Forms",
+            "Lists",
+            "Trees",
+            "Tables",
+            "Editable",
+            "Panels",
+            "Sidebars",
+            "Dialogs",
+            "Progress",
+            "Scrolling",
+            "Terminal",
+            "Editor",
+            "Grid",
+            "Chips",
+            "Pickers",
+            "Chrome",
+            "Settings",
+            "TaskRunner",
+        ];
+        let mut files = variants
+            .iter()
+            .map(|variant| {
+                (
+                    PathBuf::from(format!(
+                        "apps/showcase/src/pages/{}.rs",
+                        variant.to_ascii_lowercase()
+                    )),
+                    format!("super::define_page!({variant}Page, {variant});"),
+                )
+            })
+            .collect::<Vec<_>>();
+        files.push((
+            PathBuf::from("apps/showcase/src/pages/mod.rs"),
+            "trait Page {}
+enum DemoKind { Buttons }
+struct DemoPage { kind: DemoKind }
+impl DemoPage {
+    fn update_controls(&mut self) { Button::new(ID); Dialog::new(ID); }
+    fn draw_content(&self) { Button::new(ID); Dialog::new(ID); }
+}
+impl Page for DemoPage {
+    fn draw(&self) { self.draw_content(); }
+    fn update(&mut self) { self.update_controls(); }
+}
+macro_rules! define_page {
+    ($name:ident, $kind:ident) => {
+        struct $name { inner: DemoPage }
+        impl Page for $name {
+            fn draw(&self) { self.inner.draw_content(); }
+            fn update(&mut self) { self.inner.update_controls(); }
+        }
+    };
+}
+"
+            .to_owned(),
+        ));
+        let registry = variants
+            .iter()
+            .map(|variant| (*variant).to_owned())
+            .collect::<BTreeSet<_>>();
+        let selected = showcase_page_sources(&files, &registry).expect("all 22 wrappers resolve");
+        assert_eq!(selected.len(), SHOWCASE_PAGE_COUNT);
+        assert!(
+            selected
+                .iter()
+                .all(|(path, _)| !path.ends_with("/src/pages/mod.rs")),
+            "the shared module cannot be a page source: {selected:?}"
+        );
+
+        let cases = BTreeSet::from(["ButtonCase".to_owned()]);
+        let hits = showcase_coverage_hits(&cases, &registry, &selected);
+        assert!(
+            hits.iter()
+                .any(|hit| hit.contains("every named page module must own")),
+            "shared DemoPage roots must not satisfy per-page ownership: {hits:?}"
+        );
+        assert!(
+            hits.iter().any(|hit| hit.contains("ButtonCase")),
+            "components painted only by DemoPage must remain uncovered: {hits:?}"
         );
     }
 

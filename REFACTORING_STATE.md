@@ -1678,8 +1678,9 @@ present and 22 deferred**, not the earlier 380-name snapshot.
   `apps/<app>/Cargo.toml` are required; a missing root or manifest fails closed.
 - Showcase coverage now requires exactly 22 production `PageId` identities in the enum,
   `PageId::ALL`, literal `NAV_ENTRIES`, and `page(PageId)` dispatch, in one order, with one named
-  page module per identity. Component mentions count only from bodies reachable from production
-  `Page::draw` and `Page::update`; imports, signatures, dead helpers and tests do not count.
+  page module per identity. Every named module must own production `Page::draw` and `Page::update`
+  roots; shared `pages/mod.rs` implementations cannot satisfy the roster. Component mentions count
+  only from bodies reachable per module; imports, signatures, dead helpers and tests do not count.
 - The capture contract independently pins `80x24|100x30|120x40|160x50`,
   `truecolor|256|16|mono`, `junie|paper`, and `showcase|tablepro|jackin-preview` (96 cells), and
   verifies `tools/capture.sh` consumes explicit `BIN`, `COLOR`, `ARGS`, tmux capture and PNG output.
