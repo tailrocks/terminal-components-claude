@@ -40,3 +40,15 @@ The last two are silent defects in today's handoff cross-fade, visible only in `
 ## The highest-risk single item in either slice
 
 Jackin's virtual clock advances by the **route's** nominal interval (`Route::tick_ms`: 33 ms for intro/outro/handoff/cockpit, 80 ms for Capsule), not by real time or by a uniform token. If the migration re-bases it on `design.motion.tick_ms` or on a wall-clock delta, every `h.ticks(n)` count (~40 sites), `FAILURE_TICKS = 77`, `RUNNING_FRAME = 20`, `OUTRO_FRAME = 150`, every fixture timestamp and the outro elapsed caption all break at once — and `rain::TICK_MS = 33` with `HANDOFF_LEN = 12` means a uniform 80 ms would run the intro at 2.4× the wrong speed.
+
+## A gate the architecture requires that cannot be run
+
+§16.3 states that `xtask bless-guard` must run in CI on the committed tree, and it is the mechanism that enforces the change → capture → classify → bless order for every moved baseline. **The subcommand does not exist**: `xtask` dispatches only `doc-check`, `boundary` and `list`. No CI step was added for it, because adding a step for a missing subcommand would make the gate look present while proving nothing. This is a missing implementation, not an unresolved decision, and it needs an owner — the file is `xtask/**`, currently held by another agent.
+
+## MSRV is now a measured fact
+
+`rust-version = "1.88"` was previously a declared field that nothing checked. The CI rebuild pinned the MSRV leg to the exact `1.88.0` toolchain and verified locally on it that `cargo check --workspace --all-targets --all-features` passes. The claim is now backed by a run rather than by a manifest line.
+
+## §26 items that are not expressible as CI steps
+
+Running the three binaries and `tools/capture.sh` are interactive-TTY and human-review obligations, not pass/fail gates; visual classification against §20.10 remains a reviewer duty. `xtask semver` is correctly deferred to the `v0.1.0` baseline at the end of Slice 8. `PERF_STRICT`'s 1.2× wall-clock band cannot be enforced on GitHub's shared runners — making it blocking needs a pinned self-hosted runner, which is an infrastructure decision rather than a workflow edit.
