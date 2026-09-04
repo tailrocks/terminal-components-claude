@@ -17,9 +17,10 @@ struct Member { id: u8, name: &'static str, email: &'static str }
 const INITIAL_MEMBERS: &[Member] = &[
     Member { id: 1, name: "Mira Okafor", email: "mira@acme.dev" },
     Member { id: 2, name: "Jonas Weber", email: "jonas@acme.dev" },
-    Member { id: 3, name: "Ana Silva", email: "ana@acme.dev" },
-    Member { id: 4, name: "Kai Novak", email: "kai@acme.dev" },
+    Member { id: 3, name: "Ana Costa", email: "ana@acme.dev" },
+    Member { id: 4, name: "Kai Tanaka", email: "kai@acme.dev" },
     Member { id: 5, name: "Sofia Rossi", email: "sofia@acme.dev" },
+    Member { id: 6, name: "deploy-bot", email: "bot@acme.dev" },
 ];
 
 fn member_key(member: &Member) -> ItemKey { ItemKey::num(u64::from(member.id)) }
@@ -78,22 +79,20 @@ impl Page for SettingsPage {
             cx.open_layer(REMOVE_DIALOG, remove_dialog().layer(cx));
         }
         result |= remove.erase();
-        if cx.is_open(REMOVE_DIALOG) {
-            let dialog = remove_dialog().update(cx, &mut self.remove_state);
-            if let Some(action) = dialog.action_ref() {
-                match action {
-                    DialogAction::Action(key) if *key == tui_next::ActionKey::CONFIRM => {
-                        if !self.members.is_empty() { self.members.remove(self.selected.min(self.members.len().saturating_sub(1))); }
-                        self.selected = self.selected.min(self.members.len().saturating_sub(1));
-                        self.message = "member removed";
-                    }
-                    DialogAction::Action(_) | DialogAction::Dismissed(_) => { self.message = "remove cancelled"; }
+        let dialog = remove_dialog().update(cx, &mut self.remove_state);
+        if let Some(action) = dialog.action_ref() {
+            match action {
+                DialogAction::Action(key) if *key == tui_next::ActionKey::CONFIRM => {
+                    if !self.members.is_empty() { self.members.remove(self.selected.min(self.members.len().saturating_sub(1))); }
+                    self.selected = self.selected.min(self.members.len().saturating_sub(1));
+                    self.message = "member removed";
                 }
-                cx.close_layer(REMOVE_DIALOG, None);
-                self.remove_open = false;
+                DialogAction::Action(_) | DialogAction::Dismissed(_) => { self.message = "remove cancelled"; }
             }
-            result |= dialog.erase();
+            cx.close_layer(REMOVE_DIALOG, None);
+            self.remove_open = false;
         }
+        result |= dialog.erase();
         result
     }
 

@@ -88,43 +88,42 @@ impl Page for DialogsPage {
         }
         response |= prompt_button.erase();
 
-        if cx.is_open(CONFIRM) {
-            let action = Self::confirm().update(cx, &mut self.confirm_state);
-            if let Some(action) = action.action_ref() {
-                match action {
-                    DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
-                        self.result = String::from("Task started");
-                        self.close(cx, CONFIRM);
-                    }
-                    DialogAction::Action(_) | DialogAction::Dismissed(_) => {
-                        self.result = String::from("Cancelled");
-                        self.close(cx, CONFIRM);
-                    }
+        // Update layers unconditionally. A dismissed layer is removed by the
+        // runtime before the app update, and Dialog drains that dismissal
+        // action from its durable state on the following frame.
+        let action = Self::confirm().update(cx, &mut self.confirm_state);
+        if let Some(action) = action.action_ref() {
+            match action {
+                DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
+                    self.result = String::from("Task started");
+                    self.close(cx, CONFIRM);
+                }
+                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                    self.result = String::from("Cancelled");
+                    self.close(cx, CONFIRM);
                 }
             }
-            response |= action.erase();
         }
-        if cx.is_open(PROMPT) {
-            let action = Self::prompt().update(cx, &mut self.prompt_state);
-            if let Some(action) = action.action_ref() {
-                match action {
-                    DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
-                        let name = self.prompt_state.draft().trim();
-                        if name.is_empty() {
-                            self.result = String::from("Name cannot be empty");
-                        } else {
-                            self.result = format!("Task: {name}");
-                            self.close(cx, PROMPT);
-                        }
-                    }
-                    DialogAction::Action(_) | DialogAction::Dismissed(_) => {
-                        self.result = String::from("Rename cancelled");
+        response |= action.erase();
+        let action = Self::prompt().update(cx, &mut self.prompt_state);
+        if let Some(action) = action.action_ref() {
+            match action {
+                DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
+                    let name = self.prompt_state.draft().trim();
+                    if name.is_empty() {
+                        self.result = String::from("Name cannot be empty");
+                    } else {
+                        self.result = format!("Task: {name}");
                         self.close(cx, PROMPT);
                     }
                 }
+                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                    self.result = String::from("Rename cancelled");
+                    self.close(cx, PROMPT);
+                }
             }
-            response |= action.erase();
         }
+        response |= action.erase();
         response
     }
 

@@ -9,7 +9,7 @@ use tui_next::{
     ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, id, layout,
 };
 
-use super::{Page, frame, rows};
+use super::{Page, frame};
 
 const BUTTONS: Id = id!("buttons");
 const MATRIX: Id = id!("buttons.matrix");
@@ -162,7 +162,15 @@ impl Page for ButtonsPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(ui, area, self.title(), "hover · click · Tab · Enter / Space", |ui, body| {
-            let regions = rows(body, 4);
+            let regions = layout::rows(
+                body,
+                &[
+                    tui_next::Track::Fixed(15),
+                    tui_next::Track::Fixed(1),
+                    tui_next::Track::Fixed(8),
+                    tui_next::Track::Flex(1),
+                ],
+            );
             self.draw_playground(ui, regions.first().copied().unwrap_or(body));
             ui.rule(regions.get(1).copied().unwrap_or(body));
             self.draw_matrix(ui, regions.get(2).copied().unwrap_or(body));

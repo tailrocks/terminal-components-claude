@@ -1,6 +1,4 @@
 //! Visual digest matrix for the migrated showcase shell.
-#![allow(clippy::arithmetic_side_effects)]
-
 use showcase_app::{App, PageId};
 use tui_next::{ColorLevel, Theme};
 use tui_next_testing::Harness;

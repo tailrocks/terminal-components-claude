@@ -1,10 +1,4 @@
 //! Focused performance smoke tests for the migrated app.
-#![allow(
-    clippy::arithmetic_side_effects,
-    clippy::indexing_slicing,
-    unused_must_use
-)]
-
 use std::hint::black_box;
 
 use showcase_app::{App, PageId};

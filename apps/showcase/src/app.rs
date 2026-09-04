@@ -15,6 +15,7 @@ use crate::pages::{
     textareas::TextAreasPage, trees::TreesPage,
 };
 use crate::pages::forms::SUBMIT as FORM_SUBMIT;
+use crate::pages::taskrunner::RUN_COMMAND;
 
 const NAV: Id = id!("navigation");
 const BRAND: Id = id!("brand");
@@ -202,6 +203,8 @@ pub struct NavEntry {
     pub label: &'static str,
     /// Visual section heading.
     pub section: &'static str,
+    /// Stable navigation glyph.
+    pub icon: &'static str,
 }
 
 /// The complete migrated navigation surface.
@@ -210,111 +213,133 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         id: PageId::Overview,
         label: "Overview",
         section: "Foundations",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Buttons,
         label: "Buttons",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Inputs,
         label: "Inputs",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::TextAreas,
         label: "Text areas",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Forms,
         label: "Forms",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Lists,
         label: "Lists",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Trees,
         label: "Trees",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Tables,
         label: "Tables",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Editable,
         label: "Editable tables",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Panels,
         label: "Panels",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Sidebars,
         label: "Sidebars",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Dialogs,
         label: "Dialogs",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Progress,
         label: "Progress",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Scrolling,
         label: "Scrolling",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Terminal,
         label: "Terminal",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Editor,
-        label: "Editor",
+        label: "Code editor",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Grid,
         label: "Data grid",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Chips,
         label: "Chips & selects",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Pickers,
         label: "Pickers",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Chrome,
         label: "Chrome",
         section: "Components",
+        icon: "•",
     },
     NavEntry {
         id: PageId::Settings,
         label: "Settings",
-        section: "Components",
+        section: "Screens",
+        icon: "•",
     },
     NavEntry {
         id: PageId::TaskRunner,
         label: "Task runner",
         section: "Screens",
+        icon: "•",
     },
 ];
 
@@ -330,9 +355,8 @@ fn nav_row(entry: &NavEntry, row: &mut tui_next::RowUi<'_>) {
     row.label(entry.label);
 }
 
-#[allow(clippy::unnecessary_literal_bound)]
-fn nav_icon(_entry: &NavEntry) -> &str {
-    "•"
+fn nav_icon(entry: &NavEntry) -> &str {
+    entry.icon
 }
 
 fn nav() -> NavList<
@@ -378,6 +402,13 @@ fn page(kind: PageId) -> Box<dyn Page> {
 fn keymap() -> KeyMap {
     KeyMap::new()
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('q')), QUIT)
+        // Capture keeps the global interrupt available while a text control
+        // owns printable-key handling.
+        .bind(
+            KeyPhase::Capture,
+            Chord::with(KeyCode::Char('c'), tui_next::KeyModifiers::CONTROL),
+            QUIT_CTRL,
+        )
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('c'), tui_next::KeyModifiers::CONTROL),
@@ -390,6 +421,7 @@ fn keymap() -> KeyMap {
         )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char(']')), NEXT_PAGE)
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('[')), PREV_PAGE)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('r')), RUN_COMMAND)
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('s'), tui_next::KeyModifiers::CONTROL),
@@ -516,10 +548,14 @@ impl TuiApp for App {
             }
             _ => {}
         }
-        if command == Some(FORM_SUBMIT) {
-            if let Some(active) = self.pages.iter_mut().find(|candidate| candidate.title() == self.page.title()) {
-                response |= active.command(cx, FORM_SUBMIT);
-            }
+        if let Some(action) = command
+            && !matches!(action, QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND)
+            && let Some(active) = self
+                .pages
+                .iter_mut()
+                .find(|candidate| candidate.title() == self.page.title())
+        {
+            response |= active.command(cx, action);
         }
         response |= nav()
             .update(cx, &mut self.nav_state, NAV_ENTRIES)

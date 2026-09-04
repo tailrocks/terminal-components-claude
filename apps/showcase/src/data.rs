@@ -144,7 +144,7 @@ pub(crate) const PROSE: &str = "Junie works through a task the way a careful eng
 
 /// The exact long-list fixture used by the legacy scrolling page.
 pub(crate) const SCROLL_ROWS: &[&str] = &[
-+    "Row 001",
+    "Row 001",
     "Row 002",
     "Row 003",
     "Row 004",

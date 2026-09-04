@@ -51,9 +51,10 @@ impl Page for OverviewPage {
                 .tagline("component showcase")
                 .draw(ui, intro);
             let (copy, props) = layout::split_h(rest, rest.width / 2);
+            let (copy_text, author_area) = layout::split_v(copy, copy.height.saturating_sub(2));
             lines(
                 ui,
-                copy,
+                copy_text,
                 &[
                     "A complete app-owned migration of the legacy showcase.",
                     "Each page owns durable state and talks to tui-next through",
@@ -61,13 +62,8 @@ impl Page for OverviewPage {
                     "Tab focuses controls · Enter activates · Esc returns home.",
                 ],
             );
-            Props::new(&PROPS).draw(ui, props);
-            let author_area = Rect {
-                y: props.bottom().saturating_add(1),
-                height: 1,
-                ..props
-            };
             self.author.draw(ui, author_area);
+            Props::new(&PROPS).draw(ui, props);
         });
     }
 }

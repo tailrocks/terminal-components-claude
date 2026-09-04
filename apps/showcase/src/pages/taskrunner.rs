@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use tui_next::{Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, Rect, Response, RowUi, StepState, Steps, StepsAction, StepsState, Ui, Variant, id, layout};
+use tui_next::{ActionKey, Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, Rect, Response, RowUi, StepState, Steps, StepsAction, StepsState, Ui, Variant, id, layout};
 
 use super::{Page, frame, lines};
 
@@ -10,6 +10,7 @@ const RUN: Id = id!("taskrunner.run");
 const CANCEL: Id = id!("taskrunner.cancel");
 const STEPS: Id = id!("taskrunner.steps");
 const CANCEL_DIALOG: Id = id!("taskrunner.cancel.dialog");
+pub(crate) const RUN_COMMAND: ActionKey = ActionKey::custom("showcase.taskrunner.run");
 
 #[derive(Clone, Debug)]
 struct RunStep { id: u8, name: &'static str, state: StepState }
@@ -71,6 +72,15 @@ impl Default for TaskRunnerPage { fn default() -> Self { Self::new() } }
 impl Page for TaskRunnerPage {
     fn title(&self) -> &'static str { "Task runner" }
 
+    fn command(&mut self, _cx: &mut Cx<'_>, action: ActionKey) -> Response<()> {
+        if action == RUN_COMMAND && !self.running {
+            self.start();
+            Response::changed()
+        } else {
+            Response::ignored()
+        }
+    }
+
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
         let run = Button::new(RUN, "Run pipeline").variant(Variant::PRIMARY).disabled(self.running).update(cx);
@@ -87,7 +97,7 @@ impl Page for TaskRunnerPage {
             let dialog = cancel_dialog().update(cx, &mut self.cancel_state);
             if let Some(action) = dialog.action_ref() {
                 match action {
-                    DialogAction::Action(key) if *key == tui_next::ActionKey::CONFIRM => {
+                    DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
                         self.running = false;
                         self.message = "pipeline cancelled";
                         for step in &mut self.steps { if step.state == StepState::Running { step.state = StepState::Skipped; } }
@@ -108,7 +118,13 @@ impl Page for TaskRunnerPage {
             let action_rows = super::rows(actions, 3);
             Button::new(RUN, "Run pipeline").variant(Variant::PRIMARY).disabled(self.running).draw(ui, action_rows.first().copied().unwrap_or(actions));
             Button::new(CANCEL, "Cancel pipeline").variant(Variant::DANGER).disabled(!self.running).draw(ui, action_rows.get(1).copied().unwrap_or(actions));
-            let progress = format!("Pipeline · {} · frame={} · {}", if self.running { "running" } else { "idle" }, self.frame, self.message);
+            let progress = format!(
+                "Pipeline · {} · {}% · frame={} · {}",
+                if self.running { "running" } else { "idle" },
+                self.frame.saturating_mul(100) / 20,
+                self.frame,
+                self.message,
+            );
             let _ = ui.paint_str(action_rows.get(2).copied().unwrap_or(actions), &progress, ui.surface_style());
             lines(ui, Rect { y: actions.bottom().saturating_add(1), height: 1, ..body }, &["The rail derives BUSY/CHECKED/ERROR from each app-owned lifecycle state."]);
         });
