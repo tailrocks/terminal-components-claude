@@ -3,7 +3,9 @@
 //! An [`Id`] is a 64-bit FNV-1a hash over kind-tagged, separator-delimited
 //! segments, so `Id::root("a").sub("b") != Id::root("ab")` is an identity
 //! rather than a probability. Debug builds carry a zero-cost-in-release
-//! `DebugLabel` so a diagnostic or a test failure prints the path.
+//! `DebugLabel` so a diagnostic or a test failure names the component: the
+//! root path and the **last** derivation step, not the whole chain — see
+//! [`Id`]'s `Debug` for exactly what it prints and what it cannot show.
 //!
 //! Equality, hashing and ordering are derived structurally so a `const Id`
 //! can be matched as a pattern (`match id { NAME => … }`, §15.1). The label
@@ -14,7 +16,7 @@
 
 use core::fmt;
 
-const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+pub(crate) const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0100_0000_01b3;
 
 /// Separator byte mixed before every segment.
@@ -48,6 +50,18 @@ const fn mix(hash: u64, kind: u8, payload: &[u8]) -> u64 {
     fnv1a(hash, payload)
 }
 
+/// FNV-1a over `name`, folded into the custom half of a 16-bit key space.
+///
+/// Every 16-bit custom key namespace in the crate ([`Part::custom`], the
+/// grid's `ColumnKey::of`) states one truncation rule here rather than
+/// re-deriving its own hash: the low bit range is reserved for numbered keys
+/// and `0x8000..=0xFFFF` for hashed names, so a numbered key and a named key
+/// can never be the same key.
+pub(crate) const fn custom_hash16(name: &str) -> u16 {
+    let h = fnv1a(FNV_OFFSET, name.as_bytes());
+    0x8000 | ((h as u16) & 0x7FFF)
+}
+
 /// A stable component identity.
 ///
 /// Built from a `const` path by [`id!`](crate::id) or [`Id::root`] and derived with
@@ -60,7 +74,13 @@ pub struct Id {
     label: DebugLabel,
 }
 
-/// The human-readable path carried by an [`Id`] in debug builds.
+/// The diagnostic label carried by an [`Id`] in debug builds: the root path
+/// plus the last derivation step.
+///
+/// Two `&'static`-sized fields, fixed size and copyable, so an `Id` stays a
+/// `Copy` value usable in a `const`. Storing the full chain would need an
+/// allocation or an arbitrary bound, which is why the label truncates rather
+/// than grows; the hash, not the label, is the identity.
 #[cfg(debug_assertions)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 struct DebugLabel {
@@ -153,6 +173,16 @@ impl Id {
     }
 }
 
+/// Debug builds print `root ▸ last-segment`; release builds print
+/// `Id(<16 hex digits>)`, because the label does not exist there.
+///
+/// The label records only the root and the **most recent** derivation, so
+/// `Id::root("a").sub("b").sub("c")` prints `a ▸ c` — the intermediate
+/// `b` is not stored anywhere. Two different ids can therefore print the
+/// same text (`a.sub("row").part(Part::LABEL)` and `a.part(Part::LABEL)`),
+/// and a printed label alone does not reconstruct the path that built the id.
+/// The label is diagnostic only: identity is the hash, and
+/// [`Id::hash`] is what a test should compare when it needs to be exact.
 impl fmt::Debug for Id {
     #[cfg(debug_assertions)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -237,7 +267,15 @@ impl ItemKey {
 /// A typed logical part of a component (`Part::LABEL`, `Part::THUMB`, …).
 ///
 /// `0..=255` is reserved for the library; [`Part::custom`] maps into
-/// `0x8000..=0xFFFF` by FNV of the name.
+/// `0x8000..=0xFFFF` by the crate's one 16-bit custom-key fold
+/// (`custom_hash16`), shared with the grid's `ColumnKey::of`.
+///
+/// Equality is derived and therefore *structural*, which is load-bearing:
+/// `PartRef { part: Part::LABEL, .. }` appears as a `match` pattern across
+/// the component set, and a pattern needs `#[derive(PartialEq)]`. A part is
+/// exactly its number, so debug and release compare identically — at the
+/// price that two custom names folding to the same 15 bits mint the same
+/// part. See [`Part::custom`].
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Part(u16);
 
@@ -333,9 +371,14 @@ parts! {
 
 impl Part {
     /// A custom part named by a downstream component; lands in the high range.
+    ///
+    /// The name folds to 15 bits, so two names *can* mint the same part and
+    /// alias two components' sub-regions. `Part` cannot carry the name that
+    /// would name such a collision without giving up structural equality
+    /// (see the type documentation), so the fold is stated once in
+    /// `custom_hash16` and the aliasing is documented, not hidden.
     pub const fn custom(name: &'static str) -> Part {
-        let h = fnv1a(FNV_OFFSET, name.as_bytes());
-        Part(0x8000 | ((h as u16) & 0x7FFF))
+        Part(custom_hash16(name))
     }
 
     /// The raw part number.
@@ -518,6 +561,36 @@ mod tests {
         assert_ne!(Part::custom("segment"), Part::custom("segments"));
     }
 
+    /// The library's 16-bit custom key spaces must fold names the same way,
+    /// or "custom" means something different per namespace.
+    #[test]
+    fn part_custom_uses_the_shared_custom_fold() {
+        assert_eq!(Part::custom("segment").raw(), custom_hash16("segment"));
+        assert_eq!(Part::custom("").raw(), custom_hash16(""));
+        for name in ["segment", "", "a", "grid.preview", "\u{1f600}"] {
+            let raw = custom_hash16(name);
+            assert!(raw >= 0x8000, "{name:?} escaped the custom range");
+            assert!(Part(raw).name().is_none(), "{name:?} hit a library part");
+        }
+    }
+
+    /// A named witness for the collision class the fold *cannot* remove:
+    /// 15 bits of FNV are not injective over names, so two custom parts can
+    /// be the same part. `Part` cannot carry the name that would name the
+    /// collision — `PartRef { part: Part::LABEL, .. }` is a `match` pattern
+    /// across the component set and a pattern needs derived (structural)
+    /// equality, which a debug-only name field would break. This test pins
+    /// the fold and the limitation so neither changes unnoticed.
+    #[test]
+    fn part_custom_names_can_collide_in_fifteen_bits() {
+        let a = Part::custom("chart.flag");
+        let b = Part::custom("chart.ring");
+        assert_eq!(a.raw(), 0xb9e1, "the fold is part of the contract");
+        assert_eq!(a, b, "15 bits cannot separate every pair of names");
+        assert_eq!(format!("{a:?}"), "Part::custom(#b9e1)");
+        assert_eq!(format!("{a:?}"), format!("{b:?}"));
+    }
+
     #[test]
     fn part_constants_are_unique() {
         let all = Part::ALL;
@@ -545,6 +618,33 @@ mod tests {
             "orders.list ▸ Part::LABEL"
         );
         assert_eq!(format!("{:?}", r.index(3)), "orders.list ▸ #3");
+    }
+
+    /// Acceptance: the debug label is the root plus the **last** derivation
+    /// step, never the whole chain, and the documentation says so.
+    ///
+    /// A reader who believes `Debug` prints the path would use it to tell two
+    /// ids apart; it cannot, because intermediate segments are not stored.
+    /// The hash is what separates them.
+    #[cfg(debug_assertions)]
+    #[test]
+    fn debug_label_keeps_only_the_root_and_the_last_segment() {
+        let r = Id::root("orders.list");
+        // the intermediate `row` is dropped from the printed label
+        assert_eq!(
+            format!("{:?}", r.sub("row").sub("cell")),
+            "orders.list ▸ cell"
+        );
+        assert_eq!(
+            format!("{:?}", r.sub("row").index(3).part(Part::LABEL)),
+            "orders.list ▸ Part::LABEL"
+        );
+        // so two distinct ids can print identically while never comparing equal
+        let deep = r.sub("row").part(Part::LABEL);
+        let shallow = r.part(Part::LABEL);
+        assert_eq!(format!("{deep:?}"), format!("{shallow:?}"));
+        assert_ne!(deep, shallow);
+        assert_ne!(deep.hash(), shallow.hash());
     }
 
     #[cfg(not(debug_assertions))]

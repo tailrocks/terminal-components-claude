@@ -172,7 +172,14 @@ impl<A> Response<A> {
         self
     }
 
-    /// The producing component, `None` for [`Response::ignored`].
+    /// The component that produced this response, or `None` when nothing
+    /// tagged it.
+    ///
+    /// Every constructor starts untagged — [`Response::action`] included —
+    /// and [`Response::for_id`] is the only writer, so `id()` answers `None`
+    /// for a consumed, repainting, action-carrying response that simply never
+    /// named itself. It is not a "was this ignored?" test; read
+    /// [`Response::flow`] for that.
     pub const fn id(&self) -> Option<Id> {
         self.id
     }
@@ -222,7 +229,7 @@ impl<A> Response<A> {
         self.action.as_ref()
     }
 
-    /// Take the action out, leaving flow and invalidation.
+    /// Take the action out, leaving flow, invalidation, state and id in place.
     pub const fn take_action(&mut self) -> Option<A> {
         self.action.take()
     }
@@ -232,8 +239,11 @@ impl<A> Response<A> {
         self.action
     }
 
-    /// Translate the action at a composition boundary; flow and
-    /// invalidation are preserved.
+    /// Translate the action at a composition boundary.
+    ///
+    /// Every other field crosses unchanged: flow, invalidation, the recorded
+    /// state flags and the id. Only the action is rewritten, so a parent may
+    /// re-type a child's action without losing the child's identity.
     pub fn map_action<B>(self, f: impl FnOnce(A) -> B) -> Response<B> {
         Response {
             id: self.id,
@@ -281,30 +291,32 @@ impl Response<Activated> {
     }
 }
 
-/// Fold: `flow` — `Consumed` wins; `invalidate` — max; `id` and `state` —
-/// the left-hand side. The fold is a control-flow summary; read `state` and
-/// `id` from the individual responses.
+/// Fold: `flow` — `Consumed` wins; `invalidate` — max; `id` — the left-hand
+/// side if it carries one, otherwise the right-hand side; `state` — the
+/// left-hand side; `action` — cleared. The fold is a control-flow summary;
+/// read `state`, `id` and the action from the individual responses.
+///
+/// [`BitOrAssign`] is defined to agree with this field by field, so
+/// `a = a | b` and `a |= b` are interchangeable.
 impl BitOr for Response<()> {
     type Output = Response<()>;
 
-    fn bitor(self, rhs: Self) -> Self::Output {
-        Response {
-            id: self.id.or(rhs.id),
-            flow: self.flow.max(rhs.flow),
-            invalidate: self.invalidate.max(rhs.invalidate),
-            state: self.state,
-            action: None,
-        }
+    fn bitor(mut self, rhs: Self) -> Self::Output {
+        self |= rhs;
+        self
     }
 }
 
+/// The in-place form of [`BitOr`], field for field.
 impl BitOrAssign for Response<()> {
     fn bitor_assign(&mut self, rhs: Self) {
-        self.flow = self.flow.max(rhs.flow);
-        self.invalidate = self.invalidate.max(rhs.invalidate);
         if self.id.is_none() {
             self.id = rhs.id;
         }
+        self.flow = self.flow.max(rhs.flow);
+        self.invalidate = self.invalidate.max(rhs.invalidate);
+        // `state` stays the left-hand side.
+        self.action = None;
     }
 }
 
@@ -375,12 +387,37 @@ mod tests {
 
     #[test]
     fn map_action_preserves_flow_and_invalidate() {
-        let r = Response::action(3u8).relayout().for_id(Id::root("m"));
+        let r = Response::action(3u8)
+            .relayout()
+            .for_id(Id::root("m"))
+            .with_state(StateFlags::FOCUSED | StateFlags::DIRTY);
         let m = r.map_action(|n| u32::from(n).saturating_mul(2));
         assert_eq!(m.action_ref(), Some(&6));
         assert_eq!(m.invalidate(), Invalidate::Layout);
         assert!(m.is_consumed());
         assert_eq!(m.id(), Some(Id::root("m")));
+        // the documented "only the action is rewritten" half
+        assert_eq!(m.state(), StateFlags::FOCUSED | StateFlags::DIRTY);
+        // and `take_action` leaves the same four fields behind
+        let mut taken = m;
+        assert_eq!(taken.take_action(), Some(6));
+        assert_eq!(taken.state(), StateFlags::FOCUSED | StateFlags::DIRTY);
+        assert_eq!(taken.id(), Some(Id::root("m")));
+        assert_eq!(taken.invalidate(), Invalidate::Layout);
+        assert!(taken.is_consumed());
+    }
+
+    /// Acceptance: `id()` is `None` until [`Response::for_id`] tags it, for
+    /// every constructor — it is not a proxy for "this response was ignored".
+    #[test]
+    fn id_is_none_until_for_id_tags_it() {
+        assert!(Response::<u8>::ignored().id().is_none());
+        assert!(Response::<u8>::consumed().id().is_none());
+        assert!(Response::<u8>::changed().id().is_none());
+        assert!(Response::action(1u8).id().is_none());
+        let tagged = Response::<u8>::ignored().for_id(Id::root("t"));
+        assert_eq!(tagged.id(), Some(Id::root("t")));
+        assert!(!tagged.is_consumed());
     }
 
     #[test]
@@ -397,6 +434,124 @@ mod tests {
         let mut fired = false;
         let r = Response::action(Activated).on_activated(|| fired = true);
         assert!(fired && r.is_changed());
+    }
+
+    /// Acceptance: `a |= b` must equal `a | b` on every field of `Response`.
+    ///
+    /// The destructuring pattern below is exhaustive on purpose: adding a
+    /// field to `Response` breaks this test at compile time, forcing both
+    /// fold implementations to be revisited together.
+    #[test]
+    fn bitor_assign_agrees_with_bitor_on_every_field() {
+        let ids = [None, Some(Id::root("l")), Some(Id::root("r"))];
+        let flows = [Flow::Ignored, Flow::Consumed];
+        let invalidates = [Invalidate::None, Invalidate::Paint, Invalidate::Layout];
+        let states = [
+            StateFlags::empty(),
+            StateFlags::FOCUSED,
+            StateFlags::HOVERED | StateFlags::PRESSED,
+        ];
+        let actions = [None, Some(())];
+
+        let build = |i: Option<Id>, f: Flow, v: Invalidate, s: StateFlags, a: Option<()>| {
+            let mut r: Response<()> = Response::ignored();
+            let Response {
+                id,
+                flow,
+                invalidate,
+                state,
+                action,
+            } = &mut r;
+            *id = i;
+            *flow = f;
+            *invalidate = v;
+            *state = s;
+            *action = a;
+            r
+        };
+
+        let mut cases = Vec::new();
+        for i in ids {
+            for f in flows {
+                for v in invalidates {
+                    for s in states {
+                        for a in actions {
+                            cases.push(build(i, f, v, s, a));
+                        }
+                    }
+                }
+            }
+        }
+
+        for lhs in &cases {
+            for rhs in &cases {
+                let folded = lhs.clone() | rhs.clone();
+                let mut assigned = lhs.clone();
+                assigned |= rhs.clone();
+
+                // Exhaustive destructuring: a new field must be folded here.
+                let Response {
+                    id,
+                    flow,
+                    invalidate,
+                    state,
+                    action,
+                } = &folded;
+                let Response {
+                    id: a_id,
+                    flow: a_flow,
+                    invalidate: a_invalidate,
+                    state: a_state,
+                    action: a_action,
+                } = &assigned;
+
+                assert_eq!(id, a_id, "id diverged for {lhs:?} | {rhs:?}");
+                assert_eq!(flow, a_flow, "flow diverged for {lhs:?} | {rhs:?}");
+                assert_eq!(
+                    invalidate, a_invalidate,
+                    "invalidate diverged for {lhs:?} | {rhs:?}"
+                );
+                assert_eq!(state, a_state, "state diverged for {lhs:?} | {rhs:?}");
+                assert_eq!(action, a_action, "action diverged for {lhs:?} | {rhs:?}");
+
+                // The documented per-field contract itself.
+                assert_eq!(*id, lhs.id.or(rhs.id));
+                assert_eq!(*flow, lhs.flow.max(rhs.flow));
+                assert_eq!(*invalidate, lhs.invalidate.max(rhs.invalidate));
+                assert_eq!(*state, lhs.state);
+                assert_eq!(*action, None);
+            }
+        }
+    }
+
+    #[test]
+    fn bitor_assign_clears_the_action_like_bitor() {
+        let mut r = Response::action(());
+        assert!(r.action_ref().is_some());
+        r |= Response::ignored();
+        assert!(r.action_ref().is_none());
+        assert!(r.is_consumed() && r.is_changed());
+
+        let folded = Response::action(()) | Response::<()>::ignored();
+        assert!(folded.action_ref().is_none());
+    }
+
+    #[test]
+    fn bitor_assign_takes_the_right_id_only_when_the_left_has_none() {
+        let mut r: Response<()> = Response::ignored();
+        r |= Response::consumed().for_id(Id::root("r"));
+        assert_eq!(r.id(), Some(Id::root("r")));
+
+        let mut r: Response<()> = Response::ignored().for_id(Id::root("l"));
+        r |= Response::consumed().for_id(Id::root("r"));
+        assert_eq!(r.id(), Some(Id::root("l")));
+    }
+
+    #[test]
+    fn bitor_assign_keeps_the_left_state() {
+        let mut r: Response<()> = Response::consumed().with_state(StateFlags::FOCUSED);
+        r |= Response::changed().with_state(StateFlags::HOVERED);
+        assert_eq!(r.state(), StateFlags::FOCUSED);
     }
 
     #[test]

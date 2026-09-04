@@ -430,7 +430,49 @@ impl SplitModel {
         }
     }
 
+    /// The empty pane of a degenerate split, anchored inside `area`: at the
+    /// container's origin for the first pane, at its far edge along the split
+    /// axis for the second.
+    const fn collapsed(self, area: Rect, second: bool) -> Rect {
+        match (self.axis, second) {
+            (SplitAxis::Vertical, false) => Rect {
+                x: area.x,
+                y: area.y,
+                width: area.width,
+                height: 0,
+            },
+            (SplitAxis::Vertical, true) => Rect {
+                x: area.x,
+                y: area.bottom(),
+                width: area.width,
+                height: 0,
+            },
+            (SplitAxis::Horizontal, false) => Rect {
+                x: area.x,
+                y: area.y,
+                width: 0,
+                height: area.height,
+            },
+            (SplitAxis::Horizontal, true) => Rect {
+                x: area.right(),
+                y: area.y,
+                width: 0,
+                height: area.height,
+            },
+        }
+    }
+
     /// The two pane rects with `gap` cells between them.
+    ///
+    /// Both rects are always subrects of `area`, **including the empty one** a
+    /// maximised or collapsed split produces: the empty pane is anchored where
+    /// that pane would have started — `area`'s origin for the first pane,
+    /// `area.bottom()` / `area.right()` for the second — never `Rect::ZERO`,
+    /// whose origin is the top-left of the *screen* and not the container's.
+    /// `.is_empty()` cannot see that difference, because an empty rect at the
+    /// wrong origin is still empty, so a caller that reads `.x`/`.y` before
+    /// checking `.is_empty()` would otherwise paint outside its container.
+    /// This is the guarantee [`inset`] gives, on the same terms.
     pub fn layout(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         let split = |at: u16| match self.axis {
             SplitAxis::Vertical => {
@@ -445,13 +487,13 @@ impl SplitModel {
             }
         };
         match self.maximized {
-            Maximized::First => (area, Rect::ZERO),
-            Maximized::Second => (Rect::ZERO, area),
+            Maximized::First => (area, self.collapsed(area, true)),
+            Maximized::Second => (self.collapsed(area, false), area),
             Maximized::None => {
                 let usable = self.length(area).saturating_sub(gap);
                 if usable < self.min_first.saturating_add(self.min_second) {
                     // not enough room for both: the first pane wins on both axes
-                    return (area, Rect::ZERO);
+                    return (area, self.collapsed(area, true));
                 }
                 let first =
                     (u32::from(usable).saturating_mul(u32::from(self.percent)) / 100) as u16;
@@ -461,23 +503,27 @@ impl SplitModel {
         }
     }
 
-    /// The seam strip between the panes; empty when maximised or collapsed.
+    /// The seam strip between the panes; empty when maximised, when collapsed
+    /// and when `gap == 0`.
+    ///
+    /// Like [`SplitModel::layout`], the empty answer stays inside `area`: the
+    /// strip keeps the seam position (the far edge of the first pane, which is
+    /// `area`'s own origin when the first pane is the collapsed one) and loses
+    /// only its thickness.
     pub fn handle(&self, area: Rect, gap: u16) -> Rect {
         let (a, b) = self.layout(area, gap);
-        if a.is_empty() || b.is_empty() || gap == 0 {
-            return Rect::ZERO;
-        }
+        let thickness = if a.is_empty() || b.is_empty() { 0 } else { gap };
         match self.axis {
             SplitAxis::Vertical => Rect {
                 x: area.x,
                 y: a.bottom(),
                 width: area.width,
-                height: gap,
+                height: thickness,
             },
             SplitAxis::Horizontal => Rect {
                 x: a.right(),
                 y: area.y,
-                width: gap,
+                width: thickness,
                 height: area.height,
             },
         }
@@ -809,6 +855,71 @@ mod tests {
         m.toggle_max(Maximized::Second);
         let (a, b) = m.layout(Rect::new(0, 0, 80, 30), 1);
         assert!(a.is_empty() && b.height == 30);
+    }
+
+    /// Acceptance: no pane and no seam a `SplitModel` answers ever escapes the
+    /// area it was given — the empty ones included. `Rect::ZERO` is anchored at
+    /// the screen corner, so an empty pane carrying it reports an origin
+    /// outside its own container and `.is_empty()` cannot reveal that.
+    #[test]
+    fn split_panes_and_seam_stay_inside_the_area() {
+        let area = Rect::new(3, 2, 10, 6);
+        let v = SplitModel::new(SplitAxis::Vertical, 60, 2, 2);
+        let h = SplitModel::new(SplitAxis::Horizontal, 60, 2, 2);
+        // the exact anchors of a maximised split
+        let mut vmax = v;
+        vmax.toggle_max(Maximized::First);
+        assert_eq!(vmax.layout(area, 1).1, Rect::new(3, 8, 10, 0));
+        vmax.toggle_max(Maximized::First);
+        vmax.toggle_max(Maximized::Second);
+        assert_eq!(vmax.layout(area, 1).0, Rect::new(3, 2, 10, 0));
+        let mut hmax = h;
+        hmax.toggle_max(Maximized::First);
+        assert_eq!(hmax.layout(area, 1).1, Rect::new(13, 2, 0, 6));
+        hmax.toggle_max(Maximized::First);
+        hmax.toggle_max(Maximized::Second);
+        assert_eq!(hmax.layout(area, 1).0, Rect::new(3, 2, 0, 6));
+        // and the collapsed one, where the minima do not fit
+        let tight = SplitModel::new(SplitAxis::Vertical, 60, 50, 50);
+        assert_eq!(tight.layout(area, 1).1, Rect::new(3, 8, 10, 0));
+        assert!(tight.layout(area, 1).1.is_empty());
+
+        let inside = |r: Rect, area: Rect, what: &str, model: &SplitModel| {
+            assert!(
+                r.x >= area.x
+                    && r.y >= area.y
+                    && r.right() <= area.right()
+                    && r.bottom() <= area.bottom(),
+                "{what} {r:?} escapes {area:?} for {model:?}"
+            );
+        };
+        for axis in [SplitAxis::Vertical, SplitAxis::Horizontal] {
+            for w in [0u16, 1, 3, 12, 80] {
+                for hh in [0u16, 1, 3, 12, 40] {
+                    let area = Rect {
+                        x: 3,
+                        y: 2,
+                        width: w,
+                        height: hh,
+                    };
+                    for percent in [5u8, 50, 95] {
+                        for (min_first, min_second) in [(0u16, 0u16), (1, 1), (5, 5), (50, 50)] {
+                            for gap in [0u16, 1, 4] {
+                                for max in [Maximized::None, Maximized::First, Maximized::Second] {
+                                    let mut m =
+                                        SplitModel::new(axis, percent, min_first, min_second);
+                                    m.maximized = max;
+                                    let (a, b) = m.layout(area, gap);
+                                    inside(a, area, "first pane", &m);
+                                    inside(b, area, "second pane", &m);
+                                    inside(m.handle(area, gap), area, "seam", &m);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]

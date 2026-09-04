@@ -11,8 +11,9 @@ use ratatui_core::style::Color;
 
 use super::Theme;
 use super::border::BorderSet;
-use super::downgrade::{lab_of, luminance, rgb_of};
+use super::downgrade::{MonoRule, lab_of, luminance, rgb_of};
 use super::glyph::{ASCII_RULE_ACTIVE, ASCII_RULE_QUIET, ASCII_SCROLLBAR, GlyphRole};
+use super::recipe::Family;
 use super::role::{FG_STEPS, SURFACE_LEVELS};
 use super::tokens::{ColorTokens, Density, MotionTokens, SizeTokens, SpaceTokens};
 
@@ -277,6 +278,69 @@ impl ThemeBuilder {
     #[must_use]
     pub fn motion(mut self, m: MotionTokens) -> Self {
         self.theme.design.motion = m;
+        self
+    }
+
+    /// Give `f` its own §11.4 mono fallback manifest: the non-colour signals
+    /// the resolver adds for that family at [`ColorLevel::Mono`](super::ColorLevel::Mono), on top of
+    /// the family-independent generic manifest.
+    ///
+    /// This is the seam a downstream family needs. `Family::custom("seg")`
+    /// resolves through the neutral recipe and therefore receives the generic
+    /// rules, but nothing else could express "at mono, a chosen segment gets
+    /// the `Chosen` marker on `Part::MARKER`" — the six built-in targeted
+    /// tables (`VIEWPORT`, `GRID`, `MENU`, `HELP`, `PICKER`, `SELECT`) are
+    /// private and closed.
+    ///
+    /// **Whole-set, like [`ThemeBuilder::ascii_glyphs`].** `rules` becomes the
+    /// family's entire targeted set, replacing the built-in one where there is
+    /// one, so:
+    ///
+    /// * calling it twice for the same family keeps only the last call — the
+    ///   set cannot silently accumulate duplicates;
+    /// * `mono_rules(f, &[])` **removes** `f`'s built-in targeted rules;
+    /// * the generic manifest ([`MONO_RULES_PER_FAMILY`](super::MONO_RULES_PER_FAMILY)
+    ///   rules) is unaffected:
+    ///   it is family-independent, and a theme that could drop it would be
+    ///   able to make `DISABLED` invisible at mono (§29, §20.10 item 18).
+    ///
+    /// Precedence is unchanged (§11.4): these rules land after the family and
+    /// variant state rules and **before** every author override, so
+    /// `override_family` still wins over them, and they apply only when the
+    /// theme is actually at [`ColorLevel::Mono`](super::ColorLevel::Mono).
+    ///
+    /// ```
+    /// use tui_next::{
+    ///     ColorLevel, Family, GlyphRole, Part, Slot, StateFlags, StylePatch, Surface, Theme,
+    ///     Variant,
+    /// };
+    ///
+    /// let seg = Family::custom("seg");
+    /// let theme = Theme::junie()
+    ///     .builder()
+    ///     .mono_rules(
+    ///         seg,
+    ///         &[(
+    ///             Part::MARKER,
+    ///             StateFlags::ACTIVE,
+    ///             StylePatch::new().set_glyph(GlyphRole::Chosen),
+    ///         )],
+    ///     )
+    ///     .build()
+    ///     .downgrade(ColorLevel::Mono);
+    ///
+    /// let r = theme.resolve(
+    ///     seg,
+    ///     Variant::DEFAULT,
+    ///     Part::MARKER,
+    ///     StateFlags::ACTIVE,
+    ///     Surface::Canvas,
+    /// );
+    /// assert_eq!(r.glyph, Slot::Set(GlyphRole::Chosen));
+    /// ```
+    #[must_use]
+    pub fn mono_rules(mut self, f: Family, rules: &[MonoRule]) -> Self {
+        self.theme.recipes.set_mono_rules(f, rules.to_vec());
         self
     }
 

@@ -126,7 +126,7 @@ pub(crate) fn accumulate(
     // §11.4: mono fallback is a private static layer. It follows ordinary
     // family/variant states and precedes all author overrides.
     if theme.capability.color == super::ColorLevel::Mono {
-        acc = super::downgrade::apply_mono_fallback(acc, f, p, live);
+        acc = super::downgrade::apply_mono_fallback(acc, recipes, f, p, live);
     }
     // 4: theme-level global overrides — family-wide, then variant-specific
     for o in recipes.overrides() {

@@ -7,6 +7,7 @@
 
 use core::fmt;
 
+use super::downgrade::MonoRule;
 use super::glyph::GlyphRole;
 use super::patch::{Slot, StateRule, StylePatch};
 use crate::id::{Part, fnv1a};
@@ -408,11 +409,23 @@ pub(crate) struct GlobalOverride {
 /// The static mono fallback layer keys on the requested family rather than
 /// enumerating storage. Undeclared custom families therefore receive generic
 /// non-colour state signals while their authored base remains neutral.
+///
+/// # Author-supplied mono rules
+///
+/// `mono` holds the §11.4 family-targeted mono manifests a theme author set
+/// through [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules). An
+/// entry is the **whole** targeted set for that family: it replaces the
+/// built-in targeted set rather than extending it, and an entry with an empty
+/// slice means "this family adds nothing to the generic manifest". A family
+/// with no entry keeps whatever the built-in table declares for it. The
+/// generic manifest — [`MONO_RULES_PER_FAMILY`](super::MONO_RULES_PER_FAMILY)
+/// rules — is family-independent and is never replaced.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
     overrides: Vec<GlobalOverride>,
     neutral: Recipe,
+    mono: Vec<(Family, Vec<MonoRule>)>,
 }
 
 impl Default for Recipes {
@@ -421,6 +434,7 @@ impl Default for Recipes {
             by_family: Vec::new(),
             overrides: Vec::new(),
             neutral: super::builtin::neutral_recipe(),
+            mono: Vec::new(),
         }
     }
 }
@@ -483,6 +497,43 @@ impl Recipes {
     /// Whether no family is defined.
     pub fn is_empty(&self) -> bool {
         self.by_family.is_empty()
+    }
+
+    /// The author-supplied §11.4 mono fallback rules for `f`, if the theme
+    /// set any: `Some(&[])` is a deliberately emptied set, `None` means the
+    /// built-in table still owns this family.
+    ///
+    /// Read at resolution only when `capability.color == ColorLevel::Mono`.
+    /// The generic manifest applies either way.
+    pub fn mono_rules(&self, f: Family) -> Option<&[MonoRule]> {
+        if self.mono.is_empty() {
+            return None;
+        }
+        self.mono
+            .binary_search_by_key(&f, |(k, _)| *k)
+            .ok()
+            .and_then(|i| self.mono.get(i))
+            .map(|(_, r)| r.as_slice())
+    }
+
+    /// Replace `f`'s whole targeted mono manifest (`ThemeBuilder::mono_rules`).
+    ///
+    /// Kept sorted by family so two themes built by the same calls in the same
+    /// order compare equal and fingerprint identically.
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "`i` is either the index binary_search found or the index Vec::insert(i, _) just \
+                  filled, so it is in range by construction"
+    )]
+    pub(crate) fn set_mono_rules(&mut self, f: Family, rules: Vec<MonoRule>) {
+        let i = match self.mono.binary_search_by_key(&f, |(k, _)| *k) {
+            Ok(i) => i,
+            Err(i) => {
+                self.mono.insert(i, (f, Vec::new()));
+                i
+            }
+        };
+        self.mono[i].1 = rules;
     }
 
     pub(crate) fn overrides(&self) -> &[GlobalOverride] {

@@ -21,7 +21,7 @@ pub use ratatui_core::style::Modifier;
 
 pub use border::BorderSet;
 pub use builder::ThemeBuilder;
-pub use downgrade::{MONO_RULES_PER_FAMILY, downgrade_color};
+pub use downgrade::{MONO_RULES_PER_FAMILY, MonoRule, downgrade_color};
 pub use glyph::{GlyphRole, GlyphSet};
 pub use patch::{Slot, StateRule, StylePatch};
 pub use recipe::{

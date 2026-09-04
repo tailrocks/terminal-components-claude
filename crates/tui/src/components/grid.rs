@@ -32,7 +32,7 @@ use crate::collection::{
 };
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
-use crate::id::{Id, ItemKey, Part, PartRef};
+use crate::id::{Id, ItemKey, Part, PartRef, custom_hash16};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
@@ -48,32 +48,55 @@ const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 ///
 /// The column analogue of [`ItemKey`]: every action names a column by key,
 /// never by index, so a model that reorders or hides columns cannot silently
-/// move the cursor to a different one. `0..=255` is reserved for callers that
-/// have a natural numbering; [`ColumnKey::of`] hashes a name into the high
-/// range.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
+/// move the cursor to a different one. `0..=0x7FFF` is the numbered range for
+/// callers that have a natural numbering; [`ColumnKey::of`] hashes a name
+/// into the disjoint high range with the same fold every other 16-bit custom
+/// key in the crate uses.
+///
+/// The two ranges cannot meet: [`ColumnKey::num`] *rejects* a number that
+/// would land in the hashed half rather than masking it into a different
+/// column. Two hashed names can still fold together, and a grid checks its
+/// own column list for that in debug builds ([`Grid::draw`]), because the
+/// column list is the only place both names exist at once.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnKey(u16);
 
+/// The largest [`ColumnKey::num`]; `0x8000..` is [`ColumnKey::of`]'s range.
+const COLUMN_KEY_MAX: u16 = 0x7FFF;
+
 impl ColumnKey {
-    /// A numbered column key.
+    /// A numbered column key, `0..=0x7FFF`.
+    ///
+    /// # Panics
+    /// If `n > 0x7FFF`. Masking instead would silently alias one
+    /// column onto another (`0x8000` onto column `0`) and, worse, onto
+    /// [`ColumnKey::of`]'s range; in a `const` this panic is a compile error.
     pub const fn num(n: u16) -> Self {
-        ColumnKey(n & 0x7FFF)
+        assert!(
+            n <= COLUMN_KEY_MAX,
+            "ColumnKey::num is 0..=0x7FFF; 0x8000.. belongs to ColumnKey::of"
+        );
+        ColumnKey(n)
     }
 
-    /// A named column key: FNV-1a over the name, into the high range.
-    pub fn of(name: &str) -> Self {
-        let mut h: u32 = 0x811c_9dc5;
-        let bytes = name.as_bytes();
-        for byte in bytes {
-            h ^= u32::from(*byte);
-            h = h.wrapping_mul(0x0100_0193);
-        }
-        ColumnKey(0x8000 | ((h as u16) & 0x7FFF))
+    /// A named column key: the crate's FNV-1a fold into the high range.
+    pub const fn of(name: &str) -> Self {
+        ColumnKey(custom_hash16(name))
     }
 
     /// The raw key.
     pub const fn raw(self) -> u16 {
         self.0
+    }
+}
+
+impl fmt::Debug for ColumnKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0 > COLUMN_KEY_MAX {
+            write!(f, "ColumnKey::of(#{:04x})", self.0)
+        } else {
+            write!(f, "ColumnKey::num({})", self.0)
+        }
     }
 }
 
@@ -991,6 +1014,34 @@ impl<'a> Grid<'a> {
         self.columns.len().min(GRID_MAX_COLUMNS)
     }
 
+    /// Debug-only: the column list must hold no key twice.
+    ///
+    /// Keyed identity (§33) assumes one column per key: [`Self::col_index`]
+    /// resolves the cursor, the range anchor and the edited cell to the
+    /// *first* column carrying a key, so a repeated key — a copy-pasted
+    /// [`ColumnKey::num`], or two [`ColumnKey::of`] names folding to the same
+    /// 15 bits — moves them to a column the caller never meant. Nothing
+    /// downstream can see that; the column list is the one place both keys
+    /// and both titles exist, so the check belongs here. Debug builds only.
+    fn assert_distinct_column_keys(&self) {
+        #[cfg(debug_assertions)]
+        {
+            let shown = self.columns.get(..self.column_count()).unwrap_or(&[]);
+            for (i, a) in shown.iter().enumerate() {
+                for b in shown.get(i.saturating_add(1)..).unwrap_or(&[]) {
+                    assert!(
+                        a.key != b.key,
+                        "grid {:?}: columns {:?} and {:?} share {:?}",
+                        self.id,
+                        a.title,
+                        b.title,
+                        a.key
+                    );
+                }
+            }
+        }
+    }
+
     /// The index of `key` in the capped column list.
     fn col_index(&self, key: ColumnKey) -> Option<usize> {
         self.columns
@@ -1836,6 +1887,7 @@ impl Grid<'_> {
         st: &mut GridState,
         model: &M,
     ) -> Response<GridAction> {
+        self.assert_distinct_column_keys();
         let mut acc = Acc::<GridAction>::new();
         let pending = self.navigate(cx, st, model, &mut acc);
         // a read-only grid has one meaning for `Enter` on a cell
@@ -1861,6 +1913,7 @@ impl Grid<'_> {
         st: &mut GridState,
         model: &mut M,
     ) -> Response<GridAction> {
+        self.assert_distinct_column_keys();
         let mut acc = Acc::<GridAction>::new();
         self.drive_editor(cx, st, model, &mut acc);
         let pending = self.navigate(cx, st, model, &mut acc);
@@ -2213,7 +2266,13 @@ impl Grid<'_> {
                 continue;
             }
             let cell = model.cell(row, i);
-            let editing = cell.is_some() && state.edit == Some((key, cell_key(self.columns, i)));
+            // `None` — a column index past the list — matches no edit at
+            // all. A sentinel key would have to live in some real key's
+            // range; absence lives in none.
+            let editing = cell.is_some()
+                && self
+                    .col_key(i)
+                    .is_some_and(|col| state.edit == Some((key, col)));
             let refused_error = (!editing && is_cursor && i == cursor.1)
                 .then(|| state.edit_error())
                 .flatten();
@@ -2350,6 +2409,7 @@ impl Grid<'_> {
         st: &GridState,
         model: &M,
     ) -> Rect {
+        self.assert_distinct_column_keys();
         if area.is_empty() {
             return area;
         }
@@ -2533,12 +2593,6 @@ impl Grid<'_> {
         }
         .fit(c)
     }
-}
-
-/// The key of column `i`, or a numbered fallback so the edited-cell
-/// comparison in `draw` can never match a column that does not exist.
-fn cell_key(columns: &[Column<'_>], i: usize) -> ColumnKey {
-    columns.get(i).map_or(ColumnKey(u16::MAX), |c| c.key)
 }
 
 /// Encode a column key in the registry's collection-item namespace.
@@ -2892,6 +2946,108 @@ mod tests {
         runtime.draw_buffer(AREA, &mut buffer);
         runtime.draw_buffer(AREA, &mut buffer);
         (runtime, buffer)
+    }
+
+    /// Two columns declared with the same [`ColumnKey::of`] name that folds
+    /// alike, or a copy-pasted [`ColumnKey::num`], used to resolve silently
+    /// to the first column. `Column`s carry the titles, so the grid can name
+    /// both offenders.
+    #[cfg(debug_assertions)]
+    #[test]
+    #[should_panic(expected = "columns \"Name\" and \"Value\" share ColumnKey::num(1)")]
+    fn duplicate_column_keys_are_rejected_by_name() {
+        let mut columns = columns();
+        if let Some(column) = columns.get_mut(1) {
+            column.key = ColumnKey::num(1);
+        }
+        Grid::new(ID, &columns).assert_distinct_column_keys();
+    }
+
+    /// The check is wired to the entry points, not merely available.
+    #[cfg(debug_assertions)]
+    #[test]
+    #[should_panic(expected = "share ColumnKey::num(1)")]
+    fn draw_rejects_duplicate_column_keys() {
+        let mut columns = columns();
+        if let Some(column) = columns.get_mut(1) {
+            column.key = ColumnKey::num(1);
+        }
+        let model = Model::two();
+        let screen = AREA;
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(screen);
+        runtime.draw_scene(screen, &mut buffer, |ui, _| {
+            Grid::new(ID, &columns).draw(ui, screen, &GridState::default(), &model);
+        });
+    }
+
+    /// `0x8000..` is `ColumnKey::of`'s half. Masking a number into it — the
+    /// old behaviour — turned `num(0x8000)` into column `0` and `num(0xFFFF)`
+    /// into `num(0x7FFF)`, two silent aliases; rejection is the fix.
+    #[test]
+    #[should_panic(expected = "ColumnKey::num is 0..=0x7FFF")]
+    fn column_key_num_rejects_the_hashed_range() {
+        let _ = ColumnKey::num(core::hint::black_box(0x8000));
+    }
+
+    #[test]
+    fn column_key_num_keeps_every_number_it_accepts() {
+        for n in [0_u16, 1, 255, 0x7FFE, COLUMN_KEY_MAX] {
+            assert_eq!(ColumnKey::num(n).raw(), n, "num must not fold {n}");
+            assert!(ColumnKey::num(n).raw() <= COLUMN_KEY_MAX);
+        }
+    }
+
+    /// The two constructors partition the key space, so no numbered column
+    /// can ever be confused with a named one.
+    #[test]
+    fn numbered_and_named_column_keys_never_meet() {
+        for name in ["id", "name", "schema.table", "", "\u{1f600}"] {
+            let named = ColumnKey::of(name);
+            assert!(named.raw() > COLUMN_KEY_MAX, "{name:?} left the high half");
+            for n in [0_u16, 1, 255, 0x7FFF] {
+                assert_ne!(named, ColumnKey::num(n));
+            }
+        }
+    }
+
+    /// One fold for every 16-bit custom key in the crate: the grid no longer
+    /// carries a private 32-bit FNV of its own.
+    #[test]
+    fn column_key_of_uses_the_shared_custom_fold() {
+        for name in ["id", "name", "schema.table", ""] {
+            assert_eq!(ColumnKey::of(name).raw(), custom_hash16(name));
+            assert_eq!(ColumnKey::of(name).raw(), Part::custom(name).raw());
+        }
+        assert_ne!(ColumnKey::of("id"), ColumnKey::of("name"));
+        assert_eq!(ColumnKey::of("id"), ColumnKey::of("id"));
+    }
+
+    /// A key prints the constructor that could have made it, so a capture or
+    /// a failed assertion names the range it came from.
+    #[test]
+    fn column_key_debug_names_its_range() {
+        assert_eq!(format!("{:?}", ColumnKey::num(2)), "ColumnKey::num(2)");
+        assert_eq!(
+            format!("{:?}", ColumnKey::of("id")),
+            format!("ColumnKey::of(#{:04x})", ColumnKey::of("id").raw())
+        );
+    }
+
+    /// A column index past the list has *no* key. The old sentinel
+    /// (`ColumnKey(u16::MAX)`) lived inside `ColumnKey::of`'s range, so a
+    /// named column could equal "the column that does not exist".
+    #[test]
+    fn an_absent_column_index_has_no_key_rather_than_a_sentinel() {
+        let columns = columns();
+        let grid = Grid::new(ID, &columns);
+        assert_eq!(grid.col_key(0), Some(ColumnKey::num(1)));
+        assert_eq!(grid.col_key(1), Some(ColumnKey::num(2)));
+        assert_eq!(grid.col_key(2), None);
+        assert_eq!(grid.col_key(usize::MAX), None);
+        // the sentinel that used to stand in for "absent" is a reachable
+        // named key, which is why absence may not be spelled as a key
+        const { assert!(u16::MAX > COLUMN_KEY_MAX) };
     }
 
     #[test]
@@ -3329,7 +3485,11 @@ mod tests {
             }
         }
 
-        let columns = [Column::new(ColumnKey::num(1), "x"); GRID_MAX_COLUMNS + 2];
+        // distinct keys: a repeated key is itself a rejected mistake now
+        let mut columns = [Column::new(ColumnKey::num(0), "x"); GRID_MAX_COLUMNS + 2];
+        for (index, column) in columns.iter_mut().enumerate() {
+            column.key = ColumnKey::num(index as u16);
+        }
         let model = BoundedModel {
             largest_column: Cell::new(0),
             out_of_bounds_calls: Cell::new(0),
@@ -3341,7 +3501,12 @@ mod tests {
             Grid::new(ID, &columns).draw(ui, screen, &GridState::default(), &model);
         });
         let mut state = GridState::default();
-        state.set_cursor(0, ItemKey::num(1), GRID_MAX_COLUMNS - 1, ColumnKey::num(1));
+        state.set_cursor(
+            0,
+            ItemKey::num(1),
+            GRID_MAX_COLUMNS - 1,
+            ColumnKey::num(GRID_MAX_COLUMNS.saturating_sub(1) as u16),
+        );
         let _ = Grid::new(ID, &columns).copy_tsv(
             &state,
             &model,

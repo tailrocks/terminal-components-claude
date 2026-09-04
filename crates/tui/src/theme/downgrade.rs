@@ -9,7 +9,7 @@ use ratatui_core::style::{Color, Modifier};
 use super::Theme;
 use super::glyph::GlyphRole;
 use super::patch::{Slot, StylePatch};
-use super::recipe::Family;
+use super::recipe::{Family, Recipes};
 use super::role::{FgStep, Role, Surface};
 use super::tokens::ColorLevel;
 use crate::id::Part;
@@ -242,8 +242,11 @@ impl Theme {
     /// Every token mapped through [`downgrade_color`]; at `Mono` the mono
     /// fallback rules are applied by resolution (§11.4). Works for any theme.
     ///
-    /// A theme already at `level` is returned unchanged. That guard is a
-    /// The same-level guard preserves the existing owned theme unchanged.
+    /// A theme already at `level` is returned unchanged: the token map is not
+    /// re-run, so a theme authored at that depth — or one a caller already
+    /// took down to it — keeps its exact colours instead of being pushed
+    /// through a second, lossy approximation of colours that are already
+    /// representable.
     #[must_use]
     pub fn downgrade(&self, level: ColorLevel) -> Theme {
         if self.capability.color == level {
@@ -277,8 +280,16 @@ impl Theme {
     }
 }
 
+/// One entry of the §11.4 mono fallback manifest: the part it targets, the
+/// state that arms it, and the patch merged when that state is live.
+///
+/// The shape a theme author passes to
+/// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules), and the
+/// shape the built-in tables below are written in.
+pub type MonoRule = (Part, StateFlags, StylePatch);
+
 /// The immutable generic mono fallback manifest applied by the resolver.
-fn mono_rules() -> [(Part, StateFlags, StylePatch); 15] {
+fn mono_rules() -> [MonoRule; 15] {
     let p = StylePatch::new;
     [
         (
@@ -390,7 +401,7 @@ fn mono_rules() -> [(Part, StateFlags, StylePatch); 15] {
 /// Rules that share a slot with the table above but are keyed on a second
 /// flag (`DIRTY` beside `WARNING`, `ACTIVE` for tabs), plus the scrollbar
 /// half of `PRESSED`.
-fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 5] {
+fn mono_rules_extra() -> [MonoRule; 5] {
     let p = StylePatch::new;
     [
         (
@@ -425,11 +436,27 @@ fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 5] {
     ]
 }
 
-/// Generic entries in the private static mono fallback manifest. Resolution
-/// applies these once after family/variant states; recipe vectors are unchanged.
+/// The number of **generic** entries in the static mono fallback manifest:
+/// `mono_rules()` plus `mono_rules_extra()`, applied once after family and
+/// variant states to every resolvable recipe — each `by_family` entry and the
+/// neutral recipe — without touching recipe storage.
+///
+/// The name is historical and is **not** a per-family total: it is cited by
+/// name in §16.1 and §20.10 item 18, so it keeps it. Six built-in families
+/// declare targeted rules on top of these (`VIEWPORT` 1, `GRID` 2, `MENU` 2,
+/// `HELP` 2, `PICKER` 3, `SELECT` 3) — `PICKER`'s `(LABEL, PRESSED)` retargets
+/// a pair the generic set already covers, so `PICKER` reaches 22 `(part,
+/// state)` pairs where `SELECT` reaches 23 — and a theme author can give any family —
+/// including a `Family::custom` one — its own targeted set through
+/// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules). The count
+/// that is constant across families is exactly this generic one; the total a
+/// given family applies is this number plus its targeted set's length.
+/// `SCROLLBAR` is the one family that applies *fewer*: the generic
+/// `(CONTAINER, PRESSED)` rule is excluded for it (`apply_mono_fallback`), so
+/// its generic total is `MONO_RULES_PER_FAMILY - 1`.
 pub const MONO_RULES_PER_FAMILY: usize = 20;
 
-fn viewport_mono_rules() -> [(Part, StateFlags, StylePatch); 1] {
+fn viewport_mono_rules() -> [MonoRule; 1] {
     [(
         Part::TEXT,
         StateFlags::SELECTED,
@@ -440,7 +467,7 @@ fn viewport_mono_rules() -> [(Part, StateFlags, StylePatch); 1] {
     )]
 }
 
-fn grid_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
+fn grid_mono_rules() -> [MonoRule; 2] {
     [
         (
             Part::CELL,
@@ -458,7 +485,7 @@ fn grid_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
     ]
 }
 
-fn menu_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
+fn menu_mono_rules() -> [MonoRule; 2] {
     [
         (
             Part::ROW,
@@ -478,7 +505,7 @@ fn menu_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
     ]
 }
 
-fn help_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
+fn help_mono_rules() -> [MonoRule; 2] {
     [
         (
             Part::BORDER,
@@ -493,7 +520,7 @@ fn help_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
     ]
 }
 
-fn picker_mono_rules() -> [(Part, StateFlags, StylePatch); 3] {
+fn picker_mono_rules() -> [MonoRule; 3] {
     [
         (
             Part::GUTTER,
@@ -516,7 +543,7 @@ fn picker_mono_rules() -> [(Part, StateFlags, StylePatch); 3] {
     ]
 }
 
-fn select_mono_rules() -> [(Part, StateFlags, StylePatch); 3] {
+fn select_mono_rules() -> [MonoRule; 3] {
     [
         (
             Part::FIELD,
@@ -544,16 +571,28 @@ fn select_mono_rules() -> [(Part, StateFlags, StylePatch); 3] {
 }
 
 /// Apply the private §11.4 static fallback layer after family and variant
-/// states, before every override layer. It never enters public recipe storage.
+/// states, before every override layer.
+///
+/// Three layers merge here, in order: the generic manifest
+/// ([`MONO_RULES_PER_FAMILY`] rules, family-independent), then the family's
+/// targeted manifest, then nothing else — the targeted manifest is the
+/// author's whole set for that family when the theme declares one
+/// ([`Recipes::mono_rules`]), and the built-in one otherwise.
+///
+/// The static layer still never *writes* into recipe storage: an author's
+/// mono rules are in `Recipes` because the author put them there through
+/// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules), and
+/// [`Theme::downgrade`] adds none.
 pub(crate) fn apply_mono_fallback(
     mut acc: StylePatch,
+    recipes: &Recipes,
     family: Family,
     part: Part,
     live: StateFlags,
 ) -> StylePatch {
     let rules = mono_rules();
     let extra = mono_rules_extra();
-    let targeted: &[(Part, StateFlags, StylePatch)] = match family {
+    let builtin: &[MonoRule] = match family {
         Family::VIEWPORT => &viewport_mono_rules(),
         Family::GRID => &grid_mono_rules(),
         Family::MENU => &menu_mono_rules(),
@@ -562,6 +601,10 @@ pub(crate) fn apply_mono_fallback(
         Family::SELECT => &select_mono_rules(),
         _ => &[],
     };
+    // Whole-set semantics: an authored manifest *replaces* the built-in one
+    // for that family, so a theme can retarget or silence it, and repeating
+    // the call cannot accumulate duplicates.
+    let targeted: &[MonoRule] = recipes.mono_rules(family).unwrap_or(builtin);
     for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
         let applies = family != Family::SCROLLBAR
             || *rule_part != Part::CONTAINER
@@ -968,8 +1011,10 @@ mod tests {
 
     #[test]
     fn mono_targeted_fallbacks_declare_omitted_families() {
+        let recipes = Theme::junie().recipes;
         let selected = apply_mono_fallback(
             StylePatch::new(),
+            &recipes,
             Family::VIEWPORT,
             Part::TEXT,
             StateFlags::SELECTED,
@@ -977,6 +1022,7 @@ mod tests {
         assert!(selected.add.contains(Modifier::UNDERLINED));
         let error = apply_mono_fallback(
             StylePatch::new(),
+            &recipes,
             Family::GRID,
             Part::CELL,
             StateFlags::ERROR,
@@ -1099,6 +1145,231 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Every `(part, state)` pair the static mono layer answers for `f`,
+    /// probed through `apply_mono_fallback` rather than read off the tables,
+    /// so the count measures what resolution does.
+    fn responding_pairs(recipes: &Recipes, f: Family) -> usize {
+        let mut pairs: Vec<(Part, StateFlags)> = mono_rules()
+            .iter()
+            .chain(mono_rules_extra().iter())
+            .chain(viewport_mono_rules().iter())
+            .chain(grid_mono_rules().iter())
+            .chain(menu_mono_rules().iter())
+            .chain(help_mono_rules().iter())
+            .chain(picker_mono_rules().iter())
+            .chain(select_mono_rules().iter())
+            .map(|(part, when, _)| (*part, *when))
+            .collect();
+        pairs.sort_by_key(|(part, when)| (part.raw(), when.bits()));
+        pairs.dedup();
+        pairs
+            .iter()
+            .filter(|(part, when)| {
+                apply_mono_fallback(StylePatch::new(), recipes, f, *part, *when)
+                    != StylePatch::new()
+            })
+            .count()
+    }
+
+    /// The constant counts the **generic** manifest only; a family's real
+    /// total is that plus its targeted set, minus `SCROLLBAR`'s one exclusion
+    /// and minus any pair a targeted rule shares with the generic set. These
+    /// are the numbers `MONO_RULES_PER_FAMILY`'s documentation states.
+    #[test]
+    fn mono_rule_counts_match_the_documented_totals() {
+        assert_eq!(
+            MONO_RULES_PER_FAMILY,
+            mono_rules().len() + mono_rules_extra().len()
+        );
+        let r = Theme::junie().recipes;
+        // a family with no targeted set answers exactly the generic manifest
+        assert_eq!(responding_pairs(&r, Family::BUTTON), MONO_RULES_PER_FAMILY);
+        assert_eq!(
+            responding_pairs(&r, Family::custom("seg")),
+            MONO_RULES_PER_FAMILY
+        );
+        // the one family that answers fewer: generic `(CONTAINER, PRESSED)`
+        // is excluded so only the thumb is bold under a drag
+        assert_eq!(
+            responding_pairs(&r, Family::SCROLLBAR),
+            MONO_RULES_PER_FAMILY - 1
+        );
+        for (f, pairs) in [
+            (Family::VIEWPORT, 21),
+            (Family::GRID, 22),
+            (Family::MENU, 22),
+            (Family::HELP, 22),
+            // `PICKER` declares three rules but one retargets `(LABEL,
+            // PRESSED)`, which the generic set already answers
+            (Family::PICKER, 22),
+            (Family::SELECT, 23),
+        ] {
+            assert_eq!(responding_pairs(&r, f), pairs, "{f:?}");
+        }
+    }
+
+    /// S6: a downstream family had no way to declare mono affordances — the
+    /// six targeted tables are private and closed. `ThemeBuilder::mono_rules`
+    /// is that seam, and it must reach resolution for a `Family::custom`
+    /// family without declaring the family in recipe storage.
+    #[test]
+    fn builder_mono_rules_reach_a_custom_family_at_mono_only() {
+        let seg = Family::custom("seg");
+        let rule = [(
+            Part::MARKER,
+            StateFlags::ACTIVE,
+            StylePatch::new().set_glyph(GlyphRole::Chosen),
+        )];
+        let base = Theme::junie().builder().mono_rules(seg, &rule).build();
+        // storage records the manifest, not a family
+        assert!(base.recipes.get(seg).is_none());
+        assert_eq!(base.recipes.mono_rules(seg), Some(&rule[..]));
+
+        // nothing happens above `Mono`: this is a capability fallback layer
+        assert_eq!(
+            base.resolve(
+                seg,
+                Variant::DEFAULT,
+                Part::MARKER,
+                StateFlags::ACTIVE,
+                Surface::Canvas
+            )
+            .glyph,
+            Slot::Inherit
+        );
+
+        let m = base.downgrade(ColorLevel::Mono);
+        assert_eq!(
+            m.resolve(
+                seg,
+                Variant::DEFAULT,
+                Part::MARKER,
+                StateFlags::ACTIVE,
+                Surface::Canvas
+            )
+            .glyph,
+            Slot::Set(GlyphRole::Chosen)
+        );
+        // the generic manifest still applies to the same family
+        assert!(
+            m.resolve(
+                seg,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::FOCUSED,
+                Surface::Canvas
+            )
+            .style
+            .add_modifier
+            .contains(Modifier::BOLD)
+        );
+        // and an author override still beats the static layer (§11.4)
+        let overridden = base
+            .clone()
+            .override_family(seg, |recipe| {
+                recipe.part(Part::MARKER).when(
+                    StateFlags::ACTIVE,
+                    StylePatch {
+                        glyph: Slot::Clear,
+                        ..StylePatch::new()
+                    },
+                );
+            })
+            .downgrade(ColorLevel::Mono);
+        assert_eq!(
+            overridden
+                .resolve(
+                    seg,
+                    Variant::DEFAULT,
+                    Part::MARKER,
+                    StateFlags::ACTIVE,
+                    Surface::Canvas
+                )
+                .glyph,
+            Slot::Clear
+        );
+    }
+
+    /// Whole-set semantics: the manifest a theme sets **is** the family's
+    /// targeted set. Repeating the call replaces rather than accumulates, an
+    /// empty slice silences the built-in set, and the generic manifest is
+    /// untouched in every case.
+    #[test]
+    fn builder_mono_rules_replace_the_whole_targeted_set() {
+        let underlined = [(
+            Part::FIELD,
+            StateFlags::PRESSED,
+            StylePatch::new().add(Modifier::UNDERLINED),
+        )];
+        let replaced = Theme::junie()
+            .builder()
+            .mono_rules(Family::SELECT, &underlined)
+            .build()
+            .downgrade(ColorLevel::Mono);
+        let at = |t: &Theme, part: Part| {
+            apply_mono_fallback(
+                StylePatch::new(),
+                &t.recipes,
+                Family::SELECT,
+                part,
+                StateFlags::PRESSED,
+            )
+        };
+        // the built-in `SELECT` rules are gone, not merged under the new one
+        assert_eq!(
+            at(&replaced, Part::FIELD),
+            StylePatch::new().add(Modifier::UNDERLINED)
+        );
+        assert_eq!(at(&replaced, Part::GUTTER), StylePatch::new());
+        assert_eq!(
+            at(&replaced, Part::MARKER).glyph,
+            Slot::Inherit,
+            "the built-in `(MARKER, PRESSED)` rule survived a whole-set replacement"
+        );
+        // the generic manifest is untouched by a targeted replacement
+        assert_eq!(
+            responding_pairs(&replaced.recipes, Family::SELECT),
+            MONO_RULES_PER_FAMILY + 1
+        );
+
+        // last call wins: no accumulation across repeated calls
+        let last = Theme::junie()
+            .builder()
+            .mono_rules(Family::SELECT, &underlined)
+            .mono_rules(
+                Family::SELECT,
+                &[(
+                    Part::FIELD,
+                    StateFlags::PRESSED,
+                    StylePatch::new().add(Modifier::BOLD),
+                )],
+            )
+            .build()
+            .downgrade(ColorLevel::Mono);
+        assert_eq!(
+            at(&last, Part::FIELD),
+            StylePatch::new().add(Modifier::BOLD)
+        );
+
+        // an empty set silences the family's targeted rules and only those
+        let cleared = Theme::junie()
+            .builder()
+            .mono_rules(Family::SELECT, &[])
+            .build()
+            .downgrade(ColorLevel::Mono);
+        assert_eq!(cleared.recipes.mono_rules(Family::SELECT), Some(&[][..]));
+        assert_eq!(at(&cleared, Part::FIELD), StylePatch::new());
+        assert_eq!(
+            responding_pairs(&cleared.recipes, Family::SELECT),
+            MONO_RULES_PER_FAMILY
+        );
+        // …and a family the theme said nothing about keeps its built-in set
+        assert_eq!(
+            responding_pairs(&cleared.recipes, Family::PICKER),
+            responding_pairs(&Theme::junie().recipes, Family::PICKER)
+        );
     }
 
     use crate::theme::recipe::{Family, Variant};

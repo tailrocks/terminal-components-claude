@@ -252,6 +252,42 @@ enum Target {
     Layer(usize),
 }
 
+/// Restores the overlay stack a [`Ui::with_overlay`] scope pushed.
+///
+/// A scope whose only effect is on `Ui`'s own fields runs its body on a
+/// shorter reborrow, so unwinding restores the outer view for free. The
+/// overlay stack lives in [`UiCore`] *behind* those shared references, so a
+/// reborrow shares it rather than isolating it and it is undone here on both
+/// normal return and unwinding.
+struct OverlayGuard<'a, 'f> {
+    ui: &'a mut Ui<'f>,
+    saved_hash: u64,
+}
+
+impl Drop for OverlayGuard<'_, '_> {
+    fn drop(&mut self) {
+        self.ui.core.overlays.pop();
+        self.ui.core.stack_hash = self.saved_hash;
+    }
+}
+
+/// Restores the open focus scope a [`Ui::focus_scope`] or [`Ui::layer`] scope
+/// pushed.
+///
+/// The open-scope stack lives in the frame's [`crate::focus::FocusRing`],
+/// which a reborrow shares rather than isolates, so the pop runs here on both
+/// normal return and unwinding. Nested scopes each hold their own guard, so
+/// one pop per guard restores the whole stack.
+struct FocusScopeGuard<'a, 'f> {
+    ui: &'a mut Ui<'f>,
+}
+
+impl Drop for FocusScopeGuard<'_, '_> {
+    fn drop(&mut self) {
+        self.ui.frame.ring.pop_scope();
+    }
+}
+
 /// The draw-phase context.
 pub struct Ui<'f> {
     frame: &'f mut FrameState,
@@ -562,35 +598,50 @@ impl<'f> Ui<'f> {
     }
 
     /// Run `f` with the clip rect intersected with `area`.
+    ///
+    /// The narrowed clip lives on a shorter reborrow, so normal return and
+    /// panic unwinding both restore the outer clip without cleanup code.
     pub fn with_area<R>(&mut self, area: Rect, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
-        let saved = self.clip;
-        self.clip = self.clip.intersection(area);
-        let r = f(self);
-        self.clip = saved;
-        r
+        let clip = self.clip.intersection(area);
+        let mut nested = self.reborrow();
+        nested.clip = clip;
+        f(&mut nested)
     }
 
     /// Run `f` on surface `s`; children inherit it.
+    ///
+    /// The surface lives on a shorter reborrow, so normal return and panic
+    /// unwinding both restore the outer surface without cleanup code.
     pub fn with_surface<R>(&mut self, s: Surface, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
-        let saved = self.surface;
-        self.surface = s;
-        let r = f(self);
-        self.surface = saved;
-        r
+        let mut nested = self.reborrow();
+        nested.surface = s;
+        f(&mut nested)
     }
 
     /// Run `f` with `ov` pushed on the overlay stack (precedence 5).
+    ///
+    /// The stack lives in [`UiCore`], which a reborrow shares rather than
+    /// isolates, so the pop and the stack hash are restored by a guard: an
+    /// unwinding component cannot leave a stale overlay resolving every later
+    /// style on the frame.
     pub fn with_overlay<R>(&mut self, ov: &Overlay, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
         let saved_hash = self.core.stack_hash;
         self.core.overlays.push(*ov);
         self.core.stack_hash = saved_hash.rotate_left(7) ^ ov.hash();
-        let r = f(self);
-        self.core.overlays.pop();
-        self.core.stack_hash = saved_hash;
-        r
+        let guard = OverlayGuard {
+            ui: self,
+            saved_hash,
+        };
+        let mut nested = guard.ui.reborrow();
+        f(&mut nested)
     }
 
     /// Run `f` inside a focus scope.
+    ///
+    /// The open-scope stack lives in the frame's [`crate::focus::FocusRing`],
+    /// which a reborrow shares rather than isolates, so the pop is restored by
+    /// a guard: an unwinding component cannot leave later registrations
+    /// attributed to a scope that already closed.
     pub fn focus_scope<R>(
         &mut self,
         id: Id,
@@ -598,14 +649,14 @@ impl<'f> Ui<'f> {
         f: impl FnOnce(&mut Ui<'_>) -> R,
     ) -> R {
         if self.reference.is_some() {
-            return f(self);
+            return f(&mut self.reborrow());
         }
         self.frame
             .ring
             .push_scope(ScopeId::new(id), mode, self.layer);
-        let r = f(self);
-        self.frame.ring.pop_scope();
-        r
+        let guard = FocusScopeGuard { ui: self };
+        let mut nested = guard.ui.reborrow();
+        f(&mut nested)
     }
 
     fn register_entry(&mut self, id: Id, area: Rect, f: Focusability, swallows_typing: bool) {
@@ -890,12 +941,8 @@ impl<'f> Ui<'f> {
             d.drawn = true;
             (d.layer, d.area, d.spec.kind)
         };
-        let saved = (self.target, self.clip, self.layer, self.inert, self.surface);
-        self.target = Target::Layer(idx);
-        self.clip = area;
-        self.layer = layer;
-        self.inert = layer < self.frame.inert_floor;
-        self.surface = match kind {
+        let inert = layer < self.frame.inert_floor;
+        let surface = match kind {
             LayerKind::Modal => Surface::Overlay,
             LayerKind::Popover | LayerKind::Tooltip => Surface::Popover,
         };
@@ -914,10 +961,18 @@ impl<'f> Ui<'f> {
             .ring
             .ensure_scope(ScopeId::new(id), mode, layer, parent);
         self.frame.ring.push_scope(ScopeId::new(id), mode, layer);
-        let r = f(self, area);
-        self.frame.ring.pop_scope();
-        (self.target, self.clip, self.layer, self.inert, self.surface) = saved;
-        Some(r)
+        // The paint target, clip, layer, inert flag and surface ride a shorter
+        // reborrow; only the ring's open-scope stack lives in shared frame
+        // state, so only it needs the guard. `drawn` stays set on unwind: a
+        // partially drawn layer has still consumed its one draw this frame.
+        let guard = FocusScopeGuard { ui: self };
+        let mut nested = guard.ui.reborrow();
+        nested.target = Target::Layer(idx);
+        nested.clip = area;
+        nested.layer = layer;
+        nested.inert = inert;
+        nested.surface = surface;
+        Some(f(&mut nested, area))
     }
 
     /// Derived, non-semantic per-component cache (rule R8). Live entries are
@@ -1106,7 +1161,9 @@ mod tests {
     use crate::keymap::Binding;
     use crate::layer::{LayerId, LayerSpec};
     use crate::response::StateFlags;
-    use crate::theme::{Family, FgStep, Role, Surface, Theme, Variant};
+    use crate::theme::{
+        Family, FgStep, Overlay, OverlayRule, Role, StylePatch, Surface, Theme, Variant,
+    };
 
     const SCREEN: Rect = Rect {
         x: 0,
@@ -1616,5 +1673,211 @@ mod tests {
         // … while a painted row cell keeps a surface-derived background
         let painted = page.cell(Position::new(1, 0)).expect("cell");
         assert_eq!(painted.bg, theme.bg(Surface::Canvas));
+    }
+
+    static PANIC_OVERLAY_OUTER: [OverlayRule; 1] = [(
+        Family::LIST,
+        Variant::DEFAULT,
+        Part::CONTAINER,
+        StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Warning),
+    )];
+    static PANIC_OVERLAY_INNER: [OverlayRule; 1] = [(
+        Family::LIST,
+        Variant::DEFAULT,
+        Part::CONTAINER,
+        StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Danger),
+    )];
+
+    fn list_container_style(ui: &mut Ui<'_>) -> super::Resolved {
+        ui.style(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        )
+    }
+
+    #[test]
+    fn with_area_and_with_surface_restore_the_outer_view_after_a_panic() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            let outer_clip = ui.full();
+            let outer_surface = ui.surface();
+            let inner = Rect::new(1, 1, 4, 1);
+
+            ui.with_area(inner, |ui| assert_eq!(ui.full(), inner));
+            let unwind = catch_unwind(AssertUnwindSafe(|| {
+                ui.with_area(inner, |_| panic!("area probe"));
+            }));
+            assert!(unwind.is_err());
+            assert_eq!(
+                ui.full(),
+                outer_clip,
+                "a panicking body must not leave the clip narrowed"
+            );
+
+            ui.with_surface(Surface::Popover, |ui| {
+                assert_eq!(ui.surface(), Surface::Popover);
+            });
+            let unwind = catch_unwind(AssertUnwindSafe(|| {
+                ui.with_surface(Surface::Popover, |_| panic!("surface probe"));
+            }));
+            assert!(unwind.is_err());
+            assert_eq!(
+                ui.surface(),
+                outer_surface,
+                "a panicking body must not leave the surface switched"
+            );
+        });
+    }
+
+    #[test]
+    fn with_overlay_restores_the_stack_after_a_panic() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            let plain = list_container_style(ui);
+            let overlay = Overlay::new(&PANIC_OVERLAY_OUTER);
+            let patched = ui.with_overlay(&overlay, list_container_style);
+            assert_ne!(
+                patched.style.fg, plain.style.fg,
+                "the probe overlay must actually change the resolved style"
+            );
+            let depth = ui.core.overlays.len();
+            let hash = ui.core.stack_hash;
+
+            let unwind = catch_unwind(AssertUnwindSafe(|| {
+                ui.with_overlay(&overlay, |_| panic!("overlay probe"));
+            }));
+            assert!(unwind.is_err());
+            assert_eq!(ui.core.overlays.len(), depth);
+            assert_eq!(ui.core.stack_hash, hash);
+            assert_eq!(
+                list_container_style(ui),
+                plain,
+                "a panicking overlay scope must not leak into later resolution"
+            );
+        });
+    }
+
+    #[test]
+    fn nested_overlay_panic_restores_exactly_the_outer_overlay() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            let outer = Overlay::new(&PANIC_OVERLAY_OUTER);
+            let inner = Overlay::new(&PANIC_OVERLAY_INNER);
+            ui.with_overlay(&outer, |ui| {
+                let outer_style = list_container_style(ui);
+                let inner_style = ui.with_overlay(&inner, list_container_style);
+                assert_ne!(outer_style.style.fg, inner_style.style.fg);
+                assert_eq!(list_container_style(ui), outer_style);
+
+                let unwind = catch_unwind(AssertUnwindSafe(|| {
+                    ui.with_overlay(&inner, |_| panic!("nested overlay probe"));
+                }));
+                assert!(unwind.is_err());
+                assert_eq!(ui.core.overlays.len(), 1, "exactly the outer overlay");
+                assert_eq!(
+                    list_container_style(ui),
+                    outer_style,
+                    "unwinding pops the inner overlay only"
+                );
+            });
+            assert!(ui.core.overlays.is_empty());
+            assert_eq!(ui.core.stack_hash, 0);
+        });
+    }
+
+    #[test]
+    fn focus_scope_restores_the_open_scope_after_a_panic() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            let root = ui.frame.ring.current_scope();
+            let unwind = catch_unwind(AssertUnwindSafe(|| {
+                ui.focus_scope(OWNER, crate::focus::ScopeMode::Trap, |ui| {
+                    ui.register_control(OWNER, Rect::new(0, 0, 4, 1), Focusability::Focusable);
+                    panic!("focus scope probe");
+                });
+            }));
+            assert!(unwind.is_err());
+            assert_eq!(ui.frame.ring.current_scope(), root);
+
+            ui.register_control(OTHER, Rect::new(4, 0, 4, 1), Focusability::Focusable);
+            let entry = ui
+                .frame
+                .ring
+                .entries()
+                .iter()
+                .find(|e| e.id == OTHER)
+                .copied()
+                .expect("entry");
+            assert_eq!(
+                entry.scope, root,
+                "a control after the panic belongs to the outer scope, not the trap"
+            );
+        });
+    }
+
+    #[test]
+    fn layer_restores_the_page_target_and_scope_after_a_panic() {
+        const LAYER: Id = Id::root("ui.panic.layer");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let layer_area = Rect::new(1, 1, 4, 1);
+        frame.layers.push(
+            LAYER,
+            LayerId(1),
+            LayerSpec::modal(LAYER),
+            layer_area,
+            SCREEN,
+        );
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let root;
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            root = ui.frame.ring.current_scope();
+            let unwind = catch_unwind(AssertUnwindSafe(|| {
+                ui.layer(LAYER, |ui, area| {
+                    assert_eq!(ui.full(), area);
+                    assert_eq!(ui.layer_id(), LayerId(1));
+                    assert_eq!(ui.surface(), Surface::Overlay);
+                    assert_ne!(ui.frame.ring.current_scope(), root);
+                    panic!("layer probe");
+                });
+            }));
+            assert!(unwind.is_err());
+            assert_eq!(ui.full(), SCREEN);
+            assert_eq!(ui.layer_id(), LayerId::PAGE);
+            assert_eq!(ui.surface(), Surface::Canvas);
+            assert!(!ui.is_inert());
+            assert_eq!(ui.frame.ring.current_scope(), root);
+
+            // the paint target is the page again, not the layer's buffer
+            ui.fill(SCREEN, Style::new().bg(theme.bg(Surface::Canvas)));
+            ui.register_control(OWNER, Rect::new(0, 0, 4, 1), Focusability::Focusable);
+        }
+
+        let entry = frame
+            .ring
+            .entries()
+            .iter()
+            .find(|e| e.id == OWNER)
+            .copied()
+            .expect("entry");
+        assert_eq!(entry.scope, root);
+        assert_eq!(
+            entry.layer,
+            LayerId::PAGE,
+            "a control after the panic registers on the page layer"
+        );
+        assert_eq!(
+            page.cell(Position::new(20, 2)).expect("cell").bg,
+            theme.bg(Surface::Canvas),
+            "painting after the panic reaches the page outside the layer's area"
+        );
     }
 }
