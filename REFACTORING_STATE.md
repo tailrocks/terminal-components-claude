@@ -254,3 +254,10 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - Current all-target build command: `rtk cargo build -p tui-next --all-targets`; output: `55 errors; 11 warnings`; exit code `101`. Remaining failures are only concurrent `crates/tui/tests/conformance.rs` and `tui-testing` `Fixture` changes: private fields, two `Slot`/`Option` matches, and two inference errors.
 - RowUi `Slot::Inherit` coverage is still missing.
 - No commit or push had been made for this migration at checkpoint time.
+
+## Session 3 checkpoint — McClintock's architecture partial (2026-09-04)
+
+- McClintock changed `COMPONENT_ARCHITECTURE.md`: §11.4 pressed-bracket contract; `Slot<GlyphRole>` glyph types and `RowUi` semantics; corrected A4 naming the existing example callers; §16.1 test names; §16.2 `Fixture` privacy/accessors and the `mono_narrowing_reason()` contract; §20.10; §28.6/§28.8; and embedded examples/traceability.
+- §29 has not yet been appended.
+- McClintock ran no post-edit verification and made no commit or push.
+- McClintock made no Rust or allow-list edits; concurrent Rust and allow-list work remains untouched.
