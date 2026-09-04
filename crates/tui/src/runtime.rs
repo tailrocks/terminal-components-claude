@@ -300,14 +300,15 @@ impl<A: App> Runtime<A> {
     /// target and adding one is a §17.0 A9 amendment, not an implementation
     /// choice.
     fn focus_target_admissible(&self, to: Id) -> bool {
+        if self.ring_proves_disabled(to) {
+            return false;
+        }
         match self.last.ring.entry(to) {
             Some(e) => {
-                !e.disabled
-                    && self
-                        .last
-                        .ring
-                        .active_trap()
-                        .is_none_or(|t| self.last.ring.within(e.scope, t))
+                self.last
+                    .ring
+                    .active_trap()
+                    .is_none_or(|t| self.last.ring.within(e.scope, t))
                     && e.layer >= self.services.layers.inert_floor()
             }
             None => !self.last.registry.has_owner(to),
@@ -454,8 +455,43 @@ impl<A: App> Runtime<A> {
         }
     }
 
+    /// Whether last frame's ring **proves** `id` cannot be interacted with.
+    ///
+    /// The ring is the only record of a registered-but-unreachable control:
+    /// `Focusability::Disabled` takes an entry with `disabled: true`, so an
+    /// id the ring never saw — an unknown id, or the `Focusability::ClickOnly`
+    /// hit target that takes no entry at all — is not proven anything here.
+    /// This is the single authority both [`Self::focus_target_admissible`] and
+    /// [`Self::deliverable`] read, so keyboard reachability and pointer
+    /// activation can no longer disagree about the same control (§73).
+    fn ring_proves_disabled(&self, id: Id) -> bool {
+        self.last.ring.entry(id).is_some_and(|e| e.disabled)
+    }
+
+    /// Whether a hit may receive an **activating** pointer intent — `Press`
+    /// and the `Release`/`Click`/`DoubleClick`/`DragStart`/`Drag`/`DragEnd`
+    /// sequence that a press owns, and `Secondary`.
+    ///
+    /// §73. A disabled control is registered, hit-testable and hoverable, and
+    /// it is exactly as unreachable by pointer as it already was by `Tab`:
+    /// keyboard refused it in [`Self::focus_target_admissible`] while a click
+    /// still delivered `Press`/`Click` to it, so a disabled `Button` could be
+    /// activated with the mouse. The refusal is scoped to activation:
+    ///
+    /// * `Phase::Move` and hover come from `hit_live` and are untouched — a
+    ///   disabled control still reports hover and still paints it;
+    /// * `Intent::Wheel` comes from `hit_scroll` and is untouched — a disabled
+    ///   control that owns a scroll region still scrolls;
+    /// * a `ClickOnly` owner takes no ring entry, so it is never proven
+    ///   disabled and keeps delivering;
+    /// * a hit below the top layer is still `outside`, so outside-click
+    ///   dismissal is decided before this predicate is ever consulted.
+    ///
+    /// The refusal is silent, like the focus refusal it now matches.
     fn deliverable(&self, hit: Hit) -> bool {
-        hit.layer == self.top() && hit.kind != RegionKind::Decorative
+        hit.layer == self.top()
+            && hit.kind != RegionKind::Decorative
+            && !self.ring_proves_disabled(hit.owner)
     }
 
     fn local_in(area: Rect, pos: Position) -> Position {
@@ -2050,6 +2086,109 @@ mod tests {
         assert_eq!(rt.app().count(B, "phase: Move"), 1);
         assert_eq!(rt.app().count(B, "phase: Press"), 0);
         assert_eq!(rt.app().count(B, "phase: Click"), 0);
+    }
+
+    /// §73 AC-1. A control the last frame registered as
+    /// `Focusability::Disabled` is registered and never reachable — by `Tab`
+    /// through `focus_target_admissible`, and now by the pointer through
+    /// `deliverable`. No `Press`, no `Release`, no `Click`, no `Secondary`
+    /// reaches it, no press is recorded for it, and a refused press moves no
+    /// focus. Before §73 the two disagreed: keyboard refused the control
+    /// while a click still activated it.
+    #[test]
+    fn ac1_a_disabled_control_refuses_every_activating_pointer_intent() {
+        let mut s = three();
+        s.page[1].focus = Focusability::Disabled;
+        let (mut rt, mut buf) = runtime(s);
+        assert_eq!(rt.focus(), Some(A));
+
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 2));
+        assert_eq!(rt.app().count(B, "phase: Press"), 0);
+        assert!(!rt.state_of(B).contains(StateFlags::PRESSED));
+        assert_eq!(rt.focus(), Some(A), "a refused press moved focus");
+
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 3, 2));
+        assert_eq!(rt.app().count(B, "phase: Release"), 0);
+        assert_eq!(rt.app().count(B, "phase: Click"), 0);
+
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Secondary, 3, 2));
+        assert_eq!(rt.app().count(B, "phase: Secondary"), 0);
+        assert_eq!(rt.app().count(B, "Pointer"), 0);
+
+        // the enabled neighbour is untouched by the refusal
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 4));
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 3, 4));
+        assert_eq!(rt.focus(), Some(C));
+        assert_eq!(rt.app().count(C, "phase: Click"), 1);
+    }
+
+    /// §73 AC-2. The refusal is scoped to activation and to the ring's own
+    /// proof. Hover and `Phase::Move` come from `hit_live`, so a disabled
+    /// control still hovers; `Intent::Wheel` comes from `hit_scroll`, so its
+    /// scroll region still scrolls; a `Focusability::ClickOnly` owner takes
+    /// no ring entry at all, so it is never proven disabled and still
+    /// presses and clicks; and a hit below the top layer is `outside`
+    /// before deliverability is consulted, so the disabled control does not
+    /// swallow an outside-click dismissal.
+    #[test]
+    fn ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact() {
+        let disabled = Id::root("disabled-scroll");
+        let click_only = Id::root("click-only");
+        let popover = Id::root("popover");
+        let mut s = Stub {
+            page: vec![
+                Control::new(A, Rect::new(0, 0, 10, 1)),
+                Control {
+                    focus: Focusability::Disabled,
+                    scroll: true,
+                    ..Control::new(disabled, Rect::new(20, 0, 10, 10))
+                },
+                Control {
+                    focus: Focusability::ClickOnly,
+                    ..Control::new(click_only, Rect::new(0, 6, 10, 1))
+                },
+            ],
+            consume_keys: true,
+            ..Stub::default()
+        };
+        s.layers
+            .push((popover, vec![Control::new(B, Rect::new(0, 9, 10, 1))]));
+        let (mut rt, mut buf) = runtime(s);
+
+        // hover and Move still reach a disabled control
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 22, 3));
+        assert_eq!(rt.hover(), Some(disabled));
+        assert_eq!(rt.app().count(disabled, "phase: Move"), 1);
+
+        // and its scroll region still scrolls
+        let _ = step(
+            &mut rt,
+            &mut buf,
+            mouse(MouseKind::Wheel(crate::event::Axis::V, 1), 22, 3),
+        );
+        assert!(rt.app().saw(disabled, "Wheel { axis: V, delta: 3"));
+
+        // a ClickOnly owner has no ring entry, so nothing proves it disabled
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 6));
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 3, 6));
+        assert_eq!(rt.app().count(click_only, "phase: Press"), 1);
+        assert_eq!(rt.app().count(click_only, "phase: Click"), 1);
+        assert_eq!(rt.focus(), Some(A), "a ClickOnly owner took focus");
+
+        // a press on the disabled control below an open popover is still an
+        // outside click
+        rt.app_mut().open_request = Some((
+            popover,
+            LayerSpec::popover(popover, crate::layer::Anchor::Point(Position::new(0, 9))),
+        ));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
+        assert!(rt.is_open(popover));
+
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 22, 3));
+
+        assert!(!rt.is_open(popover));
+        assert!(rt.app().saw(popover, "Dismissed(OutsideClick)"));
+        assert_eq!(rt.app().count(disabled, "phase: Press"), 0);
     }
 
     #[test]
