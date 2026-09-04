@@ -572,6 +572,7 @@ mod tests {
     use super::*;
     use crate::theme::Theme;
     use crate::theme::border;
+    use crate::theme::patch::StateRule;
 
     #[test]
     fn every_family_has_a_recipe_and_rules_are_sorted() {
@@ -579,12 +580,191 @@ mod tests {
         assert_eq!(rs.len(), Family::ALL.len());
         for (_, r) in rs.iter() {
             for (_, part) in r.parts.iter() {
-                let specs: Vec<u32> = part
-                    .states
-                    .iter()
-                    .map(super::super::patch::StateRule::specificity)
-                    .collect();
+                let specs: Vec<u32> = part.states.iter().map(StateRule::specificity).collect();
                 assert!(specs.windows(2).all(|w| w[0] <= w[1]), "{specs:?}");
+            }
+        }
+    }
+
+    /// Every `(family, variant, part)` in the default table that declares
+    /// **both** a single-flag `HOVERED` rule and a single-flag `DISABLED`
+    /// rule, paired with the merged `DISABLED` patch (family rule then
+    /// variant rule — the order `recipe::merge_states` applies them in).
+    fn hovered_and_disabled_parts() -> Vec<(Family, Variant, Part, StylePatch)> {
+        let rs = default_recipes();
+        let mut out = Vec::new();
+        for (f, r) in rs.iter() {
+            let mut variants = vec![Variant::DEFAULT];
+            for (v, _) in &r.variants {
+                if !variants.contains(v) {
+                    variants.push(*v);
+                }
+            }
+            for v in variants {
+                let mut parts: Vec<Part> = r.parts.iter().map(|(p, _)| p).collect();
+                if let Some(m) = r.variant(v) {
+                    for (p, _) in m.iter() {
+                        if !parts.contains(&p) {
+                            parts.push(p);
+                        }
+                    }
+                }
+                for part in parts {
+                    let mut rules: Vec<StateRule> = Vec::new();
+                    if let Some(pr) = r.parts.get(part) {
+                        rules.extend(pr.states.iter().copied());
+                    }
+                    if let Some(pr) = r.variant(v).and_then(|m| m.get(part)) {
+                        rules.extend(pr.states.iter().copied());
+                    }
+                    if !rules.iter().any(|s| s.when == StateFlags::HOVERED) {
+                        continue;
+                    }
+                    let mut disabled: Option<StylePatch> = None;
+                    for s in rules.iter().filter(|s| s.when == StateFlags::DISABLED) {
+                        disabled = Some(disabled.unwrap_or_default().merge(s.patch));
+                    }
+                    if let Some(d) = disabled {
+                        out.push((f, v, part, d));
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    /// The set is neither empty nor allowed to lose the three parts the
+    /// property matters most on, so neither ordering test below can pass by
+    /// enumerating nothing (`COORDINATION.md`: a gate that cannot fail is not
+    /// evidence).
+    #[test]
+    fn hovered_and_disabled_are_declared_together_on_the_parts_that_matter() {
+        let found = hovered_and_disabled_parts();
+        for anchor in [
+            (Family::BUTTON, Variant::PRIMARY, Part::CONTAINER),
+            (Family::FIELD, Variant::DEFAULT, Part::FIELD),
+            (Family::LIST, Variant::DEFAULT, Part::CONTAINER),
+        ] {
+            assert!(
+                found.iter().any(|(f, v, p, _)| (*f, *v, *p) == anchor),
+                "{anchor:?} no longer declares both a HOVERED and a DISABLED rule; \
+                 the ordering tests would silently stop covering it"
+            );
+        }
+        assert!(
+            found.len() >= 25,
+            "only {} part(s) declare both rules, was 25",
+            found.len()
+        );
+    }
+
+    /// GAP-2 (`COMPONENT_ARCHITECTURE.md` §44.2,
+    /// `docs/audit/legacy-test-disposition.md`): **`DISABLED` is applied after
+    /// `HOVERED`**, on every part that declares both.
+    ///
+    /// `HOVERED` and `DISABLED` are both single-flag, so §11.3 stores them at
+    /// equal specificity and breaks the tie by declaration order. Which of the
+    /// two wins is therefore a property of the *source line order* in this
+    /// file, and nothing else pins it.
+    ///
+    /// The probe replaces each rule's patch with a marker on the same slot, so
+    /// it detects a swap even where the two real patches happen to write
+    /// disjoint slots and the swap is invisible in the shipped colours. It runs
+    /// through the real `Theme::resolve`, so it also covers the
+    /// family-rules-then-variant-rules merge, not just one `states` vector.
+    #[test]
+    fn disabled_is_applied_after_hovered_on_every_part_declaring_both() {
+        fn mark(m: &mut PartMap<PartRecipe>) {
+            for (_, pr) in m.iter_mut() {
+                for rule in &mut pr.states {
+                    if rule.when == StateFlags::HOVERED {
+                        rule.patch = p().set_fg(Role::Warning);
+                    } else if rule.when == StateFlags::DISABLED {
+                        rule.patch = p().set_fg(Role::Danger);
+                    }
+                }
+            }
+        }
+        let mut t = Theme::junie();
+        for (_, r) in t.recipes.iter_mut() {
+            mark(&mut r.parts);
+            for (_, m) in &mut r.variants {
+                mark(m);
+            }
+        }
+        // only `HOVERED`, `DISABLED` and the empty rule are subsets of the live
+        // state, so the two markers are the only rules that speak about `fg`
+        let live = StateFlags::HOVERED | StateFlags::DISABLED;
+        for (f, v, part, _) in hovered_and_disabled_parts() {
+            let r = t.resolve(f, v, part, live, Surface::Canvas);
+            assert_eq!(
+                r.style.fg,
+                Some(t.color.danger),
+                "{f:?}/{v:?}/{part:?}: with HOVERED | DISABLED live the HOVERED rule won. \
+                 `DISABLED` must be declared after `HOVERED` — both are single-flag, so \
+                 declaration order in crates/tui/src/theme/builtin/mod.rs is the only \
+                 thing that decides it (§44.2)"
+            );
+        }
+    }
+
+    /// Parts where a hovered, disabled control **loses its disabled background
+    /// to the hover plane today**, found by the test below.
+    ///
+    /// These three variants declare a `DISABLED` rule that sets no background,
+    /// so the background they show when disabled comes from the family-level
+    /// `DISABLED` rule — and §11.3 applies every *family* rule before every
+    /// *variant* rule, so the variant's own `HOVERED` background lands after
+    /// it. Declaration order inside this file cannot fix that; only a recipe
+    /// change can, and a recipe change is a visual change needing a numbered
+    /// §20.10 classification.
+    ///
+    /// The list can only shrink: the test asserts each entry is **still**
+    /// broken, so fixing one without deleting its entry fails.
+    const DISABLED_BG_LOST_TO_HOVER: [(Family, Variant, Part); 3] = [
+        (Family::BUTTON, Variant::SUBTLE, Part::CONTAINER),
+        (Family::BUTTON, Variant::QUIET, Part::CONTAINER),
+        (Family::BUTTON, Variant::GHOST, Part::CONTAINER),
+    ];
+
+    /// The shipped consequence of the ordering above: a hovered *and* disabled
+    /// part keeps every slot its `DISABLED` rules write.
+    ///
+    /// Deliberately scoped to the slots `DISABLED` speaks about. This is
+    /// **not** `DESIGN.md`'s stronger "disabled: no hover" rule — where the
+    /// two patches write disjoint slots the hover plane still survives in the
+    /// recipe, and it is each component that suppresses `HOVERED` before
+    /// resolving.
+    #[test]
+    fn a_hovered_disabled_part_keeps_every_slot_the_disabled_rule_writes() {
+        let live = StateFlags::HOVERED | StateFlags::DISABLED;
+        for t in [Theme::junie(), Theme::paper()] {
+            for (f, v, part, d) in hovered_and_disabled_parts() {
+                let only = t
+                    .resolve(f, v, part, StateFlags::DISABLED, Surface::Canvas)
+                    .style;
+                let both = t.resolve(f, v, part, live, Surface::Canvas).style;
+                let at = format!("{f:?}/{v:?}/{part:?}");
+                if d.fg.speaks() {
+                    assert_eq!(both.fg, only.fg, "{at}: hover overrode the disabled fg");
+                }
+                if DISABLED_BG_LOST_TO_HOVER.contains(&(f, v, part)) {
+                    assert_ne!(
+                        both.bg, only.bg,
+                        "{at}: the disabled background now survives hover — delete this entry \
+                         from DISABLED_BG_LOST_TO_HOVER"
+                    );
+                } else if d.bg.speaks() {
+                    assert_eq!(both.bg, only.bg, "{at}: hover overrode the disabled bg");
+                }
+                assert!(
+                    both.add_modifier.contains(d.add),
+                    "{at}: hover dropped a modifier the disabled rule adds"
+                );
+                assert!(
+                    !both.add_modifier.intersects(d.remove),
+                    "{at}: hover re-added a modifier the disabled rule removes"
+                );
             }
         }
     }
