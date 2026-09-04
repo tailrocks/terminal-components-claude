@@ -1,1 +1,73 @@
-super::define_page!(OverviewPage, Overview);
+//! Overview screen: the public-facade contract and its stable sample data.
+
+use tui_next::{Brand, Id, Props, Rect, Response, Ui, id, layout};
+
+use super::{Page, frame, lines, author::AuthorBadge};
+
+const BRAND: Id = id!("overview.brand");
+const AUTHOR: Id = id!("overview.author");
+const PROPS: [(&str, &str); 5] = [
+    ("Library", "tui-next"),
+    ("Ownership", "application state"),
+    ("Input", "runtime intents"),
+    ("Rendering", "public Ui facade"),
+    ("Binary", "showcase"),
+];
+
+/// The landing page has no mutable controls; its content is deliberately
+/// useful as a smoke test for themes, clipping and public component exports.
+#[derive(Debug)]
+pub(crate) struct OverviewPage {
+    author: AuthorBadge,
+}
+
+impl OverviewPage {
+    pub(crate) fn new() -> Self {
+        Self {
+            author: AuthorBadge::new(AUTHOR),
+        }
+    }
+}
+
+impl Default for OverviewPage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Page for OverviewPage {
+    fn title(&self) -> &'static str {
+        "Overview"
+    }
+
+    fn update(&mut self, cx: &mut tui_next::Cx<'_>) -> Response<()> {
+        self.author.update(cx)
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        frame(ui, area, self.title(), "public tui-next API", |ui, body| {
+            let (intro, rest) = layout::split_v(body, 4);
+            Brand::new(BRAND, "Junie")
+                .tagline("component showcase")
+                .draw(ui, intro);
+            let (copy, props) = layout::split_h(rest, rest.width / 2);
+            lines(
+                ui,
+                copy,
+                &[
+                    "A complete app-owned migration of the legacy showcase.",
+                    "Each page owns durable state and talks to tui-next through",
+                    "the same public facade available to downstream binaries.",
+                    "Tab focuses controls · Enter activates · Esc returns home.",
+                ],
+            );
+            Props::new(&PROPS).draw(ui, props);
+            let author_area = Rect {
+                y: props.bottom().saturating_add(1),
+                height: 1,
+                ..props
+            };
+            self.author.draw(ui, author_area);
+        });
+    }
+}

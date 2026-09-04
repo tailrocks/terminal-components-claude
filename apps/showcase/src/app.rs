@@ -14,6 +14,7 @@ use crate::pages::{
     sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage, terminal::TerminalPage,
     textareas::TextAreasPage, trees::TreesPage,
 };
+use crate::pages::forms::SUBMIT as FORM_SUBMIT;
 
 const NAV: Id = id!("navigation");
 const BRAND: Id = id!("brand");
@@ -21,7 +22,10 @@ const STATUS: Id = id!("status");
 const HELP: Id = id!("help");
 const TOO_SMALL: Id = id!("too-small");
 const QUIT: ActionKey = ActionKey::custom("showcase.quit");
+const QUIT_CTRL: ActionKey = ActionKey::custom("showcase.quit.ctrl");
 const HELP_COMMAND: ActionKey = ActionKey::custom("showcase.help");
+const NEXT_PAGE: ActionKey = ActionKey::custom("showcase.page.next");
+const PREV_PAGE: ActionKey = ActionKey::custom("showcase.page.previous");
 
 const STATUS_LEFT: [StatusItem<'static>; 1] = [StatusItem::new("showcase")];
 const STATUS_RIGHT: [StatusItem<'static>; 2] = [
@@ -161,12 +165,24 @@ impl PageId {
         }
     }
 
+    /// Position in the stable navigation order.
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|page| *page == self).unwrap_or(0)
+    }
+
     /// Parse a page slug or title without panicking.
     pub fn from_name(value: &str) -> Option<Self> {
-        let value = value.to_ascii_lowercase();
+        let normalized = |input: &str| {
+            input
+                .chars()
+                .filter(|character| character.is_ascii_alphanumeric())
+                .map(|character| character.to_ascii_lowercase())
+                .collect::<String>()
+        };
+        let value = normalized(value);
         Self::ALL
             .into_iter()
-            .find(|page| page.slug() == value || page.title().to_ascii_lowercase() == value)
+            .find(|page| normalized(page.slug()) == value || normalized(page.title()) == value)
     }
 
     /// Parse the keyed navigation value.
@@ -193,112 +209,112 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Overview,
         label: "Overview",
-        section: "Basics",
+        section: "Foundations",
     },
     NavEntry {
         id: PageId::Buttons,
         label: "Buttons",
-        section: "Basics",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Inputs,
         label: "Inputs",
-        section: "Fields",
+        section: "Components",
     },
     NavEntry {
         id: PageId::TextAreas,
         label: "Text areas",
-        section: "Fields",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Forms,
         label: "Forms",
-        section: "Fields",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Lists,
         label: "Lists",
-        section: "Collections",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Trees,
         label: "Trees",
-        section: "Collections",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Tables,
         label: "Tables",
-        section: "Collections",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Editable,
         label: "Editable tables",
-        section: "Collections",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Panels,
         label: "Panels",
-        section: "Layout",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Sidebars,
         label: "Sidebars",
-        section: "Layout",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Dialogs,
         label: "Dialogs",
-        section: "Layers",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Progress,
         label: "Progress",
-        section: "Feedback",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Scrolling,
         label: "Scrolling",
-        section: "Feedback",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Terminal,
         label: "Terminal",
-        section: "Content",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Editor,
         label: "Editor",
-        section: "Content",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Grid,
         label: "Data grid",
-        section: "Content",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Chips,
         label: "Chips & selects",
-        section: "Pickers",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Pickers,
         label: "Pickers",
-        section: "Pickers",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Chrome,
         label: "Chrome",
-        section: "Chrome",
+        section: "Components",
     },
     NavEntry {
         id: PageId::Settings,
         label: "Settings",
-        section: "Chrome",
+        section: "Components",
     },
     NavEntry {
         id: PageId::TaskRunner,
         label: "Task runner",
-        section: "Feedback",
+        section: "Screens",
     },
 ];
 
@@ -364,8 +380,20 @@ fn keymap() -> KeyMap {
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('q')), QUIT)
         .bind(
             KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('c'), tui_next::KeyModifiers::CONTROL),
+            QUIT_CTRL,
+        )
+        .bind(
+            KeyPhase::Bubble,
             Chord::key(KeyCode::Char('?')),
             HELP_COMMAND,
+        )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char(']')), NEXT_PAGE)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('[')), PREV_PAGE)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('s'), tui_next::KeyModifiers::CONTROL),
+            FORM_SUBMIT,
         )
 }
 
@@ -465,15 +493,33 @@ impl Default for App {
 impl TuiApp for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
-        match cx.command() {
-            Some(QUIT) => {
+        let command = cx.command();
+        match command {
+            Some(QUIT | QUIT_CTRL) => {
                 self.quit = true;
                 cx.quit();
+            }
+            Some(NEXT_PAGE) => {
+                let next = (self.page.index() + 1) % PageId::ALL.len();
+                if let Some(page) = PageId::ALL.get(next).copied() {
+                    self.goto(page);
+                }
+            }
+            Some(PREV_PAGE) => {
+                let previous = self.page.index().checked_sub(1).unwrap_or(PageId::ALL.len() - 1);
+                if let Some(page) = PageId::ALL.get(previous).copied() {
+                    self.goto(page);
+                }
             }
             Some(HELP_COMMAND) if !cx.is_open(HELP) => {
                 cx.open_layer(HELP, Self::help_dialog().layer(cx));
             }
             _ => {}
+        }
+        if command == Some(FORM_SUBMIT) {
+            if let Some(active) = self.pages.iter_mut().find(|candidate| candidate.title() == self.page.title()) {
+                response |= active.command(cx, FORM_SUBMIT);
+            }
         }
         response |= nav()
             .update(cx, &mut self.nav_state, NAV_ENTRIES)
