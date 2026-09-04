@@ -23,12 +23,14 @@
 # Example: COLOR=mono tools/capture.sh start 120 40
 set -euo pipefail
 cd "$(dirname "$0")/.."
-S=junie_cap
+workspace_key=$(pwd -P | tr -c '[:alnum:]' '_')
+S=${CAPTURE_SESSION:-junie_cap_${workspace_key}}
 : "${BIN:?BIN must be set to the owning application binary}"
 COLOR=${COLOR:-truecolor}
 CAPTURE_DIR=${CAPTURE_DIR:-shots}
 CAPTURE_MANIFEST=${CAPTURE_MANIFEST:-$CAPTURE_DIR/capture-provenance.json}
 CAPTURE_STATE_DIR=${CAPTURE_STATE_DIR:-$CAPTURE_DIR/.capture-state}
+CAPTURE_LOCK_DIR=${CAPTURE_LOCK_DIR:-$CAPTURE_STATE_DIR/lock}
 STDERR_FILE=$CAPTURE_DIR/stderr.log
 RUN_ID_FILE=$CAPTURE_STATE_DIR/run.id
 RUN_EXIT_FILE=$CAPTURE_STATE_DIR/exit.status
@@ -301,6 +303,10 @@ case "$cmd" in
       *) echo "unknown COLOR: $COLOR (truecolor|256|16|mono)" >&2; exit 1 ;;
     esac
     mkdir -p "$CAPTURE_DIR" "$CAPTURE_STATE_DIR" "$(dirname "$CAPTURE_MANIFEST")"
+    if ! mkdir "$CAPTURE_LOCK_DIR" 2>/dev/null; then
+      echo "capture failed: another capture run owns $CAPTURE_DIR (lock: $CAPTURE_LOCK_DIR)" >&2
+      exit 1
+    fi
     run_id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
     revision="$(git rev-parse --verify HEAD 2>/dev/null || printf '%s' unknown)"
     app=${BIN##*/}
@@ -428,6 +434,7 @@ case "$cmd" in
       final_exit_status=terminated_by_capture_stop
     fi
     finalize_provenance "$final_exit_status"
+    rmdir "$CAPTURE_LOCK_DIR" 2>/dev/null || true
     ;;
   *) echo "unknown: $cmd" >&2; exit 1 ;;
 esac

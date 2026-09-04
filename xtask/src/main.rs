@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
 use regex::Regex;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
@@ -53,6 +54,7 @@ const CAPTURE_APPS: [CaptureApp; 3] = [
     },
 ];
 const CAPTURE_MANIFEST: &str = "shots/capture-matrix.tsv";
+const CAPTURE_PROVENANCE: &str = "shots/capture-provenance.json";
 
 // Independent acceptance pins for the visual review contract. Keep these
 // literals separate from the generation axes: changing both declarations in
@@ -144,6 +146,7 @@ fn capture_matrix() -> Result<(), String> {
     })?;
 
     let cases = capture_matrix_cases();
+    let revision = head_revision()?;
     let mut records = Vec::with_capacity(cases.len());
     for (index, case) in cases.iter().copied().enumerate() {
         println!(
@@ -183,6 +186,8 @@ fn capture_matrix() -> Result<(), String> {
     validate_capture_records(&cases, &records)?;
     let manifest = root().join(CAPTURE_MANIFEST);
     write_capture_manifest(&manifest, &records)?;
+    validate_capture_tsv(&cases, &manifest)?;
+    validate_capture_provenance(&cases, &root().join(CAPTURE_PROVENANCE), Some(&revision))?;
     println!(
         "capture-matrix: wrote {} ({} cells)",
         rel(&manifest),
@@ -411,6 +416,309 @@ fn file_digest(path: &Path) -> Result<(u64, String), String> {
     Ok((bytes, format!("{:x}", hasher.finalize())))
 }
 
+fn provenance_string<'a>(record: &'a Value, key: &str) -> Option<&'a str> {
+    record.get(key).and_then(Value::as_str)
+}
+
+fn provenance_dimensions(record: &Value, key: &str) -> Option<(u16, u16)> {
+    let dimensions = record.get(key)?.as_object()?;
+    let columns = dimensions.get("columns")?.as_u64()?.try_into().ok()?;
+    let rows = dimensions.get("rows")?.as_u64()?.try_into().ok()?;
+    Some((columns, rows))
+}
+
+fn validate_capture_provenance(
+    expected: &[CaptureCase],
+    path: &Path,
+    expected_revision: Option<&str>,
+) -> Result<(), String> {
+    let text = fs::read_to_string(path)
+        .map_err(|error| format!("cannot read capture provenance {}: {error}", rel(path)))?;
+    let value: Value = serde_json::from_str(&text)
+        .map_err(|error| format!("cannot parse capture provenance {}: {error}", rel(path)))?;
+    let Some(records) = value.as_array() else {
+        return Err(format!(
+            "capture provenance {} is not a JSON array",
+            rel(path)
+        ));
+    };
+
+    let expected_by_name: BTreeMap<String, CaptureCase> = expected
+        .iter()
+        .copied()
+        .map(|case| (case.shot_name(), case))
+        .collect();
+    let mut seen = BTreeSet::new();
+    let mut revisions = BTreeSet::new();
+    let mut errors = Vec::new();
+
+    for (index, record) in records.iter().enumerate() {
+        let Some(object) = record.as_object() else {
+            errors.push(format!(
+                "capture provenance record {index} is not an object"
+            ));
+            continue;
+        };
+        let Some(name) = provenance_string(record, "name") else {
+            errors.push(format!("capture provenance record {index} has no name"));
+            continue;
+        };
+        let Some(case) = expected_by_name.get(name).copied() else {
+            errors.push(format!("unexpected capture provenance cell: {name}"));
+            continue;
+        };
+        if !seen.insert(name.to_owned()) {
+            errors.push(format!("duplicate capture provenance cell: {name}"));
+        }
+
+        if provenance_string(record, "app") != Some(case.app.name) {
+            errors.push(format!(
+                "{name}: provenance app does not match the declared owner"
+            ));
+        }
+        if provenance_string(record, "theme") != Some(case.theme) {
+            errors.push(format!(
+                "{name}: provenance theme does not match the capture cell"
+            ));
+        }
+        if provenance_string(record, "color") != Some(case.color) {
+            errors.push(format!(
+                "{name}: provenance color does not match the capture cell"
+            ));
+        }
+        if provenance_string(record, "status") != Some("ok") {
+            errors.push(format!("{name}: provenance status is not ok"));
+        }
+        if provenance_string(record, "exit_status") != Some("terminated_by_capture_stop") {
+            errors.push(format!(
+                "{name}: provenance exit status is not capture_stop"
+            ));
+        }
+        if provenance_string(record, "termination") != Some("capture_stop") {
+            errors.push(format!(
+                "{name}: provenance termination is not capture_stop"
+            ));
+        }
+        if record.get("exit_observed").and_then(Value::as_bool) != Some(false) {
+            errors.push(format!(
+                "{name}: provenance incorrectly observed an application exit"
+            ));
+        }
+        if let Some(revision) = provenance_string(record, "revision") {
+            revisions.insert(revision.to_owned());
+            if expected_revision.is_some_and(|expected| expected != revision) {
+                errors.push(format!(
+                    "{name}: provenance revision {revision} differs from the run revision"
+                ));
+            }
+        } else {
+            errors.push(format!("{name}: provenance has no revision"));
+        }
+
+        let expected_dimensions = (case.width, case.height);
+        if provenance_dimensions(record, "requested_dimensions") != Some(expected_dimensions) {
+            errors.push(format!(
+                "{name}: requested dimensions do not match {expected_dimensions:?}"
+            ));
+        }
+        if provenance_dimensions(record, "dimensions") != Some(expected_dimensions) {
+            errors.push(format!(
+                "{name}: captured dimensions do not match {expected_dimensions:?}"
+            ));
+        }
+
+        let artifacts = object.get("artifacts").and_then(Value::as_object);
+        for (kind, extension) in [
+            ("ansi", "ansi"),
+            ("cursor", "cursor"),
+            ("txt", "txt"),
+            ("html", "html"),
+            ("png", "png"),
+        ] {
+            let Some(info) = artifacts
+                .and_then(|all| all.get(kind))
+                .and_then(Value::as_object)
+            else {
+                errors.push(format!("{name}: provenance is missing the {kind} artifact"));
+                continue;
+            };
+            let artifact_path = format!("shots/{name}.{extension}");
+            if info.get("path").and_then(Value::as_str) != Some(artifact_path.as_str()) {
+                errors.push(format!(
+                    "{name}: {kind} artifact path is not {artifact_path}"
+                ));
+            }
+            if info.get("status").and_then(Value::as_str) != Some("ok") {
+                errors.push(format!("{name}: {kind} artifact status is not ok"));
+            }
+            let bytes = info.get("bytes").and_then(Value::as_u64);
+            let sha256 = info.get("sha256").and_then(Value::as_str);
+            match file_digest(&root().join(&artifact_path)) {
+                Ok((actual_bytes, actual_sha256)) => {
+                    if bytes != Some(actual_bytes) {
+                        errors.push(format!("{name}: {kind} artifact byte count is stale"));
+                    }
+                    if sha256 != Some(actual_sha256.as_str()) {
+                        errors.push(format!("{name}: {kind} artifact sha256 is stale"));
+                    }
+                }
+                Err(error) => errors.push(format!("{name}: {error}")),
+            }
+        }
+
+        let Some(stderr) = object.get("stderr").and_then(Value::as_object) else {
+            errors.push(format!("{name}: provenance is missing stderr information"));
+            continue;
+        };
+        if stderr.get("path").and_then(Value::as_str) != Some("shots/stderr.log") {
+            errors.push(format!("{name}: stderr path is not shots/stderr.log"));
+        }
+        if stderr.get("status").and_then(Value::as_str) != Some("empty")
+            || stderr.get("bytes").and_then(Value::as_u64) != Some(0)
+            || stderr.get("sha256").and_then(Value::as_str)
+                != Some("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        {
+            errors.push(format!(
+                "{name}: application stderr is not recorded as empty"
+            ));
+        }
+    }
+
+    let missing: Vec<&str> = expected_by_name
+        .keys()
+        .filter(|name| !seen.contains(*name))
+        .map(String::as_str)
+        .collect();
+    if !missing.is_empty() {
+        errors.push(format!(
+            "capture provenance is missing cell(s): {}",
+            missing.join(", ")
+        ));
+    }
+    if records.len() != expected.len() {
+        errors.push(format!(
+            "capture provenance has {} record(s), expected {}",
+            records.len(),
+            expected.len()
+        ));
+    }
+    if revisions.len() != 1 {
+        errors.push(format!(
+            "capture provenance has {} revision(s), expected one",
+            revisions.len()
+        ));
+    }
+    if let Some(expected_revision) = expected_revision
+        && revisions.len() == 1
+        && !revisions.contains(expected_revision)
+    {
+        errors.push(format!(
+            "capture provenance revision does not match run revision {expected_revision}"
+        ));
+    }
+    for revision in revisions {
+        let output = git(&[
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            &format!("{revision}^{{commit}}"),
+        ])
+        .map_err(|error| {
+            format!("cannot validate capture provenance revision {revision}: {error}")
+        })?;
+        if !output.status.success() {
+            errors.push(format!(
+                "capture provenance revision does not resolve: {revision}"
+            ));
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), String> {
+    let text = fs::read_to_string(path)
+        .map_err(|error| format!("cannot read capture matrix {}: {error}", rel(path)))?;
+    let mut lines = text.lines();
+    if lines.next() != Some("path\tsize\tcolor\ttheme\tbytes\tsha256") {
+        return Err(format!(
+            "capture matrix {} has an invalid header",
+            rel(path)
+        ));
+    }
+
+    let expected_by_path: BTreeMap<String, CaptureCase> = expected
+        .iter()
+        .copied()
+        .map(|case| (format!("shots/{}.png", case.shot_name()), case))
+        .collect();
+    let mut seen = BTreeSet::new();
+    let mut errors = Vec::new();
+    for (index, line) in lines.enumerate() {
+        let fields: Vec<&str> = line.split('\t').collect();
+        if fields.len() != 6 {
+            errors.push(format!(
+                "capture matrix row {} has {} fields",
+                index + 2,
+                fields.len()
+            ));
+            continue;
+        }
+        let [path, size, color, theme, bytes, sha256] = fields.as_slice() else {
+            unreachable!("length checked above");
+        };
+        let Some(case) = expected_by_path.get(*path).copied() else {
+            errors.push(format!("unexpected capture matrix path: {path}"));
+            continue;
+        };
+        if !seen.insert((*path).to_owned()) {
+            errors.push(format!("duplicate capture matrix path: {path}"));
+        }
+        if *size != case.size() || *color != case.color || *theme != case.theme {
+            errors.push(format!("capture matrix row is inconsistent for {path}"));
+        }
+        let Some(bytes) = bytes.parse::<u64>().ok() else {
+            errors.push(format!("capture matrix byte count is invalid for {path}"));
+            continue;
+        };
+        match file_digest(&root().join(path)) {
+            Ok((actual_bytes, actual_sha256)) => {
+                if bytes != actual_bytes || *sha256 != actual_sha256 {
+                    errors.push(format!("capture matrix digest is stale for {path}"));
+                }
+            }
+            Err(error) => errors.push(error),
+        }
+    }
+    let missing: Vec<&str> = expected_by_path
+        .keys()
+        .filter(|path| !seen.contains(*path))
+        .map(String::as_str)
+        .collect();
+    if !missing.is_empty() {
+        errors.push(format!(
+            "capture matrix is missing path(s): {}",
+            missing.join(", ")
+        ));
+    }
+    let rows = seen.len();
+    if rows != expected.len() {
+        errors.push(format!(
+            "capture matrix has {rows} row(s), expected {}",
+            expected.len()
+        ));
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
 fn case_label(case: CaptureCase) -> String {
     format!(
         "{} / {} / {} / {}",
@@ -523,6 +831,10 @@ fn capture_script_contract_hits(script: &str) -> Vec<String> {
         ("terminal dimensions", "-x \"$cols\" -y \"$rows\""),
         ("tmux pane capture", "tmux capture-pane"),
         ("PNG conversion", "ansi2png.py"),
+        ("capture lock", "CAPTURE_LOCK_DIR"),
+        ("worktree session namespace", "workspace_key"),
+        ("provenance manifest", "capture-provenance.json"),
+        ("provenance recorder", "record_provenance"),
     ]
     .into_iter()
     .filter(|(_, fragment)| !script.contains(fragment))
@@ -579,6 +891,19 @@ fn capture_matrix_contract() -> Result<(), String> {
     errors.extend(capture_script_contract_hits(&script_text));
     if !errors.is_empty() {
         return Err(errors.join("\n"));
+    }
+
+    let cases = capture_matrix_cases();
+    let mut evidence_errors = Vec::new();
+    if let Err(error) = validate_capture_tsv(&cases, &root().join(CAPTURE_MANIFEST)) {
+        evidence_errors.push(error);
+    }
+    if let Err(error) = validate_capture_provenance(&cases, &root().join(CAPTURE_PROVENANCE), None)
+    {
+        evidence_errors.push(error);
+    }
+    if !evidence_errors.is_empty() {
+        return Err(evidence_errors.join("\n"));
     }
 
     Ok(())
@@ -6818,6 +7143,18 @@ fn git(args: &[&str]) -> Result<std::process::Output, String> {
         .map_err(|e| format!("git {}: {e}", args.join(" ")))
 }
 
+fn head_revision() -> Result<String, String> {
+    let output = git(&["rev-parse", "--verify", "HEAD"])?;
+    if !output.status.success() {
+        return Err("cannot resolve the current capture revision".to_owned());
+    }
+    let revision = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if revision.is_empty() {
+        return Err("current capture revision is empty".to_owned());
+    }
+    Ok(revision)
+}
+
 /// `git show <rev>:<path>`, or the empty string when the path did not exist.
 fn git_show(rev: &str, path: &str) -> String {
     match git(&["show", &format!("{rev}:{path}")]) {
@@ -8003,7 +8340,7 @@ captures / classification: `(pending — filled when the change lands)`
     fn the_2010_item_list_survives_the_split_tables() {
         let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
         let items = visual_change_items(&doc);
-        let want: BTreeSet<u32> = (1..=31).collect();
+        let want: BTreeSet<u32> = (1..=33).collect();
         assert_eq!(
             items.keys().copied().collect::<BTreeSet<u32>>(),
             want,
