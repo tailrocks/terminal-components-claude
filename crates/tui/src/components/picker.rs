@@ -132,6 +132,9 @@ impl<T: AsItem> RowFn<T> for ItemRow {
     fn row(&self, value: &T, row: &mut RowUi<'_>) {
         let item = value.as_item();
         row.gutter();
+        if row.flags().contains(StateFlags::SELECTED) {
+            row.marker(crate::theme::GlyphRole::Chosen);
+        }
         if let Some(tag) = item.tag {
             row.meta(tag);
         }
@@ -204,6 +207,21 @@ impl PickerState {
     /// Current cursor key.
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.list.cursor()
+    }
+
+    /// Current committed selection, if the caller has one.
+    pub const fn selected(&self) -> Option<ItemKey> {
+        self.list.selected()
+    }
+
+    /// Point the embedded result list at `(index, key)` without choosing it.
+    pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
+        self.list.set_cursor(index, key);
+    }
+
+    /// Set the committed selection without moving the keyboard cursor.
+    pub const fn set_selected(&mut self, key: Option<ItemKey>) {
+        self.list.set_selected(key);
     }
     /// Current scope.
     pub fn scope(&self, scopes: &[ScopeKey]) -> Option<ScopeKey> {

@@ -92,8 +92,9 @@ impl StepState {
     #[must_use]
     pub const fn glyph(self) -> Option<GlyphRole> {
         match self {
-            StepState::Queued | StepState::Skipped => None,
-            StepState::Running => Some(GlyphRole::Bullet),
+            // Skipped is deliberately neutral: the component-owned state
+            // word below carries the semantic distinction from queued.
+            StepState::Queued | StepState::Running | StepState::Skipped => Some(GlyphRole::Bullet),
             StepState::Done => Some(GlyphRole::Checked),
             StepState::Failed => Some(GlyphRole::Error),
             StepState::Blocked => Some(GlyphRole::WarningMark),
@@ -1015,6 +1016,7 @@ mod tests {
     use crate::response::StateFlags;
     use crate::runtime::Runtime;
     use crate::runtime::stub::Stub;
+    use crate::theme::GlyphRole;
     use crate::theme::{Role, Slot, StylePatch, Theme};
     use crate::ui::cx::{FrameServices, LastFrame};
     use crate::ui::{Cx, FrameState, Ui, UiCore};
@@ -1175,11 +1177,11 @@ mod tests {
         assert_eq!(frame.ring.reachable().count(), 0);
     }
 
-    /// Two lifecycle states must be distinguishable without colour, which is
-    /// what §16.2 case 9 asserts over the whole rail. The rail's two
-    /// symbol-carrying affordances are the `Part::ICON` glyph and the
-    /// `Part::META` state word; `Queued` and `Skipped` share a blank glyph,
-    /// so the word is the only thing separating them and it must be painted.
+    /// Lifecycle states must be distinguishable without colour, which is what
+    /// §16.2 case 9 asserts over the whole rail. The rail's two semantic
+    /// affordances are the neutral `Part::ICON` glyph and the component-owned
+    /// `Part::META` state word. Skipped is not a deletion; its state word is
+    /// the distinction from queued.
     #[test]
     fn every_lifecycle_state_paints_a_symbol_that_separates_it() {
         let items = [
@@ -1209,6 +1211,7 @@ mod tests {
                 );
             }
         }
+        assert_eq!(StepState::Skipped.glyph(), Some(GlyphRole::Bullet));
     }
 
     #[test]
