@@ -175,3 +175,55 @@ A stateless `StatusBar` cannot paint per-item hover, which the legacy `src/widge
 ### Build state on resume — MEASURE, do not trust either prior note
 
 Two builders reported different pictures minutes apart: 4G saw a single `E0502` in `choice.rs:1229`, the digest builder later saw 17-18 compile errors across the wave's in-flight files. Neither number is authoritative now. **Step 0 on resume is `cargo build -p tui-next --all-targets` and `cargo test -p tui-next --lib`, and fix what they actually report** — starting with the `choice.rs:1229` hoist, which is confirmed and one line.
+
+## Session 2 continuation/addendum — current baseline diagnostic (2026-09-04)
+
+- Current-state baseline result: no files changed; the branch was `main...origin/main`.
+- The previously claimed `crates/tui/src/components/choice.rs:1229` `E0502` was not reproduced in the current state. Both requested `tui-next` commands exited 0; no compiler errors or test failures were emitted.
+- Exact commands, captured outputs, and exit codes:
+
+  - Command: `rtk --version`
+    Output:
+
+    ```text
+    rtk 0.46.0
+    ```
+
+    Exit code: `0`.
+
+  - Command: `which rtk`
+    Output:
+
+    ```text
+    /opt/homebrew/bin/rtk
+    ```
+
+    Exit code: `0`.
+
+  - Command: `rtk git status --short --branch`
+    Output:
+
+    ```text
+    ## main...origin/main
+    ```
+
+    Exit code: `0`.
+
+  - Command: `rtk cargo build -p tui-next --all-targets`
+    Output:
+
+    ```text
+    cargo build (2 crates compiled)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.70s
+    ```
+
+    Exit code: `0`.
+
+  - Command: `rtk cargo test -p tui-next --lib`
+    Output:
+
+    ```text
+    cargo test: 262 passed (1 suite, 0.04s)
+    ```
+
+    Exit code: `0`.
