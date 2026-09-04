@@ -216,8 +216,8 @@ pub enum StatusAction {
 ///
 /// ## Ownership
 /// Stateless — there is no `StatusBarState`. The caller owns the item
-/// slices and the animation frame; the runtime owns hover and press for the
-/// strip as a whole.
+/// slices and the animation frame; the runtime owns hover and press, including
+/// the hovered keyed item.
 ///
 /// ## Configuration
 /// `.variant(Variant)` (default `Recipe.default_variant`), `.left/.center/
@@ -231,8 +231,8 @@ pub enum StatusAction {
 /// ## States
 /// Derives `BUSY`/`LOADING`/`ERROR` from `.status(Status)` and paints a
 /// leading readiness affordance for them; wears `HOVERED` and `PRESSED` from
-/// the runtime for the strip as a whole. Per-item state is expressed by the
-/// item's own `.tone(Role)` and `.emphasis`, not by `StateFlags`.
+/// the runtime. A matching keyed item alone wears `HOVERED`; per-item tone and
+/// emphasis remain the item's own configuration.
 ///
 /// ## Actions
 /// `StatusAction::Chose(ItemKey)` — a click on an item that declared a
@@ -273,16 +273,45 @@ pub enum StatusAction {
 /// all — it is a label, and no action can name it.
 ///
 /// ## Testing
-/// `StatusBarCase` with no capabilities;
-/// `render::components::status_bar::{default, busy, error, overflow, empty}`.
+/// `StatusBarCase` in `crates/tui/tests/conformance.rs`, declaring
+/// `Caps::empty()`, so twelve of its twenty-one `status_bar::*` cases are
+/// capability-gated and return immediately, and
+/// `mono_states_are_distinguishable` is narrowed to the single default
+/// state. The default fixture rect is 30 columns and the fixture strip
+/// needs 35, so the drop loop does run under the cases that remain — but
+/// they assert byte-identity, containment, theme isolation and tiny-rect
+/// survival, never which items survived.
+///
+/// The render matrix in `crates/tui/tests/render_components.rs` generates
+/// exactly eight cells per component, one per `St` variant: there is no
+/// `render::components::status_bar::busy`, no `::error` and no
+/// `::overflow`. Readiness arrives through the matrix's `status_for`
+/// mapping — `::pressed` is `Status::Busy`, `::editing` `Status::Loading`,
+/// `::disabled` `Status::Error` — and `draw` **ors** the status-derived
+/// flags into the forced ones instead of replacing them, so the `MARKER`
+/// error glyph as well as the `ICON` spinner is genuinely painted, and
+/// pinned as a digest, by those three cells. At the matrix's two widths the
+/// strip needs 35 columns (37 with a readiness affordance) and is given 40
+/// or 120, so no matrix cell drops an item.
+///
+/// The drop order is covered by the unit tests in this module, which call
+/// `survivors` directly: `a_wide_row_keeps_every_item`,
+/// `narrow_rows_drop_centre_then_right_then_left_and_keep_the_name`,
+/// `ties_take_the_later_item_first` and `items_past_the_cap_are_ignored`.
+///
+/// Exercised by no test: the painted `Part::OVERFLOW` ellipsis — the drop
+/// loop is asserted, the truncation marker it leaves behind is not — and
+/// `StatusAction::Chose`, because the case declares no `Caps::ACTIVATES`
+/// and `status_bar::keyboard_and_mouse_activation_are_equivalent`
+/// therefore returns before it clicks anything.
 ///
 /// ## Invariants
 /// The drop order is exactly centre → right → left with the strongest left
 /// item retained, so a narrowing terminal loses activity before context and
 /// context before identity. At most [`MAX_ITEMS`] items per group are laid
-/// out. Never allocates. Per-item hover is **not** painted: the frame
-/// snapshot carries one hovered `Id`, not the hovered `PartRef`, so a
-/// stateless strip cannot tell which chip the pointer is over.
+/// out. Never allocates. Only the keyed item matching the frame's hovered
+/// `PartRef` receives `HOVERED`; keyboard suppression makes that lookup return
+/// `None`.
 pub struct StatusBar<'a> {
     id: Id,
     left: &'a [StatusItem<'a>],
@@ -582,9 +611,17 @@ impl<'a> StatusBar<'a> {
     }
 
     /// The style an item paints with: the `LABEL` recipe plus the item's own
-    /// emphasis and tone, layered as a role delta (the `CellUi::tone` shape,
-    /// never a colour).
+    /// hover, emphasis and tone, layered as a role delta (the `CellUi::tone`
+    /// shape, never a colour).
     fn item_style(&self, ui: &mut Ui<'_>, it: &StatusItem<'_>, live: StateFlags) -> Style {
+        let hovered = it.key.is_some_and(|key| {
+            FrameRead::hovered_part(ui, self.id) == Some(PartRef::item(Part::LABEL, key))
+        });
+        let live = if self.ov.is_forced() || hovered {
+            live
+        } else {
+            live.difference(StateFlags::HOVERED)
+        };
         let base = self.ov.style(
             ui,
             self.id,
