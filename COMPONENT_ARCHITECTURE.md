@@ -3969,6 +3969,8 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 
 | 19 | **First-generation `render::components::*` digests for the Slice-4 component matrix** <!-- added by §36 -->. Fourteen components record their first digest lines — `text_area`, `select`, `radio_group`, `checkbox`, `toggle`, `chip_bar`, `status_bar`, `hint_bar`, `key_hint`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — 8 states × {junie, paper} × {truecolor, mono} × {120×40, 40×10} = 64 lines each, 896 in total. **Nothing moves**: the component did not exist in the reviewed tree, so no cell has a before-image and no cell is a difference from anything. This item covers **first generation only**. The second time one of these lines changes it classifies under items 1–18 or it is a regression, and this item may not be cited again for the same key. | §16.3 requires one digest line per component × state × theme × colour × size, and Appendix A's Slice-4 amendment makes that digest one of the proofs a family package must produce, precisely because Slice-4 owners touch no application. Ten of the fourteen appear in no other item at all; the four named elsewhere are named for a *difference* — item 9 for `StatusBar`'s adopted drop order, item 10 for hint text derived from bindings, item 3 for `RadioGroup`'s cursor/value split — whose review mechanisms are application captures and a showcase digest that do not exist before Slice 5. Filing 896 lines under an item that describes neither the change nor a runnable review destroys the item→change mapping the guard's citation check depends on, and would attach them to item 1, whose stated mechanism §34.4 proved has never executed. | **A first-generation digest cannot be reviewed as a digest, and this item does not pretend that it can.** The hash is not inspectable and there is no before-image to diff, so what is reviewed is the *frame*, and only its glyph half. (1) The generating run prints the frame text of every unrecorded cell — the `Missing` branch of `Scene::assert_against` prints `text()` exactly as the `Mismatch` branch already does — and the dump is attached to the `docs/visual-changes.md` entry; a review mechanism that cannot be executed is decoration (§34.4). (2) A **fresh read-only `opus-analyst` visual reviewer, never the builder who generated the lines**, reads the `junie truecolor` and `junie mono` frames at 120×40 for all eight states of each component, and **rejects** on any of: a cell painted outside the component's own rect; an empty frame where the fixture supplies content; content in the `empty` state, or the empty affordance in a state that is not `empty`; truncation or an ellipsis at 120×40; a state textually identical to another under `mono` where §11.4 prescribes a distinguishing symbol and conformance case 9 does not already cover that pair; a glyph occupying no `GlyphSet` slot; or a label that is not the one the fixture supplies. (3) **The style half of the digest — `fg`, `bg`, `modifier` — is reviewed by nobody, and this item says so rather than implying otherwise.** It is asserted instead by the 20-case conformance matrix already registered for each of these components and by the `theme::*` contrast and mono-legibility tests. A first-generation line is therefore a **pin against future drift, not an approval of present appearance**; the first review of these components *as pictures* is the Slice-5 capture matrix. (4) No `shots/` capture exists or can exist: the matrix is headless — `Scene` draws into a `TestBackend` buffer and `tools/capture.sh` drives a terminal session — so the ledger's `- captures:` field records that fact and names the frame-text dump in its place (§16.3 as amended by §36). |
 
+| 20 | **The forced-state operator stops erasing the props-derived half, so a component in error paints its error affordance** <!-- added by §49 -->. Under §39.2's Invariant Q a forced state substitutes for the runtime half only, so `render::components::{progress_bar,meter,hint_bar}::disabled` — whose fixture supplies `Status::Error` while forcing `DISABLED` — now resolve `ERROR` as well as `DISABLED`. This item covers **truecolor and mono alike**, and it covers a **second** movement of keys first generated under item 19, which may not be cited for them again. `{scope: truecolor}` | **A demonstrated defect in the old output, measurable from the baseline file alone and without reference to §39.** At truecolor the blessed `progress_bar::disabled` and `hint_bar::disabled` digests were **byte-identical to their own `::default` cells**, although the fixture gives one `Status::Error` and the other `Status::Ready` — two states of one component, differing in a prop that component declares it reports, pinned as one picture. A component declaring `Caps::REPORTS_STATUS` reporting nothing. The `ERROR → GlyphRole::Error` recipe rules were declared and produced no output, which is item 1a's reason verbatim, and §38.2 had already cleared all three as KEEP STATE. `Meter`'s cell differed from its own `::default` only because `DISABLED` moves its own parts; its rule never matched either. | The frame-text dump printed by the no-`BLESS` runs, read by a **fresh read-only `opus-analyst` who did not generate the lines**, at `junie` 120×40 in truecolor **and** mono, rejecting on: no error affordance in the corrected frame; an affordance in a cell whose fixture supplies `Status::Ready`; any change to the label, the track arithmetic or the percentage column beyond the affordance and the columns it reserves; or a glyph occupying no `GlyphSet` slot. Machine half: `components::a_forced_component_resolves_its_props_derived_state` (§39) and `theme::readiness_states_are_digest_distinct` (§49.5), which fails on the pre-§39 values at truecolor. |
+
 **Not on this list, and therefore regressions if they appear:** any change to Junie token values; any change to spacing, glyph or border-set output under `Theme::junie()` at truecolor; any change to padding or ellipsis placement caused by replacing `fit`/`truncate` with the `RowUi` grapheme painter (the painter must be byte-identical to `fit` for every input — asserted by `render::components::*` digests and by a dedicated differential test `text::row_ui_matches_fit_for_every_fixture`); any change to the exact minimum-size copy strings; any change to the eight jackin scenario contracts, the rain timing constants, or the `format_universe_duration` wording. A baseline line recorded for the **first** time is not a change to any of these and is governed by item 19; a *second* movement of such a line is, and item 19 may not be cited for it. <!-- amended by §36 -->
 
 ---
@@ -7541,3 +7543,67 @@ So the check was unwritten **under a description of a file that will never be cr
 ### §48.4 Owed, found incidentally <!-- amended by §48 -->
 
 A `boundary` run failed `no_domain_vocabulary_in_the_library` **with an empty error message**, and passed on re-run. Whatever the transient cause, **a check that can fail without saying why is a reportability defect** — a red with no message is indistinguishable from a red nobody can act on. Recorded as owed.
+
+## §49 Adjudication — the first generation counts, and the guard's refusal does not say what it means <!-- amended by §49 -->
+
+**Status: accepted. Unblocks the §39 re-bless.** Change control at line 3 is engaged four times: a numbered §20.10 item, a restatement of §36.5's refusal, two new checks, and a CI base correction.
+
+### §49.1 The blessed values are wrong on the file's own evidence <!-- amended by §49 -->
+
+**Verified by the coordinator directly, not inferred from §39.** At truecolor, **all four** `progress_bar::disabled` digests equal the four `progress_bar::default` digests, and **all four** `hint_bar::disabled` digests equal `hint_bar::default`'s — while the fixture supplies `Status::Error` and `Status::Ready` respectively.
+
+> **Two states of one component, differing in a prop that component declares it reports, pinned as one picture.** A component declaring `Caps::REPORTS_STATUS` reporting nothing.
+
+`Meter` differs from its own `::default` because `DISABLED` moves its parts, so its defect is the erased rule rather than an identical frame — and §39.4 **understated** it: `Meter` gains the error **glyph** as well as `Danger`.
+
+The blast radius is three components and is **derivable**: only four components receive the status prop, and `StatusBar` re-adds the props half by hand while `Empty` re-derives its own flags. `status_bar::disabled` is indeed distinct from its default at every truecolor key.
+
+**A correction to §39.4 while adopting it:** "24 keys, 12 truecolor" is the cell set of the three failing tests, **not the measured moved set** — the assertion panics on the first failing cell of eight, so three failing tests establish three known-moved cells and **twenty-one unevaluated ones**. That is §36.3's own correction, repeated. The ledger's `- moved:` field is read from a discarded scratch bless and from nothing else.
+
+### §49.2 Item 19 is spent for these keys <!-- amended by §49 -->
+
+> **A key blessed in violation of a recorded ordering constraint has had its first generation.** Item 19 may not be cited for it again; the correction is a **second** movement.
+
+The convenient answer — "the bless should not have run, so it does not count" — is rejected on four grounds, the first sufficient. **An exemption that a procedural argument can unlock is not an exemption**: item 19's one-citation clause exists to stop it becoming an unlimited channel, and a clause that yields to "the bless should not have run" yields to every future lane that finds an irregularity — which is the `extra` hatch and the doc-check allow-list one level up. Second, **nothing item 19 claimed is false**: it says in terms that a first-generation line is a pin against future drift, *not* an approval of present appearance, so there is nothing to withdraw and only something to add. Third, the generation is a **state of the repository** — the lines are committed and have gated 157 green tests, so the next change has a before-image, which is what *moved* means. Fourth, §39.4 ruled it prospectively, and **a ruling does not become wrong because the cost it predicted has fallen due.**
+
+Consequently the keys may **not** be laundered back into `added` — not by reverting the bless, not by pointing the guard's base before it, not by any choice of revision. The moved/added partition is a property of the key's history, not of where the instrument is aimed.
+
+### §49.3 §36.5's refusal enforces a different rule from the one it cites <!-- amended by §49 -->
+
+§36.5 justified refusing a moved truecolor key by saying §20.10's closing clause "already makes it a regression by construction". **The closing clause's predicate is *not on this list*, not *truecolor*.** The two coincide only while every numbered item is mono-only — and **four already-numbered items are not**: item 7's geometry fixes, item 11's whole-matrix enumeration, item 16's cell-width re-measurement and item 17's anchor flip. **As implemented, the guard refuses those four items' own discharge, permanently.**
+
+> **Decision.** A moved truecolor key is refused **unless** the entry accounting for it cites a §20.10 item whose row declares `{scope: truecolor}`. An untagged item is treated as mono-only, so items 1–19 keep today's behaviour and every widening is an explicit, reviewable edit in Lane A's single-writer file.
+
+Added in the same change: **a moved key whose entry cites an item tagged `{scope: first-generation}` is refused outright**, so item 19's "may not be cited again for the same key" becomes machine-checked rather than read.
+
+**This is a correction, not a weakening, and no escape hatch is created** — no flag, no allow-list, no per-file exemption. Rejected: an `--allow-truecolor` flag and a guard allow-list (the suppression class §35.2 named), and "classify truecolor moves as `fix` and let the class discharge the refusal", which makes the refusal unreachable for every item at once.
+
+### §49.4 Ordering is unprovable in general and was provable here <!-- amended by §49 -->
+
+§36.5 is right that a committed tree is a state, not a history. **But a declared blocker is state.** The bless commit's own tree contained §39's header sentence, "Status: accepted. **BLOCKS** the §36 first-generation bless".
+
+> The guard refuses **any** digest addition or movement while the architecture document contains a live `BLOCKS the … bless` marker, discharged by editing that line in the same commit that lands the blocking change.
+
+Coarse on purpose, and defeatable only by editing a sentence in Lane A's single-writer file — a reviewable act in a diff rather than a silent one. **Recorded limitation:** this checks that a blocker was *declared*, never that an undeclared one was respected.
+
+### §49.5 The property that needed no knowledge of the future <!-- amended by §49 -->
+
+**Item 19's review could not have caught this either**, and that is measurable: its six rejection conditions include textual identity only under **mono**, and these cells are identical at **truecolor**. §36.4's "truthful weak gate" is weaker than it advertised in exactly one direction — the direction this defect came from.
+
+> `theme::readiness_states_are_digest_distinct`: for every component the matrix drives with a status prop, the `Ready`, `Busy`, `Loading` and `Error` digests are **pairwise distinct** at every size, theme and colour level. Red on the pre-§39 values at four truecolor keys each for `progress_bar` and `hint_bar`. Its exemption list **inverts** — a listed pair that *is* distinct is a failure.
+
+**This is the part that generalises: a first-generation line is unprotected by any diff-based gate, so the properties that pin it must be asserted about the values themselves.**
+
+### §49.6 The guard has never had a base on `main` <!-- amended by §49 -->
+
+The base falls back to `HEAD` when neither the explicit variable nor a pull-request base ref is set. CI runs on **push to `main`** as well as on pull requests, and on the push leg there is no base ref — **so a clean checkout is diffed against itself and the guard reports `0 moved, 0 added` on every direct commit.** Every commit in this session is a direct commit.
+
+> **The guard did not pass the bad bless because the keys were added. It passed because it had nothing to compare.**
+
+The resolver's own error text names this failure mode, and the default path performs it. **Ninth instance of the class §35.2 named — and the first found inside the guard written to enforce §36.5.**
+
+### §49.7 Acceptance <!-- amended by §49 -->
+
+The moved set is read from a **discarded** scratch bless, never transcribed from §39.4's prediction. The guard must be **red before §49.3 lands and green after**, demonstrated in that order. The blocking-marker check and the distinctness test must each be demonstrated red on a broken input. The matrix ends 160/160, and item 20's frame review is signed by an analyst who did not generate the lines.
+
+**Numbering:** this claims item **20**; §40.4's outstanding `(THUMB, PRESSED)` mono rule takes item **21**.
