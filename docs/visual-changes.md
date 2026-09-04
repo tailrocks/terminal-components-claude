@@ -1227,6 +1227,20 @@ remains frozen; later allocation or byte growth is a regression.
 - reason:    §20.10 item 33; each migrated app now records its own measured frame row without modifying the frozen pre-refactor baseline.
 ```
 
+### Item 33a — Jackin interaction performance row
+
+```
+- surface:   jackin-preview/manager key movement @ 120x40 / junie / release
+- captures:  none under `shots/` — performance evidence is the `PERF` line emitted by
+             `apps/jackin-preview/tests/perf.rs`
+- tests:     apps/jackin-preview/tests/perf_baseline.txt:4, `key_jackin_manager_move`
+- moved:     none
+- added:     `key_jackin_manager_move`
+- class:     intended
+- reason:    §20.10 item 33; the runtime key path is measured separately and now proves
+             zero allocations after constructor-time manager row projection.
+```
+
 ---
 
 ## Review status — Slice 4 component matrix, independent visual review (2026-09-05)
