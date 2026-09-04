@@ -569,6 +569,28 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.action(SelectAction::Chose(key));
     }
 
+    /// Reconcile the durable state against `items` and seed the cursor on
+    /// the value, or on the first option when there is none.
+    ///
+    /// Skipped entirely while `disabled` (§16.2 case 1): a disabled control
+    /// is registered but inert, and must not initialise the caller's state.
+    /// It is a skip, not a deferral — [`Reconcile::reconcile`] is stamped on
+    /// the current `(len, keys)`, so however many disabled frames pass, the
+    /// first enabled one reconciles the list as it then is.
+    fn reconcile_and_seed(&self, st: &mut SelectState, items: &[T]) {
+        if self.disabled {
+            return;
+        }
+        let _ = st.reconcile(items.len(), |i| self.key_at(items, i));
+        if st.core.cursor().is_none() && !items.is_empty() {
+            let i = st
+                .value
+                .and_then(|v| self.index_of(items, v, None))
+                .unwrap_or(0);
+            st.core.set_cursor(i, self.key_at(items, i));
+        }
+    }
+
     /// The update phase: reconcile when enabled, re-assert the layer, then
     /// drain keys, pointer intents and the layer's lifecycle events.
     ///
@@ -587,16 +609,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         items: &[T],
     ) -> Response<SelectAction> {
         let len = items.len();
-        if !self.disabled {
-            let _ = st.reconcile(len, |i| self.key_at(items, i));
-            if st.core.cursor().is_none() && len > 0 {
-                let i = st
-                    .value
-                    .and_then(|v| self.index_of(items, v, None))
-                    .unwrap_or(0);
-                st.core.set_cursor(i, self.key_at(items, i));
-            }
-        }
+        self.reconcile_and_seed(st, items);
         let open = st.open && cx.is_open(self.id);
         if open {
             // invariant D1: re-assert the geometry every frame
@@ -1025,7 +1038,7 @@ mod tests {
     use crate::event::{Input, Key, KeyModifiers};
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::runtime::{App, Runtime};
-    use crate::theme::Theme;
+    use crate::theme::{Role, Theme};
     use ratatui_core::buffer::Buffer;
 
     const SEL: Id = Id::root("select.tests");
@@ -1222,5 +1235,113 @@ mod tests {
         let shrunk: Vec<Engine> = Vec::new();
         let _ = st.reconcile(shrunk.len(), |i| s.key_at(&shrunk, i));
         assert_eq!(st.value(), None);
+    }
+
+    /// A select whose `disabled` prop the test drives.
+    #[derive(Default)]
+    struct DisablableSelect {
+        st: SelectState,
+        disabled: bool,
+    }
+
+    impl App for DisablableSelect {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let items = ["alpha", "beta", "gamma"];
+            let s: Select<'_, &str> = Select::new(SEL).disabled(self.disabled);
+            s.update(cx, &mut self.st, &items).erase()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+    }
+
+    /// §16.2 case 1 (`disabled_cannot_activate`): a disabled collection stays
+    /// drawable from the caller's current item slice, but its update phase
+    /// must not reconcile or seed durable state. The sibling contract is
+    /// `choice::disabled_update_does_not_initialize_collection_state`.
+    #[test]
+    fn disabled_update_does_not_initialize_collection_state() {
+        let app = DisablableSelect {
+            st: SelectState::default(),
+            disabled: true,
+        };
+        let mut rt = Runtime::new(app, Theme::junie());
+        let _ = rt.handle(Input::Tick);
+        assert_eq!(rt.app().st, SelectState::default());
+    }
+
+    /// The gate above skips work rather than deferring it: `reconcile` is
+    /// stamped on `(len, keys)`, so however many disabled frames pass, the
+    /// first enabled one reconciles the *current* list and seeds the cursor.
+    /// A disabled select is therefore never left wedged.
+    #[test]
+    fn a_select_reconciles_on_the_first_enabled_frame_after_disabled_ones() {
+        let app = DisablableSelect {
+            st: SelectState::default(),
+            disabled: true,
+        };
+        let mut rt = Runtime::new(app, Theme::junie());
+        for _ in 0..3 {
+            let _ = rt.handle(Input::Tick);
+        }
+        assert_eq!(
+            rt.app().st,
+            SelectState::default(),
+            "three disabled frames accrued nothing"
+        );
+        rt.app_mut().disabled = false;
+        let _ = rt.handle(Input::Tick);
+        assert_eq!(
+            rt.app().st.cursor(),
+            Some(ItemKey::index(0)),
+            "the first enabled frame seeds the cursor"
+        );
+        assert_eq!(
+            rt.app().st.scroll().content_len(),
+            3,
+            "and the scroll length"
+        );
+    }
+
+    /// Draw the closed field over the stub screen, optionally with an
+    /// instance patch on `part`, and return what was painted.
+    fn draw_field(part: Option<Part>) -> Buffer {
+        let items = ["alpha", "beta"];
+        let patch = [(
+            part.unwrap_or(Part::FIELD),
+            StylePatch::new().set_fg(Role::Warning),
+        )];
+        let mut s: Select<'_, &str> = Select::new(SEL).placeholder("Pick one");
+        if part.is_some() {
+            s = s.patch_part(&patch);
+        }
+        let st = SelectState::default();
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            s.draw(ui, a, &st, &items);
+        });
+        buf
+    }
+
+    /// §16.2 registry: every part a drawn select *styles* must be in
+    /// [`Select::PARTS`], or a per-part patch reaches a part the component
+    /// never declared. The closed field resolves `GUTTER` on every frame and
+    /// `PLACEHOLDER` on every valueless one; the patch changing the render is
+    /// how the conformance check observes that.
+    #[test]
+    fn the_parts_a_drawn_select_styles_are_declared() {
+        let plain = draw_field(None);
+        for part in [Part::GUTTER, Part::PLACEHOLDER] {
+            assert_ne!(
+                draw_field(Some(part)),
+                plain,
+                "a drawn Select does not style {part:?}"
+            );
+            assert!(
+                <Select<'_, &str>>::PARTS.contains(&part),
+                "Select styles {part:?} but PARTS omits it: {:?}",
+                <Select<'_, &str>>::PARTS
+            );
+        }
     }
 }
