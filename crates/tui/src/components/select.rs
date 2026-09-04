@@ -10,8 +10,7 @@ use ratatui_core::layout::Rect;
 use super::scroll_region::ScrollRegion;
 use super::{Acc, Overrides, SlotFn, cell_at, first_row};
 use crate::collection::{
-    ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, Reconcile, Reconciliation, RowFn,
-    RowUi,
+    ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
 };
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -69,7 +68,12 @@ const fn b(chord: Chord, cmd: SelectCmd, label: &'static str, visible: bool) -> 
 /// chords move the **cursor**, never the value (`select::
 /// arrows_move_the_cursor_not_the_value_while_closed`).
 const BINDINGS: &[Binding<SelectCmd>] = &[
-    b(Chord::key(KeyCode::Enter), SelectCmd::Choose, "Choose", true),
+    b(
+        Chord::key(KeyCode::Enter),
+        SelectCmd::Choose,
+        "Choose",
+        true,
+    ),
     b(
         Chord::key(KeyCode::Char(' ')),
         SelectCmd::Choose,
@@ -480,7 +484,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         LayerSpec::popover(self.id, self.anchor(cx)).size(self.measured_size(cx, items))
     }
 
-    fn move_cursor(&self, st: &mut SelectState, items: &[T], to: usize, acc: &mut Acc<SelectAction>) {
+    fn move_cursor(
+        &self,
+        st: &mut SelectState,
+        items: &[T],
+        to: usize,
+        acc: &mut Acc<SelectAction>,
+    ) {
         if items.is_empty() {
             acc.consumed();
             return;
@@ -492,7 +502,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.changed();
     }
 
-    fn open(&self, cx: &mut Cx<'_>, st: &mut SelectState, items: &[T], acc: &mut Acc<SelectAction>) {
+    fn open(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut SelectState,
+        items: &[T],
+        acc: &mut Acc<SelectAction>,
+    ) {
         st.open = true;
         if let Some(i) = st.value.and_then(|v| self.index_of(items, v, None)) {
             st.core.set_cursor(i, self.key_at(items, i));
@@ -510,7 +526,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         }
     }
 
-    fn choose(&self, cx: &mut Cx<'_>, st: &mut SelectState, items: &[T], i: usize, acc: &mut Acc<SelectAction>) {
+    fn choose(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut SelectState,
+        items: &[T],
+        i: usize,
+        acc: &mut Acc<SelectAction>,
+    ) {
         if items.is_empty() {
             acc.consumed();
             return;
@@ -532,10 +555,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
     /// It runs **unconditionally**, whether or not the popup is open (§13,
     /// §28 P3): a dismissal is delivered in the pass after the layer closed,
     /// and a gated call would drain nothing.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one drain loop over the keymap, the popup rows and the layer lifecycle"
-    )]
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -646,10 +665,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
     }
 
     /// The draw phase: the closed field, and the popup inside its layer.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "the closed row and the popup rows in one pass"
-    )]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &SelectState, items: &[T]) -> Rect {
         let area = first_row(area);
         if area.is_empty() {
@@ -699,7 +714,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             height: 1,
         };
         let chosen = st.value.and_then(|v| self.index_of(items, v, None));
-        match (chosen.and_then(|i| items.get(i).map(|it| (i, it))), value.is_empty()) {
+        match (
+            chosen.and_then(|i| items.get(i).map(|it| (i, it))),
+            value.is_empty(),
+        ) {
             (Some((i, item)), false) => {
                 let key = self.key.key(item, i);
                 {
@@ -747,6 +765,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
     }
 
     /// The popup, inside the layer this component opened and sized.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one pass over the popup surface, the empty state and the visible rows"
+    )]
     fn draw_popup(&self, ui: &mut Ui<'_>, st: &SelectState, items: &[T]) {
         let ov = self.ov;
         let id = self.id;
@@ -831,15 +853,28 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                             ov.style(ui, id, Family::SELECT, Variant::DEFAULT, Part::ROW, flags);
                         ui.paint_style(row, rs.style);
                     }
-                    let g = ov.style(ui, id, Family::SELECT, Variant::DEFAULT, Part::GUTTER, flags);
+                    let g = ov.style(
+                        ui,
+                        id,
+                        Family::SELECT,
+                        Variant::DEFAULT,
+                        Part::GUTTER,
+                        flags,
+                    );
                     match g.glyph {
                         Some(glyph) => {
                             ui.glyph(cell_at(row, row.x), glyph, g.style);
                         }
                         None => ui.fill(cell_at(row, row.x), g.style),
                     }
-                    let ms =
-                        ov.style(ui, id, Family::SELECT, Variant::DEFAULT, Part::MARKER, flags);
+                    let ms = ov.style(
+                        ui,
+                        id,
+                        Family::SELECT,
+                        Variant::DEFAULT,
+                        Part::MARKER,
+                        flags,
+                    );
                     let marker_cell = cell_at(row, row.x.saturating_add(1));
                     match ms.glyph.or_else(|| {
                         flags
@@ -901,7 +936,11 @@ mod tests {
         let mut acc = Acc::<SelectAction>::new();
         s.move_cursor(&mut st, &items, 2, &mut acc);
         assert_eq!(st.cursor(), Some(ItemKey::index(2)));
-        assert_eq!(st.value(), Some(ItemKey::index(1)), "the value is untouched");
+        assert_eq!(
+            st.value(),
+            Some(ItemKey::index(1)),
+            "the value is untouched"
+        );
         s.close_restoring(&mut st, &items);
         assert!(!st.is_open());
         assert_eq!(

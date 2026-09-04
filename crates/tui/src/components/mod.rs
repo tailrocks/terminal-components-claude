@@ -21,6 +21,7 @@ pub(crate) mod meter;
 pub(crate) mod progress;
 pub(crate) mod props;
 pub(crate) mod scroll_region;
+pub(crate) mod status;
 pub(crate) mod select;
 pub(crate) mod tabs;
 pub(crate) mod textarea;
@@ -28,7 +29,9 @@ pub(crate) mod textarea;
 pub use brand::Brand;
 pub use button::{Button, ButtonCmd};
 pub use chip::{ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, LabelChips};
-pub use choice::{Checkbox, ChoiceCmd, LabelRadio, RadioGroup, RadioGroupAction, RadioGroupState, Toggle};
+pub use choice::{
+    Checkbox, ChoiceCmd, LabelRadio, RadioGroup, RadioGroupAction, RadioGroupState, Toggle,
+};
 pub use dialog::{Dialog, DialogAction, DialogCmd, DialogState};
 pub use empty::Empty;
 pub use field::Field;
@@ -40,6 +43,7 @@ pub use meter::{Meter, MeterTone, MeterVisual};
 pub use progress::{ProgressBar, Spinner};
 pub use props::Props;
 pub use scroll_region::ScrollRegion;
+pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
 pub use select::{LabelSelect, Select, SelectAction, SelectCmd, SelectState};
 pub use tabs::{Tabs, TabsAction, TabsCmd, TabsState};
 pub use textarea::{TextArea, TextAreaState};

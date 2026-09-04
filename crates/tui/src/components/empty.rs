@@ -183,9 +183,7 @@ impl<'a> Empty<'a> {
         let slot = ov.style(ui, self.id, Family::EMPTY, self.variant, Part::EMPTY, live);
         ui.fill(area, slot.style);
         let rows = self.rows(area.width);
-        let top = area
-            .y
-            .saturating_add(area.height.saturating_sub(rows) / 2);
+        let top = area.y.saturating_add(area.height.saturating_sub(rows) / 2);
         let block = Rect {
             y: top,
             height: rows.min(area.height),

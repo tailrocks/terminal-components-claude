@@ -63,18 +63,43 @@ const fn b(chord: Chord, cmd: ChoiceCmd, label: &'static str, visible: bool) -> 
 
 /// `Checkbox` / `Toggle`: one commit chord, two spellings.
 const FLAG: &[Binding<ChoiceCmd>] = &[
-    b(Chord::key(KeyCode::Char(' ')), ChoiceCmd::Choose, "Toggle", true),
-    b(Chord::key(KeyCode::Enter), ChoiceCmd::Choose, "Toggle", false),
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChoiceCmd::Choose,
+        "Toggle",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChoiceCmd::Choose,
+        "Toggle",
+        false,
+    ),
 ];
 
 /// `RadioGroup`: arrows move the cursor, `Space` / `Enter` commit it.
 const RADIO: &[Binding<ChoiceCmd>] = &[
-    b(Chord::key(KeyCode::Char(' ')), ChoiceCmd::Choose, "Choose", true),
-    b(Chord::key(KeyCode::Enter), ChoiceCmd::Choose, "Choose", false),
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChoiceCmd::Choose,
+        "Choose",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChoiceCmd::Choose,
+        "Choose",
+        false,
+    ),
     b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
     b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
     b(Chord::key(KeyCode::Char('k')), ChoiceCmd::Prev, "Up", false),
-    b(Chord::key(KeyCode::Char('j')), ChoiceCmd::Next, "Down", false),
+    b(
+        Chord::key(KeyCode::Char('j')),
+        ChoiceCmd::Next,
+        "Down",
+        false,
+    ),
     b(Chord::key(KeyCode::Home), ChoiceCmd::First, "First", false),
     b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
 ];
@@ -100,73 +125,69 @@ impl FlagRow<'_> {
         live: StateFlags,
         marker: &dyn Fn(&mut Ui<'_>, Rect, ratatui_core::style::Style),
     ) -> Rect {
-    let (id, ov, label, marker_w, trailing) = (
-        self.id,
-        self.ov,
-        self.label,
-        self.marker_w,
-        self.trailing,
-    );
-    let style = |ui: &mut Ui<'_>, part: Part| {
-        ov.style(ui, id, Family::CHOICE, Variant::DEFAULT, part, live)
-    };
-    let container = style(ui, Part::CONTAINER);
-    ui.fill(area, container.style);
-    let gutter_cell = cell_at(area, area.x);
-    if let Some(f) = ov.slot_for(Part::GUTTER) {
-        f(ui, gutter_cell);
-    } else {
-        let g = style(ui, Part::GUTTER);
-        match g.glyph {
-            Some(glyph) => {
-                ui.glyph(gutter_cell, glyph, g.style);
-            }
-            None => ui.fill(gutter_cell, g.style),
-        }
-    }
-    let marker_cell = Rect {
-        x: area.x.saturating_add(1),
-        y: area.y,
-        width: marker_w.min(area.width.saturating_sub(1)),
-        height: 1,
-    };
-    if let Some(f) = ov.slot_for(Part::MARKER) {
-        f(ui, marker_cell);
-    } else {
-        let ms = style(ui, Part::MARKER);
-        marker(ui, marker_cell, ms.style);
-    }
-    let text = Rect {
-        x: area.x.saturating_add(1).saturating_add(marker_w).saturating_add(1),
-        y: area.y,
-        width: area
-            .width
-            .saturating_sub(2)
-            .saturating_sub(marker_w),
-        height: 1,
-    };
-    if let Some(f) = ov.slot_for(Part::LABEL) {
-        f(ui, text);
-    } else {
-        let ls = style(ui, Part::LABEL);
-        let used = if ls.glyph == Some(GlyphRole::PressLeft) {
-            // §11.4's mono `PRESSED` affordance: `[label]`
-            let l = ui.glyph(text, GlyphRole::PressLeft, ls.style);
-            let mut t = super::shift(text, l);
-            let w = ui.paint_str(t, label, ls.style);
-            t = super::shift(t, w);
-            let r = ui.glyph(t, GlyphRole::PressRight, ls.style);
-            l.saturating_add(w).saturating_add(r)
-        } else {
-            ui.paint_str(text, label, ls.style)
+        let (id, ov, label, marker_w, trailing) =
+            (self.id, self.ov, self.label, self.marker_w, self.trailing);
+        let style = |ui: &mut Ui<'_>, part: Part| {
+            ov.style(ui, id, Family::CHOICE, Variant::DEFAULT, part, live)
         };
-        if let Some(s) = trailing {
-            let rest = super::shift(text, used.saturating_add(1));
-            let hs = style(ui, Part::META);
-            ui.paint_str(rest, s, hs.style);
+        let container = style(ui, Part::CONTAINER);
+        ui.fill(area, container.style);
+        let gutter_cell = cell_at(area, area.x);
+        if let Some(f) = ov.slot_for(Part::GUTTER) {
+            f(ui, gutter_cell);
+        } else {
+            let g = style(ui, Part::GUTTER);
+            match g.glyph {
+                Some(glyph) => {
+                    ui.glyph(gutter_cell, glyph, g.style);
+                }
+                None => ui.fill(gutter_cell, g.style),
+            }
         }
-    }
-    area
+        let marker_cell = Rect {
+            x: area.x.saturating_add(1),
+            y: area.y,
+            width: marker_w.min(area.width.saturating_sub(1)),
+            height: 1,
+        };
+        if let Some(f) = ov.slot_for(Part::MARKER) {
+            f(ui, marker_cell);
+        } else {
+            let ms = style(ui, Part::MARKER);
+            marker(ui, marker_cell, ms.style);
+        }
+        let text = Rect {
+            x: area
+                .x
+                .saturating_add(1)
+                .saturating_add(marker_w)
+                .saturating_add(1),
+            y: area.y,
+            width: area.width.saturating_sub(2).saturating_sub(marker_w),
+            height: 1,
+        };
+        if let Some(f) = ov.slot_for(Part::LABEL) {
+            f(ui, text);
+        } else {
+            let ls = style(ui, Part::LABEL);
+            let used = if ls.glyph == Some(GlyphRole::PressLeft) {
+                // §11.4's mono `PRESSED` affordance: `[label]`
+                let l = ui.glyph(text, GlyphRole::PressLeft, ls.style);
+                let mut t = super::shift(text, l);
+                let w = ui.paint_str(t, label, ls.style);
+                t = super::shift(t, w);
+                let r = ui.glyph(t, GlyphRole::PressRight, ls.style);
+                l.saturating_add(w).saturating_add(r)
+            } else {
+                ui.paint_str(text, label, ls.style)
+            };
+            if let Some(s) = trailing {
+                let rest = super::shift(text, used.saturating_add(1));
+                let hs = style(ui, Part::META);
+                ui.paint_str(rest, s, hs.style);
+            }
+        }
+        area
     }
 }
 
@@ -251,8 +272,7 @@ impl fmt::Debug for Checkbox<'_> {
 
 impl<'a> Checkbox<'a> {
     /// The parts this component styles.
-    pub const PARTS: &'static [Part] =
-        &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
 
     /// Columns the marker occupies.
     const MARKER_W: u16 = 3;
@@ -390,14 +410,19 @@ impl<'a> Checkbox<'a> {
             marker_w: Self::MARKER_W,
             trailing: None,
         }
-        .draw(ui, area, live, &move |ui: &mut Ui<'_>, cell: Rect, style| {
-            let g = if on {
-                GlyphRole::CheckboxOn
-            } else {
-                GlyphRole::CheckboxOff
-            };
-            ui.glyph(cell, g, style);
-        })
+        .draw(
+            ui,
+            area,
+            live,
+            &move |ui: &mut Ui<'_>, cell: Rect, style| {
+                let g = if on {
+                    GlyphRole::CheckboxOn
+                } else {
+                    GlyphRole::CheckboxOff
+                };
+                ui.glyph(cell, g, style);
+            },
+        )
     }
 
     /// One row, the marker plus the label.
@@ -659,7 +684,11 @@ impl<'a> Toggle<'a> {
             marker_w: Self::MARKER_W,
             trailing: Some(if on { "on" } else { "off" }),
         }
-        .draw(ui, area, live, &move |ui: &mut Ui<'_>, cell: Rect, style| {
+        .draw(
+            ui,
+            area,
+            live,
+            &move |ui: &mut Ui<'_>, cell: Rect, style| {
                 // the knob sits at the end of the track when the switch is on
                 let (knob, track) = if on {
                     (cell.right().saturating_sub(1), cell.x)
@@ -675,8 +704,9 @@ impl<'a> Toggle<'a> {
                 for col in rail.columns() {
                     ui.glyph(col, GlyphRole::RuleQuiet, style);
                 }
-            ui.glyph(cell_at(cell, knob), GlyphRole::SwitchKnob, style);
-        })
+                ui.glyph(cell_at(cell, knob), GlyphRole::SwitchKnob, style);
+            },
+        )
     }
 
     /// One row, the switch plus the label and the state word.
@@ -867,8 +897,7 @@ impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
 
 impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
     /// The parts this component styles.
-    pub const PARTS: &'static [Part] =
-        &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
 
     /// Columns the marker occupies.
     const MARKER_W: u16 = 3;
@@ -984,7 +1013,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
-    fn move_cursor(&self, st: &mut RadioGroupState, items: &[T], to: usize, acc: &mut Acc<RadioGroupAction>) {
+    fn move_cursor(
+        &self,
+        st: &mut RadioGroupState,
+        items: &[T],
+        to: usize,
+        acc: &mut Acc<RadioGroupAction>,
+    ) {
         if items.is_empty() {
             acc.consumed();
             return;
@@ -997,7 +1032,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.changed();
     }
 
-    fn choose(&self, st: &mut RadioGroupState, items: &[T], i: usize, acc: &mut Acc<RadioGroupAction>) {
+    fn choose(
+        &self,
+        st: &mut RadioGroupState,
+        items: &[T],
+        i: usize,
+        acc: &mut Acc<RadioGroupAction>,
+    ) {
         if items.is_empty() {
             acc.consumed();
             return;
@@ -1075,13 +1116,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
     }
 
     /// The draw phase: one row per option.
-    pub fn draw(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        st: &RadioGroupState,
-        items: &[T],
-    ) -> Rect {
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
         }
@@ -1119,7 +1154,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             // A11 reference rendering: with no live cursor the first row
             // stands in for it, so a forced state paints something.
             let is_cursor = cursor == Some(key) || (forced && cursor.is_none() && i == 0);
-            let on = self.value == Some(key) || (forced && is_cursor && live.contains(StateFlags::SELECTED));
+            let on = self.value == Some(key)
+                || (forced && is_cursor && live.contains(StateFlags::SELECTED));
             let mut flags = StateFlags::empty();
             if is_cursor {
                 flags |= live
@@ -1138,13 +1174,27 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                 flags |= StateFlags::DISABLED;
                 flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
             }
-            let container = ov.style(ui, id, Family::CHOICE, Variant::DEFAULT, Part::CONTAINER, flags);
+            let container = ov.style(
+                ui,
+                id,
+                Family::CHOICE,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                flags,
+            );
             ui.fill(row, container.style);
             let gutter_cell = cell_at(row, row.x);
             if let Some(f) = ov.slot_for(Part::GUTTER) {
                 f(ui, gutter_cell);
             } else {
-                let g = ov.style(ui, id, Family::CHOICE, Variant::DEFAULT, Part::GUTTER, flags);
+                let g = ov.style(
+                    ui,
+                    id,
+                    Family::CHOICE,
+                    Variant::DEFAULT,
+                    Part::GUTTER,
+                    flags,
+                );
                 match g.glyph {
                     Some(glyph) => {
                         ui.glyph(gutter_cell, glyph, g.style);
@@ -1161,7 +1211,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             if let Some(f) = ov.slot_for(Part::MARKER) {
                 f(ui, marker_cell);
             } else {
-                let ms = ov.style(ui, id, Family::CHOICE, Variant::DEFAULT, Part::MARKER, flags);
+                let ms = ov.style(
+                    ui,
+                    id,
+                    Family::CHOICE,
+                    Variant::DEFAULT,
+                    Part::MARKER,
+                    flags,
+                );
                 let g = if on {
                     GlyphRole::RadioOn
                 } else {
@@ -1170,7 +1227,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                 ui.glyph(marker_cell, g, ms.style);
             }
             let rest = Rect {
-                x: row.x.saturating_add(1).saturating_add(Self::MARKER_W).saturating_add(1),
+                x: row
+                    .x
+                    .saturating_add(1)
+                    .saturating_add(Self::MARKER_W)
+                    .saturating_add(1),
                 y: row.y,
                 width: row.width.saturating_sub(2).saturating_sub(Self::MARKER_W),
                 height: 1,
@@ -1234,7 +1295,8 @@ mod tests {
             "moving the cursor must not report a choice"
         );
         let mut acc = Acc::<RadioGroupAction>::new();
-        g.choose(&mut st, &items, st.cursor_index(), &mut acc);
+        let at = st.cursor_index();
+        g.choose(&mut st, &items, at, &mut acc);
         assert_eq!(
             acc.finish(RG).action_ref(),
             Some(&RadioGroupAction::Chose(ItemKey::index(2)))

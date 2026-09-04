@@ -341,7 +341,11 @@ impl<'a> HintBar<'a> {
                     id,
                     Family::HINTBAR,
                     self.variant,
-                    if self.busy() { Part::ICON } else { Part::MARKER },
+                    if self.busy() {
+                        Part::ICON
+                    } else {
+                        Part::MARKER
+                    },
                     live,
                 );
                 let cell = Rect {

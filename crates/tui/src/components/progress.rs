@@ -69,7 +69,12 @@ impl Pct {
 
 /// Paint a run of one glyph across `run`, one cell at a time (R-4: a single
 /// pass over columns, never a nested `for y … for x`).
-pub(crate) fn run_of(ui: &mut Ui<'_>, run: Rect, glyph: GlyphRole, style: ratatui_core::style::Style) {
+pub(crate) fn run_of(
+    ui: &mut Ui<'_>,
+    run: Rect,
+    glyph: GlyphRole,
+    style: ratatui_core::style::Style,
+) {
     let sym = ui.glyph_str(glyph);
     for col in run.columns() {
         ui.paint_cell(Position::new(col.x, run.y), sym, style);
@@ -426,8 +431,7 @@ impl<'a> ProgressBar<'a> {
                 // the indeterminate sweep: a short segment crossing the track
                 let seg = (w / 5).clamp(2, 8);
                 let period = usize::from(w.saturating_add(seg)).max(1);
-                let pos = self.frame.checked_rem(period).unwrap_or(0) as i32
-                    - i32::from(seg);
+                let pos = self.frame.checked_rem(period).unwrap_or(0) as i32 - i32::from(seg);
                 let from = pos.max(0) as u16;
                 let to = (pos + i32::from(seg)).clamp(0, i32::from(w)) as u16;
                 (from.min(w), to)
@@ -637,7 +641,14 @@ impl<'a> Spinner<'a> {
         if let Some(f) = ov.slot_for(Part::ICON) {
             f(ui, icon);
         } else {
-            let s = ov.style(ui, self.id, Family::PROGRESS, self.variant, Part::ICON, live);
+            let s = ov.style(
+                ui,
+                self.id,
+                Family::PROGRESS,
+                self.variant,
+                Part::ICON,
+                live,
+            );
             ui.paint_str(icon, frame, s.style);
         }
         if !self.label.is_empty() {
@@ -647,8 +658,14 @@ impl<'a> Spinner<'a> {
                 if let Some(f) = ov.slot_for(Part::LABEL) {
                     f(ui, rest);
                 } else {
-                    let s =
-                        ov.style(ui, self.id, Family::PROGRESS, self.variant, Part::LABEL, live);
+                    let s = ov.style(
+                        ui,
+                        self.id,
+                        Family::PROGRESS,
+                        self.variant,
+                        Part::LABEL,
+                        live,
+                    );
                     ui.paint_str(rest, self.label, s.style);
                 }
             }
@@ -697,7 +714,13 @@ mod tests {
     fn a_determinate_span_starts_at_zero_and_rounds() {
         let bar = ProgressBar::new(Id::root("t")).ratio(0.5);
         assert_eq!(bar.filled_span(20), (0, 10));
-        assert_eq!(ProgressBar::new(Id::root("t")).ratio(1.5).filled_span(20), (0, 20));
-        assert_eq!(ProgressBar::new(Id::root("t")).ratio(-1.0).filled_span(20), (0, 0));
+        assert_eq!(
+            ProgressBar::new(Id::root("t")).ratio(1.5).filled_span(20),
+            (0, 20)
+        );
+        assert_eq!(
+            ProgressBar::new(Id::root("t")).ratio(-1.0).filled_span(20),
+            (0, 0)
+        );
     }
 }

@@ -18,9 +18,7 @@ use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{
-    Family, GlyphRole, MeterRole, MeterThresholds, Role, StylePatch, Variant,
-};
+use crate::theme::{Family, GlyphRole, MeterRole, MeterThresholds, Role, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// What a meter's run says about the value it reports.

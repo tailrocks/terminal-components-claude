@@ -1190,17 +1190,23 @@ mod tests {
                 row.push_str(c.symbol());
             }
         }
-        assert!(!row.contains(SECRET), "the secret reached the buffer: {row}");
-        assert!(!row.contains('h') && !row.contains('u'), "{row}");
-        let mask = Theme::junie().design.glyphs.get(SecretPolicy::default().mask);
-        assert!(row.contains(mask), "no mask glyph in {row}");
-        // the tail is the fingerprint alphabet, and it is stable per secret
-        let tail: String = row
-            .trim_end()
-            .chars()
-            .rev()
-            .take(SecretPolicy::default().synthetic_tail)
-            .collect();
+        assert!(
+            !row.contains(SECRET),
+            "the secret reached the buffer: {row}"
+        );
+        let policy = SecretPolicy::default();
+        let mask = Theme::junie().design.glyphs.get(policy.mask);
+        let painted = row.trim();
+        let masked = SECRET.chars().count().saturating_sub(policy.synthetic_tail);
+        assert!(
+            painted.starts_with(&mask.repeat(masked)),
+            "the mask run is wrong: {painted}"
+        );
+        // the tail is synthetic: the real one's length, a different string,
+        // and drawn from the fingerprint alphabet
+        let tail: String = painted.chars().skip(masked).collect();
+        assert_eq!(tail.chars().count(), policy.synthetic_tail);
+        assert_ne!(tail, "r2", "the real tail was painted");
         assert!(
             tail.chars().all(|c| c.is_ascii_alphanumeric()),
             "tail {tail} is not synthetic"

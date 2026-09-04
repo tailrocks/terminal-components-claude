@@ -126,3 +126,9 @@ Interrupted packages and what each had produced:
 4. Spawn fable-builder "components-finish": bring components/examples/tests to the slice2 review §9(c) acceptance (conformance 20×7, render digests junie/paper × truecolor/mono, overrides tests, overlay tests, showcase_buttons example + 3 retained tests, component perf benches), adapting to the F-fixes (paint_spans signature, LayerSize, Ui::resolve, Resolved::over).
 5. Spawn fresh opus-analyst: review of the prototype's real API (slice2 review §9(c) item 14) + verify every §6 gate; record; correction pass if needed.
 6. Slice 3 gate green → Slice 4 wave 1 (4A,4B,4C,4E,4G) parallel per Appendix A with disjoint files; each followed by fresh Opus API-consistency review; wave 2 (4D,4F,4H,4I); Slice 5 (rename tui-next→junie-tui + showcase); Slices 6/7 parallel; Slice 8 cleanup + two fresh Opus reviews + final report (§30).
+
+## Session 2 addendum — 4B landed after the stop order
+
+- `4B` self-persisted a checkpoint at `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/fb791879-76d3-4f15-9d62-e9ff3d33d23c/scratchpad/4B_PROGRESS.md` (next steps, planned `Caps` per case, allow-list lines to delete). Delivered: `textarea.rs`, `choice.rs` (RadioGroup cursor/value split), `chip.rs`, `select.rs` (Popover layer sized by `measured_size`, D1 re-asserted); `input.rs` gained `TextCmd::{Newline,PageUp,PageDown}` and the nine §16.1 test names. `Secret`/`Validate` already complete, untouched.
+- NOT done by 4B: conformance cases, render matrix + bless, allow-list deletions, full gate.
+- Build state now: `cargo test -p tui-next --lib` 257 passed. Remaining clippy failure is `crates/tui/src/components/progress.rs:56` (`buf[len] = b

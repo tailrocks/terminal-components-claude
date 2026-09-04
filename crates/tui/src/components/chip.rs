@@ -53,7 +53,12 @@ pub enum ChipBarCmd {
     Close,
 }
 
-const fn b(chord: Chord, cmd: ChipBarCmd, label: &'static str, visible: bool) -> Binding<ChipBarCmd> {
+const fn b(
+    chord: Chord,
+    cmd: ChipBarCmd,
+    label: &'static str,
+    visible: bool,
+) -> Binding<ChipBarCmd> {
     Binding {
         chord,
         cmd,
@@ -66,17 +71,38 @@ const fn b(chord: Chord, cmd: ChipBarCmd, label: &'static str, visible: bool) ->
 const MOVE: [Binding<ChipBarCmd>; 7] = [
     b(Chord::key(KeyCode::Left), ChipBarCmd::Prev, "Left", true),
     b(Chord::key(KeyCode::Right), ChipBarCmd::Next, "Right", true),
-    b(Chord::key(KeyCode::Char('h')), ChipBarCmd::Prev, "Left", false),
-    b(Chord::key(KeyCode::Char('l')), ChipBarCmd::Next, "Right", false),
+    b(
+        Chord::key(KeyCode::Char('h')),
+        ChipBarCmd::Prev,
+        "Left",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('l')),
+        ChipBarCmd::Next,
+        "Right",
+        false,
+    ),
     b(Chord::key(KeyCode::Home), ChipBarCmd::First, "First", false),
     b(Chord::key(KeyCode::End), ChipBarCmd::Last, "Last", false),
-    b(Chord::key(KeyCode::Enter), ChipBarCmd::Activate, "Open", true),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChipBarCmd::Activate,
+        "Open",
+        true,
+    ),
 ];
 
 const PLAIN: [Binding<ChipBarCmd>; 7] = MOVE;
 
 const TOGGLING: [Binding<ChipBarCmd>; 8] = [
-    MOVE[0], MOVE[1], MOVE[2], MOVE[3], MOVE[4], MOVE[5], MOVE[6],
+    MOVE[0],
+    MOVE[1],
+    MOVE[2],
+    MOVE[3],
+    MOVE[4],
+    MOVE[5],
+    MOVE[6],
     b(
         Chord::key(KeyCode::Char(' ')),
         ChipBarCmd::Toggle,
@@ -93,7 +119,12 @@ const CLOSABLE: [Binding<ChipBarCmd>; 10] = [
     MOVE[4],
     MOVE[5],
     MOVE[6],
-    b(Chord::key(KeyCode::Delete), ChipBarCmd::Close, "Remove", true),
+    b(
+        Chord::key(KeyCode::Delete),
+        ChipBarCmd::Close,
+        "Remove",
+        true,
+    ),
     b(
         Chord::key(KeyCode::Backspace),
         ChipBarCmd::Close,
@@ -308,8 +339,7 @@ impl<T> ChipBar<'_, T, ByIndex, DefaultRow> {
 
 impl<'a, T, K, R> ChipBar<'a, T, K, R> {
     /// The parts this component styles.
-    pub const PARTS: &'static [Part] =
-        &[Part::CONTAINER, Part::LABEL, Part::CLOSE, Part::OVERFLOW];
+    pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::LABEL, Part::CLOSE, Part::OVERFLOW];
 
     /// The id.
     pub const fn id(&self) -> Id {
@@ -453,7 +483,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
 
     /// Move the cursor to stop `to`; the stop after the last chip is the add
     /// affordance when there is one.
-    fn move_cursor(&self, st: &mut ChipBarState, items: &[T], to: usize, acc: &mut Acc<ChipBarAction>) {
+    fn move_cursor(
+        &self,
+        st: &mut ChipBarState,
+        items: &[T],
+        to: usize,
+        acc: &mut Acc<ChipBarAction>,
+    ) {
         let len = items.len();
         let stops = len.saturating_add(usize::from(self.add.is_some()));
         if stops == 0 {
@@ -470,7 +506,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
     }
 
     /// The stop the cursor currently names.
-    fn cursor_stop(&self, st: &ChipBarState, items: &[T]) -> usize {
+    fn cursor_stop(st: &ChipBarState, items: &[T]) -> usize {
         if st.on_add {
             items.len()
         } else {
@@ -538,7 +574,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Key(k) if can => {
-                    let cur = self.cursor_stop(st, items);
+                    let cur = Self::cursor_stop(st, items);
                     match Binding::lookup(table, &k) {
                         Some(ChipBarCmd::Prev) => {
                             self.move_cursor(st, items, cur.saturating_sub(1), &mut acc);
@@ -558,10 +594,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 }
                 Intent::Pointer {
                     phase,
-                    part: PartRef { part, item: Some(k) },
+                    part:
+                        PartRef {
+                            part,
+                            item: Some(k),
+                        },
                     ..
                 } if can => {
-                    let hint = Some(self.cursor_stop(st, items));
+                    let hint = Some(Self::cursor_stop(st, items));
                     let i = self.index_of(items, k, hint);
                     match (phase, part, i) {
                         (Phase::Press, Part::LABEL, Some(i)) => {
@@ -673,8 +713,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 height: 1,
             };
             {
-                let mut r =
-                    RowUi::new(ui, id, Family::CHIP, Variant::DEFAULT, flags, key, content);
+                let mut r = RowUi::new(ui, id, Family::CHIP, Variant::DEFAULT, flags, key, content);
                 self.row.row(item, &mut r);
             }
             let label_w = painted_width(ui, content).max(1);
@@ -705,7 +744,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             ui.fill(tail, strip.style);
             // the gutter cell of a chip is part of its fill, so it takes the
             // chip's own CONTAINER style rather than the strip's
-            let cs = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::CONTAINER, flags);
+            let cs = ov.style(
+                ui,
+                id,
+                Family::CHIP,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                flags,
+            );
             ui.paint_style(cell_at(chip, chip.x), cs.style);
             if flags.contains(StateFlags::PRESSED) {
                 // §11.4's mono `PRESSED` affordance: `[label]`, painted into
@@ -768,7 +814,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 if self.disabled || live.contains(StateFlags::DISABLED) {
                     flags |= StateFlags::DISABLED;
                 }
-                let bg = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::CONTAINER, flags);
+                let bg = ov.style(
+                    ui,
+                    id,
+                    Family::CHIP,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    flags,
+                );
                 ui.fill(cell, bg.style);
                 let ls = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::LABEL, flags);
                 ui.paint_str(shift(cell, 1), label, ls.style);

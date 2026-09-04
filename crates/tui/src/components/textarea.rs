@@ -42,7 +42,12 @@ const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Bi
 /// and `↑`/`↓`/`PgUp`/`PgDn` move the cursor by line and by page.
 const BINDINGS: &[Binding<TextCmd>] = &[
     b(Chord::key(KeyCode::Esc), TextCmd::Commit, "Done", true),
-    b(Chord::key(KeyCode::Enter), TextCmd::Newline, "New line", true),
+    b(
+        Chord::key(KeyCode::Enter),
+        TextCmd::Newline,
+        "New line",
+        true,
+    ),
     b(
         Chord::key(KeyCode::Left),
         TextCmd::Move(Motion::Left, Extend::No),
@@ -115,7 +120,12 @@ const BINDINGS: &[Binding<TextCmd>] = &[
         "Word right",
         false,
     ),
-    b(Chord::key(KeyCode::PageUp), TextCmd::PageUp, "Page up", true),
+    b(
+        Chord::key(KeyCode::PageUp),
+        TextCmd::PageUp,
+        "Page up",
+        true,
+    ),
     b(
         Chord::key(KeyCode::PageDown),
         TextCmd::PageDown,
@@ -1064,6 +1074,11 @@ mod tests {
         let mut st = TextAreaState::default();
         st.begin("a\nbb\nccc");
         assert_eq!(st.draft.line_count(), 3);
+        assert_eq!(
+            st.apply(EditAction::Move(Motion::DocStart, Extend::No)),
+            EditOutcome::Moved
+        );
+        assert_eq!(st.draft.cursor_pos().line, 0);
         assert_eq!(
             st.apply(EditAction::Move(Motion::DocEnd, Extend::No)),
             EditOutcome::Moved
