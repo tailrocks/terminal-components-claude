@@ -1141,3 +1141,19 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   Jackin status/tick/dimming, total closure containers, and SplitPane's two-slot closure.
 - §49 classification/bless is in flight. Tree, Choice, 4E and dormant-family review/fixes remain
   active; no Slice-4 completion claim is made.
+
+### Session 5 §49 closeout and 4C adjudications
+
+- §49 is committed and pushed at `bfcf5e4`. Clean-worktree proof at that commit: xtask 22/22,
+  render-components 164/164, and `BLESS_GUARD_BASE=HEAD^` accepted exactly 22 moved / 0 added
+  keys. The retained baseline SHA-256 is
+  `1ab8e9205a19069ff5f9d97d675df77e6051c6195ad7a882766163cc2e744c9e`.
+- Choice/Chip implementation passed 321 library tests; Tree incremental cache/query passed 11
+  focused tests; TextArea containment/forced-scroll correction brought the current integrated
+  library to 370/370 and conformance to 489/489. These code results are not yet committed.
+- Fresh 4C review found NavList/Steps source materially incomplete. Accepted §§57–§59 now bind:
+  NavList has separate `EnterContent(ItemKey)`, icon-only collapsed groups, and scoped owner
+  patches; Steps keeps skipped rows inspectable/read-only, emits stable-key movement only on real
+  change, owns lifecycle META, and uses a runtime-derived incremental frontier cache.
+- NavList, Steps, TooSmall and Grid remain dormant/unexported. Their implementation, certification,
+  first-generation classification and API reviews remain required.

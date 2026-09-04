@@ -7790,3 +7790,60 @@ surface. Acceptance asserts one invocation and a bare sentinel across normal, em
 collapsed and maximized states; logical ordering; nonzero-origin empty anchors; malicious-body
 clipping; seam preservation; and an AST signature gate covering Panel/Dialog one-slot and
 SplitPane two-slot forms.
+
+## §57 Adjudication — NavList distinguishes choice from entering content <!-- amended by §57 -->
+
+**Status: accepted.** Add `NavListCmd::EnterContent` and
+`NavListAction::EnterContent(ItemKey)`. Plain Right and plain `l` emit it; Enter, Space and click
+continue to emit `Chose(ItemKey)`. Both set current/cursor, but only the shell maps
+`EnterContent` to the first focus stop in the content pane. NavList never calls `cx.focus` itself.
+Modified `l` is not a binding. `LeaveForward` and overloading `Chose` are rejected because they
+lose spatial-entry versus stay-in-nav intent.
+
+NavList owns `[CONTAINER,GUTTER,MARKER,ICON,LABEL,HEADER,BADGE]` for component patches and owns
+SlotFns exactly for `{GUTTER,MARKER,ICON,HEADER,BADGE}`. The scoped RowUi patch carrier forwards
+only CONTAINER and LABEL; arbitrary row META/CELL/custom parts remain row-owned. BADGE is painted
+directly as NavList-owned after reserving its right-side budget. Full mode paints nonempty section
+headings and one blank separator before later groups. Collapsed mode paints no heading text and
+exactly one blank separator between groups, leaving every populated row icon-only.
+
+Acceptance covers Right/l versus Enter/Space/click actions and focus handoff, stable keys,
+modified-key rejection, badge budget/slot substitution, owner patch isolation, and collapsed
+group separators without leaked section text.
+
+## §58 Adjudication — Steps lifecycle is inspectable, identity is stable <!-- amended by §58 -->
+
+**Status: accepted.** `Skipped` is lifecycle state, not a disabled row. It maps to `READ_ONLY`,
+remains cursor-reachable and activatable, and is terminal for frontier calculation. Only the
+whole-rail `.disabled(true)` supplies `DISABLED` and suppresses input. A fresh navigable rail seeds
+the first stable key without emitting `Moved`. Keyboard movement traverses physical rows including
+skipped rows, clamps without wrapping, and emits `Moved(ItemKey)` only when the key changes; a
+boundary chord is consumed with no action, repaint, or state write. Enter/click/double-click actions
+carry the clicked or cursor `ItemKey`; display click retains its semantic `Moved` notification.
+
+Steps owns patches for `[CONTAINER,LABEL,GUTTER,ICON,META,TRACK,THUMB]`; SlotFns are exactly
+`{GUTTER,ICON,TRACK,THUMB}`. The scoped RowUi carrier forwards CONTAINER/LABEL only. Lifecycle META
+is always direct component-owned output; optional caller RowUi META uses remaining space and stays
+row-owned. All three override channels propagate to ScrollRegion. Acceptance covers skipped-row
+navigation/activation, seed/no-false-move behavior, reorder identity, whole-rail disablement,
+owner/row patch isolation, exact slots, lifecycle metadata and scrollbar forwarding.
+
+## §59 Adjudication — Steps frontier is runtime-derived and incrementally cached <!-- amended by §59 -->
+
+**Status: accepted.** Frontier remains derived, never semantic `StepsState` data. Runtime stores a
+private cache `{initialized, revision, len, first, last, frontier_index, frontier_key}`. StepsState
+adds private monotonic `frontier_revision` and public `invalidate()`, which also invalidates
+collection reconciliation; `Reconcile::invalidate` delegates to it. Cache reuse validates revision,
+length, first/last keys and the cached frontier key/state. A terminalized frontier scans forward
+only from its prior index; cold cache, explicit invalidation, cache clear, or stamp mismatch scans
+from zero. Saturated revision recomputes each draw rather than risking stale state.
+
+Monotonic lifecycle progress needs no invalidation. Retry/reset, same-length interior reorder, or
+key/state regression before the cached frontier requires one caller `invalidate()`. `frontier()`
+remains an explicit documented O(n) query; draw uses the cache. §12.1's visible-only rule applies
+to RowFn content rendering; O(1) stamp probes and change-proportional reconcile/frontier scans are
+allowed. Steady draw is O(viewport), frontier advance amortized O(crossed steps).
+
+Acceptance includes `steps_100k_rows_render`, forward-only frontier advance, reset invalidation,
+cached completed frontier, saturation correctness, and the existing lifecycle tests. Deterministic
+accessor counts must bite without PERF_STRICT; timing ratios are advisory under PERF_STRICT.
