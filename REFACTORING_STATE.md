@@ -899,3 +899,61 @@ pattern-matched.
 distinction (`is_forced()` gates registration), and a third `Clear` case would mean "force the
 empty state, suppressing the props-derived flags" — no consumer, and forbidden by case 9's own
 "make the forced state real" clause. §29.1 looks like a precedent and is not.
+
+## Session 4 — Slice 4 wave 1 is effectively closed (2026-09-04)
+
+Measured by the coordinator, not reported by a builder:
+
+- `cargo test -p tui-next --test conformance` — **488 passed / 0 failed**. `select => SelectCase`
+  is registered; `DialogCase` declares `TRAPS_FOCUS`; **conformance case 14's trap half executes
+  for the first time in the project's history and passes.**
+- `cargo run -p xtask -- boundary` — **24 of 25 ok**. `conformance_covers_every_public_component`
+  is finally green (22 registered / 23 entries). The single red is
+  `every_named_test_exists` on the `capsule_pane_clone_4x2000` row, which is **correct** and stays
+  red until Slice 7 deletes the benchmark.
+- `cargo run -p xtask -- doc-check` exit 0. `cargo test -p tui-next --lib` **292 passed / 0 failed**.
+- `--test render` 8/0. `--test render_components` 45 passed / 115 failed — the pending bless, of
+  which **112 are missing baselines and 3 are genuine mismatches**.
+
+### `xtask bless-guard` exists
+
+Documented in §16.3 in the present indicative for months while `xtask` dispatched three commands.
+It now implements §36.5's three checks — item citation, **key-set completeness** (co-presence is
+satisfied by one sentence beside hundreds of unaccounted lines), and the unconditional
+**truecolor refusal** — plus a frozen-evidence refusal whose remedy is *revert, not classify*.
+
+**Ordering is not checked, and the check's own doc comment says so and says why.** A guard that
+implied it proved the fixed order would have been the next decorative gate.
+
+Proven able to fail on every path: hard-wiring the evaluator to `Ok` is caught by one test and to
+`Err` by the other, **both substitutions checked**; an end-to-end probe perturbed one hash line,
+saw the guard name the key, and restored the file; the truecolor refusal, the frozen refusal and
+the unresolvable-base error were each demonstrated the same way.
+
+**It is green today only because the bless has not landed**, and that was measured too: appending
+one item-19 key produces `added, unaccounted`. Entry 19a's `- added:` field uses angle-bracket
+prose placeholders, which are not machine-expandable. The guard accepts a `{a,b}`-alternation
+template expanded as a cartesian product whose size must equal the declared count; the fourteen
+components written that way expand to exactly 896. **`docs/visual-changes.md` owes that rewrite
+before the bless.**
+
+### Ninth decorative-gate candidate
+
+§9.2's invariant — *no overlay component computes a rect* — states its enforcement as a grep over
+`crates/tui/src/components/`. **That grep is implemented nowhere**; it exists only as literal shell
+in three places in the document. And now that `resolve_anchor` is exported through `author`, a
+downstream author's component is by definition outside the grep's scope, so **the in-tree
+invariant stays true while the architectural one stops being.**
+
+### Measured, not asserted — the narrowing-reason work
+
+The builder instrumented the driver's own multiset and measured all ten states per component
+rather than trusting the adjudication's distinguishability claims. It **deviated from the brief
+once, with evidence**: `status_bar` keeps `PRESSED`, because the frame snapshot sets it when the
+strip is pressed and `StatusBar` registers its clickable item regions under its **own** id — so
+narrowing it would have repeated the exact defect the task existed to fix. It could not write a
+truthful "unreachable" sentence, so it did not write one.
+
+Two gate-failure observations recorded: widening `status_bar` to all ten states makes `SELECTED`
+collide with the empty state, and declaring `REPORTS_STATUS` while narrowing `BUSY` away fails
+with the capability-implies message. Both reverted.
