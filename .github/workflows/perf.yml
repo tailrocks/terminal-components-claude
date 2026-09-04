@@ -1,5 +1,35 @@
 name: Perf
 
+# Gate → requirement map. COMPONENT_ARCHITECTURE.md §16.6 adopts
+# `docs/audit/performance-audit.md` §7.3's CI wiring verbatim:
+#
+#   job `perf`         — always on, BLOCKING. Allocation and byte counts are
+#                        deterministic, so they are hard assertions (§16.6). This is
+#                        the column that guards the "< 20 allocs/frame"-class
+#                        thresholds and the `viewport_100k_lines_render` acceptance.
+#   job `perf-strict`  — PERF_STRICT=1, `continue-on-error: true` BY DESIGN. Under
+#                        PERF_STRICT wall time is asserted against `baseline × 1.2`
+#                        (§16.6: "Wall time is reported always, asserted only under
+#                        PERF_STRICT=1"). Wall clocks on a shared GitHub runner are
+#                        machine-sensitive; the allocation and byte columns above are
+#                        the hard ones. Do not add continue-on-error to anything else.
+#   PERF artefact      — §16.6 "PERF lines are collected into a build artefact for the
+#                        final report" (goal §30 item 13).
+#   baseline is not re-blessed in CI — §25.12 F18: `perf_baseline.txt` is regenerated
+#                        only with PERF_BLESS=1, reviewed in the diff, in the same
+#                        commit as the code change. CI asserts it did not move.
+#
+# `--test-threads=1`: allocation counts are process-wide but the harness serialises
+# them through its own lock, so BLESSING IS THREAD-COUNT INDEPENDENT — the flag is no
+# longer required for correctness (§16.6). It is kept because the perf suite still
+# wants a quiet machine for stable wall times, which is exactly what the PERF_STRICT
+# job asserts against. Removing it would make the strict job noisier, not wrong.
+#
+# `--workspace --test perf` selects BOTH perf targets today: the legacy root package's
+# `tests/perf.rs` and `crates/tui/tests/perf.rs`. The three `--bin … perf_tests` runs
+# are the application-shell benchmarks, which live inside the legacy root binaries
+# until Slices 5–7 move them to `apps/*/tests/perf.rs` (Appendix A, WP-0 note 5).
+
 on:
   push:
     branches: [main]
@@ -10,15 +40,17 @@ env:
 
 jobs:
   perf:
-    name: perf (advisory)
+    name: perf (allocations and bytes, blocking)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Library perf
+      # The default `run` shell is `bash -e -o pipefail`, so a cargo failure ahead of
+      # `tee` still fails the step.
+      - name: Library and foundation perf
         run: |
-          cargo test --release --test perf -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
+          cargo test --workspace --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
       - name: Showcase perf
         run: |
           cargo test --release --bin showcase perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-showcase.log
@@ -28,6 +60,11 @@ jobs:
       - name: Jackin perf
         run: |
           cargo test --release --bin jackin-preview perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-jackin.log
+      # §25.12 F18: a perf run must never re-bless. Only PERF_BLESS=1 rewrites these,
+      # and that happens in the commit that changes the code, reviewed in the diff.
+      - name: Baselines were not re-blessed (§25.12 F18)
+        run: git diff --exit-code crates/tui/tests/perf_baseline.txt tests/perf_baseline.txt
+      # §16.6 / goal §30 item 13.
       - name: Collect PERF lines
         if: always()
         run: grep -h '^PERF' perf-*.log > perf-lines.txt || true
@@ -40,8 +77,10 @@ jobs:
             perf-*.log
 
   perf-strict:
-    name: perf (strict, advisory)
+    name: perf (wall clock, advisory)
     runs-on: ubuntu-latest
+    # The one sanctioned continue-on-error in this repository: §16.6 asserts wall time
+    # only under PERF_STRICT=1, and a shared runner cannot hold a 1.2× band.
     continue-on-error: true
     env:
       PERF_STRICT: "1"
@@ -49,11 +88,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Library perf (strict)
-        run: cargo test --release --test perf -- --test-threads=1
+      - name: Library and foundation perf (strict)
+        run: |
+          cargo test --workspace --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-lib.log
       - name: Showcase perf (strict)
-        run: cargo test --release --bin showcase perf_tests -- --test-threads=1
+        run: |
+          cargo test --release --bin showcase perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-showcase.log
       - name: TablePro perf (strict)
-        run: cargo test --release --bin tablepro perf_tests -- --test-threads=1
+        run: |
+          cargo test --release --bin tablepro perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-tablepro.log
       - name: Jackin perf (strict)
-        run: cargo test --release --bin jackin-preview perf_tests -- --test-threads=1
+        run: |
+          cargo test --release --bin jackin-preview perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-jackin.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-lines-strict
+          path: perf-strict-*.log

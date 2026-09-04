@@ -1,5 +1,45 @@
 name: CI
 
+# Gate → requirement map. Every step below traces to a section of
+# COMPONENT_ARCHITECTURE.md; do not add, drop or weaken one without amending the
+# section it comes from.
+#
+#   fmt / clippy / build / test / doc-test / doc
+#       §22 §7 "the gate commands" and Appendix A Slice 8 (the unscoped goal §26 set).
+#   cargo test --workspace --doc
+#       §16.5 CI gate `readme_compiles` — crates/tui/src/lib.rs carries
+#       `#![doc = include_str!("../README.md")]`, so the doc-test run compile-checks
+#       every README fence (§22.3).
+#   RUSTDOCFLAGS="-D warnings" cargo doc
+#       §16.5 `architecture::public_items_are_documented` (the other half of
+#       `#![deny(missing_docs)]`). Set through the job-level `RUSTDOCFLAGS` env below,
+#       which also hardens the doc-test step.
+#   cargo build -p tui-next --examples
+#       §16.5 `architecture::examples_are_external_consumers` / `all_examples_compile`.
+#   cargo test -p tui-next --test render --test render_components
+#       §16.3 + §28 P2. During Slices 3–4 the matrix lives in TWO targets; a gate
+#       naming only `--test render` silently runs half of it. Both are named here.
+#   cargo test --workspace -- --list | grep -c '^render::components::'
+#       §25.12 / §28 P2: the documented test path is reachable at all (non-zero).
+#   cargo run -p xtask -- boundary
+#       §16.5 and §22 §6.2 — the forbidden-pattern table, the dependency-graph check,
+#       `ratatui_crossterm_is_named_in_exactly_two_files`, `no_unreachable_spin_loops`.
+#   allow-list emptiness
+#       §25.12 F9 pass condition: crates/tui/tests/allow/{legacy_api,domain}.txt are empty.
+#   cargo run -p xtask -- doc-check
+#       §16.5 / §21 item 34 — every `Ident::method` in the document resolves.
+#   cargo check -p tui-next --no-default-features
+#       §16.5 CI gate `core_is_backend_free` / §22.1: nothing outside
+#       runtime/session.rs needs a backend.
+#   cargo check --workspace --all-targets --all-features on the pinned 1.88.0 leg
+#       §16.5 `architecture::msrv_and_edition_are_unchanged` + §22.5: `cargo metadata`
+#       proves the FIELD, this job proves the code compiles on the floor. Without it a
+#       builder could use a 1.95 API on a 1.98 toolchain and every other gate would pass.
+#
+# Naming note (§21 item 31): `tui-next` is the TEMPORARY Slice 3–4 package name of
+# `crates/tui`; it is renamed to `junie-tui` in one scripted commit at the start of
+# Slice 5, at which point the four `-p tui-next` gates below read `-p junie-tui`.
+
 on:
   push:
     branches: [main]
@@ -11,13 +51,16 @@ env:
   RUSTDOCFLAGS: -D warnings
 
 jobs:
-  check:
-    name: ${{ matrix.toolchain }}
+  # Two legs, both blocking. `1.88.0` is the §22.5 `msrv` job — pinned to the exact
+  # declared `rust-version`, never a floating "1.88". `stable` is the §22.5 PRIMARY
+  # job, kept so new compiler and clippy diagnostics are seen early.
+  gates:
+    name: gates (${{ matrix.toolchain }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ["1.88", stable]
+        toolchain: ["1.88.0", stable]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -25,15 +68,66 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Format
+        with:
+          key: ${{ matrix.toolchain }}
+
+      # §22.5 / §16.5 msrv_and_edition_are_unchanged. On the 1.88.0 leg this IS the
+      # `cargo +1.88.0 check --workspace --all-targets --all-features` gate; on stable
+      # it is a fast compile-error signal ahead of the slower steps.
+      - name: MSRV compile check (§22.5)
+        run: cargo check --workspace --all-targets --all-features
+
+      # §22.1 / §16.5 core_is_backend_free.
+      - name: Backend-free core (§22.1)
+        run: cargo check -p tui-next --no-default-features
+
+      - name: Format (§26)
         run: cargo fmt --all --check
-      - name: Clippy
+
+      - name: Clippy (§22.3, §26)
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - name: Build
+
+      - name: Build (§26)
         run: cargo build --workspace --all-targets --all-features
-      - name: Test
+
+      # §16.5 examples_are_external_consumers — the §17 examples compile against the
+      # public API only.
+      - name: Examples (§16.5)
+        run: cargo build -p tui-next --examples
+
+      - name: Test (§26)
         run: cargo test --workspace --all-targets --all-features
-      - name: Doc tests
+
+      # §16.3 + §28 P2: BOTH render targets, or the gate runs half the matrix.
+      - name: Render matrix, both targets (§16.3)
+        run: cargo test -p tui-next --test render --test render_components
+
+      # §25.12 / §28 P2: the documented `render::components::*` path is reachable.
+      - name: Render matrix is reachable under its documented path (§25.12)
+        run: cargo test --workspace -- --list | grep -c '^render::components::'
+
+      # §16.5 readme_compiles + "all examples compile".
+      - name: Doc tests (§16.5)
         run: cargo test --workspace --doc --all-features
-      - name: Docs
+
+      - name: Docs (§16.5, RUSTDOCFLAGS=-D warnings from the job env)
         run: cargo doc --workspace --all-features --no-deps
+
+      # §16.5 / §22 §6.2 — the whole boundary and dependency-graph check set.
+      - name: Boundary and dependency checks (§16.5, §22.7)
+        run: cargo run -p xtask -- boundary
+
+      # §25.12 F9 pass condition: both allow-lists are EMPTY, not merely present.
+      - name: Allow-lists are empty (§25.12 F9)
+        run: |
+          for f in crates/tui/tests/allow/legacy_api.txt crates/tui/tests/allow/domain.txt; do
+            if [ -s "$f" ]; then
+              echo "::error file=$f::allow-list must be empty (§25.12 F9)"
+              cat "$f"
+              exit 1
+            fi
+          done
+
+      # §21 item 34: every `Ident::method` and code block in the document resolves.
+      - name: Document reference check (§21 item 34)
+        run: cargo run -p xtask -- doc-check
