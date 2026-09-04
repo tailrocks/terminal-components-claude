@@ -999,11 +999,11 @@ impl<'a> Grid<'a> {
 
     /// The embedded scroll region carrying every owning override (§45.1).
     fn bar(&self) -> ScrollRegion<'a> {
-        let mut r = ScrollRegion::new(self.id).patch_part(self.ov.parts);
-        if let Some(p) = self.ov.patch {
+        let mut r = ScrollRegion::new(self.id).patch_part(self.ov.parts());
+        if let Some(p) = self.ov.global_patch() {
             r = r.patch(p);
         }
-        if let Some((part, f)) = self.ov.slot {
+        if let Some((part, f)) = self.ov.slot_entry() {
             r = r.slot(part, f);
         }
         r

@@ -117,78 +117,59 @@ use crate::ui::Ui;
 /// state; the closure paints the part's rect.
 pub(crate) type SlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect);
 
-/// The per-instance override set every component carries (§12.1, §13):
-/// `.patch`, `.patch_part` and `.slot`.
+/// The per-instance override set every component carries (§12.1, §13).
+///
+/// This is a thin internal compatibility wrapper around the public
+/// component-author carrier. Keeping the wrapper preserves the internal name
+/// used by architecture docs while making built-in and downstream components
+/// share one implementation of precedence, slots and testing notes.
 #[derive(Clone, Copy)]
-pub(crate) struct Overrides<'a> {
-    patch: Option<&'a StylePatch>,
-    parts: &'a [(Part, StylePatch)],
-    slot: Option<(Part, SlotFn<'a>)>,
-}
+pub(crate) struct Overrides<'a>(crate::author::PartStyle<'a>);
 
 impl fmt::Debug for Overrides<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Overrides")
-            .field("patch", &self.patch)
-            .field("parts", &self.parts.len())
-            .field("slot", &self.slot.map(|(p, _)| p))
+            .field("patch", &self.0.patch)
+            .field("parts", &self.0.parts.len())
+            .field("slot", &self.0.slot.map(|(part, _)| part))
             .finish()
     }
 }
 
 impl<'a> Overrides<'a> {
     pub(crate) const fn new() -> Self {
-        Overrides {
-            patch: None,
-            parts: &[],
-            slot: None,
-        }
+        Self(crate::author::PartStyle::new())
     }
 
-    pub(crate) const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.patch = Some(p);
-        self
+    pub(crate) const fn patch(self, patch: &'a StylePatch) -> Self {
+        Self(self.0.patch(patch))
     }
 
-    pub(crate) const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.parts = ps;
-        self
+    pub(crate) const fn patch_part(self, patches: &'a [(Part, StylePatch)]) -> Self {
+        Self(self.0.patch_part(patches))
     }
 
-    pub(crate) const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
-        self.slot = Some((p, f));
-        self
+    pub(crate) const fn slot(self, part: Part, painter: SlotFn<'a>) -> Self {
+        Self(self.0.slot(part, painter))
     }
 
     /// The flags a part resolves under (§39.2, Invariant Q).
     ///
     /// `runtime` is what the frame supplies; `derived` is what the caller's
     /// props imply. Reference state injection is centrally owned by `Ui`.
-    pub(crate) fn flags(runtime: StateFlags, derived: StateFlags) -> StateFlags {
-        runtime | derived
+    pub(crate) const fn flags(runtime: StateFlags, derived: StateFlags) -> StateFlags {
+        crate::author::PartStyle::flags(runtime, derived)
     }
 
     /// The instance patch for `part`: `.patch` merged with every matching
     /// `.patch_part` entry, in declaration order.
     pub(crate) fn part_patch(&self, part: Part) -> Option<StylePatch> {
-        let mut acc: Option<StylePatch> = self.patch.copied();
-        for (p, patch) in self.parts {
-            if *p == part {
-                acc = Some(match acc {
-                    Some(a) => a.merge(*patch),
-                    None => *patch,
-                });
-            }
-        }
-        acc
+        self.0.part_patch(part)
     }
 
     /// The slot replacing `part`, if any.
     pub(crate) fn slot_for(&self, part: Part) -> Option<SlotFn<'a>> {
-        match self.slot {
-            Some((p, f)) if p == part => Some(f),
-            _ => None,
-        }
+        self.0.slot_for(part)
     }
 
     /// Resolve `part` through the whole chain including the instance patch.
@@ -201,15 +182,19 @@ impl<'a> Overrides<'a> {
         part: Part,
         flags: StateFlags,
     ) -> Resolved {
-        let r = match self.part_patch(part) {
-            Some(p) => ui.style_patched(family, variant, part, flags, &p),
-            None => ui.style(family, variant, part, flags),
-        };
-        #[cfg(feature = "testing")]
-        ui.note_styled(owner, family, variant, part, r);
-        #[cfg(not(feature = "testing"))]
-        let _ = owner;
-        r
+        self.0.style(ui, owner, family, variant, part, flags)
+    }
+
+    pub(crate) fn parts(&self) -> &'a [(Part, StylePatch)] {
+        self.0.parts
+    }
+
+    pub(crate) fn global_patch(&self) -> Option<&'a StylePatch> {
+        self.0.patch
+    }
+
+    pub(crate) fn slot_entry(&self) -> Option<(Part, SlotFn<'a>)> {
+        self.0.slot
     }
 }
 

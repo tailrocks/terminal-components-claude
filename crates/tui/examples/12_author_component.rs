@@ -13,8 +13,8 @@
 
 use tui_next::author::{
     ActionKey, Binding, BindingState, Bindings, Chord, Cx, Family, Focusability, FrameRead,
-    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, Phase, Rect, Resolved, Response, Slot,
-    StateFlags, StylePatch, Ui, Variant,
+    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, PartStyle, Phase, Rect, Resolved,
+    Response, Slot, StateFlags, StylePatch, Ui, Variant,
 };
 
 /// A segmented control: N labelled segments, one selected, roving cursor.
@@ -28,13 +28,14 @@ use tui_next::author::{
 /// `Part::LABEL` — the text drawn over each segment.
 ///
 /// ## Overrides
-/// `.patch_part(&[(Part, StylePatch)])` patches any of the three declared
-/// parts at precedence 6, for this instance only. The slice is **borrowed**,
-/// so the patches live in the caller's `const` table and no allocation
-/// happens per frame. A patched part resolves through `Ui::style_patched`
-/// and an unpatched one through `Ui::style`, so an override changes what
-/// this instance paints and never mutates the `Theme`. There is no `.slot`:
-/// a segment is a cell-valued part with no sub-painting to replace.
+/// `PartStyle` carries the borrowed, allocation-free override set. Its
+/// `.global`, `.part` and `.slot` builders are the same override plumbing used
+/// by library components; this example exposes the familiar
+/// `.patch_part(&[(Part, StylePatch)])` convenience as well. A patched part
+/// resolves through `Ui::style_patched` and an unpatched one through
+/// `Ui::style`, so an override changes what this instance paints and never
+/// mutates the `Theme`. There is no useful `.slot` for this example: a segment
+/// is a cell-valued part with no sub-painting to replace.
 /// Showcase and test fixtures use [`Ui::reference`] around the normal draw;
 /// the scope injects runtime-owned state and suppresses all registrations.
 #[derive(Debug)]
@@ -42,7 +43,7 @@ pub struct Segmented<'a> {
     id: Id,
     labels: &'a [&'a str],
     variant: Variant,
-    parts: &'a [(Part, StylePatch)],
+    styles: PartStyle<'a>,
 }
 
 /// Durable interaction state: the roving cursor and the chosen segment.
@@ -130,7 +131,7 @@ impl<'a> Segmented<'a> {
             id,
             labels,
             variant: Variant::DEFAULT,
-            parts: &[],
+            styles: PartStyle::new(),
         }
     }
 
@@ -141,27 +142,25 @@ impl<'a> Segmented<'a> {
         self
     }
 
-    /// Per-part instance patches (precedence 6), borrowed from the caller.
+    /// Replace this control's borrowed override set.
     #[must_use]
-    pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.parts = ps;
+    pub const fn part_style(mut self, styles: PartStyle<'a>) -> Self {
+        self.styles = styles;
         self
     }
 
-    /// The instance patch for `part`: every matching `.patch_part` entry
-    /// merged in declaration order, or `None` when the caller patched
-    /// nothing — in which case the plain resolution path is used.
-    fn part_patch(&self, part: Part) -> Option<StylePatch> {
-        let mut acc: Option<StylePatch> = None;
-        for (p, patch) in self.parts {
-            if *p == part {
-                acc = Some(match acc {
-                    Some(a) => a.merge(*patch),
-                    None => *patch,
-                });
-            }
-        }
-        acc
+    /// Apply one patch to every styled part.
+    #[must_use]
+    pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
+        self.styles = self.styles.global(patch);
+        self
+    }
+
+    /// Per-part instance patches (precedence 6), borrowed from the caller.
+    #[must_use]
+    pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
+        self.styles = self.styles.part(ps);
+        self
     }
 
     /// Resolve one declared part through the whole precedence chain,
@@ -169,16 +168,8 @@ impl<'a> Segmented<'a> {
     /// through here, which is what makes `.patch_part` reach the rendering
     /// without any component ever touching the `Theme`.
     fn style(&self, ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> Resolved {
-        let r = match self.part_patch(part) {
-            Some(p) => ui.style_patched(F_SEGMENTED, self.variant, part, flags, &p),
-            None => ui.style(F_SEGMENTED, self.variant, part, flags),
-        };
-        // Record what this component resolved, so the declared-parts check
-        // can see it. `testing` is this package's feature; a component in a
-        // crate of its own forwards a feature of its own to it.
-        #[cfg(feature = "testing")]
-        ui.note_styled(self.id, F_SEGMENTED, self.variant, part, r);
-        r
+        self.styles
+            .style(ui, self.id, F_SEGMENTED, self.variant, part, flags)
     }
 
     /// The update phase.
@@ -302,6 +293,8 @@ mod tests {
     const LOUD_LABEL: &[(Part, StylePatch)] =
         &[(Part::LABEL, StylePatch::new().set_fg(Role::Danger))];
 
+    fn replacement(_: &mut Ui<'_>, _: Rect) {}
+
     fn scene(name: &'static str) -> Scene {
         Scene::new(name, Theme::junie(), ColorLevel::TrueColor, 24, 3)
     }
@@ -392,5 +385,12 @@ mod tests {
             sc.runtime().is_some_and(|rt| rt.area_of(SEG).is_none()),
             "a reference rendering registered a control (A11)"
         );
+    }
+
+    #[test]
+    fn public_part_style_exposes_slot_lookup_to_external_authors() {
+        let styles = PartStyle::new().slot(SEGMENT, &replacement);
+        assert!(styles.slot_for(SEGMENT).is_some());
+        assert!(styles.slot_for(Part::LABEL).is_none());
     }
 }
