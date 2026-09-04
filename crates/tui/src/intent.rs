@@ -8,6 +8,7 @@
 //! borrows only the queue, so services on `Cx` stay usable inside the loop.
 
 use core::cell::Cell;
+use core::fmt;
 use core::ops::Range;
 
 use ratatui_core::layout::Position;
@@ -16,10 +17,11 @@ use crate::action::ActionKey;
 use crate::event::{Axis, Key, KeyModifiers};
 use crate::id::{Id, PartRef};
 use crate::layer::LayerEvent;
+use crate::secret::zeroize_string;
 
 /// What a component actually receives.
 #[non_exhaustive]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Intent<'f> {
     /// A declared component action resolved through its effective chord.
     Binding(ActionKey),
@@ -66,6 +68,50 @@ pub enum Intent<'f> {
     Layer(LayerEvent),
     /// Esc reached this owner after layer dismissal.
     Cancel,
+}
+
+impl fmt::Debug for Intent<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Intent::Binding(action) => f.debug_tuple("Binding").field(action).finish(),
+            Intent::Key(key) => f.debug_tuple("Key").field(key).finish(),
+            Intent::Paste(text) => f
+                .debug_struct("Paste")
+                .field("len", &text.len())
+                .field("text", &"[redacted]")
+                .finish(),
+            Intent::Pointer {
+                phase,
+                part,
+                pos,
+                local,
+                mods,
+            } => f
+                .debug_struct("Pointer")
+                .field("phase", phase)
+                .field("part", part)
+                .field("pos", pos)
+                .field("local", local)
+                .field("mods", mods)
+                .finish(),
+            Intent::Wheel {
+                axis,
+                delta,
+                part,
+                pos,
+            } => f
+                .debug_struct("Wheel")
+                .field("axis", axis)
+                .field("delta", delta)
+                .field("part", part)
+                .field("pos", pos)
+                .finish(),
+            Intent::FocusIn { via } => f.debug_struct("FocusIn").field("via", via).finish(),
+            Intent::FocusOut { to } => f.debug_struct("FocusOut").field("to", to).finish(),
+            Intent::Layer(event) => f.debug_tuple("Layer").field(event).finish(),
+            Intent::Cancel => f.write_str("Cancel"),
+        }
+    }
 }
 
 /// Pointer phases.
@@ -148,7 +194,6 @@ const TABLE: usize = 32;
 const TABLE_MAX_OWNERS: usize = 24;
 
 /// The per-frame intent queue, keyed by owner.
-#[derive(Debug)]
 pub(crate) struct IntentQueue {
     arena: String,
     buckets: Vec<Bucket>,
@@ -182,9 +227,9 @@ impl IntentQueue {
         self.probes.get()
     }
 
-    /// Empty the queue, keeping every allocation (buckets are reused).
+    /// Empty the queue, keeping bucket allocations while wiping paste data.
     pub(crate) fn clear(&mut self) {
-        self.arena.clear();
+        zeroize_string(&mut self.arena);
         for b in &mut self.buckets {
             b.items.clear();
             b.drained.set(false);
@@ -279,9 +324,31 @@ impl IntentQueue {
         );
     }
 
-    pub(crate) fn paste(&mut self, owner: Id, text: &str) {
+    /// Append without allowing a growing arena to release its old paste
+    /// allocation unwiped. The caller retains ownership of `text` and wipes
+    /// it after this copy.
+    fn append_owned(&mut self, text: &str) {
+        let required = self.arena.len().saturating_add(text.len());
+        if required <= self.arena.capacity() {
+            self.arena.push_str(text);
+            return;
+        }
+        let mut replacement = String::with_capacity(required);
+        replacement.push_str(&self.arena);
+        replacement.push_str(text);
+        zeroize_string(&mut self.arena);
+        self.arena = replacement;
+    }
+
+    pub(crate) fn paste_owned(&mut self, owner: Id, text: String) {
         let start = self.arena.len() as u32;
-        self.arena.push_str(text);
+        if self.arena.is_empty() {
+            self.arena = text;
+        } else {
+            self.append_owned(&text);
+            let mut text = text;
+            zeroize_string(&mut text);
+        }
         let end = self.arena.len() as u32;
         self.push(owner, Stored::Paste(start, end));
     }
@@ -466,6 +533,28 @@ impl IntentQueue {
     }
 }
 
+impl fmt::Debug for IntentQueue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = f.debug_struct("IntentQueue");
+        debug
+            .field("arena", &"[redacted]")
+            .field("arena_len", &self.arena.len())
+            .field("buckets", &self.buckets)
+            .field("used", &self.used)
+            .field("table", &self.table)
+            .field("overflow", &self.overflow);
+        #[cfg(feature = "testing")]
+        debug.field("probes", &self.probes);
+        debug.finish()
+    }
+}
+
+impl Drop for IntentQueue {
+    fn drop(&mut self) {
+        zeroize_string(&mut self.arena);
+    }
+}
+
 /// Iterator over one owner's intents for the frame. A named type so it can
 /// outlive the `&Cx` borrow that produced it (§22.3).
 #[derive(Debug, Clone)]
@@ -504,12 +593,45 @@ mod tests {
         let mut q = IntentQueue::new();
         let a = Id::root("a");
         let b = Id::root("b");
-        q.paste(a, "hello");
+        q.paste_owned(a, "hello".to_owned());
         let got: Vec<Intent<'_>> = q.iter(a).collect();
         assert_eq!(got, vec![Intent::Paste("hello")]);
         assert_eq!(q.iter(b).count(), 0);
         assert!(q.was_drained(a));
         assert!(!q.was_drained(b));
+    }
+
+    #[test]
+    fn paste_debug_output_redacts_payload_and_queue_arena() {
+        let mut q = IntentQueue::new();
+        let owner = Id::root("debug");
+        q.paste_owned(owner, "hunter2".to_owned());
+        let intent = q.iter(owner).next().expect("paste intent");
+        assert!(!format!("{intent:?}").contains("hunter2"));
+        assert!(!format!("{q:?}").contains("hunter2"));
+        q.clear();
+        assert!(!format!("{q:?}").contains("hunter2"));
+        assert_eq!(q.arena.capacity(), 0, "clear releases the paste allocation");
+    }
+
+    #[test]
+    fn paste_growth_uses_a_wiped_replacement_arena() {
+        let mut q = IntentQueue::new();
+        let owner = Id::root("growth");
+        q.paste_owned(owner, "a".to_owned());
+        let old_capacity = q.arena.capacity();
+        let extra = "x".repeat(old_capacity.saturating_add(1));
+        q.paste_owned(owner, extra.clone());
+        assert_eq!(q.arena.len(), 1usize.saturating_add(extra.len()));
+        assert!(q.arena.capacity() > old_capacity);
+        let pasted: Vec<_> = q
+            .iter(owner)
+            .filter_map(|i| match i {
+                Intent::Paste(text) => Some(text.to_owned()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(pasted, vec!["a", extra.as_str()]);
     }
 
     #[test]
