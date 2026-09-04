@@ -14,16 +14,23 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Color;
 
+use core::ops::{BitOr, BitOrAssign};
+
 use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
-use derived::DerivedCache;
+use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
 
+use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
 use crate::diagnostics::Diagnostic;
 use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
 use crate::hit::{Axes, Headroom, Registry};
 use crate::id::{Id, Part, PartRef};
+use crate::keymap::{
+    Binding, BindingRegistry, DynamicBindingRegistry, FocusedHintKey, FocusedHints, HintLayer,
+    KeyMap,
+};
 use crate::layer::{LayerId, LayerKind};
 use crate::response::StateFlags;
 use crate::theme::resolve::StyleCache;
@@ -45,6 +52,7 @@ pub(crate) struct FrameState {
     pub(crate) cursor: Option<CursorRequest>,
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
+    pub(crate) bindings: BindingRegistry,
     pub(crate) diagnostics: Vec<Diagnostic>,
     pub(crate) roles: Vec<CellRoles>,
     pub(crate) screen: Rect,
@@ -63,6 +71,95 @@ pub(crate) struct FrameState {
 #[cfg(feature = "testing")]
 pub type StyledQuery = (Id, Family, Variant, Part, Resolved);
 
+/// Runtime-owned visual state injected into one inert reference rendering.
+///
+/// This type is intentionally opaque: reference fixtures can reproduce only
+/// focus, hover and press state. Semantic state remains owned by component
+/// props and caller-owned state.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct ReferenceState(u8);
+
+impl ReferenceState {
+    /// The target owns focus.
+    pub const FOCUSED: Self = Self(1 << 0);
+    /// Keyboard-visible focus is painted.
+    pub const FOCUS_VISIBLE: Self = Self(1 << 1);
+    /// The pointer is over the target.
+    pub const HOVERED: Self = Self(1 << 2);
+    /// The primary pointer button is down on the target.
+    pub const PRESSED: Self = Self(1 << 3);
+
+    /// Combine two reference-state flags in a constant context.
+    #[must_use]
+    pub const fn union(self, rhs: Self) -> Self {
+        Self(self.0 | rhs.0)
+    }
+
+    const fn state_flags(self) -> StateFlags {
+        let mut flags = StateFlags::empty();
+        if self.0 & Self::FOCUSED.0 != 0 {
+            flags = flags.union(StateFlags::FOCUSED);
+        }
+        if self.0 & Self::FOCUS_VISIBLE.0 != 0 {
+            flags = flags.union(StateFlags::FOCUSED);
+            flags = flags.union(StateFlags::FOCUS_VISIBLE);
+        }
+        if self.0 & Self::HOVERED.0 != 0 {
+            flags = flags.union(StateFlags::HOVERED);
+        }
+        if self.0 & Self::PRESSED.0 != 0 {
+            flags = flags.union(StateFlags::PRESSED);
+        }
+        flags
+    }
+}
+
+impl BitOr for ReferenceState {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        self.union(rhs)
+    }
+}
+
+impl BitOrAssign for ReferenceState {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
+}
+
+/// The exact owner, optional sub-region and runtime state of a reference cell.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct ReferenceTarget {
+    id: Id,
+    part: Option<PartRef>,
+    state: ReferenceState,
+}
+
+impl ReferenceTarget {
+    /// Target one component owner with `state`.
+    pub const fn new(id: Id, state: ReferenceState) -> Self {
+        Self {
+            id,
+            part: None,
+            state,
+        }
+    }
+
+    /// Target one exact sub-region for hover/press queries.
+    #[must_use]
+    pub const fn part(mut self, part: PartRef) -> Self {
+        self.part = Some(part);
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ReferenceScope {
+    target: Option<ReferenceTarget>,
+    cache_key: ReferenceCacheKey,
+}
+
 impl FrameState {
     pub(crate) fn reset(&mut self, generation: u32, screen: Rect) {
         self.registry.reset(generation);
@@ -71,6 +168,7 @@ impl FrameState {
         self.cursor = None;
         self.layout.clear();
         self.declared.clear();
+        self.bindings.reset();
         self.diagnostics.clear();
         self.roles.clear();
         self.roles
@@ -102,9 +200,15 @@ impl FrameState {
 #[derive(Default)]
 pub(crate) struct UiCore {
     cache: DerivedCache,
+    reference_cache: DerivedCache,
     pub(crate) style_cache: StyleCache,
     overlays: Vec<Overlay>,
     stack_hash: u64,
+    pub(crate) focused_hints: FocusedHints,
+    pub(crate) keymap: KeyMap,
+    pub(crate) keymap_revision: u64,
+    dynamic_bindings: DynamicBindingRegistry,
+    next_targetless_reference: u64,
 }
 
 impl core::fmt::Debug for UiCore {
@@ -118,10 +222,27 @@ impl core::fmt::Debug for UiCore {
 }
 
 impl UiCore {
+    pub(crate) fn begin_cache_frame(&mut self, generation: u32) {
+        self.cache.begin_frame(generation);
+        self.reference_cache.begin_frame(generation);
+    }
+
     /// Drop every derived cache (resize, theme change, generation gap).
     pub(crate) fn clear_caches(&mut self) {
         self.cache.clear();
+        self.reference_cache.clear();
         self.style_cache.clear();
+    }
+
+    fn targetless_reference_key(&mut self) -> ReferenceCacheKey {
+        let key = self.next_targetless_reference;
+        self.next_targetless_reference = self.next_targetless_reference.wrapping_add(1);
+        if self.next_targetless_reference == 0 {
+            // Cache contents are derived-only, so clearing at the practically
+            // unreachable wrap boundary preserves identity without semantics.
+            self.reference_cache.clear();
+        }
+        ReferenceCacheKey::Targetless(key)
     }
 }
 
@@ -143,6 +264,7 @@ pub struct Ui<'f> {
     target: Target,
     layer: LayerId,
     inert: bool,
+    reference: Option<ReferenceScope>,
     roles: CellRoles,
 }
 
@@ -153,6 +275,7 @@ impl core::fmt::Debug for Ui<'_> {
             .field("surface", &self.surface)
             .field("layer", &self.layer)
             .field("inert", &self.inert)
+            .field("reference", &self.reference)
             .finish_non_exhaustive()
     }
 }
@@ -178,6 +301,7 @@ impl<'f> Ui<'f> {
             target: Target::Page,
             layer: LayerId::PAGE,
             inert,
+            reference: None,
             roles: CellRoles::default(),
         }
     }
@@ -195,6 +319,7 @@ impl<'f> Ui<'f> {
             target: self.target,
             layer: self.layer,
             inert: self.inert,
+            reference: self.reference,
             roles: self.roles,
         }
     }
@@ -221,7 +346,59 @@ impl<'f> Ui<'f> {
 
     /// Whether registrations from this layer are suppressed (`inert_below`).
     pub const fn is_inert(&self) -> bool {
-        self.inert
+        self.inert || self.reference.is_some()
+    }
+
+    /// Draw an inert reference fixture.
+    ///
+    /// `target` injects runtime-owned focus, hover and press state into exactly
+    /// one owner. `None` is an inert default or semantic fixture with no
+    /// synthetic runtime state. Painting and style resolution still run;
+    /// interaction, layout, cursor, binding and layer output is suppressed.
+    /// This is an application-showcase and test-fixture API; component
+    /// implementations must derive live state from [`FrameRead`] instead.
+    ///
+    /// Nested calls replace the target only for the nested closure. The scope
+    /// lives on a shorter reborrow, so normal return and panic unwinding both
+    /// restore the exact outer target without cleanup code. An explicit target
+    /// also supplies a stable derived-cache namespace. A targetless scope has
+    /// no stable caller identity, so its derived cache is isolated to that one
+    /// invocation instead of being shared with sibling fixtures.
+    pub fn reference<R>(
+        &mut self,
+        target: Option<ReferenceTarget>,
+        f: impl FnOnce(&mut Ui<'_>) -> R,
+    ) -> R {
+        let cache_key = target.map_or_else(
+            || self.core.targetless_reference_key(),
+            ReferenceCacheKey::Target,
+        );
+        let mut nested = self.reborrow();
+        nested.reference = Some(ReferenceScope { target, cache_key });
+        f(&mut nested)
+    }
+
+    fn reference_state(&self, id: Id) -> Option<StateFlags> {
+        self.reference.map(|scope| {
+            scope.target.map_or(StateFlags::empty(), |target| {
+                if target.id == id {
+                    target.state.state_flags()
+                } else {
+                    StateFlags::empty()
+                }
+            })
+        })
+    }
+
+    fn reference_part(&self, owner: Id, state: ReferenceState) -> Option<PartRef> {
+        self.reference
+            .and_then(|scope| scope.target)
+            .filter(|target| target.id == owner && target.state.0 & state.0 != 0)
+            .map(|target| target.part.unwrap_or_else(|| PartRef::of(Part::CONTAINER)))
+    }
+
+    fn registrations_suppressed(&self) -> bool {
+        self.inert || self.reference.is_some()
     }
 
     /// Resolve a part's style through the whole precedence chain, memoised.
@@ -420,6 +597,9 @@ impl<'f> Ui<'f> {
         mode: ScopeMode,
         f: impl FnOnce(&mut Ui<'_>) -> R,
     ) -> R {
+        if self.reference.is_some() {
+            return f(self);
+        }
         self.frame
             .ring
             .push_scope(ScopeId::new(id), mode, self.layer);
@@ -429,7 +609,7 @@ impl<'f> Ui<'f> {
     }
 
     fn register_entry(&mut self, id: Id, area: Rect, f: Focusability, swallows_typing: bool) {
-        if self.inert || area.is_empty() {
+        if self.registrations_suppressed() || area.is_empty() {
             return;
         }
         let area = area.intersection(self.clip);
@@ -439,6 +619,10 @@ impl<'f> Ui<'f> {
         if let Some(d) = self.frame.registry.register_control(id, area, self.layer) {
             self.frame.diagnostics.push(d);
         }
+        self.register_focus_entry(id, area, f, swallows_typing);
+    }
+
+    fn register_focus_entry(&mut self, id: Id, area: Rect, f: Focusability, swallows_typing: bool) {
         let disabled = match f {
             Focusability::Focusable | Focusability::FocusableReadOnly => false,
             Focusability::Disabled => true,
@@ -463,6 +647,20 @@ impl<'f> Ui<'f> {
         self.register_entry(id, area, f, false);
     }
 
+    /// Register a hidden keyboard focus stop without creating a hit region.
+    ///
+    /// `Focusable` and `FocusableReadOnly` are reachable in normal traversal;
+    /// `Disabled` is recorded but unreachable. `ClickOnly` is a no-op because
+    /// focus-only registration has no pointer target. The ring entry uses
+    /// `Rect::ZERO`, so `area_of(id)` remains `None` and a harness `click_id`
+    /// is ignored with [`Diagnostic::UnaddressableId`].
+    pub fn register_focus_only(&mut self, id: Id, f: Focusability) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.register_focus_entry(id, Rect::ZERO, f, false);
+    }
+
     /// Register a `Control` whose entry swallows typing (a text control)
     /// and declares `flags` (`EDITING` while an edit is in flight), so
     /// paste and bare-`Char` capture chords are routed correctly.
@@ -483,7 +681,7 @@ impl<'f> Ui<'f> {
     /// It is a `draw`-phase write the runtime consumes, alongside
     /// [`Ui::report_layout`] (§5 R2).
     pub fn declare_state(&mut self, id: Id, flags: StateFlags) {
-        if flags.is_empty() {
+        if self.reference.is_some() || flags.is_empty() {
             return;
         }
         if let Some((_, f)) = self.frame.declared.iter_mut().find(|(i, _)| *i == id) {
@@ -493,9 +691,107 @@ impl<'f> Ui<'f> {
         }
     }
 
+    /// Publish the focused control's declared command table for next input
+    /// routing and same-frame derived hints.
+    pub fn publish_bindings<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+    ) {
+        let initial_focus = self.last.snapshot.focus.is_none()
+            && self.last.ring.entries().is_empty()
+            && self.frame.ring.reachable().next().map(|entry| entry.id) == Some(owner);
+        if self.registrations_suppressed()
+            || (self.last.snapshot.focus != Some(owner) && !initial_focus)
+            || (!flags.contains(StateFlags::FOCUSED) && !initial_focus)
+            || !self.frame.ring.contains(owner)
+        {
+            return;
+        }
+        let flags = if initial_focus {
+            flags | StateFlags::FOCUSED
+        } else {
+            flags
+        };
+        if let Some(action) = self.frame.bindings.publish(owner, flags, self.layer, table) {
+            self.frame
+                .diagnostics
+                .push(Diagnostic::DuplicateBindingAction { owner, action });
+        }
+    }
+
+    pub(crate) fn publish_dynamic_bindings<I>(&mut self, owner: Id, flags: StateFlags, bindings: I)
+    where
+        I: Iterator<Item = (ActionKey, Option<crate::event::Chord>)> + Clone,
+    {
+        let initial_focus = self.last.snapshot.focus.is_none()
+            && self.last.ring.entries().is_empty()
+            && self.frame.ring.reachable().next().map(|entry| entry.id) == Some(owner);
+        if self.registrations_suppressed()
+            || (self.last.snapshot.focus != Some(owner) && !initial_focus)
+            || (!flags.contains(StateFlags::FOCUSED) && !initial_focus)
+            || !self.frame.ring.contains(owner)
+        {
+            return;
+        }
+        let flags = if initial_focus {
+            flags | StateFlags::FOCUSED
+        } else {
+            flags
+        };
+        let base = self
+            .frame
+            .bindings
+            .get(owner)
+            .map(|(published, _)| published.table);
+        let (descriptors, revision) = self.core.dynamic_bindings.update(owner, base, bindings);
+        if let Some(action) =
+            self.frame
+                .bindings
+                .publish_dynamic(owner, flags, self.layer, descriptors, revision)
+        {
+            self.frame
+                .diagnostics
+                .push(Diagnostic::DuplicateBindingAction { owner, action });
+        }
+    }
+
+    pub(crate) fn effective_chord(
+        &self,
+        owner: Id,
+        action: ActionKey,
+        default: Option<crate::event::Chord>,
+    ) -> Option<crate::event::Chord> {
+        self.core.keymap.component_chord(owner, action, default)
+    }
+
+    pub(crate) fn with_focused_hints<R>(
+        &mut self,
+        f: impl FnOnce(&mut Ui<'_>, &HintLayer) -> R,
+    ) -> Option<R> {
+        if self.reference.is_some() {
+            return None;
+        }
+        let focus = self.last.snapshot.focus?;
+        let (published, table) = self.frame.bindings.get(focus)?;
+        let key = FocusedHintKey {
+            focus,
+            flags: published.flags,
+            layer: self.frame.top,
+            table: published.table,
+            keymap_revision: self.core.keymap_revision,
+        };
+        let mut cache = core::mem::take(&mut self.core.focused_hints);
+        cache.derive(key, table, &self.core.keymap);
+        let result = f(self, &cache.layer);
+        self.core.focused_hints = cache;
+        Some(result)
+    }
+
     /// Register a `Part` region under `owner`.
     pub fn register_part(&mut self, owner: Id, part: PartRef, area: Rect) {
-        if self.inert {
+        if self.registrations_suppressed() {
             return;
         }
         self.frame
@@ -505,7 +801,7 @@ impl<'f> Ui<'f> {
 
     /// Register a `Decorative` region under `owner`.
     pub fn register_decor(&mut self, owner: Id, part: PartRef, area: Rect) {
-        if self.inert {
+        if self.registrations_suppressed() {
             return;
         }
         self.frame
@@ -515,7 +811,7 @@ impl<'f> Ui<'f> {
 
     /// Register a `Scroll` region.
     pub fn register_scroll(&mut self, id: Id, area: Rect, axes: Axes, head: Headroom) {
-        if self.inert {
+        if self.registrations_suppressed() {
             return;
         }
         self.frame.registry.register_scroll(
@@ -529,12 +825,18 @@ impl<'f> Ui<'f> {
 
     /// Report layout facts upward (§4 S6).
     pub fn report_layout(&mut self, id: Id, l: LayoutFacts) {
+        if self.reference.is_some() {
+            return;
+        }
         self.frame.layout.push((id, l));
     }
 
     /// Request the hardware cursor; kept iff this is the top layer and
     /// `owner` is focused (§8.4).
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
+        if self.reference.is_some() {
+            return;
+        }
         let req = CursorRequest {
             layer: self.layer,
             owner,
@@ -573,6 +875,9 @@ impl<'f> Ui<'f> {
     /// scope; returns `None` without running `f` if `id` is not open, and
     /// records `DuplicateLayerDraw` on a second call in one frame.
     pub fn layer<R>(&mut self, id: Id, f: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R> {
+        if self.reference.is_some() {
+            return None;
+        }
         let idx = self.frame.layers.find(id)?;
         let (layer, area, kind) = {
             let d = self.frame.layers.active_mut().get_mut(idx)?;
@@ -598,6 +903,16 @@ impl<'f> Ui<'f> {
             LayerKind::Modal => ScopeMode::Trap,
             LayerKind::Popover | LayerKind::Tooltip => ScopeMode::Normal,
         };
+        let parent = self
+            .frame
+            .layers
+            .active()
+            .iter()
+            .find(|candidate| candidate.layer.index().saturating_add(1) == layer.index())
+            .map(|candidate| ScopeId::new(candidate.id));
+        self.frame
+            .ring
+            .ensure_scope(ScopeId::new(id), mode, layer, parent);
         self.frame.ring.push_scope(ScopeId::new(id), mode, layer);
         let r = f(self, area);
         self.frame.ring.pop_scope();
@@ -605,10 +920,21 @@ impl<'f> Ui<'f> {
         Some(r)
     }
 
-    /// Derived, non-semantic per-component cache (rule R8). Keyed by
-    /// `(Id, TypeId)`; cleared on resize, theme change and generation gap.
+    /// Derived, non-semantic per-component cache (rule R8). Live entries are
+    /// keyed by `(Id, TypeId)`; reference entries also include their scope
+    /// namespace. Cleared on resize, theme change and generation gap.
     pub fn cache<T: Default + 'static>(&mut self, id: Id) -> &mut T {
-        self.core.cache.get_mut::<T>(id)
+        // A structurally separate store prevents any caller-chosen `Id` from
+        // aliasing live derived state. Its target dimension is stable across
+        // frames, unlike draw-order ordinals. The style memo is safe to share:
+        // its key already contains every style input.
+        if let Some(scope) = self.reference {
+            self.core
+                .reference_cache
+                .get_mut_reference::<T>(id, scope.cache_key)
+        } else {
+            self.core.cache.get_mut::<T>(id)
+        }
     }
 
     // ── internals shared with paint.rs and the runtime ──
@@ -714,11 +1040,24 @@ impl<'f> Ui<'f> {
 
 impl FrameRead for Ui<'_> {
     fn state(&self, id: Id) -> StateFlags {
-        self.last.state(id)
+        self.reference_state(id)
+            .unwrap_or_else(|| self.last.state(id))
     }
 
     fn hovered_part(&self, owner: Id) -> Option<PartRef> {
-        self.last.hovered_part(owner)
+        if self.reference.is_some() {
+            self.reference_part(owner, ReferenceState::HOVERED)
+        } else {
+            self.last.hovered_part(owner)
+        }
+    }
+
+    fn pressed_part(&self, owner: Id) -> Option<PartRef> {
+        if self.reference.is_some() {
+            self.reference_part(owner, ReferenceState::PRESSED)
+        } else {
+            self.last.pressed_part(owner)
+        }
     }
 
     fn theme(&self) -> &Theme {
@@ -730,24 +1069,42 @@ impl FrameRead for Ui<'_> {
     }
 
     fn area(&self, id: Id) -> Option<Rect> {
-        self.last.registry.area_of(id)
+        if self.reference.is_some() {
+            None
+        } else {
+            self.last.registry.area_of(id)
+        }
     }
 
     fn layout(&self, id: Id) -> Option<LayoutFacts> {
-        self.last.layout_of(id)
+        if self.reference.is_some() {
+            None
+        } else {
+            self.last.layout_of(id)
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
     use ratatui_core::style::Style;
 
     use super::cx::LastFrame;
-    use super::{CellRoles, FrameState, Ui, UiCore};
+    use super::{
+        CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget, Ui, UiCore,
+    };
+    use crate::action::ActionKey;
     use crate::collection::RowUi;
-    use crate::id::{Id, ItemKey, Part};
+    use crate::event::{Chord, KeyCode};
+    use crate::focus::Focusability;
+    use crate::hit::{Axes, Headroom};
+    use crate::id::{Id, ItemKey, Part, PartRef};
+    use crate::keymap::Binding;
+    use crate::layer::{LayerId, LayerSpec};
     use crate::response::StateFlags;
     use crate::theme::{Family, FgStep, Role, Surface, Theme, Variant};
 
@@ -758,6 +1115,21 @@ mod tests {
         height: 3,
     };
     const OWNER: Id = Id::root("ui.owner");
+    const OTHER: Id = Id::root("ui.other");
+
+    #[derive(Clone, Copy)]
+    enum TestCmd {
+        Activate,
+    }
+
+    const TEST_BINDINGS: &[Binding<TestCmd>] = &[Binding {
+        action: ActionKey::CONFIRM,
+        chord: Some(Chord::key(KeyCode::Enter)),
+        cmd: TestCmd::Activate,
+        label: "Activate",
+        priority: 1,
+        visible: true,
+    }];
 
     fn with_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
         let mut frame = FrameState::default();
@@ -770,6 +1142,362 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    #[test]
+    fn reference_state_has_exactly_the_four_runtime_bits() {
+        const CONST_COMBINED: ReferenceState =
+            ReferenceState::FOCUS_VISIBLE.union(ReferenceState::PRESSED);
+        assert_eq!(
+            CONST_COMBINED.state_flags(),
+            StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::PRESSED
+        );
+
+        let choices = [
+            (ReferenceState::FOCUSED, StateFlags::FOCUSED),
+            (ReferenceState::FOCUS_VISIBLE, StateFlags::FOCUS_VISIBLE),
+            (ReferenceState::HOVERED, StateFlags::HOVERED),
+            (ReferenceState::PRESSED, StateFlags::PRESSED),
+        ];
+        for mask in 0u8..16 {
+            let mut reference = ReferenceState::default();
+            let mut expected = StateFlags::empty();
+            for (i, (reference_bit, state_bit)) in choices.iter().copied().enumerate() {
+                if mask & (1 << i) != 0 {
+                    reference |= reference_bit;
+                    expected |= state_bit;
+                }
+            }
+            if expected.contains(StateFlags::FOCUS_VISIBLE) {
+                expected |= StateFlags::FOCUSED;
+            }
+            assert_eq!(reference.state_flags(), expected, "mask {mask:04b}");
+        }
+    }
+
+    #[test]
+    fn reference_injects_only_the_exact_target_and_hides_stale_live_state() {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let part = PartRef::item(Part::MARKER, ItemKey::num(7));
+        let stale_part = PartRef::of(Part::LABEL);
+        let last = LastFrame {
+            declared: vec![
+                (OWNER, StateFlags::ERROR | StateFlags::EDITING),
+                (OTHER, StateFlags::BUSY),
+            ],
+            snapshot: super::cx::Snapshot {
+                focus: Some(OTHER),
+                focus_visible: true,
+                hover: Some((OTHER, stale_part)),
+                hover_suppressed: false,
+                pressed: Some((OWNER, stale_part)),
+                capture: Some(OTHER),
+            },
+            ..LastFrame::default()
+        };
+        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+
+        let target = ReferenceTarget::new(
+            OWNER,
+            ReferenceState::FOCUSED
+                | ReferenceState::FOCUS_VISIBLE
+                | ReferenceState::HOVERED
+                | ReferenceState::PRESSED,
+        )
+        .part(part);
+        ui.reference(Some(target), |ui| {
+            assert_eq!(
+                ui.state(OWNER),
+                StateFlags::FOCUSED
+                    | StateFlags::FOCUS_VISIBLE
+                    | StateFlags::HOVERED
+                    | StateFlags::PRESSED
+            );
+            assert_eq!(ui.state(OTHER), StateFlags::empty());
+            assert_eq!(ui.hovered_part(OWNER), Some(part));
+            assert_eq!(ui.pressed_part(OWNER), Some(part));
+            assert_eq!(ui.hovered_part(OTHER), None);
+            assert_eq!(ui.pressed_part(OTHER), None);
+        });
+        ui.reference(None, |ui| {
+            assert_eq!(ui.state(OWNER), StateFlags::empty());
+            assert_eq!(ui.state(OTHER), StateFlags::empty());
+            assert_eq!(ui.hovered_part(OWNER), None);
+            assert_eq!(ui.pressed_part(OWNER), None);
+        });
+        ui.reference(
+            Some(ReferenceTarget::new(OWNER, ReferenceState::HOVERED)),
+            |ui| {
+                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
+                assert_eq!(
+                    ui.hovered_part(OWNER),
+                    Some(PartRef::of(Part::CONTAINER)),
+                    "an owner target canonicalizes to its container part"
+                );
+            },
+        );
+        ui.reference(
+            Some(ReferenceTarget::new(OWNER, ReferenceState::PRESSED)),
+            |ui| {
+                assert_eq!(ui.pressed_part(OWNER), Some(PartRef::of(Part::CONTAINER)));
+            },
+        );
+    }
+
+    #[test]
+    fn nested_reference_restores_the_outer_target_even_after_a_panic() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            assert!(!ui.is_inert());
+            let outer =
+                ReferenceTarget::new(OWNER, ReferenceState::HOVERED).part(PartRef::of(Part::LABEL));
+            let inner = ReferenceTarget::new(OTHER, ReferenceState::PRESSED)
+                .part(PartRef::of(Part::MARKER));
+            ui.reference(Some(outer), |ui| {
+                assert!(ui.is_inert());
+                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
+                ui.reference(Some(inner), |ui| {
+                    assert_eq!(ui.state(OWNER), StateFlags::empty());
+                    assert_eq!(ui.state(OTHER), StateFlags::PRESSED);
+                });
+                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
+
+                let unwind = catch_unwind(AssertUnwindSafe(|| {
+                    ui.reference(Some(inner), |_| panic!("reference probe"));
+                }));
+                assert!(unwind.is_err());
+                assert_eq!(ui.state(OWNER), StateFlags::HOVERED);
+                assert_eq!(ui.hovered_part(OWNER), Some(PartRef::of(Part::LABEL)));
+            });
+            assert!(!ui.is_inert());
+        });
+    }
+
+    #[test]
+    fn reference_sinks_every_registration_and_runtime_output() {
+        const LAYER: Id = Id::root("ui.layer");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame
+            .layers
+            .push(LAYER, LayerId(1), LayerSpec::modal(LAYER), SCREEN, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let mut layer_ran = false;
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.reference(None, |ui| {
+                ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+                ui.register_focus_only(OTHER, Focusability::Focusable);
+                ui.register_editor(OWNER, SCREEN, Focusability::Focusable, StateFlags::EDITING);
+                ui.register_part(OWNER, PartRef::of(Part::LABEL), SCREEN);
+                ui.register_decor(OWNER, PartRef::of(Part::HELP), SCREEN);
+                ui.register_scroll(OWNER, SCREEN, Axes::Both, Headroom::default());
+                ui.declare_state(OWNER, StateFlags::ERROR);
+                ui.report_layout(OWNER, LayoutFacts::new(1, 2, 3, 4));
+                ui.set_cursor(OWNER, Position::new(1, 1));
+                ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
+                ui.publish_dynamic_bindings(
+                    OWNER,
+                    StateFlags::FOCUSED,
+                    core::iter::once((ActionKey::SAVE, Some(Chord::key(KeyCode::Char('s'))))),
+                );
+                assert!(ui.layer(LAYER, |_, _| layer_ran = true).is_none());
+                ui.focus_scope(OWNER, crate::focus::ScopeMode::Trap, |ui| {
+                    ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+                });
+            });
+        }
+
+        assert!(!layer_ran);
+        assert!(!frame.registry.has_owner(OWNER));
+        assert!(!frame.registry.has_owner(OTHER));
+        assert!(frame.ring.entries().is_empty());
+        assert!(frame.declared.is_empty());
+        assert!(frame.layout.is_empty());
+        assert!(frame.cursor.is_none());
+        assert!(frame.bindings.get(OWNER).is_none());
+        assert!(frame.diagnostics.is_empty());
+        assert!(
+            frame
+                .layers
+                .active()
+                .first()
+                .is_some_and(|layer| !layer.drawn)
+        );
+    }
+
+    #[test]
+    fn reference_cache_is_namespaced_from_live_and_sibling_scopes() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            let formerly_colliding = OWNER.sub("__reference").index(0);
+            *ui.cache::<u32>(formerly_colliding) = 7;
+            let first = ReferenceTarget::new(OWNER, ReferenceState::FOCUSED);
+            let second = ReferenceTarget::new(OTHER, ReferenceState::FOCUSED);
+            ui.reference(Some(first), |ui| {
+                assert_eq!(*ui.cache::<u32>(OWNER), 0);
+                *ui.cache::<u32>(OWNER) = 11;
+                ui.reference(Some(second), |ui| {
+                    assert_eq!(*ui.cache::<u32>(OWNER), 0);
+                    *ui.cache::<u32>(OWNER) = 13;
+                });
+                assert_eq!(*ui.cache::<u32>(OWNER), 11);
+            });
+            ui.reference(Some(second), |ui| {
+                assert_eq!(*ui.cache::<u32>(OWNER), 13);
+            });
+            ui.reference(Some(first), |ui| {
+                assert_eq!(*ui.cache::<u32>(OWNER), 11);
+            });
+            assert_eq!(*ui.cache::<u32>(formerly_colliding), 7);
+        });
+    }
+
+    #[test]
+    fn targetless_sibling_reference_scopes_do_not_share_cache() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            ui.reference(None, |ui| {
+                assert_eq!(*ui.cache::<u32>(OWNER), 0);
+                *ui.cache::<u32>(OWNER) = 11;
+            });
+            ui.reference(None, |ui| {
+                assert_eq!(
+                    *ui.cache::<u32>(OWNER),
+                    0,
+                    "a targetless sibling is a distinct reference fixture"
+                );
+            });
+        });
+    }
+
+    #[test]
+    fn reference_panic_cannot_poison_the_live_cache_namespace() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            *ui.cache::<u32>(OWNER) = 7;
+            let unwind = catch_unwind(AssertUnwindSafe(|| {
+                ui.reference(
+                    Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
+                    |ui| {
+                        *ui.cache::<u32>(OWNER) = 99;
+                        panic!("reference cache probe");
+                    },
+                );
+            }));
+            assert!(unwind.is_err());
+            assert_eq!(*ui.cache::<u32>(OWNER), 7);
+        });
+    }
+
+    #[test]
+    fn reference_hides_stale_tab_shaped_area_and_layout() {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(2, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let mut registry = crate::hit::Registry::default();
+        registry.reset(1);
+        let _ = registry.register_control(OWNER, Rect::new(2, 1, 20, 1), LayerId::PAGE);
+        let last = LastFrame {
+            registry,
+            layout: vec![(OWNER, LayoutFacts::new(3, 12, 1, 20))],
+            ..LastFrame::default()
+        };
+        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+        assert_eq!(ui.area(OWNER), Some(Rect::new(2, 1, 20, 1)));
+        assert_eq!(ui.layout(OWNER), Some(LayoutFacts::new(3, 12, 1, 20)));
+        ui.reference(
+            Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
+            |ui| {
+                assert_eq!(ui.area(OWNER), None);
+                assert_eq!(ui.layout(OWNER), None);
+            },
+        );
+    }
+
+    #[test]
+    fn focused_hints_are_suppressed_inside_a_reference_scope() {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame {
+            snapshot: super::cx::Snapshot {
+                focus: Some(OWNER),
+                ..super::cx::Snapshot::default()
+            },
+            ..LastFrame::default()
+        };
+        let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+        ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+        ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
+        assert!(ui.with_focused_hints(|_, _| ()).is_some());
+        ui.reference(
+            Some(ReferenceTarget::new(OWNER, ReferenceState::FOCUSED)),
+            |ui| assert!(ui.with_focused_hints(|_, _| ()).is_none()),
+        );
+    }
+
+    #[test]
+    fn focus_only_is_reachable_without_an_area_or_hit_target() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            ui.register_focus_only(OWNER, Focusability::Focusable);
+
+            assert_eq!(ui.frame.ring.next(None), Some(OWNER));
+            assert_eq!(ui.frame.ring.entry(OWNER).map(|e| e.area), Some(Rect::ZERO));
+            assert_eq!(ui.frame.registry.area_of(OWNER), None);
+            assert_eq!(ui.frame.registry.hit(Position::new(0, 0)), None);
+        });
+    }
+
+    #[test]
+    fn focus_only_click_only_is_a_no_op() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            ui.register_focus_only(OWNER, Focusability::ClickOnly);
+
+            assert!(!ui.frame.ring.is_registered(OWNER));
+            assert!(!ui.frame.registry.has_owner(OWNER));
+        });
+    }
+
+    #[test]
+    fn zero_area_control_still_registers_nothing() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            ui.register_control(OWNER, Rect::ZERO, Focusability::Focusable);
+
+            assert!(!ui.frame.ring.is_registered(OWNER));
+            assert!(!ui.frame.registry.has_owner(OWNER));
+        });
+    }
+
+    #[test]
+    fn focus_only_preserves_disabled_and_read_only_semantics() {
+        const DISABLED: Id = Id::root("ui.disabled");
+        const READ_ONLY: Id = Id::root("ui.read-only");
+
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            ui.register_focus_only(DISABLED, Focusability::Disabled);
+            ui.register_focus_only(READ_ONLY, Focusability::FocusableReadOnly);
+
+            assert!(ui.frame.ring.is_registered(DISABLED));
+            assert!(!ui.frame.ring.contains(DISABLED));
+            assert!(ui.frame.ring.contains(READ_ONLY));
+            assert_eq!(ui.frame.declared, vec![(READ_ONLY, StateFlags::READ_ONLY)]);
+        });
     }
 
     /// `with_part` is a convenience over `style`, not a second resolution

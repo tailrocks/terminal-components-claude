@@ -11,13 +11,18 @@ use ratatui_core::layout::{Position, Rect};
 use crate::action::ActionKey;
 use crate::capture::{Capture, CaptureSlot};
 use crate::diagnostics::Diagnostics;
+use crate::event::Chord;
 use crate::focus::FocusRing;
 use crate::hit::Registry;
 use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue};
+use crate::keymap::{BindingRegistry, KeyMap};
 use crate::layer::{Anchor, DismissReason, LayerEvent, LayerId, LayerSize, LayerSpec, LayerStack};
 use crate::response::StateFlags;
 use crate::theme::{DesignTokens, Theme};
+
+use super::UiCore;
+use super::derived::DerivedCache;
 
 /// Draw-time facts a component reports upward (§4 S6).
 #[non_exhaustive]
@@ -52,7 +57,7 @@ pub(crate) struct Snapshot {
     pub(crate) focus_visible: bool,
     pub(crate) hover: Option<(Id, PartRef)>,
     pub(crate) hover_suppressed: bool,
-    pub(crate) pressed: Option<Id>,
+    pub(crate) pressed: Option<(Id, PartRef)>,
     pub(crate) capture: Option<Id>,
 }
 
@@ -63,6 +68,7 @@ pub(crate) struct LastFrame {
     pub(crate) ring: FocusRing,
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
+    pub(crate) bindings: BindingRegistry,
     pub(crate) snapshot: Snapshot,
 }
 
@@ -80,7 +86,7 @@ impl LastFrame {
         if s.hover.is_some_and(|(owner, _)| owner == id) && !s.hover_suppressed {
             f |= StateFlags::HOVERED;
         }
-        if s.pressed == Some(id) || s.capture == Some(id) {
+        if s.pressed.is_some_and(|(owner, _)| owner == id) || s.capture == Some(id) {
             f |= StateFlags::PRESSED;
         }
         if self.ring.entry(id).is_some_and(|e| e.disabled) {
@@ -111,6 +117,13 @@ impl LastFrame {
             .filter(|(id, _)| *id == owner)
             .map(|(_, part)| part)
     }
+
+    pub(crate) fn pressed_part(&self, owner: Id) -> Option<PartRef> {
+        self.snapshot
+            .pressed
+            .filter(|(id, _)| *id == owner)
+            .map(|(_, part)| part)
+    }
 }
 
 /// Shared read accessors — one vocabulary for both phases.
@@ -121,6 +134,10 @@ pub trait FrameRead {
     /// The hovered sub-region of `owner`, or `None` when no live hover matches.
     /// Keyboard input suppresses this result until the pointer moves.
     fn hovered_part(&self, _owner: Id) -> Option<PartRef> {
+        None
+    }
+    /// The pressed or captured sub-region of `owner`.
+    fn pressed_part(&self, _owner: Id) -> Option<PartRef> {
         None
     }
     /// The theme.
@@ -161,6 +178,8 @@ pub(crate) struct FrameServices {
 pub struct Cx<'f> {
     intents: &'f IntentQueue,
     services: &'f mut FrameServices,
+    cache: &'f mut DerivedCache,
+    keymap: &'f KeyMap,
     last: &'f LastFrame,
     theme: &'f Theme,
     command: Option<ActionKey>,
@@ -180,13 +199,18 @@ impl<'f> Cx<'f> {
     pub(crate) fn new(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
+        core: &'f mut UiCore,
         last: &'f LastFrame,
         theme: &'f Theme,
         command: Option<ActionKey>,
     ) -> Self {
+        let cache = &mut core.cache;
+        let keymap = &core.keymap;
         Cx {
             intents,
             services,
+            cache,
+            keymap,
             last,
             theme,
             command,
@@ -197,6 +221,43 @@ impl<'f> Cx<'f> {
     /// an empty queue costs one `bool` check.
     pub fn intents(&self, id: Id) -> IntentIter<'f> {
         self.intents.iter(id)
+    }
+
+    pub(crate) fn claim_binding_chord(&self, owner: Id, chord: Chord) -> Option<ActionKey> {
+        self.intents.claim_binding_chord(owner, chord)
+    }
+
+    pub(crate) fn swallows_typing(&self, owner: Id) -> bool {
+        self.last
+            .ring
+            .entry(owner)
+            .is_some_and(|entry| entry.swallows_typing)
+    }
+
+    pub(crate) fn effective_chord(
+        &self,
+        owner: Id,
+        action: ActionKey,
+        default: Option<Chord>,
+    ) -> Option<Chord> {
+        self.keymap.component_chord(owner, action, default)
+    }
+
+    /// A component's runtime-owned derived cache together with its intents.
+    ///
+    /// Crate-private because cached values are implementation details, never
+    /// semantic application state. Returning both borrows the frozen queue
+    /// and the independent cache at once without allocating an intent copy.
+    pub(crate) fn intents_with_cache<T: Default + 'static>(
+        &mut self,
+        id: Id,
+    ) -> (IntentIter<'f>, &mut T) {
+        (self.intents.iter(id), self.cache.get_mut::<T>(id))
+    }
+
+    /// A component's runtime-owned derived cache.
+    pub(crate) fn cache<T: Default + 'static>(&mut self, id: Id) -> &mut T {
+        self.cache.get_mut::<T>(id)
     }
 
     /// The application `KeyMap` command matched this pass, if any.
@@ -357,6 +418,10 @@ impl FrameRead for Cx<'_> {
         self.last.hovered_part(owner)
     }
 
+    fn pressed_part(&self, owner: Id) -> Option<PartRef> {
+        self.last.pressed_part(owner)
+    }
+
     fn theme(&self) -> &Theme {
         self.theme
     }
@@ -378,6 +443,11 @@ impl super::Ui<'_> {
     /// The hovered sub-region of `owner`, or `None` when keyboard input
     /// currently suppresses hover styling.
     pub fn hovered_part(&self, owner: Id) -> Option<PartRef> {
-        self.last.hovered_part(owner)
+        FrameRead::hovered_part(self, owner)
+    }
+
+    /// The pressed or captured sub-region of `owner`.
+    pub fn pressed_part(&self, owner: Id) -> Option<PartRef> {
+        FrameRead::pressed_part(self, owner)
     }
 }

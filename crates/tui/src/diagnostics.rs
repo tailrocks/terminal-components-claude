@@ -7,6 +7,7 @@
 
 use ratatui_core::layout::Rect;
 
+use crate::action::ActionKey;
 use crate::event::Chord;
 use crate::id::Id;
 use crate::keymap::KeyPhase;
@@ -47,6 +48,13 @@ pub enum Diagnostic {
         a: Id,
         /// The second owner.
         b: Id,
+    },
+    /// A component published the same stable action more than once.
+    DuplicateBindingAction {
+        /// The component publishing the table.
+        owner: Id,
+        /// The repeated action.
+        action: ActionKey,
     },
     /// A fifth focus pass was required (§21 item 11).
     FocusTransitionDidNotSettle {

@@ -260,6 +260,24 @@ impl Registry {
             .map(|(_, r)| Self::hit_of(r, pos))
     }
 
+    /// The topmost intent-delivering region at `pos` on `layer`.
+    ///
+    /// Decorative regions are skipped before ordering, so decoration painted
+    /// after a live part cannot hide that part from pointer movement. Regions
+    /// below `layer` are never considered.
+    pub(crate) fn hit_live(&self, pos: Position, layer: LayerId) -> Option<Hit> {
+        self.regions
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| {
+                r.layer == layer
+                    && matches!(r.kind, RegionKind::Control | RegionKind::Part)
+                    && r.area.contains(pos)
+            })
+            .max_by_key(|(i, _)| *i)
+            .map(|(_, r)| Self::hit_of(r, pos))
+    }
+
     /// The innermost scroll region covering `pos` that handles `axis`,
     /// returned even at zero headroom (§8.3). Ordered by
     /// `(layer, registration index)`, like [`Registry::hit`].

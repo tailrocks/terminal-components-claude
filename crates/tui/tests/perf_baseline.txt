@@ -76,10 +76,16 @@
 #                                     extrapolates the 160-query difference -- 200 in
 #                                     arm A minus 40 in arm B, not 200 -- to 2 000
 #                                     queries against the same 32 us ceiling.
+#  viewport_100k_lines_reindex        added by the exact-layout adjudication: report-only
+#                                     cold prefix storage plus width-change and explicit-
+#                                     invalidation O(document) index work. Warm work stays
+#                                     in viewport_100k_lines_render.
 event_dispatch_is_not_o_n 135185 0 0
 fit_10k_grapheme_line_to_80 156980 0 0
 fit_10k_grapheme_line_to_80_wide 333847 7 224
 focus_tab_traversal_ring_200 381966 0 0
+frame_form_update_draw 36005 0 0
+frame_hintbar_derived 2384 0 0
 frame_showcase_buttons_120x40 8275 0 0 9 7
 frame_testbackend_empty_120x40 24886 0 0
 fuzzy_10k_grapheme_label 323778 15 262232
@@ -91,6 +97,7 @@ list_1k_rows_render 131116 0 0
 measure_is_allocation_free 7619 0 0
 mouse_move_over_1000_regions 7261112 0 0
 paint_spans_500_rows_is_allocation_free 113159 0 0
+picker_100k_borrowed_domain_render 35372 0 0
 style_backdrop_full_screen_120x40 41866 0 0
 style_downgrade_theme_all_levels 65004 1079 170904
 style_resolve_10k_parts 120141 0 0
@@ -99,5 +106,8 @@ textbuffer_offset_at_10k_line 287795 0 0
 textbuffer_pos_of_10k_line 339752 0 0
 truncate_10k_grapheme_line_to_80 320007 6 288
 truncate_middle_10k_to_40 328753 1 128
+viewport_100k_lines_push 552000 4 400644
+viewport_100k_lines_render 98597 0 0 6 1
+viewport_layout_10k_grapheme_line 1737908 0 0
 width_10k_grapheme_line 341420 0 0
 wrap_10k_graphemes_to_80 457620 1119 82416

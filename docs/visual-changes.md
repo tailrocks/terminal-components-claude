@@ -14,6 +14,7 @@ A capture cannot exist before the change, so `bless-guard` never runs locally ag
 **Entry format** (one per affected surface). Every field of an entry lives inside **one** fenced block, so a reader that strips fences loses neither the classification, nor the citation, nor the evidence:
 
 ```
+
 - surface:   <app>/<page or component>/<state> @ <w>x<h> / <theme> / <color level>
 - captures:  shots/<before>.png  →  shots/<after>.png
              — for a headless `Scene` matrix instead: `none under shots/`, the reason,
@@ -100,7 +101,7 @@ classified independently under item 1.
              `Scene`, and no separate capture file is in this task's ownership.
 - tests:     crates/tui/tests/baselines/components.txt (mono lines only),
              render::components::field::disabled
-- moved:     4 keys, every one `mono`:
+- historical-moved: 4 keys, every one `mono` (superseded by stabilized reconciliation below):
   render::components::field::disabled 120 40 junie mono 399b0a5bc31c9d66 → a17a3ce53b0c07c0
   render::components::field::disabled 120 40 paper mono e0d02bbbddbfe054 → 3ca520240375131a
   render::components::field::disabled 40 10 junie mono d8fb0563075c66a6 → 4a6989f667440f40
@@ -111,6 +112,43 @@ classified independently under item 1.
              executes for the required marker's reserved cell, removing an inert
              fallback and making the disabled field's mono output match its declared
              glyph semantics.
+```
+
+### 1c — Select retains the mono pressed field bracket
+
+```
+
+### 1d — Loading has its own mono ICON modifier
+
+```
+- surface:   every `Caps::REPORTS_STATUS` component at `ColorLevel::Mono` under `LOADING`
+- captures:  none; no retained eight-state digest key isolates `LOADING`
+- tests:     theme::mono_parts_exactly_cover_every_reserved_rule_part,
+             conformance::<reports-status-component>::mono_states_are_distinguishable
+- moved:     none measured or authorized
+- added:     none
+- class:     fix
+- reason:    §20.10 item 1. `BUSY` and `LOADING` paint the same animated ICON sequence. The
+             20th generic mono fallback adds `UNDERLINED` to `Part::ICON + LOADING`, giving the
+             data-loading state a capability-local signal without borrowing an unrelated fixture
+             or runtime bit and without changing geometry. Any future digest movement requires
+             fresh scratch capture and exact classification before bless.
+```
+- surface:   tui-next/select/pressed @ {120x40, 40x10} / {junie, paper} / mono
+- captures:  none under `shots/`; clean Junie 120×40 before/after frame text is
+             `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/moved-before/mono/select--pressed.txt`
+             and `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/moved-after/mono/select--pressed.txt`.
+- tests:     crates/tui/tests/baselines/components.txt, render::components::select::pressed
+- historical-moved: 4 keys (superseded by stabilized reconciliation below):
+  render::components::select::pressed 120 40 junie mono 17bf131df914c266 → c4e91c58984eb68c
+  render::components::select::pressed 120 40 paper mono 33ca9d784756b7a6 → 20cc3c074be6adaa
+  render::components::select::pressed 40 10 junie mono eafa6492283387c6 → 75aee1f6e6798d6c
+  render::components::select::pressed 40 10 paper mono cec1880d683c3a06 → 5dadb5bc71aedd0a
+- added:     none
+- class:     fix
+- reason:    §20.10 item 1. The corrected closed Select keeps the prescribed mono
+             FIELD inverse+BOLD and GUTTER `[` / MARKER `]` bracket anatomy; the
+             dedicated disclosure role no longer competes for the pressed marker cell.
 ```
 
 ## Item 2 — Layer compositing order (§5 R7, §3.3 step 12)
@@ -240,7 +278,7 @@ the previous transition remains historical git evidence.
              output shows it), so the whole difference is style.
 - tests:     crates/tui/tests/baselines/components.txt (mono lines only),
              render::components::{text_input,field,list,button,tabs,dialog}::disabled
-- moved:     12 lines, every one `mono` (`git diff crates/tui/tests/baselines/components.txt`):
+- historical-moved: 12 lines, every one `mono` (superseded by stabilized reconciliation below):
   render::components::button::disabled 120 40 junie mono 023bd60f5b1ae845 → d20bb906fcfe3dd1
   render::components::button::disabled 40 10 junie mono 15af984dfc54c7c5 → bfe7ea91b76bd751
   render::components::dialog::disabled 120 40 junie mono 3162b7d5bbf2a5f5 → 2d6a3cd4c020d7e5
@@ -289,7 +327,7 @@ through `inherit_forced`, `Dialog`'s action row in the current matrix**.
 - tests:     crates/tui/tests/baselines/components.txt (mono lines only),
              render::components::button::pressed, render::components::dialog::pressed,
              conformance::button::mono_states_are_distinguishable
-- moved:     8 keys, every one `mono`:
+- historical-moved: 8 keys, every one `mono` (superseded by stabilized reconciliation below):
   render::components::button::pressed 120 40 junie mono 3b2454b37bd7d149 → 71350c86866c7f71
   render::components::button::pressed 120 40 paper mono b37e9d409e89f5f5 → 87762b1d30c7aea5
   render::components::button::pressed 40 10 junie mono c29079987470c6c9 → 302ae7a815fa48f1
@@ -410,7 +448,7 @@ the style half remains machine-asserted rather than visually recoverable from fr
              render::components::{hint_bar,meter,progress_bar}::disabled,
              components::a_forced_component_resolves_its_props_derived_state,
              theme::readiness_states_are_digest_distinct
-- moved:     22 keys (HintBar 8, Meter 6, ProgressBar 8; 12 truecolor, 10 mono):
+- historical-moved: 22 keys (superseded by stabilized reconciliation below):
   render::components::hint_bar::disabled 120 40 junie mono f19ec0db80c3b5ce → f5fc6531be4cfe81
   render::components::hint_bar::disabled 120 40 junie truecolor 8486cfc84d1044b4 → 9e0c5d44f19bd3fc
   render::components::hint_bar::disabled 120 40 paper mono 270944ce827da10c → b8930e040b525b61
@@ -439,4 +477,717 @@ the style half remains machine-asserted rather than visually recoverable from fr
              The old output erased `ERROR`, making HintBar and ProgressBar error fixtures
              byte-identical to their ready defaults at truecolor and leaving Meter's declared
              error rule unreachable; the corrected output paints the specified error affordance.
+```
+
+## Item 10 — Derived-hint performance proof is recorded
+
+```
+- surface:   crates/tui performance inventory; no rendered baseline
+- captures:  none — this is a numeric allocation proof, not a frame
+- tests:     crates/tui/tests/perf_baseline.txt, frame_hintbar_derived
+- moved:     none
+- added:     1 key: `frame_hintbar_derived`
+- class:     intended
+- reason:    §20.10 item 10 (hints derived from component bindings). This is the
+             first checked-in allocation record for the unchanged-focus cache that
+             makes the derived footer practical; it changes no rendered cells.
+```
+
+## Item 22 — First-generation Panel, SplitPane, TextViewport and Tree digests
+
+```
+- surface:   tui-next/{panel,split_pane,text_viewport,tree}
+             / {default,focused,hovered,pressed,disabled,selected,editing,empty}
+             @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under `shots/`; the matrix is headless. Clean Junie 120×40
+             truecolor/mono frame text for all 32 states is under
+             `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/new-components-clean/{truecolor,mono}/{panel,split_pane,text_viewport,tree}--*.txt`;
+             the complete inventory is `artifacts/new-components-320.manifest`.
+- tests:     crates/tui/tests/baselines/components.txt,
+             render::components::{panel,split_pane,text_viewport,tree}::*
+- moved:     none
+- added:     256 keys: `render::components::{panel,split_pane,text_viewport,tree}::{default,focused,hovered,pressed,disabled,selected,editing,empty} {120 40,40 10} {junie,paper} {truecolor,mono}`
+- class:     intended
+- reason:    §20.10 item 22 (first-generation component digests). These keys have
+             no before-image and pin future drift; they are not visual approval.
+```
+
+### 22b — TextViewport performance proofs are recorded
+
+```
+- surface:   crates/tui performance inventory; no rendered baseline
+- captures:  none — these are numeric allocation/index proofs, not frames
+- tests:     crates/tui/tests/perf_baseline.txt, viewport_100k_lines_push,
+             viewport_100k_lines_render, viewport_layout_10k_grapheme_line
+- moved:     none
+- added:     3 keys: `viewport_100k_lines_push`, `viewport_100k_lines_render`, `viewport_layout_10k_grapheme_line`
+- class:     intended
+- reason:    §20.10 item 22 (first-generation TextViewport component evidence),
+             paired with §20.9 item 7's binding performance obligations. These
+             first numeric records change no rendered cells.
+```
+
+## Item 23 — ChipBar semantic identity and owned-patch correction
+
+```
+- surface:   tui-next/chip_bar/{default,focused,hovered,pressed,disabled,selected,editing}
+             @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under `shots/`; the matrix is headless. Exact scratch diff/key
+             evidence is `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/{components-scratch.diff,moved-keys-exact.txt}`.
+             Clean Junie 120×40 truecolor/mono before and after frames are listed by
+             `artifacts/moved-before-22.manifest` and `artifacts/moved-after-22.manifest`.
+- tests:     crates/tui/tests/baselines/components.txt, render::components::chip_bar::*
+- historical-moved: 39 keys (superseded by stabilized reconciliation below):
+  render::components::chip_bar::default 120 40 junie mono 20dc057a9ec11402 → d410e30a8fa1287b
+  render::components::chip_bar::default 120 40 junie truecolor 13a30c0fc4475b5e → ec65ee8e34084547
+  render::components::chip_bar::default 120 40 paper mono 57b2cbc4e84613fa → af6ee1d9868d153b
+  render::components::chip_bar::default 120 40 paper truecolor 0e3f6a0b142b8888 → 5262957dbd38ff11
+  render::components::chip_bar::disabled 120 40 junie mono df02c34f10930326 → fe16ace9bdc28c17
+  render::components::chip_bar::disabled 120 40 junie truecolor 456cd66502145504 → 10df00da77faf209
+  render::components::chip_bar::disabled 120 40 paper mono 7cd4de1e637d0e82 → 37a6afcff9f15bb3
+  render::components::chip_bar::disabled 120 40 paper truecolor 6ea3f973aa306304 → f9be19ec6dc64333
+  render::components::chip_bar::disabled 40 10 junie mono b5359bbe0124832e → 83ba4197f209a1b8
+  render::components::chip_bar::disabled 40 10 junie truecolor 334569a9d20c1b4e → f678035343e2efd2
+  render::components::chip_bar::disabled 40 10 paper truecolor 49fb1321e27eccf2 → 2ed132f9870e09a7
+  render::components::chip_bar::editing 120 40 junie mono 20dc057a9ec11402 → d410e30a8fa1287b
+  render::components::chip_bar::editing 120 40 junie truecolor 13a30c0fc4475b5e → ec65ee8e34084547
+  render::components::chip_bar::editing 120 40 paper mono 57b2cbc4e84613fa → af6ee1d9868d153b
+  render::components::chip_bar::editing 120 40 paper truecolor 0e3f6a0b142b8888 → 5262957dbd38ff11
+  render::components::chip_bar::focused 120 40 junie mono 6ad5af32d1c4ed26 → 88693cac752be367
+  render::components::chip_bar::focused 120 40 junie truecolor 3d29208b34fc2d1e → 782d064c5cace447
+  render::components::chip_bar::focused 120 40 paper mono 870de4e852c919c6 → 1a0425581edf8767
+  render::components::chip_bar::focused 120 40 paper truecolor 489998de99db8348 → 90b548aae4ab93e1
+  render::components::chip_bar::hovered 120 40 junie mono 857bb40ac027e8bc → 9aac1adf3d5f55a5
+  render::components::chip_bar::hovered 120 40 junie truecolor 57ce6520fe16bda8 → 8992c7433e911eaf
+  render::components::chip_bar::hovered 120 40 paper mono 57b2cbc4e84613fa → af6ee1d9868d153b
+  render::components::chip_bar::hovered 120 40 paper truecolor 7a7d32240fba017d → 1270ae2154444e2a
+  render::components::chip_bar::hovered 40 10 junie truecolor 83292ce01ea8e206 → f539bd9db384fbf0
+  render::components::chip_bar::hovered 40 10 paper truecolor 28cd277ff3d2aef5 → 50f1629e47930e17
+  render::components::chip_bar::pressed 120 40 junie mono eda5fcfe6a098dbe → 3ec2f185b7fc82ab
+  render::components::chip_bar::pressed 120 40 junie truecolor bca0f9fd51095e7e → 0511d60b0fa8b033
+  render::components::chip_bar::pressed 120 40 paper mono 020604870a05c0ba → 1f7343eff38605af
+  render::components::chip_bar::pressed 120 40 paper truecolor 86e93e82da6defaf → b9785905ac758222
+  render::components::chip_bar::pressed 40 10 junie mono 38e8004d2b8528a6 → 465c9be2eaf8153a
+  render::components::chip_bar::pressed 40 10 junie truecolor ab3e79bbeb642964 → ac302d959cd1b398
+  render::components::chip_bar::pressed 40 10 paper mono e3dcedc6ecd81666 → b0631a37d189adf2
+  render::components::chip_bar::pressed 40 10 paper truecolor 99ae477a548be61b → 41c95aa0cccd1a6f
+  render::components::chip_bar::selected 120 40 junie mono 42faaf09081f03e7 → d03067a49b2395be
+  render::components::chip_bar::selected 120 40 junie truecolor 59b3e16324d9bdee → a5ab322ccf96fbe9
+  render::components::chip_bar::selected 120 40 paper mono d27abdc40d74076f → 3d7d833bed6dbc3e
+  render::components::chip_bar::selected 120 40 paper truecolor 0ea85aa20aae8da5 → 13ea3f709a84aaea
+  render::components::chip_bar::selected 40 10 junie truecolor 130f7690a0735bc8 → b7249dc8743bd97e
+  render::components::chip_bar::selected 40 10 paper truecolor af5c9c27e0e71e5d → 8cff4fad8972e657
+- added:     none
+- class:     fix
+- reason:    §20.10 item 23 (ChipBar semantic identity and owned-patch contract).
+             Checked markers, caller META and automatic part patches now follow
+             the accepted contract; label/pad/close/overflow geometry is retained.
+```
+
+## Item 24 — First-generation TooSmall digests
+
+```
+- surface:   tui-next/too_small/{default,focused,hovered,pressed,disabled,selected,editing,empty}
+             @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under `shots/`; the matrix is headless. Clean Junie 120×40
+             truecolor/mono frame text is under
+             `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/new-components-clean/{truecolor,mono}/too_small--*.txt`;
+             exact scope is `artifacts/added-keys-exact.txt`.
+- tests:     crates/tui/tests/baselines/components.txt, render::components::too_small::*
+- moved:     none
+- added:     64 keys: `render::components::too_small::{default,focused,hovered,pressed,disabled,selected,editing,empty} {120 40,40 10} {junie,paper} {truecolor,mono}`
+- class:     intended
+- reason:    §20.10 item 24 (first-generation TooSmall digests). No key has a
+             before-image; these lines pin future drift and are not visual approval.
+```
+
+## Item 25 — First-generation ScrollRegion, NavList, Steps and Grid digests
+
+```
+- surface:   tui-next/{scroll_region,nav_list,steps,grid}
+             / {default,focused,hovered,pressed,disabled,selected,editing,empty}
+             @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under `shots/`; the matrix is headless. Clean Junie 120×40
+             truecolor/mono frame text is under
+             `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/new-components-clean/{truecolor,mono}/{scroll_region,nav_list,steps,grid}--*.txt`;
+             exact scope is `artifacts/added-keys-exact.txt`.
+- tests:     crates/tui/tests/baselines/components.txt,
+             render::components::{scroll_region,nav_list,steps,grid}::*
+- moved:     none
+- added:     256 keys: `render::components::{scroll_region,nav_list,steps,grid}::{default,focused,hovered,pressed,disabled,selected,editing,empty} {120 40,40 10} {junie,paper} {truecolor,mono}`
+- class:     intended
+- reason:    §20.10 item 25 (first-generation component digests). No key has a
+             before-image; item 21 separately governs pressed-mono thumb appearance.
+```
+
+## Item 26 — First-generation DiffView and CodeEditor digests
+
+```
+- surface:   tui-next/{diff_view,code_editor}
+             / {default,focused,hovered,pressed,disabled,selected,editing,empty}
+             @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under `shots/`; the matrix is headless. Clean Junie 120×40
+             truecolor/mono frame text is under
+             `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/new-components-clean/{truecolor,mono}/{diff_view,code_editor}--*.txt`;
+             exact scope is `artifacts/added-keys-exact.txt`.
+- tests:     crates/tui/tests/baselines/components.txt,
+             render::components::{diff_view,code_editor}::*
+- moved:     none
+- added:     128 keys: `render::components::{diff_view,code_editor}::{default,focused,hovered,pressed,disabled,selected,editing,empty} {120 40,40 10} {junie,paper} {truecolor,mono}`
+- class:     intended
+- reason:    §20.10 item 26 (first-generation DiffView and CodeEditor digests).
+             The lines have no before-image and pin future drift; fresh independent
+             frame review and an authorized serial bless remain pending.
+```
+
+## Item 27 — First-generation Slice-4F component digests
+
+```
+- surface:   tui-next/{filter_list,picker,completion,form,context_menu,help_overlay,
+             menu_bar,picker_chain,wizard}
+             / {default,focused,hovered,pressed,disabled,selected,editing,empty}
+             @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under `shots/`; the matrix is headless. The earlier scratch capture at
+             `/tmp/fable-slice4-final-BPvDuo/repo/artifacts/frames/new-components-clean/`
+             is retained as historical evidence only: item 31 changed the reference mechanism,
+             so fresh scratch frame text and inventory are required before review or bless.
+- tests:     crates/tui/tests/baselines/components.txt,
+             render::components::{filter_list,picker,completion,form,context_menu,
+             help_overlay,menu_bar,picker_chain,wizard}::*
+- moved:     none
+- added:     576 keys: `render::components::{filter_list,picker,completion,form,context_menu,help_overlay,menu_bar,picker_chain,wizard}::{default,focused,hovered,pressed,disabled,selected,editing,empty} {120 40,40 10} {junie,paper} {truecolor,mono}`
+- class:     intended
+- reason:    §20.10 item 27 (first-generation Slice-4F component digests). Dialog
+             is excluded because retained keys already exist. These lines have no
+             before-image; fresh independent frame review and an authorized serial
+             bless remain pending. Item 27 owns these first-generation keys; item 31
+             may account only for measured corrections to their generated frames.
+```
+
+### 27b — Picker borrowed-domain performance proof is recorded
+
+```
+
+- surface:   crates/tui performance inventory; no rendered baseline
+- captures:  none — this is a numeric allocation proof, not a frame
+- tests:     crates/tui/tests/perf_baseline.txt, picker_100k_borrowed_domain_render
+- moved:     none
+- added:     1 key: `picker_100k_borrowed_domain_render`
+- class:     intended
+- reason:    §20.10 item 27 (Slice-4F first-generation component evidence), paired
+             with the accepted picker borrowed-domain allocation obligation. This
+             first numeric record changes no rendered cells.
+```
+
+### 27c — Form steady-frame allocation proof is recorded
+
+```
+- surface:   crates/tui performance inventory; no rendered baseline
+- captures:  none — this is a numeric allocation proof, not a frame
+- tests:     crates/tui/tests/perf_baseline.txt, frame_form_update_draw
+- moved:     none
+- added:     1 key: `frame_form_update_draw`
+- class:     intended
+- reason:    §20.10 item 27 (Slice-4F first-generation component evidence), paired
+             with the accepted allocation-free borrowing placement obligation.
+             This first numeric record changes no rendered cells.
+```
+
+## Item 28 — Semantic selection is state-owned
+
+```
+- surface:   tui-next/{list,tabs,radio_group,select} semantic-selection states
+             @ {120x40, 40x10} / {junie, paper} / the exact colours below
+- captures:  none under `shots/`; the matrix is headless. Exact scratch evidence is
+             `/tmp/fable-slice4-final-VPCSC9/artifacts/components-scratch.diff` and
+             `/tmp/fable-slice4-final-VPCSC9/artifacts/moved-keys-exact.txt`.
+- tests:     crates/tui/tests/baselines/components.txt,
+             render::components::{list,tabs,radio_group,select}::*
+- historical-moved: 40 keys (rejected pre-reconciliation scratch record; superseded below):
+  render::components::list::selected 120 40 junie mono 948062195792e82f → 164c36b18586726f
+  render::components::list::selected 120 40 junie truecolor a09c6fe210fe945d → ce3be201fd5894f6
+  render::components::list::selected 120 40 paper mono 69642bbd1fad5265 → 73efdde5cdb3a6c5
+  render::components::list::selected 120 40 paper truecolor 494b4c33bccf8984 → 82e97d15fc758a0e
+  render::components::list::selected 40 10 junie mono 6c049b1cb101664f → deac25911bc9718f
+  render::components::list::selected 40 10 junie truecolor 2d8c90c882efad9d → 4e5dee5a5d3d3a76
+  render::components::list::selected 40 10 paper mono b44e759285f43a85 → 447bcd08741e2165
+  render::components::list::selected 40 10 paper truecolor 950b530b8705f714 → 85d6dbd488cef51e
+  render::components::radio_group::pressed 120 40 junie mono 7c9348eec50e02e3 → 4d18b4872f35ce4b
+  render::components::radio_group::pressed 120 40 paper mono 5e4e76a54792f289 → c7333b9ec237078d
+  render::components::radio_group::pressed 40 10 junie mono 6f0aebd819bba103 → ec6c5261030351cb
+  render::components::radio_group::pressed 40 10 paper mono 1d9365ff80a86ca9 → d41387891cdebb0d
+  render::components::select::default 120 40 junie mono d56280a37a6d91b4 → 7e46b8873476eb92
+  render::components::select::default 120 40 paper mono 439b7dee547eff04 → 8a6bf73ebb667692
+  render::components::select::default 40 10 junie mono 762f74be76665454 → d64d86b5cd399d32
+  render::components::select::default 40 10 paper mono 33254b34e59736a4 → 63fe454843c795b2
+  render::components::select::editing 120 40 junie mono d56280a37a6d91b4 → 7e46b8873476eb92
+  render::components::select::editing 120 40 paper mono 439b7dee547eff04 → 8a6bf73ebb667692
+  render::components::select::editing 40 10 junie mono 762f74be76665454 → d64d86b5cd399d32
+  render::components::select::editing 40 10 paper mono 33254b34e59736a4 → 63fe454843c795b2
+  render::components::select::focused 120 40 junie mono 88a794db4ad7438a → 1b56e3dfe0baa374
+  render::components::select::focused 120 40 paper mono 0214fd848121d88a → 90c04a6bc8dadf84
+  render::components::select::focused 40 10 junie mono cfdca6c48e84fdaa → ba863a12a0524d94
+  render::components::select::focused 40 10 paper mono cd220e2c1e56d62a → 45aec8182a762d24
+  render::components::select::hovered 120 40 junie mono d56280a37a6d91b4 → 7e46b8873476eb92
+  render::components::select::hovered 120 40 paper mono 439b7dee547eff04 → 8a6bf73ebb667692
+  render::components::select::hovered 40 10 junie mono 762f74be76665454 → d64d86b5cd399d32
+  render::components::select::hovered 40 10 paper mono 33254b34e59736a4 → 63fe454843c795b2
+  render::components::select::pressed 120 40 junie mono 17bf131df914c266 → c4e91c58984eb68c
+  render::components::select::pressed 120 40 paper mono 33ca9d784756b7a6 → 20cc3c074be6adaa
+  render::components::select::pressed 40 10 junie mono eafa6492283387c6 → 75aee1f6e6798d6c
+  render::components::select::pressed 40 10 paper mono cec1880d683c3a06 → 5dadb5bc71aedd0a
+  render::components::tabs::selected 120 40 junie mono 643602b7923c4efc → 03263f48effb1240
+  render::components::tabs::selected 120 40 junie truecolor 491cb79a666a433f → 345a10235d65f11f
+  render::components::tabs::selected 120 40 paper mono 5faba1dd1e4da8d8 → ad59d0d63e9883e4
+  render::components::tabs::selected 120 40 paper truecolor 292f7884f72e573c → 9aa17c11b0135f9e
+  render::components::tabs::selected 40 10 junie mono 204d5a3787674b8a → 8575598b028539ba
+  render::components::tabs::selected 40 10 junie truecolor 5ca402c6a6d5efea → 870f0d29c4b57860
+  render::components::tabs::selected 40 10 paper mono 62b115316abc8a4a → a26add1c3797f552
+  render::components::tabs::selected 40 10 paper truecolor a53ecdcfcd7ff4e9 → 2eb100378a3b3c43
+- added:     none
+- class:     fix
+- reason:    §20.10 item 28 (state-owned semantic selection). A forced state is
+             only a visual probe; List/Tabs state, RadioGroup controlled value and
+             Select value exclusively own semantic selection. Review checks one
+             marker/active tab, Radio one chosen plus exact press with no second,
+             Select Ada/one chosen/brackets only pressed/no geometry or content
+             drift, and containment. Machine proof is the forced-selection unit
+             coverage plus complete conformance.
+```
+
+The Item-28 block above is retained as the historical, rejected pre-reconciliation scratch record;
+it is not current blessing evidence. §20.10 now limits item 28 to its accepted 16-key authority,
+and item 31 requires a fresh scratch measurement before any of those proposed movements is
+classified or blessed.
+
+## Item 29 — Select owns vertical disclosure glyphs
+
+```
+- surface:   tui-next Select closed/open field disclosure, all themes and color levels
+- captures:  none under `shots/`; exact headless unit evidence is
+             `select::select_disclosure_is_exact_for_both_themes_and_color_levels`
+- tests:     no retained baseline line changes; the eight-state component matrix draws Select
+             closed. Focused Select and builtin-glyph unit tests cover the live open state.
+- moved:     none
+- added:     none
+- class:     fix
+- reason:    §20.10 item 29. The old open Select reused the generic collapsed-tree glyph `▸`,
+             pointing sideways instead of communicating an open dropdown. Dedicated
+             `SelectClosed`/`SelectOpen` roles render `▾`/`▴`. The change affects all color levels,
+             preserves the right-minus-two marker cell and popup geometry, and requires no
+             retained eight-state baseline movement because those fixtures are closed.
+```
+
+## Item 30 — Dialog targets one owned control
+
+```
+- surface:   tui-next/dialog reference states, all retained theme/colour/size cells
+- captures:  pending fresh discarded-scratch before/after frame text; no current capture is
+             accepted for blessing
+- tests:     dialog::a_reference_dialog_registers_no_control,
+             dialog::reference_dialog_targets_one_owned_control_without_broadcasting,
+             render::components::dialog::*
+- moved:     see the stabilized item-30 entry below: exactly 28 keys
+- added:     none
+- class:     fix
+- reason:    §20.10 item 30. A no-prompt Dialog targets only its first enabled action for
+             runtime reference states; prompt focus/editing targets only the input. Root chrome
+             and siblings never inherit the target state. Exact movement must be captured and
+             classified before any retained baseline is changed.
+```
+
+Item 30 owns the Dialog correction, not Dialog's already-retained first-generation baseline.
+No item-30 bless has run or is authorized by this entry.
+
+## Item 31 — Central exact-target reference scope
+
+```
+- surface:   every component reference fixture migrated from component-local forced propagation
+             to outer Ui::reference exact-target or inert-None scope
+- captures:  pending fresh discarded-scratch baseline diff and clean frame-text dumps after the
+             source tree stabilizes; historical scratch bundles are not blessing evidence
+- tests:     architecture::legacy_forced_state_apis_are_absent,
+             architecture::reference_rendering_is_ui_scoped, complete conformance suite,
+             render::components::*
+- moved:     see the stabilized item-31 entry below: exactly 177 keys
+- added:     item 27 retains sole ownership of its 576 first-generation Slice-4F keys; item 31
+             authorizes no unmeasured addition
+- class:     fix
+- reason:    §20.10 item 31 removes the broadcast/live-leak defect class. The scope makes the
+             entire subtree inert while only one declared component/item/part receives runtime
+             reference bits. Semantic state stays caller-owned. Accept only exact-target or
+             suppression corrections; reject live/default/semantic, geometry/content, multiple-
+             target, registration and unaccounted changes.
+```
+
+No retained component or performance baseline has been regenerated or blessed for items 27, 30
+or 31. The required order remains change → fresh scratch capture → exact classification →
+independent review → separately authorized serial bless.
+ 
+## Stabilized scratch reconciliation — 280 moved / 1,280 added
+ 
+The authoritative comparison is `components.before.txt` SHA-256
+`1ab8e9205a19069ff5f9d97d675df77e6051c6195ad7a882766163cc2e744c9e` to the
+scratch-generated `components.txt` SHA-256
+`4c4dd527261acc03431858db024f884385463a40131b16ae340564da9ca42299` under
+`/private/tmp/terminal-components-baseline-review.qbw8Cu/`. The six entries below exhaust the
+280 moved keys. Existing items 22, 24, 25, 26 and 27 exhaust the 1,280 first-generation added
+keys (20 components × 64) and remain their sole owners. No live baseline or bless is involved.
+ 
+## Item 1 — final mono fallback movements
+
+```
+- surface:   crates/tui/tests/baselines/components.txt stabilized scratch comparison
+- captures:  `/private/tmp/terminal-components-baseline-review.qbw8Cu/artifacts/components.before.txt`
+             and `/private/tmp/terminal-components-baseline-review.qbw8Cu/repo/crates/tui/tests/baselines/components.txt`
+- tests:     render::components::* plus the item-specific unit/conformance proofs above
+- moved:     8 keys:
+  render::components::field::disabled 120 40 junie mono a17a3ce53b0c07c0 → 6ea61957d4835dac
+  render::components::field::disabled 120 40 paper mono 3ca520240375131a → 229e3e1e96741fcc
+  render::components::field::disabled 40 10 junie mono 4a6989f667440f40 → 8a8e49368586582c
+  render::components::field::disabled 40 10 paper mono 4356d66d70ef949a → d1a459721634068c
+  render::components::select::pressed 120 40 junie mono 17bf131df914c266 → c4e91c58984eb68c
+  render::components::select::pressed 120 40 paper mono 33ca9d784756b7a6 → 20cc3c074be6adaa
+  render::components::select::pressed 40 10 junie mono eafa6492283387c6 → 75aee1f6e6798d6c
+  render::components::select::pressed 40 10 paper mono cec1880d683c3a06 → 5dadb5bc71aedd0a
+- added:     none
+- class:     fix
+- reason:    §20.10 item 1; the final field disabled and Select pressed mono fallbacks.
+```
+
+## Item 20 — final props-readiness movements
+
+```
+- surface:   crates/tui/tests/baselines/components.txt stabilized scratch comparison
+- captures:  `/private/tmp/terminal-components-baseline-review.qbw8Cu/artifacts/components.before.txt`
+             and `/private/tmp/terminal-components-baseline-review.qbw8Cu/repo/crates/tui/tests/baselines/components.txt`
+- tests:     render::components::* plus the item-specific unit/conformance proofs above
+- moved:     12 keys:
+  render::components::hint_bar::disabled 120 40 junie mono f5fc6531be4cfe81 → 592985dbcc22164b
+  render::components::hint_bar::disabled 120 40 paper mono b8930e040b525b61 → fdc4972eb9e1d5b3
+  render::components::hint_bar::disabled 40 10 junie mono ab06451beff9e981 → d2a777a0b59c624b
+  render::components::hint_bar::disabled 40 10 paper mono 733043d7bddd5701 → cf244c80445dccd3
+  render::components::meter::disabled 120 40 junie mono c3944936b57ee94a → 72b307545bf95a32
+  render::components::meter::disabled 120 40 paper mono 5b6d92f61b8c8784 → dcb0e5704e94b512
+  render::components::meter::disabled 40 10 junie mono 9ef934503dd41e92 → b66ee080f8eb64fa
+  render::components::meter::disabled 40 10 paper mono 4b44e2bf17c01014 → b1b6ec010ae0db62
+  render::components::progress_bar::disabled 120 40 junie mono ef46093a72cdf519 → ff0f692938ab8559
+  render::components::progress_bar::disabled 120 40 paper mono c13aab919eb20ccf → 89f01f2d9442bbed
+  render::components::progress_bar::disabled 40 10 junie mono 50c4f3da93780841 → 31e29eaf4ff25581
+  render::components::progress_bar::disabled 40 10 paper mono 6fea492cd57e287f → b405be2d9cf4cf2d
+- added:     none
+- class:     fix
+- reason:    §20.10 item 20; disabled readiness reporters retain their props-owned error affordance.
+```
+
+## Item 23 — final ChipBar semantic movements
+
+```
+- surface:   crates/tui/tests/baselines/components.txt stabilized scratch comparison
+- captures:  `/private/tmp/terminal-components-baseline-review.qbw8Cu/artifacts/components.before.txt`
+             and `/private/tmp/terminal-components-baseline-review.qbw8Cu/repo/crates/tui/tests/baselines/components.txt`
+- tests:     render::components::* plus the item-specific unit/conformance proofs above
+- moved:     39 keys:
+  render::components::chip_bar::default 120 40 junie mono 20dc057a9ec11402 → d410e30a8fa1287b
+  render::components::chip_bar::default 120 40 junie truecolor 13a30c0fc4475b5e → ec65ee8e34084547
+  render::components::chip_bar::default 120 40 paper mono 57b2cbc4e84613fa → af6ee1d9868d153b
+  render::components::chip_bar::default 120 40 paper truecolor 0e3f6a0b142b8888 → 5262957dbd38ff11
+  render::components::chip_bar::disabled 120 40 junie mono df02c34f10930326 → fe16ace9bdc28c17
+  render::components::chip_bar::disabled 120 40 junie truecolor 456cd66502145504 → 10df00da77faf209
+  render::components::chip_bar::disabled 120 40 paper mono 7cd4de1e637d0e82 → 37a6afcff9f15bb3
+  render::components::chip_bar::disabled 120 40 paper truecolor 6ea3f973aa306304 → f9be19ec6dc64333
+  render::components::chip_bar::disabled 40 10 junie mono b5359bbe0124832e → 83ba4197f209a1b8
+  render::components::chip_bar::disabled 40 10 junie truecolor 334569a9d20c1b4e → f678035343e2efd2
+  render::components::chip_bar::disabled 40 10 paper truecolor 49fb1321e27eccf2 → 2ed132f9870e09a7
+  render::components::chip_bar::editing 120 40 junie mono 20dc057a9ec11402 → d410e30a8fa1287b
+  render::components::chip_bar::editing 120 40 junie truecolor 13a30c0fc4475b5e → ec65ee8e34084547
+  render::components::chip_bar::editing 120 40 paper mono 57b2cbc4e84613fa → af6ee1d9868d153b
+  render::components::chip_bar::editing 120 40 paper truecolor 0e3f6a0b142b8888 → 5262957dbd38ff11
+  render::components::chip_bar::focused 120 40 junie mono 6ad5af32d1c4ed26 → d410e30a8fa1287b
+  render::components::chip_bar::focused 120 40 junie truecolor 3d29208b34fc2d1e → ec65ee8e34084547
+  render::components::chip_bar::focused 120 40 paper mono 870de4e852c919c6 → af6ee1d9868d153b
+  render::components::chip_bar::focused 120 40 paper truecolor 489998de99db8348 → 5262957dbd38ff11
+  render::components::chip_bar::hovered 120 40 junie mono 857bb40ac027e8bc → d410e30a8fa1287b
+  render::components::chip_bar::hovered 120 40 junie truecolor 57ce6520fe16bda8 → b5abf93467d48d7b
+  render::components::chip_bar::hovered 120 40 paper mono 57b2cbc4e84613fa → af6ee1d9868d153b
+  render::components::chip_bar::hovered 120 40 paper truecolor 7a7d32240fba017d → 7c0e750395d0ba6f
+  render::components::chip_bar::hovered 40 10 junie truecolor 83292ce01ea8e206 → f9ffd9c455ac3bf4
+  render::components::chip_bar::hovered 40 10 paper truecolor 28cd277ff3d2aef5 → 7bc243a33857e4c2
+  render::components::chip_bar::pressed 120 40 junie mono eda5fcfe6a098dbe → 3ec2f185b7fc82ab
+  render::components::chip_bar::pressed 120 40 junie truecolor bca0f9fd51095e7e → 0511d60b0fa8b033
+  render::components::chip_bar::pressed 120 40 paper mono 020604870a05c0ba → 1f7343eff38605af
+  render::components::chip_bar::pressed 120 40 paper truecolor 86e93e82da6defaf → b9785905ac758222
+  render::components::chip_bar::pressed 40 10 junie mono 38e8004d2b8528a6 → 465c9be2eaf8153a
+  render::components::chip_bar::pressed 40 10 junie truecolor ab3e79bbeb642964 → ac302d959cd1b398
+  render::components::chip_bar::pressed 40 10 paper mono e3dcedc6ecd81666 → b0631a37d189adf2
+  render::components::chip_bar::pressed 40 10 paper truecolor 99ae477a548be61b → 41c95aa0cccd1a6f
+  render::components::chip_bar::selected 120 40 junie mono 42faaf09081f03e7 → d03067a49b2395be
+  render::components::chip_bar::selected 120 40 junie truecolor 59b3e16324d9bdee → a5ab322ccf96fbe9
+  render::components::chip_bar::selected 120 40 paper mono d27abdc40d74076f → 3d7d833bed6dbc3e
+  render::components::chip_bar::selected 120 40 paper truecolor 0ea85aa20aae8da5 → 13ea3f709a84aaea
+  render::components::chip_bar::selected 40 10 junie truecolor 130f7690a0735bc8 → b7249dc8743bd97e
+  render::components::chip_bar::selected 40 10 paper truecolor af5c9c27e0e71e5d → 8cff4fad8972e657
+- added:     none
+- class:     fix
+- reason:    §20.10 item 23; ChipBar semantic identity, metadata, marker and owned-patch correction.
+```
+
+## Item 28 — final semantic-selection movements
+
+```
+- surface:   crates/tui/tests/baselines/components.txt stabilized scratch comparison
+- captures:  `/private/tmp/terminal-components-baseline-review.qbw8Cu/artifacts/components.before.txt`
+             and `/private/tmp/terminal-components-baseline-review.qbw8Cu/repo/crates/tui/tests/baselines/components.txt`
+- tests:     render::components::* plus the item-specific unit/conformance proofs above
+- moved:     16 keys:
+  render::components::button::selected 120 40 junie mono 1aafcb632b64bb09 → 13d0bae25b64bacc
+  render::components::button::selected 120 40 junie truecolor 7cad0003dd9cd1fb → c3a5557f65a5ff3f
+  render::components::button::selected 120 40 paper mono c72f9f98688eba59 → 4330743d0d1af0f4
+  render::components::button::selected 120 40 paper truecolor 12c06980e5dd7a45 → 93ffce78c25faa79
+  render::components::button::selected 40 10 junie mono 8eb20d2cb7769089 → 0f80b7f1cc3b9e4c
+  render::components::button::selected 40 10 junie truecolor 6d11dbe79a66f3fb → 2b38a4b81a3e733f
+  render::components::button::selected 40 10 paper mono 3851ec67ff1947d9 → 000a22404ee1f874
+  render::components::button::selected 40 10 paper truecolor 5085b4b28e2a59c5 → 6b3f15ee40b3e7f9
+  render::components::radio_group::pressed 120 40 junie mono 7c9348eec50e02e3 → c1fcc82633a44665
+  render::components::radio_group::pressed 120 40 paper mono 5e4e76a54792f289 → af7f1cd31203adff
+  render::components::radio_group::pressed 40 10 junie mono 6f0aebd819bba103 → 96df91bc5acc71e5
+  render::components::radio_group::pressed 40 10 paper mono 1d9365ff80a86ca9 → f604b3a6b831c57f
+  render::components::select::selected 120 40 junie mono 7e46b8873476eb92 → d56280a37a6d91b4
+  render::components::select::selected 120 40 paper mono 8a6bf73ebb667692 → 439b7dee547eff04
+  render::components::select::selected 40 10 junie mono d64d86b5cd399d32 → 762f74be76665454
+  render::components::select::selected 40 10 paper mono 63fe454843c795b2 → 33254b34e59736a4
+- added:     none
+- class:     fix
+- reason:    §20.10 item 28; selection comes from controlled semantic state, never reference flags.
+```
+
+## Item 30 — final Dialog exact-target movements
+
+```
+- surface:   crates/tui/tests/baselines/components.txt stabilized scratch comparison
+- captures:  `/private/tmp/terminal-components-baseline-review.qbw8Cu/artifacts/components.before.txt`
+             and `/private/tmp/terminal-components-baseline-review.qbw8Cu/repo/crates/tui/tests/baselines/components.txt`
+- tests:     render::components::* plus the item-specific unit/conformance proofs above
+- moved:     28 keys:
+  render::components::dialog::disabled 120 40 junie mono 2d6a3cd4c020d7e5 → b737d61b383ec6f5
+  render::components::dialog::disabled 120 40 junie truecolor 0b134dfe49fc91dc → 3b3a35187a544472
+  render::components::dialog::disabled 120 40 paper mono 6e84f6e549134175 → 98782672ba8211f1
+  render::components::dialog::disabled 120 40 paper truecolor 9f89355d75801b00 → c32427125f196b4a
+  render::components::dialog::disabled 40 10 junie mono 3ef081624f0f1fa5 → 081728ded55d1575
+  render::components::dialog::disabled 40 10 junie truecolor 36cf11641eca3792 → bca990b4d6367868
+  render::components::dialog::disabled 40 10 paper mono 9033e3ce2e9ff745 → f9fb14d2886dbe31
+  render::components::dialog::disabled 40 10 paper truecolor 5d6911160dfe8ed6 → 37273c6e6232fa10
+  render::components::dialog::focused 120 40 junie mono e7bc12c620075c81 → d057ba49733734b3
+  render::components::dialog::focused 120 40 junie truecolor b82da0aa6fffe40c → e065084756b33d8b
+  render::components::dialog::focused 120 40 paper mono 7146cb2e85b75125 → b98d7b7273a0e757
+  render::components::dialog::focused 120 40 paper truecolor 1e3d201ae9d99644 → 9d9571be04a4c0be
+  render::components::dialog::focused 40 10 junie mono 1d278875d97aa571 → 4dfe262b3ac49703
+  render::components::dialog::focused 40 10 junie truecolor 26b98acf725e69b2 → 2b18e06440ec4e99
+  render::components::dialog::focused 40 10 paper mono fa545df20bff6775 → 9c16f8153d3a62b7
+  render::components::dialog::focused 40 10 paper truecolor 46350bbf66a5df82 → 74d7167d1083f680
+  render::components::dialog::hovered 120 40 junie truecolor 5eeecbeef8c91ebe → f97b987bdc0dda4e
+  render::components::dialog::hovered 120 40 paper truecolor 1444e3f0be1ea366 → 10b4f4c8055da652
+  render::components::dialog::hovered 40 10 junie truecolor e31b313a51836a04 → 0d4777d50be8bda4
+  render::components::dialog::hovered 40 10 paper truecolor 28ec0bb3e9085d2c → b9b70b6482d88f30
+  render::components::dialog::pressed 120 40 junie mono 5ccef1c43fe1ab59 → 3f5dbd922edd1637
+  render::components::dialog::pressed 120 40 junie truecolor 6126c36902705892 → 26ff02710a0cb783
+  render::components::dialog::pressed 120 40 paper mono 1e15fad3fcd96a23 → fc38ebbf4b4a77a5
+  render::components::dialog::pressed 120 40 paper truecolor ee25f336393bf144 → f0f9b921aa926aa3
+  render::components::dialog::pressed 40 10 junie mono 96c7c7c04a22573d → 9c5b0be834361ad7
+  render::components::dialog::pressed 40 10 junie truecolor 9ae04969711d60c8 → 77e6216bd4c20935
+  render::components::dialog::pressed 40 10 paper mono d48511478f6f91eb → 047f00cacd93a4f5
+  render::components::dialog::pressed 40 10 paper truecolor b4b8b36be4cc3e92 → 9e66540776422725
+- added:     none
+- class:     fix
+- reason:    §20.10 item 30; Dialog reference state targets one owned prompt/action without broadcast.
+```
+
+## Item 31 — final central-reference movements
+
+```
+- surface:   crates/tui/tests/baselines/components.txt stabilized scratch comparison
+- captures:  `/private/tmp/terminal-components-baseline-review.qbw8Cu/artifacts/components.before.txt`
+             and `/private/tmp/terminal-components-baseline-review.qbw8Cu/repo/crates/tui/tests/baselines/components.txt`
+- tests:     render::components::* plus the item-specific unit/conformance proofs above
+- moved:     177 keys:
+  render::components::brand::disabled 120 40 junie mono 542069e6442a2293 → 7ebcdaa2bd323a7c
+  render::components::brand::disabled 120 40 paper mono 4c59d9e6a3a4ce31 → 9e50413b3fc34bda
+  render::components::brand::disabled 40 10 junie mono 2ddca9d38dbc3293 → 6b84e3d4400315fc
+  render::components::brand::disabled 40 10 paper mono dee2fa93ee0777b1 → e213e779778043da
+  render::components::brand::hovered 120 40 junie mono 7e7fbf3b99a99294 → 7ebcdaa2bd323a7c
+  render::components::brand::hovered 120 40 junie truecolor 76939f92a53f033b → 9d2d64860f2f8023
+  render::components::brand::hovered 120 40 paper truecolor bd5c69403efb3f97 → 0d8b5dc35b5705d7
+  render::components::brand::hovered 40 10 junie mono fd1438c6acd80a14 → 6b84e3d4400315fc
+  render::components::brand::hovered 40 10 junie truecolor 9af865d2b71bc53b → c8164be27cac5623
+  render::components::brand::hovered 40 10 paper truecolor 3886143394806d97 → 6908170d98df53d7
+  render::components::brand::pressed 120 40 junie mono 1fc69404d9ec1cb2 → 7ebcdaa2bd323a7c
+  render::components::brand::pressed 120 40 paper mono 9e3f676394dd316c → 9e50413b3fc34bda
+  render::components::brand::pressed 40 10 junie mono 024b6c44deaa0ab2 → 6b84e3d4400315fc
+  render::components::brand::pressed 40 10 paper mono 08b13ce8991b04ec → e213e779778043da
+  render::components::chip_bar::focused 40 10 junie mono 19b2b01e2d5e3aee → fff5116446505e3c
+  render::components::chip_bar::focused 40 10 junie truecolor 2e7b0fb3b8bf2744 → 668e2c4ce5d503d8
+  render::components::chip_bar::focused 40 10 paper mono c5f1dd6c13ac527a → 1ccb93fcbda7a6d8
+  render::components::chip_bar::focused 40 10 paper truecolor 74437fb990dd86d0 → 0775d556d329cac0
+  render::components::chip_bar::hovered 40 10 junie mono c16a4ad0871bee92 → fff5116446505e3c
+  render::components::empty::editing 120 40 junie mono a5954830ab10a836 → 796461203dd06a7e
+  render::components::empty::editing 120 40 paper mono 159c44e709f138aa → 506b0270c49589c2
+  render::components::empty::editing 40 10 junie mono 73a78a9b97c4a0b6 → b0a749381c6792fe
+  render::components::empty::editing 40 10 paper mono 1e84ace01f67d92a → b33395c3e2426242
+  render::components::field::disabled 120 40 junie truecolor 85e79cecae9d1646 → e7a56e7918cb534a
+  render::components::field::disabled 120 40 paper truecolor 14fe4d9f81a492f0 → 3dd81fd41bf3f994
+  render::components::field::disabled 40 10 junie truecolor 782c78e216fd00c6 → 9a1518cb8d1b1e0a
+  render::components::field::disabled 40 10 paper truecolor a967976c184a9050 → b20ea46edc236874
+  render::components::field::selected 120 40 junie mono 1901d574eff61cda → df6c39650b0ade4c
+  render::components::field::selected 120 40 paper mono 94f9b888f9e45fbe → 8cb42b3d2c97499c
+  render::components::field::selected 40 10 junie mono 782f9a9cc9ee6dfa → 623ecdc1e6dcb26c
+  render::components::field::selected 40 10 paper mono 85518d64f4e6935e → f5cc9fc0aaf4d2bc
+  render::components::hint_bar::editing 120 40 junie mono 197dc165a722ba63 → 1a74082eb268df4b
+  render::components::hint_bar::editing 120 40 paper mono 61ed307c72eee3c3 → 2398bb2e5e8f23eb
+  render::components::hint_bar::editing 40 10 junie mono 8f236bbf0fb9ea63 → 3192a28a54d74b4b
+  render::components::hint_bar::editing 40 10 paper mono a678a41a168a23a3 → f8cccce4b61521cb
+  render::components::hint_bar::focused 120 40 junie mono 613495a851f8f589 → aaf7cf28e13e826a
+  render::components::hint_bar::focused 120 40 paper mono dba3123d0856ca39 → b6ad74c672463592
+  render::components::hint_bar::focused 40 10 junie mono e1888a0b600f4889 → fdd3f500925e3a6a
+  render::components::hint_bar::focused 40 10 paper mono d49f56ab16488bd9 → d384912eb722bab2
+  render::components::hint_bar::pressed 120 40 junie mono 71f3e50a1cd28877 → 197dc165a722ba63
+  render::components::hint_bar::pressed 120 40 paper mono 5474ae4cb628d235 → 61ed307c72eee3c3
+  render::components::hint_bar::pressed 40 10 junie mono 04ada5648bb8be97 → 8f236bbf0fb9ea63
+  render::components::hint_bar::pressed 40 10 paper mono 5ee82ffc6f78e555 → a678a41a168a23a3
+  render::components::list::disabled 120 40 junie mono 5c5f27303fa8adf5 → 164c36b18586726f
+  render::components::list::disabled 120 40 junie truecolor 7702b43f4eda930a → ce3be201fd5894f6
+  render::components::list::disabled 120 40 paper mono 83c3412c6d3274e1 → 73efdde5cdb3a6c5
+  render::components::list::disabled 120 40 paper truecolor bf8cc2562eba8739 → 82e97d15fc758a0e
+  render::components::list::disabled 40 10 junie mono 86dd18d3924968f5 → deac25911bc9718f
+  render::components::list::disabled 40 10 junie truecolor c5d8f6f984a4af4a → 4e5dee5a5d3d3a76
+  render::components::list::disabled 40 10 paper mono 12d2ab9c62b89201 → 447bcd08741e2165
+  render::components::list::disabled 40 10 paper truecolor 682fd642796805b9 → 85d6dbd488cef51e
+  render::components::list::focused 120 40 junie mono c82eb2ea27b199e1 → 164c36b18586726f
+  render::components::list::focused 120 40 junie truecolor 82a91ae72dbb6f5f → ce3be201fd5894f6
+  render::components::list::focused 120 40 paper mono cf4253e49708d4c7 → 73efdde5cdb3a6c5
+  render::components::list::focused 120 40 paper truecolor 2b20bcba9fcb1768 → 82e97d15fc758a0e
+  render::components::list::focused 40 10 junie mono 63512ef3e9965241 → deac25911bc9718f
+  render::components::list::focused 40 10 junie truecolor 0194da55648030ff → 4e5dee5a5d3d3a76
+  render::components::list::focused 40 10 paper mono af2da36dce26e4a7 → 447bcd08741e2165
+  render::components::list::focused 40 10 paper truecolor 9747894746c94f28 → 85d6dbd488cef51e
+  render::components::list::hovered 120 40 junie truecolor a1a0471bd768c936 → 96086a8fb7489f5a
+  render::components::list::hovered 120 40 paper truecolor 9a7984a04053a64e → bfd8354e2d316762
+  render::components::list::hovered 40 10 junie truecolor fafce092e21183f6 → 95c30a93fad87dda
+  render::components::list::hovered 40 10 paper truecolor 6ccee43f083e391e → d2a22c49a21f3a72
+  render::components::list::pressed 120 40 junie mono 58d1cbccb78dd4f7 → cb5e7c9046398305
+  render::components::list::pressed 120 40 junie truecolor 4f8509df4dd3d6a3 → d0e89104e36aa2ea
+  render::components::list::pressed 120 40 paper mono 4a88db0dfb7b711b → f2ce0cf198981d97
+  render::components::list::pressed 120 40 paper truecolor e608c80c5d2853e4 → 3e524d83e9dfe491
+  render::components::list::pressed 40 10 junie mono fb08873b8e58e857 → 7f93e89c2dddc765
+  render::components::list::pressed 40 10 junie truecolor 0cfde54fb5f36ba3 → 7a673016b0ed65aa
+  render::components::list::pressed 40 10 paper mono 2eccd01dd15f4bfb → d3717338bef62977
+  render::components::list::pressed 40 10 paper truecolor 174d354087cf3c44 → d5f14e0f54f98a11
+  render::components::meter::editing 120 40 junie mono 505b40d8b1e4656a → 664372a5c0eb31d2
+  render::components::meter::editing 120 40 paper mono d9ca112b604ad0a2 → d675ab88d26b023a
+  render::components::meter::editing 40 10 junie mono cadbc9890f6f4f42 → d78165edbfbe84da
+  render::components::meter::editing 40 10 paper mono 8293158f29f6fe32 → 9a34a8b1841a59ca
+  render::components::meter::focused 120 40 junie mono 70423261a7bd78f5 → fab1931d8ce0ae06
+  render::components::meter::focused 120 40 paper mono b5e594f26fe1bd45 → e4f6dea05001cc56
+  render::components::meter::focused 40 10 junie mono 0fe3c151b92cb09d → 5c7403a5b598074e
+  render::components::meter::focused 40 10 paper mono 79a468f3745ebc65 → c662525e6a93f976
+  render::components::meter::pressed 120 40 junie mono d64ec4302df10c1d → 505b40d8b1e4656a
+  render::components::meter::pressed 120 40 paper mono 690dc1b4fdd43815 → d9ca112b604ad0a2
+  render::components::meter::pressed 40 10 junie mono 1412560a60380fb5 → cadbc9890f6f4f42
+  render::components::meter::pressed 40 10 paper mono fcdd70aa2e175ec5 → 8293158f29f6fe32
+  render::components::progress_bar::editing 120 40 junie mono 2db6b19ba7a37a19 → 6a4f7a72886db1b1
+  render::components::progress_bar::editing 120 40 paper mono 5783d256a3809c35 → 873dab61602ad3cd
+  render::components::progress_bar::editing 40 10 junie mono 6fb9de54d8806411 → bd9ca2fdffa8f379
+  render::components::progress_bar::editing 40 10 paper mono 8cf8dab6400b1af5 → 685c8af2d9395a8d
+  render::components::progress_bar::focused 120 40 junie mono 4b4dacffff053913 → 1da207d050ccbe00
+  render::components::progress_bar::focused 120 40 paper mono 6ad98f1f563de507 → 7eba31cf17200e64
+  render::components::progress_bar::focused 40 10 junie mono 24e86ec5a1af2c1b → 640c9e6d0236a448
+  render::components::progress_bar::focused 40 10 paper mono d91e30c3c835c8f7 → 0e0ca48ae46cc5a4
+  render::components::progress_bar::pressed 120 40 junie mono 870c75bbeae28382 → 2db6b19ba7a37a19
+  render::components::progress_bar::pressed 120 40 paper mono 6935627f9b728f3e → 5783d256a3809c35
+  render::components::progress_bar::pressed 40 10 junie mono 4add7e04e4bb701a → 6fb9de54d8806411
+  render::components::progress_bar::pressed 40 10 paper mono 0f469f6f190038ce → 8cf8dab6400b1af5
+  render::components::radio_group::default 120 40 junie mono 8d0ca4e2991bd3b3 → 23253cfc778734b7
+  render::components::radio_group::default 120 40 junie truecolor 4cfffc6ffd36528d → 57c4e8ba8931346e
+  render::components::radio_group::default 120 40 paper mono cddac78e37c431e1 → ec7745f70f85f805
+  render::components::radio_group::default 120 40 paper truecolor cab52f27bce68f0c → d080a80f269c3da2
+  render::components::radio_group::default 40 10 junie mono 68c8a89b7d2e9d73 → 783665ea3658b177
+  render::components::radio_group::default 40 10 junie truecolor a6505c92890a94cd → 3c36518edf6682ae
+  render::components::radio_group::default 40 10 paper mono 2a5ce6267b6fe421 → dc874cf17df524c5
+  render::components::radio_group::default 40 10 paper truecolor 787b9fdc0632f1cc → 1ad944db4e336262
+  render::components::radio_group::disabled 120 40 junie mono 9ca1d569771f97f9 → 0b3191ebe74270d5
+  render::components::radio_group::disabled 120 40 junie truecolor 1251e94d115ace12 → 1fae8745ccbb85d6
+  render::components::radio_group::disabled 120 40 paper mono 749bc8e6f76a4bd5 → fb9c0ebf7b8b46e9
+  render::components::radio_group::disabled 120 40 paper truecolor 19c5f3c3e2c3e84d → 85f5f2ff0f013059
+  render::components::radio_group::disabled 40 10 junie mono b4b65f522beec779 → ac10dc1dca9bd455
+  render::components::radio_group::disabled 40 10 junie truecolor 7977c854937a4192 → 7ed4912d9a7c0756
+  render::components::radio_group::disabled 40 10 paper mono 24f2cd193c475a15 → 37e747dbe508c429
+  render::components::radio_group::disabled 40 10 paper truecolor f8859e7bb6df418d → 411c0befb9a22e99
+  render::components::radio_group::editing 120 40 junie mono 8d0ca4e2991bd3b3 → 23253cfc778734b7
+  render::components::radio_group::editing 120 40 junie truecolor 4cfffc6ffd36528d → 57c4e8ba8931346e
+  render::components::radio_group::editing 120 40 paper mono cddac78e37c431e1 → ec7745f70f85f805
+  render::components::radio_group::editing 120 40 paper truecolor cab52f27bce68f0c → d080a80f269c3da2
+  render::components::radio_group::editing 40 10 junie mono 68c8a89b7d2e9d73 → 783665ea3658b177
+  render::components::radio_group::editing 40 10 junie truecolor a6505c92890a94cd → 3c36518edf6682ae
+  render::components::radio_group::editing 40 10 paper mono 2a5ce6267b6fe421 → dc874cf17df524c5
+  render::components::radio_group::editing 40 10 paper truecolor 787b9fdc0632f1cc → 1ad944db4e336262
+  render::components::radio_group::focused 120 40 junie mono ee13d94382f12131 → 23253cfc778734b7
+  render::components::radio_group::focused 120 40 junie truecolor 7000b9777c32900a → 57c4e8ba8931346e
+  render::components::radio_group::focused 120 40 paper mono cc0a53514e52334b → ec7745f70f85f805
+  render::components::radio_group::focused 120 40 paper truecolor d342f6697e0ed372 → d080a80f269c3da2
+  render::components::radio_group::focused 40 10 junie mono f46e5a6a2edb4231 → 783665ea3658b177
+  render::components::radio_group::focused 40 10 junie truecolor abda211333e8c53a → 3c36518edf6682ae
+  render::components::radio_group::focused 40 10 paper mono b186aeef57c12beb → dc874cf17df524c5
+  render::components::radio_group::focused 40 10 paper truecolor f83b950099c85582 → 1ad944db4e336262
+  render::components::radio_group::hovered 120 40 junie mono 8d0ca4e2991bd3b3 → 23253cfc778734b7
+  render::components::radio_group::hovered 120 40 junie truecolor af89cdd0ddff5393 → fec6ff03181c2f40
+  render::components::radio_group::hovered 120 40 paper mono cddac78e37c431e1 → ec7745f70f85f805
+  render::components::radio_group::hovered 120 40 paper truecolor 11f985a2e69f5be0 → e90e83af3dd1bbc2
+  render::components::radio_group::hovered 40 10 junie mono 68c8a89b7d2e9d73 → 783665ea3658b177
+  render::components::radio_group::hovered 40 10 junie truecolor 7f905945e0ed5e13 → aa8c6792dc7ee680
+  render::components::radio_group::hovered 40 10 paper mono 2a5ce6267b6fe421 → dc874cf17df524c5
+  render::components::radio_group::hovered 40 10 paper truecolor 1942c9ab971a1ce0 → fc7ed7d8f4f02a82
+  render::components::radio_group::pressed 120 40 junie truecolor 3ec363db305aba2a → 7c45f61130c600e6
+  render::components::radio_group::pressed 120 40 paper truecolor b74398b48260115b → b74072a1943741bb
+  render::components::radio_group::pressed 40 10 junie truecolor 00d9ed0a89bbf0da → d9de17746e8da6a6
+  render::components::radio_group::pressed 40 10 paper truecolor c445079c40047ecb → 9d9612086a084deb
+  render::components::spinner::disabled 120 40 junie mono 47e80e5becda6b47 → a6f2e5979c8e4d8f
+  render::components::spinner::disabled 120 40 paper mono 3712d6c2925afc31 → cde3224c2f4427f7
+  render::components::spinner::disabled 40 10 junie mono 6ec8511427004947 → 3c96bff36c20218f
+  render::components::spinner::disabled 40 10 paper mono 59a46a67b7caa5b1 → 3a628723108a61f7
+  render::components::spinner::focused 120 40 junie mono 11cf5f159990aea8 → a6f2e5979c8e4d8f
+  render::components::spinner::focused 120 40 paper mono eed43ed2309f6630 → cde3224c2f4427f7
+  render::components::spinner::focused 40 10 junie mono 313abf3278399528 → 3c96bff36c20218f
+  render::components::spinner::focused 40 10 paper mono 3e237ad9339230b0 → 3a628723108a61f7
+  render::components::spinner::pressed 120 40 junie mono 11cf5f159990aea8 → a6f2e5979c8e4d8f
+  render::components::spinner::pressed 120 40 paper mono eed43ed2309f6630 → cde3224c2f4427f7
+  render::components::spinner::pressed 40 10 junie mono 313abf3278399528 → 3c96bff36c20218f
+  render::components::spinner::pressed 40 10 paper mono 3e237ad9339230b0 → 3a628723108a61f7
+  render::components::status_bar::disabled 120 40 junie mono 6fde7ed8cd7b6dbd → dba9eaec3520c297
+  render::components::status_bar::disabled 120 40 paper mono 62d3682b5f66e245 → 41896645db38db73
+  render::components::status_bar::disabled 40 10 junie mono 970f612c8771fdfd → c06e4f5f9ad85657
+  render::components::status_bar::disabled 40 10 paper mono e3e7e5d5a20cc485 → 6800bbd9e5610313
+  render::components::status_bar::editing 120 40 junie mono 52be1d0861e6320f → bd19c6ccb9b63237
+  render::components::status_bar::editing 120 40 paper mono b27ab00101de2f83 → 7920bb18ed9d09ab
+  render::components::status_bar::editing 40 10 junie mono 74cd4ae2843dda4f → 81e080b38aa0ee77
+  render::components::status_bar::editing 40 10 paper mono a0e61d38bf975c63 → ced36ea09e518bcb
+  render::components::tabs::disabled 120 40 junie mono 383875a51445a582 → 03263f48effb1240
+  render::components::tabs::disabled 120 40 paper mono 4034eb30c2d2df46 → ad59d0d63e9883e4
+  render::components::tabs::disabled 40 10 junie mono d48c88f61b9cf638 → 8575598b028539ba
+  render::components::tabs::disabled 40 10 paper mono ebdcc0ecece3cf70 → a26add1c3797f552
+  render::components::tabs::focused 120 40 junie mono dbf77ccc2cf211a1 → 03263f48effb1240
+  render::components::tabs::focused 120 40 junie truecolor 9ecda219f913871c → 345a10235d65f11f
+  render::components::tabs::focused 120 40 paper mono 7abfc94e7df50945 → ad59d0d63e9883e4
+  render::components::tabs::focused 120 40 paper truecolor c8e58521b7b83935 → 9aa17c11b0135f9e
+  render::components::tabs::focused 40 10 junie mono 2d01bc2342f6ec25 → 8575598b028539ba
+  render::components::tabs::focused 40 10 junie truecolor ad29ee72c476b517 → 870f0d29c4b57860
+  render::components::tabs::focused 40 10 paper mono bb77aa02abb1525d → a26add1c3797f552
+  render::components::tabs::focused 40 10 paper truecolor 86a9012d0bb33bd6 → 2eb100378a3b3c43
+  render::components::tabs::hovered 120 40 junie mono f6696925141d5026 → 03263f48effb1240
+  render::components::tabs::hovered 120 40 junie truecolor 8ab1d880f7c1a627 → c06630a519f23619
+  render::components::tabs::hovered 120 40 paper truecolor 6cd1f2cd84322fe9 → e4e9b986e64b867c
+  render::components::tabs::hovered 40 10 junie mono b36480355e85f24c → 8575598b028539ba
+  render::components::tabs::hovered 40 10 junie truecolor 97f8e11cb3038468 → 057df2cc503ba26e
+  render::components::tabs::hovered 40 10 paper truecolor db730884c57255d0 → 016928830f8890ed
+- added:     none
+- class:     fix
+- reason:    §20.10 item 31; only exact-target/suppression corrections caused by central Ui::reference.
 ```

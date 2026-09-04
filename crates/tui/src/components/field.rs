@@ -29,15 +29,15 @@ use crate::ui::{FrameRead, Ui};
 /// (`true`; paints `optional` when not required and the row is wide
 /// enough), `.help(&str)`, `.error(Option<&str>)` (wins over help),
 /// `.plain(bool)` (`false`; suppresses the optional suffix),
-/// `.patch_part`, `.state_override`.
+/// `.patch_part`.
 ///
 /// ## Variants
 /// `Family::FIELD`, `DEFAULT` only.
 ///
 /// ## States
 /// Reads the control's runtime flags (`FOCUSED`, `DISABLED`) and adds
-/// `ERROR` when `.error` is `Some`; `.state_override` replaces the runtime
-/// half for a reference rendering (A11).
+/// `ERROR` when `.error` is `Some`; reference fixtures inject runtime state
+/// through [`Ui::reference`](crate::Ui::reference).
 ///
 /// ## Actions
 /// None.
@@ -165,30 +165,6 @@ impl<'a, C: FieldControl> Field<'a, C> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render the chrome **and the
-    /// control it owns** in a forced state instead of the runtime state. A
-    /// forced field registers no decorative region and its control registers
-    /// no live control (§12.1).
-    #[must_use]
-    pub fn state_override(self, s: StateFlags) -> Self {
-        self.inherit_forced(Some(s))
-    }
-
-    /// The composition half of A11 (§12.1): adopt an owning container's
-    /// forced state, chrome and control together.
-    ///
-    /// It is applied here, in a **consuming builder**, rather than in
-    /// `draw`: `draw` takes `&self` and `FieldControl::inherit_forced`
-    /// consumes the control, and forcing is set once at construction, so the
-    /// two are equivalent — the control cannot be drawn in any state the
-    /// field was not built with.
-    #[must_use]
-    pub(crate) fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
-        self.ov = self.ov.inherit_forced(s);
-        self.control = self.control.inherit_forced(s);
-        self
-    }
-
     /// The control.
     pub const fn control(&self) -> &C {
         &self.control
@@ -208,17 +184,14 @@ impl<'a, C: FieldControl> Field<'a, C> {
         } else {
             StateFlags::empty()
         };
-        let live = self.ov.flags(ui.state(id), derived);
+        let live = Overrides::flags(ui.state(id), derived);
         let ov = self.ov;
-        let forced = ov.is_forced();
         let style = |ui: &mut Ui<'_>, part: Part| {
             ov.style(ui, id, Family::FIELD, Variant::DEFAULT, part, live)
         };
         let container = style(ui, Part::CONTAINER);
         ui.fill(area, container.style);
-        if !forced {
-            ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
-        }
+        ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
 
         // label row
         let label_row = first_row(area);
@@ -256,9 +229,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
             let hs = style(ui, Part::HELP);
             ui.paint_str(rest, "optional", hs.style);
         }
-        if !forced {
-            ui.register_decor(id, PartRef::of(Part::LABEL), label_row);
-        }
+        ui.register_decor(id, PartRef::of(Part::LABEL), label_row);
         if area.height < 2 {
             return label_row;
         }
@@ -312,9 +283,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
             }
             let _ = GlyphRole::Error;
         }
-        if !forced {
-            ui.register_decor(id, PartRef::of(Part::HELP), msg_row);
-        }
+        ui.register_decor(id, PartRef::of(Part::HELP), msg_row);
         Rect {
             height: used_h.saturating_add(1).min(area.height),
             ..area
@@ -346,30 +315,31 @@ mod tests {
 
     const INPUT: Id = Id::root("field.tests.input");
 
-    /// A11 (§12.1, §28 P5): a forced `Field` is a picture, not a control.
-    /// Forcing the chrome alone left the control it owns registering a live
+    /// A reference `Field` is a picture, not a control. Scoping only the
+    /// chrome previously left the control it owns registering a live
     /// editor and a focus stop — a `DuplicateId` and a stray tab stop the
     /// first time a page renders the same control twice.
     #[test]
-    fn a_forced_field_registers_no_control() {
+    fn a_reference_field_registers_no_control() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         let st = TextInputState::default();
         rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            Field::new("Name", TextInput::new(INPUT).value("Ada Lovelace"))
-                .required(true)
-                .help("The person's display name.")
-                .state_override(StateFlags::DISABLED)
-                .draw(ui, a, &st);
+            ui.reference(None, |ui| {
+                Field::new("Name", TextInput::new(INPUT).value("Ada Lovelace"))
+                    .required(true)
+                    .help("The person's display name.")
+                    .draw(ui, a, &st);
+            });
         });
         assert!(
             !rt.registry().delivers_to(INPUT),
-            "the control registered a live region under a forced field"
+            "the control registered a live region under a reference field"
         );
         assert_eq!(
             rt.ring().reachable().count(),
             0,
-            "a forced rendering left a focus stop"
+            "a reference rendering left a focus stop"
         );
     }
 }

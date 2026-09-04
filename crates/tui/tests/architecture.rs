@@ -45,6 +45,12 @@ fn check(name: &str) {
     println!("{text}");
 }
 
+#[test]
+fn derived_hint_bar_is_exported_from_the_root_facade() {
+    fn accepts_root_type(_: Option<tui_next::DerivedHintBar<'static>>) {}
+    accepts_root_type(None);
+}
+
 mod architecture {
     use super::*;
 
@@ -106,6 +112,21 @@ mod architecture {
     #[test]
     fn draw_takes_shared_self() {
         check("draw_takes_shared_self");
+    }
+
+    #[test]
+    fn closure_bearing_draw_signatures_are_exact() {
+        check("closure_bearing_draw_signatures_are_exact");
+    }
+
+    #[test]
+    fn grid_model_public_surface_is_exact() {
+        check("grid_model_public_surface_is_exact");
+    }
+
+    #[test]
+    fn field_kind_has_no_type_parameters() {
+        check("field_kind_has_no_type_parameters");
     }
 
     #[test]
@@ -171,8 +192,8 @@ mod architecture {
     }
 
     #[test]
-    fn state_override_is_used_only_in_apps_and_fixtures() {
-        check("state_override_is_used_only_in_apps_and_fixtures");
+    fn legacy_forced_state_apis_are_absent() {
+        check("legacy_forced_state_apis_are_absent");
     }
 
     #[test]
@@ -180,12 +201,9 @@ mod architecture {
         check("examples_are_external_consumers");
     }
 
-    /// §12.4 / §28 P5. Registered in `xtask`'s `CHECKS` since it was written,
-    /// but with **no wrapper here** until §47.5's pass — so `cargo test --test
-    /// architecture` never ran it and only a full `xtask boundary` did.
     #[test]
-    fn inherit_forced_stays_crate_internal() {
-        check("inherit_forced_stays_crate_internal");
+    fn reference_rendering_is_ui_scoped() {
+        check("reference_rendering_is_ui_scoped");
     }
 
     /// §16.5 / §47.5. The multiset of workspace `bin` target names **equals**

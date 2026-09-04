@@ -334,7 +334,17 @@ fn menu(r: &mut Recipe) {
         .when(
             StateFlags::HOVERED,
             p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),
+        )
+        .when(
+            StateFlags::PRESSED,
+            p().set_fg(Role::Surface(Surface::Canvas))
+                .set_bg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
         );
+    part(m, Part::TITLE, p()).when(
+        StateFlags::PRESSED,
+        p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
+    );
     part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
     part(
         r.variant_mut(Variant::DANGER),
@@ -345,7 +355,27 @@ fn menu(r: &mut Recipe) {
         StateFlags::ACTIVE,
         p().set_bg(Role::HighlightDangerBg)
             .set_fg(Role::HighlightDangerFg),
+    )
+    .when(
+        StateFlags::PRESSED,
+        p().set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD),
     );
+}
+
+fn help(r: &mut Recipe) {
+    container_like(&mut r.parts);
+    part(&mut r.parts, Part::BORDER, p().set_fg(Role::BorderSubtle)).when(
+        StateFlags::FOCUSED,
+        p().set_fg(Role::BorderStrong).add(Modifier::BOLD),
+    );
+    part(
+        &mut r.parts,
+        Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+    )
+    .when(StateFlags::FOCUSED, p().add(Modifier::UNDERLINED));
 }
 
 fn scrollbar(m: &mut PartMap<PartRecipe>) {
@@ -472,6 +502,23 @@ fn brand(m: &mut PartMap<PartRecipe>) {
     part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
 }
 
+fn too_small(m: &mut PartMap<PartRecipe>) {
+    part(
+        m,
+        Part::CONTAINER,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::CurrentSurface),
+    );
+    part(
+        m,
+        Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+    );
+    part(m, Part::DETAIL, p().set_fg(Role::Fg(FgStep::Secondary)));
+    part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Faint)));
+}
+
 fn choice(m: &mut PartMap<PartRecipe>) {
     row_like(m);
     part(m, Part::MARKER, p())
@@ -492,14 +539,45 @@ fn choice(m: &mut PartMap<PartRecipe>) {
     .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)));
 }
 
+fn chip(m: &mut PartMap<PartRecipe>) {
+    row_like(m);
+    part(m, Part::MARKER, p()).when(
+        StateFlags::CHECKED,
+        p().set_glyph(GlyphRole::Checked).set_fg(Role::Accent),
+    );
+    part(
+        m,
+        Part::CLOSE,
+        p().set_fg(Role::Fg(FgStep::Faint))
+            .set_glyph(GlyphRole::Close),
+    )
+    .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)));
+}
+
 fn grid(m: &mut PartMap<PartRecipe>) {
     row_like(m);
+    part(m, Part::ROW, p());
     part(m, Part::CELL, p())
         .when(StateFlags::ACTIVE, p().set_bg(Role::AccentTint))
         .when(StateFlags::ERROR, p().set_fg(Role::Danger))
-        .when(StateFlags::DIRTY, p().set_fg(Role::Warning));
+        .when(StateFlags::DIRTY, p().set_fg(Role::Warning))
+        .when(
+            StateFlags::PRESSED,
+            p().set_fg(Role::Surface(Surface::Canvas))
+                .set_bg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD)
+                .remove(Modifier::REVERSED),
+        );
     part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Muted)));
     part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Secondary)));
+}
+
+fn picker(m: &mut PartMap<PartRecipe>) {
+    row_like(m);
+    part(m, Part::LABEL, p()).when(
+        StateFlags::ACTIVE | StateFlags::FOCUSED,
+        p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
+    );
 }
 
 fn button(r: &mut Recipe) {
@@ -537,14 +615,10 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::CODE | Family::SELECT => {
                 field_like(&mut r.parts);
             }
-            Family::PANEL
-            | Family::DIALOG
-            | Family::OVERLAY
-            | Family::FORM
-            | Family::WIZARD
-            | Family::HELP => {
+            Family::PANEL | Family::DIALOG | Family::OVERLAY | Family::FORM | Family::WIZARD => {
                 container_like(&mut r.parts);
             }
+            Family::HELP => help(r),
             Family::TABS => tabs(&mut r.parts),
             Family::SCROLLBAR => scrollbar(&mut r.parts),
             Family::SPLIT => split(&mut r.parts),
@@ -559,8 +633,11 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::PROGRESS | Family::METER => progress(&mut r.parts),
             Family::EMPTY => empty(&mut r.parts),
             Family::BRAND => brand(&mut r.parts),
-            Family::CHOICE | Family::CHIP => choice(&mut r.parts),
+            Family::TOO_SMALL => too_small(&mut r.parts),
+            Family::CHOICE => choice(&mut r.parts),
+            Family::CHIP => chip(&mut r.parts),
             Family::GRID => grid(&mut r.parts),
+            Family::PICKER => picker(&mut r.parts),
             _ => row_like(&mut r.parts),
         }
     }
@@ -570,6 +647,7 @@ pub(crate) fn default_recipes() -> Recipes {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Slot;
     use crate::theme::Theme;
     use crate::theme::border;
     use crate::theme::patch::StateRule;
@@ -773,6 +851,230 @@ mod tests {
     fn builtin_border_sets_are_ratatui_sets() {
         assert_eq!(Theme::junie().design.borders, border::ROUNDED);
         assert_eq!(Theme::paper().design.borders, border::PLAIN);
+    }
+
+    #[test]
+    fn builtin_select_disclosures_are_exact_single_cell_glyphs() {
+        for theme in [Theme::junie(), Theme::paper()] {
+            let closed = theme.design.glyphs.get(GlyphRole::SelectClosed);
+            let open = theme.design.glyphs.get(GlyphRole::SelectOpen);
+            assert_eq!(closed, "▾");
+            assert_eq!(open, "▴");
+            assert_eq!(crate::text::width(closed), 1);
+            assert_eq!(crate::text::width(open), 1);
+        }
+    }
+
+    #[test]
+    fn chip_and_choice_checked_markers_resolve_to_their_canonical_truecolor_glyphs() {
+        for theme in [Theme::junie(), Theme::paper()] {
+            let checked = |family| {
+                theme.resolve(
+                    family,
+                    Variant::DEFAULT,
+                    Part::MARKER,
+                    StateFlags::CHECKED,
+                    Surface::Canvas,
+                )
+            };
+            assert_eq!(checked(Family::CHIP).glyph.get(), Some(GlyphRole::Checked));
+            assert_eq!(
+                checked(Family::CHOICE).glyph.get(),
+                Some(GlyphRole::CheckboxOn)
+            );
+        }
+    }
+
+    #[test]
+    fn grid_pressed_cell_is_explicit_inversion_after_semantic_cell_states() {
+        for base in [Theme::junie(), Theme::paper()] {
+            for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
+                let pressed = theme.resolve(
+                    Family::GRID,
+                    Variant::DEFAULT,
+                    Part::CELL,
+                    StateFlags::ACTIVE
+                        | StateFlags::ERROR
+                        | StateFlags::DIRTY
+                        | StateFlags::PRESSED,
+                    Surface::Canvas,
+                );
+                let canvas_color = crate::theme::resolve::bind_role(
+                    &theme,
+                    Role::Surface(Surface::Canvas),
+                    Surface::Canvas,
+                );
+                let primary_color = crate::theme::resolve::bind_role(
+                    &theme,
+                    Role::Fg(FgStep::Primary),
+                    Surface::Canvas,
+                );
+
+                assert_eq!(pressed.style.fg, canvas_color);
+                assert_eq!(pressed.style.bg, primary_color);
+                assert!(pressed.style.add_modifier.contains(Modifier::BOLD));
+                assert!(!pressed.style.add_modifier.contains(Modifier::REVERSED));
+                assert!(pressed.style.sub_modifier.contains(Modifier::REVERSED));
+            }
+        }
+    }
+
+    #[test]
+    fn picker_active_focused_label_has_dedicated_focus_affordance_only() {
+        let recipes = default_recipes();
+        let picker = recipes
+            .get(Family::PICKER)
+            .expect("PICKER must have a dedicated built-in recipe");
+        assert!(picker.parts.get(Part::TITLE).is_none());
+
+        for base in [Theme::junie(), Theme::paper()] {
+            for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
+                let resolve = |part, flags| {
+                    theme.resolve(
+                        Family::PICKER,
+                        Variant::DEFAULT,
+                        part,
+                        flags,
+                        Surface::Canvas,
+                    )
+                };
+                let active = resolve(Part::LABEL, StateFlags::ACTIVE);
+                let focused = resolve(Part::LABEL, StateFlags::FOCUSED);
+                let both = resolve(Part::LABEL, StateFlags::ACTIVE | StateFlags::FOCUSED);
+                let expected_focus =
+                    crate::theme::resolve::bind_role(&theme, Role::Focus, Surface::Canvas);
+
+                assert!(!active.style.add_modifier.contains(Modifier::UNDERLINED));
+                assert!(!focused.style.add_modifier.contains(Modifier::UNDERLINED));
+                assert_eq!(both.style.fg, expected_focus);
+                assert!(both.style.add_modifier.contains(Modifier::UNDERLINED));
+                assert_eq!(
+                    resolve(Part::CONTAINER, StateFlags::ACTIVE | StateFlags::FOCUSED),
+                    theme.resolve(
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        Part::CONTAINER,
+                        StateFlags::ACTIVE | StateFlags::FOCUSED,
+                        Surface::Canvas,
+                    )
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn menu_pressed_and_help_focused_have_exact_non_color_affordances() {
+        let theme = Theme::junie();
+        for variant in [Variant::DEFAULT, Variant::DANGER] {
+            let row = theme.resolve(
+                Family::MENU,
+                variant,
+                Part::ROW,
+                StateFlags::PRESSED,
+                Surface::Overlay,
+            );
+            assert!(row.style.add_modifier.contains(Modifier::BOLD));
+            assert!(!row.style.add_modifier.contains(Modifier::REVERSED));
+        }
+
+        let title = theme.resolve(
+            Family::MENU,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::PRESSED,
+            Surface::Overlay,
+        );
+        assert_eq!(title.glyph, Slot::Set(GlyphRole::PressLeft));
+        assert!(title.style.add_modifier.contains(Modifier::BOLD));
+
+        let border = theme.resolve(
+            Family::HELP,
+            Variant::DEFAULT,
+            Part::BORDER,
+            StateFlags::FOCUSED,
+            Surface::Overlay,
+        );
+        assert_eq!(border.style.fg, Some(theme.color.border_strong));
+        assert!(border.style.add_modifier.contains(Modifier::BOLD));
+        let help_title = theme.resolve(
+            Family::HELP,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::FOCUSED,
+            Surface::Overlay,
+        );
+        assert!(
+            help_title
+                .style
+                .add_modifier
+                .contains(Modifier::BOLD | Modifier::UNDERLINED)
+        );
+    }
+
+    #[test]
+    fn too_small_recipe_is_isolated_and_has_the_exact_tone_hierarchy() {
+        let recipes = default_recipes();
+        let recipe = recipes
+            .get(Family::TOO_SMALL)
+            .expect("TOO_SMALL must have a dedicated built-in recipe");
+        let expected = [
+            (
+                Part::CONTAINER,
+                p().set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::CurrentSurface),
+            ),
+            (
+                Part::TITLE,
+                p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+            ),
+            (Part::DETAIL, p().set_fg(Role::Fg(FgStep::Secondary))),
+            (Part::HELP, p().set_fg(Role::Fg(FgStep::Muted))),
+            (Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Faint))),
+        ];
+        assert_eq!(recipe.parts.len(), expected.len());
+        for (part, patch) in expected {
+            let actual = recipe.parts.get(part).expect("required part is missing");
+            assert_eq!(actual.base, patch, "wrong base for {part:?}");
+            assert!(
+                actual.states.is_empty(),
+                "{part:?} must have no state rules"
+            );
+        }
+
+        for base in [Theme::junie(), Theme::paper()] {
+            let actions = |theme: &Theme, family| {
+                theme.resolve(
+                    family,
+                    Variant::DEFAULT,
+                    Part::ACTIONS,
+                    StateFlags::empty(),
+                    Surface::Canvas,
+                )
+            };
+            let panel_before = actions(&base, Family::PANEL);
+            let too_small_before = actions(&base, Family::TOO_SMALL);
+
+            let changed_panel = base.clone().override_family(Family::PANEL, |panel| {
+                panel
+                    .part(Part::ACTIONS)
+                    .base(StylePatch::new().set_fg(Role::Danger));
+            });
+            assert_ne!(actions(&changed_panel, Family::PANEL), panel_before);
+            assert_eq!(actions(&changed_panel, Family::TOO_SMALL), too_small_before);
+
+            let changed_too_small = base
+                .clone()
+                .override_family(Family::TOO_SMALL, |too_small| {
+                    too_small
+                        .part(Part::ACTIONS)
+                        .base(StylePatch::new().set_fg(Role::Danger));
+                });
+            assert_eq!(actions(&changed_too_small, Family::PANEL), panel_before);
+            assert_ne!(
+                actions(&changed_too_small, Family::TOO_SMALL),
+                too_small_before
+            );
+        }
     }
 
     #[test]

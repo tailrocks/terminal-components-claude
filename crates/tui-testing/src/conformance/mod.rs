@@ -10,8 +10,8 @@ pub mod driver;
 use bitflags::bitflags;
 use ratatui_core::layout::Rect;
 use tui_next::{
-    Binding, BindingState, Chord, ColorLevel, Cx, Family, Id, ItemKey, Part, PartRef, Response,
-    StateFlags, Status, StylePatch, Theme, Ui,
+    ActionKey, Binding, BindingState, Chord, ColorLevel, Cx, Family, Id, ItemKey, Part, PartRef,
+    Response, StateFlags, Status, StylePatch, Theme, Ui,
 };
 
 bitflags! {
@@ -46,7 +46,20 @@ bitflags! {
         /// Accepts a readiness prop (`.status(Status)` or an `EmptyState`)
         /// and therefore owes §11.4's `BUSY`/`ERROR` affordance.
         const REPORTS_STATUS = 1 << 12;
+        /// Owns a selected/checked value and renders its selected affordance.
+        /// This is independent of [`Caps::COLLECTION`]: some collections only
+        /// navigate, while some scalar choices render selection.
+        const SELECTS = 1 << 13;
     }
+}
+
+/// Pointer gesture equivalent to an activation chord in cases 2 and 12.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum PointerGesture {
+    /// One primary-button press and release.
+    Click,
+    /// Two clicks inside the runtime's double-click window.
+    DoubleClick,
 }
 
 /// One fixture row for collection cases.
@@ -77,18 +90,22 @@ pub struct Fixture {
     pub area: Rect,
     /// Real rows; `update`/`draw` borrow from here and `reorder` permutes it.
     pub rows: Vec<FixtureRow>,
-    /// Forced state flags (`state_override`) for the mono case.
+    /// Owner-supplied data decoration for row/cell-local semantic status.
+    pub decor_flags: StateFlags,
+    /// Caller-owned committed selection used by controlled-value fixtures.
+    pub selected: bool,
+    /// Requested state for the mono case, if this is a reference rendering.
     ///
     /// Private so [`Fixture::force`] remains the only way to set a forced
     /// state and its coupled readiness status.
-    state_override: StateFlags,
+    reference_state: Option<StateFlags>,
     /// An instance patch for the override case.
     pub patch: Option<(Part, StylePatch)>,
     /// Secret bytes to type for the secret case.
     pub secret: Option<&'static str>,
     /// Data readiness, derived from [`Fixture::force`] so that a state whose
     /// affordance comes from *props* (the spinner) is actually reachable.
-    /// Private for the same reason as [`Fixture::state_override`].
+    /// Private for the same reason as [`Fixture::forced`].
     status: Status,
 }
 
@@ -108,7 +125,9 @@ impl Default for Fixture {
                     disabled: false,
                 })
                 .collect(),
-            state_override: StateFlags::empty(),
+            decor_flags: StateFlags::empty(),
+            selected: false,
+            reference_state: None,
             patch: None,
             secret: None,
             status: Status::Ready,
@@ -117,10 +136,10 @@ impl Default for Fixture {
 }
 
 impl Fixture {
-    /// The forced state flags, if any.
+    /// The forced state flags, if this is a reference rendering.
     #[must_use]
-    pub const fn forced(&self) -> StateFlags {
-        self.state_override
+    pub const fn forced(&self) -> Option<StateFlags> {
+        self.reference_state
     }
 
     /// The readiness coupled to the forced state.
@@ -129,13 +148,20 @@ impl Fixture {
         self.status
     }
 
-    /// Force `s` **and make it real**: a state whose affordance comes from
-    /// props rather than from a theme rule (`BUSY`/`LOADING`/`ERROR` drive
-    /// `Status`, and `Status` drives the spinner) is unreachable through
-    /// `state_override` alone, so case 9 would prove nothing about it.
+    /// Request reference state `s` **and make semantic state real**. Even an
+    /// empty `s` marks this as an inert reference rendering rather than a live
+    /// baseline instance. Runtime-owned focus and press are injected by the
+    /// driver's outer [`Ui::reference`] scope; disabled, selection, readiness
+    /// and row decoration remain caller-owned data.
     #[must_use]
     pub fn force(mut self, s: StateFlags) -> Self {
-        self.state_override = s;
+        self.reference_state = Some(s);
+        self.disabled = s.contains(StateFlags::DISABLED);
+        self.selected = s.contains(StateFlags::SELECTED);
+        self.decor_flags = s & (StateFlags::ERROR | StateFlags::WARNING);
+        for row in &mut self.rows {
+            row.disabled = self.disabled;
+        }
         self.status = if s.contains(StateFlags::BUSY) {
             Status::Busy
         } else if s.contains(StateFlags::LOADING) {
@@ -189,7 +215,7 @@ pub fn mono_states_required_by(caps: Caps) -> Vec<StateFlags> {
     if caps.contains(Caps::EDITS) {
         out.push(StateFlags::EDITING);
     }
-    if caps.contains(Caps::COLLECTION) {
+    if caps.contains(Caps::SELECTS) {
         out.push(StateFlags::SELECTED);
     }
     if caps.contains(Caps::REPORTS_STATUS) {
@@ -221,6 +247,22 @@ pub trait Conformance: 'static {
     fn caps() -> Caps;
     /// The component's id.
     fn id() -> Id;
+    /// Focusable/editable child id for a composite; defaults to its root id.
+    fn control_id() -> Id {
+        Self::id()
+    }
+    /// Owner whose activation part is exercised (`ACTIVATES`).
+    fn activation_id() -> Id {
+        Self::control_id()
+    }
+    /// Scroll owner id for a composite; defaults to its root id.
+    fn scroll_id() -> Id {
+        Self::id()
+    }
+    /// Focusable opener for an overlay composite; defaults to its control.
+    fn opener_id() -> Id {
+        Self::control_id()
+    }
     /// Run `update` against the fixture.
     fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action>;
     /// Run `draw` against the fixture.
@@ -234,9 +276,31 @@ pub trait Conformance: 'static {
     fn activation_part() -> PartRef {
         PartRef::of(Part::CONTAINER)
     }
+    /// The pointer gesture equivalent to [`Self::activation_chords`].
+    fn activation_gesture() -> PointerGesture {
+        PointerGesture::Click
+    }
     /// The binding table for a state.
     fn bindings(_s: BindingState) -> &'static [Binding<Self::Cmd>] {
         &[]
+    }
+    /// Raw legacy/dynamic chords intentionally handled outside a static table.
+    fn legacy_key_chords() -> &'static [Chord] {
+        &[]
+    }
+    /// Caller-declared action bindings that depend on the fixture.
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        Vec::new()
+    }
+    /// Owner that publishes one caller-declared action binding.
+    fn dynamic_binding_id(_action: ActionKey) -> Id {
+        Self::control_id()
+    }
+    /// Make the scroll case overflow when the default fixture fits exactly.
+    fn prepare_scroll_fixture(_fixture: &mut Fixture) {}
+    /// Lifecycle updates required before the scroll target exists.
+    fn scroll_setup_ticks() -> usize {
+        0
     }
     /// The keys of the fixture rows (`COLLECTION`).
     fn item_keys(_f: &Fixture) -> Vec<ItemKey> {
@@ -244,6 +308,10 @@ pub trait Conformance: 'static {
     }
     /// Permute the fixture rows (`COLLECTION`).
     fn reorder(_f: &mut Fixture, _perm: &[usize]) {}
+    /// Chords that reveal `key` after a reorder moved it outside the viewport.
+    fn reveal_item_chords(_key: ItemKey, _f: &Fixture) -> Vec<Chord> {
+        Vec::new()
+    }
     /// The key an action carries (`COLLECTION`).
     fn action_key_of(_a: &Self::Action) -> Option<ItemKey> {
         None
@@ -259,6 +327,17 @@ pub trait Conformance: 'static {
     /// The states the component can wear, for the mono case.
     fn mono_states() -> &'static [StateFlags] {
         DEFAULT_MONO_STATES
+    }
+    /// Fixture used for one mono reference state.
+    fn mono_fixture(_state: StateFlags) -> Fixture {
+        Fixture::default()
+    }
+    /// Chords used to put durable state into the requested mono state.
+    ///
+    /// The driver applies them to a focused component, then copies the
+    /// resulting durable state into the isolated reference rendering.
+    fn mono_setup_chords(_state: StateFlags) -> &'static [Chord] {
+        &[]
     }
     /// Explain every state omitted by [`Self::mono_states`]. Case 9 checks
     /// that this is empty exactly when the default state set is unchanged and
@@ -278,6 +357,14 @@ pub trait Conformance: 'static {
     /// the first activation chord.
     fn open_chord() -> Option<Chord> {
         Self::activation_chords().first().copied()
+    }
+    /// Open the component's layer directly during the overlay case.
+    ///
+    /// Return `true` when the component uses an owner/controller request
+    /// instead of an opener chord. The driver invokes this hook only for the
+    /// explicit overlay-open step.
+    fn open_overlay(_cx: &mut Cx<'_>, _state: &mut Self::State, _fixture: &Fixture) -> bool {
+        false
     }
     /// The layer id the component opens (`OVERLAY`).
     fn layer_id() -> Option<Id> {
@@ -339,7 +426,53 @@ macro_rules! conformance_suite {
 
 #[cfg(test)]
 mod tests {
-    use super::{Caps, StateFlags, mono_states_required_by};
+    use super::{Caps, Conformance, Fixture, PointerGesture, StateFlags, mono_states_required_by};
+    use tui_next::{Cx, Family, Id, Part, Rect, Response, Ui};
+
+    const ROOT: Id = Id::root("conformance.framework.composite");
+    const CONTROL: Id = Id::root("conformance.framework.composite.control");
+
+    struct CompositeIds;
+
+    impl Conformance for CompositeIds {
+        const NAME: &'static str = "composite_ids";
+        const FAMILY: Family = Family::FORM;
+        const PARTS: &'static [Part] = &[Part::CONTAINER];
+        type State = ();
+        type Action = ();
+        type Cmd = ();
+
+        fn caps() -> Caps {
+            Caps::FOCUSABLE | Caps::SCROLLS
+        }
+
+        fn id() -> Id {
+            ROOT
+        }
+
+        fn control_id() -> Id {
+            CONTROL
+        }
+
+        fn activation_id() -> Id {
+            Id::root("conformance.composite.activation")
+        }
+
+        fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(_ui: &mut Ui<'_>, _area: Rect, _st: &(), _f: &Fixture) {}
+    }
+
+    #[test]
+    fn fixture_distinguishes_live_from_forced_empty() {
+        assert_eq!(Fixture::default().forced(), None);
+        assert_eq!(
+            Fixture::default().force(StateFlags::empty()).forced(),
+            Some(StateFlags::empty())
+        );
+    }
 
     #[test]
     fn reports_status_requires_busy_and_error() {
@@ -358,6 +491,50 @@ mod tests {
         assert_eq!(
             mono_states_required_by(Caps::empty()),
             vec![StateFlags::empty()]
+        );
+    }
+
+    #[test]
+    fn selects_alone_requires_selected() {
+        assert!(mono_states_required_by(Caps::SELECTS).contains(&StateFlags::SELECTED));
+        assert!(
+            !mono_states_required_by(Caps::COLLECTION).contains(&StateFlags::SELECTED),
+            "collection identity does not imply a selection affordance"
+        );
+    }
+
+    #[test]
+    fn pointer_gestures_are_exactly_click_and_double_click() {
+        let gestures = [PointerGesture::Click, PointerGesture::DoubleClick];
+        assert_eq!(gestures.len(), 2);
+        assert_ne!(gestures[0], gestures[1]);
+    }
+
+    #[test]
+    fn composite_root_control_and_scroll_ids_do_not_collapse() {
+        assert_eq!(CompositeIds::id(), ROOT);
+        assert_eq!(CompositeIds::control_id(), CONTROL);
+        assert_ne!(CompositeIds::activation_id(), CompositeIds::control_id());
+        assert_eq!(CompositeIds::scroll_id(), ROOT);
+        assert_eq!(CompositeIds::opener_id(), CONTROL);
+    }
+
+    #[test]
+    fn force_couples_and_clears_real_disabled_state() {
+        let disabled = Fixture::default().force(StateFlags::DISABLED);
+        assert!(disabled.disabled);
+        assert!(!disabled.selected);
+        assert_eq!(disabled.forced(), Some(StateFlags::DISABLED));
+
+        let enabled = disabled.force(StateFlags::empty());
+        assert!(!enabled.disabled);
+        assert!(!enabled.selected);
+        assert_eq!(enabled.forced(), Some(StateFlags::empty()));
+
+        let forced_selected = Fixture::default().force(StateFlags::SELECTED);
+        assert!(
+            forced_selected.selected,
+            "selection is semantic fixture data"
         );
     }
 }

@@ -2,9 +2,9 @@
 //!
 //! The ring is rebuilt every frame in registration order, so Tab order is
 //! reading order. Scopes nest; a `Trap` scope confines traversal to itself
-//! and its descendants and wraps inside it. A modal layer's trap is armed
-//! when the layer is pushed, not when it draws, so a modal that fails to
-//! draw still traps. Restoration is runtime-owned (`restore: ScopeId → Id`).
+//! and its descendants and wraps inside it. A layer scope is armed only by
+//! its live `Ui::layer` draw, so an inert reference attempt cannot create a
+//! trap. Restoration is runtime-owned (`restore: ScopeId → Id`).
 
 use std::collections::HashMap;
 

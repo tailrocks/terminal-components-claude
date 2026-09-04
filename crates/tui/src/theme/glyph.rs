@@ -91,11 +91,15 @@ pub enum GlyphRole {
     /// it would make a theme that restyles the dirty marker also restyle
     /// password masking.
     SecretMask,
+    /// Closed select disclosure.
+    SelectClosed,
+    /// Open select disclosure.
+    SelectOpen,
 }
 
 impl GlyphRole {
     /// Every role, in declaration order.
-    pub const ALL: [GlyphRole; 39] = [
+    pub const ALL: [GlyphRole; 41] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
@@ -135,6 +139,8 @@ impl GlyphRole {
         GlyphRole::PressLeft,
         GlyphRole::PressRight,
         GlyphRole::SecretMask,
+        GlyphRole::SelectClosed,
+        GlyphRole::SelectOpen,
     ];
 
     const fn index(self) -> usize {
@@ -147,7 +153,7 @@ impl GlyphRole {
 /// typed `symbols::line::Set`s (§22 R‑11).
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct GlyphSet {
-    glyphs: [&'static str; 39],
+    glyphs: [&'static str; 41],
     scroll: scrollbar::Set<'static>,
     rule_quiet: line::Set<'static>,
     rule_active: line::Set<'static>,
@@ -156,7 +162,7 @@ pub struct GlyphSet {
 impl GlyphSet {
     /// A set from a full table plus the typed symbol sets.
     pub const fn new(
-        glyphs: [&'static str; 39],
+        glyphs: [&'static str; 41],
         scroll: scrollbar::Set<'static>,
         rule_quiet: line::Set<'static>,
         rule_active: line::Set<'static>,
@@ -308,12 +314,20 @@ mod tests {
 
     #[test]
     fn every_role_reads_and_writes_its_slot() {
-        let mut g = GlyphSet::new(["x"; 39], scrollbar::VERTICAL, line::NORMAL, line::THICK);
+        let mut g = GlyphSet::new(["x"; 41], scrollbar::VERTICAL, line::NORMAL, line::THICK);
         for r in GlyphRole::ALL {
             g.set(r, "y");
             assert_eq!(g.get(r), "y", "{r:?}");
         }
         assert_eq!(g.scrollbar().thumb, "y");
+    }
+
+    #[test]
+    fn select_roles_are_appended_without_shifting_existing_discriminants() {
+        assert_eq!(GlyphRole::ALL.len(), 41);
+        assert_eq!(GlyphRole::SecretMask as usize, 38);
+        assert_eq!(GlyphRole::SelectClosed as usize, 39);
+        assert_eq!(GlyphRole::SelectOpen as usize, 40);
     }
 
     /// Adjudication O2: `borders_set(border::ASCII)` must leave **nothing** in

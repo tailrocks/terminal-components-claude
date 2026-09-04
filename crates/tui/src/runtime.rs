@@ -18,14 +18,13 @@ use crate::capture::Capture;
 use crate::cursor::{self, CursorDecision};
 use crate::diagnostics::Diagnostic;
 use crate::event::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
-use crate::focus::{FocusRing, FocusState, ScopeId, ScopeMode};
+use crate::focus::{FocusRing, FocusState, ScopeId};
 use crate::hit::{Hit, RegionKind};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
-use crate::keymap::{KeyMap, KeyPhase};
+use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
 use crate::layer::{
-    Backdrop, DismissReason, LayerEvent, LayerId, LayerKind, OpenLayer, backdrop_area,
-    resolve_anchor,
+    Backdrop, DismissReason, LayerEvent, LayerId, OpenLayer, backdrop_area, resolve_anchor,
 };
 use crate::measure::Size;
 use crate::response::{Invalidate, Response, StateFlags};
@@ -108,8 +107,7 @@ pub struct Runtime<A: App> {
     cursor: Option<Position>,
     last_invalidate: Invalidate,
     pending_focus: Option<(Option<Id>, Option<Id>, FocusVia)>,
-    /// The key map state the cached conflicts were computed for (MI-4).
-    keymap_fingerprint: Option<u64>,
+    keymap_conflict_key: Option<(Option<(Id, BindingTableId)>, u64)>,
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
     layer_events_pending: Vec<(Id, LayerEvent)>,
@@ -133,6 +131,8 @@ impl<A: App> core::fmt::Debug for Runtime<A> {
 impl<A: App> Runtime<A> {
     /// A runtime for `app` under `theme`.
     pub fn new(app: A, theme: Theme) -> Self {
+        let mut core = UiCore::default();
+        core.keymap.clone_from(app.keymap());
         Runtime {
             app,
             theme,
@@ -144,12 +144,12 @@ impl<A: App> Runtime<A> {
             inter: Interaction::default(),
             clock_ms: 0,
             frame: FrameState::default(),
-            core: UiCore::default(),
+            core,
             generation: 0,
             cursor: None,
             last_invalidate: Invalidate::None,
             pending_focus: None,
-            keymap_fingerprint: None,
+            keymap_conflict_key: None,
             keymap_conflicts: Vec::new(),
             staged_focus: None,
             layer_events_pending: Vec::new(),
@@ -237,16 +237,38 @@ impl<A: App> Runtime<A> {
         self.services.layers.top()
     }
 
-    /// The application key map's conflicts, recomputed only when the map
-    /// changes. `KeyMap::conflicts` is an `O(n²)` scan; running it on every
-    /// input made every keystroke quadratic in the binding count (MI-4).
-    fn keymap_conflicts(&mut self) -> Vec<Diagnostic> {
-        let fp = self.app.keymap().fingerprint();
-        if self.keymap_fingerprint != Some(fp) {
-            self.keymap_fingerprint = Some(fp);
-            self.keymap_conflicts = self.app.keymap().conflicts();
+    fn sync_keymap(&mut self) {
+        if &self.core.keymap != self.app.keymap() {
+            self.core.keymap.clone_from(self.app.keymap());
+            // Caches retain only the immediately previous equality key; wrapping
+            // changes that key while explicit invalidation clears both consumers.
+            self.core.keymap_revision = self.core.keymap_revision.wrapping_add(1);
+            self.core.focused_hints.invalidate();
+            self.keymap_conflict_key = None;
         }
-        self.keymap_conflicts.clone()
+    }
+
+    fn refresh_keymap_conflicts(&mut self) {
+        let component = self.focus.current().and_then(|owner| {
+            self.last
+                .bindings
+                .get(owner)
+                .map(|(published, table)| (owner, published.table, table))
+        });
+        let key = (
+            component.map(|(owner, table, _)| (owner, table)),
+            self.core.keymap_revision,
+        );
+        if self.keymap_conflict_key == Some(key) {
+            return;
+        }
+        self.keymap_conflict_key = Some(key);
+        self.keymap_conflicts.clear();
+        self.keymap_conflicts.extend(self.core.keymap.conflicts());
+        if let Some((owner, _, table)) = component {
+            self.keymap_conflicts
+                .extend(self.core.keymap.component_conflicts(owner, table));
+        }
     }
 
     fn stage_focus(&mut self, to: Option<Id>, via: FocusVia) {
@@ -357,7 +379,16 @@ impl<A: App> Runtime<A> {
         self.last.snapshot.focus_visible = true;
         self.last.snapshot.hover_suppressed = true;
         let current = self.focus.current();
-        // Tab / Shift+Tab are runtime focus policy (step 5), against the last ring
+        // An explicitly published Tab/BackTab command belongs to the focused
+        // component. Only an unbound Tab reaches runtime focus traversal.
+        if let Some(owner) = current
+            && let Some((_, table)) = self.last.bindings.get(owner)
+            && let Some((action, chord)) = self.core.keymap.component_binding(owner, table, &k)
+        {
+            self.intents.binding(owner, action, chord);
+            return;
+        }
+        // Tab / Shift+Tab are runtime focus policy (step 5), against the last ring.
         if k.code == KeyCode::Tab && k.mods.difference(KeyModifiers::SHIFT).is_empty() {
             let next = if k.mods.contains(KeyModifiers::SHIFT) {
                 self.last.ring.prev(current)
@@ -405,6 +436,7 @@ impl<A: App> Runtime<A> {
         self.inter.last_input_key = false;
         self.focus.set_visible(false);
         self.last.snapshot.focus_visible = false;
+        let hover_was_suppressed = self.inter.hover_suppressed;
         if m.kind == MouseKind::Move {
             self.inter.hover_suppressed = false;
             self.last.snapshot.hover_suppressed = false;
@@ -418,12 +450,7 @@ impl<A: App> Runtime<A> {
         let top = self.top();
         let outside = hit.is_none_or(|h| h.layer < top);
         match m.kind {
-            MouseKind::Move => {
-                self.inter.hover = hit
-                    .filter(|h| self.deliverable(*h))
-                    .map(|h| (h.owner, h.part));
-                self.last.snapshot.hover = self.inter.hover;
-            }
+            MouseKind::Move => self.pointer_moved(m, top, hover_was_suppressed),
             MouseKind::Down => {
                 if outside {
                     self.outside_click();
@@ -496,6 +523,28 @@ impl<A: App> Runtime<A> {
         }
     }
 
+    fn pointer_moved(&mut self, m: Mouse, top: LayerId, hover_was_suppressed: bool) {
+        let live = self.last.registry.hit_live(m.pos, top);
+        let previous = self.inter.hover;
+        let visible_previous = if hover_was_suppressed { None } else { previous };
+        self.inter.hover = live.map(|h| (h.owner, h.part));
+        self.last.snapshot.hover = self.inter.hover;
+        if self.inter.hover != visible_previous {
+            self.services.repaint = true;
+        }
+        if let Some(h) = live {
+            let area = self.region_area(h);
+            self.intents.pointer(
+                h.owner,
+                Phase::Move,
+                h.part,
+                m.pos,
+                Self::local_in(area, m.pos),
+                m.mods,
+            );
+        }
+    }
+
     /// Primary button down on a deliverable hit: press bookkeeping, press-focuses-owner.
     fn pointer_down(&mut self, h: Hit, m: Mouse) {
         if !self.deliverable(h) {
@@ -510,7 +559,7 @@ impl<A: App> Runtime<A> {
             pos: m.pos,
         });
         self.services.press_pos = Some(m.pos);
-        self.last.snapshot.pressed = Some(h.owner);
+        self.last.snapshot.pressed = Some((h.owner, h.part));
         if self.last.ring.contains(h.owner) {
             self.stage_focus(Some(h.owner), FocusVia::Pointer);
         }
@@ -558,7 +607,7 @@ impl<A: App> Runtime<A> {
             .pointer(p.owner, phase, p.part, m.pos, local, m.mods);
         let flash = self.theme.design.motion.press_flash_ms;
         self.inter.flash = Some((p.owner, self.clock_ms.saturating_add(flash)));
-        self.last.snapshot.pressed = Some(p.owner);
+        self.last.snapshot.pressed = Some((p.owner, p.part));
     }
 
     fn pointer_captured(&mut self, cap: Capture, m: Mouse) {
@@ -665,6 +714,7 @@ impl<A: App> Runtime<A> {
 
     /// Step 7: `app.update` with the frozen queue, re-run while focus moves.
     fn run_update(&mut self, command: Option<ActionKey>) -> Response<()> {
+        self.core.begin_cache_frame(self.generation.wrapping_add(1));
         let mut folded = Response::ignored();
         let mut first_pass = true;
         loop {
@@ -681,6 +731,7 @@ impl<A: App> Runtime<A> {
                 let mut cx = Cx::new(
                     &self.intents,
                     &mut self.services,
+                    &mut self.core,
                     &self.last,
                     &self.theme,
                     command,
@@ -755,8 +806,11 @@ impl<A: App> Runtime<A> {
     /// `Runtime::handle` — steps 1–9.
     pub fn handle(&mut self, input: Input) -> Response<()> {
         self.services.diagnostics.clear();
-        let conflicts = self.keymap_conflicts();
-        self.services.diagnostics.extend(conflicts);
+        self.sync_keymap();
+        self.refresh_keymap_conflicts();
+        self.services
+            .diagnostics
+            .extend(self.keymap_conflicts.iter().cloned());
         self.services.repaint = false;
         self.services.repaint_after = None;
         self.intents.clear();
@@ -798,7 +852,7 @@ impl<A: App> Runtime<A> {
             Input::Key(k) => {
                 // step 2: capture chords first
                 let swallows = self.swallows_typing();
-                if let Some(cmd) = self.app.keymap().lookup(KeyPhase::Capture, &k, swallows) {
+                if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Capture, &k, swallows) {
                     let r = self.run_update(Some(cmd));
                     return self.finish(r);
                 }
@@ -819,7 +873,7 @@ impl<A: App> Runtime<A> {
         if let Some(k) = key_input
             && !r.is_consumed()
         {
-            if let Some(cmd) = self.app.keymap().lookup(KeyPhase::Bubble, &k, false) {
+            if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
                 r |= self.run_update(Some(cmd));
             } else if k.code == KeyCode::Esc {
                 let dismissable = self
@@ -835,6 +889,7 @@ impl<A: App> Runtime<A> {
                         let mut cx = Cx::new(
                             &self.intents,
                             &mut self.services,
+                            &mut self.core,
                             &self.last,
                             &self.theme,
                             None,
@@ -890,28 +945,16 @@ impl<A: App> Runtime<A> {
             self.core.clear_caches();
         }
         self.generation = self.generation.wrapping_add(1);
+        self.core.begin_cache_frame(self.generation);
         self.core.style_cache.clear();
         self.frame.reset(self.generation, area);
         self.frame.inert_floor = self.services.layers.inert_floor();
         self.frame.top = self.services.layers.top();
-        // arm every open layer's scope and draw target before anything draws
+        // Prepare every open layer's draw target. Its focus scope is armed
+        // only when `Ui::layer` performs a live draw.
         for l in self.services.layers.layers() {
             let rect = resolve_anchor(area, l.spec.anchor, l.spec.size);
             self.frame.layers.push(l.id, l.layer, l.spec, rect, area);
-            let mode = match l.spec.kind {
-                LayerKind::Modal => ScopeMode::Trap,
-                LayerKind::Popover | LayerKind::Tooltip => ScopeMode::Normal,
-            };
-            let parent = self
-                .services
-                .layers
-                .layers()
-                .iter()
-                .find(|p| p.layer.index().saturating_add(1) == l.layer.index())
-                .map(OpenLayer::scope);
-            self.frame
-                .ring
-                .ensure_scope(l.scope(), mode, l.layer, parent);
         }
         // step 11: app.draw into the page, layers into pooled buffers
         {
@@ -937,6 +980,7 @@ impl<A: App> Runtime<A> {
         self.last.layout.append(&mut self.frame.layout);
         self.last.declared.clear();
         self.last.declared.append(&mut self.frame.declared);
+        core::mem::swap(&mut self.last.bindings, &mut self.frame.bindings);
         self.services.capture.release_if_stale(&self.last.registry);
         self.last.snapshot.capture = self.services.capture.get().map(|c| c.owner);
         // step 14: focus reconcile. A modal's trap moves focus into it by
@@ -999,7 +1043,7 @@ fn composite_layer(ui: &mut Ui<'_>, i: usize, screen: Rect) {
     let Some((backdrop, drawn)) = ui.layer_meta(i) else {
         return;
     };
-    if matches!(backdrop, Backdrop::Dim { .. }) {
+    if drawn && matches!(backdrop, Backdrop::Dim { .. }) {
         let area = backdrop_area(screen, backdrop);
         ui.dim_layer(area, 2);
     }
@@ -1291,6 +1335,9 @@ pub(crate) mod stub {
                                 .push((c.id, format!("origin: {:?}", cx.capture_origin())));
                             r |= Response::changed();
                         }
+                        Intent::Pointer {
+                            phase: Phase::Move, ..
+                        } => {}
                         Intent::Pointer { .. } | Intent::Wheel { .. } => r |= Response::changed(),
                         _ => {}
                     }
@@ -1406,10 +1453,396 @@ mod tests {
     use crate::event::MouseKind;
     use crate::focus::Focusability;
     use crate::layer::LayerSpec;
+    use crate::ui::FrameRead;
 
     const A: Id = Id::root("a");
     const B: Id = Id::root("b");
     const C: Id = Id::root("c");
+    const ROUTE_PUBLISH: u8 = 1 << 0;
+    const ROUTE_ALTERNATE: u8 = 1 << 1;
+    const ROUTE_SECOND: u8 = 1 << 2;
+    const ROUTE_CONSUME_RAW: u8 = 1 << 3;
+    const ROUTE_TAB: u8 = 1 << 4;
+
+    const REFERENCE_LAYER: Id = Id::root("runtime.reference-layer");
+    const REFERENCE_PAGE: Id = Id::root("runtime.reference-page");
+    const REFERENCE_LAYER_CONTROL: Id = Id::root("runtime.reference-layer-control");
+
+    #[derive(Default)]
+    struct ReferenceLayerApp {
+        open: bool,
+        draw_live: bool,
+    }
+
+    impl App for ReferenceLayerApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if self.open && !cx.is_open(REFERENCE_LAYER) {
+                cx.open_layer(
+                    REFERENCE_LAYER,
+                    LayerSpec::modal(REFERENCE_LAYER).inert_below(false),
+                );
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let style = ui.surface_style();
+            ui.paint_str(SCREEN, "PAGE", style);
+            ui.register_control(REFERENCE_PAGE, SCREEN, Focusability::Focusable);
+            if self.draw_live {
+                let _ = ui.layer(REFERENCE_LAYER, |ui, area| {
+                    let style = ui.surface_style();
+                    ui.paint_str(area, "LAYER", style);
+                    ui.register_control(REFERENCE_LAYER_CONTROL, area, Focusability::Focusable);
+                });
+            } else {
+                ui.reference(None, |ui| {
+                    let _ = ui.layer(REFERENCE_LAYER, |ui, area| {
+                        let style = ui.surface_style();
+                        ui.paint_str(area, "FORBIDDEN", style);
+                        ui.register_control(REFERENCE_LAYER_CONTROL, area, Focusability::Focusable);
+                    });
+                });
+            }
+        }
+    }
+
+    #[test]
+    fn a_layer_attempted_only_in_reference_has_no_backdrop_or_focus_effect() {
+        let mut plain = Runtime::new(ReferenceLayerApp::default(), Theme::junie());
+        let mut expected = Buffer::empty(SCREEN);
+        plain.draw_buffer(SCREEN, &mut expected);
+
+        let mut runtime = Runtime::new(
+            ReferenceLayerApp {
+                open: true,
+                draw_live: false,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.handle(Input::Tick);
+        let mut actual = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut actual);
+        assert_eq!(actual, expected, "an undrawn layer left a backdrop");
+        assert_eq!(runtime.focus(), Some(REFERENCE_PAGE));
+        assert!(runtime.diagnostics().is_empty());
+
+        runtime.app_mut().draw_live = true;
+        actual.reset();
+        runtime.draw_buffer(SCREEN, &mut actual);
+        assert_ne!(actual, expected, "a later legitimate layer draw was lost");
+        assert_eq!(runtime.focus(), Some(REFERENCE_LAYER_CONTROL));
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[derive(Default)]
+    struct GapCache(u32);
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum RouteCmd {
+        Default,
+        Latent,
+        Alternate,
+    }
+
+    const DEFAULT_ACTION: ActionKey = ActionKey::custom("runtime.route.default");
+    const LATENT_ACTION: ActionKey = ActionKey::custom("runtime.route.latent");
+    const DEFAULT_BINDINGS: &[crate::Binding<RouteCmd>] = &[
+        crate::Binding {
+            action: DEFAULT_ACTION,
+            chord: Some(crate::Chord::key(KeyCode::Enter)),
+            cmd: RouteCmd::Default,
+            label: "Default",
+            priority: 80,
+            visible: true,
+        },
+        crate::Binding {
+            action: LATENT_ACTION,
+            chord: None,
+            cmd: RouteCmd::Latent,
+            label: "Latent",
+            priority: 60,
+            visible: true,
+        },
+    ];
+    const ALTERNATE_BINDINGS: &[crate::Binding<RouteCmd>] = &[crate::Binding {
+        action: ActionKey::custom("runtime.route.alternate"),
+        chord: Some(crate::Chord::key(KeyCode::F(2))),
+        cmd: RouteCmd::Alternate,
+        label: "Alternate",
+        priority: 80,
+        visible: true,
+    }];
+    const TAB_ACTION: ActionKey = ActionKey::custom("runtime.route.tab");
+    const TAB_BINDINGS: &[crate::Binding<RouteCmd>] = &[crate::Binding {
+        action: TAB_ACTION,
+        chord: Some(crate::Chord::key(KeyCode::Tab)),
+        cmd: RouteCmd::Alternate,
+        label: "Tab action",
+        priority: 80,
+        visible: true,
+    }];
+
+    #[derive(Debug)]
+    struct RouteApp {
+        keymap: KeyMap,
+        options: u8,
+        typed: Vec<(Id, RouteCmd)>,
+        raw: usize,
+        app_commands: usize,
+    }
+
+    impl Default for RouteApp {
+        fn default() -> Self {
+            RouteApp {
+                keymap: KeyMap::new(),
+                options: ROUTE_PUBLISH,
+                typed: Vec::new(),
+                raw: 0,
+                app_commands: 0,
+            }
+        }
+    }
+
+    impl RouteApp {
+        fn table(&self) -> &'static [crate::Binding<RouteCmd>] {
+            if self.options & ROUTE_TAB != 0 {
+                TAB_BINDINGS
+            } else if self.options & ROUTE_ALTERNATE != 0 {
+                ALTERNATE_BINDINGS
+            } else {
+                DEFAULT_BINDINGS
+            }
+        }
+    }
+
+    impl App for RouteApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.command().is_some() {
+                self.app_commands = self.app_commands.saturating_add(1);
+                return Response::consumed();
+            }
+            let mut response = Response::ignored();
+            let table = self.table();
+            for owner in [A, B] {
+                if owner == B && self.options & ROUTE_SECOND == 0 {
+                    continue;
+                }
+                for intent in cx.intents(owner) {
+                    match intent {
+                        crate::Intent::Binding(action) => {
+                            if let Some(command) = crate::Binding::command(table, action) {
+                                self.typed.push((owner, command));
+                                response |= Response::consumed();
+                            }
+                        }
+                        crate::Intent::Key(_) => {
+                            self.raw = self.raw.saturating_add(1);
+                            if self.options & ROUTE_CONSUME_RAW != 0 {
+                                response |= Response::consumed();
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let table = self.table();
+            ui.register_control(A, Rect::new(0, 0, 10, 1), Focusability::Focusable);
+            if self.options & ROUTE_PUBLISH != 0 {
+                ui.publish_bindings(A, ui.state(A), table);
+            }
+            if self.options & ROUTE_SECOND != 0 {
+                ui.register_control(B, Rect::new(12, 0, 10, 1), Focusability::Focusable);
+                if self.options & ROUTE_PUBLISH != 0 {
+                    ui.publish_bindings(B, ui.state(B), table);
+                }
+            }
+            let _ =
+                crate::HintBar::derived(Id::root("runtime.hints")).draw(ui, Rect::new(0, 1, 40, 1));
+        }
+
+        fn keymap(&self) -> &KeyMap {
+            &self.keymap
+        }
+    }
+
+    fn route_runtime(app: RouteApp) -> (Runtime<RouteApp>, Buffer) {
+        let area = Rect::new(0, 0, 40, 3);
+        let mut buffer = Buffer::empty(area);
+        let mut runtime = Runtime::new(app, Theme::junie());
+        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer);
+        (runtime, buffer)
+    }
+
+    fn hint_row(buffer: &Buffer) -> String {
+        (0..40)
+            .filter_map(|x| buffer.cell(Position::new(x, 1)))
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect()
+    }
+
+    #[test]
+    fn default_action_routes_to_typed_command() {
+        let (mut runtime, _) = route_runtime(RouteApp::default());
+        let response = runtime.handle(key(KeyCode::Enter));
+        assert!(response.is_consumed());
+        assert_eq!(runtime.app().typed, vec![(A, RouteCmd::Default)]);
+        assert_eq!(runtime.app().raw, 0);
+    }
+
+    #[test]
+    fn owner_remove_suppresses_handling_and_hint() {
+        let mut app = RouteApp::default();
+        app.keymap.remove_component(A, DEFAULT_ACTION);
+        let (mut runtime, mut buffer) = route_runtime(app);
+        assert!(!hint_row(&buffer).contains("Default"));
+        let response = runtime.handle(key(KeyCode::Enter));
+        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        assert!(!response.is_consumed());
+        assert!(runtime.app().typed.is_empty());
+        assert_eq!(runtime.app().raw, 1);
+    }
+
+    #[test]
+    fn remap_old_is_raw_and_new_is_typed_and_shown() {
+        let mut app = RouteApp::default();
+        app.keymap
+            .remap_component(A, DEFAULT_ACTION, crate::Chord::key(KeyCode::F(3)));
+        let (mut runtime, mut buffer) = route_runtime(app);
+        assert!(hint_row(&buffer).contains("F3"));
+        let old = runtime.handle(key(KeyCode::Enter));
+        assert!(!old.is_consumed());
+        assert_eq!(runtime.app().raw, 1);
+        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        let new = runtime.handle(key(KeyCode::F(3)));
+        assert!(new.is_consumed());
+        assert_eq!(runtime.app().typed, vec![(A, RouteCmd::Default)]);
+    }
+
+    #[test]
+    fn latent_action_activates_when_component_bound() {
+        let mut app = RouteApp::default();
+        app.keymap = app
+            .keymap
+            .bind_component(A, LATENT_ACTION, crate::Chord::key(KeyCode::F(4)));
+        let (mut runtime, buffer) = route_runtime(app);
+        assert!(hint_row(&buffer).contains("F4"));
+        assert!(runtime.handle(key(KeyCode::F(4))).is_consumed());
+        assert_eq!(runtime.app().typed, vec![(A, RouteCmd::Latent)]);
+    }
+
+    #[test]
+    fn component_override_is_owner_scoped() {
+        let mut app = RouteApp {
+            options: ROUTE_PUBLISH | ROUTE_SECOND,
+            ..RouteApp::default()
+        };
+        app.keymap
+            .remap_component(A, DEFAULT_ACTION, crate::Chord::key(KeyCode::F(5)));
+        let (mut runtime, mut buffer) = route_runtime(app);
+        let _ = runtime.handle(key(KeyCode::Tab));
+        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        assert_eq!(runtime.focus(), Some(B));
+        assert!(runtime.handle(key(KeyCode::Enter)).is_consumed());
+        assert_eq!(runtime.app().typed, vec![(B, RouteCmd::Default)]);
+    }
+
+    #[test]
+    fn capture_keymap_wins_over_component_binding() {
+        let mut app = RouteApp::default();
+        app.keymap.add(
+            KeyPhase::Capture,
+            crate::Chord::key(KeyCode::Enter),
+            ActionKey::SAVE,
+        );
+        let (mut runtime, _) = route_runtime(app);
+        assert!(runtime.handle(key(KeyCode::Enter)).is_consumed());
+        assert_eq!(runtime.app().app_commands, 1);
+        assert!(runtime.app().typed.is_empty());
+    }
+
+    #[test]
+    fn bubble_runs_only_when_raw_key_is_ignored() {
+        let mut app = RouteApp::default();
+        app.keymap.add(
+            KeyPhase::Bubble,
+            crate::Chord::key(KeyCode::F(6)),
+            ActionKey::SAVE,
+        );
+        let (mut runtime, _) = route_runtime(app);
+        assert!(runtime.handle(key(KeyCode::F(6))).is_consumed());
+        assert_eq!(runtime.app().app_commands, 1);
+
+        runtime.app_mut().options |= ROUTE_CONSUME_RAW;
+        assert!(runtime.handle(key(KeyCode::F(6))).is_consumed());
+        assert_eq!(runtime.app().app_commands, 1);
+    }
+
+    #[test]
+    fn same_flags_table_switch_invalidates_focused_hints() {
+        let (mut runtime, mut buffer) = route_runtime(RouteApp::default());
+        assert!(hint_row(&buffer).contains("Default"));
+        let capacity = runtime.core.focused_hints.layer.hints.capacity();
+        runtime.app_mut().options |= ROUTE_ALTERNATE;
+        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        assert!(hint_row(&buffer).contains("Alternate"));
+        assert_eq!(runtime.core.focused_hints.layer.hints.capacity(), capacity);
+    }
+
+    #[test]
+    fn map_replacement_invalidates_focused_hints() {
+        let (mut runtime, mut buffer) = route_runtime(RouteApp::default());
+        runtime.app_mut().keymap.remap_component(
+            A,
+            DEFAULT_ACTION,
+            crate::Chord::key(KeyCode::F(7)),
+        );
+        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        assert!(hint_row(&buffer).contains("F7"));
+    }
+
+    #[test]
+    fn unpublished_legacy_control_receives_raw_key() {
+        let app = RouteApp {
+            options: 0,
+            ..RouteApp::default()
+        };
+        let (mut runtime, _) = route_runtime(app);
+        assert!(!runtime.handle(key(KeyCode::Enter)).is_consumed());
+        assert_eq!(runtime.app().raw, 1);
+        assert!(runtime.app().typed.is_empty());
+    }
+
+    #[test]
+    fn component_tab_binding_precedes_focus_traversal() {
+        let app = RouteApp {
+            options: ROUTE_PUBLISH | ROUTE_SECOND | ROUTE_TAB,
+            ..RouteApp::default()
+        };
+        let (mut runtime, _) = route_runtime(app);
+        assert!(runtime.handle(key(KeyCode::Tab)).is_consumed());
+        assert_eq!(runtime.focus(), Some(A));
+        assert_eq!(runtime.app().typed, vec![(A, RouteCmd::Alternate)]);
+    }
+
+    #[test]
+    fn removed_tab_binding_falls_back_to_focus_traversal() {
+        let mut app = RouteApp {
+            options: ROUTE_PUBLISH | ROUTE_SECOND | ROUTE_TAB,
+            ..RouteApp::default()
+        };
+        app.keymap.remove_component(A, TAB_ACTION);
+        let (mut runtime, _) = route_runtime(app);
+        let _ = runtime.handle(key(KeyCode::Tab));
+        assert_eq!(runtime.focus(), Some(B));
+        assert!(runtime.app().typed.is_empty());
+    }
 
     fn three() -> Stub {
         Stub {
@@ -1421,6 +1854,25 @@ mod tests {
             consume_keys: true,
             ..Stub::default()
         }
+    }
+
+    #[test]
+    fn derived_cache_is_fresh_when_component_reappears_after_a_frame_gap() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let area = Rect::new(0, 0, 4, 1);
+        let mut buffer = Buffer::empty(area);
+        let component = Id::root("cache-gap");
+
+        runtime.draw_scene(area, &mut buffer, |ui, _| {
+            ui.cache::<GapCache>(component).0 = 7;
+        });
+        runtime.draw_scene(area, &mut buffer, |_ui, _| {});
+
+        let observed = core::cell::Cell::new(u32::MAX);
+        runtime.draw_scene(area, &mut buffer, |ui, _| {
+            observed.set(ui.cache::<GapCache>(component).0);
+        });
+        assert_eq!(observed.get(), 0);
     }
 
     #[test]
@@ -1472,6 +1924,105 @@ mod tests {
         assert!(!rt.state_of(C).contains(StateFlags::HOVERED));
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 4, 4));
         assert!(rt.state_of(C).contains(StateFlags::HOVERED));
+    }
+
+    #[test]
+    fn pointer_move_delivers_move_to_topmost_live_part() {
+        let layer = Id::root("top");
+        let decor = Id::root("decor");
+        let mut s = Stub {
+            page: vec![Control::new(A, Rect::new(0, 0, 10, 1))],
+            ..Stub::default()
+        };
+        s.layers.push((
+            layer,
+            vec![
+                Control::new(B, Rect::new(0, 0, 10, 1)),
+                Control {
+                    decor: true,
+                    ..Control::new(decor, Rect::new(0, 0, 10, 1))
+                },
+            ],
+        ));
+        let (mut rt, mut buf) = runtime(s);
+        rt.app_mut().open_request = Some((layer, LayerSpec::modal(layer)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
+        rt.app_mut().log.clear();
+
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 3, 0));
+
+        assert_eq!(rt.app().count(B, "phase: Move"), 1);
+        assert_eq!(rt.app().count(A, "phase: Move"), 0);
+        assert_eq!(rt.app().count(decor, "Pointer"), 0);
+        assert!(rt.app().saw(B, "part: PartRef { part: Part::LABEL"));
+    }
+
+    #[test]
+    fn pointer_move_over_decorative_delivers_nothing() {
+        let decor = Id::root("decor");
+        let s = Stub {
+            page: vec![Control {
+                decor: true,
+                ..Control::new(decor, Rect::new(0, 0, 10, 1))
+            }],
+            ..Stub::default()
+        };
+        let (mut rt, mut buf) = runtime(s);
+
+        let response = step(&mut rt, &mut buf, mouse(MouseKind::Move, 3, 0));
+
+        assert_eq!(rt.hover(), None);
+        assert_eq!(response.invalidate(), Invalidate::None);
+        assert_eq!(rt.app().count(decor, "Pointer"), 0);
+    }
+
+    #[test]
+    fn captured_move_is_drag_not_move() {
+        let mut s = three();
+        s.page[0].captures = true;
+        let (mut rt, mut buf) = runtime(s);
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 0));
+        assert_eq!(rt.capture_owner(), Some(A));
+        rt.app_mut().log.clear();
+
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 3, 2));
+
+        assert_eq!(rt.app().count(A, "phase: Drag"), 1);
+        assert_eq!(rt.app().count(A, "phase: Move"), 0);
+        assert_eq!(rt.app().count(B, "Pointer"), 0);
+    }
+
+    #[test]
+    fn pointer_move_never_focuses() {
+        let (mut rt, mut buf) = runtime(three());
+        assert_eq!(rt.focus(), Some(A));
+
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 3, 2));
+
+        assert_eq!(rt.focus(), Some(A));
+        assert_eq!(rt.hover(), Some(B));
+        assert_eq!(rt.app().count(B, "phase: Move"), 1);
+        assert_eq!(rt.app().count(B, "phase: Press"), 0);
+        assert_eq!(rt.app().count(B, "phase: Click"), 0);
+    }
+
+    #[test]
+    fn hover_transition_requests_paint() {
+        let (mut rt, mut buf) = runtime(three());
+
+        let entered = step(&mut rt, &mut buf, mouse(MouseKind::Move, 3, 2));
+        let stayed = step(&mut rt, &mut buf, mouse(MouseKind::Move, 4, 2));
+        let left = step(&mut rt, &mut buf, mouse(MouseKind::Move, 30, 10));
+        let stayed_out = step(&mut rt, &mut buf, mouse(MouseKind::Move, 31, 10));
+
+        assert_eq!(entered.invalidate(), Invalidate::Paint);
+        assert_eq!(stayed.invalidate(), Invalidate::None);
+        assert_eq!(left.invalidate(), Invalidate::Paint);
+        assert_eq!(stayed_out.invalidate(), Invalidate::None);
+
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Down));
+        let suppressed_out = step(&mut rt, &mut buf, mouse(MouseKind::Move, 32, 10));
+        assert_eq!(suppressed_out.invalidate(), Invalidate::None);
     }
 
     #[test]

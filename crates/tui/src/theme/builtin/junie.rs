@@ -134,7 +134,7 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         // array (Adjudication O2). They are kept empty so the array keeps one
         // entry per `GlyphRole` and nobody edits them expecting an effect.
         "", "", "", "", //
-        "✓", "∥", "+", "[", "]", "•",
+        "✓", "∥", "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
         track: "│",

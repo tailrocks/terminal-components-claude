@@ -109,7 +109,7 @@ pub(crate) fn run_of(
 /// `.status(Status)` (`Ready`), `.done(bool)` (`false`),
 /// `.icon(GlyphRole)` (none — the explicit override that expresses a paused
 /// bar as `GlyphRole::ProgressPaused`), `.frame(usize)` (`0`), `.patch`,
-/// `.patch_part`, `.slot`, `.state_override`.
+/// `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::PROGRESS`; `DEFAULT` only.
@@ -156,14 +156,8 @@ pub(crate) fn run_of(
 ///
 /// ## Testing
 /// `ProgressBarCase` in `crates/tui/tests/conformance.rs`, declaring
-/// `Caps::empty()`. Twelve of the twenty-one generated `progress_bar::*`
-/// cases are capability-gated and return immediately, so the ones that do
-/// work are `name_matches_the_module`, `hover_does_not_steal_focus`,
-/// `draw_twice_is_byte_identical`, `draw_twice_leaves_state_equal`,
-/// `draw_stays_inside_its_area`, `local_override_does_not_mutate_the_theme`,
-/// `id_separator_collision_free`, `survives_tiny_rects_0x0_to_3x3` and
-/// `mono_states_are_distinguishable` — and that last one is narrowed to the
-/// single default state, so it compares one rendering against nothing.
+/// `Caps::REPORTS_STATUS`. Its mono states retain the default, `ERROR` and
+/// `BUSY` renderings required by that readiness capability.
 ///
 /// The render matrix in `crates/tui/tests/render_components.rs` generates
 /// exactly eight cells per component, one per `St` variant, so there is no
@@ -181,21 +175,16 @@ pub(crate) fn run_of(
 /// `the_indeterminate_sweep_crosses_the_track_and_stays_inside_it` and
 /// `percentages_format_without_allocating`.
 ///
-/// The recipe's `ERROR → GlyphRole::Error` rule **does** fire, and
-/// `components::a_forced_component_resolves_its_props_derived_state` pins
-/// it: `Overrides::flags` substitutes a forced state for the *runtime* half
-/// only (§39.2), so the `::disabled` cell's `Status::Error` survives its
-/// forced `DISABLED` and the bar paints the glyph. This block previously
-/// asserted the opposite.
+/// The recipe's `ERROR → GlyphRole::Error` rule fires from the controlled
+/// `Status::Error` prop (§39.2).
 ///
-/// Exercised by no test, recorded as a gap rather than covered with a
-/// neighbouring citation: the recipe's `CHECKED → GlyphRole::ProgressDone`
-/// rule, because nothing sets `.done(true)` — §39.6 obligation 2 holds it
-/// open. Nothing draws an *indeterminate* bar either — every fixture calls
-/// `.ratio` — and nothing calls `.icon(…)`. The sub-`MIN_TRACK` fallback is
-/// reached only inside `progress_bar::survives_tiny_rects_0x0_to_3x3`,
-/// which asserts that the bar neither panics nor paints outside its rect,
-/// never what it paints.
+/// `a_done_bar_reaches_the_checked_recipe_rule` exercises the recipe's
+/// `CHECKED → GlyphRole::ProgressDone` rule through `.done(true)`. Nothing
+/// draws an *indeterminate* bar in
+/// the render matrix — every fixture calls `.ratio` — and nothing calls
+/// `.icon(…)`. The sub-`MIN_TRACK` fallback is reached only inside
+/// `progress_bar::survives_tiny_rects_0x0_to_3x3`, which asserts that the bar
+/// neither panics nor paints outside its rect, never what it paints.
 ///
 /// ## Invariants
 /// Discharges §11.4's readiness obligation: a `BUSY`/`LOADING` bar paints
@@ -334,13 +323,6 @@ impl<'a> ProgressBar<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render a forced state.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn busy(&self) -> bool {
         matches!(self.status, Status::Busy | Status::Loading)
     }
@@ -408,7 +390,7 @@ impl<'a> ProgressBar<'a> {
         }
         // runtime: none — a bar is a readout and registers no control;
         // derived: `self.flags()`, the `.status` readiness plus `.done`
-        let live = self.ov.flags(StateFlags::empty(), self.flags());
+        let live = Overrides::flags(StateFlags::empty(), self.flags());
         let ov = self.ov;
         let id = self.id;
         let style = |ui: &mut Ui<'_>, part: Part| {
@@ -551,7 +533,7 @@ fn percent(r: f64) -> u16 {
 /// ## Configuration
 /// `.variant(Variant)` (default `Recipe.default_variant`), `.label(&str)`
 /// (empty), `.frame(usize)` (`0`), `.patch`, `.patch_part`, `.slot`,
-/// `.state_override`.
+/// runtime state.
 ///
 /// ## Variants
 /// `Family::PROGRESS`; `DEFAULT` only.
@@ -593,11 +575,8 @@ fn percent(r: f64) -> u16 {
 /// eight `render::components::spinner::*` cells the matrix generates —
 /// `default`, `focused`, `hovered`, `pressed`, `disabled`, `selected`,
 /// `editing` and `empty`. A spinner takes no `Status`, so the matrix's
-/// `status_for` mapping never reaches it: the eight cells differ only in
-/// the forced `StateFlags` they hand the recipe and, for `::empty`, in
-/// dropping the label. Because `.state_override` replaces the `BUSY` flag
-/// `draw` would otherwise resolve with, no test resolves a spinner's parts
-/// under `BUSY`.
+/// `status_for` mapping never reaches it. Reference cells can supply only
+/// transient runtime state; `BUSY` remains derived by the spinner.
 ///
 /// ## Invariants
 /// Reads `design.motion.spinner_frames`, never a baked-in table (A4). Never
@@ -682,13 +661,6 @@ impl<'a> Spinner<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render a forced state.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     /// The frame this spinner shows.
     fn glyph(ui: &Ui<'_>, frame: usize) -> &'static str {
         let frames = ui.design().motion.spinner_frames;
@@ -717,7 +689,7 @@ impl<'a> Spinner<'a> {
             return area;
         }
         // derived: a spinner is busy by construction
-        let live = self.ov.flags(StateFlags::empty(), StateFlags::BUSY);
+        let live = Overrides::flags(StateFlags::empty(), StateFlags::BUSY);
         let ov = self.ov;
         let frame = Self::glyph(ui, self.frame);
         let icon = Rect {
@@ -767,7 +739,12 @@ impl<'a> Spinner<'a> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+
     use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::Stub;
+    use crate::theme::Theme;
 
     #[test]
     fn percentages_format_without_allocating() {
@@ -807,6 +784,28 @@ mod tests {
         assert_eq!(
             ProgressBar::new(Id::root("t")).ratio(-1.0).filled_span(20),
             (0, 0)
+        );
+    }
+
+    #[test]
+    fn a_done_bar_reaches_the_checked_recipe_rule() {
+        const AREA: Rect = Rect::new(0, 0, 24, 1);
+        const DONE: &str = "D";
+        let mut theme = Theme::junie();
+        theme.design.glyphs.set(GlyphRole::ProgressDone, DONE);
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(AREA);
+
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            ProgressBar::new(Id::root("progress.done"))
+                .ratio(1.0)
+                .done(true)
+                .draw(ui, area);
+        });
+
+        assert!(
+            buffer.content().iter().any(|cell| cell.symbol() == DONE),
+            "`.done(true)` did not paint the recipe's ProgressDone glyph"
         );
     }
 }

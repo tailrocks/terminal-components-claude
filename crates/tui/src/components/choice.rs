@@ -12,7 +12,9 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
+use super::form::InheritedFormState;
 use super::{Acc, Overrides, SlotFn, cell_at, first_row};
+use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
 };
@@ -53,7 +55,8 @@ pub enum ChoiceCmd {
 
 const fn b(chord: Chord, cmd: ChoiceCmd, label: &'static str, visible: bool) -> Binding<ChoiceCmd> {
     Binding {
-        chord,
+        action: ActionKey::custom(label),
+        chord: Some(chord),
         cmd,
         label,
         priority: if visible { 70 } else { 10 },
@@ -72,7 +75,7 @@ const FLAG: &[Binding<ChoiceCmd>] = &[
     b(
         Chord::key(KeyCode::Enter),
         ChoiceCmd::Choose,
-        "Toggle",
+        "Toggle (Enter)",
         false,
     ),
 ];
@@ -88,16 +91,21 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
     b(
         Chord::key(KeyCode::Enter),
         ChoiceCmd::Choose,
-        "Choose",
+        "Choose (Enter)",
         false,
     ),
     b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
     b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
-    b(Chord::key(KeyCode::Char('k')), ChoiceCmd::Prev, "Up", false),
+    b(
+        Chord::key(KeyCode::Char('k')),
+        ChoiceCmd::Prev,
+        "Up (K)",
+        false,
+    ),
     b(
         Chord::key(KeyCode::Char('j')),
         ChoiceCmd::Next,
-        "Down",
+        "Down (J)",
         false,
     ),
     b(Chord::key(KeyCode::Home), ChoiceCmd::First, "First", false),
@@ -203,14 +211,14 @@ impl FlagRow<'_> {
 ///
 /// ## Configuration
 /// `.checked(bool)` (draw; `false`), `.disabled(bool)`, `.read_only(bool)`,
-/// `.patch`, `.patch_part`, `.slot`, `.state_override`.
+/// `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::CHOICE`, `DEFAULT` only.
 ///
 /// ## States
 /// `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the runtime;
-/// `CHECKED` from the flag; `READ_ONLY`, `DISABLED` from the props.
+/// `CHECKED | SELECTED` from the flag; `READ_ONLY`, `DISABLED` from the props.
 ///
 /// ## Actions
 /// [`Activated`] — the flag was flipped through the `&mut bool` (§6.1: the
@@ -332,14 +340,19 @@ impl<'a> Checkbox<'a> {
     }
 
     /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
+    }
+
+    const fn with_inherited_disabled(&self, inherited: bool) -> Self {
+        Checkbox {
+            id: self.id,
+            label: self.label,
+            checked: self.checked,
+            read_only: self.read_only,
+            disabled: self.disabled || inherited,
+            ov: self.ov,
+        }
     }
 
     /// The update phase: `Space` / `Enter` / a click flip `value`.
@@ -348,8 +361,8 @@ impl<'a> Checkbox<'a> {
         let can = self.editable();
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) if can => {
-                    if Binding::lookup(FLAG, &k).is_some() {
+                Intent::Binding(action) if can => {
+                    if Binding::command(FLAG, action).is_some() {
                         *value = !*value;
                         acc.action(Activated);
                     }
@@ -366,6 +379,16 @@ impl<'a> Checkbox<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    pub(crate) fn update_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        value: &mut bool,
+        inherited_disabled: bool,
+    ) -> Response<Activated> {
+        self.with_inherited_disabled(inherited_disabled)
+            .update(cx, value)
     }
 
     /// The natural width: gutter, marker, space, label.
@@ -385,7 +408,7 @@ impl<'a> Checkbox<'a> {
         // `.checked`, `.read_only` and `.disabled` props
         let mut derived = StateFlags::empty();
         if self.checked {
-            derived |= StateFlags::CHECKED;
+            derived |= StateFlags::CHECKED | StateFlags::SELECTED;
         }
         if self.read_only {
             derived |= StateFlags::READ_ONLY;
@@ -393,13 +416,14 @@ impl<'a> Checkbox<'a> {
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut live = self
-            .ov
-            .flags(crate::ui::FrameRead::state(ui, self.id), derived);
+        let mut live = Overrides::flags(crate::ui::FrameRead::state(ui, self.id), derived);
+        if !self.checked {
+            live = live.difference(StateFlags::SELECTED);
+        }
         if self.disabled {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
-        if !self.ov.is_forced() {
+        if !ui.is_inert() {
             let f = if self.disabled {
                 Focusability::Disabled
             } else if self.read_only {
@@ -408,6 +432,7 @@ impl<'a> Checkbox<'a> {
                 Focusability::Focusable
             };
             ui.register_control(self.id, area, f);
+            ui.publish_bindings(self.id, live, FLAG);
         }
         let on = live.contains(StateFlags::CHECKED);
         FlagRow {
@@ -430,6 +455,18 @@ impl<'a> Checkbox<'a> {
                 ui.glyph(cell, g, style);
             },
         )
+    }
+
+    pub(crate) fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        value: bool,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .checked(value)
+            .draw(ui, area)
     }
 
     /// One row, the marker plus the label.
@@ -460,11 +497,6 @@ impl FieldControl for Checkbox<'_> {
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Checkbox::measure(self, ui, c)
     }
-
-    fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
-        self.ov = self.ov.inherit_forced(s);
-        self
-    }
 }
 
 /// A one-row switch: a knob on a two-cell track, a label and an `on` / `off`
@@ -479,14 +511,14 @@ impl FieldControl for Checkbox<'_> {
 ///
 /// ## Configuration
 /// `.on(bool)` (draw; `false`), `.disabled(bool)`, `.read_only(bool)`,
-/// `.patch`, `.patch_part`, `.slot`, `.state_override`.
+/// `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::CHOICE`, `DEFAULT` only.
 ///
 /// ## States
 /// `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the runtime;
-/// `CHECKED` from the flag; `READ_ONLY`, `DISABLED` from the props.
+/// `CHECKED | SELECTED` from the flag; `READ_ONLY`, `DISABLED` from the props.
 ///
 /// ## Actions
 /// [`Activated`] — the flag was flipped through the `&mut bool`.
@@ -613,14 +645,19 @@ impl<'a> Toggle<'a> {
     }
 
     /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
+    }
+
+    const fn with_inherited_disabled(&self, inherited: bool) -> Self {
+        Toggle {
+            id: self.id,
+            label: self.label,
+            on: self.on,
+            read_only: self.read_only,
+            disabled: self.disabled || inherited,
+            ov: self.ov,
+        }
     }
 
     /// The update phase: `Space` / `Enter` / a click flip `value`.
@@ -629,8 +666,8 @@ impl<'a> Toggle<'a> {
         let can = self.editable();
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) if can => {
-                    if Binding::lookup(FLAG, &k).is_some() {
+                Intent::Binding(action) if can => {
+                    if Binding::command(FLAG, action).is_some() {
                         *value = !*value;
                         acc.action(Activated);
                     }
@@ -647,6 +684,16 @@ impl<'a> Toggle<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    pub(crate) fn update_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        value: &mut bool,
+        inherited_disabled: bool,
+    ) -> Response<Activated> {
+        self.with_inherited_disabled(inherited_disabled)
+            .update(cx, value)
     }
 
     fn natural_width(&self) -> u16 {
@@ -666,7 +713,7 @@ impl<'a> Toggle<'a> {
         // `.on`, `.read_only` and `.disabled` props
         let mut derived = StateFlags::empty();
         if self.on {
-            derived |= StateFlags::CHECKED;
+            derived |= StateFlags::CHECKED | StateFlags::SELECTED;
         }
         if self.read_only {
             derived |= StateFlags::READ_ONLY;
@@ -674,13 +721,14 @@ impl<'a> Toggle<'a> {
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut live = self
-            .ov
-            .flags(crate::ui::FrameRead::state(ui, self.id), derived);
+        let mut live = Overrides::flags(crate::ui::FrameRead::state(ui, self.id), derived);
+        if !self.on {
+            live = live.difference(StateFlags::SELECTED);
+        }
         if self.disabled {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
-        if !self.ov.is_forced() {
+        if !ui.is_inert() {
             let f = if self.disabled {
                 Focusability::Disabled
             } else if self.read_only {
@@ -689,6 +737,7 @@ impl<'a> Toggle<'a> {
                 Focusability::Focusable
             };
             ui.register_control(self.id, area, f);
+            ui.publish_bindings(self.id, live, FLAG);
         }
         let on = live.contains(StateFlags::CHECKED);
         FlagRow {
@@ -723,6 +772,18 @@ impl<'a> Toggle<'a> {
         )
     }
 
+    pub(crate) fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        value: bool,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .on(value)
+            .draw(ui, area)
+    }
+
     /// One row, the switch plus the label and the state word.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(), 1).fit(c)
@@ -751,11 +812,6 @@ impl FieldControl for Toggle<'_> {
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Toggle::measure(self, ui, c)
     }
-
-    fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
-        self.ov = self.ov.inherit_forced(s);
-        self
-    }
 }
 
 /// The default instantiation a form field holds (§15.1, §24 M3): options
@@ -763,7 +819,7 @@ impl FieldControl for Toggle<'_> {
 pub type LabelRadio<'a> = RadioGroup<'a, &'a str, ByIndex, DefaultRow>;
 
 /// Durable state of a [`RadioGroup`]: the **cursor** and the reconcile
-/// stamp. The value is the caller's, supplied per frame through
+/// stamp. The value is the caller's, supplied to both phases through
 /// `.value(ItemKey)` and written by the caller when
 /// [`RadioGroupAction::Chose`] arrives (§15, §20.10 item 3).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -803,7 +859,7 @@ impl Reconcile for RadioGroupState {
 ///
 /// ## Construction
 /// `RadioGroup::new(id)`; options are passed to each phase, never held
-/// (§21 item 1). The value is a `draw` prop (`.value(ItemKey)`), written by
+/// (§21 item 1). The value is a controlled prop (`.value(ItemKey)`), written by
 /// the caller when [`RadioGroupAction::Chose`] arrives.
 ///
 /// ## Ownership
@@ -814,8 +870,8 @@ impl Reconcile for RadioGroupState {
 /// ## Configuration
 /// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
 /// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.value(ItemKey)`
-/// (draw), `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
-/// `.slot`, `.state_override`.
+/// (update and draw), `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
+/// `.slot`.
 ///
 /// ## Variants
 /// `Family::CHOICE`, `DEFAULT` only.
@@ -863,7 +919,7 @@ impl Reconcile for RadioGroupState {
 ///
 /// ## Testing
 /// `RadioGroupCase` with `ACTIVATES | FOCUSABLE | COLLECTION |
-/// DISABLEABLE`; `render::components::radio_group::*`;
+/// DISABLEABLE | SELECTS`; `render::components::radio_group::*`;
 /// `choice::radio_group_separates_cursor_from_value`.
 ///
 /// ## Invariants
@@ -879,7 +935,7 @@ pub struct RadioGroup<'a, T, K = ByIndex, R = DefaultRow> {
     read_only: bool,
     disabled: bool,
     ov: Overrides<'a>,
-    _t: PhantomData<fn(&T)>,
+    _t: PhantomData<fn() -> T>,
 }
 
 impl<T, K, R> fmt::Debug for RadioGroup<'_, T, K, R> {
@@ -906,6 +962,51 @@ impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
             ov: Overrides::new(),
             _t: PhantomData,
         }
+    }
+}
+
+impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
+    fn with_form_value(&self, value: usize, inherited_disabled: bool) -> Self {
+        RadioGroup {
+            id: self.id,
+            key: ByIndex,
+            row: DefaultRow,
+            value: Some(ItemKey::index(value)),
+            read_only: self.read_only,
+            disabled: self.disabled || inherited_disabled,
+            ov: self.ov,
+            _t: PhantomData,
+        }
+    }
+
+    pub(crate) fn update_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut RadioGroupState,
+        value: &mut usize,
+        items: &[&'a str],
+        inherited_disabled: bool,
+    ) -> Response<RadioGroupAction> {
+        let response = self
+            .with_form_value(*value, inherited_disabled)
+            .update(cx, st, items);
+        if let Some(RadioGroupAction::Chose(ItemKey::Index(index))) = response.action_ref() {
+            *value = *index;
+        }
+        response
+    }
+
+    pub(crate) fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &RadioGroupState,
+        value: usize,
+        items: &[&'a str],
+        inherited: InheritedFormState,
+    ) -> Rect {
+        self.with_form_value(value, inherited.disabled)
+            .draw(ui, area, st, items)
     }
 }
 
@@ -949,7 +1050,7 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         }
     }
 
-    /// The controlled value, for `draw`.
+    /// The controlled value, for `update` and `draw`.
     ///
     /// The value is **not** state: `update` never writes it, it reports
     /// [`RadioGroupAction::Chose`] and the caller writes its own field —
@@ -999,12 +1100,6 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
     }
 
     /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
@@ -1089,9 +1184,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         let mut acc = Acc::<RadioGroupAction>::new();
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) if can => {
+                Intent::Binding(action) if can => {
                     let cur = st.core.cursor_index();
-                    match Binding::lookup(RADIO, &k) {
+                    match Binding::command(RADIO, action) {
                         Some(ChoiceCmd::Prev) => {
                             self.move_cursor(st, items, cur.saturating_sub(1), &mut acc);
                         }
@@ -1143,10 +1238,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
 
     /// Registers the group as one control over `used`.
     ///
-    /// A forced state paints a reference rendering and registers nothing, so
-    /// the A11 sheet cannot take focus away from the live frame.
+    /// A reference rendering registers nothing, so it cannot take focus from
+    /// the live frame.
     fn register(&self, ui: &mut Ui<'_>, used: Rect) {
-        if self.ov.is_forced() {
+        if ui.is_inert() {
             return;
         }
         let f = if self.disabled {
@@ -1162,26 +1257,27 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
     /// The state flags row `i` paints with, and whether that row carries the
     /// value.
     ///
-    /// A11 reference rendering: with no live cursor the first row stands in
-    /// for it, so a forced state paints something.
+    /// Runtime state may style the actual cursor and value rows, but never
+    /// supplies either semantic identity.
     fn row_flags(
         &self,
         live: StateFlags,
         cursor: Option<ItemKey>,
-        i: usize,
         key: ItemKey,
+        hovered: bool,
+        pressed: bool,
     ) -> (StateFlags, bool) {
-        let forced = self.ov.is_forced();
-        let is_cursor = cursor == Some(key) || (forced && cursor.is_none() && i == 0);
-        let on =
-            self.value == Some(key) || (forced && is_cursor && live.contains(StateFlags::SELECTED));
+        let is_cursor = cursor == Some(key);
+        let on = self.value == Some(key);
         let mut flags = StateFlags::empty();
         if is_cursor {
-            flags |= live
-                & (StateFlags::FOCUSED
-                    | StateFlags::FOCUS_VISIBLE
-                    | StateFlags::PRESSED
-                    | StateFlags::HOVERED);
+            flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+        }
+        if hovered {
+            flags |= StateFlags::HOVERED;
+        }
+        if pressed {
+            flags |= StateFlags::PRESSED;
         }
         if on {
             flags |= StateFlags::SELECTED;
@@ -1304,10 +1400,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         self.register(ui, used);
         // runtime: the group's own frame state; derived: none — the group's
         // `.disabled` and `.read_only` enter per row, in `row_flags`
-        let live = self.ov.flags(
+        let live = Overrides::flags(
             crate::ui::FrameRead::state(ui, self.id),
             StateFlags::empty(),
         );
+        if !ui.is_inert() {
+            ui.publish_bindings(self.id, live, RADIO);
+        }
         let cursor = st.core.cursor();
         let rows = usize::from(used.height);
         for (i, item) in items.iter().enumerate().take(rows) {
@@ -1318,9 +1417,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                 width: used.width,
                 height: 1,
             };
-            let (flags, on) = self.row_flags(live, cursor, i, key);
+            let part = PartRef::item(Part::ROW, key);
+            let (flags, on) = self.row_flags(
+                live,
+                cursor,
+                key,
+                ui.hovered_part(self.id) == Some(part),
+                ui.pressed_part(self.id) == Some(part),
+            );
             self.paint_row(ui, row, item, key, flags, on);
-            ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
+            if !ui.is_inert() {
+                ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
+            }
         }
         used
     }
@@ -1371,6 +1479,51 @@ mod tests {
         fn draw(&self, _ui: &mut Ui<'_>) {}
     }
 
+    struct ControlledRadioApp {
+        state: RadioGroupState,
+        value: ItemKey,
+    }
+
+    impl App for ControlledRadioApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let items = ["a", "b", "c"];
+            RadioGroup::new(RG)
+                .value(self.value)
+                .update(cx, &mut self.state, &items)
+                .erase()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+    }
+
+    fn draw_checkbox(checked: bool) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            Checkbox::new(RG, "Choice").checked(checked).draw(ui, area);
+        });
+        buffer
+    }
+
+    fn draw_toggle(on: bool) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            Toggle::new(RG, "Choice").on(on).draw(ui, area);
+        });
+        buffer
+    }
+
+    #[test]
+    fn checked_painting_comes_only_from_the_checkbox_prop() {
+        assert_ne!(draw_checkbox(true), draw_checkbox(false));
+    }
+
+    #[test]
+    fn checked_painting_comes_only_from_the_toggle_prop() {
+        assert_ne!(draw_toggle(true), draw_toggle(false));
+    }
+
     /// A disabled collection remains drawable from its current item slice,
     /// but its update phase must not initialize or reconcile persistent state.
     #[test]
@@ -1414,6 +1567,137 @@ mod tests {
         let _ = fresh.core.reconcile(3, |i| valued.key_at(&items, i));
         assert!(fresh.cursor().is_none());
         assert_eq!(valued.index_of(&items, ItemKey::index(1), None), Some(1));
+    }
+
+    #[test]
+    fn radio_group_value_is_controlled_by_the_caller() {
+        let items = ["a", "b", "c"];
+        let selected = ItemKey::index(1);
+        let group: RadioGroup<'_, &str> = RadioGroup::new(RG).value(selected);
+        let mut runtime = Runtime::new(
+            ControlledRadioApp {
+                state: RadioGroupState::default(),
+                value: selected,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.handle(Input::Tick);
+        assert_eq!(runtime.app().state.cursor(), Some(selected));
+
+        let mut state = runtime.app().state.clone();
+        let mut action = Acc::<RadioGroupAction>::new();
+        group.choose(&mut state, &items, 2, &mut action);
+        assert_eq!(
+            action.finish(RG).action_ref(),
+            Some(&RadioGroupAction::Chose(ItemKey::index(2)))
+        );
+        assert!(
+            group
+                .row_flags(StateFlags::empty(), state.cursor(), selected, false, false)
+                .1
+        );
+        assert!(
+            !group
+                .row_flags(
+                    StateFlags::empty(),
+                    state.cursor(),
+                    ItemKey::index(2),
+                    false,
+                    false,
+                )
+                .1,
+            "choosing emits an action; it does not mutate the caller's value"
+        );
+    }
+
+    #[test]
+    fn radio_group_missing_or_vanished_value_marks_no_option() {
+        let items = ["a", "b"];
+        let missing = ItemKey::text("missing");
+        let group: RadioGroup<'_, &str> = RadioGroup::new(RG).value(missing);
+
+        for (i, item) in items.iter().enumerate() {
+            let key = group.key.key(item, i);
+            assert!(
+                !group
+                    .row_flags(StateFlags::empty(), None, key, false, false)
+                    .1,
+                "a missing controlled value must not select a fallback row"
+            );
+        }
+
+        let vanished_items = ["a"];
+        let vanished_group: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(1));
+        let only_key = vanished_group.key_at(&vanished_items, 0);
+        assert!(
+            !vanished_group
+                .row_flags(StateFlags::empty(), Some(only_key), only_key, false, false)
+                .1,
+            "the cursor is not stored chosen state after the value vanishes"
+        );
+    }
+
+    #[test]
+    fn selected_painting_comes_only_from_the_controlled_value() {
+        let selected = ItemKey::text("beta");
+        let radio = RadioGroup::new(RG).key(|item: &&str| ItemKey::text(item));
+        assert_eq!(
+            radio.row_flags(
+                StateFlags::empty(),
+                None,
+                ItemKey::text("alpha"),
+                false,
+                false
+            ),
+            (StateFlags::empty(), false)
+        );
+
+        let controlled = radio.value(selected);
+        let (flags, on) = controlled.row_flags(StateFlags::empty(), None, selected, false, false);
+        assert!(on);
+        assert_eq!(flags, StateFlags::SELECTED);
+    }
+
+    #[test]
+    fn focus_styles_only_the_runtime_cursor_without_selecting_it() {
+        let radio: RadioGroup<'_, &str> = RadioGroup::new(RG);
+
+        assert_eq!(
+            radio.row_flags(
+                StateFlags::FOCUSED,
+                Some(ItemKey::index(0)),
+                ItemKey::index(0),
+                false,
+                false
+            ),
+            (StateFlags::FOCUSED, false)
+        );
+        assert_eq!(
+            radio.row_flags(
+                StateFlags::FOCUSED,
+                Some(ItemKey::index(0)),
+                ItemKey::index(1),
+                false,
+                false
+            ),
+            (StateFlags::empty(), false)
+        );
+    }
+
+    #[test]
+    fn radio_choose_action_uses_the_items_stable_key() {
+        let items = ["alpha", "beta"];
+        let group = RadioGroup::new(RG).key(|item: &&str| ItemKey::text(item));
+        let mut state = RadioGroupState::default();
+        let mut acc = Acc::<RadioGroupAction>::new();
+
+        group.choose(&mut state, &items, 1, &mut acc);
+
+        assert_eq!(
+            acc.finish(RG).action_ref(),
+            Some(&RadioGroupAction::Chose(ItemKey::text("beta")))
+        );
+        assert_eq!(state.cursor(), Some(ItemKey::text("beta")));
     }
 
     /// The marker is a glyph pair, so an unselected option is visible

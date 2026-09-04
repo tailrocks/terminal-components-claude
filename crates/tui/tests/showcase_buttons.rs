@@ -9,11 +9,9 @@
 //! *in intent*, expressed through `Harness` instead of reaching into the
 //! app's private `focus` field.
 //!
-//! This file, not `examples/showcase_buttons.rs`, carries the reference
-//! **state matrix**: `xtask boundary`'s
-//! `state_override_is_used_only_in_apps_and_fixtures` admits `.state_override`
-//! under `apps/**`, `crates/tui/tests/**` and `crates/tui-testing/**` only,
-//! and `apps/showcase` does not exist until Slice 5.
+//! This file, not `examples/showcase_buttons.rs`, carries the inert reference
+//! **state matrix** through [`Ui::reference`]. `apps/showcase` does not exist
+//! until Slice 5.
 #![cfg_attr(
     test,
     allow(
@@ -28,8 +26,8 @@
 use tui_next::{
     Action, ActionKey, App, Button, Constraints, Cx, Diagnostic, Dialog, DialogAction, DialogState,
     Family, Field, FrameRead, Id, Insets, ItemKey, KeyCode, KeyModifiers, List, ListAction,
-    ListState, MouseKind, Part, Rect, Response, RowAlign, RowUi, StateFlags, Status, TextInput,
-    TextInputState, Theme, Track, Ui, Variant, layout,
+    ListState, MouseKind, Part, PartRef, Rect, ReferenceState, ReferenceTarget, Response, RowAlign,
+    RowUi, StateFlags, Status, TextInput, TextInputState, Theme, Track, Ui, Variant, layout,
 };
 use tui_next_testing::Harness;
 
@@ -85,6 +83,23 @@ const MATRIX_VARIANTS: [(Variant, &str); 4] = [
     (Variant::SUBTLE, "Subtle"),
     (Variant::DANGER, "Danger"),
 ];
+
+fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
+    let mut state = ReferenceState::default();
+    let mut has_runtime_state = false;
+    for (flag, reference) in [
+        (StateFlags::FOCUSED, ReferenceState::FOCUSED),
+        (StateFlags::FOCUS_VISIBLE, ReferenceState::FOCUS_VISIBLE),
+        (StateFlags::HOVERED, ReferenceState::HOVERED),
+        (StateFlags::PRESSED, ReferenceState::PRESSED),
+    ] {
+        if flags.contains(flag) {
+            state |= reference;
+            has_runtime_state = true;
+        }
+    }
+    has_runtime_state.then_some(state)
+}
 
 const LONG_JOB: usize = 8;
 
@@ -245,7 +260,7 @@ impl ButtonsPage {
         }
     }
 
-    /// The reference state matrix (A11): real buttons wearing a forced state,
+    /// The reference state matrix: real buttons inside inert reference scopes,
     /// so it cannot drift from the widget the playground uses.
     fn draw_matrix(ui: &mut Ui<'_>, area: Rect) {
         let label_w = 15u16;
@@ -287,18 +302,24 @@ impl ButtonsPage {
                 if x + col_w > area.right() {
                     break;
                 }
-                Button::new(MATRIX.index(si).index(k), "Label")
-                    .variant(*variant)
-                    .state_override(*flags)
-                    .draw(
-                        ui,
-                        Rect {
-                            x,
-                            y,
-                            width: col_w,
-                            height: 1,
-                        },
-                    );
+                let id = MATRIX.index(si).index(k);
+                let target = matrix_reference(*flags).map(|state| {
+                    ReferenceTarget::new(id, state).part(PartRef::of(Part::CONTAINER))
+                });
+                ui.reference(target, |ui| {
+                    Button::new(id, "Label")
+                        .variant(*variant)
+                        .disabled(flags.contains(StateFlags::DISABLED))
+                        .draw(
+                            ui,
+                            Rect {
+                                x,
+                                y,
+                                width: col_w,
+                                height: 1,
+                            },
+                        );
+                });
             }
         }
     }

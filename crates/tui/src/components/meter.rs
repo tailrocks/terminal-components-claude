@@ -108,7 +108,7 @@ pub enum MeterVisual {
 /// used when a ratio is set), `.tone(MeterTone)` (none — derived with
 /// [`MeterTone::from_ratio`] against `design.meter`), `.visual(MeterVisual)`
 /// (`Line`), `.status(Status)` (`Ready`), `.frame(usize)` (`0`), `.patch`,
-/// `.patch_part`, `.slot`, `.state_override`.
+/// `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::METER`; `DEFAULT` only.
@@ -153,10 +153,8 @@ pub enum MeterVisual {
 ///
 /// ## Testing
 /// `MeterCase` in `crates/tui/tests/conformance.rs`, declaring
-/// `Caps::empty()`, so twelve of its twenty-one `meter::*` cases are
-/// capability-gated and return immediately;
-/// `mono_states_are_distinguishable` is narrowed to the single default
-/// state and so compares one rendering against nothing.
+/// `Caps::REPORTS_STATUS`. Its mono states retain the default, `ERROR` and
+/// `BUSY` renderings required by that readiness capability.
 ///
 /// The render matrix in `crates/tui/tests/render_components.rs` generates
 /// exactly eight cells per component, one per `St` variant, so there is no
@@ -178,10 +176,8 @@ pub enum MeterVisual {
 /// `Stale`, `Unknown` and `Series` runs, the block mode's `OnAccent`
 /// overlay and the value-only path have no coverage at all. The recipe's own
 /// `.when(ERROR)` rule on `Part::ICON` **does** fire, and
-/// `components::a_forced_component_resolves_its_props_derived_state` pins
-/// it: a forced state no longer erases the status-derived `ERROR`, so the
-/// glyph reaches the row through the recipe and carries `Role::Danger` with
-/// it. This block previously asserted the opposite.
+/// status-derived `ERROR` sends the glyph through the recipe with
+/// `Role::Danger`.
 ///
 /// ## Invariants
 /// The tone is a function of the ratio and `design.meter`, never of a
@@ -311,13 +307,6 @@ impl<'a> Meter<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render a forced state.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     /// The tone this meter paints with: the explicit one, else the one the
     /// ratio earns under `design.meter` (J12), else `Unknown`.
     pub fn resolved_tone(&self, ui: &Ui<'_>) -> MeterTone {
@@ -337,7 +326,7 @@ impl<'a> Meter<'a> {
     /// The `Slot::Inherit` fallback reads `live` and not `self.status`
     /// (§39.2): the recipe above it is matched against the resolved flags, so
     /// a fallback keyed on the prop would give one glyph two sources of truth
-    /// and let them disagree the moment a state is forced. `StatusBar` and
+    /// and let them disagree. `StatusBar` and
     /// `HintBar` already read the resolved flags here; this is the same shape.
     fn icon(
         &self,
@@ -428,7 +417,7 @@ impl<'a> Meter<'a> {
         }
         // runtime: none — a meter is a readout and registers no control;
         // derived: the readiness the caller's `.status` declares
-        let live = self.ov.flags(StateFlags::empty(), self.status.flags());
+        let live = Overrides::flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let tone = self.resolved_tone(ui);

@@ -9,7 +9,7 @@ use ratatui_core::style::{Color, Modifier};
 use super::Theme;
 use super::glyph::GlyphRole;
 use super::patch::{Slot, StylePatch};
-use super::recipe::{Recipe, Recipes};
+use super::recipe::Family;
 use super::role::{FgStep, Role, Surface};
 use super::tokens::ColorLevel;
 use crate::id::Part;
@@ -240,14 +240,10 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
 
 impl Theme {
     /// Every token mapped through [`downgrade_color`]; at `Mono` the mono
-    /// fallback rules are appended (§11.4). Works for any theme.
+    /// fallback rules are applied by resolution (§11.4). Works for any theme.
     ///
     /// A theme already at `level` is returned unchanged. That guard is a
-    /// **precondition**, not an optimisation: [`Recipes::apply_mono_fallbacks`]
-    /// is deliberately not idempotent (§31), so a second `downgrade(Mono)`
-    /// would append all [`MONO_RULES_PER_FAMILY`] rules again to every
-    /// resolvable recipe. [`Theme::for_level`] — and through it `run`, which
-    /// downgrades unconditionally — relies on this (§34.3).
+    /// The same-level guard preserves the existing owned theme unchanged.
     #[must_use]
     pub fn downgrade(&self, level: ColorLevel) -> Theme {
         if self.capability.color == level {
@@ -256,9 +252,6 @@ impl Theme {
         let mut out = self.clone();
         out.capability.color = level;
         out.color = self.color.map_colors(&mut |c| downgrade_color(c, level));
-        if level == ColorLevel::Mono {
-            out.recipes.apply_mono_fallbacks();
-        }
         out
     }
 
@@ -284,7 +277,7 @@ impl Theme {
     }
 }
 
-/// The mono fallback rules, one per state, appended to every family.
+/// The immutable generic mono fallback manifest applied by the resolver.
 fn mono_rules() -> [(Part, StateFlags, StylePatch); 15] {
     let p = StylePatch::new;
     [
@@ -397,7 +390,7 @@ fn mono_rules() -> [(Part, StateFlags, StylePatch); 15] {
 /// Rules that share a slot with the table above but are keyed on a second
 /// flag (`DIRTY` beside `WARNING`, `ACTIVE` for tabs), plus the scrollbar
 /// half of `PRESSED`.
-fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 4] {
+fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 5] {
     let p = StylePatch::new;
     [
         (
@@ -411,11 +404,19 @@ fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 4] {
             p().set_glyph(GlyphRole::RuleActive),
         ),
         (Part::LABEL, StateFlags::ACTIVE, p().add(Modifier::BOLD)),
+        // Busy and loading share the same animated glyph sequence. Give the
+        // data-loading state a capability-local signal of its own, so their
+        // mono rendering does not depend on unrelated fixture/runtime state.
+        (
+            Part::ICON,
+            StateFlags::LOADING,
+            p().add(Modifier::UNDERLINED),
+        ),
         // §11.4 `PRESSED`, scrollbar half: the thumb wears `PRESSED` from a
-        // live capture (`components/scroll_region.rs:36-38`) and the
-        // `CONTAINER`/`LABEL` rules above reach neither part a scroll region
-        // paints — it draws `TRACK` and `THUMB` only, `CONTAINER` is
-        // `register_decor`. The `SCROLLBAR` recipe's own `PRESSED` rule is
+        // live capture (`components/scroll_region.rs:36-38`). The generic
+        // `CONTAINER` rule is excluded from `SCROLLBAR` below because this
+        // component fills that part across its whole area; the thumb must be
+        // the only bold part. The recipe's own `PRESSED` rule is
         // `set_fg(Role::Accent)`, and colour alone is excluded from
         // conformance case 9's comparison, so without this a dragged thumb is
         // invisible at `Mono`. `BOLD` reserves no cell, so this keeps the
@@ -424,60 +425,152 @@ fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 4] {
     ]
 }
 
-/// The number of rules `apply_mono_fallbacks` appends per **resolvable
-/// recipe** — every declared family *and* the neutral recipe that undeclared
-/// families resolve through (`Recipes`' resolvable-set invariant).
-///
-/// The name is historical (§16.1 cites it) and is kept deliberately: the
-/// set it applies to is every resolvable recipe, not only a declared family.
-pub const MONO_RULES_PER_FAMILY: usize = 19;
+/// Generic entries in the private static mono fallback manifest. Resolution
+/// applies these once after family/variant states; recipe vectors are unchanged.
+pub const MONO_RULES_PER_FAMILY: usize = 20;
 
-/// Append the §11.4 mono rules to one recipe.
-///
-/// Split out of [`Recipes::apply_mono_fallbacks`] so the rules are written
-/// once and the *enumeration* of recipes is a separate, auditable decision:
-/// the enumeration is what previously omitted the neutral recipe.
-fn apply_mono_fallbacks_to(recipe: &mut Recipe) {
-    let rules = mono_rules();
-    let extra = mono_rules_extra();
-    for (part, when, patch) in rules.iter().chain(extra.iter()) {
-        recipe.parts.entry(*part).when(*when, *patch);
-    }
-    // MI-13: the fallbacks must reach the variant maps too. §11.3's
-    // step 3 merges family and variant state rules in one specificity
-    // order, so a variant that re-declares `PRESSED` would otherwise
-    // be applied after the family's mono rule and erase the bracket
-    // glyph that makes `pressed` distinguishable without colour.
-    for (_, map) in &mut recipe.variants {
-        for (part, when, patch) in rules.iter().chain(extra.iter()) {
-            if map.get(*part).is_some() {
-                map.entry(*part).when(*when, *patch);
-            }
-        }
-    }
+fn viewport_mono_rules() -> [(Part, StateFlags, StylePatch); 1] {
+    [(
+        Part::TEXT,
+        StateFlags::SELECTED,
+        StylePatch::new()
+            .set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::UNDERLINED),
+    )]
 }
 
-impl Recipes {
-    /// Append the §11.4 mono rules to every recipe resolution can reach, so
-    /// state survives without hue. A mono `PRESSED` label whose glyph
-    /// resolves to `PressLeft` is painted bracketed: `PressLeft`, label,
-    /// `PressRight`.
-    ///
-    /// "Every recipe resolution can reach" is `Recipes::resolvable_mut`: the
-    /// declared families **and** the neutral recipe. An undeclared
-    /// `Family::custom` paints through the neutral recipe, so covering only
-    /// the declared families left it with no non-colour state signal at all
-    /// (F1).
-    ///
-    /// Not idempotent: each call appends its rules unconditionally, so a
-    /// chained `.downgrade(Mono).downgrade(Mono)` doubles them. Harmless in
-    /// effect — the duplicates are identical patches applied in order — but
-    /// it means rule counts are only meaningful against a single downgrade.
-    pub fn apply_mono_fallbacks(&mut self) {
-        for recipe in self.resolvable_mut() {
-            apply_mono_fallbacks_to(recipe);
+fn grid_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
+    [
+        (
+            Part::CELL,
+            StateFlags::ERROR,
+            StylePatch::new().add(Modifier::UNDERLINED),
+        ),
+        (
+            Part::ROW,
+            StateFlags::PRESSED,
+            StylePatch::new()
+                .set_fg(Role::Surface(Surface::Canvas))
+                .set_bg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    ]
+}
+
+fn menu_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
+    [
+        (
+            Part::ROW,
+            StateFlags::PRESSED,
+            StylePatch::new()
+                .set_fg(Role::Surface(Surface::Canvas))
+                .set_bg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+        (
+            Part::TITLE,
+            StateFlags::PRESSED,
+            StylePatch::new()
+                .set_glyph(GlyphRole::PressLeft)
+                .add(Modifier::BOLD),
+        ),
+    ]
+}
+
+fn help_mono_rules() -> [(Part, StateFlags, StylePatch); 2] {
+    [
+        (
+            Part::BORDER,
+            StateFlags::FOCUSED,
+            StylePatch::new().add(Modifier::BOLD),
+        ),
+        (
+            Part::TITLE,
+            StateFlags::FOCUSED,
+            StylePatch::new().add(Modifier::UNDERLINED),
+        ),
+    ]
+}
+
+fn picker_mono_rules() -> [(Part, StateFlags, StylePatch); 3] {
+    [
+        (
+            Part::GUTTER,
+            StateFlags::ERROR,
+            StylePatch::new().set_glyph(GlyphRole::Error),
+        ),
+        (
+            Part::GUTTER,
+            StateFlags::BUSY,
+            StylePatch::new().set_glyph(GlyphRole::MoreRows),
+        ),
+        (
+            Part::LABEL,
+            StateFlags::PRESSED,
+            StylePatch::new()
+                .set_fg(Role::Surface(Surface::Canvas))
+                .set_bg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD | Modifier::UNDERLINED),
+        ),
+    ]
+}
+
+fn select_mono_rules() -> [(Part, StateFlags, StylePatch); 3] {
+    [
+        (
+            Part::FIELD,
+            StateFlags::PRESSED,
+            StylePatch::new()
+                .set_fg(Role::Surface(Surface::Canvas))
+                .set_bg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+        (
+            Part::GUTTER,
+            StateFlags::PRESSED,
+            StylePatch::new()
+                .set_glyph(GlyphRole::PressLeft)
+                .add(Modifier::BOLD),
+        ),
+        (
+            Part::MARKER,
+            StateFlags::PRESSED,
+            StylePatch::new()
+                .set_glyph(GlyphRole::PressRight)
+                .add(Modifier::BOLD),
+        ),
+    ]
+}
+
+/// Apply the private §11.4 static fallback layer after family and variant
+/// states, before every override layer. It never enters public recipe storage.
+pub(crate) fn apply_mono_fallback(
+    mut acc: StylePatch,
+    family: Family,
+    part: Part,
+    live: StateFlags,
+) -> StylePatch {
+    let rules = mono_rules();
+    let extra = mono_rules_extra();
+    let targeted: &[(Part, StateFlags, StylePatch)] = match family {
+        Family::VIEWPORT => &viewport_mono_rules(),
+        Family::GRID => &grid_mono_rules(),
+        Family::MENU => &menu_mono_rules(),
+        Family::HELP => &help_mono_rules(),
+        Family::PICKER => &picker_mono_rules(),
+        Family::SELECT => &select_mono_rules(),
+        _ => &[],
+    };
+    for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
+        let applies = family != Family::SCROLLBAR
+            || *rule_part != Part::CONTAINER
+            || *when != StateFlags::PRESSED;
+        if applies && *rule_part == part && live.contains(*when) {
+            acc = acc.merge(*patch);
         }
     }
+    acc
 }
 
 #[cfg(test)]
@@ -612,16 +705,8 @@ mod tests {
         assert_eq!(at16(c.info), Color::LightBlue);
     }
 
-    /// The **precondition** for `run` applying a downgrade unconditionally
-    /// (§34.3), and the evidence that `Theme::downgrade`'s same-level guard is
-    /// load-bearing rather than tidy-up.
-    ///
-    /// `Recipes::apply_mono_fallbacks` is deliberately *not* idempotent (§31):
-    /// each call appends its rules again, to every resolvable recipe. Without
-    /// the guard the first three levels below pass and the `Mono` arm fails,
-    /// because only `Mono` reaches the fallback pass — so the second half here,
-    /// which counts rules after **two** downgrades, is the assertion that would
-    /// have caught an unguarded `run`.
+    /// Downgrade is idempotent, and its static mono fallback layer never
+    /// mutates public recipe storage.
     #[test]
     fn downgrade_is_idempotent_per_level() {
         let t = Theme::junie();
@@ -634,22 +719,7 @@ mod tests {
             );
         }
 
-        let states =
-            |r: &Recipe| -> usize { r.parts.iter().map(|(_, p)| p.states.len()).sum::<usize>() };
-        let twice = t.downgrade(ColorLevel::Mono).downgrade(ColorLevel::Mono);
-        for (f, before) in t.recipes.iter() {
-            let after = twice.recipes.get(f).map_or(0, states);
-            assert_eq!(
-                after.saturating_sub(states(before)),
-                MONO_RULES_PER_FAMILY,
-                "{f:?} received the mono fallbacks more than once"
-            );
-        }
-        assert_eq!(
-            states(twice.recipes.neutral()).saturating_sub(states(t.recipes.neutral())),
-            MONO_RULES_PER_FAMILY,
-            "the neutral recipe received the mono fallbacks more than once"
-        );
+        assert_eq!(t.downgrade(ColorLevel::Mono).recipes, t.recipes);
     }
 
     /// §34.3: `for_level` narrows and never widens.
@@ -692,35 +762,27 @@ mod tests {
         );
     }
 
-    /// Composes with `mono_fallbacks_reach_the_neutral_recipe`: the pass has
-    /// to reach the neutral recipe *through* `for_level`, and exactly once.
-    /// This is the shape `run` takes, so it is where a double application
-    /// would land in a shipped binary.
+    /// `for_level` activates mono resolution without changing recipe storage.
     #[test]
     fn for_level_reaches_the_neutral_recipe_once() {
-        let states =
-            |r: &Recipe| -> usize { r.parts.iter().map(|(_, p)| p.states.len()).sum::<usize>() };
         let base = Theme::junie();
         let m = base.for_level(ColorLevel::Mono);
         assert_eq!(m.capability.color, ColorLevel::Mono);
-        assert_eq!(
-            states(m.recipes.neutral()).saturating_sub(states(base.recipes.neutral())),
-            MONO_RULES_PER_FAMILY,
-            "for_level(Mono) did not apply the mono fallbacks to the neutral recipe exactly once"
-        );
+        assert_eq!(m.recipes, base.recipes);
     }
 
     #[test]
-    fn mono_appends_one_state_rule_per_family() {
+    fn mono_resolver_applies_once_without_recipe_storage() {
         let t = Theme::junie();
         let m = t.downgrade(ColorLevel::Mono);
-        for (f, before) in t.recipes.iter() {
-            let after = m.recipes.get(f).map_or(0, |r| {
-                r.parts.iter().map(|(_, p)| p.states.len()).sum::<usize>()
-            });
-            let base: usize = before.parts.iter().map(|(_, p)| p.states.len()).sum();
-            assert_eq!(after.saturating_sub(base), MONO_RULES_PER_FAMILY, "{f:?}");
-        }
+        assert_eq!(
+            MONO_RULES_PER_FAMILY,
+            mono_rules().len() + mono_rules_extra().len()
+        );
+        assert_eq!(
+            m.recipes, t.recipes,
+            "mono fallback leaked into recipe storage"
+        );
         // CHECKED wins over SELECTED when both are live
         let acc = crate::theme::resolve::accumulate(
             &m,
@@ -743,22 +805,10 @@ mod tests {
         assert!(pressed.add.contains(Modifier::BOLD));
     }
 
-    /// F1: the mono fallbacks must reach the **neutral** recipe, not only the
-    /// declared families. `Recipes::get_or_neutral` makes the neutral recipe a
-    /// live painting path for every family nobody declared — exactly what
-    /// `examples/12_author_component.rs` writes with `Family::custom` and no
-    /// `define_family` — so a pass that enumerates `by_family` alone leaves
-    /// that path with no non-colour state signal at all at `Mono`.
-    ///
-    /// `mono_appends_one_state_rule_per_family` is structurally unable to see
-    /// this: it iterates `t.recipes.iter()`, the same `by_family`-only
-    /// enumeration as the code it checks. The assertions below therefore go
-    /// through `Theme::resolve`, the path painting uses, so a fix that only
-    /// inflates a rule counter cannot satisfy them.
+    /// F1: static mono resolution must reach the neutral-backed path for
+    /// undeclared families without inserting anything into recipe storage.
     #[test]
     fn mono_fallbacks_reach_the_neutral_recipe() {
-        let states =
-            |r: &Recipe| -> usize { r.parts.iter().map(|(_, p)| p.states.len()).sum::<usize>() };
         let f = Family::custom("segmented");
         for base in [Theme::junie(), Theme::paper()] {
             // The fixture must stay undeclared, or the test silently stops
@@ -770,11 +820,7 @@ mod tests {
             let m = base.downgrade(ColorLevel::Mono);
             assert!(m.recipes.get(f).is_none(), "`segmented` became declared");
 
-            assert_eq!(
-                states(m.recipes.neutral()).saturating_sub(states(base.recipes.neutral())),
-                MONO_RULES_PER_FAMILY,
-                "the neutral recipe did not receive the mono fallbacks"
-            );
+            assert_eq!(m.recipes.neutral(), base.recipes.neutral());
 
             // …and they are observable where it counts.
             let at = |p: Part, s: StateFlags| m.resolve(f, Variant::DEFAULT, p, s, Surface::Canvas);
@@ -813,28 +859,207 @@ mod tests {
     }
 
     /// §11.4, `PRESSED`: a dragged scrollbar thumb must stay visible at
-    /// `Mono`. `ScrollRegion` paints only `Part::TRACK` and `Part::THUMB`
-    /// (`CONTAINER` is `register_decor` only), so the `PRESSED` mono rules on
-    /// `CONTAINER` and `LABEL` reach nothing a scroll region draws, and the
-    /// sole `PRESSED` rule the `SCROLLBAR` recipe declares is
+    /// `Mono`, without applying the generic pressed-container treatment to
+    /// the whole region. The sole authored `PRESSED` rule on `SCROLLBAR` is
     /// `set_fg(Role::Accent)` — colour, which conformance case 9 excludes from
     /// its comparison. The thumb genuinely wears `PRESSED`: a live capture
     /// keeps it (`components/scroll_region.rs:36-38`).
     #[test]
     fn mono_pressed_reaches_the_scrollbar_thumb() {
-        let m = Theme::junie().downgrade(ColorLevel::Mono);
-        let r = m.resolve(
-            Family::SCROLLBAR,
+        for base in [Theme::junie(), Theme::paper()] {
+            let m = base.downgrade(ColorLevel::Mono);
+            for part in [Part::CONTAINER, Part::TRACK] {
+                assert_eq!(
+                    m.resolve(
+                        Family::SCROLLBAR,
+                        Variant::DEFAULT,
+                        part,
+                        StateFlags::PRESSED,
+                        Surface::Canvas,
+                    ),
+                    m.resolve(
+                        Family::SCROLLBAR,
+                        Variant::DEFAULT,
+                        part,
+                        StateFlags::empty(),
+                        Surface::Canvas,
+                    ),
+                    "{part:?} inherited the thumb's pressed affordance"
+                );
+            }
+            let rest = m.resolve(
+                Family::SCROLLBAR,
+                Variant::DEFAULT,
+                Part::THUMB,
+                StateFlags::empty(),
+                Surface::Canvas,
+            );
+            let pressed = m.resolve(
+                Family::SCROLLBAR,
+                Variant::DEFAULT,
+                Part::THUMB,
+                StateFlags::PRESSED,
+                Surface::Canvas,
+            );
+            assert_eq!(pressed.glyph, rest.glyph);
+            assert_eq!(pressed.glyph, Slot::Set(GlyphRole::ScrollThumb));
+            assert!(
+                pressed.style.add_modifier.contains(Modifier::BOLD),
+                "a dragged thumb has no non-colour affordance at Mono: {:?}",
+                pressed.style
+            );
+        }
+    }
+
+    #[test]
+    fn mono_viewport_selection_is_inverted_underlined_and_applied_once() {
+        for base in [Theme::junie(), Theme::paper()] {
+            let mono = base.downgrade(ColorLevel::Mono);
+            assert_eq!(mono.recipes, base.recipes);
+
+            let resolve = |state| {
+                mono.resolve(
+                    Family::VIEWPORT,
+                    Variant::DEFAULT,
+                    Part::TEXT,
+                    state,
+                    Surface::Canvas,
+                )
+            };
+            let base_text = resolve(StateFlags::empty());
+            let selected = resolve(StateFlags::SELECTED);
+            let canvas = crate::theme::resolve::bind_role(
+                &mono,
+                Role::Surface(Surface::Canvas),
+                Surface::Canvas,
+            );
+            let primary =
+                crate::theme::resolve::bind_role(&mono, Role::Fg(FgStep::Primary), Surface::Canvas);
+            assert_ne!(selected.style, base_text.style);
+            assert_eq!(selected.style.fg, canvas);
+            assert_eq!(selected.style.bg, primary);
+            assert_ne!(selected.style.fg, selected.style.bg);
+            assert!(selected.style.add_modifier.contains(Modifier::UNDERLINED));
+        }
+    }
+
+    #[test]
+    fn mono_grid_error_is_underlined_and_applied_once() {
+        for base in [Theme::junie(), Theme::paper()] {
+            let mono = base.downgrade(ColorLevel::Mono);
+            assert_eq!(mono.recipes, base.recipes);
+
+            let resolve = |state| {
+                mono.resolve(
+                    Family::GRID,
+                    Variant::DEFAULT,
+                    Part::CELL,
+                    state,
+                    Surface::Canvas,
+                )
+            };
+            let base_cell = resolve(StateFlags::empty());
+            let error = resolve(StateFlags::ERROR);
+            assert!(!base_cell.style.add_modifier.contains(Modifier::UNDERLINED));
+            assert!(error.style.add_modifier.contains(Modifier::UNDERLINED));
+            assert_ne!(error.style.add_modifier, base_cell.style.add_modifier);
+        }
+    }
+
+    #[test]
+    fn mono_targeted_fallbacks_declare_omitted_families() {
+        let selected = apply_mono_fallback(
+            StylePatch::new(),
+            Family::VIEWPORT,
+            Part::TEXT,
+            StateFlags::SELECTED,
+        );
+        assert!(selected.add.contains(Modifier::UNDERLINED));
+        let error = apply_mono_fallback(
+            StylePatch::new(),
+            Family::GRID,
+            Part::CELL,
+            StateFlags::ERROR,
+        );
+        assert!(error.add.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn author_override_precedence_beats_the_static_mono_layer() {
+        let mono = Theme::junie()
+            .override_family(Family::BUTTON, |recipe| {
+                recipe.part(Part::LABEL).when(
+                    StateFlags::PRESSED,
+                    StylePatch::new().remove(Modifier::BOLD),
+                );
+            })
+            .downgrade(ColorLevel::Mono);
+        let pressed = mono.resolve(
+            Family::BUTTON,
             Variant::DEFAULT,
-            Part::THUMB,
+            Part::LABEL,
             StateFlags::PRESSED,
             Surface::Canvas,
         );
-        assert!(
-            r.style.add_modifier.contains(Modifier::BOLD),
-            "a dragged thumb has no non-colour affordance at Mono: {:?}",
-            r.style
-        );
+        assert!(!pressed.style.add_modifier.contains(Modifier::BOLD));
+        assert!(pressed.style.sub_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn mono_parts_exactly_cover_every_reserved_rule_part() {
+        let rules = mono_rules();
+        let extra = mono_rules_extra();
+        let viewport = viewport_mono_rules();
+        let grid = grid_mono_rules();
+        let menu = menu_mono_rules();
+        let help = help_mono_rules();
+        let picker = picker_mono_rules();
+        let select = select_mono_rules();
+        assert_eq!(rules.len(), 15);
+        assert_eq!(extra.len(), 5);
+        assert!(extra.iter().any(|(part, when, patch)| {
+            *part == Part::ICON
+                && *when == StateFlags::LOADING
+                && patch.add.contains(Modifier::UNDERLINED)
+        }));
+        assert_eq!(viewport.len(), 1);
+        assert_eq!(grid.len(), 2);
+        assert_eq!(menu.len(), 2);
+        assert_eq!(help.len(), 2);
+        assert_eq!(picker.len(), 3);
+        assert_eq!(select.len(), 3);
+        assert!(grid.iter().any(|(part, when, patch)| {
+            *part == Part::ROW && *when == StateFlags::PRESSED && patch.add.contains(Modifier::BOLD)
+        }));
+        assert!(picker.iter().any(|(part, when, patch)| {
+            *part == Part::LABEL
+                && *when == StateFlags::PRESSED
+                && patch.fg == Slot::Set(Role::Surface(Surface::Canvas))
+                && patch.bg == Slot::Set(Role::Fg(FgStep::Primary))
+                && patch.add.contains(Modifier::BOLD)
+                && patch.add.contains(Modifier::UNDERLINED)
+                && !patch.add.contains(Modifier::REVERSED)
+        }));
+        assert!(select.iter().any(|(part, when, patch)| {
+            *part == Part::FIELD
+                && *when == StateFlags::PRESSED
+                && patch.fg == Slot::Set(Role::Surface(Surface::Canvas))
+                && patch.bg == Slot::Set(Role::Fg(FgStep::Primary))
+                && patch.add.contains(Modifier::BOLD)
+                && !patch.add.contains(Modifier::REVERSED)
+        }));
+        assert!(select.iter().any(|(part, when, patch)| {
+            *part == Part::GUTTER
+                && *when == StateFlags::PRESSED
+                && patch.glyph == Slot::Set(GlyphRole::PressLeft)
+                && patch.add.contains(Modifier::BOLD)
+        }));
+        assert!(select.iter().any(|(part, when, patch)| {
+            *part == Part::MARKER
+                && *when == StateFlags::PRESSED
+                && patch.glyph == Slot::Set(GlyphRole::PressRight)
+                && patch.add.contains(Modifier::BOLD)
+        }));
     }
 
     /// §29 + §11.4: at `Mono` a disabled control must stay **readable**, not

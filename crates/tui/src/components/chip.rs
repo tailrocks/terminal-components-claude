@@ -7,6 +7,7 @@ use core::marker::PhantomData;
 use ratatui_core::layout::{Position, Rect};
 
 use super::{Acc, Overrides, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
+use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, RowFn, RowUi,
     SelectMode,
@@ -21,17 +22,17 @@ use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
-/// What a chip bar reports; every variant carries the chip's key.
+/// What a chip bar reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChipBarAction {
     /// The chip's checked state flipped (`Space`, a click in `Multi`).
     Toggled(ItemKey),
     /// The chip's close affordance fired (`Del`, `x`, a click on `×`).
     Closed(ItemKey),
-    /// The chip was activated (`Enter`, a click) — also the trailing add
-    /// affordance, which carries the key given to
-    /// [`ChipBar::add`](ChipBar::add).
+    /// The chip was activated (`Enter`, a click).
     Activated(ItemKey),
+    /// The trailing add affordance was activated.
+    AddRequested,
 }
 
 /// The const-constructible commands of the chip keymap.
@@ -60,7 +61,8 @@ const fn b(
     visible: bool,
 ) -> Binding<ChipBarCmd> {
     Binding {
-        chord,
+        action: ActionKey::custom(label),
+        chord: Some(chord),
         cmd,
         label,
         priority: if visible { 60 } else { 10 },
@@ -74,13 +76,13 @@ const MOVE: [Binding<ChipBarCmd>; 7] = [
     b(
         Chord::key(KeyCode::Char('h')),
         ChipBarCmd::Prev,
-        "Left",
+        "Left (H)",
         false,
     ),
     b(
         Chord::key(KeyCode::Char('l')),
         ChipBarCmd::Next,
-        "Right",
+        "Right (L)",
         false,
     ),
     b(Chord::key(KeyCode::Home), ChipBarCmd::First, "First", false),
@@ -251,9 +253,9 @@ impl Reconcile for ChipBarState {
 /// ## Configuration
 /// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
 /// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.select_mode`
-/// (`Multi`), `.closable(bool)` (`false`), `.add(&str, ItemKey)` (none),
+/// (`Multi`), `.closable(bool)` (`false`), `.add(&str)` (none),
 /// `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
-/// `.slot`, `.state_override`.
+/// `.slot`.
 ///
 /// ## Variants
 /// `Family::CHIP`, `DEFAULT` only.
@@ -266,8 +268,8 @@ impl Reconcile for ChipBarState {
 /// ## Actions
 /// [`ChipBarAction`]: `Toggled(k)` (`Space` / a click in `Multi`),
 /// `Closed(k)` (`Del` / `Backspace` / `x` / a click on `×`), `Activated(k)`
-/// (`Enter` / a click in `Single`, and the trailing add affordance with the
-/// key `.add` was given).
+/// (`Enter` / a click in `Single`) and `AddRequested` (the trailing add
+/// affordance).
 ///
 /// ## Focus
 /// One `Focusable` stop for the whole bar (`FocusableReadOnly` /
@@ -282,7 +284,7 @@ impl Reconcile for ChipBarState {
 /// ## Mouse
 /// `PartRef::item(Part::LABEL, k)`: a press moves the cursor, a click
 /// activates or toggles. `PartRef::item(Part::CLOSE, k)`: a click closes.
-/// The add affordance is `PartRef::item(Part::LABEL, add_key)`.
+/// The add affordance is `PartRef::of(Part::NEW)`.
 ///
 /// ## Layout
 /// One row of tight chips: `gutter | label | pad [ × pad ]`, one blank
@@ -295,22 +297,23 @@ impl Reconcile for ChipBarState {
 ///
 /// ## Parts
 /// `CONTAINER` (the strip and each chip's fill), `MARKER` (the checked
-/// affordance in the leading pad cell, §30), `LABEL` and `META` (the chip
-/// content, painted by the caller through [`RowUi`]), `CLOSE` (the `×`),
-/// `OVERFLOW` (the truncation glyph).
+/// affordance in the leading pad cell, §30), `LABEL` (the chip content),
+/// `CLOSE` (the `×`), `OVERFLOW` (the truncation glyph), `NEW` (the add
+/// affordance). A `META` painted by the caller's [`RowUi`] is row-owned,
+/// outside this component-owned parts contract.
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `CLOSE` and `OVERFLOW`.
+/// `.patch`, `.patch_part`; `.slot` on `CLOSE` and `OVERFLOW`.
 ///
 /// ## Identity
 /// `.key` supplies stable keys; `ByIndex` is unstable under
-/// insert/remove/reorder. Every action carries an `ItemKey` — including the
-/// add affordance, whose key the caller states in `.add(label, key)`, so an
-/// `Activated` from the strip and one from the add affordance are told
-/// apart by the caller's own key rather than by a sentinel.
+/// insert/remove/reorder. Item actions carry an `ItemKey`; the add affordance
+/// is not an item and reports payloadless `AddRequested`, so it cannot collide
+/// with an item key.
 ///
 /// ## Testing
-/// `ChipBarCase` with `ACTIVATES | FOCUSABLE | COLLECTION | DISABLEABLE`;
+/// `ChipBarCase` with `ACTIVATES | FOCUSABLE | COLLECTION | DISABLEABLE |
+/// SELECTS`;
 /// `render::components::chip_bar::*`.
 ///
 /// ## Invariants
@@ -324,11 +327,11 @@ pub struct ChipBar<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     select_mode: SelectMode,
     closable: bool,
-    add: Option<(&'a str, ItemKey)>,
+    add: Option<&'a str>,
     read_only: bool,
     disabled: bool,
     ov: Overrides<'a>,
-    _t: PhantomData<fn(&T)>,
+    _t: PhantomData<fn() -> T>,
 }
 
 impl<T, K, R> fmt::Debug for ChipBar<'_, T, K, R> {
@@ -337,7 +340,7 @@ impl<T, K, R> fmt::Debug for ChipBar<'_, T, K, R> {
             .field("id", &self.id)
             .field("select_mode", &self.select_mode)
             .field("closable", &self.closable)
-            .field("add", &self.add.map(|(l, _)| l))
+            .field("add", &self.add)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .finish_non_exhaustive()
@@ -362,15 +365,60 @@ impl<T> ChipBar<'_, T, ByIndex, DefaultRow> {
     }
 }
 
+impl<'a> ChipBar<'a, &'a str, ByIndex, DefaultRow> {
+    fn with_inherited_disabled(&self, inherited: bool) -> Self {
+        ChipBar {
+            id: self.id,
+            key: ByIndex,
+            row: DefaultRow,
+            select_mode: self.select_mode,
+            closable: self.closable,
+            add: self.add,
+            read_only: self.read_only,
+            disabled: self.disabled || inherited,
+            ov: self.ov,
+            _t: PhantomData,
+        }
+    }
+
+    pub(crate) fn update_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ChipBarState,
+        value: &mut KeySet,
+        items: &[&'a str],
+        inherited_disabled: bool,
+    ) -> Response<ChipBarAction> {
+        *st.checked_mut() = value.clone();
+        let response = self
+            .with_inherited_disabled(inherited_disabled)
+            .update(cx, st, items);
+        *value = st.checked().clone();
+        response
+    }
+
+    pub(crate) fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ChipBarState,
+        items: &[&'a str],
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .draw(ui, area, st, items)
+    }
+}
+
 impl<'a, T, K, R> ChipBar<'a, T, K, R> {
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::MARKER,
         Part::LABEL,
-        Part::META,
         Part::CLOSE,
         Part::OVERFLOW,
+        Part::NEW,
     ];
 
     /// The id.
@@ -424,15 +472,10 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         self
     }
 
-    /// The trailing add affordance and the key its
-    /// [`ChipBarAction::Activated`] carries.
-    ///
-    /// The key is the caller's, not a sentinel the bar invents: the add
-    /// affordance is one more addressable stop, and §7 says every action
-    /// names its target with an `ItemKey`.
+    /// Show a trailing add affordance.
     #[must_use]
-    pub const fn add(mut self, label: &'a str, key: ItemKey) -> Self {
-        self.add = Some((label, key));
+    pub const fn add(mut self, label: &'a str) -> Self {
+        self.add = Some(label);
         self
     }
 
@@ -472,12 +515,6 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
     }
 
     /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
@@ -575,7 +612,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
     fn activate(&self, st: &mut ChipBarState, items: &[T], i: usize, acc: &mut Acc<ChipBarAction>) {
         if i >= items.len() {
             match self.add {
-                Some((_, k)) => acc.action(ChipBarAction::Activated(k)),
+                Some(_) => acc.action(ChipBarAction::AddRequested),
                 None => acc.consumed(),
             }
             return;
@@ -633,9 +670,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         let table = self.table();
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) if can => {
+                Intent::Binding(action) if can => {
                     let cur = Self::cursor_stop(st, items);
-                    match Binding::lookup(table, &k) {
+                    match Binding::command(table, action) {
                         Some(ChipBarCmd::Prev) => {
                             self.move_cursor(st, items, cur.saturating_sub(1), &mut acc);
                         }
@@ -654,34 +691,29 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 }
                 Intent::Pointer {
                     phase,
-                    part:
-                        PartRef {
-                            part,
-                            item: Some(k),
-                        },
+                    part: PartRef { part, item },
                     ..
                 } if can => {
                     let hint = Some(Self::cursor_stop(st, items));
-                    let i = self.index_of(items, k, hint);
-                    match (phase, part, i) {
-                        (Phase::Press, Part::LABEL, Some(i)) => {
+                    let index = item.and_then(|key| self.index_of(items, key, hint));
+                    match (phase, part, item, index) {
+                        (Phase::Press, Part::LABEL, Some(_), Some(i)) => {
                             self.move_cursor(st, items, i, &mut acc);
                         }
-                        (Phase::Press, Part::LABEL, None) => {
-                            // the add affordance's own key
+                        (Phase::Press, Part::NEW, None, None) => {
                             self.move_cursor(st, items, usize::MAX, &mut acc);
                         }
-                        (Phase::Click | Phase::DoubleClick, Part::LABEL, Some(i)) => {
+                        (Phase::Click | Phase::DoubleClick, Part::LABEL, Some(_), Some(i)) => {
                             if self.toggles() {
                                 self.toggle(st, items, i, &mut acc);
                             } else {
                                 self.activate(st, items, i, &mut acc);
                             }
                         }
-                        (Phase::Click, Part::LABEL, None) => {
+                        (Phase::Click | Phase::DoubleClick, Part::NEW, None, None) => {
                             self.activate(st, items, items.len(), &mut acc);
                         }
-                        (Phase::Click, Part::CLOSE, Some(i)) => {
+                        (Phase::Click, Part::CLOSE, Some(_), Some(i)) => {
                             self.close(st, items, i, &mut acc);
                         }
                         _ => acc.consumed(),
@@ -708,7 +740,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         if row0.is_empty() {
             return row0;
         }
-        if !self.ov.is_forced() {
+        if !ui.is_inert() {
             let f = if self.disabled {
                 Focusability::Disabled
             } else if self.read_only {
@@ -720,8 +752,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         }
         // runtime: the strip's own frame state; derived: none — the bar's
         // `.disabled` and `.read_only` enter per row, not on the container
-        let live = self.ov.flags(ui.state(self.id), StateFlags::empty());
-        let forced = self.ov.is_forced();
+        let live = Overrides::flags(ui.state(self.id), StateFlags::empty());
+        if !ui.is_inert() {
+            ui.publish_bindings(self.id, live, self.table());
+        }
         let ov = self.ov;
         let id = self.id;
         let strip = ov.style(
@@ -735,7 +769,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         ui.fill(row0, strip.style);
         let add_w = self
             .add
-            .map_or(0, |(l, _)| crate::text::width(l).saturating_add(3));
+            .map_or(0, |l| crate::text::width(l).saturating_add(3));
         let right_limit = row0.right().saturating_sub(add_w);
         let first_index = st
             .first
@@ -753,18 +787,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 truncated = i < items.len();
                 break;
             }
-            let is_cursor = (!st.on_add && cursor == Some(key))
-                || (forced && cursor.is_none() && i == first_index);
+            let is_cursor = !st.on_add && cursor == Some(key);
             let mut flags = StateFlags::empty();
             if is_cursor {
-                flags |= live
-                    & (StateFlags::FOCUSED
-                        | StateFlags::FOCUS_VISIBLE
-                        | StateFlags::PRESSED
-                        | StateFlags::HOVERED);
-                if forced {
-                    flags |= live & StateFlags::SELECTED;
-                }
+                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+            }
+            if ui.hovered_part(self.id) == Some(PartRef::item(Part::LABEL, key)) {
+                flags |= StateFlags::HOVERED;
+            }
+            if ui.pressed_part(self.id) == Some(PartRef::item(Part::LABEL, key)) {
+                flags |= StateFlags::PRESSED;
             }
             if st.core.checked().contains(key) {
                 flags |= StateFlags::CHECKED;
@@ -784,7 +816,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 height: 1,
             };
             {
-                let mut r = RowUi::new(ui, id, Family::CHIP, Variant::DEFAULT, flags, key, content);
+                let mut r = RowUi::new_with_patches(
+                    ui,
+                    id,
+                    Family::CHIP,
+                    Variant::DEFAULT,
+                    flags,
+                    key,
+                    content,
+                    ov.part_patch(Part::CONTAINER),
+                    ov.part_patch(Part::LABEL),
+                );
                 self.row.row(item, &mut r);
             }
             let label_w = painted_width(ui, content).max(1);
@@ -806,13 +848,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 width: chip_w,
                 height: 1,
             };
-            let tail = Rect {
-                x: chip.right(),
-                y: row0.y,
-                width: right_limit.saturating_sub(chip.right()),
-                height: 1,
-            };
-            ui.fill(tail, strip.style);
+            // The strip was filled before the row pass. Do not refill the
+            // remaining tail here: caller-owned `RowUi::meta` is deliberately
+            // right-aligned there and remains outside `ChipBar::PARTS`.
             // the gutter cell of a chip is part of its fill, so it takes the
             // chip's own CONTAINER style rather than the strip's
             let cs = ov.style(
@@ -824,17 +862,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 flags,
             );
             ui.paint_style(cell_at(chip, chip.x), cs.style);
-            if flags.contains(StateFlags::SELECTED) {
-                let mut marker = RowUi::new(
-                    ui,
-                    id,
-                    Family::CHIP,
-                    Variant::DEFAULT,
-                    flags,
-                    key,
-                    cell_at(chip, chip.x),
-                );
-                marker.marker(GlyphRole::Checked);
+            if flags.contains(StateFlags::CHECKED) {
+                let cell = cell_at(chip, chip.x);
+                let marker = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::MARKER, flags);
+                match marker.glyph {
+                    Slot::Set(glyph) => {
+                        ui.glyph(cell, glyph, marker.style);
+                    }
+                    Slot::Inherit => {
+                        ui.glyph(cell, GlyphRole::Checked, marker.style);
+                    }
+                    Slot::Clear => ui.fill(cell, marker.style),
+                }
             }
             if flags.contains(StateFlags::PRESSED) {
                 // §11.4's mono `PRESSED` affordance: `[label]`, painted into
@@ -857,10 +896,24 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             }
             if self.closable {
                 let close_cell = cell_at(chip, chip.right().saturating_sub(2));
+                let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
+                if ui.hovered_part(self.id) == Some(PartRef::item(Part::CLOSE, key)) {
+                    close_flags |= StateFlags::HOVERED;
+                }
+                if ui.pressed_part(self.id) == Some(PartRef::item(Part::CLOSE, key)) {
+                    close_flags |= StateFlags::PRESSED;
+                }
                 if let Some(f) = ov.slot_for(Part::CLOSE) {
                     f(ui, close_cell);
                 } else {
-                    let xs = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::CLOSE, flags);
+                    let xs = ov.style(
+                        ui,
+                        id,
+                        Family::CHIP,
+                        Variant::DEFAULT,
+                        Part::CLOSE,
+                        close_flags,
+                    );
                     match xs.glyph {
                         Slot::Set(g) => {
                             ui.glyph(close_cell, g, xs.style);
@@ -873,9 +926,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                         }
                     }
                 }
-                ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
+                if !ui.is_inert() {
+                    ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
+                }
             }
-            ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
+            if !ui.is_inert() {
+                ui.register_part(self.id, PartRef::item(Part::LABEL, key), chip);
+            }
             x = chip.right().saturating_add(1);
             fit = fit.saturating_add(1);
         }
@@ -904,9 +961,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     }
                 }
             }
-            ui.register_part(self.id, PartRef::of(Part::OVERFLOW), cell);
+            if !ui.is_inert() {
+                ui.register_part(self.id, PartRef::of(Part::OVERFLOW), cell);
+            }
         }
-        if let Some((label, key)) = self.add {
+        if let Some(label) = self.add {
             let cell = Rect {
                 x: row0.right().saturating_sub(add_w).max(row0.x),
                 y: row0.y,
@@ -915,9 +974,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             };
             if !cell.is_empty() {
                 let mut flags = StateFlags::empty();
-                if st.on_add || (forced && items.is_empty()) {
-                    flags |= live
-                        & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::PRESSED);
+                if st.on_add {
+                    flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+                }
+                if ui.pressed_part(self.id) == Some(PartRef::of(Part::NEW)) {
+                    flags |= StateFlags::PRESSED;
+                }
+                if ui.hovered_part(self.id) == Some(PartRef::of(Part::NEW)) {
+                    flags |= StateFlags::HOVERED;
                 }
                 if self.disabled || live.contains(StateFlags::DISABLED) {
                     flags |= StateFlags::DISABLED;
@@ -931,15 +995,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                     flags,
                 );
                 ui.fill(cell, bg.style);
-                let ls = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::LABEL, flags);
-                ui.paint_str(shift(cell, 1), label, ls.style);
-                ui.register_part(self.id, PartRef::item(Part::LABEL, key), cell);
+                let ns = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::NEW, flags);
+                ui.paint_str(shift(cell, 1), label, ns.style);
+                if !ui.is_inert() {
+                    ui.register_part(self.id, PartRef::of(Part::NEW), cell);
+                }
             }
         }
-        ui.report_layout(
-            self.id,
-            LayoutFacts::new(fit, items.len(), row0.height, row0.width),
-        );
+        if !ui.is_inert() {
+            ui.report_layout(
+                self.id,
+                LayoutFacts::new(fit, items.len(), row0.height, row0.width),
+            );
+        }
         row0
     }
 
@@ -997,22 +1065,98 @@ impl<T, K, R> Bindings for ChipBar<'_, T, K, R> {
 
 #[cfg(test)]
 mod tests {
-    use ratatui_core::buffer::Buffer;
+    use ratatui_core::buffer::{Buffer, Cell};
     use ratatui_core::layout::{Position, Rect};
+    use ratatui_core::style::Modifier;
 
     use super::*;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
+    use crate::event::MouseKind;
+    use crate::runtime::stub::{Stub, key, mouse};
+    use crate::runtime::{App, Runtime};
     use crate::theme::{ColorLevel, Theme};
 
     const BAR: Id = Id::root("chip.tests");
-    const ADD: ItemKey = ItemKey::index(9999);
     const AREA: Rect = Rect {
         x: 0,
         y: 0,
         width: 12,
         height: 1,
     };
+
+    #[derive(Default)]
+    struct AddApp {
+        state: ChipBarState,
+        actions: Vec<ChipBarAction>,
+    }
+
+    struct SlotApp(Option<Part>);
+
+    impl App for SlotApp {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let replaced = |ui: &mut Ui<'_>, area: Rect| {
+                let style = ui.surface_style();
+                ui.paint_str(area, "########", style);
+            };
+            let row: fn(&&str, &mut RowUi<'_>) = |item, row| {
+                row.label(item);
+                row.meta("meta");
+            };
+            let close_items = ["a"];
+            let mut close = ChipBar::new(BAR).row(row).closable(true).add("+ Add");
+            let overflow_items = ["long label", "second"];
+            let mut overflow = ChipBar::new(BAR.sub("overflow")).row(row);
+            if let Some(part) = self.0 {
+                close = close.slot(part, &replaced);
+                overflow = overflow.slot(part, &replaced);
+            }
+            close.draw(
+                ui,
+                Rect::new(0, 0, 20, 1),
+                &ChipBarState::default(),
+                &close_items,
+            );
+            overflow.draw(
+                ui,
+                Rect::new(0, 1, 8, 1),
+                &ChipBarState::default(),
+                &overflow_items,
+            );
+        }
+    }
+
+    fn slot_buffer(part: Option<Part>) -> Buffer {
+        let screen = Rect::new(0, 0, 20, 2);
+        let mut runtime = Runtime::new(SlotApp(part), Theme::junie());
+        let mut buffer = Buffer::empty(screen);
+        runtime.draw_buffer(screen, &mut buffer);
+        buffer
+    }
+
+    impl App for AddApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let items = ["a"];
+            let response = ChipBar::new(BAR)
+                .select_mode(SelectMode::Single)
+                .add("+ Add")
+                .update(cx, &mut self.state, &items);
+            if let Some(action) = response.action_ref() {
+                self.actions.push(*action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let items = ["a"];
+            ChipBar::new(BAR)
+                .select_mode(SelectMode::Single)
+                .add("+ Add")
+                .draw(ui, AREA, &self.state, &items);
+        }
+    }
 
     fn row_text(buf: &Buffer, width: u16) -> String {
         let mut text = String::new();
@@ -1025,9 +1169,9 @@ mod tests {
     }
 
     #[test]
-    fn the_add_affordance_is_the_last_cursor_stop() {
+    fn add_affordance_emits_add_requested_by_keyboard_and_mouse() {
         let items = ["a", "b"];
-        let bar: ChipBar<'_, &str> = ChipBar::new(BAR).add("+ Add", ADD);
+        let bar: ChipBar<'_, &str> = ChipBar::new(BAR).add("+ Add");
         let mut st = ChipBarState::default();
         let _ = st.core.reconcile(2, |i| bar.key_at(&items, i));
         st.set_cursor(0, ItemKey::index(0));
@@ -1042,9 +1186,249 @@ mod tests {
         bar.activate(&mut st, &items, 2, &mut acc);
         assert_eq!(
             acc.finish(BAR).action_ref(),
-            Some(&ChipBarAction::Activated(ADD)),
-            "the add affordance carries the caller's key"
+            Some(&ChipBarAction::AddRequested),
+            "the add affordance has its own payloadless action"
         );
+
+        let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer);
+        let _ = runtime.handle(key(KeyCode::End));
+        runtime.draw_buffer(AREA, &mut buffer);
+        let _ = runtime.handle(key(KeyCode::Enter));
+        assert_eq!(runtime.app().actions, [ChipBarAction::AddRequested]);
+
+        let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer);
+        let add = runtime
+            .area_of_part(BAR, PartRef::of(Part::NEW))
+            .unwrap_or(Rect::ZERO);
+        assert!(
+            !add.is_empty(),
+            "the configured add affordance is registered"
+        );
+        let x = add.x.saturating_add(add.width / 2);
+        let _ = runtime.handle(mouse(MouseKind::Down, x, add.y));
+        runtime.draw_buffer(AREA, &mut buffer);
+        let _ = runtime.handle(mouse(MouseKind::Up, x, add.y));
+        assert_eq!(runtime.app().actions, [ChipBarAction::AddRequested]);
+    }
+
+    #[test]
+    fn add_affordance_cannot_collide_with_item_identity() {
+        let item = ItemKey::index(0);
+        let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer);
+
+        assert_ne!(PartRef::item(Part::LABEL, item), PartRef::of(Part::NEW));
+        assert!(
+            runtime
+                .area_of_part(BAR, PartRef::item(Part::LABEL, item))
+                .is_some()
+        );
+        assert!(runtime.area_of_part(BAR, PartRef::of(Part::NEW)).is_some());
+
+        let items = ["a"];
+        let bar: ChipBar<'_, &str> = ChipBar::new(BAR).add("+ Add");
+        let mut state = ChipBarState::default();
+        let mut item_action = Acc::<ChipBarAction>::new();
+        bar.activate(&mut state, &items, 0, &mut item_action);
+        assert_eq!(
+            item_action.finish(BAR).action_ref(),
+            Some(&ChipBarAction::Activated(item))
+        );
+        let mut add_action = Acc::<ChipBarAction>::new();
+        bar.activate(&mut state, &items, items.len(), &mut add_action);
+        assert_eq!(
+            add_action.finish(BAR).action_ref(),
+            Some(&ChipBarAction::AddRequested)
+        );
+    }
+
+    #[test]
+    fn chip_bar_parts_are_exact() {
+        assert_eq!(
+            ChipBar::<&str>::PARTS,
+            &[
+                Part::CONTAINER,
+                Part::MARKER,
+                Part::LABEL,
+                Part::CLOSE,
+                Part::OVERFLOW,
+                Part::NEW,
+            ]
+        );
+    }
+
+    #[test]
+    fn custom_row_meta_paints_without_joining_chip_bar_parts() {
+        let buffer = slot_buffer(None);
+        assert!(
+            row_text(&buffer, 20).contains("meta"),
+            "the caller-owned row metadata still paints"
+        );
+        assert!(!ChipBar::<&str>::PARTS.contains(&Part::META));
+    }
+
+    #[test]
+    fn chip_label_patch_changes_label_but_not_row_meta() {
+        let row: fn(&&str, &mut RowUi<'_>) = |item, row| {
+            row.label(item);
+            row.meta("meta");
+        };
+        let patches = [(Part::LABEL, StylePatch::new().add(Modifier::BOLD))];
+        let items = ["a"];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(Rect::new(0, 0, 20, 1));
+        runtime.draw_scene(Rect::new(0, 0, 20, 1), &mut buffer, |ui, area| {
+            ChipBar::new(BAR).row(row).patch_part(&patches).draw(
+                ui,
+                area,
+                &ChipBarState::default(),
+                &items,
+            );
+        });
+        assert!(
+            buffer
+                .cell(Position::new(1, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+        );
+        assert!(
+            buffer
+                .cell(Position::new(16, 0))
+                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD)),
+            "caller-owned META must not inherit ChipBar's LABEL patch"
+        );
+    }
+
+    #[test]
+    fn a_slot_changes_painted_cells_for_exactly_close_and_overflow() {
+        let plain = slot_buffer(None);
+        for (part, honoured) in [
+            (Part::CONTAINER, false),
+            (Part::MARKER, false),
+            (Part::LABEL, false),
+            (Part::META, false),
+            (Part::CLOSE, true),
+            (Part::OVERFLOW, true),
+            (Part::NEW, false),
+        ] {
+            assert_eq!(
+                slot_buffer(Some(part)) != plain,
+                honoured,
+                "unexpected `.slot({part:?}, …)` support"
+            );
+        }
+    }
+
+    #[test]
+    fn checked_membership_paints_marker_and_unchecked_stays_blank() {
+        let items = ["item"];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let unchecked = ChipBarState::default();
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            ChipBar::new(BAR).draw(ui, area, &unchecked, &items);
+        });
+        assert_eq!(
+            buffer.cell(Position::new(0, 0)).map(Cell::symbol),
+            Some(" ")
+        );
+
+        let mut checked = ChipBarState::default();
+        checked.checked_mut().insert(ItemKey::index(0));
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            ChipBar::new(BAR).draw(ui, area, &checked, &items);
+        });
+        assert_ne!(
+            buffer.cell(Position::new(0, 0)).map(Cell::symbol),
+            Some(" "),
+            "checked membership paints the resolved marker glyph"
+        );
+    }
+
+    #[test]
+    fn toggle_action_uses_the_items_stable_key() {
+        let items = ["alpha", "beta"];
+        let by_text: fn(&&str) -> ItemKey = |item| ItemKey::text(item);
+        let bar = ChipBar::new(BAR).key(by_text);
+        let mut state = ChipBarState::default();
+        let mut acc = Acc::<ChipBarAction>::new();
+
+        bar.toggle(&mut state, &items, 1, &mut acc);
+
+        assert_eq!(
+            acc.finish(BAR).action_ref(),
+            Some(&ChipBarAction::Toggled(ItemKey::text("beta")))
+        );
+        assert!(state.checked().contains(ItemKey::text("beta")));
+    }
+
+    #[test]
+    fn checked_marker_honours_resolved_glyph_set_and_clear() {
+        let items = ["item"];
+        let mut state = ChipBarState::default();
+        state.checked_mut().insert(ItemKey::index(0));
+        let set = [(
+            Part::MARKER,
+            StylePatch::new().set_glyph(GlyphRole::WarningMark),
+        )];
+        let clear = [(
+            Part::MARKER,
+            StylePatch {
+                glyph: Slot::Clear,
+                ..StylePatch::new()
+            },
+        )];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            ChipBar::new(BAR)
+                .patch_part(&set)
+                .draw(ui, area, &state, &items);
+        });
+        assert_eq!(
+            buffer.cell(Position::new(0, 0)).map(Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::WarningMark))
+        );
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            ChipBar::new(BAR)
+                .patch_part(&clear)
+                .draw(ui, area, &state, &items);
+        });
+        assert_eq!(
+            buffer.cell(Position::new(0, 0)).map(Cell::symbol),
+            Some(" ")
+        );
+    }
+
+    #[test]
+    fn checked_marker_paints_the_canonical_truecolor_glyph_in_one_cell() {
+        let items = ["item"];
+        let mut state = ChipBarState::default();
+        state.checked_mut().insert(ItemKey::index(0));
+
+        for theme in [Theme::junie(), Theme::paper()] {
+            assert_eq!(theme.capability.color, ColorLevel::TrueColor);
+            let checked = theme.design.glyphs.get(GlyphRole::Checked);
+            let mut runtime = Runtime::new(Stub::default(), theme);
+            let mut buffer = Buffer::empty(AREA);
+            runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+                ChipBar::new(BAR).draw(ui, area, &state, &items);
+            });
+            assert_eq!(
+                buffer.cell(Position::new(0, 0)).map(Cell::symbol),
+                Some(checked)
+            );
+            assert_eq!(
+                buffer.cell(Position::new(1, 0)).map(Cell::symbol),
+                Some("i")
+            );
+        }
     }
 
     #[test]
@@ -1130,9 +1514,14 @@ mod tests {
         let mut buffer = Buffer::empty(AREA);
         let state = ChipBarState::default();
         runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ChipBar::new(BAR)
-                .state_override(StateFlags::PRESSED.union(StateFlags::FOCUSED))
-                .draw(ui, area, &state, &items);
+            let target = crate::ReferenceTarget::new(
+                BAR,
+                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+            )
+            .part(PartRef::item(Part::LABEL, ItemKey::index(0)));
+            ui.reference(Some(target), |ui| {
+                ChipBar::new(BAR).draw(ui, area, &state, &items);
+            });
         });
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");

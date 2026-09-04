@@ -180,6 +180,33 @@ still raises correctly.
 The one remaining raw-colour path is `Role::Custom(Color)` — documented,
 still capability-downgraded, and the escape hatch rather than the road.
 
+### Component-local forced state → `Ui::reference`
+
+Reference galleries and conformance fixtures no longer mutate a component builder. They make the
+whole draw subtree inert at the `Ui` boundary and, when testing runtime-owned paint, name exactly
+one target:
+
+```rust
+use tui_next::{ReferenceState, ReferenceTarget, Ui};
+
+let target = ReferenceTarget::new(SAVE, ReferenceState::FOCUSED)
+    .part(tui_next::PartRef::of(tui_next::Part::CONTAINER));
+ui.reference(Some(target), |ui| {
+    Button::new(SAVE, "Save").draw(ui, area);
+});
+```
+
+Use `ui.reference(None, |ui| …)` for a default or semantic-only reference. Either form suppresses
+hits, focus stops, bindings, cursor, layout requests and layers throughout the subtree, including
+controls drawn by a callback or slot. Only `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED` and `PRESSED` can
+be injected. Selection, editing, disabled/read-only and readiness still come from the same props or
+state as a live component. A composite reference therefore targets one owned child/item/part; it
+does not broadcast a root state to every descendant.
+
+The old component `state_override` builders and crate-local `inherit_forced` propagation are
+deleted. Migration is atomic: wrap the outer reference draw, map runtime flags to one
+`ReferenceTarget`, preserve semantic fixture state, then remove the old builder call.
+
 ### `DialogBody` → a body closure
 
 `DialogBody { Text, Input, Facts { facts, code, ack } }` was a closed enum
@@ -453,8 +480,10 @@ Only visible rows invoke the renderer. Selection lives in the caller-owned
 
 ## Part 3 — the widget modules
 
-Status is against the tree as of **Slice 4**. "not yet" means the type does
-not exist; it is scheduled, not silently dropped.
+Status is against the current **Slice 4** library tree. "not yet" means the
+type does not exist; it is scheduled, not silently dropped. A ✅ library API
+does not mean the Slice 5 crate rename or either application migration has
+happened.
 
 | Old module | New | Status | Notes |
 |---|---|---|---|
@@ -480,23 +509,24 @@ not exist; it is scheduled, not silently dropped.
 | `tabs` | `Tabs`, `TabsState`, `TabsAction` | ✅ | positional `tab_id(i)`/`close_id(i)` deleted → `ItemKey`; per-frame `areas`/`widths` `Vec`s deleted; the "rebuild the widget and rescue `first`/`active`" idiom in both applications deleted |
 | `textarea` | `TextArea`, `TextAreaState` | ✅ | render-time commit impossible; shares `TextEditorCore` with `input`; the missing `owns`/`on_scrollbar` supplied by `ScrollRegion`; a 1-cell-width underflow fixed |
 | `code` | `CodeEditor`, `CodeEditorState`, `Highlighter`, `Segmenter`, `CodeDiagnostic` | ⛔ not yet | planned: `fn`-pointer `Highlighter`/`Segmenter` → `&dyn Fn`; per-frame `hash_text` → an edit counter; the vim key table → a default `KeyMap` |
-| `completion` | `Completion`, `CompletionState`, `CompletionController` | ⛔ not yet | planned as `Popover` layer content sharing an item type with `Picker` |
+| `completion` | `Completion`, `CompletionState`, `CompletionController` | ✅ | `CompletionController::new(editor_id, popup_id)` opens the popover without moving focus; call `Completion::update_for(editor_id, …)` before the editor update so editor-addressed completion bindings win while text remains editor-owned |
 | `diff` | `DiffView`, `DiffViewState`, `DiffSource`, `DiffMode` | ⛔ not yet | planned: the data model moves behind `DiffSource`; `review_lines(f, width)` becomes `measure` |
-| `grid` | `Grid`, `GridState`, `GridModel`, `GridEditor`, `ColumnKey`, `Column`, `CellRef`, `NavUnit`, `EditIntent`, `CellAction` | ⛔ not yet | absorbs `table`. Everything database-shaped is deleted from the library |
+| `grid` | `Grid`, `GridState`, `GridModel`, `GridEditor`, `GridAction`, `GridCmd`, `ColumnKey`, `Column`, `CellRef`, `CellAction`, `NavUnit`, `SortDir` | ✅ | absorbs `table`. `GridModel` has exactly three required methods (`row_count`, `row_key`, `cell`), no associated `Row` and no `col_count`; `Grid::new(id, columns)` is the sole schema authority. `cell` returns `Option<CellRef<'_>>` so `None` is a structural ragged-row hole. `CellRef::new` inherits `Column::align`; `.align(…)` is an explicit override. Everything database-shaped stays in the application adapter |
 | `menu` | `MenuBar`, `ContextMenu`, `MenuItem`, `MenuState` | ⛔ not yet | planned: render-time cursor move on hover → an explicit `Intent::Pointer`; `shortcut: &'static str` → a real `Chord` that both renders and binds; label-string dispatch → `ActionKey` |
 | `picker` | `FilterList` (headless), `Picker` (overlay), `CommandPalette`, `PickerState`, `ScopeKey` | ⛔ not yet | `crates/tui/examples/10_nested_overlay.rs` substitutes a `List` in a popover, and says so |
 | `splitter` + `ui::layout::Split` | `SplitPane`, `SplitPaneState` | ⛔ not yet | planned: one component owning its container rect, drag through capture, four app-side copies deleted |
-| `steps` | `Steps`, `StepsState`, `StepState` | ⛔ not yet | stays a *display* rail with a frontier; the step *flow* becomes a separate `Wizard` |
+| `steps` | `Steps`, `StepsState`, `StepsAction`, `StepsCmd`, `StepState` | ✅ | stays a display or navigable lifecycle rail with a runtime-cached derived frontier; call `StepsState::invalidate()` after lifecycle regression or same-length interior reorder. The future step *flow* remains a separate `Wizard`. Lifecycle `Part::META` is component-owned; caller `RowUi` metadata remains row-owned. Component patches reach `CONTAINER`/`LABEL`, while arbitrary row `META`/`CELL`/custom parts remain isolated; patch, part-patch and slot overrides propagate to the embedded scrollbar |
 | `table` | — | ⛔ deleted, not replaced | absorbed by `Grid` |
 | `tree` | `Tree`, `TreeState`, `TreeNode`, `TreeAction` | ⛔ not yet | planned: `path: Vec<usize>` identity → `ItemKey`; `flatten()` becomes incremental and borrow-based |
 | `viewport` | `TextViewport`, `ViewportState`, `ViewportAction` | ⛔ not yet | `Span<'a>` has **already** moved to `text/span.rs` and is re-exported at the root; the viewport itself is not ported |
+| *(showcase sidebar)* | `NavList`, `NavListState`, `NavListAction`, `NavListCmd`, `NavMode` | ✅ | `Enter`/`Space`/click emit `Chose(ItemKey)`; Right/plain `l` emit `EnterContent(ItemKey)`. The shell, not `NavList`, hands focus to content |
+| *(application minimum-size notice)* | `TooSmall` | ✅ | uses the dedicated named `Family::TOO_SMALL`, isolated from `Family::PANEL`; exact four-line copy and geometry remain unchanged |
 
 New components that had no old module: `Field` (✅, the label / control / help
-/ error chrome that `input`, `choice` and `select` each half-implemented) and
-`ScrollRegion` (✅).
+/ error chrome that `input`, `choice` and `select` each half-implemented),
+`ScrollRegion` (✅), `NavList` (✅) and `TooSmall` (✅).
 
-Also planned and ⛔ not yet: `Form`, `Wizard`, `HelpOverlay`, `NavList`,
-`TooSmall`, `PickerChain`.
+Also planned and ⛔ not yet: `Form`, `Wizard`, `HelpOverlay`, `PickerChain`.
 
 ---
 

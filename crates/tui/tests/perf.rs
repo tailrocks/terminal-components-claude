@@ -24,11 +24,15 @@
 )]
 
 use std::hint::black_box;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use tui_next::{
-    App, Axes, ColorLevel, Cx, Family, FocusRing, Focusability, Headroom, Id, Input, LayerId,
-    Overlay, OverlayRule, Part, Position, Rect, Registry, Response, Role, Runtime, Slot,
-    StateFlags, StylePatch, Theme, Ui, Variant,
+    ActionKey, App, Axes, Binding, Checkbox, Chord, CodeDiagnostic, CodeEditor, CodeEditorState,
+    CodeSeverity, ColorLevel, Cx, DiffLineKind, DiffRow, DiffSource, DiffView, DiffViewState,
+    Family, FieldKind, FieldMut, FieldRef, FieldSpec, FocusRing, Focusability, Form, FormData,
+    FormState, FrameRead, Headroom, Highlighter, HintBar, Id, Input, Intent, KeyCode, KeyModifiers,
+    LayerId, Overlay, OverlayRule, Part, Position, Rect, Registry, Response, Role, Runtime, Slot,
+    StateFlags, StylePatch, SyntaxRole, Theme, Ui, Variant,
 };
 use tui_next_testing::perf::{
     Counting, bench, check_ratio, env_flag, iters, lock, measure_once, report, unicode_line,
@@ -759,8 +763,8 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
     // instead.
     let key = || {
         Input::Key(tui_next::Key {
-            code: tui_next::KeyCode::Enter,
-            mods: tui_next::KeyModifiers::NONE,
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
         })
     };
     let probes_for = |n: usize| {
@@ -783,8 +787,8 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
     let (mut two, _) = probe_runtime(500);
     let s2 = bench(2, iters(200), &mut || {
         let _ = black_box(two.handle(Input::Key(tui_next::Key {
-            code: tui_next::KeyCode::Enter,
-            mods: tui_next::KeyModifiers::NONE,
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
         })));
     });
     println!(
@@ -1032,8 +1036,8 @@ fn list_100k_select_all() {
     let area = Rect::new(0, 0, 120, 40);
     let toggle = || {
         Input::Key(tui_next::Key {
-            code: tui_next::KeyCode::Char('a'),
-            mods: tui_next::KeyModifiers::NONE,
+            code: KeyCode::Char('a'),
+            mods: KeyModifiers::NONE,
         })
     };
     // warm: the first toggle also settles focus
@@ -1077,12 +1081,12 @@ fn event_dispatch_is_not_o_n() {
             Input::Mouse(tui_next::Mouse {
                 kind: tui_next::MouseKind::Down,
                 pos: Position::new(x, y),
-                mods: tui_next::KeyModifiers::NONE,
+                mods: KeyModifiers::NONE,
             }),
             Input::Mouse(tui_next::Mouse {
                 kind: tui_next::MouseKind::Up,
                 pos: Position::new(x, y),
-                mods: tui_next::KeyModifiers::NONE,
+                mods: KeyModifiers::NONE,
             }),
         ]
     };
@@ -1198,4 +1202,355 @@ fn frame_showcase_buttons_120x40() {
         "nine buttons, two of them disabled"
     );
     assert_eq!(s.allocs, 0, "a button frame must not allocate");
+}
+
+const QUERY_EDITOR: Id = Id::root("perf.query_editor");
+static HIGHLIGHT_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+struct DenseHighlighter;
+
+impl Highlighter for DenseHighlighter {
+    fn highlight(&self, text: &str) -> Vec<(core::ops::Range<usize>, SyntaxRole)> {
+        HIGHLIGHT_CALLS.fetch_add(1, Ordering::Relaxed);
+        text.match_indices(|character: char| character.is_ascii_alphanumeric())
+            .map(|(start, value)| {
+                (
+                    start..start.saturating_add(value.len()),
+                    SyntaxRole::Keyword,
+                )
+            })
+            .collect()
+    }
+}
+
+static DENSE_HIGHLIGHTER: DenseHighlighter = DenseHighlighter;
+
+struct QueryEditor {
+    state: CodeEditorState,
+}
+
+impl QueryEditor {
+    fn with_lines(count: usize) -> Self {
+        let mut source = String::with_capacity(count.saturating_mul(32));
+        let mut diagnostics = Vec::with_capacity(count);
+        for index in 0..count {
+            use core::fmt::Write as _;
+            let start = source.len();
+            let _ = writeln!(source, "select column_{index} from table_{index};");
+            diagnostics.push(CodeDiagnostic::new(
+                start..start.saturating_add(6),
+                if index % 3 == 0 {
+                    CodeSeverity::Error
+                } else {
+                    CodeSeverity::Warning
+                },
+                "dense diagnostic",
+            ));
+        }
+        let mut state = CodeEditorState::new(&source);
+        state.set_diagnostics(diagnostics);
+        QueryEditor { state }
+    }
+}
+
+impl App for QueryEditor {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        CodeEditor::new(QUERY_EDITOR, 39)
+            .highlighter(&DENSE_HIGHLIGHTER)
+            .update(cx, &mut self.state)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        CodeEditor::new(QUERY_EDITOR, 39)
+            .highlighter(&DENSE_HIGHLIGHTER)
+            .draw(ui, ui.full(), &self.state);
+    }
+}
+
+fn prepare_query_editor(
+    runtime: &mut Runtime<QueryEditor>,
+    area: Rect,
+    buffer: &mut ratatui_core::buffer::Buffer,
+) {
+    runtime.draw_buffer(area, buffer);
+    runtime.draw_buffer(area, buffer);
+    let input = |code| {
+        Input::Key(tui_next::Key {
+            code,
+            mods: KeyModifiers::NONE,
+        })
+    };
+    let _ = runtime.handle(input(KeyCode::Tab));
+    let _ = runtime.handle(input(KeyCode::Char('/')));
+    runtime.draw_buffer(area, buffer);
+    for character in "column".chars() {
+        let _ = runtime.handle(input(KeyCode::Char(character)));
+    }
+    let _ = runtime.handle(input(KeyCode::Enter));
+    runtime.draw_buffer(area, buffer);
+}
+
+#[test]
+fn frame_tablepro_query_editor_2k_lines() {
+    let _g = lock();
+    let area = Rect::new(0, 0, 120, 40);
+    let mut runtime = Runtime::new(QueryEditor::with_lines(2_000), Theme::junie());
+    let mut small_runtime = Runtime::new(QueryEditor::with_lines(100), Theme::junie());
+    let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+    let mut small_buffer = ratatui_core::buffer::Buffer::empty(area);
+    prepare_query_editor(&mut runtime, area, &mut buffer);
+    prepare_query_editor(&mut small_runtime, area, &mut small_buffer);
+    let warm_highlights = HIGHLIGHT_CALLS.load(Ordering::Relaxed);
+    let sample = bench(2, iters(100), &mut || {
+        runtime.draw_buffer(area, &mut buffer);
+    });
+    let small_sample = bench(2, iters(100), &mut || {
+        small_runtime.draw_buffer(area, &mut small_buffer);
+    });
+    report("frame_tablepro_query_editor_2k_lines", &sample);
+    assert!(
+        sample.allocs < 40,
+        "query editor frame allocated {} times; budget is below 40",
+        sample.allocs
+    );
+    assert!(small_sample.allocs < 40);
+    assert_eq!(
+        HIGHLIGHT_CALLS.load(Ordering::Relaxed),
+        warm_highlights,
+        "warm frames must reuse dense highlighting"
+    );
+    check_ratio(
+        "query_editor_2k_vs_100_lines",
+        sample.ns,
+        small_sample.ns,
+        2.0,
+        env_flag("PERF_STRICT"),
+    );
+}
+
+const PERF_DIFF: Id = Id::root("perf.diff");
+
+struct DenseDiffSource;
+
+impl DiffSource for DenseDiffSource {
+    fn revision(&self) -> u64 {
+        1
+    }
+
+    fn path(&self) -> &'static str {
+        "src/dense.rs"
+    }
+
+    fn status_marker(&self) -> &'static str {
+        "M"
+    }
+
+    fn status_label(&self) -> &'static str {
+        "modified"
+    }
+
+    fn row_count(&self) -> usize {
+        2_001
+    }
+
+    fn row(&self, index: usize) -> Option<DiffRow<'_>> {
+        match index {
+            0 => Some(DiffRow::Hunk {
+                old_start: 1,
+                new_start: 1,
+            }),
+            1..=2_000 => Some(DiffRow::Line {
+                kind: if index.is_multiple_of(3) {
+                    DiffLineKind::Add
+                } else {
+                    DiffLineKind::Context
+                },
+                text: "let projected = cached.diff_line();",
+            }),
+            _ => None,
+        }
+    }
+}
+
+struct DenseDiff {
+    state: DiffViewState,
+}
+
+impl App for DenseDiff {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        DiffView::new(PERF_DIFF, Some(&DenseDiffSource))
+            .update(cx, &mut self.state)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        DiffView::new(PERF_DIFF, Some(&DenseDiffSource)).draw(ui, ui.full(), &self.state);
+    }
+}
+
+#[test]
+fn diff_2k_cached_projection_has_zero_warm_allocations() {
+    let _guard = lock();
+    let area = Rect::new(0, 0, 120, 40);
+    let mut runtime = Runtime::new(
+        DenseDiff {
+            state: DiffViewState::default(),
+        },
+        Theme::junie(),
+    );
+    let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+    runtime.draw_buffer(area, &mut buffer);
+    runtime.draw_buffer(area, &mut buffer);
+    let sample = bench(2, iters(100), &mut || {
+        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(area, &mut buffer);
+    });
+    report("diff_2k_cached_projection", &sample);
+    assert_eq!(sample.allocs, 0, "warm update and draw must not allocate");
+}
+
+const HINT_CONTROL: Id = Id::root("perf.hint-control");
+const HINT_ACTION: ActionKey = ActionKey::custom("perf.hint.activate");
+
+#[derive(Clone, Copy)]
+enum HintCmd {
+    Activate,
+}
+
+const HINT_BINDINGS: &[Binding<HintCmd>] = &[Binding {
+    action: HINT_ACTION,
+    chord: Some(Chord::key(KeyCode::Enter)),
+    cmd: HintCmd::Activate,
+    label: "Activate",
+    priority: 80,
+    visible: true,
+}];
+
+#[derive(Default)]
+struct DerivedHintApp {
+    handled: u64,
+}
+
+impl App for DerivedHintApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = Response::ignored();
+        for intent in cx.intents(HINT_CONTROL) {
+            if let Intent::Binding(action) = intent
+                && Binding::command(HINT_BINDINGS, action).is_some()
+            {
+                self.handled = self.handled.saturating_add(1);
+                response |= Response::consumed();
+            }
+        }
+        response
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        ui.register_control(
+            HINT_CONTROL,
+            Rect::new(0, 0, 20, 1),
+            Focusability::Focusable,
+        );
+        ui.publish_bindings(HINT_CONTROL, ui.state(HINT_CONTROL), HINT_BINDINGS);
+        HintBar::derived(Id::root("perf.hintbar")).draw(ui, Rect::new(0, 1, 80, 1));
+    }
+}
+
+#[test]
+fn frame_hintbar_derived() {
+    let _g = lock();
+    let area = Rect::new(0, 0, 80, 24);
+    let mut runtime = Runtime::new(DerivedHintApp::default(), Theme::junie());
+    let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+    runtime.draw_buffer(area, &mut buffer);
+    runtime.draw_buffer(area, &mut buffer);
+    let sample = bench(2, iters(200), &mut || {
+        runtime.draw_buffer(area, &mut buffer);
+    });
+    report("frame_hintbar_derived", &sample);
+    assert_eq!(sample.allocs, 0, "unchanged derived-hint frame allocated");
+
+    let key = || {
+        Input::Key(tui_next::Key {
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
+        })
+    };
+    let _ = runtime.handle(key());
+    let routing = bench(2, iters(200), &mut || {
+        let _ = black_box(runtime.handle(key()));
+    });
+    assert_eq!(
+        routing.allocs, 0,
+        "unchanged component key routing allocated"
+    );
+}
+
+const PERF_FORM: Id = Id::root("perf.form");
+const PERF_FORM_FLAG: Id = Id::root("perf.form.flag");
+const PERF_FORM_FIELDS: &[FieldSpec<'static>] = &[FieldSpec::new(
+    PERF_FORM_FLAG,
+    "Enabled",
+    FieldKind::Check(Checkbox::new(PERF_FORM_FLAG, "Enabled")),
+)];
+
+#[derive(Default)]
+struct PerfFormData {
+    enabled: bool,
+}
+
+impl FormData for PerfFormData {
+    fn value(&self, id: Id) -> FieldRef<'_> {
+        if id == PERF_FORM_FLAG {
+            FieldRef::Flag(self.enabled)
+        } else {
+            FieldRef::Flag(false)
+        }
+    }
+
+    fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
+        if id == PERF_FORM_FLAG {
+            FieldMut::Flag(&mut self.enabled)
+        } else {
+            FieldMut::ReadOnly
+        }
+    }
+}
+
+#[derive(Default)]
+struct PerfFormApp {
+    state: FormState,
+    data: PerfFormData,
+}
+
+impl App for PerfFormApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        Form::new(PERF_FORM, PERF_FORM_FIELDS)
+            .update(cx, &mut self.state, &mut self.data)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        Form::new(PERF_FORM, PERF_FORM_FIELDS).draw(ui, ui.full(), &self.state, &self.data);
+    }
+}
+
+#[test]
+fn frame_form_update_draw() {
+    let _guard = lock();
+    let area = Rect::new(0, 0, 80, 24);
+    let mut runtime = Runtime::new(PerfFormApp::default(), Theme::junie());
+    let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+    runtime.draw_buffer(area, &mut buffer);
+    let _ = runtime.handle(Input::Tick);
+    runtime.draw_buffer(area, &mut buffer);
+    runtime.draw_buffer(area, &mut buffer);
+    let sample = bench(2, iters(200), &mut || {
+        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(area, &mut buffer);
+    });
+    report("frame_form_update_draw", &sample);
+    assert_eq!(sample.allocs, 0, "warm Form update and draw allocated");
+    assert_eq!(sample.bytes, 0, "warm Form update and draw allocated bytes");
 }

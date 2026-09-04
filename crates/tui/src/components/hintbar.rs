@@ -39,7 +39,7 @@ use crate::ui::{FrameRead, Ui};
 /// ## Configuration
 /// `.variant(Variant)` (default `Recipe.default_variant`), `.status(Status)`
 /// (`Ready`), `.frame(usize)` (`0`), `.patch`, `.patch_part`, `.slot`,
-/// `.state_override`. Centring is a property of the layer
+/// Centring is a property of the layer
 /// (`HintLayer::centered`), not of the bar, because the layer is what a
 /// screen or an overlay contributes.
 ///
@@ -96,10 +96,8 @@ use crate::ui::{FrameRead, Ui};
 ///
 /// ## Testing
 /// `HintBarCase` in `crates/tui/tests/conformance.rs`, declaring
-/// `Caps::empty()`, so twelve of its twenty-one `hint_bar::*` cases are
-/// capability-gated and return immediately, and
-/// `mono_states_are_distinguishable` is narrowed to the single default
-/// state and compares one rendering against nothing.
+/// `Caps::REPORTS_STATUS`. Its mono states retain the default, `ERROR` and
+/// `BUSY` renderings required by that readiness capability.
 ///
 /// The render matrix in `crates/tui/tests/render_components.rs` generates
 /// exactly eight cells per component, one per `St` variant: there is no
@@ -119,13 +117,7 @@ use crate::ui::{FrameRead, Ui};
 /// not a readiness glyph takes its two cells, so no matrix cell reaches the
 /// `Part::OVERFLOW` branch, and the unit test stops at `fitting`'s counts.
 ///
-/// The error glyph **is** painted, and
-/// `components::a_forced_component_resolves_its_props_derived_state` pins
-/// it: `draw` resolves `live` through `Overrides::flags`, which substitutes
-/// a forced state for the *runtime* half only (§39.2), so the `::disabled`
-/// cell's `Status::Error` reaches `status_glyph` alongside its forced
-/// `DISABLED` and the glyph takes its two reserved columns. This block
-/// previously asserted the opposite.
+/// The error glyph **is** painted from the semantic [`Status::Error`] state.
 ///
 /// ## Invariants
 /// Overflow drops from the **right** and always leaves the marker, so the
@@ -181,6 +173,17 @@ impl<'a> HintBar<'a> {
             patch: None,
             parts: &[],
             ov: Overrides::new(),
+        }
+    }
+
+    /// A bar that derives the focused component layer from the current frame.
+    pub const fn derived(id: Id) -> DerivedHintBar<'a> {
+        DerivedHintBar {
+            id,
+            top: None,
+            mode: None,
+            screen: None,
+            global: None,
         }
     }
 
@@ -251,13 +254,6 @@ impl<'a> HintBar<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render a forced state.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn busy(&self) -> bool {
         matches!(self.status, Status::Busy | Status::Loading)
     }
@@ -273,8 +269,7 @@ impl<'a> HintBar<'a> {
         let h = self.layer.hints.get(i)?;
         let mut k = KeyHint::from_hint(self.id, h)
             .variant(self.variant)
-            .patch_part(self.parts)
-            .inherit_forced(self.ov.forced_state());
+            .patch_part(self.parts);
         if let Some(p) = self.patch {
             k = k.patch(p);
         }
@@ -384,7 +379,7 @@ impl<'a> HintBar<'a> {
         }
         // runtime: none — the bar is chrome and registers no control of
         // its own; derived: the readiness the caller's `.status` declares
-        let live = self.ov.flags(StateFlags::empty(), self.status.flags());
+        let live = Overrides::flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
@@ -508,7 +503,7 @@ impl<'a> HintBar<'a> {
 
     /// The natural size: one row wide enough for every hint.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let live = self.ov.flags(StateFlags::empty(), self.status.flags());
+        let live = Overrides::flags(StateFlags::empty(), self.status.flags());
         let hints: u16 = (0..self.layer.hints.len())
             .filter_map(|i| self.hint(i))
             .fold(0u16, |acc, h| {
@@ -524,6 +519,76 @@ impl<'a> HintBar<'a> {
             preferred: (w, 1),
         }
         .fit(c)
+    }
+}
+
+/// Context layers around the runtime-derived focused-component hints.
+#[derive(Clone, Copy, Debug)]
+pub struct DerivedHintBar<'a> {
+    id: Id,
+    top: Option<&'a HintLayer>,
+    mode: Option<&'a HintLayer>,
+    screen: Option<&'a HintLayer>,
+    global: Option<&'a HintLayer>,
+}
+
+impl<'a> DerivedHintBar<'a> {
+    /// Supply the active top-layer hints.
+    #[must_use]
+    pub const fn top(mut self, layer: &'a HintLayer) -> Self {
+        self.top = Some(layer);
+        self
+    }
+
+    /// Supply temporary mode hints.
+    #[must_use]
+    pub const fn mode(mut self, layer: &'a HintLayer) -> Self {
+        self.mode = Some(layer);
+        self
+    }
+
+    /// Supply screen-level extras.
+    #[must_use]
+    pub const fn screen(mut self, layer: &'a HintLayer) -> Self {
+        self.screen = Some(layer);
+        self
+    }
+
+    /// Supply the application-wide fallback.
+    #[must_use]
+    pub const fn global(mut self, layer: &'a HintLayer) -> Self {
+        self.global = Some(layer);
+        self
+    }
+
+    /// Draw the first nonempty layer in top, mode, focused, screen, global
+    /// precedence order.
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
+        if let Some(layer) = self.top.filter(|layer| !layer.is_empty()) {
+            return HintBar::new(self.id, layer).draw(ui, area);
+        }
+        if let Some(layer) = self.mode.filter(|layer| !layer.is_empty()) {
+            return HintBar::new(self.id, layer).draw(ui, area);
+        }
+        if let Some(rect) = ui
+            .with_focused_hints(|ui, layer| {
+                (!layer.is_empty()).then(|| HintBar::new(self.id, layer).draw(ui, area))
+            })
+            .flatten()
+        {
+            return rect;
+        }
+        if let Some(layer) = self.screen.filter(|layer| !layer.is_empty()) {
+            return HintBar::new(self.id, layer).draw(ui, area);
+        }
+        if let Some(layer) = self.global.filter(|layer| !layer.is_empty()) {
+            return HintBar::new(self.id, layer).draw(ui, area);
+        }
+        Rect {
+            width: 0,
+            height: 0,
+            ..area
+        }
     }
 }
 

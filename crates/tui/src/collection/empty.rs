@@ -137,44 +137,107 @@ impl EmptyState<'_> {
             },
             EmptyState::Empty { .. } => None,
         };
-        let prefix_w = glyph.map_or(0, |g| width(g).saturating_add(1));
-        let head = self.title();
-        let total_w = prefix_w.saturating_add(width(head)).min(area.width);
-        let x = area
-            .x
-            .saturating_add(area.width.saturating_sub(total_w) / 2);
-        let mut row = Rect {
-            x,
-            y: area.y,
-            width: total_w,
-            height: 1,
-        };
-        if let Some(g) = glyph {
-            let used = ui.paint_str(row, g, icon.style);
-            row.x = row.x.saturating_add(used).saturating_add(1);
-            row.width = row.width.saturating_sub(used).saturating_sub(1);
-        }
-        ui.paint_str(row, head, title);
-        let mut rows = 1u16;
-        if let Some(d) = self.detail()
-            && area.height >= 3
-        {
-            let w = width(d).min(area.width);
-            let dx = area.x.saturating_add(area.width.saturating_sub(w) / 2);
-            ui.paint_str(
-                Rect {
-                    x: dx,
-                    y: area.y.saturating_add(2),
-                    width: w,
-                    height: 1,
-                },
-                d,
-                help,
-            );
-            rows = 3;
-        }
-        rows
+        let icon_width = glyph.map_or(0, width);
+        draw_centered(
+            ui,
+            area,
+            CenteredText {
+                title: self.title(),
+                detail: self.detail(),
+                icon_width,
+            },
+            |ui, icon_area| {
+                if let Some(glyph) = glyph {
+                    ui.paint_str(icon_area, glyph, icon.style);
+                }
+            },
+            |ui, title_area| {
+                ui.paint_str(title_area, self.title(), title);
+            },
+            |ui, detail_area| {
+                if let Some(detail) = self.detail() {
+                    ui.paint_str(detail_area, detail, help);
+                }
+            },
+        )
     }
+}
+
+/// Inputs for the shared centred readiness painter.
+#[derive(Clone, Copy)]
+pub(crate) struct CenteredText<'a> {
+    pub(crate) title: &'a str,
+    pub(crate) detail: Option<&'a str>,
+    pub(crate) icon_width: u16,
+}
+
+/// Paint centred icon/title/blank/detail geometry while leaving icon style,
+/// glyph and slot ownership with the caller. Zero icon width reserves no
+/// column and never invokes `paint_icon`.
+pub(crate) fn draw_centered(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    text: CenteredText<'_>,
+    paint_icon: impl FnOnce(&mut Ui<'_>, Rect),
+    paint_title: impl FnOnce(&mut Ui<'_>, Rect),
+    paint_detail: impl FnOnce(&mut Ui<'_>, Rect),
+) -> u16 {
+    if area.is_empty() {
+        return 0;
+    }
+    let prefix_width = if text.icon_width == 0 {
+        0
+    } else {
+        text.icon_width.saturating_add(1)
+    };
+    let total_width = prefix_width
+        .saturating_add(width(text.title))
+        .min(area.width);
+    let x = area
+        .x
+        .saturating_add(area.width.saturating_sub(total_width) / 2);
+    let icon_width = text.icon_width.min(total_width);
+    if icon_width != 0 {
+        paint_icon(
+            ui,
+            Rect {
+                x,
+                y: area.y,
+                width: icon_width,
+                height: 1,
+            },
+        );
+    }
+    let title_x = x.saturating_add(prefix_width.min(total_width));
+    paint_title(
+        ui,
+        Rect {
+            x: title_x,
+            y: area.y,
+            width: total_width.saturating_sub(title_x.saturating_sub(x)),
+            height: 1,
+        },
+    );
+    let Some(detail) = text.detail else {
+        return 1;
+    };
+    if area.height < 3 {
+        return 1;
+    }
+    let detail_width = width(detail).min(area.width);
+    let detail_x = area
+        .x
+        .saturating_add(area.width.saturating_sub(detail_width) / 2);
+    paint_detail(
+        ui,
+        Rect {
+            x: detail_x,
+            y: area.y.saturating_add(2),
+            width: detail_width,
+            height: 1,
+        },
+    );
+    3
 }
 
 #[cfg(test)]

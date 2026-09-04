@@ -1,8 +1,8 @@
 //! The component digest matrix — `render::components::<component>::<state>`
 //! (`COMPONENT_ARCHITECTURE.md` §16.3, Slice 2 acceptance condition 5).
 //!
-//! Twenty components × eight states × `{junie, paper}` × `{truecolor, mono}` ×
-//! `{120×40, 40×10}` = 1280 checked-in digest lines in
+//! Forty components × eight states × `{junie, paper}` × `{truecolor, mono}` ×
+//! `{120×40, 40×10}` = 2560 checked-in digest lines in
 //! `tests/baselines/components.txt`. The theme, colour level and size are part
 //! of the baseline **key**, so one test function owns eight lines and a
 //! regression names the exact cell of the matrix that moved.
@@ -14,10 +14,11 @@
 //! and they are identical either way. Merge the two targets at Slice 5 if the
 //! split stops paying for itself.
 //!
-//! Every state is forced with `.state_override` (A11), so a digest is a pure
-//! function of `(props, theme, colour, size)` — no focus, no pointer, no
-//! frame counter. `empty` is the only state expressed as *content*: it is the
-//! component with nothing to show.
+//! Runtime-owned states are injected into exactly one target by
+//! [`Ui::reference`]; selected, editing and disabled remain real component
+//! state or props. A digest is therefore a pure function of
+//! `(props, theme, colour, size)` with no live focus, pointer or frame counter.
+//! `empty` is expressed as the absence of content.
 #![cfg_attr(
     test,
     allow(
@@ -29,14 +30,24 @@
     )
 )]
 
+use ratatui_core::style::Modifier;
 use tui_next::{
-    Action, ActionKey, Brand, Button, Checkbox, ChipBar, ChipBarState, Chord, ColorLevel, Dialog,
-    DialogState, Empty, EmptyState, Field, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint,
-    List, ListState, Meter, ProgressBar, RadioGroup, RadioGroupState, Rect, RowUi, Select,
-    SelectMode, SelectState, Spinner, StateFlags, Status, StatusBar, StatusItem, Tabs, TabsState,
-    TextArea, TextAreaState, TextInput, TextInputState, Theme, Toggle, Ui, Variant,
+    Action, ActionKey, App, Brand, Button, CellPos, CellRef, Checkbox, ChipBar, ChipBarState,
+    Chord, CodeEditor, CodeEditorState, ColorLevel, Column, ColumnKey, Completion, CompletionState,
+    ContextMenu, Cx, Dialog, DialogState, DiffLineKind, DiffRow, DiffSource, DiffView,
+    DiffViewState, Empty, EmptyState, Family, Field, FieldKind, FieldMut, FieldRef, FieldSpec,
+    FilterList, FilterListState, Form, FormData, FormState, Grid, GridModel, GridState,
+    HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Item, ItemKey,
+    KeyCode, KeyHint, List, ListState, Menu, MenuBar, MenuItem, MenuState, Meter, NavList,
+    NavListState, Panel, PanelKind, Part, PartRef, Picker, PickerChain, PickerChainState,
+    PickerStage, PickerState, Position, ProgressBar, RadioGroup, RadioGroupState, Rect,
+    ReferenceState, ReferenceTarget, Response, RowUi, ScrollRegion, ScrollState, Select,
+    SelectMode, SelectState, Spinner, SplitAxis, SplitPane, SplitPaneState, StateFlags, Status,
+    StatusBar, StatusItem, StepState, Steps, StepsState, Tabs, TabsState, TextArea, TextAreaState,
+    TextInput, TextInputState, TextViewport, Theme, Toggle, TooSmall, Tree, TreeNode, TreeState,
+    Ui, Variant, ViewportLine, ViewportState, Wizard, WizardState, WizardStep,
 };
-use tui_next_testing::{Baseline, Scene};
+use tui_next_testing::{Baseline, Harness, Scene};
 
 const BASELINE: Baseline = Baseline::new(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -49,6 +60,7 @@ const FIELD: Id = Id::root("render.field");
 const LIST: Id = Id::root("render.list");
 const TABS: Id = Id::root("render.tabs");
 const DLG: Id = Id::root("render.dialog");
+const SCROLL_REGION: Id = Id::root("render.scroll_region");
 const TEXT_AREA: Id = Id::root("render.text_area");
 const SELECT: Id = Id::root("render.select");
 const RADIO_GROUP: Id = Id::root("render.radio_group");
@@ -63,6 +75,26 @@ const SPINNER: Id = Id::root("render.spinner");
 const METER: Id = Id::root("render.meter");
 const EMPTY: Id = Id::root("render.empty");
 const BRAND: Id = Id::root("render.brand");
+const PANEL: Id = Id::root("render.panel");
+const SPLIT_PANE: Id = Id::root("render.split_pane");
+const TEXT_VIEWPORT: Id = Id::root("render.text_viewport");
+const DIFF_VIEW: Id = Id::root("render.diff_view");
+const CODE_EDITOR: Id = Id::root("render.code_editor");
+const TREE: Id = Id::root("render.tree");
+const NAV_LIST: Id = Id::root("render.nav_list");
+const STEPS: Id = Id::root("render.steps");
+const TOO_SMALL: Id = Id::root("render.too_small");
+const GRID: Id = Id::root("render.grid");
+const FILTER_LIST: Id = Id::root("render.filter_list");
+const PICKER: Id = Id::root("render.picker");
+const COMPLETION: Id = Id::root("render.completion");
+const FORM: Id = Id::root("render.form");
+const CONTEXT_MENU: Id = Id::root("render.context_menu");
+const HELP_OVERLAY: Id = Id::root("render.help_overlay");
+const MENU_BAR: Id = Id::root("render.menu_bar");
+const PICKER_CHAIN: Id = Id::root("render.picker_chain");
+const WIZARD: Id = Id::root("render.wizard");
+const SCROLL_FIXTURE_ROWS: usize = 80;
 
 /// `(label, meta)` rows for the list.
 const ROWS: [(&str, &str); 6] = [
@@ -76,10 +108,153 @@ const ROWS: [(&str, &str); 6] = [
 
 const TAB_LABELS: [&str; 5] = ["General", "Mounts", "Roles", "Audit", "Advanced"];
 
+const VIEWPORT_LINES: [ViewportLine<'static>; 8] = [
+    ViewportLine::Plain("2026-09-04 10:00 connected"),
+    ViewportLine::Plain("2026-09-04 10:01 loading workspace"),
+    ViewportLine::Plain("2026-09-04 10:02 indexed 128 files"),
+    ViewportLine::Plain("2026-09-04 10:03 running checks"),
+    ViewportLine::Plain("2026-09-04 10:04 check 1 passed"),
+    ViewportLine::Plain("2026-09-04 10:05 check 2 passed"),
+    ViewportLine::Plain("2026-09-04 10:06 check 3 passed"),
+    ViewportLine::Plain("2026-09-04 10:07 ready"),
+];
+
+const DIFF_ROWS: [DiffRow<'static>; 5] = [
+    DiffRow::Hunk {
+        old_start: 12,
+        new_start: 12,
+    },
+    DiffRow::Line {
+        kind: DiffLineKind::Context,
+        text: "fn retry() {",
+    },
+    DiffRow::Line {
+        kind: DiffLineKind::Remove,
+        text: "    let attempts = 3;",
+    },
+    DiffRow::Line {
+        kind: DiffLineKind::Add,
+        text: "    let attempts = 5;",
+    },
+    DiffRow::Line {
+        kind: DiffLineKind::Context,
+        text: "}",
+    },
+];
+
+struct RenderDiff;
+
+impl DiffSource for RenderDiff {
+    fn revision(&self) -> u64 {
+        1
+    }
+    fn path(&self) -> &'static str {
+        "src/retry.rs"
+    }
+    fn status_marker(&self) -> &'static str {
+        "M"
+    }
+    fn status_label(&self) -> &'static str {
+        "modified"
+    }
+    fn row_count(&self) -> usize {
+        DIFF_ROWS.len()
+    }
+    fn row(&self, index: usize) -> Option<DiffRow<'_>> {
+        DIFF_ROWS.get(index).copied()
+    }
+}
+
+#[derive(Clone, Copy)]
+struct RenderTreeNode {
+    key: ItemKey,
+    label: &'static str,
+    meta: &'static str,
+    node: TreeNode,
+}
+
+const TREE_ROWS: [RenderTreeNode; 6] = [
+    RenderTreeNode {
+        key: ItemKey::num(1),
+        label: "Workspace",
+        meta: "root",
+        node: TreeNode::parent(0).keyed(ItemKey::num(1)),
+    },
+    RenderTreeNode {
+        key: ItemKey::num(2),
+        label: "crates",
+        meta: "dir",
+        node: TreeNode::parent(1).keyed(ItemKey::num(2)),
+    },
+    RenderTreeNode {
+        key: ItemKey::num(3),
+        label: "tui",
+        meta: "dir",
+        node: TreeNode::leaf(2).keyed(ItemKey::num(3)),
+    },
+    RenderTreeNode {
+        key: ItemKey::num(4),
+        label: "tests",
+        meta: "dir",
+        node: TreeNode::leaf(2).keyed(ItemKey::num(4)),
+    },
+    RenderTreeNode {
+        key: ItemKey::num(5),
+        label: "Cargo.toml",
+        meta: "file",
+        node: TreeNode::leaf(1).keyed(ItemKey::num(5)),
+    },
+    RenderTreeNode {
+        key: ItemKey::num(6),
+        label: "README.md",
+        meta: "file",
+        node: TreeNode::leaf(1).keyed(ItemKey::num(6)),
+    },
+];
+
+const GRID_COLUMNS: [Column<'static>; 2] = [
+    Column::new(ColumnKey::num(1), "Name"),
+    Column::new(ColumnKey::num(2), "Role"),
+];
+
 const DIALOG_ACTIONS: [Action<'static>; 2] = [
     Action::quiet(ActionKey::CANCEL, "Cancel"),
     Action::new(ActionKey::CONFIRM, "OK"),
 ];
+
+const RENDER_ITEMS: [Item<'static>; 3] = [
+    Item::new(ItemKey::num(1), "Ada Lovelace").detail("analyst"),
+    Item::new(ItemKey::num(2), "Grace Hopper").detail("rear admiral"),
+    Item::new(ItemKey::num(3), "Alan Turing").detail("logician"),
+];
+
+struct RenderFormData {
+    name: String,
+    enabled: bool,
+    disabled: bool,
+}
+
+impl FormData for RenderFormData {
+    fn value(&self, id: Id) -> FieldRef<'_> {
+        if id == INPUT {
+            FieldRef::Text(&self.name)
+        } else {
+            FieldRef::Flag(self.enabled)
+        }
+    }
+
+    fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
+        if id == INPUT {
+            FieldMut::Text(&mut self.name)
+        } else {
+            FieldMut::Flag(&mut self.enabled)
+        }
+    }
+
+    fn disabled(&self, _id: Id) -> bool {
+        self.disabled
+    }
+}
 
 /// The eight states the matrix renders.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -96,16 +271,13 @@ enum St {
 }
 
 impl St {
-    /// The flags `.state_override` forces; `Empty` forces nothing.
-    const fn flags(self) -> StateFlags {
+    /// The runtime-owned reference state; semantic states use real data.
+    const fn reference_state(self) -> Option<ReferenceState> {
         match self {
-            St::Default | St::Empty => StateFlags::empty(),
-            St::Focused => StateFlags::FOCUSED.union(StateFlags::FOCUS_VISIBLE),
-            St::Hovered => StateFlags::HOVERED,
-            St::Pressed => StateFlags::PRESSED.union(StateFlags::FOCUSED),
-            St::Disabled => StateFlags::DISABLED,
-            St::Selected => StateFlags::SELECTED,
-            St::Editing => StateFlags::EDITING,
+            St::Focused => Some(ReferenceState::FOCUSED.union(ReferenceState::FOCUS_VISIBLE)),
+            St::Hovered => Some(ReferenceState::HOVERED),
+            St::Pressed => Some(ReferenceState::PRESSED.union(ReferenceState::FOCUSED)),
+            St::Default | St::Disabled | St::Selected | St::Editing | St::Empty => None,
         }
     }
 
@@ -129,7 +301,7 @@ impl St {
     }
 }
 
-/// The twenty components the matrix covers.
+/// The forty components the matrix covers.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Comp {
     Button,
@@ -138,6 +310,7 @@ enum Comp {
     List,
     Tabs,
     Dialog,
+    ScrollRegion,
     TextArea,
     Select,
     RadioGroup,
@@ -152,6 +325,25 @@ enum Comp {
     Meter,
     Empty,
     Brand,
+    Panel,
+    SplitPane,
+    TextViewport,
+    DiffView,
+    CodeEditor,
+    Tree,
+    NavList,
+    Steps,
+    TooSmall,
+    Grid,
+    FilterList,
+    Picker,
+    Completion,
+    Form,
+    ContextMenu,
+    HelpOverlay,
+    MenuBar,
+    PickerChain,
+    Wizard,
 }
 
 impl Comp {
@@ -162,13 +354,14 @@ impl Comp {
     /// by `theme::readiness_states_are_digest_distinct`: a component added to
     /// `matrix!` but not here makes the baseline hold 64 more digest lines
     /// than this list accounts for, and that check fails.
-    const ALL: [(&'static str, Comp); 20] = [
+    const ALL: [(&'static str, Comp); 40] = [
         ("button", Comp::Button),
         ("text_input", Comp::TextInput),
         ("field", Comp::Field),
         ("list", Comp::List),
         ("tabs", Comp::Tabs),
         ("dialog", Comp::Dialog),
+        ("scroll_region", Comp::ScrollRegion),
         ("text_area", Comp::TextArea),
         ("select", Comp::Select),
         ("radio_group", Comp::RadioGroup),
@@ -183,7 +376,133 @@ impl Comp {
         ("meter", Comp::Meter),
         ("empty", Comp::Empty),
         ("brand", Comp::Brand),
+        ("panel", Comp::Panel),
+        ("split_pane", Comp::SplitPane),
+        ("text_viewport", Comp::TextViewport),
+        ("diff_view", Comp::DiffView),
+        ("code_editor", Comp::CodeEditor),
+        ("tree", Comp::Tree),
+        ("nav_list", Comp::NavList),
+        ("steps", Comp::Steps),
+        ("too_small", Comp::TooSmall),
+        ("grid", Comp::Grid),
+        ("filter_list", Comp::FilterList),
+        ("picker", Comp::Picker),
+        ("completion", Comp::Completion),
+        ("form", Comp::Form),
+        ("context_menu", Comp::ContextMenu),
+        ("help_overlay", Comp::HelpOverlay),
+        ("menu_bar", Comp::MenuBar),
+        ("picker_chain", Comp::PickerChain),
+        ("wizard", Comp::Wizard),
     ];
+
+    const fn id(self) -> Id {
+        match self {
+            Comp::Button => BTN,
+            Comp::TextInput => INPUT,
+            Comp::Field => FIELD,
+            Comp::List => LIST,
+            Comp::Tabs => TABS,
+            Comp::Dialog => DLG,
+            Comp::ScrollRegion => SCROLL_REGION,
+            Comp::TextArea => TEXT_AREA,
+            Comp::Select => SELECT,
+            Comp::RadioGroup => RADIO_GROUP,
+            Comp::Checkbox => CHECKBOX,
+            Comp::Toggle => TOGGLE,
+            Comp::ChipBar => CHIP_BAR,
+            Comp::StatusBar => STATUS_BAR,
+            Comp::HintBar => HINT_BAR,
+            Comp::KeyHint => KEY_HINT,
+            Comp::ProgressBar => PROGRESS_BAR,
+            Comp::Spinner => SPINNER,
+            Comp::Meter => METER,
+            Comp::Empty => EMPTY,
+            Comp::Brand => BRAND,
+            Comp::Panel => PANEL,
+            Comp::SplitPane => SPLIT_PANE,
+            Comp::TextViewport => TEXT_VIEWPORT,
+            Comp::DiffView => DIFF_VIEW,
+            Comp::CodeEditor => CODE_EDITOR,
+            Comp::Tree => TREE,
+            Comp::NavList => NAV_LIST,
+            Comp::Steps => STEPS,
+            Comp::TooSmall => TOO_SMALL,
+            Comp::Grid => GRID,
+            Comp::FilterList => FILTER_LIST,
+            Comp::Picker => PICKER,
+            Comp::Completion => COMPLETION,
+            Comp::Form => FORM,
+            Comp::ContextMenu => CONTEXT_MENU,
+            Comp::HelpOverlay => HELP_OVERLAY,
+            Comp::MenuBar => MENU_BAR,
+            Comp::PickerChain => PICKER_CHAIN,
+            Comp::Wizard => WIZARD,
+        }
+    }
+
+    fn reference_target(self, state: St) -> Option<ReferenceTarget> {
+        let reference = state.reference_state()?;
+        let owner = match (self, state) {
+            (Comp::Dialog, _) => DLG.part(Part::ACTIONS).index(0),
+            (Comp::Form, St::Pressed) => CHECKBOX,
+            (Comp::Form, _) => INPUT,
+            _ => self.id(),
+        };
+        let part = match (self, state) {
+            (
+                Comp::Form,
+                St::Default
+                | St::Focused
+                | St::Hovered
+                | St::Disabled
+                | St::Selected
+                | St::Editing
+                | St::Empty,
+            ) => PartRef::of(Part::FIELD),
+            (Comp::TextInput | Comp::Field | Comp::TextArea | Comp::Select, _) => {
+                PartRef::of(Part::FIELD)
+            }
+            (Comp::List | Comp::NavList | Comp::Steps, _) => {
+                PartRef::item(Part::ROW, ItemKey::text("Ada Lovelace"))
+            }
+            (Comp::Tabs, _) => PartRef::item(Part::TAB, ItemKey::text("General")),
+            (Comp::ScrollRegion, _) => PartRef::of(Part::THUMB),
+            (Comp::RadioGroup, _) => PartRef::item(Part::ROW, ItemKey::text("Ada Lovelace")),
+            (Comp::ChipBar, _) => PartRef::item(Part::LABEL, ItemKey::text("Ada Lovelace")),
+            (Comp::StatusBar | Comp::PickerChain, _) => PartRef::item(Part::LABEL, ItemKey::num(1)),
+            (Comp::SplitPane, _) => PartRef::of(Part::SEAM),
+            (Comp::TextViewport | Comp::DiffView | Comp::CodeEditor, _) => PartRef::of(Part::TEXT),
+            (Comp::Tree, _) => PartRef::item(Part::ROW, ItemKey::num(1)),
+            (Comp::Grid, _) => PartRef::item(Part::CELL, ItemKey::text("Ada Lovelace")),
+            (Comp::FilterList | Comp::Picker | Comp::Completion, _) => {
+                PartRef::item(Part::ROW, ItemKey::num(1))
+            }
+            (Comp::ContextMenu, _) => PartRef::item(Part::ROW, ItemKey::index(0)),
+            (Comp::MenuBar, _) => PartRef::item(Part::TITLE, ItemKey::index(0)),
+            (Comp::Wizard, _) => PartRef::item(Part::LABEL, ItemKey::num(2)),
+            (Comp::Form, St::Pressed)
+            | (
+                Comp::Button
+                | Comp::Dialog
+                | Comp::Checkbox
+                | Comp::Toggle
+                | Comp::HintBar
+                | Comp::KeyHint
+                | Comp::ProgressBar
+                | Comp::Spinner
+                | Comp::Meter
+                | Comp::Empty
+                | Comp::Brand
+                | Comp::Panel
+                | Comp::TooSmall
+                | Comp::HelpOverlay,
+                _,
+            ) => PartRef::of(Part::CONTAINER),
+        };
+        Some(ReferenceTarget::new(owner, reference).part(part))
+    }
 
     /// The [`Status`] this fixture hands `comp` in state `st`, or `None` when
     /// the fixture drives it with no status prop at all.
@@ -210,6 +529,7 @@ impl Comp {
             | Comp::List
             | Comp::Tabs
             | Comp::Dialog
+            | Comp::ScrollRegion
             | Comp::TextArea
             | Comp::Select
             | Comp::RadioGroup
@@ -219,7 +539,26 @@ impl Comp {
             | Comp::KeyHint
             | Comp::Spinner
             | Comp::Empty
-            | Comp::Brand => None,
+            | Comp::Brand
+            | Comp::Panel
+            | Comp::SplitPane
+            | Comp::TextViewport
+            | Comp::DiffView
+            | Comp::CodeEditor
+            | Comp::Tree
+            | Comp::NavList
+            | Comp::Steps
+            | Comp::TooSmall
+            | Comp::Grid
+            | Comp::FilterList
+            | Comp::Picker
+            | Comp::Completion
+            | Comp::Form
+            | Comp::ContextMenu
+            | Comp::HelpOverlay
+            | Comp::MenuBar
+            | Comp::Wizard => None,
+            Comp::PickerChain => Some(status_for(st)),
         }
     }
 }
@@ -241,12 +580,112 @@ fn tab_key(r: &&'static str) -> ItemKey {
     ItemKey::text(r)
 }
 
+fn render_tree_key(node: &RenderTreeNode) -> ItemKey {
+    node.key
+}
+
+fn render_tree_node(node: &RenderTreeNode) -> TreeNode {
+    node.node
+}
+
+fn render_tree_row(node: &RenderTreeNode, ui: &mut RowUi<'_>) {
+    ui.label(node.label);
+    ui.meta(node.meta);
+}
+
+fn render_nav_section<'a>(row: &'a (&'static str, &'static str)) -> &'a str {
+    if row.0 == "Ada Lovelace" {
+        "Core"
+    } else {
+        "People"
+    }
+}
+
+fn render_nav_icon<'a>(_row: &'a (&'static str, &'static str)) -> &'a str {
+    "›"
+}
+
+fn render_nav_badge<'a>(row: &'a (&'static str, &'static str)) -> Option<&'a str> {
+    (row.0 == "Ada Lovelace").then_some("3")
+}
+
+fn render_step(row: &(&str, &str)) -> StepState {
+    match row.0 {
+        "Ada Lovelace" => StepState::Done,
+        "Grace Hopper" => StepState::Running,
+        "Alan Turing" => StepState::Failed,
+        "Edsger Dijkstra" => StepState::Blocked,
+        "Barbara Liskov" => StepState::Skipped,
+        _ => StepState::Queued,
+    }
+}
+
+struct RenderGridModel<'a> {
+    rows: &'a [(&'static str, &'static str)],
+}
+
+impl GridModel for RenderGridModel<'_> {
+    fn row_count(&self) -> usize {
+        self.rows.len()
+    }
+
+    fn row_key(&self, row: usize) -> ItemKey {
+        self.rows
+            .get(row)
+            .map_or(ItemKey::index(row), |item| ItemKey::text(item.0))
+    }
+
+    fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
+        let row = self.rows.get(row)?;
+        match col {
+            0 => Some(CellRef::new(row.0)),
+            1 => Some(CellRef::new(row.1)),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Default)]
+struct SelectedGridFixture {
+    state: GridState,
+}
+
+impl App for SelectedGridFixture {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let model = RenderGridModel { rows: &ROWS };
+        Grid::new(GRID, &GRID_COLUMNS)
+            .select_mode(SelectMode::Multi)
+            .update(cx, &mut self.state, &model)
+            .map_action(|_| ())
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let model = RenderGridModel { rows: &ROWS };
+        Grid::new(GRID, &GRID_COLUMNS)
+            .select_mode(SelectMode::Multi)
+            .draw(ui, ui.full(), &self.state, &model);
+    }
+}
+
+fn selected_grid_state() -> GridState {
+    let mut harness = Harness::new(SelectedGridFixture::default(), Theme::junie(), 40, 10);
+    assert!(harness.tab_to(GRID));
+    let _ = harness.key(KeyCode::Char(' '));
+    let state = harness.app().state.clone();
+    assert!(
+        state
+            .selected_rows()
+            .contains(ItemKey::text("Ada Lovelace"))
+    );
+    state
+}
+
 fn text_input(id: Id, st: St) -> TextInput<'static> {
     let mut t = TextInput::new(id).placeholder("Type a name");
     if !st.is_empty() {
         t = t.value("Ada Lovelace");
     }
-    t.state_override(st.flags())
+    t.disabled(matches!(st, St::Disabled))
 }
 
 fn text_area(st: St) -> TextArea<'static> {
@@ -254,7 +693,7 @@ fn text_area(st: St) -> TextArea<'static> {
     if !st.is_empty() {
         t = t.value("Ada Lovelace\nanalyst");
     }
-    t.state_override(st.flags())
+    t.disabled(matches!(st, St::Disabled))
 }
 
 /// The readiness the fixture reports for each matrix state. Reached only
@@ -307,47 +746,62 @@ fn tabs_for(st: St) -> &'static [&'static str] {
 
 fn draw_button(st: St, ui: &mut Ui<'_>, area: Rect) {
     let label = if st.is_empty() { "" } else { "Run task" };
-    Button::new(BTN, label)
+    let mut button = Button::new(BTN, label)
         .variant(Variant::PRIMARY)
-        .state_override(st.flags())
-        .draw(ui, area);
+        .disabled(matches!(st, St::Disabled));
+    if matches!(st, St::Selected) {
+        button = button.checked(true);
+    }
+    button.draw(ui, area);
 }
 
 fn draw_text_input(st: St, ui: &mut Ui<'_>, area: Rect) {
-    text_input(INPUT, st).draw(ui, area, &TextInputState::default());
+    let mut state = TextInputState::default();
+    if matches!(st, St::Editing) {
+        state.begin("Ada Lovelace");
+    }
+    text_input(INPUT, st).draw(ui, area, &state);
 }
 
 fn draw_field(st: St, ui: &mut Ui<'_>, area: Rect) {
     let label = if st.is_empty() { "" } else { "Name" };
-    let mut f = Field::new(label, text_input(FIELD, st))
-        .required(true)
-        .state_override(st.flags());
+    let mut f = Field::new(label, text_input(FIELD, st)).required(true);
     if !st.is_empty() {
         f = f.help("The person's display name.");
     }
-    f.draw(ui, area, &TextInputState::default());
+    let mut state = TextInputState::default();
+    if matches!(st, St::Editing) {
+        state.begin("Ada Lovelace");
+    }
+    f.draw(ui, area, &state);
 }
 
 fn draw_list(st: St, ui: &mut Ui<'_>, area: Rect) {
     let key: fn(&(&str, &str)) -> ItemKey = row_key;
     let row: fn(&(&str, &str), &mut RowUi<'_>) = row_paint;
+    let mut state = ListState::default();
+    if matches!(st, St::Selected) {
+        state.choose(Some(ItemKey::text("Ada Lovelace")));
+    }
     List::new(LIST)
         .key(key)
         .row(row)
-        .state_override(st.flags())
-        .draw(ui, area, &ListState::default(), rows_for(st));
+        .draw(ui, area, &state, rows_for(st));
 }
 
 fn draw_tabs(st: St, ui: &mut Ui<'_>, area: Rect) {
     let key: fn(&&'static str) -> ItemKey = tab_key;
     let row: fn(&&'static str, &mut RowUi<'_>) = tab_paint;
+    let mut state = TabsState::default();
+    if matches!(st, St::Selected) {
+        state.set_active(0, ItemKey::text("General"));
+    }
     Tabs::new(TABS)
         .key(key)
         .row(row)
         .closable(true)
         .allow_new(true)
-        .state_override(st.flags())
-        .draw(ui, area, &TabsState::default(), tabs_for(st));
+        .draw(ui, area, &state, tabs_for(st));
 }
 
 fn draw_dialog(st: St, ui: &mut Ui<'_>, area: Rect) {
@@ -361,12 +815,39 @@ fn draw_dialog(st: St, ui: &mut Ui<'_>, area: Rect) {
             .actions(&DIALOG_ACTIONS)
             .cancel(ActionKey::CANCEL)
     };
-    d.state_override(st.flags())
-        .draw(ui, area, &DialogState::default(), |_, _| {});
+    d.draw(ui, area, &DialogState::default(), |_, _| {});
+}
+
+fn draw_scroll_region(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let rows = if st.is_empty() {
+        0
+    } else {
+        SCROLL_FIXTURE_ROWS
+    };
+    let state = ScrollState::default();
+    let content = ScrollRegion::new(SCROLL_REGION).draw(ui, area, &state, rows);
+    if rows != 0 {
+        let style = ui
+            .style(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::empty(),
+            )
+            .style;
+        let view = ScrollRegion::view(&state, content, rows);
+        for (row, index) in content.rows().zip(view.visible_range()) {
+            ui.paint_str(row, &format!("row {index}"), style);
+        }
+    }
 }
 
 fn draw_text_area(st: St, ui: &mut Ui<'_>, area: Rect) {
-    text_area(st).draw(ui, area, &TextAreaState::default());
+    let mut state = TextAreaState::default();
+    if matches!(st, St::Editing) {
+        state.begin("Ada Lovelace\nanalyst");
+    }
+    text_area(st).draw(ui, area, &state);
 }
 
 fn draw_select(st: St, ui: &mut Ui<'_>, area: Rect) {
@@ -381,32 +862,34 @@ fn draw_select(st: St, ui: &mut Ui<'_>, area: Rect) {
         .row(row)
         .placeholder("Choose a person")
         .popup_rows(5)
-        .state_override(st.flags())
+        .disabled(matches!(st, St::Disabled))
         .draw(ui, area, &state, rows_for(st));
 }
 
 fn draw_radio_group(st: St, ui: &mut Ui<'_>, area: Rect) {
     let key: fn(&(&str, &str)) -> ItemKey = row_key;
     let row: fn(&(&str, &str), &mut RowUi<'_>) = row_paint;
-    RadioGroup::new(RADIO_GROUP)
+    let mut radio = RadioGroup::new(RADIO_GROUP)
         .key(key)
         .row(row)
-        .value(ItemKey::text("Ada Lovelace"))
-        .state_override(st.flags())
-        .draw(ui, area, &RadioGroupState::default(), rows_for(st));
+        .disabled(matches!(st, St::Disabled));
+    if matches!(st, St::Selected) {
+        radio = radio.value(ItemKey::text("Ada Lovelace"));
+    }
+    radio.draw(ui, area, &RadioGroupState::default(), rows_for(st));
 }
 
 fn draw_checkbox(st: St, ui: &mut Ui<'_>, area: Rect) {
     Checkbox::new(CHECKBOX, "Accept terms")
         .checked(matches!(st, St::Selected))
-        .state_override(st.flags())
+        .disabled(matches!(st, St::Disabled))
         .draw(ui, area);
 }
 
 fn draw_toggle(st: St, ui: &mut Ui<'_>, area: Rect) {
     Toggle::new(TOGGLE, "Notifications")
         .on(matches!(st, St::Selected))
-        .state_override(st.flags())
+        .disabled(matches!(st, St::Disabled))
         .draw(ui, area);
 }
 
@@ -422,7 +905,7 @@ fn draw_chip_bar(st: St, ui: &mut Ui<'_>, area: Rect) {
         .row(row)
         .select_mode(SelectMode::Multi)
         .closable(true)
-        .state_override(st.flags())
+        .disabled(matches!(st, St::Disabled))
         .draw(ui, area, &state, rows_for(st));
 }
 
@@ -435,7 +918,6 @@ fn draw_status_bar(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
         .center(center)
         .right(right)
         .status(status)
-        .state_override(st.flags())
         .draw(ui, area);
 }
 
@@ -465,16 +947,11 @@ fn draw_hint_bar(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
         },
         centered: false,
     };
-    HintBar::new(HINT_BAR, &layer)
-        .status(status)
-        .state_override(st.flags())
-        .draw(ui, area);
+    HintBar::new(HINT_BAR, &layer).status(status).draw(ui, area);
 }
 
-fn draw_key_hint(st: St, ui: &mut Ui<'_>, area: Rect) {
-    KeyHint::new(KEY_HINT, Chord::key(KeyCode::Enter), "Open")
-        .state_override(st.flags())
-        .draw(ui, area);
+fn draw_key_hint(_st: St, ui: &mut Ui<'_>, area: Rect) {
+    KeyHint::new(KEY_HINT, Chord::key(KeyCode::Enter), "Open").draw(ui, area);
 }
 
 fn draw_progress_bar(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
@@ -482,7 +959,6 @@ fn draw_progress_bar(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
         .label(if st.is_empty() { "" } else { "Uploading" })
         .ratio(if st.is_empty() { 0.0 } else { 0.65 })
         .status(status)
-        .state_override(st.flags())
         .draw(ui, area);
 }
 
@@ -490,7 +966,6 @@ fn draw_spinner(st: St, ui: &mut Ui<'_>, area: Rect) {
     Spinner::new(SPINNER)
         .label(if st.is_empty() { "" } else { "Working" })
         .frame(1)
-        .state_override(st.flags())
         .draw(ui, area);
 }
 
@@ -499,21 +974,272 @@ fn draw_meter(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
         .ratio(if st.is_empty() { 0.0 } else { 0.65 })
         .value(if st.is_empty() { "" } else { "65%" })
         .status(status)
-        .state_override(st.flags())
         .draw(ui, area);
 }
 
 fn draw_empty(st: St, ui: &mut Ui<'_>, area: Rect) {
-    Empty::new(EMPTY, empty_surface(st))
-        .state_override(st.flags())
-        .draw(ui, area);
+    Empty::new(EMPTY, empty_surface(st)).draw(ui, area);
 }
 
 fn draw_brand(st: St, ui: &mut Ui<'_>, area: Rect) {
     Brand::new(BRAND, if st.is_empty() { "" } else { "Junie" })
         .tagline(if st.is_empty() { "" } else { "Terminal tools" })
-        .state_override(st.flags())
         .draw(ui, area);
+}
+
+fn draw_panel(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let empty = st.is_empty();
+    let mut panel = Panel::new(PANEL)
+        .kind(PanelKind::Framed)
+        .focused(matches!(st, St::Focused));
+    if !empty {
+        panel = panel.title("Inspector").meta("read only");
+    }
+    panel.draw(ui, area, |ui, body| {
+        if !empty {
+            let style = ui
+                .style(
+                    Family::PANEL,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    StateFlags::empty(),
+                )
+                .style;
+            ui.paint_str(body, "Selected object details", style);
+        }
+    });
+}
+
+fn draw_split_pane(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let split = SplitPane::new(SPLIT_PANE, SplitAxis::Horizontal)
+        .gap(u16::from(!st.is_empty()))
+        .min_first(8)
+        .min_second(8)
+        .resizable(true);
+    split.draw(ui, area, &SplitPaneState::default(), |ui, first, second| {
+        if !st.is_empty() {
+            let style = ui
+                .style(
+                    Family::SPLIT,
+                    Variant::DEFAULT,
+                    Part::SEAM,
+                    StateFlags::empty(),
+                )
+                .style;
+            ui.paint_str(first, "Primary pane", style);
+            ui.paint_str(second, "Secondary pane", style);
+        }
+    });
+}
+
+fn draw_text_viewport(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let lines: &[ViewportLine<'static>] = if st.is_empty() { &[] } else { &VIEWPORT_LINES };
+    let mut state = ViewportState::default();
+    if matches!(st, St::Selected) {
+        state.select(CellPos::new(0, 11), CellPos::new(1, 10));
+    }
+    TextViewport::new(TEXT_VIEWPORT)
+        .wrap(true)
+        .draw(ui, area, &state, lines);
+}
+
+fn draw_diff_view(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let source: Option<&dyn DiffSource> = (!st.is_empty()).then_some(&RenderDiff);
+    DiffView::new(DIFF_VIEW, source).draw(ui, area, &DiffViewState::default());
+}
+
+fn draw_code_editor(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let mut state = CodeEditorState::new(if st.is_empty() {
+        ""
+    } else {
+        "fn retry() {\n  let attempts = 5;\n}"
+    });
+    if matches!(st, St::Editing) {
+        state.begin_edit();
+    }
+    CodeEditor::new(CODE_EDITOR, area.height.max(2))
+        .placeholder("No source")
+        .disabled(matches!(st, St::Disabled))
+        .draw(ui, area, &state);
+}
+
+fn draw_tree(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let rows: &[RenderTreeNode] = if st.is_empty() { &[] } else { &TREE_ROWS };
+    let mut state = TreeState::default();
+    state.expand(ItemKey::num(1));
+    state.expand(ItemKey::num(2));
+    if matches!(st, St::Selected) {
+        state.choose(Some(ItemKey::num(3)));
+    }
+    Tree::new(TREE)
+        .key(render_tree_key as fn(&RenderTreeNode) -> ItemKey)
+        .node(&(render_tree_node as fn(&RenderTreeNode) -> TreeNode))
+        .row(render_tree_row as fn(&RenderTreeNode, &mut RowUi<'_>))
+        .disabled(matches!(st, St::Disabled))
+        .draw(ui, area, &state, rows);
+}
+
+fn draw_nav_list(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let rows = rows_for(st);
+    let mut state = NavListState::default();
+    if matches!(st, St::Selected) {
+        state.set_current(Some(ItemKey::text("Ada Lovelace")));
+    }
+    NavList::new(NAV_LIST)
+        .key(row_key as fn(&(&str, &str)) -> ItemKey)
+        .row(row_paint as fn(&(&str, &str), &mut RowUi<'_>))
+        .section(&render_nav_section)
+        .icon(&render_nav_icon)
+        .badge(&render_nav_badge)
+        .disabled(matches!(st, St::Disabled))
+        .draw(ui, area, &state, rows);
+}
+
+fn draw_steps(st: St, ui: &mut Ui<'_>, area: Rect) {
+    Steps::navigable(STEPS)
+        .key(row_key as fn(&(&str, &str)) -> ItemKey)
+        .row(row_paint as fn(&(&str, &str), &mut RowUi<'_>))
+        .step(&(render_step as fn(&(&str, &str)) -> StepState))
+        .disabled(matches!(st, St::Disabled))
+        .draw(ui, area, &StepsState::default(), rows_for(st));
+}
+
+fn draw_too_small(st: St, ui: &mut Ui<'_>, area: Rect) {
+    TooSmall::new(TOO_SMALL, if st.is_empty() { "" } else { "Junie" }).draw(ui, area);
+}
+
+fn draw_grid(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let model = RenderGridModel { rows: rows_for(st) };
+    let state = if matches!(st, St::Selected) {
+        selected_grid_state()
+    } else {
+        GridState::default()
+    };
+    Grid::new(GRID, &GRID_COLUMNS)
+        .select_mode(SelectMode::Multi)
+        .draw(ui, area, &state, &model);
+}
+
+fn render_items(st: St) -> ([Item<'static>; 3], usize) {
+    let items = RENDER_ITEMS.map(|item| item.disabled(matches!(st, St::Disabled)));
+    let len = if st.is_empty() { 0 } else { items.len() };
+    (items, len)
+}
+
+fn draw_filter_list(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let (items, len) = render_items(st);
+    FilterList::new(FILTER_LIST).draw(ui, area, &FilterListState::default(), &items[..len]);
+}
+
+fn draw_picker(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let (items, len) = render_items(st);
+    Picker::new(PICKER).draw(ui, area, &PickerState::default(), &items[..len]);
+}
+
+fn draw_completion(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let (items, len) = render_items(st);
+    Completion::new(COMPLETION).draw(ui, area, &CompletionState::default(), &items[..len]);
+}
+
+fn draw_form(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let input = TextInput::new(INPUT);
+    let checkbox = Checkbox::new(CHECKBOX, "Enabled");
+    let fields = [
+        FieldSpec::new(INPUT, "Name", FieldKind::Text(input)),
+        FieldSpec::new(CHECKBOX, "", FieldKind::Check(checkbox)),
+    ];
+    let data = RenderFormData {
+        name: if st.is_empty() {
+            String::new()
+        } else {
+            "Ada Lovelace".into()
+        },
+        enabled: matches!(st, St::Selected),
+        disabled: matches!(st, St::Disabled),
+    };
+    let fields: &[FieldSpec<'_>] = if st.is_empty() { &[] } else { &fields };
+    let actions: &[Action<'_>] = if st.is_empty() { &[] } else { &DIALOG_ACTIONS };
+    Form::new(FORM, fields)
+        .actions(actions)
+        .draw(ui, area, &FormState::default(), &data);
+}
+
+const RENDER_MENU_ITEMS: [MenuItem<'static>; 2] = [
+    MenuItem::new(ActionKey::SAVE, "Save").chord(Chord::key(KeyCode::Char('s'))),
+    MenuItem::new(ActionKey::CLOSE, "Close"),
+];
+const RENDER_MENUS: [Menu<'static>; 1] = [Menu::new("File", &RENDER_MENU_ITEMS)];
+
+fn draw_context_menu(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let disabled_items = RENDER_MENU_ITEMS.map(|item| item.disabled(true));
+    let items: &[MenuItem<'_>] = if st.is_empty() {
+        &[]
+    } else if matches!(st, St::Disabled) {
+        &disabled_items
+    } else {
+        &RENDER_MENU_ITEMS
+    };
+    ContextMenu::new(
+        CONTEXT_MENU,
+        items,
+        tui_next::Anchor::Screen(tui_next::ScreenAlign::Center),
+    )
+    .draw(ui, area, &MenuState::default());
+}
+
+fn draw_menu_bar(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let disabled_items = RENDER_MENU_ITEMS.map(|item| item.disabled(true));
+    let disabled_menus = [Menu::new("File", &disabled_items)];
+    let menus: &[Menu<'_>] = if st.is_empty() {
+        &[]
+    } else if matches!(st, St::Disabled) {
+        &disabled_menus
+    } else {
+        &RENDER_MENUS
+    };
+    MenuBar::new(MENU_BAR, menus).draw(ui, area, &MenuState::default());
+}
+
+fn draw_help_overlay(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let layer = HintLayer {
+        hints: vec![Hint {
+            chord: Chord::key(KeyCode::Enter),
+            label: "Choose",
+            priority: 80,
+        }],
+        ..HintLayer::default()
+    };
+    let sections = [HelpSection::new("General", &layer)];
+    let sections: &[HelpSection<'_>] = if st.is_empty() { &[] } else { &sections };
+    HelpOverlay::new(HELP_OVERLAY, "Application", sections).draw(
+        ui,
+        area,
+        &HelpOverlayState::default(),
+    );
+}
+
+fn draw_picker_chain(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
+    let stages = [
+        PickerStage::new(ItemKey::num(1), "Account"),
+        PickerStage::new(ItemKey::num(2), "Vault").status(status),
+    ];
+    let stages: &[PickerStage<'_>] = if st.is_empty() { &[] } else { &stages };
+    let mut state = PickerChainState::default();
+    if !st.is_empty() {
+        state.enter(ItemKey::num(1));
+        state.enter(ItemKey::num(2));
+    }
+    PickerChain::new(PICKER_CHAIN, stages).draw(ui, area, &state);
+}
+
+fn draw_wizard(st: St, ui: &mut Ui<'_>, area: Rect) {
+    let steps = [
+        WizardStep::new(ItemKey::num(1), "Account"),
+        WizardStep::new(ItemKey::num(2), "Details"),
+        WizardStep::new(ItemKey::num(3), "Review").enabled(!matches!(st, St::Disabled)),
+    ];
+    let steps: &[WizardStep<'_>] = if st.is_empty() { &[] } else { &steps };
+    Wizard::new(WIZARD, steps).draw(ui, area, &WizardState::<()>::default());
 }
 
 /// Draw `comp` in state `st` into `area`.
@@ -529,13 +1255,14 @@ fn draw(comp: Comp, st: St, ui: &mut Ui<'_>, area: Rect) {
             panic!("{c:?} paints a status prop but Comp::status_prop returns None for {st:?}")
         })
     };
-    match comp {
+    ui.reference(comp.reference_target(st), |ui| match comp {
         Comp::Button => draw_button(st, ui, area),
         Comp::TextInput => draw_text_input(st, ui, area),
         Comp::Field => draw_field(st, ui, area),
         Comp::List => draw_list(st, ui, area),
         Comp::Tabs => draw_tabs(st, ui, area),
         Comp::Dialog => draw_dialog(st, ui, area),
+        Comp::ScrollRegion => draw_scroll_region(st, ui, area),
         Comp::TextArea => draw_text_area(st, ui, area),
         Comp::Select => draw_select(st, ui, area),
         Comp::RadioGroup => draw_radio_group(st, ui, area),
@@ -550,7 +1277,26 @@ fn draw(comp: Comp, st: St, ui: &mut Ui<'_>, area: Rect) {
         Comp::Meter => draw_meter(st, status(comp), ui, area),
         Comp::Empty => draw_empty(st, ui, area),
         Comp::Brand => draw_brand(st, ui, area),
-    }
+        Comp::Panel => draw_panel(st, ui, area),
+        Comp::SplitPane => draw_split_pane(st, ui, area),
+        Comp::TextViewport => draw_text_viewport(st, ui, area),
+        Comp::DiffView => draw_diff_view(st, ui, area),
+        Comp::CodeEditor => draw_code_editor(st, ui, area),
+        Comp::Tree => draw_tree(st, ui, area),
+        Comp::NavList => draw_nav_list(st, ui, area),
+        Comp::Steps => draw_steps(st, ui, area),
+        Comp::TooSmall => draw_too_small(st, ui, area),
+        Comp::Grid => draw_grid(st, ui, area),
+        Comp::FilterList => draw_filter_list(st, ui, area),
+        Comp::Picker => draw_picker(st, ui, area),
+        Comp::Completion => draw_completion(st, ui, area),
+        Comp::Form => draw_form(st, ui, area),
+        Comp::ContextMenu => draw_context_menu(st, ui, area),
+        Comp::HelpOverlay => draw_help_overlay(st, ui, area),
+        Comp::MenuBar => draw_menu_bar(st, ui, area),
+        Comp::PickerChain => draw_picker_chain(st, status(comp), ui, area),
+        Comp::Wizard => draw_wizard(st, ui, area),
+    });
 }
 
 /// Render one matrix cell name across both themes, both colour levels and
@@ -929,6 +1675,193 @@ mod theme {
     }
 }
 
+#[test]
+fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
+    let theme = Theme::junie();
+    let glyphs = theme.design.glyphs.scrollbar();
+    for st in [St::Default, St::Focused, St::Pressed] {
+        for (width, height) in SIZES {
+            let mut scene = Scene::new(
+                "scroll fixture",
+                theme.clone(),
+                ColorLevel::Mono,
+                width,
+                height,
+            );
+            scene.draw(|ui, area| draw(Comp::ScrollRegion, st, ui, area));
+
+            let x = width.saturating_sub(1);
+            let symbol_at = |y| {
+                scene
+                    .buffer()
+                    .cell(Position::new(x, y))
+                    .expect("matrix position is inside the scene")
+                    .symbol()
+            };
+            assert_eq!(symbol_at(0), glyphs.begin, "{st:?} at {width}x{height}");
+            assert_eq!(
+                symbol_at(height.saturating_sub(1)),
+                glyphs.end,
+                "{st:?} at {width}x{height}"
+            );
+            assert!(
+                (1..height.saturating_sub(1)).any(|y| symbol_at(y) == glyphs.track),
+                "{st:?} at {width}x{height} has no visible track"
+            );
+            assert!(
+                (1..height.saturating_sub(1)).any(|y| symbol_at(y) == glyphs.thumb),
+                "{st:?} at {width}x{height} has no visible thumb"
+            );
+            let bold: Vec<Position> = scene
+                .area()
+                .positions()
+                .filter(|pos| {
+                    scene
+                        .buffer()
+                        .cell(*pos)
+                        .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+                })
+                .collect();
+            let expected: Vec<Position> = if st == St::Pressed {
+                let thumb_end = match (width, height) {
+                    (120, 40) => 20,
+                    (40, 10) => 2,
+                    _ => unreachable!("SIZES contains only the two matrix sizes"),
+                };
+                (1..thumb_end).map(|y| Position::new(x, y)).collect()
+            } else {
+                Vec::new()
+            };
+            assert_eq!(bold, expected, "{st:?} at {width}x{height}");
+        }
+    }
+}
+
+#[test]
+fn form_fixture_references_exact_child_visual_states() {
+    for color in [ColorLevel::TrueColor, ColorLevel::Mono] {
+        let digest = |st| {
+            let mut scene = Scene::new("form reference state", Theme::junie(), color, 120, 40);
+            scene.draw(|ui, area| draw(Comp::Form, st, ui, area));
+            scene.digest()
+        };
+        let default = digest(St::Default);
+        let focused = digest(St::Focused);
+        let pressed = digest(St::Pressed);
+        assert_ne!(default, focused, "focused form at {color:?}");
+        assert_ne!(default, pressed, "pressed form at {color:?}");
+        assert_ne!(focused, pressed, "focused/pressed form at {color:?}");
+    }
+}
+
+#[test]
+fn form_fixture_targets_exactly_one_owned_child() {
+    let text = |st| {
+        let mut scene = Scene::new("form target", Theme::junie(), ColorLevel::Mono, 120, 40);
+        scene.draw(|ui, area| draw(Comp::Form, st, ui, area));
+        scene.text()
+    };
+
+    let focused = text(St::Focused);
+    assert_eq!(focused.matches('▎').count(), 1, "{focused}");
+    assert!(focused.contains("▎ Ada Lovelace"));
+
+    let pressed = text(St::Pressed);
+    assert_eq!(pressed.matches("[Enabled]").count(), 1);
+    assert!(!pressed.contains("[Cancel]"));
+    assert!(!pressed.contains("[OK]"));
+    assert!(!pressed.contains("[Ada Lovelace]"));
+
+    let selected = text(St::Selected);
+    assert_eq!(selected.matches("[✓] Enabled").count(), 1);
+    assert!(!selected.contains("[Enabled]"));
+}
+
+struct RenderFormFixture {
+    state: St,
+}
+
+impl App for RenderFormFixture {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        draw(Comp::Form, self.state, ui, ui.full());
+    }
+}
+
+#[test]
+fn form_fixture_subtree_has_no_live_regions_or_focus_stops() {
+    for state in [
+        St::Default,
+        St::Focused,
+        St::Hovered,
+        St::Pressed,
+        St::Disabled,
+        St::Selected,
+        St::Editing,
+    ] {
+        let harness = Harness::new(RenderFormFixture { state }, Theme::junie(), 120, 40);
+        assert!(harness.ring().entries().is_empty(), "{state:?} focus stop");
+        for id in [FORM, INPUT, CHECKBOX, FORM.part(Part::ACTIONS).index(0)] {
+            assert!(harness.area_of(id).is_none(), "{state:?} live {id:?}");
+        }
+    }
+}
+
+#[test]
+fn selected_component_fixtures_supply_semantic_state() {
+    for (name, comp) in [
+        ("button", Comp::Button),
+        ("list", Comp::List),
+        ("tabs", Comp::Tabs),
+        ("grid", Comp::Grid),
+    ] {
+        for color in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            let digest = |st| {
+                let mut scene = Scene::new(name, Theme::junie(), color, 120, 40);
+                scene.draw(|ui, area| draw(comp, st, ui, area));
+                scene.digest()
+            };
+            assert_ne!(
+                digest(St::Default),
+                digest(St::Selected),
+                "{name} selected fixture at {color:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn select_selected_fixture_matches_default_in_every_matrix_cell() {
+    for (theme_name, theme) in [("junie", Theme::junie()), ("paper", Theme::paper())] {
+        for (color_name, color) in [
+            ("truecolor", ColorLevel::TrueColor),
+            ("mono", ColorLevel::Mono),
+        ] {
+            for (width, height) in SIZES {
+                let digest = |st| {
+                    let mut scene = Scene::new(
+                        "select semantic selection",
+                        theme.clone(),
+                        color,
+                        width,
+                        height,
+                    );
+                    scene.draw(|ui, area| draw_select(st, ui, area));
+                    scene.digest()
+                };
+                assert_eq!(
+                    digest(St::Default),
+                    digest(St::Selected),
+                    "select selected at {width}x{height} {theme_name} {color_name}"
+                );
+            }
+        }
+    }
+}
+
 mod render {
     mod components {
         matrix!(button, Comp::Button);
@@ -937,6 +1870,7 @@ mod render {
         matrix!(list, Comp::List);
         matrix!(tabs, Comp::Tabs);
         matrix!(dialog, Comp::Dialog);
+        matrix!(scroll_region, Comp::ScrollRegion);
         matrix!(text_area, Comp::TextArea);
         matrix!(select, Comp::Select);
         matrix!(radio_group, Comp::RadioGroup);
@@ -951,5 +1885,24 @@ mod render {
         matrix!(meter, Comp::Meter);
         matrix!(empty, Comp::Empty);
         matrix!(brand, Comp::Brand);
+        matrix!(panel, Comp::Panel);
+        matrix!(split_pane, Comp::SplitPane);
+        matrix!(text_viewport, Comp::TextViewport);
+        matrix!(diff_view, Comp::DiffView);
+        matrix!(code_editor, Comp::CodeEditor);
+        matrix!(tree, Comp::Tree);
+        matrix!(nav_list, Comp::NavList);
+        matrix!(steps, Comp::Steps);
+        matrix!(too_small, Comp::TooSmall);
+        matrix!(grid, Comp::Grid);
+        matrix!(filter_list, Comp::FilterList);
+        matrix!(picker, Comp::Picker);
+        matrix!(completion, Comp::Completion);
+        matrix!(form, Comp::Form);
+        matrix!(context_menu, Comp::ContextMenu);
+        matrix!(help_overlay, Comp::HelpOverlay);
+        matrix!(menu_bar, Comp::MenuBar);
+        matrix!(picker_chain, Comp::PickerChain);
+        matrix!(wizard, Comp::Wizard);
     }
 }

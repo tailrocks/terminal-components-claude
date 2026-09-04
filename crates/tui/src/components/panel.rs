@@ -44,7 +44,7 @@ pub enum PanelKind {
 /// ## Configuration
 /// `.kind(PanelKind)` (`Card`), `.title(&str)` (none), `.meta(&str)`
 /// (none), `.focused(bool)` (`false`), `.patch`, `.patch_part`, `.slot`,
-/// `.state_override`.
+/// reference fixtures use [`Ui::reference`](crate::Ui::reference).
 ///
 /// ## Variants
 /// `Family::PANEL`, `Variant::DEFAULT` only; `Recipe.default_variant` is
@@ -84,7 +84,8 @@ pub enum PanelKind {
 /// inner rect is computed with [`crate::layout::inset`], which clamps, so
 /// it can never escape `area` — the `width ≤ 4` escape of the legacy
 /// framed panel is structurally impossible. `draw` returns the body
-/// closure's value, or `None` when `area` is empty (R5).
+/// closure's value. The body runs exactly once even for an empty area; its
+/// painting is clipped to the anchored inner rect.
 ///
 /// ## Parts
 /// `CONTAINER` (the fill), `GUTTER` (the container focus bar), `TITLE`,
@@ -106,8 +107,8 @@ pub enum PanelKind {
 /// ## Invariants
 /// The inner rect is always a subrect of `area`. The body closure runs
 /// with the panel's own [`Surface`] pushed, so a child resolving
-/// `Role::CurrentSurface` gets the plane the panel filled. A forced state
-/// (A11) registers nothing.
+/// `Role::CurrentSurface` gets the plane the panel filled. An outer
+/// [`Ui::reference`](crate::Ui::reference) scope suppresses registrations.
 pub struct Panel<'a> {
     id: Id,
     kind: PanelKind,
@@ -206,15 +207,7 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
-    /// The state the panel's own props imply — §39's derived half, which a
-    /// forced state may add to and may never erase.
+    /// The state the panel's own props imply.
     const fn derived(&self) -> StateFlags {
         if self.focused {
             StateFlags::FOCUSED
@@ -306,31 +299,28 @@ impl<'a> Panel<'a> {
     /// Paint the chrome, then run `body` on the inner rect with the panel's
     /// own surface pushed.
     ///
-    /// `None` when `area` is empty: there is no rect to hand the body and
-    /// nothing was painted or registered (R5).
+    /// The body runs exactly once for every area. On an empty or tiny area it
+    /// receives an empty rect anchored inside `area`, and all effects remain
+    /// clipped to that rect (R4/R5).
     pub fn draw<R>(
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
         body: impl FnOnce(&mut Ui<'_>, Rect) -> R,
-    ) -> Option<R> {
-        if area.is_empty() {
-            return None;
-        }
+    ) -> R {
         let plane = self.plane(ui);
-        Some(ui.with_surface(plane, |ui| {
+        ui.with_surface(plane, |ui| {
             let inner = self.inner(ui, area);
             self.chrome(ui, area);
-            body(ui, inner)
-        }))
+            ui.with_area(inner, |ui| body(ui, inner))
+        })
     }
 
     /// The fill, the border and the head row.
     fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
         let ov = self.ov;
         let id = self.id;
-        let live = ov.flags(StateFlags::empty(), self.derived());
-        let forced = ov.is_forced();
+        let live = Overrides::flags(StateFlags::empty(), self.derived());
         let container = ov.style(
             ui,
             id,
@@ -340,9 +330,7 @@ impl<'a> Panel<'a> {
             live,
         );
         ui.fill(area, container.style);
-        if !forced {
-            ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
-        }
+        ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
         if self.kind == PanelKind::Framed {
             let border = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::BORDER, live);
             if let Some(f) = ov.slot_for(Part::BORDER) {
@@ -350,9 +338,7 @@ impl<'a> Panel<'a> {
             } else {
                 ui.frame(area, border.style);
             }
-            if !forced {
-                ui.register_decor(id, PartRef::of(Part::BORDER), area);
-            }
+            ui.register_decor(id, PartRef::of(Part::BORDER), area);
         }
         self.head(ui, area, live, container.style);
     }
@@ -444,6 +430,8 @@ impl<'a> Panel<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
+
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Position;
 
@@ -453,6 +441,47 @@ mod tests {
     use crate::theme::{Role, Theme};
 
     const ID: Id = Id::root("panel.tests");
+
+    #[test]
+    fn body_runs_once_for_an_empty_area_and_returns_its_value() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let calls = Cell::new(0);
+        let seen = Cell::new(Rect::ZERO);
+        let area = Rect::new(7, 5, 0, 0);
+        let mut answer = 0;
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            answer = Panel::new(ID).draw(ui, area, |_, inner| {
+                calls.set(calls.get() + 1);
+                seen.set(inner);
+                42
+            });
+        });
+        assert_eq!(answer, 42);
+        assert_eq!(calls.get(), 1);
+        assert_eq!(seen.get(), area);
+    }
+
+    #[test]
+    fn body_paint_is_clipped_to_the_inner_rect() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let area = Rect::new(4, 3, 12, 5);
+        let mut inner = Rect::ZERO;
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            Panel::new(ID).draw(ui, area, |ui, body| {
+                inner = body;
+                let style = ui.surface_style();
+                for row in SCREEN.rows() {
+                    ui.paint_str(row, "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", style);
+                }
+            });
+        });
+        for pos in SCREEN.positions() {
+            let is_z = buf.cell(pos).is_some_and(|cell| cell.symbol() == "Z");
+            assert_eq!(is_z, inner.contains(pos), "body clip mismatch at {pos:?}");
+        }
+    }
 
     fn symbol_at(buf: &Buffer, x: u16, y: u16) -> String {
         buf.cell(Position::new(x, y))
@@ -581,18 +610,18 @@ mod tests {
         assert!(rt.area_of(ID).is_some(), "the container is not addressable");
     }
 
-    /// A forced rendering (A11) registers nothing at all, so a reference
-    /// panel on a showcase page cannot become a live hit target.
+    /// A reference panel cannot become a live hit target.
     #[test]
-    fn a_forced_panel_registers_nothing() {
+    fn a_reference_panel_registers_nothing() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            Panel::new(ID)
-                .kind(PanelKind::Framed)
-                .title("Files")
-                .state_override(StateFlags::FOCUSED)
-                .draw(ui, a, |_, inner| inner);
+            ui.reference(None, |ui| {
+                Panel::new(ID)
+                    .kind(PanelKind::Framed)
+                    .title("Files")
+                    .draw(ui, a, |_, inner| inner);
+            });
         });
         assert!(rt.area_of(ID).is_none());
     }

@@ -25,10 +25,11 @@ name: Perf
 # wants a quiet machine for stable wall times, which is exactly what the PERF_STRICT
 # job asserts against. Removing it would make the strict job noisier, not wrong.
 #
-# `--workspace --test perf` selects BOTH perf targets today: the legacy root package's
-# `tests/perf.rs` and `crates/tui/tests/perf.rs`. The three `--bin … perf_tests` runs
-# are the application-shell benchmarks, which live inside the legacy root binaries
-# until Slices 5–7 move them to `apps/*/tests/perf.rs` (Appendix A, WP-0 note 5).
+# `--workspace --test perf --test perf_collections` selects the legacy root
+# `tests/perf.rs` plus both isolated crates/tui processes (`perf.rs` foundations and
+# `perf_collections.rs` collections; §66). The three `--bin … perf_tests` runs are the
+# application-shell benchmarks, which live inside the legacy root binaries until
+# Slices 5–7 move them to `apps/*/tests/perf.rs` (Appendix A, WP-0 note 5).
 
 on:
   push:
@@ -56,9 +57,9 @@ jobs:
         run: cargo run -p xtask -- bless-guard
       # The default `run` shell is `bash -e -o pipefail`, so a cargo failure ahead of
       # `tee` still fails the step.
-      - name: Library and foundation perf
+      - name: Library perf (foundation and collections)
         run: |
-          cargo test --workspace --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
+          cargo test --workspace --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
       - name: Showcase perf
         run: |
           cargo test --release --bin showcase perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-showcase.log
@@ -96,9 +97,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Library and foundation perf (strict)
+      - name: Library perf (foundation and collections, strict)
         run: |
-          cargo test --workspace --test perf --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-lib.log
+          cargo test --workspace --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-lib.log
       - name: Showcase perf (strict)
         run: |
           cargo test --release --bin showcase perf_tests -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-showcase.log

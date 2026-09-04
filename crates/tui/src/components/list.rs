@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn, cell_at};
+use super::{Acc, Overrides, SlotFn, cell_at, first_row, shift};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, KeySet, Reconcile, Reconciliation,
     RowFn, RowUi, SelectMode, Status,
@@ -20,7 +20,7 @@ use crate::layer::LayerSize;
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// What a list reports; every item action carries the item's key.
@@ -65,9 +65,16 @@ pub enum ListCmd {
     ToggleAll,
 }
 
-const fn b(chord: Chord, cmd: ListCmd, label: &'static str, visible: bool) -> Binding<ListCmd> {
+const fn b(
+    action: &'static str,
+    chord: Chord,
+    cmd: ListCmd,
+    label: &'static str,
+    visible: bool,
+) -> Binding<ListCmd> {
     Binding {
-        chord,
+        action: crate::ActionKey::custom(action),
+        chord: Some(chord),
         cmd,
         label,
         priority: if visible { 60 } else { 10 },
@@ -76,32 +83,77 @@ const fn b(chord: Chord, cmd: ListCmd, label: &'static str, visible: bool) -> Bi
 }
 
 const BASE: [Binding<ListCmd>; 11] = [
-    b(Chord::key(KeyCode::Up), ListCmd::Up, "Up", true),
-    b(Chord::key(KeyCode::Down), ListCmd::Down, "Down", true),
-    b(Chord::key(KeyCode::Char('k')), ListCmd::Up, "Up", false),
-    b(Chord::key(KeyCode::Char('j')), ListCmd::Down, "Down", false),
+    b("list.up", Chord::key(KeyCode::Up), ListCmd::Up, "Up", true),
     b(
+        "list.down",
+        Chord::key(KeyCode::Down),
+        ListCmd::Down,
+        "Down",
+        true,
+    ),
+    b(
+        "list.up-vim",
+        Chord::key(KeyCode::Char('k')),
+        ListCmd::Up,
+        "Up",
+        false,
+    ),
+    b(
+        "list.down-vim",
+        Chord::key(KeyCode::Char('j')),
+        ListCmd::Down,
+        "Down",
+        false,
+    ),
+    b(
+        "list.page-up",
         Chord::key(KeyCode::PageUp),
         ListCmd::PageUp,
         "Page up",
         false,
     ),
     b(
+        "list.page-down",
         Chord::key(KeyCode::PageDown),
         ListCmd::PageDown,
         "Page down",
         false,
     ),
-    b(Chord::key(KeyCode::Home), ListCmd::Home, "First", false),
-    b(Chord::key(KeyCode::End), ListCmd::End, "Last", false),
     b(
+        "list.home",
+        Chord::key(KeyCode::Home),
+        ListCmd::Home,
+        "First",
+        false,
+    ),
+    b(
+        "list.end",
+        Chord::key(KeyCode::End),
+        ListCmd::End,
+        "Last",
+        false,
+    ),
+    b(
+        "list.home-vim",
         Chord::key(KeyCode::Char('g')),
         ListCmd::Home,
         "First",
         false,
     ),
-    b(Chord::key(KeyCode::Char('G')), ListCmd::End, "Last", false),
-    b(Chord::key(KeyCode::Enter), ListCmd::Activate, "Open", true),
+    b(
+        "list.end-vim",
+        Chord::key(KeyCode::Char('G')),
+        ListCmd::End,
+        "Last",
+        false,
+    ),
+    b(
+        "list.activate",
+        Chord::key(KeyCode::Enter),
+        ListCmd::Activate,
+        "Open",
+        true,
+    ),
 ];
 
 const SINGLE: [Binding<ListCmd>; 12] = [
@@ -117,6 +169,7 @@ const SINGLE: [Binding<ListCmd>; 12] = [
     BASE[9],
     BASE[10],
     b(
+        "list.choose",
         Chord::key(KeyCode::Char(' ')),
         ListCmd::Choose,
         "Choose",
@@ -137,24 +190,28 @@ const MULTI: [Binding<ListCmd>; 15] = [
     BASE[9],
     BASE[10],
     b(
+        "list.toggle",
         Chord::key(KeyCode::Char(' ')),
         ListCmd::Choose,
         "Toggle",
         true,
     ),
     b(
+        "list.extend-up",
         Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
         ListCmd::ExtendUp,
         "Extend up",
         false,
     ),
     b(
+        "list.extend-down",
         Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
         ListCmd::ExtendDown,
         "Extend down",
         false,
     ),
     b(
+        "list.toggle-all",
         Chord::key(KeyCode::Char('a')),
         ListCmd::ToggleAll,
         "All",
@@ -241,7 +298,7 @@ impl Reconcile for ListState {
 /// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.select_mode`
 /// (`Single`), `.empty(EmptyState)` (a default "Nothing here yet"),
 /// `.disabled_item(&dyn Fn(&T) -> bool)`, `.status`, `.patch`,
-/// `.patch_part`, `.slot`, `.state_override`.
+/// `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::LIST`, `DEFAULT` only.
@@ -273,19 +330,20 @@ impl Reconcile for ListState {
 /// embedded [`ScrollRegion`].
 ///
 /// ## Layout
-/// One row per item; gutter, marker, then the renderer's row; a scrollbar
-/// column when the items overflow. `measure` is `(24…, items)`;
+/// One row per item; an optional two-cell readiness rail, gutter, marker,
+/// then the renderer's row; a scrollbar column when the items overflow.
+/// `measure` is `(24…, items)`;
 /// `measured_size` is the same arithmetic as a [`LayerSize`] for a list used
 /// as popover content (§26 N1); `draw` returns `area`. `0×0` registers
 /// nothing (R5).
 ///
 /// ## Parts
-/// `CONTAINER`, `GUTTER`, `MARKER`, `LABEL`, `META`, `TRACK`, `THUMB`,
-/// `EMPTY`, `ROW` (hit regions only).
+/// `CONTAINER`, `ICON`, `GUTTER`, `MARKER`, `LABEL`, `META`, `TRACK`,
+/// `THUMB`, `EMPTY`, `ROW` (hit regions only).
 ///
 /// ## Overrides
-/// `.patch` and `.patch_part` on any part; `.slot` on exactly `GUTTER`,
-/// `MARKER`, `EMPTY`, `TRACK` and `THUMB`. `TRACK` and `THUMB` are the
+/// `.patch` and `.patch_part` on any part; `.slot` on exactly `ICON`,
+/// `GUTTER`, `MARKER`, `EMPTY`, `TRACK` and `THUMB`. `TRACK` and `THUMB` are the
 /// embedded [`ScrollRegion`]'s, which paints them under this list's own
 /// `Id`, so all three overrides are forwarded to it. `CONTAINER`, `LABEL`,
 /// `META` and `ROW` are not slot-addressable: `CONTAINER` is the list's own
@@ -297,7 +355,8 @@ impl Reconcile for ListState {
 /// insert/remove/reorder. Every action carries an `ItemKey`.
 ///
 /// ## Testing
-/// `ListCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SCROLLS`;
+/// `ListCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SCROLLS |
+/// REPORTS_STATUS`;
 /// `render::components::list::*`. `CAPTURES` belongs to the embedded
 /// [`ScrollRegion`], whose thumb claims the capture, and is declared by
 /// `ScrollRegionCase`.
@@ -359,6 +418,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
+        Part::ICON,
         Part::GUTTER,
         Part::MARKER,
         Part::LABEL,
@@ -482,12 +542,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     }
 
     /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     fn table(&self) -> &'static [Binding<ListCmd>] {
         match self.select_mode {
             SelectMode::Single => &SINGLE,
@@ -612,9 +666,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let table = self.table();
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) => {
+                Intent::Binding(action) => {
                     let cur = st.core.cursor_index();
-                    match Binding::lookup(table, &k) {
+                    match Binding::command(table, action) {
                         Some(ListCmd::Up) => {
                             self.move_cursor(st, items, cur.saturating_sub(1), false, &mut acc);
                         }
@@ -719,10 +773,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             return area;
         }
         let len = items.len();
-        if !self.ov.is_forced() {
+        if !ui.is_inert() {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
-        let live = self.ov.flags(ui.state(self.id), self.status.flags());
+        let live = Overrides::flags(ui.state(self.id), self.status.flags());
+        if !ui.is_inert() {
+            ui.publish_bindings(self.id, live, self.table());
+        }
         let ov = self.ov;
         let id = self.id;
         let container = ov.style(
@@ -734,7 +791,38 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
         );
         ui.fill(area, container.style);
-        let content = self.scrollbar().draw(ui, area, st.core.scroll(), len);
+        let surface = self.scrollbar().draw(ui, area, st.core.scroll(), len);
+        let has_readiness = !matches!(self.status, Status::Ready);
+        let content = if has_readiness {
+            shift(surface, 2)
+        } else {
+            surface
+        };
+        if has_readiness {
+            let icon_cell = cell_at(first_row(surface), surface.x);
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, icon_cell);
+            } else {
+                let icon = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::ICON, live);
+                match self.status {
+                    Status::Busy | Status::Loading => {
+                        let frames = ui.design().motion.spinner_frames;
+                        let frame = frames.first().copied().unwrap_or("");
+                        ui.paint_str(icon_cell, frame, icon.style);
+                    }
+                    Status::Error => match icon.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(icon_cell, glyph, icon.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(icon_cell, GlyphRole::Error, icon.style);
+                        }
+                        Slot::Clear => ui.fill(icon_cell, icon.style),
+                    },
+                    Status::Ready => {}
+                }
+            }
+        }
         if len == 0 {
             let empty = self.empty.unwrap_or(EmptyState::Empty {
                 title: "Nothing here yet",
@@ -743,7 +831,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             let mid = Rect {
                 y: area.y.saturating_add(area.height / 2),
                 height: area.height.saturating_sub(area.height / 2),
-                ..area
+                ..content
             };
             if let Some(f) = ov.slot_for(Part::EMPTY) {
                 f(ui, mid);
@@ -755,7 +843,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         }
         let view = ScrollRegion::view(st.core.scroll(), content, len);
         let cursor = st.core.cursor();
-        let forced = self.ov.is_forced();
+        let hovered = ui.hovered_part(self.id);
+        let pressed = ui.pressed_part(self.id);
         // Data readiness is a property of the whole list, but the rows are the
         // only surface it has: a list whose `.status` is `Error` must say so in
         // the row chrome, or it is indistinguishable from a healthy one once
@@ -765,14 +854,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         for (row_i, i) in view.visible_range().enumerate() {
             let Some(item) = items.get(i) else { break };
             let key = self.key.key(item, i);
-            let is_cursor = cursor == Some(key) || (forced && cursor.is_none() && row_i == 0);
+            let is_cursor = cursor == Some(key);
             let mut flags = status;
             if is_cursor {
-                flags |=
-                    live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::PRESSED);
-                if forced {
-                    flags |= live & StateFlags::SELECTED;
-                }
+                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+            }
+            let row_part = PartRef::item(Part::ROW, key);
+            if hovered == Some(row_part) {
+                flags |= StateFlags::HOVERED;
+            }
+            if pressed == Some(row_part)
+                || (pressed.is_none() && is_cursor && live.contains(StateFlags::PRESSED))
+            {
+                flags |= StateFlags::PRESSED;
             }
             if st.chosen == Some(key) {
                 flags |= StateFlags::SELECTED;
@@ -780,7 +874,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             if st.core.checked().contains(key) {
                 flags |= StateFlags::CHECKED;
             }
-            if self.is_disabled(item) || (forced && live.contains(StateFlags::DISABLED)) {
+            if self.is_disabled(item) || live.contains(StateFlags::DISABLED) {
                 flags |= StateFlags::DISABLED;
                 flags = flags.difference(StateFlags::PRESSED);
             }
@@ -836,7 +930,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 let mut r = RowUi::new(ui, id, Family::LIST, Variant::DEFAULT, flags, key, rest);
                 self.row.row(item, &mut r);
             }
-            ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
+            if !ui.is_inert() {
+                ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
+            }
         }
         area
     }
@@ -875,5 +971,109 @@ impl<T, K, R> Bindings for List<'_, T, K, R> {
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<ListCmd>] {
         self.table()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::cell::Cell;
+
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::{Position, Rect};
+    use ratatui_core::style::Modifier;
+
+    use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::Stub;
+    use crate::theme::Theme;
+
+    const ID: Id = Id::root("list.status.tests");
+    const AREA: Rect = Rect::new(0, 0, 16, 2);
+
+    fn draw(status: Status) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            List::new(ID)
+                .status(status)
+                .draw(ui, area, &state, &["one", "two"]);
+        });
+        buffer
+    }
+
+    #[test]
+    fn readiness_rail_is_conditional_root_owned_and_patchable() {
+        assert!(List::<&str>::PARTS.contains(&Part::ICON));
+        assert_eq!(draw(Status::Ready), draw(Status::Ready));
+        let busy = draw(Status::Busy);
+        let frame = Theme::junie()
+            .design
+            .motion
+            .spinner_frames
+            .first()
+            .copied()
+            .unwrap_or("");
+        assert_eq!(
+            busy.cell(Position::new(0, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(frame)
+        );
+
+        let seen = Cell::new(None);
+        let slot = |_ui: &mut Ui<'_>, area: Rect| seen.set(Some(area));
+        let patch = [(Part::ICON, StylePatch::new().add(Modifier::UNDERLINED))];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            List::new(ID)
+                .status(Status::Busy)
+                .patch_part(&patch)
+                .draw(ui, area, &state, &["one"]);
+        });
+        assert!(
+            buffer
+                .cell(Position::new(0, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+        );
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            List::new(ID)
+                .status(Status::Error)
+                .patch_part(&patch)
+                .slot(Part::ICON, &slot)
+                .draw(ui, area, &state, &["one"]);
+        });
+        assert_eq!(seen.get(), Some(Rect::new(0, 0, 1, 1)));
+    }
+
+    #[test]
+    fn chosen_marker_comes_only_from_semantic_state() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = ListState::default();
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            List::new(ID).draw(ui, area, &state, &["one"]);
+        });
+        assert_eq!(
+            buffer
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(" ")
+        );
+
+        let selected = ListState {
+            chosen: Some(ItemKey::index(0)),
+            ..ListState::default()
+        };
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            List::new(ID).draw(ui, area, &selected, &["one"]);
+        });
+        assert_eq!(
+            buffer
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::Chosen))
+        );
     }
 }

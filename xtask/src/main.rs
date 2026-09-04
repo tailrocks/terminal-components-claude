@@ -198,6 +198,18 @@ const CHECKS: &[Check] = &[
         no_static_bound_in_component_surface,
     ),
     ("draw_takes_shared_self", draw_takes_shared_self),
+    (
+        "closure_bearing_draw_signatures_are_exact",
+        closure_bearing_draw_signatures_are_exact,
+    ),
+    (
+        "grid_model_public_surface_is_exact",
+        grid_model_public_surface_is_exact,
+    ),
+    (
+        "field_kind_has_no_type_parameters",
+        field_kind_has_no_type_parameters,
+    ),
     ("cache_types_are_derived_only", cache_types_are_derived_only),
     (
         "capability_has_no_unicode_field",
@@ -223,16 +235,16 @@ const CHECKS: &[Check] = &[
         conformance_covers_every_public_component,
     ),
     (
-        "state_override_is_used_only_in_apps_and_fixtures",
-        state_override_is_used_only_in_apps_and_fixtures,
+        "legacy_forced_state_apis_are_absent",
+        legacy_forced_state_apis_are_absent,
     ),
     (
         "examples_are_external_consumers",
         examples_are_external_consumers,
     ),
     (
-        "inherit_forced_stays_crate_internal",
-        inherit_forced_stays_crate_internal,
+        "reference_rendering_is_ui_scoped",
+        reference_rendering_is_ui_scoped,
     ),
     ("binary_names_are_preserved", binary_names_are_preserved),
     (
@@ -729,7 +741,7 @@ fn doc_table_names(text: &str) -> BTreeSet<String> {
 /// §21 item 28 words this as `cargo test --workspace -- --list`. This scans
 /// the sources for the same thing — every `#[test] fn name` — because the
 /// check runs *inside* `cargo test --test architecture` and a nested
-/// `cargo test --workspace --test perf --release -- --list` would rebuild the
+/// `cargo test --workspace --test perf --test perf_collections --release -- --list` would rebuild the
 /// world in a second profile on every architecture run. The two enumerate the
 /// same set; source scanning additionally sees `cfg`-gated tests, which for a
 /// one-directional "the name exists" check is the safer direction.
@@ -1078,127 +1090,79 @@ fn conformance_covers_every_public_component() -> Result<(), String> {
     }
 }
 
-/// §21 item 30: `.state_override(` is a fixture affordance, never a library
-/// or application-logic call.
-fn state_override_is_used_only_in_apps_and_fixtures() -> Result<(), String> {
-    let mut dirs = vec![root().join("crates")];
-    if root().join("apps").exists() {
-        dirs.push(root().join("apps"));
-    }
-    let re = Regex::new(r"\.state_override\(").map_err(|e| e.to_string())?;
-    // the builder's own forwarding (`self.ov = self.ov.state_override(s)`) is
-    // the *definition* of the affordance, not a use of it
-    let own =
-        Regex::new(r"self\.\w+\s*=\s*self\.\w+\.state_override\(|pub (const )?fn state_override")
-            .map_err(|e| e.to_string())?;
+const LEGACY_FORCED_STATE_APIS: [&str; 2] = ["state_override", "inherit_forced"];
+
+fn legacy_forced_state_hits(path: &str, source: &str) -> Vec<String> {
     let mut hits = Vec::new();
-    for dir in dirs {
-        for file in rust_files(&dir) {
-            let path = rel(&file);
-            if path.contains("/target/")
-                || path.starts_with("apps/")
-                // every test target is a fixture context: `tests/fixtures/**`
-                // is the documented home, and the conformance cases are the
-                // same thing under another name
-                || path.contains("crates/tui/tests/")
-                || path.contains("crates/tui-testing/")
+    for (line_number, line) in non_test_lines(source) {
+        let code = code_line(line);
+        for legacy in LEGACY_FORCED_STATE_APIS {
+            if code
+                .split(|character: char| !character.is_alphanumeric() && character != '_')
+                .any(|identifier| identifier == legacy)
             {
-                continue;
+                hits.push(format!("{path}:{line_number}: {}", line.trim()));
             }
-            // A `#[cfg(test)]` item in library source is a fixture context
-            // for the same reason `crates/tui/tests/**` is: it is compiled
-            // only for `cargo test`, it ships in no binary, and §16.1 puts a
-            // component's own unit tests beside the component
-            // (`dialog::a_forced_dialog_registers_no_control` asserts that a
-            // *forced* dialog registers nothing, which it cannot do without
-            // forcing one). The rule this check protects — no component
-            // forces its own visual state where behaviour depends on it —
-            // is about the code that runs in an application.
-            let mut depth: i32 = 0;
-            let mut pending_cfg_test = false;
-            let mut test_at: Option<i32> = None;
-            for (i, line) in read(&file).lines().enumerate() {
-                let code = code_line(line);
-                if test_at.is_none() && re.is_match(code) && !own.is_match(code) {
-                    hits.push(format!("{path}:{}: {}", i.saturating_add(1), line.trim()));
-                }
-                if code.contains("#[cfg(test)]") {
-                    pending_cfg_test = true;
-                }
-                let opens = i32::try_from(code.matches('{').count()).unwrap_or(0);
-                let closes = i32::try_from(code.matches('}').count()).unwrap_or(0);
-                if pending_cfg_test && opens > 0 {
-                    test_at = Some(depth);
-                    pending_cfg_test = false;
-                }
-                depth = depth.saturating_add(opens).saturating_sub(closes);
-                if test_at.is_some_and(|d| depth <= d) {
-                    test_at = None;
-                }
-            }
+        }
+    }
+    hits
+}
+
+/// Option-B A11 boundary: retired builder and propagation hooks cannot survive
+/// in shipped library code, privately or publicly.
+fn legacy_forced_state_apis_are_absent() -> Result<(), String> {
+    let mut hits = Vec::new();
+    for dir in [root().join("crates"), root().join("apps")] {
+        for file in rust_files(&dir) {
+            hits.extend(legacy_forced_state_hits(&rel(&file), &read(&file)));
         }
     }
     if hits.is_empty() {
         Ok(())
     } else {
         Err(format!(
-            "`.state_override(` outside apps/**, crates/tui/tests/**, crates/tui-testing/** and \
-             a component's own builder forwarding:\n{}",
+            "legacy forced-state APIs must be absent from production and the public surface:\n{}",
             hits.join("\n")
         ))
     }
 }
 
-/// §12.1 / §21 item 30: `inherit_forced` is the **crate-internal**
-/// composition half of A11 — a container forcing a component it owns. It is
-/// deliberately not spelled `.state_override(`, so
-/// `state_override_is_used_only_in_apps_and_fixtures` still sees every
-/// *caller* use of the public affordance. That only holds while the hook
-/// itself cannot be reached from outside: if a later slice makes it `pub`
-/// anywhere but the `FieldControl` trait default, an application can force a
-/// component's state without ever writing `.state_override(`, and the A11
-/// boundary check becomes decorative.
-fn inherit_forced_stays_crate_internal() -> Result<(), String> {
-    let mut dirs = vec![root().join("crates")];
-    if root().join("apps").exists() {
-        dirs.push(root().join("apps"));
+fn reference_path_is_fixture(path: &str) -> bool {
+    path.starts_with("apps/")
+        || path.contains("/examples/")
+        || path.contains("/tests/")
+        || path.starts_with("crates/tui-testing/")
+}
+
+fn ui_reference_hits(path: &str, source: &str) -> Vec<String> {
+    if reference_path_is_fixture(path) {
+        return Vec::new();
     }
-    let re = Regex::new(r"\binherit_forced\b").map_err(|e| e.to_string())?;
-    let public = Regex::new(r"pub (const )?fn inherit_forced").map_err(|e| e.to_string())?;
-    // the trait declaration and its defaulted body
-    let trait_home = "crates/tui/src/field_control.rs";
+    let call = Regex::new(r"(?:\bUi\s*::\s*reference|\.\s*reference)\s*\(")
+        .expect("valid Ui::reference call regex");
+    non_test_lines(source)
+        .into_iter()
+        .filter(|(_, line)| call.is_match(code_line(line)))
+        .map(|(line_number, line)| format!("{path}:{line_number}: {}", line.trim()))
+        .collect()
+}
+
+/// Option-B A11 boundary: reference rendering belongs to fixture/application
+/// orchestration. Shipped component and runtime code may never invoke it.
+fn reference_rendering_is_ui_scoped() -> Result<(), String> {
     let mut hits = Vec::new();
-    let mut seen = 0usize;
-    for dir in dirs {
+    for dir in [root().join("crates"), root().join("apps")] {
         for file in rust_files(&dir) {
             let path = rel(&file);
-            if path.contains("/target/") {
-                continue;
-            }
-            let component = path.starts_with("crates/tui/src/components/");
-            let is_trait = path == trait_home;
-            for (i, line) in read(&file).lines().enumerate() {
-                let code = code_line(line);
-                if !re.is_match(code) {
-                    continue;
-                }
-                seen = seen.saturating_add(1);
-                let at = format!("{path}:{}: {}", i.saturating_add(1), line.trim());
-                if !component && !is_trait {
-                    hits.push(at);
-                } else if public.is_match(code) && !is_trait {
-                    hits.push(format!("{at}  (public outside the trait default)"));
-                }
-            }
+            hits.extend(ui_reference_hits(&path, &read(&file)));
         }
     }
-    println!("inherit_forced_stays_crate_internal: {seen} mention(s)");
     if hits.is_empty() {
         Ok(())
     } else {
         Err(format!(
-            "`inherit_forced` may appear only under crates/tui/src/components/** and \
-             {trait_home}, and may be `pub` only as the trait default:\n{}",
+            "`Ui::reference` calls are restricted to apps, examples, tests, testing support, \
+             and `#[cfg(test)]` items; production calls are forbidden:\n{}",
             hits.join("\n")
         ))
     }
@@ -2341,8 +2305,541 @@ fn draw_takes_shared_self() -> Result<(), String> {
     }
 }
 
-fn cache_types_are_derived_only() -> Result<(), String> {
+struct ClosureDrawSpec<'a> {
+    component: &'a str,
+    path: &'a str,
+    source: &'a str,
+    state: Option<&'a str>,
+    rects: usize,
+}
+
+fn path_is(ty: &syn::Type, want: &str) -> bool {
+    matches!(
+        ty,
+        syn::Type::Path(p)
+            if p.qself.is_none()
+                && p.path.segments.len() == 1
+                && p.path.segments.first().is_some_and(|s| s.ident == want)
+    )
+}
+
+fn bare_path_is(ty: &syn::Type, want: &str) -> bool {
+    matches!(
+        ty,
+        syn::Type::Path(p)
+            if p.qself.is_none()
+                && p.path.segments.len() == 1
+                && p.path.segments.first().is_some_and(|s| {
+                    s.ident == want && matches!(s.arguments, syn::PathArguments::None)
+                })
+    )
+}
+
+fn shared_self(arg: &syn::FnArg) -> bool {
+    matches!(
+        arg,
+        syn::FnArg::Receiver(r)
+            if r.reference.is_some() && r.mutability.is_none() && r.colon_token.is_none()
+    )
+}
+
+fn reference_to(ty: &syn::Type, want: &str, mutable: bool) -> bool {
+    matches!(
+        ty,
+        syn::Type::Reference(r)
+            if r.mutability.is_some() == mutable && path_is(&r.elem, want)
+    )
+}
+
+fn typed_arg_is(arg: &syn::FnArg, want: &str) -> bool {
+    matches!(arg, syn::FnArg::Typed(p) if bare_path_is(&p.ty, want))
+}
+
+fn typed_arg_is_reference(arg: &syn::FnArg, want: &str, mutable: bool) -> bool {
+    matches!(arg, syn::FnArg::Typed(p) if reference_to(&p.ty, want, mutable))
+}
+
+fn body_slot_has_shape(arg: &syn::FnArg, rects: usize) -> bool {
+    let syn::FnArg::Typed(arg) = arg else {
+        return false;
+    };
+    let syn::Pat::Ident(name) = arg.pat.as_ref() else {
+        return false;
+    };
+    if name.ident != "body" {
+        return false;
+    }
+    let syn::Type::ImplTrait(body) = arg.ty.as_ref() else {
+        return false;
+    };
+    if body.bounds.len() != 1 {
+        return false;
+    }
+    let Some(syn::TypeParamBound::Trait(bound)) = body.bounds.first() else {
+        return false;
+    };
+    let Some(segment) = bound.path.segments.last() else {
+        return false;
+    };
+    if bound.lifetimes.is_some()
+        || !matches!(bound.modifier, syn::TraitBoundModifier::None)
+        || bound.path.segments.len() != 1
+        || segment.ident != "FnOnce"
+    {
+        return false;
+    }
+    let syn::PathArguments::Parenthesized(args) = &segment.arguments else {
+        return false;
+    };
+    if args.inputs.len() != rects.saturating_add(1)
+        || !args
+            .inputs
+            .first()
+            .is_some_and(|ty| reference_to(ty, "Ui", true))
+        || !args
+            .inputs
+            .iter()
+            .skip(1)
+            .all(|ty| bare_path_is(ty, "Rect"))
+    {
+        return false;
+    }
+    matches!(&args.output, syn::ReturnType::Type(_, ty) if bare_path_is(ty, "R"))
+}
+
+fn check_closure_draw_signature(spec: &ClosureDrawSpec<'_>) -> Result<(), String> {
+    let ast =
+        syn::parse_file(spec.source).map_err(|e| format!("{} does not parse: {e}", spec.path))?;
+    let mut draws = Vec::new();
+    for item in &ast.items {
+        let syn::Item::Impl(item_impl) = item else {
+            continue;
+        };
+        if item_impl.trait_.is_some() || !path_is(&item_impl.self_ty, spec.component) {
+            continue;
+        }
+        for item in &item_impl.items {
+            if let syn::ImplItem::Fn(method) = item
+                && method.sig.ident == "draw"
+                && matches!(method.vis, syn::Visibility::Public(_))
+            {
+                draws.push(method);
+            }
+        }
+    }
+    if draws.len() != 1 {
+        return Err(format!(
+            "{}: expected exactly one public {}::draw, found {}",
+            spec.path,
+            spec.component,
+            draws.len()
+        ));
+    }
+    let draw = draws[0];
+    let generic_r = draw.sig.generics.params.len() == 1
+        && draw.sig.generics.where_clause.is_none()
+        && matches!(
+            draw.sig.generics.params.first(),
+            Some(syn::GenericParam::Type(param))
+                if param.ident == "R" && param.bounds.is_empty() && param.default.is_none()
+        );
+    let bare_r = matches!(&draw.sig.output, syn::ReturnType::Type(_, ty) if bare_path_is(ty, "R"));
+    let qualifiers_ok = draw.sig.constness.is_none()
+        && draw.sig.asyncness.is_none()
+        && draw.sig.unsafety.is_none()
+        && draw.sig.abi.is_none()
+        && draw.sig.variadic.is_none();
+    let inputs: Vec<&syn::FnArg> = draw.sig.inputs.iter().collect();
+    let state_args = usize::from(spec.state.is_some());
+    let input_count = 4usize.saturating_add(state_args);
+    let prefix_ok = inputs.len() == input_count
+        && inputs.first().is_some_and(|arg| shared_self(arg))
+        && inputs
+            .get(1)
+            .is_some_and(|arg| typed_arg_is_reference(arg, "Ui", true))
+        && inputs.get(2).is_some_and(|arg| typed_arg_is(arg, "Rect"));
+    let state_ok = spec.state.is_none_or(|state| {
+        inputs
+            .get(3)
+            .is_some_and(|arg| typed_arg_is_reference(arg, state, false))
+    });
+    let body_index = 3usize.saturating_add(state_args);
+    let body_ok = inputs
+        .get(body_index)
+        .is_some_and(|arg| body_slot_has_shape(arg, spec.rects));
+    if qualifiers_ok && generic_r && bare_r && prefix_ok && state_ok && body_ok {
+        Ok(())
+    } else {
+        Err(format!(
+            "{}: {}::draw must be `pub fn draw<R>(&self, &mut Ui, Rect, {}body: impl FnOnce(&mut Ui, {}) -> R) -> R`",
+            spec.path,
+            spec.component,
+            spec.state
+                .map_or(String::new(), |state| format!("&{state}, ")),
+            vec!["Rect"; spec.rects].join(", ")
+        ))
+    }
+}
+
+fn check_closure_draw_signatures(specs: &[ClosureDrawSpec<'_>]) -> Result<(), String> {
+    let errors: Vec<String> = specs
+        .iter()
+        .filter_map(|spec| check_closure_draw_signature(spec).err())
+        .collect();
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+/// §§55–56: total closure-bearing containers return their body result without
+/// optionality, and SplitPane is the sole two-Rect body-slot exception.
+fn closure_bearing_draw_signatures_are_exact() -> Result<(), String> {
+    let files = [
+        ("Panel", "crates/tui/src/components/panel.rs", None, 1),
+        (
+            "Dialog",
+            "crates/tui/src/components/dialog.rs",
+            Some("DialogState"),
+            1,
+        ),
+        (
+            "SplitPane",
+            "crates/tui/src/components/split.rs",
+            Some("SplitPaneState"),
+            2,
+        ),
+    ];
+    let sources: Vec<String> = files
+        .iter()
+        .map(|(_, path, _, _)| read(&root().join(path)))
+        .collect();
+    let specs: Vec<ClosureDrawSpec<'_>> = files
+        .iter()
+        .zip(&sources)
+        .map(
+            |((component, path, state, rects), source)| ClosureDrawSpec {
+                component,
+                path,
+                source,
+                state: *state,
+                rects: *rects,
+            },
+        )
+        .collect();
+    check_closure_draw_signatures(&specs)
+}
+
+fn path_with_infer_lifetime(ty: &syn::Type, want: &str) -> bool {
+    let syn::Type::Path(path) = ty else {
+        return false;
+    };
+    if path.qself.is_some() || path.path.segments.len() != 1 {
+        return false;
+    }
+    let Some(segment) = path.path.segments.first() else {
+        return false;
+    };
+    let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
+        return false;
+    };
+    segment.ident == want
+        && args.args.len() == 1
+        && matches!(args.args.first(), Some(syn::GenericArgument::Lifetime(l)) if l.ident == "_")
+}
+
+fn one_type_argument<'a>(ty: &'a syn::Type, outer: &str) -> Option<&'a syn::Type> {
+    let syn::Type::Path(path) = ty else {
+        return None;
+    };
+    if path.qself.is_some() || path.path.segments.len() != 1 {
+        return None;
+    }
+    let segment = path.path.segments.first()?;
+    let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
+        return None;
+    };
+    if segment.ident != outer || args.args.len() != 1 {
+        return None;
+    }
+    match args.args.first() {
+        Some(syn::GenericArgument::Type(inner)) => Some(inner),
+        _ => None,
+    }
+}
+
+fn option_of(ty: &syn::Type, inner: impl FnOnce(&syn::Type) -> bool) -> bool {
+    one_type_argument(ty, "Option").is_some_and(inner)
+}
+
+fn shared_str(ty: &syn::Type) -> bool {
+    matches!(
+        ty,
+        syn::Type::Reference(r)
+            if r.mutability.is_none() && r.lifetime.is_none() && bare_path_is(&r.elem, "str")
+    )
+}
+
+fn shared_cell_actions(ty: &syn::Type) -> bool {
+    matches!(
+        ty,
+        syn::Type::Reference(r)
+            if r.mutability.is_none()
+                && r.lifetime.is_none()
+                && matches!(r.elem.as_ref(), syn::Type::Slice(s) if bare_path_is(&s.elem, "CellAction"))
+    )
+}
+
+#[derive(Clone, Copy)]
+enum GridReturn {
+    Bare(&'static str),
+    Inferred(&'static str),
+    OptionalInferred(&'static str),
+    OptionalStr,
+    CellActions,
+}
+
+impl GridReturn {
+    fn matches(self, output: &syn::ReturnType) -> bool {
+        let syn::ReturnType::Type(_, ty) = output else {
+            return false;
+        };
+        match self {
+            GridReturn::Bare(name) => bare_path_is(ty, name),
+            GridReturn::Inferred(name) => path_with_infer_lifetime(ty, name),
+            GridReturn::OptionalInferred(name) => {
+                option_of(ty, |inner| path_with_infer_lifetime(inner, name))
+            }
+            GridReturn::OptionalStr => option_of(ty, shared_str),
+            GridReturn::CellActions => shared_cell_actions(ty),
+        }
+    }
+}
+
+struct GridMethodSpec {
+    name: &'static str,
+    usize_args: usize,
+    output: GridReturn,
+    default: bool,
+}
+
+const GRID_MODEL_METHODS: &[GridMethodSpec] = &[
+    GridMethodSpec {
+        name: "row_count",
+        usize_args: 0,
+        output: GridReturn::Bare("usize"),
+        default: false,
+    },
+    GridMethodSpec {
+        name: "row_key",
+        usize_args: 1,
+        output: GridReturn::Bare("ItemKey"),
+        default: false,
+    },
+    GridMethodSpec {
+        name: "cell",
+        usize_args: 2,
+        output: GridReturn::OptionalInferred("CellRef"),
+        default: false,
+    },
+    GridMethodSpec {
+        name: "row_decor",
+        usize_args: 1,
+        output: GridReturn::Inferred("RowDecor"),
+        default: true,
+    },
+    GridMethodSpec {
+        name: "cell_decor",
+        usize_args: 2,
+        output: GridReturn::Inferred("CellDecor"),
+        default: true,
+    },
+    GridMethodSpec {
+        name: "total",
+        usize_args: 0,
+        output: GridReturn::Bare("RowTotal"),
+        default: true,
+    },
+    GridMethodSpec {
+        name: "has_more",
+        usize_args: 0,
+        output: GridReturn::Bare("bool"),
+        default: true,
+    },
+    GridMethodSpec {
+        name: "read_only_reason",
+        usize_args: 0,
+        output: GridReturn::OptionalStr,
+        default: true,
+    },
+    GridMethodSpec {
+        name: "actions",
+        usize_args: 2,
+        output: GridReturn::CellActions,
+        default: true,
+    },
+];
+
+fn grid_method_matches(method: &syn::TraitItemFn, spec: &GridMethodSpec) -> bool {
+    let inputs: Vec<&syn::FnArg> = method.sig.inputs.iter().collect();
+    method.sig.generics.params.is_empty()
+        && method.sig.generics.where_clause.is_none()
+        && method.sig.constness.is_none()
+        && method.sig.asyncness.is_none()
+        && method.sig.unsafety.is_none()
+        && method.sig.abi.is_none()
+        && method.sig.variadic.is_none()
+        && inputs.len() == spec.usize_args.saturating_add(1)
+        && inputs.first().is_some_and(|arg| shared_self(arg))
+        && inputs.iter().skip(1).all(|arg| typed_arg_is(arg, "usize"))
+        && spec.output.matches(&method.sig.output)
+        && method.default.is_some() == spec.default
+}
+
+fn check_grid_model_surface(source: &str, path: &str) -> Result<(), String> {
+    let ast = syn::parse_file(source).map_err(|e| format!("{path} does not parse: {e}"))?;
+    let traits: Vec<&syn::ItemTrait> = ast
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            syn::Item::Trait(item) if item.ident == "GridModel" => Some(item),
+            _ => None,
+        })
+        .collect();
+    if traits.len() != 1 {
+        return Err(format!(
+            "{path}: expected exactly one GridModel trait, found {}",
+            traits.len()
+        ));
+    }
+    let model = traits[0];
+    let mut errors = Vec::new();
+    if !matches!(model.vis, syn::Visibility::Public(_))
+        || !model.generics.params.is_empty()
+        || model.generics.where_clause.is_some()
+        || !model.supertraits.is_empty()
+    {
+        errors.push("GridModel must be a non-generic public trait with no supertraits".to_owned());
+    }
+    let methods: Vec<&syn::TraitItemFn> = model
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            syn::TraitItem::Fn(method) => Some(method),
+            _ => None,
+        })
+        .collect();
+    if methods.len() != model.items.len() {
+        errors
+            .push("GridModel may contain methods only; associated types are forbidden".to_owned());
+    }
+    let found: BTreeSet<String> = methods
+        .iter()
+        .map(|method| method.sig.ident.to_string())
+        .collect();
+    let expected: BTreeSet<String> = GRID_MODEL_METHODS
+        .iter()
+        .map(|method| method.name.to_owned())
+        .collect();
+    if found != expected || methods.len() != GRID_MODEL_METHODS.len() {
+        errors.push(format!(
+            "GridModel methods are {found:?}; expected exactly {expected:?} (no `col_count`)"
+        ));
+    }
+    for spec in GRID_MODEL_METHODS {
+        match methods.iter().find(|method| method.sig.ident == spec.name) {
+            Some(method) if grid_method_matches(method, spec) => {}
+            Some(_) => errors.push(format!(
+                "GridModel::{} has wrong signature or required/default status",
+                spec.name
+            )),
+            None => {}
+        }
+    }
+
+    let cell_refs: Vec<&syn::ItemStruct> = ast
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            syn::Item::Struct(item) if item.ident == "CellRef" => Some(item),
+            _ => None,
+        })
+        .collect();
+    if cell_refs.len() != 1 {
+        errors.push(format!(
+            "expected exactly one CellRef struct, found {}",
+            cell_refs.len()
+        ));
+    } else {
+        let align: Vec<&syn::Field> = cell_refs[0]
+            .fields
+            .iter()
+            .filter(|field| field.ident.as_ref().is_some_and(|ident| ident == "align"))
+            .collect();
+        if align.len() != 1
+            || !matches!(align[0].vis, syn::Visibility::Public(_))
+            || !option_of(&align[0].ty, |inner| bare_path_is(inner, "Align"))
+        {
+            errors.push("CellRef.align must be exactly `pub align: Option<Align>`".to_owned());
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("{path}: {}", errors.join("\n")))
+    }
+}
+
+/// §61: GridModel has one schema authority, structural ragged cells and the
+/// exact default-hook set; CellRef alignment has an explicit inheritance bit.
+fn grid_model_public_surface_is_exact() -> Result<(), String> {
+    let path = "crates/tui/src/components/grid.rs";
+    check_grid_model_surface(&read(&root().join(path)), path)
+}
+
+/// §67: FieldKind may borrow configured controls, but must not become generic
+/// over application value/domain types.
+fn field_kind_has_no_type_parameters() -> Result<(), String> {
+    let path = "crates/tui/src/components/form.rs";
+    let ast = syn::parse_file(&read(&root().join(path))).map_err(|error| error.to_string())?;
+    let field_kind = ast.items.iter().find_map(|item| match item {
+        syn::Item::Enum(item) if item.ident == "FieldKind" => Some(item),
+        _ => None,
+    });
+    let Some(field_kind) = field_kind else {
+        return Err(format!("{path}: missing public FieldKind enum"));
+    };
+    if !matches!(field_kind.vis, syn::Visibility::Public(_)) {
+        return Err(format!("{path}: FieldKind must be public"));
+    }
+    let type_parameters = field_kind
+        .generics
+        .params
+        .iter()
+        .filter(|parameter| matches!(parameter, syn::GenericParam::Type(_)))
+        .count();
+    if type_parameters == 0 {
+        Ok(())
+    } else {
+        Err(format!(
+            "{path}: FieldKind has {type_parameters} type parameter(s); application domain types must remain in FormData"
+        ))
+    }
+}
+
+fn production_cache_types(text: &str) -> Result<BTreeSet<String>, String> {
     let re = Regex::new(r"cache::<(\w+)>").map_err(|e| e.to_string())?;
+    let mut types = BTreeSet::new();
+    for (_, line) in non_test_lines(text) {
+        for captures in re.captures_iter(code_line(line)) {
+            types.insert(captures[1].to_owned());
+        }
+    }
+    Ok(types)
+}
+
+fn cache_types_are_derived_only() -> Result<(), String> {
     // constant pattern: built once, borrowed by the (cache type × file) loop below
     let state_struct =
         Regex::new(r"pub struct (\w+State)\s*\{([^}]*)\}").map_err(|e| e.to_string())?;
@@ -2351,9 +2848,7 @@ fn cache_types_are_derived_only() -> Result<(), String> {
     let mut texts = Vec::new();
     for file in rust_files(&src) {
         let t = read(&file);
-        for cap in re.captures_iter(&t) {
-            cache_types.insert(cap[1].to_owned());
-        }
+        cache_types.extend(production_cache_types(&t)?);
         texts.push((rel(&file), t));
     }
     let mut hits = Vec::new();
@@ -3969,6 +4464,124 @@ fn baseline_moves_are_classified() -> Result<(), String> {
 mod tests {
     use super::*;
 
+    fn signature_spec<'a>(
+        component: &'a str,
+        source: &'a str,
+        state: Option<&'a str>,
+        rects: usize,
+    ) -> ClosureDrawSpec<'a> {
+        ClosureDrawSpec {
+            component,
+            path: "isolated.rs",
+            source,
+            state,
+            rects,
+        }
+    }
+
+    #[test]
+    fn closure_signature_gate_rejects_optional_and_nested_optional_results() {
+        let panel = "impl Panel { pub fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, \
+            body: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R> { todo!() } }";
+        let err = check_closure_draw_signature(&signature_spec("Panel", panel, None, 1))
+            .expect_err("an optional Panel result must fail");
+        assert!(err.contains("-> R`"), "{err}");
+
+        let dialog = "impl Dialog { pub fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, \
+            st: &DialogState, body: impl FnOnce(&mut Ui<'_>, Rect) -> R) \
+            -> Option<Option<R>> { todo!() } }";
+        let err =
+            check_closure_draw_signature(&signature_spec("Dialog", dialog, Some("DialogState"), 1))
+                .expect_err("a nested optional Dialog result must fail");
+        assert!(err.contains("-> R`"), "{err}");
+    }
+
+    #[test]
+    fn closure_signature_gate_rejects_tuple_geometry_and_wrong_slot_shapes() {
+        let tuple_geometry = "impl SplitPane { pub fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, \
+            st: &SplitPaneState) -> (Rect, Rect) { todo!() } }";
+        check_closure_draw_signature(&signature_spec(
+            "SplitPane",
+            tuple_geometry,
+            Some("SplitPaneState"),
+            2,
+        ))
+        .expect_err("tuple-return geometry must fail");
+
+        let tuple_slot = "impl SplitPane { pub fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, \
+            st: &SplitPaneState, body: impl FnOnce(&mut Ui<'_>, (Rect, Rect)) -> R) -> R \
+            { todo!() } }";
+        check_closure_draw_signature(&signature_spec(
+            "SplitPane",
+            tuple_slot,
+            Some("SplitPaneState"),
+            2,
+        ))
+        .expect_err("a tuple argument is not the two-Rect slot");
+
+        let two_rect_panel = "impl Panel { pub fn draw<R>(&self, ui: &mut Ui<'_>, area: Rect, \
+            body: impl FnOnce(&mut Ui<'_>, Rect, Rect) -> R) -> R { todo!() } }";
+        check_closure_draw_signature(&signature_spec("Panel", two_rect_panel, None, 1))
+            .expect_err("Panel must have exactly one Rect body slot");
+    }
+
+    #[test]
+    fn closure_signature_gate_accepts_current_component_sources() {
+        closure_bearing_draw_signatures_are_exact()
+            .expect("current Panel, Dialog and SplitPane signatures must pass");
+    }
+
+    const GRID_MODEL_GOOD: &str = "
+pub struct CellRef<'a> { pub align: Option<Align>, marker: &'a str }
+pub trait GridModel {
+    fn row_count(&self) -> usize;
+    fn row_key(&self, row: usize) -> ItemKey;
+    fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;
+    fn row_decor(&self, row: usize) -> RowDecor<'_> { todo!() }
+    fn cell_decor(&self, row: usize, col: usize) -> CellDecor<'_> { todo!() }
+    fn total(&self) -> RowTotal { todo!() }
+    fn has_more(&self) -> bool { todo!() }
+    fn read_only_reason(&self) -> Option<&str> { todo!() }
+    fn actions(&self, row: usize, col: usize) -> &[CellAction] { todo!() }
+}";
+
+    #[test]
+    fn grid_model_surface_gate_rejects_old_and_reintroduced_authorities() {
+        let associated_row =
+            GRID_MODEL_GOOD.replace("pub trait GridModel {", "pub trait GridModel { type Row;");
+        let err = check_grid_model_surface(&associated_row, "isolated.rs")
+            .expect_err("the old associated Row type must fail");
+        assert!(err.contains("associated types"), "{err}");
+
+        let col_count = GRID_MODEL_GOOD.replace(
+            "fn row_count(&self) -> usize;",
+            "fn row_count(&self) -> usize; fn col_count(&self) -> usize;",
+        );
+        let err = check_grid_model_surface(&col_count, "isolated.rs")
+            .expect_err("a second column-count authority must fail");
+        assert!(err.contains("col_count"), "{err}");
+    }
+
+    #[test]
+    fn grid_model_surface_gate_rejects_non_structural_cells_and_align_sentinel() {
+        let owned_cell = GRID_MODEL_GOOD.replace("Option<CellRef<'_>>", "CellRef<'_>");
+        let err = check_grid_model_surface(&owned_cell, "isolated.rs")
+            .expect_err("a non-optional cell cannot represent a ragged hole");
+        assert!(err.contains("GridModel::cell"), "{err}");
+
+        let align_sentinel = GRID_MODEL_GOOD.replace("Option<Align>", "Align");
+        let err = check_grid_model_surface(&align_sentinel, "isolated.rs")
+            .expect_err("Align::Left may not double as inheritance sentinel");
+        assert!(err.contains("Option<Align>"), "{err}");
+    }
+
+    #[test]
+    fn grid_model_surface_gate_accepts_fixture_and_current_source() {
+        check_grid_model_surface(GRID_MODEL_GOOD, "isolated.rs")
+            .expect("the exact isolated §61 surface must pass");
+        grid_model_public_surface_is_exact().expect("current Grid surface must pass");
+    }
+
     /// MA-2: the scan used to stop at the first `#[cfg(test)]`, so everything
     /// after a mid-file test helper was invisible to all forbidden-pattern
     /// rules. It must skip exactly the attributed item and carry on.
@@ -3994,6 +4607,63 @@ mod tests {
         assert_eq!(kept, vec!["a();", "b();", "c();"]);
         let lines: Vec<usize> = non_test_lines(src).into_iter().map(|(n, _)| n).collect();
         assert_eq!(lines, vec![1, 7, 10]);
+    }
+
+    #[test]
+    fn legacy_forced_state_gate_rejects_production_and_skips_test_items() {
+        let production =
+            "impl Widget { pub fn state_override(self) {} }\nfn draw() { inherit_forced(); }";
+        let hits = legacy_forced_state_hits("crates/tui/src/widget.rs", production);
+        assert_eq!(hits.len(), 2);
+        assert!(hits[0].contains("state_override"));
+        assert!(hits[1].contains("inherit_forced"));
+
+        let fixture =
+            "#[cfg(test)]\nmod tests { fn probe() { state_override(); inherit_forced(); } }";
+        assert!(legacy_forced_state_hits("crates/tui/src/widget.rs", fixture).is_empty());
+    }
+
+    #[test]
+    fn reference_rendering_gate_fails_closed_on_nested_production_calls() {
+        let production = "fn draw(ui: &mut Ui<'_>) { body(|_| ui.reference(None, |_| {})); }";
+        let hits = ui_reference_hits("crates/tui/src/widget.rs", production);
+        assert_eq!(hits.len(), 1);
+        assert!(hits[0].contains("ui.reference"));
+
+        let fixture = "#[cfg(test)]\nfn probe(ui: &mut Ui<'_>) { ui.reference(None, |_| {}); }";
+        assert!(ui_reference_hits("crates/tui/src/widget.rs", fixture).is_empty());
+    }
+
+    #[test]
+    fn reference_rendering_gate_allows_only_fixture_and_application_paths() {
+        let call = "fn draw(ui: &mut Ui<'_>) { ui.reference(None, |_| {}); }";
+        for path in [
+            "apps/showcase/src/page.rs",
+            "crates/tui/examples/demo.rs",
+            "crates/tui/tests/render.rs",
+            "crates/tui-testing/src/conformance.rs",
+        ] {
+            assert!(ui_reference_hits(path, call).is_empty(), "{path}");
+        }
+        assert_eq!(
+            ui_reference_hits("crates/consumer/src/lib.rs", call).len(),
+            1
+        );
+    }
+
+    #[test]
+    fn cache_type_gate_ignores_test_only_cache_payloads() {
+        let source = "\
+fn production(ui: &mut Ui<'_>) { ui.cache::<Layout>(ID); }
+#[cfg(test)]
+mod tests {
+    fn cache_namespace_probe(ui: &mut Ui<'_>) { ui.cache::<u32>(ID); }
+}
+";
+        assert_eq!(
+            production_cache_types(source).expect("valid cache scan"),
+            BTreeSet::from(["Layout".to_owned()])
+        );
     }
 
     // ── bless-guard (§16.3, §20.10, §36.5) ──
@@ -4172,13 +4842,14 @@ captures / classification: `(pending — filled when the change lands)`
         .expect("an unchanged tree has nothing to classify");
     }
 
-    /// §20.10 is five tables. A parser that takes the first one gets 1–16 and
-    /// then rejects a correct citation of item 19.
+    /// §20.10 is split across tables. A parser that takes only the first table
+    /// loses later rows; an accidental numbering gap makes a citation resolve
+    /// to no visual-change authority at all.
     #[test]
     fn the_2010_item_list_survives_the_split_tables() {
         let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
         let items = visual_change_items(&doc);
-        let want: BTreeSet<u32> = (1..=20).collect();
+        let want: BTreeSet<u32> = (1..=31).collect();
         assert_eq!(
             items.keys().copied().collect::<BTreeSet<u32>>(),
             want,
@@ -4211,6 +4882,14 @@ captures / classification: `(pending — filled when the change lands)`
             Some(&ItemScope::TrueColor),
             "§20.10 item 20's row must carry the literal text `{{scope: truecolor}}`"
         );
+        assert_eq!(items.get(&21), Some(&ItemScope::MonoOnly));
+        assert_eq!(items.get(&22), Some(&ItemScope::FirstGeneration));
+        assert_eq!(items.get(&23), Some(&ItemScope::TrueColor));
+        assert_eq!(items.get(&24), Some(&ItemScope::FirstGeneration));
+        assert_eq!(items.get(&25), Some(&ItemScope::FirstGeneration));
+        assert_eq!(items.get(&26), Some(&ItemScope::FirstGeneration));
+        assert_eq!(items.get(&27), Some(&ItemScope::FirstGeneration));
+        assert_eq!(items.get(&28), Some(&ItemScope::TrueColor));
     }
 
     /// The tag is read from the row text, wherever in the row it sits, and an

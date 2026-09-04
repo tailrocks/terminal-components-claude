@@ -33,6 +33,7 @@ pub struct RowUi<'u> {
     flags: StateFlags,
     key: ItemKey,
     row: Rect,
+    label_patch: Option<StylePatch>,
     /// Next free column from the left.
     left: u16,
     /// Columns reserved from the right (already consumed).
@@ -63,8 +64,34 @@ impl<'u> RowUi<'u> {
         key: ItemKey,
         row: Rect,
     ) -> RowUi<'u> {
+        Self::new_with_patches(ui, owner, family, variant, flags, key, row, None, None)
+    }
+
+    /// Begin a row with component-owned patches forwarded only to the
+    /// automatic container fill and label painters.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the crate-private constructor extends RowUi's public phase context with two scoped patches"
+    )]
+    pub(crate) fn new_with_patches<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+    ) -> RowUi<'u> {
         let mut ui = ui.reborrow();
-        let container = ui.style(family, variant, Part::CONTAINER, flags).style;
+        let container = match container_patch {
+            Some(patch) => {
+                ui.style_patched(family, variant, Part::CONTAINER, flags, &patch)
+                    .style
+            }
+            None => ui.style(family, variant, Part::CONTAINER, flags).style,
+        };
         ui.fill(row, container);
         RowUi {
             ui,
@@ -74,6 +101,7 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            label_patch,
             left: 0,
             right: 0,
         }
@@ -110,7 +138,13 @@ impl<'u> RowUi<'u> {
     }
 
     fn style_of(&mut self, part: Part) -> Style {
-        let r = self.ui.style(self.family, self.variant, part, self.flags);
+        let r = match (part, self.label_patch) {
+            (Part::LABEL, Some(patch)) => {
+                self.ui
+                    .style_patched(self.family, self.variant, part, self.flags, &patch)
+            }
+            _ => self.ui.style(self.family, self.variant, part, self.flags),
+        };
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, part, r);
@@ -182,9 +216,10 @@ impl<'u> RowUi<'u> {
 
     /// Paint the label with an instance patch.
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
+        let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
         let st = self
             .ui
-            .style_patched(self.family, self.variant, Part::LABEL, self.flags, p)
+            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch)
             .style;
         self.label_in(s, st);
     }
@@ -757,6 +792,35 @@ mod tests {
         page
     }
 
+    fn paint_with_patches(
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+        f: impl FnOnce(&mut RowUi<'_>),
+    ) -> Buffer {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut row = RowUi::new_with_patches(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::empty(),
+                ItemKey::index(0),
+                Rect::new(0, 0, 20, 1),
+                container_patch,
+                label_patch,
+            );
+            f(&mut row);
+        }
+        page
+    }
+
     fn theme_with_part_glyph(part: Part, glyph: Slot<GlyphRole>) -> Theme {
         let mut theme = Theme::junie();
         theme.recipes.get_mut(Family::LIST).parts.entry(part).glyph = glyph;
@@ -791,6 +855,51 @@ mod tests {
             r.label_fmt(format_args!("{}-{}", 12, 7));
         });
         assert_eq!(row_text(&page, 0, 0, 10), "12-7      ");
+    }
+
+    #[test]
+    fn forwarded_patches_reach_only_the_automatic_container_and_labels() {
+        let container = StylePatch::new().add(Modifier::REVERSED);
+        let label = StylePatch::new().add(Modifier::BOLD);
+        let page = paint_with_patches(Some(container), Some(label), |row| {
+            row.marker(GlyphRole::WarningMark);
+            row.meta("m");
+            row.label("label");
+        });
+
+        assert!(
+            page.cell((10, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::REVERSED)),
+            "the automatic container fill receives its forwarded patch"
+        );
+        assert!(
+            page.cell((2, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD)),
+            "automatic label painters receive the forwarded label patch"
+        );
+        assert!(
+            page.cell((0, 0))
+                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD)),
+            "MARKER remains row-owned"
+        );
+        assert!(
+            page.cell((19, 0))
+                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD)),
+            "META remains row-owned"
+        );
+    }
+
+    #[test]
+    fn explicit_label_patch_wins_over_the_forwarded_label_patch() {
+        let forwarded = StylePatch::new().add(Modifier::BOLD);
+        let local = StylePatch::new().remove(Modifier::BOLD);
+        let page = paint_with_patches(None, Some(forwarded), |row| {
+            row.label_patched("label", &local);
+        });
+        assert!(
+            page.cell((0, 0))
+                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
+        );
     }
 
     /// `DESIGN.md:478`: meta is right-aligned and dropped **all or none**

@@ -1157,3 +1157,301 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   change, owns lifecycle META, and uses a runtime-derived incremental frontier cache.
 - NavList, Steps, TooSmall and Grid remain dormant/unexported. Their implementation, certification,
   first-generation classification and API reviews remain required.
+
+### Session 5 independent Slice-4 review corrections
+
+- Tree review rejected generation saturation, derived-cache lifecycle, unselected marker work,
+  and missing cached-reorder proof. The builder now forces safe rebuilds at saturation, evicts
+  cache entries across a frame gap, skips all unselected marker resolution, and passes 18 Tree
+  unit tests, 21 Tree conformance cases, three derived-cache tests, and strict Clippy. Mandatory
+  Tree performance tests remain.
+- 4E review found nested viewport layout facts overwrote ScrollRegion's track height. The builder
+  preserved the inner track facts and added exact slot-surface and off-screen caret proofs; Panel
+  9, SplitPane 15, TextViewport 17, ScrollRegion 9, and the 431-test library suite passed before
+  concurrent Grid work resumed. Dialog's total-return contract and the AST signature gate remain.
+- Grid review rejected the draft's second column-count authority and implicit alignment sentinel.
+  Accepted §61 deletes `type Row` and `col_count`, makes `cell` return `Option<CellRef>`, and makes
+  cell alignment optional: absent inherits the declared column, present is explicit. Missing cells
+  retain rectangular geometry but can never reach decoration, action, or editor hooks.
+- TooSmall review found CONTAINER slot replacement changed returned geometry and its `q Quit`
+  styling cannot preserve the legacy faint hint through the shared PANEL recipe. Geometry repair
+  now passes 10 unit tests. Accepted §63 adds isolated `Family::TOO_SMALL` at raw value 34 with the
+  exact legacy notice hierarchy; implementation, certification, and item-24 baselines remain.
+- The second discarded render probe added 256 Panel/SplitPane/TextViewport/Tree keys and moved 41
+  existing keys. Fresh visual review rejected blessing: ChipBar used a clipped CheckboxOn glyph,
+  mono viewport selection disappeared, and Tree painted two chosen markers. Four TextArea mono
+  pressed movements are accepted under §20.10 item 1; all other changes await structural fixes,
+  recorded visual-change items, a fresh scratch probe, and fresh review.
+- New collection certification reached 653/658 and exposed five non-decorative failures. Accepted
+  §64 separates keyed COLLECTION from SELECTS, makes conformance set up real semantic state, and
+  models Grid's double-click activation gesture. Grid's real 2×2 overflow and subsequent §61
+  re-review defects are fixed; current focused Grid evidence is 23 unit tests plus its tiny
+  conformance case. The framework corrections and full rerun remain.
+- §64 integration then exposed a sixth real mismatch: draft Grid `.status` propagated readiness
+  to every loaded row but painted no mono affordance. Accepted §65 deletes that unspecced global
+  API, retains local empty/fetch/decor ownership, and adds a targeted mono underline for decorated
+  error cells. Production, fixture, theme, and full conformance corrections are in flight.
+- The release perf sweep found `style_downgrade_theme_all_levels` at 1,145 allocations over its
+  1,079 limit. Controlled attribution proved 50 allocations came solely from compiling 418 lines
+  of unrelated new collection benchmarks into the same integration binary, while the new family
+  and targeted rules added 16. Accepted §66 isolates collection subjects in their own process;
+  exact reservation of mono-rule storage independently reduces the live measurement to 1,074
+  allocations / 149,128 bytes without changing thresholds or resolved output.
+- §66 integration gate: `cargo test --workspace --test perf --test perf_collections --release --
+  --test-threads=1`; workspace `perf` still includes the frozen legacy-root process, while
+  `perf_collections` adds the isolated crates/tui collection process.
+- TextViewport exact-layout adjudication: visual-row correctness wins. Complete `usize` wrapped-row
+  prefix in `Ui::cache`; O(document) cold/reflow/invalidate, append-suffix incremental, O(visible)
+  warm; literal `visible_range ± 1 page` indexing rejected as impossible with borrowed lines lacking
+  global metadata. Same-length edits require `ViewportState::invalidate`; saturated generation
+  disables reuse. §20.9-7/§12.4/§16.6 corrected; no visual-change item and no baseline movement
+  authorized.
+
+## CONTINUE / HANDOFF — central `Ui::reference` migration
+
+### Completed
+
+- Option B is the current A11 contract: `Ui::reference(Option<ReferenceTarget>, …)` makes the whole
+  subtree inert and injects `FOCUSED | FOCUS_VISIBLE | HOVERED | PRESSED` only into one exact
+  component/item/part. Component-local `state_override` and `inherit_forced` are superseded.
+- Canonical architecture API, fixture, matrix and boundary records now point to the central scope.
+  Historical adjudication text remains intact and is explicitly superseded by §72 rather than
+  rewritten as if it had never existed.
+- Exact structural boundaries are `architecture::legacy_forced_state_apis_are_absent` and
+  `architecture::reference_rendering_is_ui_scoped`.
+- Stabilized scratch comparison is now exact: before SHA-256
+  `1ab8e9205a19069ff5f9d97d675df77e6051c6195ad7a882766163cc2e744c9e`, after SHA-256
+  `4c4dd527261acc03431858db024f884385463a40131b16ae340564da9ca42299`, with **280 moved** and
+  **1,280 added** component keys. Movement ownership is item 1 = 8, item 20 = 12, item 23 = 39,
+  item 28 = 16, item 30 = 28 and item 31 = 177. Items 22/24/25/26/27 retain sole ownership of the
+  1,280 first-generation additions; item 27 owns its nine Slice-4F components (**576 keys**).
+  No retained baseline has been blessed or copied.
+- Readiness-state mono separation is structural: `MONO_RULES_PER_FAMILY` is now **20**. The 20th
+  generic rule applies `UNDERLINED` to `Part::ICON + LOADING`, distinguishing it from `BUSY` while
+  both keep the same spinner sequence. §20.10 item 1 / visual ledger item 1d classify the fix; no
+  retained eight-state digest key isolates `LOADING`, so no baseline movement is claimed.
+- `FormState` does not expose or implement generic `Reconcile<ItemKey>`. Its private
+  `reconcile_fields(&[FieldSpec])` is keyed by field `Id`, preserves draft/editor state across
+  declaration reorder, creates newly declared slots, and zeroizes removed slots before drop.
+
+### Current
+
+- Exact old→new claims for every moved key are recorded in `docs/visual-changes.md`. A disposable
+  git-backed validation copy at `/private/tmp/fable-ledger-guard.oqRwbb` ran `xtask bless-guard`
+  against the stabilized scratch pair and passed with **280 moved / 1,280 added**.
+- Earlier scratch paths and counts remain historical evidence only. The authoritative pair is under
+  `/private/tmp/terminal-components-baseline-review.qbw8Cu/` with the hashes above.
+
+### Next
+
+1. Complete independent frame review against the stabilized scratch evidence.
+2. Run the remaining source/full-workspace gates from the integrated tree.
+3. Seek separate authorization before any serial retained-baseline bless.
+
+### Blocker
+
+- Independent visual approval remains outstanding. Exact accounting is complete, but it does not
+  authorize copying or blessing the retained baseline.
+- WP-4F readiness/activation correction evidence: FilterList declares and directly paints `ICON`
+  for Busy/Loading/Error while Ready reserves no column; PickerChain declares and directly paints
+  its picker-family `ICON`, exposes only keyed Back/Retry actions, and publishes root-owned keyed
+  breadcrumb/retry parts; Wizard publishes root-owned keyed enabled-step label parts. PickerChain
+  forced/live `PRESSED` is stripped from the container and applied only to the exact actionable
+  crumb. Exact unit evidence is PickerChain **5/5** and Wizard **3/3**; focused PickerChain
+  conformance is **21/21**; strict all-target/all-feature Clippy, scoped format, and diff checks pass.
+  The earlier shared conformance-driver `Option<Chord>` compile failure was concurrently resolved;
+  no functional conformance dependency remains. First-generation visual baseline review/blessing
+  remains unresolved and unauthorized as recorded above.
+- §§68–§70 foundation evidence is measured: focused KeyMap tests pass 8/8; binding-chord claim,
+  dynamic Menu routing/painting, dynamic Dialog routing/painting and open MenuBar single-control
+  tests pass. Strict library Clippy and `xtask doc-check` pass. Release measurements are
+  `frame_hintbar_derived` 0 allocations/0 bytes, `frame_form_update_draw` 0/0,
+  `viewport_100k_lines_push` 0/0, and `style_downgrade_theme_all_levels` 736 allocations/122,304
+  bytes (ceiling 1,079/170,904). The numeric Form row is classified under §20.10 item 27; no visual
+  baseline was blessed. Full-suite closeout remains gated by separately owned conformance failures.
+- Final shared cleanup removed the last viewport `too_many_lines` lint by extracting pointer-phase
+  handling, with no suppression. Static mono proofs now carry resolver-truth names rather than
+  obsolete append language. Strict library Clippy passes with all features and with no defaults;
+  the three renamed mono tests, `xtask doc-check`, architecture doc-check and the named-test gate pass.
+
+### Session 5 readiness-icon and semantic-selection correction
+
+- Every public component in this correction that accepts `.status(Status)` now declares
+  `Caps::REPORTS_STATUS`, includes `Part::ICON`, and paints a root-owned symbol for
+  `Busy`/`Loading` and `Error`. Button uses one conditional leading symbol-plus-gap lane,
+  with readiness taking precedence over an explicit icon and the independent checked marker
+  retained. TextInput and TextArea use one always-reserved trailing cell with exact priority:
+  validation `MARKER` > status-error `ICON` > busy/loading `ICON` > blank. List uses a
+  conditional two-column left rail before every visible row and empty body while leaving its
+  scrollbar outermost. Tabs uses a conditional two-column far-right row-zero lane outside its
+  overflow/new reservations. Ready/default geometry is unchanged.
+- Forced rendering is no longer semantic selection authority. Button's checked presentation is
+  supplied through the conformance fixture's controlled `Fixture::selected`/checked prop. List paints selection
+  only from `ListState::chosen`; Tabs paints activation only from `TabsState::active`; their mono
+  setup uses real Space/Enter paths. `FieldCase` deliberately does not inherit
+  `REPORTS_STATUS` from its TextInput child.
+- The same invariant now holds in Tree, NavList, ChipBar, and RadioGroup: chosen/current/checked/
+  controlled-value membership comes only from component state or the controlled prop. Forced
+  first-row stand-ins remain cursor-only, so A11 `FOCUSED`/`PRESSED` references paint without
+  inventing selection. Exact focused units pass: Tree **22/22**, NavList **14/14**, ChipBar
+  **14/14**, RadioGroup/Choice **8/8**. Per-file rustfmt and scoped diff checks pass. Strict library
+  Clippy reached only the separately owned `viewport.rs::note_indexed` `unused_self` finding.
+- Scalar selection follows the same ownership rule. Button, Checkbox, and Toggle derive
+  `CHECKED | SELECTED` only from their real boolean prop; Select derives `SELECTED` only from a
+  non-empty `SelectState::value`. A forced `SELECTED` is masked when that semantic source is false
+  or absent, but remains available to style a genuinely selected control. Focused units pass:
+  Button **3/3**, Choice **10/10**, Select **8/8**; per-file rustfmt and scoped diff checks pass.
+  Strict library Clippy reaches only the separately owned `viewport.rs::update_lines`
+  `too_many_lines` finding.
+- Select disclosure now has appended `GlyphRole::{SelectClosed, SelectOpen}` roles at stable
+  discriminants 39/40; Junie and Paper bind them to single-cell `▾`/`▴`. Closed-field marker
+  resolution excludes semantic `SELECTED` while retaining pressed flags, so popup selection keeps
+  its one `Chosen` marker and mono press keeps `[`/`]`. §20.10 item 29 and §71 record the fix,
+  including the eventual full-ASCII `v`/`^` mapping; no baseline key moves or additions and no
+  BLESS occurred. Focused glyph **3/3**, builtin **10/10**, Select units **12/12**, Select
+  conformance **22/22**, and strict library Clippy pass. Per-file formatting and scoped diff checks
+  pass. The coordinator owns the interrupted full-conformance/doc-check rerun; workspace fmt was
+  blocked only by the separately owned `tests/render_components.rs:639` formatting diff.
+- Exact evidence after the correction: full `tui-next` library **604/604 passed** and full
+  conformance **914/914 passed**; focused
+  Button **2/2**, TextInput **11/11**, List **2/2**, Tabs **4/4**, TextArea **9/9**; focused
+  conformance mono cases pass for Button, List, and Tabs, and full component-region runs pass for
+  Button/TextInput/Tabs/TextArea (**21 each**) plus the List-filtered set (**63**). `cargo check
+  -p tui-next --lib --tests` and strict `cargo clippy -p tui-next --lib --all-features -- -D
+  warnings` pass. No baseline was blessed or modified.
+- Form F11 correction now claims effective Enter before child dispatch only for a focused, visible,
+  non-editing control that does not swallow typing; child intents remain replayable and submit wins
+  the frame's single response. Form placement is a borrowing state machine shared by update/draw,
+  with no placement `Vec`. Forced Form reference rendering propagates to every configured field,
+  scroll region, and action button and registers no controls or parts. Focused Form units are now
+  **28/28**; strict all-feature library Clippy and `cargo fmt --check` pass. The separately owned
+  warm update+draw allocation assertion remains pending integration in `tests/perf.rs`.
+- Completion reachable routing correction is implemented: `CompletionController::new(editor_id,
+  popup_id)` records editor binding ownership while layer geometry, pointer intents, scrolling, and
+  lifecycle remain addressed to `popup_id`; `Completion::update_for(editor_id, …)` consumes the
+  editor-addressed binding intents, and open completion draw publishes its table for the focused
+  editor. Real Runtime regressions prove Down moves completion without moving CodeEditor, Tab and
+  Enter accept, Esc dismisses, ordinary text remains editor-owned, and owner-scoped KeyMap remap and
+  removal are effective. Completion unit evidence is now **7/7 passed** and focused conformance is
+  **21/21 passed**. `cargo check -p tui-next --lib` and `cargo doc -p tui-next --no-deps` complete;
+  strict Clippy remains unresolved only outside Completion due concurrent `collection/empty.rs` API
+  mismatches and `viewport.rs` unused variables. No baseline was blessed or modified.
+- Cross-cutting binding/theme/viewport correction: dynamic menu and dialog action chords now publish
+  stable hidden descriptors beside their static control tables; routing, owner remap/removal and
+  painted chords share one effective resolver. Claimed effective chords retain unclaimed intent
+  order. Mono fallbacks moved from cloned recipe vectors into the static resolver precedence layer,
+  and TextViewport work accounting is caller-owned under `testing`, with no global accumulator.
+  Focused dynamic routing, mono downgrade allocation, and viewport append allocation tests pass;
+  full gates remain in flight.
+
+### Session 5 Slice-4H correction evidence
+
+- Code find now has an explicit routed input state: `/` opens it; bare characters edit the query;
+  `Backspace`, `Enter`, and `Esc` erase, accept, and cancel. It remains usable in read-only mode.
+  Pointer placement consumes `Part::TEXT`-local coordinates exactly (including wide graphemes),
+  every document-mutating command is gated by read-only state, and hardware cursor requests stay
+  inside the visible half-open text rectangle. While find is typing, its footer cursor exclusively
+  owns the cursor request.
+- DiffView no longer creates nested borrowed `Vec<Span>`/`Vec<ViewportLine>` projections in update
+  or draw. Its runtime-owned cache stores an owned flattened text arena plus line/run descriptors;
+  TextViewport consumes that projection through crate-private phase adapters. No borrowed source
+  text enters the cache.
+- Exact verification: Code unit **8/8**, Diff unit **6/6**, TextViewport unit **27/27**; Code and
+  Diff conformance **21/21 each**; `frame_tablepro_query_editor_2k_lines` reports **0 allocations / 0
+  bytes**, stable one-time dense highlighting, and a **0.99** 2,000-line/100-line ratio while carrying
+  dense diagnostics and find matches; `diff_2k_cached_projection` reports **0 allocations / 0
+  bytes** across warm update plus draw. `cargo clippy -p tui-next --all-targets --all-features -- -D
+  warnings`, `cargo fmt --check`, and scoped `git diff --check` all exit 0.
+- Fresh independent review first rejected the competing document cursor request, then passed after
+  the exclusive find-cursor gate and exact `Runtime::cursor()` regression were added. Final verdict:
+  **PASS; all six correction findings satisfied**.
+- Visual closeout remains deliberately unresolved: CodeEditor **8/8** and DiffView **8/8** render
+  cases compile and reach the digest gate, but each reports only a missing first-generation baseline.
+  No baseline was blessed or moved. Classification, fresh visual review, and an authorized serial
+  bless remain required.
+- Slice-4H visual inventory is now exact: `diff_view` and `code_editor`, **2 components × 64 =
+  128 first-generation keys**, classified by §20.10 item 26. A validated scratch-only generation at
+  `/tmp/fable-slice4-final-VPCSC9/repo` passed the complete `render_components` target **325/325**;
+  its exact diff/key inventories are `/tmp/fable-slice4-final-VPCSC9/artifacts/components-scratch.diff` and
+  `/tmp/fable-slice4-final-VPCSC9/artifacts/added-keys-exact.txt`. The Junie 120×40 no-BLESS frame dumps are
+  `/tmp/fable-slice4-final-VPCSC9/artifacts/junie-120x40-{truecolor,mono}-frame-text.log`; each has
+  all eight states for both 4H components. Fresh independent review and authorized blessing remain.
+
+### Session 5 Slice-4F implementation evidence
+
+- Conformance composite-owner correction is complete. The framework now distinguishes root,
+  control, activation, scroll, and opener ids; Form exercises its real secret `TextInput`, Dialog
+  its real action child, and Completion its editor-owned bindings plus popup-owned rows/scroll.
+  Overlay setup is explicit, closed before the trigger, and tiny-screen coverage opens the honest
+  layer before checking clipping and stale geometry. Dynamic action bindings prove default,
+  owner/action remap, removal, and reverse declaration-union behavior; an open MenuBar dropdown
+  proves its item chord is consumed.
+- Capability truth is restored for Grid, Select, Completion, Wizard, PickerChain, Checkbox, and
+  Toggle. `REPORTS_STATUS` now structurally requires `ICON`, and Busy/Error mono evidence must
+  change an actual symbol cell rather than style alone. `Fixture::force(DISABLED)` now couples the
+  real disabled prop, while forcing empty clears it; semantic selection comes only from controlled
+  state/setup or the explicit Button/Radio fixture knob, never from forced flags. Exact evidence:
+  full conformance **913/913 passed** and `tui-next-testing` **14 passed / 2 ignored**. Strict
+  all-target `tui-next-testing` Clippy passed before a concurrent Viewport change; the final rerun
+  reaches only the separately owned `viewport.rs:1188` `too_many_lines` finding. No baseline was
+  blessed or modified; existing first-generation Slice-4F/4H visual baselines remain unresolved as
+  recorded below.
+
+- Slice-4F production and conformance are implemented for Menu/Help, semantic
+  FilterList/Picker/Completion, Form and its configured field bridges, Wizard, PickerChain, and the
+  four retained Dialog contracts. The exact current conformance run is **892/892 passed**.
+- Focused unit evidence is Menu 4, Help 3, Completion 2, FilterList 3, Picker 4, Form 25, Wizard 1,
+  and PickerChain 1, all passed. Theme downgrade passed 15 tests; the exact Menu pressed/Help
+  focused recipe test passed. `cargo test -p tui-next --doc` passed 2 doctests and
+  `cargo check -p tui-next --examples` passed.
+- `cargo fmt --all -- --check` and strict library Clippy passed. Strict all-target Clippy is not yet
+  green: the remaining finding is the separately owned picker performance fixture's
+  `tests/perf_collections.rs` `stats`/`state` `similar_names` collision.
+- The fresh `xtask doc-check` resolved 71 Rust blocks and 666 references; its stale binding lookup
+  reference from the shared migration is now corrected.
+- The four new Slice-4F render groups compile, but their first-generation baseline entries remain
+  deliberately unblessed. No visual ledger or baseline was changed by this package; classification,
+  fresh visual review, and an authorized serial bless remain required before Slice-4F closeout.
+- The completed Slice-4F visual roster is `filter_list`, `picker`, `completion`, `form`,
+  `context_menu`, `help_overlay`, `menu_bar`, `picker_chain`, and `wizard`: **9 components × 64 =
+  576 first-generation keys**, classified by §20.10 item 27; retained `dialog` is excluded. Empty
+  fixtures now omit their optional content instead of merely blanking values. The same validated
+  scratch run above generated the exact scope, and the two Junie 120×40 no-BLESS logs each contain
+  all eight states for all nine components. Across the complete pending matrix the scratch diff
+  measured **1,280 added keys (20 × 64) and 79 moved keys**: 39 ChipBar under item 23, plus the
+  item-28 semantic-selection set (List 8, Tabs 8, RadioGroup 4 mono, Select 20 mono). The 4F/4H subset is
+  **704 additions and zero movements**. Retained `components.txt` stayed byte-identical at SHA-256
+  `1ab8e9205a19069ff5f9d97d675df77e6051c6195ad7a882766163cc2e744c9e`; the scratch-generated SHA-256
+  is `58e4f10c3f53b60dd1c61781283f33d40d3e886961b23f0ce4b555a0b43b00ab`. No live BLESS ran and no
+  retained baseline was modified. Fresh independent review and authorized serial blessing remain.
+- The scratch-local `xtask bless-guard` expanded the ledger and passed with **79 moved / 1,280
+  added** component keys. The live-tree guard separately passed with **0 moved / 6 added** numeric
+  perf keys. Each final frame log contains **88** missing-baseline frames (11 target components × 8
+  states), giving **176** review frames total. Artifact SHA-256 values: diff
+  `003fef46e2dfb4d12aa75f96d025ef32b9f1d6e004ad26645421f9828aa907b2`, added inventory
+  `675342a9be44b6aab9052a011188b68af403c7a59df26b9f0be6203d757bf051`, moved inventory
+  `fd07e7f79b6452e0245b3f2941c36be4905cf3f9101841d7ebbae598c14753db`, truecolor frames
+  `1f863bb5285b2b5f91c18ef75e9dffd3f7df3b96fa0cc38ad05c3e0489349684`, mono frames
+  `c9af2eb37504d7ad569960fe908974b016fe070facbeed0307de8fccc51abc20`.
+- Accepted §§68–§69 replace chord-identified component dispatch with stable `ActionKey` binding
+  publication, owner-scoped overrides, typed `Intent::Binding`, structural KeyMap revision, and a
+  reusable focused-hint cache shared with routing. Explicit component Tab bindings precede focus
+  traversal. Case 12 gains an explicit reveal hook; pointer state retains the pressed `PartRef` so
+  Grid/ScrollRegion style only the hit part. New allocation proofs are `frame_hintbar_derived` and
+  `picker_100k_borrowed_domain_render`; neither authorizes a visual baseline change.
+- §67 pointer-Move foundation is implemented: uncaptured movement resolves the top live
+  non-decorative part, updates hover, enqueues exactly one `Phase::Move`, and requests paint only
+  for a visible hover transition. Captured movement remains `Phase::Drag` only; movement never
+  focuses or activates. The five exact runtime Move tests pass; full focused verification remains
+  in flight with concurrent Slice-4 work.
+- Slice-4F adjudication §67 fixes three previously underspecified boundaries: picker-family data
+  comes through semantic `Item`/`AsItem` with `ItemRow` as paint-only default; menu hover requires
+  the new runtime `Phase::Move` and no Press substitute; Form keeps configured `FieldKind`
+  controls through crate-private inherited-disabled phase bridges and a sealed `TextTarget` for
+  `String`/`Secret`. Implementation and first-generation evidence remain in flight.
+- TextViewport exact-layout adjudication: visual-row correctness wins. Complete `usize` wrapped-row
+  prefix in `Ui::cache`; O(document) cold/reflow/invalidate, append-suffix incremental, O(visible)
+  warm; literal `visible_range ± 1 page` indexing rejected as impossible with borrowed lines lacking
+  global metadata. Same-length edits require `ViewportState::invalidate`; saturated generation
+  disables reuse. §20.9-7/§12.4/§16.6 corrected; no visual-change item and no baseline movement
+  authorized.

@@ -223,7 +223,7 @@ pub enum StatusAction {
 /// `.variant(Variant)` (default `Recipe.default_variant`), `.left/.center/
 /// .right(&[StatusItem])` (empty), `.status(Status)` (`Ready`),
 /// `.frame(usize)` (`0`), `.patch`, `.patch_part`, `.slot`,
-/// `.state_override`.
+/// runtime state.
 ///
 /// ## Variants
 /// `Family::STATUSBAR`; `DEFAULT` only.
@@ -280,10 +280,10 @@ pub enum StatusAction {
 ///
 /// ## Testing
 /// `StatusBarCase` in `crates/tui/tests/conformance.rs`, declaring
-/// `Caps::empty()`, so twelve of its twenty-one `status_bar::*` cases are
-/// capability-gated and return immediately, and
-/// `mono_states_are_distinguishable` is narrowed to the single default
-/// state. The default fixture rect is 30 columns and the fixture strip
+/// `Caps::REPORTS_STATUS`, must retain `BUSY` and `ERROR` in its mono states.
+/// `mono_states_are_distinguishable` covers `StateFlags::empty()`, `PRESSED`,
+/// `ERROR`, `WARNING` and `BUSY`.
+/// The default fixture rect is 30 columns and the fixture strip
 /// needs 35, so the drop loop does run under the cases that remain — but
 /// they assert byte-identity, containment, theme isolation and tiny-rect
 /// survival, never which items survived.
@@ -294,7 +294,7 @@ pub enum StatusAction {
 /// `::overflow`. Readiness arrives through the matrix's `status_for`
 /// mapping — `::pressed` is `Status::Busy`, `::editing` `Status::Loading`,
 /// `::disabled` `Status::Error` — and `draw` **ors** the status-derived
-/// flags into the forced ones instead of replacing them, so the `MARKER`
+/// flags into runtime state, so the `MARKER`
 /// error glyph as well as the `ICON` spinner is genuinely painted, and
 /// pinned as a digest, by those three cells. At the matrix's two widths the
 /// strip needs 35 columns (37 with a readiness affordance) and is given 40
@@ -310,11 +310,9 @@ pub enum StatusAction {
 /// which reads the three groups' columns back out of the painted buffer
 /// rather than out of any of the helpers above.
 ///
-/// Exercised by no test: the painted `Part::OVERFLOW` ellipsis — the drop
-/// loop is asserted, the truncation marker it leaves behind is not — and
-/// `StatusAction::Chose`, because the case declares no `Caps::ACTIVATES`
-/// and `status_bar::keyboard_and_mouse_activation_are_equivalent`
-/// therefore returns before it clicks anything.
+/// `a_truncated_item_paints_the_overflow_glyph` covers the painted
+/// `Part::OVERFLOW` marker, and `a_keyed_item_click_reports_chose` covers
+/// [`StatusAction::Chose`] through the runtime's hit and intent path.
 ///
 /// ## Invariants
 /// The drop order is exactly centre → right → left with the strongest left
@@ -464,14 +462,6 @@ impl<'a> StatusBar<'a> {
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
-        self
-    }
-
-    /// Showcase / fixture use only (A11): render a forced state. Such a
-    /// strip registers nothing.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
         self
     }
 
@@ -654,7 +644,7 @@ impl<'a> StatusBar<'a> {
         let hovered = it.key.is_some_and(|key| {
             FrameRead::hovered_part(ui, self.id) == Some(PartRef::item(Part::LABEL, key))
         });
-        let live = if self.ov.is_forced() || hovered {
+        let live = if hovered {
             live
         } else {
             live.difference(StateFlags::HOVERED)
@@ -749,7 +739,7 @@ impl<'a> StatusBar<'a> {
             }
         }
         if let Some(k) = it.key
-            && !self.ov.is_forced()
+            && !ui.is_inert()
         {
             ui.register_part(self.id, PartRef::item(Part::LABEL, k), label);
         }
@@ -795,7 +785,7 @@ impl<'a> StatusBar<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = self.ov.flags(ui.state(self.id), self.status.flags());
+        let live = Overrides::flags(ui.state(self.id), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let d = ui.design();
@@ -942,8 +932,9 @@ mod tests {
     use ratatui_core::layout::Position;
 
     use super::*;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
+    use crate::event::MouseKind;
+    use crate::runtime::stub::{Stub, mouse};
+    use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
 
     const LEFT: [StatusItem<'static>; 2] = [
@@ -1013,6 +1004,73 @@ mod tests {
         assert_eq!(plain.columns(16), 3);
         assert_eq!(StatusItem::new("abc").chip().columns(16), 5);
         assert_eq!(StatusItem::new("abc").meter(0.5).columns(16), 3 + 1 + 16);
+    }
+
+    #[test]
+    fn a_truncated_item_paints_the_overflow_glyph() {
+        const ROW: Rect = Rect::new(0, 0, 8, 1);
+        const ITEMS: [StatusItem<'static>; 1] =
+            [StatusItem::new("identity-that-does-not-fit").strong()];
+        let theme = Theme::junie();
+        let overflow = theme.design.glyphs.get(GlyphRole::Ellipsis);
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(ROW);
+
+        runtime.draw_scene(ROW, &mut buffer, |ui, area| {
+            StatusBar::new(Id::root("status.overflow"))
+                .left(&ITEMS)
+                .draw(ui, area);
+        });
+
+        assert!(
+            painted_row(&buffer, ROW.width).contains(overflow),
+            "a retained item clipped by the row must paint the overflow glyph"
+        );
+    }
+
+    const CLICK_ID: Id = Id::root("status.click");
+    const CLICK_KEY: ItemKey = ItemKey::num(7);
+    const CLICK_ITEMS: [StatusItem<'static>; 1] = [StatusItem::new("Open").key(CLICK_KEY)];
+
+    #[derive(Default)]
+    struct ClickApp {
+        action: Option<StatusAction>,
+    }
+
+    impl App for ClickApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = StatusBar::new(CLICK_ID).left(&CLICK_ITEMS).update(cx);
+            self.action = response.action_ref().copied().or(self.action);
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            StatusBar::new(CLICK_ID)
+                .left(&CLICK_ITEMS)
+                .draw(ui, Rect::new(0, 0, 20, 1));
+        }
+    }
+
+    #[test]
+    fn a_keyed_item_click_reports_chose() {
+        const SCREEN: Rect = Rect::new(0, 0, 20, 1);
+        let mut runtime = Runtime::new(ClickApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let item = runtime
+            .area_of_part(CLICK_ID, PartRef::item(Part::LABEL, CLICK_KEY))
+            .unwrap_or(Rect::ZERO);
+        assert!(
+            !item.is_empty(),
+            "the keyed item must register a hit region"
+        );
+        let x = item.x.saturating_add(item.width / 2);
+
+        let _ = runtime.handle(mouse(MouseKind::Down, x, item.y));
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = runtime.handle(mouse(MouseKind::Up, x, item.y));
+
+        assert_eq!(runtime.app().action, Some(StatusAction::Chose(CLICK_KEY)));
     }
 
     /// The painted row of `buf`, one `char` per column.

@@ -1,22 +1,18 @@
 # Slice 6 — TablePro migration plan
 
-> Produced read-only by . Two corrections to the inputs are recorded in the "Deliverable note" below and must be applied to  §16.4.
+Everything marked **[F]** was read from the legacy TablePro tree; everything
+else is an accepted contract or an explicit migration decision. This remains
+a future application plan: current Slice 4 library exports do not imply the
+Slice 5 package move or Slice 6 migration has happened.
 
-## Deliverable note
+Two historical input corrections, up front, because they change the contract:
 
-I am read-only, so I have **not** written `docs/plans/slice6-tablepro.md`. Below is the complete plan, ready for `fable-builder` to commit verbatim to that path. Everything marked **[F]** was read from the tree at this HEAD (the `src/bin/tablepro/` tree is unchanged since `d5e7075`); everything else is inference or a design decision for the coordinator to record.
-
-Two corrections to the inputs, up front, because they change the contract:
-
-* **[F]** `src/bin/tablepro/app_tests.rs` contains **23** `#[test]` functions, not 21. The audit's prose says "21 tests" (`docs/audit/app-audit.md:443`) but its own table lists 23 rows (`:447-469`). The two the count omits are `acceptance_flow_keyboard_only` (`app_tests.rs:680`) and `acceptance_flow_mouse` (`app_tests.rs:782`). §16.4's "21 tablepro" inventory is likewise wrong and `architecture::every_named_test_exists` will be counted against the real 23.
+* **[F]** `src/bin/tablepro/app_tests.rs` contains **23** `#[test]` functions, not 21. The audit's prose says "21 tests" (`docs/audit/app-audit.md:443`) but its own table lists 23 rows (`:447-469`). The two the count omits are `acceptance_flow_keyboard_only` (`app_tests.rs:680`) and `acceptance_flow_mouse` (`app_tests.rs:782`). §16.4 now records the real 23 for `architecture::every_named_test_exists`.
 * **[F]** The 42 digests are 21 surfaces × 2 sizes (`visual_tests.rs:82-236`, `:242-252`), and the file lives *inside the binary* (`main.rs:14-15`), hashing with a per-cell `format!` (`visual_tests.rs:21-32`) — it must move to `apps/tablepro/tests/visual.rs` on `Harness::snapshot()`/`Scene`/`Baseline` (§16.3).
 
 ---
 
----
-
-
-**Status:** executable. Preconditions: Slice 5 closed (the `tui-next` → `junie-tui` rename, root `src/` and its three `[[bin]]`s removed, `apps/` layout live), Slice 4 packages 4A–4I closed, `crates/tui/tests/fixtures/grid_model.rs` green. Slice 6 and Slice 7 run in parallel over disjoint app trees (Appendix A "Dependency summary").
+**Status:** executable when its application-migration preconditions hold. Preconditions: Slice 5 closed (the `tui-next` → `junie-tui` rename, root `src/` and its three `[[bin]]`s removed, `apps/` layout live), Slice 4 packages 4A–4I closed, `crates/tui/tests/fixtures/grid_model.rs` green. `NavList`, `Steps`, `Grid` and `TooSmall` are already exported by the Slice 4 library; that does not remove these later app preconditions. Slice 6 and Slice 7 run in parallel over disjoint app trees (Appendix A "Dependency summary").
 
 **Authority:** `REFACTORING_GOAL.md` §18/§22.2/§23-H/§29 › `DESIGN.md` › the pre-refactor captures and `tests/baselines/tablepro.txt` › `COMPONENT_ARCHITECTURE.md` §12.3, §14, §17, §18, §21–§29. DOM §1.6's 22-capability table is adopted verbatim as the checklist (§12.3, final sentence).
 
@@ -68,7 +64,7 @@ apps/tablepro/tests/{app_tests.rs, visual.rs, perf.rs, baselines/tablepro.txt}
 | 15 | Completion | `tabs.rs:984`, `trigger_completion :1230-1258`, `accept_completion :1260-1274`, `:1331-1345, 1438-1446, 1513-1515, 1933-1936` | `CompletionController` owning the editor↔popup contract (§14.1); popup is a `Popover` layer, owner keeps focus | **the ~45 lines of hand-wiring** (`:1331-1345` + `:1357-1367` + `:1438-1446`); the anchor arithmetic `cursor_cell().x - replace` (`:1239-1242`); the closing-paren splice (`:1268-1272`) stays domain but moves into the controller's `accept` callback; "draw the popup last" (`:1933-1936`) → layer compositing | 6, 20, 22 |
 | 16 | Result tabs | `tabs.rs:974-975`, `sync_result_tabs :1176-1193`, `:1195-1227, 1379-1398, 1457-1466, 1566-1570` | `Tabs` keyed by `ResultKey(u64)` (`result_counter`); pin/close/reorder stay app composition (§12.4) | the whole-widget rebuild (`:1191-1192`); `result_tabs.owns(id)` (`:1457`); `p`/`.`/`x` intercepted before `Tabs::on_key` (`:1380-1390`) → `Binding`s | 9, 20, 22 |
 | 17 | Result status line | `tabs.rs:1572-1647` | `StatusBar`, same items | the manual spinner overpaint (`:1638-1645`) → `Status::Busy` on the strip item | 6, 7, 8, 9, 20 |
-| 18 | **Results grid** | `tabs.rs:2062-2081`, render `:1662`, keys `:1404-1414`, click `:1471-1478`, wheel `:1523` | `Grid` + `ResultGridModel` (`«tp»/grid_model.rs`), same adapter type as #10 with `is_editable() == false` and `read_only_reason() == Some(...)` (§23 K2 evaluation bullet 2) | `grid.editable = rs.editable` (`:2063`); `grid.local_sort = true` (`:2068`) — **see Q1**; `g.owns(id)` (`:1471, 1523`) | 6, 9, 20, 22, 23 + `tablepro::result_grid_sorts_locally_and_refuses_edits` |
+| 18 | **Results grid** | `tabs.rs:2062-2081`, render `:1662`, keys `:1404-1414`, click `:1471-1478`, wheel `:1523` | `Grid` + `ResultGridModel` (`«tp»/grid_model.rs`), same adapter type as #10 with `is_editable() == false` and `read_only_reason() == Some(...)` (§23 K2 evaluation bullet 2) | `grid.editable = rs.editable` (`:2063`); `grid.local_sort = true` (`:2068`) moves to adapter-owned ordering (§52); `g.owns(id)` (`:1471, 1523`) | 6, 9, 20, 22, 23 + `tablepro::result_grid_sorts_locally_and_refuses_edits` |
 | 19 | Affected / Error result bodies | `tabs.rs:1663-1683`, `:1684-1748` | `Panel::card` + `Props`; the error card becomes `Props` + a wrapped detail slot | direct `buf.set_string` + `t.error_fg().bg(cbg)` (`:1696-1746`) | 7, 20 |
 | 20 | **Plan tree + metric columns** | `tabs.rs:1749-1852`, `plan_to_tree :1949-1984` | `Tree` with `.row(|node, u| { u.label(..); let mut c = u.columns(&[Fixed(13),Fixed(8),Fixed(10),Fixed(4)]); … })` (§12.2 `RowUi::columns`) | **the paint-over-the-widget hack**: the metric overlay loop (`:1804-1852`) including `let bgc = buf[(cols_x, y)].bg;` (`:1844`) and the numeric index smuggled through `TreeNode::meta` (`:1809`, `:1983`) → an `ItemKey` into `nodes` | 9, 20, 22 |
 | 21 | Plan detail card | `tabs.rs:1853-1914` | `Panel::card` + `Props`, driven off `TreeState::cursor_key()` | `row.meta.as_deref().and_then(parse::<usize>)` (`:1858-1859`) | 9, 20 |
@@ -85,7 +81,7 @@ apps/tablepro/tests/{app_tests.rs, visual.rs, perf.rs, baselines/tablepro.txt}
 | 32 | Pickers ×3 | switcher `app.rs:1215-1279`, tab list `:1281-1336`, safe mode `:1338-1366`, `picker_chosen :1537-1646`, hints `:2169-2181` | `Picker<'a, T, K, R>` per kind, keyed; scopes first-class (`Picker::scopes(&[ScopeKey])`) | **`switcher_targets: Vec<SwitchTarget>` parallel vector** (`:141, 1278, 1540`); the tab index smuggled through `PickerItem.detail` and parsed back (`:1294, 1504-1508, 1607-1613`); `self.scope = (self.scope+1)%4` + rebuild (`:1229, 1241, 1492-1493`); the `hints: &str` parameter (`:2169-2181`) → a `HintLayer` | 14, 16, 18, 20, 22 + 3 digests |
 | 33 | Identity strip | `app.rs:2189-2282` | `StatusBar` with clickable `StatusItem`s; `STRIP_SAFE/SCOPE/CONN/HELP` become `PartRef`s of one id (§18.3 #11) | `segments::render(..., t.canvas)` (`:2281`); the four free-floating `WidgetId::of("strip.*")` consts (`:37-40`) and their click arms (`:1971-1990`) | 1, 18, 20, 23 + every digest |
 | 34 | Footer hints | `app.rs:2284-2335` | `HintBar` composing top layer ▸ mode ▸ focused component's `Binding`s ▸ screen extras (§13.1) | the per-modal-kind `Vec<Hint>` construction (`:2290-2323`); every `hints(focus)` `match` ladder: `workbench.rs:568-600`, `tabs.rs:717-754`, `:1276-1324`, `:2360-2378`, `connections.rs:889-917`; the manual `EDIT` badge (`:2328-2332`) → `StateFlags::EDITING` | 20 + every digest |
-| 35 | Too-small screen | `app.rs:2121-2145` | `TooSmall<'a>` (§18.3 #21), copy strings preserved verbatim | the 4-line centred loop (`:2136-2143`) | 20 (`"Terminal too small"` at 60×15) |
+| 35 | Too-small screen | `app.rs:2121-2145` | `TooSmall<'a>` (§18.3 #21), using its isolated named `Family::TOO_SMALL`; copy strings preserved verbatim | the 4-line centred loop (`:2136-2143`) | 20 (`"Terminal too small"` at 60×15) |
 | 36 | Modal shell + routing | `app.rs:112-116, 1187-1193, 1435-1438, 1440-1535, 1788-1854, 1858-2049` | the runtime layer stack (§9); `Modal` enum deleted; results via `Response<XAction>` + `LayerEvent` | `saved_focus` (`:136, 1188, 1437`); `open_dialog`/`close_modal`; `Interaction{focus,hover,pressed,flash,…}` (`:211-225`); the whole `on_mouse` press/hover/`pressed != Some(id)` machine (`:1858-2049`); `hits.hit`/`hit_scroll` (`:1864, 1872, 1889, 1908, 2036`); `focus.ensure_valid`/`ring.first()` reconciliation (`:2106-2112`); `frame.set_cursor_position` (`:2113-2115`) | all 23 |
 | 37 | Global chords | `workbench_chord app.rs:584-770` (~20 chords), `esc_ladder :779-812` | a single `KeyMap` returned by `App::keymap()`, split across `KeyPhase::{Capture, Bubble}` (§13.1) — **see Q6, Q7** | the 190-line `match key.code` with `!editing` guards; `Ctrl+C` special-case (`:256-266`) | 5, 6, 8, 9, 13, 14, 15, 16, 17, 18, 20, 21, 22 |
 
@@ -184,10 +180,9 @@ pub struct TableGridModel {
 }
 
 impl GridModel for TableGridModel {
-    type Row = ();
     fn row_count(&self) -> usize;
     fn row_key(&self, row: usize) -> ItemKey;                     // RowId::key
-    fn cell(&self, row: usize, col: usize) -> CellRef<'_>;        // borrowed &str + tone + align
+    fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;// None = ragged-row hole
     fn row_decor(&self, row: usize) -> RowDecor<'_>;              // marker/tone/strike from RowState
     fn cell_decor(&self, row: usize, col: usize) -> CellDecor<'_>;// dirty / error(&str) / italic-NULL
     fn total(&self) -> RowTotal;
@@ -203,7 +198,7 @@ impl GridEditor for TableGridModel {
     fn is_editable(&self, row: usize, col: usize) -> bool;
 }
 
-/// Six read-only models over `&'a Table`. `GridModel` only — four required
+/// Six read-only models over `&'a Table`. `GridModel` only — three required
 /// methods — driven by `Grid::update` (§23 K2, evaluation bullet 3).
 pub struct StructureModel<'a> { table: &'a Table, section: StructureSection }
 pub enum StructureSection { Columns, Indexes, ForeignKeys, Constraints, Triggers }
@@ -233,6 +228,14 @@ impl TableGridModel {
     pub fn reset_order(&mut self);
 }
 ```
+
+`GridModel` has no associated `Row` and no `col_count`: the slice passed to
+`Grid::new(id, columns)` is the only schema and column-count authority. For a
+present cell, `CellRef::new(text)` leaves `align: None` and inherits
+`Column::align`; call `.align(Align::Left | Align::Center | Align::Right)` only
+for an explicit per-cell override. A `None` cell remains in rectangular cursor
+geometry and copies as an empty TSV field, but Grid does not call decoration,
+action or editor hooks for that hole.
 
 ### 2.5 The three `EditIntent` policies (the easiest thing to lose)
 
@@ -298,17 +301,17 @@ No library type appears in it any more. Callers: `app.rs:1018, 1129, 1165`.
 
 | # | Capability | Survives as | Obvious? |
 |---|---|---|---|
-| 1 | Typed cell rendering (NULL italic-muted, `''`, `{…}`, UUID middle-truncated, numbers right-aligned) | `cell_text` moves to `grid_model.rs`; `RowStore.text` is pre-formatted at load; `CellRef { text: &str, tone, align }` + `CellDecor.italic` | yes |
+| 1 | Typed cell rendering (NULL italic-muted, `''`, `{…}`, UUID middle-truncated, numbers right-aligned) | `cell_text` moves to `grid_model.rs`; `RowStore.text` is pre-formatted at load; `Some(CellRef { text: &str, tone, align: Option<Align> })` + `CellDecor.italic`; `None` is a ragged-row hole | yes |
 | 2 | Column metadata from the catalog | `ColumnMeta::to_column` (§2.3); `column_specs` (`tabs.rs:297-322`) becomes `column_metas` | yes |
 | 3 | Read-only grids with an explanatory reason | `GridModel::read_only_reason` (moved down from `GridEditor` by §23 K2 G3) + `GridEditor::is_editable == false` | yes |
-| 4 | Server-side sort vs local sort | `GridAction::Sort(ColumnKey, SortDir)` for **both**; table tabs re-run `t.load(cat)`, result grids call `model.sort_locally()` using `cmp_cells` | **⚠ see Q1** — depends on whether the library `Grid` owns the permutation |
-| 5 | Filter chips + `f` / `/` / `F` | `GridAction::FilterOnCell(ItemKey, ColumnKey)` — **indices only**; `Request::FilterOnCell(usize, CellValue)` (`app.rs:55`) becomes `FilterOnCell(ItemKey, ColumnKey)` and `open_filter_editor` reads the value from the model | yes |
+| 4 | Server-side sort vs local sort | `GridAction::Sort(ColumnKey, SortDir)` for **both**; table tabs re-run `t.load(cat)`, result grids call `model.sort_locally()` using `cmp_cells`; Grid owns no permutation or comparator | yes — resolved by §52 |
+| 5 | Filter chips + `f` / `/` / `F` | an application binding reads `GridState::cursor()` and emits `Request::FilterOnCell(ItemKey, ColumnKey)`; `open_filter_editor` reads the value from the model | yes |
 | 6 | `• + − !` row markers + warning-toned dirty cells | `RowDecor { marker, tone, strike }` from `RowState`; `CellDecor { dirty: true }`; `change_glyph` becomes `fn row_marker(RowState) -> (GlyphRole, Role)` | yes |
 | 7 | Bool cycle `true→false→NULL` | `EditIntent::Cycle` + `apply_cycle` | yes |
 | 8 | JSON / long text opens the viewer | `EditIntent::External` ⇒ `GridAction::EditRequested(item, col)` ⇒ `Request::OpenViewer` | yes |
 | 9 | Engine-aware validation, in-editor error, `!` marker | `commit_cell -> Result<(), FieldError>`; the grid keeps the editor open and renders the message | yes |
-| 10 | Delete ⇒ NULL, NOT NULL refusal | **not a library action.** `Delete`/`Backspace` is a TablePro `Binding` on the grid's `BindingState`; the screen reads `GridState::cursor()` and calls `model.clear_cell(..)`; the refusal comes back as `CellDecor::error` | **⚠ requires `GridState::cursor()` — Q2** |
-| 11 | Insert / duplicate with server `DEFAULT` in pk & generated columns | `GridAction::RowAddRequested { after, duplicate }` ⇒ `model.insert_row()` / `duplicate_row()` | yes |
+| 10 | Delete ⇒ NULL, NOT NULL refusal | **not a library action.** `Delete`/`Backspace` is a TablePro `Binding` on the grid's `BindingState`; the screen reads `GridState::cursor()` and calls `model.clear_cell(..)`; the refusal comes back as `CellDecor::error` | yes — `cursor()` is exported |
+| 11 | Insert / duplicate with server `DEFAULT` in pk & generated columns | application bindings read `GridState::cursor()` and call `model.insert_row()` / `duplicate_row()` | yes |
 | 12 | Undo (`u`) of the last staged change | app `Binding` ⇒ `model.undo()`; the undo stack is adapter state | yes |
 | 13 | Discard all / commit all with confirm dialogs | action-bar buttons + `Ctrl+S`/`U` `Binding`s ⇒ `Request::{CommitPending, ConfirmDiscard}` | yes |
 | 14 | SQL preview from pending changes | `preview_sql(table, &columns, &model)` (§2.7) — no library type in the signature | yes |
@@ -316,12 +319,13 @@ No library type appears in it any more. Callers: `app.rs:1018, 1129, 1165`.
 | 16 | FK follow (`Ctrl+]`, trailing `→`, click) | `GridModel::actions` + `GridAction::CellAction(item, col, FOLLOW)` (§2.6) | yes (after §23 K2 absorbed `GridCellActions`) |
 | 17 | Fetch-more virtual row | generic; `has_more()` + `GridAction::FetchMore` | yes |
 | 18 | Range selection + `y`/`Y` TSV copy | generic; copy reads `CellRef::text`. **Note:** `Y` (with header) must stay distinct from `y` | yes |
-| 19 | Row selection `✓` + bulk delete | generic `SelectMode::Multi` + `GridAction::RowRemoveRequested(Vec<ItemKey>)` ⇒ `model.toggle_delete(&keys)` | yes |
+| 19 | Row selection `✓` + bulk delete | generic `SelectMode::Multi`; an application binding reads `GridState::selected_rows()` and calls `model.toggle_delete(&keys)` | yes |
 | 20 | `rows a–b of N` / `cols a–b of N` + sort/filter/read-only parts | `Grid` supplies `rows_label`/`cols_label`; TablePro composes them in a `StatusBar` (§1 row 11) | yes |
-| 21 | Pending bar (`• N pending · 2 updates · 1 delete`, row-error detail, 3 focus stops) | `Grid::actions_slot` + three child `Button`s (§2.7) | **⚠ slot contract — Q5** |
+| 21 | Pending bar (`• N pending · 2 updates · 1 delete`, row-error detail, 3 focus stops) | `Grid::actions_slot` + three child `Button`s (§2.7); the row exists only when configured, and the child buttons register their own controls | yes — resolved by Q4 |
 | 22 | Pending count in the identity strip | `w.pending_total()` (`workbench.rs:546-557`) → sums `model.pending_total()`; no library involvement | yes |
 
-**Flagged as not obvious: 4, 10, 21.** Each maps to an open question in §6.
+Capabilities 4, 10 and 21 now use accepted, exported Grid contracts. Their
+TablePro wiring and regression proof remain Slice 6 work.
 
 ### 2.9 The boundary acceptance condition (DOM §1.6, adopted verbatim)
 
@@ -466,39 +470,41 @@ The regression contract is therefore **not** "the digests are unchanged"; it is:
 | R3 | **`Ctrl+L` collides** between the app's Safe-Mode picker (`app.rs:668`, resolved today by `!editing`) and the editor's clear-line, used by tests 13 and 17. A `Capture`-phase app binding wins even while editing, because `Ctrl+L` is not a bare `Char` (§13.1). | Declare the app's `Ctrl+L` in `KeyPhase::Bubble`. Same treatment for `Ctrl+D` (Data/Structure vs the grid's known-dead duplicate-row, `grid.rs:1118`). | `conformance::conflicting_visible_bindings_are_reported`; tests 13, 17, 18 |
 | R4 | **Esc while a query is running.** **[F]** `app.rs:587-599` intercepts Esc before anything; §3.3 step 8 gives the focused component first refusal. | `Esc → Cancel` as a `Capture` binding gated on `running().is_some()`. | `cancel_running_query` (8) |
 | R5 | **The explorer drawer's focus stop disappears.** R5 forbids registering from a component that cannot draw. | Q3: a zero-area `FocusEntry` (focusable, not hit-testable). Do **not** work around it by elevating the explorer into a `Popover` — that changes the drawer's visual contract. | `narrow_terminals_turn_the_explorer_into_a_drawer` (21) |
-| R6 | **`DataTable` deletion regresses the Structure tab.** Six sections + header-click sort (`workbench.rs:1051-1053`); `DataTable` sorts by string with an opt-in numeric parse, `Grid` sorts by value (DOM §2.12). | Six `GridModel`s with `NavUnit::Row`; accept and record the sort-semantics change as a §20.10 item. | `structure_view_toggle` (5); the `structure-view` digests |
+| R6 | **`DataTable` deletion regresses the Structure tab.** Six sections + header-click sort (`workbench.rs:1051-1053`); `DataTable` sorts by string with an opt-in numeric parse, while Grid only emits a keyed sort request. | Six `GridModel`s with `NavUnit::Row`; each adapter owns comparison and ordering. Accept and record any sort-semantics change as a §20.10 item. | `structure_view_toggle` (5); the `structure-view` digests |
 | R7 | **Ring composition changes break Tab-count assertions.** `Field` chrome, `scroll_region` parts, disabled-but-registered entries (§20.10-15). | Replace every "Tab N times to reach X" with `Harness::tab_to(id)`; record old/new `reachable()` listings per test in `docs/visual-changes.md` **before** editing an expected value. | tests 6, 9, 21, 22 |
 | R8 | **The secret draft makes `ConnDraft: !Clone`.** **[F]** `ConnForm::to_connection(base)` clones today (`connections.rs:213-244`); `Secret` is not `Clone` (§15). | Rebuild `to_connection` as a by-reference build; `base.map(|b| b.last_used.clone())` stays. | `tablepro::connection_password_is_masked_and_absent_from_the_frame`; `conformance::form::secret_never_appears_in_debug` |
-| R9 | **Grid allocation budget.** `frame_tablepro_grid_500x12_120x40 < 100 allocs/frame` and `grid_500x12_load < 8 000` (§16.6) require `RowStore.text` pre-formatting (§20.9-11) and `CellRef` borrowing. A naive adapter that formats in `cell()` blows both. | Pre-format at load; `cell()` returns `&str`; `sample_widths` measures `&str` and never formats (§20.9-11 explicitly deletes the `CellValue::display_width` clause). | `grid_500x12_load`, `frame_tablepro_grid_500x12_120x40` |
+| R9 | **Grid allocation budget.** `frame_tablepro_grid_500x12_120x40 < 100 allocs/frame` and `grid_500x12_load < 8 000` (§16.6) require `RowStore.text` pre-formatting (§20.9-11) and `CellRef` borrowing. A naive adapter that formats in `cell()` blows both. | Pre-format at load; `cell()` returns `Some(CellRef::new(&text))` for present cells and `None` for holes; width sampling measures borrowed text and never formats (§20.9-11 explicitly deletes the `CellValue::display_width` clause). | `grid_500x12_load`, `frame_tablepro_grid_500x12_120x40` |
 | R10 | **Digest bless race / partial matrix.** **[F]** `REFACTORING_STATE.md:78` records a bless race (since fixed) and §28 P2 records that `--test render` alone runs half the matrix. | Name both targets in every gate command; bless once, at slice close, on the committed tree. | `xtask bless-guard`; `rg -n -- '--test render\b' | rg -v render_components` empty |
 | R11 | **`preview_sql` string output drifts.** Test 17 asserts the exact `UPDATE public.orders SET currency = 'EUR'`; `sql_literal` formats `Num` as `{n:.2}` (`model.rs:123`). | `preview_sql` is moved, not rewritten; `sql_literal` and `from_cell` unchanged. `pk_where`'s no-PK branch (`model.rs:24-45`) must iterate `RowId` instead of `src`. | `pending_edits_preview_and_save` (17) |
 | R12 | **Filter-editor Tab order is a product behaviour, not an accident.** Test 4 and 22 both walk it backwards. | `Form` declaration order = Column, Operator, Value, Value2, then the action row last (F2, F7); record the new sequence in `docs/visual-changes.md` item 15 before editing the tests. | tests 4, 22; the `filter-editor` digests |
 
 ---
 
-## 6. Open questions needing adjudication **before** the slice starts
+## 6. Accepted decisions and remaining questions
 
-Each blocks a named work package. Q1, Q2 and Q3 also block **Slice 4I / 4C**, so they must be answered before wave 2 of Slice 4, not merely before Slice 6.
+Q1–Q3 are resolved and implemented in the Slice 4 public surface. Remaining
+rows stay migration gates; this plan does not treat exported library types as
+evidence that Slice 5 or Slice 6 is complete.
 
 | Q | Question | Why it blocks | Recommended answer |
 |---|---|---|---|
-| **Q1** | **Does the library `Grid` own a sort permutation, and on what comparison?** §12.3's kept-list does not mention `order` or `local_sort`; DOM §1.6 row 4 says "local sort stays a grid option over the model's ordering"; but §16.1 names the *library* unit test `grid::sort_is_a_permutation_and_edits_stay_bound_to_the_source_row`. The grid sees only `CellRef { text, tone, align }`, so it cannot reproduce `cmp_cells`' NULLs-last + numeric ordering (`grid.rs:1950-1966`) without a domain comparison. | 4I, 6A, 6C, 6D; capability 4 | **The adapter presents rows already ordered.** `Grid` emits `GridAction::Sort(ColumnKey, SortDir)` for *both* cases; table tabs re-run the query, result grids call `model.sort_locally()`. Delete `local_sort` from the library. Re-read the library test name as "the grid addresses rows by `ItemKey`, so a model reorder leaves cursor/selection/pending bound to the same logical row" — satisfiable with a fixture model that reorders itself. |
-| **Q2** | **What does `GridState` expose?** TablePro's chords (`p`, `u`, `U`, `Ctrl+S`, `f`, `F`, `/`, `+`, `-`, `Ctrl+D`, `Delete`) move to its `KeyMap` (§13.1) and every one needs the grid's cursor. Three migrated tests read `g.cursor`, `g.hscroll.offset`, `g.pending`. | 4I, 6A, 6C, 6H; capabilities 10, 18, 19 | Add `GridState::{cursor() -> Option<(ItemKey, ColumnKey)>, selected_rows() -> &KeySet, is_editing() -> bool, edit_error() -> Option<&str>, row_window() -> Range<usize>, col_window() -> Range<usize>}`. This also removes the need for `CellAction.glyph: Option<GlyphRole>` (Delete⇒NULL becomes an app binding, not a cell action). |
-| **Q3** | **May a control register a zero-area focus entry?** R5 says a component that cannot draw registers nothing; `hit::empty_rects_are_rejected` rejects empty *regions*. The explorer drawer needs a focus stop with no geometry (`workbench.rs:1268, 1275`). | 6F; test 21 | Permit `ui.register_control(id, Rect::ZERO, Focusability::Focusable)` — a `FocusEntry` with `area: Rect::ZERO` and **no** hit region. Document it as the "hidden but reachable" case; `Harness::click_id` on it returns `ignored()` + `Diagnostic::UnaddressableId`, which is already the specified behaviour (§21 item 17 F7). |
-| **Q4** | **`Grid::actions_slot` contract.** Does it reserve a row unconditionally, or only when the caller supplies a slot? May children drawn inside the `&'a dyn Fn` closure register `Control` regions (the three bar buttons are focus stops today, `grid.rs:1926-1947`)? | 4I, 6C; capability 21 | Reserve one row iff a slot is set; children **may** register controls (the closure receives `&mut Ui`, so `register_control` is reachable and z-order is the draw order). Their `update` runs in the screen beside `Grid::update_editable`. |
+| **Q1 — resolved (§52)** | **Who owns sort order and comparison?** | 6A, 6C, 6D; capability 4 | **The adapter presents rows already ordered.** Grid owns no comparator or permutation and emits `GridAction::Sort(ColumnKey, SortDir)` for both cases. Table tabs re-run the query; result grids call `model.sort_locally()`. Stable row keys preserve cursor, range, selection and edit identity across adapter reorder. |
+| **Q2 — resolved (§52)** | **What does `GridState` expose?** TablePro's chords (`p`, `u`, `U`, `Ctrl+S`, `f`, `F`, `/`, `+`, `-`, `Ctrl+D`, `Delete`) move to its `KeyMap` (§13.1) and need keyed grid state. | 6A, 6C, 6H; capabilities 10, 18, 19 | Exported readers are exactly `cursor() -> Option<(ItemKey, ColumnKey)>`, `selected_rows() -> &KeySet`, `is_editing() -> bool`, `edit_error() -> Option<&FieldError>` and `col_offset() -> usize`. No row or full-column window is exposed; derived viewport geometry remains private. |
+| **Q3 — resolved (§52)** | **How does the explorer drawer register a focus stop with no geometry?** | 6F; test 21 | Use explicit `Ui::register_focus_only(id, Focusability)`. It creates a `Rect::ZERO` ring entry and no hit region; `ClickOnly` is a no-op. Do not pass `Rect::ZERO` to `register_control`. |
+| **Q4 — resolved** | **`Grid::actions_slot` contract.** | 6C; capability 21 | Reserve one row iff a slot is set. Grid registers nothing in it; children drawn by the `Fn(&mut Ui, Rect)` slot may register controls in draw order. Their `update` runs in the screen beside `Grid::update_editable`. |
 | **Q5** | **`Dialog::acknowledge` — does Enter commit the token *and* advance focus to the action row?** **[F]** Tests 10, 11 and 17 all press `Enter → type → Enter → Right → Enter`. Today this is `InputEvent::CommittedTab`. | 4F, 6G; tests 10, 11, 17 | Yes: the ack field's `BlurPolicy` is `CommitAndValidate` and Enter emits `TextAction::MoveNext`, which the dialog turns into `cx.focus(next)`. Record it as a `Dialog` invariant so the three tests stay keystroke-identical. |
 | **Q6** | **`KeyPhase` for the app chords that collide with editor bindings** — `Ctrl+L` (Safe Mode vs clear-line), `Ctrl+D` (Data/Structure vs duplicate-row), `Ctrl+F` (filter vs find), `Ctrl+S` (commit vs nothing), `r`/`s`/`f`/`p`/`u` (bare Chars). | 6G; tests 5, 13, 17, 18 | Bare-`Char` chords go in `Capture` (they are already skipped while the focused control `swallows_typing`, §13.1); every `Ctrl+…` chord that a text control also binds goes in `Bubble`. `conformance::conflicting_visible_bindings_are_reported` must be clean at slice close. |
 | **Q7** | **Esc precedence while a query is running.** | 6G; test 8 | A `Capture` binding declared only when `running().is_some()`. |
 | **Q8** | **Clock access.** §17.0 declares no clock accessor; `Cx::request_repaint_after` schedules a wake but does not report time. The status timeout needs one or the other. | 6G; §4.1 | App-owned tick counter (zero new library surface, deterministic under `Harness::ticks`). Also resolve the token value: §11.2 says `status_ms 4000`, §8.5 says "4000/5000", TablePro uses 5 000 (`app.rs:330`). Pick 5 000 for TablePro via a per-app override, or accept 4 000 and record it as a visual/behaviour change. |
-| **Q9** | **`§29` is referenced but absent.** **[F]** `COMPONENT_ARCHITECTURE.md:9, 45, 1734, 1815, 1869, 3943, 6211, 6222` all cite "§29 / Adjudication Q", and `REFACTORING_STATE.md:115` lists "Record as §29" as an open task, but the document ends at §28.8 (line 6285). Slice 6 quotes §29's `Slot<GlyphRole>` contract for `RowDecor`/`CellDecor` markers. | 6A, 6C, 6E | Append §29 before Slice 6 opens; otherwise `xtask doc-check`'s §21–§26 range and `every_named_test_exists` will disagree with the inline markers. |
+| **Q9 — resolved (§29)** | **Is the glyph-slot contract recorded?** | 6A, 6C, 6E | Yes. §29 preserves `Slot<GlyphRole>::{Inherit, Set, Clear}` for cell-owned glyphs. `RowDecor`/`CellDecor` adapters may rely on the recorded marker semantics; no Slice 6 code should recreate them. |
 | **Q10** | **`ScrollPanel` → `TextViewport` with tone-carrying spans** — does `TextViewport` accept our role-carrying `Span` (`«tui»/text/span.rs`, §24 M1) and does the DDL keyword styler (`tabs.rs:855-862`) become span roles built at load? | 4E, 6C, 6D | Yes; build the spans once in `rebuild_structure` / `plan_text`, not per frame. Confirm `TextViewport` exposes a scrollbar as `Part::TRACK/THUMB` of itself so `scrollbar::id_for` disappears. |
-| **Q11** | **The test-count discrepancy** (23 vs 21) and the `acceptance_flow_*` renames in §16.4. | 6H | Correct §16.4's inventory to 23 and record both old and new names so `architecture::every_named_test_exists` is satisfiable. |
+| **Q11 — resolved** | **The test-count discrepancy** (23 vs 21) and the `acceptance_flow_*` renames in §16.4. | 6H | §16.4 records 23 TablePro tests. Slice 6 must migrate all 23; this correction does not count as migration completion. |
 
 ---
 
 ### Collected facts vs inference — summary
 
-Everything in §1's "Today" column, §2.1's move list, §4.1's five wall-clock sites, §4.2's per-test line numbers and §4.3's surface list is **[F]**, read from `src/bin/tablepro/**` and `src/widgets/grid.rs` at this HEAD. The target compositions, the `RowId` decision (§2.2), the work-package split (§3), the per-digest cause attribution (§4.3), all risks and all eleven open questions are **[I]** — decisions for the coordinator to record in `COMPONENT_ARCHITECTURE.md` and `REFACTORING_STATE.md` before Slice 6 opens.
+Everything in §1's "Today" column, §2.1's move list, §4.1's five wall-clock sites, §4.2's per-test line numbers and §4.3's surface list is **[F]**, read from `src/bin/tablepro/**` and `src/widgets/grid.rs`. Target compositions, the `RowId` decision (§2.2), the work-package split (§3), per-digest cause attribution (§4.3) and risks are migration decisions. Q1–Q4, Q9 and Q11 now reflect accepted or implemented contracts; unresolved rows still require proof before their dependent Slice 6 package starts.
 
 **Files most relevant to the next agent:**
 `/Users/donbeave/Projects/terminal-components-claude/src/bin/tablepro/{app.rs,workbench.rs,tabs.rs,connections.rs,model.rs,db.rs,app_tests.rs,visual_tests.rs}`,

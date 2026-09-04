@@ -8,6 +8,7 @@ use ratatui_core::layout::Rect;
 use super::button::Button;
 use super::field::Field;
 use super::input::{TextAction, TextInput, TextInputState};
+use super::keyhint::ChordText;
 use super::{Acc, Overrides};
 use crate::action::{Action, ActionKey};
 use crate::event::{Chord, KeyCode};
@@ -18,7 +19,7 @@ use crate::layer::{DismissReason, LayerEvent, LayerSize, LayerSpec};
 use crate::layout::{RowAlign, action_row};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::text::{wrap, wrapped_rows};
+use crate::text::{width, wrap, wrapped_rows};
 use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
@@ -38,18 +39,38 @@ pub enum DialogCmd {
     PrevAction,
     /// Focus the next enabled action.
     NextAction,
+    /// Activate the focused action.
+    Activate,
 }
 
 const BINDINGS: &[Binding<DialogCmd>] = &[
     Binding {
-        chord: Chord::key(KeyCode::Left),
+        action: ActionKey::custom("dialog.previous-action"),
+        chord: Some(Chord::key(KeyCode::Left)),
         cmd: DialogCmd::PrevAction,
         label: "Prev",
         priority: 20,
         visible: false,
     },
     Binding {
-        chord: Chord::key(KeyCode::Right),
+        action: ActionKey::custom("dialog.activate.enter"),
+        chord: Some(Chord::key(KeyCode::Enter)),
+        cmd: DialogCmd::Activate,
+        label: "Choose",
+        priority: 80,
+        visible: true,
+    },
+    Binding {
+        action: ActionKey::custom("dialog.activate.space"),
+        chord: Some(Chord::key(KeyCode::Char(' '))),
+        cmd: DialogCmd::Activate,
+        label: "Choose",
+        priority: 10,
+        visible: false,
+    },
+    Binding {
+        action: ActionKey::custom("dialog.next-action"),
+        chord: Some(Chord::key(KeyCode::Right)),
         cmd: DialogCmd::NextAction,
         label: "Next",
         priority: 20,
@@ -69,6 +90,7 @@ const ACK_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
     Action::danger(ActionKey::CONFIRM, "Confirm"),
 ];
+const INFO_ACTIONS: [Action<'static>; 1] = [Action::new(ActionKey::CLOSE, "Close")];
 
 /// Durable state of a [`Dialog`]: the prompt / acknowledgement draft.
 ///
@@ -134,8 +156,8 @@ impl DialogState {
 /// ## States
 /// None of its own; the border is painted strong (the legacy focused
 /// frame); action buttons derive `DISABLED` from arming.
-/// `.state_override` forces the state its parts and its action buttons
-/// resolve with, for a reference rendering (A11).
+/// Reference fixtures target an individual prompt or action through
+/// [`Ui::reference`](crate::Ui::reference) (A11).
 ///
 /// ## Actions
 /// `Action(key)` when a button fires, `Dismissed(reason)` when the layer
@@ -160,7 +182,8 @@ impl DialogState {
 /// [`Dialog::update`] re-asserts them every frame (§26 N1). `draw` lays out
 /// from `area`'s origin against that measurement — title, description,
 /// prompt, a blank row, the body slot, a blank row, the action row — runs
-/// the body slot and returns `Some(R)`, or `None` when nothing fits.
+/// the body slot exactly once and returns its value. When no chrome fits, the
+/// body receives an origin-anchored empty rect under an empty clip.
 /// `measure` returns the same size.
 ///
 /// ## Parts
@@ -168,7 +191,7 @@ impl DialogState {
 /// `ACTIONS`, `BACKDROP` (painted by the runtime).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part`, `.state_override`; no slots (the body is the
+/// `.patch`, `.patch_part`; no slots (the body is the
 /// slot).
 ///
 /// ## Identity
@@ -176,8 +199,8 @@ impl DialogState {
 /// `id.part(Part::ACTIONS).index(i)`.
 ///
 /// ## Testing
-/// `DialogCase` with `OVERLAY | FOCUSABLE | ACTIVATES` (over a launcher
-/// button); `render::components::dialog::*`.
+/// `DialogCase` with `OVERLAY | TRAPS_FOCUS | FOCUSABLE | ACTIVATES` (over a
+/// launcher button); `render::components::dialog::*`.
 ///
 /// ## Invariants
 /// Arming is an `update` predicate (`Action::enabled`, or the typed token);
@@ -212,6 +235,9 @@ impl fmt::Debug for Dialog<'_> {
 }
 
 impl<'a> Dialog<'a> {
+    /// Maximum actions represented by both update and draw.
+    pub const MAX_ACTIONS: usize = 8;
+
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -281,6 +307,32 @@ impl<'a> Dialog<'a> {
         d
     }
 
+    /// A facts body, sized for one row per property and closed by one action.
+    /// Paint `props` through [`Props`](crate::components::Props) in `draw`'s
+    /// body slot; this constructor stores no closed body representation.
+    pub fn facts(id: Id, title: &'a str, props: &'a [(&'a str, &'a str)]) -> Self {
+        let mut d = Self::info(id, title);
+        d.body_rows = Some(props.len().min(usize::from(u16::MAX)) as u16);
+        d
+    }
+
+    /// A choice body, sized for one row per option with Cancel / OK actions.
+    /// Paint `options` through a choice control in `draw`'s body slot.
+    pub fn choice(id: Id, title: &'a str, options: &'a [&'a str]) -> Self {
+        let mut d = Self::confirm(id, title, "");
+        d.description = None;
+        d.body_rows = Some(options.len().min(usize::from(u16::MAX)) as u16);
+        d
+    }
+
+    /// Read-only body content with one Close action.
+    pub const fn info(id: Id, title: &'a str) -> Self {
+        let mut d = Self::new(id).title(title);
+        d.actions = &INFO_ACTIONS;
+        d.cancel = Some(ActionKey::CLOSE);
+        d
+    }
+
     /// The id.
     pub const fn id(&self) -> Id {
         self.id
@@ -310,7 +362,8 @@ impl<'a> Dialog<'a> {
         self
     }
 
-    /// The action row.
+    /// The action row. At most [`Self::MAX_ACTIONS`] entries participate in
+    /// both update and draw; later entries are inert.
     #[must_use]
     pub const fn actions(mut self, a: &'a [Action<'a>]) -> Self {
         self.actions = a;
@@ -352,15 +405,6 @@ impl<'a> Dialog<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11): resolve the dialog's own parts —
-    /// and draw its action buttons — in a forced state. A forced dialog
-    /// registers no decorative region.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn has_input(&self) -> bool {
         self.prompt.is_some() || self.ack.is_some()
     }
@@ -374,6 +418,14 @@ impl<'a> Dialog<'a> {
         a.is_enabled() && (self.armed(st) || Some(a.key()) == self.cancel)
     }
 
+    fn action_count(&self) -> usize {
+        self.actions.len().min(Self::MAX_ACTIONS)
+    }
+
+    fn effective_actions(&self) -> &[Action<'a>] {
+        self.actions.get(..self.action_count()).unwrap_or(&[])
+    }
+
     fn variant_of(&self, a: &Action<'_>) -> Variant {
         if Some(a.key()) == self.primary {
             Variant::PRIMARY
@@ -384,9 +436,12 @@ impl<'a> Dialog<'a> {
 
     /// The first enabled action that is not the cancel action.
     fn primary_index(&self, st: &DialogState) -> Option<usize> {
-        self.actions.iter().enumerate().find_map(|(i, a)| {
-            (Some(a.key()) != self.cancel && self.enabled(i, a, st)).then_some(i)
-        })
+        self.effective_actions()
+            .iter()
+            .enumerate()
+            .find_map(|(i, a)| {
+                (Some(a.key()) != self.cancel && self.enabled(i, a, st)).then_some(i)
+            })
     }
 
     /// The update phase: the prompt, the action buttons, `←`/`→` and the
@@ -427,7 +482,7 @@ impl<'a> Dialog<'a> {
                 }
             }
         }
-        for (i, a) in self.actions.iter().enumerate() {
+        for (i, a) in self.effective_actions().iter().enumerate() {
             let bid = self.action_id(i);
             let enabled = self.enabled(i, a, st);
             let r = Button::new(bid, a.label())
@@ -440,8 +495,8 @@ impl<'a> Dialog<'a> {
                 acc.fold(&r.erase());
             }
             for it in cx.intents(bid) {
-                if let Intent::Key(k) = it {
-                    match Binding::lookup(BINDINGS, &k) {
+                if let Intent::Binding(action) = it {
+                    match Binding::command(BINDINGS, action) {
                         Some(DialogCmd::PrevAction) => {
                             if let Some(p) = self.neighbour(st, i, false) {
                                 cx.focus(self.action_id(p));
@@ -454,6 +509,13 @@ impl<'a> Dialog<'a> {
                             }
                             acc.changed();
                         }
+                        Some(DialogCmd::Activate) if enabled => {
+                            acc.action(DialogAction::Action(a.key()));
+                        }
+                        Some(DialogCmd::Activate) => acc.consumed(),
+                        None if action == a.key() && enabled => {
+                            acc.action(DialogAction::Action(a.key()));
+                        }
                         None => {}
                     }
                 }
@@ -463,7 +525,7 @@ impl<'a> Dialog<'a> {
     }
 
     fn neighbour(&self, st: &DialogState, from: usize, forward: bool) -> Option<usize> {
-        let n = self.actions.len();
+        let n = self.action_count();
         let enabled = |i: usize| self.actions.get(i).is_some_and(|a| self.enabled(i, a, st));
         if forward {
             (from.saturating_add(1)..n).find(|&i| enabled(i))
@@ -552,7 +614,11 @@ impl<'a> Dialog<'a> {
     }
 
     /// The draw phase: chrome, description, prompt, the body slot and the
-    /// action row. Returns `None` when the dialog cannot draw.
+    /// action row.
+    ///
+    /// The body runs exactly once for every area. When the dialog or its
+    /// inner rect cannot draw, it receives an empty rect anchored inside
+    /// `area`; its paint and registrations remain clipped away (R1/R5).
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over title, description, prompt, body and actions"
@@ -563,21 +629,33 @@ impl<'a> Dialog<'a> {
         area: Rect,
         st: &DialogState,
         body: impl FnOnce(&mut Ui<'_>, Rect) -> R,
-    ) -> Option<R> {
-        if area.is_empty() {
-            return None;
-        }
-        let (rect, desc_h) = self.frame_rect(ui, area);
-        if rect.width < 4 || rect.height < 4 {
-            return None;
-        }
-        let ov = self.ov;
-        let id = self.id;
-        let forced = ov.is_forced();
-        // neither half: a dialog frame registers no control and declares no
-        // readiness, so only a forced state can put flags on it
-        let live = ov.flags(StateFlags::empty(), StateFlags::empty());
+    ) -> R {
         ui.with_surface(Surface::Elevated, |ui| {
+            if area.is_empty() {
+                let empty = Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: 0,
+                    height: 0,
+                };
+                return ui.with_area(empty, |ui| body(ui, empty));
+            }
+            let (rect, desc_h) = self.frame_rect(ui, area);
+            if rect.width < 4 || rect.height < 4 {
+                let empty = Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: 0,
+                    height: 0,
+                };
+                return ui.with_area(empty, |ui| body(ui, empty));
+            }
+            let ov = self.ov;
+            let id = self.id;
+            // Dialog chrome has no runtime state of its own. Its border is the
+            // authored strong rule; fixture interaction flags belong to one
+            // prompt/action child below, never to the composite surface.
+            let live = StateFlags::empty();
             let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
                 ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)
             };
@@ -585,10 +663,8 @@ impl<'a> Dialog<'a> {
             ui.fill(rect, container.style);
             let border = style(ui, Part::BORDER, StateFlags::FOCUSED);
             let framed = ui.frame(rect, border.style);
-            if !forced {
-                ui.register_decor(id, PartRef::of(Part::CONTAINER), rect);
-                ui.register_decor(id, PartRef::of(Part::BORDER), rect);
-            }
+            ui.register_decor(id, PartRef::of(Part::CONTAINER), rect);
+            ui.register_decor(id, PartRef::of(Part::BORDER), rect);
             // the horizontal inset `measured_height` wraps the description
             // against; vertically the frame is the padding (§26 N1)
             let pad = ui.design().space.dialog_inset;
@@ -602,7 +678,7 @@ impl<'a> Dialog<'a> {
                 },
             );
             if inner.is_empty() {
-                return None;
+                return ui.with_area(inner, |ui| body(ui, inner));
             }
             let mut y = inner.y;
             if let Some(t) = self.title {
@@ -613,9 +689,7 @@ impl<'a> Dialog<'a> {
                     ..inner
                 };
                 ui.paint_str(row, t, ts.style);
-                if !forced {
-                    ui.register_decor(id, PartRef::of(Part::TITLE), row);
-                }
+                ui.register_decor(id, PartRef::of(Part::TITLE), row);
             }
             y = y.saturating_add(1);
             let actions_y = if self.actions.is_empty() {
@@ -648,10 +722,7 @@ impl<'a> Dialog<'a> {
                 };
                 let input = TextInput::new(self.input_id()).value(&st.draft);
                 let label = self.prompt.unwrap_or("Type the token to confirm");
-                Field::new(label, input)
-                    .plain(true)
-                    .inherit_forced(ov.forced_state())
-                    .draw(ui, r, &st.input);
+                Field::new(label, input).plain(true).draw(ui, r, &st.input);
                 y = y.saturating_add(field_h);
                 if self.ack.is_some() {
                     y = y.saturating_add(1);
@@ -671,9 +742,7 @@ impl<'a> Dialog<'a> {
                 width: inner.width,
                 height: body_bottom.saturating_sub(body_top),
             };
-            if !forced {
-                ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
-            }
+            ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
             let out = ui.with_area(body_rect, |ui| body(ui, body_rect));
             if !self.actions.is_empty() {
                 let row = Rect {
@@ -682,30 +751,60 @@ impl<'a> Dialog<'a> {
                     width: inner.width,
                     height: 1,
                 };
-                if !forced {
-                    ui.register_decor(id, PartRef::of(Part::ACTIONS), row);
-                }
-                let mut widths = [0u16; 8];
-                let n = self.actions.len().min(widths.len());
-                for (i, a) in self.actions.iter().take(n).enumerate() {
-                    let w = Button::new(self.action_id(i), a.label())
+                ui.register_decor(id, PartRef::of(Part::ACTIONS), row);
+                let mut widths = [0u16; Self::MAX_ACTIONS];
+                let actions = self.effective_actions();
+                let n = actions.len();
+                for (i, a) in actions.iter().enumerate() {
+                    let action_id = self.action_id(i);
+                    let chord_width = ui
+                        .effective_chord(action_id, a.key(), a.chord_ref())
+                        .map_or(0, |chord| {
+                            width(ChordText::of(chord).as_str()).saturating_add(1)
+                        });
+                    let w = Button::new(action_id, a.label())
                         .measure(ui, Constraints::loose(row.width, 1))
                         .preferred
-                        .0;
+                        .0
+                        .saturating_add(chord_width);
                     if let Some(slot) = widths.get_mut(i) {
                         *slot = w;
                     }
                 }
                 let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 1, RowAlign::End);
-                for ((i, a), r) in self.actions.iter().take(n).enumerate().zip(rects) {
-                    Button::new(self.action_id(i), a.label())
+                for ((i, a), r) in actions.iter().enumerate().zip(rects) {
+                    let action_id = self.action_id(i);
+                    let enabled = self.enabled(i, a, st);
+                    Button::new(action_id, a.label())
                         .variant(self.variant_of(a))
-                        .disabled(!self.enabled(i, a, st))
-                        .inherit_forced(ov.forced_state())
+                        .disabled(!enabled)
                         .draw(ui, r);
+                    if enabled {
+                        ui.publish_dynamic_bindings(
+                            action_id,
+                            ui.state(action_id),
+                            core::iter::once((a.key(), a.chord_ref())),
+                        );
+                    }
+                    if let Some(chord) = ui.effective_chord(action_id, a.key(), a.chord_ref()) {
+                        let text = ChordText::of(chord);
+                        let key_width = width(text.as_str()).min(r.width);
+                        let key = Rect {
+                            x: r.right().saturating_sub(key_width),
+                            width: key_width,
+                            ..r
+                        };
+                        let style = ui.resolve(
+                            Family::BUTTON,
+                            self.variant_of(a),
+                            Part::LABEL,
+                            ui.state(action_id),
+                        );
+                        ui.paint_str(key, text.as_str(), style.style);
+                    }
                 }
             }
-            Some(out)
+            out
         })
     }
 
@@ -731,15 +830,20 @@ impl Bindings for Dialog<'_> {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
+
     use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Position;
 
     use super::*;
     use crate::event::{Input, Key, KeyModifiers};
+    use crate::keymap::KeyMap;
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
 
     const DLG: Id = Id::root("dialog.tests");
+    const BODY: Id = Id::root("dialog.tests.body");
     const TOKEN: &str = "delete";
 
     fn confirm() -> Dialog<'static> {
@@ -767,6 +871,184 @@ mod tests {
             Runtime::new(Stub::default(), Theme::junie()),
             Buffer::empty(SCREEN),
         )
+    }
+
+    #[test]
+    fn body_is_total_and_clipped_when_the_dialog_cannot_draw() {
+        let areas = [
+            Rect::new(7, 5, 0, 0),
+            Rect::new(7, 5, 1, 1),
+            Rect::new(7, 5, 3, 8),
+            Rect::new(7, 5, 8, 3),
+            // The frame fits, but the dialog inset collapses its inner rect.
+            Rect::new(7, 5, 4, 4),
+        ];
+        for area in areas {
+            let (mut rt, mut buf) = scene();
+            let calls = Cell::new(0);
+            let seen = Cell::new(Rect::ZERO);
+            let surface = Cell::new(Surface::Canvas);
+            let mut answer = 0;
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                answer = Dialog::new(DLG).draw(ui, area, &DialogState::default(), |ui, inner| {
+                    calls.set(calls.get() + 1);
+                    seen.set(inner);
+                    surface.set(ui.surface());
+                    let style = ui.surface_style();
+                    for row in SCREEN.rows() {
+                        ui.paint_str(row, "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", style);
+                    }
+                    ui.register_decor(BODY, PartRef::of(Part::BODY), SCREEN);
+                    42
+                });
+            });
+            let inner = seen.get();
+            assert_eq!(answer, 42, "body result became optional for {area:?}");
+            assert_eq!(calls.get(), 1, "body traversal count for {area:?}");
+            assert!(inner.is_empty(), "nondrawable {area:?} yielded {inner:?}");
+            assert!(
+                inner.x >= area.x
+                    && inner.y >= area.y
+                    && inner.x <= area.right()
+                    && inner.y <= area.bottom(),
+                "empty body {inner:?} is not anchored inside {area:?}"
+            );
+            assert_eq!(surface.get(), Surface::Elevated);
+            assert!(
+                !buf.content().iter().any(|cell| cell.symbol() == "Z"),
+                "body paint escaped the empty clip for {area:?}"
+            );
+            assert!(
+                rt.registry().regions().iter().all(|r| r.owner != BODY),
+                "body registration escaped the empty clip for {area:?}"
+            );
+            if area.width < 4 || area.height < 4 {
+                assert!(
+                    rt.registry().is_empty(),
+                    "nondrawable dialog registered chrome for {area:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn valid_dialog_preserves_chrome_and_clips_its_body() {
+        let (mut rt, mut buf) = scene();
+        let area = Rect::new(4, 3, 20, 6);
+        let mut inner = Rect::ZERO;
+        let mut answer = 0;
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            answer = Dialog::new(DLG)
+                .title("Title")
+                .width(area.width)
+                .body_rows(2)
+                .draw(ui, area, &DialogState::default(), |ui, body| {
+                    inner = body;
+                    let style = ui.surface_style();
+                    for row in SCREEN.rows() {
+                        ui.paint_str(row, "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", style);
+                    }
+                    ui.register_decor(BODY, PartRef::of(Part::BODY), SCREEN);
+                    73
+                });
+        });
+        assert_eq!(answer, 73);
+        assert!(!inner.is_empty());
+        for pos in SCREEN.positions() {
+            let is_z = buf.cell(pos).is_some_and(|cell| cell.symbol() == "Z");
+            assert_eq!(is_z, inner.contains(pos), "body clip mismatch at {pos:?}");
+        }
+        let body_region = rt
+            .registry()
+            .regions()
+            .iter()
+            .find(|r| r.owner == BODY)
+            .map(|r| r.area)
+            .expect("body registration was lost");
+        assert_eq!(body_region, inner);
+        let borders = Theme::junie().design.borders;
+        assert_eq!(
+            buf.cell(Position::new(area.x, area.y))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(borders.top_left)
+        );
+        assert_eq!(
+            buf.cell(Position::new(
+                area.right().saturating_sub(1),
+                area.bottom().saturating_sub(1)
+            ))
+            .map(ratatui_core::buffer::Cell::symbol),
+            Some(borders.bottom_right)
+        );
+    }
+
+    #[test]
+    fn convenience_constructors_render_through_the_body_slot() {
+        let render = |dialog: &Dialog<'_>| {
+            let (mut runtime, mut buffer) = scene();
+            let calls = Cell::new(0usize);
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+                dialog.draw(ui, area, &DialogState::default(), |ui, body| {
+                    calls.set(calls.get().saturating_add(1));
+                    ui.paint_str(body, "body-slot", ui.surface_style());
+                });
+            });
+            assert_eq!(calls.get(), 1);
+            buffer
+        };
+
+        let mut composed = Dialog::new(DLG)
+            .title("Remove person")
+            .description("Remove this person from the roster?")
+            .actions(&CONFIRM_ACTIONS)
+            .cancel(ActionKey::CANCEL)
+            .body_rows(0);
+        composed.primary = Some(ActionKey::CONFIRM);
+        assert_eq!(render(&confirm()), render(&composed));
+
+        let props = [("Owner", "Junie"), ("State", "ready")];
+        let options = ["Alpha", "Beta", "Gamma"];
+        for dialog in [
+            Dialog::facts(DLG, "Facts", &props),
+            Dialog::choice(DLG, "Choose", &options),
+            Dialog::info(DLG, "Info"),
+        ] {
+            let buffer = render(&dialog);
+            assert!(buffer.content().iter().any(|cell| cell.symbol() == "b"));
+        }
+        assert_eq!(Dialog::facts(DLG, "Facts", &props).body_rows, Some(2));
+        assert_eq!(Dialog::choice(DLG, "Choose", &options).body_rows, Some(3));
+        assert_eq!(Dialog::info(DLG, "Info").effective_actions(), &INFO_ACTIONS);
+    }
+
+    #[test]
+    fn action_cap_is_shared_by_update_and_draw() {
+        const ACTIONS: [Action<'static>; 9] = [
+            Action::new(ActionKey::custom("0"), "0"),
+            Action::new(ActionKey::custom("1"), "1"),
+            Action::new(ActionKey::custom("2"), "2"),
+            Action::new(ActionKey::custom("3"), "3"),
+            Action::new(ActionKey::custom("4"), "4"),
+            Action::new(ActionKey::custom("5"), "5"),
+            Action::new(ActionKey::custom("6"), "6"),
+            Action::new(ActionKey::custom("7"), "7"),
+            Action::new(ActionKey::custom("8"), "8"),
+        ];
+        let dialog = Dialog::new(DLG).actions(&ACTIONS);
+        assert_eq!(dialog.effective_actions(), &ACTIONS[..Dialog::MAX_ACTIONS]);
+
+        let (mut runtime, mut buffer) = scene();
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            dialog.draw(ui, area, &DialogState::default(), |_, _| {});
+        });
+        for i in 0..Dialog::MAX_ACTIONS {
+            assert!(runtime.area_of(dialog.action_id(i)).is_some());
+        }
+        assert!(
+            runtime
+                .area_of(dialog.action_id(Dialog::MAX_ACTIONS))
+                .is_none()
+        );
     }
 
     /// §26 N1: the layer size is a function of `(props, DesignTokens)` and
@@ -817,6 +1099,125 @@ mod tests {
                 "title + border, the prompt's field, the action block"
             );
         }
+    }
+
+    #[test]
+    fn draw_lays_out_against_the_height_it_asked_for() {
+        let theme = Theme::junie();
+        let d = Dialog::new(DLG)
+            .title("Title")
+            .description("A description that wraps predictably.")
+            .width(30)
+            .body_rows(3)
+            .actions(&CONFIRM_ACTIONS);
+        let asked = Rect::new(
+            7,
+            0,
+            d.measured_width(&theme.design),
+            d.measured_height(&theme.design),
+        );
+        let (mut rt, _) = scene();
+        let mut buf = Buffer::empty(SCREEN);
+        let mut body = Rect::ZERO;
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            d.draw(ui, asked, &DialogState::default(), |_, area| body = area);
+        });
+        assert_eq!(body.height, 3);
+        assert!(asked.contains(Position::new(body.x, body.y)));
+        let borders = theme.design.borders;
+        assert_eq!(
+            buf.cell(Position::new(asked.x, asked.y))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(borders.top_left)
+        );
+    }
+
+    #[test]
+    fn confirm_is_centred_by_the_resolver_not_by_the_dialog() {
+        #[derive(Default)]
+        struct Centered {
+            st: DialogState,
+            opened: bool,
+        }
+        impl App for Centered {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                if !self.opened {
+                    self.opened = true;
+                    cx.open_layer(DLG, confirm().layer(cx));
+                }
+                confirm().update(cx, &mut self.st).erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                ui.layer(DLG, |ui, area| {
+                    confirm().draw(ui, area, &self.st, |_, _| {});
+                });
+            }
+        }
+        let mut rt = Runtime::new(Centered::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = rt.handle(Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf);
+        let area = rt
+            .layer_area(DLG)
+            .expect("resolver assigned the dialog area");
+        let spec = rt.open_spec(DLG).expect("dialog owns an open spec");
+        assert_eq!(
+            area,
+            crate::layer::resolve_anchor(SCREEN, spec.anchor, spec.size)
+        );
+    }
+
+    #[test]
+    fn a_growing_body_resizes_the_layer_on_the_next_frame() {
+        #[derive(Default)]
+        struct Growing {
+            st: DialogState,
+            opened: bool,
+            rows: u16,
+        }
+        impl App for Growing {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let d = Dialog::new(DLG).title("Growing").body_rows(self.rows);
+                if !self.opened {
+                    self.opened = true;
+                    cx.open_layer(DLG, d.layer(cx));
+                }
+                d.update(cx, &mut self.st).erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                ui.layer(DLG, |ui, area| {
+                    Dialog::new(DLG).title("Growing").body_rows(self.rows).draw(
+                        ui,
+                        area,
+                        &self.st,
+                        |_, _| {},
+                    );
+                });
+            }
+        }
+        let mut rt = Runtime::new(Growing::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = rt.handle(Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf);
+        let before = rt.layer_area(DLG).expect("open layer");
+        rt.app_mut().rows = 5;
+        let _ = rt.handle(Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf);
+        let after = rt.layer_area(DLG).expect("resized layer");
+        assert_eq!(after.height, before.height.saturating_add(6));
+    }
+
+    #[test]
+    fn action_arming_is_evaluated_in_update() {
+        let action = Action::danger(ActionKey::CONFIRM, "Delete");
+        let actions = [action];
+        let d = Dialog::acknowledge(DLG, "Delete", TOKEN).actions(&actions);
+        let mut st = DialogState::default();
+        assert!(!d.enabled(0, &action, &st));
+        st.draft.push_str(TOKEN);
+        assert!(d.enabled(0, &action, &st));
     }
 
     /// §28 P4: the prompt's `Field` gets exactly the rows `input_rows`
@@ -916,12 +1317,99 @@ mod tests {
         );
     }
 
-    /// A11 (§12.1, §28 P5): a forced rendering is a picture, not a control —
-    /// at any depth. The dialog registers no region of its own, its action
+    #[test]
+    fn action_chord_routes_remaps_removes_and_paints_effective_binding() {
+        const QUICK: ActionKey = ActionKey::custom("dialog.quick");
+        const ACTIONS: [Action<'static>; 1] =
+            [Action::new(QUICK, "Quick").chord(Chord::key(KeyCode::F(4)))];
+
+        fn dialog() -> Dialog<'static> {
+            Dialog::new(DLG)
+                .title("Dynamic")
+                .actions(&ACTIONS)
+                .body_rows(0)
+        }
+
+        #[derive(Default)]
+        struct DynamicDialogApp {
+            state: DialogState,
+            opened: bool,
+            chosen: Option<ActionKey>,
+            keymap: KeyMap,
+        }
+
+        impl App for DynamicDialogApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                if !self.opened {
+                    self.opened = true;
+                    cx.open_layer(DLG, dialog().layer(cx));
+                }
+                let response = dialog().update(cx, &mut self.state);
+                if let Some(DialogAction::Action(action)) = response.action_ref() {
+                    self.chosen = Some(*action);
+                }
+                response.erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let _ = ui.layer(DLG, |ui, area| {
+                    dialog().draw(ui, area, &self.state, |_, _| {});
+                });
+            }
+
+            fn keymap(&self) -> &KeyMap {
+                &self.keymap
+            }
+        }
+
+        let mut runtime = Runtime::new(DynamicDialogApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let key = |code| {
+            Input::Key(Key {
+                code,
+                mods: KeyModifiers::NONE,
+            })
+        };
+        let _ = runtime.handle(key(KeyCode::F(4)));
+        assert_eq!(runtime.app().chosen, Some(QUICK));
+
+        runtime.app_mut().chosen = None;
+        runtime.app_mut().keymap.remap_component(
+            dialog().action_id(0),
+            QUICK,
+            Chord::key(KeyCode::F(5)),
+        );
+        let _ = runtime.handle(key(KeyCode::F(4)));
+        assert_eq!(runtime.app().chosen, None);
+        let _ = runtime.handle(key(KeyCode::F(5)));
+        assert_eq!(runtime.app().chosen, Some(QUICK));
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let painted = buffer
+            .content()
+            .iter()
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect::<String>();
+        assert!(painted.contains("F5"));
+
+        runtime.app_mut().chosen = None;
+        runtime
+            .app_mut()
+            .keymap
+            .remove_component(dialog().action_id(0), QUICK);
+        let _ = runtime.handle(key(KeyCode::F(5)));
+        assert_eq!(runtime.app().chosen, None);
+    }
+
+    /// A reference rendering is a picture, not a control at any depth. The
+    /// dialog registers no region of its own, its action
     /// buttons register nothing, its prompt registers no editor, and the
     /// focus ring stays empty.
     #[test]
-    fn a_forced_dialog_registers_no_control() {
+    fn a_reference_dialog_registers_no_control() {
         for dlg in [confirm(), prompt()] {
             let (mut rt, mut buf) = scene();
             let st = DialogState::default();
@@ -929,8 +1417,7 @@ mod tests {
             let action0 = dlg.action_id(0);
             let input = dlg.input_id();
             rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-                dlg.state_override(StateFlags::FOCUSED)
-                    .draw(ui, a, &st, |_, _| {});
+                ui.reference(None, |ui| dlg.draw(ui, a, &st, |_, _| {}));
             });
             assert!(rt.registry().area_of(id).is_none(), "the chrome is live");
             assert!(
@@ -943,5 +1430,46 @@ mod tests {
             );
             assert_eq!(rt.ring().reachable().count(), 0, "a focus stop survived");
         }
+    }
+
+    #[test]
+    fn reference_dialog_targets_one_owned_control_without_broadcasting() {
+        let render = |dialog: Dialog<'_>, target| {
+            let (mut runtime, mut buffer) = scene();
+            runtime.set_theme(Theme::junie().downgrade(crate::ColorLevel::Mono));
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+                ui.reference(target, |ui| {
+                    dialog.draw(ui, area, &DialogState::default(), |_, _| {});
+                });
+            });
+            buffer
+                .content()
+                .iter()
+                .map(ratatui_core::buffer::Cell::symbol)
+                .collect::<String>()
+        };
+
+        let pressed = render(
+            confirm(),
+            Some(crate::ReferenceTarget::new(
+                confirm().action_id(0),
+                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+            )),
+        );
+        assert_eq!(pressed.matches("[Cancel]").count(), 1);
+        assert!(!pressed.contains("[OK]"));
+        let default = render(confirm(), None);
+        assert_eq!(render(confirm(), None), default);
+
+        let prompt_focused = render(
+            prompt(),
+            Some(crate::ReferenceTarget::new(
+                prompt().input_id(),
+                crate::ReferenceState::FOCUSED | crate::ReferenceState::FOCUS_VISIBLE,
+            )),
+        );
+        assert_eq!(prompt_focused.matches('▎').count(), 1);
+        assert!(!prompt_focused.contains("▎Cancel"));
+        assert!(!prompt_focused.contains("▎OK"));
     }
 }

@@ -5,10 +5,11 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::input::{BlurPolicy, EditPhase, TextAction, TextCmd, byte_at_col};
+use super::input::{BlurPolicy, EditPhase, TextAction, TextCmd, TextTarget, byte_at_col};
 use super::scroll_region::ScrollRegion;
 use super::{Acc, Overrides, SlotFn, cell_at, first_row};
-use crate::event::{Chord, Key, KeyCode, KeyModifiers};
+use crate::action::ActionKey;
+use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -28,7 +29,8 @@ const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
 const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
     Binding {
-        chord,
+        action: ActionKey::custom(label),
+        chord: Some(chord),
         cmd,
         label,
         priority: 50,
@@ -111,13 +113,13 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Left, ALT),
         TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left",
+        "Word left (Alt+Left)",
         false,
     ),
     b(
         Chord::with(KeyCode::Right, ALT),
         TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right",
+        "Word right (Alt+Right)",
         false,
     ),
     b(
@@ -183,7 +185,7 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Backspace, ALT),
         TextCmd::DeleteWordLeft,
-        "Delete word",
+        "Delete word (Alt+Backspace)",
         false,
     ),
     b(
@@ -195,13 +197,13 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Char('a'), CTRL),
         TextCmd::Move(Motion::Home, Extend::No),
-        "Line start",
+        "Line start (Ctrl+A)",
         false,
     ),
     b(
         Chord::with(KeyCode::Char('e'), CTRL),
         TextCmd::Move(Motion::End, Extend::No),
-        "Line end",
+        "Line end (Ctrl+E)",
         false,
     ),
     b(
@@ -219,7 +221,7 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Char('w'), CTRL),
         TextCmd::DeleteWordLeft,
-        "Delete word",
+        "Delete word (Ctrl+W)",
         false,
     ),
     b(
@@ -231,13 +233,13 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Char('b'), ALT),
         TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left",
+        "Word left (Alt+B)",
         false,
     ),
     b(
         Chord::with(KeyCode::Char('f'), ALT),
         TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right",
+        "Word right (Alt+F)",
         false,
     ),
 ];
@@ -309,16 +311,23 @@ impl TextAreaState {
     /// # Errors
     /// The validator's error; it is also recorded in the state.
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
-        self.write(value);
-        let r = v.check(value);
+        self.commit_target(value, v)
+    }
+
+    fn commit_target<T: TextTarget + ?Sized>(
+        &mut self,
+        value: &mut T,
+        v: &impl Validate,
+    ) -> Result<(), FieldError> {
+        self.write_target(value);
+        let r = v.check(value.expose());
         self.error = r.clone().err();
         r
     }
 
-    fn write(&mut self, value: &mut String) {
+    fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
         if self.is_editing() {
-            value.clear();
-            value.push_str(self.draft.text());
+            value.set(self.draft.text());
         }
         self.phase = EditPhase::Idle;
         self.draft.zeroize();
@@ -341,10 +350,19 @@ impl TextAreaState {
         v: &impl Validate,
         p: BlurPolicy,
     ) -> Result<(), FieldError> {
+        self.blur_target(value, v, p)
+    }
+
+    fn blur_target<T: TextTarget + ?Sized>(
+        &mut self,
+        value: &mut T,
+        v: &impl Validate,
+        p: BlurPolicy,
+    ) -> Result<(), FieldError> {
         match p {
-            BlurPolicy::CommitAndValidate => self.commit(value, v),
+            BlurPolicy::CommitAndValidate => self.commit_target(value, v),
             BlurPolicy::Commit => {
-                self.write(value);
+                self.write_target(value);
                 Ok(())
             }
             BlurPolicy::Cancel => {
@@ -384,7 +402,7 @@ impl TextAreaState {
 /// (`NoValidate`), `.blur(BlurPolicy)` (**`Commit`** — a document is
 /// committed, not cancelled, when focus leaves it, §15), `.rows(u16)`,
 /// `.read_only(bool)`, `.disabled(bool)`, `.status(Status)`, `.patch`,
-/// `.patch_part`, `.slot`, `.state_override`.
+/// `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::TEXTAREA`, `DEFAULT` only.
@@ -426,10 +444,11 @@ impl TextAreaState {
 /// them; `0×0` registers nothing (R5).
 ///
 /// ## Parts
-/// `FIELD` (the body fill), `TEXT` (the value / draft), `PLACEHOLDER`,
-/// `ROW` (the selection run), `MARKER` (the trailing error glyph), `GUTTER`
-/// (the focus bar), `ICON` (the readiness spinner, in that same trailing
-/// cell), `TRACK` / `THUMB` (the scrollbar).
+/// `CONTAINER` (the embedded scroll surface), `FIELD` (the body fill), `TEXT`
+/// (the value / draft), `PLACEHOLDER`, `ROW` (the selection run), `MARKER`
+/// (the trailing validation glyph), `GUTTER` (the focus bar), `ICON` (the
+/// status error glyph or spinner, in that same trailing cell), `TRACK` /
+/// `THUMB` (the scrollbar).
 ///
 /// ## Overrides
 /// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER`, `ICON` and
@@ -440,7 +459,7 @@ impl TextAreaState {
 ///
 /// ## Testing
 /// `TextAreaCase` with `FOCUSABLE | EDITS | CURSOR | TYPES | SCROLLS |
-/// DISABLEABLE`; `render::components::text_area::*`;
+/// DISABLEABLE | REPORTS_STATUS`; `render::components::text_area::*`;
 /// `textarea::blur_commits_without_validation`;
 /// `textarea::busy_and_loading_paint_the_readiness_spinner`;
 /// `textarea::the_icon_slot_replaces_the_readiness_spinner`.
@@ -490,6 +509,7 @@ impl<'a> TextArea<'a> {
         Part::ICON,
         Part::TRACK,
         Part::THUMB,
+        Part::CONTAINER,
     ];
 
     /// A text area `rows` rows tall.
@@ -544,6 +564,10 @@ impl<'a> TextArea<'a> {
         self
     }
 
+    pub(crate) const fn rows_in_form(&self) -> u16 {
+        self.rows
+    }
+
     /// Read-only: stays in the ring, never edits.
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
@@ -586,15 +610,28 @@ impl<'a> TextArea<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
+    }
+
+    const fn with_inherited_disabled(&self, inherited: bool) -> Self {
+        TextArea {
+            id: self.id,
+            rows: self.rows,
+            value: self.value,
+            placeholder: self.placeholder,
+            validate: self.validate,
+            blur: self.blur,
+            read_only: self.read_only,
+            disabled: self.disabled || inherited,
+            status: self.status,
+            ov: self.ov,
+        }
+    }
+
+    /// The owned scroll region.
+    const fn scroll_region(&self) -> ScrollRegion<'a> {
+        ScrollRegion::new(self.id)
     }
 
     fn validator(&self) -> Dyn<'_> {
@@ -628,14 +665,50 @@ impl<'a> TextArea<'a> {
         st: &mut TextAreaState,
         value: &mut String,
     ) -> Response<TextAction> {
+        self.update_target(cx, st, value)
+    }
+
+    pub(crate) fn update_in_form<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextAreaState,
+        value: &mut T,
+        inherited_disabled: bool,
+    ) -> Response<TextAction> {
+        self.with_inherited_disabled(inherited_disabled)
+            .update_target(cx, st, value)
+    }
+
+    pub(crate) fn commit_in_form<T: TextTarget + ?Sized>(
+        &self,
+        st: &mut TextAreaState,
+        value: &mut T,
+    ) -> bool {
+        if !st.is_editing() {
+            return false;
+        }
+        let _ = st.blur_target(value, &self.validator(), BlurPolicy::Commit);
+        true
+    }
+
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one pass over focus, binding, paste, pointer and scroll intents"
+    )]
+    fn update_target<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextAreaState,
+        value: &mut T,
+    ) -> Response<TextAction> {
         let mut acc = Acc::<TextAction>::new();
         let editable = self.editable();
         let lines = if st.is_editing() {
             st.draft.line_count()
         } else {
-            line_count(value)
+            line_count(value.expose())
         };
-        let scroll = ScrollRegion::new(self.id);
+        let scroll = self.scroll_region();
         let track_len = if self.disabled {
             None
         } else {
@@ -650,13 +723,13 @@ impl<'a> TextArea<'a> {
             match it {
                 Intent::FocusIn { .. } => {
                     if editable {
-                        st.begin(value);
+                        st.begin(value.expose());
                     }
                 }
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
                         let policy = self.blur;
-                        let _ = st.blur(value, &self.validator(), policy);
+                        let _ = st.blur_target(value, &self.validator(), policy);
                         match policy {
                             BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
                                 acc.action(TextAction::Committed);
@@ -666,12 +739,25 @@ impl<'a> TextArea<'a> {
                         }
                     }
                 }
-                Intent::Key(k) if editable => {
-                    if !st.is_editing() && !k.is(KeyCode::Esc) {
-                        st.begin(value);
+                Intent::Binding(action) if editable => {
+                    if let Some(cmd) = Binding::command(BINDINGS, action) {
+                        if !st.is_editing() && cmd != TextCmd::Commit {
+                            st.begin(value.expose());
+                        }
+                        if st.is_editing() {
+                            self.edit_command(st, value, cmd, page, &mut acc);
+                        }
                     }
-                    if st.is_editing() {
-                        self.edit_key(st, value, k, page, &mut acc);
+                }
+                Intent::Key(k) if editable => {
+                    if !st.is_editing() {
+                        st.begin(value.expose());
+                    }
+                    if let Some(c) = k.bare_char()
+                        && st.apply(EditAction::Insert(c)).changed()
+                    {
+                        self.live_validate(st);
+                        acc.action(TextAction::Changed);
                     }
                 }
                 Intent::Paste(s) if editable && st.is_editing() => {
@@ -690,7 +776,7 @@ impl<'a> TextArea<'a> {
                     ..
                 } if editable => {
                     if !st.is_editing() {
-                        st.begin(value);
+                        st.begin(value.expose());
                     }
                     let line = st
                         .scroll
@@ -707,7 +793,7 @@ impl<'a> TextArea<'a> {
                     // Esc reaching the control after a layer closed keeps the
                     // document: the `Commit` blur policy is what a text area
                     // means by "leaving" (§15).
-                    let _ = st.blur(value, &self.validator(), self.blur);
+                    let _ = st.blur_target(value, &self.validator(), self.blur);
                     acc.action(TextAction::Committed);
                 }
                 _ => {}
@@ -732,29 +818,29 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    fn edit_key(
+    fn edit_command<T: TextTarget + ?Sized>(
         &self,
         st: &mut TextAreaState,
-        value: &mut String,
-        k: Key,
+        value: &mut T,
+        cmd: TextCmd,
         page: usize,
         acc: &mut Acc<TextAction>,
     ) {
-        match Binding::lookup(BINDINGS, &k) {
-            Some(TextCmd::Cancel) => {
+        match cmd {
+            TextCmd::Cancel => {
                 st.cancel();
                 acc.action(TextAction::Cancelled);
             }
-            Some(TextCmd::Commit) => {
+            TextCmd::Commit => {
                 // Esc commits a document (legacy `textarea::on_key`), and the
                 // policy decides whether the validator runs.
                 let _ = match self.blur {
-                    BlurPolicy::CommitAndValidate => st.commit(value, &self.validator()),
-                    _ => st.blur(value, &self.validator(), BlurPolicy::Commit),
+                    BlurPolicy::CommitAndValidate => st.commit_target(value, &self.validator()),
+                    _ => st.blur_target(value, &self.validator(), BlurPolicy::Commit),
                 };
                 acc.action(TextAction::Committed);
             }
-            Some(cmd) => {
+            cmd => {
                 let outcome = match cmd {
                     TextCmd::PageUp | TextCmd::PageDown => {
                         let up = cmd == TextCmd::PageUp;
@@ -795,16 +881,6 @@ impl<'a> TextArea<'a> {
                     EditOutcome::Ignored | EditOutcome::Rejected => acc.consumed(),
                 }
             }
-            None => {
-                if let Some(c) = k.bare_char() {
-                    if st.apply(EditAction::Insert(c)).changed() {
-                        self.live_validate(st);
-                        acc.action(TextAction::Changed);
-                    } else {
-                        acc.consumed();
-                    }
-                }
-            }
         }
     }
 
@@ -825,7 +901,9 @@ impl<'a> TextArea<'a> {
             return first_row(body);
         }
         let editing = st.is_editing();
-        let error = st.error.is_some() || matches!(self.status, crate::collection::Status::Error);
+        let validation_error = st.error.is_some();
+        let status_error = matches!(self.status, crate::collection::Status::Error);
+        let error = validation_error || status_error;
         let focusability = if self.disabled {
             Focusability::Disabled
         } else if self.read_only {
@@ -853,7 +931,10 @@ impl<'a> TextArea<'a> {
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut live = self.ov.flags(ui.state(self.id), derived);
+        let runtime = ui
+            .state(self.id)
+            .difference(StateFlags::EDITING | StateFlags::SELECTED);
+        let mut live = Overrides::flags(runtime, derived);
         if self.disabled {
             live = live.difference(StateFlags::HOVERED);
         }
@@ -870,7 +951,7 @@ impl<'a> TextArea<'a> {
             self.value.unwrap_or("")
         };
         let lines = line_count(shown);
-        let content = ScrollRegion::new(self.id).draw(ui, body, &st.scroll, lines);
+        let content = self.scroll_region().draw(ui, body, &st.scroll, lines);
         let inner = Rect {
             x: content.x.saturating_add(2),
             y: content.y,
@@ -878,9 +959,8 @@ impl<'a> TextArea<'a> {
             height: content.height,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
-        if !self.ov.is_forced() {
-            ui.register_editor(self.id, body, focusability, declared);
-        }
+        ui.register_editor(self.id, body, focusability, declared);
+        ui.publish_bindings(self.id, live, BINDINGS);
         // gutter: one cell per row, the focus bar when the recipe says so
         for row in content.rows() {
             let gutter_cell = cell_at(row, content.x);
@@ -986,7 +1066,7 @@ impl<'a> TextArea<'a> {
             first_row(content),
             content.right().saturating_sub(1).max(content.x),
         );
-        if error {
+        if validation_error {
             if let Some(f) = ov.slot_for(Part::MARKER) {
                 f(ui, trailing);
             } else {
@@ -998,7 +1078,25 @@ impl<'a> TextArea<'a> {
                     Slot::Inherit | Slot::Clear => {}
                 }
             }
-        } else if live.intersects(StateFlags::BUSY | StateFlags::LOADING) {
+        } else if status_error {
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, trailing);
+            } else {
+                let is = style(ui, Part::ICON, live);
+                match is.glyph {
+                    Slot::Set(g) => {
+                        ui.glyph(trailing, g, is.style);
+                    }
+                    Slot::Inherit => {
+                        ui.glyph(trailing, GlyphRole::Error, is.style);
+                    }
+                    Slot::Clear => ui.fill(trailing, is.style),
+                }
+            }
+        } else if matches!(
+            self.status,
+            crate::collection::Status::Busy | crate::collection::Status::Loading
+        ) {
             if let Some(f) = ov.slot_for(Part::ICON) {
                 f(ui, trailing);
             } else {
@@ -1009,6 +1107,32 @@ impl<'a> TextArea<'a> {
             }
         }
         body
+    }
+
+    pub(crate) fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &TextAreaState,
+        value: &str,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .value(value)
+            .draw(ui, area, st)
+    }
+
+    pub(crate) fn draw_secret_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &TextAreaState,
+        value: &crate::secret::Secret,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .value(value.expose())
+            .draw(ui, area, st)
     }
 
     /// The natural size: `rows` rows, twelve columns minimum, forty
@@ -1071,23 +1195,58 @@ impl FieldControl for TextArea<'_> {
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         TextArea::measure(self, ui, c)
     }
-
-    fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
-        self.ov = self.ov.inherit_forced(s);
-        self
-    }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::cell::Cell;
+
     use ratatui_core::buffer::Buffer;
 
     use super::*;
     use crate::runtime::Runtime;
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::theme::Theme;
+    use crate::{ReferenceState, ReferenceTarget};
 
     const ID: Id = Id::root("textarea.tests");
+
+    #[test]
+    fn parts_include_every_owned_scroll_region_part() {
+        for part in ScrollRegion::PARTS {
+            assert!(
+                TextArea::PARTS.contains(part),
+                "TextArea::PARTS omits owned ScrollRegion part {part:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_reference_text_area_leaves_the_owned_scroll_region_inert() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = TextAreaState::default();
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            ui.reference(
+                Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)),
+                |ui| {
+                    TextArea::new(ID, 4)
+                        .value("one\ntwo\nthree\nfour\nfive")
+                        .draw(ui, Rect::new(0, 0, 20, 4), &st);
+                },
+            );
+        });
+        for part in ScrollRegion::PARTS {
+            assert!(
+                rt.area_of_part(ID, PartRef::of(*part)).is_none(),
+                "reference TextArea registered owned ScrollRegion part {part:?}"
+            );
+        }
+        assert!(
+            !rt.registry().delivers_to(ID),
+            "reference TextArea left its owned ScrollRegion interactive"
+        );
+    }
 
     fn always_bad(_s: &str) -> Result<(), FieldError> {
         Err(FieldError::new("never valid"))
@@ -1147,25 +1306,53 @@ mod tests {
         assert_eq!(column_span(Rect::new(4, 0, 10, 1), 2, 5).width, 3);
     }
 
-    /// Draw a four-row text area at `status` over the stub screen, with an
-    /// optional forced state (`.state_override`).
-    fn draw_with_forced(status: crate::collection::Status, forced: Option<StateFlags>) -> Buffer {
-        let mut rt = Runtime::new(Stub::default(), Theme::junie());
-        let mut buf = Buffer::empty(SCREEN);
-        let st = TextAreaState::default();
-        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
-            let mut t = TextArea::new(ID, 4).value("hello").status(status);
-            if let Some(f) = forced {
-                t = t.state_override(f);
+    #[test]
+    fn selected_style_is_painted_only_for_a_real_selection_range() {
+        let render = |selected: bool| {
+            let theme = Theme::junie().override_family(Family::TEXTAREA, |recipe| {
+                recipe.part(Part::ROW).when(
+                    StateFlags::SELECTED,
+                    StylePatch::new().set_bg(crate::theme::Role::Danger),
+                );
+            });
+            let mut runtime = Runtime::new(Stub::default(), theme);
+            let area = Rect::new(0, 0, 12, 3);
+            let mut buffer = Buffer::empty(area);
+            let mut state = TextAreaState::default();
+            state.begin("hello");
+            if selected {
+                let _ = state.draft.apply(EditAction::SelectAll);
             }
-            t.draw(ui, a, &st);
-        });
-        buf
+            runtime.draw_scene(area, &mut buffer, |ui, area| {
+                TextArea::new(ID, 3).value("hello").draw(ui, area, &state);
+            });
+            buffer
+        };
+        let plain = render(false);
+        let selected = render(true);
+        for x in 0..12 {
+            let changed = plain
+                .cell(Position::new(x, 0))
+                .map(ratatui_core::buffer::Cell::style)
+                != selected
+                    .cell(Position::new(x, 0))
+                    .map(ratatui_core::buffer::Cell::style);
+            assert_eq!(changed, (2..7).contains(&x), "column {x}");
+        }
     }
 
     /// Draw a four-row text area at `status` over the stub screen.
     fn draw_with(status: crate::collection::Status) -> Buffer {
-        draw_with_forced(status, None)
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = TextAreaState::default();
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            TextArea::new(ID, 4)
+                .value("hello")
+                .status(status)
+                .draw(ui, a, &st);
+        });
+        buf
     }
 
     /// The symbol painted at `(x, y)`.
@@ -1210,28 +1397,13 @@ mod tests {
                 text_run(&ready),
                 "{status:?}: the affordance moved the text"
             );
-            // `Overrides::flags` *replaces* the live flags with the forced
-            // state, so a rule that read only those flags would be
-            // unreachable under `.state_override`. `draw` or-s the status
-            // flags back in afterwards, so the affordance still fires.
-            let forced = draw_with_forced(status, Some(StateFlags::FOCUSED));
-            assert_eq!(
-                symbol_at(&forced, READINESS_X, 0),
-                frame,
-                "{status:?}: unreachable under a forced state"
-            );
         }
     }
 
-    /// §11.4: `ERROR` keeps the marker glyph in that same cell — the error
-    /// glyph wins the shared cell, as it does in `TextInput`.
-    ///
-    /// This assertion held **before** the readiness spinner was added (the
-    /// `MARKER` path is pre-existing), so it certifies the existing error
-    /// affordance and guards it against the spinner stealing the cell; it is
-    /// not evidence for the spinner itself.
+    /// §11.4: status `ERROR` paints the root-owned `ICON` fallback in the
+    /// same trailing cell as the spinner.
     #[test]
-    fn error_keeps_the_marker_glyph_in_the_readiness_cell() {
+    fn status_error_paints_the_icon_fallback_in_the_readiness_cell() {
         let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
         let buf = draw_with(crate::collection::Status::Error);
         assert_eq!(symbol_at(&buf, READINESS_X, 0), glyph);
@@ -1274,5 +1446,47 @@ mod tests {
             "Z",
             "the ICON slot did not replace the readiness affordance"
         );
+    }
+
+    #[test]
+    fn validation_marker_wins_the_shared_lane_over_status_error() {
+        assert!(TextArea::PARTS.contains(&Part::ICON));
+        let marker_calls = Cell::new(0usize);
+        let icon_calls = Cell::new(0usize);
+        let marker = |ui: &mut Ui<'_>, area: Rect| {
+            marker_calls.set(marker_calls.get().saturating_add(1));
+            let style = ui.surface_style();
+            ui.paint_str(area, "M", style);
+        };
+        let icon = |ui: &mut Ui<'_>, area: Rect| {
+            icon_calls.set(icon_calls.get().saturating_add(1));
+            let style = ui.surface_style();
+            ui.paint_str(area, "I", style);
+        };
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let mut st = TextAreaState::default();
+        st.set_error(Some(FieldError::new("invalid")));
+        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
+            TextArea::new(ID, 4)
+                .value("hello")
+                .status(crate::collection::Status::Error)
+                .slot(Part::MARKER, &marker)
+                .draw(ui, area, &st);
+        });
+        assert_eq!(marker_calls.get(), 1);
+        assert_eq!(icon_calls.get(), 0);
+        assert_eq!(symbol_at(&buf, READINESS_X, 0), "M");
+
+        st.set_error(None);
+        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
+            TextArea::new(ID, 4)
+                .value("hello")
+                .status(crate::collection::Status::Error)
+                .slot(Part::ICON, &icon)
+                .draw(ui, area, &st);
+        });
+        assert_eq!(icon_calls.get(), 1);
+        assert_eq!(symbol_at(&buf, READINESS_X, 0), "I");
     }
 }

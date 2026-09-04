@@ -128,6 +128,8 @@ newtype_u16! {
         BRAND = 32,
         /// Key hint.
         KEYHINT = 33,
+        /// Below-minimum-size notice.
+        TOO_SMALL = 34,
     }
 }
 
@@ -403,13 +405,9 @@ pub(crate) struct GlobalOverride {
 /// `const fn` with no declaration event, so that fallback is a *reachable*
 /// painting path, not a placeholder.
 ///
-/// Therefore **any pass that mutates recipes must cover the resolvable set,
-/// not `by_family` alone.** Use the crate-internal `Recipes::resolvable_mut`
-/// for such a pass;
-/// [`Recipes::iter_mut`] is the declared-family view and is the wrong tool
-/// for it. `Recipes::apply_mono_fallbacks` enumerating `by_family` only was
-/// exactly this defect: at `ColorLevel::Mono` an undeclared family kept none
-/// of the §11.4 fallbacks and lost every non-colour state signal.
+/// The static mono fallback layer keys on the requested family rather than
+/// enumerating storage. Undeclared custom families therefore receive generic
+/// non-colour state signals while their authored base remains neutral.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
@@ -472,27 +470,9 @@ impl Recipes {
         self.by_family.iter().map(|(k, r)| (*k, r))
     }
 
-    /// Iterate families mutably. This is the **declared** families only; a
-    /// pass that must reach everything resolution can reach wants the
-    /// crate-internal `Recipes::resolvable_mut` instead — see the
-    /// resolvable-set invariant on [`Recipes`].
+    /// Iterate declared families mutably.
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (Family, &mut Recipe)> + '_ {
         self.by_family.iter_mut().map(|(k, r)| (*k, r))
-    }
-
-    /// Every recipe resolution can reach, mutably: each declared family in
-    /// order, then the neutral recipe [`Recipes::get_or_neutral`] falls back
-    /// to for undeclared families.
-    ///
-    /// This is the enumeration a theme-wide mutation pass must use — see the
-    /// invariant on [`Recipes`]. It yields no [`Family`] key because the
-    /// neutral recipe has none: a pass that needs the key is family-specific
-    /// and belongs on [`Recipes::iter_mut`].
-    pub(crate) fn resolvable_mut(&mut self) -> impl Iterator<Item = &mut Recipe> + '_ {
-        self.by_family
-            .iter_mut()
-            .map(|(_, r)| r)
-            .chain(core::iter::once(&mut self.neutral))
     }
 
     /// The number of families.

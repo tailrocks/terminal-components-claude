@@ -27,15 +27,15 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 /// the wheel routing.
 ///
 /// ## Configuration
-/// `.patch`, `.patch_part`, `.slot`, `.state_override`. The axis is
-/// vertical; `Axes::V` is registered.
+/// `.patch`, `.patch_part`, `.slot`. The axis is vertical; `Axes::V` is
+/// registered.
 ///
 /// ## Variants
 /// `Family::SCROLLBAR`, `DEFAULT` only.
 ///
 /// ## States
-/// The thumb wears `HOVERED`, `FOCUSED` and `PRESSED` from the container's
-/// runtime state (a live capture keeps `PRESSED`).
+/// The thumb wears `PRESSED` only when it is the pressed/captured part;
+/// sibling track/container parts never inherit their owner's state.
 ///
 /// ## Actions
 /// `Response<()>`: `Consumed` without a repaint at a boundary, `Paint`
@@ -83,13 +83,24 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 /// frame's viewport.
 pub struct ScrollRegion<'a> {
     id: Id,
+    family: Family,
     ov: Overrides<'a>,
+}
+
+#[derive(Clone, Copy)]
+struct ScrollPointer {
+    phase: Phase,
+    part: Part,
+    pos: Position,
+    local: Position,
+    track_len: u16,
 }
 
 impl fmt::Debug for ScrollRegion<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ScrollRegion")
             .field("id", &self.id)
+            .field("family", &self.family)
             .field("overrides", &self.ov)
             .finish()
     }
@@ -103,8 +114,15 @@ impl<'a> ScrollRegion<'a> {
     pub const fn new(id: Id) -> Self {
         ScrollRegion {
             id,
+            family: Family::SCROLLBAR,
             ov: Overrides::new(),
         }
+    }
+
+    /// Resolve a composed scrollbar through its owning component's recipe.
+    pub(crate) const fn inherit_family(mut self, family: Family) -> Self {
+        self.family = family;
+        self
     }
 
     /// An instance patch over every part.
@@ -125,13 +143,6 @@ impl<'a> ScrollRegion<'a> {
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
-        self
-    }
-
-    /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
         self
     }
 
@@ -175,10 +186,22 @@ impl<'a> ScrollRegion<'a> {
         match it {
             Intent::Wheel { delta, .. } => st.wheel(delta),
             Intent::Pointer {
-                phase, part, local, ..
-            } if part.part == Part::TRACK || part.part == Part::THUMB => {
-                self.pointer(cx, st, phase, part.part, local, track_len)
-            }
+                phase,
+                part,
+                pos,
+                local,
+                ..
+            } if part.part == Part::TRACK || part.part == Part::THUMB => self.pointer(
+                cx,
+                st,
+                ScrollPointer {
+                    phase,
+                    part: part.part,
+                    pos,
+                    local,
+                    track_len,
+                },
+            ),
             _ => Response::ignored(),
         }
     }
@@ -187,21 +210,36 @@ impl<'a> ScrollRegion<'a> {
         &self,
         cx: &mut Cx<'_>,
         st: &mut ScrollState,
-        phase: Phase,
-        part: Part,
-        local: Position,
-        track_len: u16,
+        pointer: ScrollPointer,
     ) -> Response<()> {
+        let ScrollPointer {
+            phase,
+            part,
+            pos,
+            local,
+            track_len,
+        } = pointer;
         let before = st.offset();
         match phase {
             Phase::Press if part == Part::THUMB => {
-                // the drag is measured against the track, so `local.y` is a
-                // track position from the first drag onwards
-                let _ = cx.capture(self.id, PartRef::of(Part::TRACK));
+                let _ = cx.capture(self.id, PartRef::of(Part::THUMB));
                 Response::consumed()
             }
-            Phase::Press | Phase::Drag => {
-                st.scroll_to(st.offset_for_track_pos(usize::from(local.y), usize::from(track_len)));
+            Phase::Press => {
+                let track_pos = usize::from(local.y.saturating_sub(1));
+                st.scroll_to(st.offset_for_track_pos(track_pos, usize::from(track_len)));
+                moved(st.offset() != before)
+            }
+            Phase::Drag => {
+                let (_, thumb_len) = st.thumb(usize::from(track_len));
+                let capture_area = cx.capture_area().unwrap_or_default();
+                let origin = cx.capture_origin().unwrap_or(pos);
+                let grab = origin.y.saturating_sub(capture_area.y);
+                let track_y = cx
+                    .area(self.id)
+                    .map_or(capture_area.y, |area| area.y.saturating_add(1));
+                let centered = thumb_drag_position(pos.y, track_y, grab, thumb_len);
+                st.scroll_to(st.offset_for_track_pos(centered, usize::from(track_len)));
                 moved(st.offset() != before)
             }
             Phase::Release | Phase::DragEnd => {
@@ -230,12 +268,24 @@ impl<'a> ScrollRegion<'a> {
             return area;
         }
         let view = Self::view(st, area, content_len);
+        // A composed scrollbar shares its owner's id, but focus and owner-wide
+        // press belong to the owner. Only an exact thumb part target is local.
+        let container = self.ov.style(
+            ui,
+            self.id,
+            self.family,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        );
+        ui.fill(area, container.style);
+        let track_height = area.height.saturating_sub(2);
         ui.report_layout(
             self.id,
             LayoutFacts::new(
                 usize::from(area.height),
                 content_len,
-                area.height,
+                track_height,
                 area.width,
             ),
         );
@@ -254,47 +304,71 @@ impl<'a> ScrollRegion<'a> {
             width: area.width.saturating_sub(1),
             ..area
         };
-        // runtime only: a scroll region has no props that imply a state
-        let live = self.ov.flags(ui.state(self.id), StateFlags::empty());
-        let track_len = usize::from(bar.height);
+        self.paint_bar(ui, bar, &view);
+        content
+    }
+
+    fn paint_bar(&self, ui: &mut Ui<'_>, bar: Rect, view: &ScrollState) {
+        let track_rect = Rect {
+            y: bar.y.saturating_add(1),
+            height: bar.height.saturating_sub(2),
+            ..bar
+        };
+        let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
+        let part_live = StateFlags::empty();
         let track = ov.style(
             ui,
             self.id,
-            Family::SCROLLBAR,
+            self.family,
             Variant::DEFAULT,
             Part::TRACK,
-            live,
+            part_live,
         );
+        let thumb_live = if ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB)) {
+            part_live | StateFlags::PRESSED
+        } else {
+            part_live
+        };
         let thumb = ov.style(
             ui,
             self.id,
-            Family::SCROLLBAR,
+            self.family,
             Variant::DEFAULT,
             Part::THUMB,
-            live,
+            thumb_live,
         );
         let thumb_rect = Rect {
-            y: bar
+            y: track_rect
                 .y
                 .saturating_add(start.min(usize::from(u16::MAX)) as u16),
             height: len.min(usize::from(u16::MAX)) as u16,
-            ..bar
+            ..track_rect
         };
         if let Some(f) = ov.slot_for(Part::TRACK) {
             f(ui, bar);
         } else {
-            let glyph = match track.glyph {
-                Slot::Set(g) => Some(g),
-                Slot::Inherit => Some(GlyphRole::ScrollTrack),
-                Slot::Clear => None,
-            };
-            for row in bar.rows() {
-                if let Some(g) = glyph {
-                    ui.glyph(row, g, track.style);
-                } else {
-                    ui.fill(row, track.style);
+            match track.glyph {
+                Slot::Set(glyph) => {
+                    for row in bar.rows() {
+                        ui.glyph(row, glyph, track.style);
+                    }
+                }
+                Slot::Clear => ui.fill(bar, track.style),
+                Slot::Inherit => {
+                    for row in track_rect.rows() {
+                        ui.glyph(row, GlyphRole::ScrollTrack, track.style);
+                    }
+                    let set = ui.design().glyphs.scrollbar();
+                    ui.paint_cell(Position::new(bar.x, bar.y), set.begin, track.style);
+                    if bar.height > 1 {
+                        ui.paint_cell(
+                            Position::new(bar.x, bar.bottom().saturating_sub(1)),
+                            set.end,
+                            track.style,
+                        );
+                    }
                 }
             }
         }
@@ -316,7 +390,6 @@ impl<'a> ScrollRegion<'a> {
         }
         ui.register_part(self.id, PartRef::of(Part::TRACK), bar);
         ui.register_part(self.id, PartRef::of(Part::THUMB), thumb_rect);
-        content
     }
 
     /// A scroll region takes whatever its container gives it; the minimum is
@@ -335,5 +408,157 @@ const fn moved(yes: bool) -> Response<()> {
         Response::changed()
     } else {
         Response::consumed()
+    }
+}
+
+fn thumb_drag_position(pos_y: u16, track_y: u16, grab: u16, thumb_len: usize) -> usize {
+    usize::from(pos_y.saturating_sub(track_y).saturating_sub(grab)).saturating_add(thumb_len / 2)
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+
+    use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::theme::Theme;
+    use crate::{ReferenceState, ReferenceTarget};
+
+    const ID: Id = Id::root("scroll-region.tests");
+
+    #[test]
+    fn thumb_drag_preserves_the_grab_offset() {
+        assert_eq!(thumb_drag_position(18, 10, 2, 4), 8);
+        assert_eq!(thumb_drag_position(9, 10, 2, 4), 2);
+    }
+
+    #[test]
+    fn scrollbar_paints_typed_begin_and_end_caps() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let area = Rect::new(0, 0, 5, 6);
+        let st = ScrollState::new(100);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            ScrollRegion::new(ID).draw(ui, area, &st, 100);
+        });
+        let set = Theme::junie().design.glyphs.scrollbar();
+        assert_eq!(
+            buf.cell(Position::new(4, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(set.begin)
+        );
+        assert_eq!(
+            buf.cell(Position::new(4, 5))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(set.end)
+        );
+    }
+
+    #[test]
+    fn a_reference_scroll_region_registers_nothing() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = ScrollState::new(100);
+        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
+            ui.reference(None, |ui| {
+                ScrollRegion::new(ID).draw(ui, area, &st, 100);
+            });
+        });
+        assert!(rt.area_of(ID).is_none());
+    }
+
+    #[test]
+    fn owner_state_never_leaks_into_the_scrollbar() {
+        let render = |target: Option<ReferenceTarget>| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let state = ScrollState::new(100);
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, _area| {
+                ui.reference(target, |ui| {
+                    ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+                });
+            });
+            buffer
+        };
+        let plain = render(None);
+        let focused = render(Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)));
+        let pressed = render(Some(ReferenceTarget::new(ID, ReferenceState::PRESSED)));
+        assert_eq!(focused, plain, "owner focus styled its scrollbar");
+        assert_eq!(pressed, plain, "owner press styled its scrollbar");
+    }
+
+    #[test]
+    fn direct_reference_press_targets_only_the_thumb() {
+        let render = |part: Option<PartRef>| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let state = ScrollState::new(100);
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
+                let target =
+                    part.map(|part| ReferenceTarget::new(ID, ReferenceState::PRESSED).part(part));
+                ui.reference(target, |ui| {
+                    ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+                });
+            });
+            buffer
+        };
+        let plain = render(None);
+        let track = render(Some(PartRef::of(Part::TRACK)));
+        let thumb = render(Some(PartRef::of(Part::THUMB)));
+        assert_eq!(track, plain, "a track target styled the thumb");
+        assert_ne!(thumb, plain, "an exact thumb target did not paint PRESSED");
+    }
+
+    #[test]
+    fn container_patch_paints_even_without_overflow() {
+        let patch = StylePatch::new()
+            .set_fg(crate::theme::Role::Warning)
+            .set_bg(crate::theme::Role::Danger);
+        let render = |patched: bool| {
+            let mut rt = Runtime::new(Stub::default(), Theme::junie());
+            let mut buf = Buffer::empty(SCREEN);
+            let st = ScrollState::new(1);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                let parts = [(Part::CONTAINER, patch)];
+                let mut region = ScrollRegion::new(ID);
+                if patched {
+                    region = region.patch_part(&parts);
+                }
+                region.draw(ui, Rect::new(0, 0, 5, 3), &st, 1);
+            });
+            buf
+        };
+        assert_ne!(render(false), render(true));
+    }
+
+    #[test]
+    fn slot_addressable_parts_are_exactly_track_and_thumb() {
+        let marker = |ui: &mut Ui<'_>, area: Rect| {
+            let style = ui.surface_style();
+            ui.paint_str(area, "ZZZZZZZZ", style);
+        };
+        let render = |slot: Option<Part>| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let state = ScrollState::new(100);
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
+                let mut region = ScrollRegion::new(ID);
+                if let Some(part) = slot {
+                    region = region.slot(part, &marker);
+                }
+                region.draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+            });
+            buffer
+        };
+        let plain = render(None);
+        for part in Part::ALL {
+            let changed = render(Some(*part)) != plain;
+            assert_eq!(
+                changed,
+                matches!(*part, Part::TRACK | Part::THUMB),
+                "unexpected slot behavior for {part:?}"
+            );
+        }
     }
 }

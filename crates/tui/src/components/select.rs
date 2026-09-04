@@ -8,8 +8,10 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Style;
 
+use super::form::InheritedFormState;
 use super::scroll_region::ScrollRegion;
 use super::{Acc, Overrides, SlotFn, cell_at, first_row};
+use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
 };
@@ -56,7 +58,8 @@ pub enum SelectCmd {
 
 const fn b(chord: Chord, cmd: SelectCmd, label: &'static str, visible: bool) -> Binding<SelectCmd> {
     Binding {
-        chord,
+        action: ActionKey::custom(label),
+        chord: Some(chord),
         cmd,
         label,
         priority: if visible { 70 } else { 10 },
@@ -78,16 +81,21 @@ const BINDINGS: &[Binding<SelectCmd>] = &[
     b(
         Chord::key(KeyCode::Char(' ')),
         SelectCmd::Choose,
-        "Choose",
+        "Choose (Space)",
         false,
     ),
     b(Chord::key(KeyCode::Up), SelectCmd::Prev, "Up", true),
     b(Chord::key(KeyCode::Down), SelectCmd::Next, "Down", true),
-    b(Chord::key(KeyCode::Char('k')), SelectCmd::Prev, "Up", false),
+    b(
+        Chord::key(KeyCode::Char('k')),
+        SelectCmd::Prev,
+        "Up (K)",
+        false,
+    ),
     b(
         Chord::key(KeyCode::Char('j')),
         SelectCmd::Next,
-        "Down",
+        "Down (J)",
         false,
     ),
     b(Chord::key(KeyCode::Home), SelectCmd::First, "First", false),
@@ -192,7 +200,7 @@ impl Reconcile for SelectState {
 /// `.placeholder(&str)`, `.popup_rows(u16)`
 /// (`design.size.popup_max_rows`), `.empty(EmptyState)`,
 /// `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
-/// `.slot`, `.state_override`.
+/// `.slot`.
 ///
 /// ## Variants
 /// `Family::SELECT`, `DEFAULT` only.
@@ -200,8 +208,8 @@ impl Reconcile for SelectState {
 /// ## States
 /// The field wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from
 /// the runtime, `READ_ONLY` / `DISABLED` from the props, and `EXPANDED`
-/// while the popup is open. A popup row wears `FOCUSED` when it is the
-/// cursor and `SELECTED` when it is the value.
+/// while the popup is open, and `SELECTED` when it has a value. A popup row
+/// wears `FOCUSED` when it is the cursor and `SELECTED` when it is the value.
 ///
 /// ## Actions
 /// [`SelectAction`]: `Chose(k)` (`Enter` / `Space` / a click on a row),
@@ -264,7 +272,7 @@ impl Reconcile for SelectState {
 /// `Id`, so its lifecycle events arrive as this component's intents.
 ///
 /// ## Testing
-/// `SelectCase` with `ACTIVATES | FOCUSABLE | COLLECTION | DISABLEABLE`;
+/// `SelectCase` with `ACTIVATES | FOCUSABLE | DISABLEABLE | OVERLAY`;
 /// `render::components::select::*`;
 /// `select::escape_closes_and_restores_the_cursor`,
 /// `select::arrows_move_the_cursor_not_the_value_while_closed`,
@@ -296,7 +304,7 @@ pub struct Select<'a, T, K = ByIndex, R = DefaultRow> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: Overrides<'a>,
-    _t: PhantomData<fn(&T)>,
+    _t: PhantomData<fn() -> T>,
 }
 
 impl<T, K, R> fmt::Debug for Select<'_, T, K, R> {
@@ -328,6 +336,56 @@ impl<T> Select<'_, T, ByIndex, DefaultRow> {
             ov: Overrides::new(),
             _t: PhantomData,
         }
+    }
+}
+
+impl<'a> Select<'a, &'a str, ByIndex, DefaultRow> {
+    fn with_inherited_disabled(&self, inherited_disabled: bool) -> Self {
+        Select {
+            id: self.id,
+            key: ByIndex,
+            row: DefaultRow,
+            placeholder: self.placeholder,
+            popup_rows: self.popup_rows,
+            empty: self.empty,
+            read_only: self.read_only,
+            disabled: self.disabled || inherited_disabled,
+            patch: self.patch,
+            parts: self.parts,
+            ov: self.ov,
+            _t: PhantomData,
+        }
+    }
+
+    pub(crate) fn update_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut SelectState,
+        value: &mut usize,
+        items: &[&'a str],
+        inherited_disabled: bool,
+    ) -> Response<SelectAction> {
+        st.set_value(Some(ItemKey::index(*value)));
+        let response = self
+            .with_inherited_disabled(inherited_disabled)
+            .update(cx, st, items);
+        if let Some(SelectAction::Chose(ItemKey::Index(index))) = response.action_ref() {
+            *value = *index;
+        }
+        response
+    }
+
+    pub(crate) fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &SelectState,
+        _value: usize,
+        items: &[&'a str],
+        inherited: InheritedFormState,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited.disabled)
+            .draw(ui, area, st, items)
     }
 }
 
@@ -463,12 +521,6 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
     }
 
     /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
@@ -677,9 +729,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                     acc.action(SelectAction::Closed);
                 }
                 Intent::Layer(_) => acc.repaint(),
-                Intent::Key(k) if can => {
+                Intent::Binding(action) if can => {
                     let cur = st.core.cursor_index();
-                    match Binding::lookup(BINDINGS, &k) {
+                    match Binding::command(BINDINGS, action) {
                         Some(SelectCmd::Prev) => {
                             self.move_cursor(st, items, cur.saturating_sub(1), &mut acc);
                         }
@@ -755,13 +807,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         if st.open {
             derived |= StateFlags::EXPANDED;
         }
+        if st.value.is_some() {
+            derived |= StateFlags::SELECTED;
+        }
         if self.read_only {
             derived |= StateFlags::READ_ONLY;
         }
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut live = self.ov.flags(ui.state(self.id), derived);
+        let mut live = Overrides::flags(ui.state(self.id), derived);
+        if st.value.is_none() {
+            live = live.difference(StateFlags::SELECTED);
+        }
         if self.disabled {
             live = live.difference(StateFlags::HOVERED);
         }
@@ -770,9 +828,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
 
     /// Registers the closed field as this component's one control.
     ///
-    /// A forced state paints a reference rendering and registers nothing.
+    /// A reference rendering registers nothing.
     fn register_field(&self, ui: &mut Ui<'_>, area: Rect) {
-        if self.ov.is_forced() {
+        if ui.is_inert() {
             return;
         }
         let f = if self.disabled {
@@ -858,25 +916,26 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         ui.paint_style(cell, field);
     }
 
-    /// Paints the open/closed indicator: the recipe's glyph when it has one
-    /// (the mono `SELECTED` / `ERROR` rules bind it), else the arrow.
+    /// Paints the open/closed indicator: the recipe's glyph when it has one,
+    /// else the semantic select disclosure.
     fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags, open: bool) {
         if let Some(f) = self.ov.slot_for(Part::MARKER) {
             f(ui, cell);
             return;
         }
+        let marker_flags = live.difference(StateFlags::SELECTED);
         let ms = self.ov.style(
             ui,
             self.id,
             Family::SELECT,
             Variant::DEFAULT,
             Part::MARKER,
-            live,
+            marker_flags,
         );
         let arrow = if open {
-            GlyphRole::Collapsed
+            GlyphRole::SelectOpen
         } else {
-            GlyphRole::Expanded
+            GlyphRole::SelectClosed
         };
         match ms.glyph {
             Slot::Set(glyph) => {
@@ -899,6 +958,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         }
         let live = self.live_flags(ui, st);
         self.register_field(ui, area);
+        if !ui.is_inert() {
+            ui.publish_bindings(self.id, live, BINDINGS);
+        }
         let field = self.ov.style(
             ui,
             self.id,
@@ -922,7 +984,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             live,
             st.open,
         );
-        ui.register_part(self.id, PartRef::of(Part::FIELD), area);
+        if !ui.is_inert() {
+            ui.register_part(self.id, PartRef::of(Part::FIELD), area);
+        }
         self.draw_popup(ui, st, items);
         area
     }
@@ -1068,7 +1132,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                             None => ui.fill(marker_cell, ms.style),
                         }
                     }
-                    ui.register_part(id, PartRef::item(Part::ROW, key), row);
+                    if !ui.is_inert() {
+                        ui.register_part(id, PartRef::item(Part::ROW, key), row);
+                    }
                 }
             });
         });
@@ -1099,8 +1165,9 @@ mod tests {
     use crate::event::{Input, Key, KeyModifiers};
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::runtime::{App, Runtime};
-    use crate::theme::{Role, Theme};
+    use crate::theme::{ColorLevel, Role, Theme};
     use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Position;
 
     const SEL: Id = Id::root("select.tests");
     const OTHER: Id = Id::root("select.tests.other");
@@ -1195,6 +1262,34 @@ mod tests {
         );
     }
 
+    #[test]
+    fn open_popup_paints_exactly_one_chosen_marker() {
+        let mut state = SelectState::default();
+        state.set_value(Some(ItemKey::index(1)));
+        let app = SelectPage {
+            st: state,
+            items: vec!["alpha", "beta", "gamma"],
+            closed: 0,
+        };
+        let theme = Theme::junie();
+        let chosen = theme.design.glyphs.get(GlyphRole::Chosen);
+        let mut runtime = Runtime::new(app, theme);
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = runtime.handle(press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer);
+
+        let count = (SCREEN.y..SCREEN.bottom())
+            .flat_map(|y| (SCREEN.x..SCREEN.right()).map(move |x| Position::new(x, y)))
+            .filter(|position| {
+                buffer
+                    .cell(*position)
+                    .is_some_and(|cell| cell.symbol() == chosen)
+            })
+            .count();
+        assert_eq!(count, 1);
+    }
+
     /// §16.1: Esc dismisses the popup and puts the cursor back on the
     /// committed value, so a cancelled dropdown leaves no half-made choice
     /// behind.
@@ -1287,7 +1382,7 @@ mod tests {
         });
         let mut row0 = String::new();
         for x in 0..SCREEN.width {
-            if let Some(c) = buf.cell(ratatui_core::layout::Position::new(x, 0)) {
+            if let Some(c) = buf.cell(Position::new(x, 0)) {
                 row0.push_str(c.symbol());
             }
         }
@@ -1382,6 +1477,115 @@ mod tests {
             s.draw(ui, a, &st, &items);
         });
         buf
+    }
+
+    fn draw_selected(value: Option<ItemKey>) -> Buffer {
+        let items = ["alpha", "beta"];
+        let select: Select<'_, &str> = Select::new(SEL).placeholder("Pick one");
+        let mut state = SelectState::default();
+        state.set_value(value);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            select.draw(ui, area, &state, &items);
+        });
+        buffer
+    }
+
+    fn disclosure(theme: Theme, open: bool, glyph: Slot<GlyphRole>) -> (String, Rect) {
+        let area = Rect::new(0, 0, 20, 6);
+        let patch = [(
+            Part::MARKER,
+            StylePatch {
+                glyph,
+                ..StylePatch::new()
+            },
+        )];
+        let select: Select<'_, &str> = Select::new(SEL).patch_part(&patch);
+        let state = SelectState {
+            open,
+            ..SelectState::default()
+        };
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            select.draw(ui, area, &state, &["alpha"]);
+        });
+        let marker = Position::new(area.right().saturating_sub(2), area.y);
+        (
+            buffer
+                .cell(marker)
+                .map_or_else(String::new, |cell| cell.symbol().to_owned()),
+            runtime
+                .area_of_part(SEL, PartRef::of(Part::FIELD))
+                .unwrap_or(Rect::ZERO),
+        )
+    }
+
+    #[test]
+    fn select_disclosure_is_exact_for_both_themes_and_color_levels() {
+        for theme in [Theme::junie(), Theme::paper()] {
+            for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+                let theme = theme.clone().downgrade(level);
+                assert_eq!(disclosure(theme.clone(), false, Slot::Inherit).0, "▾");
+                assert_eq!(disclosure(theme, true, Slot::Inherit).0, "▴");
+            }
+        }
+    }
+
+    #[test]
+    fn select_disclosure_set_inherit_and_clear_win_in_both_states() {
+        for open in [false, true] {
+            assert_eq!(
+                disclosure(Theme::junie(), open, Slot::Set(GlyphRole::WarningMark)).0,
+                Theme::junie().design.glyphs.get(GlyphRole::WarningMark)
+            );
+            assert_eq!(
+                disclosure(Theme::junie(), open, Slot::Inherit).0,
+                if open { "▴" } else { "▾" }
+            );
+            assert_eq!(disclosure(Theme::junie(), open, Slot::Clear).0, " ");
+        }
+    }
+
+    #[test]
+    fn select_pressed_mono_brackets_preserve_field_geometry() {
+        let area = Rect::new(0, 0, 20, 6);
+        let select: Select<'_, &str> = Select::new(SEL);
+        let state = SelectState::default();
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            ui.reference(
+                Some(crate::ReferenceTarget::new(
+                    SEL,
+                    crate::ReferenceState::FOCUSED | crate::ReferenceState::PRESSED,
+                )),
+                |ui| select.draw(ui, area, &state, &["alpha"]),
+            );
+        });
+
+        assert_eq!(
+            buffer
+                .cell(Position::new(0, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("[")
+        );
+        assert_eq!(
+            buffer
+                .cell(Position::new(area.right().saturating_sub(2), 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("]")
+        );
+        assert_eq!(
+            disclosure(Theme::junie(), false, Slot::Inherit).1,
+            Rect::new(0, 0, 20, 1)
+        );
+    }
+
+    #[test]
+    fn selected_painting_comes_only_from_the_semantic_value() {
+        assert_ne!(draw_selected(Some(ItemKey::index(1))), draw_selected(None));
     }
 
     /// §16.2 registry: every part a drawn select *styles* must be in

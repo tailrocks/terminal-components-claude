@@ -16,41 +16,10 @@
 
 # ── §16.5 architecture checks not yet built (§47.4) ──
 every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.5 records the rustdoc-json resolver as a Slice-8 upgrade
-field_kind_has_no_type_parameters  # Slice 4F — components/form.rs (FieldKind does not exist yet)
 no_generic_component_copies_in_applications  # Slice 5 — apps/**/src (first apps package)
 no_owns_or_locate_in_applications  # Slice 5 — apps/**/src; §16.5's row describes an `apps/allow/dispatch.txt` that no code reads: the live mechanism is forbidden-pattern rule 25
 props_are_built_once  # Slice 5 — apps/**/src + crates/tui/examples/**
 showcase_covers_every_public_component  # Slice 5 — apps/showcase page registry
-
-# ── 4F `components/dialog.rs` (Adjudication N1) ──
-a_growing_body_resizes_the_layer_on_the_next_frame  # Slice 4F — components/dialog.rs
-action_arming_is_evaluated_in_update  # Slice 4F — components/dialog.rs
-confirm_is_centred_by_the_resolver_not_by_the_dialog  # Slice 4F — components/dialog.rs
-convenience_constructors_render_through_the_body_slot  # Slice 4F — components/dialog.rs
-draw_lays_out_against_the_height_it_asked_for  # Slice 4F — components/dialog.rs
-
-# ── 4F `components/form.rs` (§15.1, §23 K1) ──
-at_most_one_action_per_frame_in_declaration_order  # Slice 4F — components/form.rs
-changing_options_between_frames_does_not_rebuild_props  # Slice 4F — components/form.rs
-chooser_activation_emits_chose_with_the_field_id  # Slice 4F — components/form.rs
-dirty_is_set_by_a_commit_not_by_a_keystroke  # Slice 4F — components/form.rs
-enter_submits_only_when_the_focused_control_is_not_editing  # Slice 4F — components/form.rs
-every_declared_field_resolves_a_value  # Slice 4F — components/form.rs
-field_height_is_a_pure_function_of_spec_and_design_tokens  # Slice 4F — components/form.rs
-form_action_variants_carry_no_value  # Slice 4F — components/form.rs
-hidden_field_registers_no_ring_entry_and_keeps_its_draft  # Slice 4F — components/form.rs
-note_rows_register_only_decorative_regions  # Slice 4F — components/form.rs
-open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover  # Slice 4F — components/form.rs
-scroll_reveals_the_focused_field_from_update_not_draw  # Slice 4F — components/form.rs
-select_field_options_come_from_form_data  # Slice 4F — components/form.rs
-state_holds_no_props  # Slice 4F — components/form.rs
-submit_chord_is_declared_on_the_action_not_baked_in  # Slice 4F — components/form.rs
-submit_commits_the_in_flight_edit_before_validating  # Slice 4F — components/form.rs
-submit_skips_hidden_fields_during_validation  # Slice 4F — components/form.rs
-submit_validates_every_visible_field_then_focuses_the_first_error  # Slice 4F — components/form.rs
-tab_order_follows_declaration_order_skipping_hidden  # Slice 4F — components/form.rs
-value_and_options_is_a_single_borrow  # Slice 4F — components/form.rs
-zeroize_overwrites_every_secret_draft  # Slice 4F — components/form.rs
 
 # ── Slices 5–7 application integration tests (`apps/**/tests`) ──
 author_component_page_participates_in_focus_and_hover  # Slices 5-7 — apps/**
@@ -73,23 +42,8 @@ result_grid_sorts_locally_and_refuses_edits  # Slices 5-7 — apps/**
 view_grid_is_read_only_with_a_reason  # Slices 5-7 — apps/**
 
 # ── §16.6 benchmarks whose subject does not exist yet ──
-frame_hintbar_derived  # Slices 4-7 — tests/perf.rs
 frame_tablepro_connection_form_120x40  # Slices 4-7 — tests/perf.rs
-frame_tablepro_query_editor_2k_lines  # Slices 4-7 — tests/perf.rs
 
 # ── Slice 4 component state machines (`components/*.rs`, work packages 4A–4G) ──
-cell_actions_affordance_is_painted_for_a_read_only_model  # Slice 4 — components/*.rs
-click_inside_an_active_inline_edit_goes_to_the_editor  # Slice 4 — components/*.rs
-edit_counter_invalidates_the_highlight_cache  # Slice 4 — components/*.rs
-edit_intent_inline_cycle_external_refuse  # Slice 4 — components/*.rs
-expand_collapse_is_keyed_not_positional  # Slice 4 — components/*.rs
-lazy_children_do_not_reflatten_the_world  # Slice 4 — components/*.rs
-query_change_emits_query_changed  # Slice 4 — components/*.rs
-range_copy_is_tsv  # Slice 4 — components/*.rs
 range_selection_uses_the_anchor  # Slice 4 — components/*.rs
-read_only_reason_is_rendered_from_a_grid_model  # Slice 4 — components/*.rs
-read_only_update_takes_a_shared_model  # Slice 4 — components/*.rs
-rewind_retains_per_step_state  # Slice 4 — components/*.rs
 select_all_selects_only_enabled_items  # Slice 4 — components/*.rs
-sort_is_a_permutation_and_edits_stay_bound_to_the_source_row  # Slice 4 — components/*.rs
-update_editable_commits_through_the_editor  # Slice 4 — components/*.rs

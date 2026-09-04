@@ -6,6 +6,7 @@ use core::fmt;
 use ratatui_core::layout::{Position, Rect};
 
 use super::{Overrides, SlotFn, cell_at, first_row, shift};
+use crate::action::ActionKey;
 use crate::collection::{CellUi, Status};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::field_control::FieldControl;
@@ -21,6 +22,43 @@ use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
+
+mod text_target {
+    pub(crate) trait Sealed {}
+
+    impl Sealed for String {}
+    impl Sealed for crate::secret::Secret {}
+}
+
+/// A controlled text value accepted by the crate-internal form bridge.
+///
+/// Sealing keeps the public standalone controls on `String` while allowing
+/// forms to edit `Secret` in place, without cloning it or widening the API.
+pub(crate) trait TextTarget: text_target::Sealed {
+    fn expose(&self) -> &str;
+    fn set(&mut self, value: &str);
+}
+
+impl TextTarget for String {
+    fn expose(&self) -> &str {
+        self
+    }
+
+    fn set(&mut self, value: &str) {
+        self.clear();
+        self.push_str(value);
+    }
+}
+
+impl TextTarget for Secret {
+    fn expose(&self) -> &str {
+        Secret::expose(self)
+    }
+
+    fn set(&mut self, value: &str) {
+        Secret::set(self, value);
+    }
+}
 
 /// What happens to an in-flight edit when focus leaves the control.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -100,7 +138,8 @@ pub enum TextCmd {
 
 const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
     Binding {
-        chord,
+        action: ActionKey::custom(label),
+        chord: Some(chord),
         cmd,
         label,
         priority: 50,
@@ -154,13 +193,13 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Left, ALT),
         TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left",
+        "Word left (Alt+Left)",
         false,
     ),
     b(
         Chord::with(KeyCode::Right, ALT),
         TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right",
+        "Word right (Alt+Right)",
         false,
     ),
     b(
@@ -190,13 +229,13 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Home, CTRL),
         TextCmd::Move(Motion::DocStart, Extend::No),
-        "Start",
+        "Document start",
         false,
     ),
     b(
         Chord::with(KeyCode::End, CTRL),
         TextCmd::Move(Motion::DocEnd, Extend::No),
-        "End",
+        "Document end",
         false,
     ),
     b(
@@ -214,7 +253,7 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Backspace, ALT),
         TextCmd::DeleteWordLeft,
-        "Delete word",
+        "Delete word (Alt+Backspace)",
         false,
     ),
     b(
@@ -226,13 +265,13 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Char('a'), CTRL),
         TextCmd::Move(Motion::Home, Extend::No),
-        "Start",
+        "Start (Ctrl+A)",
         false,
     ),
     b(
         Chord::with(KeyCode::Char('e'), CTRL),
         TextCmd::Move(Motion::End, Extend::No),
-        "End",
+        "End (Ctrl+E)",
         false,
     ),
     b(
@@ -250,7 +289,7 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Char('w'), CTRL),
         TextCmd::DeleteWordLeft,
-        "Delete word",
+        "Delete word (Ctrl+W)",
         false,
     ),
     b(
@@ -262,13 +301,13 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     b(
         Chord::with(KeyCode::Char('b'), ALT),
         TextCmd::Move(Motion::WordLeft, Extend::No),
-        "Word left",
+        "Word left (Alt+B)",
         false,
     ),
     b(
         Chord::with(KeyCode::Char('f'), ALT),
         TextCmd::Move(Motion::WordRight, Extend::No),
-        "Word right",
+        "Word right (Alt+F)",
         false,
     ),
 ];
@@ -328,16 +367,23 @@ impl TextInputState {
     /// # Errors
     /// The validator's error; it is also recorded in the state.
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
-        self.write(value);
-        let r = v.check(value);
+        self.commit_target(value, v)
+    }
+
+    pub(crate) fn commit_target<T: TextTarget + ?Sized>(
+        &mut self,
+        value: &mut T,
+        v: &impl Validate,
+    ) -> Result<(), FieldError> {
+        self.write_target(value);
+        let r = v.check(value.expose());
         self.error = r.clone().err();
         r
     }
 
-    fn write(&mut self, value: &mut String) {
+    fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
         if self.is_editing() {
-            value.clear();
-            value.push_str(self.draft.text());
+            value.set(self.draft.text());
         }
         self.phase = EditPhase::Idle;
         self.draft.zeroize();
@@ -359,10 +405,19 @@ impl TextInputState {
         v: &impl Validate,
         p: BlurPolicy,
     ) -> Result<(), FieldError> {
+        self.blur_target(value, v, p)
+    }
+
+    pub(crate) fn blur_target<T: TextTarget + ?Sized>(
+        &mut self,
+        value: &mut T,
+        v: &impl Validate,
+        p: BlurPolicy,
+    ) -> Result<(), FieldError> {
         match p {
-            BlurPolicy::CommitAndValidate => self.commit(value, v),
+            BlurPolicy::CommitAndValidate => self.commit_target(value, v),
             BlurPolicy::Commit => {
-                self.write(value);
+                self.write_target(value);
                 Ok(())
             }
             BlurPolicy::Cancel => {
@@ -399,7 +454,7 @@ impl TextInputState {
 /// `.value(&str)` (draw), `.placeholder(&str)`, `.validate(&dyn Validate)`
 /// (`NoValidate`), `.blur(BlurPolicy)` (`CommitAndValidate`),
 /// `.secret(SecretPolicy)`, `.read_only(bool)`, `.disabled(bool)`,
-/// `.status(Status)`, `.patch`, `.patch_part`, `.slot`, `.state_override`.
+/// `.status(Status)`, `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::INPUT`, `DEFAULT` only.
@@ -429,14 +484,14 @@ impl TextInputState {
 /// cursor at the clicked column.
 ///
 /// ## Layout
-/// One row: gutter, two-cell indent, the text run, a trailing cell (two
-/// with the error marker or the readiness spinner). `measure` is `(8…, 1)`; `draw` paints the first
+/// One row: gutter, one-cell indent, the text run and one trailing readiness
+/// cell. `measure` is `(8…, 1)`; `draw` paints the first
 /// row of `area` and returns it; `0×0` registers nothing (R5).
 ///
 /// ## Parts
 /// `FIELD` (the row fill), `TEXT` (the value / draft), `PLACEHOLDER`,
-/// `MARKER` (the trailing error glyph), `GUTTER` (the focus bar), `ICON`
-/// (the readiness spinner, in the same trailing cell).
+/// `MARKER` (the trailing validation glyph), `GUTTER` (the focus bar), `ICON`
+/// (the status error glyph or spinner, in the same trailing cell).
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` on any part; `.slot` on exactly `GUTTER`,
@@ -449,7 +504,7 @@ impl TextInputState {
 ///
 /// ## Testing
 /// `TextInputCase` with `FOCUSABLE | EDITS | CURSOR | TYPES | SECRET |
-/// DISABLEABLE`; `render::components::text_input::*`.
+/// DISABLEABLE | REPORTS_STATUS`; `render::components::text_input::*`.
 ///
 /// ## Invariants
 /// `draw` never commits, cancels or validates (it takes `&TextInputState`);
@@ -587,28 +642,32 @@ impl<'a> TextInput<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
+    }
+
+    const fn with_inherited_disabled(&self, inherited: bool) -> Self {
+        TextInput {
+            id: self.id,
+            value: self.value,
+            placeholder: self.placeholder,
+            validate: self.validate,
+            blur: self.blur,
+            secret: self.secret,
+            read_only: self.read_only,
+            disabled: self.disabled || inherited,
+            status: self.status,
+            ov: self.ov,
+        }
     }
 
     fn validator(&self) -> Dyn<'_> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
 
-    /// Columns between the gutter indent and the trailing cells. `marker`
-    /// reserves the trailing cell, which carries either the error glyph or
-    /// the readiness spinner.
-    fn inner_width(area_width: u16, marker: bool) -> u16 {
-        area_width
-            .saturating_sub(3)
-            .saturating_sub(if marker { 2 } else { 0 })
+    /// Columns between the gutter indent and the always-reserved trailing cell.
+    const fn inner_width(area_width: u16) -> u16 {
+        area_width.saturating_sub(3)
     }
 
     /// The update phase: drains this control's intents and drives the edit
@@ -619,19 +678,53 @@ impl<'a> TextInput<'a> {
         st: &mut TextInputState,
         value: &mut String,
     ) -> Response<TextAction> {
+        self.update_target(cx, st, value)
+    }
+
+    /// Form bridge with inherited disabled state. The configured component
+    /// remains the source of every other prop.
+    pub(crate) fn update_in_form<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextInputState,
+        value: &mut T,
+        inherited_disabled: bool,
+    ) -> Response<TextAction> {
+        self.with_inherited_disabled(inherited_disabled)
+            .update_target(cx, st, value)
+    }
+
+    pub(crate) fn commit_in_form<T: TextTarget + ?Sized>(
+        &self,
+        st: &mut TextInputState,
+        value: &mut T,
+    ) -> bool {
+        if !st.is_editing() {
+            return false;
+        }
+        let _ = st.commit_target(value, &self.validator());
+        true
+    }
+
+    fn update_target<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextInputState,
+        value: &mut T,
+    ) -> Response<TextAction> {
         let mut acc = super::Acc::<TextAction>::new();
         let editable = self.editable();
         for it in cx.intents(self.id) {
             match it {
                 Intent::FocusIn { .. } => {
                     if editable {
-                        st.begin(value);
+                        st.begin(value.expose());
                     }
                 }
                 Intent::FocusOut { .. } => {
                     if st.is_editing() {
                         let policy = self.blur;
-                        let _ = st.blur(value, &self.validator(), policy);
+                        let _ = st.blur_target(value, &self.validator(), policy);
                         match policy {
                             BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
                                 acc.action(TextAction::Committed);
@@ -641,14 +734,18 @@ impl<'a> TextInput<'a> {
                         }
                     }
                 }
-                Intent::Key(k) if editable => {
-                    if st.is_editing() {
-                        self.edit_key(st, value, k, &mut acc);
-                    } else if k.is(KeyCode::Enter) {
-                        st.begin(value);
-                        acc.changed();
-                    } else if let Some(c) = k.bare_char() {
-                        st.begin(value);
+                Intent::Binding(action) if editable => {
+                    if let Some(cmd) = Binding::command(BINDINGS, action) {
+                        if st.is_editing() {
+                            self.edit_command_target(st, value, cmd, &mut acc);
+                        } else if cmd == TextCmd::Commit {
+                            st.begin(value.expose());
+                            acc.changed();
+                        }
+                    }
+                }
+                Intent::Key(k) if editable && st.is_editing() => {
+                    if let Some(c) = k.bare_char() {
                         self.insert(st, c, &mut acc);
                     }
                 }
@@ -666,7 +763,7 @@ impl<'a> TextInput<'a> {
                     ..
                 } if editable => {
                     if !st.is_editing() {
-                        st.begin(value);
+                        st.begin(value.expose());
                     }
                     let col = usize::from(local.x.saturating_sub(2))
                         .saturating_add(usize::from(st.draft.hscroll()));
@@ -684,10 +781,7 @@ impl<'a> TextInput<'a> {
         if st.is_editing()
             && let Some(a) = cx.area(self.id)
         {
-            let w = Self::inner_width(
-                a.width,
-                st.error.is_some() || !matches!(self.status, Status::Ready),
-            );
+            let w = Self::inner_width(a.width);
             st.draft.scroll_into_view(w);
         }
         acc.finish(self.id)
@@ -708,23 +802,23 @@ impl<'a> TextInput<'a> {
         }
     }
 
-    fn edit_key(
+    fn edit_command_target<T: TextTarget + ?Sized>(
         &self,
         st: &mut TextInputState,
-        value: &mut String,
-        k: crate::event::Key,
+        value: &mut T,
+        cmd: TextCmd,
         acc: &mut super::Acc<TextAction>,
     ) {
-        match Binding::lookup(BINDINGS, &k) {
-            Some(TextCmd::Cancel) => {
+        match cmd {
+            TextCmd::Cancel => {
                 st.cancel();
                 acc.action(TextAction::Cancelled);
             }
-            Some(TextCmd::Commit) => {
-                let _ = st.commit(value, &self.validator());
+            TextCmd::Commit => {
+                let _ = st.commit_target(value, &self.validator());
                 acc.action(TextAction::Committed);
             }
-            Some(cmd) => {
+            cmd => {
                 let action = match cmd {
                     TextCmd::Move(m, e) => EditAction::Move(m, e),
                     TextCmd::Backspace => EditAction::Backspace,
@@ -749,11 +843,6 @@ impl<'a> TextInput<'a> {
                     EditOutcome::Ignored | EditOutcome::Rejected => acc.consumed(),
                 }
             }
-            None => {
-                if let Some(c) = k.bare_char() {
-                    self.insert(st, c, acc);
-                }
-            }
         }
     }
 
@@ -769,7 +858,9 @@ impl<'a> TextInput<'a> {
             return area;
         }
         let editing = st.is_editing();
-        let error = st.error.is_some() || matches!(self.status, Status::Error);
+        let validation_error = st.error.is_some();
+        let status_error = matches!(self.status, Status::Error);
+        let error = validation_error || status_error;
         let focusability = if self.disabled {
             Focusability::Disabled
         } else if self.read_only {
@@ -797,24 +888,26 @@ impl<'a> TextInput<'a> {
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut live = self.ov.flags(ui.state(self.id), derived);
+        let runtime = ui
+            .state(self.id)
+            .difference(StateFlags::EDITING | StateFlags::SELECTED);
+        let mut live = Overrides::flags(runtime, derived);
         if self.disabled {
             live = live.difference(StateFlags::HOVERED);
         }
         // the readiness affordance is a *symbol*, so it survives `Mono`
         // without a theme rule (§11.4's `BUSY`/`LOADING` row); it shares the
         // trailing cell with the error glyph, which wins.
-        let busy = live.intersects(StateFlags::BUSY | StateFlags::LOADING);
+        let busy = matches!(self.status, Status::Busy | Status::Loading);
         let inner = Rect {
             x: area.x.saturating_add(2),
             y: area.y,
-            width: Self::inner_width(area.width, error || busy),
+            width: Self::inner_width(area.width),
             height: 1,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
-        if !self.ov.is_forced() {
-            ui.register_editor(self.id, area, focusability, declared);
-        }
+        ui.register_editor(self.id, area, focusability, declared);
+        ui.publish_bindings(self.id, live, BINDINGS);
         let ov = self.ov;
         let id = self.id;
         let style = |ui: &mut Ui<'_>, part: Part| {
@@ -908,31 +1001,68 @@ impl<'a> TextInput<'a> {
         } else if live.contains(StateFlags::FOCUSED) && self.editable() {
             ui.set_cursor(self.id, Position::new(inner.x, inner.y));
         }
-        if error {
-            let marker_cell = cell_at(area, area.right().saturating_sub(2));
+        let readiness_cell = cell_at(area, area.right().saturating_sub(1));
+        if validation_error {
             if let Some(f) = ov.slot_for(Part::MARKER) {
-                f(ui, marker_cell);
+                f(ui, readiness_cell);
             } else {
                 let ms = style(ui, Part::MARKER);
                 if let Slot::Set(g) = ms.glyph {
-                    ui.glyph(marker_cell, g, ms.style);
+                    ui.glyph(readiness_cell, g, ms.style);
+                }
+            }
+        } else if status_error {
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, readiness_cell);
+            } else {
+                let is = style(ui, Part::ICON);
+                match is.glyph {
+                    Slot::Set(g) => {
+                        ui.glyph(readiness_cell, g, is.style);
+                    }
+                    Slot::Inherit => {
+                        ui.glyph(readiness_cell, GlyphRole::Error, is.style);
+                    }
+                    Slot::Clear => ui.fill(readiness_cell, is.style),
                 }
             }
         } else if busy {
-            let icon_cell = cell_at(area, area.right().saturating_sub(2));
-            // the slot is consulted before `spinner_frames`, exactly as in
-            // `TextArea` (§45.4): a slot is substitution, not suppression, so
-            // `Part::ICON` keeps one answer whichever branch reserved the cell
             if let Some(f) = ov.slot_for(Part::ICON) {
-                f(ui, icon_cell);
+                f(ui, readiness_cell);
             } else {
                 let is = style(ui, Part::ICON);
                 let frames = ui.design().motion.spinner_frames;
                 let frame = frames.first().copied().unwrap_or("");
-                ui.paint_str(icon_cell, frame, is.style);
+                ui.paint_str(readiness_cell, frame, is.style);
             }
         }
         area
+    }
+
+    pub(crate) fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &TextInputState,
+        value: &str,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .value(value)
+            .draw(ui, area, st)
+    }
+
+    pub(crate) fn draw_secret_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &TextInputState,
+        value: &Secret,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .value(value.expose())
+            .draw(ui, area, st)
     }
 
     /// The natural size: one row, eight columns minimum, thirty preferred.
@@ -962,8 +1092,18 @@ fn paint_masked(
     };
     let mut cell = CellUi::new(ui.reborrow(), run, style);
     if tail > 0 {
-        let secret = Secret::new(shown.to_owned());
-        secret.write_mask(&mut cell, total.saturating_sub(tail), policy);
+        cell.glyphs(policy.mask, total.saturating_sub(tail));
+        let fp = crate::id::fnv1a(0xcbf2_9ce4_8422_2325, shown.as_bytes()).to_le_bytes();
+        let mut buf = [0u8; 8];
+        for (slot, byte) in buf.iter_mut().zip(fp) {
+            let value = byte % 36;
+            *slot = if value < 10 {
+                b'0'.saturating_add(value)
+            } else {
+                b'a'.saturating_add(value.saturating_sub(10))
+            };
+        }
+        cell.text(core::str::from_utf8(buf.get(..tail).unwrap_or(&[])).unwrap_or(""));
     } else {
         cell.glyphs(policy.mask, total);
     }
@@ -1012,15 +1152,12 @@ impl FieldControl for TextInput<'_> {
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         TextInput::measure(self, ui, c)
     }
-
-    fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
-        self.ov = self.ov.inherit_forced(s);
-        self
-    }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::cell::Cell;
+
     use ratatui_core::buffer::Buffer;
 
     use super::*;
@@ -1029,6 +1166,20 @@ mod tests {
     use crate::theme::Theme;
 
     const ID: Id = Id::root("input.tests");
+
+    fn draw_status(status: Option<Status>) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        let state = TextInputState::default();
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            let mut input = TextInput::new(ID).value("value");
+            if let Some(status) = status {
+                input = input.status(status);
+            }
+            input.draw(ui, area, &state);
+        });
+        buffer
+    }
 
     fn rule(s: &str) -> Result<(), FieldError> {
         if s.contains('@') {
@@ -1183,6 +1334,39 @@ mod tests {
         assert!(st.error().is_none());
     }
 
+    #[test]
+    fn editing_style_comes_only_from_the_real_edit_state() {
+        let render = |stale_runtime_editing: bool, real_editing: bool| {
+            let theme = Theme::junie().override_family(Family::INPUT, |recipe| {
+                recipe.part(Part::FIELD).when(
+                    StateFlags::EDITING,
+                    StylePatch::new().set_bg(crate::theme::Role::Danger),
+                );
+            });
+            let mut runtime = Runtime::new(Stub::default(), theme);
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
+                if stale_runtime_editing {
+                    ui.declare_state(ID, StateFlags::EDITING);
+                }
+            });
+            let mut state = TextInputState::default();
+            if real_editing {
+                state.begin("value");
+            }
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+                TextInput::new(ID).value("value").draw(ui, area, &state);
+            });
+            buffer
+                .cell(Position::new(1, 0))
+                .map(|cell| cell.bg)
+                .unwrap_or_default()
+        };
+        let idle = render(false, false);
+        assert_eq!(render(true, false), idle, "stale runtime EDITING leaked");
+        assert_ne!(render(false, true), idle, "real edit state was not styled");
+    }
+
     /// §16.1 (P5): a masked field paints mask glyphs and a **synthetic**
     /// tail derived from the fingerprint — never the real characters, and
     /// never a `String` of them.
@@ -1232,5 +1416,91 @@ mod tests {
         assert_eq!(byte_at_col("日本語", 2), 3);
         assert_eq!(byte_at_col("ab", 9), 2);
         assert_eq!(byte_at_col("ab", 0), 0);
+    }
+
+    #[test]
+    fn one_trailing_lane_prioritizes_validation_over_status() {
+        assert!(TextInput::PARTS.contains(&Part::ICON));
+        assert_eq!(draw_status(None), draw_status(Some(Status::Ready)));
+        let marker_calls = Cell::new(0usize);
+        let icon_calls = Cell::new(0usize);
+        let seen = Cell::new(None);
+        let marker = |ui: &mut Ui<'_>, area: Rect| {
+            marker_calls.set(marker_calls.get().saturating_add(1));
+            let style = ui.surface_style();
+            ui.paint_str(area, "M", style);
+        };
+        let icon = |ui: &mut Ui<'_>, area: Rect| {
+            icon_calls.set(icon_calls.get().saturating_add(1));
+            seen.set(Some(area));
+            let style = ui.surface_style();
+            ui.paint_str(area, "I", style);
+        };
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let area = Rect::new(0, 0, 12, 1);
+        let mut buffer = Buffer::empty(area);
+        let mut st = TextInputState::default();
+        st.set_error(Some(FieldError::new("invalid")));
+        let patches = [
+            (
+                Part::MARKER,
+                StylePatch::new().set_glyph(GlyphRole::WarningMark),
+            ),
+            (Part::ICON, StylePatch::new().set_glyph(GlyphRole::NewTab)),
+        ];
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            TextInput::new(ID)
+                .value("value")
+                .status(Status::Error)
+                .patch_part(&patches)
+                .draw(ui, area, &st);
+        });
+        assert_eq!(
+            buffer
+                .cell(Position::new(11, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::WarningMark))
+        );
+
+        st.set_error(None);
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            TextInput::new(ID)
+                .value("value")
+                .status(Status::Error)
+                .patch_part(&patches)
+                .draw(ui, area, &st);
+        });
+        assert_eq!(
+            buffer
+                .cell(Position::new(11, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::NewTab))
+        );
+
+        st.set_error(Some(FieldError::new("invalid")));
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            TextInput::new(ID)
+                .value("value")
+                .status(Status::Error)
+                .slot(Part::MARKER, &marker)
+                .draw(ui, area, &st);
+        });
+        assert_eq!(marker_calls.get(), 1);
+        st.set_error(None);
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            TextInput::new(ID)
+                .value("value")
+                .status(Status::Error)
+                .slot(Part::ICON, &icon)
+                .draw(ui, area, &st);
+        });
+        assert_eq!(icon_calls.get(), 1);
+        assert_eq!(seen.get(), Some(Rect::new(11, 0, 1, 1)));
+        assert_eq!(
+            buffer
+                .cell(Position::new(11, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("I")
+        );
     }
 }

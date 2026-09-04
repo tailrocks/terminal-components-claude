@@ -8,11 +8,15 @@
 //! `viewport_100k_lines_render` recorded 15.2 M allocations per frame
 //! (§20.10 item 7, finding P-A). Here the caller owns the lines, cells are
 //! produced by a walk instead of being stored, and the scrollbar column is
-//! reserved **before** the layout rather than discovered after it, so there
-//! is exactly one pass and no per-frame allocation at all.
+//! reserved **before** layout rather than discovered after it. A cold,
+//! reflowed or invalidated layout builds one exact wrapped-row prefix; an
+//! unchanged warm frame reuses it without allocation or index work.
 
 use core::fmt;
-use core::ops::ControlFlow;
+use core::ops::{ControlFlow, Range};
+
+#[cfg(feature = "testing")]
+use std::cell::Cell;
 
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Modifier, Style};
@@ -37,6 +41,51 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 /// occupy something, and four is the width the legacy viewport used.
 const TAB_WIDTH: u16 = 4;
 
+/// Caller-owned testing probe for viewport layout and paint work.
+#[cfg(feature = "testing")]
+#[derive(Debug, Default)]
+pub struct ViewportWorkProbe {
+    indexed_lines: Cell<usize>,
+    visible_rows: Cell<usize>,
+}
+
+/// A point-in-time viewport work sample.
+#[cfg(feature = "testing")]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct ViewportWorkSnapshot {
+    /// Source lines added to the wrapped-row prefix.
+    pub indexed_lines: usize,
+    /// Visible visual rows visited for painting.
+    pub visible_rows: usize,
+}
+
+#[cfg(feature = "testing")]
+impl ViewportWorkProbe {
+    /// Clear both counters.
+    pub fn reset(&self) {
+        self.indexed_lines.set(0);
+        self.visible_rows.set(0);
+    }
+
+    /// Read both counters without changing them.
+    pub fn snapshot(&self) -> ViewportWorkSnapshot {
+        ViewportWorkSnapshot {
+            indexed_lines: self.indexed_lines.get(),
+            visible_rows: self.visible_rows.get(),
+        }
+    }
+
+    fn add_indexed(&self, count: usize) {
+        self.indexed_lines
+            .set(self.indexed_lines.get().saturating_add(count));
+    }
+
+    fn add_visible(&self, count: usize) {
+        self.visible_rows
+            .set(self.visible_rows.get().saturating_add(count));
+    }
+}
+
 /// One source line of a [`TextViewport`].
 ///
 /// `Plain` exists so a log of `&str` costs no span storage; `Spans` carries
@@ -48,6 +97,102 @@ pub enum ViewportLine<'a> {
     Plain(&'a str),
     /// Role-carrying runs.
     Spans(&'a [Span<'a>]),
+}
+
+/// Owned, flattened styled text used by composite components. Keeping text,
+/// line descriptors and run descriptors in three allocations avoids building
+/// borrowed `Span` trees on every delegated phase.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub(crate) struct ProjectedText {
+    text: String,
+    lines: Vec<Range<usize>>,
+    runs: Vec<ProjectedRun>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ProjectedRun {
+    text: Range<usize>,
+    role: Option<Role>,
+    modifier: Modifier,
+}
+
+impl ProjectedText {
+    pub(crate) fn clear(&mut self) {
+        self.text.clear();
+        self.lines.clear();
+        self.runs.clear();
+    }
+
+    pub(crate) fn push_line<I, S>(&mut self, runs: I)
+    where
+        I: IntoIterator<Item = (S, Option<Role>, Modifier)>,
+        S: AsRef<str>,
+    {
+        let start = self.runs.len();
+        for (value, role, modifier) in runs {
+            let text_start = self.text.len();
+            self.text.push_str(value.as_ref());
+            self.runs.push(ProjectedRun {
+                text: text_start..self.text.len(),
+                role,
+                modifier,
+            });
+        }
+        self.lines.push(start..self.runs.len());
+    }
+}
+
+#[derive(Clone, Copy)]
+enum LineRef<'a> {
+    Borrowed(ViewportLine<'a>),
+    Projected(&'a ProjectedText, usize),
+}
+
+impl<'a> From<ViewportLine<'a>> for LineRef<'a> {
+    fn from(line: ViewportLine<'a>) -> Self {
+        LineRef::Borrowed(line)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum LineSet<'a> {
+    Borrowed(&'a [ViewportLine<'a>]),
+    Projected(&'a ProjectedText),
+}
+
+impl<'a> From<&'a [ViewportLine<'a>]> for LineSet<'a> {
+    fn from(lines: &'a [ViewportLine<'a>]) -> Self {
+        LineSet::Borrowed(lines)
+    }
+}
+
+impl<'a, const N: usize> From<&'a [ViewportLine<'a>; N]> for LineSet<'a> {
+    fn from(lines: &'a [ViewportLine<'a>; N]) -> Self {
+        LineSet::Borrowed(lines)
+    }
+}
+
+impl<'a> LineSet<'a> {
+    fn len(self) -> usize {
+        match self {
+            LineSet::Borrowed(lines) => lines.len(),
+            LineSet::Projected(text) => text.lines.len(),
+        }
+    }
+
+    fn is_empty(self) -> bool {
+        self.len() == 0
+    }
+
+    fn get(self, index: usize) -> Option<LineRef<'a>> {
+        match self {
+            LineSet::Borrowed(lines) => lines.get(index).copied().map(LineRef::Borrowed),
+            LineSet::Projected(text) => text
+                .lines
+                .get(index)
+                .map(|_| LineRef::Projected(text, index)),
+        }
+    }
 }
 
 impl<'a> From<&'a str> for ViewportLine<'a> {
@@ -82,20 +227,14 @@ impl CellPos {
 }
 
 /// What a viewport reports.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ViewportAction {
-    /// The offset moved.
-    Scrolled,
+    /// Copy the selected text.
+    Copy(String),
     /// The selection changed or was extended.
     SelectionChanged,
-    /// The selection was dropped.
-    SelectionCleared,
     /// Tail-follow was turned on or off.
     FollowChanged(bool),
-    /// The reader asked for the selection. The text is **not** carried:
-    /// building it allocates and `update` must not, so the owner calls
-    /// [`ViewportState::copy_into`] with a buffer it already has.
-    CopyRequested,
 }
 
 /// The const-constructible commands of the viewport keymap.
@@ -120,13 +259,15 @@ pub enum ViewportCmd {
 }
 
 const fn b(
+    action: &'static str,
     chord: Chord,
     cmd: ViewportCmd,
     label: &'static str,
     visible: bool,
 ) -> Binding<ViewportCmd> {
     Binding {
-        chord,
+        action: crate::ActionKey::custom(action),
+        chord: Some(chord),
         cmd,
         label,
         priority: if visible { 50 } else { 10 },
@@ -135,48 +276,85 @@ const fn b(
 }
 
 const BINDINGS: &[Binding<ViewportCmd>] = &[
-    b(Chord::key(KeyCode::Up), ViewportCmd::Up, "Up", true),
-    b(Chord::key(KeyCode::Down), ViewportCmd::Down, "Down", true),
-    b(Chord::key(KeyCode::Char('k')), ViewportCmd::Up, "Up", false),
     b(
+        "viewport.up",
+        Chord::key(KeyCode::Up),
+        ViewportCmd::Up,
+        "Up",
+        true,
+    ),
+    b(
+        "viewport.down",
+        Chord::key(KeyCode::Down),
+        ViewportCmd::Down,
+        "Down",
+        true,
+    ),
+    b(
+        "viewport.up-vim",
+        Chord::key(KeyCode::Char('k')),
+        ViewportCmd::Up,
+        "Up",
+        false,
+    ),
+    b(
+        "viewport.down-vim",
         Chord::key(KeyCode::Char('j')),
         ViewportCmd::Down,
         "Down",
         false,
     ),
     b(
+        "viewport.page-up",
         Chord::key(KeyCode::PageUp),
         ViewportCmd::PageUp,
         "Page up",
         false,
     ),
     b(
+        "viewport.page-down",
         Chord::key(KeyCode::PageDown),
         ViewportCmd::PageDown,
         "Page down",
         false,
     ),
-    b(Chord::key(KeyCode::Home), ViewportCmd::Home, "Top", false),
     b(
+        "viewport.home",
+        Chord::key(KeyCode::Home),
+        ViewportCmd::Home,
+        "Top",
+        false,
+    ),
+    b(
+        "viewport.home-vim",
         Chord::key(KeyCode::Char('g')),
         ViewportCmd::Home,
         "Top",
         false,
     ),
-    b(Chord::key(KeyCode::End), ViewportCmd::End, "Tail", true),
     b(
+        "viewport.end",
+        Chord::key(KeyCode::End),
+        ViewportCmd::End,
+        "Tail",
+        true,
+    ),
+    b(
+        "viewport.end-vim",
         Chord::key(KeyCode::Char('G')),
         ViewportCmd::End,
         "Tail",
         false,
     ),
     b(
+        "viewport.toggle-follow",
         Chord::key(KeyCode::Char('f')),
         ViewportCmd::ToggleFollow,
         "Follow",
         true,
     ),
     b(
+        "viewport.copy",
         Chord::key(KeyCode::Char('y')),
         ViewportCmd::Copy,
         "Copy",
@@ -206,23 +384,45 @@ const fn runs(line: ViewportLine<'_>) -> &[Span<'_>] {
     }
 }
 
-/// The text of run `ix`.
-fn run_text(line: ViewportLine<'_>, ix: usize) -> &str {
+fn run_count(line: LineRef<'_>) -> usize {
     match line {
-        ViewportLine::Plain(s) => s,
-        ViewportLine::Spans(sp) => sp.get(ix).map_or("", |s| s.text),
+        LineRef::Borrowed(ViewportLine::Plain(_)) => 1,
+        LineRef::Borrowed(ViewportLine::Spans(spans)) => spans.len(),
+        LineRef::Projected(text, line) => text.lines.get(line).map_or(0, Range::len),
+    }
+}
+
+/// The text of run `ix`.
+fn run_text(line: LineRef<'_>, ix: usize) -> &str {
+    match line {
+        LineRef::Borrowed(ViewportLine::Plain(s)) => s,
+        LineRef::Borrowed(ViewportLine::Spans(sp)) => sp.get(ix).map_or("", |s| s.text),
+        LineRef::Projected(text, line) => text
+            .lines
+            .get(line)
+            .and_then(|line| text.runs.get(line.start.saturating_add(ix)))
+            .and_then(|run| text.text.get(run.text.clone()))
+            .unwrap_or(""),
     }
 }
 
 /// The role and modifiers of run `ix`.
-fn run_style(line: ViewportLine<'_>, ix: usize) -> (Option<Role>, Modifier) {
-    runs(line)
-        .get(ix)
-        .map_or((None, Modifier::empty()), |s| (s.role, s.add))
+fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier) {
+    match line {
+        LineRef::Borrowed(line) => runs(line)
+            .get(ix)
+            .map_or((None, Modifier::empty()), |s| (s.role, s.add)),
+        LineRef::Projected(text, line) => text
+            .lines
+            .get(line)
+            .and_then(|line| text.runs.get(line.start.saturating_add(ix)))
+            .map_or((None, Modifier::empty()), |run| (run.role, run.modifier)),
+    }
 }
 
 /// The text one display cell paints.
-fn cell_text(line: ViewportLine<'_>, c: VCell) -> &str {
+fn cell_text<'a>(line: impl Into<LineRef<'a>>, c: VCell) -> &'a str {
+    let line = line.into();
     if c.tab {
         " "
     } else {
@@ -267,23 +467,18 @@ fn walk_run(
 }
 
 /// Walk every display cell of `line`, in order.
-fn walk_line(line: ViewportLine<'_>, mut f: impl FnMut(VCell) -> ControlFlow<()>) {
-    match line {
-        ViewportLine::Plain(s) => {
-            let _ = walk_run(0, s, &mut f);
-        }
-        ViewportLine::Spans(sp) => {
-            for (i, s) in sp.iter().enumerate() {
-                if walk_run(i, s.text, &mut f).is_break() {
-                    return;
-                }
-            }
+fn walk_line<'a>(line: impl Into<LineRef<'a>>, mut f: impl FnMut(VCell) -> ControlFlow<()>) {
+    let line = line.into();
+    for index in 0..run_count(line) {
+        if walk_run(index, run_text(line, index), &mut f).is_break() {
+            return;
         }
     }
 }
 
 /// Total display columns of `line`.
-fn line_cols(line: ViewportLine<'_>) -> usize {
+fn line_cols<'a>(line: impl Into<LineRef<'a>>) -> usize {
+    let line = line.into();
     let mut n = 0usize;
     walk_line(line, |c| {
         n = n.saturating_add(usize::from(c.w));
@@ -293,7 +488,8 @@ fn line_cols(line: ViewportLine<'_>) -> usize {
 }
 
 /// Visual rows `line` occupies at text width `w`.
-fn line_rows(line: ViewportLine<'_>, w: u16, wrap: bool) -> usize {
+fn line_rows<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool) -> usize {
+    let line = line.into();
     if !wrap || w == 0 {
         return 1;
     }
@@ -315,7 +511,8 @@ fn line_rows(line: ViewportLine<'_>, w: u16, wrap: bool) -> usize {
 
 /// The `[start, end)` display columns of visual row `row` of `line`.
 /// `usize::MAX` as the end means "to the end of the line".
-fn row_cols(line: ViewportLine<'_>, w: u16, wrap: bool, row: usize) -> (usize, usize) {
+fn row_cols<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool, row: usize) -> (usize, usize) {
+    let line = line.into();
     if !wrap || w == 0 {
         return (0, usize::MAX);
     }
@@ -348,18 +545,17 @@ fn row_cols(line: ViewportLine<'_>, w: u16, wrap: bool, row: usize) -> (usize, u
     }
 }
 
-// ─────────────────────── the windowed visual-row index ───────────────────────
+// ──────────────────────── the exact visual-row index ─────────────────────────
 
 /// The key a cached layout is valid for.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 struct LayoutKey {
-    lines: usize,
     width: u16,
     wrap: bool,
     generation: u32,
 }
 
-/// The visual-row prefix sum, held in [`Ui::cache`] because it is a function
+/// The exact visual-row prefix sum, held in [`Ui::cache`] because it is a function
 /// of `area` and therefore knowable only in `draw` (R8, §20.9-7). It is never
 /// in [`ViewportState`]: it is derived, and `draw_twice_leaves_state_equal`
 /// must not see it.
@@ -369,40 +565,74 @@ struct ViewportLayout {
     /// `prefix[i]` is the number of visual rows before line `i`; the last
     /// entry is the total. Empty when `wrap` is off, where the mapping is the
     /// identity.
-    prefix: Vec<u32>,
+    prefix: Vec<usize>,
+    lines: usize,
 }
 
 impl ViewportLayout {
-    /// Rebuild for `key` if it changed. Reuses the vector's capacity, so a
-    /// steady stream of pushes allocates nothing after the first growth.
-    fn ensure(&mut self, lines: &[ViewportLine<'_>], key: LayoutKey) {
-        if self.key == key && (!key.wrap || self.prefix.len() == lines.len().saturating_add(1)) {
-            return;
+    /// Rebuild for `key` if it changed, extend only an appended suffix, and
+    /// reuse the complete prefix on an unchanged warm frame. At the saturated
+    /// generation reuse is disabled, so mutation can never wrap onto a stale
+    /// key. The vector keeps its capacity across rebuilds.
+    fn ensure<'a>(&mut self, lines: impl Into<LineSet<'a>>, key: LayoutKey) -> usize {
+        let lines = lines.into();
+        let reusable = key.generation != u32::MAX;
+        if reusable && self.key == key && self.lines == lines.len() {
+            return 0;
         }
-        self.key = key;
-        self.prefix.clear();
+        let append = reusable && self.key == key && self.lines <= lines.len();
+        if !append {
+            self.key = key;
+            self.prefix.clear();
+            self.lines = 0;
+        }
         if !key.wrap {
-            return;
+            self.lines = lines.len();
+            return 0;
         }
-        self.prefix.push(0);
-        let mut acc = 0u32;
-        for l in lines {
-            let r = line_rows(*l, key.width, true);
-            acc = acc.saturating_add(u32::try_from(r).unwrap_or(u32::MAX));
+        if self.prefix.is_empty() {
+            // Keep bounded append headroom so a normal tailing batch extends
+            // the exact prefix in place. The prefix contents remain exact;
+            // spare capacity is derived-only storage.
+            self.prefix.reserve(
+                lines
+                    .len()
+                    .saturating_add(lines.len().checked_div(8).unwrap_or_default())
+                    .saturating_add(1),
+            );
+            self.prefix.push(0);
+        } else {
+            self.prefix.reserve(
+                lines
+                    .len()
+                    .saturating_add(1)
+                    .saturating_sub(self.prefix.len()),
+            );
+        }
+        let mut acc = self.prefix.last().copied().unwrap_or(0);
+        let mut indexed = 0usize;
+        for index in self.lines..lines.len() {
+            let Some(line) = lines.get(index) else { break };
+            let r = line_rows(line, key.width, true);
+            acc = acc.saturating_add(r);
             self.prefix.push(acc);
+            indexed = indexed.saturating_add(1);
         }
+        self.lines = lines.len();
+        indexed
     }
 
     /// Total visual rows.
-    fn total(&self, lines: &[ViewportLine<'_>]) -> usize {
+    fn total(&self) -> usize {
         if !self.key.wrap {
-            return lines.len();
+            return self.lines;
         }
-        self.prefix.last().map_or(0, |n| *n as usize)
+        self.prefix.last().copied().unwrap_or(0)
     }
 
     /// The `(line, row-within-line)` a visual `row` falls in.
-    fn row_start(&self, lines: &[ViewportLine<'_>], row: usize) -> (usize, usize) {
+    fn row_start<'a>(&self, lines: impl Into<LineSet<'a>>, row: usize) -> (usize, usize) {
+        let lines = lines.into();
         if !self.key.wrap {
             return (row.min(lines.len().saturating_sub(1)), 0);
         }
@@ -410,46 +640,22 @@ impl ViewportLayout {
         if prefix.len() < 2 {
             return (0, 0);
         }
-        let target = u32::try_from(row).unwrap_or(u32::MAX);
+        let target = row;
         let i = match prefix.binary_search(&target) {
             Ok(i) => i,
             Err(i) => i.saturating_sub(1),
         };
         let i = i.min(prefix.len().saturating_sub(2));
         let base = prefix.get(i).copied().unwrap_or(0);
-        (i, target.saturating_sub(base) as usize)
+        (i, target.saturating_sub(base))
     }
-}
 
-/// The uncached row mapping `update` uses: the identity without wrap, a
-/// forward walk with it.
-///
-/// Recorded deliberately: with `wrap` on this is `O(offset)` in lines, and it
-/// is on the **pointer** path only — never on the paint path, which reads the
-/// cached prefix. It allocates nothing.
-fn walk_to_row(lines: &[ViewportLine<'_>], width: u16, wrap: bool, row: usize) -> (usize, usize) {
-    if !wrap {
-        return (row.min(lines.len().saturating_sub(1)), 0);
-    }
-    let mut acc = 0usize;
-    for (i, l) in lines.iter().enumerate() {
-        let r = line_rows(*l, width, true);
-        if row < acc.saturating_add(r) {
-            return (i, row.saturating_sub(acc));
+    fn line_start(&self, line: usize) -> usize {
+        if !self.key.wrap {
+            return line.min(self.lines);
         }
-        acc = acc.saturating_add(r);
+        self.prefix.get(line).copied().unwrap_or(0)
     }
-    (lines.len().saturating_sub(1), 0)
-}
-
-/// Total visual rows without a cache.
-fn total_walk(lines: &[ViewportLine<'_>], width: u16, wrap: bool) -> usize {
-    if !wrap {
-        return lines.len();
-    }
-    lines
-        .iter()
-        .fold(0usize, |a, l| a.saturating_add(line_rows(*l, width, true)))
 }
 
 /// Word characters for double-click selection: [`crate::text`]'s definition
@@ -460,7 +666,8 @@ fn is_word(c: char) -> bool {
 }
 
 /// The `[start, end)` columns of the word run containing `col`, if any.
-fn word_at(line: ViewportLine<'_>, col: usize) -> Option<(usize, usize)> {
+fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize)> {
+    let line = line.into();
     let mut cur: Option<usize> = None;
     let mut found: Option<(usize, usize)> = None;
     let mut at = 0usize;
@@ -610,7 +817,7 @@ impl ViewportState {
     /// The lines changed in place without changing their count. Discards the
     /// derived visual-row index on the next draw.
     pub const fn invalidate(&mut self) {
-        self.generation = self.generation.wrapping_add(1);
+        self.generation = self.generation.saturating_add(1);
     }
 
     /// Append the selected text to `out`; `false` when there is no selection.
@@ -618,6 +825,10 @@ impl ViewportState {
     /// Lines are joined with `\n` and each is right-trimmed, which is what a
     /// terminal selection puts on a clipboard.
     pub fn copy_into(&self, lines: &[ViewportLine<'_>], out: &mut String) -> bool {
+        self.copy_from(LineSet::Borrowed(lines), out)
+    }
+
+    fn copy_from(&self, lines: LineSet<'_>, out: &mut String) -> bool {
         let Some((a, b)) = self.selection() else {
             return false;
         };
@@ -632,12 +843,12 @@ impl ViewportState {
             let to = if li == b.line { b.col } else { usize::MAX };
             let start = out.len();
             let mut col = 0usize;
-            walk_line(*line, |c| {
+            walk_line(line, |c| {
                 if col >= to {
                     return ControlFlow::Break(());
                 }
                 if col >= from {
-                    out.push_str(cell_text(*line, c));
+                    out.push_str(cell_text(line, c));
                 }
                 col = col.saturating_add(usize::from(c.w));
                 ControlFlow::Continue(())
@@ -676,8 +887,7 @@ fn shift(p: &mut CellPos, dropped: usize) {
 /// into [`Ui::cache`].
 ///
 /// ## Configuration
-/// `.wrap(bool)` (`false`), `.patch`, `.patch_part`, `.slot`,
-/// `.state_override`.
+/// `.wrap(bool)` (`false`), `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::VIEWPORT`, `Variant::DEFAULT` only.
@@ -689,9 +899,9 @@ fn shift(p: &mut CellPos, dropped: usize) {
 /// affordance and declares none.
 ///
 /// ## Actions
-/// `Scrolled`, `SelectionChanged`, `SelectionCleared`, `FollowChanged(bool)`,
-/// `CopyRequested`. None carries an `ItemKey`: a viewport has no items.
-/// `CopyRequested` deliberately carries no text — see [`ViewportAction`].
+/// `Copy(String)`, `SelectionChanged`, `FollowChanged(bool)`. None carries an
+/// `ItemKey`: a viewport has no items. Copying allocates only on the explicit
+/// user command, never during layout or painting.
 ///
 /// ## Focus
 /// One `Focusable` stop over the whole area; does not swallow typing, so an
@@ -756,7 +966,8 @@ pub struct TextViewport<'a> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     slot: Option<(Part, SlotFn<'a>)>,
-    forced: Option<StateFlags>,
+    #[cfg(feature = "testing")]
+    work_probe: Option<&'a ViewportWorkProbe>,
 }
 
 impl fmt::Debug for TextViewport<'_> {
@@ -765,7 +976,6 @@ impl fmt::Debug for TextViewport<'_> {
             .field("id", &self.id)
             .field("wrap", &self.wrap)
             .field("slot", &self.slot.map(|(p, _)| p))
-            .field("forced", &self.forced)
             .finish_non_exhaustive()
     }
 }
@@ -791,7 +1001,35 @@ impl<'a> TextViewport<'a> {
             patch: None,
             parts: &[],
             slot: None,
-            forced: None,
+            #[cfg(feature = "testing")]
+            work_probe: None,
+        }
+    }
+
+    /// Attach caller-owned testing instrumentation.
+    #[cfg(feature = "testing")]
+    #[must_use]
+    pub const fn work_probe(mut self, probe: &'a ViewportWorkProbe) -> Self {
+        self.work_probe = Some(probe);
+        self
+    }
+
+    #[cfg(feature = "testing")]
+    fn note_indexed(&self, count: usize) {
+        if let Some(probe) = self.work_probe {
+            probe.add_indexed(count);
+        }
+    }
+
+    #[cfg(not(feature = "testing"))]
+    fn note_indexed(count: usize) {
+        let _ = count;
+    }
+
+    #[cfg(feature = "testing")]
+    fn note_visible(&self, count: usize) {
+        if let Some(probe) = self.work_probe {
+            probe.add_visible(count);
         }
     }
 
@@ -828,13 +1066,6 @@ impl<'a> TextViewport<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.forced = Some(s);
-        self
-    }
-
     /// The instance overrides, assembled from the builders.
     ///
     /// They are stored as their arguments rather than as one `Overrides`
@@ -850,20 +1081,15 @@ impl<'a> TextViewport<'a> {
         if let Some((p, f)) = self.slot {
             ov = ov.slot(p, f);
         }
-        ov.inherit_forced(self.forced)
+        ov
     }
 
     /// The embedded scroll region, carrying this instance's `.patch`,
     /// `.patch_part` and `.slot`.
-    ///
-    /// A forced state (A11) is **not** forwarded, and that is a limitation
-    /// rather than a decision: [`ScrollRegion`] exposes `state_override` and
-    /// not §12.1's `inherit_forced`, and it registers its regions
-    /// unconditionally, so forwarding would change the bar's colours in a
-    /// reference rendering without making the rendering inert. The bar of a
-    /// forced viewport therefore paints in its live state.
     fn bar(&self) -> ScrollRegion<'a> {
-        let mut sr = ScrollRegion::new(self.id).patch_part(self.parts);
+        let mut sr = ScrollRegion::new(self.id)
+            .inherit_family(Family::VIEWPORT)
+            .patch_part(self.parts);
         if let Some(p) = self.patch {
             sr = sr.patch(p);
         }
@@ -879,22 +1105,38 @@ impl<'a> TextViewport<'a> {
         width.saturating_sub(2)
     }
 
+    const fn layout_key(&self, st: &ViewportState, width: u16) -> LayoutKey {
+        LayoutKey {
+            width,
+            wrap: self.wrap,
+            generation: st.generation,
+        }
+    }
+
     /// Map a screen position to a logical position, using last frame's
     /// geometry.
     fn pos_at(
         &self,
-        lines: &[ViewportLine<'_>],
-        geometry: (Rect, u16, usize),
+        cx: &mut Cx<'_>,
+        lines: LineSet<'_>,
+        geometry: (Rect, LayoutKey, usize),
         pos: Position,
     ) -> Option<CellPos> {
-        let (area, width, offset) = geometry;
+        let (area, key, offset) = geometry;
         if area.is_empty() || lines.is_empty() {
             return None;
         }
+        let layout = cx.cache::<ViewportLayout>(self.id);
+        let indexed = layout.ensure(lines, key);
+        #[cfg(feature = "testing")]
+        self.note_indexed(indexed);
+        #[cfg(not(feature = "testing"))]
+        Self::note_indexed(indexed);
         let dy = usize::from(pos.y.saturating_sub(area.y));
-        let (li, row) = walk_to_row(lines, width, self.wrap, offset.saturating_add(dy));
-        let line = *lines.get(li)?;
-        let (start, end) = row_cols(line, width, self.wrap, row);
+        let visual = offset.saturating_add(dy);
+        let (li, row) = layout.row_start(lines, visual);
+        let line = lines.get(li)?;
+        let (start, end) = row_cols(line, key.width, self.wrap, row);
         let dx = usize::from(pos.x.saturating_sub(area.x.saturating_add(1)));
         let last = end.min(line_cols(line));
         Some(CellPos {
@@ -911,11 +1153,38 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: &[ViewportLine<'_>],
     ) -> Response<ViewportAction> {
+        self.update_lines(cx, st, LineSet::Borrowed(lines))
+    }
+
+    pub(crate) fn update_projected(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &ProjectedText,
+    ) -> Response<ViewportAction> {
+        self.update_lines(cx, st, LineSet::Projected(lines))
+    }
+
+    fn update_lines(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+    ) -> Response<ViewportAction> {
         let area = cx.area(self.id).unwrap_or(Rect::ZERO);
         let width = cx
             .layout(self.id)
             .map_or_else(|| Self::text_width(area.width), |l| l.cols);
-        let total = total_walk(lines, width, self.wrap);
+        let key = self.layout_key(st, width);
+        let (total, indexed) = {
+            let layout = cx.cache::<ViewportLayout>(self.id);
+            let indexed = layout.ensure(lines, key);
+            (layout.total(), indexed)
+        };
+        #[cfg(feature = "testing")]
+        self.note_indexed(indexed);
+        #[cfg(not(feature = "testing"))]
+        Self::note_indexed(indexed);
         let before = st.scroll.offset();
         let bar = self.bar().update(cx, &mut st.scroll, total);
         let mut acc = Acc::<ViewportAction>::new();
@@ -925,9 +1194,9 @@ impl<'a> TextViewport<'a> {
         }
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) => {
-                    if let Some(cmd) = Binding::lookup(BINDINGS, &k) {
-                        Self::command(st, cmd, &mut acc);
+                Intent::Binding(action) => {
+                    if let Some(cmd) = Binding::command(BINDINGS, action) {
+                        Self::command(st, lines, cmd, &mut acc);
                     }
                 }
                 Intent::Pointer {
@@ -938,66 +1207,7 @@ impl<'a> TextViewport<'a> {
                         },
                     pos,
                     ..
-                } => match phase {
-                    Phase::Press | Phase::DragStart => {
-                        let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
-                        let had = st.selection.take().is_some();
-                        st.anchor = self.pos_at(lines, (area, width, st.scroll.offset()), pos);
-                        if had {
-                            acc.action(ViewportAction::SelectionCleared);
-                        } else {
-                            acc.consumed();
-                        }
-                    }
-                    Phase::Drag => {
-                        // one row of auto-scroll past either vertical edge,
-                        // so a selection can reach off-screen text
-                        if pos.y < area.y {
-                            st.scroll.scroll_by(-1);
-                            st.follow = false;
-                        } else if pos.y >= area.bottom() {
-                            st.scroll.scroll_by(1);
-                            st.follow = st.scroll.at_end();
-                        }
-                        let clamped = Position::new(
-                            pos.x
-                                .clamp(area.x, area.right().saturating_sub(1).max(area.x)),
-                            pos.y
-                                .clamp(area.y, area.bottom().saturating_sub(1).max(area.y)),
-                        );
-                        let at = self.pos_at(lines, (area, width, st.scroll.offset()), clamped);
-                        match (st.anchor, at) {
-                            (Some(anchor), Some(head)) => {
-                                st.selection = Some((anchor, head));
-                                acc.action(ViewportAction::SelectionChanged);
-                            }
-                            _ => acc.consumed(),
-                        }
-                    }
-                    Phase::DoubleClick => {
-                        let at = self.pos_at(lines, (area, width, st.scroll.offset()), pos);
-                        match at.and_then(|p| {
-                            lines
-                                .get(p.line)
-                                .and_then(|l| word_at(*l, p.col))
-                                .map(|(s, e)| (p.line, s, e))
-                        }) {
-                            Some((line, s, e)) => {
-                                st.select(CellPos::new(line, s), CellPos::new(line, e));
-                                acc.action(ViewportAction::SelectionChanged);
-                            }
-                            None => acc.consumed(),
-                        }
-                    }
-                    Phase::Release | Phase::DragEnd => {
-                        if cx.capture_owner() == Some(self.id) {
-                            cx.release_capture();
-                        }
-                        st.anchor = None;
-                        acc.consumed();
-                    }
-                    Phase::Click | Phase::Secondary => acc.consumed(),
-                },
+                } => self.handle_text_pointer(cx, st, lines, (area, key), (phase, pos), &mut acc),
                 _ => {}
             }
         }
@@ -1007,9 +1217,89 @@ impl<'a> TextViewport<'a> {
         acc.finish(self.id)
     }
 
+    fn handle_text_pointer(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        geometry: (Rect, LayoutKey),
+        pointer: (Phase, Position),
+        acc: &mut Acc<ViewportAction>,
+    ) {
+        let (area, key) = geometry;
+        let (phase, pos) = pointer;
+        match phase {
+            Phase::Press | Phase::DragStart => {
+                let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
+                let had = st.selection.take().is_some();
+                st.anchor = self.pos_at(cx, lines, (area, key, st.scroll.offset()), pos);
+                if had {
+                    acc.action(ViewportAction::SelectionChanged);
+                } else {
+                    acc.consumed();
+                }
+            }
+            Phase::Drag => {
+                // One row of auto-scroll past either vertical edge lets a
+                // selection reach off-screen text.
+                if pos.y < area.y {
+                    st.scroll.scroll_by(-1);
+                    st.follow = false;
+                } else if pos.y >= area.bottom() {
+                    st.scroll.scroll_by(1);
+                    st.follow = st.scroll.at_end();
+                }
+                let clamped = Position::new(
+                    pos.x
+                        .clamp(area.x, area.right().saturating_sub(1).max(area.x)),
+                    pos.y
+                        .clamp(area.y, area.bottom().saturating_sub(1).max(area.y)),
+                );
+                let at = self.pos_at(cx, lines, (area, key, st.scroll.offset()), clamped);
+                match (st.anchor, at) {
+                    (Some(anchor), Some(head)) => {
+                        st.selection = Some((anchor, head));
+                        acc.action(ViewportAction::SelectionChanged);
+                    }
+                    _ => acc.consumed(),
+                }
+            }
+            Phase::DoubleClick => {
+                let at = self.pos_at(cx, lines, (area, key, st.scroll.offset()), pos);
+                match at.and_then(|p| {
+                    lines
+                        .get(p.line)
+                        .and_then(|line| word_at(line, p.col))
+                        .map(|(start, end)| (p.line, start, end))
+                }) {
+                    Some((line, start, end)) => {
+                        st.select(CellPos::new(line, start), CellPos::new(line, end));
+                        acc.action(ViewportAction::SelectionChanged);
+                    }
+                    None => acc.consumed(),
+                }
+            }
+            Phase::Release | Phase::DragEnd => {
+                if cx.capture_owner() == Some(self.id) {
+                    cx.release_capture();
+                }
+                st.anchor = None;
+                acc.consumed();
+            }
+            Phase::Click | Phase::Secondary => acc.consumed(),
+            Phase::Move => {}
+        }
+    }
+
     /// One keymap command. Every command consumes, so the table and the
     /// handler cannot drift (§16.2 case 20).
-    fn command(st: &mut ViewportState, cmd: ViewportCmd, acc: &mut Acc<ViewportAction>) {
+    fn command<'b>(
+        st: &mut ViewportState,
+        lines: impl Into<LineSet<'b>>,
+        cmd: ViewportCmd,
+        acc: &mut Acc<ViewportAction>,
+    ) {
+        let lines = lines.into();
         let before = st.scroll.offset();
         match cmd {
             ViewportCmd::Up => st.scroll.scroll_by(-1),
@@ -1037,7 +1327,12 @@ impl<'a> TextViewport<'a> {
                 return;
             }
             ViewportCmd::Copy => {
-                acc.action(ViewportAction::CopyRequested);
+                let mut text = String::new();
+                if st.copy_from(lines, &mut text) {
+                    acc.action(ViewportAction::Copy(text));
+                } else {
+                    acc.consumed();
+                }
                 return;
             }
         }
@@ -1045,7 +1340,7 @@ impl<'a> TextViewport<'a> {
             acc.consumed();
         } else {
             st.follow = st.scroll.at_end();
-            acc.action(ViewportAction::Scrolled);
+            acc.changed();
         }
     }
 
@@ -1057,25 +1352,44 @@ impl<'a> TextViewport<'a> {
         st: &ViewportState,
         lines: &[ViewportLine<'_>],
     ) -> Rect {
+        self.draw_lines(ui, area, st, LineSet::Borrowed(lines))
+    }
+
+    pub(crate) fn draw_projected(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ViewportState,
+        lines: &ProjectedText,
+    ) -> Rect {
+        self.draw_lines(ui, area, st, LineSet::Projected(lines))
+    }
+
+    fn draw_lines(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ViewportState,
+        lines: LineSet<'_>,
+    ) -> Rect {
         if area.is_empty() {
             return area;
         }
         let ov = self.overrides();
         let id = self.id;
-        let forced = ov.is_forced();
-        let live = ov.flags(ui.state(id), StateFlags::empty());
+        let runtime = ui.state(id).difference(StateFlags::SELECTED);
+        let live = Overrides::flags(runtime, StateFlags::empty());
         let text_w = Self::text_width(area.width);
-        let key = LayoutKey {
-            lines: lines.len(),
-            width: text_w,
-            wrap: self.wrap,
-            generation: st.generation,
-        };
-        let total = {
+        let key = self.layout_key(st, text_w);
+        let (total, indexed) = {
             let lay = ui.cache::<ViewportLayout>(id);
-            lay.ensure(lines, key);
-            lay.total(lines)
+            let indexed = lay.ensure(lines, key);
+            (lay.total(), indexed)
         };
+        #[cfg(feature = "testing")]
+        self.note_indexed(indexed);
+        #[cfg(not(feature = "testing"))]
+        Self::note_indexed(indexed);
         let mut view = st.scroll;
         view.apply_layout(usize::from(area.height), total);
         if st.follow {
@@ -1085,9 +1399,12 @@ impl<'a> TextViewport<'a> {
             let lay = ui.cache::<ViewportLayout>(id);
             lay.row_start(lines, view.offset())
         };
-        if !forced {
-            ui.register_control(id, area, Focusability::Focusable);
-        }
+        let caret_line_start = st.caret.map(|c| {
+            let lay = ui.cache::<ViewportLayout>(id);
+            lay.line_start(c.line)
+        });
+        ui.register_control(id, area, Focusability::Focusable);
+        ui.publish_bindings(id, live, BINDINGS);
         let container = ov.style(
             ui,
             id,
@@ -1111,14 +1428,17 @@ impl<'a> TextViewport<'a> {
         };
         ui.report_layout(
             id,
-            LayoutFacts::new(usize::from(area.height), total, area.height, text_w),
+            LayoutFacts::new(
+                usize::from(area.height),
+                total,
+                area.height.saturating_sub(2),
+                text_w,
+            ),
         );
         if text.is_empty() {
             return text;
         }
-        if !forced {
-            ui.register_part(id, PartRef::of(Part::TEXT), text);
-        }
+        ui.register_part(id, PartRef::of(Part::TEXT), text);
         let base = ov.style(ui, id, Family::VIEWPORT, Variant::DEFAULT, Part::TEXT, live);
         let selected = ov.style(
             ui,
@@ -1136,7 +1456,14 @@ impl<'a> TextViewport<'a> {
             st.selection(),
             (base.style, selected.style),
         );
-        self.caret(ui, text, st, lines, (text_w, view.offset()), live);
+        self.caret(
+            ui,
+            text,
+            st,
+            lines,
+            (text_w, view.offset(), caret_line_start),
+            live,
+        );
         text
     }
 
@@ -1145,24 +1472,28 @@ impl<'a> TextViewport<'a> {
         &self,
         ui: &mut Ui<'_>,
         text: Rect,
-        lines: &[ViewportLine<'_>],
+        lines: LineSet<'_>,
         from: (usize, usize),
         sel: Option<(CellPos, CellPos)>,
         styles: (Style, Style),
     ) {
         let (mut li, mut row) = from;
         let text_w = text.width;
-        let mut rows_here = lines
-            .get(li)
-            .map_or(0, |l| line_rows(*l, text_w, self.wrap));
+        let mut rows_here = lines.get(li).map_or(0, |l| line_rows(l, text_w, self.wrap));
+        #[cfg(feature = "testing")]
+        let mut visible = 0usize;
         for y in text.rows() {
             let Some(line) = lines.get(li) else { break };
+            #[cfg(feature = "testing")]
+            {
+                visible = visible.saturating_add(1);
+            }
             paint_row(
                 ui,
                 y,
-                *line,
+                line,
                 li,
-                row_cols(*line, text_w, self.wrap, row),
+                row_cols(line, text_w, self.wrap, row),
                 sel,
                 styles,
             );
@@ -1170,11 +1501,11 @@ impl<'a> TextViewport<'a> {
             if row >= rows_here {
                 row = 0;
                 li = li.saturating_add(1);
-                rows_here = lines
-                    .get(li)
-                    .map_or(0, |l| line_rows(*l, text_w, self.wrap));
+                rows_here = lines.get(li).map_or(0, |l| line_rows(l, text_w, self.wrap));
             }
         }
+        #[cfg(feature = "testing")]
+        self.note_visible(visible);
     }
 
     /// The focus gutter column.
@@ -1218,11 +1549,11 @@ impl<'a> TextViewport<'a> {
         ui: &mut Ui<'_>,
         text: Rect,
         st: &ViewportState,
-        lines: &[ViewportLine<'_>],
-        view: (u16, usize),
+        lines: LineSet<'_>,
+        view: (u16, usize, Option<usize>),
         live: StateFlags,
     ) {
-        let (width, offset) = view;
+        let (width, offset, line_start) = view;
         let Some(c) = st.caret else { return };
         if !live.contains(StateFlags::FOCUSED) {
             return;
@@ -1230,18 +1561,11 @@ impl<'a> TextViewport<'a> {
         let Some(at) = lines.get(c.line) else {
             return;
         };
-        let mut before = 0usize;
-        if self.wrap {
-            for l in lines.get(..c.line).unwrap_or(&[]) {
-                before = before.saturating_add(line_rows(*l, width, true));
-            }
-        } else {
-            before = c.line;
-        }
+        let before = line_start.unwrap_or(c.line);
         let mut within = 0usize;
         if self.wrap {
-            for i in 0..line_rows(*at, width, true) {
-                let (a, b) = row_cols(*at, width, true, i);
+            for i in 0..line_rows(at, width, true) {
+                let (a, b) = row_cols(at, width, true, i);
                 if c.col >= a && c.col < b {
                     within = i;
                     break;
@@ -1253,7 +1577,7 @@ impl<'a> TextViewport<'a> {
             return;
         }
         let dy = visual.saturating_sub(offset);
-        let (start, _) = row_cols(*at, width, self.wrap, within);
+        let (start, _) = row_cols(at, width, self.wrap, within);
         let dx = c.col.saturating_sub(start);
         if dy >= usize::from(text.height) || dx >= usize::from(text.width) {
             return;
@@ -1291,7 +1615,7 @@ struct Run {
 fn paint_row(
     ui: &mut Ui<'_>,
     rect: Rect,
-    line: ViewportLine<'_>,
+    line: LineRef<'_>,
     line_ix: usize,
     cols: (usize, usize),
     sel: Option<(CellPos, CellPos)>,
@@ -1385,14 +1709,541 @@ impl Bindings for TextViewport<'_> {
 
 #[cfg(test)]
 mod tests {
-    use ratatui_core::buffer::Buffer;
+    use ratatui_core::buffer::{Buffer, Cell};
 
     use super::*;
-    use crate::runtime::Runtime;
-    use crate::runtime::stub::{SCREEN, Stub};
-    use crate::theme::Theme;
+    use crate::event::MouseKind;
+    use crate::runtime::stub::{SCREEN, Stub, key, mouse};
+    use crate::runtime::{App, Runtime};
+    use crate::theme::{ColorLevel, Surface, Theme};
+    use crate::{ReferenceState, ReferenceTarget};
 
     const ID: Id = Id::root("viewport.tests");
+    const POINTER_AREA: Rect = Rect::new(0, 0, 12, 8);
+    const MANY_LINES: [ViewportLine<'static>; 100] = [ViewportLine::Plain("row"); 100];
+
+    struct ViewportApp {
+        state: ViewportState,
+    }
+
+    impl Default for ViewportApp {
+        fn default() -> Self {
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            ViewportApp { state }
+        }
+    }
+
+    impl App for ViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextViewport::new(ID)
+                .update(cx, &mut self.state, &MANY_LINES)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextViewport::new(ID).draw(ui, POINTER_AREA, &self.state, &MANY_LINES);
+        }
+    }
+
+    struct MutableViewportApp {
+        state: ViewportState,
+        lines: Vec<&'static str>,
+        area: Rect,
+        wrap: bool,
+    }
+
+    impl MutableViewportApp {
+        fn view_lines(lines: &[&'static str]) -> Vec<ViewportLine<'static>> {
+            lines.iter().copied().map(ViewportLine::Plain).collect()
+        }
+    }
+
+    impl App for MutableViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let lines = Self::view_lines(&self.lines);
+            TextViewport::new(ID)
+                .wrap(self.wrap)
+                .update(cx, &mut self.state, &lines)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let lines = Self::view_lines(&self.lines);
+            TextViewport::new(ID)
+                .wrap(self.wrap)
+                .draw(ui, self.area, &self.state, &lines);
+        }
+    }
+
+    #[test]
+    fn track_registration_includes_the_cap_cells() {
+        let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+
+        let track = runtime
+            .area_of_part(ID, PartRef::of(Part::TRACK))
+            .expect("the overflowing viewport must register its track");
+        assert_eq!(track, Rect::new(11, 0, 1, POINTER_AREA.height));
+
+        let _ = runtime.handle(mouse(MouseKind::Down, track.x, track.bottom() - 1));
+        assert!(runtime.app().state.scroll.at_end());
+    }
+
+    #[test]
+    fn pointer_mapping_uses_current_lines_after_invalidation() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut runtime = Runtime::new(
+            MutableViewportApp {
+                state,
+                lines: vec!["012345678901234567890", "old second line"],
+                area: Rect::new(0, 0, 12, 4),
+                wrap: true,
+            },
+            Theme::junie(),
+        );
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+
+        let app = runtime.app_mut();
+        app.lines = vec!["short", "target line"];
+        app.state.invalidate();
+
+        let _ = runtime.handle(mouse(MouseKind::Down, 1, 1));
+        assert!(runtime.app().state.anchor.is_some(), "press did not anchor");
+        assert_eq!(runtime.capture_owner(), Some(ID), "press did not capture");
+        let _ = runtime.handle(mouse(MouseKind::Drag, 4, 1));
+
+        assert!(
+            runtime.app().state.selection.is_some(),
+            "drag did not set a selection"
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(1, 0), CellPos::new(1, 3)))
+        );
+        assert_eq!(
+            runtime.app().state.selection(),
+            Some((CellPos::new(1, 0), CellPos::new(1, 3)))
+        );
+    }
+
+    #[test]
+    fn update_uses_the_current_content_length() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut runtime = Runtime::new(
+            MutableViewportApp {
+                state,
+                lines: vec!["row"; 2],
+                area: POINTER_AREA,
+                wrap: false,
+            },
+            Theme::junie(),
+        );
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+
+        runtime.app_mut().lines = vec!["row"; 100];
+        let _ = runtime.handle(key(KeyCode::End));
+
+        assert_eq!(runtime.app().state.scroll.offset(), 92);
+    }
+
+    #[test]
+    fn bottom_track_click_and_thumb_drag_reach_the_end() {
+        let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+
+        let track = runtime
+            .area_of_part(ID, PartRef::of(Part::TRACK))
+            .unwrap_or(Rect::ZERO);
+        let bottom = track.bottom().saturating_sub(1);
+        let _ = runtime.handle(mouse(MouseKind::Down, track.x, bottom));
+        assert!(runtime.app().state.scroll.at_end());
+
+        runtime.app_mut().state.scroll.scroll_to(40);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+        let thumb = runtime
+            .area_of_part(ID, PartRef::of(Part::THUMB))
+            .unwrap_or(Rect::ZERO);
+        let grab_y = thumb.bottom().saturating_sub(1);
+        let _ = runtime.handle(mouse(MouseKind::Down, thumb.x, grab_y));
+        let _ = runtime.handle(mouse(MouseKind::Drag, track.x, bottom));
+        assert!(runtime.app().state.scroll.at_end());
+    }
+
+    #[test]
+    fn offscreen_caret_emits_no_cursor_while_visible_caret_does() {
+        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
+        let area = Rect::new(0, 0, 12, 4);
+        let render = |caret: CellPos| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            state
+                .scroll
+                .apply_layout(usize::from(area.height), lines.len());
+            state.scroll.scroll_to(5);
+            state.set_caret(Some(caret));
+            for _ in 0..2 {
+                runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    TextViewport::new(ID).draw(ui, area, &state, &lines);
+                });
+            }
+            runtime.cursor()
+        };
+        assert_eq!(render(CellPos::new(0, 0)), None, "caret above viewport");
+        assert_eq!(render(CellPos::new(20, 0)), None, "caret below viewport");
+        assert_eq!(render(CellPos::new(6, 1)), Some(Position::new(2, 1)));
+    }
+
+    #[test]
+    fn append_extends_the_wrapped_index_without_rebuilding_its_prefix() {
+        let key = LayoutKey {
+            width: 4,
+            wrap: true,
+            generation: 0,
+        };
+        let mut layout = ViewportLayout::default();
+        let first = [ViewportLine::Plain("abcdefgh"), ViewportLine::Plain("ij")];
+        layout.ensure(&first, key);
+        layout.prefix[1] = 777;
+        let appended = [
+            ViewportLine::Plain("abcdefgh"),
+            ViewportLine::Plain("ij"),
+            ViewportLine::Plain("klmnop"),
+        ];
+        layout.ensure(&appended, key);
+        assert_eq!(layout.prefix[1], 777, "append rebuilt the existing prefix");
+        assert_eq!(layout.prefix.len(), 4);
+    }
+
+    #[test]
+    fn ensure_work_is_cold_zero_warm_suffix_on_append_and_full_on_reflow() {
+        let lines = [ViewportLine::Plain("abcdefgh"); 4];
+        let mut layout = ViewportLayout::default();
+        let key = LayoutKey {
+            width: 4,
+            wrap: true,
+            generation: 0,
+        };
+
+        assert_eq!(layout.ensure(&lines, key), lines.len());
+        assert_eq!(layout.ensure(&lines, key), 0);
+
+        let appended = [ViewportLine::Plain("abcdefgh"); 7];
+        assert_eq!(layout.ensure(&appended, key), 3);
+
+        assert_eq!(
+            layout.ensure(
+                &appended,
+                LayoutKey {
+                    generation: 1,
+                    ..key
+                },
+            ),
+            appended.len()
+        );
+
+        assert_eq!(
+            layout.ensure(
+                &appended,
+                LayoutKey {
+                    width: 5,
+                    generation: 1,
+                    ..key
+                },
+            ),
+            appended.len()
+        );
+    }
+
+    #[cfg(feature = "testing")]
+    #[test]
+    fn work_probe_is_isolated_resettable_and_reports_cold_warm_work() {
+        let first = ViewportWorkProbe::default();
+        let other = ViewportWorkProbe::default();
+        let lines = [ViewportLine::Plain("abcdefgh"); 7];
+        let viewport = TextViewport::new(ID).wrap(true).work_probe(&first);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            viewport.draw(ui, area, &ViewportState::default(), &lines);
+        });
+        let cold = first.snapshot();
+        assert_eq!(cold.indexed_lines, lines.len());
+        assert!(cold.visible_rows > 0);
+        assert_eq!(other.snapshot(), ViewportWorkSnapshot::default());
+
+        first.reset();
+        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+            viewport.draw(ui, area, &ViewportState::default(), &lines);
+        });
+        let warm = first.snapshot();
+        assert_eq!(warm.indexed_lines, 0);
+        assert!(warm.visible_rows > 0);
+    }
+
+    #[cfg(feature = "testing")]
+    #[test]
+    fn work_probes_are_parallel_caller_owned() {
+        let run = || {
+            let probe = ViewportWorkProbe::default();
+            let lines = [ViewportLine::Plain("parallel"); 5];
+            let viewport = TextViewport::new(ID).wrap(true).work_probe(&probe);
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
+                viewport.draw(ui, area, &ViewportState::default(), &lines);
+            });
+            probe.snapshot()
+        };
+        let a = std::thread::spawn(run);
+        let b = std::thread::spawn(run);
+        assert_eq!(a.join().expect("first probe thread").indexed_lines, 5);
+        assert_eq!(b.join().expect("second probe thread").indexed_lines, 5);
+    }
+
+    #[test]
+    fn wrapped_prefix_matches_bruteforce() {
+        let spans = [
+            Span::new("ab\t").role(Role::Info),
+            Span::new("漢e\u{301}").modifier(Modifier::BOLD),
+        ];
+        let lines = [
+            ViewportLine::Plain(""),
+            ViewportLine::Plain("ascii"),
+            ViewportLine::Plain("漢字"),
+            ViewportLine::Plain("e\u{301}clair"),
+            ViewportLine::Spans(&spans),
+        ];
+        for width in 1..=12 {
+            let key = LayoutKey {
+                width,
+                wrap: true,
+                generation: u32::from(width),
+            };
+            let mut layout = ViewportLayout::default();
+            layout.ensure(&lines, key);
+            let mut expected = vec![0usize];
+            for line in lines {
+                let next = expected
+                    .last()
+                    .copied()
+                    .unwrap_or(0)
+                    .saturating_add(line_rows(line, width, true));
+                expected.push(next);
+            }
+            assert_eq!(layout.prefix, expected, "width {width}");
+            for (line, pair) in expected.windows(2).enumerate() {
+                for visual in pair[0]..pair[1] {
+                    assert_eq!(
+                        layout.row_start(&lines, visual),
+                        (line, visual.saturating_sub(pair[0])),
+                        "width {width}, visual row {visual}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn generation_saturation_never_reuses_stale_layout() {
+        let mut layout = ViewportLayout::default();
+        let key = LayoutKey {
+            width: 4,
+            wrap: true,
+            generation: u32::MAX,
+        };
+        let before = [ViewportLine::Plain("a"), ViewportLine::Plain("b")];
+        let after = [ViewportLine::Plain("abcdefgh"), ViewportLine::Plain("b")];
+        layout.ensure(&before, key);
+        assert_eq!(layout.total(), 2);
+        assert_eq!(layout.ensure(&after, key), after.len());
+        assert_eq!(layout.total(), 3);
+
+        let mut state = ViewportState {
+            generation: u32::MAX - 1,
+            ..ViewportState::default()
+        };
+        state.invalidate();
+        state.invalidate();
+        assert_eq!(state.generation, u32::MAX);
+    }
+
+    #[test]
+    fn same_length_offscreen_rewrap_after_invalidate_updates_total_end_thumb_and_mapping() {
+        let before = [ViewportLine::Plain("row"); 8];
+        let mut after = before;
+        after[5] = ViewportLine::Plain("01234567890123456789");
+        let width = 4;
+        let viewport = 4;
+        let track = 6;
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut layout = ViewportLayout::default();
+        let old_key = LayoutKey {
+            width,
+            wrap: true,
+            generation: state.generation,
+        };
+        layout.ensure(&before, old_key);
+        let old_total = layout.total();
+        let mut old_scroll = state.scroll;
+        old_scroll.apply_layout(viewport, old_total);
+        let (_, old_thumb) = old_scroll.thumb(track);
+
+        state.invalidate();
+        let new_key = LayoutKey {
+            generation: state.generation,
+            ..old_key
+        };
+        layout.ensure(&after, new_key);
+        let new_total = layout.total();
+        state.scroll.apply_layout(viewport, new_total);
+        let (_, new_thumb) = state.scroll.thumb(track);
+        assert_eq!(old_total, 8);
+        assert_eq!(new_total, 12);
+        assert_eq!(state.scroll.max_offset(), new_total - viewport);
+        assert!(
+            new_thumb < old_thumb,
+            "a larger total did not shorten the thumb"
+        );
+
+        let mut acc = Acc::new();
+        TextViewport::command(&mut state, &after, ViewportCmd::End, &mut acc);
+        assert!(state.follow());
+        assert_eq!(state.scroll.offset(), state.scroll.max_offset());
+
+        state.scroll.scroll_to(0);
+        let bottom_bar_local = track.saturating_add(1);
+        let track_pos = bottom_bar_local.saturating_sub(1);
+        state
+            .scroll
+            .scroll_to(state.scroll.offset_for_track_pos(track_pos, track));
+        assert!(
+            state.scroll.at_end(),
+            "bottom track cap did not reach the end"
+        );
+        assert_eq!(layout.row_start(&after, 7), (5, 2));
+    }
+
+    #[test]
+    fn copy_command_carries_the_selected_text_in_the_exact_action() {
+        let lines = [ViewportLine::Plain("alpha beta")];
+        let mut st = ViewportState::default();
+        st.select(CellPos::new(0, 6), CellPos::new(0, 10));
+        let mut acc = Acc::new();
+        TextViewport::command(&mut st, &lines, ViewportCmd::Copy, &mut acc);
+        assert_eq!(
+            acc.finish(ID).into_action(),
+            Some(ViewportAction::Copy("beta".to_owned()))
+        );
+    }
+
+    #[test]
+    fn first_end_emits_follow_changed() {
+        let mut st = ViewportState::default();
+        st.set_follow(false);
+        let mut acc = Acc::new();
+
+        TextViewport::command(&mut st, &[], ViewportCmd::End, &mut acc);
+
+        assert_eq!(
+            acc.finish(ID).into_action(),
+            Some(ViewportAction::FollowChanged(true))
+        );
+    }
+
+    #[test]
+    fn repeated_end_repaints_without_emitting_follow_changed() {
+        let mut st = ViewportState::default();
+        let mut acc = Acc::new();
+
+        TextViewport::command(&mut st, &[], ViewportCmd::End, &mut acc);
+        let response = acc.finish(ID);
+
+        assert!(response.is_consumed());
+        assert!(response.is_changed());
+        assert_eq!(response.into_action(), None);
+    }
+
+    #[test]
+    fn parts_match_the_exact_styling_surface() {
+        assert_eq!(
+            TextViewport::PARTS,
+            &[
+                Part::CONTAINER,
+                Part::TEXT,
+                Part::GUTTER,
+                Part::TRACK,
+                Part::THUMB,
+            ]
+        );
+    }
+
+    #[test]
+    fn a_reference_viewport_makes_its_nested_scroll_region_inert() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = ViewportState::default();
+        let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            ui.reference(
+                Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)),
+                |ui| {
+                    TextViewport::new(ID).draw(ui, Rect::new(0, 0, 12, 3), &st, &lines);
+                },
+            );
+        });
+        assert!(rt.area_of(ID).is_none());
+    }
+
+    #[test]
+    fn nested_scrollbar_resolves_through_the_viewport_family() {
+        let theme = Theme::junie()
+            .override_family(Family::VIEWPORT, |recipe| {
+                recipe
+                    .part(Part::TRACK)
+                    .base(StylePatch::new().set_fg(Role::Danger));
+            })
+            .override_family(Family::SCROLLBAR, |recipe| {
+                recipe
+                    .part(Part::TRACK)
+                    .base(StylePatch::new().set_fg(Role::Info));
+            });
+        let expected = theme.resolve(
+            Family::VIEWPORT,
+            Variant::DEFAULT,
+            Part::TRACK,
+            StateFlags::empty(),
+            Surface::Canvas,
+        );
+        let scrollbar = theme.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            Part::TRACK,
+            StateFlags::empty(),
+            Surface::Canvas,
+        );
+        let mut rt = Runtime::new(Stub::default(), theme);
+        let mut buf = Buffer::empty(SCREEN);
+        let st = ViewportState::default();
+        let lines = [ViewportLine::Plain("row"); 30];
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            TextViewport::new(ID).draw(ui, POINTER_AREA, &st, &lines);
+        });
+
+        assert_eq!(rt.resolved(ID, Part::TRACK), expected);
+        assert_ne!(rt.resolved(ID, Part::TRACK), scrollbar);
+    }
 
     /// §16.1's named test. Bounded retention is the caller's — it owns the
     /// buffer and its cap — but every position the viewport holds is an index
@@ -1576,20 +2427,60 @@ mod tests {
         };
         let lines = [ViewportLine::Plain("hello"), ViewportLine::Plain("world")];
         let bar = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);
-        let gutter = |forced: StateFlags| {
+        let gutter = |state: ReferenceState| {
             let mut rt = Runtime::new(Stub::default(), Theme::junie());
             let mut buf = Buffer::empty(SCREEN);
             let st = ViewportState::default();
             rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                TextViewport::new(ID)
-                    .state_override(forced)
-                    .draw(ui, area, &st, &lines);
+                ui.reference(Some(ReferenceTarget::new(ID, state)), |ui| {
+                    TextViewport::new(ID).draw(ui, area, &st, &lines);
+                });
             });
             buf.cell(Position::new(0, 0))
                 .map_or_else(String::new, |c| c.symbol().to_owned())
         };
-        assert_eq!(gutter(StateFlags::FOCUSED), bar);
-        assert_ne!(gutter(StateFlags::empty()), bar);
+        assert_eq!(gutter(ReferenceState::FOCUSED), bar);
+        assert_ne!(gutter(ReferenceState::default()), bar);
+    }
+
+    #[test]
+    fn mono_selection_paints_the_resolved_inverse_underlined_style() {
+        let area = Rect::new(0, 0, 8, 1);
+        let lines = [ViewportLine::Plain("abcdef")];
+        let mut state = ViewportState::default();
+        state.select(CellPos::new(0, 1), CellPos::new(0, 3));
+
+        for base in [Theme::junie(), Theme::paper()] {
+            let theme = base.downgrade(ColorLevel::Mono);
+            let expected = theme
+                .resolve(
+                    Family::VIEWPORT,
+                    Variant::DEFAULT,
+                    Part::TEXT,
+                    StateFlags::SELECTED,
+                    Surface::Canvas,
+                )
+                .style;
+            let mut runtime = Runtime::new(Stub::default(), theme);
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
+                TextViewport::new(ID).draw(ui, area, &state, &lines);
+            });
+
+            let base_cell = buffer.cell(Position::new(1, 0));
+            let selected_cell = buffer.cell(Position::new(2, 0));
+            let selected_end = buffer.cell(Position::new(3, 0));
+            let after = buffer.cell(Position::new(4, 0));
+            assert_ne!(selected_cell.map(Cell::style), base_cell.map(Cell::style));
+            assert_eq!(
+                selected_end.map(Cell::style),
+                selected_cell.map(Cell::style)
+            );
+            assert_eq!(after.map(Cell::style), base_cell.map(Cell::style));
+            assert_eq!(selected_cell.map(|cell| cell.fg), expected.fg);
+            assert_eq!(selected_cell.map(|cell| cell.bg), expected.bg);
+            assert!(selected_cell.is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED)));
+        }
     }
 
     /// The derived visual-row index lives in [`Ui::cache`], so a frame that

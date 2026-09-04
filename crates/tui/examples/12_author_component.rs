@@ -12,8 +12,8 @@
 )]
 
 use tui_next::author::{
-    Binding, BindingState, Bindings, Chord, Cx, Family, Focusability, FrameRead, GlyphRole, Id,
-    Intent, ItemKey, Key, KeyCode, Part, PartRef, Phase, Rect, Resolved, Response, Slot,
+    ActionKey, Binding, BindingState, Bindings, Chord, Cx, Family, Focusability, FrameRead,
+    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, Phase, Rect, Resolved, Response, Slot,
     StateFlags, StylePatch, Ui, Variant,
 };
 
@@ -35,17 +35,14 @@ use tui_next::author::{
 /// and an unpatched one through `Ui::style`, so an override changes what
 /// this instance paints and never mutates the `Theme`. There is no `.slot`:
 /// a segment is a cell-valued part with no sub-painting to replace.
-/// `.state_override(StateFlags)` is showcase / fixture use only (A11) — a
-/// forced instance is a *reference rendering*: it paints the state it was
-/// handed and registers no control and no part, so nothing on the page is
-/// focusable or clickable.
+/// Showcase and test fixtures use [`Ui::reference`] around the normal draw;
+/// the scope injects runtime-owned state and suppresses all registrations.
 #[derive(Debug)]
 pub struct Segmented<'a> {
     id: Id,
     labels: &'a [&'a str],
     variant: Variant,
     parts: &'a [(Part, StylePatch)],
-    forced: Option<StateFlags>,
 }
 
 /// Durable interaction state: the roving cursor and the chosen segment.
@@ -83,43 +80,38 @@ const F_SEGMENTED: Family = Family::custom("segmented");
 
 const BINDINGS: &[Binding<SegCmd>] = &[
     Binding {
-        chord: Chord::key(KeyCode::Left),
+        action: ActionKey::custom("segmented.previous"),
+        chord: Some(Chord::key(KeyCode::Left)),
         cmd: SegCmd::Prev,
         label: "Prev",
         priority: 40,
         visible: true,
     },
     Binding {
-        chord: Chord::key(KeyCode::Right),
+        action: ActionKey::custom("segmented.next"),
+        chord: Some(Chord::key(KeyCode::Right)),
         cmd: SegCmd::Next,
         label: "Next",
         priority: 40,
         visible: true,
     },
     Binding {
-        chord: Chord::key(KeyCode::Enter),
+        action: ActionKey::custom("segmented.select.enter"),
+        chord: Some(Chord::key(KeyCode::Enter)),
         cmd: SegCmd::Select,
         label: "Select",
         priority: 80,
         visible: true,
     },
     Binding {
-        chord: Chord::key(KeyCode::Char(' ')),
+        action: ActionKey::custom("segmented.select.space"),
+        chord: Some(Chord::key(KeyCode::Char(' '))),
         cmd: SegCmd::Select,
         label: "Select",
         priority: 80,
         visible: false,
     },
 ];
-
-/// The command a key press means, resolved against the SAME table the hint
-/// bar shows. [`Binding::lookup`] is the library idiom: it matches through
-/// `Chord::matches`, which folds `SHIFT` out for `KeyCode::Char`, so
-/// `Shift+Space` still selects. A derived `b.chord == k.chord()` comparison
-/// is strictly narrower and silently drops every shifted character chord.
-fn command_for(k: &Key) -> Option<SegCmd> {
-    Binding::lookup(BINDINGS, k)
-}
 
 impl Bindings for Segmented<'_> {
     type Cmd = SegCmd;
@@ -139,7 +131,6 @@ impl<'a> Segmented<'a> {
             labels,
             variant: Variant::DEFAULT,
             parts: &[],
-            forced: None,
         }
     }
 
@@ -154,14 +145,6 @@ impl<'a> Segmented<'a> {
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
-        self
-    }
-
-    /// Showcase / fixture use only (A11): render a state without producing
-    /// it. A forced instance registers no control and no part.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.forced = Some(s);
         self
     }
 
@@ -210,7 +193,7 @@ impl<'a> Segmented<'a> {
         // which is what `bindings_match_handled_keys` checks.
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) => match command_for(&k) {
+                Intent::Binding(action) => match Binding::command(BINDINGS, action) {
                     Some(SegCmd::Prev) => {
                         st.cursor = (st.cursor + n - 1) % n;
                         r = Response::action(SegmentedAction::Moved);
@@ -254,15 +237,9 @@ impl<'a> Segmented<'a> {
         if area.is_empty() {
             return area; // registers nothing (R5)
         }
-        // A forced instance is a reference rendering: it paints the state it
-        // was handed and registers neither a control nor a part, so nothing
-        // it draws is focusable, hoverable or clickable (A11).
-        let live = if let Some(forced) = self.forced {
-            forced
-        } else {
-            ui.register_control(self.id, area, Focusability::Focusable);
-            ui.state(self.id)
-        };
+        ui.register_control(self.id, area, Focusability::Focusable);
+        let live = ui.state(self.id);
+        ui.publish_bindings(self.id, live, BINDINGS);
         // The container is the first declared part and is painted first: the
         // segments and their labels sit on top of it, and the columns the
         // integer division leaves over still carry the control's own surface.
@@ -297,10 +274,7 @@ impl<'a> Segmented<'a> {
             }
             let ls = self.style(ui, Part::LABEL, s).style;
             ui.paint_str(cell, label, ls);
-            if self.forced.is_none() {
-                // RegionKind::Part — never registered by a reference rendering
-                ui.register_part(self.id, PartRef::item(SEGMENT, ItemKey::index(i)), cell);
-            }
+            ui.register_part(self.id, PartRef::item(SEGMENT, ItemKey::index(i)), cell);
         }
         area
     }
@@ -311,7 +285,7 @@ fn main() {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tui_next::author::{ColorLevel, KeyModifiers, Role, Theme};
+    use tui_next::author::{ColorLevel, ReferenceState, ReferenceTarget, Role, Theme};
     use tui_next_testing::Scene;
 
     const SEG: Id = Id::root("example.segmented");
@@ -403,44 +377,20 @@ mod tests {
     }
 
     #[test]
-    fn a_forced_instance_registers_no_control() {
+    fn a_reference_scope_registers_no_control() {
         let st = SegmentedState::default();
-        let mut sc = scene("segmented_forced");
+        let mut sc = scene("segmented_reference");
         sc.draw(|ui, _| {
-            Segmented::new(SEG, LABELS)
-                .state_override(StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE)
-                .draw(ui, AREA, &st);
+            let target =
+                ReferenceTarget::new(SEG, ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE)
+                    .part(PartRef::item(SEGMENT, ItemKey::index(0)));
+            ui.reference(Some(target), |ui| {
+                Segmented::new(SEG, LABELS).draw(ui, AREA, &st);
+            });
         });
         assert!(
             sc.runtime().is_some_and(|rt| rt.area_of(SEG).is_none()),
             "a reference rendering registered a control (A11)"
-        );
-    }
-
-    #[test]
-    fn a_shifted_char_chord_still_resolves_to_its_command() {
-        let shifted = Key {
-            code: KeyCode::Char(' '),
-            mods: KeyModifiers::SHIFT,
-        };
-        assert_eq!(
-            command_for(&shifted),
-            Some(SegCmd::Select),
-            "Shift+Space was dropped: a derived `chord == k.chord()` is narrower than \
-             `Chord::matches`, which folds SHIFT out for `KeyCode::Char`"
-        );
-        let plain = Key {
-            code: KeyCode::Char(' '),
-            mods: KeyModifiers::NONE,
-        };
-        assert_eq!(command_for(&plain), Some(SegCmd::Select));
-        assert_eq!(
-            command_for(&Key {
-                code: KeyCode::Left,
-                mods: KeyModifiers::SHIFT,
-            }),
-            None,
-            "SHIFT is folded out for `Char` only; Shift+Left is a different chord"
         );
     }
 }

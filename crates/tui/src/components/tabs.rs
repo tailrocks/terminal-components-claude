@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Acc, Overrides, cell_at, first_row, paint_pressed_bracket};
+use super::{Acc, Overrides, SlotFn, cell_at, first_row, paint_pressed_bracket};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, Status,
 };
@@ -47,9 +47,16 @@ pub enum TabsCmd {
     New,
 }
 
-const fn b(chord: Chord, cmd: TabsCmd, label: &'static str, visible: bool) -> Binding<TabsCmd> {
+const fn b(
+    action: &'static str,
+    chord: Chord,
+    cmd: TabsCmd,
+    label: &'static str,
+    visible: bool,
+) -> Binding<TabsCmd> {
     Binding {
-        chord,
+        action: crate::ActionKey::custom(action),
+        chord: Some(chord),
         cmd,
         label,
         priority: if visible { 60 } else { 10 },
@@ -58,81 +65,106 @@ const fn b(chord: Chord, cmd: TabsCmd, label: &'static str, visible: bool) -> Bi
 }
 
 const BASE: [Binding<TabsCmd>; 15] = [
-    b(Chord::key(KeyCode::Left), TabsCmd::Prev, "Prev tab", true),
-    b(Chord::key(KeyCode::Right), TabsCmd::Next, "Next tab", true),
     b(
+        "tabs.previous",
+        Chord::key(KeyCode::Left),
+        TabsCmd::Prev,
+        "Prev tab",
+        true,
+    ),
+    b(
+        "tabs.next",
+        Chord::key(KeyCode::Right),
+        TabsCmd::Next,
+        "Next tab",
+        true,
+    ),
+    b(
+        "tabs.previous-vim",
         Chord::key(KeyCode::Char('h')),
         TabsCmd::Prev,
         "Prev tab",
         false,
     ),
     b(
+        "tabs.next-vim",
         Chord::key(KeyCode::Char('l')),
         TabsCmd::Next,
         "Next tab",
         false,
     ),
     b(
+        "tabs.activate",
         Chord::key(KeyCode::Enter),
         TabsCmd::Activate,
         "Activate",
         false,
     ),
     b(
+        "tabs.activate-space",
         Chord::key(KeyCode::Char(' ')),
         TabsCmd::Activate,
         "Activate",
         false,
     ),
     b(
+        "tabs.tab-1",
         Chord::key(KeyCode::Char('1')),
         TabsCmd::Nth(1),
         "Tab 1",
         false,
     ),
     b(
+        "tabs.tab-2",
         Chord::key(KeyCode::Char('2')),
         TabsCmd::Nth(2),
         "Tab 2",
         false,
     ),
     b(
+        "tabs.tab-3",
         Chord::key(KeyCode::Char('3')),
         TabsCmd::Nth(3),
         "Tab 3",
         false,
     ),
     b(
+        "tabs.tab-4",
         Chord::key(KeyCode::Char('4')),
         TabsCmd::Nth(4),
         "Tab 4",
         false,
     ),
     b(
+        "tabs.tab-5",
         Chord::key(KeyCode::Char('5')),
         TabsCmd::Nth(5),
         "Tab 5",
         false,
     ),
     b(
+        "tabs.tab-6",
         Chord::key(KeyCode::Char('6')),
         TabsCmd::Nth(6),
         "Tab 6",
         false,
     ),
     b(
+        "tabs.tab-7",
         Chord::key(KeyCode::Char('7')),
         TabsCmd::Nth(7),
         "Tab 7",
         false,
     ),
     b(
+        "tabs.tab-8",
         Chord::key(KeyCode::Char('8')),
         TabsCmd::Nth(8),
         "Tab 8",
         false,
     ),
     b(
+        "tabs.tab-9",
         Chord::key(KeyCode::Char('9')),
         TabsCmd::Nth(9),
         "Tab 9",
@@ -140,13 +172,26 @@ const BASE: [Binding<TabsCmd>; 15] = [
     ),
 ];
 const CLOSE_X: Binding<TabsCmd> = b(
+    "tabs.close",
     Chord::key(KeyCode::Char('x')),
     TabsCmd::Close,
     "Close",
     true,
 );
-const CLOSE_DEL: Binding<TabsCmd> = b(Chord::key(KeyCode::Delete), TabsCmd::Close, "Close", false);
-const NEW_N: Binding<TabsCmd> = b(Chord::key(KeyCode::Char('n')), TabsCmd::New, "New", true);
+const CLOSE_DEL: Binding<TabsCmd> = b(
+    "tabs.close-delete",
+    Chord::key(KeyCode::Delete),
+    TabsCmd::Close,
+    "Close",
+    false,
+);
+const NEW_N: Binding<TabsCmd> = b(
+    "tabs.new",
+    Chord::key(KeyCode::Char('n')),
+    TabsCmd::New,
+    "New",
+    true,
+);
 
 macro_rules! table {
     ($name:ident, $n:expr, [$($extra:expr),*]) => {
@@ -235,7 +280,7 @@ impl Reconcile for TabsState {
 /// ## Configuration
 /// `.key`, `.row` (`Part::TAB` pre-styled), `.allow_new(bool)` (`false`),
 /// `.closable(bool)` (`false`), `.status`, `.patch`, `.patch_part`,
-/// `.state_override`.
+/// runtime state.
 ///
 /// ## Variants
 /// `Family::TABS`, `DEFAULT` only.
@@ -243,9 +288,9 @@ impl Reconcile for TabsState {
 /// ## States
 /// The strip wears `FOCUSED`/`FOCUS_VISIBLE`/`HOVERED`/`PRESSED` from the
 /// runtime; the active tab derives `ACTIVE`, the cursor tab `FOCUSED`. Under
-/// `.state_override` the first tab in the window stands in for the cursor,
-/// and it derives `ACTIVE` only when the forced state contains `SELECTED` —
-/// a strip's selection *is* its active tab.
+/// reference rendering styles only the runtime cursor. Active/selection
+/// presentation always comes from `TabsState::active`;
+/// forcing `SELECTED` cannot invent an active tab.
 ///
 /// ## Actions
 /// `Activated(k)`, `Close(k)`, `New`.
@@ -264,25 +309,28 @@ impl Reconcile for TabsState {
 /// parts (`ItemKey::index(0)` left, `index(1)` right) shift the window.
 ///
 /// ## Layout
-/// Two rows: labels, then the rule. Tabs are content-sized from what the
+/// Two rows: labels, then the rule. A non-ready strip reserves a two-cell
+/// readiness lane at the far right. Tabs are content-sized from what the
 /// renderer painted; the window is `fit` tabs from the logical first, with
-/// `‹N` / `N›` counters when hidden. `measure` is `(…, tabs_height)`; `draw`
-/// returns the two rows. `viewport_len = fit` is reported and the next
-/// `update` keeps the active tab inside the window.
+/// `‹N` / `N›` counters when hidden. `measure` is `(…, tabs_height)`;
+/// `draw` returns the two rows. `viewport_len = fit` is reported and the
+/// next `update` keeps the active tab inside the window.
 ///
 /// ## Parts
 /// `CONTAINER`, `TAB` (one tab's plane), `LABEL` and `META` (what the
 /// `.row` painter writes through [`RowUi`]), `CLOSE`, `NEW`, `RULE`,
-/// `OVERFLOW`, `BADGE`.
+/// `OVERFLOW`, `BADGE`, `ICON` (the root-owned readiness symbol).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part`; no slots.
+/// `.patch`, `.patch_part`; `.slot(Part::ICON, …)` replaces the readiness
+/// symbol without changing its lane.
 ///
 /// ## Identity
 /// `.key` supplies stable keys; `ByIndex` is unstable under reorder.
 ///
 /// ## Testing
-/// `TabsCase` with `ACTIVATES | FOCUSABLE | COLLECTION`;
+/// `TabsCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SELECTS |
+/// REPORTS_STATUS`;
 /// `render::components::tabs::*`.
 ///
 /// ## Invariants
@@ -338,6 +386,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         Part::RULE,
         Part::OVERFLOW,
         Part::BADGE,
+        Part::ICON,
     ];
 
     /// The id.
@@ -394,13 +443,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-    /// Showcase / fixture use only (A11).
-    #[must_use]
-    pub fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     /// An instance patch over every part.
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -412,6 +454,13 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.patch_part(ps);
+        self
+    }
+
+    /// Replace the readiness symbol while preserving its two-cell lane.
+    #[must_use]
+    pub fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
+        self.ov = self.ov.slot(part, slot);
         self
     }
 
@@ -506,9 +555,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         let table = self.table();
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) => {
+                Intent::Binding(action) => {
                     let cur = st.core.cursor_index();
-                    match Binding::lookup(table, &k) {
+                    match Binding::command(table, action) {
                         Some(TabsCmd::Prev) => {
                             self.activate(st, items, cur.saturating_sub(1), &mut acc);
                         }
@@ -588,10 +637,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             height: area.height.min(2),
             ..area
         };
-        if !self.ov.is_forced() {
+        if !ui.is_inert() {
             ui.register_control(self.id, used, Focusability::Focusable);
         }
-        let live = self.ov.flags(ui.state(self.id), self.status.flags());
+        let live = Overrides::flags(ui.state(self.id), self.status.flags());
+        if !ui.is_inert() {
+            ui.publish_bindings(self.id, live, self.table());
+        }
         let ov = self.ov;
         let id = self.id;
         let strip = ov.style(
@@ -642,6 +694,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             .and_then(|f| self.index_of(items, f, Some(st.first_index)))
             .unwrap_or(0)
             .min(len);
+        let status_w: u16 = if matches!(self.status, Status::Ready) {
+            0
+        } else {
+            2
+        };
         let new_w: u16 = if self.allow_new { 4 } else { 0 };
         let left_w: u16 = if first_index > 0 { 4 } else { 0 };
         let right_w: u16 = if overflow_last || first_index > 0 {
@@ -649,11 +706,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         } else {
             0
         };
-        let right_limit = row0.right().saturating_sub(right_w).saturating_sub(new_w);
+        let right_limit = row0
+            .right()
+            .saturating_sub(status_w)
+            .saturating_sub(right_w)
+            .saturating_sub(new_w);
         let mut x = row0.x.saturating_add(left_w);
         let mut fit = 0usize;
         let cursor = st.core.cursor();
-        let forced = self.ov.is_forced();
+        let hovered = ui.hovered_part(self.id);
+        let pressed = ui.pressed_part(self.id);
         for i in first_index..len {
             let Some(item) = items.get(i) else { break };
             let key = self.key.key(item, i);
@@ -661,27 +723,26 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if avail < 3 {
                 break;
             }
-            // A11 reference rendering: with no real state the first tab in the
-            // window stands in for the cursor, and it becomes the *active* tab
-            // only when the forced state names the strip's selection. A tab
-            // strip's `SELECTED` is its active tab, so keeping `ACTIVE` off the
-            // merely-focused tab is what makes `focused` and `selected`
-            // distinguishable without colour (§11.4, §16.2 case 9).
-            let forced_first = forced && i == first_index;
-            let is_cursor = cursor == Some(key) || (forced_first && cursor.is_none());
-            let is_active = st.active == Some(key)
-                || (forced_first && st.active.is_none() && live.contains(StateFlags::SELECTED));
+            // A11 reference rendering may stand the first tab in for the
+            // cursor, but semantic activation remains owned by `TabsState`.
+            let is_cursor = cursor == Some(key);
+            let is_active = st.active == Some(key);
             let mut flags = StateFlags::empty();
             if is_active {
                 flags |= StateFlags::ACTIVE;
             }
             if is_cursor {
-                flags |=
-                    live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE | StateFlags::PRESSED);
-                if forced {
-                    flags |=
-                        live & (StateFlags::SELECTED | StateFlags::DISABLED | StateFlags::HOVERED);
+                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+                if pressed.is_none() {
+                    flags |= live & StateFlags::PRESSED;
                 }
+            }
+            let tab_part = PartRef::item(Part::TAB, key);
+            if hovered == Some(tab_part) {
+                flags |= StateFlags::HOVERED;
+            }
+            if pressed == Some(tab_part) {
+                flags |= StateFlags::PRESSED;
             }
             // paint the tab's content into the remaining strip, then measure it
             let content = Rect {
@@ -735,7 +796,22 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             }
             if self.closable {
                 let close_cell = cell_at(tab, tab.right().saturating_sub(2));
-                let cs = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::CLOSE, flags);
+                let close_part = PartRef::item(Part::CLOSE, key);
+                let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
+                if hovered == Some(close_part) {
+                    close_flags |= StateFlags::HOVERED;
+                }
+                if pressed == Some(close_part) {
+                    close_flags |= StateFlags::PRESSED;
+                }
+                let cs = ov.style(
+                    ui,
+                    id,
+                    Family::TABS,
+                    Variant::DEFAULT,
+                    Part::CLOSE,
+                    close_flags,
+                );
                 match cs.glyph {
                     Slot::Set(glyph) => {
                         ui.glyph(close_cell, glyph, cs.style);
@@ -769,8 +845,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     }
                 }
             }
-            ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
-            if self.closable {
+            if !ui.is_inert() {
+                ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
+            }
+            if self.closable && !ui.is_inert() {
                 let close_cell = cell_at(tab, tab.right().saturating_sub(2));
                 ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
             }
@@ -799,17 +877,20 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 digits(first_index, &mut buf),
                 os.style,
             );
-            ui.register_part(
-                self.id,
-                PartRef::item(Part::OVERFLOW, ItemKey::index(0)),
-                cell,
-            );
+            if !ui.is_inert() {
+                ui.register_part(
+                    self.id,
+                    PartRef::item(Part::OVERFLOW, ItemKey::index(0)),
+                    cell,
+                );
+            }
         }
         let hidden_right = len.saturating_sub(first_index.saturating_add(fit));
         if hidden_right > 0 {
             let cell = Rect {
                 x: row0
                     .right()
+                    .saturating_sub(status_w)
                     .saturating_sub(new_w)
                     .saturating_sub(4)
                     .max(row0.x),
@@ -840,15 +921,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 GlyphRole::OverflowRight,
                 os.style,
             );
-            ui.register_part(
-                self.id,
-                PartRef::item(Part::OVERFLOW, ItemKey::index(1)),
-                cell,
-            );
+            if !ui.is_inert() {
+                ui.register_part(
+                    self.id,
+                    PartRef::item(Part::OVERFLOW, ItemKey::index(1)),
+                    cell,
+                );
+            }
         }
         if self.allow_new {
             let cell = Rect {
-                x: row0.right().saturating_sub(new_w).max(row0.x),
+                x: row0
+                    .right()
+                    .saturating_sub(status_w)
+                    .saturating_sub(new_w)
+                    .max(row0.x),
                 y: row0.y,
                 width: new_w.min(row0.width),
                 height: 1,
@@ -873,7 +960,39 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     ui.fill(inner, ns.style);
                 }
             }
-            ui.register_part(self.id, PartRef::of(Part::NEW), cell);
+            if !ui.is_inert() {
+                ui.register_part(self.id, PartRef::of(Part::NEW), cell);
+            }
+        }
+        if status_w > 0 {
+            let icon_cell = Rect {
+                x: row0.right().saturating_sub(status_w).max(row0.x),
+                y: row0.y,
+                width: 1.min(row0.width),
+                height: 1,
+            };
+            if let Some(slot) = ov.slot_for(Part::ICON) {
+                slot(ui, icon_cell);
+            } else {
+                let icon = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::ICON, live);
+                match self.status {
+                    Status::Busy | Status::Loading => {
+                        let frames = ui.design().motion.spinner_frames;
+                        let frame = frames.first().copied().unwrap_or("");
+                        ui.paint_str(icon_cell, frame, icon.style);
+                    }
+                    Status::Error => match icon.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(icon_cell, glyph, icon.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(icon_cell, GlyphRole::Error, icon.style);
+                        }
+                        Slot::Clear => ui.fill(icon_cell, icon.style),
+                    },
+                    Status::Ready => {}
+                }
+            }
         }
         ui.report_layout(self.id, LayoutFacts::new(fit, len, used.height, used.width));
         used
@@ -916,8 +1035,11 @@ impl<T, K, R> Bindings for Tabs<'_, T, K, R> {
 
 #[cfg(test)]
 mod tests {
+    use core::cell::Cell;
+
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
+    use ratatui_core::style::Modifier;
 
     use super::*;
     use crate::runtime::Runtime;
@@ -940,6 +1062,20 @@ mod tests {
             }
         }
         text
+    }
+
+    fn draw_status(status: Option<Status>) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = TabsState::default();
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            let mut tabs = Tabs::new(TABS);
+            if let Some(status) = status {
+                tabs = tabs.status(status);
+            }
+            tabs.draw(ui, area, &state, &["tab"]);
+        });
+        buffer
     }
 
     #[test]
@@ -978,13 +1114,96 @@ mod tests {
         let items = [LABEL];
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
         let mut buffer = Buffer::empty(AREA);
-        let state = TabsState::default();
+        let mut state = TabsState::default();
+        state.set_active(0, ItemKey::index(0));
         runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            Tabs::new(TABS)
-                .state_override(StateFlags::PRESSED.union(StateFlags::FOCUSED))
-                .draw(ui, area, &state, &items);
+            ui.reference(
+                Some(
+                    crate::ReferenceTarget::new(
+                        TABS,
+                        crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                    )
+                    .part(PartRef::item(Part::TAB, ItemKey::index(0))),
+                ),
+                |ui| Tabs::new(TABS).draw(ui, area, &state, &items),
+            );
         });
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
+    }
+
+    #[test]
+    fn readiness_lane_is_far_right_conditional_patchable_and_replaceable() {
+        assert!(Tabs::<&str>::PARTS.contains(&Part::ICON));
+        assert_eq!(draw_status(None), draw_status(Some(Status::Ready)));
+        let busy = draw_status(Some(Status::Busy));
+        let frame = Theme::junie()
+            .design
+            .motion
+            .spinner_frames
+            .first()
+            .copied()
+            .unwrap_or("");
+        assert_eq!(
+            busy.cell(Position::new(10, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(frame)
+        );
+
+        let patch = [(Part::ICON, StylePatch::new().add(Modifier::UNDERLINED))];
+        let state = TabsState::default();
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            Tabs::new(TABS)
+                .status(Status::Busy)
+                .patch_part(&patch)
+                .draw(ui, area, &state, &["tab"]);
+        });
+        assert!(
+            buffer
+                .cell(Position::new(10, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+        );
+
+        let seen = Cell::new(None);
+        let slot = |_ui: &mut Ui<'_>, area: Rect| seen.set(Some(area));
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            Tabs::new(TABS)
+                .status(Status::Error)
+                .slot(Part::ICON, &slot)
+                .draw(ui, area, &state, &["tab"]);
+        });
+        assert_eq!(seen.get(), Some(Rect::new(10, 0, 1, 1)));
+    }
+
+    #[test]
+    fn active_rule_comes_only_from_semantic_state() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let state = TabsState::default();
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            Tabs::new(TABS).draw(ui, area, &state, &["tab"]);
+        });
+        assert_eq!(
+            buffer
+                .cell(Position::new(0, 1))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::RuleQuiet))
+        );
+
+        let active = TabsState {
+            active: Some(ItemKey::index(0)),
+            ..TabsState::default()
+        };
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            Tabs::new(TABS).draw(ui, area, &active, &["tab"]);
+        });
+        assert_eq!(
+            buffer
+                .cell(Position::new(0, 1))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::RuleActive))
+        );
     }
 }

@@ -5,6 +5,7 @@ use core::fmt;
 use ratatui_core::layout::Rect;
 
 use super::{Overrides, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
+use crate::action::ActionKey;
 use crate::collection::Status;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -26,14 +27,16 @@ pub enum ButtonCmd {
 
 const BINDINGS: &[Binding<ButtonCmd>] = &[
     Binding {
-        chord: Chord::key(KeyCode::Enter),
+        action: ActionKey::custom("button.activate.enter"),
+        chord: Some(Chord::key(KeyCode::Enter)),
         cmd: ButtonCmd::Activate,
         label: "Activate",
         priority: 80,
         visible: true,
     },
     Binding {
-        chord: Chord::key(KeyCode::Char(' ')),
+        action: ActionKey::custom("button.activate.space"),
+        chord: Some(Chord::key(KeyCode::Char(' '))),
         cmd: ButtonCmd::Activate,
         label: "Activate",
         priority: 80,
@@ -56,7 +59,7 @@ const BINDINGS: &[Binding<ButtonCmd>] = &[
 /// `.variant(Variant)` (default `Recipe.default_variant`), `.disabled(bool)`
 /// (`false`), `.icon(GlyphRole)` (none), `.autofocus()` (off),
 /// `.status(Status)` (`Ready`), `.checked(bool)` (none; a toggle marker),
-/// `.patch`, `.patch_part`, `.slot`, `.state_override`.
+/// `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::BUTTON`: `PRIMARY`, `SECONDARY`, `SUBTLE`, `DANGER`, `TOGGLE`,
@@ -66,7 +69,7 @@ const BINDINGS: &[Binding<ButtonCmd>] = &[
 /// ## States
 /// Wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the runtime;
 /// derives `DISABLED` from `.disabled`, `BUSY`/`LOADING`/`ERROR` from
-/// `.status`, `CHECKED` from `.checked(true)`. A disabled button drops
+/// `.status`, `CHECKED | SELECTED` from `.checked(true)`. A disabled button drops
 /// `HOVERED` and `PRESSED`; a busy button drops `PRESSED`.
 ///
 /// ## Actions
@@ -90,28 +93,28 @@ const BINDINGS: &[Binding<ButtonCmd>] = &[
 ///
 /// ## Parts
 /// `CONTAINER` (the whole button), `GUTTER` (the focus bar column),
-/// `LABEL` (the text), `ICON` (the leading glyph), `MARKER` (the toggle
+/// `LABEL` (the text), `ICON` (the leading/readiness glyph), `MARKER` (the toggle
 /// knob).
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` on any part. `.slot` on exactly `GUTTER`,
 /// `ICON`, `MARKER` and `LABEL` — the four parts the button paints into a
 /// rect it reserves. `CONTAINER` is not slot-addressable: its fill *is* the
-/// button. The `ICON` slot replaces the busy spinner as well as `.icon(g)`,
+/// button. The `ICON` slot replaces the readiness symbol as well as `.icon(g)`,
 /// because one `Part` may not have two answers in one component (§45.4).
 ///
 /// ## Identity
 /// One `Id` per instance; no items.
 ///
 /// ## Testing
-/// `ButtonCase` with `ACTIVATES | DISABLEABLE | FOCUSABLE`;
+/// `ButtonCase` with `ACTIVATES | DISABLEABLE | FOCUSABLE | REPORTS_STATUS |
+/// SELECTS`;
 /// `render::components::button::{default, focused, hovered, pressed,
 /// disabled, selected, editing, empty}`.
 ///
 /// ## Invariants
 /// Keyboard and mouse activation produce the identical `Activated`; a
-/// disabled or busy button never activates; `state_override` renders a
-/// reference state and registers nothing.
+/// disabled or busy button never activates.
 pub struct Button<'a> {
     id: Id,
     label: &'a str,
@@ -196,7 +199,7 @@ impl<'a> Button<'a> {
         self
     }
 
-    /// Data readiness (`Busy` disables activation and paints a spinner).
+    /// Data readiness (`Busy` disables activation; non-ready states paint `ICON`).
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
@@ -231,28 +234,26 @@ impl<'a> Button<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render a forced state without
-    /// owning it. Such a button registers no control and no ring entry.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
-    /// Adopt an owning container's forced state (A11 composition, crate
-    /// internal): a `Dialog` drawn as a reference rendering must not leave
-    /// live action buttons behind it.
-    pub(crate) const fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
-        self.ov = self.ov.inherit_forced(s);
-        self
-    }
-
     const fn busy(&self) -> bool {
         matches!(self.status, Status::Busy | Status::Loading)
     }
 
     const fn can_activate(&self) -> bool {
         !self.disabled && !self.busy()
+    }
+
+    const fn with_inherited_disabled(&self, inherited: bool) -> Self {
+        Button {
+            id: self.id,
+            label: self.label,
+            variant: self.variant,
+            disabled: self.disabled || inherited,
+            icon: self.icon,
+            autofocus: self.autofocus,
+            status: self.status,
+            checked: self.checked,
+            ov: self.ov,
+        }
     }
 
     /// The update phase.
@@ -264,8 +265,8 @@ impl<'a> Button<'a> {
         let can = self.can_activate();
         for it in cx.intents(self.id) {
             match it {
-                Intent::Key(k) => {
-                    if can && Binding::lookup(BINDINGS, &k).is_some() {
+                Intent::Binding(action) => {
+                    if can && Binding::command(BINDINGS, action).is_some() {
                         r = Response::action(Activated);
                     }
                 }
@@ -280,21 +281,31 @@ impl<'a> Button<'a> {
         r.for_id(self.id)
     }
 
-    /// Columns the marker slot needs: the toggle knob or the busy spinner.
-    fn marker_width(&self) -> u16 {
-        if self.checked.is_some() || self.busy() {
+    pub(crate) fn update_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        inherited_disabled: bool,
+    ) -> Response<Activated> {
+        self.with_inherited_disabled(inherited_disabled).update(cx)
+    }
+
+    /// Columns the readiness lane needs: one symbol plus its gap.
+    const fn readiness_width(&self) -> u16 {
+        if self.icon.is_some() || !matches!(self.status, Status::Ready) {
             2
         } else {
             0
         }
     }
 
+    /// Columns the independent toggle marker needs.
+    fn marker_width(&self) -> u16 {
+        if self.checked.is_some() { 2 } else { 0 }
+    }
+
     /// The natural width: gutter, optional icon, optional marker, label, pad.
-    fn natural_width(&self, ui: &Ui<'_>) -> u16 {
-        let icon = self
-            .icon
-            .map_or(0, |g| width(ui.design().glyphs.get(g)).saturating_add(1));
-        1u16.saturating_add(icon)
+    fn natural_width(&self, _ui: &Ui<'_>) -> u16 {
+        1u16.saturating_add(self.readiness_width())
             .saturating_add(self.marker_width())
             .saturating_add(width(self.label))
             .saturating_add(1)
@@ -314,8 +325,7 @@ impl<'a> Button<'a> {
         if area.is_empty() {
             return area;
         }
-        let forced = self.ov.is_forced();
-        if !forced {
+        if !ui.is_inert() {
             let f = if self.disabled {
                 Focusability::Disabled
             } else {
@@ -331,14 +341,20 @@ impl<'a> Button<'a> {
             derived |= StateFlags::DISABLED;
         }
         if self.checked == Some(true) {
-            derived |= StateFlags::CHECKED;
+            derived |= StateFlags::CHECKED | StateFlags::SELECTED;
         }
-        let mut live = self.ov.flags(ui.state(self.id), derived);
+        let mut live = Overrides::flags(ui.state(self.id), derived);
+        if self.checked != Some(true) {
+            live = live.difference(StateFlags::SELECTED);
+        }
         if self.disabled {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
         if self.busy() {
             live = live.difference(StateFlags::PRESSED);
+        }
+        if !ui.is_inert() {
+            ui.publish_bindings(self.id, live, BINDINGS);
         }
         let ov = self.ov;
         let style = |ui: &mut Ui<'_>, part: Part| {
@@ -368,37 +384,40 @@ impl<'a> Button<'a> {
             width: area.width.saturating_sub(2),
             height: 1,
         };
-        if let Some(g) = self.icon {
-            let icon_cell = text;
-            if let Some(f) = ov.slot_for(Part::ICON) {
-                f(ui, icon_cell);
-                text = shift(text, 2);
-            } else {
-                let is = style(ui, Part::ICON);
-                let used = ui.glyph(icon_cell, g, is.style);
-                text = shift(text, used.saturating_add(1));
-            }
-        }
-        if self.busy() {
-            // `marker_width` reserves two columns for this cell whether the
-            // spinner or a slot fills it, so the slot substitutes without
-            // moving the label (§45.4: a slot is substitution, not
-            // suppression, and `Part::ICON` has one answer per component).
-            let spinner_cell = Rect {
+        if self.readiness_width() > 0 {
+            let icon_cell = Rect {
                 width: text.width.min(1),
                 ..text
             };
             if let Some(f) = ov.slot_for(Part::ICON) {
-                f(ui, spinner_cell);
-                text = shift(text, 2);
+                f(ui, icon_cell);
             } else {
                 let is = style(ui, Part::ICON);
-                let frames = ui.design().motion.spinner_frames;
-                let frame = frames.first().copied().unwrap_or("");
-                let used = ui.paint_str(text, frame, is.style);
-                text = shift(text, used.saturating_add(1));
+                match self.status {
+                    Status::Busy | Status::Loading => {
+                        let frames = ui.design().motion.spinner_frames;
+                        let frame = frames.first().copied().unwrap_or("");
+                        ui.paint_str(icon_cell, frame, is.style);
+                    }
+                    Status::Error => match is.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(icon_cell, glyph, is.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(icon_cell, GlyphRole::Error, is.style);
+                        }
+                        Slot::Clear => ui.fill(icon_cell, is.style),
+                    },
+                    Status::Ready => {
+                        if let Some(glyph) = self.icon {
+                            ui.glyph(icon_cell, glyph, is.style);
+                        }
+                    }
+                }
             }
-        } else if let Some(on) = self.checked {
+            text = shift(text, 2);
+        }
+        if let Some(on) = self.checked {
             let marker_cell = Rect {
                 width: text.width.min(1),
                 ..text
@@ -442,6 +461,16 @@ impl<'a> Button<'a> {
         area
     }
 
+    pub(crate) fn draw_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .draw(ui, area)
+    }
+
     /// The natural size: one row, the label plus its chrome.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(ui), 1).fit(c)
@@ -458,8 +487,11 @@ impl Bindings for Button<'_> {
 
 #[cfg(test)]
 mod tests {
+    use core::cell::Cell;
+
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
+    use ratatui_core::style::Modifier;
 
     use super::*;
     use crate::runtime::Runtime;
@@ -484,17 +516,95 @@ mod tests {
         text
     }
 
+    fn draw_status(status: Option<Status>) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            let mut button = Button::new(BUTTON, "Go");
+            if let Some(status) = status {
+                button = button.status(status);
+            }
+            button.draw(ui, area);
+        });
+        buffer
+    }
+
+    fn draw_checked(checked: bool) -> Buffer {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            Button::new(BUTTON, "Go").checked(checked).draw(ui, area);
+        });
+        buffer
+    }
+
+    #[test]
+    fn checked_painting_comes_only_from_the_controlled_prop() {
+        assert_ne!(draw_checked(true), draw_checked(false));
+    }
+
     #[test]
     fn mono_pressed_does_not_truncate_the_label() {
         const LABEL: &str = "Full width";
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            Button::new(BUTTON, LABEL)
-                .state_override(StateFlags::PRESSED.union(StateFlags::FOCUSED))
-                .draw(ui, area);
+            ui.reference(
+                Some(crate::ReferenceTarget::new(
+                    BUTTON,
+                    crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                )),
+                |ui| Button::new(BUTTON, LABEL).draw(ui, area),
+            );
         });
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
+    }
+
+    #[test]
+    fn readiness_owns_one_leading_lane_and_keeps_the_toggle_marker() {
+        assert!(Button::PARTS.contains(&Part::ICON));
+        assert_eq!(draw_status(None), draw_status(Some(Status::Ready)));
+        let error = draw_status(Some(Status::Error));
+        assert_eq!(
+            error
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::Error))
+        );
+        let theme = Theme::junie();
+        let seen = Cell::new(None);
+        let used = Cell::new(Rect::default());
+        let replacement = |_ui: &mut Ui<'_>, area: Rect| seen.set(Some(area));
+        let patch = [(Part::ICON, StylePatch::new().add(Modifier::UNDERLINED))];
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            used.set(
+                Button::new(BUTTON, "Go")
+                    .status(Status::Error)
+                    .checked(true)
+                    .patch_part(&patch)
+                    .slot(Part::ICON, &replacement)
+                    .draw(ui, area),
+            );
+        });
+
+        assert_eq!(seen.get(), Some(Rect::new(1, 0, 1, 1)));
+        assert_eq!(used.get().width, 8);
+        assert!(row_text(&buffer, AREA.width).contains("Go"));
+
+        let mut patched = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut patched, |ui, area| {
+            Button::new(BUTTON, "Go")
+                .status(Status::Busy)
+                .patch_part(&patch)
+                .draw(ui, area);
+        });
+        assert!(
+            patched
+                .cell(Position::new(1, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+        );
     }
 }

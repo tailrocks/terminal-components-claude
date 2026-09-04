@@ -12,6 +12,7 @@ use core::ops::Range;
 
 use ratatui_core::layout::Position;
 
+use crate::action::ActionKey;
 use crate::event::{Axis, Key, KeyModifiers};
 use crate::id::{Id, PartRef};
 use crate::layer::LayerEvent;
@@ -20,6 +21,8 @@ use crate::layer::LayerEvent;
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Intent<'f> {
+    /// A declared component action resolved through its effective chord.
+    Binding(ActionKey),
     /// A key press delivered to the focused owner.
     Key(Key),
     /// Pasted text delivered to the focused owner iff it declared `EDITING`.
@@ -69,6 +72,8 @@ pub enum Intent<'f> {
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
+    /// Pointer moved over the topmost live non-decorative part.
+    Move,
     /// Primary button down on the part.
     Press,
     /// Primary button up (anywhere, after a press on the owner).
@@ -102,8 +107,13 @@ pub enum FocusVia {
 }
 
 /// Owned form of an intent; `Paste` indexes the queue's arena.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 enum Stored {
+    Binding {
+        action: ActionKey,
+        chord: crate::event::Chord,
+        claimed: Cell<bool>,
+    },
     Key(Key),
     Paste(u32, u32),
     Pointer {
@@ -258,6 +268,17 @@ impl IntentQueue {
         self.push(owner, Stored::Key(k));
     }
 
+    pub(crate) fn binding(&mut self, owner: Id, action: ActionKey, chord: crate::event::Chord) {
+        self.push(
+            owner,
+            Stored::Binding {
+                action,
+                chord,
+                claimed: Cell::new(false),
+            },
+        );
+    }
+
     pub(crate) fn paste(&mut self, owner: Id, text: &str) {
         let start = self.arena.len() as u32;
         self.arena.push_str(text);
@@ -345,7 +366,8 @@ impl IntentQueue {
                 b.items.iter().any(|s| {
                     matches!(
                         s,
-                        Stored::Layer(_)
+                        Stored::Binding { .. }
+                            | Stored::Layer(_)
                             | Stored::Cancel
                             | Stored::FocusIn(_)
                             | Stored::FocusOut(_)
@@ -383,11 +405,33 @@ impl IntentQueue {
         }
     }
 
-    fn materialize(&self, s: Stored) -> Intent<'_> {
+    pub(crate) fn claim_binding_chord(
+        &self,
+        owner: Id,
+        chord: crate::event::Chord,
+    ) -> Option<ActionKey> {
+        let bucket = self.bucket_index(owner)?;
+        let bucket = self.live().get(bucket)?;
+        let claimed = bucket.items.iter().find_map(|stored| match stored {
+            Stored::Binding {
+                action,
+                chord: effective,
+                claimed,
+            } if *effective == chord && !claimed.replace(true) => Some(*action),
+            _ => None,
+        });
+        if claimed.is_some() {
+            bucket.drained.set(true);
+        }
+        claimed
+    }
+
+    fn materialize(&self, s: &Stored) -> Intent<'_> {
         match s {
-            Stored::Key(k) => Intent::Key(k),
+            Stored::Binding { action, .. } => Intent::Binding(*action),
+            Stored::Key(k) => Intent::Key(*k),
             Stored::Paste(a, b) => {
-                let range: Range<usize> = (a as usize)..(b as usize);
+                let range: Range<usize> = (*a as usize)..(*b as usize);
                 Intent::Paste(self.arena.get(range).unwrap_or(""))
             }
             Stored::Pointer {
@@ -397,11 +441,11 @@ impl IntentQueue {
                 local,
                 mods,
             } => Intent::Pointer {
-                phase,
-                part,
-                pos,
-                local,
-                mods,
+                phase: *phase,
+                part: *part,
+                pos: *pos,
+                local: *local,
+                mods: *mods,
             },
             Stored::Wheel {
                 axis,
@@ -409,14 +453,14 @@ impl IntentQueue {
                 part,
                 pos,
             } => Intent::Wheel {
-                axis,
-                delta,
-                part,
-                pos,
+                axis: *axis,
+                delta: *delta,
+                part: *part,
+                pos: *pos,
             },
-            Stored::FocusIn(via) => Intent::FocusIn { via },
-            Stored::FocusOut(to) => Intent::FocusOut { to },
-            Stored::Layer(ev) => Intent::Layer(ev),
+            Stored::FocusIn(via) => Intent::FocusIn { via: *via },
+            Stored::FocusOut(to) => Intent::FocusOut { to: *to },
+            Stored::Layer(ev) => Intent::Layer(*ev),
             Stored::Cancel => Intent::Cancel,
         }
     }
@@ -436,16 +480,21 @@ impl<'f> Iterator for IntentIter<'f> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let b = self.queue.live().get(self.bucket?)?;
-        let s = *b.items.get(self.pos)?;
-        self.pos = self.pos.wrapping_add(1);
-        Some(self.queue.materialize(s))
+        loop {
+            let s = b.items.get(self.pos)?;
+            self.pos = self.pos.wrapping_add(1);
+            if matches!(s, Stored::Binding { claimed, .. } if claimed.get()) {
+                continue;
+            }
+            return Some(self.queue.materialize(s));
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::event::KeyCode;
+    use crate::event::{Chord, KeyCode};
 
     #[test]
     fn paste_reaches_only_an_editing_owner() {
@@ -499,5 +548,37 @@ mod tests {
         assert_eq!(q.undrained().collect::<Vec<_>>(), vec![a]);
         let _ = q.iter(a);
         assert_eq!(q.undrained().count(), 0);
+    }
+
+    #[test]
+    fn binding_claim_marks_only_a_successful_exact_chord_and_preserves_order() {
+        let mut q = IntentQueue::new();
+        let owner = Id::root("claim");
+        let enter = Chord::key(KeyCode::Enter);
+        q.binding(owner, ActionKey::CONFIRM, enter);
+        q.key(
+            owner,
+            Key {
+                code: KeyCode::Char('x'),
+                mods: KeyModifiers::NONE,
+            },
+        );
+        assert_eq!(
+            q.claim_binding_chord(owner, Chord::key(KeyCode::Char(' '))),
+            None
+        );
+        assert!(!q.was_drained(owner));
+        assert_eq!(
+            q.claim_binding_chord(owner, enter),
+            Some(ActionKey::CONFIRM)
+        );
+        assert!(q.was_drained(owner));
+        assert_eq!(
+            q.iter(owner).collect::<Vec<_>>(),
+            vec![Intent::Key(Key {
+                code: KeyCode::Char('x'),
+                mods: KeyModifiers::NONE,
+            })]
+        );
     }
 }

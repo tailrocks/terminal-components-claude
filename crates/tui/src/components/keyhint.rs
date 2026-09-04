@@ -82,7 +82,7 @@ impl fmt::Write for ChordText {
 ///
 /// ## Configuration
 /// `.variant(Variant)` (default `Recipe.default_variant`), `.patch`,
-/// `.patch_part`, `.slot`, `.state_override`.
+/// `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::KEYHINT`; `DEFAULT` only. A theme may define more.
@@ -114,7 +114,15 @@ impl fmt::Write for ChordText {
 /// `KEY` (the chord), `ACTION` (the label).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part` and `.slot` on either part.
+/// `.patch` and `.patch_part` reach `Part::KEY` and `Part::ACTION`.
+/// `.slot(p, …)` changes painted cells for exactly `Part::KEY` and
+/// `Part::ACTION` — every part `KeyHint` declares, so nothing is excluded,
+/// and there is no `CONTAINER` to exclude because a hint paints no fill of
+/// its own and sits on whatever surface its owner laid down. `ACTION` is
+/// painted, and therefore slot-addressable, only when the label is
+/// non-empty and the clipped row still has columns after the chord and its
+/// separating space; a hint built with an empty label paints no `ACTION`
+/// cell for a slot to replace.
 ///
 /// ## Identity
 /// One `Id` per instance, used only to attribute style resolution and
@@ -122,7 +130,11 @@ impl fmt::Write for ChordText {
 ///
 /// ## Testing
 /// `KeyHintCase` with no capabilities;
-/// `render::components::key_hint::{default, disabled, empty}`.
+/// `render::components::key_hint::{default, disabled, empty}`;
+/// `keyhint::a_slot_changes_painted_cells_for_exactly_key_and_action`, which
+/// asserts Invariant R (§45.3) in both directions — a named part that stops
+/// changing cells and an unnamed part that starts changing them each fail
+/// it.
 ///
 /// ## Invariants
 /// Never allocates: the chord is rendered into a fixed stack buffer. Never
@@ -206,19 +218,6 @@ impl<'a> KeyHint<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render a forced state.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
-    /// Adopt an owning container's forced state (A11 composition).
-    pub(crate) const fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
-        self.ov = self.ov.inherit_forced(s);
-        self
-    }
-
     /// The columns this hint occupies: the chord, one space, the label.
     pub fn width(&self) -> u16 {
         let key = width(ChordText::of(self.chord).as_str());
@@ -239,7 +238,7 @@ impl<'a> KeyHint<'a> {
             return area;
         }
         // neither half: a key hint is static chrome
-        let live = self.ov.flags(StateFlags::empty(), StateFlags::empty());
+        let live = Overrides::flags(StateFlags::empty(), StateFlags::empty());
         let ov = self.ov;
         let key_text = ChordText::of(self.chord);
         let key_cell = Rect {
@@ -279,8 +278,88 @@ impl<'a> KeyHint<'a> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+
     use super::*;
     use crate::event::{KeyCode, KeyModifiers};
+    use crate::response::Response;
+    use crate::runtime::stub::SCREEN;
+    use crate::runtime::{App, Runtime};
+    use crate::theme::Theme;
+    use crate::ui::Cx;
+
+    const HINT: Id = Id::root("keyhint.tests");
+    const LABEL: &str = "Open";
+
+    /// Every part the slot sweep installs on, and whether `KeyHint` is
+    /// expected to honour it: the two parts it declares, then four it does
+    /// not, so the sweep can fail in either direction.
+    const SWEPT: &[(Part, bool)] = &[
+        (Part::KEY, true),
+        (Part::ACTION, true),
+        (Part::CONTAINER, false),
+        (Part::LABEL, false),
+        (Part::ICON, false),
+        (Part::MARKER, false),
+    ];
+
+    /// One hint, optionally with one part replaced.
+    struct SlotPage(Option<Part>);
+
+    impl App for SlotPage {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let replaced = |ui: &mut Ui<'_>, r: Rect| {
+                let s = ui.surface_style();
+                ui.paint_str(r, "########", s);
+            };
+            let mut h = KeyHint::new(HINT, Chord::key(KeyCode::Enter), LABEL);
+            if let Some(p) = self.0 {
+                h = h.slot(p, &replaced);
+            }
+            h.draw(ui, SCREEN);
+        }
+    }
+
+    /// The cells one draw paints, with `slot` installed or with none.
+    fn painted(slot: Option<Part>) -> Buffer {
+        let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        buf
+    }
+
+    /// Invariant R (§45.3): the parts the `## Overrides` section names as
+    /// slot-addressable are **exactly** the parts for which installing
+    /// `.slot(p, …)` changes the painted cells. Asserted in both
+    /// directions, so a dropped `slot_for` consult and a slot honoured
+    /// without being named each fail.
+    #[test]
+    fn a_slot_changes_painted_cells_for_exactly_key_and_action() {
+        let plain = painted(None);
+        for (p, honoured) in SWEPT {
+            let with = painted(Some(*p));
+            assert_eq!(
+                with != plain,
+                *honoured,
+                "`.slot({p:?}, …)` is documented as {}, but the painted cells {} the plain hint's",
+                if *honoured { "honoured" } else { "inert" },
+                if with == plain {
+                    "match"
+                } else {
+                    "differ from"
+                }
+            );
+        }
+        assert_eq!(
+            KeyHint::PARTS,
+            &[Part::KEY, Part::ACTION],
+            "the honoured set above is the whole of `PARTS`, so no declared part is excluded"
+        );
+    }
 
     #[test]
     fn chord_text_renders_without_allocating_and_clips_whole_fragments() {

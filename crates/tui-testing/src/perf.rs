@@ -294,6 +294,49 @@ fn write_baseline(path: &str, map: &BTreeMap<String, Entry>) {
     std::fs::write(path, s).expect("write perf baseline");
 }
 
+fn region_mismatch(name: &str, message: &str, release: bool) {
+    assert!(!release, "{name}: {message}");
+    println!("PERF-DEBUG-MISMATCH {name}: {message}");
+}
+
+fn check_regions(name: &str, s: &Stats, base: &Entry, release: bool) {
+    match (s.hits, base.hits) {
+        (Some(h), Some(bh)) => {
+            // `hit_registry_size_is_bounded`: ±10 % of the recorded size.
+            let lo = bh - bh / 10;
+            let hi = bh + bh / 10;
+            if h < lo || h > hi {
+                region_mismatch(
+                    name,
+                    &format!("hit registry size {h} outside baseline {bh} ±10 %"),
+                    release,
+                );
+            }
+        }
+        (None, None) => {}
+        (actual, expected) => region_mismatch(
+            name,
+            &format!("hit registry metric presence {actual:?} differs from baseline {expected:?}"),
+            release,
+        ),
+    }
+    match (s.ring, base.ring) {
+        (Some(ring), Some(expected)) if ring != expected => region_mismatch(
+            name,
+            &format!("reachable ring length {ring} differs from baseline {expected}"),
+            release,
+        ),
+        (Some(_), Some(_)) | (None, None) => {}
+        (actual, expected) => region_mismatch(
+            name,
+            &format!(
+                "reachable ring metric presence {actual:?} differs from baseline {expected:?}"
+            ),
+            release,
+        ),
+    }
+}
+
 /// One machine-readable line per benchmark, then the baseline policy against
 /// the default baseline file.
 pub fn report(name: &str, s: &Stats) {
@@ -344,16 +387,7 @@ pub fn report_to(path: &str, name: &str, s: &Stats) {
             s.allocs, base.allocs, s.bytes, base.bytes
         );
     }
-    if let (Some(h), Some(bh)) = (s.hits, base.hits) {
-        // `hit_registry_size_is_bounded`: ±10 % of the recorded size
-        let lo = bh - bh / 10;
-        let hi = bh + bh / 10;
-        if h < lo || h > hi {
-            let msg = format!("{name}: hit registry size {h} outside baseline {bh} ±10 %");
-            assert!(!release, "{msg}");
-            println!("PERF-DEBUG-MISMATCH {msg}");
-        }
-    }
+    check_regions(name, s, base, release);
     if s.ns > base.ns + base.ns / 5 {
         assert!(
             !(env_flag("PERF_STRICT") && release),
@@ -410,4 +444,51 @@ pub fn unicode_line(n: usize) -> String {
         s.push_str(PARTS[i % PARTS.len()]);
     }
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Entry, Stats, check_regions};
+
+    const BASE: Entry = Entry {
+        ns: 1,
+        allocs: 0,
+        bytes: 0,
+        hits: Some(100),
+        ring: Some(4),
+    };
+
+    const fn stats(hits: Option<usize>, ring: Option<usize>) -> Stats {
+        Stats {
+            ns: 1,
+            allocs: 0,
+            bytes: 0,
+            hits,
+            ring,
+        }
+    }
+
+    #[test]
+    fn region_metrics_accept_hit_tolerance_and_exact_ring() {
+        check_regions("screen", &stats(Some(90), Some(4)), &BASE, true);
+        check_regions("screen", &stats(Some(110), Some(4)), &BASE, true);
+    }
+
+    #[test]
+    #[should_panic(expected = "reachable ring length 3 differs from baseline 4")]
+    fn reachable_ring_mismatch_fails_in_release() {
+        check_regions("screen", &stats(Some(100), Some(3)), &BASE, true);
+    }
+
+    #[test]
+    #[should_panic(expected = "hit registry size 111 outside baseline 100 ±10 %")]
+    fn hit_registry_mismatch_still_fails_in_release() {
+        check_regions("screen", &stats(Some(111), Some(4)), &BASE, true);
+    }
+
+    #[test]
+    #[should_panic(expected = "reachable ring metric presence None differs from baseline Some(4)")]
+    fn missing_region_metric_fails_in_release() {
+        check_regions("screen", &stats(Some(100), None), &BASE, true);
+    }
 }

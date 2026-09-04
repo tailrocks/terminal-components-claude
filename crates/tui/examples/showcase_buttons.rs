@@ -3,10 +3,10 @@
 //!
 //! The legacy page is `src/bin/showcase/pages/buttons.rs`: nine buttons in
 //! four groups on a playground card, and a *reference* state matrix that the
-//! legacy code hand-styled cell by cell because a `Button` could not be told
-//! to render a state it does not own. `.state_override` (A11) is that
-//! affordance, so the matrix is now nine real buttons per row instead of a
-//! parallel painting path that could drift from the widget.
+//! legacy code hand-styled cell by cell because it lacked the central A11
+//! `Ui::reference` exact-target scope. The asserted matrix now draws nine real
+//! buttons per row instead of a parallel painting path that could drift from
+//! the widget.
 //!
 //! Crate name is temporary: `tui_next` → `junie_tui` at Slice 5.
 #![expect(
@@ -188,11 +188,9 @@ impl App for ButtonsPage {
 
         // ── the reference state matrix ──────────────────────────────────
         // §18.3 #4 replaces the legacy page's hand-styled matrix with nine
-        // real buttons per row under `.state_override` (A11). It is NOT here:
-        // `xtask boundary`'s `state_override_is_used_only_in_apps_and_fixtures`
-        // admits `.state_override` only under `apps/**`, `crates/tui/tests/**`
-        // and `crates/tui-testing/**`, and `apps/showcase` does not exist until
-        // Slice 5. The complete matrix lives — and is asserted — in
+        // real buttons per row under the central `Ui::reference` exact-target
+        // scope (A11). It is NOT here because `apps/showcase` does not exist
+        // until Slice 5. The complete matrix lives — and is asserted — in
         // `crates/tui/tests/showcase_buttons.rs`; it moves here (or rather,
         // this whole file moves to `apps/showcase`) at Slice 5. The page
         // therefore reserves **no** rows for it: an honest runnable page

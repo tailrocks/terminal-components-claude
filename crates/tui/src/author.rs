@@ -16,7 +16,7 @@ pub use crate::id::{Id, ItemKey, Part, PartRef};
 pub use crate::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 pub use crate::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use crate::response::{Activated, Flow, Invalidate, Response, StateFlags};
-pub use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
+pub use crate::ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 // registration services
 pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
@@ -29,9 +29,9 @@ pub use crate::scroll::ScrollState;
 // theme resolution
 pub use crate::theme::border;
 pub use crate::theme::{
-    Align, ColorLevel, Density, DesignTokens, Family, FgStep, GlyphRole, MeterRole, Modifier,
-    Overlay, OverlayRule, PartMetrics, Resolved, Role, Slot, StateRule, StylePatch, Surface,
-    SyntaxRole, Theme, Variant,
+    Align, ColorLevel, Density, DesignTokens, Family, FgStep, GlyphRole, MeterRole,
+    MeterThresholds, Modifier, Overlay, OverlayRule, PartMetrics, Resolved, Role, Slot, StateRule,
+    StylePatch, Surface, SyntaxRole, Theme, Variant,
 };
 // layout and measurement
 pub use crate::layout::{self, Insets, RowAlign, SplitModel, Track};
@@ -50,7 +50,8 @@ pub use crate::collection::{
 // bindings and hints
 pub use crate::action::{Action, ActionKey};
 pub use crate::keymap::{
-    Binding, BindingState, Bindings, Hint, HintLayer, KeyMap, KeyPhase, binding_conflicts,
+    Binding, BindingState, BindingTableId, Bindings, Hint, HintLayer, KeyMap, KeyPhase,
+    binding_conflicts,
 };
 // errors and diagnostics
 pub use crate::diagnostics::Diagnostic;

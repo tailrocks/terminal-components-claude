@@ -29,7 +29,7 @@ use crate::ui::{Cx, FrameRead, Ui};
 /// `.variant(Variant)` (default `Recipe.default_variant`), `.compact(bool)`
 /// (`false` — drops the one-cell fill padding for tight strips),
 /// `.tagline(&str)` (none), `.clickable(bool)` (`false`), `.patch`,
-/// `.patch_part`, `.slot`, `.state_override`.
+/// `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::BRAND`; `DEFAULT` only. The accent fill, the on-accent
@@ -70,23 +70,37 @@ use crate::ui::{Cx, FrameRead, Ui};
 /// `LABEL` (the filled lockup), `META` (the tagline beside it).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part` and `.slot` on both parts.
+/// `.patch` and `.patch_part` reach `Part::LABEL` and `Part::META`.
+/// `.slot(p, …)` changes painted cells for exactly `Part::LABEL` and
+/// `Part::META` — every part `Brand` declares, so nothing is excluded. In
+/// particular there is no `CONTAINER` to exclude: the accent fill is
+/// `LABEL`'s own painting rather than a surface behind it, so a `LABEL`
+/// slot replaces fill and mark together, and the lockup keeps its rect, its
+/// `ClickOnly` control and its `PartRef::of(Part::LABEL)` hit region across
+/// the substitution (§45.4). `META` is painted, and therefore
+/// slot-addressable, only when `.tagline(s)` carries a non-empty string and
+/// the row still has columns after the lockup and the gap; with no tagline
+/// the component paints no `META` cell for a slot to replace.
 ///
 /// ## Identity
 /// One `Id` per instance; no items.
 ///
 /// ## Testing
 /// `BrandCase` with no capabilities;
-/// `render::components::brand::{default, pressed, empty}`.
+/// `render::components::brand::{default, pressed, empty}`;
+/// `brand::a_slot_changes_painted_cells_for_exactly_label_and_meta`, which
+/// asserts Invariant R (§45.3) in both directions — a named part that stops
+/// changing cells and an unnamed part that starts changing them each fail
+/// it.
 ///
-/// `BrandCase` declares `Caps::empty()` and never sets `.clickable`, and no
-/// fixture in `crates/tui/tests` does either, so the whole clickable branch
-/// is covered by the unit tests in this module instead:
+/// `BrandCase` deliberately declares `Caps::empty()`: the conformance fixture
+/// is the non-interactive lockup, while the opt-in `ClickOnly` path is covered
+/// by the runtime-driven unit tests in this module:
 /// `only_a_clickable_lockup_registers_a_click_only_control_and_a_label_part`,
 /// `only_a_clickable_lockup_emits_activated_on_a_click` and
 /// `only_a_clickable_lockup_lifts_to_accent_hover_under_the_pointer`. Each
-/// asserts the plain lockup does **none** of it, so a lockup that became
-/// unconditionally clickable fails all three.
+/// asserts the plain lockup does **none** of it, so both the mouse-only path
+/// and the non-interactive default remain executable and pinned.
 ///
 /// ## Invariants
 /// The mono `PRESSED` bracket rule (§11.4) is honoured only when the lockup
@@ -187,14 +201,6 @@ impl<'a> Brand<'a> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render a forced state. Such a
-    /// lockup registers nothing.
-    #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
-        self
-    }
-
     /// The fill padding either side of the mark.
     const fn pad(&self) -> u16 {
         if self.compact { 0 } else { 1 }
@@ -246,17 +252,16 @@ impl<'a> Brand<'a> {
         if area.is_empty() {
             return area;
         }
-        let forced = self.ov.is_forced();
         let lockup = Rect {
             width: self.lockup_width().min(area.width),
             ..area
         };
-        if self.clickable && !forced {
+        if self.clickable && !ui.is_inert() {
             ui.register_control(self.id, lockup, Focusability::ClickOnly);
         }
         // runtime only, and only while clickable — an unclickable lockup
         // registers nothing, so the snapshot has nothing to say about it
-        let live = self.ov.flags(
+        let live = Overrides::flags(
             if self.clickable {
                 ui.state(self.id)
             } else {
@@ -286,7 +291,7 @@ impl<'a> Brand<'a> {
                 ui.paint_str(shift(lockup, pad), self.text, s.style);
             }
         }
-        if self.clickable && !forced {
+        if self.clickable && !ui.is_inert() {
             ui.register_part(self.id, crate::id::PartRef::of(Part::LABEL), lockup);
         }
         if let Some(t) = self.tagline.filter(|t| !t.is_empty()) {
@@ -479,6 +484,79 @@ mod tests {
             rt.app().pointer_frames,
             0,
             "and consumes no pointer intent at all"
+        );
+    }
+
+    /// The tagline the slot sweep needs, so `META` is a part that paints.
+    const TAGLINE: &str = "build 7";
+
+    /// Every part the slot sweep installs on, and whether `Brand` is
+    /// expected to honour it: the two parts it declares, then four it does
+    /// not, so the sweep can fail in either direction.
+    const SWEPT: &[(Part, bool)] = &[
+        (Part::LABEL, true),
+        (Part::META, true),
+        (Part::CONTAINER, false),
+        (Part::ICON, false),
+        (Part::MARKER, false),
+        (Part::GUTTER, false),
+    ];
+
+    /// A lockup with a tagline, optionally with one part replaced.
+    struct SlotPage(Option<Part>);
+
+    impl App for SlotPage {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let replaced = |ui: &mut Ui<'_>, r: Rect| {
+                let s = ui.surface_style();
+                ui.paint_str(r, "########", s);
+            };
+            let mut b = Brand::new(MARK, TEXT).tagline(TAGLINE);
+            if let Some(p) = self.0 {
+                b = b.slot(p, &replaced);
+            }
+            b.draw(ui, SCREEN);
+        }
+    }
+
+    /// The cells one draw paints, with `slot` installed or with none.
+    fn painted(slot: Option<Part>) -> Buffer {
+        let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        buf
+    }
+
+    /// Invariant R (§45.3): the parts the `## Overrides` section names as
+    /// slot-addressable are **exactly** the parts for which installing
+    /// `.slot(p, …)` changes the painted cells. Asserted in both
+    /// directions, so a dropped `slot_for` consult and a slot honoured
+    /// without being named each fail.
+    #[test]
+    fn a_slot_changes_painted_cells_for_exactly_label_and_meta() {
+        let plain = painted(None);
+        for (p, honoured) in SWEPT {
+            let with = painted(Some(*p));
+            assert_eq!(
+                with != plain,
+                *honoured,
+                "`.slot({p:?}, …)` is documented as {}, but the painted cells {} the plain lockup's",
+                if *honoured { "honoured" } else { "inert" },
+                if with == plain {
+                    "match"
+                } else {
+                    "differ from"
+                }
+            );
+        }
+        assert_eq!(
+            Brand::PARTS,
+            &[Part::LABEL, Part::META],
+            "the honoured set above is the whole of `PARTS`, so no declared part is excluded"
         );
     }
 

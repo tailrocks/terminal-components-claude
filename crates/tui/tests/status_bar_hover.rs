@@ -1,8 +1,9 @@
-//! Regression coverage for live and forced `StatusBar` hover state.
+//! Regression coverage for live and reference `StatusBar` hover state.
 
 use tui_next::{
-    App, Cx, Family, FrameRead, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, Response, Role,
-    StateFlags, StatusBar, StatusItem, StylePatch, Surface, Theme, Ui,
+    App, Cx, Family, FrameRead, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, ReferenceState,
+    ReferenceTarget, Response, Role, StateFlags, StatusBar, StatusItem, StylePatch, Surface, Theme,
+    Ui,
 };
 use tui_next_testing::Harness;
 
@@ -15,11 +16,18 @@ const ITEMS: [StatusItem<'static>; 3] = [
     StatusItem::new("beta").key(SECOND),
 ];
 
+#[derive(Clone, Copy, Default)]
+enum DrawMode {
+    #[default]
+    Live,
+    Reference(Option<ReferenceTarget>),
+}
+
 #[derive(Default)]
 struct StatusApp {
     hover_samples: [Option<PartRef>; 4],
     updates: usize,
-    forced: Option<StateFlags>,
+    draw_mode: DrawMode,
 }
 
 impl StatusApp {
@@ -40,11 +48,14 @@ impl App for StatusApp {
 
     fn draw(&self, ui: &mut Ui<'_>) {
         let area = ui.full();
-        let bar = match self.forced {
-            Some(flags) => Self::bar().state_override(flags),
-            None => Self::bar(),
-        };
-        bar.draw(ui, area);
+        match self.draw_mode {
+            DrawMode::Reference(target) => ui.reference(target, |ui| {
+                Self::bar().draw(ui, area);
+            }),
+            DrawMode::Live => {
+                Self::bar().draw(ui, area);
+            }
+        }
     }
 }
 
@@ -145,7 +156,7 @@ fn live_hover_ignores_unkeyed_labels_and_blank_space() {
 }
 
 #[test]
-fn forced_hover_reaches_keyed_and_unkeyed_labels_and_clears_stale_live_hover() {
+fn reference_hover_targets_one_keyed_label_and_clears_stale_live_hover() {
     let theme = hover_theme();
     let base_bg = theme.bg(Surface::Surface);
     let hover_bg = theme.bg(Surface::Elevated);
@@ -165,13 +176,15 @@ fn forced_hover_reaches_keyed_and_unkeyed_labels_and_clears_stale_live_hover() {
     assert_eq!(h.cell(plain_x, first_area.y).bg, base_bg);
     assert_eq!(h.cell(second_area.x, second_area.y).bg, hover_bg);
 
-    h.app_mut().forced = Some(StateFlags::HOVERED);
+    h.app_mut().draw_mode = DrawMode::Reference(Some(
+        ReferenceTarget::new(BAR, ReferenceState::HOVERED).part(first_part),
+    ));
     h.draw();
     assert_eq!(h.cell(first_area.x, first_area.y).bg, hover_bg);
-    assert_eq!(h.cell(plain_x, first_area.y).bg, hover_bg);
-    assert_eq!(h.cell(second_area.x, second_area.y).bg, hover_bg);
+    assert_eq!(h.cell(plain_x, first_area.y).bg, base_bg);
+    assert_eq!(h.cell(second_area.x, second_area.y).bg, base_bg);
 
-    h.app_mut().forced = Some(StateFlags::empty());
+    h.app_mut().draw_mode = DrawMode::Reference(None);
     h.draw();
     assert_eq!(h.cell(first_area.x, first_area.y).bg, base_bg);
     assert_eq!(h.cell(plain_x, first_area.y).bg, base_bg);
