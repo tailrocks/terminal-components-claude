@@ -206,6 +206,19 @@ mod architecture {
         check("reference_rendering_is_ui_scoped");
     }
 
+    /// §13 / §16.5 / §73. A component configured beyond `X::new(id, …)` is
+    /// built by one private constructor called from both phases, so a
+    /// configured construction keyed by a `const Id` occurs at most once per
+    /// module. The scope is every application module, every example, and —
+    /// §73 — every composite component, which builds child components across
+    /// both phases exactly like a screen. The check fails closed when it
+    /// observes nothing; `props_built_once_gate_reports_the_two_phase_construction`
+    /// in `xtask` is its red proof.
+    #[test]
+    fn props_are_built_once() {
+        check("props_are_built_once");
+    }
+
     /// §16.5 / §47.5. The multiset of workspace `bin` target names **equals**
     /// `{showcase, tablepro, jackin-preview}`. An equality over a multiset
     /// catches a rename and a duplicate; the duplicate is the one that makes

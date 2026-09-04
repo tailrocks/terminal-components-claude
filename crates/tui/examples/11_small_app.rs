@@ -32,6 +32,9 @@ fn add_button(name_empty: bool) -> Button<'static> {
         .variant(Variant::PRIMARY)
         .disabled(name_empty)
 }
+fn name_input() -> TextInput<'static> {
+    TextInput::new(NAME)
+}
 fn people_list()
 -> List<'static, String, impl Fn(&String) -> ItemKey, impl Fn(&String, &mut RowUi<'_>)> {
     List::new(PEOPLE)
@@ -56,7 +59,7 @@ impl App for Roster {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut r = Response::ignored();
 
-        r |= TextInput::new(NAME)
+        r |= name_input()
             .update(cx, &mut self.name_st, &mut self.name)
             .erase();
 
@@ -112,7 +115,7 @@ impl App for Roster {
             ui.design().space.gap,
         );
 
-        Field::new("Name", TextInput::new(NAME).value(&self.name)).draw(ui, top[0], &self.name_st);
+        Field::new("Name", name_input().value(&self.name)).draw(ui, top[0], &self.name_st);
         add_button(self.name.trim().is_empty()).draw(ui, top[1]);
         people_list().draw(ui, rows[2], &self.list, &self.people);
 

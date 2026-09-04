@@ -11,14 +11,15 @@
 # §16.5 was added to the scan by §47.4. Until then the section was not scanned at all,
 # so the absence of any §16.5 boundary check could not fail any gate — which is how
 # three missing `apps/` guards came to be found by a person reading the document
-# rather than by a check. The six names below are what that blind spot was hiding;
-# the three `apps/` guards it also hid now exist.
+# rather than by a check. The names below are what that blind spot was still hiding;
+# the three `apps/` guards it also hid now exist, and §73 built `props_are_built_once`,
+# scoped to `apps/**/src`, `crates/tui/examples/**` and `crates/tui/src/components/**` —
+# the composite components build child props across both phases exactly like a screen.
 
 # ── §16.5 architecture checks not yet built (§47.4) ──
 every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.5 records the rustdoc-json resolver as a Slice-8 upgrade
 no_generic_component_copies_in_applications  # Slice 5 — apps/**/src (first apps package)
 no_owns_or_locate_in_applications  # Slice 5 — apps/**/src; §16.5's row describes an `apps/allow/dispatch.txt` that no code reads: the live mechanism is forbidden-pattern rule 25
-props_are_built_once  # Slice 5 — apps/**/src + crates/tui/examples/**
 showcase_covers_every_public_component  # Slice 5 — apps/showcase page registry
 
 # ── Slices 5–7 application integration tests (`apps/**/tests`) ──

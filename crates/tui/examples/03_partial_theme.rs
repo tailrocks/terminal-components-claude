@@ -45,16 +45,22 @@ fn amber() -> Theme {
 /// A primary and a destructive button, so `main` shows both changed seeds.
 struct Demo;
 
+/// The single props constructor §13 requires
+/// (`architecture::props_are_built_once`). Both phases read the buttons from
+/// here, so a variant cannot be applied in one phase and forgotten in the
+/// other.
+fn actions() -> [Button<'static>; 2] {
+    [
+        Button::new(SAVE, "Save").variant(Variant::PRIMARY),
+        Button::new(DELETE, "Delete").variant(Variant::DANGER),
+    ]
+}
+
 impl App for Demo {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        Button::new(SAVE, "Save")
-            .variant(Variant::PRIMARY)
-            .update(cx)
-            .erase()
-            | Button::new(DELETE, "Delete")
-                .variant(Variant::DANGER)
-                .update(cx)
-                .erase()
+        actions()
+            .iter()
+            .fold(Response::ignored(), |r, b| r | b.update(cx).erase())
     }
     fn draw(&self, ui: &mut Ui<'_>) {
         let body = layout::inset(
@@ -67,11 +73,7 @@ impl App for Demo {
             },
         );
         let cols = layout::action_row(body, &[10, 10], ui.design().space.gap, RowAlign::Start);
-        let buttons = [
-            Button::new(SAVE, "Save").variant(Variant::PRIMARY),
-            Button::new(DELETE, "Delete").variant(Variant::DANGER),
-        ];
-        for (b, area) in buttons.into_iter().zip(cols) {
+        for (b, area) in actions().into_iter().zip(cols) {
             b.draw(ui, area);
         }
     }

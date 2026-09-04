@@ -37,13 +37,17 @@ fn confirm_dialog() -> Dialog<'static> {
         .body_rows(4) // props (2) + rule (1) + token field (1)
 }
 
+fn token_input() -> TextInput<'static> {
+    TextInput::new(TOKEN).placeholder("Type the table name to confirm")
+}
+
 impl Screen {
     fn open(&mut self, cx: &mut Cx<'_>) {
         cx.open_layer(CONFIRM, confirm_dialog().layer(cx));
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut r = TextInput::new(TOKEN)
+        let mut r = token_input()
             .update(cx, &mut self.token_st, &mut self.token)
             .erase();
 
@@ -96,9 +100,8 @@ impl Screen {
                 );
                 props.draw(ui, rows[0]);
                 ui.rule(rows[1]);
-                TextInput::new(TOKEN)
+                token_input()
                     .value(&self.token)
-                    .placeholder("Type the table name to confirm")
                     .draw(ui, rows[2], &self.token_st);
             });
         });

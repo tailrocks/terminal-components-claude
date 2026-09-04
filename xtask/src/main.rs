@@ -259,6 +259,7 @@ const CHECKS: &[Check] = &[
         "baseline_moves_are_classified",
         baseline_moves_are_classified,
     ),
+    ("props_are_built_once", props_are_built_once),
 ];
 
 fn boundary(only: Option<&str>) -> Result<(), String> {
@@ -1202,6 +1203,542 @@ fn examples_are_external_consumers() -> Result<(), String> {
     } else {
         Err(hits.join("\n"))
     }
+}
+
+/// §13 / §16.5 / §73. Where a configured construction may be built.
+///
+/// `apps/**/src` is the Slice-5 screen scope the rule was written for;
+/// `crates/tui/examples` is the same shape written by an external consumer;
+/// `crates/tui/src/components` is the composite-component scope §73 added,
+/// because a `Form`, a `Dialog` or a `Wizard` builds child components across
+/// both phases exactly like a screen does, and until §73 nothing looked at
+/// it. A root that does not exist yet contributes nothing; a root that exists
+/// and holds no Rust file is a failure, so this cannot go quiet by a move.
+const PROPS_ROOTS: [&str; 3] = ["apps", "crates/tui/examples", "crates/tui/src/components"];
+
+/// A chain method that ends configuration because it is a *phase* call: the
+/// receiver stops being the component from there on.
+fn is_phase_method(name: &str) -> bool {
+    matches!(name, "update" | "draw" | "measure" | "layer" | "erase")
+        || name.starts_with("update_")
+        || name.starts_with("draw_")
+}
+
+/// Whether `ident` is a `const` name — the `const Id` the rule keys on.
+/// A lower-case path is a local, a field or a call, and a dynamic id is not
+/// keyed by this rule at all.
+fn is_const_name(ident: &str) -> bool {
+    ident.len() > 1
+        && ident
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+        && ident.starts_with(|c: char| c.is_ascii_uppercase())
+}
+
+fn path_text(path: &syn::Path) -> String {
+    path.segments
+        .iter()
+        .map(|s| s.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::")
+}
+
+/// `Type::new(CONST_ID, …)` as `Type::new(CONST_ID)`, or `None` when the
+/// expression is not a component construction keyed by a `const Id`.
+///
+/// The const is the **first** const-named argument, not strictly the first
+/// argument: `FieldSpec::new(NAME, …)` leads with its id and
+/// `Field::new("Name", …)` leads with its label.
+fn ctor_const_key(expr: &syn::Expr) -> Option<String> {
+    let syn::Expr::Call(call) = expr else {
+        return None;
+    };
+    let syn::Expr::Path(func) = call.func.as_ref() else {
+        return None;
+    };
+    let mut segments = func.path.segments.iter().rev();
+    let last = segments.next()?;
+    if last.ident != "new" {
+        return None;
+    }
+    let ty = segments.next()?;
+    let name = ty.ident.to_string();
+    if !name.starts_with(|c: char| c.is_ascii_uppercase()) {
+        return None;
+    }
+    let id = call.args.iter().find_map(|a| match a {
+        syn::Expr::Path(p) => {
+            let text = path_text(&p.path);
+            let last = p.path.segments.last()?.ident.to_string();
+            is_const_name(&last).then_some(text)
+        }
+        _ => None,
+    })?;
+    Some(format!("{name}::new({id})"))
+}
+
+fn is_cfg_test(attrs: &[syn::Attribute]) -> bool {
+    attrs.iter().any(|a| {
+        a.path().is_ident("cfg")
+            && match &a.meta {
+                syn::Meta::List(l) => l.tokens.to_string().contains("test"),
+                syn::Meta::Path(_) | syn::Meta::NameValue(_) => false,
+            }
+    })
+}
+
+fn item_attrs(item: &syn::Item) -> &[syn::Attribute] {
+    match item {
+        syn::Item::Const(i) => &i.attrs,
+        syn::Item::Enum(i) => &i.attrs,
+        syn::Item::ExternCrate(i) => &i.attrs,
+        syn::Item::Fn(i) => &i.attrs,
+        syn::Item::ForeignMod(i) => &i.attrs,
+        syn::Item::Impl(i) => &i.attrs,
+        syn::Item::Macro(i) => &i.attrs,
+        syn::Item::Mod(i) => &i.attrs,
+        syn::Item::Static(i) => &i.attrs,
+        syn::Item::Struct(i) => &i.attrs,
+        syn::Item::Trait(i) => &i.attrs,
+        syn::Item::TraitAlias(i) => &i.attrs,
+        syn::Item::Type(i) => &i.attrs,
+        syn::Item::Union(i) => &i.attrs,
+        syn::Item::Use(i) => &i.attrs,
+        _ => &[],
+    }
+}
+
+/// A function discovered while scanning one source file.
+struct PropsFunction {
+    module: String,
+    name: String,
+    private: bool,
+    calls: Vec<String>,
+}
+
+/// One direct component construction. `configured` means a builder method
+/// occurs before the phase call (or the construction is a props-returning
+/// helper with no phase call in its own body).
+struct PropsConstruction {
+    key: String,
+    configured: bool,
+    function: Option<usize>,
+}
+
+/// Every configured construction and the call graph that reaches it (§13).
+#[derive(Default)]
+struct PropsScan {
+    file: String,
+    module: Vec<String>,
+    functions: Vec<PropsFunction>,
+    constructions: Vec<PropsConstruction>,
+    current_function: Vec<usize>,
+    app_impl_modules: BTreeSet<String>,
+}
+
+impl PropsScan {
+    fn module_path(&self, path: &str) -> String {
+        if self.module.is_empty() {
+            path.to_owned()
+        } else {
+            format!("{path}::{}", self.module.join("::"))
+        }
+    }
+
+    fn current_function(&self) -> Option<usize> {
+        self.current_function.last().copied()
+    }
+
+    fn add_function(&mut self, name: String, private: bool) -> usize {
+        let id = self.functions.len();
+        self.functions.push(PropsFunction {
+            module: self.module_path(&self.file),
+            name,
+            private,
+            calls: Vec::new(),
+        });
+        id
+    }
+
+    fn record_call(&mut self, name: &str) {
+        if let Some(function) = self.current_function()
+            && name != "new"
+        {
+            self.functions[function].calls.push(name.to_owned());
+        }
+    }
+
+    fn record_path_call(&mut self, path: &syn::Path) {
+        if let Some(name) = path.segments.last().map(|s| s.ident.to_string()) {
+            self.record_call(&name);
+        }
+    }
+
+    fn record_construction(&mut self, key: String, configured: bool) {
+        self.constructions.push(PropsConstruction {
+            key,
+            configured,
+            function: self.current_function(),
+        });
+    }
+
+    fn construction_module(&self, construction: &PropsConstruction) -> String {
+        construction
+            .function
+            .map(|f| self.functions[f].module.clone())
+            .unwrap_or_else(|| self.file.clone())
+    }
+
+    /// The chain's methods innermost-first, and the expression it is built on.
+    fn chain<'a>(expr: &'a syn::Expr, methods: &mut Vec<String>) -> &'a syn::Expr {
+        let mut node = expr;
+        while let syn::Expr::MethodCall(mc) = node {
+            methods.push(mc.method.to_string());
+            node = mc.receiver.as_ref();
+        }
+        methods.reverse();
+        node
+    }
+
+    /// Whether the chain configures the component: "configuration beyond
+    /// `new(id, …)`" (§13) is every builder call, and those come **before**
+    /// the phase call — after `update`/`draw` the receiver is a `Response`,
+    /// not the component.
+    fn is_configured(methods: &[String]) -> bool {
+        methods.first().is_some_and(|m| !is_phase_method(m))
+    }
+
+    /// Visit a method chain without visiting its base call as a second
+    /// construction. The base call's arguments still need a normal visit so
+    /// nested props (notably `FieldSpec::new(... TextInput::new(...))`) are
+    /// discovered.
+    fn visit_chain_children<'ast>(&mut self, expr: &'ast syn::Expr) {
+        match expr {
+            syn::Expr::MethodCall(mc) => {
+                for arg in &mc.args {
+                    syn::visit::Visit::visit_expr(self, arg);
+                }
+                self.visit_chain_children(mc.receiver.as_ref());
+            }
+            syn::Expr::Call(call) => {
+                for arg in &call.args {
+                    syn::visit::Visit::visit_expr(self, arg);
+                }
+            }
+            other => syn::visit::Visit::visit_expr(self, other),
+        }
+    }
+
+    fn resolve_calls(&self, caller: usize, name: &str) -> Vec<usize> {
+        let module = &self.functions[caller].module;
+        let mut scopes = Vec::new();
+        let mut scope = module.clone();
+        loop {
+            scopes.push(scope.clone());
+            let Some(at) = scope.rfind("::") else {
+                break;
+            };
+            scope.truncate(at);
+        }
+        for scope in scopes {
+            let found: Vec<_> = self
+                .functions
+                .iter()
+                .enumerate()
+                .filter(|(_, f)| f.module == scope && f.name == name)
+                .map(|(i, _)| i)
+                .collect();
+            if !found.is_empty() {
+                return found;
+            }
+        }
+        // Qualified calls and methods can cross a sibling module boundary;
+        // keep that fallback conservative by staying in this source file.
+        self.functions
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| f.module.starts_with(&format!("{}::", self.file)) && f.name == name)
+            .map(|(i, _)| i)
+            .collect()
+    }
+
+    fn reaches(&self, from: usize, target: usize, seen: &mut BTreeSet<usize>) -> bool {
+        if from == target {
+            return true;
+        }
+        if !seen.insert(from) {
+            return false;
+        }
+        for call in self.functions[from].calls.clone() {
+            for next in self.resolve_calls(from, &call) {
+                if self.reaches(next, target, seen) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn phase_roots(&self, module: &str, phase: &str) -> Vec<usize> {
+        self.functions
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| f.module == module && f.name == phase)
+            .map(|(i, _)| i)
+            .collect()
+    }
+
+    fn enforces_phases(&self, module: &str) -> bool {
+        if self.app_impl_modules.contains(module) {
+            return true;
+        }
+        !self.phase_roots(module, "update").is_empty()
+            && !self.phase_roots(module, "draw").is_empty()
+    }
+}
+
+impl<'ast> syn::visit::Visit<'ast> for PropsScan {
+    fn visit_item(&mut self, item: &'ast syn::Item) {
+        // a test builds the same configured props many times **on purpose**:
+        // that is the fixture, not the screen
+        if is_cfg_test(item_attrs(item)) {
+            return;
+        }
+        syn::visit::visit_item(self, item);
+    }
+
+    fn visit_item_mod(&mut self, item: &'ast syn::ItemMod) {
+        self.module.push(item.ident.to_string());
+        syn::visit::visit_item_mod(self, item);
+        self.module.pop();
+    }
+
+    fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
+        let function = self.add_function(
+            item.sig.ident.to_string(),
+            matches!(item.vis, syn::Visibility::Inherited),
+        );
+        self.current_function.push(function);
+        syn::visit::visit_item_fn(self, item);
+        self.current_function.pop();
+    }
+
+    fn visit_item_impl(&mut self, item: &'ast syn::ItemImpl) {
+        if item
+            .trait_
+            .as_ref()
+            .is_some_and(|(_, path, _)| path.segments.last().is_some_and(|s| s.ident == "App"))
+        {
+            self.app_impl_modules.insert(self.module_path(&self.file));
+        }
+        syn::visit::visit_item_impl(self, item);
+    }
+
+    fn visit_impl_item_fn(&mut self, item: &'ast syn::ImplItemFn) {
+        if is_cfg_test(&item.attrs) {
+            return;
+        }
+        let function = self.add_function(
+            item.sig.ident.to_string(),
+            matches!(item.vis, syn::Visibility::Inherited),
+        );
+        self.current_function.push(function);
+        syn::visit::visit_impl_item_fn(self, item);
+        self.current_function.pop();
+    }
+
+    fn visit_expr(&mut self, expr: &'ast syn::Expr) {
+        match expr {
+            syn::Expr::MethodCall(_) => {
+                let mut methods = Vec::new();
+                let base = Self::chain(expr, &mut methods);
+                if let Some(key) = ctor_const_key(base) {
+                    self.record_construction(key, Self::is_configured(&methods));
+                }
+                // Method names are enough for the intra-file call graph and
+                // also cover `self.props().draw(...)`, whose base is itself a
+                // method chain rather than a free-function call.
+                for method in &methods {
+                    self.record_call(method);
+                }
+                if let syn::Expr::Call(call) = base
+                    && let syn::Expr::Path(path) = call.func.as_ref()
+                {
+                    self.record_path_call(&path.path);
+                }
+                self.visit_chain_children(expr);
+            }
+            syn::Expr::Call(call) => {
+                if let Some(key) = ctor_const_key(expr) {
+                    self.record_construction(key, false);
+                }
+                if let syn::Expr::Path(path) = call.func.as_ref() {
+                    self.record_path_call(&path.path);
+                }
+                for arg in &call.args {
+                    self.visit_expr(arg);
+                }
+            }
+            _ => syn::visit::visit_expr(self, expr),
+        }
+    }
+}
+
+/// One file: how many configured keyed constructions it holds, and every §13
+/// violation among them — duplicate constructors, phase paths that do not
+/// reach the one private constructor, or same-ID hand-rolled construction.
+///
+/// The count is returned because a check that observes nothing must not pass
+/// (§47.4); it is not a diagnostic.
+fn props_built_once_scan(path: &str, source: &str) -> (usize, Vec<String>) {
+    let Ok(ast) = syn::parse_file(source) else {
+        return (0, vec![format!("{path}: does not parse")]);
+    };
+    let mut scan = PropsScan {
+        file: path.to_owned(),
+        ..PropsScan::default()
+    };
+    syn::visit::Visit::visit_file(&mut scan, &ast);
+    let observed = scan.constructions.iter().filter(|c| c.configured).count();
+    let mut grouped: BTreeMap<(String, String), Vec<usize>> = BTreeMap::new();
+    for (i, construction) in scan.constructions.iter().enumerate() {
+        grouped
+            .entry((
+                scan.construction_module(construction),
+                construction.key.clone(),
+            ))
+            .or_default()
+            .push(i);
+    }
+    let mut hits = Vec::new();
+    for ((module, key), indices) in grouped {
+        let configured: Vec<_> = indices
+            .iter()
+            .copied()
+            .filter(|i| scan.constructions[*i].configured)
+            .collect();
+        if configured.is_empty() {
+            continue;
+        }
+        if configured.len() > 1 {
+            hits.push(format!(
+                "{module}: {key} is configured {} times; build it once in a private constructor called from both phases (§13)",
+                configured.len()
+            ));
+            continue;
+        }
+        let ctor = configured[0];
+        let Some(owner) = scan.constructions[ctor].function else {
+            hits.push(format!(
+                "{module}: {key} is configured outside a private constructor; build it once in a private constructor called from both phases (§13)"
+            ));
+            continue;
+        };
+        if scan.enforces_phases(&module) && !scan.functions[owner].private {
+            hits.push(format!(
+                "{module}: {key}'s props constructor is public; make it private and call it from both phases (§13)"
+            ));
+        }
+        if scan.enforces_phases(&module) {
+            for phase in ["update", "draw"] {
+                let roots = scan.phase_roots(&scan.functions[owner].module, phase);
+                if roots.is_empty()
+                    || !roots
+                        .iter()
+                        .any(|root| scan.reaches(*root, owner, &mut BTreeSet::new()))
+                {
+                    hits.push(format!(
+                        "{module}: {key}'s props constructor is not transitively reached from {phase}; call the same private constructor from both phases (§13)"
+                    ));
+                }
+            }
+        }
+        if indices.iter().any(|i| *i != ctor) {
+            hits.push(format!(
+                "{module}: {key} is hand-rolled outside its single props constructor; route both phases through that constructor (§13)"
+            ));
+        }
+    }
+    (observed, hits)
+}
+
+/// The violations of [`props_built_once_scan`], for the red proof.
+#[cfg(test)]
+fn props_built_once_hits(path: &str, source: &str) -> Vec<String> {
+    props_built_once_scan(path, source).1
+}
+
+/// §13 / §16.5 / §73. Props are built once.
+///
+/// A component instance configured beyond `X::new(id, …)` is built by exactly
+/// one private constructor called from both phases, so a configured
+/// construction keyed by a `const Id` appears **at most once** per module.
+/// Two of them is the silent-bug class §13 exists to kill: a `disabled(…)`
+/// applied in `draw` and forgotten in `update`, which no compiler can see.
+///
+/// The check is **non-vacuous by construction**: it fails when an existing
+/// root holds no Rust file, and it fails when the whole scan observed no
+/// configured keyed construction at all — a check that can only pass by
+/// having nothing to look at is the §47.4 blind spot, not a guarantee.
+fn props_are_built_once() -> Result<(), String> {
+    let mut hits = Vec::new();
+    let mut observed = 0usize;
+    let mut scanned: Vec<(&str, usize)> = Vec::new();
+    for root_name in PROPS_ROOTS {
+        let dir = root().join(root_name);
+        if !dir.exists() {
+            continue;
+        }
+        let mut in_root = 0usize;
+        for file in rust_files(&dir) {
+            let path = rel(&file);
+            // `apps/**/src` only: an application's own tests are not screens
+            if root_name == "apps" && !path.contains("/src/") {
+                continue;
+            }
+            in_root = in_root.saturating_add(1);
+            let source = read(&file);
+            let (found, violations) = props_built_once_scan(&path, &source);
+            observed = observed.saturating_add(found);
+            hits.extend(violations);
+        }
+        scanned.push((root_name, in_root));
+    }
+    let files: usize = scanned.iter().map(|(_, n)| *n).sum();
+    hits.extend(props_vacuity_hits(&scanned, observed));
+    println!(
+        "props_are_built_once: {files} file(s) in {}, {observed} configured construction(s)",
+        scanned
+            .iter()
+            .map(|(r, n)| format!("{r} ({n})"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    if hits.is_empty() {
+        Ok(())
+    } else {
+        Err(hits.join("\n"))
+    }
+}
+
+/// Why the scan may not be trusted: an existing root that yielded no Rust
+/// file, or a whole scan that observed no configured keyed construction.
+///
+/// §47.4's blind spot is a check that passes because it was looking at
+/// nothing. A root moving away, a scope typo, or the scan silently ceasing to
+/// recognise a construction all end here rather than in a green `ok` line.
+fn props_vacuity_hits(scanned: &[(&str, usize)], observed: usize) -> Vec<String> {
+    let mut hits: Vec<String> = scanned
+        .iter()
+        .filter(|(_, n)| *n == 0)
+        .map(|(r, _)| format!("{r}: exists and holds no Rust file in scope"))
+        .collect();
+    if observed == 0 {
+        hits.push(
+            "no configured `X::new(CONST_ID)` construction was observed in any scanned root: the check would pass by looking at nothing".to_owned(),
+        );
+    }
+    hits
 }
 
 fn metadata() -> Result<cargo_metadata::Metadata, String> {
@@ -4648,6 +5185,183 @@ mod tests {
         assert_eq!(
             ui_reference_hits("crates/consumer/src/lib.rs", call).len(),
             1
+        );
+    }
+
+    // ── props are built once (§13, §16.5, §73) ──
+
+    /// A screen that builds the **same** configured `Button` in both phases:
+    /// the §13 defect written out. `draw` disables it, `update` does not, and
+    /// nothing but this check can see the disagreement.
+    const PROPS_BROKEN: &str = "\
+const SAVE: Id = id!(\"save\");
+
+impl App for Screen {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        Button::new(SAVE, \"Save\").variant(Variant::PRIMARY).update(cx).erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        Button::new(SAVE, \"Save\")
+            .variant(Variant::PRIMARY)
+            .disabled(true)
+            .draw(ui, ui.full());
+    }
+}
+";
+
+    /// The same screen with the one private constructor §13 requires.
+    const PROPS_FIXED: &str = "\
+const SAVE: Id = id!(\"save\");
+
+fn save_button(disabled: bool) -> Button<'static> {
+    Button::new(SAVE, \"Save\").variant(Variant::PRIMARY).disabled(disabled)
+}
+
+impl App for Screen {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        save_button(self.busy).update(cx).erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        save_button(self.busy).draw(ui, ui.full());
+    }
+}
+";
+
+    /// Draw reaches the canonical constructor through a helper, while update
+    /// hand-rolls the same ID. The unconfigured update call is intentional:
+    /// once draw has a configured constructor, this is still two phase shapes
+    /// for one component and must be rejected.
+    const PROPS_HAND_ROLLED: &str = "\
+const SAVE: Id = id!(\"save\");
+
+fn save_button() -> Button<'static> {
+    Button::new(SAVE, \"Save\").variant(Variant::PRIMARY)
+}
+
+impl App for Screen {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        Button::new(SAVE, \"Save\").update(cx).erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        save_button().draw(ui, ui.full());
+    }
+}
+";
+
+    /// Both phase roots reach the same constructor only through another
+    /// helper, proving that the check is interprocedural rather than a count
+    /// of direct calls in `App` methods.
+    const PROPS_TRANSITIVE: &str = "\
+const SAVE: Id = id!(\"save\");
+
+fn save_button() -> Button<'static> {
+    Button::new(SAVE, \"Save\").variant(Variant::PRIMARY)
+}
+fn update_button(cx: &mut Cx<'_>) { save_button().update(cx).erase(); }
+fn draw_button(ui: &mut Ui<'_>) { save_button().draw(ui, ui.full()); }
+
+impl App for Screen {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        update_button(cx)
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        draw_button(ui);
+    }
+}
+";
+
+    /// The red proof: the broken fixture is reported, the fixed one is not.
+    /// A check nobody has ever seen fail is a check nobody has tested.
+    #[test]
+    fn props_built_once_gate_reports_the_two_phase_construction() {
+        let hits = props_built_once_hits("apps/showcase/src/page.rs", PROPS_BROKEN);
+        assert_eq!(hits.len(), 1, "{hits:?}");
+        assert!(hits[0].contains("Button::new(SAVE)"), "{hits:?}");
+        assert!(hits[0].contains("configured 2 times"), "{hits:?}");
+        assert!(hits[0].contains("apps/showcase/src/page.rs"), "{hits:?}");
+
+        assert!(
+            props_built_once_hits("apps/showcase/src/page.rs", PROPS_FIXED).is_empty(),
+            "the single-constructor form is the shape §13 asks for"
+        );
+
+        let hand_rolled = props_built_once_hits("apps/showcase/src/page.rs", PROPS_HAND_ROLLED);
+        assert!(!hand_rolled.is_empty(), "{hand_rolled:?}");
+        assert!(
+            hand_rolled.iter().any(|hit| hit.contains("hand-rolled")),
+            "{hand_rolled:?}"
+        );
+        assert!(
+            props_built_once_hits("apps/showcase/src/page.rs", PROPS_TRANSITIVE).is_empty(),
+            "both phases may reach the one constructor through helpers"
+        );
+    }
+
+    /// The three shapes that are **not** the defect: an unconfigured
+    /// `X::new(ID)` (which §13 exempts by name), a phase call (`update` is
+    /// not configuration — the receiver after it is a `Response`), and a
+    /// dynamic id, which is not the `const Id` this rule keys on.
+    #[test]
+    fn props_built_once_gate_keys_on_configuration_and_const_ids() {
+        let unconfigured = "\
+fn update(cx: &mut Cx<'_>) { Button::new(SAVE, \"Save\").update(cx); }
+fn draw(ui: &mut Ui<'_>) { Button::new(SAVE, \"Save\").draw(ui, ui.full()); }
+";
+        assert!(props_built_once_hits("apps/a/src/s.rs", unconfigured).is_empty());
+
+        let dynamic = "\
+fn update(&self, cx: &mut Cx<'_>) { Button::new(self.id(), \"Save\").variant(V).update(cx); }
+fn draw(&self, ui: &mut Ui<'_>) { Button::new(self.id(), \"Save\").variant(V).draw(ui, ui.full()); }
+";
+        assert!(props_built_once_hits("apps/a/src/s.rs", dynamic).is_empty());
+    }
+
+    /// Two different modules of one file each build their own screen's props
+    /// once. Keying by file alone would report a violation that is not one.
+    #[test]
+    fn props_built_once_gate_keys_per_module() {
+        let two_screens = "\
+mod first {
+    fn button() -> Button<'static> { Button::new(SAVE, \"Save\").variant(V) }
+    fn update(cx: &mut Cx<'_>) { button().update(cx); }
+    fn draw(ui: &mut Ui<'_>) { button().draw(ui, ui.full()); }
+}
+mod second {
+    fn button() -> Button<'static> { Button::new(SAVE, \"Save\").variant(V) }
+    fn update(cx: &mut Cx<'_>) { button().update(cx); }
+    fn draw(ui: &mut Ui<'_>) { button().draw(ui, ui.full()); }
+}
+";
+        let hits = props_built_once_hits("apps/a/src/s.rs", two_screens);
+        assert!(hits.is_empty(), "{hits:?}");
+    }
+
+    /// A test module builds the same configured props many times on purpose —
+    /// that is the fixture, not the screen (MA-2's rule, applied here).
+    #[test]
+    fn props_built_once_gate_skips_test_items() {
+        let source = format!("#[cfg(test)]\nmod tests {{\n{PROPS_BROKEN}\n}}\n");
+        assert!(props_built_once_hits("apps/a/src/s.rs", &source).is_empty());
+    }
+
+    /// The fail-closed half: a scope that observed nothing cannot report `ok`.
+    #[test]
+    fn props_built_once_gate_fails_closed_on_an_empty_scan() {
+        assert!(props_vacuity_hits(&[("crates/tui/examples", 14)], 36).is_empty());
+
+        let no_files = props_vacuity_hits(&[("apps", 0), ("crates/tui/examples", 14)], 36);
+        assert_eq!(no_files.len(), 1, "{no_files:?}");
+        assert!(no_files[0].contains("apps"), "{no_files:?}");
+
+        let nothing_seen = props_vacuity_hits(&[("crates/tui/examples", 14)], 0);
+        assert_eq!(nothing_seen.len(), 1, "{nothing_seen:?}");
+        assert!(
+            nothing_seen[0].contains("looking at nothing"),
+            "{nothing_seen:?}"
         );
     }
 
