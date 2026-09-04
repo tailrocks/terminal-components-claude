@@ -223,3 +223,35 @@ own subject.
 `crates/tui/src/components/{status,hintbar}.rs` are held back from commit by Lane A until both
 resolve, because Lane A does not commit another lane's unfinished work and `hintbar.rs`
 additionally carries two `borrow_as_ptr` clippy errors that fail the §26 gate.
+
+## Incident 5 — Lane A's own coordinator committed a builder's in-progress file (2026-09-04)
+
+Commit `739754c`, whose message describes only an architecture-document change, also
+contains `crates/tui/src/components/select.rs` — a file a Lane A builder held and was
+mid-edit in. The commit message says nothing about it.
+
+**This is mine, not another lane's.** I staged and committed without checking `git status`
+first, and the consequence was real rather than cosmetic: `HEAD` briefly carried a
+`select.rs` whose `update` was 101 lines against a 100-line clippy limit, so the §26 clippy
+gate was red on the mainline for that window, from a commit that claims to touch only a
+markdown file.
+
+**Rule, binding on Lane A including me:** run `git status --short` immediately before every
+`git add`, name every path explicitly, and never rely on the index being clean. The commit
+message must account for every file in the diff — a commit whose message does not mention a
+source file it contains is unreviewable, and this repository has spent the session
+cataloguing exactly what unreviewable claims cost.
+
+## Incident 6 — a second agent wrote a duplicate test into a file another builder held
+
+While a Lane A builder held `crates/tui/src/components/select.rs`, another agent added a
+fixture struct and a test with the **same name** as the one that builder was writing. The
+build broke with `E0428: the name … is defined multiple times`.
+
+Nothing of substance was lost — the two tests asserted the same property — but as the
+builder put it, the timing was luckier than it deserved to be. The two edits happened to be
+separable; a different interleaving would have destroyed one of them silently.
+
+Together with Incidents 3 and 4 this is the third time an unannounced edit has landed in a
+held file. The lane contract exists so a race surfaces as a merge error rather than as lost
+work, and it only does that when both sides declare ownership first.
