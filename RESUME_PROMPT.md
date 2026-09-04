@@ -28,7 +28,11 @@ Continue the in-progress refactor in this repository. Do not restart from scratc
 
 The previous session ended because the Fable 5.1 monthly spend limit was reached — three `fable-builder` agents were terminated mid-task (HTTP 429). The goal treats an unavailable required model as a blocker. The user resolved it by directing that the work continue on Opus 5 only. The routing files are already updated; surface this deviation in the final report rather than treating it as unresolved.
 
-## Immediate state
+## Immediate state (session 2 ended at a token limit)
+
+The tree does **not** compile at HEAD. Three Slice-4 builders were killed mid-work and their partial output is committed as WIP; `cargo build -p tui-next --all-targets` fails with one `E0502`. The last fully green commit is `0f66160` (797 tests, exit 0). Start by reading `REFACTORING_STATE.md`'s "SESSION 2 INTERRUPTION" block, then `git diff 0f66160 -- crates/` to see what the three builders produced, and decide per file whether to finish or revert. Reverting an unfinished component and re-running its package is often faster than repairing a half-written file.
+
+## Earlier state
 
 - HEAD `69fcdca`, pushed to `origin/main`, worktree clean.
 - Slice 1 (baseline + six audits + 499 before-captures + TablePro/Jackin digests + perf baseline, tag `perf/baseline`) is complete.

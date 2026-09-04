@@ -4,8 +4,23 @@
 
 ## Status
 
-- Overall: **Slice 3 CLOSED and green** (797 tests, boundary + doc-check exit 0). **Slice 4 wave 1 open.**
-- Slice: 4 — component families, wave 1.
+- Overall: **Slice 3 CLOSED and green at commit 0f66160** (797 tests, boundary + doc-check exit 0). **Slice 4 wave 1 was interrupted mid-flight by a session token limit.**
+- Slice: 4 — component families, wave 1, PARTIAL.
+
+## !! SESSION 2 INTERRUPTION (token limit) — READ THIS FIRST !!
+
+Three subagents were killed mid-work. Their partial output is committed as WIP and **does not compile**:
+`cargo build -p tui-next --all-targets` fails with one `E0502` (borrow conflict) in the `tui-next` lib-test target.
+
+Last fully green commit: **`0f66160`** (`cargo test --all-targets` exit 0, 797 passed). Everything after it is WIP.
+
+**First action on resume:** `cargo build -p tui-next --all-targets`, read the `E0502`, and decide per-file whether to finish or revert. `git diff 0f66160 -- crates/` shows exactly what the three builders had produced. Reverting a single unfinished component to `0f66160` and re-running that package is a legitimate and often faster choice than repairing a half-written file.
+
+Interrupted packages and what each had produced:
+- `digest-race-fix` — owns `crates/tui-testing/src/{digest.rs,harness.rs}`. `digest.rs` modified. Task: replace the per-assertion whole-file read-modify-write with an accumulate-and-write-once or locked merge, so blessing is thread-count independent. Must prove byte-identical output at 1 and N threads, add a concurrency regression test, and move **no** baseline.
+- `4B` fields/inputs — owns `components/{field,input,textarea,select,choice,chip,secret,validate}.rs`, `examples/06`, own test/digest additions. New files present: `chip.rs`, `choice.rs`, `select.rs`, `textarea.rs`; `input.rs` modified.
+- `4G` status/hints/progress/meters — owns `components/{status,hintbar,progress,meter,empty,brand,keyhint}.rs`. New files present: `brand.rs`, `empty.rs`, `hintbar.rs`, `keyhint.rs`, `meter.rs`, `progress.rs`. `status.rs` **not yet written**.
+- Contended files `components/mod.rs` and `lib.rs` are modified and may reference modules that are absent or unfinished.
 
 ## Baseline
 

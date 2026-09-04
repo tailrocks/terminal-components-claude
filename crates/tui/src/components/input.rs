@@ -63,7 +63,13 @@ pub enum TextAction {
 }
 
 /// The const-constructible commands of the edit keymap (the legacy
-/// `field_common` table).
+/// `field_common::edit_key` table), shared by every text control.
+///
+/// [`Newline`](TextCmd::Newline), [`PageUp`](TextCmd::PageUp) and
+/// [`PageDown`](TextCmd::PageDown) belong to the multi-line flavour of the
+/// table ([`TextArea`](crate::TextArea)); a single-line
+/// [`TextInput`](crate::TextInput) never binds them, exactly as the legacy
+/// table selected its arms on a `multiline` flag.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TextCmd {
     /// Drop the draft (`Esc`).
@@ -84,6 +90,12 @@ pub enum TextCmd {
     DeleteToLineStart,
     /// Select everything.
     SelectAll,
+    /// Insert a newline (multi-line controls only).
+    Newline,
+    /// Move the cursor up one viewport (multi-line controls only).
+    PageUp,
+    /// Move the cursor down one viewport (multi-line controls only).
+    PageDown,
 }
 
 const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
@@ -719,7 +731,12 @@ impl<'a> TextInput<'a> {
                     TextCmd::DeleteToLineEnd => EditAction::DeleteToLineEnd,
                     TextCmd::DeleteToLineStart => EditAction::DeleteToLineStart,
                     TextCmd::SelectAll => EditAction::SelectAll,
-                    TextCmd::Cancel | TextCmd::Commit => EditAction::ClearSelection,
+                    // never bound by the single-line table above
+                    TextCmd::Newline
+                    | TextCmd::PageUp
+                    | TextCmd::PageDown
+                    | TextCmd::Cancel
+                    | TextCmd::Commit => EditAction::ClearSelection,
                 };
                 match st.apply(action) {
                     EditOutcome::Changed => {
@@ -948,7 +965,7 @@ impl Validate for Dyn<'_> {
 }
 
 /// Byte offset of display column `col` in `s` (the whole length past the end).
-fn byte_at_col(s: &str, col: usize) -> usize {
+pub(super) fn byte_at_col(s: &str, col: usize) -> usize {
     let mut w = 0usize;
     for (i, g) in graphemes(s) {
         if w >= col {
@@ -990,7 +1007,14 @@ impl FieldControl for TextInput<'_> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
+
     use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::theme::Theme;
+
+    const ID: Id = Id::root("input.tests");
 
     fn rule(s: &str) -> Result<(), FieldError> {
         if s.contains('@') {
@@ -998,6 +1022,62 @@ mod tests {
         } else {
             Err(FieldError::new("Enter a valid address"))
         }
+    }
+
+    /// §16.1: `begin` snapshots the controlled value into the draft, and the
+    /// value itself does not move until a commit.
+    #[test]
+    fn begin_snapshots_the_value() {
+        let mut st = TextInputState::default();
+        let value = "hello".to_owned();
+        st.begin(&value);
+        assert!(st.is_editing());
+        assert_eq!(st.phase(), EditPhase::Editing);
+        assert_eq!(st.draft.text(), "hello");
+        assert_eq!(st.apply(EditAction::Insert('!')), EditOutcome::Changed);
+        assert_eq!(st.draft.text(), "hello!");
+        assert_eq!(value, "hello", "the value moves only on commit");
+        // a second begin while editing keeps the draft
+        st.begin("other");
+        assert_eq!(st.draft.text(), "hello!");
+    }
+
+    /// §16.1: commit is the only writer of the controlled value.
+    #[test]
+    fn commit_writes_the_controlled_value() {
+        let mut st = TextInputState::default();
+        let mut value = "a".to_owned();
+        st.begin(&value);
+        let _ = st.apply(EditAction::Insert('@'));
+        assert!(st.commit(&mut value, &rule).is_ok());
+        assert_eq!(value, "a@");
+        assert!(!st.is_editing(), "commit ends the edit");
+        assert_eq!(st.draft.text(), "", "the draft is zeroized on commit");
+        // committing while idle leaves the value alone
+        assert!(st.commit(&mut value, &rule).is_ok());
+        assert_eq!(value, "a@");
+    }
+
+    /// §16.1: one commit runs the validator exactly once, over the value it
+    /// just wrote.
+    #[test]
+    fn commit_runs_validation_once() {
+        use core::cell::Cell;
+        let calls = Cell::new(0usize);
+        let seen = Cell::new(String::new());
+        let counting = |s: &str| {
+            calls.set(calls.get().saturating_add(1));
+            seen.set(s.to_owned());
+            rule(s)
+        };
+        let mut st = TextInputState::default();
+        let mut value = "a".to_owned();
+        st.begin(&value);
+        let _ = st.apply(EditAction::Insert('@'));
+        assert!(st.commit(&mut value, &counting).is_ok());
+        assert_eq!(calls.get(), 1);
+        assert_eq!(seen.take(), "a@", "the validator sees the committed value");
+        assert!(st.error().is_none());
     }
 
     #[test]
@@ -1018,28 +1098,119 @@ mod tests {
         assert!(!format!("{st:?}").contains("hello"));
     }
 
+    /// §16.1: the default policy writes the draft **and** validates it.
     #[test]
-    fn blur_policies() {
+    fn blur_commit_and_validate_policy() {
+        let mut value = "a".to_owned();
+        let mut st = TextInputState::default();
+        st.begin(&value);
+        let _ = st.apply(EditAction::Insert('@'));
+        assert!(
+            st.blur(&mut value, &rule, BlurPolicy::CommitAndValidate)
+                .is_ok()
+        );
+        assert_eq!(value, "a@");
+        assert!(st.error().is_none());
+        st.begin(&value);
+        let _ = st.apply(EditAction::Backspace);
+        assert!(
+            st.blur(&mut value, &rule, BlurPolicy::CommitAndValidate)
+                .is_err(),
+            "the value is written, then rejected"
+        );
+        assert_eq!(value, "a");
+        assert!(st.error().is_some());
+    }
+
+    /// §16.1: `Cancel` drops the draft and leaves the value untouched.
+    #[test]
+    fn blur_cancel_policy() {
+        let mut value = "a".to_owned();
+        let mut st = TextInputState::default();
+        st.begin(&value);
+        let _ = st.apply(EditAction::Insert('b'));
+        assert!(st.blur(&mut value, &rule, BlurPolicy::Cancel).is_ok());
+        assert_eq!(value, "a");
+        assert!(!st.is_editing());
+        assert_eq!(st.draft.text(), "");
+    }
+
+    /// §16.1: `Keep` leaves the edit in flight, so focus can return to it.
+    #[test]
+    fn blur_keep_policy_leaves_the_draft() {
         let mut value = "a".to_owned();
         let mut st = TextInputState::default();
         st.begin(&value);
         let _ = st.apply(EditAction::Insert('b'));
         assert!(st.blur(&mut value, &rule, BlurPolicy::Keep).is_ok());
-        assert!(st.is_editing());
-        assert!(st.blur(&mut value, &rule, BlurPolicy::Cancel).is_ok());
+        assert!(st.is_editing(), "the draft survives the blur");
+        assert_eq!(st.draft.text(), "ab");
         assert_eq!(value, "a");
-        st.begin(&value);
-        let _ = st.apply(EditAction::Insert('@'));
+        // and `Commit` afterwards writes exactly that draft
         assert!(st.blur(&mut value, &rule, BlurPolicy::Commit).is_ok());
-        assert_eq!(value, "a@");
-        st.begin(&value);
-        let _ = st.apply(EditAction::Backspace);
+        assert_eq!(value, "ab");
+    }
+
+    /// §16.1: an error set from outside (an async / server-side check) is
+    /// state, not a derived value, so redrawing never clears it.
+    #[test]
+    fn external_error_survives_a_redraw() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let mut st = TextInputState::default();
+        st.set_error(Some(FieldError::coded("Already taken", "dup")));
+        for _ in 0..3 {
+            rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+                TextInput::new(ID).value("ada").draw(ui, a, &st);
+            });
+        }
+        assert_eq!(st.error().map(|e| e.code), Some(Some("dup")));
+        st.set_error(None);
+        assert!(st.error().is_none());
+    }
+
+    /// §16.1 (P5): a masked field paints mask glyphs and a **synthetic**
+    /// tail derived from the fingerprint — never the real characters, and
+    /// never a `String` of them.
+    #[test]
+    fn write_mask_is_synthetic() {
+        const SECRET: &str = "hunter2";
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = TextInputState::default();
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            TextInput::new(ID)
+                .secret(SecretPolicy::default())
+                .value(SECRET)
+                .draw(ui, a, &st);
+        });
+        let mut row = String::new();
+        for x in 0..SCREEN.width {
+            if let Some(c) = buf.cell(Position::new(x, 0)) {
+                row.push_str(c.symbol());
+            }
+        }
+        assert!(!row.contains(SECRET), "the secret reached the buffer: {row}");
+        assert!(!row.contains('h') && !row.contains('u'), "{row}");
+        let mask = Theme::junie().design.glyphs.get(SecretPolicy::default().mask);
+        assert!(row.contains(mask), "no mask glyph in {row}");
+        // the tail is the fingerprint alphabet, and it is stable per secret
+        let tail: String = row
+            .trim_end()
+            .chars()
+            .rev()
+            .take(SecretPolicy::default().synthetic_tail)
+            .collect();
         assert!(
-            st.blur(&mut value, &rule, BlurPolicy::CommitAndValidate)
-                .is_err()
+            tail.chars().all(|c| c.is_ascii_alphanumeric()),
+            "tail {tail} is not synthetic"
         );
-        assert_eq!(value, "a");
+    }
+
+    #[test]
+    fn byte_offsets_follow_display_columns() {
         assert_eq!(byte_at_col("日本語", 2), 3);
         assert_eq!(byte_at_col("ab", 9), 2);
+        assert_eq!(byte_at_col("ab", 0), 0);
     }
 }

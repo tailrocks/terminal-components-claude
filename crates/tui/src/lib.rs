@@ -101,6 +101,13 @@ pub use components::{
     List, ListAction, ListCmd, ListState, Props, ScrollRegion, Tabs, TabsAction, TabsCmd,
     TabsState, TextAction, TextCmd, TextInput, TextInputState,
 };
+// components — work package 4B (fields, inputs, textarea, select, choice, chips),
+// appended as its own line so the shared list above is never rewritten
+pub use components::{
+    ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, Checkbox, ChoiceCmd, LabelChips, LabelRadio,
+    LabelSelect, RadioGroup, RadioGroupAction, RadioGroupState, Select, SelectAction, SelectCmd,
+    SelectState, TextArea, TextAreaState, Toggle,
+};
 // fields and secrets
 pub use field_control::FieldControl;
 pub use secret::{Secret, SecretPolicy};
