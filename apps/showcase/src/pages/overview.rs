@@ -6,12 +6,13 @@ use super::{Page, author::AuthorBadge, frame, lines};
 
 const BRAND: Id = id!("overview.brand");
 const AUTHOR: Id = id!("overview.author");
-const PROPS: [(&str, &str); 5] = [
+const PROPS: [(&str, &str); 6] = [
     ("Library", "tui-next"),
     ("Ownership", "application state"),
     ("Input", "runtime intents"),
     ("Rendering", "public Ui facade"),
     ("Binary", "showcase"),
+    ("Tokens", "surface · accent · focus"),
 ];
 
 /// The landing page has no mutable controls; its content is deliberately

@@ -257,13 +257,10 @@ impl Page for TablesPage {
                     ..body
                 };
                 table().draw(ui, table_area, &self.state, &self.model);
-                let row = self
-                    .state
-                    .cursor()
-                    .map_or_else(
-                        || "cursor=none".to_owned(),
-                        |(key, _)| format!("cursor={key:?}"),
-                    );
+                let row = self.state.cursor().map_or_else(
+                    || "cursor=none".to_owned(),
+                    |(key, _)| format!("cursor={key:?}"),
+                );
                 let summary = format!(
                     "{} · {} · {}",
                     self.last,

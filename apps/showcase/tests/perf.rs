@@ -5,6 +5,13 @@ use showcase_app::{App, PageId};
 use tui_next::{Axis, KeyCode, Theme};
 use tui_next_testing::Harness;
 
+fn require<T>(value: Option<T>, message: &str) -> T {
+    match value {
+        Some(value) => value,
+        None => panic!("{message}"),
+    }
+}
+
 fn app(page: PageId, width: u16, height: u16) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), width, height)
 }
@@ -83,7 +90,7 @@ fn mouse_move_showcase_frame() {
 #[test]
 fn wheel_showcase_lists() {
     let mut h = app(PageId::Lists, 80, 24);
-    let (x, y) = h.find("Rust").expect("language list starts in the frame");
+    let (x, y) = require(h.find("Rust"), "language list starts in the frame");
     let first = h.snapshot().digest();
     for _ in 0..1_000 {
         let _ = h.wheel(Axis::V, 2, x, y);
