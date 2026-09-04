@@ -23,15 +23,15 @@ pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
 pub use crate::hit::{Axes, Headroom, Hit, RegionKind};
 pub use crate::layer::{
     Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
-    LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
+    LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
 pub use crate::scroll::ScrollState;
 // theme resolution
 pub use crate::theme::border;
 pub use crate::theme::{
     Align, ColorLevel, Density, DesignTokens, Family, FgStep, GlyphRole, MeterRole, Modifier,
-    Overlay, OverlayRule, Resolved, Role, Slot, StateRule, StylePatch, Surface, SyntaxRole, Theme,
-    Variant,
+    Overlay, OverlayRule, PartMetrics, Resolved, Role, Slot, StateRule, StylePatch, Surface,
+    SyntaxRole, Theme, Variant,
 };
 // layout and measurement
 pub use crate::layout::{self, Insets, RowAlign, SplitModel, Track};
