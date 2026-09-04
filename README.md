@@ -30,7 +30,7 @@ the language hold up when a real tool is built from it?*
 ```sh
 cargo run --release                                  # the showcase (default binary)
 cargo run --release -- --page datagrid               # start on a page (overview, buttons, … codeeditor, datagrid, chipsselects, pickers)
-cargo run --release -- --color 256                   # force a colour level: truecolor|256|16|none
+cargo run --release -- --color 256                   # cap the colour level: truecolor|256|16|none
 
 cargo run --release --bin tablepro                   # the workbench, starting on the connections screen
 cargo run --release --bin tablepro -- --connect Production   # connect straight away
@@ -63,7 +63,9 @@ and render masked with a synthetic four-character tail.
 
 Requirements: Rust 1.88+, a terminal with mouse support. Truecolor is the
 primary target (`COLORTERM=truecolor`); 256/16-colour terminals get a mapped
-palette, `NO_COLOR` gives a monochrome fallback. Minimum size is 72×20; below
+palette, `NO_COLOR` gives a monochrome fallback. `--color` is a ceiling, not an
+override: it can lower the detected level but never raise it above what the
+terminal, `NO_COLOR`, a `dumb` terminal or redirected output allow. Minimum size is 72×20; below
 that a reduced state is shown until the terminal grows. The workbench shows
 the explorer beside the tabs from 100 columns up; below that it becomes a
 drawer that covers the tab body while it has focus (`0` opens it, opening an

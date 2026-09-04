@@ -97,7 +97,7 @@ impl fmt::Debug for FieldKind<'_> {
 pub struct FieldSpec<'a> {
     /// Control identity.
     pub id: Id,
-    /// Label painted by [`Field`].
+    /// Label painted by [`Field`](crate::components::Field).
     pub label: &'a str,
     /// Configured control.
     pub kind: FieldKind<'a>,

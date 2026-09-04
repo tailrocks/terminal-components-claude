@@ -4,6 +4,12 @@
 
 ## Status
 
+- **READ FIRST: the authoritative state is the last section of this file,
+  `Session 5 audit-landing checkpoint — AUTHORITATIVE (2026-09-05, HEAD 26913cc)`.** Every bullet
+  below it and every earlier checkpoint is historical evidence, retained unedited; where they
+  conflict, the last checkpoint governs. In particular the "until Slice 5 (single scripted rename)"
+  clause under adjudication J is superseded by §47.1, and the `a1759b2` visual **PASS** is
+  superseded by the **FAIL** recorded in the last checkpoint.
 - Overall: **Slice 3 CLOSED and green at commit 0f66160** (797 tests, boundary + doc-check exit 0). **Slice 4 wave 1 was interrupted mid-flight by a session token limit.**
 - Slice: 4 — component families, wave 1, PARTIAL.
 
@@ -1516,3 +1522,147 @@ implementation worker, because no implementation package is dispatched while the
 ### Blocker
 
 - None.
+
+
+## Session 5 audit-landing checkpoint — AUTHORITATIVE (2026-09-05, HEAD `26913cc`)
+
+This checkpoint supersedes the "Measured state", "Next action" and "Blocker" claims of the
+preceding `Session 5 continuation checkpoint — AUTHORITATIVE (2026-09-05, HEAD a1759b2)` section
+and of `Critical path — the remaining work, ordered (2026-09-04)`. Both are retained unedited as
+historical evidence; where they conflict with this checkpoint, this checkpoint governs.
+
+### Measured state at HEAD `26913cc`
+
+- HEAD is `26913cc` ("fix(tui): harden component runtime contracts"). `origin/main` resolves to
+  the **same** commit: **nothing is unpushed**. The two commits after `a1759b2` are `b0ad014`
+  ("fix(tui): enforce reachable focus targets") and `26913cc`.
+- `xtask bless-guard` **exists and is binding** — `xtask/src/main.rs`, the `bless-guard`
+  subcommand over the `baseline_moves_are_classified` check — and it **fails closed** with no base
+  revision (`f28a81e`). The claim in `docs/visual-changes.md` that it "is not implemented yet" was
+  stale and has been corrected in place; that is the only sentence replaced there.
+- `crates/tui/tests/baselines/components.txt` is **unchanged** since `a1759b2`. No bless has been
+  run. The 280 moved / 1,280 added accounting in `docs/visual-changes.md` is unchanged.
+
+### Independent visual review — FAIL
+
+- A fresh read-only `opus-analyst` visual reviewer, not the builder who generated the baselines,
+  reviewed the **640** Slice-4 review frames at this HEAD and returned **FAIL**.
+- This **supersedes the PASS** recorded against `a1759b2` in the preceding checkpoint. That PASS
+  line stays where it is as historical evidence and is not edited.
+- **No bless was performed and none is authorized.** Items 27, 30, 31 and every Slice-4
+  first-generation item remain unblessed. §72's closing sentence stands verbatim.
+- The itemised FAIL findings are **not yet recorded**. `docs/visual-changes.md` carries a
+  `Review status` section stating the result and stating that the findings must be attached, each
+  mapped to a numbered §20.10 item and classified, **before** any bless run.
+- **Slice 4 is therefore not closed.** Visual closure is not claimed by this checkpoint and may not
+  be claimed by any worker until the findings are recorded, adjudicated and the resulting
+  corrections land.
+
+### Accepted decisions recorded in this pass
+
+Recorded in `COMPONENT_ARCHITECTURE.md`, per the rule that every accepted decision lives there:
+
+- **§54 Addendum — the exact semantics §54 compressed.** §54's paragraph was a correct precis and
+  is retained unedited; the addendum makes each term exact and is binding wherever it is longer.
+  §54.1 `UpdateCause` = `Bootstrap | Event | Tick | Settle`, read only through `Cx::update_cause()`,
+  never on `FrameRead` or `Ui`; `Tick` on the first pass of a delivered timer event only, every
+  focus-settling rerun `Settle`. §54.2 exactly one `Bootstrap` update before the first draw or the
+  first externally handled event, advancing neither clock, carrying no intent, guaranteed by
+  `Runtime` so headless paths share the lifecycle. §54.3 `request_repaint_after` is the earliest
+  outstanding deadline, unrelated input neither erases nor postpones it, only the resulting
+  `Input::Tick` clears it, the session waits `min(deadline, poll)` and never substitutes
+  `design.motion.tick_ms`, and no deadline means no tick. §54.4 the tick delta is
+  `route.tick_ms(true)`; runtime `clock_ms`, wall time and `design.motion.tick_ms` are all three
+  forbidden as the `World::tick` argument; no `App::tick` hook. §54.5 `dim_layer(area, 0)` is
+  byte-identical, the four non-ladder roles step Muted → Faint → Ghost → erase, colour-equality
+  reverse lookup is rejected, and moved handoff digests are defect-fix changes. §54.6 the status
+  projection is inherent, pure **and fixed-buffer** — `StatusItem<'a>` borrows, so dynamic text is
+  written into app-owned fixed-size buffers on the `keyhint::ChordText` pattern rather than fresh
+  per-frame `String`s; no `Jx` cache, no seventh trait method, `StatusItem` unchanged. §54.7 the
+  cross-route `Msg` fan-out survives as two **inherent** calls `ManagerScreen::apply_msg` /
+  `AccountsScreen::apply_msg` from `App::update`, explicitly **not** a `Screen` trait method.
+  §54.8 fixes the exact acceptance test names for both halves.
+- **§74 — Slice 5 decisions D1, D2, D3.**
+  - **D1, colour ceiling.** All three root binaries discard `ColorLevel::detect()` and let
+    `--color` replace it, so a flag today defeats `TERM=dumb`, `NO_COLOR` and a non-terminal
+    stdout. Accepted: `--color` is a **ceiling** — the effective level is the weaker of detected
+    and requested under `Mono < Ansi16 < Ansi256 < TrueColor` — it may lower and never raise, an
+    over-request is clamped silently rather than erroring, `CLICOLOR_FORCE` stays the only way to
+    raise colour, and the ceiling is applied in `run` (§34), not in three hand-rolled parsers.
+    **One sub-question is deliberately left open for `opus-analyst`**: whether the required total
+    order over `ColorLevel` becomes public (`PartialOrd`/`Ord` on a `#[non_exhaustive]` public
+    enum) or stays a crate-private rank. Nothing else in D1 depends on it.
+  - **D2, capture-matrix obligation.** `xtask capture-matrix` is asserted in the present
+    indicative in four places and does not exist, while every Slice-4 first-generation key was
+    pinned on the promise that Slice 5 would review those components as pictures. Accepted:
+    `capture-matrix` **exists and passes before** any Slice 5 visual review or bless, drives
+    `tools/capture.sh` over the full size × theme × colour × app grid into `shots/`, and **fails
+    closed on a missing cell**. `tools/capture.sh` gains the `--theme` pass-through and loses its
+    legacy `BIN` default. No Slice 5 baseline may be blessed from a capture the matrix did not
+    produce.
+  - **D3, per-app baseline locations and two new ledger items.** Visual baselines land at
+    `apps/<app>/tests/baselines/<app>.txt` and perf baselines at
+    `apps/<app>/tests/perf_baseline.txt`, both created new; the frozen root `perf_baseline.txt`,
+    `tests/showcase_baseline.txt` and `baseline/before/**` are never touched and remain the
+    before-images. CI's perf-diff step, which names only the two existing files, is extended in the
+    same commit that creates the first per-app baseline. §47.6's sentence filing Slice-5 baseline
+    keys under **§20.10 item 19 is struck** — item 19 is scoped by its own text to the fourteen
+    named Slice-4 components and may not be cited twice for a key. **Item 32** owns
+    first-generation per-app **visual** keys, reviewed as frames against the matching
+    `baseline/before/**` capture, with any difference from an existing before-capture classified
+    rather than waved through. **Item 33** owns first-generation per-app **perf** rows, compared
+    against the frozen root rows, where a worse row is a regression and is not blessed.
+
+### Documentation corrections landed in this pass
+
+- `docs/visual-changes.md` step 4: the stale "`xtask bless-guard` … **is not implemented yet**"
+  claim replaced with the measured state, including its fail-closed behaviour. No other ledger
+  entry, key or classification was touched.
+- `Cargo.toml` and `crates/tui/Cargo.toml`: the comments said the `tui-next` → `junie-tui` rename
+  happens "at the start of Slice 5". That is the plan **§46.1 proved unresolvable and §47.1
+  struck**. Corrected to the accepted timing — the name is kept through Slices 5, 6 and 7 and
+  renamed in one scripted commit **between Slice 7 and Slice 8**. Comment text only; no manifest
+  key, dependency or target changed.
+- `README.md`: `--color` was documented as "force a colour level", which contradicts both the
+  documented `NO_COLOR` fallback in the same file and D1. Corrected to a ceiling.
+
+### Still owed — not recorded, and blocking
+
+1. **§73 — the disabled-pointer and props-constructor adjudication.** The decision text and its
+   acceptance conditions are **not in this repository** and were not reconstructible from it. The
+   pointer half turns on a question the code does not answer: a control registered
+   `Focusability::Disabled` still occupies its hit region and every component then subtracts
+   `HOVERED | PRESSED` locally after the fact (`components/button.rs`), so whether a disabled
+   control **absorbs** the pointer or lets it fall through to what is behind it is an open
+   architectural choice, not a detail. **`opus-analyst` must supply §73's verdict and acceptance
+   conditions verbatim before §73 is written.** §74 was numbered around this gap and does not
+   depend on it.
+2. **The Slice-4 public-API review findings.** Not recorded, for the same reason: the report is not
+   in the tree. Needed as an itemised list with each finding's accepted disposition.
+3. **The independent visual FAIL findings.** Needed itemised, each mapped to a numbered §20.10
+   item and classified, before any bless run.
+
+### Critical path — ordered, at `26913cc`
+
+1. **Record the three items above.** Every one of them is a missing *decision*, not missing code;
+   no builder may resolve any of them locally.
+2. **Adjudicate and fix the visual FAIL.** Corrections land, frames are re-reviewed independently,
+   and only then is a bless authorized. **Slice 4 does not close before this.**
+3. **§54.1–§54.5, the library half of the Jackin runtime contract.** Implementable now; §54.6 and
+   §54.7 are blocked on Slice 5 creating `apps/jackin-preview`.
+4. **D2's `xtask capture-matrix`, and the three `apps/` boundary guards of §47.5** — each
+   asserting an expected set is **present**, all of them **before** `apps/` exists, because a
+   guard that arrives after the tree could not have prevented what it exists to prevent.
+5. **D1's colour ceiling in `run`**, once its open ordering sub-question is answered.
+6. **Slice 5**, under §47's deferred-rename sequencing and Invariants S, S2, T and U, with D3's
+   baseline locations and items 32/33 in place before the first per-app baseline is written.
+7. **Slices 6 and 7**, then the post-Slice-7 rename commit, then Slice 8.
+
+The standard is unchanged and is what the FAIL demonstrates again: **a check that has never been
+observed failing is not evidence**, and a review that has been run once and passed does not retire
+the review.
+
+### Blocker
+
+- **Yes.** Slice 4 closure is blocked on the independent visual FAIL findings being recorded and
+  adjudicated. §73 is blocked on `opus-analyst` supplying its verdict and acceptance conditions.

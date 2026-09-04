@@ -12,8 +12,9 @@ license = "MIT"
 repository = "https://github.com/donbeave/terminal-components-claude"
 
 [workspace.dependencies]
-# `tui-next` is the TEMPORARY Slice 3-4 name of `crates/tui` (COMPONENT_ARCHITECTURE.md §21 item 31);
-# it is renamed to `junie-tui` / `junie_tui` in one scripted commit at the start of Slice 5.
+# `tui-next` is the TEMPORARY name of `crates/tui` (COMPONENT_ARCHITECTURE.md §21 item 31). It is
+# kept through Slices 5, 6 and 7 and renamed to `junie-tui` / `junie_tui` in one scripted commit
+# between Slice 7 and Slice 8 (§47.1); the earlier "start of Slice 5" plan is struck by §46.1.
 tui-next = { path = "crates/tui" }
 tui-next-testing = { path = "crates/tui-testing" }
 ratatui-core = { version = "0.1.2", default-features = false, features = ["std", "underline-color"] }

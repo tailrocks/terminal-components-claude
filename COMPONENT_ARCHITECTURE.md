@@ -7835,6 +7835,146 @@ and erase at the terminal step; mapping every non-ladder role directly to Muted 
 Acceptance covers first-frame 33 ms scheduling, exact deadline persistence/consumption,
 tick-vs-event separation, deterministic headless ticks, all 28 Jackin tests and 36 digests.
 
+## §54 Addendum — the exact semantics §54 compressed <!-- amended by §54 -->
+
+**Status: accepted. This addendum is binding wherever §54's summary above is shorter than it.**
+§54's paragraph is a correct precis and it is retained unedited; it is not precise enough to
+implement against, and three of its clauses have been read in more than one way. Binding input
+remains `docs/reviews/laneC-app-tick.md`. Nothing here reverses §54; it fixes each term.
+
+### §54.1 `UpdateCause` — four causes, one reader, one delivery rule <!-- amended by §54 -->
+
+`UpdateCause` has exactly `Bootstrap`, `Event`, `Tick` and `Settle`. It is read through
+`Cx::update_cause()` and **only** there. It is not on `FrameRead` and not on `Ui`: `Ui` has no
+update cause, and exposing one there would let draw branch on why the frame is running, which is
+the phase boundary §3 exists to hold.
+
+One delivered timer event presents `Tick` on the **first** `App::update` pass for that event and
+never again. Every focus-settling rerun of the same event presents `Settle`. This is the whole of
+the guarantee that one physical tick cannot advance a product clock twice; a component or app that
+counts `Tick` occurrences is counting timer deliveries, not update passes.
+
+### §54.2 Bootstrap is a `Runtime` guarantee, not a terminal-session courtesy <!-- amended by §54 -->
+
+The runtime performs **exactly one** `Bootstrap` update before the first draw or before the first
+externally handled event, whichever comes first. `Bootstrap` advances **neither** clock and carries
+**no** input intent.
+
+It lives in `Runtime` because an application cannot request its first repaint deadline from a pure
+`draw`, and because `Harness`, `draw_buffer` and every other headless path must observe the
+identical lifecycle. A bootstrap implemented inside the terminal session would give headless tests
+a different first frame from the shipped program, which is the defect class this decision removes.
+
+### §54.3 Deadlines are exact, persistent and earliest-wins <!-- amended by §54 -->
+
+`Cx::request_repaint_after(d)` establishes the **earliest outstanding** deadline. An unrelated key,
+mouse, paste or resize event must not erase it and must not postpone it. When the deadline expires
+the session delivers exactly one `Input::Tick`, and **only that delivery** clears the expired
+deadline.
+
+The session waits for the **minimum** of the outstanding deadline and its own input-poll
+requirement. It does not substitute `design.motion.tick_ms` for either. With no outstanding
+deadline, **no** tick is generated: idle time produces no unsolicited work. Headless tests drive
+the same path by passing `Input::Tick` explicitly and never consult wall time.
+
+### §54.4 The tick delta is the app's, never the library's <!-- amended by §54 -->
+
+On `UpdateCause::Tick`, and once per that cause, Jackin computes
+`let interval = route.tick_ms(true) as i64`, calls `world.tick(interval)`, advances rain, handoff,
+launch, jobs, modal loading and status expiry, then requests the next deadline from the active
+producers. `Route::tick_ms` stays authoritative — 33 ms for Intro/Outro/Handoff/Cockpit, 80 ms for
+Capsule, 80/200 ms elsewhere under the existing animation rule — and `--motion paused` continues to
+freeze the product clock.
+
+Runtime `clock_ms`, wall-clock elapsed time and `design.motion.tick_ms` are **all three** forbidden
+as the argument to `World::tick`. No `App::tick` hook is added; `App` keeps its accepted method set.
+
+### §54.5 `dim_layer` is monotonic, total, and erases <!-- amended by §54 -->
+
+`Ui::dim_layer(area, 0)` is **byte-for-byte identical** to not calling it. For the four non-ladder
+foreground roles `Success`, `Warning`, `Danger` and `Info`: one step is `Fg(Muted)`, two is
+`Fg(Faint)`, three is `Fg(Ghost)`, and four or more **erases the glyph into the resolved backdrop
+background**. Ladder roles keep their existing saturating semantic step-down; background handling
+stays role-based.
+
+The rule lives in `Ui::dim_layer` and never in Jackin. **Colour-equality reverse lookup is
+rejected outright**: Junie already has role collisions and every reduced colour level creates more,
+so identity of two resolved colours is not evidence that two roles are the same role. The present
+implementation satisfies none of this — it maps every non-ladder role to `Fg(Muted)` at every step
+including zero and never erases — so "adopt `rain.rs:133-139`" is not a sufficient instruction and
+is not the accepted one. The corrected cross-fade moves handoff digests; each moved key is a
+**defect-fix** visual change, captured and classified before any bless.
+
+### §54.6 The status projection is pure **and fixed-buffer** <!-- amended by §54 -->
+
+`Screen::strip_right` is removed without adding a seventh `Screen` trait method: each applicable
+screen gets an **inherent, pure, draw-time** projection producing `StatusItem` values, and the
+Jackin shell dispatches to it by route while composing the host `StatusBar`.
+
+Two properties are separately binding, and the second is the half §54's summary omitted:
+
+- **Purity.** The projection must not mutate screen, world, runtime or component state, and it must
+  not be cached in `Jx` or populated as an update side effect. A cache would make a pure repaint
+  display the previous update's snapshot and would oblige every mutation — cross-route message
+  delivery included — to remember to invalidate it.
+- **Fixed buffer.** `StatusItem<'a>` borrows `&'a str`, and the strip is redrawn every frame, so a
+  projection that formats into fresh `String`s allocates once per item per frame. That is refused
+  under the same rule that produced `keyhint::ChordText`: dynamic item text is written into
+  **app-owned fixed-size byte buffers** whose lifetime spans the composing scope, exactly as
+  `ChordText` does for chords, and the items borrow from those buffers. Leaking strings, caching in
+  `Jx`, or widening `StatusItem` to own application text all remain rejected. `StatusItem` is not
+  changed by this decision.
+
+The projection preserves every current fact, priority, tone and action key: Manager busy work;
+Settings and Editor saving/change/status facts; Cockpit stage count; Accounts refresh count;
+Capsule instance count; and the host Usage, Accounts, Settings and Help actions. Tone maps to a
+semantic `Role`, priority is copied exactly, and clickable strip ids become stable `ItemKey`s.
+`HintLayer` is **not** widened: a hint is an available action, while these are product status and
+navigation chrome.
+
+### §54.7 Cross-route message fan-out survives as two inherent calls <!-- amended by §54 -->
+
+`App::dispatch_msg` today offers an unconsumed `Msg` to `manager` and `accounts` even when neither
+is the active route, and a refresh started on Accounts must still complete after navigating away.
+§3.4 says messages are drained by the app before screen `update` runs, but it does not say how a
+non-active screen receives one.
+
+**Accepted: the fan-out survives as two inherent calls** — `ManagerScreen::apply_msg` and
+`AccountsScreen::apply_msg` — invoked explicitly from `App::update`. It is **not** a `Screen` trait
+method; the six-method trait stays six methods. This is recorded here precisely so a later reader
+does not "correct" the inherent calls into a seventh trait method, which would put domain message
+routing back into the library-facing trait and reintroduce the fan-out §54.6 refuses to cache
+around.
+
+### §54.8 Acceptance <!-- amended by §54 -->
+
+The library half is bound by exactly these tests:
+
+- `runtime::bootstrap_runs_once_before_first_draw_without_a_tick`
+- `runtime::tick_cause_is_delivered_once_when_focus_settles`
+- `runtime::repaint_deadline_survives_unrelated_input_and_keeps_the_earliest`
+- `runtime::headless_tick_uses_the_same_update_cause_without_wall_clock`
+- `ui::dim_layer_zero_steps_is_byte_identical`
+- `ui::dim_layer_semantic_roles_step_monotonically_and_erase`
+
+The application half is bound, after the crate move, by exactly these:
+
+- `jackin::status_projection_is_pure_and_preserves_priority_tone_and_key`
+- `jackin::status_projection_allocates_zero_per_frame`
+- `jackin::pure_repaint_never_reuses_stale_status_items`
+- `jackin::route_tick_ms_is_the_only_world_tick_delta`
+- `jackin::one_runtime_tick_advances_the_route_once`
+- `jackin::cross_route_msg_fanout_reaches_an_inactive_screen`
+- `jackin::handoff_fade_is_monotonic_under_every_colour_level`
+
+`reduced_motion_and_paused_frames_are_deterministic`, the frame-282 byte-identity assertion, the
+rain timeline tests, the approximately forty `ticks(n)` call sites, the fixture timestamps, the
+Cockpit failure/running frames and the outro caption all remain mandatory regression evidence. The
+36 digest keys are retained at their three responsive widths. §54.5 adds handoff frames under Junie
+and Paper at truecolor and mono. **No blocker is lifted by this addendum**: the library halves
+(§54.1–§54.5) are implementable now; §54.6 and §54.7 remain blocked on Slice 5 creating
+`apps/jackin-preview`.
+
 ## §55 Adjudication — closure-bearing containers traverse exactly once <!-- amended by §55 -->
 
 **Status: accepted.** §5 R1 remains binding for Panel and Dialog. Their exact public signatures
@@ -8236,3 +8376,142 @@ Item 31 authorizes only root-class corrections measured from the fresh discarded
 other accepted items own the remaining 75 movements and 1,280 first-generation additions.
 Independent frame review and separate bless authorization remain required. No retained baseline
 change is authorized by this records migration.
+
+
+## 74. Slice 5 decisions D1, D2, D3 — accepted
+
+**Status: accepted. Binding on Slice 5 and on every slice that adds an `apps/*` package.** These
+three decisions come out of the read-only Slice 5 audit. They sit on top of §46 and §47 and change
+none of §47's verdict or invariants; D3 corrects one citation inside §47.6. Section 73 records the
+separate Slice-4 disabled-pointer and props-constructor adjudication and is not a dependency of
+anything here.
+
+### 74.1 D1 — `--color` is a ceiling, never a floor
+
+**The defect.** All three root binaries parse `--color` the same way, and all three are wrong in the
+same way. `parse_args` seeds `let mut level = ColorLevel::detect();` and then, on `--color`,
+**replaces** it with the requested level (`src/bin/showcase/main.rs:21-36`,
+`src/bin/tablepro/main.rs:34-45`, `src/bin/jackin_preview/main.rs:44-55`). The detected value is
+discarded, not consulted.
+
+`ColorLevel::from_env`'s documented precedence exists precisely to encode facts a command line does
+not get to overrule: `TERM=dumb` is `Mono` because *the device cannot render SGR at all* and
+outranks even `CLICOLOR_FORCE`; a non-empty `NO_COLOR` is `Mono` per no-color.org; a
+non-terminal stdout is `Mono` so redirected output carries no escape sequences. Today
+`--color truecolor` defeats all three. A user piping a shipped binary into a file, with
+`--color truecolor` in a script, gets 24-bit escapes in the file.
+
+**Accepted.** The flag is a **ceiling**: the effective level is the **weaker** of the detected level
+and the requested level, under the capability order `Mono < Ansi16 < Ansi256 < TrueColor`. It may
+lower the level and it may never raise it. Requesting more than the terminal can paint is **clamped
+silently, not an error**, because the capture matrix and CI pass the same flag across terminals of
+different capability and a hard error there would make the matrix un-runnable on the weakest one.
+
+`CLICOLOR_FORCE` remains the only way to raise colour, and it remains inside `from_env`, where it is
+already subordinate to `TERM=dumb`. The ceiling is applied where the level is decided — in `run`,
+per §34 — and not repeated in three hand-rolled `parse_args` functions; the per-binary parsers stop
+computing a level at all and pass the request through.
+
+**Consequence for the capture matrix.** `tools/capture.sh`'s `mono` arm deliberately sets
+`NO_COLOR=1` while leaving `COLORTERM=truecolor` set, so that a mono capture *proves* `NO_COLOR`
+outranks `COLORTERM` (§40). Under the present override that proof is destroyed the moment `ARGS`
+carries a `--color`, because the flag wins over the environment. Under the ceiling it cannot be.
+
+**Acceptance.**
+
+- `run::color_flag_lowers_the_detected_level`
+- `run::color_flag_never_raises_above_the_detected_level` — over the full 4 × 4 matrix of
+  (detected, requested), asserting the effective level equals the weaker of the two.
+- `run::no_color_outranks_a_truecolor_flag`
+- `run::a_dumb_terminal_outranks_every_flag`
+- `run::redirected_output_stays_mono_under_a_colour_flag`
+
+**Open sub-question, for `opus-analyst` and not for the implementer.** The ceiling needs a total
+order over `ColorLevel`. Whether that order becomes **public** (deriving `PartialOrd`/`Ord` on a
+`#[non_exhaustive]` public enum, which then permanently promises that ordering and invites callers
+to treat colour levels as a lattice) or stays a **crate-private rank function** is a public-API
+question. It is deliberately left undecided here; nothing else in D1 depends on the answer.
+
+### 74.2 D2 — `xtask capture-matrix` must exist before Slice 5's visual review
+
+**The defect.** `xtask capture-matrix` is asserted in the present indicative in four places and does
+not exist: §20.10 item 1's review mechanism, step 2 of `docs/visual-changes.md`, §20.10 item 19
+point (4) — *"the first review of these components as pictures is the Slice-5 capture matrix"* — and
+§47.8's table, where it is the single row whose gate reads **"no — manual until it exists"**. Every
+Slice-4 first-generation component key was pinned on the explicit promise that Slice 5 would review
+those components as pictures. That promise is currently owed to an `xtask` subcommand nobody wrote.
+
+**Accepted, as an obligation with an order.** `xtask capture-matrix` **exists and passes before**
+any Slice 5 visual review is conducted and before any Slice 5 baseline is blessed. Not after, and
+not "manually for now": a review mechanism that cannot be executed is decoration (§34.4), and this
+is the seventh recorded instance of that class.
+
+It drives `tools/capture.sh` over the complete **size × theme × colour × app** grid and writes into
+`shots/`, so a visual reviewer receives a reproducible set rather than ad-hoc screenshots. It
+**fails closed on a missing cell**: a cell that produced no capture is a failure, never a skip,
+under §47.5's rule that an expected member missing from an expected set is a failure and not a
+pass. Two `tools/capture.sh` corrections land with it, both already scheduled by Appendix B.5: `BIN`
+stops defaulting to a path that names the legacy binary, and `--theme {junie|paper}` becomes a
+documented pass-through so the theme axis is scriptable. The `COLOR` parameter and its deliberate
+`COLORTERM=truecolor` retention under `mono` are unchanged.
+
+**No Slice 5 baseline may be blessed from a capture the matrix did not produce.** The ledger's
+`- captures:` field names paths under `shots/`; a path that no reproducible command regenerates is
+not evidence.
+
+**Acceptance.** `xtask::capture_matrix_covers_every_declared_cell` and
+`xtask::capture_matrix_fails_closed_on_a_missing_cell`, plus `capture-matrix` joining the named-test
+and gate lists so its absence becomes reportable rather than invisible (§47.4).
+
+### 74.3 D3 — per-app baselines have declared locations, and two new ledger items
+
+**The defect.** §47.6 established that the frozen pre-refactor evidence cannot move: a rename puts a
+frozen path into git's touched set and `bless-guard` refuses unconditionally, with the remedy
+"revert, do not classify" and no ledger escape. It drew the right conclusion for the visual baseline
+— the frozen file stays as the before-image and Slice 5 writes a **new** file — and it named the
+same problem for the perf rows: *"the moved application benchmark rows have nowhere legal to land"*,
+because the root `perf_baseline.txt` is frozen and any edit to it is refused.
+
+Two things were left unresolved, and both are resolved here.
+
+**Locations.** Per app, and created new rather than moved:
+
+| Artefact | Path | Frozen before-image it does **not** touch |
+|---|---|---|
+| Visual baseline | `apps/<app>/tests/baselines/<app>.txt` | `tests/showcase_baseline.txt`, `baseline/before/**` |
+| Perf baseline | `apps/<app>/tests/perf_baseline.txt` | the root `perf_baseline.txt` |
+
+`<app>` is one of `showcase`, `tablepro`, `jackin-preview`. Appendix B.2's per-app `tests/` lists
+gain `perf_baseline.txt`. The root files are never edited, never renamed and never deleted before
+the post-Slice-7 rename commit; they remain the before-images every Slice 5–7 classification is
+measured against. CI's perf-baseline diff step currently names only the two existing files and would
+leave every new per-app baseline unguarded (§47.7); it is extended to the per-app paths in the same
+commit that creates the first one.
+
+**Two new §20.10 items.** §47.6's sentence filing the Slice-5 baseline keys under **§20.10 item 19**
+is **struck**. Item 19 is titled *"First-generation `render::components::*` digests for the Slice-4
+component matrix"*, enumerates its fourteen components by name, states *"This item covers
+first-generation only"* and states that it *"may not be cited again for the same key"*. Application
+baseline keys are neither `render::components::*` nor any of those fourteen components. Filing them
+there destroys the item→change mapping the guard's citation check depends on — the exact failure
+item 19 itself was created to avoid.
+
+- **Item 32 — first-generation per-app visual baseline keys.** Every key in
+  `apps/<app>/tests/baselines/<app>.txt` at the commit that creates it. **Nothing moves**: the app
+  package did not exist in the reviewed tree, so no key has a before-image *in that file*. Review
+  is by frames, not by hash: the D2 capture matrix produces the captures, and a fresh read-only
+  `opus-analyst` visual reviewer — never the builder who generated the keys — compares them against
+  the corresponding `baseline/before/**` capture for the same app, page, size and colour level.
+  **Where a before capture exists, a difference is classified, not waved through as
+  first-generation.** `{scope: first-generation}`; the second movement of one of these keys
+  classifies under items 1–18 or it is a regression.
+- **Item 33 — first-generation per-app perf baseline rows.** Every hit-count row in
+  `apps/<app>/tests/perf_baseline.txt` at the commit that creates it. These are numeric, not
+  visual: no capture exists and none is required, and the ledger entry records the measured counts
+  and the corresponding rows of the frozen root `perf_baseline.txt` side by side. A per-app row that
+  is **worse** than its frozen root counterpart is a **regression** and is not blessed; equality or
+  improvement is *intended*. `{scope: first-generation}`.
+
+**Acceptance.** `bless-guard` recognises items 32 and 33 and the per-app baseline paths;
+`xtask::frozen_baselines_are_never_touched` continues to refuse the root paths; and the item 19
+citation for application baselines is rejected rather than silently accepted.

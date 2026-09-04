@@ -7,7 +7,7 @@
 1. **Change** — land the code change on the working tree.
 2. **Capture** — for an application baseline, `tools/capture.sh` / `xtask capture-matrix` writes the before/after captures into `shots/`. For a headless `Scene` matrix there is no capture and there can be none (`tools/capture.sh` drives a terminal session and cannot address a `Scene`, §36): the artefact is the frame text the failing run prints. Digest tests go red either way.
 3. **Classify** — add or extend the entry under the matching §20.10 item below: the reviewable artefact, the affected tests/baseline lines, the moved and added keys, and the classification with its reason.
-4. **Bless** — `BLESS=1 cargo test --workspace --test render --test render_components --test visual` (or `PERF_BLESS=1` for hit counts). `xtask bless-guard` is specified in §16.3 and **is not implemented yet**; until it lands this ledger is convention enforced by review.
+4. **Bless** — `BLESS=1 cargo test --workspace --test render --test render_components --test visual` (or `PERF_BLESS=1` for hit counts). `xtask bless-guard` is specified in §16.3 and **is implemented and binding** (`xtask/src/main.rs`, the `bless-guard` subcommand over the `baseline_moves_are_classified` check). It fails closed: with no base revision — neither `BLESS_GUARD_BASE` nor `GITHUB_BASE_REF` — it refuses rather than comparing against `HEAD`, because comparing against `HEAD` passes vacuously (commit `f28a81e`). This ledger is therefore machine-enforced, not convention enforced by review. <!-- corrected 2026-09-05: the previous text claimed the guard was unimplemented. It has been implemented since §47; that sentence was stale, and it is the only claim replaced here. -->
 
 A capture cannot exist before the change, so `bless-guard` never runs locally against an unchanged tree. No baseline is regenerated because a test failed; the classification comes first.
 
@@ -1191,3 +1191,28 @@ keys (20 components × 64) and remain their sole owners. No live baseline or ble
 - class:     fix
 - reason:    §20.10 item 31; only exact-target/suppression corrections caused by central Ui::reference.
 ```
+
+
+---
+
+## Review status — Slice 4 component matrix, independent visual review (2026-09-05)
+
+**Result: FAIL. No bless was performed, and none is authorized.**
+
+- **Scope reviewed.** The **640** review frames for the Slice-4 component matrix, at HEAD
+  `26913cc`, by a fresh read-only `opus-analyst` reviewer who did not generate the baselines.
+- **Result.** **FAIL.** This supersedes the earlier **PASS** recorded against HEAD `a1759b2` in
+  `REFACTORING_STATE.md`. That PASS line is retained there unedited as historical evidence; where
+  the two conflict, this record governs.
+- **Baseline effect: none.** `crates/tui/tests/baselines/components.txt` is **unchanged** by this
+  review. No `BLESS=1` or `PERF_BLESS=1` run was made, no key moved, and no key was added. The
+  entries above — items 1, 20, 23, 27, 28, 30, 31 and the stabilized scratch reconciliation — are
+  unaffected and are **not** re-classified by this record.
+- **Consequence.** Items 27, 30, 31 and every other Slice-4 first-generation item remain
+  **unblessed**. §72's closing sentence stands verbatim: independent frame review and separate
+  bless authorization remain required, and no retained baseline change is authorized.
+- **Findings.** The itemised FAIL findings are owned by the review itself and are **not yet
+  attached to this ledger**. They must be attached here, each mapped to a numbered §20.10 item and
+  classified *intended* / *fix* / *regression*, **before** any bless run. A bless executed while
+  this section reads FAIL with no attached findings is a violation of the fixed order
+  change → capture → classify → bless, not an exception to it.

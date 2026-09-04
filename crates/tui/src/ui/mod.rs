@@ -620,10 +620,10 @@ impl<'f> Ui<'f> {
 
     /// Run `f` with `ov` pushed on the overlay stack (precedence 5).
     ///
-    /// The stack lives in [`UiCore`], which a reborrow shares rather than
-    /// isolates, so the pop and the stack hash are restored by a guard: an
-    /// unwinding component cannot leave a stale overlay resolving every later
-    /// style on the frame.
+    /// The stack lives in the frame state behind [`Ui`], which a reborrow
+    /// shares rather than isolates, so the pop and the stack hash are restored
+    /// by a guard: an unwinding component cannot leave a stale overlay
+    /// resolving every later style on the frame.
     pub fn with_overlay<R>(&mut self, ov: &Overlay, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
         let saved_hash = self.core.stack_hash;
         self.core.overlays.push(*ov);
