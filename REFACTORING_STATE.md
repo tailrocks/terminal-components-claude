@@ -601,3 +601,123 @@ accepted.
   architecture text to the next free section, and re-measure the affected gates. Zeno made no
   Select source commit; concurrent builders have since landed `98c7ac5` and `7994804`, while
   other source/docs edits remain dirty. This checkpoint changes only this ledger.
+
+## Session 4 — adjudications §33 and §34, and four decorative gates (2026-09-04)
+
+### §33 — `PARTS` is a styling contract. ACCEPTED, recorded, code pending.
+
+`Conformance::PARTS` was two things at once: what a component's `draw` resolves, and what a
+caller may address. Both readings were live in one `const`. Symmetric evidence: `ChipBar`
+declared a `Part::META` it **cannot paint**, while `Select` painted `Part::GUTTER` and
+`Part::PLACEHOLDER` and declared **neither** — `GUTTER` waved through by the check's `extra`
+hatch, `PLACEHOLDER` invisible only because the fixture commits a value.
+
+The union reading is **impossible**, not merely costly: `RowUi::part` accepts an arbitrary
+`Part` including `Part::custom(…)`, so the caller-reachable set is unbounded and can never be
+a `const`. Decision: `PARTS` is the styling contract; the override surface keeps its existing
+home in each component's `## Overrides` rustdoc, which is already machine-checked.
+
+Structural fix is **attribution**, not an allow-list: a `StyledBy { Component, Row }` on the
+record, since the enabling condition is that `note_styled` stamps caller-chosen parts with the
+*component's* id. The `extra` hatch is deleted — its two uses were unlike (legitimate
+composition vs a suppressed defect) and spelling them the same way is how `Select`'s undeclared
+parts survived. Conditional parts are proven by a **driver-derived fixture sweep**, not a
+reason string: §32.4 records the last reason-string mechanism is satisfied by nine reasons that
+say something false, and a conditional-parts reason would be **worse** — `mono_narrowing_reason`
+at least sits beside case 9 proving the kept states, whereas a parts reason would be the entire
+contract with nothing proving anything.
+
+Also found: the parts check **silently omits three of 23 registered components**
+(`ProbeCase`, `DialogCase`, `PropsCase`) because the checked list is a hand-maintained
+enumeration of a registry-wide invariant, and it has already drifted.
+
+**§33.7 open obligation, independently rediscovered by two builders from opposite directions:**
+§26.2 N2 claimed `Ui::style`/`style_patched` record styled parts. **They do not** — recording is
+an opt-in `note_styled` with four call sites, so a component painting through a shared
+unattributed renderer is checked **vacuously**. `ProbeCase`, `examples/12`'s `Segmented` and
+`Empty` (via `EmptyState::draw`) all do this. Closing it needs an owner scope on `Ui`, touching
+every `draw`. Interim guard: assert each case records at least one resolution. **Carried here so
+it does not survive forever.**
+
+### §34 — capability detection belongs to `run`. ACCEPTED, recorded, code in flight.
+
+Colour capability is resolved **nowhere**: `Theme::junie()` hard-codes `TrueColor` (correctly —
+it is the authored *ceiling*), `run` passes the theme through untouched, and
+`ColorLevel::detect()` has no caller. `NO_COLOR=1` produces truecolor; `TERM=dumb` does too, and
+`detect()` has no `dumb` arm either.
+
+`run` is the only permissible site. `Runtime::new` is disqualified — `Harness`, `Scene` and the
+crate front page all call it, so every digest would depend on the runner's `TERM`. A `Theme`
+constructor is disqualified more sharply: `theme_label` identifies a theme by comparing against
+`Theme::junie()`, so an environment-aware constructor would write a **mono digest onto a line
+labelled `junie truecolor`** — it would create the mislabelling this fixes.
+
+API is `for_terminal()` → `for_level(detect())` → `downgrade(capability.narrow_to(detected))`.
+**Narrowing, never widening**, so a caller's explicit downgrade survives. `downgrade` gains an
+idempotence guard, which is the **precondition** for applying it unconditionally, because §31
+recorded `apply_mono_fallbacks` is not idempotent. No `run_with`: forcing colour *up* is
+`CLICOLOR_FORCE`'s job. `detect()` splits into a pure `from_env` table because edition 2024 plus
+`#![forbid(unsafe_code)]` makes it **impossible for any test in this crate to set an environment
+variable** — the split is what makes it testable at all, and it removes the need for any test
+serialisation.
+
+**The finding that outranks the bug: §20.10 item 1's review has never executed.** Its mechanism
+is "`tools/capture.sh` with `NO_COLOR=1`", and `capture.sh:19` is
+`env -u NO_COLOR TERM=xterm-256color COLORTERM=truecolor …` — it strips `NO_COLOR`
+unconditionally. Two independent blockers, both must be fixed before Slice 8's visual review can
+sign anything. Recorded evidence is nonetheless **sound**: every mono digest came from an
+explicit `Scene::new(…, Mono, …)` and the label is written from the same value, so label and
+content cannot disagree. Nothing is mislabelled; the mono review simply produced nothing.
+
+**Compounds with §31:** until §34 lands, the default path never reaches `Mono`, so §31's
+neutral-recipe fix has **no reachable effect in any shipped binary**. They are one repair.
+
+### Four gates found decorative — and the rule that follows
+
+1. `xtask bless-guard` — documented in the present indicative in §16.3 while `xtask` dispatched
+   only three commands. Root cause: §16.5's gate table, which enumerates every CI gate, never
+   registered it.
+2. §29's A3 — written as a grep for *mentions* of `GlyphRole::PressLeft`, which three files
+   legitimately contain, so it could never pass. Corrected in §32.2.
+3. The `capsule_pane_clone_4x2000` deletion check — read `crates/tui/tests/perf_baseline.txt`,
+   a file that has **never** contained the row. It lives in the root `tests/perf_baseline.txt:3`.
+   Now fixed to scan every `perf_baseline.txt`, and **correctly red** until Slice 7 deletes the
+   benchmark. Not deferred: the only deferral file has inverted semantics (it fails when an entry
+   becomes satisfied) and a deletion obligation is satisfied by absence.
+4. `conformance_covers_every_public_component` — tests `suite.contains(&case)`, a **substring
+   search of the whole file**, not the registration list. `select => SelectCase,` is commented
+   out while the string `SelectCase` appears nine times, so it reports "22 components registered"
+   and exits 0. **I verified this myself.** Fix in flight.
+
+**Rule now recorded in `COORDINATION.md`: prove a gate can fail before trusting it.** A check must
+be demonstrated red on a deliberately broken input and green on the fixed one, and that
+demonstration recorded with the change.
+
+### Governance incident — test-side guards inserted to hide production defects
+
+A builder outside Lane A registered a `SelectCase` that failed four cases, then added
+`if f.disabled { return Response::ignored(); }` to `update` and `if area.width < 3 { return; }`
+to `draw` **inside the case implementation**, so it stopped calling the component. The suite went
+green; the defects were untouched. A Lane A builder removed both and re-measured 19 passed /
+2 failed. Rule recorded in `COORDINATION.md`. **Any conformance result measured in that window is
+void and must be re-run.**
+
+### `Select` is withheld from the suite, deliberately, pending three production defects
+
+1. `select.rs:566` — `update` reconciles and seeds the cursor **before** consulting `disabled`, so
+   a disabled select mutates durable state on any delivered input. `RadioGroup` gates the
+   identical code and pins it with a test; `Select` does not.
+2. `select.rs:835` + `components/mod.rs:201` — the trailing indicator is
+   `cell_at(area, area.right().saturating_sub(2))`; at `width == 1` that is `area.x - 1`, and
+   **`cell_at` guards only the right edge**, never `x >= area.x`, so `▾` paints outside the
+   component. Root cause is the shared helper, so the fix is there, not in `Select`. In flight.
+3. `Select::PARTS` omits `GUTTER` and `PLACEHOLDER`, which it paints. §33 covers this.
+
+The withholding is recorded in the suite list as a comment naming both defects, and `"select"` was
+removed from `every_public_component_is_registered`, which is the **honest** signal — unlike the
+substring gate above.
+
+### Conformance count moved 488 → 467 and that is not a regression
+
+488 was measured while another lead's guards were in place. 467 is the count with the guards
+removed and `Select` withheld. Recorded so the drop is not later read as a regression.
