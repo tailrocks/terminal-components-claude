@@ -246,8 +246,17 @@ impl Reconcile for SelectState {
 /// `EMPTY` (no options).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `MARKER` and `EMPTY`; `FIELD` and
-/// the popup rows cannot be replaced.
+/// `.patch` and `.patch_part` on any part; `.slot` on exactly `GUTTER`,
+/// `MARKER`, `EMPTY`, `TRACK` and `THUMB`. `GUTTER` and `MARKER` answer for
+/// the closed field's two chrome columns **and** for every popup row's, so
+/// one slot covers every cell this component paints under that part.
+/// `TRACK` and `THUMB` are the popup's [`ScrollRegion`], which paints them
+/// under this select's own `Id`; all three overrides are forwarded to it.
+/// `FIELD`, `ROW`, `LABEL` and `PLACEHOLDER` are not slot-addressable:
+/// `FIELD` and `ROW` are surface fills, `LABEL` is painted by the `.row(…)`
+/// painter the caller already supplies — in the closed field and in every
+/// popup row alike — and `PLACEHOLDER` is `.placeholder(…)`'s own text in
+/// the cell `FIELD` owns.
 ///
 /// ## Identity
 /// `.key` supplies stable keys; `ByIndex` is unstable under
@@ -279,6 +288,13 @@ pub struct Select<'a, T, K = ByIndex, R = DefaultRow> {
     empty: Option<EmptyState<'a>>,
     read_only: bool,
     disabled: bool,
+    /// Kept beside `ov` so the popup's [`ScrollRegion`] can be built with the
+    /// caller's own overrides: it paints `TRACK` and `THUMB` under *this*
+    /// select's `Id`, so a bare construction dropped the caller's `.patch`
+    /// and `.patch_part` on those parts where `Invariant P` could not see it
+    /// (§45.7 obligation 2).
+    patch: Option<&'a StylePatch>,
+    parts: &'a [(Part, StylePatch)],
     ov: Overrides<'a>,
     _t: PhantomData<fn(&T)>,
 }
@@ -307,6 +323,8 @@ impl<T> Select<'_, T, ByIndex, DefaultRow> {
             empty: None,
             read_only: false,
             disabled: false,
+            patch: None,
+            parts: &[],
             ov: Overrides::new(),
             _t: PhantomData,
         }
@@ -343,6 +361,8 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
             empty: self.empty,
             read_only: self.read_only,
             disabled: self.disabled,
+            patch: self.patch,
+            parts: self.parts,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -359,6 +379,8 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
             empty: self.empty,
             read_only: self.read_only,
             disabled: self.disabled,
+            patch: self.patch,
+            parts: self.parts,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -402,6 +424,7 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
+        self.patch = Some(p);
         self.ov = self.ov.patch(p);
         self
     }
@@ -409,6 +432,7 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
+        self.parts = ps;
         self.ov = self.ov.patch_part(ps);
         self
     }
@@ -418,6 +442,24 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
+    }
+
+    /// The popup's scrollbar, wearing this select's own overrides.
+    ///
+    /// It paints `TRACK` and `THUMB` under the **select's** `Id`, so those
+    /// two parts' `.patch`, `.patch_part` and `.slot` are the select's to
+    /// forward; constructing it bare dropped all three (§45.1).
+    fn scrollbar(&self) -> ScrollRegion<'a> {
+        let mut sr = ScrollRegion::new(self.id).patch_part(self.parts);
+        if let Some(p) = self.patch {
+            sr = sr.patch(p);
+        }
+        if let Some(f) = self.ov.slot_for(Part::TRACK) {
+            sr = sr.slot(Part::TRACK, f);
+        } else if let Some(f) = self.ov.slot_for(Part::THUMB) {
+            sr = sr.slot(Part::THUMB, f);
+        }
+        sr
     }
 
     /// Showcase / fixture use only (A11).
@@ -896,6 +938,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         let row_fn = &self.row;
         let key_fn = &self.key;
         let empty = self.empty;
+        let scrollbar = self.scrollbar();
         ui.layer(self.id, |ui, layer| {
             ui.with_surface(Surface::Popover, |ui| {
                 let base = ov.style(
@@ -939,7 +982,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                     }
                     return;
                 }
-                let content = ScrollRegion::new(id).draw(ui, list, st.core.scroll(), items.len());
+                let content = scrollbar.draw(ui, list, st.core.scroll(), items.len());
                 let view = ScrollRegion::view(st.core.scroll(), content, items.len());
                 for (row_i, i) in view.visible_range().enumerate() {
                     let Some(item) = items.get(i) else { break };
@@ -974,43 +1017,56 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                             ov.style(ui, id, Family::SELECT, Variant::DEFAULT, Part::ROW, flags);
                         ui.paint_style(row, rs.style);
                     }
-                    let g = ov.style(
-                        ui,
-                        id,
-                        Family::SELECT,
-                        Variant::DEFAULT,
-                        Part::GUTTER,
-                        flags,
-                    );
-                    match g.glyph {
-                        Slot::Set(glyph) => {
-                            ui.glyph(cell_at(row, row.x), glyph, g.style);
-                        }
-                        Slot::Inherit | Slot::Clear => {
-                            ui.fill(cell_at(row, row.x), g.style);
+                    // the popup's gutter and marker columns are the same two
+                    // parts the closed field paints, so one `.slot(GUTTER, …)`
+                    // or `.slot(MARKER, …)` answers for every cell this
+                    // component paints under that part (§45.3, Invariant R)
+                    let gutter_cell = cell_at(row, row.x);
+                    if let Some(f) = ov.slot_for(Part::GUTTER) {
+                        f(ui, gutter_cell);
+                    } else {
+                        let g = ov.style(
+                            ui,
+                            id,
+                            Family::SELECT,
+                            Variant::DEFAULT,
+                            Part::GUTTER,
+                            flags,
+                        );
+                        match g.glyph {
+                            Slot::Set(glyph) => {
+                                ui.glyph(gutter_cell, glyph, g.style);
+                            }
+                            Slot::Inherit | Slot::Clear => {
+                                ui.fill(gutter_cell, g.style);
+                            }
                         }
                     }
-                    let ms = ov.style(
-                        ui,
-                        id,
-                        Family::SELECT,
-                        Variant::DEFAULT,
-                        Part::MARKER,
-                        flags,
-                    );
                     let marker_cell = cell_at(row, row.x.saturating_add(1));
-                    let glyph = match ms.glyph {
-                        Slot::Set(glyph) => Some(glyph),
-                        Slot::Inherit => flags
-                            .contains(StateFlags::SELECTED)
-                            .then_some(GlyphRole::Chosen),
-                        Slot::Clear => None,
-                    };
-                    match glyph {
-                        Some(glyph) => {
-                            ui.glyph(marker_cell, glyph, ms.style);
+                    if let Some(f) = ov.slot_for(Part::MARKER) {
+                        f(ui, marker_cell);
+                    } else {
+                        let ms = ov.style(
+                            ui,
+                            id,
+                            Family::SELECT,
+                            Variant::DEFAULT,
+                            Part::MARKER,
+                            flags,
+                        );
+                        let glyph = match ms.glyph {
+                            Slot::Set(glyph) => Some(glyph),
+                            Slot::Inherit => flags
+                                .contains(StateFlags::SELECTED)
+                                .then_some(GlyphRole::Chosen),
+                            Slot::Clear => None,
+                        };
+                        match glyph {
+                            Some(glyph) => {
+                                ui.glyph(marker_cell, glyph, ms.style);
+                            }
+                            None => ui.fill(marker_cell, ms.style),
                         }
-                        None => ui.fill(marker_cell, ms.style),
                     }
                     ui.register_part(id, PartRef::item(Part::ROW, key), row);
                 }

@@ -83,9 +83,12 @@ use crate::ui::{FrameRead, Ui};
 /// `OVERFLOW` (the `…` that marks dropped hints).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part` and `.slot` on any part; `.patch` and
-/// `.patch_part` are forwarded to the nested `KeyHint`s, so patching `KEY`
-/// on the bar restyles every chord it draws.
+/// `.patch` and `.patch_part` on any part, forwarded to the nested
+/// [`KeyHint`]s, so patching `KEY` on the bar restyles every chord it draws.
+/// `.slot` on exactly `BADGE`, `KEY`, `ACTION`, `LABEL`, `MARKER`, `ICON`
+/// and `OVERFLOW`; `KEY` and `ACTION` are forwarded to the nested
+/// [`KeyHint`]s on the same reasoning as the patches. `CONTAINER` is not
+/// slot-addressable: its fill *is* the bar.
 ///
 /// ## Identity
 /// One `Id` per instance; the hints are positional and carry no `ItemKey`,
@@ -260,6 +263,12 @@ impl<'a> HintBar<'a> {
     }
 
     /// One hint, wearing this bar's overrides.
+    ///
+    /// `KEY` and `ACTION` are painted by the nested [`KeyHint`] and by
+    /// nothing else, so the bar's slot on either is forwarded rather than
+    /// dropped: `.slot(Part::KEY, …)` on the bar answers for every chord it
+    /// draws, exactly as `.patch_part` on `KEY` already restyles them all
+    /// (§45.3, Invariant R).
     fn hint(&self, i: usize) -> Option<KeyHint<'a>> {
         let h = self.layer.hints.get(i)?;
         let mut k = KeyHint::from_hint(self.id, h)
@@ -268,6 +277,11 @@ impl<'a> HintBar<'a> {
             .inherit_forced(self.ov.forced_state());
         if let Some(p) = self.patch {
             k = k.patch(p);
+        }
+        if let Some(f) = self.ov.slot_for(Part::KEY) {
+            k = k.slot(Part::KEY, f);
+        } else if let Some(f) = self.ov.slot_for(Part::ACTION) {
+            k = k.slot(Part::ACTION, f);
         }
         Some(k)
     }
@@ -289,6 +303,23 @@ impl<'a> HintBar<'a> {
         width(s).saturating_add(glyph.map_or(0, |g| width(g).saturating_add(1)))
     }
 
+    /// The glyph slot `Part::MARKER` resolves under for **this instance**.
+    ///
+    /// [`Ui::resolve`] is §26 N2's `&self` measuring path: it stops at
+    /// precedence 5, so an instance `.patch` or `.patch_part` reached this
+    /// cell's *colour* — resolved through [`Overrides::style`] — and could
+    /// not reach its *glyph* (§45.5). Precedence 6 is applied here exactly
+    /// as `theme::resolve::bind` applies it on the painting path, so the
+    /// measuring and painting answers cannot diverge.
+    fn marker_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Slot<GlyphRole> {
+        let base = ui
+            .resolve(Family::HINTBAR, self.variant, Part::MARKER, live)
+            .glyph;
+        self.ov
+            .part_patch(Part::MARKER)
+            .map_or(base, |p| p.glyph.over(base))
+    }
+
     /// The glyph that leads the status message: the spinner while busy, the
     /// recipe's marker (or the error glyph) while in error.
     fn status_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
@@ -299,16 +330,14 @@ impl<'a> HintBar<'a> {
                 .copied();
         }
         if live.contains(StateFlags::ERROR) {
-            let glyph = ui.resolve(Family::HINTBAR, self.variant, Part::MARKER, live);
-            return match glyph.glyph {
+            return match self.marker_glyph(ui, live) {
                 Slot::Set(g) => Some(ui.glyph_str(g)),
                 Slot::Inherit => Some(ui.glyph_str(GlyphRole::Error)),
                 Slot::Clear => None,
             };
         }
         if live.contains(StateFlags::WARNING) {
-            let glyph = ui.resolve(Family::HINTBAR, self.variant, Part::MARKER, live);
-            return match glyph.glyph {
+            return match self.marker_glyph(ui, live) {
                 Slot::Set(g) => Some(ui.glyph_str(g)),
                 Slot::Inherit => Some(ui.glyph_str(GlyphRole::Dirty)),
                 Slot::Clear => None,
@@ -369,34 +398,41 @@ impl<'a> HintBar<'a> {
             let mut x = area.right().saturating_sub(status_w).saturating_sub(1);
             right_limit = x.saturating_sub(Self::HINT_GAP);
             if let Some(g) = glyph {
-                let s = ov.style(
-                    ui,
-                    id,
-                    Family::HINTBAR,
-                    self.variant,
-                    if self.busy() {
-                        Part::ICON
-                    } else {
-                        Part::MARKER
-                    },
-                    live,
-                );
+                // one cell, two parts: the spinner is `ICON` and the error or
+                // warning marker is `MARKER`. The slot is consulted before
+                // `spinner_frames` (§45.4) — a slot is substitution, not
+                // suppression, so the cell it replaces keeps its columns.
+                let part = if self.busy() {
+                    Part::ICON
+                } else {
+                    Part::MARKER
+                };
                 let cell = Rect {
                     x,
                     width: area.right().saturating_sub(x),
                     ..area
                 };
-                let used = ui.paint_str(cell, g, s.style);
+                let used = if let Some(f) = ov.slot_for(part) {
+                    f(ui, cell);
+                    width(g).min(cell.width)
+                } else {
+                    let s = ov.style(ui, id, Family::HINTBAR, self.variant, part, live);
+                    ui.paint_str(cell, g, s.style)
+                };
                 x = x.saturating_add(used).saturating_add(1);
             }
             if let Some(text) = self.layer.status.as_deref() {
-                let s = ov.style(ui, id, Family::HINTBAR, self.variant, Part::LABEL, live);
                 let cell = Rect {
                     x,
                     width: area.right().saturating_sub(x),
                     ..area
                 };
-                ui.paint_str(cell, text, s.style);
+                if let Some(f) = ov.slot_for(Part::LABEL) {
+                    f(ui, cell);
+                } else {
+                    let s = ov.style(ui, id, Family::HINTBAR, self.variant, Part::LABEL, live);
+                    ui.paint_str(cell, text, s.style);
+                }
             }
         }
 
@@ -445,21 +481,25 @@ impl<'a> HintBar<'a> {
             x = x.saturating_add(w).saturating_add(Self::HINT_GAP);
         }
         if drawn < self.layer.hints.len() && x < right_limit {
-            let s = ov.style(ui, id, Family::HINTBAR, self.variant, Part::OVERFLOW, live);
             let cell = Rect {
                 x,
                 width: right_limit.saturating_sub(x),
                 ..area
             };
-            match s.glyph {
-                Slot::Set(g) => {
-                    ui.glyph(cell, g, s.style);
-                }
-                Slot::Inherit => {
-                    ui.glyph(cell, GlyphRole::Ellipsis, s.style);
-                }
-                Slot::Clear => {
-                    ui.fill(cell, s.style);
+            if let Some(f) = ov.slot_for(Part::OVERFLOW) {
+                f(ui, cell);
+            } else {
+                let s = ov.style(ui, id, Family::HINTBAR, self.variant, Part::OVERFLOW, live);
+                match s.glyph {
+                    Slot::Set(g) => {
+                        ui.glyph(cell, g, s.style);
+                    }
+                    Slot::Inherit => {
+                        ui.glyph(cell, GlyphRole::Ellipsis, s.style);
+                    }
+                    Slot::Clear => {
+                        ui.fill(cell, s.style);
+                    }
                 }
             }
         }

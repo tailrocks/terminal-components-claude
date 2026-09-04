@@ -284,8 +284,13 @@ impl Reconcile for ListState {
 /// `EMPTY`, `ROW` (hit regions only).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER`, `EMPTY`,
-/// `TRACK`, `THUMB`.
+/// `.patch` and `.patch_part` on any part; `.slot` on exactly `GUTTER`,
+/// `MARKER`, `EMPTY`, `TRACK` and `THUMB`. `TRACK` and `THUMB` are the
+/// embedded [`ScrollRegion`]'s, which paints them under this list's own
+/// `Id`, so all three overrides are forwarded to it. `CONTAINER`, `LABEL`,
+/// `META` and `ROW` are not slot-addressable: `CONTAINER` is the list's own
+/// fill, `LABEL` and `META` are painted by the `.row(…)` painter the caller
+/// already supplies, and `ROW` is a hit region rather than a painted part.
 ///
 /// ## Identity
 /// `.key` supplies stable keys; `ByIndex` is unstable under
@@ -308,6 +313,14 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
+    /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
+    /// caller's own overrides. `Overrides` reads back only the slot, and a
+    /// scrollbar the container constructs bare drops the container's
+    /// `.patch` and `.patch_part` on `TRACK` and `THUMB` — a drop
+    /// `Invariant P` cannot see, because the scrollbar styles those parts
+    /// under *this* list's `Id` (§45.7 obligation 2).
+    patch: Option<&'a StylePatch>,
+    parts: &'a [(Part, StylePatch)],
     ov: Overrides<'a>,
     _t: PhantomData<fn(&T)>,
 }
@@ -334,6 +347,8 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             empty: None,
             disabled_item: None,
             status: Status::Ready,
+            patch: None,
+            parts: &[],
             ov: Overrides::new(),
             _t: PhantomData,
         }
@@ -372,6 +387,8 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             empty: self.empty,
             disabled_item: self.disabled_item,
             status: self.status,
+            patch: self.patch,
+            parts: self.parts,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -387,6 +404,8 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             empty: self.empty,
             disabled_item: self.disabled_item,
             status: self.status,
+            patch: self.patch,
+            parts: self.parts,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -423,6 +442,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     /// An instance patch over every part.
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
+        self.patch = Some(p);
         self.ov = self.ov.patch(p);
         self
     }
@@ -430,6 +450,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     /// Per-part instance patches.
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
+        self.parts = ps;
         self.ov = self.ov.patch_part(ps);
         self
     }
@@ -439,6 +460,25 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     pub fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
+    }
+
+    /// The embedded scrollbar, wearing this list's own overrides.
+    ///
+    /// The scrollbar paints `TRACK` and `THUMB` under the **list's** `Id`,
+    /// so a caller's `.patch`, `.patch_part` and `.slot` on those two parts
+    /// are the list's to forward; constructing it bare dropped all three
+    /// (§45.1, §45.7 obligation 2).
+    fn scrollbar(&self) -> ScrollRegion<'a> {
+        let mut sr = ScrollRegion::new(self.id).patch_part(self.parts);
+        if let Some(p) = self.patch {
+            sr = sr.patch(p);
+        }
+        if let Some(f) = self.ov.slot_for(Part::TRACK) {
+            sr = sr.slot(Part::TRACK, f);
+        } else if let Some(f) = self.ov.slot_for(Part::THUMB) {
+            sr = sr.slot(Part::THUMB, f);
+        }
+        sr
     }
 
     /// Showcase / fixture use only (A11).
@@ -694,7 +734,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
         );
         ui.fill(area, container.style);
-        let content = ScrollRegion::new(self.id).draw(ui, area, st.core.scroll(), len);
+        let content = self.scrollbar().draw(ui, area, st.core.scroll(), len);
         if len == 0 {
             let empty = self.empty.unwrap_or(EmptyState::Empty {
                 title: "Nothing here yet",

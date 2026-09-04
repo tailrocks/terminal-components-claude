@@ -142,9 +142,11 @@ pub enum MeterVisual {
 /// value text), `ICON` (the trailing readiness glyph).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part` and `.slot` on any part; a slot on `TRACK`
-/// replaces the whole run, because the split between used and unused is the
-/// meter's own arithmetic.
+/// `.patch` and `.patch_part` on any part. `.slot` on exactly `TRACK`,
+/// `LABEL` and `ICON`. `THUMB` is **not** slot-addressable: a slot on
+/// `TRACK` replaces the whole run, used share included, because the split
+/// between the two is the meter's own arithmetic. The `ICON` slot replaces
+/// the busy spinner as well as the error glyph (§45.4).
 ///
 /// ## Identity
 /// One `Id` per instance; no items.
@@ -357,6 +359,30 @@ impl<'a> Meter<'a> {
         g.map(|g| ui.glyph_str(g))
     }
 
+    /// Paint the value readout into `cell`, or hand the cell to the
+    /// `Part::LABEL` slot. Returns the columns used.
+    fn paint_value(&self, ui: &mut Ui<'_>, cell: Rect, value: &str, style: Style) -> u16 {
+        if let Some(f) = self.ov.slot_for(Part::LABEL) {
+            f(ui, cell);
+            return width(value).min(cell.width);
+        }
+        ui.paint_str(cell, value, style)
+    }
+
+    /// Paint the trailing readiness glyph into `cell`, or hand the cell to
+    /// the `Part::ICON` slot.
+    ///
+    /// The slot is consulted **before** `design.motion.spinner_frames`
+    /// (§45.4): a slot is substitution, not suppression, so one `Part` keeps
+    /// one answer whether the glyph came from the recipe or from the spinner.
+    fn paint_icon(&self, ui: &mut Ui<'_>, cell: Rect, glyph: &str, style: Style) {
+        if let Some(f) = self.ov.slot_for(Part::ICON) {
+            f(ui, cell);
+            return;
+        }
+        ui.paint_str(cell, glyph, style);
+    }
+
     /// The value text painted beside the run.
     fn value_text<'p>(&self, pct: &'p Pct) -> &'p str
     where
@@ -419,7 +445,7 @@ impl<'a> Meter<'a> {
             // no run: the value and the marker only
             let mut x = area.x;
             if vw > 0 {
-                let used = ui.paint_str(area, value, label.style);
+                let used = self.paint_value(ui, area, value, label.style);
                 x = x.saturating_add(used).saturating_add(1);
             }
             if let Some(g) = glyph {
@@ -428,7 +454,7 @@ impl<'a> Meter<'a> {
                     width: area.right().saturating_sub(x),
                     ..area
                 };
-                ui.paint_str(cell, g, icon_style.style);
+                self.paint_icon(ui, cell, g, icon_style.style);
             }
             return area;
         };
@@ -438,7 +464,7 @@ impl<'a> Meter<'a> {
                 let tail = vw.saturating_add(1).saturating_add(icon_w);
                 let track_w = area.width.saturating_sub(tail);
                 if track_w < Self::MIN_TRACK {
-                    ui.paint_str(area, value, label.style);
+                    self.paint_value(ui, area, value, label.style);
                     return area;
                 }
                 let track = Rect {
@@ -466,7 +492,7 @@ impl<'a> Meter<'a> {
                     width: area.right().saturating_sub(x),
                     ..area
                 };
-                let used = ui.paint_str(cell, value, label.style);
+                let used = self.paint_value(ui, cell, value, label.style);
                 x = x.saturating_add(used).saturating_add(1);
                 if let Some(g) = glyph {
                     let cell = Rect {
@@ -474,13 +500,13 @@ impl<'a> Meter<'a> {
                         width: area.right().saturating_sub(x),
                         ..area
                     };
-                    ui.paint_str(cell, g, icon_style.style);
+                    self.paint_icon(ui, cell, g, icon_style.style);
                 }
             }
             MeterVisual::Block => {
                 let bar_w = area.width.saturating_sub(icon_w);
                 if bar_w < 4 {
-                    ui.paint_str(area, value, label.style);
+                    self.paint_value(ui, area, value, label.style);
                     return area;
                 }
                 let bar = Rect {
@@ -502,7 +528,7 @@ impl<'a> Meter<'a> {
                         width: bar.width.saturating_sub(1),
                         ..bar
                     };
-                    ui.paint_str(text, value, label.style);
+                    self.paint_value(ui, text, value, label.style);
                     let filled = Rect {
                         width: (f64::from(bar_w) * ratio).round() as u16,
                         ..bar
@@ -524,7 +550,7 @@ impl<'a> Meter<'a> {
                         width: area.right().saturating_sub(x),
                         ..area
                     };
-                    ui.paint_str(cell, g, icon_style.style);
+                    self.paint_icon(ui, cell, g, icon_style.style);
                 }
             }
         }

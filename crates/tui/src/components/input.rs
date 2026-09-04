@@ -439,8 +439,10 @@ impl TextInputState {
 /// (the readiness spinner, in the same trailing cell).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER` and `PLACEHOLDER`;
-/// `FIELD` and `TEXT` cannot be replaced.
+/// `.patch` and `.patch_part` on any part; `.slot` on exactly `GUTTER`,
+/// `MARKER`, `PLACEHOLDER` and `ICON`. `FIELD` and `TEXT` are not
+/// slot-addressable: the first is the field's own fill and the second is the
+/// edited text, which the caller owns through `.value` and the draft.
 ///
 /// ## Identity
 /// One `Id`; no items.
@@ -918,10 +920,17 @@ impl<'a> TextInput<'a> {
             }
         } else if busy {
             let icon_cell = cell_at(area, area.right().saturating_sub(2));
-            let is = style(ui, Part::ICON);
-            let frames = ui.design().motion.spinner_frames;
-            let frame = frames.first().copied().unwrap_or("");
-            ui.paint_str(icon_cell, frame, is.style);
+            // the slot is consulted before `spinner_frames`, exactly as in
+            // `TextArea` (§45.4): a slot is substitution, not suppression, so
+            // `Part::ICON` keeps one answer whichever branch reserved the cell
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, icon_cell);
+            } else {
+                let is = style(ui, Part::ICON);
+                let frames = ui.design().motion.spinner_frames;
+                let frame = frames.first().copied().unwrap_or("");
+                ui.paint_str(icon_cell, frame, is.style);
+            }
         }
         area
     }

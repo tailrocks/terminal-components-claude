@@ -145,10 +145,11 @@ pub(crate) fn run_of(
 /// glyph or the spinner).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part` and `.slot` on any part; `TRACK` and `THUMB`
-/// cannot be replaced independently by a slot — a slot on `TRACK` replaces
-/// the whole track, filled run included, because the split between them is
-/// the bar's own arithmetic.
+/// `.patch` and `.patch_part` on any part. `.slot` on exactly `LABEL`,
+/// `TRACK`, `META` and `ICON`. `THUMB` is **not** slot-addressable: a slot
+/// on `TRACK` replaces the whole track, filled run included, because the
+/// split between the two is the bar's own arithmetic. The `ICON` slot
+/// replaces the busy spinner as well as the state glyph (§45.4).
 ///
 /// ## Identity
 /// One `Id` per instance; no items.
@@ -373,6 +374,32 @@ impl<'a> ProgressBar<'a> {
         }
     }
 
+    /// Columns the percentage readout occupies; zero when indeterminate.
+    fn pct_width(&self) -> u16 {
+        self.ratio
+            .map_or(0, |r| width(Pct::of(percent(r)).as_str()))
+    }
+
+    /// Paint the percentage readout into `cell`, or hand the cell to the
+    /// `Part::META` slot. An indeterminate bar has no percentage and paints
+    /// nothing, so there is no cell for a slot to replace.
+    fn paint_meta(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags) {
+        let Some(r) = self.ratio else { return };
+        if let Some(f) = self.ov.slot_for(Part::META) {
+            f(ui, cell);
+            return;
+        }
+        let s = self.ov.style(
+            ui,
+            self.id,
+            Family::PROGRESS,
+            self.variant,
+            Part::META,
+            live,
+        );
+        ui.paint_str(cell, Pct::of(percent(r)).as_str(), s.style);
+    }
+
     /// The draw phase; returns the rect painted.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = first_row(area);
@@ -406,11 +433,7 @@ impl<'a> ProgressBar<'a> {
         let track_w = body.width.saturating_sub(tail);
         if track_w < Self::MIN_TRACK {
             // too narrow for a meaningful bar: the percentage alone
-            if let Some(r) = self.ratio {
-                let s = style(ui, Part::META);
-                let pct = Pct::of(percent(r));
-                ui.paint_str(body, pct.as_str(), s.style);
-            }
+            self.paint_meta(ui, body, live);
             return area;
         }
         let track = Rect {
@@ -434,16 +457,14 @@ impl<'a> ProgressBar<'a> {
             }
         }
         let mut x = track.x.saturating_add(track_w).saturating_add(1);
-        if let Some(r) = self.ratio {
-            let s = style(ui, Part::META);
-            let pct = Pct::of(percent(r));
-            let pad = PCT_COLUMNS.saturating_sub(width(pct.as_str()));
+        if self.ratio.is_some() {
+            let pad = PCT_COLUMNS.saturating_sub(self.pct_width());
             let cell = Rect {
                 x: x.saturating_add(pad),
                 width: area.right().saturating_sub(x.saturating_add(pad)),
                 ..area
             };
-            ui.paint_str(cell, pct.as_str(), s.style);
+            self.paint_meta(ui, cell, live);
             x = x.saturating_add(PCT_COLUMNS).saturating_add(1);
         }
         let icon_cell = Rect {
@@ -560,7 +581,8 @@ fn percent(r: f64) -> u16 {
 /// `ICON` (the frame), `LABEL` (the text).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part` and `.slot` on both parts.
+/// `.patch` and `.patch_part` on both parts; `.slot` on exactly `ICON` and
+/// `LABEL`.
 ///
 /// ## Identity
 /// One `Id` per instance; no items.

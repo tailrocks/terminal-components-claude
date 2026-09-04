@@ -264,8 +264,14 @@ pub enum StatusAction {
 /// `OVERFLOW` for an item's inline meter and the truncation marker.
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part` and `.slot` on any part; `CONTAINER` cannot be
-/// replaced by a slot, because its fill is the strip.
+/// `.patch` and `.patch_part` on any part, forwarded to an item's inline
+/// [`Meter`]. `.slot` on exactly `LABEL`, `MARKER`, `ICON`, `TRACK` and
+/// `OVERFLOW`. `LABEL` answers for every item the strip paints and
+/// `OVERFLOW` for every cut it marks; `TRACK` is forwarded to the inline
+/// meter. `CONTAINER` is not slot-addressable, because its fill *is* the
+/// strip, and neither is `THUMB`: a slot on `TRACK` replaces the whole
+/// inline run, used share included, because the split between the two is the
+/// meter's own arithmetic.
 ///
 /// ## Identity
 /// Items are keyed by the caller through `StatusItem::key`; there is no
@@ -325,6 +331,13 @@ pub struct StatusBar<'a> {
     variant: Variant,
     status: Status,
     frame: usize,
+    /// Kept beside `ov` so an item's inline [`Meter`] can be built with the
+    /// caller's own overrides: it paints `TRACK` and `THUMB` under *this*
+    /// strip's `Id`, so a bare construction dropped the caller's `.patch`
+    /// and `.patch_part` on those parts where `Invariant P` could not see it
+    /// (§45.7 obligation 2).
+    patch: Option<&'a StylePatch>,
+    parts: &'a [(Part, StylePatch)],
     ov: Overrides<'a>,
 }
 
@@ -378,6 +391,8 @@ impl<'a> StatusBar<'a> {
             variant: Variant::DEFAULT,
             status: Status::Ready,
             frame: 0,
+            patch: None,
+            parts: &[],
             ov: Overrides::new(),
         }
     }
@@ -432,6 +447,7 @@ impl<'a> StatusBar<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
+        self.patch = Some(p);
         self.ov = self.ov.patch(p);
         self
     }
@@ -439,6 +455,7 @@ impl<'a> StatusBar<'a> {
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
+        self.parts = ps;
         self.ov = self.ov.patch_part(ps);
         self
     }
@@ -481,6 +498,23 @@ impl<'a> StatusBar<'a> {
             .saturating_add(2)
     }
 
+    /// The glyph slot `Part::MARKER` resolves under for **this instance**.
+    ///
+    /// [`Ui::resolve`] is §26 N2's `&self` measuring path: it stops at
+    /// precedence 5, so an instance `.patch` or `.patch_part` reached this
+    /// cell's *colour* — resolved through [`Overrides::style`] — and could
+    /// not reach its *glyph* (§45.5). Precedence 6 is applied here exactly
+    /// as `theme::resolve::bind` applies it on the painting path, so the two
+    /// halves of one cell cannot answer to different override chains.
+    fn marker_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Slot<GlyphRole> {
+        let base = ui
+            .resolve(Family::STATUSBAR, self.variant, Part::MARKER, live)
+            .glyph;
+        self.ov
+            .part_patch(Part::MARKER)
+            .map_or(base, |p| p.glyph.over(base))
+    }
+
     /// The readiness affordance: the spinner while busy, the recipe's marker
     /// (or the error glyph) while in error.
     fn readiness(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
@@ -491,8 +525,7 @@ impl<'a> StatusBar<'a> {
                 .copied();
         }
         if live.contains(StateFlags::ERROR) {
-            let resolved = ui.resolve(Family::STATUSBAR, self.variant, Part::MARKER, live);
-            let g = match resolved.glyph {
+            let g = match self.marker_glyph(ui, live) {
                 Slot::Set(g) => g,
                 Slot::Inherit => GlyphRole::Error,
                 Slot::Clear => return None,
@@ -500,8 +533,7 @@ impl<'a> StatusBar<'a> {
             return Some(ui.glyph_str(g));
         }
         if live.contains(StateFlags::WARNING) {
-            let resolved = ui.resolve(Family::STATUSBAR, self.variant, Part::MARKER, live);
-            let g = match resolved.glyph {
+            let g = match self.marker_glyph(ui, live) {
                 Slot::Set(g) => g,
                 Slot::Inherit => GlyphRole::Dirty,
                 Slot::Clear => return None,
@@ -667,42 +699,52 @@ impl<'a> StatusBar<'a> {
         if cell.is_empty() {
             return 0;
         }
-        let style = self.item_style(ui, it, live);
         let label_w = it.label_columns().min(cell.width);
         let label = Rect {
             width: label_w,
             ..cell
         };
-        if it.emphasis == Emphasis::Chip {
-            ui.fill(label, style);
-            ui.paint_str(shift(label, 1), it.text, style);
+        if let Some(f) = self.ov.slot_for(Part::LABEL) {
+            // substitution, not suppression: the item keeps its columns, its
+            // hit registration and its inline meter (§45.3, Invariant R)
+            f(ui, label);
         } else {
-            ui.paint_str(label, it.text, style);
+            let style = self.item_style(ui, it, live);
+            if it.emphasis == Emphasis::Chip {
+                ui.fill(label, style);
+                ui.paint_str(shift(label, 1), it.text, style);
+            } else {
+                ui.paint_str(label, it.text, style);
+            }
         }
         if it.label_columns() > cell.width && cell.width > 0 {
             // R-2: paint clipped, then mark the cut — never pre-truncate
-            let s = self.ov.style(
-                ui,
-                self.id,
-                Family::STATUSBAR,
-                self.variant,
-                Part::OVERFLOW,
-                live,
-            );
             let last = Rect {
                 x: cell.right().saturating_sub(1),
                 width: 1,
                 ..cell
             };
-            match s.glyph {
-                Slot::Set(g) => {
-                    ui.glyph(last, g, s.style);
-                }
-                Slot::Inherit => {
-                    ui.glyph(last, GlyphRole::Ellipsis, s.style);
-                }
-                Slot::Clear => {
-                    ui.fill(last, s.style);
+            if let Some(f) = self.ov.slot_for(Part::OVERFLOW) {
+                f(ui, last);
+            } else {
+                let s = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::STATUSBAR,
+                    self.variant,
+                    Part::OVERFLOW,
+                    live,
+                );
+                match s.glyph {
+                    Slot::Set(g) => {
+                        ui.glyph(last, g, s.style);
+                    }
+                    Slot::Inherit => {
+                        ui.glyph(last, GlyphRole::Ellipsis, s.style);
+                    }
+                    Slot::Clear => {
+                        ui.fill(last, s.style);
+                    }
                 }
             }
         }
@@ -719,7 +761,17 @@ impl<'a> StatusBar<'a> {
                 ..cell
             };
             if !m.is_empty() {
-                let mut meter = Meter::new(self.id).value("");
+                // the inline meter paints `TRACK` under the strip's own `Id`,
+                // so the strip's `.patch`, `.patch_part` and `TRACK` slot are
+                // the strip's to forward; a bare `Meter::new` dropped all
+                // three (§45.1, §45.7 obligation 2)
+                let mut meter = Meter::new(self.id).value("").patch_part(self.parts);
+                if let Some(p) = self.patch {
+                    meter = meter.patch(p);
+                }
+                if let Some(f) = self.ov.slot_for(Part::TRACK) {
+                    meter = meter.slot(Part::TRACK, f);
+                }
                 if let Some(r) = it.ratio {
                     meter = meter.ratio(r);
                 }
@@ -764,18 +816,26 @@ impl<'a> StatusBar<'a> {
         let ready = self.readiness(ui, live);
         let lead = ready.map_or(0, |g| width(g).saturating_add(1));
         if let Some(g) = ready {
+            // one cell, two parts: the spinner is `ICON` and the error or
+            // warning marker is `MARKER`. The slot is consulted before
+            // `spinner_frames` (§45.4) — a slot is substitution, not
+            // suppression, so `lead` reserves the same columns either way.
             let part = if self.busy() {
                 Part::ICON
             } else {
                 Part::MARKER
             };
-            let s = ov.style(ui, id, Family::STATUSBAR, self.variant, part, live);
             let cell = Rect {
                 x: area.x.saturating_add(edge),
                 width: area.width.saturating_sub(edge),
                 ..area
             };
-            ui.paint_str(cell, g, s.style);
+            if let Some(f) = ov.slot_for(part) {
+                f(ui, cell);
+            } else {
+                let s = ov.style(ui, id, Family::STATUSBAR, self.variant, part, live);
+                ui.paint_str(cell, g, s.style);
+            }
         }
 
         let keep = self.survivors(area.width, mw, gap, edge, lead);

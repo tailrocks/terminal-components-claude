@@ -94,8 +94,11 @@ const BINDINGS: &[Binding<ButtonCmd>] = &[
 /// knob).
 ///
 /// ## Overrides
-/// `.patch`, `.patch_part` and `.slot` on any part; `CONTAINER` cannot be
-/// replaced by a slot (its fill is the button).
+/// `.patch` and `.patch_part` on any part. `.slot` on exactly `GUTTER`,
+/// `ICON`, `MARKER` and `LABEL` — the four parts the button paints into a
+/// rect it reserves. `CONTAINER` is not slot-addressable: its fill *is* the
+/// button. The `ICON` slot replaces the busy spinner as well as `.icon(g)`,
+/// because one `Part` may not have two answers in one component (§45.4).
 ///
 /// ## Identity
 /// One `Id` per instance; no items.
@@ -377,11 +380,24 @@ impl<'a> Button<'a> {
             }
         }
         if self.busy() {
-            let is = style(ui, Part::ICON);
-            let frames = ui.design().motion.spinner_frames;
-            let frame = frames.first().copied().unwrap_or("");
-            let used = ui.paint_str(text, frame, is.style);
-            text = shift(text, used.saturating_add(1));
+            // `marker_width` reserves two columns for this cell whether the
+            // spinner or a slot fills it, so the slot substitutes without
+            // moving the label (§45.4: a slot is substitution, not
+            // suppression, and `Part::ICON` has one answer per component).
+            let spinner_cell = Rect {
+                width: text.width.min(1),
+                ..text
+            };
+            if let Some(f) = ov.slot_for(Part::ICON) {
+                f(ui, spinner_cell);
+                text = shift(text, 2);
+            } else {
+                let is = style(ui, Part::ICON);
+                let frames = ui.design().motion.spinner_frames;
+                let frame = frames.first().copied().unwrap_or("");
+                let used = ui.paint_str(text, frame, is.style);
+                text = shift(text, used.saturating_add(1));
+            }
         } else if let Some(on) = self.checked {
             let marker_cell = Rect {
                 width: text.width.min(1),
