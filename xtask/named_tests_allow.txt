@@ -14,7 +14,6 @@ action_arming_is_evaluated_in_update  # Slice 4F — components/dialog.rs
 confirm_is_centred_by_the_resolver_not_by_the_dialog  # Slice 4F — components/dialog.rs
 convenience_constructors_render_through_the_body_slot  # Slice 4F — components/dialog.rs
 draw_lays_out_against_the_height_it_asked_for  # Slice 4F — components/dialog.rs
-layer_size_is_a_pure_function_of_props_and_design_tokens  # Slice 4F — components/dialog.rs
 
 # ── 4F `components/form.rs` (§15.1, §23 K1) ──
 at_most_one_action_per_frame_in_declaration_order  # Slice 4F — components/form.rs

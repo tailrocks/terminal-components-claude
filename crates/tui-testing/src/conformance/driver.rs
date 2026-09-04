@@ -426,7 +426,7 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
     }
     for s in super::mono_states_required_by(C::caps()) {
         assert!(
-            states.contains(s),
+            states.contains(&s),
             "{}: caps {:?} imply {s:?}, which mono_states() dropped",
             C::NAME,
             C::caps()
@@ -434,9 +434,10 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
     }
     let mut seen: Vec<(StateFlags, BTreeMap<(String, u16), usize>)> = Vec::new();
     for s in states {
-        let mut f = Fixture::default();
+        // `force` sets the props the forced state implies too, so a state
+        // whose affordance is a painted symbol is actually reachable here.
+        let mut f = Fixture::default().force(*s);
         f.color = ColorLevel::Mono;
-        f.state_override = *s;
         // a sentinel holds the real focus so the forced state is the only state
         let theme = f.theme.clone().downgrade(f.color);
         let mut app = CaseApp::<C>::new(f);

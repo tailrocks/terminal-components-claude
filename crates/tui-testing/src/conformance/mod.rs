@@ -11,7 +11,7 @@ use bitflags::bitflags;
 use ratatui_core::layout::Rect;
 use tui_next::{
     Binding, BindingState, Chord, ColorLevel, Cx, Family, Id, ItemKey, Part, PartRef, Response,
-    StateFlags, StylePatch, Theme, Ui,
+    StateFlags, Status, StylePatch, Theme, Ui,
 };
 
 bitflags! {
@@ -78,6 +78,9 @@ pub struct Fixture {
     pub patch: Option<(Part, StylePatch)>,
     /// Secret bytes to type for the secret case.
     pub secret: Option<&'static str>,
+    /// Data readiness, derived from [`Fixture::force`] so that a state whose
+    /// affordance comes from *props* (the spinner) is actually reachable.
+    pub status: Status,
 }
 
 impl Default for Fixture {
@@ -99,7 +102,29 @@ impl Default for Fixture {
             state_override: StateFlags::empty(),
             patch: None,
             secret: None,
+            status: Status::Ready,
         }
+    }
+}
+
+impl Fixture {
+    /// Force `s` **and make it real**: a state whose affordance comes from
+    /// props rather than from a theme rule (`BUSY`/`LOADING`/`ERROR` drive
+    /// `Status`, and `Status` drives the spinner) is unreachable through
+    /// `state_override` alone, so case 9 would prove nothing about it.
+    #[must_use]
+    pub fn force(mut self, s: StateFlags) -> Self {
+        self.state_override = s;
+        self.status = if s.contains(StateFlags::BUSY) {
+            Status::Busy
+        } else if s.contains(StateFlags::LOADING) {
+            Status::Loading
+        } else if s.contains(StateFlags::ERROR) {
+            Status::Error
+        } else {
+            Status::Ready
+        };
+        self
     }
 }
 
@@ -124,27 +149,29 @@ pub const DEFAULT_MONO_STATES: &[StateFlags] = &[
 ];
 
 /// The states a capability implies, which `mono_states()` may not drop.
-pub const fn mono_states_required_by(caps: Caps) -> &'static [StateFlags] {
-    // one contiguous prefix per capability keeps this `const`
-    const FOCUSED: [StateFlags; 1] = [StateFlags::FOCUSED];
-    const PRESSED: [StateFlags; 1] = [StateFlags::PRESSED];
-    const DISABLED: [StateFlags; 1] = [StateFlags::DISABLED];
-    const EDITING: [StateFlags; 1] = [StateFlags::EDITING];
-    const SELECTED: [StateFlags; 1] = [StateFlags::SELECTED];
-    const NONE: [StateFlags; 0] = [];
-    if caps.contains(Caps::EDITS) {
-        &EDITING
-    } else if caps.contains(Caps::COLLECTION) {
-        &SELECTED
-    } else if caps.contains(Caps::DISABLEABLE) {
-        &DISABLED
-    } else if caps.contains(Caps::ACTIVATES) {
-        &PRESSED
-    } else if caps.contains(Caps::FOCUSABLE) {
-        &FOCUSED
-    } else {
-        &NONE
+///
+/// A **union**, not a first-match: an `if / else if` chain let a component
+/// declaring `EDITS | DISABLEABLE` keep only `EDITING`, which is exactly the
+/// escape MA-8 exists to close.
+#[must_use]
+pub fn mono_states_required_by(caps: Caps) -> Vec<StateFlags> {
+    let mut out = vec![StateFlags::empty()];
+    if caps.contains(Caps::FOCUSABLE) {
+        out.push(StateFlags::FOCUSED);
     }
+    if caps.contains(Caps::ACTIVATES) {
+        out.push(StateFlags::PRESSED);
+    }
+    if caps.contains(Caps::DISABLEABLE) {
+        out.push(StateFlags::DISABLED);
+    }
+    if caps.contains(Caps::EDITS) {
+        out.push(StateFlags::EDITING);
+    }
+    if caps.contains(Caps::COLLECTION) {
+        out.push(StateFlags::SELECTED);
+    }
+    out
 }
 
 /// One registration per public component. `State = ()` for stateless components.

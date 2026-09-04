@@ -418,12 +418,13 @@ impl TextInputState {
 ///
 /// ## Layout
 /// One row: gutter, two-cell indent, the text run, a trailing cell (two
-/// with the error marker). `measure` is `(8…, 1)`; `draw` paints the first
+/// with the error marker or the readiness spinner). `measure` is `(8…, 1)`; `draw` paints the first
 /// row of `area` and returns it; `0×0` registers nothing (R5).
 ///
 /// ## Parts
 /// `FIELD` (the row fill), `TEXT` (the value / draft), `PLACEHOLDER`,
-/// `MARKER` (the trailing error glyph), `GUTTER` (the focus bar).
+/// `MARKER` (the trailing error glyph), `GUTTER` (the focus bar), `ICON`
+/// (the readiness spinner, in the same trailing cell).
 ///
 /// ## Overrides
 /// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER` and `PLACEHOLDER`;
@@ -476,6 +477,7 @@ impl<'a> TextInput<'a> {
         Part::PLACEHOLDER,
         Part::MARKER,
         Part::GUTTER,
+        Part::ICON,
     ];
 
     /// A text input.
@@ -586,11 +588,13 @@ impl<'a> TextInput<'a> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
 
-    /// Columns between the gutter indent and the trailing cells.
-    fn inner_width(area_width: u16, error: bool) -> u16 {
+    /// Columns between the gutter indent and the trailing cells. `marker`
+    /// reserves the trailing cell, which carries either the error glyph or
+    /// the readiness spinner.
+    fn inner_width(area_width: u16, marker: bool) -> u16 {
         area_width
             .saturating_sub(3)
-            .saturating_sub(if error { 2 } else { 0 })
+            .saturating_sub(if marker { 2 } else { 0 })
     }
 
     /// The update phase: drains this control's intents and drives the edit
@@ -666,7 +670,10 @@ impl<'a> TextInput<'a> {
         if st.is_editing()
             && let Some(a) = cx.area(self.id)
         {
-            let w = Self::inner_width(a.width, st.error.is_some());
+            let w = Self::inner_width(
+                a.width,
+                st.error.is_some() || !matches!(self.status, Status::Ready),
+            );
             st.draft.scroll_into_view(w);
         }
         acc.finish(self.id)
@@ -756,16 +763,6 @@ impl<'a> TextInput<'a> {
         } else {
             StateFlags::empty()
         };
-        let inner = Rect {
-            x: area.x.saturating_add(2),
-            y: area.y,
-            width: Self::inner_width(area.width, error),
-            height: 1,
-        };
-        ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
-        if !self.ov.is_forced() {
-            ui.register_editor(self.id, area, focusability, declared);
-        }
         let mut live = self.ov.flags(ui.state(self.id)) | self.status.flags();
         if editing {
             live |= StateFlags::EDITING;
@@ -779,6 +776,20 @@ impl<'a> TextInput<'a> {
         if self.disabled {
             live |= StateFlags::DISABLED;
             live = live.difference(StateFlags::HOVERED);
+        }
+        // the readiness affordance is a *symbol*, so it survives `Mono`
+        // without a theme rule (§11.4's `BUSY`/`LOADING` row); it shares the
+        // trailing cell with the error glyph, which wins.
+        let busy = live.intersects(StateFlags::BUSY | StateFlags::LOADING);
+        let inner = Rect {
+            x: area.x.saturating_add(2),
+            y: area.y,
+            width: Self::inner_width(area.width, error || busy),
+            height: 1,
+        };
+        ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
+        if !self.ov.is_forced() {
+            ui.register_editor(self.id, area, focusability, declared);
         }
         let ov = self.ov;
         let id = self.id;
@@ -883,6 +894,12 @@ impl<'a> TextInput<'a> {
                     ui.glyph(marker_cell, g, ms.style);
                 }
             }
+        } else if busy {
+            let icon_cell = cell_at(area, area.right().saturating_sub(2));
+            let is = style(ui, Part::ICON);
+            let frames = ui.design().motion.spinner_frames;
+            let frame = frames.first().copied().unwrap_or("");
+            ui.paint_str(icon_cell, frame, is.style);
         }
         area
     }
@@ -963,6 +980,11 @@ impl FieldControl for TextInput<'_> {
 
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         TextInput::measure(self, ui, c)
+    }
+
+    fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
+        self.ov = self.ov.inherit_forced(s);
+        self
     }
 }
 

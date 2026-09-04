@@ -629,9 +629,18 @@ impl<A: App> Runtime<A> {
                 self.app.update(&mut cx)
             };
             folded |= r;
-            // undelivered intents are diagnosed per pass, before buckets are cleared
+            // Undelivered intents are diagnosed per pass, before buckets are
+            // cleared. A bucket the RUNTIME addressed (`Layer`, `Cancel`,
+            // `FocusIn`/`FocusOut`) is diagnosed whatever the owner
+            // registered: pointer intents already cannot reach a `Decorative`
+            // owner (`deliverable`), so §21 item 13's escape for container
+            // regions does not apply to them, and a layer owner that
+            // registers only decor — every `Dialog` — would otherwise lose
+            // its own dismissal in silence.
             for owner in self.intents.undrained() {
-                if self.last.registry.delivers_to(owner) {
+                if self.last.registry.delivers_to(owner)
+                    || self.intents.has_runtime_addressed(owner)
+                {
                     self.services
                         .diagnostics
                         .push(Diagnostic::UndeliveredIntent { owner });
@@ -1125,6 +1134,10 @@ pub(crate) mod stub {
 
     /// One control the stub draws.
     #[derive(Clone, Debug)]
+    #[expect(
+        clippy::struct_excessive_bools,
+        reason = "a test stub's knobs: one flag per registration shape, set by field                   init from `Control::new`, never a state machine"
+    )]
     pub(crate) struct Control {
         pub(crate) id: Id,
         pub(crate) area: Rect,
@@ -1135,6 +1148,9 @@ pub(crate) mod stub {
         pub(crate) captures: bool,
         /// Also registers a scroll region.
         pub(crate) scroll: bool,
+        /// Registers a `Decorative` region only — no control, no part. This
+        /// is what a `Dialog` registers for its own id.
+        pub(crate) decor: bool,
     }
 
     impl Control {
@@ -1146,6 +1162,7 @@ pub(crate) mod stub {
                 editor: false,
                 captures: false,
                 scroll: false,
+                decor: false,
             }
         }
     }
@@ -1166,6 +1183,8 @@ pub(crate) mod stub {
         /// Focus requests issued from inside `update` on each pass (settling tests).
         pub(crate) chase: Vec<Id>,
         pub(crate) esc_hits: usize,
+        /// An owner whose bucket `update` never drains (the gated-shape app).
+        pub(crate) skip_drain: Option<Id>,
     }
 
     impl Stub {
@@ -1193,6 +1212,9 @@ pub(crate) mod stub {
             let mut r = Response::ignored();
             let controls: Vec<Control> = self.controls().cloned().collect();
             for c in &controls {
+                if self.skip_drain == Some(c.id) {
+                    continue;
+                }
                 for it in cx.intents(c.id) {
                     self.log.push((c.id, format!("{it:?}")));
                     match it {
@@ -1215,7 +1237,12 @@ pub(crate) mod stub {
                     }
                 }
             }
-            let layer_ids: Vec<Id> = self.layers.iter().map(|(id, _)| *id).collect();
+            let layer_ids: Vec<Id> = self
+                .layers
+                .iter()
+                .map(|(id, _)| *id)
+                .filter(|id| self.skip_drain != Some(*id))
+                .collect();
             for id in layer_ids {
                 for it in cx.intents(id) {
                     self.log.push((id, format!("{it:?}")));
@@ -1259,6 +1286,10 @@ pub(crate) mod stub {
     }
 
     fn register(ui: &mut Ui<'_>, c: &Control) {
+        if c.decor {
+            ui.register_decor(c.id, PartRef::of(Part::CONTAINER), c.area);
+            return;
+        }
         if c.editor {
             ui.register_editor(c.id, c.area, c.focus, StateFlags::EDITING);
             ui.set_cursor(c.id, Position::new(c.area.x, c.area.y));
@@ -1571,6 +1602,91 @@ mod tests {
         );
         assert_eq!(rt.ring().reachable().count(), 1);
         assert!(rt.app().saw(dlg, "Layer(Opened)"));
+    }
+
+    /// §3.3 step 9: the dismissal of a layer whose owner registers only
+    /// decoration — every `Dialog` (`components/dialog.rs` registers
+    /// `Decorative` regions for its own id) — must still be reported when
+    /// the owner does not drain it. This is the gated
+    /// `if cx.is_open(id) { dialog.update(cx, …) }` shape: `is_open` is
+    /// false by the time `update` re-runs, so the `Cancel` and
+    /// `Layer(Dismissed)` the runtime addressed to the owner are dropped.
+    /// Before the guard was widened this loss was **silent**, because
+    /// `Registry::delivers_to` requires a `Control` or `Part` region.
+    #[test]
+    fn a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it() {
+        let dlg = Id::root("dlg");
+        let mut s = Stub {
+            page: vec![Control::new(A, Rect::new(0, 0, 10, 1))],
+            ..Stub::default()
+        };
+        s.layers.push((
+            dlg,
+            vec![Control {
+                decor: true,
+                ..Control::new(dlg, Rect::new(5, 5, 10, 3))
+            }],
+        ));
+        s.skip_drain = Some(dlg);
+        let (mut rt, mut buf) = runtime(s);
+        rt.app_mut().open_request = Some((dlg, LayerSpec::modal(dlg)));
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
+        assert!(rt.is_open(dlg));
+        assert!(
+            !rt.last.registry.delivers_to(dlg),
+            "the owner must register decoration only, as a Dialog does"
+        );
+        let _ = step(&mut rt, &mut buf, key(KeyCode::Esc));
+        assert!(!rt.is_open(dlg));
+        let undelivered: Vec<Id> = rt
+            .diagnostics()
+            .iter()
+            .filter_map(|d| match d {
+                Diagnostic::UndeliveredIntent { owner } => Some(*owner),
+                _ => None,
+            })
+            .collect();
+        // the guard runs per *pass*, and the dismissal re-runs `update` while
+        // the focus restore settles, so the owner is named once per pass; what
+        // the invariant claims is that it is named, and that nobody else is.
+        assert!(!undelivered.is_empty(), "the dismissal was lost in silence");
+        assert!(
+            undelivered.iter().all(|o| *o == dlg),
+            "{:?}",
+            rt.diagnostics()
+        );
+    }
+
+    /// The other half of the same rule (§21 item 13): widening the guard for
+    /// runtime-addressed intents must not start diagnosing a decorative
+    /// container for a **pointer** intent. It cannot: `deliverable` never
+    /// routes a pointer intent to a `Decorative` region, so the bucket is
+    /// never created.
+    #[test]
+    fn a_decorative_owner_is_not_diagnosed_for_a_pointer_intent() {
+        let decor = Id::root("decor");
+        let mut s = Stub {
+            page: vec![
+                Control::new(A, Rect::new(0, 0, 10, 1)),
+                Control {
+                    decor: true,
+                    ..Control::new(decor, Rect::new(0, 4, 10, 3))
+                },
+            ],
+            ..Stub::default()
+        };
+        s.skip_drain = Some(decor);
+        let (mut rt, mut buf) = runtime(s);
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 5));
+        let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 3, 5));
+        assert!(
+            rt.diagnostics()
+                .iter()
+                .all(|d| !matches!(d, Diagnostic::UndeliveredIntent { .. })),
+            "{:?}",
+            rt.diagnostics()
+        );
+        assert!(!rt.app().saw(decor, "Pointer"));
     }
 
     #[test]

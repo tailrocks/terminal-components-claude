@@ -254,7 +254,7 @@ impl Theme {
 }
 
 /// The mono fallback rules, one per state, appended to every family.
-fn mono_rules() -> [(Part, StateFlags, StylePatch); 13] {
+fn mono_rules() -> [(Part, StateFlags, StylePatch); 15] {
     let p = StylePatch::new;
     [
         (
@@ -298,13 +298,45 @@ fn mono_rules() -> [(Part, StateFlags, StylePatch); 13] {
             StateFlags::DISABLED,
             StylePatch {
                 glyph: Slot::Clear,
-                ..p().set_fg(Role::Fg(FgStep::Faint)).remove(Modifier::all())
+                ..p()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .remove(Modifier::all())
             },
         ),
         (
             Part::LABEL,
             StateFlags::DISABLED,
-            p().set_fg(Role::Fg(FgStep::Faint))
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::all())
+                .add(Modifier::DIM),
+        ),
+        // The two parts a *text* control paints for its own content. Without
+        // them a disabled `TextInput` is indistinguishable from an enabled one
+        // at `Mono` (§29, MA-8): `PARTS` is `FIELD, TEXT, PLACEHOLDER, MARKER,
+        // GUTTER`, and no mono rule reached the first two. `PLACEHOLDER` needs
+        // none — it is painted over the `FIELD` fill and inherits its
+        // modifiers per cell; `CONTAINER` needs none — a text control fills
+        // `FIELD`, so a `CONTAINER` rule would not reach the defect.
+        //
+        // Declaration order is load-bearing: state rules of equal specificity
+        // apply in declaration order, so these `remove(Modifier::all())` rules
+        // must precede the `ERROR` rules below or `ERROR`'s `UNDERLINED` is
+        // erased.
+        (
+            Part::FIELD,
+            StateFlags::DISABLED,
+            // `Fg(Primary)`, NOT `Fg(Faint)`: `mono()` maps every step below
+            // `Y = 0.35` to `Black`, and both `disabled_fg` and `Fg(Faint)`
+            // are below it — on a `Black` canvas §11.4's prescribed faint
+            // foreground is invisible, not merely colourless.
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::all())
+                .add(Modifier::DIM),
+        ),
+        (
+            Part::TEXT,
+            StateFlags::DISABLED,
+            p().set_fg(Role::Fg(FgStep::Primary))
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
@@ -351,7 +383,7 @@ fn mono_rules_extra() -> [(Part, StateFlags, StylePatch); 3] {
 }
 
 /// The number of rules `apply_mono_fallbacks` appends per family.
-pub const MONO_RULES_PER_FAMILY: usize = 16;
+pub const MONO_RULES_PER_FAMILY: usize = 18;
 
 impl Recipes {
     /// Append the §11.4 mono rules to every family, so state survives
@@ -543,6 +575,45 @@ mod tests {
         );
         assert_eq!(pressed.glyph, Slot::Set(GlyphRole::PressLeft));
         assert!(pressed.add.contains(Modifier::BOLD));
+    }
+
+    /// §29 + §11.4: at `Mono` a disabled control must stay **readable**, not
+    /// merely colourless. The rule that produced `Fg(Faint)` here resolved to
+    /// `Black` on a `Black` canvas — invisible — because `mono()` collapses
+    /// every step below `Y = 0.35` onto the background.
+    #[test]
+    fn mono_disabled_is_dim_and_readable() {
+        for base in [Theme::junie(), Theme::paper()] {
+            let m = base.downgrade(ColorLevel::Mono);
+            let canvas = crate::theme::resolve::bind_role(
+                &m,
+                Role::Surface(Surface::Canvas),
+                Surface::Canvas,
+            );
+            for f in [Family::INPUT, Family::FIELD, Family::LIST, Family::BUTTON] {
+                for p in [Part::FIELD, Part::TEXT, Part::LABEL] {
+                    let r = crate::theme::resolve::resolve_uncached(
+                        &m,
+                        f,
+                        Variant::DEFAULT,
+                        p,
+                        StateFlags::DISABLED,
+                        Surface::Canvas,
+                        &[],
+                        None,
+                    );
+                    assert!(
+                        r.style.add_modifier.contains(Modifier::DIM),
+                        "{f:?}/{p:?}: mono DISABLED carries no DIM"
+                    );
+                    assert!(
+                        r.style.fg.is_some() && r.style.fg != canvas,
+                        "{f:?}/{p:?}: mono DISABLED fg {:?} is the canvas {canvas:?}",
+                        r.style.fg
+                    );
+                }
+            }
+        }
     }
 
     use crate::theme::recipe::{Family, Variant};

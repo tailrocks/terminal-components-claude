@@ -136,15 +136,7 @@ impl App for ButtonsPage {
 
     fn draw(&self, ui: &mut Ui<'_>) {
         let area = layout::inset(ui.full(), Insets::symmetric(2, 1));
-        let rows = layout::rows(
-            area,
-            &[
-                Track::Fixed(15),
-                Track::Fixed(1),
-                Track::Fixed(11),
-                Track::Flex(1),
-            ],
-        );
+        let rows = layout::rows(area, &[Track::Fixed(15), Track::Fixed(1), Track::Flex(1)]);
 
         // ── the interactive playground ───────────────────────────────────
         let gap = ui.design().space.gap;
@@ -202,8 +194,9 @@ impl App for ButtonsPage {
         // and `crates/tui-testing/**`, and `apps/showcase` does not exist until
         // Slice 5. The complete matrix lives — and is asserted — in
         // `crates/tui/tests/showcase_buttons.rs`; it moves here (or rather,
-        // this whole file moves to `apps/showcase`) at Slice 5.
-        ui.rule(rows[2]);
+        // this whole file moves to `apps/showcase`) at Slice 5. The page
+        // therefore reserves **no** rows for it: an honest runnable page
+        // shows exactly what it draws.
 
         if let Some(last) = &self.last {
             ui.with_part(
@@ -213,7 +206,7 @@ impl App for ButtonsPage {
                 StateFlags::empty(),
                 |ui, r| {
                     let style = r.over(ui.surface_style());
-                    ui.paint_str(rows[3], last, style);
+                    ui.paint_str(rows[2], last, style);
                 },
             );
         }

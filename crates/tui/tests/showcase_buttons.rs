@@ -27,9 +27,9 @@
 
 use tui_next::{
     Action, ActionKey, App, Button, Constraints, Cx, Diagnostic, Dialog, DialogAction, DialogState,
-    Family, Field, FrameRead, Id, Insets, ItemKey, KeyCode, KeyModifiers, LayerSpec, List,
-    ListAction, ListState, MouseKind, Part, Rect, Response, RowAlign, RowUi, StateFlags, Status,
-    TextInput, TextInputState, Theme, Track, Ui, Variant, layout,
+    Family, Field, FrameRead, Id, Insets, ItemKey, KeyCode, KeyModifiers, List, ListAction,
+    ListState, MouseKind, Part, Rect, Response, RowAlign, RowUi, StateFlags, Status, TextInput,
+    TextInputState, Theme, Track, Ui, Variant, layout,
 };
 use tui_next_testing::Harness;
 
@@ -470,16 +470,26 @@ impl App for Roster {
             .on_action(|a| {
                 if let ListAction::Activated(k) = a {
                     self.pending_remove = Some(k);
-                    cx.open_layer(CONFIRM, LayerSpec::modal(CONFIRM));
+                    // the component sizes its own layer (§26 N1)
+                    cx.open_layer(CONFIRM, remove_dialog().layer(cx));
                 }
             });
-        // FINDING vs §17 example 11: the dialog's `update` runs
-        // **unconditionally**, as §17 example 9 writes it, not gated on
-        // `cx.is_open(CONFIRM)`. Esc dismisses the layer at §3.3 step 8 and
-        // then re-runs `update`; by then `is_open` is false, so a gated call
-        // never drains the `Cancel` and `Layer(Dismissed)` intents the
-        // dismissal addressed to the dialog, and the runtime reports
-        // `Diagnostic::UndeliveredIntent { owner: CONFIRM }`.
+        // §13 (§28 P3): the dialog's `update` runs **unconditionally**, as
+        // §17 examples 9 and 11 write it, not gated on `cx.is_open(CONFIRM)`.
+        // Esc dismisses the layer at §3.3 step 8 and then re-runs `update`;
+        // by then `is_open` is false, so a gated call never drains the
+        // `Cancel` and `Layer(Dismissed)` intents the dismissal addressed to
+        // the dialog, and `DialogAction::Dismissed` is never emitted.
+        //
+        // Measured, on the gated shape of this very fixture: the runtime
+        // reported `UndeliveredIntent { owner: roster.confirm ▸ #0 }` — the
+        // dialog's *first action button*, whose `FocusOut` was also left
+        // undrained — and **not** `owner: CONFIRM`. `Dialog` registers only
+        // `Decorative` regions for its own id and the diagnostic was gated on
+        // `Registry::delivers_to`, which requires a `Control` or `Part`, so
+        // the dismissal itself was lost in silence. §28 P3 widens the guard
+        // to any bucket the runtime addressed, which is what now names
+        // `CONFIRM`.
         r |= remove_dialog().update(cx, &mut self.dlg).on_action(|a| {
             if let DialogAction::Action(K_YES) = a
                 && let Some(k) = self.pending_remove.take()

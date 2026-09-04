@@ -329,6 +329,31 @@ impl IntentQueue {
             .map(|b| b.owner)
     }
 
+    /// Whether `owner`'s bucket holds an intent the **runtime itself**
+    /// addressed to it (§3.3 step 9).
+    ///
+    /// `Layer`, `Cancel`, `FocusIn` and `FocusOut` are addressed by the
+    /// runtime to a known owner, so a lost one is always a defect — whatever
+    /// that owner registered. Pointer intents are different: `deliverable`
+    /// already keeps them away from a `Decorative` region, which is why the
+    /// undelivered-intent guard can widen for these four without re-opening
+    /// §21 item 13's exemption for container regions.
+    pub(crate) fn has_runtime_addressed(&self, owner: Id) -> bool {
+        self.bucket_index(owner)
+            .and_then(|i| self.live().get(i))
+            .is_some_and(|b| {
+                b.items.iter().any(|s| {
+                    matches!(
+                        s,
+                        Stored::Layer(_)
+                            | Stored::Cancel
+                            | Stored::FocusIn(_)
+                            | Stored::FocusOut(_)
+                    )
+                })
+            })
+    }
+
     /// Whether `owner` drained its bucket this pass.
     #[cfg(test)]
     pub(crate) fn was_drained(&self, owner: Id) -> bool {

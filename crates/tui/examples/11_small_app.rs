@@ -1,14 +1,10 @@
 //! `COMPONENT_ARCHITECTURE.md` §17 example 11, verbatim (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
-#![expect(
-    clippy::indexing_slicing,
-    clippy::collapsible_if,
-    reason = "verbatim from §17 example 11"
-)]
+#![expect(clippy::indexing_slicing, reason = "verbatim from §17 example 11")]
 
 use tui_next::{
     Action, ActionKey, App, Button, Cx, Dialog, DialogAction, DialogState, Field, FrameRead, Id,
-    Insets, ItemKey, LayerSpec, List, ListAction, ListState, Response, RowUi, TextInput,
-    TextInputState, Theme, Track, Ui, Variant, id, layout, run,
+    Insets, ItemKey, List, ListAction, ListState, Response, RowUi, TextInput, TextInputState,
+    Theme, Track, Ui, Variant, id, layout, run,
 };
 
 const NAME: Id = id!("name");
@@ -42,12 +38,18 @@ fn people_list()
         .key(|s: &String| ItemKey::text(s))
         .row(|s: &String, u: &mut RowUi<'_>| u.label(s))
 }
+// The action row belongs to the props: `measured_height` sizes the layer from
+// the same `Dialog` the frame draws, so the two cannot disagree (§26 N1).
+const REMOVE_ACTIONS: [Action<'static>; 2] =
+    [Action::new(K_NO, "Cancel"), Action::danger(K_YES, "Remove")];
 fn remove_dialog() -> Dialog<'static> {
     Dialog::destructive(
         CONFIRM,
         "Remove person",
         "Remove this person from the roster?",
     )
+    .actions(&REMOVE_ACTIONS)
+    .cancel(K_NO)
 }
 
 impl App for Roster {
@@ -69,25 +71,27 @@ impl App for Roster {
             .on_action(|a| {
                 if let ListAction::Activated(k) = a {
                     self.pending_remove = Some(k);
-                    cx.open_layer(CONFIRM, LayerSpec::modal(CONFIRM));
+                    // the component sizes its own layer (§26 N1)
+                    cx.open_layer(CONFIRM, remove_dialog().layer(cx));
                 }
             });
 
-        if cx.is_open(CONFIRM) {
-            let actions = [Action::new(K_NO, "Cancel"), Action::danger(K_YES, "Remove")];
-            r |= remove_dialog()
-                .actions(&actions)
-                .cancel(K_NO)
-                .update(cx, &mut self.dlg)
-                .on_action(|a| {
-                    if let DialogAction::Action(K_YES) = a {
-                        if let Some(k) = self.pending_remove.take() {
-                            self.people.retain(|s| ItemKey::text(s) != k);
-                        }
-                    }
-                    cx.close_layer(CONFIRM, None);
-                });
-        }
+        // §13: a component that owns a layer runs its `update`
+        // **unconditionally**, every frame, open or not. `cx.is_open` guards
+        // the work the *caller* does besides the component, never the
+        // component's own `update`: the dismissal is delivered as intents
+        // addressed to the layer's owner in the pass **after** the layer
+        // closed, so a gated call would drain nothing and drop it.
+        r |= remove_dialog().update(cx, &mut self.dlg).on_action(|a| {
+            if let DialogAction::Action(K_YES) = a
+                && let Some(k) = self.pending_remove.take()
+            {
+                self.people.retain(|s| ItemKey::text(s) != k);
+            }
+            if cx.is_open(CONFIRM) {
+                cx.close_layer(CONFIRM, None);
+            }
+        });
         r
     }
 

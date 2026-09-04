@@ -165,12 +165,27 @@ impl<'a, C: FieldControl> Field<'a, C> {
         self
     }
 
-    /// Showcase / fixture use only (A11): render the chrome in a forced
-    /// state instead of the control's runtime state. A forced field
-    /// registers no decorative region.
+    /// Showcase / fixture use only (A11): render the chrome **and the
+    /// control it owns** in a forced state instead of the runtime state. A
+    /// forced field registers no decorative region and its control registers
+    /// no live control (§12.1).
     #[must_use]
-    pub const fn state_override(mut self, s: StateFlags) -> Self {
-        self.ov = self.ov.state_override(s);
+    pub fn state_override(self, s: StateFlags) -> Self {
+        self.inherit_forced(Some(s))
+    }
+
+    /// The composition half of A11 (§12.1): adopt an owning container's
+    /// forced state, chrome and control together.
+    ///
+    /// It is applied here, in a **consuming builder**, rather than in
+    /// `draw`: `draw` takes `&self` and `FieldControl::inherit_forced`
+    /// consumes the control, and forcing is set once at construction, so the
+    /// two are equivalent — the control cannot be drawn in any state the
+    /// field was not built with.
+    #[must_use]
+    pub(crate) fn inherit_forced(mut self, s: Option<StateFlags>) -> Self {
+        self.ov = self.ov.inherit_forced(s);
+        self.control = self.control.inherit_forced(s);
         self
     }
 
@@ -308,5 +323,46 @@ impl<'a, C: FieldControl> Field<'a, C> {
             preferred: (inner.preferred.0, h),
         }
         .fit(c)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+
+    use super::super::input::{TextInput, TextInputState};
+    use super::*;
+    use crate::id::Id;
+    use crate::runtime::Runtime;
+    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::theme::Theme;
+
+    const INPUT: Id = Id::root("field.tests.input");
+
+    /// A11 (§12.1, §28 P5): a forced `Field` is a picture, not a control.
+    /// Forcing the chrome alone left the control it owns registering a live
+    /// editor and a focus stop — a `DuplicateId` and a stray tab stop the
+    /// first time a page renders the same control twice.
+    #[test]
+    fn a_forced_field_registers_no_control() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let st = TextInputState::default();
+        rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+            Field::new("Name", TextInput::new(INPUT).value("Ada Lovelace"))
+                .required(true)
+                .help("The person's display name.")
+                .state_override(StateFlags::DISABLED)
+                .draw(ui, a, &st);
+        });
+        assert!(
+            !rt.registry().delivers_to(INPUT),
+            "the control registered a live region under a forced field"
+        );
+        assert_eq!(
+            rt.ring().reachable().count(),
+            0,
+            "a forced rendering left a focus stop"
+        );
     }
 }

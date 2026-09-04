@@ -25,7 +25,84 @@ A capture cannot exist before the change, so `bless-guard` never runs locally ag
 
 ## Item 1 — Mono legibility fallbacks (§11.4, §21 item 25)
 
-captures / classification: `(pending — filled when the change lands)`
+### 1a — mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background (§28 P6)
+
+**§20.10 classification line:** mono DISABLED gains DIM on FIELD/TEXT and stops
+tinting the foreground into the background.
+
+**What changed.** §11.4's `DISABLED` row prescribed `fg = Role::Fg(Faint)`. At
+`ColorLevel::Mono` that is a defect, not a downgrade: `mono()` maps every step
+below `Y = 0.35` to `Black`, and `junie`'s `disabled_fg` (`#4d4d4d`), `Fg(Faint)`
+(`#262626`) and `surfaces[0]` (`#000000`) are all below it — a disabled control
+was painted **black on black**, unreadable rather than merely colourless
+(goal §29 asks for readable). The mono table also reached no part a *text*
+control paints for its own content, so a disabled `TextInput` was
+indistinguishable from an enabled one under `Mono` at all.
+
+Three rule changes in `crates/tui/src/theme/downgrade.rs::mono_rules()`
+(`MONO_RULES_PER_FAMILY` 16 → 18):
+
+- new `(Part::FIELD, DISABLED)` and `(Part::TEXT, DISABLED)`:
+  `set_fg(Fg(Primary)).remove(Modifier::all()).add(Modifier::DIM)`;
+- amended `(Part::LABEL, DISABLED)` and `(Part::MARKER, DISABLED)`:
+  `Fg(Faint)` → `Fg(Primary)`, same reason.
+
+`PLACEHOLDER` needs no rule (it inherits the `FIELD` fill's modifiers per cell)
+and `CONTAINER` needs none (a text control fills `FIELD`). The new rules are
+declared **before** the `ERROR` rules, so `ERROR`'s `UNDERLINED` is not erased
+by `remove(Modifier::all())`.
+
+**Second change in the same table pass:** `Tabs` now paints §11.4's mono
+`PRESSED` bracket (`[label]`) into the pad cells the tab already reserves —
+geometry is identical — because the row fn paints the tab label through
+`RowUi`, which cannot consult the `LABEL` glyph slot the way `Button::draw`
+does. Without it a pressed tab and a focused tab are the same picture without
+colour.
+
+```
+- surface:   tui-next/{text_input,field,list,button,tabs,dialog}/disabled and tabs/pressed
+             @ {120x40, 40x10} / {junie, paper} / mono   (truecolor cells are untouched:
+             mono rules are appended only at `ColorLevel::Mono`)
+- captures:  none under `shots/` — this matrix is a headless digest matrix, not a
+             running app: `tools/capture.sh` drives a terminal session and cannot
+             address a `Scene`. The reviewable artifact is the digest diff of
+             `crates/tui/tests/baselines/components.txt` in the same commit; the
+             painted **text** is byte-identical in every moved cell (the panic
+             output shows it), so the whole difference is style.
+- tests:     crates/tui/tests/baselines/components.txt (mono lines only),
+             render::components::{text_input,field,list,button,tabs,dialog}::disabled,
+             render::components::tabs::pressed
+- moved:     20 lines, every one `mono` (`git diff crates/tui/tests/baselines/components.txt`):
+```
+  render::components::button::disabled 120 40 junie mono 023bd60f5b1ae845 → d20bb906fcfe3dd1
+  render::components::button::disabled 40 10 junie mono 15af984dfc54c7c5 → bfe7ea91b76bd751
+  render::components::dialog::disabled 120 40 junie mono 3162b7d5bbf2a5f5 → 2d6a3cd4c020d7e5
+  render::components::dialog::disabled 40 10 junie mono 03fb01cee70da7f5 → 3ef081624f0f1fa5
+  render::components::field::disabled 120 40 junie mono ee232d54d927e1b4 → 399b0a5bc31c9d66
+  render::components::field::disabled 120 40 paper mono 2ce10fc98c3c6524 → e0d02bbbddbfe054
+  render::components::field::disabled 40 10 junie mono bb701f176484fbb4 → d8fb0563075c66a6
+  render::components::field::disabled 40 10 paper mono 8850862fa2588ec4 → 55505cb874284414
+  render::components::list::disabled 120 40 junie mono 8ef3444eee52116d → 5c5f27303fa8adf5
+  render::components::list::disabled 40 10 junie mono 6dc1b708da3a1a6d → 86dd18d3924968f5
+  render::components::tabs::disabled 120 40 junie mono 35a3a27d0daf3a0c → 383875a51445a582
+  render::components::tabs::disabled 40 10 junie mono f3715f8ca6758086 → d48c88f61b9cf638
+  render::components::tabs::pressed 120 40 junie mono 5517de00b23ac747 → 8531aef99ed82a7c
+  render::components::tabs::pressed 120 40 paper mono ca497a2a34358f51 → 57bc3c9afc387ab6
+  render::components::tabs::pressed 40 10 junie mono 8a4bc1549eca3857 → a1ca30a076849608
+  render::components::tabs::pressed 40 10 paper mono dfaa198c140af319 → 35b0ee5d62f85452
+  render::components::text_input::disabled 120 40 junie mono f32a4730f22cd73a → 1db1055714d0b91e
+  render::components::text_input::disabled 120 40 paper mono 44f4c6f88a4aec46 → d36c9e02c6aca8be
+  render::components::text_input::disabled 40 10 junie mono 8725f1e9f6355d3a → 1e91d7e4d1cdcfde
+  render::components::text_input::disabled 40 10 paper mono d63984c2d12b1c26 → 5257f3bad4cc42be
+```
+- class:     fix
+- reason:    §20.10 item 1 (mono legibility fallbacks). The old output was
+             unreadable at `Mono` (black on black) and gave a text control's
+             disabled state no signal at all; the new output is `DIM` over the
+             primary foreground, which §16.2 case 9 can see and a reader can
+             read. `conformance::text_input::mono_states_are_distinguishable`
+             now keeps `DISABLED` instead of narrowing it away (MA-8).
+```
 
 ## Item 2 — Layer compositing order (§5 R7, §3.3 step 12)
 

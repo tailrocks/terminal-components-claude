@@ -646,7 +646,10 @@ impl<'a> Dialog<'a> {
                 };
                 let input = TextInput::new(self.input_id()).value(&st.draft);
                 let label = self.prompt.unwrap_or("Type the token to confirm");
-                Field::new(label, input).plain(true).draw(ui, r, &st.input);
+                Field::new(label, input)
+                    .plain(true)
+                    .inherit_forced(ov.forced_state())
+                    .draw(ui, r, &st.input);
                 y = y.saturating_add(field_h);
                 if self.ack.is_some() {
                     y = y.saturating_add(1);
@@ -721,5 +724,222 @@ impl Bindings for Dialog<'_> {
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<DialogCmd>] {
         BINDINGS
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+
+    use super::*;
+    use crate::event::{Input, Key, KeyModifiers};
+    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::runtime::{App, Runtime};
+    use crate::theme::Theme;
+
+    const DLG: Id = Id::root("dialog.tests");
+    const TOKEN: &str = "delete";
+
+    fn confirm() -> Dialog<'static> {
+        Dialog::confirm(DLG, "Remove person", "Remove this person from the roster?")
+    }
+
+    fn prompt() -> Dialog<'static> {
+        Dialog::prompt(DLG, "Rename", "New name")
+    }
+
+    fn acknowledge() -> Dialog<'static> {
+        Dialog::acknowledge(DLG, "Delete table", TOKEN)
+    }
+
+    fn esc() -> Input {
+        Input::Key(Key {
+            code: KeyCode::Esc,
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    /// A headless runtime whose `App` draws nothing, for `draw_scene`.
+    fn scene() -> (Runtime<Stub>, Buffer) {
+        (
+            Runtime::new(Stub::default(), Theme::junie()),
+            Buffer::empty(SCREEN),
+        )
+    }
+
+    /// §26 N1: the layer size is a function of `(props, DesignTokens)` and
+    /// of nothing else — no focus, no frame counter, no measured content.
+    /// The `prompt` and `acknowledge` cases are what the `input_rows` term
+    /// added (§28 P4): without it the resolver is asked for a layer shorter
+    /// than the dialog's own content and `draw` clamps the field away.
+    #[test]
+    fn layer_size_is_a_pure_function_of_props_and_design_tokens() {
+        for theme in [Theme::junie(), Theme::paper()] {
+            let d = &theme.design;
+            for dlg in [confirm(), prompt(), acknowledge()] {
+                let once = (dlg.measured_width(d), dlg.measured_height(d));
+                let twice = (dlg.measured_width(d), dlg.measured_height(d));
+                assert_eq!(once, twice, "the same props must measure the same");
+                assert!(once.0 > 0 && once.1 > 0);
+            }
+            // the input term, isolated: `prompt` costs one field, an
+            // acknowledgement costs one field plus its echo row
+            let bare = Dialog::new(DLG).title("Rename").body_rows(0);
+            let bare_h = bare
+                .measured_height(d)
+                .saturating_add(2 /* the action row prompt() carries */);
+            assert_eq!(
+                prompt().measured_height(d),
+                bare_h.saturating_add(d.size.field_height),
+                "prompt owes exactly `field_height` rows"
+            );
+            assert_eq!(
+                acknowledge().measured_height(d),
+                bare_h.saturating_add(d.size.field_height).saturating_add(1),
+                "an acknowledgement owes the echo row too"
+            );
+            assert_eq!(prompt().input_rows(d), d.size.field_height);
+            assert_eq!(
+                acknowledge().input_rows(d),
+                d.size.field_height.saturating_add(1)
+            );
+            assert_eq!(confirm().input_rows(d), 0);
+        }
+        // two themes, two answers, each read off that theme's own tokens
+        for theme in [Theme::junie(), Theme::paper()] {
+            let d = &theme.design;
+            assert_eq!(prompt().measured_width(d), d.size.dialog_width);
+            assert_eq!(
+                prompt().measured_height(d),
+                3u16.saturating_add(d.size.field_height).saturating_add(2),
+                "title + border, the prompt's field, the action block"
+            );
+        }
+    }
+
+    /// §28 P4: the prompt's `Field` gets exactly the rows `input_rows`
+    /// charged for it, so a prompt is never silently squeezed out of the
+    /// layer its own `measured_height` asked for.
+    #[test]
+    fn a_prompt_dialog_sizes_its_own_field_row() {
+        let (mut rt, _) = scene();
+        let st = DialogState::default();
+        let d = prompt();
+        let dt = &Theme::junie().design;
+        // exactly the layer the dialog asks the resolver for
+        let area = Rect::new(0, 0, d.measured_width(dt), d.measured_height(dt));
+        let mut buf = Buffer::empty(area);
+        rt.draw_scene(area, &mut buf, |ui, a| {
+            prompt().draw(ui, a, &st, |_, _| {});
+        });
+        // the chrome's own region, not the editor's: `Field` registers its
+        // block as `Decorative` under the control's id, and the control then
+        // registers its one-row editor under the same `(id, CONTAINER)` key
+        let field = rt
+            .registry()
+            .regions()
+            .iter()
+            .find(|r| {
+                r.owner == d.input_id()
+                    && r.part == PartRef::of(Part::CONTAINER)
+                    && matches!(r.kind, crate::hit::RegionKind::Decorative)
+            })
+            .map(|r| r.area)
+            .expect("the prompt's Field registers its chrome");
+        assert_eq!(
+            field.height, dt.size.field_height,
+            "the drawn field row is not the row `input_rows` charged for"
+        );
+        // the arithmetic half: `measured_height` minus every other term is
+        // exactly `input_rows`
+        let desc = d
+            .description
+            .map_or(0, |s| wrapped_rows(s, d.inner_width(dt)));
+        let actions: u16 = if d.actions.is_empty() { 0 } else { 2 };
+        let rest = 3u16
+            .saturating_add(desc)
+            .saturating_add(d.body_block(dt))
+            .saturating_add(actions);
+        assert_eq!(d.measured_height(dt).saturating_sub(rest), d.input_rows(dt));
+    }
+
+    /// §13 / §28 P3: a component that owns a layer runs its `update`
+    /// **unconditionally**. Esc dismisses the layer at §3.3 step 8 and then
+    /// re-runs `update`; by then `cx.is_open` is false, so the gated shape
+    /// would drain neither the `Cancel` nor the `Layer(Dismissed)` the
+    /// dismissal addressed to the dialog.
+    #[test]
+    fn an_unconditional_update_receives_the_dismissal() {
+        #[derive(Default)]
+        struct DialogApp {
+            st: DialogState,
+            opened: bool,
+            dismissed: Vec<DismissReason>,
+        }
+
+        impl App for DialogApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                if !self.opened {
+                    self.opened = true;
+                    cx.open_layer(DLG, confirm().layer(cx));
+                }
+                let r = confirm().update(cx, &mut self.st);
+                if let Some(DialogAction::Dismissed(reason)) = r.action_ref() {
+                    self.dismissed.push(*reason);
+                }
+                r.erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                ui.layer(DLG, |ui, a| {
+                    confirm().draw(ui, a, &self.st, |_, _| {});
+                });
+            }
+        }
+
+        let mut rt = Runtime::new(DialogApp::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = rt.handle(Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert!(rt.is_open(DLG), "the dialog sized and opened its own layer");
+        let _ = rt.handle(esc());
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert!(!rt.is_open(DLG));
+        assert_eq!(rt.app().dismissed, vec![DismissReason::Esc]);
+        assert!(
+            rt.diagnostics().is_empty(),
+            "the unconditional shape leaves nothing undelivered: {:?}",
+            rt.diagnostics()
+        );
+    }
+
+    /// A11 (§12.1, §28 P5): a forced rendering is a picture, not a control —
+    /// at any depth. The dialog registers no region of its own, its action
+    /// buttons register nothing, its prompt registers no editor, and the
+    /// focus ring stays empty.
+    #[test]
+    fn a_forced_dialog_registers_no_control() {
+        for dlg in [confirm(), prompt()] {
+            let (mut rt, mut buf) = scene();
+            let st = DialogState::default();
+            let id = dlg.id();
+            let action0 = dlg.action_id(0);
+            let input = dlg.input_id();
+            rt.draw_scene(SCREEN, &mut buf, |ui, a| {
+                dlg.state_override(StateFlags::FOCUSED)
+                    .draw(ui, a, &st, |_, _| {});
+            });
+            assert!(rt.registry().area_of(id).is_none(), "the chrome is live");
+            assert!(
+                rt.registry().area_of(action0).is_none(),
+                "an action button is live"
+            );
+            assert!(
+                !rt.registry().delivers_to(input),
+                "the prompt control is live"
+            );
+            assert_eq!(rt.ring().reachable().count(), 0, "a focus stop survived");
+        }
     }
 }

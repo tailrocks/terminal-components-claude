@@ -226,6 +226,10 @@ const CHECKS: &[Check] = &[
         "examples_are_external_consumers",
         examples_are_external_consumers,
     ),
+    (
+        "inherit_forced_stays_crate_internal",
+        inherit_forced_stays_crate_internal,
+    ),
 ];
 
 fn boundary(only: Option<&str>) -> Result<(), String> {
@@ -927,10 +931,35 @@ fn state_override_is_used_only_in_apps_and_fixtures() -> Result<(), String> {
             {
                 continue;
             }
+            // A `#[cfg(test)]` item in library source is a fixture context
+            // for the same reason `crates/tui/tests/**` is: it is compiled
+            // only for `cargo test`, it ships in no binary, and §16.1 puts a
+            // component's own unit tests beside the component
+            // (`dialog::a_forced_dialog_registers_no_control` asserts that a
+            // *forced* dialog registers nothing, which it cannot do without
+            // forcing one). The rule this check protects — no component
+            // forces its own visual state where behaviour depends on it —
+            // is about the code that runs in an application.
+            let mut depth: i32 = 0;
+            let mut pending_cfg_test = false;
+            let mut test_at: Option<i32> = None;
             for (i, line) in read(&file).lines().enumerate() {
                 let code = code_line(line);
-                if re.is_match(code) && !own.is_match(code) {
+                if test_at.is_none() && re.is_match(code) && !own.is_match(code) {
                     hits.push(format!("{path}:{}: {}", i.saturating_add(1), line.trim()));
+                }
+                if code.contains("#[cfg(test)]") {
+                    pending_cfg_test = true;
+                }
+                let opens = i32::try_from(code.matches('{').count()).unwrap_or(0);
+                let closes = i32::try_from(code.matches('}').count()).unwrap_or(0);
+                if pending_cfg_test && opens > 0 {
+                    test_at = Some(depth);
+                    pending_cfg_test = false;
+                }
+                depth = depth.saturating_add(opens).saturating_sub(closes);
+                if test_at.is_some_and(|d| depth <= d) {
+                    test_at = None;
                 }
             }
         }
@@ -941,6 +970,61 @@ fn state_override_is_used_only_in_apps_and_fixtures() -> Result<(), String> {
         Err(format!(
             "`.state_override(` outside apps/**, crates/tui/tests/**, crates/tui-testing/** and \
              a component's own builder forwarding:\n{}",
+            hits.join("\n")
+        ))
+    }
+}
+
+/// §12.1 / §21 item 30: `inherit_forced` is the **crate-internal**
+/// composition half of A11 — a container forcing a component it owns. It is
+/// deliberately not spelled `.state_override(`, so
+/// `state_override_is_used_only_in_apps_and_fixtures` still sees every
+/// *caller* use of the public affordance. That only holds while the hook
+/// itself cannot be reached from outside: if a later slice makes it `pub`
+/// anywhere but the `FieldControl` trait default, an application can force a
+/// component's state without ever writing `.state_override(`, and the A11
+/// boundary check becomes decorative.
+fn inherit_forced_stays_crate_internal() -> Result<(), String> {
+    let mut dirs = vec![root().join("crates")];
+    if root().join("apps").exists() {
+        dirs.push(root().join("apps"));
+    }
+    let re = Regex::new(r"\binherit_forced\b").map_err(|e| e.to_string())?;
+    let public = Regex::new(r"pub (const )?fn inherit_forced").map_err(|e| e.to_string())?;
+    // the trait declaration and its defaulted body
+    let trait_home = "crates/tui/src/field_control.rs";
+    let mut hits = Vec::new();
+    let mut seen = 0usize;
+    for dir in dirs {
+        for file in rust_files(&dir) {
+            let path = rel(&file);
+            if path.contains("/target/") {
+                continue;
+            }
+            let component = path.starts_with("crates/tui/src/components/");
+            let is_trait = path == trait_home;
+            for (i, line) in read(&file).lines().enumerate() {
+                let code = code_line(line);
+                if !re.is_match(code) {
+                    continue;
+                }
+                seen = seen.saturating_add(1);
+                let at = format!("{path}:{}: {}", i.saturating_add(1), line.trim());
+                if !component && !is_trait {
+                    hits.push(at);
+                } else if public.is_match(code) && !is_trait {
+                    hits.push(format!("{at}  (public outside the trait default)"));
+                }
+            }
+        }
+    }
+    println!("inherit_forced_stays_crate_internal: {seen} mention(s)");
+    if hits.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "`inherit_forced` may appear only under crates/tui/src/components/** and \
+             {trait_home}, and may be `pub` only as the trait default:\n{}",
             hits.join("\n")
         ))
     }

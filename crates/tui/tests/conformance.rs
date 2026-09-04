@@ -24,7 +24,9 @@ use tui_next::{
     SelectMode, Tabs, TabsAction, TabsCmd, TextCmd, TextInput, TextInputState, Theme,
     binding_conflicts, resolve_anchor,
 };
-use tui_next_testing::conformance::{Caps, Conformance, Fixture, FixtureRow};
+use tui_next_testing::conformance::{
+    Caps, Conformance, Fixture, FixtureRow, mono_states_required_by,
+};
 use tui_next_testing::{Harness, Scene, conformance_suite};
 
 const PROBE: Id = Id::root("conformance.probe");
@@ -211,12 +213,16 @@ impl Conformance for ButtonCase {
     }
 
     fn update(cx: &mut Cx<'_>, _st: &mut (), f: &Fixture) -> Response<Activated> {
-        Button::new(BTN, "Probe").disabled(f.disabled).update(cx)
+        Button::new(BTN, "Probe")
+            .disabled(f.disabled)
+            .status(f.status)
+            .update(cx)
     }
 
     fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), f: &Fixture) {
         let mut b = Button::new(BTN, "Probe")
             .disabled(f.disabled)
+            .status(f.status)
             .patch_part(patch_of(f));
         if !f.state_override.is_empty() {
             b = b.state_override(f.state_override);
@@ -233,12 +239,17 @@ impl Conformance for ButtonCase {
         Button::new(BTN, "").bindings(s)
     }
 
+    /// `BUSY` is kept: the spinner `Button` paints from
+    /// `design.motion.spinner_frames` is a *symbol*, so it is
+    /// mono-distinguishable without a theme rule — the driver makes the
+    /// forced state real by setting `Status::Busy` on the props too.
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 4] = [
+        const STATES: [StateFlags; 5] = [
             StateFlags::empty(),
             StateFlags::FOCUSED,
             StateFlags::PRESSED,
             StateFlags::DISABLED,
+            StateFlags::BUSY,
         ];
         &STATES
     }
@@ -267,6 +278,7 @@ fn text_input(id: Id, f: &Fixture) -> TextInput<'_> {
         .disabled(f.disabled)
         .read_only(f.read_only)
         .placeholder("Type here")
+        .status(f.status)
         .patch_part(patch_of(f));
     if f.secret.is_some() {
         t = t.secret(tui_next::SecretPolicy::default());
@@ -329,12 +341,18 @@ impl Conformance for TextInputCase {
         "hunter2"
     }
 
+    /// The full set the caps imply. `DISABLED` is reachable because §11.4's
+    /// mono table now carries `(FIELD, DISABLED)` and `(TEXT, DISABLED)` —
+    /// the two parts a text control paints for its own content — and `BUSY`
+    /// because `draw` paints the readiness spinner in the trailing cell.
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 4] = [
+        const STATES: [StateFlags; 6] = [
             StateFlags::empty(),
             StateFlags::FOCUSED,
             StateFlags::EDITING,
             StateFlags::ERROR,
+            StateFlags::DISABLED,
+            StateFlags::BUSY,
         ];
         &STATES
     }
@@ -385,6 +403,10 @@ impl Conformance for FieldCase {
         TextInput::new(FIELD_INPUT).bindings(s)
     }
 
+    /// `DISABLED` no longer depends on the chrome's `LABEL` being the one
+    /// part a mono rule reaches: the control's own `FIELD`/`TEXT` carry the
+    /// `DIM` too, so this asserts what §29 requires rather than what the
+    /// chrome happens to paint.
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 5] = [
             StateFlags::empty(),
@@ -423,6 +445,7 @@ fn list(f: &Fixture) -> FixtureList<'_> {
         .key(key)
         .row(row)
         .disabled_item(disabled)
+        .status(f.status)
         .patch_part(patch_of(f));
     if !f.state_override.is_empty() {
         l = l.state_override(f.state_override);
@@ -486,9 +509,13 @@ impl Conformance for ListCase {
         }
     }
 
-    /// A list never edits and is never the `ACTIVE` element of a strip;
-    /// `BUSY`/`LOADING` are the two readiness states §11.4 gives no mono
-    /// rule, so they are narrowed out rather than asserted (MA-8).
+    /// A list never edits and is never the `ACTIVE` element of a strip, so
+    /// `EDITING` and `ACTIVE` are narrowed permanently. `BUSY`/`LOADING` are
+    /// narrowed **temporarily**: §11.4 makes readiness a component
+    /// obligation (paint `Part::ICON` from `design.motion.spinner_frames`),
+    /// and `List` paints no such affordance yet. That is a named obligation
+    /// on `List` (slice 4E/4F), not a permanent exemption — when the
+    /// affordance lands, `BUSY` comes back here.
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 7] = [
             StateFlags::empty(),
@@ -520,6 +547,7 @@ fn tabs(f: &Fixture) -> FixtureTabs<'_> {
         .key(key)
         .row(row)
         .closable(true)
+        .status(f.status)
         .patch_part(patch_of(f));
     if !f.state_override.is_empty() {
         t = t.state_override(f.state_override);
@@ -587,11 +615,19 @@ impl Conformance for TabsCase {
         PartRef::item(Part::TAB, k)
     }
 
+    /// `ACTIVE` is narrowed because a tab strip expresses it through forced
+    /// `SELECTED`: the first windowed tab becomes `ACTIVE` only when the
+    /// forced state contains `SELECTED`, so forcing `ACTIVE` directly paints
+    /// nothing — and making it paint would make `SELECTED` and `ACTIVE`
+    /// produce identical output and fail this very case's pairwise
+    /// distinctness. An undocumented narrowing is indistinguishable from an
+    /// oversight, so the reason is written here.
     fn mono_states() -> &'static [StateFlags] {
-        const STATES: [StateFlags; 4] = [
+        const STATES: [StateFlags; 5] = [
             StateFlags::empty(),
             StateFlags::FOCUSED,
             StateFlags::SELECTED,
+            StateFlags::PRESSED,
             StateFlags::DISABLED,
         ];
         &STATES
@@ -801,6 +837,38 @@ conformance_suite!(
     scroll_region => ScrollRegionCase,
     props => PropsCase,
 );
+
+/// §16.2 suite-level (MA-8): the states a component's capabilities imply are
+/// a **union**, not a first match. The `if / else if` chain this replaced is
+/// what let a case declaring `EDITS | DISABLEABLE` keep only `EDITING` and
+/// narrow `DISABLED` away while the guard stayed green.
+#[test]
+fn mono_states_required_by_is_a_union() {
+    let both = mono_states_required_by(Caps::EDITS | Caps::DISABLEABLE);
+    assert!(
+        both.contains(&StateFlags::EDITING) && both.contains(&StateFlags::DISABLED),
+        "EDITS | DISABLEABLE must require both: {both:?}"
+    );
+    // every capability contributes, and the default state is always required
+    let all = mono_states_required_by(
+        Caps::FOCUSABLE | Caps::ACTIVATES | Caps::DISABLEABLE | Caps::EDITS | Caps::COLLECTION,
+    );
+    for s in [
+        StateFlags::empty(),
+        StateFlags::FOCUSED,
+        StateFlags::PRESSED,
+        StateFlags::DISABLED,
+        StateFlags::EDITING,
+        StateFlags::SELECTED,
+    ] {
+        assert!(all.contains(&s), "{s:?} missing from {all:?}");
+    }
+    // a component with no capabilities owes only the default state
+    assert_eq!(
+        mono_states_required_by(Caps::empty()),
+        vec![StateFlags::empty()]
+    );
+}
 
 /// §16.2 suite-level: two **visible** bindings on the same chord in one
 /// phase are a `Diagnostic::BindingConflict`. This is the check that makes

@@ -709,6 +709,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             ui.fill(tail, strip.style);
             let ts = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags);
             ui.paint_style(tab, ts.style);
+            // §11.4's mono `PRESSED` affordance: `[label]`. The row fn paints
+            // the label through `RowUi`, which cannot consult the `LABEL`
+            // glyph slot the way `Button::draw` does, so the strip paints the
+            // brackets itself — into the pad cells the tab already reserves,
+            // so a mono fallback never changes geometry. Without it a pressed
+            // tab and a focused tab are the same picture without colour
+            // (§16.2 case 9, MA-8).
+            if flags.contains(StateFlags::PRESSED) {
+                let ls = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::LABEL, flags);
+                if ls.glyph == Some(GlyphRole::PressLeft) {
+                    ui.glyph(cell_at(tab, tab.x), GlyphRole::PressLeft, ls.style);
+                    let right = tab.x.saturating_add(1).saturating_add(label_w);
+                    if right < tab.right() {
+                        ui.glyph(cell_at(tab, right), GlyphRole::PressRight, ls.style);
+                    }
+                }
+            }
             if self.closable {
                 let close_cell = cell_at(tab, tab.right().saturating_sub(2));
                 let cs = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::CLOSE, flags);
