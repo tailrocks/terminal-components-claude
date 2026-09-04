@@ -779,6 +779,64 @@ fn named_tests_allow() -> BTreeMap<String, String> {
     out
 }
 
+/// Benchmarks §16.6 records as **deleted**: their deletion is asserted by
+/// line-absence in `perf_baseline.txt` (§21 item 28), so the name must not
+/// appear as the first field of any data row of any baseline in the tree.
+const DELETED_PERF_ROWS: [(&str, &str); 1] = [(
+    "capsule_pane_clone_4x2000",
+    "§21 item 10 / §16.6: `Capsule` clones no viewport per frame, so the \
+     benchmark is deleted (Slice 7, apps/jackin-preview)",
+)];
+
+/// Every `perf_baseline.txt` in the tree, build output excluded.
+///
+/// There are two, holding disjoint rows: the root `tests/perf_baseline.txt` —
+/// the WP-0 pre-refactor baseline tagged `perf/baseline`, still carrying the
+/// application benchmarks that Slices 5–7 move out — and
+/// `crates/tui/tests/perf_baseline.txt`, the new library baseline written by
+/// `crates/tui-testing`. A deletion assertion aimed at one file alone passes by
+/// construction when the row lives in the other, and stops meaning anything
+/// the moment a slice moves a benchmark; scanning all of them is invariant
+/// under those moves.
+fn perf_baselines() -> Vec<PathBuf> {
+    WalkDir::new(root())
+        .into_iter()
+        .filter_entry(|e| {
+            let name = e.file_name().to_string_lossy();
+            !(e.file_type().is_dir() && (name == "target" || name == ".git"))
+        })
+        .filter_map(Result::ok)
+        .filter(|e| e.file_name() == "perf_baseline.txt")
+        .map(|e| e.path().to_path_buf())
+        .collect()
+}
+
+/// The §21 item 28 deletion assertion: one message per `DELETED_PERF_ROWS`
+/// name still present in a baseline, naming the file and line so the failure
+/// is actionable rather than a bare "must be ABSENT".
+fn surviving_deleted_perf_rows() -> Vec<String> {
+    let mut hits = Vec::new();
+    for path in perf_baselines() {
+        for (i, line) in read(&path).lines().enumerate() {
+            let row = line.trim();
+            if row.is_empty() || row.starts_with('#') {
+                continue;
+            }
+            let name = row.split_whitespace().next().unwrap_or_default();
+            for (deleted, why) in DELETED_PERF_ROWS {
+                if name == deleted {
+                    hits.push(format!(
+                        "{}:{}: {deleted} must be ABSENT from perf_baseline.txt — {why}",
+                        rel(&path),
+                        i.saturating_add(1)
+                    ));
+                }
+            }
+        }
+    }
+    hits
+}
+
 fn every_named_test_exists() -> Result<(), String> {
     let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
     if doc.is_empty() {
@@ -823,10 +881,7 @@ fn every_named_test_exists() -> Result<(), String> {
             .saturating_sub(deferred)
     );
     // the §21 item 28 deletion assertion
-    let baseline = read(&root().join("crates/tui/tests/perf_baseline.txt"));
-    if baseline.contains("capsule_pane_clone_4x2000") {
-        missing.push("capsule_pane_clone_4x2000 must be ABSENT from perf_baseline.txt".to_owned());
-    }
+    missing.extend(surviving_deleted_perf_rows());
     // an allow-list entry that is now satisfied must be removed
     let stale: Vec<&String> = allow.keys().filter(|n| have.contains(*n)).collect();
     if !stale.is_empty() {
@@ -842,14 +897,104 @@ fn every_named_test_exists() -> Result<(), String> {
     }
 }
 
+/// One `name => NameCase` entry of a `conformance_suite!` invocation.
+struct SuiteEntry {
+    module: syn::Ident,
+    case: syn::Type,
+}
+
+impl syn::parse::Parse for SuiteEntry {
+    fn parse(input: syn::parse::ParseStream<'_>) -> syn::Result<Self> {
+        let module: syn::Ident = input.parse()?;
+        input.parse::<syn::Token![=>]>()?;
+        let case: syn::Type = input.parse()?;
+        Ok(Self { module, case })
+    }
+}
+
+/// The case type names **registered** in `conformance.rs`'s
+/// `conformance_suite!` invocation, read from the macro's token stream.
+///
+/// Never a substring search over the file text. Incident 2: `select =>
+/// SelectCase,` is commented out of the list while the identifier
+/// `SelectCase` occurs nine more times in the same file — in prose, in
+/// `struct SelectCase;`, in its `impl Conformance` block and in three
+/// standalone tests — so `text.contains("SelectCase")` reported a withheld
+/// case as registered and the §16.2 coverage gate could not fail. Comments
+/// are not tokens, so nothing outside the list is visible here.
+fn registered_conformance_cases(path: &Path) -> Result<BTreeSet<String>, String> {
+    let text = read(path);
+    if text.is_empty() {
+        return Err(format!("{} not found", rel(path)));
+    }
+    let ast = syn::parse_file(&text).map_err(|e| format!("{} does not parse: {e}", rel(path)))?;
+    let mut cases = BTreeSet::new();
+    let mut invocations = 0usize;
+    collect_suite_entries(&ast.items, &mut cases, &mut invocations)?;
+    if invocations == 0 {
+        return Err(format!(
+            "{}: no conformance_suite! invocation — the §16.2 coverage gate has nothing to read",
+            rel(path)
+        ));
+    }
+    Ok(cases)
+}
+
+/// Walks items (and inline modules) for `conformance_suite!` invocations and
+/// parses each body as `name => NameCase,` entries.
+fn collect_suite_entries(
+    items: &[syn::Item],
+    cases: &mut BTreeSet<String>,
+    invocations: &mut usize,
+) -> Result<(), String> {
+    for item in items {
+        match item {
+            syn::Item::Mod(m) => {
+                if let Some((_, inner)) = &m.content {
+                    collect_suite_entries(inner, cases, invocations)?;
+                }
+            }
+            syn::Item::Macro(m)
+                if m.mac
+                    .path
+                    .segments
+                    .last()
+                    .is_some_and(|s| s.ident == "conformance_suite") =>
+            {
+                *invocations = invocations.saturating_add(1);
+                let entries = m
+                    .mac
+                    .parse_body_with(
+                        syn::punctuated::Punctuated::<SuiteEntry, syn::Token![,]>::parse_terminated,
+                    )
+                    .map_err(|e| format!("conformance_suite! body does not parse: {e}"))?;
+                for entry in entries {
+                    let syn::Type::Path(tp) = &entry.case else {
+                        return Err(format!(
+                            "conformance_suite!: entry `{}` registers a non-path case type",
+                            entry.module
+                        ));
+                    };
+                    let seg = tp.path.segments.last().ok_or_else(|| {
+                        format!(
+                            "conformance_suite!: entry `{}` registers an empty path",
+                            entry.module
+                        )
+                    })?;
+                    cases.insert(seg.ident.to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 /// §16.2: `conformance.rs`'s `conformance_suite!` must list a case for every
 /// public component, so adding a component without registering it fails CI.
 fn conformance_covers_every_public_component() -> Result<(), String> {
     let dir = root().join("crates/tui/src/components");
-    let suite = read(&root().join("crates/tui/tests/conformance.rs"));
-    if suite.is_empty() {
-        return Err("crates/tui/tests/conformance.rs not found".to_owned());
-    }
+    let registered = registered_conformance_cases(&root().join("crates/tui/tests/conformance.rs"))?;
     let mut missing = Vec::new();
     let mut covered = 0usize;
     for (path, ast) in parse_files(&dir) {
@@ -887,16 +1032,22 @@ fn conformance_covers_every_public_component() -> Result<(), String> {
             .collect();
         for name in drawn.intersection(&public) {
             let case = format!("{name}Case");
-            if suite.contains(&case) {
+            if registered.contains(&case) {
                 covered = covered.saturating_add(1);
             } else {
                 missing.push(format!(
-                    "{path}: {name} has no {case} in conformance_suite!"
+                    "{path}: {name} is not certified — the conformance_suite! list in \
+                     crates/tui/tests/conformance.rs has no `=> {case}` entry \
+                     (mentioning {case} elsewhere in that file does not register it)"
                 ));
             }
         }
     }
-    println!("conformance_covers_every_public_component: {covered} component(s) registered");
+    println!(
+        "conformance_covers_every_public_component: {covered} component(s) registered, \
+         {} entr(y/ies) in conformance_suite!",
+        registered.len()
+    );
     if missing.is_empty() {
         Ok(())
     } else {
@@ -1473,20 +1624,65 @@ fn no_todo_or_unimplemented() -> Result<(), String> {
     }
 }
 
+/// Whether a file carries the inner attribute `#![<level>(… <lint> …)]`.
+///
+/// Structural, because the substring form this replaced (`text.contains(
+/// "#![forbid(unsafe_code)]")`) also matched the same characters inside a
+/// line comment, a doc comment, a doc example or a string literal — a crate
+/// that merely *documented* the attribute passed the gate. A `reason = "…"`
+/// argument is consumed rather than aborting the walk, so it may precede the
+/// lint.
+fn file_has_inner_lint(path: &Path, level: &str, lint: &str) -> Result<bool, String> {
+    let ast =
+        syn::parse_file(&read(path)).map_err(|e| format!("{} does not parse: {e}", rel(path)))?;
+    Ok(ast.attrs.iter().any(|a| {
+        if !matches!(a.style, syn::AttrStyle::Inner(_)) || !a.path().is_ident(level) {
+            return false;
+        }
+        let mut hit = false;
+        let _ = a.parse_nested_meta(|m| {
+            if m.path.is_ident(lint) {
+                hit = true;
+            }
+            if m.input.peek(syn::Token![=]) {
+                m.value()?.parse::<syn::Expr>()?;
+            }
+            Ok(())
+        });
+        hit
+    }))
+}
+
+/// Whether any item — including items in inline modules — is an `unsafe impl`.
+fn has_unsafe_impl(items: &[syn::Item]) -> bool {
+    items.iter().any(|i| match i {
+        syn::Item::Impl(im) => im.unsafety.is_some(),
+        syn::Item::Mod(m) => m
+            .content
+            .as_ref()
+            .is_some_and(|(_, inner)| has_unsafe_impl(inner)),
+        _ => false,
+    })
+}
+
 fn no_unsafe() -> Result<(), String> {
-    let lib = read(&root().join("crates/tui/src/lib.rs"));
-    if !lib.contains("#![forbid(unsafe_code)]") {
+    let lib = root().join("crates/tui/src/lib.rs");
+    if !file_has_inner_lint(&lib, "forbid", "unsafe_code")? {
         return Err("crates/tui/src/lib.rs lacks #![forbid(unsafe_code)]".to_owned());
     }
-    let testing = read(&root().join("crates/tui-testing/src/lib.rs"));
-    if !testing.contains("#![deny(unsafe_code)]") {
+    let testing = root().join("crates/tui-testing/src/lib.rs");
+    if !file_has_inner_lint(&testing, "deny", "unsafe_code")? {
         return Err("crates/tui-testing/src/lib.rs lacks #![deny(unsafe_code)]".to_owned());
     }
-    let unsafe_files: Vec<String> = rust_files(&root().join("crates/tui-testing/src"))
-        .into_iter()
-        .filter(|f| read(f).contains("unsafe impl"))
-        .map(|f| rel(&f))
-        .collect();
+    let mut unsafe_files: Vec<String> = Vec::new();
+    for f in rust_files(&root().join("crates/tui-testing/src")) {
+        let ast =
+            syn::parse_file(&read(&f)).map_err(|e| format!("{} does not parse: {e}", rel(&f)))?;
+        if has_unsafe_impl(&ast.items) {
+            unsafe_files.push(rel(&f));
+        }
+    }
+    unsafe_files.sort();
     if unsafe_files == ["crates/tui-testing/src/perf.rs"] {
         Ok(())
     } else {
@@ -1576,6 +1772,9 @@ fn draw_takes_shared_self() -> Result<(), String> {
 
 fn cache_types_are_derived_only() -> Result<(), String> {
     let re = Regex::new(r"cache::<(\w+)>").map_err(|e| e.to_string())?;
+    // constant pattern: built once, borrowed by the (cache type × file) loop below
+    let state_struct =
+        Regex::new(r"pub struct (\w+State)\s*\{([^}]*)\}").map_err(|e| e.to_string())?;
     let src = root().join("crates/tui/src");
     let mut cache_types = BTreeSet::new();
     let mut texts = Vec::new();
@@ -1595,10 +1794,7 @@ fn cache_types_are_derived_only() -> Result<(), String> {
                 hits.push(format!("{path}: {ty} appears in a Response"));
             }
             // a struct named `*State` holding the cache type
-            for m in Regex::new(r"pub struct (\w+State)\s*\{([^}]*)\}")
-                .map_err(|e| e.to_string())?
-                .captures_iter(t)
-            {
+            for m in state_struct.captures_iter(t) {
                 if in_state.is_match(&m[2]) {
                     hits.push(format!("{path}: {} holds cache type {ty}", &m[1]));
                 }
@@ -1634,17 +1830,57 @@ fn capability_has_no_unicode_field() -> Result<(), String> {
     Err("Capability not found".to_owned())
 }
 
+/// Finds a declared function of a given name anywhere in a file — free,
+/// inherent, trait item or trait impl item.
+struct FnNamed<'a> {
+    want: &'a str,
+    found: bool,
+}
+
+impl<'ast> syn::visit::Visit<'ast> for FnNamed<'_> {
+    fn visit_signature(&mut self, sig: &'ast syn::Signature) {
+        if sig.ident == self.want {
+            self.found = true;
+        }
+        syn::visit::visit_signature(self, sig);
+    }
+}
+
+/// Whether any item — including items in inline modules — declares the named
+/// trait.
+fn declares_trait(items: &[syn::Item], want: &str) -> bool {
+    items.iter().any(|i| match i {
+        syn::Item::Trait(t) => t.ident == want,
+        syn::Item::Mod(m) => m
+            .content
+            .as_ref()
+            .is_some_and(|(_, inner)| declares_trait(inner, want)),
+        _ => false,
+    })
+}
+
 fn no_boolean_capability_parameter_on_grid() -> Result<(), String> {
     let grid = root().join("crates/tui/src/components/grid.rs");
     if !grid.exists() {
         return Ok(());
     }
-    let t = read(&grid);
-    if t.contains("fn editable(") {
-        return Err("grid.rs has fn editable(".to_owned());
+    // parsed, not grepped: `text.contains("fn editable(")` missed
+    // `fn editable (`, `fn editable<T>(` and a signature broken across lines,
+    // and matched a comment naming the forbidden shape
+    let ast =
+        syn::parse_file(&read(&grid)).map_err(|e| format!("{} does not parse: {e}", rel(&grid)))?;
+    let mut hunt = FnNamed {
+        want: "editable",
+        found: false,
+    };
+    syn::visit::visit_file(&mut hunt, &ast);
+    if hunt.found {
+        return Err("crates/tui/src/components/grid.rs declares fn editable".to_owned());
     }
     for f in rust_files(&root().join("crates/tui/src")) {
-        if read(&f).contains("trait GridCellActions") {
+        let ast =
+            syn::parse_file(&read(&f)).map_err(|e| format!("{} does not parse: {e}", rel(&f)))?;
+        if declares_trait(&ast.items, "GridCellActions") {
             return Err(format!("{}: trait GridCellActions", rel(&f)));
         }
     }
@@ -1716,6 +1952,9 @@ fn collect_macro_generated(api: &mut Api) {
         .unwrap_or_else(|_| Regex::new("$^").unwrap_or_else(|_| unreachable!()));
     let flag_re = Regex::new(r"const ([A-Z][A-Z0-9_]*)\s*=")
         .unwrap_or_else(|_| Regex::new("$^").unwrap_or_else(|_| unreachable!()));
+    // constant pattern: built once, borrowed by the `bitflags! {` scan below
+    let struct_re = Regex::new(r"pub struct (\w+)")
+        .unwrap_or_else(|_| Regex::new("$^").unwrap_or_else(|_| unreachable!()));
     for file in rust_files(&root().join("crates/tui/src")) {
         let text = read(&file);
         for (needle, ty) in [
@@ -1754,9 +1993,9 @@ fn collect_macro_generated(api: &mut Api) {
             let start = from + i;
             let end = text[start..].find("\n}").map_or(text.len(), |e| start + e);
             let body = &text[start..end];
-            let ty = Regex::new(r"pub struct (\w+)")
-                .ok()
-                .and_then(|r| r.captures(body).map(|c| c[1].to_owned()))
+            let ty = struct_re
+                .captures(body)
+                .map(|c| c[1].to_owned())
                 .unwrap_or_default();
             for cap in flag_re.captures_iter(body) {
                 api.members.insert((ty.clone(), cap[1].to_owned()));
