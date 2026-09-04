@@ -17,7 +17,7 @@ use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Columns the percentage column occupies: `"100%"` is the widest value.
@@ -28,6 +28,11 @@ pub(crate) const PCT_COLUMNS: u16 = 4;
 /// A component may not allocate once per frame (§20.9-6, R5) and there is no
 /// `Ui::paint_fmt`, so the two digits are produced by division rather than by
 /// `format!`.
+///
+/// Each branch of `of` writes a whole four-byte literal, percent sign
+/// included, so no column is ever addressed by a runtime index: the buffer's
+/// capacity is discharged by the array literal itself rather than by an
+/// in-bounds argument the reader has to reconstruct.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Pct {
     buf: [u8; 4],
@@ -38,27 +43,33 @@ impl Pct {
     /// `v` percent, clamped to `0..=100`.
     pub(crate) const fn of(v: u16) -> Self {
         let v = if v > 100 { 100 } else { v };
-        let mut buf = [0u8; 4];
-        let mut len;
-        if v >= 100 {
-            buf[0] = b'1';
-            buf[1] = b'0';
-            buf[2] = b'0';
-            len = 3;
+        // `len` counts the leading bytes that carry text; the tail is padding.
+        // Every digit is `v / 10` or `v % 10` of a value at most `99`, so the
+        // saturating adds below can never saturate; they are the checked form
+        // of `b'0' + d` and keep the digit correct for any `d <= 9`.
+        let (buf, len) = if v >= 100 {
+            (*b"100%", 4)
         } else if v >= 10 {
-            buf[0] = b'0' + (v / 10) as u8;
-            buf[1] = b'0' + (v % 10) as u8;
-            len = 2;
+            (
+                [
+                    b'0'.saturating_add((v / 10) as u8),
+                    b'0'.saturating_add((v % 10) as u8),
+                    b'%',
+                    0,
+                ],
+                3,
+            )
         } else {
-            buf[0] = b'0' + v as u8;
-            len = 1;
-        }
-        buf[len] = b'%';
-        len += 1;
+            ([b'0'.saturating_add(v as u8), b'%', 0, 0], 2)
+        };
         Pct { buf, len }
     }
 
     /// The rendered text, `"0%"` … `"100%"`.
+    ///
+    /// `len` is one of `2`, `3` or `4` and every byte written is ASCII, so
+    /// both fallible steps succeed; the `""` arm is a correct empty rendering
+    /// rather than a panic if a future edit breaks that.
     pub(crate) fn as_str(&self) -> &str {
         self.buf
             .get(..self.len)
@@ -324,10 +335,6 @@ impl<'a> ProgressBar<'a> {
     }
 
     /// The draw phase; returns the rect painted.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one pass over label, track, percentage and trailing glyph"
-    )]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = first_row(area);
         if area.is_empty() {
@@ -415,8 +422,14 @@ impl<'a> ProgressBar<'a> {
                         .copied()
                         .unwrap_or("");
                     ui.paint_str(icon_cell, frame, s.style);
-                } else if let Some(g) = self.icon.or(s.glyph) {
-                    ui.glyph(icon_cell, g, s.style);
+                } else {
+                    let recipe_glyph = match s.glyph {
+                        Slot::Set(g) => Some(g),
+                        Slot::Inherit | Slot::Clear => None,
+                    };
+                    if let Some(g) = self.icon.or(recipe_glyph) {
+                        ui.glyph(icon_cell, g, s.style);
+                    }
                 }
             }
         }
@@ -425,18 +438,19 @@ impl<'a> ProgressBar<'a> {
 
     /// `(first, last)` filled column of a `w`-wide track.
     fn filled_span(&self, w: u16) -> (u16, u16) {
-        match self.ratio {
-            Some(r) => (0, (f64::from(w) * r).round() as u16),
-            None => {
-                // the indeterminate sweep: a short segment crossing the track
-                let seg = (w / 5).clamp(2, 8);
-                let period = usize::from(w.saturating_add(seg)).max(1);
-                let pos = self.frame.checked_rem(period).unwrap_or(0) as i32 - i32::from(seg);
-                let from = pos.max(0) as u16;
-                let to = (pos + i32::from(seg)).clamp(0, i32::from(w)) as u16;
-                (from.min(w), to)
-            }
+        if let Some(r) = self.ratio {
+            return (0, (f64::from(w) * r).round() as u16);
         }
+        // The indeterminate sweep: a short segment crossing the track. The
+        // segment's trailing edge walks `0..w + seg`, so the span is
+        // `(edge - seg, edge)` clipped to the track — expressed with
+        // `saturating_sub` and `min`, which is the unsigned form of the same
+        // arithmetic and needs no signed intermediate to hold `edge < seg`.
+        let seg = (w / 5).clamp(2, 8);
+        let period = usize::from(w.saturating_add(seg)).max(1);
+        let edge = self.frame.checked_rem(period).unwrap_or(0);
+        let edge = u16::try_from(edge).unwrap_or(u16::MAX);
+        (edge.saturating_sub(seg).min(w), edge.min(w))
     }
 
     /// The natural size: one row wide enough for a usable track.
