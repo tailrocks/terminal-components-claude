@@ -1193,6 +1193,37 @@ keys (20 components × 64) and remain their sole owners. No live baseline or ble
 ```
 
 
+## Item 32 — First-generation per-app visual baselines (§74.3)
+
+The app baselines are new review surfaces created by the workspace split. Their first-generation
+keys are not movements of the frozen root evidence. The full matrix capture and independent visual
+review must land before this entry is treated as approval.
+
+```
+- surface:   showcase, tablepro and jackin-preview application surfaces / 100x30–120x40 / junie|paper / mono|truecolor
+- captures:  shots/capture-matrix.tsv and the corresponding `shots/<app>_*` ANSI/text/PNG artifacts from `xtask capture-matrix`
+- tests:     apps/showcase/tests/visual.rs::showcase_visual_baseline, apps/tablepro/tests/visual.rs::tablepro_visual_baseline, apps/jackin-preview/tests/preview.rs::jackin_visual_baseline
+- moved:     none
+- added:     408 keys: `{Buttons,Chips & selects,Chrome,Data grid,Dialogs,Editable tables,Editor,Forms,Inputs,Lists,Overview,Panels,Pickers,Progress,Scrolling,Settings,Sidebars,Tables,Task runner,Terminal,Text areas,Trees} {80 24,120 40} {junie,paper} {mono,truecolor}`, `{connections,connections-failed,completion-popup,error-result,explain-plan,explorer-focused,filter-editor,grid-cell-editing,help-dialog,history-tab,maximised-tab,pending-change-bar,query-editing,quick-switcher,results-grid,safe-mode-picker,safety-dialog-typed-ack,structure-view,tab-list-picker,table-grid,workbench-default} {80 24,120 40} {junie,paper} {mono,truecolor}`, `{first-use,returning,accounts-mixed,launch-running,launch-failure,capsule-multi,outro-last,hard-cases} {100 30,120 40} {junie,paper} {mono,truecolor}`
+- class:     intended
+- reason:    §20.10 item 32; each migrated app now has cell-exact, theme-aware evidence owned beside its tests, reviewed against running captures and frozen before evidence where available.
+```
+
+## Item 33 — First-generation per-app performance baselines (§74.3)
+
+The three app rows are produced by the shared allocation/timing harness. The root performance file
+remains frozen; later allocation or byte growth is a regression.
+
+```
+- surface:   showcase, tablepro and jackin-preview frame benchmarks / 120x40 / junie / release
+- captures:  none under shots/ — performance evidence is the `PERF` line emitted by each package-qualified target and the uploaded CI log
+- tests:     apps/showcase/tests/perf_baseline.txt, apps/tablepro/tests/perf_baseline.txt, apps/jackin-preview/tests/perf_baseline.txt; perf_showcase_baseline, perf_tablepro_baseline, perf_jackin_baseline
+- moved:     none
+- added:     3 rows: `frame_showcase_lists_120x40`, `frame_tablepro_grid_500x12_120x40`, `frame_jackin_manager_100rows_120x40`
+- class:     intended
+- reason:    §20.10 item 33; each migrated app now records its own measured frame row without modifying the frozen pre-refactor baseline.
+```
+
 ---
 
 ## Review status — Slice 4 component matrix, independent visual review (2026-09-05)

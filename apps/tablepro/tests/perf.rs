@@ -5,8 +5,11 @@
 //! a separate harness because the old backend is outside this package.
 
 use junie_tui::{Axis, KeyCode, Theme};
-use junie_tui_testing::Harness;
+use junie_tui_testing::{Harness, perf};
 use tablepro_app::{QueryOutcome, TableProApp};
+
+#[global_allocator]
+static GLOBAL: perf::Counting = perf::Counting;
 
 fn full_result_app() -> TableProApp {
     let mut app = TableProApp::default();
@@ -104,4 +107,19 @@ fn frame_tablepro_query_editor_2k_lines() {
     let harness = Harness::new(app, Theme::junie(), 120, 40);
     assert!(harness.find("TablePro").is_some());
     assert!(harness.diagnostics().is_empty());
+}
+
+#[test]
+fn perf_tablepro_baseline() {
+    let _guard = perf::lock();
+    let mut harness = Harness::new(full_result_app(), Theme::junie(), 120, 40);
+    let stats = perf::bench(2, perf::iters(100), &mut || {
+        harness.draw();
+        std::hint::black_box(harness.focus());
+    });
+    perf::report_to(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt"),
+        "frame_tablepro_grid_500x12_120x40",
+        &stats,
+    );
 }

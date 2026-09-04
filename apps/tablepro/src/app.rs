@@ -1,9 +1,9 @@
 //! TablePro application shell built only on the public `junie-tui` facade.
 
 use junie_tui::{
-    Action, ActionKey, App, Chord, Cx, Field, Form, FormAction, FormState, Grid, GridAction,
-    GridState, Id, KeyCode, KeyMap, KeyModifiers, KeyPhase, Panel, PanelKind, Response, Size,
-    StatusBar, StatusItem, TextInput, TextInputState, Ui, UpdateCause, Variant,
+    Action, ActionKey, App, Chord, ColorLevel, Cx, Field, Form, FormAction, FormState, Grid,
+    GridAction, GridState, Id, KeyCode, KeyMap, KeyModifiers, KeyPhase, Panel, PanelKind, Response,
+    Size, StatusBar, StatusItem, TextInput, TextInputState, Theme, Ui, UpdateCause, Variant,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -729,5 +729,36 @@ impl App for TableProApp {
 
 /// Start the interactive TablePro binary.
 pub fn run() -> std::io::Result<()> {
-    junie_tui::run(TableProApp::default(), junie_tui::Theme::junie())
+    let mut theme = Theme::junie();
+    let mut requested_color = None;
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--theme" => {
+                if let Some(value) = args.next()
+                    && value.eq_ignore_ascii_case("paper")
+                {
+                    theme = Theme::paper();
+                }
+            }
+            "--color" => {
+                requested_color = args.next().and_then(|value| parse_color_level(&value));
+            }
+            _ => {}
+        }
+    }
+    if let Some(level) = requested_color {
+        theme = theme.for_level(level);
+    }
+    junie_tui::run(TableProApp::default(), theme)
+}
+
+fn parse_color_level(value: &str) -> Option<ColorLevel> {
+    match value.to_ascii_lowercase().as_str() {
+        "truecolor" | "24bit" => Some(ColorLevel::TrueColor),
+        "256" | "ansi256" => Some(ColorLevel::Ansi256),
+        "16" | "ansi16" => Some(ColorLevel::Ansi16),
+        "none" | "mono" => Some(ColorLevel::Mono),
+        _ => None,
+    }
 }

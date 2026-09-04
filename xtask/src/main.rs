@@ -789,6 +789,7 @@ const CHECKS: &[Check] = &[
         "msrv_and_edition_are_unchanged",
         msrv_and_edition_are_unchanged,
     ),
+    ("workspace_root_is_virtual", workspace_root_is_virtual),
     ("no_unreachable_spin_loops", no_unreachable_spin_loops),
     (
         "ratatui_crossterm_is_named_in_exactly_two_files",
@@ -813,6 +814,7 @@ const CHECKS: &[Check] = &[
     ),
     ("binary_names_are_preserved", binary_names_are_preserved),
     ("capture_matrix_contract", capture_matrix_contract),
+    ("app_baselines_exist", app_baselines_exist),
     (
         "app_libs_are_not_published_and_are_not_depended_on_by_the_library",
         app_libs_are_not_published_and_are_not_depended_on_by_the_library,
@@ -1386,12 +1388,10 @@ fn doc_table_names(text: &str) -> BTreeSet<String> {
 /// one-directional "the name exists" check is the safer direction.
 fn declared_test_names() -> BTreeSet<String> {
     let r = root();
-    let mut dirs = vec![
-        r.join("crates"),
-        r.join("src"),
-        r.join("tests"),
-        r.join("xtask/src"),
-    ];
+    // Only Cargo-owned workspace source is test inventory. The root is a
+    // virtual workspace, so frozen `tests/` evidence and a detached legacy
+    // `src/` tree must never satisfy a named-test requirement (§47.4).
+    let mut dirs = vec![r.join("crates"), r.join("xtask/src")];
     if r.join("apps").exists() {
         dirs.push(r.join("apps"));
     }
@@ -2532,11 +2532,13 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
             }
         }
     }
-    // (3) apps
-    for p in &md.packages {
-        if !["showcase", "tablepro", "jackin-preview"].contains(&p.name.as_str()) {
+    // (3) apps: check the expected set, not only packages that happen to be
+    // present. A missing app must fail this named check by itself (§47.5).
+    for expected in ["showcase", "tablepro", "jackin-preview"] {
+        let Some(p) = md.packages.iter().find(|p| p.name == expected) else {
+            errors.push(format!("missing expected application package `{expected}`"));
             continue;
-        }
+        };
         let d: BTreeSet<String> = p
             .dependencies
             .iter()
@@ -2701,6 +2703,80 @@ fn root_package(md: &cargo_metadata::Metadata) -> Option<&cargo_metadata::Packag
     md.packages
         .iter()
         .find(|package| package.manifest_path.parent() == Some(md.workspace_root.as_path()))
+}
+
+/// The final workspace has no root package or root application source.
+///
+/// `root_package_bins()` is intentionally not enough: a residual root
+/// package containing only a library, or a detached `src/` tree, can otherwise
+/// make the migration look complete while Cargo no longer builds those files.
+fn workspace_root_is_virtual() -> Result<(), String> {
+    let md = metadata()?;
+    let mut errors = Vec::new();
+    if let Some(package) = root_package(&md) {
+        let targets: Vec<String> = package
+            .targets
+            .iter()
+            .map(|target| target.name.clone())
+            .collect();
+        errors.push(format!(
+            "workspace root still has package `{}` with targets {targets:?}; Cargo.toml must be virtual",
+            package.name
+        ));
+    }
+    for path in [root().join("src"), root().join("src/bin")] {
+        if path.exists() {
+            errors.push(format!(
+                "legacy root source exists at {} after root-package removal",
+                rel(&path)
+            ));
+        }
+    }
+    if errors.is_empty() {
+        println!("workspace_root_is_virtual: no root package or legacy root source");
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+/// Every migrated app owns a visual and performance baseline. Keeping this
+/// check separate from the diff guard prevents CI from silently skipping a
+/// missing file because `git diff --exit-code` has no path to compare.
+fn app_baselines_exist() -> Result<(), String> {
+    let mut missing = Vec::new();
+    for app in APPS {
+        let visual_name = if app.bin == "jackin-preview" {
+            "jackin.txt"
+        } else {
+            match app.bin {
+                "showcase" => "showcase.txt",
+                "tablepro" => "tablepro.txt",
+                _ => "app.txt",
+            }
+        };
+        let visual = root()
+            .join(app.dir)
+            .join("tests/baselines")
+            .join(visual_name);
+        let perf = root().join(app.dir).join("tests/perf_baseline.txt");
+        for path in [visual, perf] {
+            if !path.is_file() {
+                missing.push(rel(&path));
+            } else if read(&path).trim().is_empty() {
+                missing.push(format!("{} (empty)", rel(&path)));
+            }
+        }
+    }
+    if missing.is_empty() {
+        println!("app_baselines_exist: visual and perf baselines present for all apps");
+        Ok(())
+    } else {
+        Err(format!(
+            "missing required app baselines:\n  {}",
+            missing.join("\n  ")
+        ))
+    }
 }
 
 fn legacy_binary_source(app: &AppPackage) -> PathBuf {
@@ -5793,7 +5869,22 @@ fn doc_sections(text: &str) -> String {
 }
 
 fn doc_check() -> Result<(), String> {
-    let text = read(&root().join("COMPONENT_ARCHITECTURE.md"));
+    let path = root().join("COMPONENT_ARCHITECTURE.md");
+    if !path.is_file() {
+        return Err(format!("{} not found", rel(&path)));
+    }
+    let text = read(&path);
+    if text.trim().is_empty() {
+        return Err(format!("{} is empty", rel(&path)));
+    }
+    let stale_package = concat!("tui", "-", "next");
+    let stale_crate = concat!("tui", "_next");
+    if text.contains(stale_package) || text.contains(stale_crate) {
+        return Err(format!(
+            "{} contains stale pre-rename crate identifiers",
+            rel(&path)
+        ));
+    }
     let scoped = doc_sections(&text);
     let api = collect_api();
     let foreign = foreign_members();

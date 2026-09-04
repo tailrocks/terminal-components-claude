@@ -7,7 +7,10 @@
 
 use jackin_app::{APP, App, Motion, Route, Scenario};
 use junie_tui::{KeyCode, Theme};
-use junie_tui_testing::Harness;
+use junie_tui_testing::{Harness, perf};
+
+#[global_allocator]
+static GLOBAL: perf::Counting = perf::Counting;
 
 #[test]
 fn frame_jackin_capsule_4panes_120x40() {
@@ -67,5 +70,25 @@ fn key_jackin_manager_move() {
         harness.diagnostics().is_empty(),
         "{:?}",
         harness.diagnostics()
+    );
+}
+
+#[test]
+fn perf_jackin_baseline() {
+    let _guard = perf::lock();
+    let mut harness = Harness::new(
+        App::for_scenario(Scenario::HardCases, Motion::Paused),
+        Theme::junie(),
+        120,
+        40,
+    );
+    let stats = perf::bench(2, perf::iters(100), &mut || {
+        harness.draw();
+        std::hint::black_box(harness.focus());
+    });
+    perf::report_to(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt"),
+        "frame_jackin_manager_100rows_120x40",
+        &stats,
     );
 }

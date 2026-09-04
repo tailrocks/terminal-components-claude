@@ -1,9 +1,8 @@
 # Migration from the old experimental API
 
-This maps the pre-refactor `junie-tui` (the root package, `src/core/`,
-`src/ui/`, `src/widgets/`) onto the new library (`crates/tui`, temporarily
-`junie-tui` / `junie_tui` through Slices 5–7, then `junie-tui` / `junie_tui` in
-one scripted commit between Slice 7 and Slice 8).
+This maps the pre-refactor root package (`src/core/`, `src/ui/`,
+`src/widgets/`) onto the final library package at `crates/tui`
+(`junie-tui`, Rust path `junie_tui`).
 
 Two ground rules for reading it:
 
@@ -14,8 +13,8 @@ Two ground rules for reading it:
   does not exist yet, the row says so explicitly rather than describing
   something that is not there.
 
-See the note at the top of [`quickstart.md`](quickstart.md) about the
-temporary crate name (`junie-tui` through Slices 5–7).
+See the note at the top of [`quickstart.md`](quickstart.md) for the final crate
+name and package layout.
 
 ---
 

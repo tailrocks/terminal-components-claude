@@ -1,1 +1,2 @@
 # showcase performance baseline: test name ns allocs bytes — capture with the perf harness
+frame_showcase_lists_120x40 222361 1 60

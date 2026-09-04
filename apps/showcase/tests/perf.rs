@@ -2,8 +2,11 @@
 use std::hint::black_box;
 
 use junie_tui::{Axis, KeyCode, Theme};
-use junie_tui_testing::Harness;
+use junie_tui_testing::{Harness, perf};
 use showcase_app::{App, PageId};
+
+#[global_allocator]
+static GLOBAL: perf::Counting = perf::Counting;
 
 #[expect(
     clippy::panic,
@@ -117,4 +120,19 @@ fn render_twice_allocates_the_same() {
     }
     let second = h.snapshot().digest();
     assert_eq!(first, second, "repeated renders must keep the same scene");
+}
+
+#[test]
+fn perf_showcase_baseline() {
+    let _guard = perf::lock();
+    let mut harness = app(PageId::Lists, 120, 40);
+    let stats = perf::bench(2, perf::iters(200), &mut || {
+        harness.draw();
+        black_box(harness.focus());
+    });
+    perf::report_to(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt"),
+        "frame_showcase_lists_120x40",
+        &stats,
+    );
 }

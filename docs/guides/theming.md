@@ -10,8 +10,7 @@ This guide walks the twelve customisation scenarios the project requires, in
 order, each with code. Then it explains the precedence chain those scenarios
 sit on, and the `Slot` merge law that makes "unset" different from "cleared".
 
-Everything here is written against `junie_tui`; see the note at the top of
-[`quickstart.md`](quickstart.md) about the temporary crate name.
+Everything here is written against the final `junie_tui` public crate path.
 
 ---
 

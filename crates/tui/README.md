@@ -7,8 +7,7 @@ theme model (tokens, recipes, role-level patches, six-level precedence), layout
 primitives, the text editing core, the collection vocabulary and the runtime
 that drives the two-phase frame.
 
-The package is named `junie-tui` during Slices 3–4 and becomes `junie-tui` at the
-start of Slice 5.
+The package name is `junie-tui` and the Rust crate path is `junie_tui`.
 
 ## Quick start
 

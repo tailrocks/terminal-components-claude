@@ -4,8 +4,36 @@ use jackin_app::{
     ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, LAUNCH, LAUNCH_DIALOG, Motion, ROLE_CHOOSE,
     ROLE_PICKER, Route, RunId, Scenario,
 };
-use junie_tui::{KeyCode, Theme};
+use junie_tui::{ColorLevel, KeyCode, Theme};
 use junie_tui_testing::Harness;
+
+const BASELINE: junie_tui_testing::Baseline = junie_tui_testing::Baseline::new(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/baselines/jackin.txt"
+));
+
+#[test]
+fn jackin_visual_baseline() {
+    for scenario in Scenario::ALL {
+        for (width, height) in [(120, 40), (100, 30)] {
+            for theme in [Theme::junie(), Theme::paper()] {
+                for color in [ColorLevel::TrueColor, ColorLevel::Mono] {
+                    let harness = Harness::new(
+                        App::for_scenario(scenario, Motion::Paused),
+                        theme.clone(),
+                        width,
+                        height,
+                    )
+                    .with_color(color);
+                    harness
+                        .snapshot()
+                        .named(scenario.name())
+                        .assert_against(&BASELINE);
+                }
+            }
+        }
+    }
+}
 
 #[test]
 fn first_use_flow_enters_the_manager() {

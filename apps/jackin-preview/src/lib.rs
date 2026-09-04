@@ -50,8 +50,15 @@ pub fn run() -> std::io::Result<()> {
 
 /// Run a pinned scenario through the public `junie-tui` entry point.
 pub fn run_scenario(scenario: Scenario, motion: Motion, frame: u64) -> std::io::Result<()> {
-    junie_tui::run(
-        App::for_scenario_at(scenario, motion, frame),
-        junie_tui::Theme::junie(),
-    )
+    run_scenario_with_theme(scenario, motion, frame, junie_tui::Theme::junie())
+}
+
+/// Run a pinned scenario with a caller-selected theme.
+pub fn run_scenario_with_theme(
+    scenario: Scenario,
+    motion: Motion,
+    frame: u64,
+    theme: junie_tui::Theme,
+) -> std::io::Result<()> {
+    junie_tui::run(App::for_scenario_at(scenario, motion, frame), theme)
 }
