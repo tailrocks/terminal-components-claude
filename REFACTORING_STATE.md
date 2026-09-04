@@ -4,8 +4,8 @@
 
 ## Status
 
-- Overall: Slice 3 (foundations) built and independently reviewed; corrections pending. Slice 2 prototype components partially built (WIP).
-- Slice: 3 — foundations correction pass + prototype components, before Slice 4.
+- Overall: **Slice 3 CLOSED and green** (797 tests, boundary + doc-check exit 0). **Slice 4 wave 1 open.**
+- Slice: 4 — component families, wave 1.
 
 ## Baseline
 
@@ -33,6 +33,15 @@
 - N (docs/reviews/adjudication-n-layer-measure.md) — ACCEPTED: `LayerSpec.size: LayerSize{Fill,Fixed}` replaces `min_size`; `Cx::resize_layer/reanchor_layer`; `Anchor::Point` flips; Dialog sizes its own layer (`Dialog::layer(cx)`, `measured_width/height`, `body_rows`, `text::wrapped_rows`); `Ui::resolve(&self)` uncached no-record path, `Ui::glyph_str`, `Theme::metrics/PartMetrics`, `Ui::with_part`, `Ui::surface_style`, `Resolved::over`. `Ui::scroll_region` open for 4E.
 
 ## File ownership (active)
+
+### Slice 4 wave 1 (running)
+
+- `digest-race-fix`: `crates/tui-testing/src/{digest.rs,harness.rs}`. Structural fix for the bless read-modify-write race. Must not move a baseline.
+- `opus-analyst` Q1–Q3 (read-only): `Tabs` mono `PRESSED` mechanism (bracket idiom vs a `(Part::TAB, PRESSED)` rule vs teaching `RowUi::label` to honour the glyph slot — and whether `RowUi` ignoring it is itself a §12.2 defect); `Fixture::state_override` still public; an acceptance grep that can never pass.
+- `4B` fields/inputs: `components/{field,input,textarea,select,choice,chip,secret,validate}.rs`, `examples/06`, own test/digest additions.
+- `4G` status/hints/progress/meters: `components/{status,hintbar,progress,meter,empty,brand,keyhint}.rs`, own test/digest additions. `StatusBar` merges the legacy `statusbar` + `segments`.
+- **Contended-file protocol** (`components/mod.rs`, `lib.rs`, `author.rs`, `xtask/named_tests_allow.txt`): minimal single-line insertions in alphabetical position, re-read immediately before each edit, retry on failure. The `Edit` tool fails on a stale match rather than clobbering, so a race surfaces as an error, not as lost work.
+- HELD until Q1 lands (it may move `List` baselines): `4A` buttons/choices/brand-chrome, `4C` lists/trees/props/steps/nav, `4E` containers/scrolling. Wave 2 after: `4D` tabs, `4F` overlays, `4H` code/diff, `4I` grid.
 
 - DONE (587c53b) `arch-amend`: §25 (eight adjudications, D-1..D-13 verdicts, F1–F26 obligation table with test names, gate additions) and §26 (Adjudication N) appended; 83 `§25` + 35 `§26` inline markers; superseded text struck in place (§20.9-1 per-query bound, §21 item 20 `(u16,u16)`, §21 item 29 CIE76, §24.5 `author/raw.rs` file-placement paragraph, Appendix B.2 optional-crossterm). §17 self-check: 44 references, 0 unresolved library references.
 - DONE (7899678 — commit subject "feat(tui): add component architecture foundations" is a misnomer; the change is the F1–F26 + N1/N2 correction pass) `foundations-fix`. Verified independently by the coordinator: fmt clean; clippy `-D warnings` clean; `tui-next` lib 190→**220**; architecture 19+1F→**28**; render **8**; perf **22**; doc 1; `cargo check --no-default-features` OK; `RUSTDOCFLAGS=-D warnings cargo doc` 0 warnings; `xtask boundary` **23/23** with `legacy_api.txt` and `domain.txt` both empty; legacy root package **247** green. `tests/conformance.rs` 186 pass / **5 fail** — owned by the next builder, and 4 of the 5 are the intended effect of F17 (case 9 now requires the full ten mono states).
