@@ -443,10 +443,11 @@ fn mono_rules_extra() -> [MonoRule; 5] {
 ///
 /// The name is historical and is **not** a per-family total: it is cited by
 /// name in §16.1 and §20.10 item 18, so it keeps it. Six built-in families
-/// declare targeted rules on top of these (`VIEWPORT` 1, `GRID` 2, `MENU` 2,
-/// `HELP` 2, `PICKER` 3, `SELECT` 3) — `PICKER`'s `(LABEL, PRESSED)` retargets
-/// a pair the generic set already covers, so `PICKER` reaches 22 `(part,
-/// state)` pairs where `SELECT` reaches 23 — and a theme author can give any family —
+/// declare targeted rules on top of these (`VIEWPORT` 1, `GRID` 2, `PROPS` 1,
+/// `MENU` 2, `HELP` 2, `PICKER` 3, `SELECT` 3) — `PROPS` and `PICKER` retarget
+/// `(LABEL, PRESSED)`, a pair the generic set already covers, so `PROPS`
+/// remains at 20 and `PICKER` reaches 22 `(part, state)` pairs where `SELECT`
+/// reaches 23 — and a theme author can give any family —
 /// including a `Family::custom` one — its own targeted set through
 /// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules). The count
 /// that is constant across families is exactly this generic one; the total a
@@ -483,6 +484,14 @@ fn grid_mono_rules() -> [MonoRule; 2] {
                 .add(Modifier::BOLD),
         ),
     ]
+}
+
+fn props_mono_rules() -> [MonoRule; 1] {
+    [(
+        Part::LABEL,
+        StateFlags::PRESSED,
+        StylePatch::new().add(Modifier::BOLD | Modifier::UNDERLINED),
+    )]
 }
 
 fn menu_mono_rules() -> [MonoRule; 2] {
@@ -595,6 +604,7 @@ pub(crate) fn apply_mono_fallback(
     let builtin: &[MonoRule] = match family {
         Family::VIEWPORT => &viewport_mono_rules(),
         Family::GRID => &grid_mono_rules(),
+        Family::PROPS => &props_mono_rules(),
         Family::MENU => &menu_mono_rules(),
         Family::HELP => &help_mono_rules(),
         Family::PICKER => &picker_mono_rules(),
@@ -1031,6 +1041,28 @@ mod tests {
     }
 
     #[test]
+    fn props_mono_pressed_is_distinct_from_focused() {
+        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let resolve = |state| {
+            mono.resolve(
+                Family::PROPS,
+                Variant::DEFAULT,
+                Part::LABEL,
+                state,
+                Surface::Canvas,
+            )
+        };
+        let focused = resolve(StateFlags::FOCUSED);
+        let pressed = resolve(StateFlags::PRESSED);
+
+        assert!(focused.style.add_modifier.contains(Modifier::BOLD));
+        assert!(!focused.style.add_modifier.contains(Modifier::UNDERLINED));
+        assert!(pressed.style.add_modifier.contains(Modifier::BOLD));
+        assert!(pressed.style.add_modifier.contains(Modifier::UNDERLINED));
+        assert_ne!(pressed.style.add_modifier, focused.style.add_modifier);
+    }
+
+    #[test]
     fn author_override_precedence_beats_the_static_mono_layer() {
         let mono = Theme::junie()
             .override_family(Family::BUTTON, |recipe| {
@@ -1057,6 +1089,7 @@ mod tests {
         let extra = mono_rules_extra();
         let viewport = viewport_mono_rules();
         let grid = grid_mono_rules();
+        let props = props_mono_rules();
         let menu = menu_mono_rules();
         let help = help_mono_rules();
         let picker = picker_mono_rules();
@@ -1070,12 +1103,19 @@ mod tests {
         }));
         assert_eq!(viewport.len(), 1);
         assert_eq!(grid.len(), 2);
+        assert_eq!(props.len(), 1);
         assert_eq!(menu.len(), 2);
         assert_eq!(help.len(), 2);
         assert_eq!(picker.len(), 3);
         assert_eq!(select.len(), 3);
         assert!(grid.iter().any(|(part, when, patch)| {
             *part == Part::ROW && *when == StateFlags::PRESSED && patch.add.contains(Modifier::BOLD)
+        }));
+        assert!(props.iter().any(|(part, when, patch)| {
+            *part == Part::LABEL
+                && *when == StateFlags::PRESSED
+                && patch.add.contains(Modifier::BOLD)
+                && patch.add.contains(Modifier::UNDERLINED)
         }));
         assert!(picker.iter().any(|(part, when, patch)| {
             *part == Part::LABEL
@@ -1156,6 +1196,7 @@ mod tests {
             .chain(mono_rules_extra().iter())
             .chain(viewport_mono_rules().iter())
             .chain(grid_mono_rules().iter())
+            .chain(props_mono_rules().iter())
             .chain(menu_mono_rules().iter())
             .chain(help_mono_rules().iter())
             .chain(picker_mono_rules().iter())
@@ -1199,6 +1240,8 @@ mod tests {
         for (f, pairs) in [
             (Family::VIEWPORT, 21),
             (Family::GRID, 22),
+            // `PROPS` retargets the generic `(LABEL, PRESSED)` pair.
+            (Family::PROPS, 20),
             (Family::MENU, 22),
             (Family::HELP, 22),
             // `PICKER` declares three rules but one retargets `(LABEL,
