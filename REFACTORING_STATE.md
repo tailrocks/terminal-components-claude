@@ -273,3 +273,12 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - Remaining conformance failures: ChipBar ×4, RadioGroup ×2, registry META declaration ×1, and TextArea ×3.
 - Q3 machinery and Fixture consumers compile, but the proof is not green. Sagan made no commit or push.
 - Sagan left `COMPONENT_ARCHITECTURE.md`, `REFACTORING_STATE.md`, `crates/tui/tests/render_components.rs`, `crates/tui/src/lib.rs`, and `crates/tui/src/components/mod.rs` untouched.
+
+## Session 3 checkpoint — Harvey's Q1 completion (2026-09-04)
+
+- Harvey changed only the Q1 source files `crates/tui/src/components/mod.rs`, `crates/tui/src/components/button.rs`, `crates/tui/src/components/tabs.rs`, and `crates/tui/src/components/chip.rs`.
+- The shared pressed-bracket helper uses the two already-reserved cells. `Button` now paints the full label without truncation; Tabs and ChipBar use their reserved pad cells.
+- Focused Button, Tabs, and ChipBar tests each passed: `1 passed; 266 filtered`; exit code `0` for each.
+- `rtk git diff --check`: exit code `0`.
+- `cargo fmt --all --check`: exit code `1`, only for concurrent `meter.rs`, `components/mod.rs` ordering, `status.rs`, and `tests/perf.rs` formatting; no Q1 formatting issue was reported.
+- Q1 source is not committed or pushed yet. Global formatting awaits the other in-flight edits.
