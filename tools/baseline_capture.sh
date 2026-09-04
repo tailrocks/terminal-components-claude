@@ -86,7 +86,7 @@ shot() {
   tmux display -p -t $S "#{cursor_x} #{cursor_y} #{cursor_flag}" > "$OUT/$name.cursor"
   tmux capture-pane -t $S -p > "$OUT/$name.txt"
   python3 tools/ansi2html.py "$OUT/$name.ansi" "$OUT/$name.html" "$cols" "$rows"
-  "${PY:-python3}" tools/ansi2png.py "$OUT/$name.ansi" "$OUT/$name.png" "$cols" "$rows" "$OUT/$name.cursor" 2>>"$OUT/stderr/png.log" || true
+  "${PY:-python3}" tools/ansi2png.py "$OUT/$name.ansi" "$OUT/$name.png" "$cols" "$rows" "$OUT/$name.cursor" 2>>"$OUT/stderr/png.log"
   printf '%s\t%sx%s\t%s %s\t%s\t%s\n' "$name" "$cols" "$rows" "$CUR_BIN" "$CUR_ARGS" "${STEPS:-(none)}" "$(basename "$CUR_ERR")" >> "$TSV"
   echo "$OUT/$name ($cols x $rows)"
 }
