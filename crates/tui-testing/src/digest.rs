@@ -236,18 +236,21 @@ impl Scene {
             baseline.bless(&key, &format!("{digest:016x}"));
             return;
         }
-        match baseline.lookup(&key, digest) {
-            Lookup::Match => {}
-            Lookup::Mismatch(expected) => panic!(
+        // both failures print the frame: a digest cannot be eyeballed, and a
+        // first-generation line has no before-image to diff against, so the
+        // frame text is the only artefact a reviewer can read
+        let why = match baseline.lookup(&key, digest) {
+            Lookup::Match => return,
+            Lookup::Mismatch(expected) => format!(
                 "digest of `{key}` changed: baseline {expected}, got {digest:016x}; \
-                 classify the change against §20.10, capture it, then BLESS=1\n{}",
-                self.text()
+                 classify the change against §20.10, capture it, then BLESS=1"
             ),
-            Lookup::Missing => panic!(
+            Lookup::Missing => format!(
                 "no baseline for `{key}` in {}; run with BLESS=1 to record it",
                 baseline.path
             ),
-        }
+        };
+        panic!("{why}\n{}", self.text());
     }
 }
 
@@ -583,6 +586,34 @@ mod tests {
             corrupt,
             "a failing non-bless run wrote the baseline"
         );
+        let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
+    }
+
+    /// A run that is about to record a first-generation baseline must show
+    /// what it would record. A digest is sixteen hex digits and a new line
+    /// has no before-image to diff against, so the frame text is the only
+    /// reviewable artefact; the `Missing` branch used to print none of it,
+    /// which would have left the review clause naming an artefact the run
+    /// does not produce.
+    #[test]
+    fn a_missing_baseline_prints_the_frame_it_would_record() {
+        let path = temp_baseline("missing");
+        let out = run_worker(&path, 0, false);
+        assert!(
+            !out.status.success(),
+            "a missing baseline must fail the run"
+        );
+        let log = output_text(&out);
+        let frame = worker_scene("bless.00").text();
+        assert!(
+            log.contains(&format!(
+                "no baseline for `bless.00 10 3 junie truecolor` in {}; \
+                 run with BLESS=1 to record it\n{frame}",
+                path.display()
+            )),
+            "the failure must name the scene and print its frame:\n{log}"
+        );
+        assert!(!path.exists(), "a failing non-bless run wrote the baseline");
         let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
     }
 }
