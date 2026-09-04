@@ -282,3 +282,13 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - `rtk git diff --check`: exit code `0`.
 - `cargo fmt --all --check`: exit code `1`, only for concurrent `meter.rs`, `components/mod.rs` ordering, `status.rs`, and `tests/perf.rs` formatting; no Q1 formatting issue was reported.
 - Q1 source is not committed or pushed yet. Global formatting awaits the other in-flight edits.
+
+## Session 3 checkpoint — Rawls's TextArea ownership fix (2026-09-04)
+
+- Rawls changed only `crates/tui/src/components/scroll_region.rs` and `crates/tui/src/components/textarea.rs`.
+- `rtk cargo test -p tui-next --lib textarea`: `2 passed; 265 filtered`; exit code `0`.
+- `rtk cargo test -p tui-next --lib scroll_region`: `0 passed; 267 filtered`; exit code `0`.
+- `rtk cargo build -p tui-next --all-targets`: success; exit code `0`.
+- `rtk git diff --check` on the owned files: exit code `0`.
+- Remaining TextArea conformance issues are fixture-only: `text_area::mono_states_are_distinguishable` lacks non-empty controlled text, and `text_area::cursor_write_is_rejected_off_top_layer` has harness focus-settle timing after `tab_to`.
+- The production cursor contract remains focused + editing.
