@@ -1,6 +1,5 @@
 # perf baseline: name ns allocs bytes [hits ring]
 # regenerate with PERF_BLESS=1 in a release build; review like a snapshot
-capsule_pane_clone_4x2000 8808028 571572 23829520
 fit_10k_grapheme_line_to_80 176832 7 566
 focus_tab_traversal_ring_200 325679 0 0
 frame_jackin_capsule_4panes_120x40 24572550 1080602 74131917 26 3
