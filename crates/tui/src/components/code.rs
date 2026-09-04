@@ -1478,7 +1478,9 @@ impl<'a> CodeEditor<'a> {
                         .filter(|(range, _)| range.start <= offset && offset < range.end)
                         .map(|(_, role)| *role);
                     let mut painted = text_style;
-                    if let Some(role) = syntax {
+                    if let Some(role) = syntax
+                        && !live.contains(StateFlags::DISABLED)
+                    {
                         painted.fg = Some(syntax_color(ui, role));
                     }
                     if selection
@@ -1713,7 +1715,8 @@ mod tests {
     use crate::event::MouseKind;
     use crate::runtime::stub::{Stub, key, mouse};
     use crate::runtime::{App, Runtime};
-    use crate::theme::Theme;
+    use crate::theme::builder::contrast;
+    use crate::theme::{ColorLevel, Theme};
 
     const ID: Id = Id::root("code.tests");
 
@@ -1865,6 +1868,49 @@ mod tests {
             .segmenter(&segmenter);
         let state = CodeEditorState::new("let a;let b;");
         assert_eq!(editor.blocks(&state), [0..6, 6..12]);
+    }
+
+    #[test]
+    fn disabled_highlighted_text_keeps_contrast_and_dim_at_every_level() {
+        let area = Rect::new(0, 0, 40, 5);
+        let levels = [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ];
+        let highlighter = |text: &str| vec![(0..text.len(), SyntaxRole::Keyword)];
+        for base in [Theme::junie(), Theme::paper()] {
+            for level in levels {
+                let mut runtime = Runtime::new(Stub::default(), base.downgrade(level));
+                let mut buffer = Buffer::empty(area);
+                let state = CodeEditorState::new("let attempts = 5;");
+                runtime.draw_scene(area, &mut buffer, |ui, rect| {
+                    CodeEditor::new(ID, 5)
+                        .disabled(true)
+                        .highlighter(&highlighter)
+                        .draw(ui, rect, &state);
+                });
+                let text = runtime
+                    .area_of_part(ID, PartRef::of(Part::TEXT))
+                    .expect("disabled editor registers its text part");
+                for position in text.positions() {
+                    let cell = buffer
+                        .cell(position)
+                        .expect("text part positions are inside the buffer");
+                    assert!(
+                        contrast(cell.fg, cell.bg) >= 3.0,
+                        "{base:?}/{level:?}: disabled code at {position:?} has {:?} on {:?}",
+                        cell.fg,
+                        cell.bg
+                    );
+                    assert!(
+                        cell.modifier.contains(Modifier::DIM),
+                        "{base:?}/{level:?}: disabled code at {position:?} lost DIM"
+                    );
+                }
+            }
+        }
     }
 
     #[test]

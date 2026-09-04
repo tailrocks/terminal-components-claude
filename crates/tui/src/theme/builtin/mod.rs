@@ -252,10 +252,24 @@ fn field_like(m: &mut PartMap<PartRecipe>) {
 /// because syntax spans intentionally replace the text foreground.
 fn code_like(m: &mut PartMap<PartRecipe>) {
     field_like(m);
-    part(m, Part::CONTAINER, p().set_bg(Role::CurrentSurface)).when(
-        StateFlags::DISABLED,
-        p().set_fg(Role::DisabledFg).set_bg(Role::DisabledBg),
-    );
+    let disabled = p()
+        .set_fg(Role::Fg(FgStep::Primary))
+        .remove(Modifier::all())
+        .add(Modifier::DIM);
+    part(m, Part::CONTAINER, p().set_bg(Role::CurrentSurface))
+        .when(StateFlags::DISABLED, disabled.set_bg(Role::DisabledBg));
+    // Code paint starts from the container fill. These explicit rules keep
+    // every textual lane readable when disabled, including optional footer
+    // details and placeholders that do not inherit a field part.
+    for part_name in [
+        Part::TEXT,
+        Part::META,
+        Part::PLACEHOLDER,
+        Part::QUERY,
+        Part::DETAIL,
+    ] {
+        part(m, part_name, p()).when(StateFlags::DISABLED, disabled);
+    }
 }
 
 /// Wizard labels and markers are the only stateful parts of this compact
@@ -374,7 +388,9 @@ fn menu(r: &mut Recipe) {
         )
         .when(
             StateFlags::DISABLED,
-            p().set_fg(Role::DisabledFg).add(Modifier::DIM),
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::all())
+                .add(Modifier::DIM),
         );
     part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
     part(
@@ -687,9 +703,10 @@ pub(crate) fn default_recipes() -> Recipes {
 mod tests {
     use super::*;
     use crate::Slot;
-    use crate::theme::Theme;
     use crate::theme::border;
+    use crate::theme::builder::contrast;
     use crate::theme::patch::StateRule;
+    use crate::theme::{ColorLevel, Theme};
 
     #[test]
     fn every_family_has_a_recipe_and_rules_are_sorted() {
@@ -890,6 +907,87 @@ mod tests {
     fn builtin_border_sets_are_ratatui_sets() {
         assert_eq!(Theme::junie().design.borders, border::ROUNDED);
         assert_eq!(Theme::paper().design.borders, border::PLAIN);
+    }
+
+    #[test]
+    fn disabled_code_and_menu_styles_keep_contrast_at_every_level() {
+        let levels = [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ];
+        for base in [Theme::junie(), Theme::paper()] {
+            for level in levels {
+                let theme = base.downgrade(level);
+                let code_container = theme.resolve(
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    StateFlags::DISABLED,
+                    Surface::Canvas,
+                );
+                let code_bg = code_container.style.bg.unwrap_or(theme.bg(Surface::Canvas));
+                for part in [
+                    Part::CONTAINER,
+                    Part::META,
+                    Part::TEXT,
+                    Part::PLACEHOLDER,
+                    Part::QUERY,
+                    Part::DETAIL,
+                ] {
+                    let resolved = theme.resolve(
+                        Family::CODE,
+                        Variant::DEFAULT,
+                        part,
+                        StateFlags::DISABLED,
+                        Surface::Canvas,
+                    );
+                    let fg = resolved
+                        .style
+                        .fg
+                        .unwrap_or_else(|| panic!("{base:?}/{level:?} CODE/{part:?} has no fg"));
+                    let bg = resolved.style.bg.unwrap_or(code_bg);
+                    assert!(
+                        contrast(fg, bg) >= 3.0,
+                        "{base:?}/{level:?} CODE/{part:?}: {fg:?} on {bg:?} is below 3:1"
+                    );
+                    assert!(
+                        resolved.style.add_modifier.contains(Modifier::DIM),
+                        "{base:?}/{level:?} CODE/{part:?} lost the non-colour DIM signal"
+                    );
+                }
+
+                let menu_container = theme.resolve(
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    StateFlags::empty(),
+                    Surface::Canvas,
+                );
+                let container_bg = menu_container.style.bg.unwrap_or(theme.bg(Surface::Canvas));
+                let menu_title = theme.resolve(
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    StateFlags::DISABLED,
+                    Surface::Canvas,
+                );
+                let title_fg = menu_title
+                    .style
+                    .fg
+                    .unwrap_or_else(|| panic!("{base:?}/{level:?} MENU/TITLE has no fg"));
+                let title_bg = menu_title.style.bg.unwrap_or(container_bg);
+                assert!(
+                    contrast(title_fg, title_bg) >= 3.0,
+                    "{base:?}/{level:?} MENU/TITLE: {title_fg:?} on {title_bg:?} is below 3:1"
+                );
+                assert!(
+                    menu_title.style.add_modifier.contains(Modifier::DIM),
+                    "{base:?}/{level:?} MENU/TITLE lost the non-colour DIM signal"
+                );
+            }
+        }
     }
 
     #[test]
