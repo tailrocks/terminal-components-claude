@@ -65,6 +65,24 @@ pub trait App {
     }
 }
 
+/// Why the runtime is invoking [`App::update`].
+///
+/// The cause is scoped to one update pass. A focus-settling rerun is always
+/// [`UpdateCause::Settle`], so a single physical timer delivery cannot advance
+/// application time more than once.
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UpdateCause {
+    /// The first update, before the first draw or externally handled event.
+    Bootstrap,
+    /// An externally supplied key, mouse, paste or resize event.
+    Event,
+    /// A timer/deadline delivery.
+    Tick,
+    /// A rerun used to settle a focus transition staged by an earlier pass.
+    Settle,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Press {
     owner: Id,
@@ -115,6 +133,7 @@ pub struct Runtime<A: App> {
     /// (§29.8 D2). Drained in lockstep with `services.closed_layers`.
     focus_out_closed: Vec<Id>,
     unsettled: usize,
+    bootstrapped: bool,
 }
 
 impl<A: App> core::fmt::Debug for Runtime<A> {
@@ -155,6 +174,7 @@ impl<A: App> Runtime<A> {
             layer_events_pending: Vec::new(),
             focus_out_closed: Vec::new(),
             unsettled: 0,
+            bootstrapped: false,
         }
     }
 
@@ -221,6 +241,15 @@ impl<A: App> Runtime<A> {
             || self.services.repaint_after.is_some()
             || self.inter.flash.is_some()
             || self.last_invalidate >= Invalidate::Paint
+    }
+
+    /// The earliest outstanding repaint deadline requested by the app.
+    ///
+    /// The duration is relative to the update that established the deadline.
+    /// It persists across unrelated input and is consumed when the runtime
+    /// receives [`Input::Tick`]. Multiple requests keep the shortest duration.
+    pub const fn next_deadline(&self) -> Option<core::time::Duration> {
+        self.services.repaint_after
     }
 
     /// The virtual clock, in milliseconds (advanced by `Input::Tick`).
@@ -795,11 +824,16 @@ impl<A: App> Runtime<A> {
     }
 
     /// Step 7: `app.update` with the frozen queue, re-run while focus moves.
-    fn run_update(&mut self, command: Option<ActionKey>) -> Response<()> {
+    fn run_update(&mut self, command: Option<ActionKey>, cause: UpdateCause) -> Response<()> {
         self.core.begin_cache_frame(self.generation.wrapping_add(1));
         let mut folded = Response::ignored();
         let mut first_pass = true;
         loop {
+            let pass_cause = if first_pass {
+                cause
+            } else {
+                UpdateCause::Settle
+            };
             self.pump_layer_events();
             self.apply_staged_focus();
             // a focus-out dismissal fired inside `apply_staged_focus` staged
@@ -810,13 +844,14 @@ impl<A: App> Runtime<A> {
             let events = core::mem::take(&mut self.layer_events_pending);
             self.services.events.extend(events);
             let r = {
-                let mut cx = Cx::new(
+                let mut cx = Cx::new_with_cause(
                     &self.intents,
                     &mut self.services,
                     &mut self.core,
                     &self.last,
                     &self.theme,
                     command,
+                    pass_cause,
                 );
                 self.app.update(&mut cx)
             };
@@ -885,8 +920,28 @@ impl<A: App> Runtime<A> {
         folded
     }
 
+    /// Run the one update that precedes the first draw or externally handled
+    /// event. Keeping this on `Runtime` gives terminal and headless callers
+    /// identical lifecycle semantics.
+    fn ensure_bootstrap(&mut self) {
+        if self.bootstrapped {
+            return;
+        }
+        self.bootstrapped = true;
+        self.sync_keymap();
+        self.refresh_keymap_conflicts();
+        self.services
+            .diagnostics
+            .extend(self.keymap_conflicts.iter().cloned());
+        self.services.registry_gen = self.last.registry.generation();
+        self.intents.clear();
+        let r = self.run_update(None, UpdateCause::Bootstrap);
+        let _ = self.finish(r);
+    }
+
     /// `Runtime::handle` — steps 1–9.
     pub fn handle(&mut self, input: Input) -> Response<()> {
+        self.ensure_bootstrap();
         self.services.diagnostics.clear();
         self.sync_keymap();
         self.refresh_keymap_conflicts();
@@ -894,7 +949,6 @@ impl<A: App> Runtime<A> {
             .diagnostics
             .extend(self.keymap_conflicts.iter().cloned());
         self.services.repaint = false;
-        self.services.repaint_after = None;
         self.intents.clear();
         self.services.registry_gen = self.last.registry.generation();
         // focus moved at the last draw's reconcile: deliver FocusOut/FocusIn now
@@ -908,6 +962,7 @@ impl<A: App> Runtime<A> {
         }
         self.pump_layer_events();
         let mut key_input: Option<Key> = None;
+        let mut update_cause = UpdateCause::Event;
         match input {
             Input::Resize(w, h) => {
                 self.resize(w, h);
@@ -915,10 +970,15 @@ impl<A: App> Runtime<A> {
                 // `FocusIn` pair staged for a `pending_focus` is already in
                 // the queue and must reach `app.update` before `finish`
                 // clears it (MA-7).
-                let r = self.run_update(None) | Response::changed().relayout();
+                let r = self.run_update(None, UpdateCause::Event) | Response::changed().relayout();
                 return self.finish(r);
             }
             Input::Tick => {
+                update_cause = UpdateCause::Tick;
+                // A delivered tick consumes the deadline that woke it. Any
+                // replacement requested by the Tick update becomes the next
+                // deadline and therefore survives this handle.
+                self.services.repaint_after = None;
                 self.clock_ms = self
                     .clock_ms
                     .saturating_add(self.theme.design.motion.tick_ms);
@@ -935,7 +995,7 @@ impl<A: App> Runtime<A> {
                 // step 2: capture chords first
                 let swallows = self.swallows_typing();
                 if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Capture, &k, swallows) {
-                    let r = self.run_update(Some(cmd));
+                    let r = self.run_update(Some(cmd), UpdateCause::Event);
                     return self.finish(r);
                 }
                 key_input = Some(k);
@@ -950,13 +1010,13 @@ impl<A: App> Runtime<A> {
                 }
             }
         }
-        let mut r = self.run_update(None);
+        let mut r = self.run_update(None, update_cause);
         // step 8: bubble
         if let Some(k) = key_input
             && !r.is_consumed()
         {
             if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
-                r |= self.run_update(Some(cmd));
+                r |= self.run_update(Some(cmd), UpdateCause::Event);
             } else if k.code == KeyCode::Esc {
                 let dismissable = self
                     .services
@@ -965,16 +1025,17 @@ impl<A: App> Runtime<A> {
                     .is_some_and(|l| l.spec.dismiss.esc);
                 if dismissable {
                     self.dismiss_top(DismissReason::Esc);
-                    r |= self.run_update(None).repaint();
+                    r |= self.run_update(None, UpdateCause::Event).repaint();
                 } else {
                     let esc = {
-                        let mut cx = Cx::new(
+                        let mut cx = Cx::new_with_cause(
                             &self.intents,
                             &mut self.services,
                             &mut self.core,
                             &self.last,
                             &self.theme,
                             None,
+                            UpdateCause::Event,
                         );
                         self.app.on_esc(&mut cx)
                     };
@@ -1021,6 +1082,7 @@ impl<A: App> Runtime<A> {
         buf: &mut Buffer,
         paint: impl FnOnce(&A, &mut Ui<'_>),
     ) {
+        self.ensure_bootstrap();
         // step 10: new frame state
         if area != self.screen {
             self.screen = area;
@@ -1306,7 +1368,7 @@ pub(crate) mod stub {
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
 
-    use super::{App, Runtime};
+    use super::{App, Runtime, UpdateCause};
     use crate::event::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
     use crate::focus::Focusability;
     use crate::hit::{Axes, Headroom};
@@ -1394,6 +1456,11 @@ pub(crate) mod stub {
     impl App for Stub {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             self.updates = self.updates.saturating_add(1);
+            // The bootstrap pass is lifecycle plumbing. Keep this fixture's
+            // queued test actions for the first externally handled event.
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                return Response::ignored();
+            }
             let mut r = Response::ignored();
             let controls: Vec<Control> = self.controls().cloned().collect();
             for c in &controls {
@@ -1546,6 +1613,152 @@ mod tests {
     const ROUTE_CONSUME_RAW: u8 = 1 << 3;
     const ROUTE_TAB: u8 = 1 << 4;
 
+    #[derive(Default)]
+    struct BootstrapProbe {
+        causes: Vec<UpdateCause>,
+    }
+
+    impl App for BootstrapProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.causes.push(cx.update_cause());
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.request_repaint_after(core::time::Duration::from_millis(33));
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+    }
+
+    #[test]
+    fn bootstrap_runs_once_before_first_draw_without_a_tick() {
+        let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+
+        assert_eq!(rt.clock_ms(), 0);
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(rt.app().causes, vec![UpdateCause::Bootstrap]);
+        assert_eq!(rt.clock_ms(), 0);
+        assert_eq!(
+            rt.next_deadline(),
+            Some(core::time::Duration::from_millis(33))
+        );
+
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(rt.app().causes, vec![UpdateCause::Bootstrap]);
+        assert_eq!(rt.clock_ms(), 0);
+    }
+
+    #[derive(Default)]
+    struct TickCauseProbe {
+        causes: Vec<UpdateCause>,
+    }
+
+    impl App for TickCauseProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.causes.push(cx.update_cause());
+            if cx.update_cause() == UpdateCause::Tick {
+                cx.focus(B);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(A, Rect::new(0, 0, 8, 1), Focusability::Focusable);
+            ui.register_control(B, Rect::new(0, 2, 8, 1), Focusability::Focusable);
+        }
+    }
+
+    #[test]
+    fn tick_cause_is_delivered_once_when_focus_settles() {
+        let mut rt = Runtime::new(TickCauseProbe::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        rt.app_mut().causes.clear();
+
+        let _ = rt.handle(Input::Tick);
+        assert_eq!(
+            rt.app().causes,
+            vec![UpdateCause::Tick, UpdateCause::Settle]
+        );
+        assert_eq!(rt.focus(), Some(B));
+    }
+
+    #[derive(Default)]
+    struct DeadlineProbe {
+        requests: Vec<core::time::Duration>,
+        updates: usize,
+    }
+
+    impl App for DeadlineProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let request = self.requests.get(self.updates).copied();
+            self.updates = self.updates.saturating_add(1);
+            if let Some(duration) = request {
+                cx.request_repaint_after(duration);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+    }
+
+    #[test]
+    fn repaint_deadline_survives_unrelated_input_and_keeps_the_earliest() {
+        let mut rt = Runtime::new(
+            DeadlineProbe {
+                requests: vec![
+                    core::time::Duration::from_millis(40),
+                    core::time::Duration::from_millis(100),
+                    core::time::Duration::from_millis(10),
+                ],
+                updates: 0,
+            },
+            Theme::junie(),
+        );
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        assert_eq!(
+            rt.next_deadline(),
+            Some(core::time::Duration::from_millis(40))
+        );
+
+        let _ = rt.handle(Input::Key(Key {
+            code: KeyCode::Char('x'),
+            mods: KeyModifiers::NONE,
+        }));
+        assert_eq!(
+            rt.next_deadline(),
+            Some(core::time::Duration::from_millis(40))
+        );
+
+        let _ = rt.handle(Input::Mouse(Mouse {
+            kind: MouseKind::Move,
+            pos: Position::new(1, 1),
+            mods: KeyModifiers::NONE,
+        }));
+        assert_eq!(
+            rt.next_deadline(),
+            Some(core::time::Duration::from_millis(10))
+        );
+
+        let _ = rt.handle(Input::Tick);
+        assert_eq!(rt.next_deadline(), None);
+    }
+
+    #[test]
+    fn headless_tick_uses_the_same_update_cause_without_wall_clock() {
+        let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buf);
+        rt.app_mut().causes.clear();
+
+        let before = rt.clock_ms();
+        let _ = rt.handle(Input::Tick);
+        assert_eq!(rt.app().causes, vec![UpdateCause::Tick]);
+        assert_eq!(rt.clock_ms(), before + rt.theme().design.motion.tick_ms);
+    }
+
     const REFERENCE_LAYER: Id = Id::root("runtime.reference-layer");
     const REFERENCE_PAGE: Id = Id::root("runtime.reference-page");
     const REFERENCE_LAYER_CONTROL: Id = Id::root("runtime.reference-layer-control");
@@ -1558,7 +1771,10 @@ mod tests {
 
     impl App for ReferenceLayerApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if self.open && !cx.is_open(REFERENCE_LAYER) {
+            if cx.update_cause() != UpdateCause::Bootstrap
+                && self.open
+                && !cx.is_open(REFERENCE_LAYER)
+            {
                 cx.open_layer(
                     REFERENCE_LAYER,
                     LayerSpec::modal(REFERENCE_LAYER).inert_below(false),

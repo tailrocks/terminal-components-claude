@@ -3,7 +3,7 @@
 use tui_next::{
     App, Cx, Family, FrameRead, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, ReferenceState,
     ReferenceTarget, Response, Role, StateFlags, StatusBar, StatusItem, StylePatch, Surface, Theme,
-    Ui,
+    Ui, UpdateCause,
 };
 use tui_next_testing::Harness;
 
@@ -38,6 +38,9 @@ impl StatusApp {
 
 impl App for StatusApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() == UpdateCause::Bootstrap {
+            return Response::ignored();
+        }
         if let Some(sample) = self.hover_samples.get_mut(self.updates) {
             *sample = FrameRead::hovered_part(cx, BAR);
         }

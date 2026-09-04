@@ -10,7 +10,7 @@
 //! is the only file that names raw-mode / alternate-screen commands.
 
 use std::io::{self, Stdout, Write, stdout};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use ratatui_core::terminal::Terminal;
 use ratatui_crossterm::CrosstermBackend;
@@ -122,9 +122,9 @@ impl Drop for TerminalSession {
     }
 }
 
-/// Run an application to completion: draw, wait for input (at the tick
-/// cadence when a repaint is pending, at the idle cadence otherwise),
-/// handle, repeat until `App::should_quit` or `Cx::quit`.
+/// Run an application to completion: draw, wait for input or the earliest
+/// requested repaint deadline, handle, repeat until `App::should_quit` or
+/// `Cx::quit`.
 ///
 /// `theme` is narrowed once, here, by [`Theme::for_terminal`] (§34.2). This is
 /// the only place in the library that resolves colour capability: a theme is
@@ -151,32 +151,81 @@ impl Drop for TerminalSession {
 pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
     let mut session = TerminalSession::enter()?;
     let mut rt = Runtime::new(app, theme.for_terminal());
-    let tick = Duration::from_millis(rt.theme().design.motion.tick_ms);
     let idle = Duration::from_millis(rt.theme().design.motion.idle_tick_ms);
+    // `Runtime::next_deadline` intentionally exposes a duration rather than
+    // wall-clock state so headless callers remain deterministic. Keep the
+    // corresponding absolute instant here, and only replace it when the
+    // runtime's requested duration changes. Thus unrelated input cannot
+    // postpone an already scheduled deadline.
+    let mut scheduled: Option<(Duration, Instant)> = None;
     loop {
         session.terminal().draw(|f| rt.draw(f))?;
         if rt.app().should_quit() || rt.quit_requested() {
             break;
         }
-        let wait = if rt.wants_tick() { tick } else { idle };
+        sync_deadline(&rt, &mut scheduled, false);
         let mut got_input = false;
         while poll(Duration::ZERO)? {
             if let Some(input) = Input::from_crossterm(read()?) {
+                let is_tick = matches!(&input, Input::Tick);
                 let _ = rt.handle(input);
+                sync_deadline(&rt, &mut scheduled, is_tick);
                 got_input = true;
             }
         }
-        if !got_input {
-            if poll(wait)? {
-                if let Some(input) = Input::from_crossterm(read()?) {
-                    let _ = rt.handle(input);
-                }
-            } else {
-                let _ = rt.handle(Input::Tick);
+        if got_input {
+            continue;
+        }
+
+        let now = Instant::now();
+        let wait = scheduled.map_or(idle, |(_, at)| at.saturating_duration_since(now).min(idle));
+        if poll(wait)? {
+            if let Some(input) = Input::from_crossterm(read()?) {
+                let is_tick = matches!(&input, Input::Tick);
+                let _ = rt.handle(input);
+                sync_deadline(&rt, &mut scheduled, is_tick);
             }
+        } else if scheduled.is_some_and(|(_, at)| Instant::now() >= at) {
+            // A timeout is a timer delivery only when a deadline exists. In
+            // particular, an idle poll never creates an unsolicited tick.
+            let _ = rt.handle(Input::Tick);
+            sync_deadline(&rt, &mut scheduled, true);
         }
     }
     session.leave()
+}
+
+fn sync_deadline<A: App>(
+    rt: &Runtime<A>,
+    scheduled: &mut Option<(Duration, Instant)>,
+    reset: bool,
+) {
+    let requested = rt.next_deadline();
+    if reset {
+        *scheduled = requested.map(|duration| {
+            let at = Instant::now()
+                .checked_add(duration)
+                .unwrap_or_else(Instant::now);
+            (duration, at)
+        });
+        return;
+    }
+    match (*scheduled, requested) {
+        (_, None) => *scheduled = None,
+        (None, Some(duration)) => {
+            let at = Instant::now()
+                .checked_add(duration)
+                .unwrap_or_else(Instant::now);
+            *scheduled = Some((duration, at));
+        }
+        (Some((previous, _)), Some(duration)) if previous != duration => {
+            let at = Instant::now()
+                .checked_add(duration)
+                .unwrap_or_else(Instant::now);
+            *scheduled = Some((duration, at));
+        }
+        (Some(_), Some(_)) => {}
+    }
 }
 
 #[cfg(test)]

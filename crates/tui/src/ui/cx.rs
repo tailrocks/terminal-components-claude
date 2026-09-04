@@ -19,6 +19,7 @@ use crate::intent::{IntentIter, IntentQueue};
 use crate::keymap::{BindingRegistry, KeyMap};
 use crate::layer::{Anchor, DismissReason, LayerEvent, LayerId, LayerSize, LayerSpec, LayerStack};
 use crate::response::StateFlags;
+use crate::runtime::UpdateCause;
 use crate::theme::{DesignTokens, Theme};
 
 use super::UiCore;
@@ -183,6 +184,7 @@ pub struct Cx<'f> {
     last: &'f LastFrame,
     theme: &'f Theme,
     command: Option<ActionKey>,
+    update_cause: UpdateCause,
 }
 
 impl core::fmt::Debug for Cx<'_> {
@@ -191,11 +193,13 @@ impl core::fmt::Debug for Cx<'_> {
             .field("queue_empty", &self.intents.is_empty())
             .field("top_layer", &self.top_layer())
             .field("command", &self.command)
+            .field("update_cause", &self.update_cause)
             .finish_non_exhaustive()
     }
 }
 
 impl<'f> Cx<'f> {
+    #[cfg(test)]
     pub(crate) fn new(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
@@ -203,6 +207,26 @@ impl<'f> Cx<'f> {
         last: &'f LastFrame,
         theme: &'f Theme,
         command: Option<ActionKey>,
+    ) -> Self {
+        Self::new_with_cause(
+            intents,
+            services,
+            core,
+            last,
+            theme,
+            command,
+            UpdateCause::Event,
+        )
+    }
+
+    pub(crate) fn new_with_cause(
+        intents: &'f IntentQueue,
+        services: &'f mut FrameServices,
+        core: &'f mut UiCore,
+        last: &'f LastFrame,
+        theme: &'f Theme,
+        command: Option<ActionKey>,
+        update_cause: UpdateCause,
     ) -> Self {
         let cache = &mut core.cache;
         let keymap = &core.keymap;
@@ -214,6 +238,7 @@ impl<'f> Cx<'f> {
             last,
             theme,
             command,
+            update_cause,
         }
     }
 
@@ -263,6 +288,11 @@ impl<'f> Cx<'f> {
     /// The application `KeyMap` command matched this pass, if any.
     pub const fn command(&self) -> Option<ActionKey> {
         self.command
+    }
+
+    /// Why the runtime invoked the current update pass.
+    pub const fn update_cause(&self) -> UpdateCause {
+        self.update_cause
     }
 
     /// Stage a focus transition (applied after this pass, §3.3 step 7).

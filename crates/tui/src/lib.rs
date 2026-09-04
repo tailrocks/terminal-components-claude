@@ -50,7 +50,7 @@ pub use id::{Id, ItemKey, Part, PartRef};
 // runtime
 #[cfg(feature = "crossterm")]
 pub use runtime::session::{DefaultTerminal, TerminalSession, chain_panic_hook, run};
-pub use runtime::{App, Runtime};
+pub use runtime::{App, Runtime, UpdateCause};
 // phases
 #[cfg(feature = "testing")]
 pub use ui::StyledQuery;

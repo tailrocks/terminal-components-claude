@@ -544,7 +544,7 @@ mod tests {
     use crate::event::{Input, MouseKind};
     use crate::response::Invalidate;
     use crate::runtime::stub::{Stub, key, mouse};
-    use crate::runtime::{App, Runtime};
+    use crate::runtime::{App, Runtime, UpdateCause};
     use crate::theme::{ColorLevel, Theme};
 
     const BUTTON: Id = Id::root("button.tests");
@@ -684,6 +684,9 @@ mod tests {
 
     impl App for AutofocusApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                return Response::ignored();
+            }
             self.button().update(cx).erase()
         }
 
