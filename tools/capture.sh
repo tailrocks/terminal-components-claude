@@ -8,7 +8,7 @@
 #   tools/capture.sh stop
 #
 # Parameters, all environment variables, all with a default:
-#   BIN    the binary to launch            (target/debug/junie-tui)
+#   BIN    the binary to launch            (target/debug/showcase)
 #   ARGS   its arguments                   (none)
 #   COLOR  the colour level to capture at  (truecolor)
 #          truecolor | 256 | 16 | mono
@@ -21,7 +21,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 S=junie_cap
-BIN=${BIN:-target/debug/junie-tui}
+BIN=${BIN:-target/debug/showcase}
 COLOR=${COLOR:-truecolor}
 cmd=${1:-}; shift || true
 case "$cmd" in

@@ -5,6 +5,7 @@
 //! cargo run -p xtask -- boundary                 # every §16.5 / §22.7 grep and metadata check
 //! cargo run -p xtask -- boundary --check <name>  # one named check
 //! cargo run -p xtask -- bless-guard              # §16.3 / §36.5 baseline bless guard
+//! cargo run -p xtask -- capture-matrix            # capture the showcase matrix into shots/
 //! cargo run -p xtask -- list                     # the check names
 //! ```
 //!
@@ -12,15 +13,411 @@
 //! runs the named checks through this binary.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
+use std::fs::{self, File};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
 use regex::Regex;
+use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
 fn root() -> PathBuf {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     manifest.parent().map(Path::to_path_buf).unwrap_or(manifest)
+}
+
+// The capture contract is deliberately finite.  A reviewer can compare every
+// generated cell, and a missing cell cannot hide behind an open-ended glob.
+const CAPTURE_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (160, 50)];
+const CAPTURE_COLORS: [&str; 4] = ["truecolor", "256", "16", "mono"];
+const CAPTURE_THEMES: [&str; 2] = ["junie", "paper"];
+const CAPTURE_BINARY: &str = "showcase";
+const CAPTURE_MANIFEST: &str = "shots/capture-matrix.tsv";
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct CaptureCase {
+    width: u16,
+    height: u16,
+    color: &'static str,
+    theme: &'static str,
+}
+
+impl CaptureCase {
+    fn size(self) -> String {
+        format!("{}x{}", self.width, self.height)
+    }
+
+    fn shot_name(self) -> String {
+        format!("showcase_{}_{}_{}", self.theme, self.color, self.size())
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct CaptureRecord {
+    case: CaptureCase,
+    path: PathBuf,
+    bytes: u64,
+    sha256: String,
+}
+
+fn capture_matrix_cases() -> Vec<CaptureCase> {
+    CAPTURE_SIZES
+        .into_iter()
+        .flat_map(|(width, height)| {
+            CAPTURE_COLORS.into_iter().flat_map(move |color| {
+                CAPTURE_THEMES.into_iter().map(move |theme| CaptureCase {
+                    width,
+                    height,
+                    color,
+                    theme,
+                })
+            })
+        })
+        .collect()
+}
+
+fn capture_matrix() -> Result<(), String> {
+    let script = root().join("tools/capture.sh");
+    if !script.is_file() {
+        return Err(format!("capture script is missing: {}", rel(&script)));
+    }
+
+    let owners = showcase_binary_owners()?;
+    let binary = capture_binary_path();
+    validate_capture_binary(&binary, &owners)?;
+
+    let shots = root().join("shots");
+    fs::create_dir_all(&shots).map_err(|error| {
+        format!(
+            "cannot create capture output directory {}: {error}",
+            rel(&shots)
+        )
+    })?;
+
+    let manifest = root().join(CAPTURE_MANIFEST);
+    remove_file_if_present(&manifest)?;
+
+    let cases = capture_matrix_cases();
+    let mut records = Vec::with_capacity(cases.len());
+    for (index, case) in cases.iter().copied().enumerate() {
+        println!(
+            "capture {}/{}: {} / {} / {}",
+            index.saturating_add(1),
+            cases.len(),
+            case.size(),
+            case.theme,
+            case.color
+        );
+        remove_capture_artifacts(case)?;
+
+        let start_args = vec![
+            "start".to_owned(),
+            case.width.to_string(),
+            case.height.to_string(),
+        ];
+        if let Err(error) = run_capture_script(&script, &start_args, case, &binary) {
+            let _ = stop_capture(&script, case, &binary);
+            return Err(error);
+        }
+
+        let shot_args = vec!["shot".to_owned(), case.shot_name()];
+        let shot_result = run_capture_script(&script, &shot_args, case, &binary);
+        let stop_result = stop_capture(&script, case, &binary);
+        shot_result?;
+        stop_result?;
+
+        records.push(capture_record(case)?);
+    }
+
+    validate_capture_records(&cases, &records)?;
+    write_capture_manifest(&manifest, &records)?;
+    println!(
+        "capture-matrix: wrote {} ({} cells)",
+        rel(&manifest),
+        records.len()
+    );
+    Ok(())
+}
+
+fn showcase_binary_owners() -> Result<Vec<String>, String> {
+    let md = metadata()?;
+    let mut owners = Vec::new();
+    for package in md.workspace_packages() {
+        for target in &package.targets {
+            if target.name == CAPTURE_BINARY
+                && target.kind.contains(&cargo_metadata::TargetKind::Bin)
+            {
+                owners.push(format!("{} ({})", package.name, target.src_path));
+            }
+        }
+    }
+    Ok(owners)
+}
+
+fn capture_binary_path() -> PathBuf {
+    match std::env::var_os("BIN") {
+        Some(path) if !path.is_empty() => {
+            let path = PathBuf::from(path);
+            if path.is_absolute() {
+                path
+            } else {
+                root().join(path)
+            }
+        }
+        _ => root().join("target/debug/showcase"),
+    }
+}
+
+fn validate_capture_binary(path: &Path, owners: &[String]) -> Result<(), String> {
+    if owners.is_empty() {
+        return Err(format!(
+            "capture binary `{CAPTURE_BINARY}` is missing from workspace metadata"
+        ));
+    }
+    if owners.len() > 1 {
+        return Err(format!(
+            "duplicate capture binary `{CAPTURE_BINARY}` targets: {}",
+            owners.join(", ")
+        ));
+    }
+
+    let metadata = fs::metadata(path).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            format!("capture binary is missing: {}", path.display())
+        } else {
+            format!("cannot inspect capture binary {}: {error}", path.display())
+        }
+    })?;
+    if !metadata.is_file() {
+        return Err(format!(
+            "capture binary is not a regular file: {}",
+            path.display()
+        ));
+    }
+    if metadata.len() == 0 {
+        return Err(format!("capture binary is zero-size: {}", path.display()));
+    }
+    Ok(())
+}
+
+fn run_capture_script(
+    script: &Path,
+    args: &[String],
+    case: CaptureCase,
+    binary: &Path,
+) -> Result<(), String> {
+    let binary_arg = binary
+        .strip_prefix(root())
+        .unwrap_or(binary)
+        .to_string_lossy()
+        .into_owned();
+    let output = Command::new("bash")
+        .arg(script)
+        .args(args)
+        .current_dir(root())
+        .env("BIN", binary_arg)
+        .env("COLOR", case.color)
+        .env(
+            "ARGS",
+            format!("--theme {} --color {}", case.theme, case.color),
+        )
+        .output()
+        .map_err(|error| {
+            format!(
+                "cannot run capture script for {}: {error}",
+                case_label(case)
+            )
+        })?;
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+    let detail = [stdout, stderr]
+        .into_iter()
+        .filter(|text| !text.is_empty())
+        .collect::<Vec<_>>()
+        .join(" | ");
+    if detail.is_empty() {
+        Err(format!(
+            "capture script failed for {} with status {}",
+            case_label(case),
+            output.status
+        ))
+    } else {
+        Err(format!(
+            "capture script failed for {} with status {}: {detail}",
+            case_label(case),
+            output.status
+        ))
+    }
+}
+
+fn stop_capture(script: &Path, case: CaptureCase, binary: &Path) -> Result<(), String> {
+    run_capture_script(script, &["stop".to_owned()], case, binary)
+}
+
+fn remove_capture_artifacts(case: CaptureCase) -> Result<(), String> {
+    let base = root().join("shots").join(case.shot_name());
+    for extension in ["ansi", "cursor", "html", "png", "txt"] {
+        remove_file_if_present(&base.with_extension(extension))?;
+    }
+    Ok(())
+}
+
+fn remove_file_if_present(path: &Path) -> Result<(), String> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("cannot remove {}: {error}", path.display())),
+    }
+}
+
+fn capture_record(case: CaptureCase) -> Result<CaptureRecord, String> {
+    let path = root()
+        .join("shots")
+        .join(format!("{}.png", case.shot_name()));
+    let (bytes, sha256) = file_digest(&path)?;
+    Ok(CaptureRecord {
+        case,
+        path,
+        bytes,
+        sha256,
+    })
+}
+
+fn file_digest(path: &Path) -> Result<(u64, String), String> {
+    let metadata = fs::metadata(path).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            format!("capture artifact is missing: {}", path.display())
+        } else {
+            format!(
+                "cannot inspect capture artifact {}: {error}",
+                path.display()
+            )
+        }
+    })?;
+    if !metadata.is_file() {
+        return Err(format!(
+            "capture artifact is not a regular file: {}",
+            path.display()
+        ));
+    }
+    if metadata.len() == 0 {
+        return Err(format!("capture artifact is zero-size: {}", path.display()));
+    }
+
+    let mut file = File::open(path)
+        .map_err(|error| format!("cannot read capture artifact {}: {error}", path.display()))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 16 * 1024];
+    let mut bytes = 0_u64;
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|error| format!("cannot hash capture artifact {}: {error}", path.display()))?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+        bytes = bytes.saturating_add(read as u64);
+    }
+    if bytes == 0 {
+        return Err(format!("capture artifact is zero-size: {}", path.display()));
+    }
+    Ok((bytes, format!("{:x}", hasher.finalize())))
+}
+
+fn case_label(case: CaptureCase) -> String {
+    format!("{} / {} / {}", case.size(), case.theme, case.color)
+}
+
+fn validate_capture_records(
+    expected: &[CaptureCase],
+    records: &[CaptureRecord],
+) -> Result<(), String> {
+    let expected: BTreeSet<CaptureCase> = expected.iter().copied().collect();
+    let mut seen_cases = BTreeSet::new();
+    let mut seen_paths = BTreeSet::new();
+    let mut errors = Vec::new();
+
+    for record in records {
+        if !expected.contains(&record.case) {
+            errors.push(format!(
+                "unexpected capture cell: {}",
+                case_label(record.case)
+            ));
+        }
+        if !seen_cases.insert(record.case) {
+            errors.push(format!(
+                "duplicate capture cell: {}",
+                case_label(record.case)
+            ));
+        }
+        if !seen_paths.insert(record.path.clone()) {
+            errors.push(format!(
+                "duplicate capture artifact path: {}",
+                rel(&record.path)
+            ));
+        }
+        if record.bytes == 0 {
+            errors.push(format!("zero-size capture artifact: {}", rel(&record.path)));
+        }
+        if record.sha256.len() != 64 || !record.sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            errors.push(format!("invalid sha256 for {}", rel(&record.path)));
+        }
+    }
+
+    let missing: Vec<String> = expected
+        .difference(&seen_cases)
+        .map(|case| case_label(*case))
+        .collect();
+    if !missing.is_empty() {
+        errors.push(format!("missing capture cell(s): {}", missing.join(", ")));
+    }
+    if records.len() != expected.len() {
+        errors.push(format!(
+            "capture matrix has {} record(s), expected {}",
+            records.len(),
+            expected.len()
+        ));
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+fn write_capture_manifest(path: &Path, records: &[CaptureRecord]) -> Result<(), String> {
+    let mut manifest = String::from("path\tsize\tcolor\ttheme\tbytes\tsha256\n");
+    for record in records {
+        writeln!(
+            manifest,
+            "{}\t{}\t{}\t{}\t{}\t{}",
+            rel(&record.path),
+            record.case.size(),
+            record.case.color,
+            record.case.theme,
+            record.bytes,
+            record.sha256
+        )
+        .map_err(|error| format!("cannot format capture manifest: {error}"))?;
+    }
+
+    let temporary = path.with_extension("tsv.tmp");
+    fs::write(&temporary, manifest)
+        .map_err(|error| format!("cannot write {}: {error}", temporary.display()))?;
+    if let Err(error) = fs::rename(&temporary, path) {
+        let _ = fs::remove_file(&temporary);
+        return Err(format!("cannot finalize {}: {error}", path.display()));
+    }
+    Ok(())
 }
 
 fn main() -> ExitCode {
@@ -37,6 +434,7 @@ fn main() -> ExitCode {
         // §16.3 / §20.10 / §36.5. A named `boundary` check, so it inherits the
         // `ok`/`FAIL` formatting, the `N check(s) failed` tail and `xtask list`.
         Some("bless-guard") => boundary(Some("baseline_moves_are_classified")),
+        Some("capture-matrix") => capture_matrix(),
         Some("list") => {
             for name in CHECKS.iter().map(|c| c.0) {
                 println!("{name}");
@@ -44,7 +442,9 @@ fn main() -> ExitCode {
             Ok(())
         }
         _ => {
-            eprintln!("usage: xtask <doc-check | boundary [--check NAME] | bless-guard | list>");
+            eprintln!(
+                "usage: xtask <doc-check | boundary [--check NAME] | bless-guard | capture-matrix | list>"
+            );
             Err("no command".to_owned())
         }
     };
@@ -1472,7 +1872,7 @@ impl PropsScan {
     /// construction. The base call's arguments still need a normal visit so
     /// nested props (notably `FieldSpec::new(... TextInput::new(...))`) are
     /// discovered.
-    fn visit_chain_children<'ast>(&mut self, expr: &'ast syn::Expr) {
+    fn visit_chain_children(&mut self, expr: &syn::Expr) {
         match expr {
             syn::Expr::MethodCall(mc) => {
                 for arg in &mc.args {
@@ -6136,5 +6536,46 @@ captures / classification: `(pending — filled when the change lands)`
         .expect("expands");
         assert_eq!(keys.len(), 8);
         assert!(keys.contains(&"render::components::meter::default 120 40 junie mono".to_owned()));
+    }
+
+    #[test]
+    fn capture_matrix_is_exact_cartesian_product() {
+        let expected: BTreeSet<CaptureCase> = CAPTURE_SIZES
+            .into_iter()
+            .flat_map(|(width, height)| {
+                CAPTURE_COLORS.into_iter().flat_map(move |color| {
+                    CAPTURE_THEMES.into_iter().map(move |theme| CaptureCase {
+                        width,
+                        height,
+                        color,
+                        theme,
+                    })
+                })
+            })
+            .collect();
+        let actual: BTreeSet<CaptureCase> = capture_matrix_cases().into_iter().collect();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.len(), 4 * 4 * 2);
+    }
+
+    #[test]
+    fn capture_matrix_rejects_missing_cell() {
+        let expected = capture_matrix_cases();
+        let mut records: Vec<CaptureRecord> = expected
+            .iter()
+            .copied()
+            .map(|case| CaptureRecord {
+                case,
+                path: PathBuf::from(format!("shots/{}.png", case.shot_name())),
+                bytes: 1,
+                sha256: "0".repeat(64),
+            })
+            .collect();
+        records.pop();
+
+        let error = validate_capture_records(&expected, &records)
+            .expect_err("a missing matrix cell must fail closed");
+        assert!(error.contains("missing capture cell(s)"), "{error}");
+        assert!(error.contains("160x50"), "{error}");
     }
 }
