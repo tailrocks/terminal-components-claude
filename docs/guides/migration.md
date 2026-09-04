@@ -1,17 +1,17 @@
 # Migration from the old experimental API
 
-This maps the pre-refactor `junie-tui` (the root package, `src/core/`,
-`src/ui/`, `src/widgets/`) onto the current component library in `crates/tui`,
-whose package and Rust path are `tui-next` / `tui_next` in this workspace. The
-root package remains `junie-tui` / `junie_tui` for the legacy tree; application
-migration is separate from library type availability.
+This maps the pre-refactor root source tree (`src/core/`, `src/ui/`,
+`src/widgets/`) onto the current component library in `crates/tui`, whose
+package and Rust path are `junie-tui` / `junie_tui` in this workspace. The old
+root package and legacy source tree are removed; the three applications now
+live under `apps/` and consume the library facade.
 
 Two ground rules for reading it:
 
 - **"Before" blocks are legacy illustrations.** They are the old API and they
   do not compile against the new crate. They are shown to make the mapping
   concrete, nothing more.
-- **"After" blocks target the current `tui-next` library.** Where a legacy
+- **"After" blocks target the current `junie-tui` library.** Where a legacy
   concept has no replacement, the row says so explicitly rather than
   describing something that is not there.
 
@@ -189,10 +189,10 @@ whole draw subtree inert at the `Ui` boundary and, when testing runtime-owned pa
 one target:
 
 ```rust
-use tui_next::{ReferenceState, ReferenceTarget, Ui};
+use junie_tui::{ReferenceState, ReferenceTarget, Ui};
 
 let target = ReferenceTarget::new(SAVE, ReferenceState::FOCUSED)
-    .part(tui_next::PartRef::of(tui_next::Part::CONTAINER));
+    .part(junie_tui::PartRef::of(junie_tui::Part::CONTAINER));
 ui.reference(Some(target), |ui| {
     Button::new(SAVE, "Save").draw(ui, area);
 });
@@ -483,7 +483,7 @@ Only visible rows invoke the renderer. Selection lives in the caller-owned
 ## Part 3 — the widget modules
 
 Status is against the current public `crates/tui` library tree (package
-`tui-next`, Rust path `tui_next`), not a Slice-4 snapshot. ✅ means the named
+`junie-tui`, Rust path `junie_tui`), not a Slice-4 snapshot. ✅ means the named
 replacement type is implemented and exported by the current library source;
 it does not claim source compatibility with the old API or that every
 application binary has migrated. `⛔ deleted` is reserved for an old concept

@@ -1,6 +1,6 @@
 # Quick start
 
-`tui-next` is a component library for terminal user interfaces, built on
+`junie-tui` is a component library for terminal user interfaces, built on
 [`ratatui-core`](https://docs.rs/ratatui-core). It gives you buttons, text
 inputs, lists, tabs, dialogs, overlays and a semantic theme system, and it
 owns the parts of a TUI that are tedious and easy to get wrong: hit testing,
@@ -11,17 +11,15 @@ routing and layer z-order.
 
 > ## Current package names
 >
-> The component library in this workspace is **`tui-next`** (Rust path
-> `tui_next`, source `crates/tui`). The repository root's **`junie-tui`**
-> package (`junie_tui`) still contains the legacy tree, including the root
-> `showcase` and `jackin-preview` binaries; `apps/tablepro` uses `tui-next`.
+> The component library in this workspace is **`junie-tui`** (Rust path
+> `junie_tui`, source `crates/tui`). The three applications are separate
+> packages under `apps/` and consume its public facade. The old root package
+> and legacy source tree have been removed.
 >
 > The snippets and examples in this guide target the current component library,
-> so their imports use `tui_next`. Architecture text about a later
-> `junie-tui` / `junie_tui` rename is migration history, not the current
-> `crates/tui` package name.
+> so their imports use `junie_tui`.
 >
-> The in-tree examples under `crates/tui/examples/` use the same `tui_next`
+> The in-tree examples under `crates/tui/examples/` use the same `junie_tui`
 > package name.
 
 ---
@@ -33,10 +31,10 @@ you what job you are doing.
 
 | You are… | You import | You get |
 |---|---|---|
-| writing an application | `tui_next::*` | `App`, `run`, every component, the theme, layout, the collection vocabulary |
-| writing a **component** | `tui_next::author::*` | the same theme and layout vocabulary, plus `Ui`'s registration services: focus, hit regions, parts, capture, cursor, scroll, layers |
+| writing an application | `junie_tui::*` | `App`, `run`, every component, the theme, layout, the collection vocabulary |
+| writing a **component** | `junie_tui::author::*` | the same theme and layout vocabulary, plus `Ui`'s registration services: focus, hit regions, parts, capture, cursor, scroll, layers |
 
-`tui_next::author` deliberately does **not** re-export `Runtime`, `run`,
+`junie_tui::author` deliberately does **not** re-export `Runtime`, `run`,
 `TerminalSession`, `Registry`, `FocusRing`, `FocusState`, `App` or the
 concrete components — a component author drives none of those. It also does
 not require any private access: everything a downstream component needs is
@@ -95,7 +93,7 @@ Two consequences you will notice immediately:
 `crates/tui/examples/01_button.rs`, in full:
 
 ```rust
-use tui_next::{App, Button, Cx, Id, Insets, Response, Theme, Ui, id, layout, run};
+use junie_tui::{App, Button, Cx, Id, Insets, Response, Theme, Ui, id, layout, run};
 
 const SAVE: Id = id!("save");
 
@@ -138,7 +136,7 @@ Components hold **durable interaction state only** (a scroll offset, a
 cursor, an in-flight edit). The value being edited is yours:
 
 ```rust
-use tui_next::{Cx, Id, Rect, Response, TextInput, TextInputState, Ui, id};
+use junie_tui::{Cx, Id, Rect, Response, TextInput, TextInputState, Ui, id};
 
 const NAME: Id = id!("name");
 
@@ -172,7 +170,7 @@ pass is a compile error.
 uses, so downgrade explicitly at startup:
 
 ```rust
-use tui_next::{App, ColorLevel, Theme, run};
+use junie_tui::{App, ColorLevel, Theme, run};
 
 fn start<A: App>(app: A) -> std::io::Result<()> {
     run(app, Theme::junie().downgrade(ColorLevel::detect()))
@@ -211,7 +209,7 @@ r
 |---|---|
 | [`theming.md`](theming.md) | the twelve customisation scenarios, the six-level precedence chain, `Slot` merge semantics, capability downgrade |
 | [`overrides.md`](overrides.md) | `patch`, `patch_part`, part slots, custom variants, recipes — and when to reach for each |
-| [`authoring.md`](authoring.md) | writing a component on `tui_next::author`, and registering it with the twenty-case conformance suite |
+| [`authoring.md`](authoring.md) | writing a component on `junie_tui::author`, and registering it with the twenty-case conformance suite |
 | [`migration.md`](migration.md) | the old experimental API mapped to the new one, module by module |
 
 Runnable examples live in `crates/tui/examples/`:
@@ -229,7 +227,7 @@ Runnable examples live in `crates/tui/examples/`:
 | `09_composed_dialog.rs` | a modal with an arbitrary body closure |
 | `10_nested_overlay.rs` | a popover opened on top of a dialog |
 | `11_small_app.rs` | a complete application on shared focus and dispatch |
-| `12_author_component.rs` | a downstream component using only `tui_next::author` |
+| `12_author_component.rs` | a downstream component using only `junie_tui::author` |
 | `13_connection_form.rs` | a fifteen-field form built from the public `Form` API |
 
 Examples 02, 03 and 04 are runnable theme examples. The form example also
@@ -238,7 +236,7 @@ controls without application-side field plumbing.
 
 ## Current component surface
 
-The current component library exports these component types from `tui_next`
+The current component library exports these component types from `junie_tui`
 (see [`crates/tui/src/lib.rs`](../../crates/tui/src/lib.rs) and
 [`components/mod.rs`](../../crates/tui/src/components/mod.rs)):
 
