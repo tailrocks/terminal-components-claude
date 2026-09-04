@@ -194,3 +194,32 @@ than as silently lost work; reaching in unannounced defeats it.
 serialise on cargo's single build-directory lock — 25 contending processes were observed, and
 no file changed for fifteen minutes while every agent queued. Prefer scoped verification
 (`-p <crate> --lib`, a named test) during the work and the full gate only at the end.
+
+## Incident 4 — the same lane reached into `status.rs` (2026-09-04)
+
+While a Lane A builder held `crates/tui/src/components/status.rs` exclusively, eight lines of
+per-item hover painting were inserted into `paint_item` from outside the lane. This is the same
+lane as Incident 3 and the same work (`FrameRead::hovered_part`).
+
+Beyond the ownership breach, the insertion **falsified that file's own recorded invariant**,
+which still reads:
+
+> Per-item hover is **not** painted: the frame snapshot carries one hovered `Id`, not the
+> hovered `PartRef`.
+
+That sentence was a *documented limitation with a named missing primitive*. Closing the
+limitation is welcome; leaving the invariant asserting the opposite of what the code now does is
+exactly the defect class this refactor has spent the session cataloguing — §35 names it, and
+there are now six gates and half a dozen doc claims found saying something untrue about their
+own subject.
+
+**Required of that lane, before any further edit under `crates/`:**
+1. Claim `crates/tui/src/components/status.rs`, `crates/tui/src/ui/cx.rs`,
+   `crates/tui/src/runtime.rs` and `crates/tui/tests/status_bar_hover.rs` in `docs/status/`.
+2. Correct `status.rs`'s `## Invariants` section in the same change that made it false.
+3. Make `crates/tui/tests/status_bar_hover.rs` pass, or remove it. It is currently red and is
+   therefore not committed.
+
+`crates/tui/src/components/{status,hintbar}.rs` are held back from commit by Lane A until both
+resolve, because Lane A does not commit another lane's unfinished work and `hintbar.rs`
+additionally carries two `borrow_as_ptr` clippy errors that fail the §26 gate.
