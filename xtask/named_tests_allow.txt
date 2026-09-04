@@ -26,7 +26,7 @@ field_height_is_a_pure_function_of_spec_and_design_tokens  # Slice 4F — compon
 form_action_variants_carry_no_value  # Slice 4F — components/form.rs
 hidden_field_registers_no_ring_entry_and_keeps_its_draft  # Slice 4F — components/form.rs
 note_rows_register_only_decorative_regions  # Slice 4F — components/form.rs
-open_select_popover_traps_focus_and_esc_closes_only_the_popover  # Slice 4F — components/form.rs
+open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover  # Slice 4F — components/form.rs
 scroll_reveals_the_focused_field_from_update_not_draw  # Slice 4F — components/form.rs
 select_field_options_come_from_form_data  # Slice 4F — components/form.rs
 state_holds_no_props  # Slice 4F — components/form.rs
@@ -64,24 +64,13 @@ frame_tablepro_connection_form_120x40  # Slices 4-7 — tests/perf.rs
 frame_tablepro_query_editor_2k_lines  # Slices 4-7 — tests/perf.rs
 
 # ── Slice 4 component state machines (`components/*.rs`, work packages 4A–4G) ──
-arrows_move_the_cursor_not_the_value_while_closed  # Slice 4 — components/*.rs
-begin_snapshots_the_value  # Slice 4 — components/*.rs
-blur_cancel_policy  # Slice 4 — components/*.rs
-blur_commit_and_validate_policy  # Slice 4 — components/*.rs
-blur_commits_without_validation  # Slice 4 — components/*.rs
-blur_keep_policy_leaves_the_draft  # Slice 4 — components/*.rs
 cell_actions_affordance_is_painted_for_a_read_only_model  # Slice 4 — components/*.rs
 click_inside_an_active_inline_edit_goes_to_the_editor  # Slice 4 — components/*.rs
-commit_runs_validation_once  # Slice 4 — components/*.rs
-commit_writes_the_controlled_value  # Slice 4 — components/*.rs
 edit_counter_invalidates_the_highlight_cache  # Slice 4 — components/*.rs
 edit_intent_inline_cycle_external_refuse  # Slice 4 — components/*.rs
-escape_closes_and_restores_the_cursor  # Slice 4 — components/*.rs
 expand_collapse_is_keyed_not_positional  # Slice 4 — components/*.rs
-external_error_survives_a_redraw  # Slice 4 — components/*.rs
 lazy_children_do_not_reflatten_the_world  # Slice 4 — components/*.rs
 query_change_emits_query_changed  # Slice 4 — components/*.rs
-radio_group_separates_cursor_from_value  # Slice 4 — components/*.rs
 range_copy_is_tsv  # Slice 4 — components/*.rs
 range_selection_uses_the_anchor  # Slice 4 — components/*.rs
 read_only_reason_is_rendered_from_a_grid_model  # Slice 4 — components/*.rs
@@ -90,6 +79,4 @@ retention_fixes_up_selection_and_caret  # Slice 4 — components/*.rs
 rewind_retains_per_step_state  # Slice 4 — components/*.rs
 select_all_selects_only_enabled_items  # Slice 4 — components/*.rs
 sort_is_a_permutation_and_edits_stay_bound_to_the_source_row  # Slice 4 — components/*.rs
-standalone_select_takes_items_per_phase  # Slice 4 — components/*.rs
 update_editable_commits_through_the_editor  # Slice 4 — components/*.rs
-write_mask_is_synthetic  # Slice 4 — components/*.rs

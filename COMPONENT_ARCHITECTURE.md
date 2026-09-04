@@ -1633,7 +1633,7 @@ cargo test -p tablepro -p jackin-preview
 cargo test -p junie-tui --test perf --release -- --test-threads=1 frame_tablepro_connection_form
 ```
 
-Named tests (listed in §16.1, §16.4 and §16.6 so `architecture::every_named_test_exists` covers them): `form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_traps_focus_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value` (exhaustive `match`, one arm per variant), `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value` (debug-assert-backed, run by the app suites over each real `FormData`), <!-- amended by §24 --> `form::select_field_options_come_from_form_data`, `form::changing_options_between_frames_does_not_rebuild_props`, `form::state_holds_no_props`, `form::value_and_options_is_a_single_borrow` (§24 M3); generated: `conformance::form::draw_does_not_commit_or_cancel` (`Caps::EDITS`), `conformance::form::secret_never_appears_in_debug` (`Caps::SECRET`), `conformance::form::survives_tiny_rects_0x0_to_3x3`, `conformance::form::draw_twice_leaves_state_equal`; application: `tablepro::connection_form_keyboard_and_mouse_reach_every_field`, `tablepro::connection_form_focuses_the_first_invalid_field`, `tablepro::connection_password_is_masked_and_absent_from_the_frame` (closes the **[F]** `connections.rs:155-157` defect — the password is a plain `TextInput` today), `jackin::form_dialog_toggles_visibility_and_keeps_drafts`, `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string`; perf: `frame_tablepro_connection_form_120x40` — **< 40 allocs/frame**.
+Named tests (listed in §16.1, §16.4 and §16.6 so `architecture::every_named_test_exists` covers them): `form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value` (exhaustive `match`, one arm per variant), `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value` (debug-assert-backed, run by the app suites over each real `FormData`), <!-- amended by §24 --> `form::select_field_options_come_from_form_data`, `form::changing_options_between_frames_does_not_rebuild_props`, `form::state_holds_no_props`, `form::value_and_options_is_a_single_borrow` (§24 M3); generated: `conformance::form::draw_does_not_commit_or_cancel` (`Caps::EDITS`), `conformance::form::secret_never_appears_in_debug` (`Caps::SECRET`), `conformance::form::survives_tiny_rects_0x0_to_3x3`, `conformance::form::draw_twice_leaves_state_equal`; application: `tablepro::connection_form_keyboard_and_mouse_reach_every_field`, `tablepro::connection_form_focuses_the_first_invalid_field`, `tablepro::connection_password_is_masked_and_absent_from_the_frame` (closes the **[F]** `connections.rs:155-157` defect — the password is a plain `TextInput` today), `jackin::form_dialog_toggles_visibility_and_keeps_drafts`, `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string`; perf: `frame_tablepro_connection_form_120x40` — **< 40 allocs/frame**.
 
 Grep conditions:
 
@@ -1738,7 +1738,7 @@ One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module pa
 <!-- amended by §29 --> Q1 geometry regressions in `components/*.rs`: `button::mono_pressed_does_not_truncate_the_label`, `tabs::mono_pressed_brackets_the_reserved_pad_cells`.
 
 **`components/form.rs`** (§15.1, §23 K1) — the form state machine, buffer-free:
-`form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_traps_focus_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value`, `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value`, <!-- amended by §24 M3 --> `form::select_field_options_come_from_form_data` (the painted list is `FormData::options(id)`; a `FieldKind::Select` built with no items renders it), `form::changing_options_between_frames_does_not_rebuild_props` (the `&[FieldSpec]` array is byte-identical across two frames whose `options` differ), `form::state_holds_no_props` (static assertion: `FormState: Clone + PartialEq + Default`; `SlotValue: Clone + PartialEq + Eq`), `form::value_and_options_is_a_single_borrow` (a `Form::update`-shaped body over one `value_and_options` call compiles; the two-call form is a compile-fail via `trybuild`, E0502).
+`form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value`, `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value`, <!-- amended by §24 M3 --> `form::select_field_options_come_from_form_data` (the painted list is `FormData::options(id)`; a `FieldKind::Select` built with no items renders it), `form::changing_options_between_frames_does_not_rebuild_props` (the `&[FieldSpec]` array is byte-identical across two frames whose `options` differ), `form::state_holds_no_props` (static assertion: `FormState: Clone + PartialEq + Default`; `SlotValue: Clone + PartialEq + Eq`), `form::value_and_options_is_a_single_borrow` (a `Form::update`-shaped body over one `value_and_options` call compiles; the two-call form is a compile-fail via `trybuild`, E0502).
 
 ---
 
@@ -1769,10 +1769,16 @@ bitflags! {
 
 `Caps::OVERLAY` means that a component opens a layer. `Caps::TRAPS_FOCUS` is
 separate: a component declares it only when the opened layer owns a focus
-scope, and it must be declared alongside `Caps::OVERLAY`. Case 14 is gated by
-`TRAPS_FOCUS`; an overlay that is a pointer barrier only does not run that
-case. `Select` opens a `Popover`, so it declares `OVERLAY` only and remains
-non-trapping. <!-- amended by §29 -->
+scope, and it must be declared alongside `Caps::OVERLAY`. Case 14 runs in two
+halves. The **`OVERLAY` half** runs for every layer-opening component: the open
+chord opens the declared layer, `Esc` closes it, focus is restored to the
+opener, and a component whose layer is `LayerKind::Modal` **must** also declare
+`TRAPS_FOCUS` — the driver asserts this, so the trap half can never be skipped
+by omission. The **`TRAPS_FOCUS` half** adds focus confinement, `Tab` wrapping
+inside a non-empty trap, and trapping at a size that cannot draw. `Select` opens
+a `Popover`, so it declares `OVERLAY` only and remains non-trapping; the
+property that replaces confinement for a popover is `Dismiss.focus_out`
+(§29.8), not a focus scope. <!-- amended by §29; amended by §29.8 -->
 
 /// One registration per public component. `State = ()` for stateless components.
 pub trait Conformance: 'static {
@@ -1939,7 +1945,7 @@ pub struct Baseline { path: &'static str }   // one `name w h theme color hash` 
 
 <!-- amended by §25 F7: `Harness::resolved` / `Runtime::resolved` return the recorded resolution, never a hard-coded `Family::BUTTON`; `resolved_in` is the explicit escape hatch -->
 
-**All current tests are retained**: 26 showcase, 21 tablepro, 22 jackin (17 + 5 chrome) plus the in-module `rain`/`arbiter`/`clock`/`scenario` unit tests — the exact inventories in **[F]** APP §5.1–§5.3. They move from `#[cfg(test)] mod app_tests` inside each binary to `apps/<app>/tests/app_tests.rs` (integration tests linking the app's `[lib]` target — §21 item 23), which forces each app to expose a small, deliberate test surface instead of reaching into private fields (goal §21).
+**All current tests are retained**: 26 showcase, 23 tablepro, 28 jackin (22 + 6 chrome) <!-- corrected by §32.6 --> plus the in-module `rain`/`arbiter`/`clock`/`scenario` unit tests — the exact inventories in **[F]** APP §5.1–§5.3. They move from `#[cfg(test)] mod app_tests` inside each binary to `apps/<app>/tests/app_tests.rs` (integration tests linking the app's `[lib]` target — §21 item 23), which forces each app to expose a small, deliberate test surface instead of reaching into private fields (goal §21).
 
 **The `Harness` contract.** Every assertion shape in the three existing suites survives because `Harness` provides exactly these operations. This table is the migration contract: an operation missing here means an existing test cannot be expressed.
 
@@ -2097,7 +2103,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `frame_showcase_dialog_open` | full background still registered | hits **< 25 %** of `frame_showcase_lists_120x40` (`inert_below`) |
 | `frame_tablepro_grid_500x12_120x40` | ≈ 1 110 allocs/frame, ≈ 300 hits | **< 100 allocs/frame**; hits ≤ 320 |
 | `frame_jackin_manager_100rows_120x40` | ≈ 350–400 allocs/frame | **< 60 allocs/frame** (rows rebuilt on world generation change only) |
-| `frame_jackin_capsule_4panes_120x40` | ≈ 480 000 allocs/frame | **< 200 allocs/frame** |
+| `frame_jackin_capsule_4panes_120x40` | **1 080 602 allocs/frame, 74 131 917 B** (`tests/perf_baseline.txt:6`; the performance audit's "≈ 480 000 / ~15 MB" was a pre-measurement estimate, not a measurement) <!-- corrected by §32.6 --> | **< 200 allocs/frame** |
 | `key_showcase_down_lists` | includes `describe_key` `String` | **0 allocs/event** |
 | `key_tablepro_grid_cursor` | report | **0 allocs/event** |
 | `key_tablepro_grid_sort_local` | 4 allocs/comparison | **≤ 1 alloc/comparison** (`display_width`, no `to_lowercase` per compare) |
@@ -4084,12 +4090,12 @@ Shared, contended files are handled by convention rather than by ownership: `com
 
 * **Files:** `apps/tablepro/**` in full, including the new `src/grid_model.rs` (the `GridModel`/`GridEditor` adapter carrying `CellValue`, `PendingChanges`, `UndoAction`, `RowState` derivation, validators, `cmp_cells`, insert/duplicate/delete/discard/undo, `primary`/`nullable`/`references`/`enum_values`, `pending_label`, the Save/Discard/Preview action bar) and `src/filter_editor.rs`.
 * DOM §1.6's 22-capability mapping is the migration checklist; each capability is ticked off against a retained or new test before the slice closes.
-* **Gate:** the §26 set scoped to `-p junie-tui -p tablepro` plus `cargo run -p xtask -- doc-check`; all 21 existing tests green; `grid_500x12_load` and `frame_tablepro_grid_500x12_120x40` meet their §16.6 thresholds; `apps/tablepro/tests/baselines/tablepro.txt` regenerated once with every difference classified; captures of connection, editor, grid, tabs, dialog, menu, picker and results surfaces reviewed.
+* **Gate:** the §26 set scoped to `-p junie-tui -p tablepro` plus `cargo run -p xtask -- doc-check`; all 23 existing tests green; <!-- corrected by §32.6 --> `grid_500x12_load` and `frame_tablepro_grid_500x12_120x40` meet their §16.6 thresholds; `apps/tablepro/tests/baselines/tablepro.txt` regenerated once with every difference classified; captures of connection, editor, grid, tabs, dialog, menu, picker and results surfaces reviewed.
 
 ### Slice 7 — Jackin (one owner)
 
 * **Files:** `apps/jackin-preview/**` in full, including the decomposition of `screens/modals.rs` (≈2 400 lines) into `screens/{file_browser.rs, op_flow.rs}` plus library `Form`/`Dialog`/`HelpOverlay` usage, and `rain.rs` rewritten onto `Role` + `Ui::dim_layer`.
-* **Gate:** the §26 set scoped to `-p junie-tui -p jackin-preview` plus `cargo run -p xtask -- doc-check`; all 22 existing tests plus the `rain`/`arbiter`/`clock`/`scenario` unit tests green; the eight scenarios reachable; the determinism assertion (two `--frame 282` runs byte-identical) green; the secret-masking assertions green; `frame_jackin_capsule_4panes_120x40 < 200 allocs` and `capsule_pane_clone_4x2000` deleted; `apps/jackin-preview/tests/baselines/jackin.txt` regenerated with differences classified; host, settings, account/usage, launch, Capsule, menu, modal, tab, status-bar and responsive surfaces captured and reviewed.
+* **Gate:** the §26 set scoped to `-p junie-tui -p jackin-preview` plus `cargo run -p xtask -- doc-check`; all 28 existing tests (22 in `app_tests.rs` + 6 in `app_tests_chrome.rs`) plus the ten in-module `rain`/`arbiter`/`clock`/`scenario` unit tests green; <!-- corrected by §32.6 --> the eight scenarios reachable; the determinism assertion (two `--frame 282` runs byte-identical) green; the secret-masking assertions green; `frame_jackin_capsule_4panes_120x40 < 200 allocs` and `capsule_pane_clone_4x2000` deleted; `apps/jackin-preview/tests/baselines/jackin.txt` regenerated with differences classified; host, settings, account/usage, launch, Capsule, menu, modal, tab, status-bar and responsive surfaces captured and reviewed.
 
 ### Slice 8 — Cleanup and independent verification (one owner, then two reviewers)
 
@@ -6482,12 +6488,111 @@ means that a component opens a layer and remains the capability used by case
 capability for case 14; it implies that the component also declares
 `Caps::OVERLAY`, and case 14 is skipped unless `TRAPS_FOCUS` is present.
 
-`DialogCase` declares both capabilities because its `LayerSpec::modal` owns a
-focus scope. `Select` is deliberately not a trapping component: its
+`DialogCase` **must** declare both capabilities because its `LayerSpec::modal`
+owns a focus scope; it declared only `OVERLAY` until §29.8, which is what let
+case 14's trap half go unexecuted across the whole suite. The driver now
+refuses that state (§29.8). <!-- amended by §29.8 --> `Select` is deliberately not a trapping component: its
 `LayerSpec::popover` is a pointer barrier only, the field keeps the one focus
 stop while the popup is open, and `Select` therefore declares `OVERLAY` but
 not `TRAPS_FOCUS`. This resolves the capability question without changing
-`LayerKind`, popover dismissal, or focus restoration. <!-- amended by §29 -->
+`LayerKind` or focus restoration. It does **not** resolve popover dismissal,
+and §29.6 overreached in saying so: a `Popover` that keeps focus with its
+opener needs the other half of §9.1's A10 pair — `Dismiss.focus_out`, which
+§9.1 honours for `Popover`/`Tooltip` precisely because those kinds do not
+trap. `Select`'s popup therefore opens with `Dismiss::ALL`, and the runtime
+must enforce `LayerSpec::dismisses_on_focus_out()`. See §29.8.
+<!-- amended by §29; amended by §29.8 -->
+
+### §29.8 Amendment — a `Popover` does not trap; it dismisses on focus-out <!-- amended by §29.8 -->
+
+**Status: accepted.** A fresh read-only `opus-analyst` adjudicated a direct
+conflict between recorded §29.6 and a second lead's unrecorded adjudication that
+would have given `Select` `Caps::TRAPS_FOCUS`. **§29's decision is confirmed, not
+overturned**, which is why this is an in-place §29 amendment rather than a new
+top-level section. But **both positions were wrong about the underlying
+question**, and that is the finding that matters.
+
+**Verdict: `Select` declares `Caps::OVERLAY` only, without `Caps::TRAPS_FOCUS`.**
+The non-trapping property is a designed invariant, not an incidental observation:
+§9.1 fixes `LayerKind` as "Modal: focus+pointer trap; Popover: pointer only", the
+runtime implements it structurally (`LayerKind::Popover | LayerKind::Tooltip =>
+ScopeMode::Normal` is the only per-layer `ensure_scope` call site), and
+conformance case 17 — a component stays focused under a popover — would be
+testing something else if popovers trapped. `Select`'s popup registers no focus
+stop at all, so a trap there would be an **empty** trap: `reachable()` empties,
+focus reconciles to `None`, and the field loses `FOCUSED` while its own popup is
+open. The capability would have been a lie about the runtime.
+
+**The real defect.** Nothing stops focus resting on a control *behind* an open
+select popup. `Tab` is runtime focus policy, intercepted before any intent is
+enqueued, so the component never sees it; the popup stays open on top of a
+control that now has focus. That is a genuine regression against the legacy
+widget, which achieved the property two ways — `if !s.focused { self.open = false; }`
+in `render`, and swallowing every unhandled key while open. The key-swallowing
+route is structurally closed in the new architecture. The sanctioned route is the
+one §9.1 already provided and **nobody wired up**: `LayerSpec::dismisses_on_focus_out()`
+and `DismissReason::FocusOut` are declared and have **no producer anywhere in the
+runtime**. The other lead reached for `TRAPS_FOCUS` because the correct mechanism
+is dead code. **Fix the enabling condition, not the symptom.**
+
+**Case 14's split is ACCEPTED WITH MODIFICATION, after being caught as a loosened
+gate.** `DialogCase` — the only modal in the suite — did not declare
+`TRAPS_FOCUS`, so under the split the trap-leak, `Tab`-wrap and zero-size
+assertions executed **zero times in the entire suite**. A reported "22 passed" was
+22 green tests in which the trap half never ran once. Note carefully that the gate
+was *not* loosened in order to let `Select` pass — `Select` passes the `OVERLAY`
+half on its merits. It was loosened because §29.6 asserted a fact the source did
+not implement. Three modifications make the split self-policing:
+
+1. In the `OVERLAY` half, assert that a component whose open layer is
+   `LayerKind::Modal` declares `TRAPS_FOCUS`, and conversely that a component
+   declaring `TRAPS_FOCUS` armed a real `ScopeMode::Trap`. The converse guard is
+   mechanism-independent and also catches a component that pushes its own trap.
+2. In the `TRAPS_FOCUS` half, assert the trap is **non-empty** before the wrap
+   check, and make the `Tab` wrap unconditional rather than gated on
+   `len() > 1`. Without this an empty trap passes the leak assertion vacuously
+   while stranding focus at `None`.
+3. The `OVERLAY` half must **not** assert "focus stayed on the opener while
+   open" — that property becomes false by design once `Tab` legitimately moves
+   focus and closes the popover. It belongs in the targeted tests below.
+
+Rejecting the split outright was considered and rejected: under §29's literal
+gating the whole case is also a no-op, since nobody declares `TRAPS_FOCUS`.
+
+**Code obligations.** `Select::layer` opens with `Dismiss::ALL`; the runtime
+enforces `dismisses_on_focus_out()` by walking the layer stack after a focus
+transition and closing any layer whose scope no longer contains the new focus
+target, with `DismissReason::FocusOut`. A `Modal` is excluded by
+`dismisses_on_focus_out()` itself. Focus restoration must **not** fire on this
+path — `settle_closed_layers` restores unconditionally when `restore_focus` is
+set, which `LayerSpec::popover` sets, and restoring would make `Tab` a no-op and
+re-create the legacy swallow by accident. `DialogCase` gains `TRAPS_FOCUS`.
+
+**Acceptance.** `layer::focus_out_dismisses_a_popover_but_never_a_modal`;
+`select::an_open_popup_closes_when_focus_leaves_the_field`; and
+`conformance::dialog::focus_trap_and_restore`, which is red before `DialogCase`
+gains the capability with "opens a `LayerKind::Modal` without declaring
+`TRAPS_FOCUS`" and green after — the executable proof that the split is no longer
+a loosened gate. Case 17 must stay green throughout; it depends on a popover
+**not** trapping. Expect case 14's trap half to surface real `Dialog` defects the
+first time it executes; that is the gate working, and the assertions must not be
+weakened to make it pass.
+
+**§16.1 correction.** The name
+`form::open_select_popover_traps_focus_and_esc_closes_only_the_popover` is
+struck and replaced by
+`form::open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover`.
+No prose invariant ever backed the "traps focus" half — §15.1 F8, which governs a
+`Select` popover inside a `Form`, says only that Esc reaches the `Select` before
+the layer and before the enclosing dialog. The half was a drafting artefact in a
+name list, it is unimplementable without changing `LayerKind`, and it sits on the
+deferred list where a Slice-4F builder would have picked it up and tried.
+
+**No baseline moves.** `SelectState::default()` has `open: false`, so no digest
+scene ever paints the popup, and `Dismiss` is not a painted property. The one
+legacy-visible difference — `Tab` on an open select now *moves* focus instead of
+being swallowed — would classify under §20.10 item 15, focus-ring composition in
+migrated screens, if a Slice-5/6/7 app test asserts the old swallow.
 
 ### §29.7 Unresolved questions preserved <!-- amended by §29 -->
 
