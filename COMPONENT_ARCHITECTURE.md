@@ -7400,3 +7400,41 @@ The full partition closes at Slice 8, not Slice 5. **Anyone who tries to close i
 Beyond `bless-guard` (now built) and `capture-matrix` (still absent and still asserted in the present indicative): **three architecture tests named in Appendix B as guarding the `apps/` boundary do not exist** — `binary_names_are_preserved`, `app_libs_are_not_published_and_are_not_depended_on_by_the_library`, and `applications_depend_only_on_the_library_facade`. Nothing pins the three binary names across the package split, which goal §21 requires.
 
 Six CI steps also run `cargo test --release --bin <name>`, and **all six break the moment the root binaries go**. Appendix A does not mention them.
+
+## §47 Record — GAP-2's pin found a second defect, and a convention standing in for a guarantee <!-- amended by §47 -->
+
+**Status: recorded.** Three of §44's fourteen gaps are closed. Two findings came out of closing them.
+
+### §47.1 GAP-2 is pinned, and the naive test would have missed most of it <!-- amended by §47 -->
+
+All **25** `(family, variant, part)` triples declaring both a single-flag `HOVERED` and a single-flag `DISABLED` rule were enumerated, and the ordering is **consistent in all of them**. No family is ordered wrong today.
+
+But the obvious test would not have protected them. **In 20 of the 25 the two real patches write disjoint slots**, so `resolve(DISABLED) == resolve(HOVERED|DISABLED)` holds *whichever way round the rules are declared*. The pin therefore substitutes marker patches on the **same** slot and resolves through the real path — demonstrated by swapping the rules at three different declaration sites, where the naive shape catches only the first and the marker probe catches all three.
+
+`HOVERED | DISABLED` was proven **reachable**, not assumed: the runtime filters hit regions on layer and decorativeness but **never on disabled**, so a disabled control registers a region and both flags are delivered together. Measured with a probe.
+
+One of six deliberate breaks **correctly did not go red**, and that is reported rather than hidden: removing a *variant's* hover rule leaves the family-level rule applying, so the triple genuinely still declares both.
+
+### §47.2 A second live defect, which reordering cannot fix <!-- amended by §47 -->
+
+**Three `BUTTON` variants lose their disabled background to the hover plane.** It is **not** a declaration-order bug: those arms declare a `DISABLED` rule that sets no background, so their disabled background comes from the *family-level* rule — and §11.3 applies **every family rule before every variant rule**, so the variant's own `HOVERED` background lands after it.
+
+Only a recipe change fixes it, which is a visual change needing a numbered §20.10 classification. It is recorded as a **shrink-only exception list whose entries assert they are still broken**, so a fix that leaves an entry in place fails the test. It is latent today only because `Button::draw` strips `HOVERED` — and that strip is gated on the component's own `disabled` field rather than on the resolved flag, so a forced state reaches it.
+
+### §47.3 `DESIGN.md`'s rule is stronger than the theme implements <!-- amended by §47 -->
+
+`DESIGN.md` — which **outranks this document** — says a disabled control has **no hover at all**: full suppression, not conflict resolution. The theme does not implement that. Full equality holds for only **5 of the 25** triples; in the other 20 the hover plane survives because the two patches write disjoint slots.
+
+**Suppression is implemented in the components, at seven separate sites that each repeat the same strip.** So:
+
+> The invariant `DESIGN.md` states is a seven-site convention, not a structural guarantee. A new component that forgets the strip gets a hovering disabled control, and **no gate catches it**, because the theme is only a partial backstop.
+
+That is the same shape as §39 — one missing decision every builder made locally — and the candidate structural fix, clearing `HOVERED` in the frame snapshot when the ring entry is disabled, would delete all seven sites. It is a behaviour change in runtime files and a visual-design question, so it is **recorded, not decided**.
+
+### §47.4 GAP-1 and GAP-8 closed, no production defect behind either <!-- amended by §47 -->
+
+`Brand`'s clickable branch is **fully reachable** — control registration, part registration, the click arm and the hover paint all execute — and `StatusBar` places its groups **exactly** as the deleted legacy test asserted. So neither gap concealed a defect; both concealed only the absence of a test.
+
+Both sets assert the **negative** half as well, because a test that only proves the clickable path works would not catch a lockup that became unconditionally clickable. The `StatusBar` test rebuilds the row from the **painted buffer** and never calls an internal accessor — asserting against `survivors` or `group_columns` would have reproduced the very defect the gap named, one layer down.
+
+Seven deliberate breaks; every test seen red before being trusted. The right-align break failed exactly one test while the other five `status` tests stayed green — which is precisely the defect GAP-8 predicted.
