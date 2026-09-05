@@ -6,6 +6,9 @@
 //! cargo run -p xtask -- boundary --check <name>  # one named check
 //! cargo run -p xtask -- bless-guard              # §16.3 / §36.5 baseline bless guard
 //! cargo run -p xtask -- capture-matrix            # capture the app matrix into shots/
+//! cargo run -p xtask -- parity --dry-run           # validate the 499-row oracle mapping
+//! cargo run -p xtask -- parity-replay               # replay all mapped recipes
+//! cargo run -p xtask -- parity                     # compare all replay evidence
 //! cargo run -p xtask -- list                     # commands and check names
 //! ```
 //!
@@ -24,6 +27,8 @@ use regex::Regex;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
+
+mod parity;
 
 fn root() -> PathBuf {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -1722,6 +1727,10 @@ fn capture_matrix_contract() -> Result<(), String> {
     Ok(())
 }
 
+fn parity_contract() -> Result<(), String> {
+    parity::contract(&root())
+}
+
 fn capture_exec_contract_hits(script: &str) -> Vec<String> {
     [
         (
@@ -1818,8 +1827,23 @@ fn main() -> ExitCode {
         // `ok`/`FAIL` formatting, the `N check(s) failed` tail and `xtask list`.
         Some("bless-guard") => boundary(Some("baseline_moves_are_classified")),
         Some("capture-matrix") => capture_matrix(),
+        Some("parity") => {
+            if args.iter().any(|argument| argument == "--dry-run") {
+                parity::dry_run(&root())
+            } else if let Some(index) = args.iter().position(|argument| argument == "--approve") {
+                args.get(index + 1).map_or_else(
+                    || Err("parity --approve requires a reviewer token".to_owned()),
+                    |reviewer| parity::approve(&root(), reviewer),
+                )
+            } else {
+                parity::contract(&root())
+            }
+        }
+        Some("parity-replay") => parity::replay(&root()),
         Some("list") => {
             println!("capture-matrix");
+            println!("parity");
+            println!("parity-replay");
             for name in CHECKS.iter().map(|c| c.0) {
                 println!("{name}");
             }
@@ -1827,7 +1851,7 @@ fn main() -> ExitCode {
         }
         _ => {
             eprintln!(
-                "usage: xtask <doc-check | boundary [--check NAME] | bless-guard | capture-matrix | list>"
+                "usage: xtask <doc-check | boundary [--check NAME] | bless-guard | capture-matrix | parity [--dry-run] | parity-replay | list>"
             );
             Err("no command".to_owned())
         }
@@ -2033,6 +2057,7 @@ const CHECKS: &[Check] = &[
     ),
     ("binary_names_are_preserved", binary_names_are_preserved),
     ("capture_matrix_contract", capture_matrix_contract),
+    ("parity_contract", parity_contract),
     ("app_baselines_exist", app_baselines_exist),
     (
         "app_libs_are_not_published_and_are_not_depended_on_by_the_library",
