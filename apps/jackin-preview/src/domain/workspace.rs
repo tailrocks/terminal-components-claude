@@ -13,6 +13,7 @@ pub type WorkspaceId = u32;
 /// Fully qualified role name (`namespace/name`).
 pub type RoleName = String;
 
+/// Persisted workspace configuration and account/environment policies.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Workspace {
     /// Stable workspace identifier.
@@ -41,7 +42,8 @@ pub struct Workspace {
 
 /// The Workspace's view of the global account registry: inherited defaults
 /// can be switched off, further accounts switched on, and one account per
-/// provider marked preferred. Credentials never live here.
+/// provider marked preferred. Credentials never live here. This type stores
+/// one workspace's account activation and preference overrides.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AccountPolicy {
     /// Global defaults (registry `default_for_provider`) this Workspace turns off.
@@ -115,6 +117,7 @@ impl Usability {
     }
 }
 
+/// An account's origin in a workspace's effective account set.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveAccount {
     /// Registry account identifier.
@@ -288,6 +291,7 @@ fn keyed<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
     n
 }
 
+/// Policy for handling unsaved changes when leaving a workspace.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DirtyExitPolicy {
     /// Ask before leaving with changes.
@@ -311,6 +315,7 @@ impl DirtyExitPolicy {
 
 // ---------------------------------------------------------------- mounts
 
+/// Filesystem or repository mount exposed to a workspace.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mount {
     /// Source path or repository URL.
@@ -398,6 +403,7 @@ impl Mount {
     }
 }
 
+/// Source backing a mount.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MountSource {
     /// Host filesystem path.
@@ -406,6 +412,7 @@ pub enum MountSource {
     Git(String),
 }
 
+/// Isolation strategy used for a repository-backed mount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Isolation {
     /// Share the source directory directly.
@@ -436,6 +443,7 @@ impl Isolation {
     }
 }
 
+/// Kind of content exposed by a mount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MountKind {
     /// A regular directory mount.
@@ -444,6 +452,7 @@ pub enum MountKind {
     Repository,
 }
 
+/// Configuration scope owning a mount.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MountScope {
     /// Global settings mount.
@@ -467,6 +476,7 @@ impl MountScope {
 
 // ----------------------------------------------------------------- roles
 
+/// Role allow-list and remembered role selections for a workspace.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RolePolicy {
     /// Allowed role set.
@@ -477,6 +487,7 @@ pub struct RolePolicy {
     pub last: Option<RoleName>,
 }
 
+/// Roles permitted by a [`RolePolicy`].
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum AllowedRoles {
     /// All roles are allowed.
@@ -504,7 +515,8 @@ impl RolePolicy {
     }
 }
 
-/// A Role as the host registry knows it: namespace/name, source, trust.
+/// A Role as the host registry knows it: namespace/name, source, trust, and
+/// loading status.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoleEntry {
     /// Role namespace.
@@ -530,12 +542,21 @@ impl RoleEntry {
     }
 }
 
+/// Location from which a role is loaded.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RoleSource {
     /// Git-backed role source.
-    Git { url: String, branch: String },
+    Git {
+        /// Repository URL.
+        url: String,
+        /// Branch or revision to load.
+        branch: String,
+    },
     /// Local role source.
-    Local { path: String },
+    Local {
+        /// Filesystem path containing the role.
+        path: String,
+    },
 }
 
 impl RoleSource {
@@ -550,6 +571,7 @@ impl RoleSource {
 
 // ------------------------------------------------------------ environments
 
+/// Environment variable definition stored with a workspace or role.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnvVar {
     /// Environment key.
@@ -584,6 +606,7 @@ impl EnvVar {
     }
 }
 
+/// Secret-safe source for an environment variable value.
 #[derive(Clone, PartialEq, Eq)]
 pub enum EnvValue {
     /// Plain text; rendered masked by default.
