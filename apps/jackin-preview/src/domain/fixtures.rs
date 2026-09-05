@@ -26,26 +26,38 @@ use crate::domain::workspace::{
 use crate::sim::onepassword::SimOnePassword;
 use crate::sim::provider;
 
+/// Synthetic home directory used by the fixtures.
 pub const HOME: &str = "/Users/alexey";
+/// Identifier of the primary payments workspace.
 pub const PAYMENTS_WORKSPACE: WorkspaceId = 1;
+/// Display name of the primary payments workspace.
 pub const PAYMENTS_WORKSPACE_NAME: &str = "payments-platform";
+/// Working directory of the primary payments workspace.
 pub const PAYMENTS_WORKDIR: &str = "/Users/alexey/src/payments-platform";
 
 /// Precedence used when selecting the account for one agent session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrecedenceLevel {
+    /// Account selected explicitly for the session.
     Session,
+    /// Account selected by the session's role.
     Role,
+    /// Account selected by the workspace.
     Workspace,
+    /// Provider-wide default account.
     Global,
+    /// Current account discovered on the host.
     Discovered,
 }
 
 /// A resolved account plus the source of the decision.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedAccount {
+    /// Selected account identifier, when one was found.
     pub account: Option<AccountId>,
+    /// Precedence source that supplied the selection.
     pub level: Option<PrecedenceLevel>,
+    /// Human-readable explanation of the selection.
     pub reason: String,
 }
 

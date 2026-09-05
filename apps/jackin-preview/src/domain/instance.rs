@@ -7,6 +7,7 @@ use core::fmt;
 use super::agent::Agent;
 use super::workspace::WorkspaceId;
 
+/// Stable identifier for a durable instance record.
 pub type InstanceId = String;
 
 /// Stable numeric identity for one launch attempt.
@@ -58,16 +59,26 @@ impl fmt::Display for RunId {
     }
 }
 
+/// Lifecycle state of a durable instance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InstanceStatus {
+    /// The container and daemon are running.
     Running,
+    /// The final session exited successfully.
     CleanExited,
+    /// The daemon stopped unexpectedly.
     Crashed,
+    /// The stopped instance retains uncommitted changes.
     PreservedDirty,
+    /// The stopped instance retains unpushed commits.
     PreservedUnpushed,
+    /// The instance has a restorable Capsule layout.
     RestoreAvailable,
+    /// A newer instance replaced this one.
     Superseded,
+    /// The instance and its records were removed.
     Purged,
+    /// Setup failed before the Capsule was ready.
     FailedSetup,
 }
 
@@ -87,6 +98,7 @@ impl InstanceStatus {
         }
     }
 
+    /// Return the full operator-facing lifecycle description.
     pub fn description(self) -> &'static str {
         match self {
             InstanceStatus::Running => "Container and Capsule daemon are live.",
@@ -111,15 +123,18 @@ impl InstanceStatus {
         }
     }
 
+    /// Return whether this status is hidden from the normal tree.
     /// Hidden from the normal tree, as in current Jackin.
     pub fn hidden(self) -> bool {
         matches!(self, InstanceStatus::Superseded | InstanceStatus::Purged)
     }
 
+    /// Return whether the instance is currently running.
     pub fn is_live(self) -> bool {
         self == InstanceStatus::Running
     }
 
+    /// Return whether the instance can be reconnected to or restored.
     /// Reconnect/restore is offered for these.
     pub fn reconnectable(self) -> bool {
         matches!(
@@ -132,11 +147,13 @@ impl InstanceStatus {
         )
     }
 
+    /// Return whether stopping the instance is offered.
     /// Stop is offered only for live instances.
     pub fn stoppable(self) -> bool {
         self == InstanceStatus::Running
     }
 
+    /// Return whether the instance retains uncommitted or unpushed work.
     pub fn dirty(self) -> bool {
         matches!(
             self,
@@ -145,18 +162,28 @@ impl InstanceStatus {
     }
 }
 
+/// Durable instance record and its persisted/live projections.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instance {
+    /// Stable instance identifier.
     pub id: InstanceId,
     /// Container base name; the container id appends the instance suffix.
     pub container: String,
+    /// Workspace associated with the instance, when known.
     pub workspace: Option<WorkspaceId>,
+    /// Working directory mounted for the instance.
     pub workdir: String,
+    /// Role selected for the instance.
     pub role: String,
+    /// Agent runtime launched in the instance.
     pub agent: Agent,
+    /// Current durable lifecycle status.
     pub status: InstanceStatus,
+    /// Creation time in fixture seconds.
     pub created_secs: i64,
+    /// Most recent observation time in fixture seconds.
     pub last_seen_secs: i64,
+    /// Stable identity for the launch attempt.
     pub run_id: RunId,
     /// Persisted session records (manifest).
     pub sessions: Result<Vec<SessionRecord>, ManifestError>,
@@ -164,10 +191,13 @@ pub struct Instance {
     pub daemon: DaemonSnapshot,
     /// Branch / PR context resolved for this instance.
     pub branch: Option<String>,
+    /// Pull request number and title, when one is associated.
     pub pr: Option<(u32, String)>,
+    /// Default branch of the associated repository.
     pub default_branch: String,
     /// Uncommitted / unpushed simulated git state.
     pub uncommitted: usize,
+    /// Number of commits not pushed to the remote.
     pub unpushed: usize,
     /// The Workspace's effective account set at launch: every account the
     /// container can hand to a session, not just the one that started it.
@@ -180,14 +210,17 @@ impl Instance {
         self.run_id.container_uid()
     }
 
+    /// Compute the full container identifier from its base name and instance id.
     pub fn container_id(&self) -> String {
         format!("{}-{}", self.container, self.id.trim_start_matches("jk-"))
     }
 
+    /// Return whether the instance has uncommitted or unpushed work.
     pub fn is_dirty(&self) -> bool {
         self.uncommitted > 0 || self.unpushed > 0
     }
 
+    /// Return a compact summary of the instance's git state.
     pub fn dirty_summary(&self) -> String {
         match (self.uncommitted, self.unpushed) {
             (0, 0) => "clean".into(),
@@ -198,12 +231,15 @@ impl Instance {
     }
 }
 
+/// Error state for reading persisted session records.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ManifestError {
+    /// The session manifest could not be read.
     ReadError,
 }
 
 impl ManifestError {
+    /// Return the operator-facing error label.
     pub fn label(self) -> &'static str {
         match self {
             ManifestError::ReadError => "Sessions unavailable (manifest read error)",
@@ -211,23 +247,34 @@ impl ManifestError {
     }
 }
 
+/// One persisted session entry from an instance manifest.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionRecord {
+    /// Stable session identifier.
     pub id: String,
+    /// Agent runtime in the session, when identified.
     pub agent: Option<Agent>,
+    /// Operator-facing session label.
     pub label: String,
+    /// Current persisted session status.
     pub status: SessionStatus,
+    /// Session start time in fixture seconds.
     pub started_secs: i64,
 }
 
+/// Persisted outcome of a session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionStatus {
+    /// The session is still active.
     Active,
+    /// The session exited with the given process code.
     Exited(i32),
+    /// The session ended without a normal exit code.
     Crashed,
 }
 
 impl SessionStatus {
+    /// Return the operator-facing session status label.
     pub fn label(self) -> String {
         match self {
             SessionStatus::Active => "active".into(),
@@ -245,35 +292,51 @@ pub enum DaemonSnapshot {
     Unavailable,
     /// Daemon reports no tabs.
     NoTabs,
+    /// Daemon reports one or more live tabs.
     Tabs(Vec<TabSnapshot>),
 }
 
+/// Live daemon tab and its panes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TabSnapshot {
+    /// Tab display label.
     pub label: String,
+    /// Whether this is the daemon's active tab.
     pub active: bool,
+    /// Panes currently reported in the tab.
     pub panes: Vec<PaneSnapshot>,
 }
 
+/// Live daemon pane and its agent attention state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PaneSnapshot {
+    /// Pane display label.
     pub label: String,
+    /// Agent runtime in the pane, when identified.
     pub agent: Option<Agent>,
+    /// Current attention state of the pane's agent.
     pub state: AgentState,
+    /// Whether the pane currently has focus.
     pub focused: bool,
 }
 
 /// Public agent attention state, as the Capsule status bar glyphs encode it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AgentState {
+    /// The agent is idle.
     Idle,
+    /// The agent is working.
     Working,
+    /// The agent completed its current work.
     Done,
+    /// The agent is waiting on an issue or decision.
     Blocked,
+    /// The agent state could not be determined.
     Unknown,
 }
 
 impl AgentState {
+    /// Return the operator-facing state label.
     pub fn label(self) -> &'static str {
         match self {
             AgentState::Idle => "idle",
