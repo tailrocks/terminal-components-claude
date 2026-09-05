@@ -2,9 +2,22 @@ I could not use grep/glob (only `Read` was available), so counts below are state
 
 ---
 
-# Application Migration Audit — showcase · tablepro · jackin-preview
+# Historical Application Migration Audit — showcase · tablepro · jackin-preview
 
-Baseline revision: `d5e7075` (clean tree). Package: single crate `junie-tui` (`Cargo.toml:1-25`), edition 2024, MSRV 1.88, deps `ratatui 0.30` + `unicode-width` + `unicode-segmentation`.
+Historical baseline revision: `d5e7075` (clean tree). Historical package layout:
+single crate `junie-tui` (`Cargo.toml:1-25`), edition 2024, MSRV 1.88, deps
+`ratatui 0.30` + `unicode-width` + `unicode-segmentation`.
+
+> Historical snapshot. The `src/bin/...` paths, line numbers, counts, and
+> findings below describe the pre-migration tree and are retained as evidence;
+> they are not current behavior claims. Current packages are
+> `apps/showcase`, `apps/tablepro`, and `apps/jackin-preview`. The current
+> Jackin environment domain is `apps/jackin-preview/src/domain/workspace.rs`.
+> Its transient plain environment input is masked and enters the pending
+> workspace only after key validation and Save. Persisted plain values use a
+> mask that intentionally retains the final four characters for key-shaped
+> values. Do not read “never rendered” below as “no secret-derived tail can
+> appear in a frame.”
 
 ## 0. Method, coverage and confidence
 
@@ -501,13 +514,13 @@ Ranked by how clearly it belongs in the library (**[INFERENCE]** on the disposit
 | `detach_reconnect_and_final_exit_plays_one_outro` | 219 | `Ctrl+B d` detaches; Enter reconnects; `Ctrl+Q` → unsaved-work choice → Outro with the elapsed caption → quit |
 | `still_inside_feedback_when_other_instances_remain` | 251 | Exit with 1 remaining ⇒ "Still inside the Construct", `running_count() == 1` |
 | `too_small_state_and_resize_recover` | 264 | 60×18 too small; 80×24 recovers |
-| `accounts_register_with_a_1password_reference_and_never_render_the_secret` | 273 | Full OpFlow chain; **`valid-ant01` never appears in the frame**; duplicate-source refusal; provider switch; save; refresh reports "still rate limited" |
-| `accounts_plain_key_is_masked_everywhere_and_remove_asks_first` | 359 | Raw key never rendered while typing or after; only the 4-char tail; **`format!("{:?}", a.source)` must not contain the key**; remove asks first |
+| `accounts_register_with_a_1password_reference_and_never_render_the_secret` | 273 | Full OpFlow chain; the resolved secret never appears in the frame; only its reference/masked representation is shown; duplicate-source refusal; provider switch; save; refresh reports "still rate limited" |
+| `accounts_plain_key_is_masked_everywhere_and_remove_asks_first` | 359 | The full raw key is not rendered while typing or after; the masked representation may retain only the 4-char tail; **`format!("{:?}", a.source)` must not contain the key**; remove asks first |
 | `usage_overlay_is_read_only_and_hands_off_to_accounts` | 400 | "Usage · read-only"; `m` hands the selection to Accounts; Esc → Manager |
 | `prelude_creates_a_pending_workspace_and_opens_the_editor` | 416 | 5-step chain; Esc rewinds to the previous step **with its state**; pending workspace fields |
 | `prelude_refuses_a_duplicate_name_and_cancels_cleanly` | 463 | Duplicate name refused; full rewind ⇒ "Cancelled · nothing created" |
 | `editor_edits_count_once_preview_then_saves_and_returns` | 497 | `• 1 change` counted once; leaving asks; save preview lists "1 modified"; async save returns to Manager and persists |
-| `editor_env_plain_value_stays_masked` | 538 | Plain env value stays masked; `m` keeps it masked; new secret staged as `************1234` |
+| `editor_env_plain_value_stays_masked` | 538 | Transient plain env input stays masked; a valid key is added only after Save; `m` keeps it masked; persisted key-shaped values render as `************1234` |
 | `settings_trust_toggle_and_failed_save_keep_edits` | 581 | A failed save keeps `• 1 change`; the retry persists |
 | `hard_cases_refresh_keeps_last_good_and_help_opens_everywhere` | 618 | Per-route help sections; "broker unreachable" |
 | `complete_jackin_flow_keyboard_first` | 646 | **The 40-step product journey** (§34 of the original goal): 5 accounts via 3 credential paths, workspace creation, all 5 editor tabs, launch, build log, Capsule typing, second session, split/zoom/resize, scrollback + mouse selection + double-click word select + `y` copy, palette, capsule Usage, detach/reconnect, second instance, still-inside, final outro |

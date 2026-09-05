@@ -27,7 +27,11 @@ This is a known, authorized exception, not an active blocker. The
 `fable-builder` label is historical; retain its implementation-only role and do
 not pass model or effort overrides.
 
-## Current tip — measured
+## Recorded checkpoint — measured at source payload `b23df21`
+
+This checkpoint is historical until refreshed against the current worktree and
+committed tip. Do not treat its gate counts or capture metadata as current
+measurements.
 
 The current **source payload** is `b23df21`
 (`b23df21c93a4694a4e71c4e76029bea14e275759`); `origin/main` may be newer from
@@ -41,6 +45,13 @@ and `e49de3f` (dynamic Form error disclosure), following the prior capture,
 architecture-checker, props/grid, and rain-style fixes. The worktree may contain
 uncommitted work from another owner; inspect status before treating the committed
 tip as the complete source tree.
+
+For current Jackin security behavior, inspect
+`apps/jackin-preview/src/domain/workspace.rs`: transient plain environment
+input is masked and enters the pending workspace only after key validation and
+Save; persisted key-shaped values use a mask that intentionally retains the
+final four characters. Older “no secret ever reaches a frame” wording is not a
+valid current claim.
 
 The library is already package `junie-tui` / library `junie_tui` in
 `crates/tui`; the workspace has `apps/showcase`, `apps/tablepro`, and

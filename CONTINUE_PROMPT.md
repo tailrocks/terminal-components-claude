@@ -35,7 +35,11 @@ overrides.
 - The coordinator sequences, measures, records, commits, pushes, and reports.
 - Never use generic, inheriting, built-in Explore or Plan agents for this goal.
 
-## Current state — measured at the current tip
+## Recorded checkpoint — measured at source payload `b23df21`
+
+This checkpoint is historical until refreshed against the current worktree and
+committed tip. Do not treat its gate counts or capture metadata as current
+measurements.
 
 The current **source payload** is **`b23df21`**
 (`b23df21c93a4694a4e71c4e76029bea14e275759`); `origin/main` may be newer from
@@ -63,6 +67,13 @@ docs-only checkpoint commits. The latest source lineage is:
 
 The worktree may contain uncommitted work from another owner; inspect status
 before treating the committed tip as the complete source tree.
+
+For current Jackin security behavior, inspect
+`apps/jackin-preview/src/domain/workspace.rs`: transient plain environment
+input is masked and enters the pending workspace only after key validation and
+Save; persisted key-shaped values use a mask that intentionally retains the
+final four characters. Older “no secret ever reaches a frame” wording is not a
+valid current claim.
 
 The workspace is already migrated to the `junie-tui` package/library
 (`crates/tui/Cargo.toml`: package `junie-tui`, library `junie_tui`), with the

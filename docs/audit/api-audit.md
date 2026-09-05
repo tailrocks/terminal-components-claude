@@ -1,6 +1,12 @@
-# Current API Audit — reusable layer (`src/core`, `src/ui`, `src/theme.rs`, `src/runtime.rs`, `src/widgets/*`)
+# Historical API Audit — reusable layer (`src/core`, `src/ui`, `src/theme.rs`, `src/runtime.rs`, `src/widgets/*`)
 
-**Scope of this pass:** every file under `src/core/`, `src/ui/`, `src/theme.rs`, `src/runtime.rs`, `src/lib.rs`, and all 31 modules under `src/widgets/`, plus `README.md` and `DESIGN.md` (skim). Application directories (`src/bin/showcase`, `src/bin/tablepro`, `src/bin/jackin_preview`) were **not** scanned in this pass except for their test harness files; goal §7's "search the application directories" checklist and the "application-specific copies or variants" inventory column remain **open** and must be covered by a separate audit.
+> Historical snapshot. This audit records the pre-migration reusable layer and
+> preserves its findings and citations. The `src/...` paths below are historical
+> evidence, not a current inventory. Current reusable code is under `crates/tui/`;
+> current app code is under `apps/`, including the Jackin environment domain at
+> `apps/jackin-preview/src/domain/workspace.rs`.
+
+**Historical scope of this pass:** every file under `src/core/`, `src/ui/`, `src/theme.rs`, `src/runtime.rs`, `src/lib.rs`, and all 31 modules under `src/widgets/`, plus `README.md` and `DESIGN.md` (skim). Application directories (`src/bin/showcase`, `src/bin/tablepro`, `src/bin/jackin_preview`) were **not** scanned in this historical pass except for their test harness files; goal §7's "search the application directories" checklist and the "application-specific copies or variants" inventory column remain **open** in that snapshot and must be covered by a separate audit.
 
 **Convention:** `[F]` = collected fact with citation. `[I]` = inference/judgement. Every `file:line` was read directly.
 
@@ -1093,7 +1099,11 @@ Additional render-time mutation that is *permitted* by goal §11 ("update non-se
 
 ---
 
-## 5. Secret / masked-input findings
+## 5. Historical secret / masked-input findings
+
+The facts and inferences in this section were collected from the historical
+snapshot. Keep them as audit evidence; do not apply them wholesale to current
+Jackin behavior.
 
 **Collected facts**
 
@@ -1109,12 +1119,24 @@ Additional render-time mutation that is *permitted* by goal §11 ("update non-se
 10. `grid.rs:233-239` and `table.rs:86-91` — `#[derive(Debug, Clone)] pub struct EditState { … buffer: TextBuffer … }`; `DataGrid` and `DataTable` both derive `Debug`/`Clone` (`grid.rs:326`, `table.rs:95`), so an in-flight cell edit is printable and cloneable.
 11. `grid.rs:31` — `#[derive(Debug, Clone, PartialEq)] pub enum CellValue { …, Text(String), Json(String) }`; `DataGrid` holds every row, so `{:?}` on a grid dumps the entire result set.
 12. `viewport.rs:22,89,108` — `Span`, `Cell` and `TextViewport` all derive `Debug`/`Clone` and hold arbitrary text (log/terminal content).
-13. `README.md:60-62` claims *"No secret ever reaches a frame — … plain-text keys live in transient edit state and render masked with a synthetic four-character tail."* The **synthesis** is an application behaviour; the library's `reveal_tail` reveals the *real* last N graphemes (`input.rs:135-143`). The safety property therefore lives in `src/bin/jackin_preview`, not in the reusable layer, and any other consumer of `TextInput::masked().reveal_tail(4)` leaks real characters.
+13. `README.md:60-62` claims *"No secret ever reaches a frame — … plain-text keys live in transient edit state and render masked with a synthetic four-character tail."* The **synthesis** is an application behaviour; the library's `reveal_tail` reveals the *real* last N graphemes (`input.rs:135-143`). In this historical snapshot, the safety property therefore lived in `src/bin/jackin_preview`, not in the reusable layer, and any other consumer of `TextInput::masked().reveal_tail(4)` leaked real characters.
 
-**Inference**
+**Historical inference**
 
 - The library has **no** secret type, no redaction, no `Debug` suppression, and no zeroization. Every exposure path goal §19 lists — "rendering, captures, logs, cloning, or `Debug`" — is open.
 - Minimum fixes: a `Secret<String>`-style newtype with a manual `Debug` writing `"[redacted]"`; a manual `Debug` impl on `TextInput`, `Dialog`, `AckInput`, `EditState` (both), `TextBuffer`; removal or re-specification of `reveal_tail` so the library synthesises the tail rather than revealing it; an explicit `expose()`/`with_value()` accessor instead of `text()`; and a conformance test asserting `format!("{:?}", masked_input)` contains neither the value nor the snapshot.
+
+### Current Jackin behavior
+
+The current environment implementation is `apps/jackin-preview/src/domain/workspace.rs`.
+`EnvValue::Plain` is redacted by its debug formatter, while persisted plain
+values are rendered through `mask`. For API-key-shaped values, that stored mask
+intentionally retains the final four characters, so a masked tail may reach a
+frame; this is not evidence that raw secret material is absent everywhere.
+The editor keeps transient plain environment input masked and adds it to the
+pending workspace only after `env_key_error` accepts the key and Save is
+activated. These current facts are separate from the historical library
+findings above.
 
 ---
 

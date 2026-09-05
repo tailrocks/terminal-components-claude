@@ -1,8 +1,17 @@
-# Slice 7 — Jackin Preview migration plan
+# Historical Slice 7 — Jackin Preview migration plan
+
+> Historical plan snapshot. The `src/bin/...`, `config.rs`, and line-number
+> citations below describe the pre-migration tree and remain for provenance;
+> they are not current paths or behavior claims. Current Jackin code is under
+> `apps/jackin-preview/`, with the environment domain at
+> `apps/jackin-preview/src/domain/workspace.rs`. Current transient plain env
+> input is masked and enters the pending workspace only after key validation
+> and Save; persisted key-shaped values intentionally retain a masked final
+> four-character tail in their display form.
 
 ## 0. Scope, baseline, ownership
 
-**[F] Files owned by this slice** (`COMPONENT_ARCHITECTURE.md:4077-4080`): `apps/jackin-preview/**` in full. Current tree: `src/bin/jackin_preview/{main.rs, app.rs, arbiter.rs, clock.rs, scenario.rs, rain.rs, perf_tests.rs, app_tests.rs, app_tests_chrome.rs, visual_tests.rs}`, `screens/{mod,manager,capsule,cockpit,inspect,config,editor,settings,accounts,usage,prelude,modals}.rs`, `domain/**`, `sim/**`, plus `tests/baselines/jackin.txt` (moves to `apps/jackin-preview/tests/baselines/jackin.txt`).
+**[HISTORICAL] Files owned by this slice** (`COMPONENT_ARCHITECTURE.md:4077-4080`): the pre-migration source tree was `src/bin/jackin_preview/{main.rs, app.rs, arbiter.rs, clock.rs, scenario.rs, rain.rs, perf_tests.rs, app_tests.rs, app_tests_chrome.rs, visual_tests.rs}`, `screens/{mod,manager,capsule,cockpit,inspect,config,editor,settings,accounts,usage,prelude,modals}.rs`, `domain/**`, `sim/**`, plus `tests/baselines/jackin.txt`. The current package is `apps/jackin-preview/**`, including `apps/jackin-preview/tests/baselines/jackin.txt`.
 
 **[F] Sizes**: `app.rs` 2662 lines; `screens/modals.rs` 2426 lines; `rain.rs` 952; `screens/mod.rs` 337 (the `Screen` trait is `screens/mod.rs:231-328`, **23 methods** — the app-audit's "20" is wrong; recount below).
 
@@ -330,7 +339,7 @@ If the clock is instead advanced by `design.motion.tick_ms` (80) or by wall-cloc
 | 7 | `still_inside_feedback_when_other_instances_remain` | 251 | `Still inside the Construct`; `running_count() == 1` | **radio** (`:255-257`) |
 | 8 | `too_small_state_and_resize_recover` | 264 | 60×18 too small; 80×24 recovers | none |
 | 9 | `accounts_register_with_a_1password_reference_and_never_render_the_secret` | 273 | full OpFlow chain; duplicate-source refusal; provider switch; save; refresh reports "still rate limited" | **id addressing** (`:309, 319, 322, 340`) |
-| 10 | `accounts_plain_key_is_masked_everywhere_and_remove_asks_first` | 359 | raw key never rendered; 4-char tail; `Debug` of the source excludes the key; remove asks first | **radio** (`:367-369`), **id addressing** (`:381`) |
+| 10 | `accounts_plain_key_is_masked_everywhere_and_remove_asks_first` | 359 | full raw key not rendered; masked representation may retain the final four characters; `Debug` of the source excludes the key; remove asks first | **radio** (`:367-369`), **id addressing** (`:381`) |
 | 11 | `usage_overlay_is_read_only_and_hands_off_to_accounts` | 400 | `Usage · read-only`; `m` hands off; Esc→Manager | none |
 | 12 | `prelude_creates_a_pending_workspace_and_opens_the_editor` | 416 | 5-step chain; Esc rewinds **with state**; pending fields | none |
 | 13 | `prelude_refuses_a_duplicate_name_and_cancels_cleanly` | 463 | duplicate refused; full rewind ⇒ `Cancelled · nothing created` | none |
@@ -405,7 +414,7 @@ Sequences that press `Enter` immediately after the arrows (`:234-236`, `:255-257
 - `Secret` is `!Clone`, `!PartialEq`, `!Serialize`; `Debug`/`Display` redact (§15). `FormValues` (`modals.rs:794`) is **deleted**, not redacted — `format!("{:?}")` of the form is no longer the only defence.
 - The enclosing owner calls `FormState::zeroize()` when cancelling or dismissing; `Form` does not own layer lifecycle events (§15.1).
 - New: `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string`, `conformance::form::secret_never_appears_in_debug`.
-- **`"************1234"` is a *stored value* rendering, not a field mask.** It comes from `domain::workspace::mask` (`config.rs:37`), applied to the persisted `EnvValue`. Keep that domain function; use `Secret`/`SecretPolicy` only for the in-flight `TextInput` draft. If `SecretPolicy`'s default `GlyphRole::SecretMask` (Junie `•`) were applied to the stored value, `app_tests.rs:575` would fail on `*` vs `•`.
+- **`"************1234"` is a *stored value* rendering, not a field mask.** In the current tree it comes from `domain::workspace::mask` (`apps/jackin-preview/src/domain/workspace.rs`), applied to the persisted `EnvValue`. Keep that domain function; use `Secret`/`SecretPolicy` only for the in-flight `TextInput` draft. If `SecretPolicy`'s default `GlyphRole::SecretMask` (Junie `•`) were applied to the stored value, the historical `app_tests.rs:575` expectation would fail on `*` vs `•`.
 
 ---
 

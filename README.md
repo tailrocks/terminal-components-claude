@@ -56,10 +56,15 @@ every screen, dialog, picker and menu shares.
 
 The preview's scenarios are deterministic: the same `--scenario`, `--motion`,
 `--frame` and terminal size always render the same picture, which is what
-`apps/jackin-preview/tests/preview.rs` and the `j_*` captures rely on. No
-secret ever reaches a frame — 1Password references resolve only inside the
-simulated credential service, plain-text keys live in transient edit state
-and render masked with a synthetic four-character tail.
+`apps/jackin-preview/tests/preview.rs` and the `j_*` captures rely on.
+1Password references render as references; their resolved values stay inside
+the simulated credential service. Transient plain-text environment input is
+masked in the editor and added to the pending workspace only after key
+validation and the form's Save action. Persisted plain values render through
+`apps/jackin-preview/src/domain/workspace.rs::mask`: API-key-shaped values
+intentionally retain the stored value's final four characters. This describes
+display and save sequencing; it does not claim that raw secret bytes never
+exist in transient state or that no secret-derived characters reach a frame.
 
 Requirements: Rust 1.88+, a terminal with mouse support. Truecolor is the
 primary target (`COLORTERM=truecolor`); 256/16-colour terminals get a mapped

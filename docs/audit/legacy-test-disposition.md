@@ -1,4 +1,9 @@
-# Legacy test disposition — the per-test record that Slice 5's deletion destroys
+# Historical legacy test disposition — the per-test record that Slice 5's deletion destroys
+
+> Historical record. This file was written before the package migration. The
+> old root-package and `src/bin` target references are retained evidence, not
+> current paths. Current app targets live under `apps/`, and the current Jackin
+> environment domain is `apps/jackin-preview/src/domain/workspace.rs`.
 
 Slice 5 deletes the root package's `src/`, its `[lib]` and its three `[[bin]]`s. That
 deletion also destroys the only evidence from which a per-test disposition could be
@@ -674,10 +679,10 @@ in-module unit tests §16.4 and the Slice 7 gate name explicitly; `domain::*`, `
 | `app_tests::prelude_creates_a_pending_workspace_and_opens_the_editor` | the prelude creates a pending workspace and opens the editor | **MIGRATES IN SLICE 7** — same |
 | `app_tests::prelude_refuses_a_duplicate_name_and_cancels_cleanly` | duplicate workspace names are refused; cancel leaves no residue | **MIGRATES IN SLICE 7** — same |
 | `app_tests::editor_edits_count_once_preview_then_saves_and_returns` | edits count once, preview then save, return to the caller | **MIGRATES IN SLICE 7** — same; domain half is `domain::workspace::tests::change_count_tracks_fields_and_rows` |
-| `app_tests::editor_env_plain_value_stays_masked` | a plain env value stays masked; the `m` command does not reveal it | **MIGRATES IN SLICE 7** — same; §16.4 adds `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string` |
+| `app_tests::editor_env_plain_value_stays_masked` | transient plain env input stays masked; a valid key is added only after Save; the `m` command does not reveal it | **MIGRATES IN SLICE 7** — same; §16.4 adds `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string` |
 | `app_tests::editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on` | inherited defaults can be switched off and extra accounts on | **MIGRATES IN SLICE 7** — same |
-| `app_tests::accounts_register_with_a_1password_reference_and_never_render_the_secret` | a 1Password-referenced account never renders its secret | **MIGRATES IN SLICE 7** — same; domain half is `sim::onepassword::tests::resolves_only_inside_the_closure` |
-| `app_tests::accounts_plain_key_is_masked_everywhere_and_remove_asks_first` | a plain key is masked in every surface; removal confirms first | **MIGRATES IN SLICE 7** — same; domain half is `domain::account::tests::masking_helpers` |
+| `app_tests::accounts_register_with_a_1password_reference_and_never_render_the_secret` | a 1Password-referenced account does not render the resolved secret; a reference/masked representation may be shown | **MIGRATES IN SLICE 7** — same; domain half is `sim::onepassword::tests::resolves_only_inside_the_closure` |
+| `app_tests::accounts_plain_key_is_masked_everywhere_and_remove_asks_first` | a plain key's full value is not rendered in any surface; its mask may retain the final four characters; removal confirms first | **MIGRATES IN SLICE 7** — same; domain half is `domain::account::tests::masking_helpers` |
 | `app_tests::usage_overlay_is_read_only_and_hands_off_to_accounts` | the usage overlay is read-only and hands off to accounts | **MIGRATES IN SLICE 7** — same |
 | `app_tests::cockpit_resolves_every_effective_account_for_the_container` | the cockpit resolves the effective account set | **MIGRATES IN SLICE 7** — same; domain half is `domain::fixtures::tests::workspace_policy_builds_a_deterministic_effective_set` |
 | `app_tests::launch_runs_all_stages_and_hands_off_to_the_capsule` | the launch sequence runs to completion and hands off | **MIGRATES IN SLICE 7** — same; domain half is `sim::launch::tests::clean_plan_walks_all_eleven_stages_in_order` |
@@ -726,7 +731,7 @@ in-module unit tests §16.4 and the Slice 7 gate name explicitly; `domain::*`, `
 | `domain::instance::tests::hidden_statuses_and_actions` | which instance statuses are hidden, stoppable and reconnectable, and the agent-state rank order | **MIGRATES IN SLICE 7** — `domain/instance.rs`; **not named** |
 | `domain::usage::tests::quota_status_thresholds` | `QuotaStatus::from_pct` thresholds and the `"1,240 / 5,000 credits"` value label | **MIGRATES IN SLICE 7** — `domain/usage.rs`; **not named**. The grouped-integer label is app-side, consistent with §2.10 |
 | `domain::usage::tests::empty_registry_is_empty_health` | an empty registry reports `HealthWord::Empty` and `"0 accounts · 0 enabled · 0 providers"` | **MIGRATES IN SLICE 7** — same; **not named** |
-| `domain::workspace::tests::masking_never_reveals_the_value` | `mask` never leaks a prefix, masks short values wholly, renders `"(empty)"`, and `env_key_error` rejects reserved and malformed keys | **MIGRATES IN SLICE 7** — `domain/workspace.rs`; **not named**. Library half is `secret::tests::debug_and_display_redact` |
+| `domain::workspace::tests::masking_never_reveals_the_value` | `mask` does not reveal a prefix; key-shaped values intentionally retain only the final four characters, short values are fully masked, `"(empty)"` is rendered, and `env_key_error` rejects reserved and malformed keys | **MIGRATES IN SLICE 7** — `apps/jackin-preview/src/domain/workspace.rs`; **not named**. Library half is `secret::tests::debug_and_display_redact` |
 | `domain::workspace::tests::change_count_tracks_fields_and_rows` | the change counter counts field and row edits and is zero for an identical pair; `Isolation::next` cycles | **MIGRATES IN SLICE 7** — same; **not named** |
 | `sim::changes::tests::deterministic_and_realistic` | the generated change set is deterministic for a seed and has the declared shape (5 files, hunk counts, one of each status, unpushed count, summary prefix) | **MIGRATES IN SLICE 7** — `sim/changes.rs`; **not named** |
 | `sim::changes::tests::fewer_uncommitted_than_touched_keeps_every_touched_file` | reducing the uncommitted count never drops a touched file; a zero-size request is empty | **MIGRATES IN SLICE 7** — same; **not named** |
