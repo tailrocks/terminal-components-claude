@@ -507,7 +507,7 @@ Ranked by how clearly it belongs in the library (**[INFERENCE]** on the disposit
 | `prelude_creates_a_pending_workspace_and_opens_the_editor` | 416 | 5-step chain; Esc rewinds to the previous step **with its state**; pending workspace fields |
 | `prelude_refuses_a_duplicate_name_and_cancels_cleanly` | 463 | Duplicate name refused; full rewind ⇒ "Cancelled · nothing created" |
 | `editor_edits_count_once_preview_then_saves_and_returns` | 497 | `• 1 change` counted once; leaving asks; save preview lists "1 modified"; async save returns to Manager and persists |
-| `editor_env_plain_value_stays_masked_and_can_be_shown` | 538 | Plain env value masked; `m` reveals; new secret stored as `************1234` |
+| `editor_env_plain_value_stays_masked` | 538 | Plain env value stays masked; `m` keeps it masked; new secret staged as `************1234` |
 | `settings_trust_toggle_and_failed_save_keep_edits` | 581 | A failed save keeps `• 1 change`; the retry persists |
 | `hard_cases_refresh_keeps_last_good_and_help_opens_everywhere` | 618 | Per-route help sections; "broker unreachable" |
 | `complete_jackin_flow_keyboard_first` | 646 | **The 40-step product journey** (§34 of the original goal): 5 accounts via 3 credential paths, workspace creation, all 5 editor tabs, launch, build log, Capsule typing, second session, split/zoom/resize, scrollback + mouse selection + double-click word select + `y` copy, palette, capsule Usage, detach/reconnect, second instance, still-inside, final outro |

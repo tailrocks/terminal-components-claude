@@ -335,7 +335,7 @@ If the clock is instead advanced by `design.motion.tick_ms` (80) or by wall-cloc
 | 12 | `prelude_creates_a_pending_workspace_and_opens_the_editor` | 416 | 5-step chain; Esc rewinds **with state**; pending fields | none |
 | 13 | `prelude_refuses_a_duplicate_name_and_cancels_cleanly` | 463 | duplicate refused; full rewind ⇒ `Cancelled · nothing created` | none |
 | 14 | `editor_edits_count_once_preview_then_saves_and_returns` | 497 | `• 1 change` counted once; leaving asks; preview lists `1 modified`; async save persists | none |
-| 15 | `editor_env_plain_value_stays_masked_and_can_be_shown` | 538 | plain env masked; `m` reveals; new secret stored as `************1234` | **id addressing** (`:567-571`) |
+| 15 | `editor_env_plain_value_stays_masked` | 538 | plain env stays masked; `m` keeps it masked; new secret staged as `************1234` | **id addressing** (`:567-571`) |
 | 16 | `settings_trust_toggle_and_failed_save_keep_edits` | 581 | a failed save keeps `• 1 change`; retry persists | none |
 | 17 | `hard_cases_refresh_keeps_last_good_and_help_opens_everywhere` | 618 | per-route help sections; `broker unreachable` | **help sections are derived now** (`:630, :640`) |
 | 18 | `complete_jackin_flow_keyboard_first` | 646 | the 40-step product journey | **radio** (`:668, 690-692, 727-732`), **id addressing** (`:648-649, 674, 708, 738, 805`) |
@@ -403,7 +403,7 @@ Sequences that press `Enter` immediately after the arrows (`:234-236`, `:255-257
 
 **[I] Added obligations, none of which may replace the above:**
 - `Secret` is `!Clone`, `!PartialEq`, `!Serialize`; `Debug`/`Display` redact (§15). `FormValues` (`modals.rs:794`) is **deleted**, not redacted — `format!("{:?}")` of the form is no longer the only defence.
-- `FormState::zeroize()` runs on `LayerEvent::{Dismissed, Closed}` (§15.1).
+- The enclosing owner calls `FormState::zeroize()` when cancelling or dismissing; `Form` does not own layer lifecycle events (§15.1).
 - New: `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string`, `conformance::form::secret_never_appears_in_debug`.
 - **`"************1234"` is a *stored value* rendering, not a field mask.** It comes from `domain::workspace::mask` (`config.rs:37`), applied to the persisted `EnvValue`. Keep that domain function; use `Secret`/`SecretPolicy` only for the in-flight `TextInput` draft. If `SecretPolicy`'s default `GlyphRole::SecretMask` (Junie `•`) were applied to the stored value, `app_tests.rs:575` would fail on `*` vs `•`.
 
