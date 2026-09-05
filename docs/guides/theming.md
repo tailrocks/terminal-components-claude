@@ -487,7 +487,8 @@ let t = Theme::junie().define_family(BADGE, |r| {
 level 2 (a variant delta) — they *define* the recipe. `override_family` and
 `override_variant` are level 4 — they *override* whatever a recipe says. Use
 `define_*` for a family you own; use `override_*` to restyle a family somebody
-else defined.
+else defined. All four editors are sparse: when a custom family is first
+mutated, its omitted parts start from the neutral recipe and remain available.
 
 > **A family you never declare resolves through the neutral recipe.**
 > `Recipes::get_or_neutral` falls back to a neutral row-like recipe
@@ -495,16 +496,17 @@ else defined.
 > `Family::custom("x")` renders something instead of resolving to an empty
 > style. Two consequences that are easy to trip over:
 >
-> 1. `Recipes::apply_mono_fallbacks` — which the capability downgrade runs at
->    `ColorLevel::Mono` — iterates the **declared** families only. It never
->    touches the neutral recipe, so an *undeclared* custom family gets **no
->    mono fallback rules at all**. A focused control in such a family is
->    indistinguishable from an unfocused one without colour. Declare the
->    family with `define_family` (or paint the affordance yourself; see
->    [`authoring.md`](authoring.md)).
-> 2. `define_family(F, |_| {})` with an *empty* edit replaces the neutral
->    recipe with an empty one — it does not merge into it. Declaring a family
->    means declaring its parts.
+> 1. The generic mono fallback manifest — which the capability downgrade runs
+>    at `ColorLevel::Mono` — applies to every **resolvable** recipe, including
+>    the neutral recipe. An *undeclared* custom family therefore gets generic
+>    state signals, but no family-targeted or authored mono rules. Declare the
+>    family with `define_family` when it needs a targeted affordance (or paint
+>    the affordance yourself; see [`authoring.md`](authoring.md)).
+> 2. Sparse family edits preserve that neutral recipe. In particular,
+>    `define_family(F, |_| {})` registers no new parts and leaves the
+>    row-like fallback intact; setting one label or variant cannot make the
+>    omitted parts disappear. Use a part-level `clear_*` patch when the
+>    intention is to suppress a specific inherited value.
 
 ---
 
@@ -559,9 +561,11 @@ To switch theme or capability while running, call `Runtime::set_theme`.
 
 ## Scenario 12 — state meaning without colour
 
-At `ColorLevel::Mono`, `downgrade` additionally calls
-`Recipes::apply_mono_fallbacks`, which appends 18 rules per declared family so
-state survives without hue:
+At `ColorLevel::Mono`, `downgrade` additionally applies the generic static
+fallback manifest to every resolvable recipe — each declared family and the
+neutral fallback — so state survives without hue. The manifest currently has
+20 generic entries; built-in families and explicitly authored families may add
+targeted entries:
 
 | State | Part | Fallback |
 |---|---|---|
@@ -681,6 +685,7 @@ speaks (`Set` or `Clear`), and `a` otherwise. Worked:
 let base    = StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD);
 let silent  = StylePatch::new().set_bg(Role::Danger);   // says nothing about fg
 let cleared = StylePatch::new().clear_fg();
+let no_glyph = StylePatch::new().clear_glyph();
 
 // `Inherit` says nothing: the lower layer survives.
 assert_eq!(base.merge(silent).fg, Slot::Set(Role::Accent));
@@ -694,6 +699,10 @@ assert_eq!(
 // `Clear` also wins, and resolves to "no colour" — the surface shows through.
 assert_eq!(base.merge(cleared).fg, Slot::Clear);
 assert_eq!(base.merge(cleared).fg.get(), None);
+
+// `clear_glyph` is the explicit glyph equivalent: the owning component
+// paints its reserved cell blank instead of inheriting or choosing a glyph.
+assert_eq!(StylePatch::new().set_glyph(GlyphRole::Chosen).merge(no_glyph).glyph, Slot::Clear);
 
 // Modifiers are symmetric: the later word wins, in both directions.
 assert!(base.merge(StylePatch::new().remove(Modifier::BOLD)).add.is_empty());

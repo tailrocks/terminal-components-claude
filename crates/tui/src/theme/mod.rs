@@ -90,6 +90,10 @@ impl Theme {
     }
 
     /// A theme-level override applied to every variant of `f` (precedence 4).
+    ///
+    /// If `f` is a custom family not yet present in the theme, setting its
+    /// default variant also keeps the neutral recipe: family mutation is
+    /// sparse and does not erase omitted parts.
     #[must_use]
     pub fn override_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
@@ -106,6 +110,10 @@ impl Theme {
     }
 
     /// A theme-level override applied to one variant of `f` (precedence 4).
+    ///
+    /// If `f` is a custom family not yet present in the theme, setting its
+    /// default variant also keeps the neutral recipe: family mutation is
+    /// sparse and does not erase omitted parts.
     #[must_use]
     pub fn override_variant(
         mut self,
@@ -127,6 +135,9 @@ impl Theme {
     }
 
     /// Define (or extend) a variant delta of `f` (precedence 2).
+    ///
+    /// A missing custom family is seeded from the neutral recipe, so a sparse
+    /// variant edit does not suppress neutral parts it does not mention.
     #[must_use]
     pub fn define_variant(
         mut self,
@@ -148,6 +159,9 @@ impl Theme {
     }
 
     /// Define (or extend) a family's base recipe (precedence 1).
+    ///
+    /// A missing custom family is seeded from the neutral recipe, so a sparse
+    /// family edit does not suppress neutral parts it does not mention.
     #[must_use]
     pub fn define_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
@@ -449,5 +463,100 @@ mod tests {
             Surface::Canvas,
         );
         assert_eq!(out.style.fg, Some(d.color.warning));
+    }
+
+    #[test]
+    fn sparse_custom_family_mutations_keep_the_neutral_parts() {
+        fn assert_sparse_edit(
+            theme: &Theme,
+            family: Family,
+            variant: Variant,
+            expected_label_fg: Color,
+        ) {
+            let neutral = Theme::junie();
+            let fallback = Family::custom("never-declared");
+            for part in [Part::CONTAINER, Part::GUTTER, Part::META] {
+                assert_eq!(
+                    theme.resolve(family, variant, part, StateFlags::empty(), Surface::Canvas,),
+                    neutral.resolve(
+                        fallback,
+                        Variant::DEFAULT,
+                        part,
+                        StateFlags::empty(),
+                        Surface::Canvas,
+                    ),
+                    "sparse mutation changed neutral {part:?}"
+                );
+            }
+            assert_eq!(
+                theme
+                    .resolve(
+                        family,
+                        variant,
+                        Part::LABEL,
+                        StateFlags::empty(),
+                        Surface::Canvas,
+                    )
+                    .style
+                    .fg,
+                Some(expected_label_fg),
+                "sparse mutation did not reach its authored label"
+            );
+        }
+
+        let defined_family = Theme::junie().define_family(Family::custom("sparse-family"), |r| {
+            r.part(Part::LABEL)
+                .base(StylePatch::new().set_fg(Role::Accent));
+        });
+        assert_sparse_edit(
+            &defined_family,
+            Family::custom("sparse-family"),
+            Variant::DEFAULT,
+            defined_family.color.accent,
+        );
+
+        let defined_variant = Theme::junie().define_variant(
+            Family::custom("sparse-variant-family"),
+            Variant::custom("outline"),
+            |r| {
+                r.part(Part::LABEL)
+                    .base(StylePatch::new().set_fg(Role::Warning));
+            },
+        );
+        assert_sparse_edit(
+            &defined_variant,
+            Family::custom("sparse-variant-family"),
+            Variant::custom("outline"),
+            defined_variant.color.warning,
+        );
+
+        let overridden_family =
+            Theme::junie().override_family(Family::custom("sparse-override-family"), |r| {
+                r.default_variant(Variant::custom("override"));
+                r.part(Part::LABEL)
+                    .base(StylePatch::new().set_fg(Role::Info));
+            });
+        assert_sparse_edit(
+            &overridden_family,
+            Family::custom("sparse-override-family"),
+            Variant::custom("override"),
+            overridden_family.color.info,
+        );
+
+        let overridden_variant = Theme::junie().override_variant(
+            Family::custom("sparse-override-variant-family"),
+            Variant::custom("override"),
+            |r| {
+                r.default_variant(Variant::custom("override"));
+                r.part(Part::LABEL)
+                    .base(StylePatch::new().set_fg(Role::Danger));
+            },
+        );
+        assert_sparse_edit(
+            &overridden_variant,
+            Family::custom("sparse-override-variant-family"),
+            Variant::custom("override"),
+            overridden_variant.color.danger,
+        );
     }
 }
