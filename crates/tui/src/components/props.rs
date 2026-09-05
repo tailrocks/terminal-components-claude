@@ -1258,13 +1258,13 @@ mod tests {
         state.set_cursor(0, FIRST_KEY);
         assert_eq!(
             state.reconcile(keys.len(), |index| keys[index]),
-            crate::collection::Reconciliation::Unchanged
+            Reconciliation::Unchanged
         );
 
         let reordered = [SECOND_KEY, FIRST_KEY];
         assert_eq!(
             state.reconcile(reordered.len(), |index| reordered[index]),
-            crate::collection::Reconciliation::Unchanged
+            Reconciliation::Unchanged
         );
         assert_eq!(state.cursor(), Some(FIRST_KEY));
         assert_eq!(state.cursor_index(), 1);
