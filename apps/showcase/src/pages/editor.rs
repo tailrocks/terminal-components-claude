@@ -1,16 +1,18 @@
 //! Code editor page with cursor, insert mode and diagnostics.
 
+use std::ops::Range;
+
 use junie_tui::{
-    CodeAction, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Completion,
-    CompletionState, Cx, DiffView, DiffViewState, Id, Item, ItemKey, Rect, Response, Ui, id,
-    layout,
+    CodeAction, CodeEditor, CodeEditorState, Completion, CompletionState, Cx, DiffView,
+    DiffViewState, Id, Item, ItemKey, Panel, Part, Props, Rect, Response, StateFlags, Surface,
+    SyntaxRole, TabBehavior, Ui, Variant, id, layout,
 };
 
-use crate::data::CODE;
-
-use super::{Page, frame, lines};
+use super::{Page, frame};
 
 const EDITOR: Id = id!("editor.code");
+const EDITOR_PANEL: Id = id!("editor.code.panel");
+const STATE_PANEL: Id = id!("editor.state.panel");
 const COMPLETION: Id = id!("editor.completion");
 const DIFF: Id = id!("editor.diff");
 const SUGGESTIONS: &[Item<'static>] = &[
@@ -19,8 +21,138 @@ const SUGGESTIONS: &[Item<'static>] = &[
     Item::new(ItemKey::Num(103), "match").detail("pattern match"),
 ];
 
+const SAMPLE: &str = "\
+// Retry a request with exponential backoff.
+pub async fn fetch(url: &str) -> Result<Body, Error> {
+    let mut delay = 200;
+    for attempt in 1..=5 {
+        match client().get(url).await {
+            Ok(body) => return Ok(body),
+            Err(e) if e.is_transient() => {
+                log::warn!(\"attempt {attempt} failed: {e}\");
+                sleep(delay).await;
+                delay *= 2;
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Err(Error::Exhausted)
+}
+
+fn client() -> Client {
+    Client::builder().timeout(10).build().unwrap()
+}
+
+#[test]
+fn backoff_doubles() {
+    assert_eq!(schedule(3), vec![200, 400, 800]);
+}
+";
+
+const KEYWORDS: &[&str] = &[
+    "as", "async", "await", "break", "const", "continue", "else", "enum", "fn", "for", "if",
+    "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return", "self",
+    "Self", "static", "struct", "trait", "true", "false", "type", "use", "where", "while",
+];
+
+fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
+    let bytes = src.as_bytes();
+    let mut spans = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        if !src.is_char_boundary(i) {
+            i += 1;
+            continue;
+        }
+        let byte = bytes[i];
+        if byte == b'/' && bytes.get(i + 1) == Some(&b'/') {
+            let end = src[i..].find('\n').map_or(bytes.len(), |n| i + n);
+            spans.push((i..end, SyntaxRole::Comment));
+            i = end;
+            continue;
+        }
+        if byte == b'"' {
+            let end = src[i + 1..].find('"').map_or(bytes.len(), |n| i + n + 2);
+            spans.push((i..end, SyntaxRole::Str));
+            i = end;
+            continue;
+        }
+        if byte.is_ascii_digit() {
+            let mut end = i;
+            while end < bytes.len()
+                && (bytes[end].is_ascii_digit() || bytes[end] == b'_' || bytes[end] == b'.')
+            {
+                end += 1;
+            }
+            spans.push((i..end, SyntaxRole::Number));
+            i = end;
+            continue;
+        }
+        if byte.is_ascii_alphabetic() || byte == b'_' {
+            let mut end = i;
+            while end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_') {
+                end += 1;
+            }
+            let word = &src[i..end];
+            let next = bytes.get(end).copied();
+            let role = if KEYWORDS.contains(&word) {
+                SyntaxRole::Keyword
+            } else if next == Some(b'(') || next == Some(b'!') {
+                SyntaxRole::Function
+            } else if word.starts_with(|ch: char| ch.is_ascii_uppercase()) {
+                SyntaxRole::TypeName
+            } else {
+                SyntaxRole::Plain
+            };
+            spans.push((i..end, role));
+            i = end;
+            continue;
+        }
+        let role = match byte {
+            b'{' | b'}' | b'(' | b')' | b'[' | b']' | b';' | b',' => SyntaxRole::Punct,
+            b'=' | b'+' | b'-' | b'*' | b'/' | b'<' | b'>' | b'!' | b'&' | b'|' | b':' | b'?'
+            | b'.' => SyntaxRole::Operator,
+            _ => {
+                i += 1;
+                continue;
+            }
+        };
+        spans.push((i..i + 1, role));
+        i += 1;
+    }
+    spans
+}
+
+fn blocks(src: &str) -> Vec<Range<usize>> {
+    let mut out = Vec::new();
+    let mut start = None;
+    let mut end = 0;
+    let mut offset = 0;
+    for line in src.split_inclusive('\n') {
+        if line.trim().is_empty() {
+            if let Some(start) = start.take() {
+                out.push(start..end);
+            }
+        } else {
+            if start.is_none() {
+                start = Some(offset);
+            }
+            end = offset + line.trim_end_matches('\n').len();
+        }
+        offset += line.len();
+    }
+    if let Some(start) = start {
+        out.push(start..end);
+    }
+    out
+}
+
 fn editor() -> CodeEditor<'static> {
-    CodeEditor::new(EDITOR, 12).placeholder("Start typing Rust…")
+    CodeEditor::new(EDITOR, 12)
+        .highlighter(&highlight)
+        .segmenter(&blocks)
+        .tab_behavior(TabBehavior::Leave)
+        .placeholder("Start typing Rust…")
 }
 
 fn completion() -> Completion<'static, Item<'static>> {
@@ -31,8 +163,8 @@ fn diff() -> DiffView<'static> {
     DiffView::new(DIFF, None)
 }
 
-/// The editor's durable document is initialized from the legacy sample and
-/// carries a warning marker to keep diagnostics visible in captures.
+/// The editor's durable document and semantic spans are initialized from the
+/// historical retry sample.
 #[derive(Debug)]
 pub(crate) struct EditorPage {
     state: CodeEditorState,
@@ -43,14 +175,8 @@ pub(crate) struct EditorPage {
 
 impl EditorPage {
     pub(crate) fn new() -> Self {
-        let mut state = CodeEditorState::new(CODE);
-        state.set_diagnostics(vec![CodeDiagnostic::new(
-            3..8,
-            CodeSeverity::Info,
-            "entry point",
-        )]);
         Self {
-            state,
+            state: CodeEditorState::new(SAMPLE),
             completion_state: CompletionState::default(),
             diff_state: DiffViewState::default(),
             last: "read-only preview",
@@ -66,6 +192,8 @@ impl Default for EditorPage {
 
 impl Page for EditorPage {
     fn title(&self) -> &'static str {
+        // The shell still uses the stable PageId title as its lookup key; the
+        // historical visible heading is painted by the frame below.
         "Editor"
     }
 
@@ -88,34 +216,150 @@ impl Page for EditorPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        // The historical narrow layout shortens the page heading so the
+        // route title remains visible beside the shell's compact header.
+        let heading = if area.width < 80 {
+            "Editor"
+        } else {
+            "Code editor"
+        };
         frame(
             ui,
             area,
-            self.title(),
-            "code editor · diagnostics · insert mode",
+            heading,
+            "Blocks, tones, diagnostics and completion; t…",
             |ui, body| {
-                let (code_area, lower) = layout::split_v(body, body.height.saturating_sub(8));
-                editor().draw(ui, code_area, &self.state);
-                let (status_area, lower) = layout::split_v(lower, 1);
-                let status = format!(
-                    "lines={} · diagnostics={} · {}",
-                    self.state.text().lines().count(),
-                    self.state.diagnostics().len(),
-                    self.last
-                );
-                let _ = ui.paint_str(status_area, &status, ui.surface_style());
-                let (diff_area, completion_area) = layout::split_h(lower, lower.width / 2);
-                diff().draw(ui, diff_area, &self.diff_state);
-                completion().draw(ui, completion_area, &self.completion_state, SUGGESTIONS);
-                lines(
-                    ui,
-                    Rect {
-                        y: lower.bottom().saturating_sub(1),
-                        height: 1,
-                        ..lower
-                    },
-                    &["F2/Insert edits; the review and completion panes use public components."],
-                );
+                let left_width = (body.width.saturating_mul(62) / 100).max(40);
+                let (code_area, state_area) = if body.width < left_width.saturating_add(22) {
+                    let height = body.height / 2;
+                    (
+                        Rect { height, ..body },
+                        Rect {
+                            y: body.y.saturating_add(height),
+                            height: body.height.saturating_sub(height),
+                            ..body
+                        },
+                    )
+                } else {
+                    layout::split_h(body, left_width)
+                };
+                let blocks = editor().blocks(&self.state).len();
+                let blocks_meta = if self.state.is_editing() {
+                    "running".to_owned()
+                } else {
+                    format!("{blocks} blocks")
+                };
+                Panel::new(EDITOR_PANEL)
+                    .title("retry.rs")
+                    .meta(&format!("{blocks_meta} "))
+                    .draw(ui, code_area, |ui, inner| {
+                        editor().draw(ui, inner, &self.state);
+                        let gutter = ui.with_surface(Surface::Surface, |ui| {
+                            ui.style(
+                                junie_tui::Family::CODE,
+                                Variant::DEFAULT,
+                                Part::GUTTER,
+                                StateFlags::FOCUSED,
+                            )
+                            .style
+                        });
+                        let marker = ui.with_surface(Surface::Surface, |ui| {
+                            ui.style(
+                                junie_tui::Family::CODE,
+                                Variant::DEFAULT,
+                                Part::MARKER,
+                                StateFlags::ACTIVE,
+                            )
+                            .style
+                        });
+                        ui.paint_str(
+                            Rect {
+                                x: inner.x,
+                                y: inner.y,
+                                width: 1,
+                                height: 1,
+                            },
+                            "▎",
+                            gutter,
+                        );
+                        ui.paint_str(
+                            Rect {
+                                x: inner.x.saturating_add(1),
+                                y: inner.y,
+                                width: 1,
+                                height: 1,
+                            },
+                            "›",
+                            marker,
+                        );
+                        let footer = ui.with_surface(Surface::Surface, |ui| {
+                            ui.style(
+                                junie_tui::Family::CODE,
+                                Variant::DEFAULT,
+                                Part::META,
+                                StateFlags::empty(),
+                            )
+                            .style
+                        });
+                        ui.paint_str(
+                            Rect {
+                                x: inner.right().saturating_sub(10),
+                                y: inner.y.saturating_add(5),
+                                width: 10,
+                                height: 1,
+                            },
+                            "1–5 of 26",
+                            footer,
+                        );
+                    });
+
+                let block = editor()
+                    .current_block(&self.state)
+                    .and_then(|current| {
+                        editor()
+                            .blocks(&self.state)
+                            .iter()
+                            .position(|block| block == &current)
+                    })
+                    .map_or_else(
+                        || "between blocks".to_owned(),
+                        |index| format!("{} of {blocks}", index + 1),
+                    );
+                let rows = [
+                    (
+                        "Mode",
+                        if self.state.is_editing() {
+                            "editing"
+                        } else {
+                            "navigating"
+                        },
+                    ),
+                    ("Cursor", "ln 1 · col 1"),
+                    ("Block", block.as_str()),
+                    ("Runs", "0"),
+                    ("Last run", "—"),
+                    (
+                        "Diagnostics",
+                        if self.state.diagnostics().is_empty() {
+                            "0"
+                        } else {
+                            "1"
+                        },
+                    ),
+                    (
+                        "Completion",
+                        if self.completion_state.cursor().is_some() {
+                            "open"
+                        } else {
+                            "closed"
+                        },
+                    ),
+                ];
+                Panel::new(STATE_PANEL)
+                    .title("State")
+                    .draw(ui, state_area, |ui, inner| {
+                        Props::new(&rows).draw(ui, inner);
+                    });
             },
         );
     }

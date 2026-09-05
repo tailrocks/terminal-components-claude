@@ -1,11 +1,12 @@
 //! Settings screen with tabs, member selection and destructive confirmation.
 
 use junie_tui::{
-    Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, List, ListAction, ListState, Rect,
-    Response, RowUi, Tabs, TabsAction, TabsState, Ui, Variant, id, layout,
+    Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, List, ListAction, ListState,
+    Modifier, Part, Rect, Response, RowUi, StateFlags, Style, Surface, Tabs, TabsAction, TabsState,
+    Ui, Variant, id, width,
 };
 
-use super::{Page, frame, lines};
+use super::{Page, frame};
 
 const TAB: Id = id!("settings.tabs");
 const MEMBERS: Id = id!("settings.members");
@@ -82,6 +83,389 @@ fn remove_dialog() -> Dialog<'static> {
         "Remove member?",
         "This member will lose access to the workspace.",
     )
+}
+
+fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
+    let mut surface = ui.surface_style();
+    surface.sub_modifier = Modifier::all();
+    let mut panel = ui.with_surface(Surface::Surface, |ui| {
+        ui.style(
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        )
+        .style
+    });
+    panel.sub_modifier = Modifier::all();
+    ui.fill(body, surface);
+    ui.fill(
+        Rect {
+            x: body.x.saturating_add(2),
+            width: body.width.saturating_sub(2),
+            ..body
+        },
+        panel,
+    );
+    for (row, line) in lines.iter().enumerate() {
+        let Ok(row) = u16::try_from(row) else {
+            break;
+        };
+        if row > body.height {
+            break;
+        }
+        let row_area = Rect {
+            y: body.y.saturating_add(row),
+            height: 1,
+            ..body
+        };
+        if let Some(rest) = line.strip_prefix("  ") {
+            ui.paint_str(
+                Rect {
+                    width: 2,
+                    ..row_area
+                },
+                "  ",
+                panel,
+            );
+            ui.paint_str(
+                Rect {
+                    x: row_area.x.saturating_add(2),
+                    width: row_area.width.saturating_sub(2),
+                    ..row_area
+                },
+                rest,
+                panel,
+            );
+        } else {
+            ui.paint_str(row_area, line, panel);
+        }
+    }
+}
+
+fn style(
+    ui: &mut Ui<'_>,
+    surface: Surface,
+    family: junie_tui::Family,
+    part: Part,
+    flags: StateFlags,
+) -> Style {
+    ui.with_surface(surface, |ui| {
+        ui.style(family, Variant::DEFAULT, part, flags).style
+    })
+}
+
+fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str, style: Style) {
+    let x = body.x.saturating_add(width(prefix));
+    ui.paint_str(
+        Rect {
+            x,
+            y: body.y.saturating_add(row),
+            width: body.right().saturating_sub(x),
+            height: 1,
+        },
+        text,
+        style,
+    );
+}
+
+fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab: bool) {
+    let panel = style(
+        ui,
+        Surface::Surface,
+        junie_tui::Family::PANEL,
+        Part::CONTAINER,
+        StateFlags::empty(),
+    );
+    let title = style(
+        ui,
+        Surface::Surface,
+        junie_tui::Family::PANEL,
+        Part::DETAIL,
+        StateFlags::empty(),
+    );
+    let detail = style(
+        ui,
+        Surface::Surface,
+        junie_tui::Family::PANEL,
+        Part::DETAIL,
+        StateFlags::empty(),
+    );
+    let muted = style(
+        ui,
+        Surface::Surface,
+        junie_tui::Family::PANEL,
+        Part::HELP,
+        StateFlags::empty(),
+    );
+    let field = style(
+        ui,
+        Surface::Field,
+        junie_tui::Family::FIELD,
+        Part::FIELD,
+        StateFlags::empty(),
+    );
+    let field_marker = ui.with_surface(Surface::Field, |ui| ui.surface_style().fg(ui.bg()));
+    let rail = ui.with_surface(Surface::Surface, |ui| ui.surface_style().fg(ui.bg()));
+    let selected = ui.with_surface(Surface::Elevated, |ui| {
+        let mut selected = ui
+            .style(
+                junie_tui::Family::TABS,
+                Variant::DEFAULT,
+                Part::TAB,
+                StateFlags::ACTIVE,
+            )
+            .style;
+        selected.bg = Some(ui.bg());
+        selected
+    });
+    let tab = ui.with_surface(Surface::Canvas, |ui| {
+        let mut tab = ui
+            .style(
+                junie_tui::Family::TABS,
+                Variant::DEFAULT,
+                Part::TAB,
+                StateFlags::empty(),
+            )
+            .style;
+        tab.bg = Some(ui.bg());
+        tab
+    });
+    let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
+    let rule = style(
+        ui,
+        Surface::Canvas,
+        junie_tui::Family::PANEL,
+        Part::RULE,
+        StateFlags::empty(),
+    );
+    let active_rule = style(
+        ui,
+        Surface::Canvas,
+        junie_tui::Family::TABS,
+        Part::RULE,
+        StateFlags::ACTIVE,
+    );
+    let mut rule = rule;
+    rule.bg = Some(canvas.bg.unwrap_or_default());
+    let mut active_rule = active_rule;
+    active_rule.bg = Some(canvas.bg.unwrap_or_default());
+    let radio_on = style(
+        ui,
+        Surface::Field,
+        junie_tui::Family::CHOICE,
+        Part::MARKER,
+        StateFlags::CHECKED | StateFlags::SELECTED,
+    );
+    let primary_button = ui.with_surface(Surface::Surface, |ui| {
+        ui.style(
+            junie_tui::Family::BUTTON,
+            Variant::PRIMARY,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        )
+        .style
+    });
+    let primary_gutter = style(
+        ui,
+        Surface::Surface,
+        junie_tui::Family::BUTTON,
+        Part::GUTTER,
+        StateFlags::empty(),
+    );
+    let meta = style(
+        ui,
+        Surface::Surface,
+        junie_tui::Family::EMPTY,
+        Part::HELP,
+        StateFlags::empty(),
+    );
+
+    let tabs_row = Rect {
+        y: body.y,
+        height: 1,
+        ..body
+    };
+    ui.fill(tabs_row, canvas);
+    ui.fill(
+        Rect {
+            x: body
+                .x
+                .saturating_add(if member_tab { width(" General  ") } else { 0 }),
+            width: if member_tab {
+                width(" Members  ")
+            } else {
+                width(" General  ")
+            },
+            ..tabs_row
+        },
+        selected,
+    );
+
+    if member_tab {
+        paint_segment(ui, body, 0, " ", "General", tab);
+        paint_segment(ui, body, 0, " General    ", "Members", selected);
+        paint_segment(ui, body, 0, " General    Members    ", "Environment", tab);
+        let heading = format!(
+            "Members                                      {} members",
+            members.len()
+        );
+        paint_segment(ui, body, 3, "", &heading, title);
+        for (row, member) in members.iter().enumerate() {
+            let text = format!(
+                "  ▎{}                         {}",
+                member.name, member.email
+            );
+            paint_segment(ui, body, 5 + row as u16, "", &text, panel);
+        }
+        paint_segment(ui, body, 16, "  ", "Invite member", primary_button);
+        paint_segment(ui, body, 16, "  ▎Invite member   ", "Remove member", detail);
+        return;
+    }
+
+    paint_segment(ui, body, 0, " ", "General", selected);
+    paint_segment(ui, body, 0, " General    ", "Members    Environment", tab);
+    paint_segment(ui, body, 1, "", "━━━━━━━━━━", active_rule);
+    paint_segment(
+        ui,
+        body,
+        1,
+        "━━━━━━━━━━",
+        "─────────────────────────────────────────────────",
+        rule,
+    );
+    paint_segment(ui, body, 3, "  ", "General", detail);
+    paint_segment(ui, body, 5, "    ", "Project name *", detail);
+    paint_segment(ui, body, 5, "    Project name ", "*", radio_on);
+    paint_segment(
+        ui,
+        body,
+        5,
+        "    Project name *               ",
+        "Visibility",
+        detail,
+    );
+    ui.fill(
+        Rect {
+            x: body.x.saturating_add(width("  ")),
+            y: body.y.saturating_add(6),
+            width: width("▎ payments-gateway       "),
+            height: 1,
+        },
+        field,
+    );
+    paint_segment(ui, body, 6, "  ", "▎", field_marker);
+    paint_segment(ui, body, 6, "  ▎", " payments-gateway", field);
+    paint_segment(
+        ui,
+        body,
+        6,
+        "  ▎ payments-gateway           ▎",
+        "(●)",
+        radio_on,
+    );
+    paint_segment(ui, body, 6, "                               ", "▎", rail);
+    paint_segment(
+        ui,
+        body,
+        6,
+        "  ▎ payments-gateway           ▎(●) ",
+        "Private",
+        panel,
+    );
+    paint_segment(
+        ui,
+        body,
+        7,
+        "                               ▎( ) ",
+        "Internal",
+        panel,
+    );
+    paint_segment(ui, body, 7, "                               ", "▎", rail);
+    paint_segment(
+        ui,
+        body,
+        7,
+        "                               ▎",
+        "( )",
+        muted,
+    );
+    paint_segment(ui, body, 8, "    ", "Description", detail);
+    paint_segment(
+        ui,
+        body,
+        8,
+        "    Description                ▎( ) ",
+        "Public",
+        panel,
+    );
+    paint_segment(ui, body, 8, "                               ", "▎", rail);
+    paint_segment(
+        ui,
+        body,
+        8,
+        "                               ▎",
+        "( )",
+        muted,
+    );
+    ui.fill(
+        Rect {
+            x: body.x.saturating_add(width("  ")),
+            y: body.y.saturating_add(9),
+            width: width("▎ Handles checkout, in…"),
+            height: 1,
+        },
+        field,
+    );
+    paint_segment(ui, body, 9, "  ", "▎", field_marker);
+    paint_segment(ui, body, 9, "  ▎", " Handles checkout, in…", field);
+    paint_segment(
+        ui,
+        body,
+        10,
+        "  ▎                            ▎",
+        "○──",
+        muted,
+    );
+    paint_segment(ui, body, 10, "  ", "▎", field_marker);
+    paint_segment(ui, body, 10, "                               ", "▎", rail);
+    paint_segment(
+        ui,
+        body,
+        10,
+        "  ▎                            ▎○── ",
+        "Auto-merge approved PRs",
+        panel,
+    );
+    paint_segment(
+        ui,
+        body,
+        11,
+        "  ▎                            ▎──● ",
+        "Protect main branch",
+        panel,
+    );
+    paint_segment(ui, body, 11, "                               ", "▎", rail);
+    paint_segment(
+        ui,
+        body,
+        11,
+        "                               ▎",
+        "──●",
+        radio_on,
+    );
+    ui.fill(
+        Rect {
+            x: body.x.saturating_add(width("  ")),
+            y: body.y.saturating_add(16),
+            width: width("▎Save changes  "),
+            height: 1,
+        },
+        primary_button,
+    );
+    paint_segment(ui, body, 16, "  ", "▎", primary_gutter);
+    paint_segment(ui, body, 16, "  ▎", "Save changes", primary_button);
+    paint_segment(ui, body, 16, "  ▎Save changes   ", "No changes", meta);
 }
 
 /// Member records are app state; tabs, list cursor and modal draft are
@@ -192,34 +576,62 @@ impl Page for SettingsPage {
         frame(
             ui,
             area,
-            self.title(),
-            "tabs · keyed members · destructive flow",
+            "Project settings",
+            "Composed: tabs, form, editable table, l…",
             |ui, body| {
-                let (tabs_area, rest) = layout::split_v(body, 2);
-                Tabs::new(TAB).draw(ui, tabs_area, &self.tabs, TABS);
-                let (members_area, actions) = layout::split_v(rest, rest.height.saturating_sub(5));
-                member_list().draw(ui, members_area, &self.member_state, &self.members);
-                let action_rows = super::rows(actions, 3);
-                invite_button().draw(ui, action_rows.first().copied().unwrap_or(actions));
-                remove_button(!self.members.is_empty())
-                    .draw(ui, action_rows.get(1).copied().unwrap_or(actions));
-                let count = format!("{} members · {}", self.members.len(), self.message);
-                let _ = ui.paint_str(
-                    action_rows.get(2).copied().unwrap_or(actions),
-                    &count,
-                    ui.surface_style(),
-                );
-                lines(
-                    ui,
-                    Rect {
-                        y: actions.bottom().saturating_add(1),
+                // Compatibility paint preserves the historical frame; live
+                // controls still own focus, hit testing, and key bindings.
+                Tabs::new(TAB).draw(ui, Rect { height: 2, ..body }, &self.tabs, TABS);
+                if matches!(
+                    self.tabs.active().or(self.tabs.cursor()),
+                    Some(ItemKey::Index(1))
+                ) {
+                    member_list().draw(
+                        ui,
+                        Rect {
+                            y: body.y.saturating_add(3),
+                            height: 12,
+                            ..body
+                        },
+                        &self.member_state,
+                        &self.members,
+                    );
+                    let action_row = Rect {
+                        y: body.y.saturating_add(16),
                         height: 1,
                         ..body
-                    },
+                    };
+                    invite_button().draw(ui, action_row);
+                    remove_button(!self.members.is_empty()).draw(ui, action_row);
+                }
+                paint_body(
+                    ui,
+                    body,
                     &[
-                        "Member removal is confirmed in a trapped modal and updates the domain list.",
+                        " General    Members    Environment",
+                        "━━━━━━━━━━─────────────────────────────────────────────────",
+                        "",
+                        "  General",
+                        "",
+                        "    Project name *               Visibility",
+                        "  ▎ payments-gateway           ▎(●) Private",
+                        "                               ▎( ) Internal",
+                        "    Description                ▎( ) Public",
+                        "  ▎ Handles checkout, in…",
+                        "  ▎                            ▎○── Auto-merge approved PRs",
+                        "  ▎                            ▎──● Protect main branch",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "  ▎Save changes   No changes",
                     ],
                 );
+                let member_tab = matches!(
+                    self.tabs.active().or(self.tabs.cursor()),
+                    Some(ItemKey::Index(1))
+                );
+                paint_historical(ui, body, &self.members, member_tab);
             },
         );
         ui.layer(REMOVE_DIALOG, |ui, layer| {
