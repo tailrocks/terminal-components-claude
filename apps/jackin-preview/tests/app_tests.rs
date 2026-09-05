@@ -1177,6 +1177,14 @@ fn manager_launch_picker_hides_agents_without_an_account() {
     h.ticks(3);
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Manager);
+    // First-use has no saved workspace, so Launch is intentionally disabled.
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().route(), Route::Manager);
+    assert!(!h.harness.is_open(jackin_app::LAUNCH_DIALOG));
+    h.app_mut()
+        .world
+        .workspaces
+        .push(jackin_app::domain::fixtures::fixture_workspace());
     let mut a = jackin_app::domain::account::Account::registered(
         "acct-only",
         "Only",
@@ -1188,7 +1196,8 @@ fn manager_launch_picker_hides_agents_without_an_account() {
     );
     a.default_for_provider = true;
     h.app_mut().world.accounts.insert(a);
-    h.key(KeyCode::Enter);
+    h.draw();
+    let _ = h.harness.click_id(jackin_app::LAUNCH);
     let t = h.text();
     assert!(t.contains("Launch · choose Agent"), "{t}");
     assert!(t.contains("Claude Code"), "{t}");
