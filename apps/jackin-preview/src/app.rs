@@ -857,12 +857,15 @@ impl App {
                     .map_or_else(
                         || "disabled here".to_owned(),
                         |entry| {
-                            if entry.preferred {
-                                format!("{} · preferred", entry.origin.label())
-                            } else if entry.origin.label() == "enabled here" {
-                                "active for this Workspace · enabled here".to_owned()
+                            let origin = if entry.origin.label() == "enabled here" {
+                                "active for this Workspace · enabled here"
                             } else {
-                                "inherited default · active for this Workspace".to_owned()
+                                "inherited default · active for this Workspace"
+                            };
+                            if entry.preferred {
+                                format!("{origin} · preferred")
+                            } else {
+                                origin.to_owned()
                             }
                         },
                     );
@@ -886,7 +889,6 @@ impl App {
         let Some(id) = self.editor_account_id(index) else {
             return;
         };
-        eprintln!("DEBUG toggle index={index} id={id}");
         match self
             .editor
             .pending
@@ -2047,7 +2049,6 @@ impl App {
                 let action = list.action_ref().copied();
                 result |= list.erase();
                 if matches!(action, Some(ListAction::Activated(_))) {
-                    eprintln!("DEBUG list activated transition={}", self.editor_accounts_transition);
                     if self.editor_accounts_transition {
                         self.editor_accounts_transition = false;
                     } else {
@@ -2668,7 +2669,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Editor => {
-                eprintln!("DEBUG cmd5 cause={:?} transition={}", cx.update_cause(), self.editor_accounts_transition);
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
@@ -3144,10 +3144,19 @@ impl App {
             return;
         }
         if self.editor.tab == EditorTab::Accounts {
+            let heading = format!(
+                "{}{} › edit · Active accounts",
+                if self.editor.dirty {
+                    "• 1 change · "
+                } else {
+                    ""
+                },
+                workspace
+            );
             paint_lines(
                 ui,
                 Rect { height: 2, ..area },
-                &[format!("{workspace} › edit · Active accounts")],
+                &[heading],
             );
             let rows = self.editor_account_rows();
             List::new(EDITOR_ACCOUNTS_LIST).draw(
@@ -3859,7 +3868,6 @@ impl TuiApp for App {
             return Response::changed();
         }
         if self.route == Route::Accounts {
-            eprintln!("DEBUG esc accounts");
             if self
                 .status
                 .as_deref()
