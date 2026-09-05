@@ -1157,6 +1157,14 @@ const CHECKS: &[Check] = &[
         no_owns_or_locate_in_applications,
     ),
     (
+        "every_component_doc_has_the_standard_sections",
+        every_component_doc_has_the_standard_sections,
+    ),
+    (
+        "every_foreign_type_in_the_public_surface_is_re_exported",
+        every_foreign_type_in_the_public_surface_is_re_exported,
+    ),
+    (
         "baseline_moves_are_classified",
         baseline_moves_are_classified,
     ),
@@ -1807,25 +1815,31 @@ fn perf_baselines() -> Vec<PathBuf> {
 /// The §21 item 28 deletion assertion: one message per `DELETED_PERF_ROWS`
 /// name still present in a baseline, naming the file and line so the failure
 /// is actionable rather than a bare "must be ABSENT".
+fn deleted_perf_row_hits(path: &Path, text: &str) -> Vec<String> {
+    let mut hits = Vec::new();
+    for (i, line) in text.lines().enumerate() {
+        let row = line.trim();
+        if row.is_empty() || row.starts_with('#') {
+            continue;
+        }
+        let name = row.split_whitespace().next().unwrap_or_default();
+        for (deleted, why) in DELETED_PERF_ROWS {
+            if name == deleted {
+                hits.push(format!(
+                    "{}:{}: {deleted} must be ABSENT from perf_baseline.txt — {why}",
+                    rel(path),
+                    i.saturating_add(1)
+                ));
+            }
+        }
+    }
+    hits
+}
+
 fn surviving_deleted_perf_rows() -> Vec<String> {
     let mut hits = Vec::new();
     for path in perf_baselines() {
-        for (i, line) in read(&path).lines().enumerate() {
-            let row = line.trim();
-            if row.is_empty() || row.starts_with('#') {
-                continue;
-            }
-            let name = row.split_whitespace().next().unwrap_or_default();
-            for (deleted, why) in DELETED_PERF_ROWS {
-                if name == deleted {
-                    hits.push(format!(
-                        "{}:{}: {deleted} must be ABSENT from perf_baseline.txt — {why}",
-                        rel(&path),
-                        i.saturating_add(1)
-                    ));
-                }
-            }
-        }
+        hits.extend(deleted_perf_row_hits(&path, &read(&path)));
     }
     hits
 }
@@ -6303,6 +6317,331 @@ fn doc_check() -> Result<(), String> {
     }
 }
 
+// ───────────────────── rustdoc-json architecture checks ─────────────────────
+
+/// The headings mandated by `COMPONENT_ARCHITECTURE.md` §13.2. Keep this as a
+/// fixed array: accepting a prefix or a set would let a reordered or missing
+/// answer pass while still looking superficially documented.
+const STANDARD_COMPONENT_DOC_HEADINGS: [&str; 15] = [
+    "Construction",
+    "Ownership",
+    "Configuration",
+    "Variants",
+    "States",
+    "Actions",
+    "Focus",
+    "Keyboard",
+    "Mouse",
+    "Layout",
+    "Parts",
+    "Overrides",
+    "Identity",
+    "Testing",
+    "Invariants",
+];
+
+fn rustdoc_json_id(value: &Value) -> Option<String> {
+    match value {
+        Value::Number(number) => Some(number.to_string()),
+        Value::String(id) => Some(id.clone()),
+        _ => None,
+    }
+}
+
+fn rustdoc_json() -> Result<Value, String> {
+    let target_dir = root().join("target/xtask-rustdoc");
+    let output = Command::new("cargo")
+        .args(["+nightly", "rustdoc", "-p", LIB, "--lib", "--target-dir"])
+        .arg(&target_dir)
+        .args(["--", "-Z", "unstable-options", "--output-format", "json"])
+        .current_dir(root())
+        .output()
+        .map_err(|error| format!("rustdoc-json could not start `cargo +nightly`: {error}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let detail = stderr.lines().rev().take(12).collect::<Vec<_>>();
+        return Err(format!(
+            "rustdoc-json requires a working nightly toolchain (`cargo +nightly rustdoc`):\n{}",
+            detail.into_iter().rev().collect::<Vec<_>>().join("\n")
+        ));
+    }
+
+    let json_path = target_dir.join("doc/tui_next.json");
+    let json = fs::read_to_string(&json_path).map_err(|error| {
+        format!(
+            "cargo +nightly rustdoc succeeded but did not produce {}: {error}",
+            rel(&json_path)
+        )
+    })?;
+    serde_json::from_str(&json).map_err(|error| {
+        format!(
+            "rustdoc-json output {} is invalid: {error}",
+            rel(&json_path)
+        )
+    })
+}
+
+fn rustdoc_json_index<'a>(
+    document: &'a Value,
+) -> Result<&'a serde_json::Map<String, Value>, String> {
+    document
+        .get("index")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "rustdoc-json has no object `index`".to_owned())
+}
+
+fn rustdoc_json_paths<'a>(
+    document: &'a Value,
+) -> Result<&'a serde_json::Map<String, Value>, String> {
+    document
+        .get("paths")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "rustdoc-json has no object `paths`".to_owned())
+}
+
+fn rustdoc_json_is_ratatui_path(path: &Value) -> bool {
+    path.pointer("/path/0").and_then(Value::as_str) == Some("ratatui_core")
+}
+
+fn rustdoc_json_component_docs(document: &Value) -> Result<Vec<(String, String)>, String> {
+    let index = rustdoc_json_index(document)?;
+    let paths = rustdoc_json_paths(document)?;
+    let mut components = Vec::new();
+
+    for (path_id, path) in paths {
+        if path.get("crate_id").and_then(Value::as_u64) != Some(0)
+            || path.get("kind").and_then(Value::as_str) != Some("struct")
+        {
+            continue;
+        }
+        let Some(path_parts) = path.get("path").and_then(Value::as_array) else {
+            continue;
+        };
+        if path_parts.first().and_then(Value::as_str) != Some("tui_next")
+            || path_parts.get(1).and_then(Value::as_str) != Some("components")
+        {
+            continue;
+        }
+        let Some(item) = index.get(path_id) else {
+            return Err(format!("rustdoc-json path {path_id} has no index item"));
+        };
+        if item.get("visibility").and_then(Value::as_str) != Some("public") {
+            continue;
+        }
+        let Some(name) = item.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(impls) = item
+            .pointer("/inner/struct/impls")
+            .and_then(Value::as_array)
+        else {
+            continue;
+        };
+        let has_parts = impls.iter().filter_map(rustdoc_json_id).any(|impl_id| {
+            index
+                .get(&impl_id)
+                .and_then(|implementation| implementation.pointer("/inner/impl/items"))
+                .and_then(Value::as_array)
+                .is_some_and(|items| {
+                    items.iter().filter_map(rustdoc_json_id).any(|item_id| {
+                        index
+                            .get(&item_id)
+                            .and_then(|item| item.get("name"))
+                            .and_then(Value::as_str)
+                            == Some("PARTS")
+                    })
+                })
+        });
+        if !has_parts {
+            continue;
+        }
+        let docs = item
+            .get("docs")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned();
+        components.push((name.to_owned(), docs));
+    }
+    components.sort_by(|left, right| left.0.cmp(&right.0));
+    Ok(components)
+}
+
+fn markdown_headings(docs: &str) -> Vec<String> {
+    docs.lines()
+        .filter_map(|line| line.strip_prefix("## ").map(str::to_owned))
+        .collect()
+}
+
+fn component_doc_heading_failures(components: &[(String, String)]) -> Vec<String> {
+    let expected = STANDARD_COMPONENT_DOC_HEADINGS.join(" / ");
+    components
+        .iter()
+        .filter_map(|(name, docs)| {
+            let actual = markdown_headings(docs);
+            let expected_vec = STANDARD_COMPONENT_DOC_HEADINGS
+                .iter()
+                .map(|heading| (*heading).to_owned())
+                .collect::<Vec<_>>();
+            (actual != expected_vec).then(|| {
+                format!(
+                    "{name}: expected §13.2 headings `{expected}`; found `{}`",
+                    actual.join(" / ")
+                )
+            })
+        })
+        .collect()
+}
+
+/// §13.2 / §16.5 / §21 item 33. Rustdoc JSON identifies the public component
+/// structs and carries the rendered type-level docs, so this does not mistake
+/// a private source comment or a helper enum for a public component contract.
+fn every_component_doc_has_the_standard_sections() -> Result<(), String> {
+    let document = rustdoc_json()?;
+    let components = rustdoc_json_component_docs(&document)?;
+    if components.is_empty() {
+        return Err(
+            "every_component_doc_has_the_standard_sections: rustdoc-json found no public component struct with a `PARTS` contract"
+                .to_owned(),
+        );
+    }
+    let failures = component_doc_heading_failures(&components);
+    println!(
+        "every_component_doc_has_the_standard_sections: {} public component(s) scanned",
+        components.len()
+    );
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(failures.join("\n"))
+    }
+}
+
+fn rustdoc_json_collect_resolved_paths(value: &Value, ids: &mut BTreeSet<String>) {
+    match value {
+        Value::Array(values) => {
+            for value in values {
+                rustdoc_json_collect_resolved_paths(value, ids);
+            }
+        }
+        Value::Object(values) => {
+            if let Some(id) = values.get("resolved_path").and_then(|path| path.get("id")) {
+                if let Some(id) = rustdoc_json_id(id) {
+                    ids.insert(id);
+                }
+            }
+            for value in values.values() {
+                rustdoc_json_collect_resolved_paths(value, ids);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn rustdoc_json_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, String> {
+    let index = rustdoc_json_index(document)?;
+    let paths = rustdoc_json_paths(document)?;
+    let root_id = document
+        .get("root")
+        .and_then(rustdoc_json_id)
+        .ok_or_else(|| "rustdoc-json has no root module id".to_owned())?;
+    let root = index
+        .get(&root_id)
+        .ok_or_else(|| format!("rustdoc-json root module {root_id} is missing"))?;
+    let items = root
+        .pointer("/inner/module/items")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "rustdoc-json root module has no item list".to_owned())?;
+    let mut names = BTreeSet::new();
+    for item_id in items.iter().filter_map(rustdoc_json_id) {
+        let Some(item) = index.get(&item_id) else {
+            continue;
+        };
+        if item.get("visibility").and_then(Value::as_str) != Some("public") {
+            continue;
+        }
+        let Some(use_item) = item.pointer("/inner/use") else {
+            continue;
+        };
+        let Some(target_id) = use_item.get("id").and_then(rustdoc_json_id) else {
+            continue;
+        };
+        let Some(target) = paths.get(&target_id) else {
+            continue;
+        };
+        if !rustdoc_json_is_ratatui_path(target) {
+            continue;
+        }
+        if let Some(name) = use_item.get("name").and_then(Value::as_str) {
+            names.insert(name.to_owned());
+        }
+    }
+    Ok(names)
+}
+
+/// §16.5 / §24 M1. Inspect the compiled public surface, not source text:
+/// every `ratatui-core` type that appears in a public item must also have a
+/// root-facade re-export. A missing `Line`-style type therefore fails with the
+/// exact external path instead of being hidden by a substring allow-list.
+fn every_foreign_type_in_the_public_surface_is_re_exported() -> Result<(), String> {
+    let document = rustdoc_json()?;
+    let index = rustdoc_json_index(&document)?;
+    let paths = rustdoc_json_paths(&document)?;
+    let reexports = rustdoc_json_ratatui_reexports(&document)?;
+    let mut referenced = BTreeSet::new();
+    for item in index.values() {
+        if item.get("crate_id").and_then(Value::as_u64) != Some(0)
+            || item.get("visibility").and_then(Value::as_str) != Some("public")
+        {
+            continue;
+        }
+        if let Some(inner) = item.get("inner") {
+            rustdoc_json_collect_resolved_paths(inner, &mut referenced);
+        }
+    }
+
+    let external_count = referenced
+        .iter()
+        .filter(|id| paths.get(*id).is_some_and(rustdoc_json_is_ratatui_path))
+        .count();
+    let mut missing = BTreeSet::new();
+    for id in &referenced {
+        let Some(path) = paths.get(id) else {
+            continue;
+        };
+        if !rustdoc_json_is_ratatui_path(path) {
+            continue;
+        }
+        let Some(path_parts) = path.get("path").and_then(Value::as_array) else {
+            continue;
+        };
+        let Some(name) = path_parts.last().and_then(Value::as_str) else {
+            continue;
+        };
+        if !reexports.contains(name) {
+            missing.insert(
+                path_parts
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .collect::<Vec<_>>()
+                    .join("::"),
+            );
+        }
+    }
+    println!(
+        "every_foreign_type_in_the_public_surface_is_re_exported: {} ratatui-core type reference(s), {} root re-export(s)",
+        external_count,
+        reexports.len()
+    );
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "ratatui-core types in public items lack a root facade re-export:\n  {}",
+            missing.into_iter().collect::<Vec<_>>().join("\n  ")
+        ))
+    }
+}
+
 // ─────────────── bless-guard (§16.3, §20.10, §36.5) ───────────────
 
 /// The kind of baseline a path is, which fixes how its lines become keys.
@@ -8587,6 +8926,72 @@ captures / classification: `(pending — filled when the change lands)`
         ] {
             assert!(found.contains(want), "{want} not discovered: {found:?}");
         }
+    }
+
+    /// The strict rustdoc-json contract must accept the exact heading order,
+    /// and reject both omission and reordering rather than merely searching
+    /// for section names independently.
+    #[test]
+    fn component_doc_heading_contract_rejects_missing_or_reordered_sections() {
+        let headings = |omit: Option<&str>, swap: bool| {
+            let mut names: Vec<&str> = STANDARD_COMPONENT_DOC_HEADINGS
+                .iter()
+                .copied()
+                .filter(|heading| Some(*heading) != omit)
+                .collect();
+            if swap {
+                names.swap(0, 1);
+            }
+            names
+                .into_iter()
+                .map(|heading| format!("## {heading}\nbody\n"))
+                .collect::<String>()
+        };
+
+        assert!(
+            component_doc_heading_failures(&[("Button".to_owned(), headings(None, false),)])
+                .is_empty()
+        );
+
+        let missing = component_doc_heading_failures(&[(
+            "Button".to_owned(),
+            headings(Some("Invariants"), false),
+        )]);
+        assert_eq!(missing.len(), 1, "{missing:?}");
+        assert!(missing[0].contains("Button"), "{missing:?}");
+        assert!(missing[0].contains("Invariants"), "{missing:?}");
+
+        let reordered =
+            component_doc_heading_failures(&[("Button".to_owned(), headings(None, true))]);
+        assert_eq!(reordered.len(), 1, "{reordered:?}");
+        assert!(reordered[0].contains("expected"), "{reordered:?}");
+        assert!(reordered[0].contains("found"), "{reordered:?}");
+    }
+
+    /// §21 item 28's permanent absence rule must identify a resurrected row,
+    /// while ignoring comments and blank lines that mention its old name.
+    #[test]
+    fn deleted_perf_row_scan_reports_resurrection_and_ignores_comments() {
+        let fixture = "# capsule_pane_clone_4x2000 was deleted\n\n".to_owned()
+            + "capsule_pane_clone_4x2000 120 40 junie mono 1\n";
+        let hits = deleted_perf_row_hits(Path::new("tests/perf_baseline.txt"), &fixture);
+        assert_eq!(hits.len(), 1, "{hits:?}");
+        assert!(hits[0].contains("tests/perf_baseline.txt:3"), "{hits:?}");
+        assert!(hits[0].contains("capsule_pane_clone_4x2000"), "{hits:?}");
+
+        let comments_only = "# capsule_pane_clone_4x2000\n\n";
+        assert!(
+            deleted_perf_row_hits(Path::new("tests/perf_baseline.txt"), comments_only).is_empty()
+        );
+    }
+
+    #[test]
+    fn deleted_perf_rows_are_absent_from_every_live_baseline() {
+        let hits = surviving_deleted_perf_rows();
+        assert!(
+            hits.is_empty(),
+            "deleted benchmark rows resurfaced: {hits:?}"
+        );
     }
 
     /// A moved `truecolor` key whose entry cites an **untagged** item is

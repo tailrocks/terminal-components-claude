@@ -3,6 +3,12 @@
 # `xtask doc-check` fails when an entry has no live hit, so satisfied entries
 # cannot silently accumulate.
 
+# Cross-crate application contract: these names belong to the app-side
+# showcase migration, not crates/tui's public rustdoc surface.
+Page::draw  # app trait method referenced by §21's showcase reachability contract
+Page::update  # app trait method referenced by §21's showcase reachability contract
+PageId::ALL  # app page registry referenced by §21's showcase coverage contract
+
 BorderSet::SQUARE
 AccountsScreen::apply_msg
 App::dispatch_msg
