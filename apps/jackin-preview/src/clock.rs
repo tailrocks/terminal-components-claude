@@ -4,8 +4,9 @@
 //! renders the same picture every time.
 
 /// Fixed epoch for fixture timestamps: 2026-09-03 09:14:00 local (UTC+7).
-pub const EPOCH_SECS: i64 = 1_788_401_640;
+pub(crate) const EPOCH_SECS: i64 = 1_788_401_640;
 
+/// Deterministic virtual clock shared by the preview simulation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Clock {
     /// Virtual milliseconds since the fixture epoch.
@@ -112,7 +113,7 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
 
 /// Human duration with spaced units: `38 s`, `3 min 2 s`, `2 h 14 min`,
 /// `1 d 2 h`. Two most significant units, never more.
-pub fn format_duration(secs: u64) -> String {
+fn format_duration(secs: u64) -> String {
     let d = secs / 86_400;
     let h = (secs % 86_400) / 3600;
     let m = (secs % 3600) / 60;
