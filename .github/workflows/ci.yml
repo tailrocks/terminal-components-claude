@@ -110,7 +110,14 @@ jobs:
       - name: Examples (§16.5)
         run: cargo build -p junie-tui --examples
 
-      - name: Test (§26)
+      # trybuild diagnostics are compiler-version-specific. The primary toolchain
+      # owns those snapshots; MSRV still runs every behavioral test.
+      - name: Test (§26, MSRV)
+        if: matrix.toolchain == '1.88.0'
+        run: cargo test --workspace --all-targets --all-features -- --skip architecture::compile_fail_cases_hold
+
+      - name: Test (§26, primary)
+        if: matrix.toolchain == 'stable'
         run: cargo test --workspace --all-targets --all-features
 
       # §16.3 + §28 P2: BOTH render targets, or the gate runs half the matrix.
