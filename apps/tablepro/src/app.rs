@@ -857,8 +857,18 @@ fn connections_panel() -> Panel<'static> {
         .kind(PanelKind::Framed)
         .title("Connections")
 }
+fn explorer_panel() -> Panel<'static> {
+    Panel::new(EXPLORER_PANEL)
+        .kind(PanelKind::Framed)
+        .title("Explorer")
+}
 fn results_panel() -> Panel<'static> {
     Panel::new(RESULTS).kind(PanelKind::Framed).title("Results")
+}
+fn workbench_split() -> SplitPane<'static> {
+    SplitPane::new(WORKBENCH_SPLIT, SplitAxis::Horizontal)
+        .min_first(28)
+        .min_second(20)
 }
 fn status_bar<'a>(left: &'a [StatusItem<'a>], right: &'a [StatusItem<'a>]) -> StatusBar<'a> {
     StatusBar::new(STATUS)
@@ -927,7 +937,14 @@ impl App for TableProApp {
         // Props are built once through these constructors and reused by both
         // update and draw.  This keeps the app phase-pure and avoids a
         // render-time configuration drift between the two paths.
-        let _ = (header_panel(), results_panel(), status_bar(&[], &[]));
+        let _ = (
+            header_panel(),
+            connections_panel(),
+            explorer_panel(),
+            results_panel(),
+            workbench_split(),
+            status_bar(&[], &[]),
+        );
         if self.form_open {
             let fields = &self.form_fields;
             let actions = &self.form_actions;
@@ -980,9 +997,7 @@ impl App for TableProApp {
             return response;
         }
 
-        let split = SplitPane::new(WORKBENCH_SPLIT, SplitAxis::Horizontal)
-            .min_first(28)
-            .min_second(20);
+        let split = workbench_split();
         response |= split.update(cx, &mut self.split_state).erase();
         let tree_response =
             explorer_tree().update(cx, &mut self.explorer_tree_state, &self.workbench.explorer);
@@ -1089,25 +1104,20 @@ impl App for TableProApp {
             let tabs_area = workbench_rows[0];
             let content = workbench_rows[1];
             tab_strip().draw(ui, tabs_area, &self.tabs_state, &self.workbench.tabs);
-            let split = SplitPane::new(WORKBENCH_SPLIT, SplitAxis::Horizontal)
-                .min_first(28)
-                .min_second(20);
+            let split = workbench_split();
             split.draw(
                 ui,
                 content,
                 &self.split_state,
                 |ui, explorer_area, work_area| {
-                    Panel::new(EXPLORER_PANEL)
-                        .kind(PanelKind::Framed)
-                        .title("Explorer")
-                        .draw(ui, explorer_area, |ui, area| {
-                            explorer_tree().draw(
-                                ui,
-                                area,
-                                &self.explorer_tree_state,
-                                &self.workbench.explorer,
-                            );
-                        });
+                    explorer_panel().draw(ui, explorer_area, |ui, area| {
+                        explorer_tree().draw(
+                            ui,
+                            area,
+                            &self.explorer_tree_state,
+                            &self.workbench.explorer,
+                        );
+                    });
                     let work_rows = fixed_flex_pair(work_area, 3);
                     let query_area = work_rows[0];
                     let result_area = work_rows[1];
