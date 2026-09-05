@@ -57,6 +57,7 @@ impl Scenario {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Deterministic animation policy for a preview scenario.
 pub enum Motion {
     /// Tick-driven rituals and atmosphere.
     #[default]

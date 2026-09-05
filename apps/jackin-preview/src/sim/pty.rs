@@ -452,6 +452,8 @@ pub struct TextViewport {
     /// Whether the cursor is visible.
     pub caret_visible: bool,
     max_lines: usize,
+    revision: u64,
+    retained: usize,
 }
 
 impl TextViewport {
@@ -463,6 +465,8 @@ impl TextViewport {
             caret: None,
             caret_visible: true,
             max_lines: SCROLLBACK,
+            revision: 0,
+            retained: 0,
         }
     }
 
@@ -478,28 +482,51 @@ impl TextViewport {
         self.follow = follow;
     }
 
+    /// Return the transcript revision.
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    /// Return the number of lines removed from the front of the transcript.
+    pub const fn retained(&self) -> usize {
+        self.retained
+    }
+
     /// Append one line and enforce bounded retention.
     pub fn push(&mut self, line: Line) {
         self.lines.push(line);
         if self.max_lines > 0 && self.lines.len() > self.max_lines {
             let drop = self.lines.len().saturating_sub(self.max_lines);
             self.lines.drain(..drop);
+            self.retained = self.retained.saturating_add(drop);
         }
+        self.revision = self.revision.saturating_add(1);
     }
 
     /// Replace the last line, or append when empty.
     pub fn replace_last(&mut self, line: Line) {
         if let Some(last) = self.lines.last_mut() {
             *last = line;
+            self.revision = self.revision.saturating_add(1);
         } else {
             self.push(line);
         }
     }
 
+    fn remove_last(&mut self) -> Option<Line> {
+        let removed = self.lines.pop();
+        if removed.is_some() {
+            self.revision = self.revision.saturating_add(1);
+        }
+        removed
+    }
+
     /// Clear all transcript lines and cursor state.
     pub fn clear(&mut self) {
+        self.retained = self.retained.saturating_add(self.lines.len());
         self.lines.clear();
         self.caret = None;
+        self.revision = self.revision.saturating_add(1);
     }
 }
 
@@ -568,38 +595,192 @@ fn emit(delay: i64, value: Line) -> Step {
     Step::Emit(delay, value)
 }
 
+fn e(delay: i64, value: Line) -> Step {
+    emit(delay, value)
+}
+
+fn bold(text: &str) -> Line {
+    vec![span(text, Tone::Normal).bold()]
+}
+
+fn muted(text: &str) -> Line {
+    line(text, Tone::Muted)
+}
+
 fn done_line() -> Line {
     mixed(&[("○ ", Tone::Secondary), ("Done", Tone::Muted)])
 }
 
 /// Build a deterministic, secret-free transcript for one agent.
 pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
-    let path = format!("~/{workspace}");
+    let ws = format!("~/{workspace}");
     match agent {
         Some(Agent::ClaudeCode) => vec![
             Step::State(AgentState::Working),
-            emit(
+            e(
                 0,
-                mixed(&[("▐ ", Tone::Success), ("Claude Code v2.1.14", Tone::Normal)]),
+                mixed(&[
+                    ("▐ ", Tone::Success),
+                    ("Claude Code v2.1.14", Tone::Normal),
+                    (" · Opus 4.5 · ", Tone::Muted),
+                    (&ws, Tone::Secondary),
+                ]),
             ),
-            emit(
-                180,
-                mixed(&[("› ", Tone::Muted), ("Refactor retry policy", Tone::Normal)]),
+            e(200, vec![]),
+            e(
+                300,
+                mixed(&[
+                    ("› ", Tone::Muted),
+                    (
+                        "Refactor the settlement retry loop so failed batches",
+                        Tone::Normal,
+                    ),
+                ]),
             ),
-            emit(
-                360,
+            e(
+                60,
+                line(
+                    "  back off exponentially and cap at 5 attempts.",
+                    Tone::Normal,
+                ),
+            ),
+            e(400, vec![]),
+            e(
+                500,
+                mixed(&[
+                    ("● ", Tone::Secondary),
+                    ("I'll read the retry loop first.", Tone::Normal),
+                ]),
+            ),
+            e(500, vec![]),
+            e(
+                600,
                 mixed(&[
                     ("● ", Tone::Secondary),
                     ("Read ", Tone::Normal),
-                    (&path, Tone::Secondary),
+                    ("src/settlement/retry.rs", Tone::Secondary),
+                    (" (142 lines)", Tone::Muted),
                 ]),
             ),
-            emit(
-                220,
-                line("  fixed backoff needs a bounded cap.", Tone::Normal),
+            e(
+                400,
+                mixed(&[
+                    ("● ", Tone::Secondary),
+                    ("Read ", Tone::Normal),
+                    ("src/settlement/mod.rs", Tone::Secondary),
+                    (" (88 lines)", Tone::Muted),
+                ]),
             ),
-            emit(
-                260,
+            e(700, vec![]),
+            e(
+                200,
+                mixed(&[
+                    ("● ", Tone::Secondary),
+                    (
+                        "The loop retries with a fixed 3 attempts. I'll add",
+                        Tone::Normal,
+                    ),
+                ]),
+            ),
+            e(
+                60,
+                line(
+                    "  exponential backoff with jitter and cap it at 5.",
+                    Tone::Normal,
+                ),
+            ),
+            e(800, vec![]),
+            e(
+                200,
+                mixed(&[
+                    ("● ", Tone::Secondary),
+                    ("Edit ", Tone::Normal),
+                    ("src/settlement/retry.rs", Tone::Secondary),
+                ]),
+            ),
+            Step::Touch("src/settlement/retry.rs"),
+            e(
+                200,
+                mixed(&[
+                    ("  +  ", Tone::Success),
+                    ("const MAX_ATTEMPTS: u32 = 5;", Tone::Secondary),
+                ]),
+            ),
+            e(
+                120,
+                mixed(&[
+                    ("  +  ", Tone::Success),
+                    (
+                        "let delay = BASE * 2u32.pow(attempt) + jitter();",
+                        Tone::Secondary,
+                    ),
+                ]),
+            ),
+            e(
+                120,
+                mixed(&[
+                    ("  -  ", Tone::Error),
+                    ("for attempt in 0..3 {", Tone::Muted),
+                ]),
+            ),
+            e(
+                120,
+                mixed(&[
+                    ("  +  ", Tone::Success),
+                    ("for attempt in 0..MAX_ATTEMPTS {", Tone::Secondary),
+                ]),
+            ),
+            e(900, vec![]),
+            e(
+                200,
+                mixed(&[
+                    ("● ", Tone::Secondary),
+                    ("Bash ", Tone::Normal),
+                    ("cargo test -p settlement retry", Tone::Secondary),
+                ]),
+            ),
+            e(1400, muted("  running 6 tests … 6 passed (1.42 s)")),
+            e(600, vec![]),
+            e(
+                200,
+                mixed(&[
+                    ("● ", Tone::Secondary),
+                    ("Edit ", Tone::Normal),
+                    ("src/settlement/mod.rs", Tone::Secondary),
+                ]),
+            ),
+            Step::Touch("src/settlement/mod.rs"),
+            e(
+                200,
+                mixed(&[
+                    ("  +  ", Tone::Success),
+                    (
+                        "pub use retry::{MAX_ATTEMPTS, RetryPolicy};",
+                        Tone::Secondary,
+                    ),
+                ]),
+            ),
+            e(800, vec![]),
+            e(
+                200,
+                mixed(&[
+                    ("● ", Tone::Secondary),
+                    (
+                        "Retries now back off 250 ms → 4 s, capped at 5 tries.",
+                        Tone::Normal,
+                    ),
+                ]),
+            ),
+            e(
+                80,
+                line(
+                    "  One more edit: expose the policy in settlement config.",
+                    Tone::Normal,
+                ),
+            ),
+            e(600, vec![]),
+            e(
+                300,
                 mixed(&[
                     ("▶ ", Tone::Warning),
                     (
@@ -613,61 +794,155 @@ pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
         ],
         Some(Agent::Codex) => vec![
             Step::State(AgentState::Working),
-            emit(
+            e(
                 0,
                 mixed(&[
                     ("OpenAI Codex v0.48", Tone::Normal),
-                    (" · ", Tone::Muted),
-                    (&path, Tone::Secondary),
+                    (" · gpt-5.5-codex · ", Tone::Muted),
+                    (&ws, Tone::Secondary),
                 ]),
             ),
-            emit(
-                220,
+            e(200, vec![]),
+            e(
+                300,
+                mixed(&[
+                    ("› ", Tone::Muted),
+                    (
+                        "run the ledger integration tests and summarise failures",
+                        Tone::Normal,
+                    ),
+                ]),
+            ),
+            e(500, vec![]),
+            e(
+                300,
                 mixed(&[
                     ("• exec  ", Tone::Secondary),
-                    ("cargo test -p ledger integration", Tone::Normal),
+                    ("cargo test -p ledger --test integration", Tone::Normal),
                 ]),
             ),
-            emit(300, line("  running 24 tests", Tone::Muted)),
-            emit(
-                220,
-                line("  test reconcile::daily_close ........... ok", Tone::Muted),
-            ),
-            emit(
-                220,
+            e(700, muted("  running 24 tests")),
+            e(500, muted("  test reconcile::daily_close ........... ok")),
+            e(
+                400,
                 mixed(&[
                     ("  test reconcile::multi_currency ........ ", Tone::Muted),
                     ("FAILED", Tone::Error),
                 ]),
             ),
-            emit(
-                320,
-                mixed(&[("  23 passed · ", Tone::Muted), ("1 failed", Tone::Error)]),
+            e(400, muted("  test settle::partial_refund ........... ok")),
+            e(
+                900,
+                mixed(&[
+                    ("  22 passed · ", Tone::Muted),
+                    ("1 failed", Tone::Error),
+                    (" · 1 ignored (6.8 s)", Tone::Muted),
+                ]),
             ),
-            emit(220, done_line()),
+            e(600, vec![]),
+            e(
+                300,
+                mixed(&[
+                    ("• ", Tone::Secondary),
+                    ("1 failure: reconcile::multi_currency", Tone::Normal),
+                ]),
+            ),
+            e(
+                200,
+                line("  expected 1,204.50 EUR, got 1,204.49 EUR", Tone::Normal),
+            ),
+            e(
+                200,
+                mixed(&[
+                    ("  rounding precedes FX conversion in ", Tone::Normal),
+                    ("ledger/fx.rs:71", Tone::Secondary),
+                ]),
+            ),
+            e(700, vec![]),
+            e(
+                200,
+                mixed(&[
+                    ("○ ", Tone::Secondary),
+                    ("Done · 38 s · 12.4k tokens", Tone::Muted),
+                ]),
+            ),
             Step::State(AgentState::Done),
+            e(300, vec![]),
             Step::Await,
         ],
         Some(Agent::Amp) => vec![
             Step::State(AgentState::Working),
-            emit(
+            e(
                 0,
                 mixed(&[
                     ("Amp 1.9.3", Tone::Normal),
                     (" · ", Tone::Muted),
-                    (&path, Tone::Secondary),
+                    (&ws, Tone::Secondary),
                 ]),
             ),
-            emit(260, line("Searching kube/controllers/**/*.go", Tone::Muted)),
-            emit(
-                340,
+            e(200, vec![]),
+            e(
+                300,
+                mixed(&[
+                    ("› ", Tone::Muted),
+                    ("Why is the controller reconcile loop hot?", Tone::Normal),
+                ]),
+            ),
+            e(500, vec![]),
+            e(
+                300,
+                mixed(&[
+                    ("⠿ ", Tone::Success),
+                    ("Searching kube/controllers/**/*.go", Tone::Muted),
+                ]),
+            ),
+            e(
+                600,
+                mixed(&[
+                    ("⠿ ", Tone::Success),
+                    ("Read kube/controllers/node_pool.go:118-164", Tone::Muted),
+                ]),
+            ),
+            e(800, vec![]),
+            e(
+                200,
                 line(
-                    "The reconcile loop re-queues every object on resync.",
+                    "The loop re-queues every object on every informer resync",
                     Tone::Normal,
                 ),
             ),
-            emit(
-                280,
+            e(
+                80,
+                line(
+                    "(resyncPeriod = 30s) instead of only on spec changes.",
+                    Tone::Normal,
+                ),
+            ),
+            e(600, vec![]),
+            e(200, line("Suggested change:", Tone::Normal)),
+            e(
+                150,
+                mixed(&[
+                    ("  - ", Tone::Error),
+                    (
+                        ".WithEventFilter(predicate.ResourceVersionChangedPredicate{})",
+                        Tone::Muted,
+                    ),
+                ]),
+            ),
+            e(
+                150,
+                mixed(&[
+                    ("  + ", Tone::Success),
+                    (
+                        ".WithEventFilter(predicate.GenerationChangedPredicate{})",
+                        Tone::Secondary,
+                    ),
+                ]),
+            ),
+            e(600, vec![]),
+            e(
+                200,
                 mixed(&[
                     ("Apply this edit? ", Tone::Normal),
                     ("[Y/n]", Tone::Warning),
@@ -678,97 +953,308 @@ pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
         ],
         Some(Agent::KimiCode) => vec![
             Step::State(AgentState::Working),
-            emit(
+            e(
                 0,
                 mixed(&[
                     ("Kimi Code 0.7.2", Tone::Normal),
-                    (" · ", Tone::Muted),
-                    (&path, Tone::Secondary),
+                    (" · kimi-k2 · ", Tone::Muted),
+                    (&ws, Tone::Secondary),
                 ]),
             ),
-            emit(
+            e(200, vec![]),
+            e(
                 300,
-                line(
-                    "Plan: add loading skeletons to the invoices table.",
-                    Tone::Normal,
-                ),
+                mixed(&[
+                    ("› ", Tone::Muted),
+                    ("add loading skeletons to the invoices table", Tone::Normal),
+                ]),
             ),
-            emit(
-                420,
-                line("Wrote components/table/SkeletonRow.tsx", Tone::Secondary),
+            e(500, vec![]),
+            e(300, bold("▸ Plan")),
+            e(
+                150,
+                line("  1. Add <SkeletonRow/> in components/table/", Tone::Normal),
+            ),
+            e(
+                150,
+                line("  2. Render 8 rows while `isLoading`", Tone::Normal),
+            ),
+            e(150, line("  3. Story for the loading state", Tone::Normal)),
+            e(700, vec![]),
+            e(
+                300,
+                mixed(&[
+                    ("▸ ", Tone::Secondary),
+                    (
+                        "Wrote components/table/SkeletonRow.tsx (41 lines)",
+                        Tone::Normal,
+                    ),
+                ]),
             ),
             Step::Touch("components/table/SkeletonRow.tsx"),
-            emit(300, done_line()),
+            e(
+                500,
+                mixed(&[
+                    ("▸ ", Tone::Secondary),
+                    ("Edited pages/invoices/index.tsx (+9 −2)", Tone::Normal),
+                ]),
+            ),
+            e(
+                500,
+                mixed(&[
+                    ("▸ ", Tone::Secondary),
+                    (
+                        "Wrote components/table/SkeletonRow.stories.tsx",
+                        Tone::Normal,
+                    ),
+                ]),
+            ),
+            e(600, vec![]),
+            e(
+                200,
+                mixed(&[("✔ ", Tone::Success), ("Done · 3 files", Tone::Muted)]),
+            ),
             Step::State(AgentState::Done),
             Step::Await,
         ],
         Some(Agent::OpenCode) => vec![
             Step::State(AgentState::Working),
-            emit(
+            e(
                 0,
                 mixed(&[
                     ("opencode 0.5.11", Tone::Normal),
                     (" · ", Tone::Muted),
-                    (&path, Tone::Secondary),
+                    (&ws, Tone::Secondary),
                 ]),
             ),
-            emit(
+            e(200, vec![]),
+            e(
                 300,
-                line("Editing .github/workflows/release.yml", Tone::Secondary),
+                mixed(&[
+                    ("> ", Tone::Muted),
+                    (
+                        "bump the release workflow to node 22 and pin actions",
+                        Tone::Normal,
+                    ),
+                ]),
+            ),
+            e(500, vec![]),
+            e(
+                300,
+                mixed(&[
+                    ("┃ read  ", Tone::Secondary),
+                    (".github/workflows/release.yml", Tone::Normal),
+                ]),
+            ),
+            e(
+                500,
+                mixed(&[
+                    ("┃ edit  ", Tone::Secondary),
+                    (".github/workflows/release.yml", Tone::Normal),
+                ]),
             ),
             Step::Touch(".github/workflows/release.yml"),
-            emit(
-                260,
-                line("Updated action pins and node version.", Tone::Normal),
+            e(
+                150,
+                mixed(&[
+                    ("┃   - ", Tone::Error),
+                    ("uses: actions/setup-node@v3", Tone::Muted),
+                ]),
             ),
-            emit(220, done_line()),
-            Step::State(AgentState::Done),
+            e(
+                150,
+                mixed(&[
+                    ("┃   + ", Tone::Success),
+                    ("uses: actions/setup-node@v4.0.3", Tone::Secondary),
+                ]),
+            ),
+            e(
+                150,
+                mixed(&[("┃   -   ", Tone::Error), ("node-version: 18", Tone::Muted)]),
+            ),
+            e(
+                150,
+                mixed(&[
+                    ("┃   +   ", Tone::Success),
+                    ("node-version: 22", Tone::Secondary),
+                ]),
+            ),
+            e(
+                500,
+                mixed(&[
+                    ("┃ edit  ", Tone::Secondary),
+                    (".github/workflows/publish.yml (same pin)", Tone::Normal),
+                ]),
+            ),
+            e(
+                500,
+                mixed(&[
+                    ("┃ bash  ", Tone::Secondary),
+                    ("act -j release --dryrun", Tone::Normal),
+                ]),
+            ),
+            e(
+                1200,
+                mixed(&[
+                    ("┃       ", Tone::Secondary),
+                    ("✓ dry run ok (0 errors, 1 warning)", Tone::Muted),
+                ]),
+            ),
+            e(600, vec![]),
+            e(
+                200,
+                mixed(&[
+                    ("Two workflows updated. ", Tone::Normal),
+                    ("Warning: cache key still says node18.", Tone::Warning),
+                ]),
+            ),
+            Step::State(AgentState::Idle),
             Step::Await,
         ],
         Some(Agent::GrokBuild) => vec![
             Step::State(AgentState::Working),
-            emit(
+            e(
                 0,
                 mixed(&[
                     ("Grok Build 0.3", Tone::Normal),
-                    (" · ", Tone::Muted),
-                    (&path, Tone::Secondary),
+                    (" · grok-4-code · ", Tone::Muted),
+                    (&ws, Tone::Secondary),
                 ]),
             ),
-            emit(
+            e(200, vec![]),
+            e(
                 300,
-                line("Writing modules/gke/node_pool.tf", Tone::Secondary),
+                mixed(&[
+                    ("> ", Tone::Muted),
+                    (
+                        "generate terraform for a private GKE node pool",
+                        Tone::Normal,
+                    ),
+                ]),
+            ),
+            e(500, vec![]),
+            e(
+                300,
+                mixed(&[
+                    ("⟩ ", Tone::Secondary),
+                    ("writing modules/gke/node_pool.tf", Tone::Normal),
+                ]),
             ),
             Step::Touch("modules/gke/node_pool.tf"),
-            emit(320, line("terraform validate … ok", Tone::Muted)),
-            emit(260, done_line()),
+            e(
+                500,
+                mixed(&[
+                    ("⟩ ", Tone::Secondary),
+                    ("writing modules/gke/variables.tf", Tone::Normal),
+                ]),
+            ),
+            e(
+                700,
+                mixed(&[
+                    ("⟩ ", Tone::Secondary),
+                    ("terraform fmt -check … ok", Tone::Muted),
+                ]),
+            ),
+            e(
+                700,
+                mixed(&[
+                    ("⟩ ", Tone::Secondary),
+                    ("terraform validate … ok", Tone::Muted),
+                ]),
+            ),
+            e(600, vec![]),
+            e(
+                200,
+                line(
+                    "Created 2 files (118 lines). Private nodes, 3 zones,",
+                    Tone::Normal,
+                ),
+            ),
+            e(80, line("e2-standard-8, autoscaling 1–6.", Tone::Normal)),
             Step::State(AgentState::Done),
             Step::Await,
         ],
-        None => vec![
-            emit(
-                0,
-                mixed(&[
-                    ("payments-platform ❯ ", Tone::Secondary),
-                    ("git status -sb", Tone::Normal),
-                ]),
-            ),
-            emit(
-                260,
-                line("## feature/settlement-backoff [ahead 2]", Tone::Muted),
-            ),
-            emit(
-                100,
-                mixed(&[
-                    (" M ", Tone::Warning),
-                    ("src/settlement/retry.rs", Tone::Normal),
-                ]),
-            ),
-            Step::Await,
-        ],
+        None => {
+            let p = format!("{workspace} ❯ ");
+            vec![
+                e(
+                    0,
+                    mixed(&[(&p, Tone::Secondary), ("git status -sb", Tone::Normal)]),
+                ),
+                e(
+                    300,
+                    muted(
+                        "## feature/settlement-backoff…origin/feature/settlement-backoff [ahead 2]",
+                    ),
+                ),
+                e(
+                    60,
+                    mixed(&[
+                        (" M ", Tone::Warning),
+                        ("src/settlement/retry.rs", Tone::Normal),
+                    ]),
+                ),
+                e(
+                    60,
+                    mixed(&[
+                        (" M ", Tone::Warning),
+                        ("src/settlement/mod.rs", Tone::Normal),
+                    ]),
+                ),
+                e(
+                    60,
+                    mixed(&[
+                        ("?? ", Tone::Muted),
+                        ("docs/adr/0007-retry-backoff.md", Tone::Normal),
+                    ]),
+                ),
+                e(
+                    900,
+                    mixed(&[
+                        (&p, Tone::Secondary),
+                        ("cargo clippy -p settlement", Tone::Normal),
+                    ]),
+                ),
+                e(
+                    500,
+                    muted("    Checking settlement v0.9.2 (crates/settlement)"),
+                ),
+                e(
+                    1500,
+                    muted("    Finished dev [unoptimized] target(s) in 3.12s"),
+                ),
+                e(
+                    700,
+                    mixed(&[(&p, Tone::Secondary), ("ls docs/adr", Tone::Normal)]),
+                ),
+                e(
+                    200,
+                    line(
+                        "0001-record-architecture.md  0004-ledger-precision.md",
+                        Tone::Normal,
+                    ),
+                ),
+                e(
+                    40,
+                    line(
+                        "0002-settlement-batches.md   0005-fx-rounding.md",
+                        Tone::Normal,
+                    ),
+                ),
+                e(
+                    40,
+                    line(
+                        "0003-retry-policy.md         0007-retry-backoff.md",
+                        Tone::Normal,
+                    ),
+                ),
+                Step::Await,
+            ]
+        }
     }
 }
 
+/// Canned replies (rotating) after operator input.
 fn replies(agent: Option<Agent>) -> Vec<Vec<Line>> {
     match agent {
         Some(Agent::ClaudeCode) => vec![vec![
@@ -1084,7 +1570,7 @@ impl Pane {
             .last()
             .is_some_and(|value| value.first().is_some_and(|s| s.text == self.proc.prompt));
         if pending_prompt {
-            self.term.lines.pop();
+            self.term.remove_last();
         }
         for value in lines {
             let first = value.first().map(|s| s.text.as_str());
@@ -1102,7 +1588,7 @@ impl Pane {
                 .last()
                 .is_some_and(|line| line.first().is_some_and(|s| s.text == "⠋ "));
             if spinner {
-                self.term.lines.pop();
+                self.term.remove_last();
             }
             self.term.push(value);
             self.received_output = true;
@@ -1151,7 +1637,7 @@ impl Pane {
             .last()
             .is_some_and(|value| value.first().is_some_and(|s| s.text == self.proc.prompt));
         if pending_prompt {
-            self.term.lines.pop();
+            self.term.remove_last();
         }
         let output = self.proc.on_input(&input, now_ms, workspace);
         self.push_lines(output);
@@ -1206,30 +1692,37 @@ impl Daemon {
     /// Snapshot metadata is intentionally copied only into semantic pane and
     /// tab state; no terminal backend or process handle crosses the boundary.
     pub fn from_snapshot(snapshot: &DaemonSnapshot, workspace: &str, now_ms: i64) -> Self {
+        // Persisted instances identify their container as `jackin-<workspace>`;
+        // the terminal process sees the workspace name.  Keeping that
+        // boundary here makes every newly booted prompt use the same identity
+        // as the historical Capsule transcript, including reconnects and
+        // splits created after the initial snapshot.
+        let workspace = workspace.strip_prefix("jackin-").unwrap_or(workspace);
         let mut daemon = Self::new(workspace);
         let DaemonSnapshot::Tabs(tabs) = snapshot else {
             return daemon;
         };
         for tab in tabs {
-            let first = tab.panes.first();
-            let pane = daemon.new_pane(first.and_then(|pane| pane.agent), None, now_ms, false);
+            let pane_ids = tab
+                .panes
+                .iter()
+                .map(|pane| daemon.new_pane(pane.agent, None, now_ms, true))
+                .collect::<Vec<_>>();
+            let Some(first) = pane_ids.first().copied() else {
+                continue;
+            };
+            let focused = tab
+                .panes
+                .iter()
+                .position(|pane| pane.focused)
+                .and_then(|index| pane_ids.get(index).copied())
+                .unwrap_or(first);
             daemon.tabs.push(Tab {
-                custom_label: Some(tab.label.clone()),
-                root: PaneNode::Leaf(pane),
-                focused: pane,
+                custom_label: None,
+                root: Self::snapshot_root(&pane_ids),
+                focused,
                 zoomed: None,
             });
-            for pane_snapshot in tab.panes.iter().skip(1) {
-                let extra = daemon.new_pane(pane_snapshot.agent, None, now_ms, false);
-                if let Some(active) = daemon.tabs.last_mut() {
-                    active.root = PaneNode::Split {
-                        dir: SplitDir::Horizontal,
-                        split: Split::new(50, MIN_PANE_COLS, MIN_PANE_COLS),
-                        first: Box::new(active.root.clone()),
-                        second: Box::new(PaneNode::Leaf(extra)),
-                    };
-                }
-            }
         }
         daemon.active = tabs
             .iter()
@@ -1237,6 +1730,42 @@ impl Daemon {
             .unwrap_or(0)
             .min(daemon.tabs.len().saturating_sub(1));
         daemon
+    }
+
+    fn snapshot_root(panes: &[PaneId]) -> PaneNode {
+        match panes {
+            [] => unreachable!("snapshot tabs without panes are skipped"),
+            [pane] => PaneNode::Leaf(*pane),
+            [first, second] => PaneNode::Split {
+                dir: SplitDir::Horizontal,
+                split: Split::new(50, MIN_PANE_COLS, MIN_PANE_COLS),
+                first: Box::new(PaneNode::Leaf(*first)),
+                second: Box::new(PaneNode::Leaf(*second)),
+            },
+            [first, second, third] => PaneNode::Split {
+                dir: SplitDir::Horizontal,
+                split: Split::new(50, MIN_PANE_COLS, MIN_PANE_COLS),
+                first: Box::new(PaneNode::Leaf(*first)),
+                second: Box::new(PaneNode::Split {
+                    dir: SplitDir::Vertical,
+                    split: Split::new(50, MIN_PANE_ROWS, MIN_PANE_ROWS),
+                    first: Box::new(PaneNode::Leaf(*second)),
+                    second: Box::new(PaneNode::Leaf(*third)),
+                }),
+            },
+            [first, rest @ ..] => {
+                let mut root = PaneNode::Leaf(*first);
+                for pane in rest {
+                    root = PaneNode::Split {
+                        dir: SplitDir::Horizontal,
+                        split: Split::new(50, MIN_PANE_COLS, MIN_PANE_COLS),
+                        first: Box::new(root),
+                        second: Box::new(PaneNode::Leaf(*pane)),
+                    };
+                }
+                root
+            }
+        }
     }
 
     /// Find a pane.

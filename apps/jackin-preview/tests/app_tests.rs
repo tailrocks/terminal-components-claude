@@ -17,7 +17,7 @@
     clippy::expect_used
 )]
 
-use junie_tui::{Id, KeyCode, MouseKind};
+use junie_tui::{KeyCode, MouseKind};
 
 use jackin_app::Route;
 use jackin_app::{Motion, Scenario};

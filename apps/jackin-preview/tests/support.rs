@@ -9,6 +9,7 @@ use junie_tui_testing::Harness;
 /// Public-runtime test session. The application remains owned by
 /// `tui-next::Runtime`; tests access it through the runtime's public app
 /// projection instead of calling a legacy `render`/`handle` pair.
+#[derive(Debug)]
 pub struct H {
     /// Deterministic runtime and test buffer.
     pub harness: Harness<App>,
@@ -83,6 +84,11 @@ impl H {
     }
 
     /// Tab until an id owns focus.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the requested id cannot be reached by the runtime focus
+    /// traversal.
     pub fn tab_to(&mut self, id: Id) {
         assert!(self.harness.tab_to(id), "focus never reached {id:?}");
     }

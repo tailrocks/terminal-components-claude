@@ -332,6 +332,7 @@ impl IntroState {
     /// Skip phrases to warp, then warp to done.
     pub fn skip(&mut self) {
         self.tick = match self.mode {
+            Motion::Paused => INTRO_END,
             Motion::Reduced => REDUCED_HOLD,
             _ => match self.phase() {
                 IntroPhase::Phrases => WARP_START,

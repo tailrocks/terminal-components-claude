@@ -781,6 +781,12 @@ pub fn live_capsule() -> DaemonSnapshot {
                     state: AgentState::Idle,
                     focused: false,
                 },
+                PaneSnapshot {
+                    label: "Shell".into(),
+                    agent: None,
+                    state: AgentState::Idle,
+                    focused: false,
+                },
             ],
         },
         TabSnapshot {

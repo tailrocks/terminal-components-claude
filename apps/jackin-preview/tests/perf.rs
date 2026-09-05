@@ -30,8 +30,6 @@
     clippy::undocumented_unsafe_blocks
 )]
 
-use std::hint::black_box;
-
 use jackin_app::Route;
 use jackin_app::sim::pty::{Line, SCROLLBACK, Span, SplitDir, Tone};
 use jackin_app::{Motion, Scenario};
@@ -82,7 +80,7 @@ impl H {
             .daemons
             .get_mut(&instance)
             .expect("daemon");
-        while d.active_tab().map(|t| t.leaves().len()).unwrap_or(0) < 4 {
+        while d.active_tab().map_or(0, |t| t.leaves().len()) < 4 {
             d.split(SplitDir::Vertical, false, None, None, now, false)
                 .expect("split the focused pane");
         }
@@ -174,7 +172,7 @@ fn key_jackin_manager_move() {
     let s = bench(10, iters(1000), &mut || {
         let code = if down { KeyCode::Down } else { KeyCode::Up };
         down = !down;
-        black_box(h.key(code));
+        h.key(code);
     });
     report("key_jackin_manager_move", &s);
     if env_flag("PERF_STRICT") {

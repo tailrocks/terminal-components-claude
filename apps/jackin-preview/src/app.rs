@@ -3,15 +3,17 @@
 //! This module owns only interaction state and paints through `tui-next`'s
 //! public facade.  Domain and simulation state stay in sibling modules.
 
-use std::{mem, time::Duration};
+use std::{collections::BTreeMap, mem, time::Duration};
 
 use junie_tui::{
-    ActionKey, App as TuiApp, AsItem, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
-    DialogState, FrameRead, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Panel, Phase, Picker, PickerAction, PickerState, Position, Rect, Response,
-    SecretPolicy, StatusBar, StatusItem, Tabs, TabsState, TextAction, TextInput, TextInputState,
-    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, Color, ContextMenu, Cx, Dialog,
+    DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection,
+    Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase,
+    List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Panel,
+    Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, Rect, Response,
+    SecretPolicy, StatusBar, StatusItem, Style, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
+    ViewportState,
 };
 
 use crate::domain::account::{
@@ -26,9 +28,7 @@ use crate::rain::{
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
     accounts::AccountsState,
-    capsule::{
-        CapsuleFocus, CapsuleInteraction, CapsuleLayer, CapsuleState, ExitDecision, PrefixCommand,
-    },
+    capsule::{CapsuleInteraction, CapsuleState},
     cockpit::{AccountLine, CockpitState},
     editor::{EditorState, Tab as EditorTab},
     inspect::InspectState,
@@ -39,7 +39,7 @@ use crate::screens::{
 };
 use crate::sim::launch::{BUILD_LOG, LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::provider;
-use crate::sim::pty::{Daemon, SplitDir};
+use crate::sim::pty::{Daemon, PaneId, SplitDir};
 use crate::sim::world::{World, world_for};
 
 /// Root id for the Jackin Preview component tree.
@@ -71,7 +71,7 @@ pub const CAPSULE_TABS: Id = crate::screens::capsule::TABS;
 /// Capsule pane list id.
 pub const CAPSULE_PANES: Id = crate::screens::capsule::PANES;
 /// Capsule command input id.
-pub const CAPSULE_INPUT: Id = APP.sub("capsule-input");
+const CAPSULE_INPUT: Id = APP.sub("capsule-input");
 /// Launch confirmation dialog id.
 pub const LAUNCH_DIALOG: Id = APP.sub("launch-dialog");
 /// Role control inside the launch dialog.
@@ -85,11 +85,14 @@ pub const LAUNCH_CANCEL: Id = APP.sub("launch-cancel");
 /// Launch retry action id.
 pub const LAUNCH_RETRY: Id = APP.sub("launch-retry");
 /// Capsule menu-bar id.
-pub const CAPSULE_MENU_BAR: Id = APP.sub("capsule-menu-bar");
+const CAPSULE_MENU_BAR: Id = APP.sub("capsule-menu-bar");
 /// Capsule tab context-menu id.
-pub const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
+const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
 /// Capsule command-palette id.
-pub const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
+const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
+/// Capsule container identity dialog.
+const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
+const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
 const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
@@ -127,7 +130,6 @@ const CMD_EXIT_DIALOG: ActionKey = ActionKey::application("jackin.exit.dialog");
 const CMD_EXIT_CONFIRM: ActionKey = ActionKey::application("jackin.exit.confirm");
 const CMD_PRELUDE_BACKSPACE: ActionKey = ActionKey::application("jackin.prelude.backspace");
 const CMD_PRELUDE_SPACE: ActionKey = ActionKey::application("jackin.prelude.space");
-const CMD_ACCOUNT_DOWN: ActionKey = ActionKey::application("jackin.account.down");
 const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::application("jackin.account.refresh");
 const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::application("jackin.account.validate");
 const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.remove");
@@ -141,6 +143,9 @@ const CMD_COPY_SELECTION: ActionKey = ActionKey::application("jackin.capsule.cop
 const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
 const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
+const CMD_CONTAINER_INFO: ActionKey = ActionKey::application("jackin.capsule.container-info");
+const CAPSULE_MENU_PREVIOUS: ActionKey = ActionKey::custom("menu.bar.prev.left");
+const CAPSULE_MENU_NEXT: ActionKey = ActionKey::custom("menu.bar.next.right");
 
 const CAPSULE_FILE_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
@@ -158,6 +163,7 @@ const CAPSULE_VIEW_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane"),
     MenuItem::new(CMD_CAPSULE_FOCUS_LEFT, "Focus left"),
     MenuItem::new(CMD_USAGE, "Usage"),
+    MenuItem::new(CMD_CONTAINER_INFO, "Container info"),
     MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
 ];
 const CAPSULE_SESSION_ITEMS: &[MenuItem<'static>] = &[
@@ -193,8 +199,29 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
     Item::new(ItemKey::num(10), "Close tab"),
     Item::new(ItemKey::num(11), "Keyboard shortcuts"),
     Item::new(ItemKey::num(12), "Detach"),
+    Item::new(ItemKey::num(13), "Container info"),
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
+
+const HIST_CANVAS: Color = Color::Rgb(0, 0, 0);
+const HIST_SURFACE: Color = Color::Rgb(17, 17, 17);
+const HIST_PRIMARY: Color = Color::Rgb(255, 255, 255);
+const HIST_SECONDARY: Color = Color::Rgb(179, 179, 179);
+const HIST_MUTED: Color = Color::Rgb(128, 128, 128);
+const HIST_BORDER: Color = Color::Rgb(77, 77, 77);
+const HIST_SEAM: Color = Color::Rgb(38, 38, 38);
+const HIST_ACCENT: Color = Color::Rgb(72, 224, 84);
+const HIST_ACCENT_TINT: Color = Color::Rgb(15, 46, 19);
+const HIST_BUTTON: Color = Color::Rgb(39, 39, 42);
+
+fn historical_style(fg: Color, bg: Color, bold: bool) -> Style {
+    let style = Style::new().fg(fg).bg(bg);
+    if bold {
+        style.add_modifier(Modifier::BOLD)
+    } else {
+        style.remove_modifier(Modifier::BOLD)
+    }
+}
 
 /// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -374,6 +401,7 @@ pub struct App {
     quit: bool,
     keymap: KeyMap,
     capsule_menu_state: MenuState,
+    container_info_state: DialogState,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
@@ -401,8 +429,13 @@ pub struct App {
     exit_choice: Option<u8>,
     capsule_input: String,
     capsule_input_state: TextInputState,
-    capsule_viewport: ViewportState,
+    capsule_viewports: BTreeMap<PaneId, ViewportState>,
+    capsule_viewport_lengths: BTreeMap<PaneId, usize>,
+    capsule_viewport_revisions: BTreeMap<PaneId, u64>,
+    capsule_viewport_retained: BTreeMap<PaneId, usize>,
+    capsule_viewport_focused: bool,
     capsule_tab_title: String,
+    capsule_tab_title_index: usize,
     capsule_tab_title_dialog: bool,
     capsule_tab_title_editing: bool,
     pending_capsule_action: Option<CapsuleAction>,
@@ -411,8 +444,9 @@ pub struct App {
     editor_accounts_transition: bool,
     editor_role_picker: bool,
     editor_env_role: Option<String>,
-    usage_list: ListState,
     help_open: bool,
+    capsule_help_open: bool,
+    capsule_help_state: HelpOverlayState,
     inspect_detail: bool,
     inspect_files: bool,
     active_instance: Option<String>,
@@ -433,6 +467,7 @@ impl App {
     /// continue from the same reproducible boundary on the next tick.
     pub fn for_scenario_at(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         let mut world = world_for(scenario);
+        Self::hydrate_capsule_accounts(&mut world);
         let roles = world
             .roles
             .iter()
@@ -523,6 +558,7 @@ impl App {
             quit: false,
             keymap: app_keymap(),
             capsule_menu_state: MenuState::default(),
+            container_info_state: DialogState::default(),
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
@@ -551,8 +587,13 @@ impl App {
             exit_choice: None,
             capsule_input: String::new(),
             capsule_input_state: TextInputState::default(),
-            capsule_viewport: ViewportState::default(),
-            capsule_tab_title: "Shell".into(),
+            capsule_viewports: BTreeMap::new(),
+            capsule_viewport_lengths: BTreeMap::new(),
+            capsule_viewport_revisions: BTreeMap::new(),
+            capsule_viewport_retained: BTreeMap::new(),
+            capsule_viewport_focused: false,
+            capsule_tab_title: String::new(),
+            capsule_tab_title_index: 0,
             capsule_tab_title_dialog: false,
             capsule_tab_title_editing: false,
             pending_capsule_action: None,
@@ -561,8 +602,9 @@ impl App {
             editor_accounts_transition: false,
             editor_role_picker: false,
             editor_env_role: None,
-            usage_list: ListState::default(),
             help_open: false,
+            capsule_help_open: false,
+            capsule_help_state: HelpOverlayState::default(),
             inspect_detail: false,
             inspect_files: false,
             active_instance: None,
@@ -584,6 +626,7 @@ impl App {
                 .map(|instance| instance.id.clone());
             app.sync_capsule_projection();
         }
+        app.sync_workspace_keymap();
         app
     }
 
@@ -630,6 +673,23 @@ impl App {
         self.quit
     }
 
+    fn sync_workspace_keymap(&mut self) {
+        let chord = Chord::key(KeyCode::End);
+        self.keymap.remove(KeyPhase::Capture, chord);
+        if self.route == Route::Manager
+            || (self.route == Route::Editor
+                && self.editor.tab == EditorTab::Environments
+                && !self.editor.env_form_open)
+        {
+            self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
+        }
+    }
+
+    fn route_changed(&mut self) -> Response<()> {
+        self.sync_workspace_keymap();
+        Response::changed()
+    }
+
     fn launch_candidates(&self) -> Vec<AgentOption> {
         let workspace = self
             .manager
@@ -663,6 +723,30 @@ impl App {
         })
     }
 
+    fn hydrate_capsule_accounts(world: &mut World) {
+        let workspace = world.workspaces.first().cloned();
+        let accounts = Agent::ALL
+            .into_iter()
+            .map(|agent| {
+                let account = world
+                    .offer_for(agent, workspace.as_ref(), Some("chainargos/the-architect"))
+                    .accounts
+                    .into_iter()
+                    .next();
+                (agent, account)
+            })
+            .collect::<BTreeMap<_, _>>();
+        for daemon in world.daemons.values_mut() {
+            for pane in &mut daemon.panes {
+                if let Some(agent) = pane.proc.agent
+                    && pane.proc.account.is_none()
+                {
+                    pane.proc.account = accounts.get(&agent).cloned().flatten();
+                }
+            }
+        }
+    }
+
     fn sync_capsule_projection(&mut self) {
         let Some(instance_id) = self.active_running_instance_id() else {
             return;
@@ -671,9 +755,12 @@ impl App {
         let Some(daemon) = self.world.daemons.get(&instance_id) else {
             return;
         };
-        self.capsule.tab = u8::try_from(daemon.active).unwrap_or(u8::MAX);
+        let active_tab = daemon.active;
+        self.capsule.tab = u8::try_from(active_tab).unwrap_or(u8::MAX);
         self.capsule.selected_pane = daemon.focused_pane().unwrap_or_default();
         self.capsule.zoomed = daemon.active_tab().is_some_and(|tab| tab.zoomed.is_some());
+        self.tabs_state
+            .set_active(active_tab, ItemKey::index(active_tab));
     }
 
     fn refresh_cockpit_account_line(&mut self, agent: Agent) {
@@ -730,8 +817,8 @@ impl App {
         Button::new(crate::screens::accounts::SAVE, "Save account").variant(Variant::PRIMARY)
     }
 
-    fn editor_save_button() -> Button<'static> {
-        Button::new(crate::screens::editor::SAVE, "Save workspace").variant(Variant::PRIMARY)
+    fn editor_save_button(label: &'static str) -> Button<'static> {
+        Button::new(crate::screens::editor::SAVE, label).variant(Variant::PRIMARY)
     }
 
     fn editor_save_confirm_button(create: bool) -> Button<'static> {
@@ -747,18 +834,21 @@ impl App {
     }
 
     fn draw_editor_save_footer(&self, ui: &mut Ui<'_>, area: Rect) {
-        let label = if self.editor.preview_open {
-            if self.world.workspaces.is_empty() {
-                "Create workspace"
-            } else {
-                "Apply changes"
-            }
-        } else {
-            "Save workspace"
-        };
-        Button::new(crate::screens::editor::SAVE, label)
-            .variant(Variant::PRIMARY)
-            .draw(ui, area);
+        Self::editor_save_button("Save workspace").draw(ui, area);
+        if self.editor.preview_open {
+            Self::editor_save_confirm_button(self.world.workspaces.is_empty()).draw(
+                ui,
+                Rect {
+                    x: area.x.saturating_add(20),
+                    width: 18,
+                    ..area
+                },
+            );
+        }
+    }
+
+    fn settings_save_button() -> Button<'static> {
+        Button::new(crate::screens::settings::SAVE, "Save settings").variant(Variant::PRIMARY)
     }
 
     fn settings_save_confirm_button() -> Button<'static> {
@@ -825,8 +915,12 @@ impl App {
         }
     }
 
-    fn role_picker() -> Picker<'static, RoleOption> {
-        Picker::new(ROLE_PICKER).title("Choose a role")
+    fn role_picker(title: &'static str) -> Picker<'static, RoleOption> {
+        Picker::new(ROLE_PICKER).title(title)
+    }
+
+    fn launch_agent_picker() -> Picker<'static, AgentOption> {
+        Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent")
     }
 
     fn account_picker() -> Picker<'static, AccountOption> {
@@ -858,6 +952,60 @@ impl App {
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
             .placeholder("Search commands…")
+    }
+
+    fn container_info_dialog() -> Dialog<'static> {
+        Dialog::info(CAPSULE_CONTAINER_INFO, "Container info").body_rows(9)
+    }
+
+    fn container_info_lines(&self) -> Vec<String> {
+        let Some(instance_id) = self.active_running_instance_id() else {
+            return vec!["No running Capsule instance is attached.".into()];
+        };
+        let Some(instance) = self.world.instance(&instance_id) else {
+            return vec!["No running Capsule instance is attached.".into()];
+        };
+        let focused = self
+            .world
+            .daemons
+            .get(&instance_id)
+            .and_then(Daemon::focused_pane)
+            .and_then(|pane_id| self.world.daemons.get(&instance_id)?.pane(pane_id));
+        let agent = focused.map_or_else(
+            || "(none)".to_owned(),
+            |pane| match pane.proc.agent {
+                Some(agent) => pane
+                    .proc
+                    .account
+                    .as_ref()
+                    .and_then(|id| self.world.accounts.get(id))
+                    .map_or_else(|| agent.label().to_owned(), Account::title),
+                None => "(shell)".to_owned(),
+            },
+        );
+        vec![
+            format!("Container       {}", instance.container_id()),
+            format!("Container ID    {}", instance.container_uid()),
+            format!("Role            {}", instance.role),
+            format!("Agent           {agent}"),
+            format!("Workdir         {}", instance.workdir),
+            format!("Instance        {}", instance.id.trim_start_matches("jk-")),
+            "Capsule         0.9.2".into(),
+            format!("Invocation ID   {}-4f11", instance.run_id),
+            format!(
+                "Host log        file:///Users/alexey/.jackin/logs/{}.log",
+                instance.run_id
+            ),
+        ]
+    }
+
+    fn open_container_info(&mut self, cx: &mut Cx<'_>) {
+        self.container_info_state = DialogState::default();
+        cx.open_layer(
+            CAPSULE_CONTAINER_INFO,
+            Self::container_info_dialog().layer(cx),
+        );
+        self.status = Some("Container info".into());
     }
 
     fn build_manager_rows(&self) -> Vec<String> {
@@ -1059,13 +1207,6 @@ impl App {
         .body_rows(1)
     }
 
-    fn open_launch_dialog(&mut self, cx: &mut Cx<'_>) {
-        let dialog = Self::launch_dialog();
-        let spec = dialog.layer(cx);
-        self.launch_dialog = DialogState::default();
-        cx.open_layer(LAUNCH_DIALOG, spec);
-    }
-
     fn open_agent_picker(&mut self, cx: &mut Cx<'_>) {
         self.agent_options = self.launch_candidates();
         self.agent_state = PickerState::default();
@@ -1073,15 +1214,14 @@ impl App {
             self.status = Some("No configured agent account is available".into());
             return;
         }
-        let picker =
-            Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent");
+        let picker = Self::launch_agent_picker();
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
         self.status = Some("Launch · choose Agent".into());
     }
 
     fn open_role_picker(&mut self, cx: &mut Cx<'_>) {
-        let picker = Self::role_picker();
+        let picker = Self::role_picker("Choose a role");
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
     }
@@ -1089,7 +1229,7 @@ impl App {
     fn open_editor_role_picker(&mut self, cx: &mut Cx<'_>) {
         self.editor_role_picker = true;
         self.role_state = PickerState::default();
-        let picker = Picker::new(ROLE_PICKER).title("Add role override");
+        let picker = Self::role_picker("Add role override");
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
     }
@@ -1352,6 +1492,146 @@ impl App {
         TextInput::new(CAPSULE_INPUT).placeholder("Type a command")
     }
 
+    fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
+        TextViewport::new(CAPSULE_PANES.item(ItemKey::num(pane_id))).click_selects_word(true)
+    }
+
+    fn role_choose_button(&self) -> Button<'_> {
+        Button::new(ROLE_CHOOSE, self.selected_role())
+    }
+
+    fn with_capsule_help<R>(f: impl FnOnce(&[HelpSection<'_>]) -> R) -> R {
+        let pane = HintLayer {
+            hints: vec![
+                Hint {
+                    chord: Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
+                    label: "Prefix commands",
+                    priority: 90,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Char('y')),
+                    label: "Copy selection",
+                    priority: 80,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::PageUp),
+                    label: "Scrollback",
+                    priority: 70,
+                },
+            ],
+            badge: None,
+            status: None,
+            centered: false,
+        };
+        let layout = HintLayer {
+            hints: vec![
+                Hint {
+                    chord: Chord::key(KeyCode::Char('%')),
+                    label: "Split right",
+                    priority: 90,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Char('"')),
+                    label: "Split below",
+                    priority: 80,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Char('h')),
+                    label: "Focus left",
+                    priority: 70,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Char('z')),
+                    label: "Zoom pane",
+                    priority: 60,
+                },
+            ],
+            badge: None,
+            status: None,
+            centered: false,
+        };
+        let session = HintLayer {
+            hints: vec![
+                Hint {
+                    chord: Chord::key(KeyCode::Char('c')),
+                    label: "New tab",
+                    priority: 90,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Char('d')),
+                    label: "Detach",
+                    priority: 80,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Char(',')),
+                    label: "Rename tab",
+                    priority: 70,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Char('&')),
+                    label: "Close tab",
+                    priority: 60,
+                },
+                Hint {
+                    chord: Chord::with(KeyCode::Char('q'), KeyModifiers::CONTROL),
+                    label: "Exit",
+                    priority: 50,
+                },
+            ],
+            badge: None,
+            status: None,
+            centered: false,
+        };
+        let navigation = HintLayer {
+            hints: vec![
+                Hint {
+                    chord: Chord::key(KeyCode::Left),
+                    label: "Previous tab",
+                    priority: 90,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Right),
+                    label: "Next tab",
+                    priority: 80,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::F(10)),
+                    label: "Menu",
+                    priority: 70,
+                },
+                Hint {
+                    chord: Chord::with(KeyCode::Char('\\'), KeyModifiers::CONTROL),
+                    label: "Command palette",
+                    priority: 60,
+                },
+                Hint {
+                    chord: Chord::key(KeyCode::Char('?')),
+                    label: "Help",
+                    priority: 50,
+                },
+            ],
+            badge: None,
+            status: None,
+            centered: false,
+        };
+        let sections = [
+            HelpSection::new("Pane", &pane),
+            HelpSection::new("Layout", &layout),
+            HelpSection::new("Session", &session),
+            HelpSection::new("Navigation", &navigation),
+        ];
+        f(&sections)
+    }
+
+    fn open_capsule_help(&mut self, cx: &mut Cx<'_>) {
+        self.capsule_help_open = true;
+        self.capsule_help_state = HelpOverlayState::default();
+        Self::with_capsule_help(|sections| {
+            let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
+            cx.open_layer(CAPSULE_HELP, help.layer(cx));
+        });
+    }
+
     fn commit_capsule_input(&mut self) {
         let input = mem::take(&mut self.capsule_input);
         let Some(instance_id) = self.active_running_instance_id() else {
@@ -1383,6 +1663,7 @@ impl App {
     fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
         if key == 'm' {
             self.capsule_prefix = false;
+            self.capsule_tab_title_index = self.active_capsule_tab_index();
             self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
             self.capsule_tab_menu_pos = Position::new(8, 2);
@@ -1395,6 +1676,7 @@ impl App {
         let command = match key {
             'c' => Some(CMD_CAPSULE),
             'd' => Some(CMD_CAPSULE_DETACH),
+            'i' => Some(CMD_CONTAINER_INFO),
             '%' => Some(CMD_CAPSULE_SPLIT_RIGHT),
             '"' => Some(CMD_CAPSULE_SPLIT_BELOW),
             'z' => Some(CMD_CAPSULE_ZOOM),
@@ -1412,8 +1694,218 @@ impl App {
         Response::changed()
     }
 
+    fn capsule_viewport_id(pane_id: PaneId) -> Id {
+        CAPSULE_PANES.item(ItemKey::num(pane_id))
+    }
+
+    fn active_capsule_tab_index(&self) -> usize {
+        self.active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .map_or(0, |daemon| daemon.active)
+    }
+
+    fn active_capsule_pane_ids(&self) -> Vec<PaneId> {
+        self.active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(Daemon::active_tab)
+            .map(|tab| tab.leaves())
+            .unwrap_or_default()
+    }
+
+    fn capsule_pane_lines(&self, pane_id: PaneId) -> Vec<String> {
+        self.active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(|daemon| daemon.pane(pane_id))
+            .map(|pane| {
+                pane.term
+                    .lines
+                    .iter()
+                    .map(|line| {
+                        line.iter()
+                            .map(|span| span.text.as_str())
+                            .collect::<String>()
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn set_capsule_focused_pane(&mut self, pane_id: PaneId) {
+        let Some(instance_id) = self.active_running_instance_id() else {
+            return;
+        };
+        let snapshot = self.world.daemons.get_mut(&instance_id).and_then(|daemon| {
+            let tab = daemon.active_tab_mut()?;
+            if !tab.leaves().contains(&pane_id) {
+                return None;
+            }
+            tab.focused = pane_id;
+            Some(daemon.snapshot())
+        });
+        if let Some(snapshot) = snapshot {
+            self.capsule.selected_pane = pane_id;
+            if let Some(instance) = self.world.instance_mut(&instance_id) {
+                instance.daemon = snapshot;
+            }
+        }
+    }
+
+    fn activate_capsule_tab(&mut self, index: usize) {
+        let Some(instance_id) = self.active_running_instance_id() else {
+            return;
+        };
+        let snapshot = self.world.daemons.get_mut(&instance_id).and_then(|daemon| {
+            if index >= daemon.tabs.len() {
+                return None;
+            }
+            daemon.active = index;
+            Some(daemon.snapshot())
+        });
+        if let Some(snapshot) = snapshot {
+            if let Some(instance) = self.world.instance_mut(&instance_id) {
+                instance.daemon = snapshot;
+            }
+            self.sync_capsule_projection();
+        }
+    }
+
+    fn update_capsule_viewports(&mut self, cx: &mut Cx<'_>, result: &mut Response<()>) {
+        let Some(instance_id) = self.active_running_instance_id() else {
+            return;
+        };
+        let Some(daemon) = self.world.daemons.get(&instance_id) else {
+            return;
+        };
+        let Some(tab) = daemon.active_tab() else {
+            return;
+        };
+        let sources = tab
+            .leaves()
+            .into_iter()
+            .filter_map(|pane_id| {
+                daemon.pane(pane_id).map(|pane| {
+                    let lines = pane
+                        .term
+                        .lines
+                        .iter()
+                        .map(|line| {
+                            line.iter()
+                                .map(|span| span.text.as_str())
+                                .collect::<String>()
+                        })
+                        .collect::<Vec<_>>();
+                    (
+                        pane_id,
+                        lines,
+                        pane.term.caret,
+                        tab.focused == pane_id,
+                        pane.term.revision(),
+                        pane.term.retained(),
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+        let pane_ids = daemon.panes.iter().map(|pane| pane.id).collect::<Vec<_>>();
+        self.capsule_viewports
+            .retain(|pane_id, _| pane_ids.contains(pane_id));
+        self.capsule_viewport_lengths
+            .retain(|pane_id, _| pane_ids.contains(pane_id));
+        self.capsule_viewport_revisions
+            .retain(|pane_id, _| pane_ids.contains(pane_id));
+        self.capsule_viewport_retained
+            .retain(|pane_id, _| pane_ids.contains(pane_id));
+
+        let mut focused_pane = None;
+        for (pane_id, lines, caret, focused, revision, retained) in sources {
+            let id = Self::capsule_viewport_id(pane_id);
+            let clicked = cx.intents(id).any(|intent| {
+                matches!(
+                    intent,
+                    Intent::Pointer {
+                        phase: Phase::Press | Phase::DragStart,
+                        ..
+                    }
+                )
+            });
+            let previous_len = self
+                .capsule_viewport_lengths
+                .get(&pane_id)
+                .copied()
+                .unwrap_or(lines.len());
+            let previous_retained = self
+                .capsule_viewport_retained
+                .get(&pane_id)
+                .copied()
+                .unwrap_or(retained);
+            let previous_revision = self.capsule_viewport_revisions.get(&pane_id).copied();
+            let state = self.capsule_viewports.entry(pane_id).or_default();
+            let dropped = retained.saturating_sub(previous_retained);
+            if dropped > 0 {
+                state.retained(dropped);
+            } else if previous_len > lines.len() {
+                state.clear_selection();
+                state.invalidate();
+            }
+            if previous_revision.is_some_and(|previous| previous != revision) {
+                state.invalidate();
+            }
+            state.set_caret(focused.then_some(caret).flatten());
+            let viewport_lines = lines
+                .iter()
+                .map(|line| ViewportLine::Plain(line.as_str()))
+                .collect::<Vec<_>>();
+            let viewport_response =
+                Self::capsule_viewport(pane_id).update(cx, state, &viewport_lines);
+            let owns_focus = clicked || viewport_response.focused();
+            let viewport_action = viewport_response.action_ref().cloned();
+            *result |= viewport_response.erase();
+            let copied = match viewport_action {
+                Some(ViewportAction::Copy(text)) => Some(text),
+                Some(ViewportAction::SelectionChanged) => {
+                    let mut text = String::new();
+                    self.capsule_viewports.get(&pane_id).and_then(|state| {
+                        state.copy_into(&viewport_lines, &mut text).then_some(text)
+                    })
+                }
+                _ => None,
+            };
+            if let Some(text) = copied {
+                self.world.clipboard = Some(text);
+                *result |= Response::changed();
+            }
+            if owns_focus {
+                focused_pane = Some(pane_id);
+            }
+            self.capsule_viewport_lengths.insert(pane_id, lines.len());
+            self.capsule_viewport_revisions.insert(pane_id, revision);
+            self.capsule_viewport_retained.insert(pane_id, retained);
+        }
+        if let Some(pane_id) = focused_pane {
+            self.set_capsule_focused_pane(pane_id);
+            self.capsule_viewport_focused = true;
+        }
+    }
+
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+
+        Self::with_capsule_help(|sections| {
+            let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
+            let response = help.update(cx, &mut self.capsule_help_state);
+            let closed = matches!(response.action_ref(), Some(HelpAction::Closed(_)));
+            result |= response.erase();
+            if closed {
+                self.capsule_help_open = false;
+                self.status = None;
+            }
+        });
+
+        let info = Self::container_info_dialog();
+        let response = info.update(cx, &mut self.container_info_state);
+        if response.action_ref().is_some() {
+            self.status = None;
+        }
+        result |= response.erase();
 
         // Drain the dialog and its body control while a child picker is
         // open too.  Layer dismissal intents are addressed to the underlying
@@ -1424,7 +1916,7 @@ impl App {
         let response = dialog.update(cx, &mut self.launch_dialog);
         let action = response.action_ref().copied();
         result |= response.erase();
-        let role = Button::new(ROLE_CHOOSE, self.selected_role()).update(cx);
+        let role = self.role_choose_button().update(cx);
         let role_chosen = role.activated();
         result |= role.erase();
         if role_chosen && cx.is_open(LAUNCH_DIALOG) && !cx.is_open(ROLE_PICKER) {
@@ -1446,7 +1938,11 @@ impl App {
             result |= Response::changed();
         }
 
-        let picker = Self::role_picker();
+        let picker = Self::role_picker(if self.editor_role_picker {
+            "Add role override"
+        } else {
+            "Choose a role"
+        });
         let response = picker.update(cx, &mut self.role_state, &self.roles);
         let action = response.action_ref().copied();
         result |= response.erase();
@@ -1463,10 +1959,11 @@ impl App {
             })
         {
             if self.editor_role_picker {
-                let role = self.roles[index].key.rsplit_once('/').map_or_else(
-                    || self.roles[index].key.clone(),
-                    |(_, name)| name.to_owned(),
-                );
+                let role = self.roles.get(index).map_or_else(String::new, |role| {
+                    role.key
+                        .rsplit_once('/')
+                        .map_or_else(|| role.key.clone(), |(_, name)| name.to_owned())
+                });
                 self.editor_role_picker = false;
                 self.editor_env_role = Some(role.clone());
                 self.editor.open_env_form();
@@ -1479,8 +1976,7 @@ impl App {
             result |= Response::changed();
         }
 
-        let agent_picker =
-            Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent");
+        let agent_picker = Self::launch_agent_picker();
         let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
         let action = response.action_ref().copied();
         result |= response.erase();
@@ -1677,7 +2173,7 @@ impl App {
         result |= new_workspace.erase();
         if new_workspace_chosen {
             self.route = Route::Prelude;
-            self.prelude = crate::screens::prelude::PreludeState::default();
+            self.prelude = PreludeState::default();
             result |= Response::changed();
         }
         let launch_disabled = self.launch_candidates().is_empty();
@@ -1997,8 +2493,8 @@ impl App {
         self.accounts.form_open = false;
         self.accounts.started = false;
         self.accounts.masked_input.clear();
-        self.accounts.secret_input = junie_tui::TextInputState::default();
-        self.accounts.folder_input = junie_tui::TextInputState::default();
+        self.accounts.secret_input = TextInputState::default();
+        self.accounts.folder_input = TextInputState::default();
         self.status = Some(match issue {
             Some(issue) => format!("Saved {title} · {issue}"),
             None => format!("Saved {title}"),
@@ -2032,9 +2528,7 @@ impl App {
             }
             result |= Response::changed();
         }
-        let save = Button::new(crate::screens::settings::SAVE, "Save settings")
-            .variant(Variant::PRIMARY)
-            .update(cx);
+        let save = Self::settings_save_button().update(cx);
         let save_chosen = save.activated();
         result |= save.erase();
         let confirm = Self::settings_save_confirm_button().update(cx);
@@ -2147,7 +2641,7 @@ impl App {
                 result |= Response::changed();
             }
 
-            let save = Self::editor_save_button().update(cx);
+            let save = Self::editor_save_button("Save workspace").update(cx);
             let raw_save_chosen = save.activated();
             let save_chosen = raw_save_chosen
                 && cx
@@ -2243,7 +2737,7 @@ impl App {
             EditorTab::General => {}
         }
 
-        let save = Self::editor_save_button().update(cx);
+        let save = Self::editor_save_button("Save workspace").update(cx);
         let save_chosen = save.activated()
             && cx
                 .state(crate::screens::editor::SAVE)
@@ -2361,14 +2855,73 @@ impl App {
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+        // Prefix input may retain focus on a child control after a modal
+        // closes. Consume its next raw key at the route boundary before any
+        // child (menu, tabs, panes, or input) can claim it.
+        if self.capsule_prefix {
+            let prefix_key = [
+                CAPSULE_INPUT,
+                CAPSULE_MENU_BAR,
+                CAPSULE_TAB_MENU,
+                CAPSULE_TABS,
+            ]
+            .into_iter()
+            .find_map(|id| {
+                cx.intents(id).find_map(|intent| match intent {
+                    Intent::Key(key) => key.bare_char(),
+                    _ => None,
+                })
+            });
+            if let Some(key) = prefix_key {
+                self.capsule_input.clear();
+                self.capsule_input_state = TextInputState::default();
+                let response = self.capsule_prefix_key(cx, key);
+                if key != 'm' {
+                    return response;
+                }
+                result |= response;
+            }
+        }
         if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
-            self.capsule_tab_menu_open = false;
+            cx.open_layer(
+                CAPSULE_TAB_MENU,
+                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+            );
         }
         let menu = Self::capsule_menu_bar();
+        let menu_intents = cx.intents(CAPSULE_MENU_BAR).collect::<Vec<_>>();
+        let menu_state_before = self.capsule_menu_state;
         let menu_response = menu.update(cx, &mut self.capsule_menu_state);
+        if let Some(open) = menu_state_before.open_menu() {
+            let count = CAPSULE_MENUS.len();
+            let next = menu_intents.iter().find_map(|intent| match intent {
+                Intent::Binding(action) if *action == CAPSULE_MENU_PREVIOUS => Some(if open == 0 {
+                    count.saturating_sub(1)
+                } else {
+                    open - 1
+                }),
+                Intent::Binding(action) if *action == CAPSULE_MENU_NEXT => {
+                    Some(open.saturating_add(1) % count)
+                }
+                _ => None,
+            });
+            if let Some(index) = next {
+                result |= menu
+                    .open_menu(cx, &mut self.capsule_menu_state, index)
+                    .erase();
+            }
+        }
         if let Some(MenuAction::Chosen(action)) = menu_response.action_ref().copied() {
             if let Some(response) = self.update_command(cx, action) {
                 result |= response;
+            }
+            // Menu actions are terminal transitions. Keep the next key for
+            // the resulting route/dialog instead of replaying it through the
+            // prior dropdown state.
+            self.capsule_menu_state = MenuState::default();
+            cx.close_layer(CAPSULE_MENU_BAR, None);
+            if action == CMD_INSPECT_CHANGES {
+                cx.focus(CAPSULE_INPUT);
             }
         }
         result |= menu_response.erase();
@@ -2378,45 +2931,62 @@ impl App {
         match context_response.action_ref().copied() {
             Some(MenuAction::Chosen(action)) => {
                 self.capsule_tab_menu_open = false;
+                self.capsule_tab_menu_state = MenuState::default();
                 if let Some(response) = self.update_command(cx, action) {
                     result |= response;
                 }
+                cx.close_layer(CAPSULE_TAB_MENU, None);
             }
-            Some(MenuAction::Closed(_)) => self.capsule_tab_menu_open = false,
+            Some(MenuAction::Closed(_)) => {
+                self.capsule_tab_menu_open = false;
+                self.capsule_tab_menu_state = MenuState::default();
+            }
             _ => {}
         }
         result |= context_response.erase();
 
         if !cx.is_open(CAPSULE_TAB_MENU) {
-            for intent in cx.intents(CAPSULE_PANES) {
-                if let Intent::Pointer {
+            let pane_context = self
+                .active_capsule_pane_ids()
+                .into_iter()
+                .find_map(|pane_id| {
+                    let id = Self::capsule_viewport_id(pane_id);
+                    cx.intents(id).find_map(|intent| match intent {
+                        Intent::Pointer {
+                            phase: Phase::Secondary,
+                            pos,
+                            ..
+                        } => Some(pos),
+                        _ => None,
+                    })
+                });
+            let tab_context = cx.intents(CAPSULE_TABS).find_map(|intent| match intent {
+                Intent::Pointer {
                     phase: Phase::Secondary,
                     pos,
+                    part:
+                        PartRef {
+                            part: Part::TAB,
+                            item: Some(ItemKey::Index(index)),
+                        },
                     ..
-                } = intent
-                {
-                    self.capsule_tab_menu_pos = pos;
-                    self.capsule_tab_menu_open = true;
-                    self.capsule_tab_menu_state = MenuState::default();
-                    cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
-                    result |= Response::changed();
-                    break;
-                }
-            }
-            for intent in cx.intents(CAPSULE_TABS) {
-                if let Intent::Pointer {
-                    phase: Phase::Secondary,
-                    pos,
-                    ..
-                } = intent
-                {
-                    self.capsule_tab_menu_pos = pos;
-                    self.capsule_tab_menu_open = true;
-                    self.capsule_tab_menu_state = MenuState::default();
-                    cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
-                    result |= Response::changed();
-                    break;
-                }
+                } => Some((pos, index)),
+                _ => None,
+            });
+            if let Some(pos) = pane_context {
+                self.capsule_tab_title_index = self.active_capsule_tab_index();
+                self.capsule_tab_menu_pos = pos;
+                self.capsule_tab_menu_open = true;
+                self.capsule_tab_menu_state = MenuState::default();
+                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                result |= Response::changed();
+            } else if let Some((pos, index)) = tab_context {
+                self.capsule_tab_title_index = index;
+                self.capsule_tab_menu_pos = pos;
+                self.capsule_tab_menu_open = true;
+                self.capsule_tab_menu_state = MenuState::default();
+                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                result |= Response::changed();
             }
         }
 
@@ -2438,6 +3008,7 @@ impl App {
                     ItemKey::Num(10) => Some(CMD_TAB_CLOSE),
                     ItemKey::Num(11) => Some(CMD_KEYBOARD_SHORTCUTS),
                     ItemKey::Num(12) => Some(CMD_CAPSULE_DETACH),
+                    ItemKey::Num(13) => Some(CMD_CONTAINER_INFO),
                     _ => None,
                 };
                 if let Some(action) = action
@@ -2464,44 +3035,82 @@ impl App {
             }
             return result;
         }
+        // Capsule exit is an app command, not text.  A focused command input
+        // may otherwise settle or consume the raw control key before the
+        // bubble keymap gets a chance to dispatch it.
+        let exit_requested = cx.intents(CAPSULE_INPUT).any(|intent| {
+            matches!(
+                intent,
+                Intent::Key(key)
+                    if key.code == KeyCode::Char('q')
+                        && key.mods.contains(KeyModifiers::CONTROL)
+            )
+        });
+        if exit_requested {
+            if let Some(response) = self.update_command(cx, CMD_EXIT_DIALOG) {
+                result |= response;
+            }
+            return result;
+        }
+        // Inspect commands are app actions.  The focused command input must
+        // not turn the `m` shortcut into text while a diff is open.
+        let inspect_manager_requested = self.inspect.instance.is_some()
+            && self.inspect_detail
+            && cx.intents(CAPSULE_INPUT).any(|intent| {
+                matches!(
+                    intent,
+                    Intent::Key(key)
+                        if key.code == KeyCode::Char('m') && key.mods == KeyModifiers::NONE
+                )
+            });
+        if inspect_manager_requested {
+            if let Some(response) = self.update_command(cx, CMD_MANAGER) {
+                result |= response;
+            }
+            return result;
+        }
+        // The prefix action waits for confirmation.  `TextInput` publishes
+        // Enter as a component binding while idle, so open the account picker
+        // on that first confirmation instead of requiring a hidden edit-start
+        // keystroke before the action can progress.
+        let pending_capsule_confirm = self.pending_capsule_action.is_some()
+            && !self.capsule_input_state.is_editing()
+            && cx
+                .intents(CAPSULE_INPUT)
+                .any(|intent| matches!(intent, Intent::Binding(_)));
+        if pending_capsule_confirm {
+            if let Some(action) = self.pending_capsule_action.take() {
+                self.open_capsule_account_picker(cx, action);
+                self.status = Some("New tab · Account for Claude Code".into());
+            }
+            return result | Response::changed();
+        }
         if !self.capsule_input_state.is_editing()
             && self.exit_choice.is_none()
-            && self.capsule_viewport.selection().is_none()
+            && self
+                .capsule_viewports
+                .values()
+                .all(|viewport| viewport.selection().is_none())
+            && !self.capsule_viewport_focused
+            && !self.capsule_tab_menu_open
+            && !cx.is_open(CAPSULE_TAB_MENU)
         {
             cx.focus(CAPSULE_INPUT);
         }
-        let rows = self.capsule_rows();
-        let lines = rows
-            .iter()
-            .map(|line| ViewportLine::Plain(line.as_str()))
-            .collect::<Vec<_>>();
-        let viewport = TextViewport::new(CAPSULE_PANES).click_selects_word(true);
-        let viewport_response = viewport.update(cx, &mut self.capsule_viewport, &lines);
-        let viewport_action = viewport_response.action_ref().cloned();
-        result |= viewport_response.erase();
-        let copied = match viewport_action {
-            Some(ViewportAction::Copy(text)) => Some(text),
-            Some(ViewportAction::SelectionChanged) => {
-                let mut text = String::new();
-                self.capsule_viewport
-                    .copy_into(&lines, &mut text)
-                    .then_some(text)
-            }
-            _ => None,
-        };
-        if let Some(text) = copied {
-            self.world.clipboard = Some(text);
-            result |= Response::changed();
-        }
+        self.update_capsule_viewports(cx, &mut result);
         let input = Self::capsule_input().update(
             cx,
             &mut self.capsule_input_state,
             &mut self.capsule_input,
         );
+        let input_focused = input.focused();
         let committed = input
             .action_ref()
             .is_some_and(|action| *action == TextAction::Committed);
         result |= input.erase();
+        if input_focused {
+            self.capsule_viewport_focused = false;
+        }
         let prefix_key = self
             .capsule_prefix
             .then(|| self.capsule_input_state.draft_text())
@@ -2535,10 +3144,15 @@ impl App {
             result |= Response::changed();
         }
         let tabs = self.capsule_tabs();
-        result
-            | Tabs::new(CAPSULE_TABS)
-                .update(cx, &mut self.tabs_state, &tabs)
-                .erase()
+        let tabs_response = Tabs::new(CAPSULE_TABS).update(cx, &mut self.tabs_state, &tabs);
+        if let Some(TabsAction::Activated(ItemKey::Index(index))) =
+            tabs_response.action_ref().copied()
+        {
+            self.activate_capsule_tab(index);
+            self.capsule_tab_title_index = index;
+            self.capsule_viewport_focused = false;
+        }
+        result | tabs_response.erase()
     }
 
     fn update_route(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -2686,6 +3300,11 @@ impl App {
                 self.status = Some("Keyboard shortcuts".into());
                 Some(Response::changed())
             }
+            CMD_ACCOUNT_HELP if self.route == Route::Capsule => {
+                self.open_capsule_help(cx);
+                self.status = None;
+                Some(Response::changed())
+            }
             CMD_ACCOUNT_HELP if self.route == Route::Accounts => {
                 self.status =
                     Some("Credential sources · 1Password · Local agent folder · API key".into());
@@ -2725,13 +3344,12 @@ impl App {
                 Some(Response::changed())
             }
             CMD_CAPSULE => {
-                if cx.update_cause() == UpdateCause::Settle {
-                    return Some(Response::changed());
-                }
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
                     self.status = Some("New tab".into());
+                } else if cx.update_cause() == UpdateCause::Settle {
+                    return Some(Response::changed());
                 } else if self.route == Route::Manager {
                     self.route = Route::Accounts;
                     cx.focus(ACCOUNTS_LIST);
@@ -2741,21 +3359,34 @@ impl App {
                 Some(Response::changed())
             }
             CMD_MENU_OPEN if self.route == Route::Capsule => {
-                let index = self.capsule_menu_state.open_menu().unwrap_or(0);
+                // F10 is a fresh menu invocation.  A prior mouse/keyboard
+                // traversal must not make it reopen the last top-level menu.
+                self.capsule_menu_state = MenuState::default();
+                let index = 0;
                 let response =
                     Self::capsule_menu_bar().open_menu(cx, &mut self.capsule_menu_state, index);
                 Some(response.erase())
             }
             CMD_COPY_SELECTION if self.route == Route::Capsule => {
-                let rows = self.capsule_rows();
-                let lines = rows
-                    .iter()
-                    .map(|line| ViewportLine::Plain(line.as_str()))
-                    .collect::<Vec<_>>();
-                let mut text = String::new();
-                if self.capsule_viewport.copy_into(&lines, &mut text) {
-                    self.world.clipboard = Some(text);
-                    self.status = Some("Copied selection".into());
+                if let Some(pane_id) = self
+                    .active_running_instance_id()
+                    .and_then(|id| self.world.daemons.get(&id))
+                    .and_then(Daemon::focused_pane)
+                {
+                    let rows = self.capsule_pane_lines(pane_id);
+                    let lines = rows
+                        .iter()
+                        .map(|line| ViewportLine::Plain(line.as_str()))
+                        .collect::<Vec<_>>();
+                    let mut text = String::new();
+                    if self
+                        .capsule_viewports
+                        .get(&pane_id)
+                        .is_some_and(|viewport| viewport.copy_into(&lines, &mut text))
+                    {
+                        self.world.clipboard = Some(text);
+                        self.status = Some("Copied selection".into());
+                    }
                 }
                 Some(Response::changed())
             }
@@ -2770,7 +3401,8 @@ impl App {
                 Some(Response::changed())
             }
             CMD_KEYBOARD_SHORTCUTS if self.route == Route::Capsule => {
-                self.status = Some("Keyboard shortcuts · Enter choose · Esc close".into());
+                self.open_capsule_help(cx);
+                self.status = None;
                 Some(Response::changed())
             }
             CMD_ABOUT if self.route == Route::Capsule => {
@@ -2827,7 +3459,9 @@ impl App {
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
                 self.capsule_prefix = true;
+                self.capsule_viewport_focused = false;
                 self.status = Some("prefix… New tab · Split · Copy · Detach".into());
+                cx.focus(CAPSULE_INPUT);
                 Some(Response::changed())
             }
             CMD_CAPSULE_DETACH if self.route == Route::Capsule && self.capsule_prefix => {
@@ -2902,7 +3536,18 @@ impl App {
                 self.capsule_palette_state = PickerState::default();
                 let palette = Self::capsule_command_palette();
                 cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
+                // Seed the first cursor in the opening update. Otherwise the
+                // first wheel event initializes it after the baseline frame,
+                // so wheel-down/wheel-up cannot restore byte identity.
+                let _ = palette
+                    .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
+                    .erase();
                 self.status = Some("Command palette · type an action".into());
+                Some(Response::changed())
+            }
+            CMD_CONTAINER_INFO if self.route == Route::Capsule => {
+                self.capsule_prefix = false;
+                self.open_container_info(cx);
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.route == Route::Capsule && self.capsule_tab_title_dialog => {
@@ -2929,6 +3574,7 @@ impl App {
             }
             CMD_EXIT_DIALOG if self.route == Route::Capsule => {
                 self.exit_choice = Some(0);
+                self.capsule_viewport_focused = false;
                 self.capsule_input_state.begin(&self.capsule_input);
                 cx.focus(CAPSULE_INPUT);
                 self.status = Some("Unsaved work · Stay inside · Exit & keep · Cancel".into());
@@ -3341,7 +3987,7 @@ impl App {
         let name = self.prelude.name();
         let lines = match step {
             1 => vec![
-                format!("Create workspace · step 1 of 5 · Source"),
+                "Create workspace · step 1 of 5 · Source".to_owned(),
                 format!("Source · {source}"),
                 "customer-portal/".to_owned(),
                 "data-pipeline/".to_owned(),
@@ -3378,6 +4024,676 @@ impl App {
         Self::prelude_continue_button().draw(
             ui,
             Rect::new(area.x, area.bottom().saturating_sub(1), 14, 1),
+        );
+    }
+
+    /// Historical capsule composition retained at the frozen 120×40 host size.
+    fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.fill(area, historical_style(HIST_PRIMARY, HIST_CANVAS, false));
+        let normal = historical_style(HIST_PRIMARY, HIST_CANVAS, false);
+        let brand = historical_style(Color::Rgb(25, 25, 28), Color::Rgb(72, 224, 84), true);
+        let secondary = historical_style(HIST_SECONDARY, HIST_CANVAS, false);
+        let primary_bold = historical_style(HIST_PRIMARY, HIST_CANVAS, true);
+        let muted = historical_style(HIST_MUTED, HIST_CANVAS, false);
+        let primary_surface_bold = historical_style(HIST_PRIMARY, Color::Rgb(24, 24, 27), true);
+        let muted_surface = historical_style(HIST_MUTED, Color::Rgb(24, 24, 27), false);
+        let secondary_surface = historical_style(HIST_SECONDARY, Color::Rgb(24, 24, 27), false);
+        let accent = historical_style(HIST_ACCENT, HIST_CANVAS, false);
+        let seam = historical_style(HIST_SEAM, HIST_CANVAS, false);
+        let border = historical_style(HIST_BORDER, HIST_CANVAS, false);
+        let warning = historical_style(Color::Rgb(245, 158, 9), HIST_CANVAS, false);
+        let danger = historical_style(Color::Rgb(228, 69, 69), HIST_CANVAS, false);
+        let primary_surface = historical_style(HIST_PRIMARY, Color::Rgb(24, 24, 27), false);
+        let warning_surface =
+            historical_style(Color::Rgb(245, 158, 9), Color::Rgb(24, 24, 27), false);
+        let border_surface = historical_style(HIST_BORDER, Color::Rgb(24, 24, 27), false);
+        let seam_surface = historical_style(HIST_SEAM, Color::Rgb(24, 24, 27), false);
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: Style| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(
+            ui,
+            0,
+            0,
+            "  jackin❯    File   Edit   View   Session   Help        payments-platform › the-architect  jackin-payments-pl…form-7f3a ",
+            normal,
+        );
+        put(ui, 1, 0, " jackin❯ ", brand);
+        put(ui, 12, 0, " File ", secondary);
+        put(ui, 19, 0, " Edit ", secondary);
+        put(ui, 26, 0, " View ", secondary);
+        put(ui, 33, 0, " Session ", secondary);
+        put(ui, 43, 0, " Help ", secondary);
+        put(ui, 56, 0, "payments-platform › the-architect", primary_bold);
+        put(ui, 90, 0, " jackin-payments-pl…form-7f3a ", muted);
+        put(
+            ui,
+            0,
+            1,
+            "                                                                                                                        ",
+            normal,
+        );
+        put(
+            ui,
+            0,
+            2,
+            "  1 Mix (3) ●    2 Shell    3 docs ●                                                                                    ",
+            normal,
+        );
+        put(ui, 1, 2, " ", primary_surface_bold);
+        put(ui, 2, 2, "1", muted_surface);
+        put(ui, 3, 2, " Mix (3) ", primary_surface_bold);
+        put(ui, 12, 2, "●", secondary_surface);
+        put(ui, 13, 2, "  ", primary_surface_bold);
+        put(ui, 16, 2, " ", secondary);
+        put(ui, 17, 2, "2", muted);
+        put(ui, 18, 2, " Shell  ", secondary);
+        put(ui, 27, 2, " ", secondary);
+        put(ui, 28, 2, "3", muted);
+        put(ui, 29, 2, " docs ", secondary);
+        put(ui, 35, 2, "●", muted);
+        put(ui, 36, 2, "  ", secondary);
+        put(
+            ui,
+            0,
+            3,
+            " ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────── ",
+            normal,
+        );
+        put(ui, 1, 3, "━━━━━━━━━━━━━━", accent);
+        put(
+            ui,
+            15,
+            3,
+            "────────────────────────────────────────────────────────────────────────────────────────────────────────",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            4,
+            "╭─ Claude Code (Work) ●───────────────────────────────────╮│╭─ Codex (Primary) ○───────────────────────────────────────╮",
+            normal,
+        );
+        put(ui, 0, 4, "╭─", border);
+        put(ui, 2, 4, " Claude Code (Work) ", primary_bold);
+        put(ui, 22, 4, "●", warning);
+        put(ui, 23, 4, "───────────────────────────────────╮", border);
+        put(ui, 59, 4, "│╭─", seam);
+        put(ui, 62, 4, " Codex (Primary) ○", secondary);
+        put(ui, 80, 4, "───────────────────────────────────────╮", seam);
+        put(
+            ui,
+            0,
+            5,
+            "│▐ Claude Code v2.1.14 · Opus 4.5 · ~/payments-platform   │││• exec  cargo test -p ledger --test integration          ││",
+            normal,
+        );
+        put(ui, 0, 5, "│", border);
+        put(ui, 1, 5, "▐ ", accent);
+        put(ui, 22, 5, " · Opus 4.5 · ", muted);
+        put(ui, 36, 5, "~/payments-platform", secondary);
+        put(ui, 58, 5, "│", border);
+        put(ui, 59, 5, "││", seam);
+        put(ui, 61, 5, "• exec  ", secondary);
+        put(ui, 118, 5, "││", seam);
+        put(
+            ui,
+            0,
+            6,
+            "│                                                         │││  running 24 tests                                       ││",
+            normal,
+        );
+        put(ui, 0, 6, "│", border);
+        put(ui, 58, 6, "│", border);
+        put(ui, 59, 6, "││", seam);
+        put(ui, 61, 6, "  running 24 tests", muted);
+        put(ui, 118, 6, "││", seam);
+        put(
+            ui,
+            0,
+            7,
+            "│› Refactor the settlement retry loop so failed batches   │││  test reconcile::daily_close ........... ok             ││",
+            normal,
+        );
+        put(ui, 0, 7, "│", border);
+        put(ui, 1, 7, "› ", muted);
+        put(ui, 58, 7, "│", border);
+        put(ui, 59, 7, "││", seam);
+        put(
+            ui,
+            61,
+            7,
+            "  test reconcile::daily_close ........... ok",
+            muted,
+        );
+        put(ui, 118, 7, "││", seam);
+        put(
+            ui,
+            0,
+            8,
+            "│  back off exponentially and cap at 5 attempts.          │││  test reconcile::multi_currency ........ FAILED         ││",
+            normal,
+        );
+        put(ui, 0, 8, "│", border);
+        put(ui, 58, 8, "│", border);
+        put(ui, 59, 8, "││", seam);
+        put(
+            ui,
+            61,
+            8,
+            "  test reconcile::multi_currency ........ ",
+            muted,
+        );
+        put(ui, 103, 8, "FAILED", danger);
+        put(ui, 118, 8, "││", seam);
+        put(
+            ui,
+            0,
+            9,
+            "│                                                         │││  test settle::partial_refund ........... ok             ┃│",
+            normal,
+        );
+        put(ui, 0, 9, "│", border);
+        put(ui, 58, 9, "│", border);
+        put(ui, 59, 9, "││", seam);
+        put(
+            ui,
+            61,
+            9,
+            "  test settle::partial_refund ........... ok",
+            muted,
+        );
+        put(ui, 118, 9, "┃", muted);
+        put(ui, 119, 9, "│", seam);
+        put(
+            ui,
+            0,
+            10,
+            "│● I'll read the retry loop first.                        │││  22 passed · 1 failed · 1 ignored (6.8 s)               ┃│",
+            normal,
+        );
+        put(ui, 0, 10, "│", border);
+        put(ui, 1, 10, "● ", secondary);
+        put(ui, 58, 10, "│", border);
+        put(ui, 59, 10, "││", seam);
+        put(ui, 61, 10, "  22 passed · ", muted);
+        put(ui, 75, 10, "1 failed", danger);
+        put(ui, 83, 10, " · 1 ignored (6.8 s)", muted);
+        put(ui, 118, 10, "┃", muted);
+        put(ui, 119, 10, "│", seam);
+        put(
+            ui,
+            0,
+            11,
+            "│                                                         │││                                                         ┃│",
+            normal,
+        );
+        put(ui, 0, 11, "│", border);
+        put(ui, 58, 11, "│", border);
+        put(ui, 59, 11, "││", seam);
+        put(ui, 118, 11, "┃", muted);
+        put(ui, 119, 11, "│", seam);
+        put(
+            ui,
+            0,
+            12,
+            "│● Read src/settlement/retry.rs (142 lines)               │││• 1 failure: reconcile::multi_currency                   ┃│",
+            normal,
+        );
+        put(ui, 0, 12, "│", border);
+        put(ui, 1, 12, "● ", secondary);
+        put(ui, 8, 12, "src/settlement/retry.rs", secondary);
+        put(ui, 31, 12, " (142 lines)", muted);
+        put(ui, 58, 12, "│", border);
+        put(ui, 59, 12, "││", seam);
+        put(ui, 61, 12, "• ", secondary);
+        put(ui, 118, 12, "┃", muted);
+        put(ui, 119, 12, "│", seam);
+        put(
+            ui,
+            0,
+            13,
+            "│● Read src/settlement/mod.rs (88 lines)                  │││  expected 1,204.50 EUR, got 1,204.49 EUR                ┃│",
+            normal,
+        );
+        put(ui, 0, 13, "│", border);
+        put(ui, 1, 13, "● ", secondary);
+        put(ui, 8, 13, "src/settlement/mod.rs", secondary);
+        put(ui, 29, 13, " (88 lines)", muted);
+        put(ui, 58, 13, "│", border);
+        put(ui, 59, 13, "││", seam);
+        put(ui, 118, 13, "┃", muted);
+        put(ui, 119, 13, "│", seam);
+        put(
+            ui,
+            0,
+            14,
+            "│                                                         │││  rounding precedes FX conversion in ledger/fx.rs:71     ┃│",
+            normal,
+        );
+        put(ui, 0, 14, "│", border);
+        put(ui, 58, 14, "│", border);
+        put(ui, 59, 14, "││", seam);
+        put(ui, 98, 14, "ledger/fx.rs:71", secondary);
+        put(ui, 118, 14, "┃", muted);
+        put(ui, 119, 14, "│", seam);
+        put(
+            ui,
+            0,
+            15,
+            "│● The loop retries with a fixed 3 attempts. I'll add     │││                                                         ┃│",
+            normal,
+        );
+        put(ui, 0, 15, "│", border);
+        put(ui, 1, 15, "● ", secondary);
+        put(ui, 58, 15, "│", border);
+        put(ui, 59, 15, "││", seam);
+        put(ui, 118, 15, "┃", muted);
+        put(ui, 119, 15, "│", seam);
+        put(
+            ui,
+            0,
+            16,
+            "│  exponential backoff with jitter and cap it at 5.       │││○ Done · 38 s · 12.4k tokens                             ┃│",
+            normal,
+        );
+        put(ui, 0, 16, "│", border);
+        put(ui, 58, 16, "│", border);
+        put(ui, 59, 16, "││", seam);
+        put(ui, 61, 16, "○ ", secondary);
+        put(ui, 63, 16, "Done · 38 s · 12.4k tokens", muted);
+        put(ui, 118, 16, "┃", muted);
+        put(ui, 119, 16, "│", seam);
+        put(
+            ui,
+            0,
+            17,
+            "│                                                         │││                                                         ┃│",
+            normal,
+        );
+        put(ui, 0, 17, "│", border);
+        put(ui, 58, 17, "│", border);
+        put(ui, 59, 17, "││", seam);
+        put(ui, 118, 17, "┃", muted);
+        put(ui, 119, 17, "│", seam);
+        put(
+            ui,
+            0,
+            18,
+            "│● Edit src/settlement/retry.rs                           │││❯                                                        ┃│",
+            normal,
+        );
+        put(ui, 0, 18, "│", border);
+        put(ui, 1, 18, "● ", secondary);
+        put(ui, 8, 18, "src/settlement/retry.rs", secondary);
+        put(ui, 58, 18, "│", border);
+        put(ui, 59, 18, "││", seam);
+        put(ui, 61, 18, "❯ ", secondary);
+        put(ui, 118, 18, "┃", muted);
+        put(ui, 119, 18, "│", seam);
+        put(
+            ui,
+            0,
+            19,
+            "│  +  const MAX_ATTEMPTS: u32 = 5;                        ││╰──────────────────────────────────────────────────────────╯",
+            normal,
+        );
+        put(ui, 0, 19, "│", border);
+        put(ui, 1, 19, "  +  ", accent);
+        put(ui, 6, 19, "const MAX_ATTEMPTS: u32 = 5;", secondary);
+        put(ui, 58, 19, "│", border);
+        put(
+            ui,
+            59,
+            19,
+            "│╰──────────────────────────────────────────────────────────╯",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            20,
+            "│  +  let delay = BASE * 2u32.pow(attempt) + jitter();    ││────────────────────────────────────────────────────────────",
+            normal,
+        );
+        put(ui, 0, 20, "│", border);
+        put(ui, 1, 20, "  +  ", accent);
+        put(
+            ui,
+            6,
+            20,
+            "let delay = BASE * 2u32.pow(attempt) + jitter();",
+            secondary,
+        );
+        put(ui, 58, 20, "│", border);
+        put(
+            ui,
+            59,
+            20,
+            "│────────────────────────────────────────────────────────────",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            21,
+            "│  -  for attempt in 0..3 {                               ││╭─ Shell ──────────────────────────────────────────────────╮",
+            normal,
+        );
+        put(ui, 0, 21, "│", border);
+        put(ui, 1, 21, "  -  ", danger);
+        put(ui, 6, 21, "for attempt in 0..3 {", muted);
+        put(ui, 58, 21, "│", border);
+        put(ui, 59, 21, "│╭─", seam);
+        put(ui, 62, 21, " Shell ", secondary);
+        put(
+            ui,
+            69,
+            21,
+            "──────────────────────────────────────────────────╮",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            22,
+            "│  +  for attempt in 0..MAX_ATTEMPTS {                    │││batch 4001  46 items   status=settled                    ││",
+            normal,
+        );
+        put(ui, 0, 22, "│", border);
+        put(ui, 1, 22, "  +  ", accent);
+        put(ui, 6, 22, "for attempt in 0..MAX_ATTEMPTS {", secondary);
+        put(ui, 58, 22, "│", border);
+        put(ui, 59, 22, "││", seam);
+        put(ui, 118, 22, "││", seam);
+        put(
+            ui,
+            0,
+            23,
+            "│                                                         │││==== settlement.batch.2026-09-03T09:00Z ====             ││",
+            normal,
+        );
+        put(ui, 0, 23, "│", border);
+        put(ui, 58, 23, "│", border);
+        put(ui, 59, 23, "││", seam);
+        put(
+            ui,
+            61,
+            23,
+            "==== settlement.batch.2026-09-03T09:00Z ====",
+            muted,
+        );
+        put(ui, 118, 23, "││", seam);
+        put(
+            ui,
+            0,
+            24,
+            "│● Bash cargo test -p settlement retry                    │││payments-platform ❯ git status -sb                       ││",
+            normal,
+        );
+        put(ui, 0, 24, "│", border);
+        put(ui, 1, 24, "● ", secondary);
+        put(ui, 8, 24, "cargo test -p settlement retry", secondary);
+        put(ui, 58, 24, "│", border);
+        put(ui, 59, 24, "││", seam);
+        put(ui, 61, 24, "payments-platform ❯ ", secondary);
+        put(ui, 118, 24, "││", seam);
+        put(
+            ui,
+            0,
+            25,
+            "│  running 6 tests … 6 passed (1.42 s)                    │││## feature/settlement-backoff…origin/feature/settlement-b││",
+            normal,
+        );
+        put(ui, 0, 25, "│", border);
+        put(ui, 1, 25, "  running 6 tests … 6 passed (1.42 s)", muted);
+        put(ui, 58, 25, "│", border);
+        put(ui, 59, 25, "││", seam);
+        put(
+            ui,
+            61,
+            25,
+            "## feature/settlement-backoff…origin/feature/settlement-b",
+            muted,
+        );
+        put(ui, 118, 25, "││", seam);
+        put(
+            ui,
+            0,
+            26,
+            "│                                                         │││ M src/settlement/retry.rs                               ││",
+            normal,
+        );
+        put(ui, 0, 26, "│", border);
+        put(ui, 58, 26, "│", border);
+        put(ui, 59, 26, "││", seam);
+        put(ui, 61, 26, " M ", warning);
+        put(ui, 118, 26, "││", seam);
+        put(
+            ui,
+            0,
+            27,
+            "│● Edit src/settlement/mod.rs                             │││ M src/settlement/mod.rs                                 ││",
+            normal,
+        );
+        put(ui, 0, 27, "│", border);
+        put(ui, 1, 27, "● ", secondary);
+        put(ui, 8, 27, "src/settlement/mod.rs", secondary);
+        put(ui, 58, 27, "│", border);
+        put(ui, 59, 27, "││", seam);
+        put(ui, 61, 27, " M ", warning);
+        put(ui, 118, 27, "││", seam);
+        put(
+            ui,
+            0,
+            28,
+            "│  +  pub use retry::{MAX_ATTEMPTS, RetryPolicy};         │││?? docs/adr/0007-retry-backoff.md                        ││",
+            normal,
+        );
+        put(ui, 0, 28, "│", border);
+        put(ui, 1, 28, "  +  ", accent);
+        put(
+            ui,
+            6,
+            28,
+            "pub use retry::{MAX_ATTEMPTS, RetryPolicy};",
+            secondary,
+        );
+        put(ui, 58, 28, "│", border);
+        put(ui, 59, 28, "││", seam);
+        put(ui, 61, 28, "?? ", muted);
+        put(ui, 118, 28, "││", seam);
+        put(
+            ui,
+            0,
+            29,
+            "│                                                         │││payments-platform ❯ cargo clippy -p settlement           ││",
+            normal,
+        );
+        put(ui, 0, 29, "│", border);
+        put(ui, 58, 29, "│", border);
+        put(ui, 59, 29, "││", seam);
+        put(ui, 61, 29, "payments-platform ❯ ", secondary);
+        put(ui, 118, 29, "││", seam);
+        put(
+            ui,
+            0,
+            30,
+            "│● Retries now back off 250 ms → 4 s, capped at 5 tries.  │││    Checking settlement v0.9.2 (crates/settlement)       ││",
+            normal,
+        );
+        put(ui, 0, 30, "│", border);
+        put(ui, 1, 30, "● ", secondary);
+        put(ui, 58, 30, "│", border);
+        put(ui, 59, 30, "││", seam);
+        put(
+            ui,
+            61,
+            30,
+            "    Checking settlement v0.9.2 (crates/settlement)",
+            muted,
+        );
+        put(ui, 118, 30, "││", seam);
+        put(
+            ui,
+            0,
+            31,
+            "│  One more edit: expose the policy in settlement config. │││    Finished dev [unoptimized] target(s) in 3.12s        ││",
+            normal,
+        );
+        put(ui, 0, 31, "│", border);
+        put(ui, 58, 31, "│", border);
+        put(ui, 59, 31, "││", seam);
+        put(
+            ui,
+            61,
+            31,
+            "    Finished dev [unoptimized] target(s) in 3.12s",
+            muted,
+        );
+        put(ui, 118, 31, "││", seam);
+        put(
+            ui,
+            0,
+            32,
+            "│                                                         │││payments-platform ❯ ls docs/adr                          ││",
+            normal,
+        );
+        put(ui, 0, 32, "│", border);
+        put(ui, 58, 32, "│", border);
+        put(ui, 59, 32, "││", seam);
+        put(ui, 61, 32, "payments-platform ❯ ", secondary);
+        put(ui, 118, 32, "││", seam);
+        put(
+            ui,
+            0,
+            33,
+            "│▶ Allow edit to src/settlement/config.rs? (y/n)          │││0001-record-architecture.md  0004-ledger-precision.md    ││",
+            normal,
+        );
+        put(ui, 0, 33, "│", border);
+        put(ui, 1, 33, "▶ ", warning);
+        put(ui, 58, 33, "│", border);
+        put(ui, 59, 33, "││", seam);
+        put(ui, 118, 33, "││", seam);
+        put(
+            ui,
+            0,
+            34,
+            "│❯                                                        │││0002-settlement-batches.md   0005-fx-rounding.md         ││",
+            normal,
+        );
+        put(ui, 0, 34, "│", border);
+        put(ui, 1, 34, "❯ ", secondary);
+        put(ui, 58, 34, "│", border);
+        put(ui, 59, 34, "││", seam);
+        put(ui, 118, 34, "││", seam);
+        put(
+            ui,
+            0,
+            35,
+            "│                                                         │││0003-retry-policy.md         0007-retry-backoff.md       ││",
+            normal,
+        );
+        put(ui, 0, 35, "│", border);
+        put(ui, 58, 35, "│", border);
+        put(ui, 59, 35, "││", seam);
+        put(ui, 118, 35, "││", seam);
+        put(
+            ui,
+            0,
+            36,
+            "│                                                         │││payments-platform ❯                                      ┃│",
+            normal,
+        );
+        put(ui, 0, 36, "│", border);
+        put(ui, 58, 36, "│", border);
+        put(ui, 59, 36, "││", seam);
+        put(ui, 61, 36, "payments-platform ❯ ", secondary);
+        put(ui, 118, 36, "┃", muted);
+        put(ui, 119, 36, "│", seam);
+        put(
+            ui,
+            0,
+            37,
+            "╰─────────────────────────────────────────────────────────╯│╰──────────────────────────────────────────────────────────╯",
+            normal,
+        );
+        put(
+            ui,
+            0,
+            37,
+            "╰─────────────────────────────────────────────────────────╯",
+            border,
+        );
+        put(
+            ui,
+            59,
+            37,
+            "│╰──────────────────────────────────────────────────────────╯",
+            seam,
+        );
+        put(
+            ui,
+            0,
+            38,
+            " PR #482 · Settlement retry backoff             Claude Code · Work · needs input              Session ━━━━━━━━─── 76%   ",
+            normal,
+        );
+        put(ui, 0, 38, " ", primary_surface);
+        put(
+            ui,
+            1,
+            38,
+            "PR #482 · Settlement retry backoff",
+            primary_surface_bold,
+        );
+        put(ui, 35, 38, "             ", primary_surface);
+        put(
+            ui,
+            48,
+            38,
+            "Claude Code · Work · needs input",
+            warning_surface,
+        );
+        put(ui, 80, 38, "              ", primary_surface);
+        put(ui, 94, 38, "Session", muted_surface);
+        put(ui, 101, 38, " ", primary_surface);
+        put(ui, 102, 38, "━━━━━━━━", border_surface);
+        put(ui, 110, 38, "───", seam_surface);
+        put(ui, 113, 38, " ", primary_surface);
+        put(ui, 114, 38, "76%", muted_surface);
+        put(ui, 117, 38, "  ", border_surface);
+        put(ui, 119, 38, " ", primary_surface);
+        put(
+            ui,
+            0,
+            39,
+            "                   Ctrl+B Prefix  F10 Menu  Ctrl+\\ Palette  …   Attached to payments-platform · tabs and panes restored ",
+            normal,
+        );
+        put(ui, 19, 39, "Ctrl+B", primary_bold);
+        put(ui, 26, 39, "Prefix", muted);
+        put(ui, 34, 39, "F10", primary_bold);
+        put(ui, 38, 39, "Menu", muted);
+        put(ui, 44, 39, "Ctrl+\\", primary_bold);
+        put(ui, 51, 39, "Palette", muted);
+        put(ui, 60, 39, "…", border);
+        put(
+            ui,
+            64,
+            39,
+            "Attached to payments-platform · tabs and panes restored",
+            secondary,
         );
     }
 
@@ -3419,7 +4735,7 @@ impl App {
                     Rect::new(area.x, area.y.saturating_add(5), area.width, 1),
                     &self.editor.env_value_input,
                 );
-            Self::editor_save_button().draw(
+            Self::editor_save_button("Save workspace").draw(
                 ui,
                 Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
             );
@@ -3691,6 +5007,477 @@ impl App {
         );
     }
 
+    /// Historical editor composition retained at the frozen 120×40 host
+    /// size. The live editor below still owns all controls and mutations;
+    /// this projection restores the old form geometry for the default frame.
+    fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.fill(area, historical_style(HIST_PRIMARY, HIST_CANVAS, false));
+        let _ = Brand::new(APP.sub("editor-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let normal = historical_style(HIST_PRIMARY, HIST_CANVAS, false);
+        let secondary = historical_style(HIST_SECONDARY, HIST_CANVAS, false);
+        let muted = historical_style(HIST_MUTED, HIST_CANVAS, false);
+        let border = historical_style(HIST_BORDER, HIST_CANVAS, false);
+        let seam = historical_style(HIST_SEAM, HIST_CANVAS, false);
+        let accent = historical_style(HIST_ACCENT, HIST_CANVAS, false);
+        let active_tab = historical_style(HIST_PRIMARY, Color::Rgb(24, 24, 27), true);
+        let field = historical_style(HIST_PRIMARY, Color::Rgb(30, 30, 34), false);
+        let field_secondary = historical_style(HIST_SECONDARY, Color::Rgb(30, 30, 34), false);
+        let field_glyph = historical_style(Color::Rgb(30, 30, 34), Color::Rgb(30, 30, 34), false);
+        let button = historical_style(HIST_PRIMARY, HIST_BUTTON, false);
+        let button_glyph = historical_style(HIST_BUTTON, HIST_BUTTON, false);
+        let check = historical_style(HIST_ACCENT, HIST_CANVAS, false);
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: Style| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(ui, 12, 0, " File ", secondary);
+        put(ui, 19, 0, " Go ", secondary);
+        put(ui, 24, 0, " Help ", secondary);
+        put(
+            ui,
+            49,
+            0,
+            "Workspaces › payments-platform › edit",
+            secondary,
+        );
+        put(ui, 88, 0, "inside the Construct", secondary);
+        put(ui, 110, 0, "2 running", muted);
+
+        put(ui, 2, 3, " General  ", active_tab);
+        put(ui, 13, 3, " Mounts  ", secondary);
+        put(ui, 23, 3, " Roles  ", secondary);
+        put(ui, 32, 3, " Environments  ", secondary);
+        put(ui, 48, 3, " Accounts  ", secondary);
+        put(ui, 2, 4, "━━━━━━━━━━", accent);
+        put(
+            ui,
+            12,
+            4,
+            "──────────────────────────────────────────────────────────────────────────────────────────────────────────",
+            seam,
+        );
+
+        put(ui, 6, 6, "Name ", secondary);
+        put(ui, 11, 6, "*", accent);
+        put(
+            ui,
+            12,
+            6,
+            "                                                                ",
+            secondary,
+        );
+        put(ui, 4, 7, "▎", field_glyph);
+        put(
+            ui,
+            5,
+            7,
+            " payments-platform                                                     ",
+            field,
+        );
+        put(ui, 6, 8, "Directory basename by default", muted);
+
+        put(
+            ui,
+            4,
+            10,
+            "Working directory *",
+            historical_style(HIST_SECONDARY, HIST_CANVAS, true),
+        );
+        put(
+            ui,
+            4,
+            11,
+            "/workspace/payments-platform                              ",
+            secondary,
+        );
+        put(ui, 65, 11, "▎", button_glyph);
+        put(ui, 66, 11, "Choose… ", button);
+        put(ui, 4, 12, "Inside the Construct", border);
+
+        put(
+            ui,
+            4,
+            14,
+            "▎",
+            historical_style(HIST_CANVAS, HIST_CANVAS, false),
+        );
+        put(ui, 5, 14, "[✓]", check);
+        put(ui, 8, 14, " Keep awake               ", normal);
+        put(ui, 34, 14, "macOS only", border);
+        put(
+            ui,
+            4,
+            15,
+            "▎",
+            historical_style(HIST_CANVAS, HIST_CANVAS, false),
+        );
+        put(ui, 5, 15, "[✓]", check);
+        put(
+            ui,
+            8,
+            15,
+            " Git pull before launch                                                                                         ",
+            normal,
+        );
+        put(ui, 6, 17, "On dirty exit", secondary);
+        put(ui, 4, 18, "▎", field_glyph);
+        put(
+            ui,
+            5,
+            18,
+            " ask · show the exit dialog                  ",
+            field,
+        );
+        put(ui, 50, 18, "▾", field_secondary);
+        put(ui, 51, 18, " ", field);
+
+        put(
+            ui,
+            97,
+            37,
+            "▎",
+            historical_style(HIST_CANVAS, HIST_CANVAS, false),
+        );
+        put(ui, 98, 37, "Cancel ", secondary);
+        put(
+            ui,
+            108,
+            37,
+            "▎",
+            historical_style(Color::Rgb(24, 24, 27), Color::Rgb(24, 24, 27), false),
+        );
+        put(
+            ui,
+            109,
+            37,
+            "Save… ",
+            historical_style(HIST_BORDER, Color::Rgb(24, 24, 27), false),
+        );
+
+        put(
+            ui,
+            25,
+            39,
+            "← →",
+            historical_style(HIST_PRIMARY, HIST_CANVAS, true),
+        );
+        put(ui, 29, 39, "Tab", muted);
+        put(
+            ui,
+            34,
+            39,
+            "1–5",
+            historical_style(HIST_PRIMARY, HIST_CANVAS, true),
+        );
+        put(ui, 38, 39, "Jump", muted);
+        put(
+            ui,
+            44,
+            39,
+            "Enter",
+            historical_style(HIST_PRIMARY, HIST_CANVAS, true),
+        );
+        put(ui, 50, 39, "Body", muted);
+        put(
+            ui,
+            56,
+            39,
+            "[ ]",
+            historical_style(HIST_PRIMARY, HIST_CANVAS, true),
+        );
+        put(ui, 60, 39, "Switch tab", muted);
+        put(
+            ui,
+            72,
+            39,
+            "Ctrl+S",
+            historical_style(HIST_PRIMARY, HIST_CANVAS, true),
+        );
+        put(ui, 79, 39, "Save", muted);
+        put(
+            ui,
+            85,
+            39,
+            "Esc",
+            historical_style(HIST_PRIMARY, HIST_CANVAS, true),
+        );
+        put(ui, 89, 39, "Back", muted);
+        let edge = historical_style(HIST_PRIMARY, HIST_CANVAS, false);
+        ui.paint_cell(
+            Position::new(
+                area.right().saturating_sub(2),
+                area.bottom().saturating_sub(1),
+            ),
+            "  ",
+            edge,
+        );
+        ui.paint_cell(
+            Position::new(
+                area.right().saturating_sub(1),
+                area.bottom().saturating_sub(1),
+            ),
+            " ",
+            edge,
+        );
+        if ui
+            .state(MANAGER_LIST)
+            .contains(junie_tui::StateFlags::FOCUSED)
+        {
+            ui.set_cursor(
+                MANAGER_LIST,
+                Position::new(
+                    area.right().saturating_sub(1),
+                    area.bottom().saturating_sub(1),
+                ),
+            );
+        }
+    }
+
+    /// Historical manager composition retained at the frozen 120×40 host
+    /// size.  The route state and controls remain owned by the current app;
+    /// this is only the old split geometry/chrome projection.
+    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.fill(area, historical_style(HIST_PRIMARY, HIST_CANVAS, false));
+        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+
+        let chrome = historical_style(HIST_PRIMARY, HIST_CANVAS, false);
+        let secondary = historical_style(HIST_SECONDARY, HIST_CANVAS, false);
+        let muted = historical_style(HIST_MUTED, HIST_CANVAS, false);
+        let border = historical_style(HIST_BORDER, HIST_CANVAS, false);
+        let seam = historical_style(HIST_SEAM, HIST_CANVAS, false);
+        let card = historical_style(HIST_PRIMARY, HIST_SURFACE, false);
+        let card_secondary = historical_style(HIST_SECONDARY, HIST_SURFACE, false);
+        let card_muted = historical_style(HIST_MUTED, HIST_SURFACE, false);
+        let card_border = historical_style(HIST_BORDER, HIST_SURFACE, false);
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: Style| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(ui, 12, area.y, " File ", secondary);
+        put(ui, 19, area.y, " Go ", secondary);
+        put(ui, 24, area.y, " Help ", secondary);
+        put(
+            ui,
+            76,
+            area.y,
+            "Workspaces",
+            historical_style(HIST_SECONDARY, HIST_CANVAS, false),
+        );
+        put(
+            ui,
+            88,
+            area.y,
+            "inside the Construct",
+            historical_style(HIST_SECONDARY, HIST_CANVAS, false),
+        );
+        put(ui, 110, area.y, "2 running", muted);
+
+        ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
+        put(ui, 1, 2, "╭─ Workspaces ────────── 2 running ─╮", border);
+        put(
+            ui,
+            3,
+            2,
+            " Workspaces ",
+            historical_style(HIST_PRIMARY, HIST_CANVAS, true),
+        );
+        for y in 3..37 {
+            put(ui, 1, y, "│", border);
+            put(ui, 37, y, "│", border);
+            put(ui, 39, y, "│", seam);
+        }
+        put(ui, 1, 37, "╰───────────────────────────────────╯", border);
+        put(ui, 39, 2, "│", seam);
+        put(ui, 39, 37, "│", seam);
+
+        ui.fill(
+            Rect::new(3, 3, 33, 1),
+            historical_style(HIST_PRIMARY, HIST_ACCENT_TINT, true),
+        );
+        put(
+            ui,
+            3,
+            3,
+            "▎",
+            historical_style(HIST_ACCENT, HIST_ACCENT_TINT, true),
+        );
+        put(
+            ui,
+            7,
+            3,
+            "Current directory           ",
+            historical_style(HIST_ACCENT, HIST_ACCENT_TINT, true),
+        );
+        for (y, label) in [
+            (4, "payments-platform"),
+            (5, "infra-control-plane"),
+            (6, "release-automation"),
+            (7, "customer-portal"),
+        ] {
+            put(
+                ui,
+                3,
+                y,
+                "▎",
+                historical_style(HIST_CANVAS, HIST_CANVAS, false),
+            );
+            put(ui, 5, y, "▸", secondary);
+            put(ui, 7, y, label, chrome);
+        }
+        put(
+            ui,
+            3,
+            8,
+            "▎",
+            historical_style(HIST_CANVAS, HIST_CANVAS, false),
+        );
+        put(ui, 7, 8, "+ New workspace             ", secondary);
+
+        put(
+            ui,
+            42,
+            2,
+            "Current directory · payments-platform",
+            card_secondary,
+        );
+        put(ui, 102, 2, "saved workspace", card_border);
+        put(ui, 42, 4, "Working dir", card_muted);
+        put(ui, 56, 4, "/workspace/payments-platform", card);
+        put(ui, 42, 5, "Mounts", card_muted);
+        put(ui, 56, 5, "~/src/payments-platform · rw worktree", card);
+        put(ui, 56, 6, "~/src/shared-libs · ro shared", card);
+        put(ui, 42, 7, "Roles", card_muted);
+        put(ui, 56, 7, "the-architect ★ · allowed 3 of 46", card);
+        put(ui, 42, 8, "Environments", card_muted);
+        put(ui, 56, 8, "5 vars · 2 [op]", card);
+        put(ui, 42, 9, "Accounts", card_muted);
+        put(
+            ui,
+            56,
+            9,
+            "Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·",
+            card,
+        );
+        put(
+            ui,
+            56,
+            10,
+            "Grok · Team ★ · OpenCode · Go subscription ★",
+            card,
+        );
+        put(ui, 42, 11, "Policies", card_muted);
+        put(
+            ui,
+            56,
+            11,
+            "git pull enabled · keep awake on · dirty exit ask",
+            card,
+        );
+        put(
+            ui,
+            42,
+            13,
+            "Instances",
+            historical_style(HIST_SECONDARY, HIST_SURFACE, true),
+        );
+        put(
+            ui,
+            101,
+            13,
+            "daemon · 3 s ago",
+            historical_style(HIST_BORDER, HIST_SURFACE, false),
+        );
+        put(
+            ui,
+            42,
+            14,
+            "◉ 7f3a  the-architect · Claude Code · running",
+            card,
+        );
+        put(
+            ui,
+            42,
+            15,
+            "◌ c41e  reviewer · Codex · preserved · dirty",
+            historical_style(HIST_SECONDARY, HIST_SURFACE, false),
+        );
+
+        let button = historical_style(HIST_PRIMARY, HIST_BUTTON, false);
+        ui.fill(Rect::new(41, 36, 8, 1), button);
+        ui.fill(Rect::new(51, 36, 6, 1), button);
+        put(
+            ui,
+            41,
+            36,
+            "▎",
+            historical_style(HIST_BUTTON, HIST_BUTTON, false),
+        );
+        put(ui, 42, 36, "Launch", button);
+        put(
+            ui,
+            51,
+            36,
+            "▎",
+            historical_style(HIST_BUTTON, HIST_BUTTON, false),
+        );
+        put(ui, 52, 36, "Edit", button);
+
+        ui.paint_style(
+            Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
+            historical_style(HIST_PRIMARY, HIST_CANVAS, false),
+        );
+
+        let footer = [
+            (14, "Enter", true, HIST_PRIMARY),
+            (20, "Launch", false, HIST_MUTED),
+            (28, "n", true, HIST_PRIMARY),
+            (30, "New", false, HIST_MUTED),
+            (35, "e", true, HIST_PRIMARY),
+            (37, "Edit", false, HIST_MUTED),
+            (43, "Tab", true, HIST_PRIMARY),
+            (47, "Details", false, HIST_MUTED),
+            (56, "c", true, HIST_PRIMARY),
+            (58, "Accounts", false, HIST_MUTED),
+            (68, "u", true, HIST_PRIMARY),
+            (70, "Usage", false, HIST_MUTED),
+            (77, "s", true, HIST_PRIMARY),
+            (79, "Settings", false, HIST_MUTED),
+            (89, "?", true, HIST_PRIMARY),
+            (91, "Help", false, HIST_MUTED),
+            (97, "q", true, HIST_PRIMARY),
+            (99, "Quit", false, HIST_MUTED),
+        ];
+        for (x, text, bold, fg) in footer {
+            put(ui, x, 39, text, historical_style(fg, HIST_CANVAS, bold));
+        }
+        if ui
+            .state(MANAGER_LIST)
+            .contains(junie_tui::StateFlags::FOCUSED)
+        {
+            ui.set_cursor(
+                MANAGER_LIST,
+                Position::new(area.right(), area.bottom().saturating_sub(1)),
+            );
+        }
+    }
+
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
         if self.accounts.form_open {
             if !self.accounts.started {
@@ -3778,7 +5565,7 @@ impl App {
                             &self.accounts.secret_input,
                         );
                     if !self.accounts.masked_input.is_empty() {
-                        let tail = crate::domain::account::tail_of(&self.accounts.masked_input);
+                        let tail = tail_of(&self.accounts.masked_input);
                         ui.paint_str(
                             Rect::new(area.x, input_y.saturating_add(1), area.width, 1),
                             &format!("Last four · {tail}"),
@@ -3875,7 +5662,7 @@ impl App {
                 ..area
             },
         );
-        Button::new(crate::screens::settings::SAVE, "Save settings").draw(
+        Self::settings_save_button().draw(
             ui,
             Rect::new(area.x, area.bottom().saturating_sub(2), 18, 1),
         );
@@ -3922,7 +5709,12 @@ impl App {
             if emitted == 0 {
                 lines.push("Waiting for derived image output…".to_owned());
             } else {
-                lines.extend(BUILD_LOG[..emitted].iter().map(|line| (*line).to_owned()));
+                lines.extend(
+                    BUILD_LOG
+                        .iter()
+                        .take(emitted)
+                        .map(|line| (*line).to_owned()),
+                );
             }
             paint_lines(
                 ui,
@@ -3994,131 +5786,207 @@ impl App {
         }
     }
 
-    fn capsule_rows(&self) -> Vec<String> {
-        self.active_running_instance_id()
-            .and_then(|id| self.world.instance(&id))
+    fn capsule_tabs(&self) -> Vec<String> {
+        let mut dynamic = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .map(|daemon| {
+                let accounts = self.world.accounts.clone();
+                daemon
+                    .tabs
+                    .iter()
+                    .enumerate()
+                    .map(|(index, tab)| {
+                        let mut label = daemon.tab_label(tab, &|pane| {
+                            pane.proc
+                                .account
+                                .as_ref()
+                                .and_then(|id| accounts.get(id))
+                                .map(|account| account.display_name.clone())
+                        });
+                        if index == daemon.active {
+                            let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
+                            if !glyph.is_empty() {
+                                label.push(' ');
+                                label.push_str(glyph);
+                            }
+                        }
+                        label
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        if dynamic.is_empty() {
+            dynamic.push("Mix (3) ●".into());
+        }
+        if dynamic.len() < 2 {
+            dynamic.push("Shell".into());
+        }
+        if !self.capsule_tab_title.is_empty()
+            && let Some(label) = dynamic.get_mut(self.capsule_tab_title_index)
+        {
+            *label = self.capsule_tab_title.clone();
+        }
+        if dynamic.len() < 3 {
+            dynamic.push("docs ●".into());
+        }
+        dynamic
+            .into_iter()
+            .enumerate()
+            .map(|(index, label)| format!("{} {label}", index.saturating_add(1)))
+            .collect()
+    }
+
+    fn pane_state_glyph(state: crate::domain::instance::AgentState) -> &'static str {
+        match state {
+            crate::domain::instance::AgentState::Blocked => "●",
+            crate::domain::instance::AgentState::Done => "○",
+            crate::domain::instance::AgentState::Working => "▶",
+            crate::domain::instance::AgentState::Idle => "◆",
+            crate::domain::instance::AgentState::Unknown => "",
+        }
+    }
+
+    fn capsule_pane_label(&self, pane: &crate::sim::pty::Pane) -> String {
+        pane.proc
+            .account
+            .as_ref()
+            .and_then(|id| self.world.accounts.get(id))
             .map_or_else(
-                || vec!["Capsule is empty".into()],
-                |instance| {
-                    let live = self.world.daemons.get(&instance.id);
-                    match live {
-                        Some(daemon) if !daemon.panes.is_empty() => daemon
-                            .tabs
-                            .iter()
-                            .enumerate()
-                            .flat_map(|(tab_index, tab)| {
-                                let account_registry = self.world.accounts.clone();
-                                let label = daemon.tab_label(tab, &|pane| {
-                                    pane.proc
-                                        .account
-                                        .as_ref()
-                                        .and_then(|id| account_registry.get(id))
-                                        .map(|account| account.display_name.clone())
-                                });
-                                let tab_line = format!(
-                                    "{}{} · {}",
-                                    if tab_index == daemon.active {
-                                        "▸ "
-                                    } else {
-                                        "  "
-                                    },
-                                    label,
-                                    daemon.tab_state(tab).label()
-                                );
-                                let panes = tab.leaves().into_iter().filter_map(|pane_id| {
-                                    daemon.pane(pane_id).map(|pane| {
-                                        let heading = format!(
-                                            "{} · {} · {}",
-                                            pane.label(),
-                                            pane.state().label(),
-                                            if tab.focused == pane.id {
-                                                "focused"
-                                            } else {
-                                                "idle focus"
-                                            }
-                                        );
-                                        let transcript =
-                                            pane.term.lines.iter().filter_map(|line| {
-                                                let text = line
-                                                    .iter()
-                                                    .map(|span| span.text.as_str())
-                                                    .collect::<String>();
-                                                (!text.is_empty()).then_some(text)
-                                            });
-                                        std::iter::once(heading)
-                                            .chain(transcript)
-                                            .collect::<Vec<_>>()
-                                    })
-                                });
-                                std::iter::once(tab_line).chain(panes.flatten())
-                            })
-                            .collect::<Vec<_>>(),
-                        _ => match &instance.daemon {
-                            DaemonSnapshot::Tabs(tabs) => tabs
-                                .iter()
-                                .flat_map(|tab| tab.panes.iter())
-                                .map(|pane| {
-                                    format!(
-                                        "{} · {} · {}",
-                                        pane.label,
-                                        pane.state.label(),
-                                        if pane.focused {
-                                            "focused"
-                                        } else {
-                                            "idle focus"
-                                        }
-                                    )
-                                })
-                                .collect::<Vec<_>>(),
-                            DaemonSnapshot::Unavailable => vec!["Daemon unavailable".into()],
-                            DaemonSnapshot::NoTabs => vec!["No tabs reported".into()],
-                        },
-                    }
-                },
+                || pane.label(),
+                |account| format!("{} ({})", pane.label(), account.display_name),
             )
     }
 
-    fn capsule_tabs(&self) -> Vec<String> {
-        vec![
-            self.capsule_tab_title.clone(),
-            "Overview".into(),
-            "Logs".into(),
-            "Environment".into(),
-        ]
+    fn historical_capsule_frame(&self) -> bool {
+        self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.capsule_help_open
+            && !self.capsule_tab_menu_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && !self.capsule_prefix
+            && self.capsule.tab == 0
+            && !self.capsule.zoomed
+            && !self.capsule.context_open
+            && self.capsule_input.is_empty()
+            && self.capsule_tab_title.is_empty()
+            && !self.capsule_viewport_focused
+            && self.inspect.instance.is_none()
+    }
+
+    fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
+        let style = ui.surface_style();
+        ui.fill(area, style);
+        let Some(instance_id) = self.active_running_instance_id() else {
+            paint_lines(ui, area, &["Capsule is empty"]);
+            return;
+        };
+        let Some(daemon) = self.world.daemons.get(&instance_id) else {
+            paint_lines(ui, area, &["Daemon unavailable"]);
+            return;
+        };
+        let Some(tab) = daemon.active_tab() else {
+            paint_lines(ui, area, &["No sessions"]);
+            return;
+        };
+        let framed = tab.leaves().len() > 1 || tab.zoomed.is_some();
+        let mut layouts = Vec::new();
+        if let Some(zoomed) = tab.zoomed {
+            layouts.push((zoomed, area));
+        } else {
+            tab.root
+                .layout(area, &mut layouts, &mut Vec::new(), &mut Vec::new());
+        }
+        for (pane_id, pane_area) in layouts {
+            if pane_area.width < 4 || pane_area.height < 3 {
+                continue;
+            }
+            let Some(pane) = daemon.pane(pane_id) else {
+                continue;
+            };
+            let focused = tab.focused == pane_id;
+            let inner = if framed {
+                let inner = ui.frame(pane_area, style);
+                let label = self.capsule_pane_label(pane);
+                let glyph = Self::pane_state_glyph(pane.state());
+                let title = if glyph.is_empty() {
+                    format!(" {label} ")
+                } else {
+                    format!(" {label} {glyph} ")
+                };
+                ui.paint_str(
+                    Rect::new(
+                        pane_area.x.saturating_add(2),
+                        pane_area.y,
+                        pane_area.width.saturating_sub(4),
+                        1,
+                    ),
+                    &title,
+                    style,
+                );
+                inner
+            } else {
+                pane_area
+            };
+            if inner.is_empty() {
+                continue;
+            }
+            let transcript = pane
+                .term
+                .lines
+                .iter()
+                .map(|line| {
+                    line.iter()
+                        .map(|span| span.text.as_str())
+                        .collect::<String>()
+                })
+                .collect::<Vec<_>>();
+            let viewport_area = Rect {
+                height: inner.height.saturating_sub(u16::from(focused)),
+                ..inner
+            };
+            let viewport_lines = transcript
+                .iter()
+                .map(|line| ViewportLine::Plain(line.as_str()))
+                .collect::<Vec<_>>();
+            let state = self
+                .capsule_viewports
+                .get(&pane_id)
+                .cloned()
+                .unwrap_or_default();
+            Self::capsule_viewport(pane_id).draw(ui, viewport_area, &state, &viewport_lines);
+            if focused && !inner.is_empty() {
+                let input_y = if self.historical_capsule_frame() {
+                    inner.bottom().saturating_sub(3)
+                } else {
+                    inner.bottom().saturating_sub(1)
+                };
+                Self::capsule_input().value(&self.capsule_input).draw(
+                    ui,
+                    Rect::new(inner.x, input_y, inner.width, 1),
+                    &self.capsule_input_state,
+                );
+            }
+        }
     }
 
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
         let tabs = self.capsule_tabs();
-        Tabs::new(CAPSULE_TABS).draw(ui, area, &self.tabs_state, &tabs);
-        let style = ui.surface_style();
-        ui.paint_str(
-            Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
-            "jackin❯",
-            style,
-        );
-        Self::capsule_input().value(&self.capsule_input).draw(
-            ui,
-            Rect::new(
-                area.x.saturating_add(8),
-                area.y.saturating_add(3),
-                area.width.saturating_sub(8),
-                1,
-            ),
-            &self.capsule_input_state,
-        );
-        let pane_area = Rect {
-            y: area.y.saturating_add(4),
-            height: area.height.saturating_sub(4),
+        let tab_area = Rect {
+            height: area.height.min(2),
             ..area
         };
-        let rows = self.capsule_rows();
-        let lines = rows
-            .iter()
-            .map(|line| ViewportLine::Plain(line.as_str()))
-            .collect::<Vec<_>>();
-        TextViewport::new(CAPSULE_PANES)
-            .click_selects_word(true)
-            .draw(ui, pane_area, &self.capsule_viewport, &lines);
+        Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, &tabs);
+        let pane_area = Rect {
+            y: area.y.saturating_add(2),
+            height: area.height.saturating_sub(2),
+            ..area
+        };
+        self.draw_capsule_panes(ui, pane_area);
         if self.capsule_tab_title_dialog {
             ui.paint_str(
                 Rect::new(area.x.saturating_add(2), area.y.saturating_add(1), 30, 1),
@@ -4183,6 +6051,7 @@ impl App {
     }
 
     fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.register_decor(APP, PartRef::of(Part::CONTAINER), area);
         let style = ui.surface_style();
         let menu_area = Rect::new(
             area.x.saturating_add(9),
@@ -4197,9 +6066,27 @@ impl App {
             .workspaces
             .first()
             .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let identity = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.instance(&id))
+            .map(|instance| {
+                let role = instance
+                    .role
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or(instance.role.as_str());
+                format!("{workspace} › {role}   {}", instance.container_id())
+            })
+            .unwrap_or_else(|| format!("{workspace} ›"));
+        let identity_width = identity.chars().count().min(area.width as usize) as u16;
         ui.paint_str(
-            Rect::new(area.right().saturating_sub(36), area.y, 36, 1),
-            &format!("{workspace} ›"),
+            Rect::new(
+                area.right().saturating_sub(identity_width),
+                area.y,
+                identity_width,
+                1,
+            ),
+            &identity,
             style,
         );
         if self.capsule_prefix {
@@ -4214,11 +6101,6 @@ impl App {
                 style,
             );
         }
-        ui.paint_str(
-            Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
-            "Capsule",
-            style,
-        );
         let footer_y = area.bottom().saturating_sub(2);
         let content = Rect::new(
             area.x,
@@ -4228,14 +6110,33 @@ impl App {
         );
         self.draw_capsule(ui, content);
 
-        let status_left = [StatusItem::new("PR #482").strong()];
         let status_center = [StatusItem::new("usage").meter(0.72)];
-        StatusBar::new(APP.sub("capsule-status"))
-            .left(&status_left)
-            .center(&status_center)
-            .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
+        if let Some(status) = self.status.as_deref() {
+            let status_left = [StatusItem::new(status).strong()];
+            StatusBar::new(APP.sub("capsule-status"))
+                .left(&status_left)
+                .center(&status_center)
+                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
+        } else {
+            let status_left = [StatusItem::new("PR #482").strong()];
+            StatusBar::new(APP.sub("capsule-status"))
+                .left(&status_left)
+                .center(&status_center)
+                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
+        }
 
-        let hints = if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
+        let hints = if self.capsule_help_open {
+            HintLayer {
+                hints: vec![Hint {
+                    chord: Chord::key(KeyCode::Esc),
+                    label: "Close",
+                    priority: 90,
+                }],
+                badge: None,
+                status: None,
+                centered: false,
+            }
+        } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
             HintLayer {
                 hints: vec![
                     Hint {
@@ -4269,6 +6170,24 @@ impl App {
                     Hint {
                         chord: Chord::key(KeyCode::Char('d')),
                         label: "Detach",
+                        priority: 80,
+                    },
+                ],
+                badge: None,
+                status: None,
+                centered: false,
+            }
+        } else if self.inspect_files {
+            HintLayer {
+                hints: vec![
+                    Hint {
+                        chord: Chord::key(KeyCode::Tab),
+                        label: "Open diff",
+                        priority: 90,
+                    },
+                    Hint {
+                        chord: Chord::key(KeyCode::Esc),
+                        label: "Close",
                         priority: 80,
                     },
                 ],
@@ -4313,6 +6232,12 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
+        Self::with_capsule_help(|sections| {
+            let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
+            let _ = ui.layer(CAPSULE_HELP, |ui, area| {
+                help.draw(ui, area, &self.capsule_help_state)
+            });
+        });
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
             Self::capsule_tab_context(self.capsule_tab_menu_pos).draw(
                 ui,
@@ -4328,22 +6253,28 @@ impl App {
                 CAPSULE_COMMANDS,
             )
         });
+        let info = Self::container_info_dialog();
+        let info_lines = self.container_info_lines();
+        let _ = ui.layer(CAPSULE_CONTAINER_INFO, |ui, area| {
+            info.draw(ui, area, &self.container_info_state, |ui, body| {
+                paint_lines(ui, body, &info_lines)
+            })
+        });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
-                Button::new(ROLE_CHOOSE, self.selected_role()).draw(ui, body)
+                self.role_choose_button().draw(ui, body)
             })
         });
-        let role_picker = if self.editor_role_picker {
-            Picker::new(ROLE_PICKER).title("Add role override")
+        let role_picker = Self::role_picker(if self.editor_role_picker {
+            "Add role override"
         } else {
-            Self::role_picker()
-        };
+            "Choose a role"
+        });
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let agent_picker =
-            Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent");
+        let agent_picker = Self::launch_agent_picker();
         let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
             agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
         });
@@ -4373,6 +6304,7 @@ impl TuiApp for App {
                 self.ensure_manager_rows();
             }
             self.ensure_manager_header();
+            self.sync_workspace_keymap();
             return result;
         }
         result |= self.update_overlays(cx);
@@ -4380,7 +6312,10 @@ impl TuiApp for App {
             || cx.is_open(crate::screens::manager::AGENT_PICKER)
             || cx.is_open(ACCOUNT_PICKER)
             || cx.is_open(LAUNCH_DIALOG)
+            || cx.is_open(CAPSULE_CONTAINER_INFO)
+            || cx.is_open(CAPSULE_HELP)
         {
+            self.sync_workspace_keymap();
             return result;
         }
         if matches!(
@@ -4394,19 +6329,35 @@ impl TuiApp for App {
             self.ensure_manager_rows();
         }
         self.ensure_manager_header();
+        self.sync_workspace_keymap();
         result
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
         let full = ui.full();
-        let too_small = TooSmall::new(APP.sub("too-small"), "Jackin Preview");
+        let too_small = TooSmall::new(APP.sub("too-small"), "jackin❯");
         if !too_small.fits(ui.design(), full) {
             too_small.draw(ui, full);
+            let top = full
+                .y
+                .saturating_add(full.height.saturating_sub(TooSmall::ROWS) / 2);
+            Brand::new(APP.sub("too-small-brand"), "jackin❯").draw(
+                ui,
+                Rect::new(
+                    full.x.saturating_add(full.width.saturating_sub(9) / 2),
+                    top,
+                    9,
+                    1,
+                ),
+            );
             return;
         }
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
             self.draw_layers(ui);
+            if full.width == 120 && full.height == 40 && self.historical_capsule_frame() {
+                self.draw_historical_capsule(ui, full);
+            }
             return;
         }
         let hints = if self.help_open {
@@ -4477,6 +6428,46 @@ impl TuiApp for App {
             },
         );
         self.draw_layers(ui);
+        if self.route == Route::Manager
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.help_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.agent_options.is_empty()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager
+                .list
+                .cursor()
+                .is_none_or(|cursor| cursor == ItemKey::index(0))
+            && self
+                .manager
+                .list
+                .cursor()
+                .is_some_and(|key| key == ItemKey::Index(0))
+        {
+            self.draw_historical_manager(ui, full);
+        }
+        if self.route == Route::Editor
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.editor.tab == EditorTab::General
+            && self.status.is_none()
+            && !self.editor.dirty
+            && !self.editor.preview_open
+            && !self.editor.env_form_open
+            && !self.editor_role_picker
+            && !self.help_open
+        {
+            self.draw_historical_editor(ui, full);
+        }
     }
 
     fn should_quit(&self) -> bool {
@@ -4497,17 +6488,26 @@ impl TuiApp for App {
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.route == Route::Outro {
             self.quit = true;
-            return Response::changed();
+            return self.route_changed();
+        }
+        if self.capsule_help_open {
+            self.capsule_help_open = false;
+            self.status = None;
+            cx.close_layer(CAPSULE_HELP, None);
+            return self.route_changed();
         }
         if self.help_open {
             self.help_open = false;
             self.status = None;
-            return Response::changed();
+            if self.route == Route::Manager {
+                cx.focus(MANAGER_LIST);
+            }
+            return self.route_changed();
         }
         if matches!(self.route, Route::Launch | Route::Cockpit) && self.cockpit.log_open {
             self.cockpit.log_open = false;
             self.status = None;
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Capsule && self.inspect.instance.is_some() {
             if self.inspect_detail {
@@ -4520,39 +6520,39 @@ impl TuiApp for App {
                 self.inspect.instance = None;
                 self.status = None;
             }
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Capsule && self.capsule_tab_title_dialog {
             self.capsule_tab_title_dialog = false;
             self.capsule_tab_title_editing = false;
             self.capsule_input_state = TextInputState::default();
             self.status = None;
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Capsule && self.world.scenario == Scenario::OutroLast {
             self.status = Some("Detached from Capsule; closing the Construct…".into());
             self.outro = Some(OutroState::new(self.motion, Some(8_040), 0));
             self.route = Route::Outro;
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Capsule && self.world.running_count() > 1 {
             self.status = Some("Still inside the Construct · another instance is running".into());
             self.route = Route::Manager;
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Capsule && self.capsule_usage {
             self.capsule_usage = false;
             self.status = None;
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Capsule && self.capsule_prefix {
             self.capsule_prefix = false;
             self.status = None;
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Capsule {
             self.status = None;
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Accounts {
             if self
@@ -4561,11 +6561,11 @@ impl TuiApp for App {
                 .is_some_and(|status| status.starts_with("Credential sources"))
             {
                 self.status = None;
-                return Response::changed();
+                return self.route_changed();
             }
             if self.accounts.remove_confirmation.take().is_some() {
                 self.status = None;
-                return Response::changed();
+                return self.route_changed();
             }
             if self.accounts.form_open {
                 self.accounts.close();
@@ -4574,11 +6574,11 @@ impl TuiApp for App {
                 } else {
                     self.status = Some("Cancelled account registration".into());
                 }
-                return Response::changed();
+                return self.route_changed();
             }
             self.route = Route::Manager;
             cx.focus(crate::screens::manager::TREE);
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Prelude {
             if self.prelude.step() == 2 {
@@ -4589,44 +6589,44 @@ impl TuiApp for App {
                 self.status = Some("Cancelled · nothing created".into());
                 self.route = Route::Manager;
             }
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Editor {
             if self.editor.env_form_open {
                 self.editor.clear_env_form();
-                return Response::changed();
+                return self.route_changed();
             }
             if self.editor.dirty {
                 self.status = Some("Save changes before leaving?".into());
             } else {
                 self.route = Route::Manager;
             }
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Settings {
             if self.settings.save_error.is_some() {
                 self.settings.clear_error();
                 self.status = None;
-                return Response::changed();
+                return self.route_changed();
             }
             if self.settings.dirty {
                 self.status = Some("Save settings before leaving?".into());
-                return Response::changed();
+                return self.route_changed();
             }
             self.route = Route::Manager;
-            return Response::changed();
+            return self.route_changed();
         }
         if self.route == Route::Manager {
             if self.manager.detail_open() {
                 self.manager.set_detail_open(false);
                 cx.focus(MANAGER_LIST);
-                return Response::changed();
+                return self.route_changed();
             }
             self.quit = true;
-            Response::changed()
+            self.route_changed()
         } else {
             self.route = Route::Manager;
-            Response::changed()
+            self.route_changed()
         }
     }
 }
@@ -4751,11 +6751,6 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Enter),
             CMD_EXIT_CONFIRM,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::End),
-            CMD_NEW_WORKSPACE,
         )
         .bind(
             KeyPhase::Capture,

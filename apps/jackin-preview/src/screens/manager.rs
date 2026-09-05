@@ -27,9 +27,10 @@ pub const AGENT_PICKER: Id = LAUNCH.sub("agent-picker");
 /// The visible row text is deliberately not used as identity: workspace and
 /// instance labels can change while a cursor is still pointing at the same
 /// durable object.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum ManagerRowKey {
     /// The unsaved current directory row.
+    #[default]
     CurrentDirectory,
     /// A saved workspace row.
     Workspace(WorkspaceId),
@@ -37,12 +38,6 @@ pub enum ManagerRowKey {
     Instance(String),
     /// The create-workspace action row.
     NewWorkspace,
-}
-
-impl Default for ManagerRowKey {
-    fn default() -> Self {
-        Self::CurrentDirectory
-    }
 }
 
 impl ManagerRowKey {
@@ -89,7 +84,7 @@ impl LaunchCandidate {
 }
 
 /// State owned by the manager route.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ManagerState {
     /// Public-list selection state owned by this route.
     pub list: ListState,
@@ -99,19 +94,6 @@ pub struct ManagerState {
     selected_workspace: Option<WorkspaceId>,
     selected_row: ManagerRowKey,
     detail_open: bool,
-}
-
-impl Default for ManagerState {
-    fn default() -> Self {
-        Self {
-            list: ListState::default(),
-            expanded: Vec::new(),
-            rows_revision: 0,
-            selected_workspace: None,
-            selected_row: ManagerRowKey::default(),
-            detail_open: false,
-        }
-    }
 }
 
 impl ManagerState {

@@ -90,6 +90,8 @@ pub enum PrefixCommand {
     Detach,
     /// Open usage for the active Capsule.
     Usage,
+    /// Open typed container identity details.
+    ContainerInfo,
     /// Open the active tab's rename control.
     RenameTab,
     /// Open the active tab context menu.
@@ -122,6 +124,7 @@ impl PrefixCommand {
             'l' => Some(Self::FocusRight),
             'd' => Some(Self::Detach),
             'u' => Some(Self::Usage),
+            'i' => Some(Self::ContainerInfo),
             ',' => Some(Self::RenameTab),
             'm' => Some(Self::TabMenu),
             ' ' | ':' => Some(Self::Palette),

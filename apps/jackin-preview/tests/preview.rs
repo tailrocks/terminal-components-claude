@@ -1,8 +1,7 @@
 //! Focused deterministic integration coverage for the Jackin Preview shell.
 
 use jackin_app::{
-    ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, LAUNCH, LAUNCH_DIALOG, Motion, ROLE_CHOOSE,
-    ROLE_PICKER, Route, RunId, Scenario,
+    ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, LAUNCH, Motion, Route, RunId, Scenario,
 };
 use junie_tui::{KeyCode, Theme};
 use junie_tui_testing::Harness;
@@ -73,21 +72,16 @@ fn nested_overlay_picker_inside_dialog() {
         30,
     );
     let _ = harness.click_id(LAUNCH);
-    assert!(harness.is_open(LAUNCH_DIALOG));
-    assert!(harness.area_of(LAUNCH_DIALOG).is_some());
-    assert!(harness.area_of(ROLE_CHOOSE).is_some());
-
-    let _ = harness.click_id(ROLE_CHOOSE);
-    assert!(harness.is_open(LAUNCH_DIALOG));
-    assert!(harness.is_open(ROLE_PICKER));
-    assert!(harness.area_of(ROLE_PICKER).is_some());
-    assert!(harness.text().contains("Choose a role"));
+    assert!(harness.is_open(jackin_app::screens::manager::AGENT_PICKER));
+    assert!(
+        harness
+            .area_of(jackin_app::screens::manager::AGENT_PICKER)
+            .is_some()
+    );
+    assert!(harness.text().contains("Launch · choose Agent"));
 
     let _ = harness.key(KeyCode::Esc);
-    assert!(!harness.is_open(ROLE_PICKER));
-    assert!(harness.is_open(LAUNCH_DIALOG));
-    let _ = harness.key(KeyCode::Esc);
-    assert!(!harness.is_open(LAUNCH_DIALOG));
+    assert!(!harness.is_open(jackin_app::screens::manager::AGENT_PICKER));
     assert!(
         harness.diagnostics().is_empty(),
         "{:?}",
