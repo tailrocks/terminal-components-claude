@@ -96,7 +96,11 @@ impl FilterOp {
         )
     }
     /// Put type-appropriate options first, retaining the complete menu.
-    pub fn ordered_for(ty: ColType) -> Vec<Self> {
+    #[allow(
+        dead_code,
+        reason = "typed operator ordering remains available to the private filter adapter"
+    )]
+    pub(crate) fn ordered_for(ty: ColType) -> Vec<Self> {
         let preferred: &[Self] = match ty {
             ColType::Int | ColType::Numeric | ColType::Timestamp | ColType::Date => &[
                 Self::Eq,
@@ -245,23 +249,31 @@ impl Filter {
 
 /// Controlled filter form state.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FilterDraft {
+#[allow(
+    dead_code,
+    reason = "draft state remains available to the private filter adapter"
+)]
+pub(crate) struct FilterDraft {
     /// Available column names.
-    pub columns: Vec<String>,
+    pub(crate) columns: Vec<String>,
     /// Selected column index.
-    pub column: usize,
+    pub(crate) column: usize,
     /// Selected operator.
-    pub op: FilterOp,
+    pub(crate) op: FilterOp,
     /// Primary value.
-    pub value: String,
+    pub(crate) value: String,
     /// Secondary value for range predicates.
-    pub value2: String,
+    pub(crate) value2: String,
     /// Whether the editor is open.
-    pub open: bool,
+    pub(crate) open: bool,
 }
+#[allow(
+    dead_code,
+    reason = "draft state remains available to the private filter adapter"
+)]
 impl FilterDraft {
     /// Build from column labels.
-    pub fn new(columns: impl IntoIterator<Item = impl Into<String>>) -> Self {
+    pub(crate) fn new(columns: impl IntoIterator<Item = impl Into<String>>) -> Self {
         Self {
             columns: columns.into_iter().map(Into::into).collect(),
             column: 0,
@@ -272,18 +284,18 @@ impl FilterDraft {
         }
     }
     /// Open for a column/value.
-    pub fn open_for(&mut self, column: usize, value: impl Into<String>) {
+    pub(crate) fn open_for(&mut self, column: usize, value: impl Into<String>) {
         self.column = column.min(self.columns.len().saturating_sub(1));
         self.value = value.into();
         self.value2.clear();
         self.open = true;
     }
     /// Close the editor.
-    pub const fn close(&mut self) {
+    pub(crate) const fn close(&mut self) {
         self.open = false;
     }
     /// Build an active filter.
-    pub fn build(&self) -> Option<Filter> {
+    pub(crate) fn build(&self) -> Option<Filter> {
         Some(Filter {
             column: self.columns.get(self.column)?.clone(),
             op: self.op,

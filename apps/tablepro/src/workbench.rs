@@ -5,11 +5,6 @@ use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
 use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TableTab};
 
-/// Explorer identity.
-pub const EXPLORER: junie_tui::Id = junie_tui::Id::root("tablepro.workbench.explorer");
-/// Tab-strip identity.
-pub const TABSTRIP: junie_tui::Id = junie_tui::Id::root("tablepro.workbench.tabs");
-
 /// Workbench state for one active connection.
 #[derive(Debug, Clone)]
 pub struct Workbench {

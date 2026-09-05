@@ -181,7 +181,7 @@ fn reorder_flags(flags: &[bool], order: &[usize]) -> Vec<bool> {
 }
 
 /// Quote a database value for the deterministic SQL preview.
-pub fn sql_literal(value: &Value) -> String {
+pub(crate) fn sql_literal(value: &Value) -> String {
     match value {
         Value::Null => "NULL".to_owned(),
         Value::Text(text) => format!("'{}'", text.replace('\'', "''")),
@@ -193,7 +193,7 @@ pub fn sql_literal(value: &Value) -> String {
 }
 
 /// Build the statements `TablePro` would send for pending result edits.
-pub fn preview_sql(
+pub(crate) fn preview_sql(
     table: &Table,
     columns: &[(String, ColType)],
     pending: &PendingEdits,

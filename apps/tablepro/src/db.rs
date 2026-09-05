@@ -4,7 +4,6 @@
 //! interaction is real while results stay reproducible.
 
 #![allow(
-    missing_docs,
     clippy::arithmetic_side_effects,
     clippy::indexing_slicing,
     clippy::too_many_lines,
@@ -14,21 +13,29 @@
 // ------------------------------------------------------------------ catalog
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Engine {
+pub(crate) enum Engine {
     Postgres,
     MySql,
     Sqlite,
 }
 
 impl Engine {
-    pub fn label(self) -> &'static str {
+    #[allow(
+        dead_code,
+        reason = "engine labels remain available to the private connection adapter"
+    )]
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Engine::Postgres => "PostgreSQL",
             Engine::MySql => "MySQL",
             Engine::Sqlite => "SQLite",
         }
     }
-    pub fn short(self) -> &'static str {
+    #[allow(
+        dead_code,
+        reason = "engine labels remain available to the private connection adapter"
+    )]
+    pub(crate) fn short(self) -> &'static str {
         match self {
             Engine::Postgres => "pg",
             Engine::MySql => "mysql",
@@ -56,7 +63,7 @@ pub enum SafeMode {
 }
 
 impl SafeMode {
-    pub const ALL: [SafeMode; 6] = [
+    pub(crate) const ALL: [SafeMode; 6] = [
         SafeMode::Silent,
         SafeMode::Alert,
         SafeMode::AlertFull,
@@ -65,7 +72,11 @@ impl SafeMode {
         SafeMode::ReadOnly,
     ];
 
-    pub fn label(self) -> &'static str {
+    #[allow(
+        dead_code,
+        reason = "safe-mode display helpers remain available to the private connection adapter"
+    )]
+    pub(crate) fn label(self) -> &'static str {
         match self {
             SafeMode::Silent => "Silent",
             SafeMode::Alert => "Alert",
@@ -77,7 +88,11 @@ impl SafeMode {
     }
 
     /// Short token for the identity strip.
-    pub fn token(self) -> &'static str {
+    #[allow(
+        dead_code,
+        reason = "safe-mode display helpers remain available to the private connection adapter"
+    )]
+    pub(crate) fn token(self) -> &'static str {
         match self {
             SafeMode::Silent => "silent",
             SafeMode::Alert => "alert",
@@ -88,7 +103,11 @@ impl SafeMode {
         }
     }
 
-    pub fn description(self) -> &'static str {
+    #[allow(
+        dead_code,
+        reason = "safe-mode display helpers remain available to the private connection adapter"
+    )]
+    pub(crate) fn description(self) -> &'static str {
         match self {
             SafeMode::Silent => "Writes run without asking. Destructive statements still confirm.",
             SafeMode::Alert => "Every write asks for confirmation before it runs.",
@@ -101,19 +120,19 @@ impl SafeMode {
         }
     }
 
-    pub fn requires_confirmation(self) -> bool {
+    pub(crate) fn requires_confirmation(self) -> bool {
         !matches!(self, SafeMode::Silent | SafeMode::ReadOnly)
     }
-    pub fn requires_authentication(self) -> bool {
+    pub(crate) fn requires_authentication(self) -> bool {
         matches!(self, SafeMode::Safe | SafeMode::SafeFull)
     }
-    pub fn applies_to_all_queries(self) -> bool {
+    pub(crate) fn applies_to_all_queries(self) -> bool {
         matches!(self, SafeMode::AlertFull | SafeMode::SafeFull)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Environment {
+pub(crate) enum Environment {
     Local,
     Development,
     Staging,
@@ -121,7 +140,7 @@ pub enum Environment {
 }
 
 impl Environment {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Environment::Local => "local",
             Environment::Development => "development",
@@ -131,32 +150,33 @@ impl Environment {
     }
 }
 
+/// One configured database connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Connection {
-    pub name: String,
-    pub engine: Engine,
-    pub host: String,
-    pub port: u16,
-    pub database: String,
-    pub user: String,
-    pub environment: Environment,
-    pub safe_mode: SafeMode,
-    pub ssl: bool,
-    pub ssh: Option<String>,
-    pub group: String,
-    pub last_used: String,
+    pub(crate) name: String,
+    pub(crate) engine: Engine,
+    pub(crate) host: String,
+    pub(crate) port: u16,
+    pub(crate) database: String,
+    pub(crate) user: String,
+    pub(crate) environment: Environment,
+    pub(crate) safe_mode: SafeMode,
+    pub(crate) ssl: bool,
+    pub(crate) ssh: Option<String>,
+    pub(crate) group: String,
+    pub(crate) last_used: String,
     /// Simulated behaviour when connecting.
-    pub outcome: ConnectOutcome,
+    pub(crate) outcome: ConnectOutcome,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConnectOutcome {
+pub(crate) enum ConnectOutcome {
     Ok,
     AuthFailed,
     Unreachable,
 }
 
-pub fn connections() -> Vec<Connection> {
+pub(crate) fn connections() -> Vec<Connection> {
     vec![
         Connection {
             name: "Local PostgreSQL".into(),
@@ -251,21 +271,31 @@ pub fn connections() -> Vec<Connection> {
     ]
 }
 
+/// Column storage type used by the deterministic catalog.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColType {
+    /// UUID-like identifier.
     Uuid,
+    /// Text value.
     Text,
+    /// Signed integer.
     Int,
+    /// Decimal number.
     Numeric,
+    /// Boolean value.
     Bool,
+    /// Timestamp value.
     Timestamp,
+    /// Calendar date.
     Date,
+    /// JSON value.
     Json,
+    /// Enumerated text value.
     Enum,
 }
 
 impl ColType {
-    pub fn sql(self) -> &'static str {
+    pub(crate) fn sql(self) -> &'static str {
         match self {
             ColType::Uuid => "uuid",
             ColType::Text | ColType::Enum => "text",
@@ -280,47 +310,49 @@ impl ColType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Column {
-    pub name: String,
-    pub ty: ColType,
-    pub nullable: bool,
-    pub default: Option<String>,
-    pub primary: bool,
-    pub references: Option<(String, String)>,
-    pub enum_values: Vec<&'static str>,
-    pub generated: bool,
+pub(crate) struct Column {
+    pub(crate) name: String,
+    pub(crate) ty: ColType,
+    pub(crate) nullable: bool,
+    pub(crate) default: Option<String>,
+    pub(crate) primary: bool,
+    pub(crate) references: Option<(String, String)>,
+    pub(crate) enum_values: Vec<&'static str>,
+    pub(crate) generated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Index {
-    pub name: String,
-    pub columns: Vec<String>,
-    pub unique: bool,
-    pub method: &'static str,
+pub(crate) struct Index {
+    pub(crate) name: String,
+    pub(crate) columns: Vec<String>,
+    pub(crate) unique: bool,
+    pub(crate) method: &'static str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Constraint {
-    pub name: String,
-    pub kind: &'static str,
-    pub definition: String,
+pub(crate) struct Constraint {
+    pub(crate) name: String,
+    pub(crate) kind: &'static str,
+    pub(crate) definition: String,
 }
 
+/// Catalog table metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Table {
-    pub schema: String,
+    pub(crate) schema: String,
+    /// Stable unqualified table name.
     pub name: String,
-    pub kind: ObjectKind,
-    pub columns: Vec<Column>,
-    pub indexes: Vec<Index>,
-    pub constraints: Vec<Constraint>,
-    pub triggers: Vec<String>,
-    pub row_count: usize,
-    pub comment: Option<String>,
+    pub(crate) kind: ObjectKind,
+    pub(crate) columns: Vec<Column>,
+    pub(crate) indexes: Vec<Index>,
+    pub(crate) constraints: Vec<Constraint>,
+    pub(crate) triggers: Vec<String>,
+    pub(crate) row_count: usize,
+    pub(crate) comment: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ObjectKind {
+pub(crate) enum ObjectKind {
     Table,
     View,
     Function,
@@ -328,15 +360,15 @@ pub enum ObjectKind {
 }
 
 impl Table {
-    pub fn qualified(&self) -> String {
+    pub(crate) fn qualified(&self) -> String {
         format!("{}.{}", self.schema, self.name)
     }
-    pub fn column(&self, name: &str) -> Option<&Column> {
+    pub(crate) fn column(&self, name: &str) -> Option<&Column> {
         self.columns
             .iter()
             .find(|c| c.name.eq_ignore_ascii_case(name))
     }
-    pub fn primary_key(&self) -> Vec<&Column> {
+    pub(crate) fn primary_key(&self) -> Vec<&Column> {
         self.columns.iter().filter(|c| c.primary).collect()
     }
 }
@@ -393,14 +425,20 @@ fn idx(name: &str, cols: &[&str], unique: bool) -> Index {
     }
 }
 
+/// Deterministic database catalog used by the application.
 #[derive(Debug, Clone)]
 pub struct Catalog {
-    pub database: String,
-    pub schemas: Vec<String>,
-    pub tables: Vec<Table>,
+    pub(crate) database: String,
+    #[allow(
+        dead_code,
+        reason = "the catalog retains schema names for fixture completeness"
+    )]
+    pub(crate) schemas: Vec<String>,
+    pub(crate) tables: Vec<Table>,
 }
 
 impl Catalog {
+    /// Build the stable `acme_prod` fixture catalog.
     pub fn acme_prod() -> Self {
         let created = || dflt(col("created_at", ColType::Timestamp), "now()");
         let updated = || nullable(col("updated_at", ColType::Timestamp));
@@ -730,6 +768,7 @@ impl Catalog {
         }
     }
 
+    /// Find a table or view by optional schema and name.
     pub fn find(&self, schema: Option<&str>, name: &str) -> Option<&Table> {
         self.tables.iter().find(|t| {
             t.name.eq_ignore_ascii_case(name)
@@ -737,7 +776,11 @@ impl Catalog {
         })
     }
 
-    pub fn tables_in(&self, schema: &str, kind: ObjectKind) -> impl Iterator<Item = &Table> {
+    #[allow(
+        dead_code,
+        reason = "schema browsing remains available to the private catalog adapter"
+    )]
+    pub(crate) fn tables_in(&self, schema: &str, kind: ObjectKind) -> impl Iterator<Item = &Table> {
         self.tables
             .iter()
             .filter(move |t| t.schema == schema && t.kind == kind)
@@ -746,18 +789,25 @@ impl Catalog {
 
 // ---------------------------------------------------------------- values
 
+/// One deterministic result-cell value.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
+    /// SQL NULL.
     Null,
+    /// Text value.
     Text(String),
+    /// Signed integer.
     Int(i64),
+    /// Decimal value.
     Num(f64),
+    /// Boolean value.
     Bool(bool),
+    /// JSON text.
     Json(String),
 }
 
 impl Value {
-    pub fn display(&self) -> String {
+    pub(crate) fn display(&self) -> String {
         match self {
             Value::Null => "NULL".into(),
             Value::Text(s) => s.clone(),
@@ -773,7 +823,7 @@ impl Value {
             Value::Json(j) => j.clone(),
         }
     }
-    pub fn as_f64(&self) -> Option<f64> {
+    pub(crate) fn as_f64(&self) -> Option<f64> {
         match self {
             Value::Int(i) => Some(*i as f64),
             Value::Num(n) => Some(*n),
@@ -925,7 +975,7 @@ fn date(r: &mut Rng, year: i32) -> String {
 }
 
 /// Generate deterministic rows for a table. `n` rows starting at `offset`.
-pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
+pub(crate) fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
     let mut out = Vec::with_capacity(n);
     for i in offset..offset + n {
         let mut r =

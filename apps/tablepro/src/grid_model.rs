@@ -1,31 +1,39 @@
 //! Application-owned grid metadata and the public adapter facade.
 
-pub use crate::domain::{PendingEdits, ResultGrid, preview_sql, sql_literal};
+use crate::domain::{ResultGrid, preview_sql};
 
 use crate::db::{ColType, Table};
 
 /// Column metadata used by table grids and filter forms.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ColumnInfo {
+#[allow(
+    dead_code,
+    reason = "column metadata remains available to the private grid adapter"
+)]
+pub(crate) struct ColumnInfo {
     /// Column name.
-    pub name: String,
+    pub(crate) name: String,
     /// Database type.
-    pub ty: ColType,
+    pub(crate) ty: ColType,
     /// Whether the database accepts null.
-    pub nullable: bool,
+    pub(crate) nullable: bool,
     /// Whether this is part of the primary key.
-    pub primary: bool,
+    pub(crate) primary: bool,
     /// Optional foreign-key target.
-    pub references: Option<(String, String)>,
+    pub(crate) references: Option<(String, String)>,
     /// Optional default expression.
-    pub default: Option<String>,
+    pub(crate) default: Option<String>,
     /// Enum choices.
-    pub enum_values: Vec<&'static str>,
+    pub(crate) enum_values: Vec<&'static str>,
 }
 
+#[allow(
+    dead_code,
+    reason = "column metadata remains available to the private grid adapter"
+)]
 impl ColumnInfo {
     /// Convert one catalog column to app metadata.
-    pub fn from_column(column: &crate::db::Column) -> Self {
+    pub(crate) fn from_column(column: &crate::db::Column) -> Self {
         Self {
             name: column.name.clone(),
             ty: column.ty,
@@ -39,12 +47,16 @@ impl ColumnInfo {
 }
 
 /// Derive all metadata needed by a table editor.
-pub fn columns(table: &Table) -> Vec<ColumnInfo> {
+#[allow(
+    dead_code,
+    reason = "column metadata remains available to the private grid adapter"
+)]
+pub(crate) fn columns(table: &Table) -> Vec<ColumnInfo> {
     table.columns.iter().map(ColumnInfo::from_column).collect()
 }
 
 /// Column labels/types for the generic grid.
-pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
+pub(crate) fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
         .iter()
@@ -53,7 +65,11 @@ pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
 }
 
 /// Compact pending-change marker for the status bar.
-pub fn pending_label(grid: &ResultGrid) -> String {
+#[allow(
+    dead_code,
+    reason = "pending marker remains available to the private grid adapter"
+)]
+pub(crate) fn pending_label(grid: &ResultGrid) -> String {
     match grid.pending_total() {
         0 => String::new(),
         n => format!("• {n} pending"),

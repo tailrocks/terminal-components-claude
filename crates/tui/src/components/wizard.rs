@@ -3,7 +3,7 @@
 use ratatui_core::layout::Rect;
 use std::collections::BTreeMap;
 
-use super::{Overrides, SlotFn};
+use super::{PartStyle, SlotFn};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -186,7 +186,7 @@ impl<S> WizardState<S> {
 pub struct Wizard<'a> {
     id: Id,
     steps: &'a [WizardStep<'a>],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl<'a> Wizard<'a> {
@@ -198,20 +198,20 @@ impl<'a> Wizard<'a> {
         Self {
             id,
             steps,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
     /// Patch every part.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
     /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(parts);
+        self.ov = self.ov.part(parts);
         self
     }
     /// Replace a supported part painter.
@@ -305,7 +305,7 @@ impl<'a> Wizard<'a> {
             return Rect { height: 0, ..area };
         }
         ui.register_control(self.id, area, Focusability::Focusable);
-        let live = Overrides::flags(ui.state(self.id), StateFlags::empty());
+        let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         let base_live = live.difference(
             StateFlags::FOCUSED
                 | StateFlags::FOCUS_VISIBLE

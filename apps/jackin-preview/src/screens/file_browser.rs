@@ -8,7 +8,7 @@ use junie_tui::ItemKey;
 
 /// A source the operator can choose for a workspace mount.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FileBrowserEntry {
+pub(crate) struct FileBrowserEntry {
     /// Stable repository-relative or host path.
     pub path: String,
     /// Human-readable kind (`directory`, `repository`, or `file`).
@@ -19,7 +19,7 @@ pub struct FileBrowserEntry {
 
 impl FileBrowserEntry {
     /// Construct a selectable entry.
-    pub fn new(path: impl Into<String>, kind: &'static str) -> Self {
+    pub(crate) fn new(path: impl Into<String>, kind: &'static str) -> Self {
         Self {
             path: path.into(),
             kind,
@@ -29,20 +29,20 @@ impl FileBrowserEntry {
 
     /// Construct an entry that is visible but cannot be selected.
     #[must_use]
-    pub const fn disabled(mut self) -> Self {
+    pub(crate) const fn disabled(mut self) -> Self {
         self.selectable = false;
         self
     }
 
     /// Key used by the library `List`/`Picker` collection.
-    pub fn key(&self) -> ItemKey {
+    pub(crate) fn key(&self) -> ItemKey {
         ItemKey::text(&self.path)
     }
 }
 
 /// Actions returned by the file-browser composition.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FileBrowserAction {
+pub(crate) enum FileBrowserAction {
     /// Accept the selected entry.
     Choose(String),
     /// Switch between local path and URL resolution.
@@ -55,7 +55,7 @@ pub enum FileBrowserAction {
 
 /// Durable state for one file-browser layer.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct FileBrowserState {
+pub(crate) struct FileBrowserState {
     path: String,
     read_only: bool,
     url_mode: bool,
@@ -67,7 +67,7 @@ pub struct FileBrowserState {
 
 impl FileBrowserState {
     /// Build an empty browser rooted at `path`.
-    pub fn new(path: impl Into<String>) -> Self {
+    pub(crate) fn new(path: impl Into<String>) -> Self {
         Self {
             path: path.into(),
             ..Self::default()
@@ -75,32 +75,32 @@ impl FileBrowserState {
     }
 
     /// Current draft path.
-    pub fn path(&self) -> &str {
+    pub(crate) fn path(&self) -> &str {
         &self.path
     }
 
     /// Replace the draft path.
-    pub fn set_path(&mut self, path: impl Into<String>) {
+    pub(crate) fn set_path(&mut self, path: impl Into<String>) {
         self.path = path.into();
     }
 
     /// Whether the form is read-only.
-    pub const fn read_only(&self) -> bool {
+    pub(crate) const fn read_only(&self) -> bool {
         self.read_only
     }
 
     /// Mark the browser read-only (for inspection flows).
-    pub const fn set_read_only(&mut self, read_only: bool) {
+    pub(crate) const fn set_read_only(&mut self, read_only: bool) {
         self.read_only = read_only;
     }
 
     /// Whether the current path is being resolved as a URL.
-    pub const fn url_mode(&self) -> bool {
+    pub(crate) const fn url_mode(&self) -> bool {
         self.url_mode
     }
 
     /// Toggle URL resolution and clear an old resolution error.
-    pub fn toggle_url_mode(&mut self) -> FileBrowserAction {
+    pub(crate) fn toggle_url_mode(&mut self) -> FileBrowserAction {
         self.url_mode = !self.url_mode;
         self.resolving = false;
         self.error = None;
@@ -112,7 +112,7 @@ impl FileBrowserState {
     /// A removed item never remains selected.  If the old key disappears,
     /// the first selectable entry is selected; this is the same contract used
     /// by the library keyed collections and avoids stale-index actions.
-    pub fn replace_entries(&mut self, entries: Vec<FileBrowserEntry>) {
+    pub(crate) fn replace_entries(&mut self, entries: Vec<FileBrowserEntry>) {
         let old = self.selected;
         self.entries = entries;
         self.selected = old
@@ -126,17 +126,17 @@ impl FileBrowserState {
     }
 
     /// Visible entries.
-    pub fn entries(&self) -> &[FileBrowserEntry] {
+    pub(crate) fn entries(&self) -> &[FileBrowserEntry] {
         &self.entries
     }
 
     /// Current keyed selection.
-    pub const fn selected(&self) -> Option<ItemKey> {
+    pub(crate) const fn selected(&self) -> Option<ItemKey> {
         self.selected
     }
 
     /// Select a visible, selectable entry.
-    pub fn select(&mut self, key: ItemKey) -> bool {
+    pub(crate) fn select(&mut self, key: ItemKey) -> bool {
         if self.entry(key).is_some_and(|entry| entry.selectable) {
             self.selected = Some(key);
             true
@@ -146,7 +146,7 @@ impl FileBrowserState {
     }
 
     /// Selected path, if it still exists and is selectable.
-    pub fn selected_path(&self) -> Option<&str> {
+    pub(crate) fn selected_path(&self) -> Option<&str> {
         self.selected
             .and_then(|key| self.entry(key))
             .filter(|entry| entry.selectable)
@@ -154,29 +154,29 @@ impl FileBrowserState {
     }
 
     /// Start a deterministic inventory refresh.
-    pub fn begin_refresh(&mut self) {
+    pub(crate) fn begin_refresh(&mut self) {
         self.resolving = true;
         self.error = None;
     }
 
     /// Finish a refresh with a safe operator-facing result.
-    pub fn finish_refresh(&mut self, error: Option<String>) {
+    pub(crate) fn finish_refresh(&mut self, error: Option<String>) {
         self.resolving = false;
         self.error = error;
     }
 
     /// Whether a refresh is pending.
-    pub const fn resolving(&self) -> bool {
+    pub(crate) const fn resolving(&self) -> bool {
         self.resolving
     }
 
     /// Current non-secret resolution error.
-    pub fn error(&self) -> Option<&str> {
+    pub(crate) fn error(&self) -> Option<&str> {
         self.error.as_deref()
     }
 
     /// Return the selected source as an action, unless the form is read-only.
-    pub fn choose(&self) -> Option<FileBrowserAction> {
+    pub(crate) fn choose(&self) -> Option<FileBrowserAction> {
         (!self.read_only)
             .then(|| self.selected_path().map(str::to_owned))
             .flatten()

@@ -3,7 +3,7 @@
 //! inside the simulated credential service (`sim::onepassword`).
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct OpReference {
+pub(crate) struct OpReference {
     /// 1Password account short id, e.g. `chainargos.1password.com`.
     pub account: String,
     pub vault_id: String,
@@ -17,7 +17,7 @@ pub struct OpReference {
 
 impl OpReference {
     /// `op://<vault>/<item>/[<section>/]<field>` with ids.
-    pub fn canonical(&self) -> String {
+    pub(crate) fn canonical(&self) -> String {
         match &self.section {
             Some(s) => format!(
                 "op://{}/{}/{}/{}",
@@ -28,7 +28,7 @@ impl OpReference {
     }
 
     /// `Engineering › OpenAI · Codex Primary › credential` with names.
-    pub fn display_path(&self) -> String {
+    pub(crate) fn display_path(&self) -> String {
         format!(
             "{} › {} › {}",
             self.vault_name, self.item_title, self.field_label

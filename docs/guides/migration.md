@@ -537,8 +537,9 @@ current library facade.
 
 None of this is a widget; these bullets describe the target ownership mapping
 from the legacy applications into the library. Verify application migration
-separately: the current workspace still has legacy root `showcase` and
-`jackin-preview` binaries alongside the migrated `apps/tablepro` package.
+separately: the current workspace hosts the migrated applications under
+`apps/showcase`, `apps/tablepro`, and `apps/jackin-preview`; the legacy root
+application tree is removed.
 The mapping is:
 
 - three `Focus` / `FocusRing` field sets and 186+ direct manipulation sites;

@@ -1,14 +1,6 @@
 //! Jackin Preview: a deterministic terminal app built on `junie-tui`.
 #![forbid(unsafe_code)]
 #![expect(
-    missing_docs,
-    reason = "the preview's public fixture model is intentionally data-shaped"
-)]
-#![expect(
-    unreachable_pub,
-    reason = "fixture modules are public to integration tests"
-)]
-#![expect(
     clippy::pedantic,
     reason = "fixture and rendering code favors explicit deterministic data"
 )]
@@ -27,13 +19,37 @@
 )]
 
 mod app;
+#[allow(
+    dead_code,
+    reason = "the private arbiter retains deterministic lifecycle branches for fixture coverage"
+)]
 mod arbiter;
+#[allow(
+    dead_code,
+    reason = "the private clock retains deterministic formatting helpers for fixture coverage"
+)]
 mod clock;
-pub mod domain;
-pub mod rain;
+#[allow(
+    dead_code,
+    reason = "private domain fixtures cover deterministic product states not on the shell path"
+)]
+mod domain;
+#[allow(
+    dead_code,
+    reason = "private atmosphere helpers cover deterministic capture states beyond the shell path"
+)]
+mod rain;
 mod scenario;
-pub mod screens;
-pub mod sim;
+#[allow(
+    dead_code,
+    reason = "private screen adapters retain deterministic flows for later shell composition"
+)]
+mod screens;
+#[allow(
+    dead_code,
+    reason = "private simulators retain deterministic provider and terminal fixture branches"
+)]
+mod sim;
 
 pub use app::{
     ACCOUNT_ADD, ACCOUNT_PICKER, ACCOUNTS, ACCOUNTS_LIST, APP, App, CAPSULE, CAPSULE_PANES,
@@ -41,7 +57,9 @@ pub use app::{
     MANAGER_LIST, ROLE_CHOOSE, ROLE_PICKER, Route, SETTINGS, SETTINGS_TRUST, USAGE,
 };
 pub use domain::instance::RunId;
+pub use rain::{INTRO_END, TICK_MS};
 pub use scenario::{Motion, Scenario};
+pub use sim::world::{World, world_for};
 
 /// Run the interactive preview through the public `junie-tui` entry point.
 pub fn run() -> std::io::Result<()> {

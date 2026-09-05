@@ -3,7 +3,7 @@
 
 /// Closed runtime selection offered by current Jackin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Agent {
+pub(crate) enum Agent {
     ClaudeCode,
     Codex,
     Amp,
@@ -13,7 +13,7 @@ pub enum Agent {
 }
 
 impl Agent {
-    pub const ALL: [Agent; 6] = [
+    pub(crate) const ALL: [Agent; 6] = [
         Agent::ClaudeCode,
         Agent::Codex,
         Agent::Amp,
@@ -22,7 +22,7 @@ impl Agent {
         Agent::GrokBuild,
     ];
 
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Agent::ClaudeCode => "Claude Code",
             Agent::Codex => "Codex",
@@ -34,7 +34,7 @@ impl Agent {
     }
 
     /// Short form for tab labels and chips.
-    pub fn short(self) -> &'static str {
+    pub(crate) fn short(self) -> &'static str {
         match self {
             Agent::ClaudeCode => "claude",
             Agent::Codex => "codex",
@@ -45,7 +45,7 @@ impl Agent {
         }
     }
 
-    pub fn provider(self) -> Provider {
+    pub(crate) fn provider(self) -> Provider {
         match self {
             Agent::ClaudeCode => Provider::Anthropic,
             Agent::Codex => Provider::OpenAi,
@@ -57,7 +57,7 @@ impl Agent {
     }
 
     /// Auth modes the core registry exposes for this agent.
-    pub fn auth_modes(self) -> &'static [AuthMode] {
+    pub(crate) fn auth_modes(self) -> &'static [AuthMode] {
         match self {
             Agent::ClaudeCode => &[
                 AuthMode::Sync,
@@ -71,7 +71,7 @@ impl Agent {
 
     /// Agents whose accounts may be registered manually in the Account &
     /// Usage Center. Others are discovered, read-only.
-    pub fn registerable(self) -> bool {
+    pub(crate) fn registerable(self) -> bool {
         matches!(
             self,
             Agent::ClaudeCode | Agent::Codex | Agent::GrokBuild | Agent::OpenCode
@@ -81,7 +81,7 @@ impl Agent {
 
 /// Launch/provider adapter identity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Provider {
+pub(crate) enum Provider {
     Anthropic,
     OpenAi,
     Amp,
@@ -93,7 +93,7 @@ pub enum Provider {
 }
 
 impl Provider {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Provider::Anthropic => "Anthropic / Claude",
             Provider::OpenAi => "OpenAI",
@@ -106,7 +106,7 @@ impl Provider {
         }
     }
 
-    pub fn short(self) -> &'static str {
+    pub(crate) fn short(self) -> &'static str {
         match self {
             Provider::Anthropic => "Anthropic",
             Provider::OpenAi => "OpenAI",
@@ -119,7 +119,7 @@ impl Provider {
         }
     }
 
-    pub fn usage_surface(self) -> UsageSurface {
+    pub(crate) fn usage_surface(self) -> UsageSurface {
         match self {
             Provider::Anthropic => UsageSurface::Claude,
             Provider::OpenAi => UsageSurface::Codex,
@@ -133,7 +133,7 @@ impl Provider {
     }
 
     /// The agent runtime this provider serves, when one exists.
-    pub fn agent(self) -> Option<Agent> {
+    pub(crate) fn agent(self) -> Option<Agent> {
         match self {
             Provider::Anthropic => Some(Agent::ClaudeCode),
             Provider::OpenAi => Some(Agent::Codex),
@@ -146,11 +146,11 @@ impl Provider {
     }
 
     /// Only the source-backed Grok fixture carries an endpoint/deployment.
-    pub fn supports_endpoint(self) -> bool {
+    pub(crate) fn supports_endpoint(self) -> bool {
         matches!(self, Provider::XAi)
     }
 
-    pub fn plain_key_label(self) -> &'static str {
+    pub(crate) fn plain_key_label(self) -> &'static str {
         match self {
             Provider::Anthropic => "Anthropic API key",
             Provider::OpenAi => "OpenAI API key",
@@ -163,7 +163,7 @@ impl Provider {
         }
     }
 
-    pub fn folder_label(self) -> &'static str {
+    pub(crate) fn folder_label(self) -> &'static str {
         match self {
             Provider::Anthropic => "Claude profile / home folder",
             Provider::OpenAi => "CODEX_HOME folder",
@@ -179,7 +179,7 @@ impl Provider {
 
 /// Provider-specific quota/account projection registry, in current order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum UsageSurface {
+pub(crate) enum UsageSurface {
     Claude,
     Codex,
     Amp,
@@ -192,7 +192,7 @@ pub enum UsageSurface {
 }
 
 impl UsageSurface {
-    pub const ALL: [UsageSurface; 9] = [
+    pub(crate) const ALL: [UsageSurface; 9] = [
         UsageSurface::Claude,
         UsageSurface::Codex,
         UsageSurface::Amp,
@@ -205,7 +205,7 @@ impl UsageSurface {
     ];
 
     /// Provider label as the Usage registry shows it.
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             UsageSurface::Claude => "Anthropic",
             UsageSurface::Codex => "OpenAI",
@@ -220,7 +220,7 @@ impl UsageSurface {
     }
 
     /// Surface name (what the operator calls the meter).
-    pub fn surface_name(self) -> &'static str {
+    pub(crate) fn surface_name(self) -> &'static str {
         match self {
             UsageSurface::Claude => "Claude",
             UsageSurface::Codex => "Codex",
@@ -234,7 +234,7 @@ impl UsageSurface {
         }
     }
 
-    pub fn provider(self) -> Option<Provider> {
+    pub(crate) fn provider(self) -> Option<Provider> {
         match self {
             UsageSurface::Claude => Some(Provider::Anthropic),
             UsageSurface::Codex => Some(Provider::OpenAi),
@@ -251,7 +251,7 @@ impl UsageSurface {
 
 /// Credential forwarding mode from the core auth registry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AuthMode {
+pub(crate) enum AuthMode {
     /// Forward the host agent's own credentials/profile.
     Sync,
     ApiKey,

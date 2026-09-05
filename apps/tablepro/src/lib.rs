@@ -3,20 +3,30 @@
 //! Database semantics stay in application-owned adapters; terminal behavior
 //! is reached only through the public `junie-tui` facade.
 #![forbid(unsafe_code)]
-
-pub mod connections;
-pub mod db;
-pub mod domain;
-pub mod filter_editor;
-pub mod grid_model;
-pub mod model;
-pub mod sql;
-pub mod tabs;
-pub mod workbench;
+mod connections;
+mod db;
+mod domain;
+mod filter_editor;
+mod grid_model;
+mod model;
+mod sql;
+mod tabs;
+mod workbench;
 
 mod app;
 
 pub use app::{MIN_HEIGHT, MIN_WIDTH, QueryOutcome, Screen, Surface, TableProApp, run};
+/// Stable id for the connection name field.
+pub const CONNECTION_NAME: junie_tui::Id = connections::field::NAME;
+pub use connections::{ConnectionDraft, ConnectionsScreen, form_fields};
+pub use db::{Catalog, ColType, Connection, SafeMode, Table, Value};
+pub use domain::{PendingEdits, ResultGrid};
+pub use filter_editor::{Filter, FilterOp};
+pub use grid_model::preview_for;
+pub use model::{Completion, History, SwitchItem, SwitchTarget, SwitcherIndex, complete};
+pub use sql::{Decision, ResultSet, gate, parse};
+pub use tabs::{ExplorerItem, HistoryTab, QueryTab, Tab, TableTab};
+pub use workbench::Workbench;
 
 #[cfg(test)]
 mod tablepro {

@@ -24,7 +24,7 @@ use ratatui_core::style::Style;
 
 use super::input::{TextAction, TextInput, TextInputState};
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn};
+use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
 use crate::collection::{
     CellDecor, CollectionCore, EmptyState, KeySet, Reconcile, Reconciliation, RowDecor, RowTotal,
@@ -894,7 +894,7 @@ pub struct Grid<'a> {
     select_mode: SelectMode,
     empty: Option<EmptyState<'a>>,
     actions: Option<SlotFn<'a>>,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Grid<'_> {
@@ -933,7 +933,7 @@ impl<'a> Grid<'a> {
             select_mode: SelectMode::Single,
             empty: None,
             actions: None,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -979,14 +979,14 @@ impl<'a> Grid<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -999,11 +999,11 @@ impl<'a> Grid<'a> {
 
     /// The embedded scroll region carrying every owning override (§45.1).
     fn bar(&self) -> ScrollRegion<'a> {
-        let mut r = ScrollRegion::new(self.id).patch_part(self.ov.parts());
-        if let Some(p) = self.ov.global_patch() {
+        let mut r = ScrollRegion::new(self.id).patch_part(self.ov.parts);
+        if let Some(p) = self.ov.patch {
             r = r.patch(p);
         }
-        if let Some((part, f)) = self.ov.slot_entry() {
+        if let Some((part, f)) = self.ov.slot {
             r = r.slot(part, f);
         }
         r
@@ -2436,7 +2436,7 @@ impl Grid<'_> {
         } else {
             StateFlags::empty()
         };
-        let live = Overrides::flags(ui.state(self.id), derived);
+        let live = PartStyle::flags(ui.state(self.id), derived);
         if !inert {
             ui.publish_bindings(self.id, live, &BINDINGS);
         }

@@ -12,7 +12,7 @@ use core::fmt;
 use ratatui_core::layout::Rect;
 
 use super::keyhint::KeyHint;
-use super::{Overrides, SlotFn, first_row, shift};
+use super::{PartStyle, SlotFn, first_row, shift};
 use crate::collection::Status;
 use crate::id::{Id, Part};
 use crate::keymap::HintLayer;
@@ -132,7 +132,7 @@ pub struct HintBar<'a> {
     frame: usize,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for HintBar<'_> {
@@ -172,7 +172,7 @@ impl<'a> HintBar<'a> {
             frame: 0,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -235,7 +235,7 @@ impl<'a> HintBar<'a> {
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.patch = Some(p);
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
@@ -243,7 +243,7 @@ impl<'a> HintBar<'a> {
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -302,7 +302,7 @@ impl<'a> HintBar<'a> {
     ///
     /// [`Ui::resolve`] is §26 N2's `&self` measuring path: it stops at
     /// precedence 5, so an instance `.patch` or `.patch_part` reached this
-    /// cell's *colour* — resolved through [`Overrides::style`] — and could
+    /// cell's *colour* — resolved through [`PartStyle::style`] — and could
     /// not reach its *glyph* (§45.5). Precedence 6 is applied here exactly
     /// as `theme::resolve::bind` applies it on the painting path, so the
     /// measuring and painting answers cannot diverge.
@@ -379,7 +379,7 @@ impl<'a> HintBar<'a> {
         }
         // runtime: none — the bar is chrome and registers no control of
         // its own; derived: the readiness the caller's `.status` declares
-        let live = Overrides::flags(StateFlags::empty(), self.status.flags());
+        let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
@@ -503,7 +503,7 @@ impl<'a> HintBar<'a> {
 
     /// The natural size: one row wide enough for every hint.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let live = Overrides::flags(StateFlags::empty(), self.status.flags());
+        let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
         let hints: u16 = (0..self.layer.hints.len())
             .filter_map(|i| self.hint(i))
             .fold(0u16, |acc, h| {

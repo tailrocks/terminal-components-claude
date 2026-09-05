@@ -12,7 +12,7 @@ use super::keyhint::ChordText;
 use super::scroll_region::ScrollRegion;
 use super::select::{LabelSelect, SelectAction, SelectState};
 use super::textarea::{TextArea, TextAreaState};
-use super::{Acc, Overrides};
+use super::{Acc, PartStyle};
 use crate::action::{Action, ActionKey};
 use crate::collection::KeySet;
 use crate::event::{Chord, KeyCode};
@@ -708,7 +708,7 @@ pub struct Form<'a> {
     enter: EnterPolicy,
     columns: u8,
     group: GroupKey,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     parts: &'a [(Part, StylePatch)],
 }
 
@@ -825,7 +825,7 @@ impl<'a> Form<'a> {
             enter: EnterPolicy::SubmitsWhenIdle,
             columns: 1,
             group: GroupKey::ALL,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             parts: &[],
         }
     }
@@ -868,7 +868,7 @@ impl<'a> Form<'a> {
     /// Set per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(patches);
+        self.ov = self.ov.part(patches);
         self.parts = patches;
         self
     }

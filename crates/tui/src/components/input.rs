@@ -5,7 +5,7 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Overrides, SlotFn, cell_at, first_row, shift};
+use super::{PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::action::ActionKey;
 use crate::collection::{CellUi, Status};
 use crate::event::{Chord, KeyCode, KeyModifiers};
@@ -850,7 +850,7 @@ pub struct TextInput<'a> {
     read_only: bool,
     disabled: bool,
     status: Status,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for TextInput<'_> {
@@ -891,7 +891,7 @@ impl<'a> TextInput<'a> {
             read_only: false,
             disabled: false,
             status: Status::Ready,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -958,14 +958,14 @@ impl<'a> TextInput<'a> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -1226,7 +1226,7 @@ impl<'a> TextInput<'a> {
         let runtime = ui
             .state(self.id)
             .difference(StateFlags::EDITING | StateFlags::SELECTED);
-        let mut live = Overrides::flags(runtime, derived);
+        let mut live = PartStyle::flags(runtime, derived);
         if self.disabled {
             live = live.difference(StateFlags::HOVERED);
         }

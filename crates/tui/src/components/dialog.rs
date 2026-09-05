@@ -9,7 +9,7 @@ use super::button::Button;
 use super::field::Field;
 use super::input::{TextAction, TextInput, TextInputState, redacted_text};
 use super::keyhint::ChordText;
-use super::{Acc, Overrides};
+use super::{Acc, PartStyle};
 use crate::action::{Action, ActionKey};
 use crate::event::{Chord, KeyCode};
 use crate::id::{Id, Part, PartRef};
@@ -271,7 +271,7 @@ pub struct Dialog<'a> {
     body_rows: Option<u16>,
     prompt: Option<&'a str>,
     ack: Option<&'a str>,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Dialog<'_> {
@@ -316,7 +316,7 @@ impl<'a> Dialog<'a> {
             body_rows: None,
             prompt: None,
             ack: None,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -448,14 +448,14 @@ impl<'a> Dialog<'a> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 

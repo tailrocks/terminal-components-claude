@@ -5,7 +5,7 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, SlotFn, cell_at, first_row};
+use super::{PartStyle, SlotFn, cell_at, first_row};
 use crate::id::{Id, Part, PartRef};
 use crate::layout::{Insets, inset};
 use crate::measure::{Constraints, Size};
@@ -115,7 +115,7 @@ pub struct Panel<'a> {
     title: Option<&'a str>,
     meta: Option<&'a str>,
     focused: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Panel<'_> {
@@ -149,7 +149,7 @@ impl<'a> Panel<'a> {
             title: None,
             meta: None,
             focused: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -189,14 +189,14 @@ impl<'a> Panel<'a> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -320,7 +320,7 @@ impl<'a> Panel<'a> {
     fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
         let ov = self.ov;
         let id = self.id;
-        let live = Overrides::flags(StateFlags::empty(), self.derived());
+        let live = PartStyle::flags(StateFlags::empty(), self.derived());
         let container = ov.style(
             ui,
             id,

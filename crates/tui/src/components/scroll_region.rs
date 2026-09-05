@@ -4,7 +4,7 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Overrides, SlotFn};
+use super::{PartStyle, SlotFn};
 use crate::hit::Axes;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -84,7 +84,7 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 #[derive(Clone, Copy)]
@@ -115,7 +115,7 @@ impl<'a> ScrollRegion<'a> {
         ScrollRegion {
             id,
             family: Family::SCROLLBAR,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -128,14 +128,14 @@ impl<'a> ScrollRegion<'a> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 

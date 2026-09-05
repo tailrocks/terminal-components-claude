@@ -6,7 +6,7 @@
 
 use junie_tui::{Axis, ColumnKey, GridModel, ItemKey, KeyCode, SortDir, Theme};
 use junie_tui_testing::{Harness, perf};
-use tablepro_app::{QueryOutcome, TableProApp};
+use tablepro_app::{ColType, QueryOutcome, ResultGrid, ResultSet, TableProApp, Value};
 
 #[global_allocator]
 static GLOBAL: perf::Counting = perf::Counting;
@@ -56,18 +56,18 @@ fn key_tablepro_grid_sort_local() {
 fn grid_100k_local_sort() {
     let _guard = perf::lock();
     let n = perf::big(100_000);
-    let result = tablepro_app::sql::ResultSet {
-        columns: vec![("id".to_owned(), tablepro_app::db::ColType::Int)],
+    let result = ResultSet {
+        columns: vec![("id".to_owned(), ColType::Int)],
         rows: (0..n)
             .rev()
-            .map(|value| vec![tablepro_app::db::Value::Int(value as i64)])
+            .map(|value| vec![Value::Int(value as i64)])
             .collect(),
         total: n,
         source: Some("public.orders".to_owned()),
         duration_ms: 0,
         editable: false,
     };
-    let mut grid = tablepro_app::domain::ResultGrid::from_result(&result);
+    let mut grid = ResultGrid::from_result(&result);
     let stats = perf::bench(0, perf::iters(2), &mut || {
         grid.sort(ColumnKey::num(1), SortDir::Asc);
         grid.sort(ColumnKey::num(1), SortDir::Desc);

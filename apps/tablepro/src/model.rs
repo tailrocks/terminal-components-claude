@@ -7,7 +7,7 @@ use crate::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
 
 /// Origin of a history entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HistorySource {
+pub(crate) enum HistorySource {
     /// Editor execution.
     Editor,
     /// Explain-plan execution.
@@ -22,7 +22,11 @@ pub enum HistorySource {
 
 impl HistorySource {
     /// Human-readable source label.
-    pub const fn label(self) -> &'static str {
+    #[allow(
+        dead_code,
+        reason = "history labels remain available to the private history adapter"
+    )]
+    pub(crate) const fn label(self) -> &'static str {
         match self {
             Self::Editor => "Editor",
             Self::Explain => "Explain",
@@ -35,36 +39,36 @@ impl HistorySource {
 
 /// One query-history record.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HistoryEntry {
+pub(crate) struct HistoryEntry {
     /// Stable id.
-    pub id: usize,
+    pub(crate) id: usize,
     /// SQL text.
-    pub sql: String,
+    pub(crate) sql: String,
     /// Connection name.
-    pub connection: String,
+    pub(crate) connection: String,
     /// Database name.
-    pub database: String,
+    pub(crate) database: String,
     /// Schema name.
-    pub schema: String,
+    pub(crate) schema: String,
     /// Deterministic age in minutes.
-    pub minutes_ago: u32,
+    pub(crate) minutes_ago: u32,
     /// Duration in milliseconds.
-    pub duration_ms: Option<u32>,
+    pub(crate) duration_ms: Option<u32>,
     /// Returned/affected rows.
-    pub rows: Option<usize>,
+    pub(crate) rows: Option<usize>,
     /// Error, when execution failed.
-    pub error: Option<String>,
+    pub(crate) error: Option<String>,
     /// Origin surface.
-    pub source: HistorySource,
+    pub(crate) source: HistorySource,
 }
 
 impl HistoryEntry {
     /// Whether execution succeeded.
-    pub fn ok(&self) -> bool {
+    pub(crate) fn ok(&self) -> bool {
         self.error.is_none()
     }
     /// First line for compact rows.
-    pub fn first_line(&self) -> String {
+    pub(crate) fn first_line(&self) -> String {
         let mut lines = self.sql.lines();
         let first = lines.next().unwrap_or_default().trim();
         if lines.next().is_some() {
@@ -74,7 +78,7 @@ impl HistoryEntry {
         }
     }
     /// Stable relative time label.
-    pub fn when(&self) -> String {
+    pub(crate) fn when(&self) -> String {
         match self.minutes_ago {
             0 => "just now".to_owned(),
             n if n < 60 => format!("{n} min ago"),
@@ -83,7 +87,11 @@ impl HistoryEntry {
         }
     }
     /// Stable duration label.
-    pub fn duration(&self) -> String {
+    #[allow(
+        dead_code,
+        reason = "history duration remains available to the private history adapter"
+    )]
+    pub(crate) fn duration(&self) -> String {
         match self.duration_ms {
             None => "–".to_owned(),
             Some(0) => "<1 ms".to_owned(),
@@ -98,7 +106,7 @@ impl HistoryEntry {
 #[derive(Debug, Clone, Default)]
 pub struct History {
     /// Entries, newest first.
-    pub entries: Vec<HistoryEntry>,
+    pub(crate) entries: Vec<HistoryEntry>,
     next_id: usize,
 }
 
@@ -194,15 +202,20 @@ impl History {
         }
         out
     }
+
+    /// Whether this history contains no entries.
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
     /// Add an entry and retain the newest 10,000 records.
-    pub fn push(&mut self, mut entry: HistoryEntry) {
+    pub(crate) fn push(&mut self, mut entry: HistoryEntry) {
         self.next_id = self.next_id.saturating_add(1);
         entry.id = self.next_id;
         self.entries.insert(0, entry);
         self.entries.truncate(10_000);
     }
     /// Search with case-insensitive AND semantics.
-    pub fn search<'a>(
+    pub(crate) fn search<'a>(
         &'a self,
         query: &str,
         connection: Option<&str>,
@@ -229,7 +242,7 @@ impl History {
 
 /// Completion item category.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CompletionKind {
+pub(crate) enum CompletionKind {
     /// SQL keyword.
     Keyword,
     /// Relation name.
@@ -248,14 +261,14 @@ pub struct Completion {
     /// Display label.
     pub label: String,
     /// Completion category.
-    pub kind: CompletionKind,
+    pub(crate) kind: CompletionKind,
     /// Fuzzy-match score.
     pub score: u32,
 }
 
 /// SQL context at a cursor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Clause {
+pub(crate) enum Clause {
     /// Beginning of a statement.
     Statement,
     /// After a relation-introducing clause.
@@ -267,7 +280,7 @@ pub enum Clause {
 }
 
 /// Infer completion context from the preceding token.
-pub fn context(source: &str, cursor: usize) -> Clause {
+pub(crate) fn context(source: &str, cursor: usize) -> Clause {
     let prefix = source.get(..cursor.min(source.len())).unwrap_or(source);
     let tokens = tokenize(prefix);
     let last = tokens
@@ -358,7 +371,11 @@ pub fn complete(source: &str, cursor: usize, catalog: &Catalog) -> Vec<Completio
 }
 
 /// Whether completion should open automatically at this cursor.
-pub fn auto_trigger(source: &str, cursor: usize) -> bool {
+#[allow(
+    dead_code,
+    reason = "completion trigger remains available to the private editor adapter"
+)]
+pub(crate) fn auto_trigger(source: &str, cursor: usize) -> bool {
     let prefix = source.get(..cursor.min(source.len())).unwrap_or(source);
     let ch = prefix.chars().next_back();
     matches!(ch, Some('.' | ' ' | '\n') | None)
@@ -457,7 +474,11 @@ impl SwitcherIndex {
 }
 
 /// Return the columns of a table for filter/editor construction.
-pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
+#[allow(
+    dead_code,
+    reason = "column projection remains available to the private editor adapter"
+)]
+pub(crate) fn table_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
         .iter()
@@ -466,7 +487,11 @@ pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
 }
 
 /// Explicit app-level wrapper around the SQL tokenizer for tests and editor UI.
-pub fn statement_tokens(source: &str) -> Vec<String> {
+#[allow(
+    dead_code,
+    reason = "token projection remains available to the private editor adapter"
+)]
+pub(crate) fn statement_tokens(source: &str) -> Vec<String> {
     tokenize(source)
         .into_iter()
         .filter_map(|token| source.get(token.start..token.end).map(str::to_owned))

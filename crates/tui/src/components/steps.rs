@@ -17,7 +17,7 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn, cell_at};
+use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
 };
@@ -386,11 +386,11 @@ pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     step: Option<&'a dyn Fn(&T) -> StepState>,
     navigable: bool,
     disabled: bool,
-    ov: Overrides<'a>,
-    /// The same three override channels again, kept because `Overrides` has
+    ov: PartStyle<'a>,
+    /// The same three override channels again, kept because `PartStyle` has
     /// no readers: forwarding a caller's `.patch` / `.patch_part` / `.slot`
     /// into the embedded [`ScrollRegion`] is the §45.1 defect `List` still
-    /// carries, and it cannot be done from the stored `Overrides` alone.
+    /// carries, and it cannot be done from the stored `PartStyle` alone.
     fwd_patch: Option<&'a StylePatch>,
     fwd_parts: &'a [(Part, StylePatch)],
     fwd_slot: Option<(Part, SlotFn<'a>)>,
@@ -419,7 +419,7 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
             step: None,
             navigable: false,
             disabled: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             fwd_patch: None,
             fwd_parts: &[],
             fwd_slot: None,
@@ -515,7 +515,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self.fwd_patch = Some(p);
         self
     }
@@ -523,7 +523,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self.fwd_parts = ps;
         self
     }
@@ -815,7 +815,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
             };
             ui.register_control(self.id, area, f);
         }
-        let live = Overrides::flags(ui.state(self.id), self.derived());
+        let live = PartStyle::flags(ui.state(self.id), self.derived());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }

@@ -9,7 +9,7 @@ use crate::sql::{self, PlanNode};
 
 /// Table tab body.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TableMode {
+pub(crate) enum TableMode {
     /// Data grid mode.
     Data,
     /// Structure grid mode.
@@ -22,7 +22,7 @@ pub struct TableTab {
     /// Catalog table.
     pub table: Table,
     /// Current mode.
-    pub mode: TableMode,
+    pub(crate) mode: TableMode,
     /// Data result adapter.
     pub result: ResultGrid,
     /// Active local filters.
@@ -139,7 +139,7 @@ pub struct QueryTab {
     /// Last execution error.
     pub error: Option<String>,
     /// Last explain plan.
-    pub plan: Option<PlanNode>,
+    pub(crate) plan: Option<PlanNode>,
     /// Whether execution is in flight.
     pub running: bool,
 }
@@ -202,7 +202,7 @@ pub struct HistoryTab {
     /// Selected entry index.
     pub selected: usize,
     /// Filtered entries.
-    pub entries: Vec<HistoryEntry>,
+    pub(crate) entries: Vec<HistoryEntry>,
 }
 
 impl HistoryTab {
@@ -266,13 +266,13 @@ pub struct ExplorerItem {
     /// Object name.
     pub name: String,
     /// Catalog object kind.
-    pub kind: crate::db::ObjectKind,
+    pub(crate) kind: crate::db::ObjectKind,
     /// Estimated row count.
     pub rows: usize,
 }
 
 /// Build explorer rows from a catalog.
-pub fn explorer_items(catalog: &Catalog) -> Vec<ExplorerItem> {
+pub(crate) fn explorer_items(catalog: &Catalog) -> Vec<ExplorerItem> {
     catalog
         .tables
         .iter()

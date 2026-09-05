@@ -19,7 +19,7 @@
 pub(crate) mod action;
 pub(crate) mod capture;
 pub(crate) mod collection;
-pub mod components;
+pub(crate) mod components;
 pub(crate) mod cursor;
 pub(crate) mod diagnostics;
 pub(crate) mod event;

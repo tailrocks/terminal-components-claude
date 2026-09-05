@@ -26,14 +26,14 @@ use crate::domain::workspace::{
 use crate::sim::onepassword::SimOnePassword;
 use crate::sim::provider;
 
-pub const HOME: &str = "/Users/alexey";
-pub const PAYMENTS_WORKSPACE: WorkspaceId = 1;
-pub const PAYMENTS_WORKSPACE_NAME: &str = "payments-platform";
-pub const PAYMENTS_WORKDIR: &str = "/Users/alexey/src/payments-platform";
+pub(crate) const HOME: &str = "/Users/alexey";
+pub(crate) const PAYMENTS_WORKSPACE: WorkspaceId = 1;
+pub(crate) const PAYMENTS_WORKSPACE_NAME: &str = "payments-platform";
+pub(crate) const PAYMENTS_WORKDIR: &str = "/Users/alexey/src/payments-platform";
 
 /// Precedence used when selecting the account for one agent session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PrecedenceLevel {
+pub(crate) enum PrecedenceLevel {
     Session,
     Role,
     Workspace,
@@ -43,7 +43,7 @@ pub enum PrecedenceLevel {
 
 /// A resolved account plus the source of the decision.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResolvedAccount {
+pub(crate) struct ResolvedAccount {
     pub account: Option<AccountId>,
     pub level: Option<PrecedenceLevel>,
     pub reason: String,
@@ -51,7 +51,7 @@ pub struct ResolvedAccount {
 
 /// Build an id-only 1Password reference. It names metadata; it never embeds
 /// or derives a credential value.
-pub fn op_reference(
+pub(crate) fn op_reference(
     vault_id: &str,
     vault_name: &str,
     item_id: &str,
@@ -72,7 +72,7 @@ pub fn op_reference(
 /// Resolve the account with explicit session > role > workspace > global >
 /// discovered precedence. Invalid or disabled choices are not silently
 /// treated as usable selections.
-pub fn resolve_account(
+pub(crate) fn resolve_account(
     provider: Provider,
     workspace: Option<&Workspace>,
     role: Option<&str>,
@@ -158,7 +158,7 @@ fn validated(
 }
 
 /// Accounts shared by the populated scenarios.
-pub fn fixture_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
+pub(crate) fn fixture_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     let mut registry = AccountRegistry::default();
 
     let mut anthropic = validated(
@@ -513,7 +513,7 @@ fn handle(subject: &str) -> AccountIdentity {
 }
 
 /// Roles visible in the role picker.
-pub fn fixture_roles() -> Vec<RoleEntry> {
+pub(crate) fn fixture_roles() -> Vec<RoleEntry> {
     vec![
         RoleEntry {
             namespace: "chainargos".into(),
@@ -556,7 +556,7 @@ pub fn fixture_roles() -> Vec<RoleEntry> {
 /// Scenario-specific Role registry.  Hard-case fixtures intentionally carry
 /// a large registry so keyed pickers and scoped configuration do not regress
 /// to positional selection when more than one screenful is present.
-pub fn fixture_roles_for(scenario: crate::scenario::Scenario) -> Vec<RoleEntry> {
+pub(crate) fn fixture_roles_for(scenario: crate::scenario::Scenario) -> Vec<RoleEntry> {
     let mut roles = fixture_roles();
     if scenario == crate::scenario::Scenario::HardCases {
         roles.extend((1..=128).map(|index| RoleEntry {
@@ -577,7 +577,7 @@ pub fn fixture_roles_for(scenario: crate::scenario::Scenario) -> Vec<RoleEntry> 
 
 /// Scenario-specific Workspace registry.  The extra records are durable
 /// fixture data; they are not inferred from live daemon snapshots.
-pub fn fixture_workspaces_for(scenario: crate::scenario::Scenario) -> Vec<Workspace> {
+pub(crate) fn fixture_workspaces_for(scenario: crate::scenario::Scenario) -> Vec<Workspace> {
     let mut workspaces = vec![fixture_workspace()];
     if scenario == crate::scenario::Scenario::HardCases {
         for (id, name) in [
@@ -605,7 +605,7 @@ pub fn fixture_workspaces_for(scenario: crate::scenario::Scenario) -> Vec<Worksp
 
 /// Hard-case account registry with the revoked xAI record added to the
 /// complete mixed-provider fixture.
-pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
+pub(crate) fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     let mut registry = fixture_accounts(op, now);
     let mut revoked = account_with_source(
         "acct-grok-revoked",
@@ -633,7 +633,7 @@ pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
 }
 
 /// The saved Workspace used by the manager and launch fixtures.
-pub fn fixture_workspace() -> Workspace {
+pub(crate) fn fixture_workspace() -> Workspace {
     let mut workspace = Workspace::new(
         PAYMENTS_WORKSPACE,
         PAYMENTS_WORKSPACE_NAME,
@@ -684,7 +684,7 @@ pub fn fixture_workspace() -> Workspace {
 }
 
 /// A live instance with independent persisted manifest and daemon snapshot.
-pub fn fixture_instance(
+pub(crate) fn fixture_instance(
     status: InstanceStatus,
     run_id: RunId,
     now: i64,
@@ -733,7 +733,7 @@ fn instance_id_for(status: InstanceStatus) -> InstanceId {
 }
 
 /// Daemon state for the primary Capsule fixture.
-pub fn live_capsule() -> DaemonSnapshot {
+pub(crate) fn live_capsule() -> DaemonSnapshot {
     DaemonSnapshot::Tabs(vec![
         TabSnapshot {
             label: "payments review".into(),
@@ -768,7 +768,7 @@ pub fn live_capsule() -> DaemonSnapshot {
 
 /// Useful only for tests and diagnostics: all populated fixture records are
 /// deterministic and contain no resolved credential material.
-pub fn fixture_metadata(op: &SimOnePassword) -> (usize, usize) {
+pub(crate) fn fixture_metadata(op: &SimOnePassword) -> (usize, usize) {
     let accounts = op.accounts.len();
     let fields = op
         .accounts

@@ -3,7 +3,6 @@
 //! SELECT the demo needs, and synthesize believable EXPLAIN plans.
 
 #![allow(
-    missing_docs,
     clippy::arithmetic_side_effects,
     clippy::indexing_slicing,
     clippy::too_many_lines,
@@ -15,7 +14,7 @@ use crate::db::{Catalog, ColType, Table, Value};
 // ------------------------------------------------------------- tokenizer
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokKind {
+pub(crate) enum TokKind {
     Keyword,
     Ident,
     Number,
@@ -27,13 +26,13 @@ pub enum TokKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Token {
-    pub kind: TokKind,
-    pub start: usize,
-    pub end: usize,
+pub(crate) struct Token {
+    pub(crate) kind: TokKind,
+    pub(crate) start: usize,
+    pub(crate) end: usize,
 }
 
-pub const KEYWORDS: &[&str] = &[
+pub(crate) const KEYWORDS: &[&str] = &[
     "SELECT",
     "FROM",
     "WHERE",
@@ -126,7 +125,7 @@ pub const KEYWORDS: &[&str] = &[
     "REINDEX",
 ];
 
-pub const FUNCTIONS: &[&str] = &[
+pub(crate) const FUNCTIONS: &[&str] = &[
     "count",
     "sum",
     "avg",
@@ -147,12 +146,12 @@ pub const FUNCTIONS: &[&str] = &[
     "gen_random_uuid",
 ];
 
-pub fn is_keyword(word: &str) -> bool {
+pub(crate) fn is_keyword(word: &str) -> bool {
     let up = word.to_ascii_uppercase();
     KEYWORDS.contains(&up.as_str())
 }
 
-pub fn tokenize(src: &str) -> Vec<Token> {
+pub(crate) fn tokenize(src: &str) -> Vec<Token> {
     let b = src.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
@@ -223,7 +222,8 @@ pub fn tokenize(src: &str) -> Vec<Token> {
 }
 
 /// Byte ranges of the individual statements (split on `;` outside strings).
-pub fn split_statements(src: &str) -> Vec<(usize, usize)> {
+#[cfg(test)]
+pub(crate) fn split_statements(src: &str) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut start = 0;
     for t in tokenize(src) {
@@ -242,6 +242,7 @@ pub fn split_statements(src: &str) -> Vec<(usize, usize)> {
     out
 }
 
+#[cfg(test)]
 fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
     while a < b && src.as_bytes()[a].is_ascii_whitespace() {
         a += 1;
@@ -253,7 +254,8 @@ fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
 }
 
 /// The statement containing byte `cursor` (or the nearest one before it).
-pub fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
+#[cfg(test)]
+pub(crate) fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
     let stmts = split_statements(src);
     stmts
         .iter()
@@ -265,75 +267,124 @@ pub fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
 
 // ------------------------------------------------------------- parsing
 
+/// Comparison predicate used by a parsed `WHERE` clause.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Cmp {
+    /// Equality.
     Eq,
+    /// Inequality.
     Ne,
+    /// Greater-than comparison.
     Gt,
+    /// Greater-than-or-equal comparison.
     Ge,
+    /// Less-than comparison.
     Lt,
+    /// Less-than-or-equal comparison.
     Le,
+    /// SQL `LIKE` comparison.
     Like,
+    /// SQL `IS NULL` comparison.
     IsNull,
+    /// SQL `IS NOT NULL` comparison.
     IsNotNull,
+    /// SQL `IN` comparison.
     In(Vec<String>),
 }
 
+/// One parsed column predicate.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Predicate {
+    /// Column name.
     pub column: String,
+    /// Comparison operator and operands.
     pub cmp: Cmp,
+    /// Primary comparison value.
     pub value: String,
 }
 
+/// Parsed `SELECT` statement.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Select {
+    /// Projection names, or `*`.
     pub columns: Vec<String>,
+    /// Optional schema qualifier.
     pub schema: Option<String>,
+    /// Relation name.
     pub table: String,
+    /// Predicates applied to the relation.
     pub predicates: Vec<Predicate>,
+    /// Optional `(column, descending)` ordering.
     pub order: Option<(String, bool)>,
+    /// Optional row limit.
     pub limit: Option<usize>,
+    /// Whether this is a `count(*)` projection.
     pub count_only: bool,
 }
 
+/// Parsed statement in the supported deterministic SQL subset.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
+    /// A row-selecting query.
     Select(Select),
+    /// An update statement.
     Update {
+        /// Target relation.
         table: String,
+        /// Whether a predicate is present.
         has_where: bool,
     },
+    /// A delete statement.
     Delete {
+        /// Target relation.
         table: String,
+        /// Whether a predicate is present.
         has_where: bool,
     },
+    /// An insert statement.
     Insert {
+        /// Target relation.
         table: String,
     },
+    /// A drop statement.
     Drop {
+        /// Object kind.
         kind: String,
+        /// Object name.
         name: String,
     },
+    /// A truncate statement.
     Truncate {
+        /// Target relation.
         table: String,
     },
+    /// An alter statement.
     Alter {
+        /// Target relation.
         table: String,
+        /// Whether the alter is destructive.
         destructive: bool,
     },
+    /// A create statement.
     Create {
+        /// Object kind.
         kind: String,
+        /// Object name.
         name: String,
     },
+    /// An explain wrapper.
     Explain {
+        /// Whether execution analysis is requested.
         analyze: bool,
+        /// Wrapped statement.
         inner: Box<Statement>,
     },
+    /// A statement retained as unsupported text.
     Other(String),
 }
 
 impl Statement {
+    /// Return the normalized verb for this statement.
     pub fn verb(&self) -> &'static str {
         match self {
             Statement::Select(_) => "SELECT",
@@ -349,6 +400,7 @@ impl Statement {
         }
     }
 
+    /// Return the primary relation or object target, when present.
     pub fn target(&self) -> Option<&str> {
         match self {
             Statement::Select(s) => Some(&s.table),
@@ -419,8 +471,10 @@ impl<'a> Words<'a> {
     }
 }
 
+/// Error returned when parsing a statement fails.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
+    /// Human-readable parse error.
     pub message: String,
     /// Byte offset within the statement.
     pub at: usize,
@@ -709,13 +763,13 @@ fn parse_select(w: &mut Words<'_>) -> Result<Select, ParseError> {
 //               level asks for it; Safe Mode levels add a deliberate step.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Tier {
+pub(crate) enum Tier {
     Safe,
     Write,
     Destructive,
 }
 
-pub fn tier(stmt: &Statement) -> Tier {
+pub(crate) fn tier(stmt: &Statement) -> Tier {
     match stmt {
         Statement::Select(_) => Tier::Safe,
         Statement::Explain { inner, .. } => tier(inner),
@@ -729,7 +783,7 @@ pub fn tier(stmt: &Statement) -> Tier {
 }
 
 /// `TablePro`'s `isDangerousQuery`: destructive, or DELETE with no WHERE.
-pub fn is_dangerous(stmt: &Statement) -> bool {
+pub(crate) fn is_dangerous(stmt: &Statement) -> bool {
     match stmt {
         Statement::Explain { inner, .. } => is_dangerous(inner),
         _ => {
@@ -745,18 +799,22 @@ pub fn is_dangerous(stmt: &Statement) -> bool {
     }
 }
 
+/// Result of applying the safety policy to a parsed statement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Decision {
+    /// Execute the statement immediately.
     Run,
     /// Ask first. `deliberate` = Safe Mode levels: the terminal substitute
     /// for Touch ID is typing the target name.
     Confirm {
+        /// Whether the caller must provide a deliberate acknowledgement.
         deliberate: bool,
     },
     /// Read-only connection refuses writes.
     Deny,
 }
 
+/// Apply the configured safety policy to a parsed statement.
 pub fn gate(level: crate::db::SafeMode, stmt: &Statement) -> Decision {
     let t = tier(stmt);
     let write = t != Tier::Safe;
@@ -773,16 +831,16 @@ pub fn gate(level: crate::db::SafeMode, stmt: &Statement) -> Decision {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Risk {
-    pub tier: Tier,
-    pub dangerous: bool,
-    pub action: String,
-    pub scope: String,
-    pub risk: String,
-    pub reversible: &'static str,
+pub(crate) struct Risk {
+    pub(crate) tier: Tier,
+    pub(crate) dangerous: bool,
+    pub(crate) action: String,
+    pub(crate) scope: String,
+    pub(crate) risk: String,
+    pub(crate) reversible: &'static str,
 }
 
-pub fn fmt_rows(n: usize) -> String {
+pub(crate) fn fmt_rows(n: usize) -> String {
     if n >= 1_000_000 {
         format!("{:.1} M", n as f64 / 1e6)
     } else if n >= 1000 {
@@ -792,7 +850,7 @@ pub fn fmt_rows(n: usize) -> String {
     }
 }
 
-pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
+pub(crate) fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
     let rows = table.map_or(0, |t| t.row_count);
     let t = tier(stmt);
     let dangerous = is_dangerous(stmt);
@@ -898,13 +956,18 @@ pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
 
 // ------------------------------------------------------------- execution
 
+/// Deterministic rows returned by the demo executor.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ResultSet {
+    /// Column names and storage types.
     pub columns: Vec<(String, ColType)>,
+    /// Materialized result rows.
     pub rows: Vec<Vec<Value>>,
     /// Total rows the query matches (rows may be truncated by LIMIT / cap).
     pub total: usize,
+    /// Source relation, when one exists.
     pub source: Option<String>,
+    /// Deterministic simulated execution duration.
     pub duration_ms: u32,
     /// True when the result comes from a single table with a primary key
     /// (so cells can be edited).
@@ -912,15 +975,15 @@ pub struct ResultSet {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ExecError {
-    pub message: String,
-    pub detail: Option<String>,
+pub(crate) struct ExecError {
+    pub(crate) message: String,
+    pub(crate) detail: Option<String>,
     /// Byte offset within the statement, when known.
-    pub at: Option<usize>,
+    pub(crate) at: Option<usize>,
 }
 
 /// Maximum rows materialised for a single result.
-pub const ROW_CAP: usize = 500;
+pub(crate) const ROW_CAP: usize = 500;
 
 fn matches(pred: &Predicate, table: &Table, row: &[Value]) -> bool {
     let Some(ci) = table
@@ -967,7 +1030,7 @@ fn matches(pred: &Predicate, table: &Table, row: &[Value]) -> bool {
     }
 }
 
-pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
+pub(crate) fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
     match (a, b) {
         (Value::Null, Value::Null) => std::cmp::Ordering::Equal,
         (Value::Null, _) => std::cmp::Ordering::Greater,
@@ -986,7 +1049,7 @@ pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
 ///
 /// Returns an [`ExecError`] when the relation, projected column, predicate,
 /// or order column is not present in the catalog.
-pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
+pub(crate) fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
         .ok_or_else(|| ExecError {
@@ -1130,16 +1193,16 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
 // ------------------------------------------------------------- EXPLAIN
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct PlanNode {
-    pub op: String,
-    pub relation: Option<String>,
-    pub detail: Vec<(String, String)>,
-    pub cost: (f64, f64),
-    pub rows: usize,
-    pub actual_ms: Option<f64>,
-    pub loops: usize,
-    pub warning: Option<String>,
-    pub children: Vec<PlanNode>,
+pub(crate) struct PlanNode {
+    pub(crate) op: String,
+    pub(crate) relation: Option<String>,
+    pub(crate) detail: Vec<(String, String)>,
+    pub(crate) cost: (f64, f64),
+    pub(crate) rows: usize,
+    pub(crate) actual_ms: Option<f64>,
+    pub(crate) loops: usize,
+    pub(crate) warning: Option<String>,
+    pub(crate) children: Vec<PlanNode>,
 }
 
 /// Build a deterministic PostgreSQL-style plan for a SELECT.
@@ -1147,7 +1210,7 @@ pub struct PlanNode {
 /// # Errors
 ///
 /// Returns an [`ExecError`] when the relation is not present in the catalog.
-pub fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, ExecError> {
+pub(crate) fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
         .ok_or_else(|| ExecError {
@@ -1348,7 +1411,7 @@ fn cmp_sym(c: &Cmp) -> &'static str {
     }
 }
 
-pub fn fmt_int(n: usize) -> String {
+pub(crate) fn fmt_int(n: usize) -> String {
     let s = n.to_string();
     let mut out = String::new();
     for (i, ch) in s.chars().enumerate() {
@@ -1361,7 +1424,8 @@ pub fn fmt_int(n: usize) -> String {
 }
 
 /// Render a plan as PostgreSQL-style text lines.
-pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
+#[cfg(test)]
+pub(crate) fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
     let indent = "  ".repeat(depth);
     let arrow = if depth == 0 { "" } else { "->  " };
     let rel = node

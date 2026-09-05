@@ -2,7 +2,7 @@
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, SlotFn};
+use super::{PartStyle, SlotFn};
 use crate::collection::empty::{CenteredText, draw_centered};
 use crate::collection::{EmptyState, Status};
 use crate::event::{Chord, KeyCode};
@@ -161,7 +161,7 @@ pub struct PickerChain<'a> {
     id: Id,
     stages: &'a [PickerStage<'a>],
     empty: Option<EmptyState<'a>>,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl<'a> PickerChain<'a> {
@@ -181,7 +181,7 @@ impl<'a> PickerChain<'a> {
             id,
             stages,
             empty: None,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -194,13 +194,13 @@ impl<'a> PickerChain<'a> {
     /// Patch every part.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
     /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(parts);
+        self.ov = self.ov.part(parts);
         self
     }
     /// Replace a supported part painter.
@@ -314,7 +314,7 @@ impl<'a> PickerChain<'a> {
         let derived = self
             .active(st)
             .map_or(StateFlags::empty(), |s| s.status.flags());
-        let live = Overrides::flags(ui.state(self.id), derived);
+        let live = PartStyle::flags(ui.state(self.id), derived);
         let base_live = live.difference(
             StateFlags::FOCUSED
                 | StateFlags::FOCUS_VISIBLE

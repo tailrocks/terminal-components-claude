@@ -4,7 +4,7 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
+use super::{PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
 use crate::collection::Status;
 use crate::event::{Chord, KeyCode};
@@ -142,7 +142,7 @@ pub struct Button<'a> {
     autofocus: bool,
     status: Status,
     checked: Option<bool>,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Button<'_> {
@@ -180,7 +180,7 @@ impl<'a> Button<'a> {
             autofocus: false,
             status: Status::Ready,
             checked: None,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -236,14 +236,14 @@ impl<'a> Button<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -390,7 +390,7 @@ impl<'a> Button<'a> {
         if self.checked == Some(true) {
             derived |= StateFlags::CHECKED | StateFlags::SELECTED;
         }
-        let mut live = Overrides::flags(ui.state(self.id), derived);
+        let mut live = PartStyle::flags(ui.state(self.id), derived);
         if self.checked != Some(true) {
             live = live.difference(StateFlags::SELECTED);
         }

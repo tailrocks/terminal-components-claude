@@ -22,7 +22,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Modifier, Style};
 
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn};
+use super::{Acc, PartStyle, SlotFn};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -1068,15 +1068,15 @@ impl<'a> TextViewport<'a> {
 
     /// The instance overrides, assembled from the builders.
     ///
-    /// They are stored as their arguments rather than as one `Overrides`
+    /// They are stored as their arguments rather than as one `PartStyle`
     /// because the nested [`ScrollRegion`] takes them through its **own**
     /// builders, and §45.1 found four components constructing a nested
     /// component bare and silently dropping the caller's `.patch_part` and
     /// `.slot`.
-    fn overrides(&self) -> Overrides<'a> {
-        let mut ov = Overrides::new().patch_part(self.parts);
+    fn overrides(&self) -> PartStyle<'a> {
+        let mut ov = PartStyle::new().part(self.parts);
         if let Some(p) = self.patch {
-            ov = ov.patch(p);
+            ov = ov.global(p);
         }
         if let Some((p, f)) = self.slot {
             ov = ov.slot(p, f);
@@ -1378,7 +1378,7 @@ impl<'a> TextViewport<'a> {
         let ov = self.overrides();
         let id = self.id;
         let runtime = ui.state(id).difference(StateFlags::SELECTED);
-        let live = Overrides::flags(runtime, StateFlags::empty());
+        let live = PartStyle::flags(runtime, StateFlags::empty());
         let text_w = Self::text_width(area.width);
         let key = self.layout_key(st, text_w);
         let (total, indexed) = {
@@ -1509,7 +1509,7 @@ impl<'a> TextViewport<'a> {
     }
 
     /// The focus gutter column.
-    fn gutter(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, ov: &Overrides<'a>) {
+    fn gutter(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, ov: &PartStyle<'a>) {
         let col = Rect {
             x: area.x,
             y: area.y,

@@ -10,13 +10,9 @@
 
 use junie_tui::GridEditor;
 use tablepro_app::{
-    QueryOutcome, Screen, Surface, TableProApp,
-    connections::ConnectionDraft,
-    db::{self, SafeMode, Value},
-    filter_editor::{Filter, FilterOp},
-    grid_model::{self, PendingEdits},
-    model::History,
-    tabs::Tab,
+    CONNECTION_NAME, Catalog, ConnectionDraft, Decision, Filter, FilterOp, History, PendingEdits,
+    QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
+    form_fields, gate, parse, preview_for,
 };
 
 fn connected() -> TableProApp {
@@ -94,8 +90,7 @@ fn editor_completion_and_execution() {
             editable: true
         }
     );
-    let completions =
-        tablepro_app::model::complete("SELECT * FROM ord", 16, &db::Catalog::acme_prod());
+    let completions = complete("SELECT * FROM ord", 16, &Catalog::acme_prod());
     assert!(completions.iter().any(|item| item.label == "orders"));
 }
 #[test]
@@ -179,12 +174,8 @@ fn read_only_connection_refuses_writes() {
 fn silent_level_runs_scoped_writes_but_confirms_destructive() {
     let mut app = connected();
     app.set_safe_mode(SafeMode::Silent);
-    let statement = tablepro_app::sql::parse("UPDATE orders SET status = 'paid' WHERE id = 7")
-        .expect("write parses");
-    assert_eq!(
-        tablepro_app::sql::gate(SafeMode::Silent, &statement),
-        tablepro_app::sql::Decision::Run
-    );
+    let statement = parse("UPDATE orders SET status = 'paid' WHERE id = 7").expect("write parses");
+    assert_eq!(gate(SafeMode::Silent, &statement), Decision::Run);
     assert!(matches!(
         app.run_query("TRUNCATE orders"),
         QueryOutcome::ConfirmationRequired { .. }
@@ -209,7 +200,7 @@ fn history_tab_reopens_query() {
         app.workbench.tabs.get(index),
         Some(Tab::History(_))
     ));
-    assert!(!app.workbench.history.entries.is_empty());
+    assert!(!app.workbench.history.is_empty());
 }
 #[test]
 fn tab_strip_overflow_and_tab_list() {
@@ -288,7 +279,7 @@ fn mouse_flow_full_journey() {
 }
 #[test]
 fn connection_form_keyboard_and_mouse_reach_every_field() {
-    let fields = tablepro_app::connections::form_fields();
+    let fields = form_fields();
     assert_eq!(fields.len(), 15);
     let ids: Vec<_> = fields.iter().map(|field| field.id).collect();
     ids.windows(2).for_each(|pair| assert_ne!(pair[0], pair[1]));
@@ -298,7 +289,7 @@ fn connection_form_focuses_the_first_invalid_field() {
     let draft = ConnectionDraft::default();
     assert_eq!(
         draft.validate_all().map_err(|(id, _)| id),
-        Err(tablepro_app::connections::field::NAME)
+        Err(CONNECTION_NAME)
     );
 }
 #[test]
@@ -345,10 +336,10 @@ fn pending_edits_keep_original_keys() {
 #[test]
 fn preview_uses_application_grid_adapter() {
     let app = connected();
-    let catalog = db::Catalog::acme_prod();
+    let catalog = Catalog::acme_prod();
     let table = catalog.find(Some("public"), "orders").expect("orders");
-    let grid = tablepro_app::domain::ResultGrid::empty();
-    assert!(grid_model::preview_for(table, &grid).is_empty());
+    let grid = ResultGrid::empty();
+    assert!(preview_for(table, &grid).is_empty());
     assert!(app.result().row_count() > 0);
 }
 #[test]

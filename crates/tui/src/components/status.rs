@@ -15,7 +15,7 @@ use ratatui_core::style::{Modifier, Style};
 
 use super::meter::{Meter, MeterTone};
 use super::progress::PCT_COLUMNS;
-use super::{Overrides, SlotFn, first_row, shift};
+use super::{PartStyle, SlotFn, first_row, shift};
 use crate::collection::Status;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -336,7 +336,7 @@ pub struct StatusBar<'a> {
     /// (§45.7 obligation 2).
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for StatusBar<'_> {
@@ -391,7 +391,7 @@ impl<'a> StatusBar<'a> {
             frame: 0,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -446,7 +446,7 @@ impl<'a> StatusBar<'a> {
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.patch = Some(p);
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
@@ -454,7 +454,7 @@ impl<'a> StatusBar<'a> {
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -492,7 +492,7 @@ impl<'a> StatusBar<'a> {
     ///
     /// [`Ui::resolve`] is §26 N2's `&self` measuring path: it stops at
     /// precedence 5, so an instance `.patch` or `.patch_part` reached this
-    /// cell's *colour* — resolved through [`Overrides::style`] — and could
+    /// cell's *colour* — resolved through [`PartStyle::style`] — and could
     /// not reach its *glyph* (§45.5). Precedence 6 is applied here exactly
     /// as `theme::resolve::bind` applies it on the painting path, so the two
     /// halves of one cell cannot answer to different override chains.
@@ -794,7 +794,7 @@ impl<'a> StatusBar<'a> {
         if area.is_empty() {
             return area;
         }
-        let live = Overrides::flags(ui.state(self.id), self.status.flags());
+        let live = PartStyle::flags(ui.state(self.id), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let d = ui.design();

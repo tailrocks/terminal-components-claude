@@ -7,11 +7,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::account::{AccountId, AccountRegistry, Lifecycle};
 use super::agent::Provider;
 
-pub type WorkspaceId = u32;
-pub type RoleName = String;
+pub(crate) type WorkspaceId = u32;
+pub(crate) type RoleName = String;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Workspace {
+pub(crate) struct Workspace {
     pub id: WorkspaceId,
     pub name: String,
     pub workdir: String,
@@ -32,7 +32,7 @@ pub struct Workspace {
 /// can be switched off, further accounts switched on, and one account per
 /// provider marked preferred. Credentials never live here.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct AccountPolicy {
+pub(crate) struct AccountPolicy {
     /// Global defaults (registry `default_for_provider`) this Workspace turns off.
     pub disabled_defaults: BTreeSet<AccountId>,
     /// Registry accounts explicitly enabled here in addition to the inherited defaults.
@@ -45,7 +45,7 @@ pub struct AccountPolicy {
 
 impl AccountPolicy {
     /// Number of activation / preference decisions that differ from `other`.
-    pub fn change_count(&self, other: &AccountPolicy) -> usize {
+    pub(crate) fn change_count(&self, other: &AccountPolicy) -> usize {
         self.disabled_defaults
             .symmetric_difference(&other.disabled_defaults)
             .count()
@@ -57,7 +57,7 @@ impl AccountPolicy {
 
 /// Why an account is part of the Workspace's effective set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Effective {
+pub(crate) enum Effective {
     /// The registry's provider default, inherited because it is not disabled here.
     InheritedDefault,
     /// Explicitly enabled in this Workspace.
@@ -65,7 +65,7 @@ pub enum Effective {
 }
 
 impl Effective {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Effective::InheritedDefault => "inherited default",
             Effective::Enabled => "enabled here",
@@ -75,7 +75,7 @@ impl Effective {
 
 /// Whether an effective account can actually back a session right now.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Usability {
+pub(crate) enum Usability {
     Ready,
     /// Switched off in the registry (kept in the policy so it comes back when re-enabled).
     Disabled(String),
@@ -84,7 +84,7 @@ pub enum Usability {
 }
 
 impl Usability {
-    pub fn label(&self) -> String {
+    pub(crate) fn label(&self) -> String {
         match self {
             Usability::Ready => "ready".into(),
             Usability::Disabled(r) => r.clone(),
@@ -93,13 +93,13 @@ impl Usability {
         }
     }
 
-    pub fn is_ready(&self) -> bool {
+    pub(crate) fn is_ready(&self) -> bool {
         matches!(self, Usability::Ready)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EffectiveAccount {
+pub(crate) struct EffectiveAccount {
     pub id: AccountId,
     pub provider: Provider,
     pub origin: Effective,
@@ -108,7 +108,7 @@ pub struct EffectiveAccount {
 }
 
 /// How usable a registry account is, independent of any Workspace.
-pub fn usability_of(a: &super::account::Account) -> Usability {
+pub(crate) fn usability_of(a: &super::account::Account) -> Usability {
     if !a.enabled {
         return Usability::Disabled("disabled globally".into());
     }
@@ -129,7 +129,7 @@ pub fn usability_of(a: &super::account::Account) -> Usability {
 }
 
 impl Workspace {
-    pub fn new(id: WorkspaceId, name: &str, workdir: &str) -> Self {
+    pub(crate) fn new(id: WorkspaceId, name: &str, workdir: &str) -> Self {
         Self {
             id,
             name: name.to_owned(),
@@ -150,7 +150,7 @@ impl Workspace {
     /// here. Sorted by provider, then preferred first, then display order of
     /// the registry. Nothing is invented: an account absent from the registry
     /// is dropped from the set.
-    pub fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
+    pub(crate) fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
         let mut out: Vec<EffectiveAccount> = vec![];
         for a in &registry.accounts {
             let inherited =
@@ -210,7 +210,7 @@ impl Workspace {
     }
 
     /// The effective account a Role prefers, if it is in the effective set.
-    pub fn role_preference(
+    pub(crate) fn role_preference(
         &self,
         role: &str,
         provider: Provider,
@@ -227,7 +227,7 @@ impl Workspace {
     }
 
     /// Number of fields that differ from `other` (dirty count).
-    pub fn change_count(&self, other: &Workspace) -> usize {
+    pub(crate) fn change_count(&self, other: &Workspace) -> usize {
         let mut n = 0;
         n += usize::from(self.name != other.name);
         n += usize::from(self.workdir != other.workdir);
@@ -242,7 +242,7 @@ impl Workspace {
         n
     }
 
-    pub fn env_count(&self) -> usize {
+    pub(crate) fn env_count(&self) -> usize {
         self.env.len() + self.role_env.values().map(Vec::len).sum::<usize>()
     }
 }
@@ -265,14 +265,14 @@ fn keyed<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DirtyExitPolicy {
+pub(crate) enum DirtyExitPolicy {
     Ask,
     Keep,
     Discard,
 }
 
 impl DirtyExitPolicy {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             DirtyExitPolicy::Ask => "ask",
             DirtyExitPolicy::Keep => "keep",
@@ -284,7 +284,7 @@ impl DirtyExitPolicy {
 // ---------------------------------------------------------------- mounts
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mount {
+pub(crate) struct Mount {
     pub source: MountSource,
     pub destination: String,
     pub readonly: bool,
@@ -300,7 +300,7 @@ pub struct Mount {
 }
 
 impl Mount {
-    pub fn host(source: &str, destination: &str) -> Self {
+    pub(crate) fn host(source: &str, destination: &str) -> Self {
         Self {
             source: MountSource::Host(source.to_owned()),
             destination: destination.to_owned(),
@@ -313,7 +313,7 @@ impl Mount {
         }
     }
 
-    pub fn git(url: &str, destination: &str) -> Self {
+    pub(crate) fn git(url: &str, destination: &str) -> Self {
         Self {
             source: MountSource::Git(url.to_owned()),
             destination: destination.to_owned(),
@@ -326,52 +326,52 @@ impl Mount {
         }
     }
 
-    pub fn readonly(mut self, ro: bool) -> Self {
+    pub(crate) fn readonly(mut self, ro: bool) -> Self {
         self.readonly = ro;
         self
     }
 
-    pub fn isolation(mut self, iso: Isolation) -> Self {
+    pub(crate) fn isolation(mut self, iso: Isolation) -> Self {
         self.isolation = iso;
         self
     }
 
-    pub fn repository(mut self) -> Self {
+    pub(crate) fn repository(mut self) -> Self {
         self.kind = MountKind::Repository;
         self
     }
 
-    pub fn scope(mut self, scope: MountScope) -> Self {
+    pub(crate) fn scope(mut self, scope: MountScope) -> Self {
         self.scope = scope;
         self
     }
 
-    pub fn source_label(&self) -> &str {
+    pub(crate) fn source_label(&self) -> &str {
         match &self.source {
             MountSource::Host(p) | MountSource::Git(p) => p,
         }
     }
 
-    pub fn mode_label(&self) -> &'static str {
+    pub(crate) fn mode_label(&self) -> &'static str {
         if self.readonly { "ro" } else { "rw" }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MountSource {
+pub(crate) enum MountSource {
     Host(String),
     Git(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Isolation {
+pub(crate) enum Isolation {
     Shared,
     Worktree,
     Clone,
 }
 
 impl Isolation {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Isolation::Shared => "Shared",
             Isolation::Worktree => "Worktree",
@@ -380,7 +380,7 @@ impl Isolation {
     }
 
     /// `Shared → Worktree → Clone → Shared`.
-    pub fn next(self) -> Self {
+    pub(crate) fn next(self) -> Self {
         match self {
             Isolation::Shared => Isolation::Worktree,
             Isolation::Worktree => Isolation::Clone,
@@ -390,20 +390,20 @@ impl Isolation {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MountKind {
+pub(crate) enum MountKind {
     Directory,
     Repository,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MountScope {
+pub(crate) enum MountScope {
     Global,
     Workspace,
     Role(RoleName),
 }
 
 impl MountScope {
-    pub fn label(&self) -> String {
+    pub(crate) fn label(&self) -> String {
         match self {
             MountScope::Global => "global".into(),
             MountScope::Workspace => "workspace".into(),
@@ -415,28 +415,28 @@ impl MountScope {
 // ----------------------------------------------------------------- roles
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct RolePolicy {
+pub(crate) struct RolePolicy {
     pub allowed: AllowedRoles,
     pub default: Option<RoleName>,
     pub last: Option<RoleName>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum AllowedRoles {
+pub(crate) enum AllowedRoles {
     #[default]
     All,
     Custom(Vec<RoleName>),
 }
 
 impl RolePolicy {
-    pub fn allows(&self, role: &str) -> bool {
+    pub(crate) fn allows(&self, role: &str) -> bool {
         match &self.allowed {
             AllowedRoles::All => true,
             AllowedRoles::Custom(list) => list.iter().any(|r| r == role),
         }
     }
 
-    pub fn summary(&self) -> String {
+    pub(crate) fn summary(&self) -> String {
         match &self.allowed {
             AllowedRoles::All => "Allowed roles: all".into(),
             AllowedRoles::Custom(list) => format!("Allowed roles: {}", list.len()),
@@ -446,7 +446,7 @@ impl RolePolicy {
 
 /// A Role as the host registry knows it: namespace/name, source, trust.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RoleEntry {
+pub(crate) struct RoleEntry {
     pub namespace: String,
     pub name: String,
     pub source: RoleSource,
@@ -457,19 +457,19 @@ pub struct RoleEntry {
 }
 
 impl RoleEntry {
-    pub fn full_name(&self) -> String {
+    pub(crate) fn full_name(&self) -> String {
         format!("{}/{}", self.namespace, self.name)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RoleSource {
+pub(crate) enum RoleSource {
     Git { url: String, branch: String },
     Local { path: String },
 }
 
 impl RoleSource {
-    pub fn label(&self) -> String {
+    pub(crate) fn label(&self) -> String {
         match self {
             RoleSource::Git { url, branch } => format!("{url} @ {branch}"),
             RoleSource::Local { path } => path.clone(),
@@ -480,27 +480,27 @@ impl RoleSource {
 // ------------------------------------------------------------ environments
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EnvVar {
+pub(crate) struct EnvVar {
     pub key: String,
     pub value: EnvValue,
 }
 
 impl EnvVar {
-    pub fn plain(key: &str, value: &str) -> Self {
+    pub(crate) fn plain(key: &str, value: &str) -> Self {
         Self {
             key: key.to_owned(),
             value: EnvValue::Plain(value.to_owned()),
         }
     }
 
-    pub fn op(key: &str, reference: super::onepassword::OpReference) -> Self {
+    pub(crate) fn op(key: &str, reference: super::onepassword::OpReference) -> Self {
         Self {
             key: key.to_owned(),
             value: EnvValue::OnePassword(reference),
         }
     }
 
-    pub fn host(key: &str, host_var: &str) -> Self {
+    pub(crate) fn host(key: &str, host_var: &str) -> Self {
         Self {
             key: key.to_owned(),
             value: EnvValue::HostEnv(host_var.to_owned()),
@@ -509,7 +509,7 @@ impl EnvVar {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum EnvValue {
+pub(crate) enum EnvValue {
     /// Plain text; rendered masked by default.
     Plain(String),
     /// 1Password item/field reference, resolved on demand (`[op]`).
@@ -519,7 +519,7 @@ pub enum EnvValue {
 }
 
 impl EnvValue {
-    pub fn source_label(&self) -> &'static str {
+    pub(crate) fn source_label(&self) -> &'static str {
         match self {
             EnvValue::Plain(_) => "plain text",
             EnvValue::OnePassword(_) => "1Password",
@@ -531,7 +531,7 @@ impl EnvValue {
 /// Asterisk runs, never `•` (which marks modified rows in the tables).
 /// API-key-shaped values keep their last four characters so two keys can
 /// be told apart; anything with path or URL structure is fully masked.
-pub fn mask(v: &str) -> String {
+pub(crate) fn mask(v: &str) -> String {
     if v.is_empty() {
         return "(empty)".into();
     }
@@ -553,7 +553,7 @@ pub fn mask(v: &str) -> String {
 }
 
 /// Reserved and forbidden environment keys (validation before save).
-pub fn env_key_error(key: &str) -> Option<String> {
+pub(crate) fn env_key_error(key: &str) -> Option<String> {
     let k = key.trim();
     if k.is_empty() {
         return Some("Key is required".into());

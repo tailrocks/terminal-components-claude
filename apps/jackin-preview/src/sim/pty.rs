@@ -14,23 +14,23 @@ use crate::domain::agent::Agent;
 use crate::domain::instance::{AgentState, DaemonSnapshot};
 
 /// Stable identifier for one simulated pane.
-pub type PaneId = u64;
+pub(crate) type PaneId = u64;
 
 /// Maximum retained transcript lines.
-pub const SCROLLBACK: usize = 2_000;
+pub(crate) const SCROLLBACK: usize = 2_000;
 
 /// Minimum pane width used by the split model.
-pub const MIN_PANE_COLS: u16 = 20;
+pub(crate) const MIN_PANE_COLS: u16 = 20;
 
 /// Minimum pane height used by the split model.
-pub const MIN_PANE_ROWS: u16 = 4;
+pub(crate) const MIN_PANE_ROWS: u16 = 4;
 
 /// Maximum automatic label length accepted by a caller.
-pub const MAX_LABEL: usize = 16;
+pub(crate) const MAX_LABEL: usize = 16;
 
 /// Direction of a two-pane split.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SplitDir {
+pub(crate) enum SplitDir {
     /// First pane on the left.
     Horizontal,
     /// First pane on top.
@@ -48,7 +48,7 @@ impl SplitDir {
 
 /// Which side of a split is maximized.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Maximized {
+pub(crate) enum Maximized {
     /// Neither side.
     None,
     /// The first side fills the container.
@@ -59,7 +59,7 @@ pub enum Maximized {
 
 /// A two-pane split ratio and its minima.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Split {
+pub(crate) struct Split {
     /// Percent of usable space assigned to the first pane.
     pub percent: u16,
     /// Minimum first-pane length.
@@ -72,7 +72,7 @@ pub struct Split {
 
 impl Split {
     /// Construct a split with a first-pane percentage.
-    pub const fn new(percent: u16, min_first: u16, min_second: u16) -> Self {
+    pub(crate) const fn new(percent: u16, min_first: u16, min_second: u16) -> Self {
         Self {
             percent,
             min_first,
@@ -93,7 +93,7 @@ impl Split {
     }
 
     /// Toggle a pane's maximized state.
-    pub fn toggle_max(&mut self, which: Maximized) {
+    pub(crate) fn toggle_max(&mut self, which: Maximized) {
         self.maximized = if self.maximized == which {
             Maximized::None
         } else {
@@ -102,23 +102,23 @@ impl Split {
     }
 
     /// Grow the first pane by percentage points.
-    pub fn grow(&mut self, delta: i16) {
+    pub(crate) fn grow(&mut self, delta: i16) {
         let next = i32::from(self.percent).saturating_add(i32::from(delta));
         self.percent = next.clamp(5, 95) as u16;
     }
 
     /// Lay out two panes with `gap` cells between them.
-    pub fn layout(&self, dir: SplitDir, area: Rect, gap: u16) -> (Rect, Rect) {
+    pub(crate) fn layout(&self, dir: SplitDir, area: Rect, gap: u16) -> (Rect, Rect) {
         self.model(dir).layout(area, gap)
     }
 
     /// Return the seam between two panes.
-    pub fn handle(&self, dir: SplitDir, area: Rect, gap: u16) -> Rect {
+    pub(crate) fn handle(&self, dir: SplitDir, area: Rect, gap: u16) -> Rect {
         self.model(dir).handle(area, gap)
     }
 
     /// Drag the seam under a position. Returns whether the ratio changed.
-    pub fn drag_to(&mut self, dir: SplitDir, area: Rect, gap: u16, pos: Position) -> bool {
+    pub(crate) fn drag_to(&mut self, dir: SplitDir, area: Rect, gap: u16, pos: Position) -> bool {
         let mut model = self.model(dir);
         let changed = model.drag_to(area, gap, pos);
         if changed {
@@ -128,26 +128,26 @@ impl Split {
     }
 
     /// Resize the first pane by whole cells.
-    pub fn nudge(&mut self, dir: SplitDir, area: Rect, gap: u16, delta: i16) {
+    pub(crate) fn nudge(&mut self, dir: SplitDir, area: Rect, gap: u16, delta: i16) {
         let mut model = self.model(dir);
         model.nudge(area, gap, delta);
         self.percent = u16::from(model.percent);
     }
 
     /// Vertical layout convenience method.
-    pub fn vertical(&self, area: Rect, gap: u16) -> (Rect, Rect) {
+    pub(crate) fn vertical(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         self.layout(SplitDir::Vertical, area, gap)
     }
 
     /// Horizontal layout convenience method.
-    pub fn horizontal(&self, area: Rect, gap: u16) -> (Rect, Rect) {
+    pub(crate) fn horizontal(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         self.layout(SplitDir::Horizontal, area, gap)
     }
 }
 
 /// A pane tree.  The path in a [`Seam`] uses `0` for first and `1` for second.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PaneNode {
+pub(crate) enum PaneNode {
     /// One leaf pane.
     Leaf(PaneId),
     /// A recursively split pair.
@@ -165,7 +165,7 @@ pub enum PaneNode {
 
 impl PaneNode {
     /// Return leaves in visual order.
-    pub fn leaves(&self) -> Vec<PaneId> {
+    pub(crate) fn leaves(&self) -> Vec<PaneId> {
         match self {
             Self::Leaf(id) => vec![*id],
             Self::Split { first, second, .. } => {
@@ -177,7 +177,7 @@ impl PaneNode {
     }
 
     /// Populate leaf geometry and split seams for a container.
-    pub fn layout(
+    pub(crate) fn layout(
         &self,
         area: Rect,
         out: &mut Vec<(PaneId, Rect)>,
@@ -210,7 +210,7 @@ impl PaneNode {
     }
 
     /// Find a node by a binary child path.
-    pub fn node_at_mut(&mut self, path: &[u8]) -> Option<&mut PaneNode> {
+    pub(crate) fn node_at_mut(&mut self, path: &[u8]) -> Option<&mut PaneNode> {
         let mut current = self;
         for child in path {
             match current {
@@ -228,7 +228,7 @@ impl PaneNode {
     }
 
     /// Replace a leaf with a split containing the old and new panes.
-    pub fn split_leaf(
+    pub(crate) fn split_leaf(
         &mut self,
         target: PaneId,
         new: PaneId,
@@ -261,7 +261,7 @@ impl PaneNode {
     }
 
     /// Remove a leaf and collapse its parent into the sibling.
-    pub fn remove_leaf(&mut self, target: PaneId) -> bool {
+    pub(crate) fn remove_leaf(&mut self, target: PaneId) -> bool {
         let Self::Split { first, second, .. } = self else {
             return false;
         };
@@ -277,7 +277,7 @@ impl PaneNode {
     }
 
     /// Append the binary path to a target leaf. Returns whether it was found.
-    pub fn path_to(&self, target: PaneId, path: &mut Vec<u8>) -> bool {
+    pub(crate) fn path_to(&self, target: PaneId, path: &mut Vec<u8>) -> bool {
         match self {
             Self::Leaf(id) => *id == target,
             Self::Split { first, second, .. } => {
@@ -299,7 +299,7 @@ impl PaneNode {
 
 /// A rendered seam and its tree path.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Seam {
+pub(crate) struct Seam {
     /// Binary path to the split.
     pub path: Vec<u8>,
     /// Split direction.
@@ -312,7 +312,7 @@ pub struct Seam {
 
 /// Direction used when moving keyboard focus among panes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Direction {
+pub(crate) enum Direction {
     /// Move left.
     Left,
     /// Move right.
@@ -324,7 +324,11 @@ pub enum Direction {
 }
 
 /// Find the nearest leaf whose rectangle lies in `direction` from `from`.
-pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, direction: Direction) -> Option<PaneId> {
+pub(crate) fn nearest(
+    leaves: &[(PaneId, Rect)],
+    from: PaneId,
+    direction: Direction,
+) -> Option<PaneId> {
     let (_, from_rect) = leaves.iter().find(|(id, _)| *id == from)?;
     let from_center = (
         i32::from(from_rect.x) + i32::from(from_rect.width) / 2,
@@ -353,7 +357,7 @@ pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, direction: Direction) ->
 
 /// One tab in the simulated daemon.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Tab {
+pub(crate) struct Tab {
     /// Optional operator-provided label.
     pub custom_label: Option<String>,
     /// Root pane tree.
@@ -366,7 +370,7 @@ pub struct Tab {
 
 impl Tab {
     /// Return leaf panes in visual order.
-    pub fn leaves(&self) -> Vec<PaneId> {
+    pub(crate) fn leaves(&self) -> Vec<PaneId> {
         self.root.leaves()
     }
 }
@@ -374,7 +378,7 @@ impl Tab {
 /// A semantic transcript tone.  It maps to a public `junie_tui` role when a
 /// future Capsule screen projects owned lines into the facade viewport.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Tone {
+pub(crate) enum Tone {
     /// Primary text.
     Normal,
     /// Muted text.
@@ -391,7 +395,7 @@ pub enum Tone {
 
 impl Tone {
     /// Convert the simulation tone to a public `junie_tui` role.
-    pub const fn role(self) -> Role {
+    pub(crate) const fn role(self) -> Role {
         match self {
             Self::Normal => Role::Fg(FgStep::Primary),
             Self::Muted => Role::Fg(FgStep::Muted),
@@ -405,7 +409,7 @@ impl Tone {
 
 /// One owned styled transcript span.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Span {
+pub(crate) struct Span {
     /// Span text.
     pub text: String,
     /// Semantic tone.
@@ -416,7 +420,7 @@ pub struct Span {
 
 impl Span {
     /// Construct a span.
-    pub fn new(text: impl Into<String>, tone: Tone) -> Self {
+    pub(crate) fn new(text: impl Into<String>, tone: Tone) -> Self {
         Self {
             text: text.into(),
             tone,
@@ -426,23 +430,23 @@ impl Span {
 
     /// Make a span bold.
     #[must_use]
-    pub const fn bold(mut self) -> Self {
+    pub(crate) const fn bold(mut self) -> Self {
         self.bold = true;
         self
     }
 
     /// The public facade role for this span.
-    pub const fn role(&self) -> Role {
+    pub(crate) const fn role(&self) -> Role {
         self.tone.role()
     }
 }
 
 /// One owned transcript line.
-pub type Line = Vec<Span>;
+pub(crate) type Line = Vec<Span>;
 
 /// Bounded owned transcript state used by a simulated pane.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TextViewport {
+pub(crate) struct TextViewport {
     /// Retained transcript lines.
     pub lines: Vec<Line>,
     /// Whether new output follows the tail.
@@ -456,7 +460,7 @@ pub struct TextViewport {
 
 impl TextViewport {
     /// Construct an empty viewport with the default scrollback cap.
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             lines: Vec::new(),
             follow: true,
@@ -468,18 +472,18 @@ impl TextViewport {
 
     /// Set the maximum number of retained lines.
     #[must_use]
-    pub const fn max_lines(mut self, max_lines: usize) -> Self {
+    pub(crate) const fn max_lines(mut self, max_lines: usize) -> Self {
         self.max_lines = max_lines;
         self
     }
 
     /// Toggle tail following.
-    pub const fn set_follow(&mut self, follow: bool) {
+    pub(crate) const fn set_follow(&mut self, follow: bool) {
         self.follow = follow;
     }
 
     /// Append one line and enforce bounded retention.
-    pub fn push(&mut self, line: Line) {
+    pub(crate) fn push(&mut self, line: Line) {
         self.lines.push(line);
         if self.max_lines > 0 && self.lines.len() > self.max_lines {
             let drop = self.lines.len().saturating_sub(self.max_lines);
@@ -488,7 +492,7 @@ impl TextViewport {
     }
 
     /// Replace the last line, or append when empty.
-    pub fn replace_last(&mut self, line: Line) {
+    pub(crate) fn replace_last(&mut self, line: Line) {
         if let Some(last) = self.lines.last_mut() {
             *last = line;
         } else {
@@ -497,7 +501,7 @@ impl TextViewport {
     }
 
     /// Clear all transcript lines and cursor state.
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.lines.clear();
         self.caret = None;
     }
@@ -511,7 +515,7 @@ impl Default for TextViewport {
 
 /// One deterministic process step.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Step {
+pub(crate) enum Step {
     /// Emit a line after a virtual delay.
     Emit(i64, Line),
     /// Change the public agent state.
@@ -524,7 +528,7 @@ pub enum Step {
 
 /// Deterministic agent or shell process.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AgentProcess {
+pub(crate) struct AgentProcess {
     /// Agent identity, or `None` for a shell.
     pub agent: Option<Agent>,
     /// Account identity only; credential material never enters this model.
@@ -573,7 +577,7 @@ fn done_line() -> Line {
 }
 
 /// Build a deterministic, secret-free transcript for one agent.
-pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
+pub(crate) fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
     let path = format!("~/{workspace}");
     match agent {
         Some(Agent::ClaudeCode) => vec![
@@ -794,7 +798,7 @@ fn replies(agent: Option<Agent>) -> Vec<Vec<Line>> {
 
 impl AgentProcess {
     /// Construct a process at virtual time `start_ms`.
-    pub fn new(
+    pub(crate) fn new(
         agent: Option<Agent>,
         account: Option<AccountId>,
         workspace: &str,
@@ -828,7 +832,7 @@ impl AgentProcess {
     }
 
     /// Whether the process is waiting for operator input after its boot script.
-    pub fn awaiting(&self) -> bool {
+    pub(crate) fn awaiting(&self) -> bool {
         self.pc > 0
             && matches!(
                 self.script.get(self.pc.saturating_sub(1)),
@@ -838,7 +842,7 @@ impl AgentProcess {
     }
 
     /// Fast-forward the boot script and return its transcript.
-    pub fn boot_all(&mut self, out: &mut Vec<Line>) {
+    pub(crate) fn boot_all(&mut self, out: &mut Vec<Line>) {
         while self.pc < self.script.len() {
             let Some(step) = self.script.get(self.pc).cloned() else {
                 break;
@@ -858,7 +862,7 @@ impl AgentProcess {
     }
 
     /// Advance to `now_ms` and return newly available transcript lines.
-    pub fn tick(&mut self, now_ms: i64) -> Vec<Line> {
+    pub(crate) fn tick(&mut self, now_ms: i64) -> Vec<Line> {
         let mut out = Vec::new();
         loop {
             let ready = self
@@ -915,7 +919,7 @@ impl AgentProcess {
     }
 
     /// Handle one committed operator input line.
-    pub fn on_input(&mut self, input: &str, now_ms: i64, workspace: &str) -> Vec<Line> {
+    pub(crate) fn on_input(&mut self, input: &str, now_ms: i64, workspace: &str) -> Vec<Line> {
         let mut out = vec![mixed(&[
             (&self.prompt, Tone::Secondary),
             (input, Tone::Normal),
@@ -1005,7 +1009,7 @@ impl AgentProcess {
 
 /// One simulated Capsule pane.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Pane {
+pub(crate) struct Pane {
     /// Pane identity.
     pub id: PaneId,
     /// Process driving the pane.
@@ -1020,7 +1024,7 @@ pub struct Pane {
 
 impl Pane {
     /// Construct a pane.
-    pub fn new(
+    pub(crate) fn new(
         id: PaneId,
         agent: Option<Agent>,
         account: Option<AccountId>,
@@ -1037,7 +1041,7 @@ impl Pane {
     }
 
     /// Display label for the pane process.
-    pub fn label(&self) -> String {
+    pub(crate) fn label(&self) -> String {
         self.proc
             .agent
             .map_or_else(|| "Shell".to_owned(), |agent| agent.label().to_owned())
@@ -1111,7 +1115,7 @@ impl Pane {
     }
 
     /// Fast-forward boot output into the pane.
-    pub fn boot_all(&mut self) {
+    pub(crate) fn boot_all(&mut self) {
         let mut output = Vec::new();
         self.proc.boot_all(&mut output);
         self.push_lines(output);
@@ -1119,7 +1123,7 @@ impl Pane {
     }
 
     /// Advance the pane to virtual time and return whether it changed.
-    pub fn tick(&mut self, now_ms: i64) -> bool {
+    pub(crate) fn tick(&mut self, now_ms: i64) -> bool {
         let output = self.proc.tick(now_ms);
         let changed = !output.is_empty();
         self.push_lines(output);
@@ -1128,21 +1132,21 @@ impl Pane {
     }
 
     /// Type one character without committing it.
-    pub fn type_char(&mut self, character: char, _now_ms: i64, _workspace: &str) {
+    pub(crate) fn type_char(&mut self, character: char, _now_ms: i64, _workspace: &str) {
         self.term.set_follow(true);
         self.input.push(character);
         self.refresh_prompt();
     }
 
     /// Delete the last typed character.
-    pub fn backspace(&mut self) {
+    pub(crate) fn backspace(&mut self) {
         self.term.set_follow(true);
         self.input.pop();
         self.refresh_prompt();
     }
 
     /// Commit the current input line.
-    pub fn commit(&mut self, now_ms: i64, workspace: &str) {
+    pub(crate) fn commit(&mut self, now_ms: i64, workspace: &str) {
         self.term.set_follow(true);
         let input = std::mem::take(&mut self.input);
         let pending_prompt = self
@@ -1159,21 +1163,21 @@ impl Pane {
     }
 
     /// Clear the transcript.
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.term.clear();
         self.term.set_follow(true);
         self.refresh_prompt();
     }
 
     /// Current public process state.
-    pub const fn state(&self) -> AgentState {
+    pub(crate) const fn state(&self) -> AgentState {
         self.proc.state
     }
 }
 
 /// Deterministic in-memory Capsule daemon.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Daemon {
+pub(crate) struct Daemon {
     /// Workspace display name.
     pub workspace: String,
     /// Open tabs.
@@ -1190,7 +1194,7 @@ pub struct Daemon {
 
 impl Daemon {
     /// Construct an empty daemon.
-    pub fn new(workspace: &str) -> Self {
+    pub(crate) fn new(workspace: &str) -> Self {
         Self {
             workspace: workspace.to_owned(),
             tabs: Vec::new(),
@@ -1202,27 +1206,27 @@ impl Daemon {
     }
 
     /// Find a pane.
-    pub fn pane(&self, id: PaneId) -> Option<&Pane> {
+    pub(crate) fn pane(&self, id: PaneId) -> Option<&Pane> {
         self.panes.iter().find(|pane| pane.id == id)
     }
 
     /// Find a mutable pane.
-    pub fn pane_mut(&mut self, id: PaneId) -> Option<&mut Pane> {
+    pub(crate) fn pane_mut(&mut self, id: PaneId) -> Option<&mut Pane> {
         self.panes.iter_mut().find(|pane| pane.id == id)
     }
 
     /// Active tab.
-    pub fn active_tab(&self) -> Option<&Tab> {
+    pub(crate) fn active_tab(&self) -> Option<&Tab> {
         self.tabs.get(self.active)
     }
 
     /// Mutable active tab.
-    pub fn active_tab_mut(&mut self) -> Option<&mut Tab> {
+    pub(crate) fn active_tab_mut(&mut self) -> Option<&mut Tab> {
         self.tabs.get_mut(self.active)
     }
 
     /// Focused pane in the active tab.
-    pub fn focused_pane(&self) -> Option<PaneId> {
+    pub(crate) fn focused_pane(&self) -> Option<PaneId> {
         self.active_tab().map(|tab| tab.focused)
     }
 
@@ -1233,7 +1237,7 @@ impl Daemon {
     }
 
     /// Add a pane to the daemon.
-    pub fn new_pane(
+    pub(crate) fn new_pane(
         &mut self,
         agent: Option<Agent>,
         account: Option<AccountId>,
@@ -1250,7 +1254,7 @@ impl Daemon {
     }
 
     /// Add a new tab containing one pane and activate it.
-    pub fn new_tab(
+    pub(crate) fn new_tab(
         &mut self,
         agent: Option<Agent>,
         account: Option<AccountId>,
@@ -1269,7 +1273,7 @@ impl Daemon {
     }
 
     /// Split the active tab's focused pane.
-    pub fn split(
+    pub(crate) fn split(
         &mut self,
         dir: SplitDir,
         new_first: bool,
@@ -1292,7 +1296,7 @@ impl Daemon {
     }
 
     /// Close a pane, returning whether the containing tab was also closed.
-    pub fn close_pane(&mut self, id: PaneId) -> bool {
+    pub(crate) fn close_pane(&mut self, id: PaneId) -> bool {
         let Some(tab_index) = self.tabs.iter().position(|tab| tab.leaves().contains(&id)) else {
             return false;
         };
@@ -1320,7 +1324,7 @@ impl Daemon {
     }
 
     /// Close a tab by index.
-    pub fn close_tab(&mut self, index: usize) {
+    pub(crate) fn close_tab(&mut self, index: usize) {
         let Some(tab) = self.tabs.get(index) else {
             return;
         };
@@ -1333,7 +1337,11 @@ impl Daemon {
     }
 
     /// Automatic label for a tab.
-    pub fn tab_label(&self, tab: &Tab, account_suffix: &dyn Fn(&Pane) -> Option<String>) -> String {
+    pub(crate) fn tab_label(
+        &self,
+        tab: &Tab,
+        account_suffix: &dyn Fn(&Pane) -> Option<String>,
+    ) -> String {
         if let Some(label) = &tab.custom_label {
             return label.clone();
         }
@@ -1375,7 +1383,7 @@ impl Daemon {
     }
 
     /// Highest attention state among panes in a tab.
-    pub fn tab_state(&self, tab: &Tab) -> AgentState {
+    pub(crate) fn tab_state(&self, tab: &Tab) -> AgentState {
         tab.leaves()
             .iter()
             .filter_map(|id| self.pane(*id).map(Pane::state))
@@ -1384,7 +1392,7 @@ impl Daemon {
     }
 
     /// Advance every process to virtual time.
-    pub fn tick(&mut self, now_ms: i64) -> bool {
+    pub(crate) fn tick(&mut self, now_ms: i64) -> bool {
         let mut changed = false;
         for pane in &mut self.panes {
             changed |= pane.tick(now_ms);
@@ -1393,7 +1401,7 @@ impl Daemon {
     }
 
     /// Unique repository paths touched by agents.
-    pub fn touched_files(&self) -> Vec<String> {
+    pub(crate) fn touched_files(&self) -> Vec<String> {
         let mut paths: Vec<String> = self
             .panes
             .iter()
@@ -1405,7 +1413,7 @@ impl Daemon {
     }
 
     /// Convert the daemon to the public instance snapshot model.
-    pub fn snapshot(&self) -> DaemonSnapshot {
+    pub(crate) fn snapshot(&self) -> DaemonSnapshot {
         use crate::domain::instance::{PaneSnapshot, TabSnapshot};
 
         if self.tabs.is_empty() {

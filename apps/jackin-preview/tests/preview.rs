@@ -1,8 +1,8 @@
 //! Focused deterministic integration coverage for the Jackin Preview shell.
 
 use jackin_app::{
-    ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, LAUNCH, LAUNCH_DIALOG, Motion, ROLE_CHOOSE,
-    ROLE_PICKER, Route, RunId, Scenario,
+    ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, INTRO_END, LAUNCH, LAUNCH_DIALOG, Motion,
+    ROLE_CHOOSE, ROLE_PICKER, Route, RunId, Scenario, TICK_MS, world_for,
 };
 use junie_tui::{ColorLevel, KeyCode, Theme};
 use junie_tui_testing::Harness;
@@ -166,12 +166,12 @@ fn resize_preserves_focus_and_does_not_create_diagnostics() {
 #[test]
 fn scenarios_and_references_are_stable_without_secret_material() {
     for scenario in Scenario::ALL {
-        let first = jackin_app::sim::world::world_for(scenario);
-        let second = jackin_app::sim::world::world_for(scenario);
+        let first = world_for(scenario);
+        let second = world_for(scenario);
         assert_eq!(format!("{first:?}"), format!("{second:?}"));
     }
 
-    let world = jackin_app::sim::world::world_for(Scenario::AccountsMixed);
+    let world = world_for(Scenario::AccountsMixed);
     let debug = format!("{world:?}");
     assert!(debug.contains("v_eng01"));
     assert!(debug.contains("it_cdx01"));
@@ -195,16 +195,12 @@ fn scenarios_and_references_are_stable_without_secret_material() {
 fn pinned_frames_keep_each_ritual_route_reachable() {
     let first = App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 0);
     assert_eq!(first.route(), Route::Intro);
-    let completed = App::for_scenario_at(
-        Scenario::FirstUse,
-        Motion::Paused,
-        jackin_app::rain::INTRO_END,
-    );
+    let completed = App::for_scenario_at(Scenario::FirstUse, Motion::Paused, INTRO_END);
     assert_eq!(completed.route(), Route::Manager);
 
     let cockpit = App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 0);
     assert_eq!(cockpit.route(), Route::Cockpit);
-    assert_eq!(cockpit.route_tick_ms(), jackin_app::rain::TICK_MS);
+    assert_eq!(cockpit.route_tick_ms(), TICK_MS);
 
     let capsule = App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 0);
     assert_eq!(capsule.route(), Route::Capsule);
@@ -212,7 +208,7 @@ fn pinned_frames_keep_each_ritual_route_reachable() {
 
     let outro = App::for_scenario_at(Scenario::OutroLast, Motion::Paused, 1);
     assert_eq!(outro.route(), Route::Outro);
-    assert_eq!(outro.route_tick_ms(), jackin_app::rain::TICK_MS);
+    assert_eq!(outro.route_tick_ms(), TICK_MS);
 }
 
 #[test]
@@ -232,7 +228,7 @@ fn paused_frames_freeze_the_virtual_clock() {
 #[test]
 fn container_uid_is_total_for_every_fixture_scenario() {
     for scenario in Scenario::ALL {
-        let world = jackin_app::sim::world::world_for(scenario);
+        let world = world_for(scenario);
         for instance in world.instances {
             let uid = instance.container_uid();
             assert_eq!(uid.len(), 16);

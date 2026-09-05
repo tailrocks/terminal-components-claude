@@ -5,7 +5,7 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, cell_at, first_row};
+use super::{PartStyle, cell_at, first_row};
 use crate::field_control::FieldControl;
 use crate::id::{Part, PartRef};
 use crate::measure::{Constraints, Size};
@@ -82,7 +82,7 @@ pub struct Field<'a, C: FieldControl> {
     error: Option<&'a str>,
     plain: bool,
     control: C,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl<C: FieldControl> fmt::Debug for Field<'_, C> {
@@ -119,7 +119,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
             error: None,
             plain: false,
             control,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -161,7 +161,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
     /// Per-part instance patches for the chrome.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -184,7 +184,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
         } else {
             StateFlags::empty()
         };
-        let live = Overrides::flags(ui.state(id), derived);
+        let live = PartStyle::flags(ui.state(id), derived);
         let ov = self.ov;
         let style = |ui: &mut Ui<'_>, part: Part| {
             ov.style(ui, id, Family::FIELD, Variant::DEFAULT, part, live)

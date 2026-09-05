@@ -5,7 +5,7 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, SlotFn};
+use super::{PartStyle, SlotFn};
 use crate::collection::EmptyState;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
@@ -97,7 +97,7 @@ pub struct Empty<'a> {
     state: EmptyState<'a>,
     variant: Variant,
     frame: usize,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Empty<'_> {
@@ -122,7 +122,7 @@ impl<'a> Empty<'a> {
             state,
             variant: Variant::DEFAULT,
             frame: 0,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -154,14 +154,14 @@ impl<'a> Empty<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -179,7 +179,7 @@ impl<'a> Empty<'a> {
         }
         // runtime: none; derived: the readiness of the surface the caller
         // handed us (`EmptyState::status`)
-        let live = Overrides::flags(StateFlags::empty(), self.state.status().flags());
+        let live = PartStyle::flags(StateFlags::empty(), self.state.status().flags());
         let ov = self.ov;
         if let Some(f) = ov.slot_for(Part::EMPTY) {
             f(ui, area);

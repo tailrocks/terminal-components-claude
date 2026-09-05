@@ -18,52 +18,54 @@ use crate::sim::onepassword::SimOnePassword;
 
 /// Typed results of deterministic asynchronous work.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Msg {
+pub(crate) enum Msg {
     WorkspaceSaved { id: WorkspaceId, ok: bool },
     Refreshed { ok: bool },
     AccountRefreshed { account: AccountId },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Job {
+pub(crate) struct Job {
     pub due_ms: i64,
     pub msg: Msg,
 }
 
 #[derive(Debug, Clone)]
+/// Deterministic services and fixture state for one preview scenario.
 pub struct World {
-    pub scenario: Scenario,
-    pub clock: Clock,
-    pub arbiter: Arbiter,
-    pub home: String,
-    pub workspaces: Vec<Workspace>,
-    pub roles: Vec<RoleEntry>,
-    pub instances: Vec<Instance>,
-    pub accounts: AccountRegistry,
-    pub op: SimOnePassword,
-    pub jobs: Vec<Job>,
-    pub refresh_fails: bool,
-    pub saved: bool,
-    pub last_refresh_secs: i64,
+    pub(crate) scenario: Scenario,
+    pub(crate) clock: Clock,
+    pub(crate) arbiter: Arbiter,
+    pub(crate) home: String,
+    pub(crate) workspaces: Vec<Workspace>,
+    pub(crate) roles: Vec<RoleEntry>,
+    pub(crate) instances: Vec<Instance>,
+    pub(crate) accounts: AccountRegistry,
+    pub(crate) op: SimOnePassword,
+    pub(crate) jobs: Vec<Job>,
+    pub(crate) refresh_fails: bool,
+    pub(crate) saved: bool,
+    pub(crate) last_refresh_secs: i64,
 }
 
 impl World {
-    pub fn now_secs(&self) -> i64 {
+    pub(crate) fn now_secs(&self) -> i64 {
         self.clock.now_secs()
     }
 
+    /// Current virtual time in milliseconds.
     pub fn now_ms(&self) -> i64 {
         self.clock.now_ms
     }
 
-    pub fn schedule(&mut self, delay_ms: i64, msg: Msg) {
+    pub(crate) fn schedule(&mut self, delay_ms: i64, msg: Msg) {
         let due_ms = self.clock.now_ms.saturating_add(delay_ms.max(0));
         self.jobs.push(Job { due_ms, msg });
         self.jobs.sort_by_key(|job| job.due_ms);
     }
 
     /// Advance virtual time and return jobs whose deadline has passed.
-    pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
+    pub(crate) fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         self.clock.advance(interval_ms.max(0));
         if !self.clock.running {
             return Vec::new();
@@ -81,55 +83,55 @@ impl World {
         ready
     }
 
-    pub fn workspace(&self, id: WorkspaceId) -> Option<&Workspace> {
+    pub(crate) fn workspace(&self, id: WorkspaceId) -> Option<&Workspace> {
         self.workspaces.iter().find(|workspace| workspace.id == id)
     }
 
-    pub fn workspace_mut(&mut self, id: WorkspaceId) -> Option<&mut Workspace> {
+    pub(crate) fn workspace_mut(&mut self, id: WorkspaceId) -> Option<&mut Workspace> {
         self.workspaces
             .iter_mut()
             .find(|workspace| workspace.id == id)
     }
 
-    pub fn instance(&self, id: &str) -> Option<&Instance> {
+    pub(crate) fn instance(&self, id: &str) -> Option<&Instance> {
         self.instances.iter().find(|instance| instance.id == id)
     }
 
-    pub fn instance_mut(&mut self, id: &str) -> Option<&mut Instance> {
+    pub(crate) fn instance_mut(&mut self, id: &str) -> Option<&mut Instance> {
         self.instances.iter_mut().find(|instance| instance.id == id)
     }
 
-    pub fn running_count(&self) -> usize {
+    pub(crate) fn running_count(&self) -> usize {
         self.instances
             .iter()
             .filter(|instance| instance.status == InstanceStatus::Running)
             .count()
     }
 
-    pub fn running(&self) -> Vec<&Instance> {
+    pub(crate) fn running(&self) -> Vec<&Instance> {
         self.instances
             .iter()
             .filter(|instance| instance.status == InstanceStatus::Running)
             .collect()
     }
 
-    pub fn instances_of(&self, workspace: Option<WorkspaceId>) -> Vec<&Instance> {
+    pub(crate) fn instances_of(&self, workspace: Option<WorkspaceId>) -> Vec<&Instance> {
         self.instances
             .iter()
             .filter(|instance| instance.workspace == workspace && !instance.status.hidden())
             .collect()
     }
 
-    pub fn sync_arbiter(&mut self) {
+    pub(crate) fn sync_arbiter(&mut self) {
         self.arbiter.set_running(self.running_count());
     }
 
-    pub fn new_instance_id(&self) -> String {
+    pub(crate) fn new_instance_id(&self) -> String {
         let next = self.instances.len().saturating_add(1);
         format!("jk-{next:04x}")
     }
 
-    pub fn account_for(
+    pub(crate) fn account_for(
         &self,
         provider: Provider,
         workspace: Option<&Workspace>,
@@ -140,11 +142,11 @@ impl World {
     }
 
     /// The preview has one deterministic default mode for every agent.
-    pub fn agent_mode(&self, _agent: Agent) -> AuthMode {
+    pub(crate) fn agent_mode(&self, _agent: Agent) -> AuthMode {
         AuthMode::Sync
     }
 
-    pub fn eligible_accounts(
+    pub(crate) fn eligible_accounts(
         &self,
         agent: Agent,
         workspace: Option<&Workspace>,
@@ -153,7 +155,7 @@ impl World {
         self.offer_for(agent, workspace, role).accounts
     }
 
-    pub fn offer_for(
+    pub(crate) fn offer_for(
         &self,
         agent: Agent,
         workspace: Option<&Workspace>,
@@ -215,7 +217,7 @@ impl World {
         }
     }
 
-    pub fn offered_agents(
+    pub(crate) fn offered_agents(
         &self,
         workspace: Option<&Workspace>,
         role: Option<&str>,
@@ -325,7 +327,7 @@ pub fn world_for(scenario: Scenario) -> World {
 
 /// What a new session knows about one agent's account choices.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AgentOffer {
+pub(crate) struct AgentOffer {
     pub configured: bool,
     pub accounts: Vec<AccountId>,
     pub preselected: Option<AccountId>,

@@ -11,7 +11,7 @@ use crate::sim::onepassword::OpError;
 
 /// Ordered stages in the 1Password reference flow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum OpFlowStage {
+pub(crate) enum OpFlowStage {
     Account,
     Vault,
     Item,
@@ -20,7 +20,7 @@ pub enum OpFlowStage {
 
 impl OpFlowStage {
     /// Stable stage key used by `PickerChain`.
-    pub const fn key(self) -> ItemKey {
+    pub(crate) const fn key(self) -> ItemKey {
         ItemKey::num(match self {
             Self::Account => 1,
             Self::Vault => 2,
@@ -30,7 +30,7 @@ impl OpFlowStage {
     }
 
     /// Breadcrumb label.
-    pub const fn label(self) -> &'static str {
+    pub(crate) const fn label(self) -> &'static str {
         match self {
             Self::Account => "Account",
             Self::Vault => "Vault",
@@ -40,7 +40,7 @@ impl OpFlowStage {
     }
 
     /// Next stage, if any.
-    pub const fn next(self) -> Option<Self> {
+    pub(crate) const fn next(self) -> Option<Self> {
         match self {
             Self::Account => Some(Self::Vault),
             Self::Vault => Some(Self::Item),
@@ -50,7 +50,7 @@ impl OpFlowStage {
     }
 
     /// Previous stage, if any.
-    pub const fn previous(self) -> Option<Self> {
+    pub(crate) const fn previous(self) -> Option<Self> {
         match self {
             Self::Account => None,
             Self::Vault => Some(Self::Account),
@@ -62,7 +62,7 @@ impl OpFlowStage {
 
 /// Safe loading/error state projected below a picker breadcrumb.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum OpFlowStatus {
+pub(crate) enum OpFlowStatus {
     Ready,
     Loading { label: String },
     Error { message: String, detail: String },
@@ -70,7 +70,7 @@ pub enum OpFlowStatus {
 
 impl OpFlowStatus {
     /// Library collection status for this stage.
-    pub const fn collection_status(&self) -> Status {
+    pub(crate) const fn collection_status(&self) -> Status {
         match self {
             Self::Ready => Status::Ready,
             Self::Loading { .. } => Status::Loading,
@@ -81,7 +81,7 @@ impl OpFlowStatus {
 
 /// Domain actions returned by the staged flow.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum OpFlowAction {
+pub(crate) enum OpFlowAction {
     /// Move to a new stage with a stable provider id.
     Entered { stage: OpFlowStage, id: String },
     /// Return to an earlier breadcrumb.
@@ -94,7 +94,7 @@ pub enum OpFlowAction {
 
 /// State retained by the app-side OpFlow composition.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OpFlowState {
+pub(crate) struct OpFlowState {
     current: OpFlowStage,
     selected: [Option<String>; 4],
     status: OpFlowStatus,
@@ -112,17 +112,17 @@ impl Default for OpFlowState {
 
 impl OpFlowState {
     /// Current stage.
-    pub const fn current(&self) -> OpFlowStage {
+    pub(crate) const fn current(&self) -> OpFlowStage {
         self.current
     }
 
     /// Current status.
-    pub const fn status(&self) -> &OpFlowStatus {
+    pub(crate) const fn status(&self) -> &OpFlowStatus {
         &self.status
     }
 
     /// Selection at `stage`, if one exists.
-    pub fn selected(&self, stage: OpFlowStage) -> Option<&str> {
+    pub(crate) fn selected(&self, stage: OpFlowStage) -> Option<&str> {
         self.selected
             .get(Self::index(stage))
             .and_then(Option::as_deref)
@@ -133,7 +133,7 @@ impl OpFlowState {
     /// A picker may outlive an asynchronous refresh.  If its selected item
     /// disappeared, clear that key and every dependent breadcrumb rather
     /// than dispatching an action for stale provider data.
-    pub fn reconcile_selection(&mut self, stage: OpFlowStage, valid: &[String]) -> bool {
+    pub(crate) fn reconcile_selection(&mut self, stage: OpFlowStage, valid: &[String]) -> bool {
         let index = Self::index(stage);
         let Some(selected) = self.selected.get(index).and_then(Option::as_deref) else {
             return false;
@@ -152,7 +152,7 @@ impl OpFlowState {
     }
 
     /// Begin a deterministic loading state for one stage.
-    pub fn begin_load(&mut self, stage: OpFlowStage, label: impl Into<String>) {
+    pub(crate) fn begin_load(&mut self, stage: OpFlowStage, label: impl Into<String>) {
         self.current = stage;
         self.status = OpFlowStatus::Loading {
             label: label.into(),
@@ -160,7 +160,7 @@ impl OpFlowState {
     }
 
     /// Store a provider id and advance the chain.
-    pub fn choose(&mut self, id: impl Into<String>) -> Option<OpFlowAction> {
+    pub(crate) fn choose(&mut self, id: impl Into<String>) -> Option<OpFlowAction> {
         let id = id.into();
         if id.is_empty() {
             return None;
@@ -179,7 +179,7 @@ impl OpFlowState {
     }
 
     /// Rewind one stage and retain earlier selections.
-    pub fn back(&mut self) -> Option<OpFlowAction> {
+    pub(crate) fn back(&mut self) -> Option<OpFlowAction> {
         let previous = self.current.previous()?;
         self.current = previous;
         self.status = OpFlowStatus::Ready;
@@ -187,7 +187,7 @@ impl OpFlowState {
     }
 
     /// Rewind to an earlier stage and clear selections after it.
-    pub fn back_to(&mut self, stage: OpFlowStage) -> Option<OpFlowAction> {
+    pub(crate) fn back_to(&mut self, stage: OpFlowStage) -> Option<OpFlowAction> {
         if Self::index(stage) >= Self::index(self.current) {
             return None;
         }
@@ -200,7 +200,7 @@ impl OpFlowState {
     }
 
     /// Record a retryable or terminal simulator error without its material.
-    pub fn set_error(&mut self, error: OpError) {
+    pub(crate) fn set_error(&mut self, error: OpError) {
         let message = error.message();
         self.status = OpFlowStatus::Error {
             message,
@@ -221,7 +221,7 @@ impl OpFlowState {
     }
 
     /// Retry the current failed stage.
-    pub fn retry(&mut self) -> Option<OpFlowAction> {
+    pub(crate) fn retry(&mut self) -> Option<OpFlowAction> {
         if matches!(self.status, OpFlowStatus::Error { .. }) {
             self.status = OpFlowStatus::Loading {
                 label: format!("Loading {}…", self.current.label()),
@@ -233,7 +233,7 @@ impl OpFlowState {
     }
 
     /// Reset the chain without retaining prior choices.
-    pub fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         *self = Self::default();
     }
 

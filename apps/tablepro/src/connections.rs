@@ -7,64 +7,62 @@ use junie_tui::{
 
 use crate::db::{self, ConnectOutcome, Connection, Engine, Environment, SafeMode};
 
-/// Connection-list id.
-pub const CONNECTIONS: Id = Id::root("tablepro.connections");
 /// Connection form id.
-pub const FORM: Id = Id::root("tablepro.connections.form");
+pub(crate) const FORM: Id = Id::root("tablepro.connections.form");
 
 /// Stable form field ids.
-pub mod field {
+pub(crate) mod field {
     use junie_tui::Id;
 
     /// Connection name field.
-    pub const NAME: Id = Id::root("tablepro.connections.form.name");
+    pub(crate) const NAME: Id = Id::root("tablepro.connections.form.name");
     /// Database engine field.
-    pub const ENGINE: Id = Id::root("tablepro.connections.form.engine");
+    pub(crate) const ENGINE: Id = Id::root("tablepro.connections.form.engine");
     /// Host name field.
-    pub const HOST: Id = Id::root("tablepro.connections.form.host");
+    pub(crate) const HOST: Id = Id::root("tablepro.connections.form.host");
     /// Port field.
-    pub const PORT: Id = Id::root("tablepro.connections.form.port");
+    pub(crate) const PORT: Id = Id::root("tablepro.connections.form.port");
     /// Database name field.
-    pub const DATABASE: Id = Id::root("tablepro.connections.form.database");
+    pub(crate) const DATABASE: Id = Id::root("tablepro.connections.form.database");
     /// User name field.
-    pub const USER: Id = Id::root("tablepro.connections.form.user");
+    pub(crate) const USER: Id = Id::root("tablepro.connections.form.user");
     /// Password field.
-    pub const PASSWORD: Id = Id::root("tablepro.connections.form.password");
+    pub(crate) const PASSWORD: Id = Id::root("tablepro.connections.form.password");
     /// Prompt-for-password field.
-    pub const ASK_PASSWORD: Id = Id::root("tablepro.connections.form.ask-password");
+    pub(crate) const ASK_PASSWORD: Id = Id::root("tablepro.connections.form.ask-password");
     /// Environment field.
-    pub const ENVIRONMENT: Id = Id::root("tablepro.connections.form.environment");
+    pub(crate) const ENVIRONMENT: Id = Id::root("tablepro.connections.form.environment");
     /// Connection group field.
-    pub const GROUP: Id = Id::root("tablepro.connections.form.group");
+    pub(crate) const GROUP: Id = Id::root("tablepro.connections.form.group");
     /// Safe-mode field.
-    pub const SAFE_MODE: Id = Id::root("tablepro.connections.form.safe-mode");
+    pub(crate) const SAFE_MODE: Id = Id::root("tablepro.connections.form.safe-mode");
     /// TLS toggle field.
-    pub const SSL: Id = Id::root("tablepro.connections.form.ssl");
+    pub(crate) const SSL: Id = Id::root("tablepro.connections.form.ssl");
     /// SSH tunnel toggle field.
-    pub const SSH: Id = Id::root("tablepro.connections.form.ssh");
+    pub(crate) const SSH: Id = Id::root("tablepro.connections.form.ssh");
     /// SSH host field.
-    pub const SSH_HOST: Id = Id::root("tablepro.connections.form.ssh-host");
+    pub(crate) const SSH_HOST: Id = Id::root("tablepro.connections.form.ssh-host");
     /// Startup command field.
-    pub const STARTUP: Id = Id::root("tablepro.connections.form.startup");
+    pub(crate) const STARTUP: Id = Id::root("tablepro.connections.form.startup");
 }
 
 /// Basic connection fields group.
-pub const BASIC: GroupKey = GroupKey::custom("tablepro.connections.basic");
+pub(crate) const BASIC: GroupKey = GroupKey::custom("tablepro.connections.basic");
 /// Advanced connection fields group.
-pub const ADVANCED: GroupKey = GroupKey::custom("tablepro.connections.advanced");
+pub(crate) const ADVANCED: GroupKey = GroupKey::custom("tablepro.connections.advanced");
 /// Test action.
-pub const TEST: ActionKey = ActionKey::custom("tablepro.connections.test");
+pub(crate) const TEST: ActionKey = ActionKey::custom("tablepro.connections.test");
 /// Save-and-connect action.
-pub const SAVE_CONNECT: ActionKey = ActionKey::custom("tablepro.connections.save-connect");
+pub(crate) const SAVE_CONNECT: ActionKey = ActionKey::custom("tablepro.connections.save-connect");
 
 /// Engine option labels.
-pub const ENGINES: &[&str] = &["PostgreSQL", "MySQL", "SQLite"];
+pub(crate) const ENGINES: &[&str] = &["PostgreSQL", "MySQL", "SQLite"];
 /// Environment option labels.
-pub const ENVIRONMENTS: &[&str] = &["Local", "Development", "Staging", "Production"];
+pub(crate) const ENVIRONMENTS: &[&str] = &["Local", "Development", "Staging", "Production"];
 /// Group option labels.
-pub const GROUPS: &[&str] = &["Personal", "Acme"];
+pub(crate) const GROUPS: &[&str] = &["Personal", "Acme"];
 /// Safe-mode option labels.
-pub const SAFE_MODES: &[&str] = &[
+pub(crate) const SAFE_MODES: &[&str] = &[
     "Silent",
     "Alert",
     "Alert (Full)",
@@ -74,7 +72,7 @@ pub const SAFE_MODES: &[&str] = &[
 ];
 
 /// Default port for an engine choice.
-pub const fn default_port(engine: usize) -> &'static str {
+pub(crate) const fn default_port(engine: usize) -> &'static str {
     match engine {
         0 => "5432",
         1 => "3306",
@@ -179,7 +177,7 @@ pub fn form_fields() -> [FieldSpec<'static>; 15] {
 }
 
 /// The public `Form` action row.
-pub fn form_actions() -> [Action<'static>; 4] {
+pub(crate) fn form_actions() -> [Action<'static>; 4] {
     [
         Action::quiet(TEST, "Test connection"),
         Action::new(ActionKey::CANCEL, "Cancel"),

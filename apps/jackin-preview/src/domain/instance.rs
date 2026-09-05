@@ -7,7 +7,7 @@ use core::fmt;
 use super::agent::Agent;
 use super::workspace::WorkspaceId;
 
-pub type InstanceId = String;
+pub(crate) type InstanceId = String;
 
 /// Stable numeric identity for one launch attempt.
 ///
@@ -59,7 +59,7 @@ impl fmt::Display for RunId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum InstanceStatus {
+pub(crate) enum InstanceStatus {
     Running,
     CleanExited,
     Crashed,
@@ -73,7 +73,7 @@ pub enum InstanceStatus {
 
 impl InstanceStatus {
     /// Compact lifecycle label shown in the tree row.
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             InstanceStatus::Running => "running",
             InstanceStatus::CleanExited => "exited",
@@ -87,7 +87,7 @@ impl InstanceStatus {
         }
     }
 
-    pub fn description(self) -> &'static str {
+    pub(crate) fn description(self) -> &'static str {
         match self {
             InstanceStatus::Running => "Container and Capsule daemon are live.",
             InstanceStatus::CleanExited => {
@@ -112,16 +112,16 @@ impl InstanceStatus {
     }
 
     /// Hidden from the normal tree, as in current Jackin.
-    pub fn hidden(self) -> bool {
+    pub(crate) fn hidden(self) -> bool {
         matches!(self, InstanceStatus::Superseded | InstanceStatus::Purged)
     }
 
-    pub fn is_live(self) -> bool {
+    pub(crate) fn is_live(self) -> bool {
         self == InstanceStatus::Running
     }
 
     /// Reconnect/restore is offered for these.
-    pub fn reconnectable(self) -> bool {
+    pub(crate) fn reconnectable(self) -> bool {
         matches!(
             self,
             InstanceStatus::Running
@@ -133,11 +133,11 @@ impl InstanceStatus {
     }
 
     /// Stop is offered only for live instances.
-    pub fn stoppable(self) -> bool {
+    pub(crate) fn stoppable(self) -> bool {
         self == InstanceStatus::Running
     }
 
-    pub fn dirty(self) -> bool {
+    pub(crate) fn dirty(self) -> bool {
         matches!(
             self,
             InstanceStatus::PreservedDirty | InstanceStatus::PreservedUnpushed
@@ -146,7 +146,7 @@ impl InstanceStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Instance {
+pub(crate) struct Instance {
     pub id: InstanceId,
     /// Container base name; the container id appends the instance suffix.
     pub container: String,
@@ -176,19 +176,19 @@ pub struct Instance {
 
 impl Instance {
     /// The public short container id shown by Capsule's debug information.
-    pub fn container_uid(&self) -> String {
+    pub(crate) fn container_uid(&self) -> String {
         self.run_id.container_uid()
     }
 
-    pub fn container_id(&self) -> String {
+    pub(crate) fn container_id(&self) -> String {
         format!("{}-{}", self.container, self.id.trim_start_matches("jk-"))
     }
 
-    pub fn is_dirty(&self) -> bool {
+    pub(crate) fn is_dirty(&self) -> bool {
         self.uncommitted > 0 || self.unpushed > 0
     }
 
-    pub fn dirty_summary(&self) -> String {
+    pub(crate) fn dirty_summary(&self) -> String {
         match (self.uncommitted, self.unpushed) {
             (0, 0) => "clean".into(),
             (u, 0) => format!("{u} uncommitted"),
@@ -199,12 +199,12 @@ impl Instance {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ManifestError {
+pub(crate) enum ManifestError {
     ReadError,
 }
 
 impl ManifestError {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             ManifestError::ReadError => "Sessions unavailable (manifest read error)",
         }
@@ -212,7 +212,7 @@ impl ManifestError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SessionRecord {
+pub(crate) struct SessionRecord {
     pub id: String,
     pub agent: Option<Agent>,
     pub label: String,
@@ -221,14 +221,14 @@ pub struct SessionRecord {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SessionStatus {
+pub(crate) enum SessionStatus {
     Active,
     Exited(i32),
     Crashed,
 }
 
 impl SessionStatus {
-    pub fn label(self) -> String {
+    pub(crate) fn label(self) -> String {
         match self {
             SessionStatus::Active => "active".into(),
             SessionStatus::Exited(0) => "exited".into(),
@@ -240,7 +240,7 @@ impl SessionStatus {
 
 /// What the daemon reports right now (never derived from the manifest).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DaemonSnapshot {
+pub(crate) enum DaemonSnapshot {
     /// No daemon socket answered.
     Unavailable,
     /// Daemon reports no tabs.
@@ -249,14 +249,14 @@ pub enum DaemonSnapshot {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TabSnapshot {
+pub(crate) struct TabSnapshot {
     pub label: String,
     pub active: bool,
     pub panes: Vec<PaneSnapshot>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PaneSnapshot {
+pub(crate) struct PaneSnapshot {
     pub label: String,
     pub agent: Option<Agent>,
     pub state: AgentState,
@@ -265,7 +265,7 @@ pub struct PaneSnapshot {
 
 /// Public agent attention state, as the Capsule status bar glyphs encode it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AgentState {
+pub(crate) enum AgentState {
     Idle,
     Working,
     Done,
@@ -274,7 +274,7 @@ pub enum AgentState {
 }
 
 impl AgentState {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             AgentState::Idle => "idle",
             AgentState::Working => "working",
@@ -285,7 +285,7 @@ impl AgentState {
     }
 
     /// Glyph priority for a tab that holds several panes.
-    pub fn rank(self) -> u8 {
+    pub(crate) fn rank(self) -> u8 {
         match self {
             AgentState::Blocked => 4,
             AgentState::Done => 3,

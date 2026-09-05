@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn, cell_at, first_row, shift};
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, KeySet, Reconcile, Reconciliation,
     RowFn, RowUi, SelectMode, Status,
@@ -373,14 +373,14 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
     /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
-    /// caller's own overrides. `Overrides` reads back only the slot, and a
+    /// caller's own overrides. `PartStyle` reads back only the slot, and a
     /// scrollbar the container constructs bare drops the container's
     /// `.patch` and `.patch_part` on `TRACK` and `THUMB` — a drop
     /// `Invariant P` cannot see, because the scrollbar styles those parts
     /// under *this* list's `Id` (§45.7 obligation 2).
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
 
@@ -408,7 +408,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             status: Status::Ready,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _t: PhantomData,
         }
     }
@@ -503,7 +503,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
         self.patch = Some(p);
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
@@ -511,7 +511,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -776,7 +776,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         if !ui.is_inert() {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
-        let live = Overrides::flags(ui.state(self.id), self.status.flags());
+        let live = PartStyle::flags(ui.state(self.id), self.status.flags());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }

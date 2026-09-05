@@ -7,7 +7,7 @@ use ratatui_core::layout::Rect;
 
 use super::keyhint::ChordText;
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn, first_row, shift};
+use super::{Acc, PartStyle, SlotFn, first_row, shift};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -231,7 +231,7 @@ pub struct HelpOverlay<'a> {
     sections: &'a [HelpSection<'a>],
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for HelpOverlay<'_> {
@@ -272,7 +272,7 @@ impl<'a> HelpOverlay<'a> {
             sections,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -280,7 +280,7 @@ impl<'a> HelpOverlay<'a> {
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
 
@@ -288,7 +288,7 @@ impl<'a> HelpOverlay<'a> {
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.parts = patches;
-        self.ov = self.ov.patch_part(patches);
+        self.ov = self.ov.part(patches);
         self
     }
 
@@ -380,7 +380,7 @@ impl<'a> HelpOverlay<'a> {
             return area;
         }
         ui.with_surface(Surface::Elevated, |ui| {
-            let live = Overrides::flags(ui.state(self.id), StateFlags::empty());
+            let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
             let container = self.ov.style(
                 ui,
                 self.id,

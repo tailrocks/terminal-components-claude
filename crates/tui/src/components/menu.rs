@@ -6,7 +6,7 @@ use core::fmt;
 use ratatui_core::layout::{Position, Rect};
 
 use super::keyhint::ChordText;
-use super::{Acc, Overrides, SlotFn, first_row, shift};
+use super::{Acc, PartStyle, SlotFn, first_row, shift};
 use crate::action::ActionKey;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -353,7 +353,7 @@ pub struct ContextMenu<'a> {
     items: &'a [MenuItem<'a>],
     anchor: Anchor,
     title: Option<&'a str>,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for ContextMenu<'_> {
@@ -387,7 +387,7 @@ impl<'a> ContextMenu<'a> {
             items,
             anchor,
             title: None,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -406,14 +406,14 @@ impl<'a> ContextMenu<'a> {
     /// Instance patch.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(patches);
+        self.ov = self.ov.part(patches);
         self
     }
 
@@ -601,7 +601,7 @@ impl<'a> ContextMenu<'a> {
             return area;
         }
         ui.with_surface(Surface::Popover, |ui| {
-            let mut live = Overrides::flags(ui.state(self.id), StateFlags::empty());
+            let mut live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
             live.remove(StateFlags::PRESSED);
             let container = self.ov.style(
                 ui,
@@ -709,7 +709,7 @@ impl<'a> ContextMenu<'a> {
         if item.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut flags = Overrides::flags(StateFlags::empty(), derived);
+        let mut flags = PartStyle::flags(StateFlags::empty(), derived);
         let pressed_row = pressed_target(ui, self.id, Part::ROW, index);
         if pressed_row {
             flags.insert(StateFlags::PRESSED);
@@ -847,7 +847,7 @@ impl Bindings for ContextMenu<'_> {
 pub struct MenuBar<'a> {
     id: Id,
     menus: &'a [Menu<'a>],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for MenuBar<'_> {
@@ -868,21 +868,21 @@ impl<'a> MenuBar<'a> {
         MenuBar {
             id,
             menus,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
     /// Instance patch.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(patches);
+        self.ov = self.ov.part(patches);
         self
     }
 
@@ -1031,7 +1031,7 @@ impl<'a> MenuBar<'a> {
         if row.is_empty() {
             return row;
         }
-        let mut live = Overrides::flags(ui.state(self.id), StateFlags::empty());
+        let mut live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         live.remove(StateFlags::PRESSED);
         let container = self.ov.style(
             ui,
@@ -1147,7 +1147,7 @@ impl Bindings for MenuBar<'_> {
 
 fn paint_or_slot(
     ui: &mut Ui<'_>,
-    overrides: &Overrides<'_>,
+    overrides: &PartStyle<'_>,
     part: Part,
     area: Rect,
     text: &str,

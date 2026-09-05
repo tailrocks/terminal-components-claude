@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Acc, Overrides, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, RowFn, RowUi,
@@ -330,7 +330,7 @@ pub struct ChipBar<'a, T, K = ByIndex, R = DefaultRow> {
     add: Option<&'a str>,
     read_only: bool,
     disabled: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _t: PhantomData<fn() -> T>,
 }
 
@@ -359,7 +359,7 @@ impl<T> ChipBar<'_, T, ByIndex, DefaultRow> {
             add: None,
             read_only: false,
             disabled: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _t: PhantomData,
         }
     }
@@ -496,14 +496,14 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -752,7 +752,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         }
         // runtime: the strip's own frame state; derived: none — the bar's
         // `.disabled` and `.read_only` enter per row, not on the container
-        let live = Overrides::flags(ui.state(self.id), StateFlags::empty());
+        let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }

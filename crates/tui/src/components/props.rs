@@ -3,7 +3,7 @@
 
 use core::fmt;
 
-use super::{Acc, Overrides, SlotFn};
+use super::{Acc, PartStyle, SlotFn};
 use crate::collection::CellUi;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -350,7 +350,7 @@ pub struct PropsList<'a> {
     variant: Variant,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for PropsList<'_> {
@@ -382,7 +382,7 @@ impl<'a> PropsList<'a> {
             variant: Variant::DEFAULT,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -397,7 +397,7 @@ impl<'a> PropsList<'a> {
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
 
@@ -405,7 +405,7 @@ impl<'a> PropsList<'a> {
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.parts = patches;
-        self.ov = self.ov.patch_part(patches);
+        self.ov = self.ov.part(patches);
         self
     }
 
@@ -651,7 +651,7 @@ impl<'a> PropsList<'a> {
         if !ui.is_inert() {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
-        let live = Overrides::flags(ui.state(self.id), StateFlags::empty());
+        let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, &PROPS_BINDINGS);
         }
@@ -951,7 +951,7 @@ fn paint_piece(
 /// Never writes outside `area`; never allocates.
 pub struct Props<'a> {
     rows: &'a [(&'a str, &'a str)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Props<'_> {
@@ -970,14 +970,14 @@ impl<'a> Props<'a> {
     pub const fn new(rows: &'a [(&'a str, &'a str)]) -> Self {
         Props {
             rows,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 

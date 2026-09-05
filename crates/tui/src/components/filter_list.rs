@@ -6,7 +6,7 @@ use ratatui_core::layout::Rect;
 
 use super::picker::AsItem;
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn, shift};
+use super::{Acc, PartStyle, SlotFn, shift};
 use crate::action::ActionKey;
 use crate::collection::{
     CollectionCore, EmptyState, Reconcile, Reconciliation, RowFn, RowUi, Status,
@@ -292,7 +292,7 @@ pub struct FilterList<'a, T, R = super::picker::ItemRow> {
     searchable: bool,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _item: PhantomData<fn(&T)>,
 }
 
@@ -318,7 +318,7 @@ impl<T> FilterList<'_, T, super::picker::ItemRow> {
             searchable: true,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _item: PhantomData,
         }
     }
@@ -384,14 +384,14 @@ impl<'a, T, R> FilterList<'a, T, R> {
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
     /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
-        self.ov = self.ov.patch_part(parts);
+        self.ov = self.ov.part(parts);
         self
     }
     /// Replace one part painter.
@@ -755,7 +755,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         }
         let live = ui.state(self.id);
         ui.publish_bindings(self.id, live, self.bindings(BindingState { flags: live }));
-        let mut live = Overrides::flags(ui.state(self.id), self.status.flags());
+        let mut live = PartStyle::flags(ui.state(self.id), self.status.flags());
         live.remove(StateFlags::PRESSED);
         let container = self.ov.style(
             ui,

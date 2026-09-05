@@ -15,8 +15,8 @@ pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
 
 /// Borrowed per-instance styling and painting overrides.
 ///
-/// `PartStyle` is the component-author counterpart to the library's internal
-/// override carrier. It keeps all override data borrowed and allocation-free:
+/// `PartStyle` is the shared component-author styling carrier. It keeps all
+/// override data borrowed and allocation-free:
 /// [`global`](Self::global) applies one patch to every styled part,
 /// [`part`](Self::part) applies matching patches in declaration order, and
 /// [`slot`](Self::slot) replaces one part's painter while leaving layout,
@@ -64,18 +64,6 @@ impl<'a> PartStyle<'a> {
     pub const fn part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.parts = patches;
         self
-    }
-
-    /// Apply `patch` to every part; compatibility spelling for component APIs.
-    #[must_use]
-    pub const fn patch(self, patch: &'a StylePatch) -> Self {
-        self.global(patch)
-    }
-
-    /// Apply matching named-part patches; compatibility spelling for component APIs.
-    #[must_use]
-    pub const fn patch_part(self, patches: &'a [(Part, StylePatch)]) -> Self {
-        self.part(patches)
     }
 
     /// Replace the painter for `part` while preserving the component's geometry
@@ -231,9 +219,7 @@ mod tests {
     #[test]
     fn part_style_merges_global_and_part_patches_in_order() {
         let styles = PartStyle::new().global(&GLOBAL).part(PARTS);
-        let internal = crate::components::Overrides::new()
-            .patch(&GLOBAL)
-            .patch_part(PARTS);
+        let internal = PartStyle::new().global(&GLOBAL).part(PARTS);
 
         assert_eq!(
             styles.part_patch(Part::LABEL),

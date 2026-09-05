@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Acc, Overrides, SlotFn, cell_at, first_row, paint_pressed_bracket};
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi, Status,
 };
@@ -343,7 +343,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     allow_new: bool,
     closable: bool,
     status: Status,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
 
@@ -368,7 +368,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             allow_new: false,
             closable: false,
             status: Status::Ready,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _t: PhantomData,
         }
     }
@@ -446,14 +446,14 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     /// An instance patch over every part.
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -640,7 +640,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         if !ui.is_inert() {
             ui.register_control(self.id, used, Focusability::Focusable);
         }
-        let live = Overrides::flags(ui.state(self.id), self.status.flags());
+        let live = PartStyle::flags(ui.state(self.id), self.status.flags());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }
