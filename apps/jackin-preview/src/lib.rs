@@ -24,10 +24,6 @@ mod app;
     reason = "the private arbiter retains deterministic lifecycle branches for fixture coverage"
 )]
 mod arbiter;
-#[expect(
-    dead_code,
-    reason = "the private clock retains deterministic formatting helpers for fixture coverage"
-)]
 mod clock;
 #[expect(
     dead_code,

@@ -14,6 +14,13 @@ pub(crate) struct Clock {
     pub running: bool,
 }
 
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "fixture clock formatting helpers remain available to deterministic screen adapters"
+    )
+)]
 impl Clock {
     pub(crate) const fn new() -> Self {
         Self {
@@ -96,6 +103,13 @@ impl Default for Clock {
 }
 
 /// Howard Hinnant's days-to-civil algorithm.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "fixture timestamp formatting retains the complete civil-date helper"
+    )
+)]
 fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let z = z + 719_468;
     let era = z.div_euclid(146_097);
@@ -111,6 +125,13 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
 
 /// Human duration with spaced units: `38 s`, `3 min 2 s`, `2 h 14 min`,
 /// `1 d 2 h`. Two most significant units, never more.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "fixture duration labels remain available to deterministic screen adapters"
+    )
+)]
 pub(crate) fn format_duration(secs: u64) -> String {
     let d = secs / 86_400;
     let h = (secs % 86_400) / 3600;
