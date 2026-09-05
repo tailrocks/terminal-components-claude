@@ -1478,7 +1478,9 @@ impl<'a> CodeEditor<'a> {
                         .filter(|(range, _)| range.start <= offset && offset < range.end)
                         .map(|(_, role)| *role);
                     let mut painted = text_style;
-                    if let Some(role) = syntax {
+                    if let Some(role) = syntax
+                        && !live.contains(StateFlags::DISABLED)
+                    {
                         painted.fg = Some(syntax_color(ui, role));
                     }
                     if selection
@@ -1713,7 +1715,7 @@ mod tests {
     use crate::event::MouseKind;
     use crate::runtime::stub::{Stub, key, mouse};
     use crate::runtime::{App, Runtime};
-    use crate::theme::Theme;
+    use crate::theme::{FgStep, Surface, Theme};
 
     const ID: Id = Id::root("code.tests");
 
@@ -1865,6 +1867,49 @@ mod tests {
             .segmenter(&segmenter);
         let state = CodeEditorState::new("let a;let b;");
         assert_eq!(editor.blocks(&state), [0..6, 6..12]);
+    }
+
+    #[test]
+    fn disabled_highlighting_keeps_the_disabled_text_style() {
+        let area = Rect::new(0, 0, 40, 5);
+        let theme = Theme::junie().override_family(Family::CODE, |recipe| {
+            recipe.part(Part::TEXT).when(
+                StateFlags::DISABLED,
+                StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+            );
+        });
+        let highlighter = |text: &str| vec![(0..text.len(), SyntaxRole::Keyword)];
+        let mut runtime = Runtime::new(Stub::default(), theme.clone());
+        let mut buffer = Buffer::empty(area);
+        let state = CodeEditorState::new("let attempts = 5;");
+        runtime.draw_scene(area, &mut buffer, |ui, rect| {
+            CodeEditor::new(ID, 5)
+                .disabled(true)
+                .highlighter(&highlighter)
+                .draw(ui, rect, &state);
+        });
+        let text = runtime
+            .area_of_part(ID, PartRef::of(Part::TEXT))
+            .expect("disabled editor registers its text part");
+        let expected = theme
+            .resolve(
+                Family::CODE,
+                Variant::DEFAULT,
+                Part::TEXT,
+                StateFlags::DISABLED,
+                Surface::Canvas,
+            )
+            .style
+            .fg
+            .expect("test override supplies a disabled foreground");
+        for position in text.positions() {
+            let cell = buffer
+                .cell(position)
+                .expect("text part positions are inside the buffer");
+            if cell.symbol() != " " {
+                assert_eq!(cell.fg, expected, "syntax replaced disabled text style");
+            }
+        }
     }
 
     #[test]
