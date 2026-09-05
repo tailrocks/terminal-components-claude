@@ -43,18 +43,18 @@ impl H {
     }
 
     /// Send one key.
-    pub fn key(&mut self, code: KeyCode) -> Response<()> {
-        self.harness.key(code)
+    pub fn key(&mut self, code: KeyCode) {
+        let _ = self.harness.key(code);
     }
 
     /// Send one key with modifiers.
-    pub fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) -> Response<()> {
-        self.harness.key_mod(code, mods)
+    pub fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) {
+        let _ = self.harness.key_mod(code, mods);
     }
 
     /// Send a control key.
-    pub fn ctrl(&mut self, c: char) -> Response<()> {
-        self.harness.ctrl(c)
+    pub fn ctrl(&mut self, c: char) {
+        let _ = self.harness.ctrl(c);
     }
 
     /// Type text through the public input boundary.
@@ -68,8 +68,8 @@ impl H {
     }
 
     /// Send one pointer event.
-    pub fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Response<()> {
-        self.harness.mouse(kind, x, y)
+    pub fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) {
+        let _ = self.harness.mouse(kind, x, y);
     }
 
     /// Press and release at a coordinate.
