@@ -19,5 +19,3 @@
 capsule_pane_clone_4x2000  # Slice 7 — deleted by the no-viewport-clone architecture; baseline line absence remains enforced
 
 # ── Slice 4 component state machines (`components/*.rs`, work packages 4A–4G) ──
-range_selection_uses_the_anchor  # Blocked here: the state-machine implementation/test belongs in components/*.rs, outside this task's write boundary (Slice 4)
-select_all_selects_only_enabled_items  # Blocked here: the state-machine implementation/test belongs in components/*.rs, outside this task's write boundary (Slice 4)

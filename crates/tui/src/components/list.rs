@@ -275,6 +275,11 @@ impl Reconcile for ListState {
         {
             self.chosen = None;
         }
+        if let Some(a) = self.anchor
+            && !(0..len).any(|i| key(i) == a)
+        {
+            self.anchor = None;
+        }
         r
     }
 
@@ -600,6 +605,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             if st.anchor.is_none() {
                 st.anchor = Some(self.key_at(items, from));
             }
+            if self.select_mode == SelectMode::Range {
+                st.core.checked_mut().none();
+            }
             let (a, b) = (anchor_i.min(to), anchor_i.max(to));
             for i in a..=b {
                 if self.enabled_at(items, i) {
@@ -613,6 +621,24 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             st.core.set_cursor(to, key);
             acc.action(ListAction::Moved);
         }
+    }
+
+    fn toggle_all(&self, st: &mut ListState, items: &[T], acc: &mut Acc<ListAction>) {
+        let all = (0..items.len())
+            .filter(|&i| self.enabled_at(items, i))
+            .all(|i| st.core.checked().contains(self.key_at(items, i)));
+        if all {
+            st.core.checked_mut().none();
+        } else {
+            let checked = st.core.checked_mut();
+            checked.all();
+            for i in 0..items.len() {
+                if !self.enabled_at(items, i) {
+                    checked.remove(self.key_at(items, i));
+                }
+            }
+        }
+        acc.action(ListAction::ToggledAll);
     }
 
     fn choose(&self, st: &mut ListState, items: &[T], i: usize, acc: &mut Acc<ListAction>) {
@@ -646,6 +672,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             |i| self.key_at(items, i),
             |i| self.enabled_at(items, i),
         );
+        if let Some(a) = st.anchor
+            && self
+                .index_of(items, a, Some(st.core.cursor_index()))
+                .is_none()
+        {
+            st.anchor = None;
+        }
         if let Some(c) = st.chosen
             && self
                 .index_of(items, c, Some(st.core.cursor_index()))
@@ -708,15 +741,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                             }
                         }
                         Some(ListCmd::ToggleAll) => {
-                            let all = (0..len)
-                                .filter(|&i| self.enabled_at(items, i))
-                                .all(|i| st.core.checked().contains(self.key_at(items, i)));
-                            if all {
-                                st.core.checked_mut().none();
-                            } else {
-                                st.core.checked_mut().all();
-                            }
-                            acc.action(ListAction::ToggledAll);
+                            self.toggle_all(st, items, &mut acc);
                         }
                         None => {}
                     }
@@ -983,12 +1008,75 @@ mod tests {
     use ratatui_core::style::Modifier;
 
     use super::*;
+    use crate::action::ActionKey;
+    use crate::intent::IntentQueue;
     use crate::runtime::Runtime;
     use crate::runtime::stub::Stub;
     use crate::theme::Theme;
+    use crate::ui::UiCore;
+    use crate::ui::cx::{FrameServices, LastFrame};
 
     const ID: Id = Id::root("list.status.tests");
     const AREA: Rect = Rect::new(0, 0, 16, 2);
+
+    #[test]
+    fn range_selection_uses_the_anchor() {
+        let items = ["zero", "one", "two", "three"];
+        let list = List::new(ID).select_mode(SelectMode::Range);
+        let mut state = ListState::default();
+        state.set_cursor(2, ItemKey::index(2));
+
+        let mut acc = Acc::<ListAction>::new();
+        list.move_cursor(&mut state, &items, 0, true, &mut acc);
+        assert_eq!(state.anchor, Some(ItemKey::index(2)));
+        assert!(
+            (0..=2).all(|i| state.checked().contains(ItemKey::index(i))),
+            "the first extension must select the anchor-to-cursor range"
+        );
+        assert!(!state.checked().contains(ItemKey::index(3)));
+
+        let mut acc = Acc::<ListAction>::new();
+        list.move_cursor(&mut state, &items, 1, true, &mut acc);
+        assert_eq!(state.cursor(), Some(ItemKey::index(1)));
+        assert!(state.checked().contains(ItemKey::index(1)));
+        assert!(state.checked().contains(ItemKey::index(2)));
+        assert!(
+            !state.checked().contains(ItemKey::index(0)),
+            "moving the cursor back must contract around the original anchor"
+        );
+        assert!(!state.checked().contains(ItemKey::index(3)));
+    }
+
+    #[test]
+    fn select_all_selects_only_enabled_items() {
+        let disabled = |item: &u8| matches!(*item, 1 | 3);
+        let list = List::new(ID)
+            .select_mode(SelectMode::Multi)
+            .disabled_item(&disabled);
+        let items = [0_u8, 1, 2, 3, 4];
+        let mut state = ListState::default();
+        let action = ActionKey::custom("list.toggle-all");
+        let mut intents = IntentQueue::new();
+        intents.binding(ID, action, Chord::key(KeyCode::Char('a')));
+        let mut services = FrameServices::default();
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let response = {
+            let theme = Theme::junie();
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            list.update(&mut cx, &mut state, &items)
+        };
+
+        assert_eq!(response.action_ref(), Some(&ListAction::ToggledAll));
+        for (index, item) in items.iter().enumerate() {
+            assert_eq!(
+                state.checked().contains(ItemKey::index(index)),
+                !disabled(item),
+                "row {item} selection did not follow its enabled state"
+            );
+        }
+        assert_eq!(state.checked().len_in(items.len()), 3);
+    }
 
     fn draw(status: Status) -> Buffer {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
