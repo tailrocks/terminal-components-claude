@@ -12,7 +12,7 @@ use ratatui_core::layout::Position;
 pub use ratatui_crossterm::crossterm::event::{KeyCode, KeyModifiers};
 
 /// One normalised input event.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Input {
     /// A key press or repeat (releases are dropped at normalisation).
     Key(Key),
@@ -24,6 +24,28 @@ pub enum Input {
     Paste(String),
     /// The runtime clock advanced by one `design.motion.tick_ms`.
     Tick,
+}
+
+impl fmt::Debug for Input {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Input::Key(key) => f.debug_tuple("Key").field(key).finish(),
+            Input::Mouse(mouse) => f.debug_tuple("Mouse").field(mouse).finish(),
+            Input::Resize(width, height) => {
+                f.debug_tuple("Resize").field(width).field(height).finish()
+            }
+            Input::Paste(text) => f.debug_struct("Paste").field("len", &text.len()).finish(),
+            Input::Tick => f.write_str("Tick"),
+        }
+    }
+}
+
+impl Drop for Input {
+    fn drop(&mut self) {
+        if let Input::Paste(text) = self {
+            crate::secret::wipe_string(core::mem::take(text));
+        }
+    }
 }
 
 /// A key press: code plus modifiers.
@@ -279,6 +301,13 @@ mod tests {
         );
         assert!(Input::from_crossterm(key_event(KeyCode::Enter, KeyEventKind::Press)).is_some());
         assert!(Input::from_crossterm(key_event(KeyCode::Enter, KeyEventKind::Repeat)).is_some());
+    }
+
+    #[test]
+    fn paste_debug_redacts_the_payload() {
+        let debug = format!("{:?}", Input::Paste("swordfish".to_owned()));
+        assert!(debug.contains("len"));
+        assert!(!debug.contains("swordfish"));
     }
 
     #[test]

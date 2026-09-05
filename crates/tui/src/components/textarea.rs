@@ -264,9 +264,14 @@ pub struct TextAreaState {
 
 impl Clone for TextAreaState {
     fn clone(&self) -> Self {
+        let phase = if self.is_sensitive() {
+            EditPhase::Idle
+        } else {
+            self.phase
+        };
         TextAreaState {
             draft: self.draft.clone_snapshot(),
-            phase: self.phase,
+            phase,
             scroll: self.scroll,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
         }
@@ -1474,6 +1479,21 @@ mod tests {
         let copy = left.clone();
         assert_eq!(copy.draft.text(), "•••");
         assert!(!copy.draft.text().contains("one"));
+    }
+
+    #[test]
+    fn sensitive_state_clone_cannot_commit_redacted_draft() {
+        let mut state = TextAreaState::default();
+        state.set_sensitive(true);
+        state.begin("one\ntwo");
+        let _ = state.apply(EditAction::Insert('!'));
+
+        let mut copy = state.clone();
+        let mut value = String::new();
+        copy.commit(&mut value, &NoValidate)
+            .expect("a snapshot commit must not validate a redacted draft");
+        assert!(value.is_empty());
+        assert!(!copy.is_editing());
     }
 
     #[test]

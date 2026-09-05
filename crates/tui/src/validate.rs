@@ -4,13 +4,24 @@
 use core::fmt;
 use std::borrow::Cow;
 
+use crate::secret::wipe_string;
+
 /// A field validation error.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct FieldError {
     /// The message shown to the user.
     pub message: Cow<'static, str>,
     /// A machine-readable code.
     pub code: Option<&'static str>,
+}
+
+impl Drop for FieldError {
+    fn drop(&mut self) {
+        let message = core::mem::replace(&mut self.message, Cow::Borrowed(""));
+        if let Cow::Owned(message) = message {
+            wipe_string(message);
+        }
+    }
 }
 
 impl FieldError {
@@ -34,6 +45,15 @@ impl FieldError {
 impl fmt::Display for FieldError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.message)
+    }
+}
+
+impl fmt::Debug for FieldError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FieldError")
+            .field("message", &"[redacted]")
+            .field("code", &self.code)
+            .finish()
     }
 }
 
@@ -93,5 +113,13 @@ mod tests {
         };
         assert!(min.check("ab").is_ok());
         assert!(NoValidate.check("").is_ok());
+    }
+
+    #[test]
+    fn debug_redacts_owned_message() {
+        let error = FieldError::new("swordfish".to_owned());
+        let debug = format!("{error:?}");
+        assert!(debug.contains("redacted"));
+        assert!(!debug.contains("swordfish"));
     }
 }

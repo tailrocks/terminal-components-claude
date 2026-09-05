@@ -3825,24 +3825,50 @@ struct FormCaseState {
     data: FormCaseData,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct FormCaseData {
     secret: Secret,
+    snapshot: Option<SecretSnapshot>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct SecretSnapshot {
+    len: usize,
+    fingerprint: [u8; 8],
+}
+
+impl FormCaseData {
+    fn secret_snapshot(&self) -> SecretSnapshot {
+        self.snapshot.unwrap_or_else(|| SecretSnapshot {
+            len: self.secret.len(),
+            fingerprint: self.secret.fingerprint(),
+        })
+    }
+}
+
+impl core::fmt::Debug for FormCaseData {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("FormCaseData")
+            .field("secret", &"[redacted]")
+            .finish()
+    }
 }
 
 impl Clone for FormCaseData {
     fn clone(&self) -> Self {
-        // `Secret` deliberately has no public plaintext-copy operation. The
-        // generic driver only clones this state for draw/equality checks, so
-        // the test model keeps its secret field empty in snapshots.
-        FormCaseData::default()
+        // `Secret` deliberately has no public plaintext-copy operation. Keep
+        // only a non-reversible identity token in snapshots used by the
+        // generic driver, never a redacted string that could be committed.
+        FormCaseData {
+            secret: Secret::default(),
+            snapshot: Some(self.secret_snapshot()),
+        }
     }
 }
 
 impl PartialEq for FormCaseData {
-    fn eq(&self, _other: &Self) -> bool {
-        // Secret payload is intentionally excluded from state equality.
-        true
+    fn eq(&self, other: &Self) -> bool {
+        self.secret_snapshot() == other.secret_snapshot()
     }
 }
 

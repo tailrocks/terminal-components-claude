@@ -617,6 +617,17 @@ impl FormState {
                 .zip(fields)
                 .all(|(slot, field)| slot.id == field.id && slot.shape == field_shape(&field.kind))
         {
+            let mut redact = Vec::new();
+            for (slot, field) in self.slots.iter_mut().zip(fields) {
+                let sensitive = field_is_secret(field);
+                slot.set_sensitive(sensitive);
+                if sensitive {
+                    redact.push(field.id);
+                }
+            }
+            for id in redact {
+                self.redact_error(id);
+            }
             return;
         }
         self.clear_errors();
@@ -624,13 +635,16 @@ impl FormState {
         self.slots.reserve(fields.len());
         for field in fields {
             let shape = field_shape(&field.kind);
+            let declared_sensitive = field_is_secret(field);
             if let Some(index) = old.iter().position(|slot| slot.id == field.id) {
                 let mut slot = old.remove(index);
                 slot.set_shape(shape);
+                slot.set_sensitive(declared_sensitive);
                 self.slots.push(slot);
             } else {
                 let mut slot = FieldSlot::new(field.id);
                 slot.set_shape(shape);
+                slot.set_sensitive(declared_sensitive);
                 self.slots.push(slot);
             }
         }
@@ -2484,6 +2498,26 @@ mod tests {
         let error = FieldError::new(format!("invalid {}", data.secret.expose()));
         let safe = Form::safe_error(&data, true, SECRET, error);
         state.set_error(SECRET, Some(safe));
+        assert_eq!(
+            state.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{state:?}").contains("swordfish"));
+    }
+
+    #[test]
+    fn reconciling_same_shape_secret_fields_redacts_existing_errors() {
+        let plain_fields = fields_with_secret_policy(false);
+        let secret_fields = fields_with_secret_policy(true);
+        let mut state = FormState::default();
+        state.reconcile_fields(&plain_fields);
+        state.set_error(SECRET, Some(FieldError::new("swordfish")));
+        assert_eq!(
+            state.error(SECRET).map(|error| error.message.as_ref()),
+            Some("swordfish")
+        );
+
+        state.reconcile_fields(&secret_fields);
         assert_eq!(
             state.error(SECRET).map(|error| error.message.as_ref()),
             Some("Invalid value")

@@ -538,9 +538,14 @@ pub struct TextInputState {
 
 impl Clone for TextInputState {
     fn clone(&self) -> Self {
+        let phase = if self.is_sensitive() {
+            EditPhase::Idle
+        } else {
+            self.phase
+        };
         TextInputState {
             draft: self.draft.clone_snapshot(),
-            phase: self.phase,
+            phase,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
         }
     }
@@ -742,17 +747,7 @@ impl TextInputState {
 }
 
 pub(crate) fn discard_error(error: FieldError) {
-    if let std::borrow::Cow::Owned(mut message) = error.message {
-        zeroize_string(&mut message);
-    }
-}
-
-fn zeroize_string(value: &mut String) {
-    let mut bytes = core::mem::take(value).into_bytes();
-    bytes.fill(0);
-    core::hint::black_box(&bytes);
-    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-    bytes.clear();
+    drop(error);
 }
 
 pub(crate) fn redacted_text(text: &str) -> String {
@@ -1812,6 +1807,21 @@ mod tests {
         let copy = state.clone();
         assert_eq!(copy.draft.text(), "•••••••");
         assert!(!copy.draft.text().contains("hunter2"));
+    }
+
+    #[test]
+    fn sensitive_state_clone_cannot_commit_redacted_draft() {
+        let mut state = TextInputState::default();
+        state.set_sensitive(true);
+        state.begin("hunter2");
+        let _ = state.apply(EditAction::Insert('!'));
+
+        let mut copy = state.clone();
+        let mut value = String::new();
+        copy.commit(&mut value, &NoValidate)
+            .expect("a snapshot commit must not validate a redacted draft");
+        assert!(value.is_empty());
+        assert!(!copy.is_editing());
     }
 
     #[test]

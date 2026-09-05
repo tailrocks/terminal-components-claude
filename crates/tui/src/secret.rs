@@ -11,6 +11,21 @@ use crate::collection::CellUi;
 use crate::id::fnv1a;
 use crate::theme::GlyphRole;
 
+/// Overwrite every byte in a `String` allocation before releasing it.
+///
+/// Extending the logical length to the allocation capacity makes spare bytes
+/// writable too; those bytes can retain an earlier secret after a `clear`,
+/// `truncate` or growth operation.
+pub(crate) fn wipe_string(value: String) {
+    let mut bytes = value.into_bytes();
+    let capacity = bytes.capacity();
+    bytes.resize(capacity, 0);
+    bytes.fill(0);
+    core::hint::black_box(&bytes);
+    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
+    drop(bytes);
+}
+
 /// A secret string.
 #[derive(Default)]
 pub struct Secret(String);
@@ -81,12 +96,7 @@ impl Secret {
     /// `secret::zeroize_overwrites_before_drop` is that the buffer is released
     /// and a fresh `expose()` is empty.
     pub fn zeroize(&mut self) {
-        let mut bytes = core::mem::take(&mut self.0).into_bytes();
-        bytes.fill(0);
-        core::hint::black_box(&bytes);
-        core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-        bytes.clear();
-        drop(bytes);
+        wipe_string(core::mem::take(&mut self.0));
         self.0 = String::new();
     }
 }

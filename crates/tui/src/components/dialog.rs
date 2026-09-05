@@ -173,11 +173,7 @@ impl DialogState {
 }
 
 fn zeroize_string(value: &mut String) {
-    let mut bytes = core::mem::take(value).into_bytes();
-    bytes.fill(0);
-    core::hint::black_box(&bytes);
-    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-    bytes.clear();
+    crate::secret::wipe_string(core::mem::take(value));
 }
 
 /// A titled surface with a description, an optional prompt or typed

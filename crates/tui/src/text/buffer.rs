@@ -400,23 +400,24 @@ impl TextBuffer {
     pub fn insert_str(&mut self, s: &str) -> bool {
         if self.sensitive {
             let range = self.selection().unwrap_or(self.cursor..self.cursor);
-            let mut inserted = String::new();
+            let before = self.text.len().saturating_sub(range.len());
+            let mut next = String::with_capacity(before.saturating_add(s.len()));
+            next.push_str(&self.text[..range.start]);
             if self.multiline {
-                inserted.push_str(s);
+                next.push_str(s);
             } else {
                 for c in s.chars().filter(|c| *c != '\n' && *c != '\r') {
-                    inserted.push(c);
+                    next.push(c);
                 }
             }
-            let before = self.text.len().saturating_sub(range.len());
-            let mut next = String::with_capacity(before.saturating_add(inserted.len()));
-            next.push_str(&self.text[..range.start]);
-            next.push_str(&inserted);
             next.push_str(&self.text[range.end..]);
+            let inserted_len = next
+                .len()
+                .saturating_sub(self.text.len().saturating_sub(range.len()));
             self.replace_text(next);
-            self.cursor = range.start.saturating_add(inserted.len());
+            self.cursor = range.start.saturating_add(inserted_len);
             self.anchor = None;
-            return !inserted.is_empty();
+            return inserted_len != 0;
         }
         self.delete_selection();
         let before = self.text.len();
@@ -563,12 +564,7 @@ fn without_range(text: &str, range: Range<usize>) -> String {
 }
 
 fn wipe_string(value: String) {
-    let mut bytes = value.into_bytes();
-    bytes.fill(0);
-    core::hint::black_box(&bytes);
-    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-    bytes.clear();
-    drop(bytes);
+    crate::secret::wipe_string(value);
 }
 
 #[cfg(test)]

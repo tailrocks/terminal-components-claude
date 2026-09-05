@@ -1002,7 +1002,7 @@ impl<A: App> Runtime<A> {
                 self.enqueue_key(k);
             }
             Input::Mouse(m) => self.enqueue_mouse(m),
-            Input::Paste(s) => {
+            Input::Paste(ref s) => {
                 if let Some(owner) = self.focus.current()
                     && self.focused_is_editing()
                 {
