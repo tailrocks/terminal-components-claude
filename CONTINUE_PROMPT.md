@@ -37,8 +37,9 @@ overrides.
 
 ## Current state — measured at the current tip
 
-The current **committed** source tip is **`HEAD == origin/main == b23df21`
-(`b23df21c93a4694a4e71c4e76029bea14e275759`)**. The latest lineage is:
+The current **source payload** is **`b23df21`**
+(`b23df21c93a4694a4e71c4e76029bea14e275759`); `origin/main` may be newer from
+docs-only checkpoint commits. The latest source lineage is:
 
 - `b23df21` — redact environment values from Jackin debug output;
 - `c936d51` — keep Jackin environment drafts masked and persist only after save;

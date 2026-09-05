@@ -1237,8 +1237,10 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   both keep the same spinner sequence. §20.10 item 1 / visual ledger item 1d classify the fix; no
   retained eight-state digest key isolates `LOADING`, so no baseline movement is claimed.
 - `FormState` does not expose or implement generic `Reconcile<ItemKey>`. Its private
-  `reconcile_fields(&[FieldSpec])` is keyed by field `Id`, preserves draft/editor state across
-  declaration reorder, creates newly declared slots, and zeroizes removed slots before drop.
+  `reconcile_fields_with_data<D: FormData + ?Sized>(&[FieldSpec], &D)` is keyed by field `Id`,
+  reads owner sensitivity before visibility filtering, preserves draft/editor state across
+  declaration reorder and visibility-only toggles when identity/shape/sensitivity are unchanged,
+  and zeroizes removed or transitioned slots before release.
 
 ### Current
 
@@ -1962,7 +1964,7 @@ gates. It does not claim slice or goal completion.
 - No baseline was edited or blessed. Baseline blessing remains unauthorized while stale provenance
   and the visual failures remain unresolved.
 
-## Current source-and-gate checkpoint — AUTHORITATIVE (2026-09-05, origin/main `b23df21`)
+## Current source-payload checkpoint — AUTHORITATIVE (2026-09-05, payload `b23df21`)
 
 This checkpoint supersedes the `c152b97` source checkpoint for current identity and measured
 gates. Earlier checkpoints remain historical. It records landed source and evidence only; it does
@@ -1970,9 +1972,10 @@ not claim Slice or goal completion.
 
 ### Identity and measured gates
 
-- Verified committed identity: `HEAD == origin/main == b23df21c93a4694a4e71c4e76029bea14e275759`.
-  The current lineage adds `5dc310a` (form test clippy cleanup), `c936d51` (masked environment
-  drafts and save-only persistence), and `b23df21` (redacted environment debug values).
+- Verified source payload identity: `b23df21c93a4694a4e71c4e76029bea14e275759`.
+  The repository tip may be newer due to docs-only checkpoint commits; the current lineage adds
+  `5dc310a` (form test clippy cleanup), `c936d51` (masked environment drafts and save-only
+  persistence), and `b23df21` (redacted environment debug values).
 - `rtk cargo fmt --all -- --check`: **PASS**.
 - `rtk cargo run -p xtask -- doc-check`: **PASS** — 76 Rust blocks, 864 references resolved;
   the existing allow-listed not-yet-built references remain explicit.

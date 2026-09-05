@@ -29,8 +29,9 @@ not pass model or effort overrides.
 
 ## Current tip — measured
 
-The current **committed** tip is `HEAD == origin/main == b23df21`
-(`b23df21c93a4694a4e71c4e76029bea14e275759`). Its immediate lineage is
+The current **source payload** is `b23df21`
+(`b23df21c93a4694a4e71c4e76029bea14e275759`); `origin/main` may be newer from
+docs-only checkpoint commits. Its immediate source lineage is
 `b23df21` (Jackin environment debug redaction), `c936d51` (masked environment
 drafts), `5dc310a` (form clippy gate), `c152b97` (Jackin shell props registration),
 `e92944f` (stale Grid edit errors),
