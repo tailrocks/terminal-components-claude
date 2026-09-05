@@ -10,8 +10,7 @@ The worked example is `crates/tui/examples/12_author_component.rs`: a
 it alongside this guide. Everything below is either quoted from it or
 verified against the compiler.
 
-Written against `junie_tui`; see the note at the top of
-[`quickstart.md`](quickstart.md) about the temporary crate name.
+Written against the final `junie_tui` public crate path.
 
 ---
 

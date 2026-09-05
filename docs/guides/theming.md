@@ -10,8 +10,7 @@ This guide walks the twelve customisation scenarios the project requires, in
 order, each with code. Then it explains the precedence chain those scenarios
 sit on, and the `Slot` merge law that makes "unset" different from "cleared".
 
-Everything here is written against `junie_tui`; see the note at the top of
-[`quickstart.md`](quickstart.md) about the temporary crate name.
+Everything here is written against the final `junie_tui` public crate path.
 
 ---
 
@@ -537,6 +536,11 @@ discarding the brightness contrast the whole accent system rests on, and
 collapses `danger_soft` onto a grey. A colour whose channel spread is under 40
 collapses to the grey ladder by BT.601 luma; otherwise the dominant channel
 selects the hue family and `max(r, g, b) > 180` selects the light half.
+
+For a light theme at `Ansi16`, the mapped foreground ladder additionally
+replaces bright `Gray`/`White` entries with `DarkGray`; ANSI16's bright greys
+would otherwise disappear against a light canvas. Accent and status hues, and
+all non-foreground tokens, keep the mapping above.
 
 `Role::Custom(Color)` — the one documented raw-colour escape hatch — is
 downgraded too.

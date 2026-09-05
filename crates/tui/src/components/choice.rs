@@ -13,7 +13,7 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 
 use super::form::InheritedFormState;
-use super::{Acc, Overrides, SlotFn, cell_at, first_row};
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
@@ -118,7 +118,7 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
 /// which each control supplies as a closure over its own glyph roles.
 struct FlagRow<'r> {
     id: Id,
-    ov: Overrides<'r>,
+    ov: PartStyle<'r>,
     label: &'r str,
     marker_w: u16,
     trailing: Option<&'r str>,
@@ -263,7 +263,7 @@ pub struct Checkbox<'a> {
     checked: bool,
     read_only: bool,
     disabled: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Checkbox<'_> {
@@ -293,7 +293,7 @@ impl<'a> Checkbox<'a> {
             checked: false,
             read_only: false,
             disabled: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -321,14 +321,14 @@ impl<'a> Checkbox<'a> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -416,7 +416,7 @@ impl<'a> Checkbox<'a> {
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut live = Overrides::flags(crate::ui::FrameRead::state(ui, self.id), derived);
+        let mut live = PartStyle::flags(crate::ui::FrameRead::state(ui, self.id), derived);
         if !self.checked {
             live = live.difference(StateFlags::SELECTED);
         }
@@ -562,7 +562,7 @@ pub struct Toggle<'a> {
     on: bool,
     read_only: bool,
     disabled: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Toggle<'_> {
@@ -598,7 +598,7 @@ impl<'a> Toggle<'a> {
             on: false,
             read_only: false,
             disabled: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -626,14 +626,14 @@ impl<'a> Toggle<'a> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -721,7 +721,7 @@ impl<'a> Toggle<'a> {
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut live = Overrides::flags(crate::ui::FrameRead::state(ui, self.id), derived);
+        let mut live = PartStyle::flags(crate::ui::FrameRead::state(ui, self.id), derived);
         if !self.on {
             live = live.difference(StateFlags::SELECTED);
         }
@@ -934,7 +934,7 @@ pub struct RadioGroup<'a, T, K = ByIndex, R = DefaultRow> {
     value: Option<ItemKey>,
     read_only: bool,
     disabled: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _t: PhantomData<fn() -> T>,
 }
 
@@ -959,7 +959,7 @@ impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
             value: None,
             read_only: false,
             disabled: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _t: PhantomData,
         }
     }
@@ -1081,14 +1081,14 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -1400,7 +1400,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         self.register(ui, used);
         // runtime: the group's own frame state; derived: none — the group's
         // `.disabled` and `.read_only` enter per row, in `row_flags`
-        let live = Overrides::flags(
+        let live = PartStyle::flags(
             crate::ui::FrameRead::state(ui, self.id),
             StateFlags::empty(),
         );

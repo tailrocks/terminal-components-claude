@@ -1,6 +1,6 @@
 //! Fifteen-field connection form from `COMPONENT_ARCHITECTURE.md` §17 example 13.
 
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, App, Checkbox, Chord, Cx, EnterPolicy, FieldError, FieldKind, FieldMut,
     FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData, FormState, GroupKey, Id, KeyCode,
     KeyModifiers, RadioGroup, Response, Secret, SecretPolicy, Select, TextArea, TextInput, Toggle,

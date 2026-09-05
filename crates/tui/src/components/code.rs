@@ -7,7 +7,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn, cell_at, first_row};
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -813,7 +813,7 @@ pub struct CodeEditor<'a> {
     tab_behavior: TabBehavior,
     read_only: bool,
     disabled: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for CodeEditor<'_> {
@@ -861,7 +861,7 @@ impl<'a> CodeEditor<'a> {
             tab_behavior: TabBehavior::Indent,
             read_only: false,
             disabled: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -917,14 +917,14 @@ impl<'a> CodeEditor<'a> {
     /// Patch every part.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
 
     /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(patches);
+        self.ov = self.ov.part(patches);
         self
     }
 
@@ -1298,7 +1298,7 @@ impl<'a> CodeEditor<'a> {
         let runtime = ui
             .state(self.id)
             .difference(StateFlags::EDITING | StateFlags::SELECTED);
-        let live = Overrides::flags(runtime, derived);
+        let live = PartStyle::flags(runtime, derived);
         let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
             self.ov
                 .style(ui, self.id, Family::CODE, Variant::DEFAULT, part, flags)

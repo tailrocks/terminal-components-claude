@@ -86,7 +86,7 @@ pub use picker_chain::{
     PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,
 };
 pub use progress::{ProgressBar, Spinner};
-pub use props::Props;
+pub use props::{Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue};
 pub use scroll_region::ScrollRegion;
 pub use select::{LabelSelect, Select, SelectAction, SelectCmd, SelectState};
 pub use split::{SplitAction, SplitCmd, SplitPane, SplitPaneState};
@@ -103,100 +103,18 @@ pub use viewport::{
 pub use viewport::{ViewportWorkProbe, ViewportWorkSnapshot};
 pub use wizard::{Wizard, WizardAction, WizardCmd, WizardState, WizardStep};
 
-use core::fmt;
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Style;
 
-use crate::id::{Id, Part};
-use crate::response::StateFlags;
-use crate::theme::{Family, GlyphRole, Resolved, StylePatch, Variant};
+use crate::id::Id;
+use crate::theme::GlyphRole;
 use crate::ui::Ui;
+
+pub(crate) use crate::author::PartStyle;
 
 /// A replaced part: the component keeps layout, hit registration, focus and
 /// state; the closure paints the part's rect.
 pub(crate) type SlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect);
-
-/// The per-instance override set every component carries (§12.1, §13).
-///
-/// This is a thin internal compatibility wrapper around the public
-/// component-author carrier. Keeping the wrapper preserves the internal name
-/// used by architecture docs while making built-in and downstream components
-/// share one implementation of precedence, slots and testing notes.
-#[derive(Clone, Copy)]
-pub(crate) struct Overrides<'a>(crate::author::PartStyle<'a>);
-
-impl fmt::Debug for Overrides<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Overrides")
-            .field("patch", &self.0.patch)
-            .field("parts", &self.0.parts.len())
-            .field("slot", &self.0.slot.map(|(part, _)| part))
-            .finish()
-    }
-}
-
-impl<'a> Overrides<'a> {
-    pub(crate) const fn new() -> Self {
-        Self(crate::author::PartStyle::new())
-    }
-
-    pub(crate) const fn patch(self, patch: &'a StylePatch) -> Self {
-        Self(self.0.patch(patch))
-    }
-
-    pub(crate) const fn patch_part(self, patches: &'a [(Part, StylePatch)]) -> Self {
-        Self(self.0.patch_part(patches))
-    }
-
-    pub(crate) const fn slot(self, part: Part, painter: SlotFn<'a>) -> Self {
-        Self(self.0.slot(part, painter))
-    }
-
-    /// The flags a part resolves under (§39.2, Invariant Q).
-    ///
-    /// `runtime` is what the frame supplies; `derived` is what the caller's
-    /// props imply. Reference state injection is centrally owned by `Ui`.
-    pub(crate) const fn flags(runtime: StateFlags, derived: StateFlags) -> StateFlags {
-        crate::author::PartStyle::flags(runtime, derived)
-    }
-
-    /// The instance patch for `part`: `.patch` merged with every matching
-    /// `.patch_part` entry, in declaration order.
-    pub(crate) fn part_patch(&self, part: Part) -> Option<StylePatch> {
-        self.0.part_patch(part)
-    }
-
-    /// The slot replacing `part`, if any.
-    pub(crate) fn slot_for(&self, part: Part) -> Option<SlotFn<'a>> {
-        self.0.slot_for(part)
-    }
-
-    /// Resolve `part` through the whole chain including the instance patch.
-    pub(crate) fn style(
-        &self,
-        ui: &mut Ui<'_>,
-        owner: Id,
-        family: Family,
-        variant: Variant,
-        part: Part,
-        flags: StateFlags,
-    ) -> Resolved {
-        self.0.style(ui, owner, family, variant, part, flags)
-    }
-
-    pub(crate) fn parts(&self) -> &'a [(Part, StylePatch)] {
-        self.0.parts
-    }
-
-    pub(crate) fn global_patch(&self) -> Option<&'a StylePatch> {
-        self.0.patch
-    }
-
-    pub(crate) fn slot_entry(&self) -> Option<(Part, SlotFn<'a>)> {
-        self.0.slot
-    }
-}
 
 /// The first row of `area`, or an empty rect.
 pub(crate) const fn first_row(area: Rect) -> Rect {

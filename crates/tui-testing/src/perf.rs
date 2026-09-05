@@ -5,7 +5,7 @@
 //!
 //! ```ignore
 //! #[global_allocator]
-//! static GLOBAL: tui_next_testing::perf::Counting = tui_next_testing::perf::Counting;
+//! static GLOBAL: junie_tui_testing::perf::Counting = junie_tui_testing::perf::Counting;
 //! ```
 //!
 //! Allocation counters are per thread, so counts stay exact with any

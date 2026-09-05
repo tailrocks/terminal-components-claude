@@ -2,7 +2,7 @@
 //! is defined for `Response<()>` only. Folding two action-carrying responses
 //! would have to silently drop one action.
 
-use tui_next::Response;
+use junie_tui::Response;
 
 fn main() {
     let a: Response<u8> = Response::action(1);

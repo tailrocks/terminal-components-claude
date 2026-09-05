@@ -1,5 +1,5 @@
 //! `COMPONENT_ARCHITECTURE.md` §17 example 3 — a partial theme override
-//! (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 //!
 //! `ThemeBuilder` is a *partial* override with safe derivation (§11.2). Two
 //! properties make it that rather than a rebuild, and both are asserted below:
@@ -15,7 +15,7 @@
 //! asserts the result is equal to the built theme. Any twelfth field moving
 //! fails it.
 
-use tui_next::{
+use junie_tui::{
     App, Button, Color, Cx, FrameRead, Id, Insets, Response, RowAlign, Theme, Ui, Variant, id,
     layout, run,
 };
@@ -86,7 +86,7 @@ fn main() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{AMBER, CRIMSON, amber};
-    use tui_next::Theme;
+    use junie_tui::Theme;
 
     /// The §17 block's own assertion: the surface ladder is untouched.
     #[test]

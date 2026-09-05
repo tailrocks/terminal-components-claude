@@ -3,7 +3,7 @@
 Copy the block below into /goal.
 
 ~~~text
-Read docs/REFACTORING_AUDIT_REPORT.md first, then complete every remaining requirement in GOAL.md and REFACTORING_GOAL.md. Finish the repository, not merely the tui-next library.
+Read docs/REFACTORING_AUDIT_REPORT.md first, then complete every remaining requirement in GOAL.md and REFACTORING_GOAL.md. Finish the repository, not merely the junie-tui library.
 
 Use the current code as truth. Treat markdown state as a checklist only. Do not declare work done from docs, TODO movement, existing pre-refactor baselines, or a passing vacuous check.
 
@@ -21,7 +21,7 @@ Priority rule
 
 Start from the unfinished end of the goal. Prioritize the application migration, package boundary, product behavior, and legacy removal in the later goal sections before broad new foundation refactors.
 
-Use the existing tui-next foundations. If an API gap blocks migration, assign a narrow unblocker. Do not reopen or redesign the foundation without concrete migration evidence.
+Use the existing junie-tui foundations. If an API gap blocks migration, assign a narrow unblocker. Do not reopen or redesign the foundation without concrete migration evidence.
 
 Initial parallel audit
 
@@ -50,22 +50,22 @@ Lane A — application package boundary
 
 Lane B — Showcase migration
 
-- Migrate Showcase to the new public tui-next facade, runtime, event, focus, layer, theme, and component APIs.
+- Migrate Showcase to the new public junie-tui facade, runtime, event, focus, layer, theme, and component APIs.
 - Remove app-owned focus, hit, hover, pressed, cursor, modal, and scroll plumbing.
 - Preserve the full catalog, navigation, keyboard/mouse behavior, custom themes, Junie theme, overrides, color downgrade, overlays, and responsive behavior.
 - Replace legacy imports and direct legacy widget construction.
 
 Lane C — TablePro migration
 
-- Migrate TablePro to tui-next and the new runtime/foundation APIs.
+- Migrate TablePro to junie-tui and the new runtime/foundation APIs.
 - Preserve query safety, pending edits, SQL preview, filters, tabs, history, safe mode, grid behavior, keyboard/mouse behavior, and modal behavior.
 - Keep database/product code outside the generic UI library.
-- Implement the generic grid surface and a narrow TablePro adapter where required. Do not put DB/domain types into tui-next.
+- Implement the generic grid surface and a narrow TablePro adapter where required. Do not put DB/domain types into junie-tui.
 - Remove app-owned interaction routing.
 
 Lane D — Jackin Preview migration
 
-- Migrate Jackin Preview to tui-next.
+- Migrate Jackin Preview to junie-tui.
 - Preserve simulation/control semantics, screens, status, dialogs, keyboard/mouse behavior, and resize/scroll behavior.
 - Remove legacy imports and app-owned interaction state/routing.
 
@@ -113,7 +113,7 @@ Do not stop at an estimated percentage. Stop only when all applicable requiremen
 - All three applications build and run through the new package/library boundary.
 - No application imports or constructs legacy core/ui/widgets/theme APIs.
 - No app owns duplicate focus, hit, hover, pressed, cursor, modal, or scroll routing that belongs to the new runtime.
-- Generic tui-next remains domain-free, backend-free where required, and independent of database/product types.
+- Generic junie-tui remains domain-free, backend-free where required, and independent of database/product types.
 - All public components have conformance coverage and an explicit legacy disposition.
 - Showcase, TablePro, and Jackin product semantics remain covered by tests and live/capture evidence.
 - Secret-bearing state is non-leaking across debug/display/clone/equality/logging/capture/snapshot paths.

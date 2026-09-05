@@ -6,7 +6,7 @@ use ratatui_core::layout::Rect;
 
 use super::picker::{AsItem, Item, ItemRow};
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn};
+use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
 use crate::collection::{CollectionCore, EmptyState, Reconcile, RowFn, RowUi};
 use crate::event::{Chord, KeyCode, KeyModifiers};
@@ -315,7 +315,7 @@ pub struct Completion<'a, T, R = ItemRow> {
     max_rows: u16,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _item: PhantomData<fn(&T)>,
 }
 
@@ -338,7 +338,7 @@ impl<T> Completion<'_, T, ItemRow> {
             max_rows: 8,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _item: PhantomData,
         }
     }
@@ -391,14 +391,14 @@ impl<'a, T, R> Completion<'a, T, R> {
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
     /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
-        self.ov = self.ov.patch_part(parts);
+        self.ov = self.ov.part(parts);
         self
     }
     /// Replace one part painter.

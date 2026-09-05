@@ -28,19 +28,19 @@ the language hold up when a real tool is built from it?*
 ## Run
 
 ```sh
-cargo run --release                                  # the showcase (default binary)
-cargo run --release -- --page datagrid               # start on a page (overview, buttons, … codeeditor, datagrid, chipsselects, pickers)
-cargo run --release -- --color 256                   # cap the colour level: truecolor|256|16|none
+cargo run -p showcase --release                      # the showcase
+cargo run -p showcase --release -- --page datagrid   # start on a page (overview, buttons, … codeeditor, datagrid, chipsselects, pickers)
+cargo run -p showcase --release -- --color 256       # cap the colour level: truecolor|256|16|none
 
-cargo run --release --bin tablepro                   # the workbench, starting on the connections screen
-cargo run --release --bin tablepro -- --connect Production   # connect straight away
+cargo run -p tablepro --release                      # the workbench, starting on the connections screen
+cargo run -p tablepro --release -- --connect Production   # connect straight away
 
-cargo run --release --bin jackin-preview             # Jackin redesign, first-use scenario (intro → manager)
-cargo run --release --bin jackin-preview -- --scenario accounts-mixed   # first-use | returning | accounts-mixed |
+cargo run -p jackin-preview --release                # Jackin redesign, first-use scenario (intro → manager)
+cargo run -p jackin-preview --release -- --scenario accounts-mixed   # first-use | returning | accounts-mixed |
                                                      # launch-running | launch-failure | capsule-multi | outro-last | hard-cases
-cargo run --release --bin jackin-preview -- --scenario launch-running --motion reduced   # full | reduced | paused
-cargo run --release --bin jackin-preview -- --scenario first-use --motion paused --frame 282    # freeze one frame
-JACKIN_NO_MOTION=1 cargo run --release --bin jackin-preview   # same as --motion reduced
+cargo run -p jackin-preview --release -- --scenario launch-running --motion reduced   # full | reduced | paused
+cargo run -p jackin-preview --release -- --scenario first-use --motion paused --frame 282    # freeze one frame
+JACKIN_NO_MOTION=1 cargo run -p jackin-preview --release   # same as --motion reduced
 ```
 
 Every screen's first row is the application menu bar (`F10`, or click a
@@ -56,7 +56,7 @@ every screen, dialog, picker and menu shares.
 
 The preview's scenarios are deterministic: the same `--scenario`, `--motion`,
 `--frame` and terminal size always render the same picture, which is what
-`src/bin/jackin_preview/app_tests.rs` and the `j_*` captures rely on. No
+`apps/jackin-preview/tests/preview.rs` and the `j_*` captures rely on. No
 secret ever reaches a frame — 1Password references resolve only inside the
 simulated credential service, plain-text keys live in transient edit state
 and render masked with a synthetic four-character tail.
@@ -279,24 +279,19 @@ editing, so the two never look alike.
 ## Architecture
 
 ```
-src/core      framework primitives — ids, focus ring, hit registry, scroll state, text buffer, events
-src/theme.rs  design tokens + component style resolvers
-src/ui        render context (interaction snapshot, hit/focus registration), text helpers
-src/widgets   button, input, textarea, choice, list, tree, table, panel, tabs, dialog, progress, scrollbar,
-              code (editor), completion, grid (data grid), chips, select, picker, segments, props, empty, keyhint
-src/runtime   the shared event loop (raw mode, mouse, bracketed paste, coalesced input, ticks on demand)
-src/bin/showcase   pages/ (one per component + two composed screens), app.rs shell, data.rs, app_tests.rs (+ visual baseline)
-src/bin/tablepro   db.rs (demo catalog + row generator), sql.rs (tokens, statements, safety tiers, runner, EXPLAIN),
-                   model.rs (history, completion, switcher index), tabs.rs (table / query / history tabs),
-                   workbench.rs, connections.rs, app.rs (modals, safety gate, chords), app_tests.rs
+crates/tui/src      reusable framework — ids, focus ring, hit registry, scroll state, text buffer, events,
+                    theme, Ui facade, components, and runtime
+apps/showcase       pages/ (one per component + two composed screens), app.rs shell, data.rs, tests
+apps/tablepro       db.rs (demo catalog + row generator), sql.rs (tokens, statements, safety tiers, runner, EXPLAIN),
+                    model.rs, tabs.rs, workbench.rs, connections.rs, app.rs, tests
+apps/jackin-preview deterministic preview library, simulation, screens, and tests
 tools/        headless capture harness (tmux → ANSI → PNG) used for visual review
 ```
 
-Widgets are plain state structs with `render(area, buf, ctx)` — which draws
-*and* registers hit regions and focus stops — and small `on_key` / `on_click`
-/ `on_wheel` handlers returning `Outcome::{Ignored, Consumed, Changed}`.
-Pages own their widgets and route events; the app owns focus, hover, pressed
-state and dialogs.
+Components are plain props/state pairs with `draw(&self, ui, ...)` and
+`update(&self, cx, ...)`; `Runtime` owns focus, hover, pressed state, capture,
+layers, cursor, and event routing. Applications own domain state and compose
+the public facade.
 
 ## Library boundary
 

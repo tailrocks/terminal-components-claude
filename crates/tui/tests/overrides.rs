@@ -17,11 +17,11 @@
     )
 )]
 
-use tui_next::{
+use junie_tui::{
     Button, Cell, Color, ColorLevel, Family, Id, Overlay, OverlayRule, Part, PartRef, Position,
     Rect, Role, StateFlags, StylePatch, Theme, Ui, Variant,
 };
-use tui_next_testing::Scene;
+use junie_tui_testing::Scene;
 
 const A: Id = Id::root("ov.a");
 const B: Id = Id::root("ov.b");

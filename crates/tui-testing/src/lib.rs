@@ -1,4 +1,4 @@
-//! Test support for `tui-next` (`COMPONENT_ARCHITECTURE.md` §16): the
+//! Test support for `junie-tui` (`COMPONENT_ARCHITECTURE.md` §16): the
 //! deterministic [`Harness`], the headless digest [`Scene`], the shared
 //! conformance driver and the counting allocator for the perf suite.
 //!

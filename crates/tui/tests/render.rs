@@ -16,11 +16,11 @@
 #[path = "fixtures/text.rs"]
 mod fixtures_text;
 
-use tui_next::{
+use junie_tui::{
     App, ColorLevel, Cx, Family, Focusability, Id, ItemKey, KeyCode, LayerSize, LayerSpec, Part,
     Rect, Response, RowUi, StateFlags, Theme, Ui, Variant,
 };
-use tui_next_testing::{Baseline, Harness, Scene};
+use junie_tui_testing::{Baseline, Harness, Scene};
 
 const BASELINE: Baseline = Baseline::new(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -53,10 +53,10 @@ impl App for Layered {
                 PICK,
                 LayerSpec::popover(
                     PICK,
-                    tui_next::Anchor::Rect {
+                    junie_tui::Anchor::Rect {
                         rect: Rect::new(10, 4, 1, 1),
-                        side: tui_next::Side::Below,
-                        align: tui_next::CrossAlign::Start,
+                        side: junie_tui::Side::Below,
+                        align: junie_tui::CrossAlign::Start,
                     },
                 )
                 .size(LayerSize::Fixed(12, 3))
@@ -228,11 +228,11 @@ mod text {
     /// `UnicodeWidthStr::width` on whole strings, which disagrees with the
     /// cells a terminal actually consumes for a few sequences (`"ｶﾞ"`:
     /// `unicode_width` says 1, `Buffer::set_stringn` consumes 2).
-    /// `tui_next::width` is pinned to `set_stringn` by
+    /// `junie_tui::width` is pinned to `set_stringn` by
     /// `text::width_matches_ratatui_cell_width`, so it is the honest
     /// reference for a cell comparison; the walk itself is unchanged.
     fn legacy_width(s: &str) -> usize {
-        usize::from(tui_next::width(s))
+        usize::from(junie_tui::width(s))
     }
 
     fn legacy_truncate(s: &str, max: usize) -> String {
@@ -273,14 +273,14 @@ mod text {
     /// The first `w` columns of row `y`, symbols included — padding is part
     /// of the comparison (§20.10: "any change to padding or ellipsis
     /// placement is a regression").
-    fn painted_columns(buf: &tui_next::Buffer, y: u16, w: u16) -> String {
+    fn painted_columns(buf: &junie_tui::Buffer, y: u16, w: u16) -> String {
         let mut out = String::new();
         let mut x = 0u16;
         while x < w {
             let Some(c) = buf.cell((x, y)) else { break };
             let sym = c.symbol();
             out.push_str(sym);
-            x = x.saturating_add(tui_next::width(sym).max(1));
+            x = x.saturating_add(junie_tui::width(sym).max(1));
         }
         out
     }
@@ -337,10 +337,10 @@ mod layer {
                     LAYER,
                     LayerSpec::popover(
                         LAYER,
-                        tui_next::Anchor::Screen(tui_next::ScreenAlign::Center),
+                        junie_tui::Anchor::Screen(junie_tui::ScreenAlign::Center),
                     )
                     .size(LayerSize::Fixed(12, 3))
-                    .backdrop(tui_next::Backdrop::None)
+                    .backdrop(junie_tui::Backdrop::None)
                     .inert_below(false),
                 );
             }
@@ -375,7 +375,7 @@ mod layer {
                     row,
                 );
                 let mut cell = r.part(Part::META, 4);
-                cell.align(tui_next::Align::Right);
+                cell.align(junie_tui::Align::Right);
                 cell.text("ok");
             });
         }
@@ -421,7 +421,7 @@ mod ui {
     /// same cells, and (BL-4) the span painter allocates nothing per call.
     #[test]
     fn paint_spans_matches_row_ui_label_spans() {
-        use tui_next::{Role, Span};
+        use junie_tui::{Role, Span};
 
         let spans = [
             Span::new("plain "),
@@ -524,7 +524,7 @@ mod theme {
     fn ascii_theme_renders_without_box_drawing_glyphs() {
         let ascii = Theme::junie()
             .builder()
-            .borders_set(tui_next::theme::border::ASCII)
+            .borders_set(junie_tui::theme::border::ASCII)
             .build();
         let h = Harness::new(Framed, ascii, 24, 8);
         let found = box_drawing(&h.text());

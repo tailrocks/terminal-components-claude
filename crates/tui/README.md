@@ -1,4 +1,4 @@
-# tui-next
+# junie-tui
 
 Foundations of the Junie-inspired terminal component library described in
 `COMPONENT_ARCHITECTURE.md`: identity, events and intents, the one reply type,
@@ -7,8 +7,7 @@ theme model (tokens, recipes, role-level patches, six-level precedence), layout
 primitives, the text editing core, the collection vocabulary and the runtime
 that drives the two-phase frame.
 
-The package is named `tui-next` during Slices 3–4 and becomes `junie-tui` at the
-start of Slice 5.
+The package name is `junie-tui` and the Rust crate path is `junie_tui`.
 
 ## Quick start
 
@@ -18,7 +17,7 @@ registers regions. The runtime owns focus, hover, press, capture, layers and the
 cursor.
 
 ```rust
-use tui_next::{id, App, Cx, FrameRead, Focusability, Id, Intent, KeyCode, Response, Runtime, Theme, Ui};
+use junie_tui::{id, App, Cx, FrameRead, Focusability, Id, Intent, KeyCode, Response, Runtime, Theme, Ui};
 
 const COUNTER: Id = id!("counter");
 
@@ -40,19 +39,19 @@ impl App for Demo {
     fn draw(&self, ui: &mut Ui<'_>) {
         let area = ui.full();
         ui.register_control(COUNTER, area, Focusability::Focusable);
-        let style = ui.style(tui_next::Family::BUTTON, tui_next::Variant::DEFAULT,
-                             tui_next::Part::LABEL, ui.state(COUNTER)).style;
+        let style = ui.style(junie_tui::Family::BUTTON, junie_tui::Variant::DEFAULT,
+                             junie_tui::Part::LABEL, ui.state(COUNTER)).style;
         ui.paint_str(area, "press Enter", style);
     }
 }
 
 let mut rt = Runtime::new(Demo::default(), Theme::junie());
-let area = tui_next::Rect::new(0, 0, 20, 3);
-let mut buf = tui_next::Buffer::empty(area);
+let area = junie_tui::Rect::new(0, 0, 20, 3);
+let mut buf = junie_tui::Buffer::empty(area);
 # #[cfg(feature = "testing")]
 rt.draw_buffer(area, &mut buf);
 ```
 
-With the default `crossterm` feature, `tui_next::run(app, Theme::junie())`
+With the default `crossterm` feature, `junie_tui::run(app, Theme::junie())`
 owns the terminal session (raw mode, alternate screen, mouse capture,
 bracketed paste, a chained panic hook) and drives the loop.

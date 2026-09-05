@@ -2,7 +2,8 @@
 //!
 //! `downgrade_color` is exact integer/float arithmetic over the 6×6×6 cube,
 //! the 24-step greyscale and the 16 xterm defaults; `Theme::downgrade` maps
-//! every token through `ColorTokens::map_colors`, so any theme downgrades.
+//! every token through `ColorTokens::map_colors`, then protects the
+//! foreground ladder of light themes from ANSI16's bright grey entries.
 
 use ratatui_core::style::{Color, Modifier};
 
@@ -11,7 +12,7 @@ use super::glyph::GlyphRole;
 use super::patch::{Slot, StylePatch};
 use super::recipe::{Family, Recipes};
 use super::role::{FgStep, Role, Surface};
-use super::tokens::ColorLevel;
+use super::tokens::{ColorLevel, ColorTokens};
 use crate::id::Part;
 use crate::response::StateFlags;
 
@@ -238,6 +239,26 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     }
 }
 
+/// Keep semantic foreground text legible when a light theme enters the tiny
+/// ANSI16 palette. The palette's `Gray`/`White` entries are intentionally
+/// bright; on a light canvas they erase the foreground/background contrast.
+/// This post-map is limited to the foreground ladder, preserving hue mapping
+/// for accents and every other token while keeping the downgrade generic for
+/// user-supplied light themes.
+fn repair_ansi16_light_foreground(source: &ColorTokens, mapped: &mut ColorTokens) {
+    let Some(canvas) = rgb_of(source.surfaces[0]) else {
+        return;
+    };
+    if luminance(canvas) < 0.5 {
+        return;
+    }
+    for foreground in &mut mapped.fg {
+        if matches!(*foreground, Color::Gray | Color::White) {
+            *foreground = Color::DarkGray;
+        }
+    }
+}
+
 impl Theme {
     /// Every token mapped through [`downgrade_color`]; at `Mono` the mono
     /// fallback rules are applied by resolution (§11.4). Works for any theme.
@@ -255,6 +276,9 @@ impl Theme {
         let mut out = self.clone();
         out.capability.color = level;
         out.color = self.color.map_colors(&mut |c| downgrade_color(c, level));
+        if level == ColorLevel::Ansi16 {
+            repair_ansi16_light_foreground(&self.color, &mut out.color);
+        }
         out
     }
 
@@ -746,6 +770,26 @@ mod tests {
         assert_eq!(at16(Color::Rgb(0x2b, 0x86, 0x32)), Color::Green);
         assert_eq!(at16(Color::Rgb(0x7a, 0x2a, 0x2a)), Color::Red);
         assert_eq!(at16(c.info), Color::LightBlue);
+    }
+
+    #[test]
+    fn ansi16_light_theme_keeps_foreground_ladder_contrasting() {
+        let paper = Theme::paper().downgrade(ColorLevel::Ansi16);
+
+        assert_eq!(paper.color.fg[0], Color::Black);
+        assert_eq!(paper.color.fg[1], Color::DarkGray);
+        assert_eq!(paper.color.fg[2], Color::DarkGray);
+        assert_eq!(paper.color.fg[3], Color::DarkGray);
+        assert_eq!(paper.color.fg[4], Color::DarkGray);
+
+        let muted = paper.resolve(
+            Family::PROPS,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::empty(),
+            Surface::Canvas,
+        );
+        assert_eq!(muted.style.fg, Some(Color::DarkGray));
     }
 
     /// Downgrade is idempotent, and its static mono fallback layer never

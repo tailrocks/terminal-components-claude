@@ -1,4 +1,4 @@
-//! `COMPONENT_ARCHITECTURE.md` §17 example 10 with `Picker` replaced by a `List` in a popover (crate name is temporary: `tui_next` → `junie_tui` at Slice 5).
+//! `COMPONENT_ARCHITECTURE.md` §17 example 10 with `Picker` replaced by a `List` in a popover (crate name is temporary: `junie_tui` → `junie_tui` at Slice 5).
 #![expect(
     dead_code,
     missing_docs,
@@ -8,7 +8,7 @@
     reason = "verbatim from §17 example 10"
 )]
 
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, Anchor, Button, CrossAlign, Cx, Dialog, DialogState, Dismiss, FrameRead, Id,
     ItemKey, LayerEvent, LayerSpec, List, ListAction, ListState, Part, Response, RowUi, Side, Ui,
     id,

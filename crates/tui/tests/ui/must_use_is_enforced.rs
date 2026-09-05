@@ -3,7 +3,7 @@
 //! (§6.1). Compile-fail with `unused_must_use` denied.
 #![deny(unused_must_use)]
 
-use tui_next::Response;
+use junie_tui::Response;
 
 fn make() -> Response<()> {
     Response::consumed()

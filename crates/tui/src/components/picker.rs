@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 
 use super::filter_list::{FilterList, FilterListAction, FilterListState};
-use super::{Acc, Overrides, SlotFn};
+use super::{Acc, PartStyle, SlotFn};
 use crate::collection::{EmptyState, RowFn, RowUi};
 use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
@@ -107,7 +107,7 @@ impl<'i> Item<'i> {
 /// A custom row painter does not replace this semantic contract:
 ///
 /// ```compile_fail
-/// use tui_next::{AsItem, FilterList, Id};
+/// use junie_tui::{AsItem, FilterList, Id};
 /// struct PaintedOnly;
 /// fn requires_semantics<T: AsItem>(_: &FilterList<'_, T>) {}
 /// let list = FilterList::<PaintedOnly>::new(Id::root("painted-only"));
@@ -270,7 +270,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     row: R,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _item: PhantomData<fn(&T)>,
 }
 
@@ -296,7 +296,7 @@ impl<T> Picker<'_, T, ItemRow> {
             row: ItemRow,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _item: PhantomData,
         }
     }
@@ -365,14 +365,14 @@ impl<'a, T, R> Picker<'a, T, R> {
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
-        self.ov = self.ov.patch(patch);
+        self.ov = self.ov.global(patch);
         self
     }
     /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
-        self.ov = self.ov.patch_part(parts);
+        self.ov = self.ov.part(parts);
         self
     }
     /// Replace one part.
@@ -477,7 +477,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     /// Draw into the resolved modal area supplied by the owner's layer closure.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &PickerState, items: &[T]) -> Rect {
         ui.with_surface(crate::theme::Surface::Overlay, |ui| {
-            let mut live = Overrides::flags(StateFlags::empty(), StateFlags::empty());
+            let mut live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
             live.remove(StateFlags::PRESSED);
             let base = self.ov.style(
                 ui,

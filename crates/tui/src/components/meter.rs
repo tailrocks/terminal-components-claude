@@ -12,7 +12,7 @@ use ratatui_core::layout::Rect;
 use ratatui_core::style::Style;
 
 use super::progress::{PCT_COLUMNS, Pct};
-use super::{Overrides, SlotFn, first_row};
+use super::{PartStyle, SlotFn, first_row};
 use crate::collection::Status;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
@@ -192,7 +192,7 @@ pub struct Meter<'a> {
     variant: Variant,
     status: Status,
     frame: usize,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Meter<'_> {
@@ -226,7 +226,7 @@ impl<'a> Meter<'a> {
             variant: Variant::DEFAULT,
             status: Status::Ready,
             frame: 0,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -289,14 +289,14 @@ impl<'a> Meter<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -417,7 +417,7 @@ impl<'a> Meter<'a> {
         }
         // runtime: none — a meter is a readout and registers no control;
         // derived: the readiness the caller's `.status` declares
-        let live = Overrides::flags(StateFlags::empty(), self.status.flags());
+        let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
         let id = self.id;
         let tone = self.resolved_tone(ui);

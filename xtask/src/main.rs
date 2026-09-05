@@ -21,6 +21,7 @@ use std::process::{Command, ExitCode};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use regex::Regex;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
@@ -56,6 +57,7 @@ const CAPTURE_APPS: [CaptureApp; 3] = [
     },
 ];
 const CAPTURE_MANIFEST: &str = "shots/capture-matrix.tsv";
+const CAPTURE_PROVENANCE: &str = "shots/capture-provenance.json";
 
 // Independent acceptance pins for the visual review contract. Keep these
 // literals separate from the generation axes: changing both declarations in
@@ -316,6 +318,7 @@ fn capture_matrix() -> Result<(), String> {
     let _matrix_lock = acquire_capture_matrix_lock(&shots)?;
 
     let cases = capture_matrix_cases();
+    let revision = head_revision()?;
     let mut records = Vec::with_capacity(cases.len());
     for (index, case) in cases.iter().copied().enumerate() {
         println!(
@@ -395,6 +398,8 @@ fn capture_matrix() -> Result<(), String> {
     validate_capture_records(&cases, &records)?;
     let manifest = root().join(CAPTURE_MANIFEST);
     write_capture_manifest(&manifest, &records)?;
+    validate_capture_tsv(&cases, &manifest)?;
+    validate_capture_provenance(&cases, &root().join(CAPTURE_PROVENANCE), Some(&revision))?;
     println!(
         "capture-matrix: wrote {} ({} cells)",
         rel(&manifest),
@@ -766,6 +771,309 @@ fn file_digest(path: &Path) -> Result<(u64, String), String> {
     Ok((bytes, format!("{:x}", hasher.finalize())))
 }
 
+fn provenance_string<'a>(record: &'a Value, key: &str) -> Option<&'a str> {
+    record.get(key).and_then(Value::as_str)
+}
+
+fn provenance_dimensions(record: &Value, key: &str) -> Option<(u16, u16)> {
+    let dimensions = record.get(key)?.as_object()?;
+    let columns = dimensions.get("columns")?.as_u64()?.try_into().ok()?;
+    let rows = dimensions.get("rows")?.as_u64()?.try_into().ok()?;
+    Some((columns, rows))
+}
+
+fn validate_capture_provenance(
+    expected: &[CaptureCase],
+    path: &Path,
+    expected_revision: Option<&str>,
+) -> Result<(), String> {
+    let text = fs::read_to_string(path)
+        .map_err(|error| format!("cannot read capture provenance {}: {error}", rel(path)))?;
+    let value: Value = serde_json::from_str(&text)
+        .map_err(|error| format!("cannot parse capture provenance {}: {error}", rel(path)))?;
+    let Some(records) = value.as_array() else {
+        return Err(format!(
+            "capture provenance {} is not a JSON array",
+            rel(path)
+        ));
+    };
+
+    let expected_by_name: BTreeMap<String, CaptureCase> = expected
+        .iter()
+        .copied()
+        .map(|case| (case.shot_name(), case))
+        .collect();
+    let mut seen = BTreeSet::new();
+    let mut revisions = BTreeSet::new();
+    let mut errors = Vec::new();
+
+    for (index, record) in records.iter().enumerate() {
+        let Some(object) = record.as_object() else {
+            errors.push(format!(
+                "capture provenance record {index} is not an object"
+            ));
+            continue;
+        };
+        let Some(name) = provenance_string(record, "name") else {
+            errors.push(format!("capture provenance record {index} has no name"));
+            continue;
+        };
+        let Some(case) = expected_by_name.get(name).copied() else {
+            errors.push(format!("unexpected capture provenance cell: {name}"));
+            continue;
+        };
+        if !seen.insert(name.to_owned()) {
+            errors.push(format!("duplicate capture provenance cell: {name}"));
+        }
+
+        if provenance_string(record, "app") != Some(case.app.name) {
+            errors.push(format!(
+                "{name}: provenance app does not match the declared owner"
+            ));
+        }
+        if provenance_string(record, "theme") != Some(case.theme) {
+            errors.push(format!(
+                "{name}: provenance theme does not match the capture cell"
+            ));
+        }
+        if provenance_string(record, "color") != Some(case.color) {
+            errors.push(format!(
+                "{name}: provenance color does not match the capture cell"
+            ));
+        }
+        if provenance_string(record, "status") != Some("ok") {
+            errors.push(format!("{name}: provenance status is not ok"));
+        }
+        if provenance_string(record, "exit_status") != Some("terminated_by_capture_stop") {
+            errors.push(format!(
+                "{name}: provenance exit status is not capture_stop"
+            ));
+        }
+        if provenance_string(record, "termination") != Some("capture_stop") {
+            errors.push(format!(
+                "{name}: provenance termination is not capture_stop"
+            ));
+        }
+        if record.get("exit_observed").and_then(Value::as_bool) != Some(false) {
+            errors.push(format!(
+                "{name}: provenance incorrectly observed an application exit"
+            ));
+        }
+        if let Some(revision) = provenance_string(record, "revision") {
+            revisions.insert(revision.to_owned());
+            if expected_revision.is_some_and(|expected| expected != revision) {
+                errors.push(format!(
+                    "{name}: provenance revision {revision} differs from the run revision"
+                ));
+            }
+        } else {
+            errors.push(format!("{name}: provenance has no revision"));
+        }
+
+        let expected_dimensions = (case.width, case.height);
+        if provenance_dimensions(record, "requested_dimensions") != Some(expected_dimensions) {
+            errors.push(format!(
+                "{name}: requested dimensions do not match {expected_dimensions:?}"
+            ));
+        }
+        if provenance_dimensions(record, "dimensions") != Some(expected_dimensions) {
+            errors.push(format!(
+                "{name}: captured dimensions do not match {expected_dimensions:?}"
+            ));
+        }
+
+        let artifacts = object.get("artifacts").and_then(Value::as_object);
+        for (kind, extension) in [
+            ("ansi", "ansi"),
+            ("cursor", "cursor"),
+            ("txt", "txt"),
+            ("html", "html"),
+            ("png", "png"),
+        ] {
+            let Some(info) = artifacts
+                .and_then(|all| all.get(kind))
+                .and_then(Value::as_object)
+            else {
+                errors.push(format!("{name}: provenance is missing the {kind} artifact"));
+                continue;
+            };
+            let artifact_path = format!("shots/{name}.{extension}");
+            if info.get("path").and_then(Value::as_str) != Some(artifact_path.as_str()) {
+                errors.push(format!(
+                    "{name}: {kind} artifact path is not {artifact_path}"
+                ));
+            }
+            if info.get("status").and_then(Value::as_str) != Some("ok") {
+                errors.push(format!("{name}: {kind} artifact status is not ok"));
+            }
+            let bytes = info.get("bytes").and_then(Value::as_u64);
+            let sha256 = info.get("sha256").and_then(Value::as_str);
+            match file_digest(&root().join(&artifact_path)) {
+                Ok((actual_bytes, actual_sha256)) => {
+                    if bytes != Some(actual_bytes) {
+                        errors.push(format!("{name}: {kind} artifact byte count is stale"));
+                    }
+                    if sha256 != Some(actual_sha256.as_str()) {
+                        errors.push(format!("{name}: {kind} artifact sha256 is stale"));
+                    }
+                }
+                Err(error) => errors.push(format!("{name}: {error}")),
+            }
+        }
+
+        let Some(stderr) = object.get("stderr").and_then(Value::as_object) else {
+            errors.push(format!("{name}: provenance is missing stderr information"));
+            continue;
+        };
+        if stderr.get("path").and_then(Value::as_str) != Some("shots/stderr.log") {
+            errors.push(format!("{name}: stderr path is not shots/stderr.log"));
+        }
+        if stderr.get("status").and_then(Value::as_str) != Some("empty")
+            || stderr.get("bytes").and_then(Value::as_u64) != Some(0)
+            || stderr.get("sha256").and_then(Value::as_str)
+                != Some("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        {
+            errors.push(format!(
+                "{name}: application stderr is not recorded as empty"
+            ));
+        }
+    }
+
+    let missing: Vec<&str> = expected_by_name
+        .keys()
+        .filter(|name| !seen.contains(*name))
+        .map(String::as_str)
+        .collect();
+    if !missing.is_empty() {
+        errors.push(format!(
+            "capture provenance is missing cell(s): {}",
+            missing.join(", ")
+        ));
+    }
+    if records.len() != expected.len() {
+        errors.push(format!(
+            "capture provenance has {} record(s), expected {}",
+            records.len(),
+            expected.len()
+        ));
+    }
+    if revisions.len() != 1 {
+        errors.push(format!(
+            "capture provenance has {} revision(s), expected one",
+            revisions.len()
+        ));
+    }
+    if let Some(expected_revision) = expected_revision
+        && revisions.len() == 1
+        && !revisions.contains(expected_revision)
+    {
+        errors.push(format!(
+            "capture provenance revision does not match run revision {expected_revision}"
+        ));
+    }
+    for revision in revisions {
+        let output = git(&[
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            &format!("{revision}^{{commit}}"),
+        ])
+        .map_err(|error| {
+            format!("cannot validate capture provenance revision {revision}: {error}")
+        })?;
+        if !output.status.success() {
+            errors.push(format!(
+                "capture provenance revision does not resolve: {revision}"
+            ));
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), String> {
+    let text = fs::read_to_string(path)
+        .map_err(|error| format!("cannot read capture matrix {}: {error}", rel(path)))?;
+    let mut lines = text.lines();
+    if lines.next() != Some("path\tsize\tcolor\ttheme\tbytes\tsha256") {
+        return Err(format!(
+            "capture matrix {} has an invalid header",
+            rel(path)
+        ));
+    }
+
+    let expected_by_path: BTreeMap<String, CaptureCase> = expected
+        .iter()
+        .copied()
+        .map(|case| (format!("shots/{}.png", case.shot_name()), case))
+        .collect();
+    let mut seen = BTreeSet::new();
+    let mut errors = Vec::new();
+    for (index, line) in lines.enumerate() {
+        let fields: Vec<&str> = line.split('\t').collect();
+        if fields.len() != 6 {
+            errors.push(format!(
+                "capture matrix row {} has {} fields",
+                index + 2,
+                fields.len()
+            ));
+            continue;
+        }
+        let [path, size, color, theme, bytes, sha256] = fields.as_slice() else {
+            unreachable!("length checked above");
+        };
+        let Some(case) = expected_by_path.get(*path).copied() else {
+            errors.push(format!("unexpected capture matrix path: {path}"));
+            continue;
+        };
+        if !seen.insert((*path).to_owned()) {
+            errors.push(format!("duplicate capture matrix path: {path}"));
+        }
+        if *size != case.size() || *color != case.color || *theme != case.theme {
+            errors.push(format!("capture matrix row is inconsistent for {path}"));
+        }
+        let Some(bytes) = bytes.parse::<u64>().ok() else {
+            errors.push(format!("capture matrix byte count is invalid for {path}"));
+            continue;
+        };
+        match file_digest(&root().join(path)) {
+            Ok((actual_bytes, actual_sha256)) => {
+                if bytes != actual_bytes || *sha256 != actual_sha256 {
+                    errors.push(format!("capture matrix digest is stale for {path}"));
+                }
+            }
+            Err(error) => errors.push(error),
+        }
+    }
+    let missing: Vec<&str> = expected_by_path
+        .keys()
+        .filter(|path| !seen.contains(*path))
+        .map(String::as_str)
+        .collect();
+    if !missing.is_empty() {
+        errors.push(format!(
+            "capture matrix is missing path(s): {}",
+            missing.join(", ")
+        ));
+    }
+    let rows = seen.len();
+    if rows != expected.len() {
+        errors.push(format!(
+            "capture matrix has {rows} row(s), expected {}",
+            expected.len()
+        ));
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
 fn case_label(case: CaptureCase) -> String {
     format!(
         "{} / {} / {} / {}",
@@ -971,6 +1279,10 @@ fn capture_script_contract_hits(script: &str) -> Vec<String> {
         ("terminal dimensions", "-x \"$cols\" -y \"$rows\""),
         ("tmux pane capture", "tmux capture-pane"),
         ("PNG conversion", "ansi2png.py"),
+        ("capture lock", "CAPTURE_LOCK_DIR"),
+        ("worktree session namespace", "workspace_key"),
+        ("provenance manifest", "capture-provenance.json"),
+        ("provenance recorder", "record_provenance"),
     ]
     .into_iter()
     .filter(|(_, fragment)| !script.contains(fragment))
@@ -1065,6 +1377,19 @@ fn capture_matrix_contract() -> Result<(), String> {
     }
     if !errors.is_empty() {
         return Err(errors.join("\n"));
+    }
+
+    let cases = capture_matrix_cases();
+    let mut evidence_errors = Vec::new();
+    if let Err(error) = validate_capture_tsv(&cases, &root().join(CAPTURE_MANIFEST)) {
+        evidence_errors.push(error);
+    }
+    if let Err(error) = validate_capture_provenance(&cases, &root().join(CAPTURE_PROVENANCE), None)
+    {
+        evidence_errors.push(error);
+    }
+    if !evidence_errors.is_empty() {
+        return Err(evidence_errors.join("\n"));
     }
 
     Ok(())
@@ -1339,6 +1664,7 @@ const CHECKS: &[Check] = &[
         "msrv_and_edition_are_unchanged",
         msrv_and_edition_are_unchanged,
     ),
+    ("workspace_root_is_virtual", workspace_root_is_virtual),
     ("no_unreachable_spin_loops", no_unreachable_spin_loops),
     (
         "ratatui_crossterm_is_named_in_exactly_two_files",
@@ -1363,6 +1689,7 @@ const CHECKS: &[Check] = &[
     ),
     ("binary_names_are_preserved", binary_names_are_preserved),
     ("capture_matrix_contract", capture_matrix_contract),
+    ("app_baselines_exist", app_baselines_exist),
     (
         "app_libs_are_not_published_and_are_not_depended_on_by_the_library",
         app_libs_are_not_published_and_are_not_depended_on_by_the_library,
@@ -1378,6 +1705,14 @@ const CHECKS: &[Check] = &[
     (
         "no_owns_or_locate_in_applications",
         no_owns_or_locate_in_applications,
+    ),
+    (
+        "every_component_doc_has_the_standard_sections",
+        every_component_doc_has_the_standard_sections,
+    ),
+    (
+        "every_foreign_type_in_the_public_surface_is_re_exported",
+        every_foreign_type_in_the_public_surface_is_re_exported,
     ),
     (
         "baseline_moves_are_classified",
@@ -1936,12 +2271,10 @@ fn doc_table_names(text: &str) -> BTreeSet<String> {
 /// one-directional "the name exists" check is the safer direction.
 fn declared_test_names() -> BTreeSet<String> {
     let r = root();
-    let mut dirs = vec![
-        r.join("crates"),
-        r.join("src"),
-        r.join("tests"),
-        r.join("xtask/src"),
-    ];
+    // Only Cargo-owned workspace source is test inventory. The root is a
+    // virtual workspace, so frozen `tests/` evidence and a detached legacy
+    // `src/` tree must never satisfy a named-test requirement (§47.4).
+    let mut dirs = vec![r.join("crates"), r.join("xtask/src")];
     if r.join("apps").exists() {
         dirs.push(r.join("apps"));
     }
@@ -2032,25 +2365,31 @@ fn perf_baselines() -> Vec<PathBuf> {
 /// The §21 item 28 deletion assertion: one message per `DELETED_PERF_ROWS`
 /// name still present in a baseline, naming the file and line so the failure
 /// is actionable rather than a bare "must be ABSENT".
+fn deleted_perf_row_hits(path: &Path, text: &str) -> Vec<String> {
+    let mut hits = Vec::new();
+    for (i, line) in text.lines().enumerate() {
+        let row = line.trim();
+        if row.is_empty() || row.starts_with('#') {
+            continue;
+        }
+        let name = row.split_whitespace().next().unwrap_or_default();
+        for (deleted, why) in DELETED_PERF_ROWS {
+            if name == deleted {
+                hits.push(format!(
+                    "{}:{}: {deleted} must be ABSENT from perf_baseline.txt — {why}",
+                    rel(path),
+                    i.saturating_add(1)
+                ));
+            }
+        }
+    }
+    hits
+}
+
 fn surviving_deleted_perf_rows() -> Vec<String> {
     let mut hits = Vec::new();
     for path in perf_baselines() {
-        for (i, line) in read(&path).lines().enumerate() {
-            let row = line.trim();
-            if row.is_empty() || row.starts_with('#') {
-                continue;
-            }
-            let name = row.split_whitespace().next().unwrap_or_default();
-            for (deleted, why) in DELETED_PERF_ROWS {
-                if name == deleted {
-                    hits.push(format!(
-                        "{}:{}: {deleted} must be ABSENT from perf_baseline.txt — {why}",
-                        rel(&path),
-                        i.saturating_add(1)
-                    ));
-                }
-            }
-        }
+        hits.extend(deleted_perf_row_hits(&path, &read(&path)));
     }
     hits
 }
@@ -2383,7 +2722,7 @@ fn examples_are_external_consumers() -> Result<(), String> {
         .status()
         .map_err(|e| e.to_string())?;
     if !status.success() {
-        hits.push("cargo build -p tui-next --examples failed".to_owned());
+        hits.push("cargo build -p junie-tui --examples failed".to_owned());
     }
     println!("examples_are_external_consumers: {n} example(s)");
     if hits.is_empty() {
@@ -2936,7 +3275,7 @@ fn metadata() -> Result<cargo_metadata::Metadata, String> {
         .map_err(|e| e.to_string())
 }
 
-const LIB: &str = "tui-next";
+const LIB: &str = "junie-tui";
 const DECLARED: [&str; 5] = [
     "ratatui-core",
     "ratatui-crossterm",
@@ -2969,7 +3308,7 @@ const ONLY_UNDER_CROSSTERM: [&str; 8] = [
     "signal-hook",
 ];
 
-/// `cargo tree -p tui-next -e normal` lines: `(name, version, features)`.
+/// `cargo tree -p junie-tui -e normal` lines: `(name, version, features)`.
 /// With `prune_crossterm`, the backend's own `crossterm` subtree is left out:
 /// the architecture mandates `ratatui-crossterm`, and what crossterm pulls
 /// beneath itself (`parking_lot` → `smallvec`, …) is not a choice of ours.
@@ -3019,7 +3358,7 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
         .packages
         .iter()
         .find(|p| p.name.as_str() == LIB)
-        .ok_or("no tui-next package")?;
+        .ok_or("no junie-tui package")?;
     let mut errors = Vec::new();
     // (1) direct normal deps
     let direct: BTreeSet<String> = lib
@@ -3082,11 +3421,13 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
             }
         }
     }
-    // (3) apps
-    for p in &md.packages {
-        if !["showcase", "tablepro", "jackin-preview"].contains(&p.name.as_str()) {
+    // (3) apps: check the expected set, not only packages that happen to be
+    // present. A missing app must fail this named check by itself (§47.5).
+    for expected in ["showcase", "tablepro", "jackin-preview"] {
+        let Some(p) = md.packages.iter().find(|p| p.name == expected) else {
+            errors.push(format!("missing expected application package `{expected}`"));
             continue;
-        }
+        };
         let d: BTreeSet<String> = p
             .dependencies
             .iter()
@@ -3106,7 +3447,7 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
             .collect();
         if versions.len() > 1 {
             errors.push(format!(
-                "{name} resolves to {versions:?} inside tui-next's closure"
+                "{name} resolves to {versions:?} inside junie-tui's closure"
             ));
         }
     }
@@ -3129,7 +3470,7 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
     }
 }
 
-/// `cargo tree -p tui-next -e normal --invert <crate>`, for §22.7 (2c).
+/// `cargo tree -p junie-tui -e normal --invert <crate>`, for §22.7 (2c).
 fn inverted_paths(name: &str) -> Result<String, String> {
     let out = Command::new("cargo")
         .args([
@@ -3151,7 +3492,7 @@ fn library_has_no_application_dependency() -> Result<(), String> {
         .packages
         .iter()
         .find(|p| p.name.as_str() == LIB)
-        .ok_or("no tui-next package")?;
+        .ok_or("no junie-tui package")?;
     let bad: Vec<String> = lib
         .dependencies
         .iter()
@@ -3251,6 +3592,80 @@ fn root_package(md: &cargo_metadata::Metadata) -> Option<&cargo_metadata::Packag
     md.packages
         .iter()
         .find(|package| package.manifest_path.parent() == Some(md.workspace_root.as_path()))
+}
+
+/// The final workspace has no root package or root application source.
+///
+/// `root_package_bins()` is intentionally not enough: a residual root
+/// package containing only a library, or a detached `src/` tree, can otherwise
+/// make the migration look complete while Cargo no longer builds those files.
+fn workspace_root_is_virtual() -> Result<(), String> {
+    let md = metadata()?;
+    let mut errors = Vec::new();
+    if let Some(package) = root_package(&md) {
+        let targets: Vec<String> = package
+            .targets
+            .iter()
+            .map(|target| target.name.clone())
+            .collect();
+        errors.push(format!(
+            "workspace root still has package `{}` with targets {targets:?}; Cargo.toml must be virtual",
+            package.name
+        ));
+    }
+    for path in [root().join("src"), root().join("src/bin")] {
+        if path.exists() {
+            errors.push(format!(
+                "legacy root source exists at {} after root-package removal",
+                rel(&path)
+            ));
+        }
+    }
+    if errors.is_empty() {
+        println!("workspace_root_is_virtual: no root package or legacy root source");
+        Ok(())
+    } else {
+        Err(errors.join("\n"))
+    }
+}
+
+/// Every migrated app owns a visual and performance baseline. Keeping this
+/// check separate from the diff guard prevents CI from silently skipping a
+/// missing file because `git diff --exit-code` has no path to compare.
+fn app_baselines_exist() -> Result<(), String> {
+    let mut missing = Vec::new();
+    for app in APPS {
+        let visual_name = if app.bin == "jackin-preview" {
+            "jackin.txt"
+        } else {
+            match app.bin {
+                "showcase" => "showcase.txt",
+                "tablepro" => "tablepro.txt",
+                _ => "app.txt",
+            }
+        };
+        let visual = root()
+            .join(app.dir)
+            .join("tests/baselines")
+            .join(visual_name);
+        let perf = root().join(app.dir).join("tests/perf_baseline.txt");
+        for path in [visual, perf] {
+            if !path.is_file() {
+                missing.push(rel(&path));
+            } else if read(&path).trim().is_empty() {
+                missing.push(format!("{} (empty)", rel(&path)));
+            }
+        }
+    }
+    if missing.is_empty() {
+        println!("app_baselines_exist: visual and perf baselines present for all apps");
+        Ok(())
+    } else {
+        Err(format!(
+            "missing required app baselines:\n  {}",
+            missing.join("\n  ")
+        ))
+    }
 }
 
 fn legacy_binary_source(app: &AppPackage) -> PathBuf {
@@ -4737,10 +5152,8 @@ impl syn::visit::Visit<'_> for FacadeUse {
     }
 }
 
-/// The crate names the library answers to: the Slice 3–4 temporary name and
-/// the name it takes at the rename commit (§21 item 31, §47.1). Both are
-/// scanned so this check does not go silently blind for one commit.
-const LIB_CRATE_IDENTS: &[&str] = &["tui_next", "junie_tui"];
+/// The public library crate identifier used by every migrated consumer.
+const LIB_CRATE_IDENTS: &[&str] = &["junie_tui"];
 
 /// The first line of `text` naming `<crate>::<segment>`, 1-based.
 fn first_facade_line(text: &str, segment: &str) -> usize {
@@ -6344,7 +6757,22 @@ fn doc_sections(text: &str) -> String {
 }
 
 fn doc_check() -> Result<(), String> {
-    let text = read(&root().join("COMPONENT_ARCHITECTURE.md"));
+    let path = root().join("COMPONENT_ARCHITECTURE.md");
+    if !path.is_file() {
+        return Err(format!("{} not found", rel(&path)));
+    }
+    let text = read(&path);
+    if text.trim().is_empty() {
+        return Err(format!("{} is empty", rel(&path)));
+    }
+    let stale_package = concat!("tui", "-", "next");
+    let stale_crate = concat!("tui", "_next");
+    if text.contains(stale_package) || text.contains(stale_crate) {
+        return Err(format!(
+            "{} contains stale pre-rename crate identifiers",
+            rel(&path)
+        ));
+    }
     let scoped = doc_sections(&text);
     let api = collect_api();
     let foreign = foreign_members();
@@ -6374,9 +6802,9 @@ fn doc_check() -> Result<(), String> {
     }
     // `use junie_tui::{…}` lists in rust blocks
     let block_re = Regex::new(r"(?s)```rust\n(.*?)```").map_err(|e| e.to_string())?;
-    let use_re = Regex::new(r"use (?:junie_tui|tui_next)(?:::author)?::\{([^}]*)\}")
-        .map_err(|e| e.to_string())?;
-    let use_one = Regex::new(r"use (?:junie_tui|tui_next)(?:::author)?::([A-Za-z_][A-Za-z0-9_]*);")
+    let use_re =
+        Regex::new(r"use junie_tui(?:::author)?::\{([^}]*)\}").map_err(|e| e.to_string())?;
+    let use_one = Regex::new(r"use junie_tui(?:::author)?::([A-Za-z_][A-Za-z0-9_]*);")
         .map_err(|e| e.to_string())?;
     let mut blocks = 0usize;
     for b in block_re.captures_iter(&scoped) {
@@ -6436,6 +6864,351 @@ fn doc_check() -> Result<(), String> {
             }
         }
         Err(msg)
+    }
+}
+
+// ───────────────────── rustdoc-json architecture checks ─────────────────────
+
+/// The headings mandated by `COMPONENT_ARCHITECTURE.md` §13.2. Keep this as a
+/// fixed array: accepting a prefix or a set would let a reordered or missing
+/// answer pass while still looking superficially documented.
+const STANDARD_COMPONENT_DOC_HEADINGS: [&str; 15] = [
+    "Construction",
+    "Ownership",
+    "Configuration",
+    "Variants",
+    "States",
+    "Actions",
+    "Focus",
+    "Keyboard",
+    "Mouse",
+    "Layout",
+    "Parts",
+    "Overrides",
+    "Identity",
+    "Testing",
+    "Invariants",
+];
+
+fn rustdoc_json_id(value: &Value) -> Option<String> {
+    match value {
+        Value::Number(number) => Some(number.to_string()),
+        Value::String(id) => Some(id.clone()),
+        _ => None,
+    }
+}
+
+fn rustdoc_json() -> Result<Value, String> {
+    let target_dir = root().join("target/xtask-rustdoc");
+    let output = Command::new("cargo")
+        .args(["+nightly", "rustdoc", "-p", LIB, "--lib", "--target-dir"])
+        .arg(&target_dir)
+        .args(["--", "-Z", "unstable-options", "--output-format", "json"])
+        .current_dir(root())
+        .output()
+        .map_err(|error| format!("rustdoc-json could not start `cargo +nightly`: {error}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let detail = stderr.lines().rev().take(12).collect::<Vec<_>>();
+        return Err(format!(
+            "rustdoc-json requires a working nightly toolchain (`cargo +nightly rustdoc`):\n{}",
+            detail.into_iter().rev().collect::<Vec<_>>().join("\n")
+        ));
+    }
+
+    let json_path = target_dir
+        .join("doc")
+        .join(format!("{}.json", LIB_CRATE_IDENTS[0]));
+    let json = fs::read_to_string(&json_path).map_err(|error| {
+        format!(
+            "cargo +nightly rustdoc succeeded but did not produce {}: {error}",
+            rel(&json_path)
+        )
+    })?;
+    serde_json::from_str(&json).map_err(|error| {
+        format!(
+            "rustdoc-json output {} is invalid: {error}",
+            rel(&json_path)
+        )
+    })
+}
+
+fn rustdoc_json_index(document: &Value) -> Result<&serde_json::Map<String, Value>, String> {
+    document
+        .get("index")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "rustdoc-json has no object `index`".to_owned())
+}
+
+fn rustdoc_json_paths(document: &Value) -> Result<&serde_json::Map<String, Value>, String> {
+    document
+        .get("paths")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "rustdoc-json has no object `paths`".to_owned())
+}
+
+fn rustdoc_json_is_ratatui_path(path: &Value) -> bool {
+    path.pointer("/path/0").and_then(Value::as_str) == Some("ratatui_core")
+}
+
+fn rustdoc_json_component_docs(document: &Value) -> Result<Vec<(String, String)>, String> {
+    let index = rustdoc_json_index(document)?;
+    let paths = rustdoc_json_paths(document)?;
+    let mut components = Vec::new();
+
+    for (path_id, path) in paths {
+        if path.get("crate_id").and_then(Value::as_u64) != Some(0)
+            || path.get("kind").and_then(Value::as_str) != Some("struct")
+        {
+            continue;
+        }
+        let Some(path_parts) = path.get("path").and_then(Value::as_array) else {
+            continue;
+        };
+        if path_parts.first().and_then(Value::as_str) != Some(LIB_CRATE_IDENTS[0])
+            || path_parts.get(1).and_then(Value::as_str) != Some("components")
+        {
+            continue;
+        }
+        let Some(item) = index.get(path_id) else {
+            return Err(format!("rustdoc-json path {path_id} has no index item"));
+        };
+        if item.get("visibility").and_then(Value::as_str) != Some("public") {
+            continue;
+        }
+        let Some(name) = item.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(impls) = item
+            .pointer("/inner/struct/impls")
+            .and_then(Value::as_array)
+        else {
+            continue;
+        };
+        let has_parts = impls.iter().filter_map(rustdoc_json_id).any(|impl_id| {
+            index
+                .get(&impl_id)
+                .and_then(|implementation| implementation.pointer("/inner/impl/items"))
+                .and_then(Value::as_array)
+                .is_some_and(|items| {
+                    items.iter().filter_map(rustdoc_json_id).any(|item_id| {
+                        index
+                            .get(&item_id)
+                            .and_then(|item| item.get("name"))
+                            .and_then(Value::as_str)
+                            == Some("PARTS")
+                    })
+                })
+        });
+        if !has_parts {
+            continue;
+        }
+        let docs = item
+            .get("docs")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned();
+        components.push((name.to_owned(), docs));
+    }
+    components.sort_by(|left, right| left.0.cmp(&right.0));
+    Ok(components)
+}
+
+fn markdown_headings(docs: &str) -> Vec<String> {
+    docs.lines()
+        .filter_map(|line| line.strip_prefix("## ").map(str::to_owned))
+        .collect()
+}
+
+fn component_doc_heading_failures(components: &[(String, String)]) -> Vec<String> {
+    let expected = STANDARD_COMPONENT_DOC_HEADINGS.join(" / ");
+    components
+        .iter()
+        .filter_map(|(name, docs)| {
+            let actual = markdown_headings(docs);
+            let expected_vec = STANDARD_COMPONENT_DOC_HEADINGS
+                .iter()
+                .map(|heading| (*heading).to_owned())
+                .collect::<Vec<_>>();
+            (actual != expected_vec).then(|| {
+                format!(
+                    "{name}: expected §13.2 headings `{expected}`; found `{}`",
+                    actual.join(" / ")
+                )
+            })
+        })
+        .collect()
+}
+
+/// §13.2 / §16.5 / §21 item 33. Rustdoc JSON identifies the public component
+/// structs and carries the rendered type-level docs, so this does not mistake
+/// a private source comment or a helper enum for a public component contract.
+fn every_component_doc_has_the_standard_sections() -> Result<(), String> {
+    let document = rustdoc_json()?;
+    let components = rustdoc_json_component_docs(&document)?;
+    if components.is_empty() {
+        return Err(
+            "every_component_doc_has_the_standard_sections: rustdoc-json found no public component struct with a `PARTS` contract"
+                .to_owned(),
+        );
+    }
+    let failures = component_doc_heading_failures(&components);
+    println!(
+        "every_component_doc_has_the_standard_sections: {} public component(s) scanned",
+        components.len()
+    );
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(failures.join("\n"))
+    }
+}
+
+fn rustdoc_json_collect_resolved_paths(value: &Value, ids: &mut BTreeSet<String>) {
+    match value {
+        Value::Array(values) => {
+            for value in values {
+                rustdoc_json_collect_resolved_paths(value, ids);
+            }
+        }
+        Value::Object(values) => {
+            if let Some(id) = values
+                .get("resolved_path")
+                .and_then(|path| path.get("id"))
+                .and_then(rustdoc_json_id)
+            {
+                ids.insert(id);
+            }
+            for value in values.values() {
+                rustdoc_json_collect_resolved_paths(value, ids);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn rustdoc_json_collect_reexport_targets(
+    id: &str,
+    index: &serde_json::Map<String, Value>,
+    paths: &serde_json::Map<String, Value>,
+    visited: &mut BTreeSet<String>,
+    ratatui_ids: &mut BTreeSet<String>,
+) {
+    if !visited.insert(id.to_owned()) {
+        return;
+    }
+    if paths.get(id).is_some_and(rustdoc_json_is_ratatui_path) {
+        ratatui_ids.insert(id.to_owned());
+        return;
+    }
+    let Some(item) = index.get(id) else {
+        return;
+    };
+    if let Some(target_id) = item.pointer("/inner/use/id").and_then(rustdoc_json_id) {
+        rustdoc_json_collect_reexport_targets(&target_id, index, paths, visited, ratatui_ids);
+    }
+    if let Some(type_alias) = item.pointer("/inner/type_alias/type") {
+        let mut targets = BTreeSet::new();
+        rustdoc_json_collect_resolved_paths(type_alias, &mut targets);
+        for target_id in targets {
+            rustdoc_json_collect_reexport_targets(&target_id, index, paths, visited, ratatui_ids);
+        }
+    }
+}
+
+fn rustdoc_json_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, String> {
+    let index = rustdoc_json_index(document)?;
+    let paths = rustdoc_json_paths(document)?;
+    let root_id = document
+        .get("root")
+        .and_then(rustdoc_json_id)
+        .ok_or_else(|| "rustdoc-json has no root module id".to_owned())?;
+    let root = index
+        .get(&root_id)
+        .ok_or_else(|| format!("rustdoc-json root module {root_id} is missing"))?;
+    let items = root
+        .pointer("/inner/module/items")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "rustdoc-json root module has no item list".to_owned())?;
+    let mut ratatui_ids = BTreeSet::new();
+    for item_id in items.iter().filter_map(rustdoc_json_id) {
+        let Some(item) = index.get(&item_id) else {
+            continue;
+        };
+        if item.get("visibility").and_then(Value::as_str) != Some("public") {
+            continue;
+        }
+        if item.pointer("/inner/use").is_some() || item.pointer("/inner/type_alias").is_some() {
+            rustdoc_json_collect_reexport_targets(
+                &item_id,
+                index,
+                paths,
+                &mut BTreeSet::new(),
+                &mut ratatui_ids,
+            );
+        }
+    }
+    Ok(ratatui_ids)
+}
+
+/// §16.5 / §24 M1. Inspect the compiled public surface, not source text:
+/// every `ratatui-core` type that appears in a public item must also have a
+/// root-facade re-export. A missing `Line`-style type therefore fails with the
+/// exact external path instead of being hidden by a substring allow-list.
+fn every_foreign_type_in_the_public_surface_is_re_exported() -> Result<(), String> {
+    let document = rustdoc_json()?;
+    let index = rustdoc_json_index(&document)?;
+    let paths = rustdoc_json_paths(&document)?;
+    let reexports = rustdoc_json_ratatui_reexports(&document)?;
+    let mut referenced = BTreeSet::new();
+    for item in index.values() {
+        if item.get("crate_id").and_then(Value::as_u64) != Some(0)
+            || item.get("visibility").and_then(Value::as_str) != Some("public")
+        {
+            continue;
+        }
+        if let Some(inner) = item.get("inner") {
+            rustdoc_json_collect_resolved_paths(inner, &mut referenced);
+        }
+    }
+
+    let external_count = referenced
+        .iter()
+        .filter(|id| paths.get(*id).is_some_and(rustdoc_json_is_ratatui_path))
+        .count();
+    let mut missing = BTreeSet::new();
+    for id in &referenced {
+        let Some(path) = paths.get(id) else {
+            continue;
+        };
+        if !rustdoc_json_is_ratatui_path(path) {
+            continue;
+        }
+        let Some(path_parts) = path.get("path").and_then(Value::as_array) else {
+            continue;
+        };
+        if !reexports.contains(id) {
+            missing.insert(
+                path_parts
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .collect::<Vec<_>>()
+                    .join("::"),
+            );
+        }
+    }
+    println!(
+        "every_foreign_type_in_the_public_surface_is_re_exported: {} ratatui-core type reference(s), {} root re-export(s)",
+        external_count,
+        reexports.len()
+    );
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "ratatui-core types in public items lack a root facade re-export:\n  {}",
+            missing.into_iter().collect::<Vec<_>>().join("\n  ")
+        ))
     }
 }
 
@@ -7278,6 +8051,18 @@ fn git(args: &[&str]) -> Result<std::process::Output, String> {
         .map_err(|e| format!("git {}: {e}", args.join(" ")))
 }
 
+fn head_revision() -> Result<String, String> {
+    let output = git(&["rev-parse", "--verify", "HEAD"])?;
+    if !output.status.success() {
+        return Err("cannot resolve the current capture revision".to_owned());
+    }
+    let revision = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if revision.is_empty() {
+        return Err("current capture revision is empty".to_owned());
+    }
+    Ok(revision)
+}
+
 /// `git show <rev>:<path>`, or the empty string when the path did not exist.
 fn git_show(rev: &str, path: &str) -> String {
     match git(&["show", &format!("{rev}:{path}")]) {
@@ -7659,7 +8444,7 @@ impl Page for DialogDemo {
 
         let imports = vec![(
             "apps/showcase/src/pages/buttons.rs".to_owned(),
-            "use tui_next::Button; fn page() {}".to_owned(),
+            "use junie_tui::Button; fn page() {}".to_owned(),
         )];
         let import_hits = showcase_coverage_hits(&cases, &registry, &imports);
         assert!(
@@ -8352,7 +9137,7 @@ captures / classification: `(pending — filled when the change lands)`
 ### 1a — `Tabs` paints §11.4's mono `PRESSED` bracket
 
 ```
-- surface:   tui-next/tabs/pressed @ 120x40 / junie / mono
+- surface:   junie-tui/tabs/pressed @ 120x40 / junie / mono
 - captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
 - tests:     crates/tui/tests/baselines/components.txt
 - moved:     1 line, every one `mono`:
@@ -8371,7 +9156,7 @@ captures / classification: `(pending — filled when the change lands)`
 ## Item 20 — forcing stops erasing the props half
 
 ```
-- surface:   tui-next/tabs/pressed @ 120x40 / junie
+- surface:   junie-tui/tabs/pressed @ 120x40 / junie
 - captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
 - tests:     crates/tui/tests/baselines/components.txt
 - moved:     2 lines:
@@ -8391,7 +9176,7 @@ captures / classification: `(pending — filled when the change lands)`
 ## Item 19 — first-generation component digests
 
 ```
-- surface:   tui-next/tabs/pressed @ 120x40 / junie / mono
+- surface:   junie-tui/tabs/pressed @ 120x40 / junie / mono
 - captures:  none under `shots/` — headless `Scene` matrix; frame-text dump attached
 - tests:     crates/tui/tests/baselines/components.txt
 - moved:     1 line:
@@ -8466,7 +9251,7 @@ captures / classification: `(pending — filled when the change lands)`
     fn the_2010_item_list_survives_the_split_tables() {
         let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
         let items = visual_change_items(&doc);
-        let want: BTreeSet<u32> = (1..=31).collect();
+        let want: BTreeSet<u32> = (1..=34).collect();
         assert_eq!(
             items.keys().copied().collect::<BTreeSet<u32>>(),
             want,
@@ -8714,6 +9499,72 @@ captures / classification: `(pending — filled when the change lands)`
         ] {
             assert!(found.contains(want), "{want} not discovered: {found:?}");
         }
+    }
+
+    /// The strict rustdoc-json contract must accept the exact heading order,
+    /// and reject both omission and reordering rather than merely searching
+    /// for section names independently.
+    #[test]
+    fn component_doc_heading_contract_rejects_missing_or_reordered_sections() {
+        let headings = |omit: Option<&str>, swap: bool| {
+            let mut names: Vec<&str> = STANDARD_COMPONENT_DOC_HEADINGS
+                .iter()
+                .copied()
+                .filter(|heading| Some(*heading) != omit)
+                .collect();
+            if swap {
+                names.swap(0, 1);
+            }
+            names
+                .into_iter()
+                .map(|heading| format!("## {heading}\nbody\n"))
+                .collect::<String>()
+        };
+
+        assert!(
+            component_doc_heading_failures(&[("Button".to_owned(), headings(None, false),)])
+                .is_empty()
+        );
+
+        let missing = component_doc_heading_failures(&[(
+            "Button".to_owned(),
+            headings(Some("Invariants"), false),
+        )]);
+        assert_eq!(missing.len(), 1, "{missing:?}");
+        assert!(missing[0].contains("Button"), "{missing:?}");
+        assert!(missing[0].contains("Invariants"), "{missing:?}");
+
+        let reordered =
+            component_doc_heading_failures(&[("Button".to_owned(), headings(None, true))]);
+        assert_eq!(reordered.len(), 1, "{reordered:?}");
+        assert!(reordered[0].contains("expected"), "{reordered:?}");
+        assert!(reordered[0].contains("found"), "{reordered:?}");
+    }
+
+    /// §21 item 28's permanent absence rule must identify a resurrected row,
+    /// while ignoring comments and blank lines that mention its old name.
+    #[test]
+    fn deleted_perf_row_scan_reports_resurrection_and_ignores_comments() {
+        let fixture = "# capsule_pane_clone_4x2000 was deleted\n\n".to_owned()
+            + "capsule_pane_clone_4x2000 120 40 junie mono 1\n";
+        let hits = deleted_perf_row_hits(Path::new("tests/perf_baseline.txt"), &fixture);
+        assert_eq!(hits.len(), 1, "{hits:?}");
+        assert!(hits[0].contains("tests/perf_baseline.txt:3"), "{hits:?}");
+        assert!(hits[0].contains("capsule_pane_clone_4x2000"), "{hits:?}");
+
+        let comments_only = "# capsule_pane_clone_4x2000\n\n";
+        assert!(
+            deleted_perf_row_hits(Path::new("tests/perf_baseline.txt"), comments_only).is_empty()
+        );
+    }
+
+    #[test]
+    fn deleted_perf_rows_are_absent_from_every_live_baseline() {
+        let hits = surviving_deleted_perf_rows();
+        assert!(
+            hits.is_empty(),
+            "deleted benchmark rows resurfaced: {hits:?}"
+        );
     }
 
     /// A moved `truecolor` key whose entry cites an **untagged** item is

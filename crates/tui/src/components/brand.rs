@@ -5,7 +5,7 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, SlotFn, first_row, shift};
+use super::{PartStyle, SlotFn, first_row, shift};
 use crate::focus::Focusability;
 use crate::id::{Id, Part};
 use crate::intent::{Intent, Phase};
@@ -114,7 +114,7 @@ pub struct Brand<'a> {
     variant: Variant,
     compact: bool,
     clickable: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Brand<'_> {
@@ -143,7 +143,7 @@ impl<'a> Brand<'a> {
             variant: Variant::DEFAULT,
             compact: false,
             clickable: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -183,14 +183,14 @@ impl<'a> Brand<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -261,7 +261,7 @@ impl<'a> Brand<'a> {
         }
         // runtime only, and only while clickable — an unclickable lockup
         // registers nothing, so the snapshot has nothing to say about it
-        let live = Overrides::flags(
+        let live = PartStyle::flags(
             if self.clickable {
                 ui.state(self.id)
             } else {

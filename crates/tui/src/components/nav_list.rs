@@ -16,7 +16,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-use super::{Acc, Overrides, SlotFn, cell_at};
+use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
 };
@@ -358,7 +358,7 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     badge: Option<BadgeFn<'a, T>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     disabled: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
 
@@ -387,7 +387,7 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             badge: None,
             disabled_item: None,
             disabled: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _t: PhantomData,
         }
     }
@@ -508,14 +508,14 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -734,7 +734,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 },
             );
         }
-        let live = Overrides::flags(ui.state(self.id), self.derived());
+        let live = PartStyle::flags(ui.state(self.id), self.derived());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }

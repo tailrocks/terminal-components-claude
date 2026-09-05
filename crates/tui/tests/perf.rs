@@ -3,10 +3,10 @@
 //! foundations. Run in release, single-threaded, with output visible:
 //!
 //! ```text
-//! cargo test -p tui-next --test perf --release -- --test-threads=1 --nocapture
+//! cargo test -p junie-tui --test perf --release -- --test-threads=1 --nocapture
 //! ```
 //!
-//! See `tui_next_testing::perf` for the environment knobs.
+//! See `junie_tui_testing::perf` for the environment knobs.
 #![cfg_attr(
     test,
     allow(
@@ -26,19 +26,20 @@
 use std::hint::black_box;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use tui_next::{
+use junie_tui::{
     ActionKey, App, Axes, Binding, Checkbox, Chord, CodeDiagnostic, CodeEditor, CodeEditorState,
     CodeSeverity, ColorLevel, Cx, DiffLineKind, DiffRow, DiffSource, DiffView, DiffViewState,
     Family, FieldKind, FieldMut, FieldRef, FieldSpec, FocusRing, Focusability, Form, FormData,
     FormState, FrameRead, Headroom, Highlighter, HintBar, Id, Input, Intent, KeyCode, KeyModifiers,
     LayerId, Overlay, OverlayRule, Part, Position, Rect, Registry, Response, Role, Runtime, Slot,
-    StateFlags, StylePatch, SyntaxRole, Theme, Ui, Variant,
+    StateFlags, StylePatch, SyntaxRole, TextViewport, Theme, Ui, Variant, ViewportLine,
+    ViewportState,
 };
-use tui_next_testing::perf::{
+use junie_tui_testing::perf::{
     Counting, bench, check_ratio, env_flag, iters, lock, measure_once, report, unicode_line,
     unicode_line_inline,
 };
-use tui_next_testing::{NoApp, Scene};
+use junie_tui_testing::{NoApp, Scene};
 
 #[global_allocator]
 static GLOBAL: Counting = Counting;
@@ -152,16 +153,16 @@ fn resolve_10k(ui: &mut Ui<'_>) -> u64 {
     acc
 }
 
-fn fingerprint(s: tui_next::Style) -> u64 {
+fn fingerprint(s: junie_tui::Style) -> u64 {
     let f = s.fg.map(color_bits).unwrap_or(0);
     let b = s.bg.map(color_bits).unwrap_or(0);
     f ^ (b << 8) ^ ((s.add_modifier.bits() as u64) << 16)
 }
 
-fn color_bits(c: tui_next::Color) -> u64 {
+fn color_bits(c: junie_tui::Color) -> u64 {
     match c {
-        tui_next::Color::Rgb(r, g, b) => ((r as u64) << 16) | ((g as u64) << 8) | b as u64,
-        tui_next::Color::Indexed(i) => i as u64,
+        junie_tui::Color::Rgb(r, g, b) => ((r as u64) << 16) | ((g as u64) << 8) | b as u64,
+        junie_tui::Color::Indexed(i) => i as u64,
         _ => 1,
     }
 }
@@ -255,12 +256,12 @@ fn style_resolve_per_frame() {
     ];
     const LABEL: &str = "a list row with a reasonable amount of label text";
 
-    let paint_row = |ui: &mut Ui<'_>, row: Rect, st: &[tui_next::Style; 5]| {
+    let paint_row = |ui: &mut Ui<'_>, row: Rect, st: &[junie_tui::Style; 5]| {
         ui.fill(row, st[0]);
         let gutter = Rect::new(row.x, row.y, 1, 1);
-        ui.glyph(gutter, tui_next::GlyphRole::FocusBar, st[1]);
+        ui.glyph(gutter, junie_tui::GlyphRole::FocusBar, st[1]);
         let marker = Rect::new(row.x + 1, row.y, 1, 1);
-        ui.glyph(marker, tui_next::GlyphRole::Chosen, st[2]);
+        ui.glyph(marker, junie_tui::GlyphRole::Chosen, st[2]);
         let label = Rect::new(row.x + 3, row.y, row.width - 6, 1);
         ui.paint_str(label, LABEL, st[3]);
         let meta = Rect::new(row.right() - 2, row.y, 2, 1);
@@ -271,7 +272,7 @@ fn style_resolve_per_frame() {
     let resolved_per_row = |ui: &mut Ui<'_>, area: Rect| {
         for (i, row) in area.rows().enumerate() {
             let flags = STATES[i % STATES.len()];
-            let mut st = [tui_next::Style::new(); 5];
+            let mut st = [junie_tui::Style::new(); 5];
             for (slot, p) in st.iter_mut().zip(PARTS) {
                 *slot = ui.style(Family::LIST, Variant::DEFAULT, p, flags).style;
             }
@@ -280,7 +281,7 @@ fn style_resolve_per_frame() {
     };
     // B: the identical painting with the styles hoisted out of the loop
     let hoisted = |ui: &mut Ui<'_>, area: Rect| {
-        let mut by_state = [[tui_next::Style::new(); 5]; STATES.len()];
+        let mut by_state = [[junie_tui::Style::new(); 5]; STATES.len()];
         for (slot, flags) in by_state.iter_mut().zip(STATES) {
             for (s, p) in slot.iter_mut().zip(PARTS) {
                 *s = ui.style(Family::LIST, Variant::DEFAULT, p, flags).style;
@@ -345,7 +346,7 @@ static OV_B: [OverlayRule; 1] = [(
     Variant::DEFAULT,
     Part::LABEL,
     StateFlags::FOCUSED,
-    StylePatch::new().add(tui_next::Modifier::ITALIC),
+    StylePatch::new().add(junie_tui::Modifier::ITALIC),
 )];
 
 #[test]
@@ -434,7 +435,7 @@ fn width_10k_grapheme_line() {
     let _g = lock();
     let line = unicode_line(10_000);
     let s = bench(10, iters(1000), &mut || {
-        black_box(tui_next::width(&line));
+        black_box(junie_tui::width(&line));
     });
     report("width_10k_grapheme_line", &s);
     assert_eq!(s.allocs, 0);
@@ -445,7 +446,7 @@ fn truncate_10k_grapheme_line_to_80() {
     let _g = lock();
     let line = unicode_line(10_000);
     let s = bench(10, iters(1000), &mut || {
-        black_box(tui_next::truncate(&line, 80));
+        black_box(junie_tui::truncate(&line, 80));
     });
     report("truncate_10k_grapheme_line_to_80", &s);
 }
@@ -462,13 +463,13 @@ fn fit_10k_grapheme_line_to_80() {
     scene.draw(|_, _| {});
     let s = bench(10, iters(1000), &mut || {
         scene.draw(|ui, _| {
-            let mut r = tui_next::RowUi::new(
+            let mut r = junie_tui::RowUi::new(
                 ui,
                 Id::root("perf.fit"),
                 Family::LIST,
                 Variant::DEFAULT,
                 StateFlags::empty(),
-                tui_next::ItemKey::index(0),
+                junie_tui::ItemKey::index(0),
                 Rect::new(0, 0, 80, 1),
             );
             r.label(&line);
@@ -493,13 +494,13 @@ fn fit_10k_grapheme_line_to_80_wide() {
     scene.draw(|_, _| {});
     let paint = |scene: &mut Scene, line: &str| {
         scene.draw(|ui, _| {
-            let mut r = tui_next::RowUi::new(
+            let mut r = junie_tui::RowUi::new(
                 ui,
                 Id::root("perf.fit.wide"),
                 Family::LIST,
                 Variant::DEFAULT,
                 StateFlags::empty(),
-                tui_next::ItemKey::index(0),
+                junie_tui::ItemKey::index(0),
                 Rect::new(0, 0, 80, 1),
             );
             r.label(line);
@@ -537,9 +538,9 @@ fn fit_10k_grapheme_line_to_80_wide() {
 fn paint_spans_500_rows_is_allocation_free() {
     let _g = lock();
     let spans = [
-        tui_next::Span::new("plain "),
-        tui_next::Span::new("accent").role(Role::Accent),
-        tui_next::Span::new(" tail"),
+        junie_tui::Span::new("plain "),
+        junie_tui::Span::new("accent").role(Role::Accent),
+        junie_tui::Span::new(" tail"),
     ];
     let mut scene = Scene::new("spans", Theme::junie(), ColorLevel::TrueColor, 60, 40);
     scene.draw(|_, _| {});
@@ -579,7 +580,7 @@ fn measure_is_allocation_free() {
                 let flags = STATES[(i as usize) % STATES.len()];
                 let g = ui.resolve(Family::BUTTON, Variant::DEFAULT, Part::GUTTER, flags);
                 let w = match g.glyph {
-                    Slot::Set(r) => tui_next::width(ui.glyph_str(r)),
+                    Slot::Set(r) => junie_tui::width(ui.glyph_str(r)),
                     Slot::Inherit | Slot::Clear => 0,
                 };
                 let h = ui
@@ -599,7 +600,7 @@ fn truncate_middle_10k_to_40() {
     let _g = lock();
     let line = unicode_line(10_000);
     let s = bench(10, iters(1000), &mut || {
-        black_box(tui_next::truncate_middle(&line, 40));
+        black_box(junie_tui::truncate_middle(&line, 40));
     });
     report("truncate_middle_10k_to_40", &s);
     assert!(
@@ -621,7 +622,7 @@ fn wrap_10k_graphemes_to_80() {
         line.push(ch);
     }
     let s = bench(3, iters(200), &mut || {
-        black_box(tui_next::wrap(&line, 80));
+        black_box(junie_tui::wrap(&line, 80));
     });
     report("wrap_10k_graphemes_to_80", &s);
 }
@@ -631,7 +632,7 @@ fn fuzzy_10k_grapheme_label() {
     let _g = lock();
     let label = unicode_line(10_000);
     let s = bench(3, iters(100), &mut || {
-        black_box(tui_next::fuzzy(&label, "abc"));
+        black_box(junie_tui::fuzzy(&label, "abc"));
     });
     report("fuzzy_10k_grapheme_label", &s);
 }
@@ -646,7 +647,7 @@ fn textbuffer_pos_of_10k_line() {
     doc.push_str(&unicode_line(10_000));
     let off = doc.len();
     let s = bench(10, iters(1000), &mut || {
-        black_box(tui_next::TextBuffer::pos_of(&doc, off));
+        black_box(junie_tui::TextBuffer::pos_of(&doc, off));
     });
     report("textbuffer_pos_of_10k_line", &s);
     assert_eq!(s.allocs, 0);
@@ -660,7 +661,7 @@ fn textbuffer_offset_at_10k_line() {
         doc.push_str(&format!("line {i}\n"));
     }
     doc.push_str(&unicode_line(10_000));
-    let tb = tui_next::TextBuffer::multi(doc);
+    let tb = junie_tui::TextBuffer::multi(doc);
     let s = bench(10, iters(1000), &mut || {
         black_box(tb.offset_at(20, 12_000));
     });
@@ -762,7 +763,7 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
     // catch. Do **not** relax it to `% 480 == 0`; re-adjudicate the pass count
     // instead.
     let key = || {
-        Input::Key(tui_next::Key {
+        Input::Key(junie_tui::Key {
             code: KeyCode::Enter,
             mods: KeyModifiers::NONE,
         })
@@ -786,7 +787,7 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
     );
     let (mut two, _) = probe_runtime(500);
     let s2 = bench(2, iters(200), &mut || {
-        let _ = black_box(two.handle(Input::Key(tui_next::Key {
+        let _ = black_box(two.handle(Input::Key(junie_tui::Key {
             code: KeyCode::Enter,
             mods: KeyModifiers::NONE,
         })));
@@ -879,8 +880,8 @@ fn hit_registry_size_is_bounded() {
 // and ns within 3x of the 100-row case, `frame_showcase_buttons_120x40` the
 // migrated showcase page's frame.
 
-use tui_next::{Button, List, ListState, SelectMode, Status};
-use tui_next_testing::perf::{Stats, big};
+use junie_tui::{Button, List, ListState, SelectMode, Status};
+use junie_tui_testing::perf::{Stats, big};
 
 const LIST_ID: Id = Id::root("perf.list");
 
@@ -890,22 +891,35 @@ fn perf_rows(n: usize) -> Vec<u32> {
     (0..n).map(|i| i as u32).collect()
 }
 
-type PerfKeyFn = fn(&u32) -> tui_next::ItemKey;
-type PerfRowFn = fn(&u32, &mut tui_next::RowUi<'_>);
+#[test]
+fn list_100k_rows_construct() {
+    let _g = lock();
+    let n = big(100_000);
+    let s = bench(0, iters(3), &mut || {
+        black_box(perf_rows(n));
+    });
+    println!(
+        "PERF list_100k_rows_construct ns={} allocs={} bytes={}",
+        s.ns, s.allocs, s.bytes
+    );
+}
+
+type PerfKeyFn = fn(&u32) -> junie_tui::ItemKey;
+type PerfRowFn = fn(&u32, &mut junie_tui::RowUi<'_>);
 
 fn perf_list<'a>() -> List<'a, u32, PerfKeyFn, PerfRowFn> {
     #[expect(
         clippy::trivially_copy_pass_by_ref,
         reason = "the `&T` shape is `KeyFn<T>`'s, not a choice this fixture can make"
     )]
-    fn key(r: &u32) -> tui_next::ItemKey {
-        tui_next::ItemKey::num(u64::from(*r))
+    fn key(r: &u32) -> junie_tui::ItemKey {
+        junie_tui::ItemKey::num(u64::from(*r))
     }
     #[expect(
         clippy::trivially_copy_pass_by_ref,
         reason = "the `&T` shape is `RowFn<T>`'s, not a choice this fixture can make"
     )]
-    fn row(r: &u32, u: &mut tui_next::RowUi<'_>) {
+    fn row(r: &u32, u: &mut junie_tui::RowUi<'_>) {
         u.gutter();
         u.label_fmt(format_args!("row {r}"));
         u.part(Part::META, 8).num(i64::from(*r));
@@ -925,7 +939,7 @@ fn bench_list_render(rows: &[u32], checked: usize) -> (Stats, usize) {
     let mut st = ListState::default();
     for r in rows.iter().take(checked) {
         st.checked_mut()
-            .insert(tui_next::ItemKey::num(u64::from(*r)));
+            .insert(junie_tui::ItemKey::num(u64::from(*r)));
     }
     scene.draw(|ui, area| {
         perf_list().draw(ui, area, &st, rows);
@@ -986,6 +1000,54 @@ fn list_100k_rows_render() {
     );
 }
 
+#[test]
+fn no_full_collection_clone_per_frame() {
+    let _g = lock();
+    let rows = perf_rows(big(100_000));
+    let (list_stats, list_regions) = bench_list_render(&rows, 5_000);
+
+    let lines: Vec<ViewportLine<'static>> = (0..big(100_000))
+        .map(|_| ViewportLine::Plain("row: lorem ipsum dolor sit amet"))
+        .collect();
+    let viewport = TextViewport::new(Id::root("perf.no-full-collection-clone")).wrap(true);
+    let state = ViewportState::default();
+    let mut scene = Scene::new(
+        "no-full-collection-clone",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        80,
+        40,
+    );
+    scene.draw(|ui, area| {
+        viewport.draw(ui, area, &state, &lines);
+    });
+    let viewport_stats = bench(1, iters(2), &mut || {
+        scene.draw(|ui, area| {
+            black_box(viewport.draw(ui, area, &state, &lines));
+        });
+    });
+    println!(
+        "PERF no_full_collection_clone_per_frame list={{ns:{} allocs:{} bytes:{} regions:{}}} viewport={{ns:{} allocs:{} bytes:{}}}",
+        list_stats.ns,
+        list_stats.allocs,
+        list_stats.bytes,
+        list_regions,
+        viewport_stats.ns,
+        viewport_stats.allocs,
+        viewport_stats.bytes,
+    );
+    assert!(
+        list_stats.bytes < 64 * 1024,
+        "list frame copied {} bytes",
+        list_stats.bytes
+    );
+    assert!(
+        viewport_stats.bytes < 64 * 1024,
+        "viewport frame copied {} bytes",
+        viewport_stats.bytes
+    );
+}
+
 /// An application that owns the list and forwards one update per frame.
 struct ListApp {
     rows: Vec<u32>,
@@ -1035,7 +1097,7 @@ fn list_100k_select_all() {
     let (mut rt, mut buf) = list_runtime(big(100_000), SelectMode::Multi);
     let area = Rect::new(0, 0, 120, 40);
     let toggle = || {
-        Input::Key(tui_next::Key {
+        Input::Key(junie_tui::Key {
             code: KeyCode::Char('a'),
             mods: KeyModifiers::NONE,
         })
@@ -1059,12 +1121,12 @@ fn list_100k_select_all() {
     // `a` toggles: the measured press cleared the set the warm press filled,
     // so one more press proves the set-level "everything" is reachable at all
     let _ = rt.handle(toggle());
-    assert!(rt.app().st.checked().contains(tui_next::ItemKey::num(99)));
+    assert!(rt.app().st.checked().contains(junie_tui::ItemKey::num(99)));
     assert!(
         rt.app()
             .st
             .checked()
-            .contains(tui_next::ItemKey::num(99_999))
+            .contains(junie_tui::ItemKey::num(99_999))
     );
 }
 
@@ -1078,13 +1140,13 @@ fn event_dispatch_is_not_o_n() {
     let (mut large, mut large_buf) = list_runtime(big(100_000), SelectMode::Single);
     let click = |x: u16, y: u16| {
         [
-            Input::Mouse(tui_next::Mouse {
-                kind: tui_next::MouseKind::Down,
+            Input::Mouse(junie_tui::Mouse {
+                kind: junie_tui::MouseKind::Down,
                 pos: Position::new(x, y),
                 mods: KeyModifiers::NONE,
             }),
-            Input::Mouse(tui_next::Mouse {
-                kind: tui_next::MouseKind::Up,
+            Input::Mouse(junie_tui::Mouse {
+                kind: junie_tui::MouseKind::Up,
                 pos: Position::new(x, y),
                 mods: KeyModifiers::NONE,
             }),
@@ -1276,7 +1338,7 @@ fn prepare_query_editor(
     runtime.draw_buffer(area, buffer);
     runtime.draw_buffer(area, buffer);
     let input = |code| {
-        Input::Key(tui_next::Key {
+        Input::Key(junie_tui::Key {
             code,
             mods: KeyModifiers::NONE,
         })
@@ -1472,7 +1534,7 @@ fn frame_hintbar_derived() {
     assert_eq!(sample.allocs, 0, "unchanged derived-hint frame allocated");
 
     let key = || {
-        Input::Key(tui_next::Key {
+        Input::Key(junie_tui::Key {
             code: KeyCode::Enter,
             mods: KeyModifiers::NONE,
         })

@@ -13,7 +13,7 @@ use core::fmt::{self, Write as _};
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, SlotFn};
+use super::{PartStyle, SlotFn};
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
@@ -151,7 +151,7 @@ pub struct TooSmall<'a> {
     product: &'a str,
     minimum: Option<(u16, u16)>,
     variant: Variant,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for TooSmall<'_> {
@@ -193,7 +193,7 @@ impl<'a> TooSmall<'a> {
             product,
             minimum: None,
             variant: Variant::DEFAULT,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -223,14 +223,14 @@ impl<'a> TooSmall<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -290,7 +290,7 @@ impl<'a> TooSmall<'a> {
         }
         // runtime: none — the notice registers nothing, so the snapshot has
         // nothing to say about it; derived: none
-        let live = Overrides::flags(StateFlags::empty(), StateFlags::empty());
+        let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         let s = self
             .ov
             .style(ui, self.id, Family::TOO_SMALL, self.variant, part, live);
@@ -311,7 +311,7 @@ impl<'a> TooSmall<'a> {
             width: area.width,
             height: Self::ROWS.min(area.bottom().saturating_sub(top)),
         };
-        let live = Overrides::flags(StateFlags::empty(), StateFlags::empty());
+        let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         if let Some(f) = self.ov.slot_for(Part::CONTAINER) {
             f(ui, area);
             return used;

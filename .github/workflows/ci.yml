@@ -47,11 +47,8 @@ name: CI
 #       proves the FIELD, this job proves the code compiles on the floor. Without it a
 #       builder could use a 1.95 API on a 1.98 toolchain and every other gate would pass.
 #
-# Naming note (§47.1): `tui-next` / `tui_next` remains the temporary package/lib
-# name through Slices 5–7 while `showcase`, `tablepro`, and `jackin-preview` move
-# into `apps/`. After Slice 7, one scripted commit removes the root legacy package
-# and renames the library to `junie-tui` / `junie_tui`. The package-specific gates
-# below use that final name.
+# Naming note (§47.1): `junie-tui` / `junie_tui` is the final package/lib name.
+# The three application packages live under `apps/` and consume the public facade.
 
 on:
   push:
@@ -140,6 +137,8 @@ jobs:
 
       # §16.5 / §22 §6.2 — the whole boundary and dependency-graph check set.
       - name: Boundary and dependency checks (§16.5, §22.7)
+        env:
+          BLESS_GUARD_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: cargo run -p xtask -- boundary
 
       # §16.3 (as amended by §36) / §20.10 / §36.5 / §49.3 / §49.4 — every moved or added
@@ -157,7 +156,7 @@ jobs:
       # tree with itself.
       - name: Baseline bless guard (§16.3, §36.5, §49.6)
         env:
-          BLESS_GUARD_BASE: ${{ github.event.before }}
+          BLESS_GUARD_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: cargo run -p xtask -- bless-guard
 
       # §25.12 F9 pass condition: both allow-lists are EMPTY, not merely present.

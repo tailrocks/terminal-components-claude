@@ -9,24 +9,18 @@ routing and layer z-order.
 
 ---
 
-> ## Note on the crate name
+> ## Current package names
 >
-> The library is **`junie-tui`** (Rust path `junie_tui`), and every example in
-> these guides is written against that name.
+> The component library in this workspace is **`junie-tui`** (Rust path
+> `junie_tui`, source `crates/tui`). The three applications are separate
+> packages under `apps/` and consume its public facade. The old root package
+> and legacy source tree have been removed.
 >
-> While the refactor is in progress the crate is temporarily published inside
-> this workspace as **`tui-next`** (Rust path `tui_next`), because the root
-> package still owns the legacy tree during the staged application moves
-> (`COMPONENT_ARCHITECTURE.md` §47.1). The application packages land in
-> `apps/showcase`, `apps/tablepro`, and `apps/jackin-preview` across Slices
-> 5–7. The rename to `junie-tui` / `junie_tui` happens in one scripted commit
-> between Slice 7 and Slice 8, after the root package has no legacy sources or
-> binaries.
+> The snippets and examples in this guide target the current component library,
+> so their imports use `junie_tui`.
 >
-> Until then, read every `junie_tui::` in these guides as `tui_next::`, and
-> every `junie_tui_testing::` as `tui_next_testing::`. Nothing else changes.
-> The in-tree examples under `crates/tui/examples/` carry the temporary name
-> and a header comment saying so.
+> The in-tree examples under `crates/tui/examples/` use the same `junie_tui`
+> package name.
 
 ---
 
@@ -223,6 +217,9 @@ Runnable examples live in `crates/tui/examples/`:
 | File | Shows |
 |---|---|
 | `01_button.rs` | the minimal application above |
+| `02_custom_theme.rs` | a complete custom palette and border set |
+| `03_partial_theme.rs` | a partial theme override with safe derivation |
+| `04_family_recipe.rs` | a global family recipe override |
 | `05_instance_patch.rs` | two buttons, one locally overridden |
 | `06_validated_field.rs` | a text field with external validation and an async server error |
 | `07_borrowed_rows.rs` | a list over borrowed domain objects with a custom row renderer |
@@ -231,27 +228,31 @@ Runnable examples live in `crates/tui/examples/`:
 | `10_nested_overlay.rs` | a popover opened on top of a dialog |
 | `11_small_app.rs` | a complete application on shared focus and dispatch |
 | `12_author_component.rs` | a downstream component using only `junie_tui::author` |
+| `13_connection_form.rs` | a fifteen-field form built from the public `Form` API |
 
-Examples 02, 03 and 04 (a complete custom theme, a partial theme override and
-a global recipe override) are not yet files in `crates/tui/examples/` as of
-Slice 4; their code is reproduced and verified in
-[`theming.md`](theming.md).
+Examples 02, 03 and 04 are runnable theme examples. The form example also
+shows how the public `Form` API composes text, choice, toggle and secret
+controls without application-side field plumbing.
 
-## What does not exist yet
+## Current component surface
 
-These guides describe the implementation that exists. As of Slice 4 the
-component set is:
+The current component library exports these component types from `junie_tui`
+(see [`crates/tui/src/lib.rs`](../../crates/tui/src/lib.rs) and
+[`components/mod.rs`](../../crates/tui/src/components/mod.rs)):
 
 `Brand`, `Button`, `Checkbox`, `ChipBar`, `Dialog`, `Empty`, `Field`,
 `HintBar`, `KeyHint`, `List`, `Meter`, `ProgressBar`, `Props`, `RadioGroup`,
 `ScrollRegion`, `Select`, `Spinner`, `StatusBar`, `Tabs`, `TextArea`,
-`TextInput`, `Toggle`.
+`TextInput`, `Toggle`, `Panel`, `PropsList`, `SplitPane`, `TextViewport`,
+`Tree`, `TooSmall`, `NavList`, and `Steps`.
 
-Not yet implemented, and therefore not documented as if they were:
-`Picker`, `FilterList`, `CommandPalette`, `Menu`/`ContextMenu`, `Tree`,
-`Grid`, `Form`, `Wizard`, `TextViewport`, `CodeEditor`, `Completion`,
-`DiffView`, `SplitPane`, `Panel`, `NavList`, `Steps`, `HelpOverlay`,
-`TooSmall`. Where a guide would naturally use one of these it says so and
-substitutes what exists — for instance `crates/tui/examples/10_nested_overlay.rs`
-implements architecture example 10's "nested picker" with a `List` in a
-popover, because `Picker` does not exist yet.
+The library also exports `CodeEditor`, `CommandPalette`, `Completion`,
+`ContextMenu`, `DiffView`, `FilterList`, `Form`, `Grid`, `HelpOverlay`,
+`Menu`, `MenuBar`, `Picker`, `PickerChain`, and `Wizard`, plus the labeled
+variants and each component's public state/action/command types where
+applicable. `CommandPalette` is the public picker alias.
+
+`DataTable` and `ScrollPanel` remain deleted legacy names: table behavior is
+provided by `Grid`, and scrollable text by `TextViewport`. The
+`10_nested_overlay.rs` example intentionally keeps its historical
+List-in-a-popover fixture; it does not indicate that `Picker` is unavailable.

@@ -23,13 +23,13 @@
     )
 )]
 
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, App, Button, Constraints, Cx, Diagnostic, Dialog, DialogAction, DialogState,
     Family, Field, FrameRead, Id, Insets, ItemKey, KeyCode, KeyModifiers, List, ListAction,
     ListState, MouseKind, Part, PartRef, Rect, ReferenceState, ReferenceTarget, Response, RowAlign,
     RowUi, StateFlags, Status, TextInput, TextInputState, Theme, Track, Ui, Variant, layout,
 };
-use tui_next_testing::Harness;
+use junie_tui_testing::Harness;
 
 // ───────────────────────────── the page ─────────────────────────────
 

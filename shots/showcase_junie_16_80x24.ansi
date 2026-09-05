@@ -1,0 +1,24 @@
+[1m[38;5;0m[48;5;10m SHOWCASE [0m  [38;5;7mpublic junie-tui API[39m        
+
+
+[1m[38;5;7m[48;5;0m Foundations            [0m[38;5;15m[48;5;0m  [1m        [0m[38;5;15m[48;5;0m                                              
+[1m[38;5;10m[48;5;8m▎›[38;5;7m•[38;5;15m Overview            [0m[38;5;15m[48;5;0m   [1m       [0m[38;5;15m[48;5;0m                                              
+                                                                                
+[1m[38;5;7m Components             [0m[38;5;15m[48;5;0m                                                        
+  [38;5;7m•[38;5;15m Buttons                                                                     
+  [38;5;7m•[38;5;15m Inputs                                                                      
+  [38;5;7m•[38;5;15m Text areas                                                                  
+  [38;5;7m•[38;5;15m Forms                                       [1mshowcase[0m[38;5;15m[48;5;0m                        
+  [38;5;7m•[38;5;15m Lists                                  [38;5;7mTerminal too small[38;5;15m                   
+  [38;5;7m•[38;5;15m Trees                                [38;5;7mNeed 72×20, have 56×20[38;5;15m                 
+  [38;5;7m•[38;5;15m Tables                                                                      
+  [38;5;7m•[38;5;15m Editable tables                              [38;5;8mq Quit[38;5;15m                         
+  [38;5;7m•[38;5;15m Panels                                                                      
+  [38;5;7m•[38;5;15m Sidebars                                                                    
+  [38;5;7m•[38;5;15m Dialogs                                                                     
+  [38;5;7m•[38;5;15m Progress                [1m                  [0m[38;5;15m[48;5;0m                                  
+  [38;5;7m•[38;5;15m Scrolling                                                                   
+  [38;5;7m•[38;5;15m Terminal                                                                    
+  [38;5;7m•[38;5;15m Code editor                                                                 
+  [38;5;7m•[38;5;15m Data grid                                                                   
+[38;5;7m showcase                                                        q quit  ? help 

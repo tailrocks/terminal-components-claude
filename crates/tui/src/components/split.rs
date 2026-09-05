@@ -13,7 +13,7 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Acc, Overrides, SlotFn};
+use super::{Acc, PartStyle, SlotFn};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -250,7 +250,7 @@ pub struct SplitPane<'a> {
     min_first: u16,
     min_second: u16,
     resizable: bool,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for SplitPane<'_> {
@@ -280,7 +280,7 @@ impl<'a> SplitPane<'a> {
             min_first: 1,
             min_second: 1,
             resizable: false,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -322,14 +322,14 @@ impl<'a> SplitPane<'a> {
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -495,7 +495,7 @@ impl<'a> SplitPane<'a> {
         }
         let (first, second) = self.panes(*st, area);
         let seam = self.seam(*st, area);
-        let live = Overrides::flags(ui.state(self.id), StateFlags::empty());
+        let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         if self.resizable {
             ui.register_control(self.id, area, Focusability::Focusable);
         }

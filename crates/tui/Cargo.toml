@@ -1,12 +1,5 @@
 [package]
-# TEMPORARY name (COMPONENT_ARCHITECTURE.md §21 item 31, Appendix A "Slice 3"): the root package
-# keeps `junie-tui` / `junie_tui` so the legacy tree stays green. This package stays `tui-next` /
-# `tui_next` through Slices 5, 6 and 7. The rename to `junie-tui` / `junie_tui` happens in one
-# scripted commit *between Slice 7 and Slice 8*, after the root package holds no binaries and no
-# consumers (§47.1). Renaming at the start of Slice 5, as Appendix A and Appendix B.1 originally
-# said, is struck: it would produce a workspace with two `junie_tui` lib targets, which does not
-# resolve (§46.1, invariants S and S2 in §47.3).
-name = "tui-next"
+name = "junie-tui"
 description = "Junie-inspired terminal component library (foundations)"
 version.workspace = true
 edition.workspace = true
@@ -15,7 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [lib]
-name = "tui_next"
+name = "junie_tui"
 path = "src/lib.rs"
 
 [lints]
@@ -38,7 +31,7 @@ unicode-segmentation.workspace = true
 bitflags.workspace = true
 
 [dev-dependencies]
-tui-next-testing.workspace = true
+junie-tui-testing.workspace = true
 # compile-fail tests for the type-level guarantees of §6.1 and §15
 # (`response::must_use_is_enforced`, `response::bitor_is_defined_only_for_unit`,
 # `secret::is_not_clone_not_eq`) — §16.1, MA-12.

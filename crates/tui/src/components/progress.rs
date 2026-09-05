@@ -11,7 +11,7 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::{Overrides, SlotFn, first_row, shift};
+use super::{PartStyle, SlotFn, first_row, shift};
 use crate::collection::Status;
 use crate::id::{Id, Part};
 use crate::measure::{Constraints, Size};
@@ -200,7 +200,7 @@ pub struct ProgressBar<'a> {
     done: bool,
     icon: Option<GlyphRole>,
     frame: usize,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for ProgressBar<'_> {
@@ -241,7 +241,7 @@ impl<'a> ProgressBar<'a> {
             done: false,
             icon: None,
             frame: 0,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -305,14 +305,14 @@ impl<'a> ProgressBar<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -390,7 +390,7 @@ impl<'a> ProgressBar<'a> {
         }
         // runtime: none — a bar is a readout and registers no control;
         // derived: `self.flags()`, the `.status` readiness plus `.done`
-        let live = Overrides::flags(StateFlags::empty(), self.flags());
+        let live = PartStyle::flags(StateFlags::empty(), self.flags());
         let ov = self.ov;
         let id = self.id;
         let style = |ui: &mut Ui<'_>, part: Part| {
@@ -586,7 +586,7 @@ pub struct Spinner<'a> {
     label: &'a str,
     variant: Variant,
     frame: usize,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for Spinner<'_> {
@@ -610,7 +610,7 @@ impl<'a> Spinner<'a> {
             label: "",
             variant: Variant::DEFAULT,
             frame: 0,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -643,14 +643,14 @@ impl<'a> Spinner<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -689,7 +689,7 @@ impl<'a> Spinner<'a> {
             return area;
         }
         // derived: a spinner is busy by construction
-        let live = Overrides::flags(StateFlags::empty(), StateFlags::BUSY);
+        let live = PartStyle::flags(StateFlags::empty(), StateFlags::BUSY);
         let ov = self.ov;
         let frame = Self::glyph(ui, self.frame);
         let icon = Rect {

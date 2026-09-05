@@ -1,0 +1,40 @@
+ SHOWCASE   public junie-tui API                            
+
+
+ Foundations            ╭ Overview ────────────────────────────────────────────────────────────── public junie-tui API ╮
+▎›• Overview            │   Junie   component showcase                                                                 │
+                        │                                                                                              │
+ Components             │                                                                                              │
+  • Buttons             │                                                                                              │
+  • Inputs              │  A complete app-owned migration of the legacy showcase.        Library    junie-tui          │
+  • Text areas          │  Each page owns durable state and talks to junie-tui through   Ownership  application state  │
+  • Forms               │  the same public facade available to downstream binaries.      Input      runtime intents    │
+  • Lists               │  Tab focuses controls · Enter activates · Esc returns home.    Rendering  public Ui facade   │
+  • Trees               │                                                                Binary     showcase           │
+  • Tables              │                                                                Tokens     surface · accent   │
+  • Editable tables     │                                                                                              │
+  • Panels              │                                                                                              │
+  • Sidebars            │                                                                                              │
+  • Dialogs             │                                                                                              │
+  • Progress            │                                                                                              │
+  • Scrolling           │                                                                                              │
+  • Terminal            │                                                                                              │
+  • Code editor         │                                                                                              │
+  • Data grid           │                                                                                              │
+  • Chips & selects     │                                                                Library    junie-tui          │
+  • Pickers             │                                                                Ownership  application state  │
+  • Chrome              │                                                                Rendering  public Ui facade   │
+                        │                                                                                              │
+ Screens                │                                                                                              │
+  • Settings            │                                                                                              │
+  • Task runner         │                                                                                              │
+                        │                                                                                              │
+                        │                                                                                              │
+                        │                                                                                              │
+                        │  ╭──────────────────────────────────────────────────────────╮                                │
+                        │  │Keyboard shortcuts                                        │                                │
+                        │  ╰overview──────────────────────────────────────────────────╯                                │
+                        │  Author component · click or Tab                                                             │
+                        │                                                                                              │
+                        ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+ showcase                                                                                                q quit  ? help 

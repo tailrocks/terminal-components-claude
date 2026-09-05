@@ -19,7 +19,7 @@
 pub(crate) mod action;
 pub(crate) mod capture;
 pub(crate) mod collection;
-pub mod components;
+pub(crate) mod components;
 pub(crate) mod cursor;
 pub(crate) mod diagnostics;
 pub(crate) mod event;
@@ -78,10 +78,10 @@ pub use layer::{
 };
 // theme
 pub use theme::{
-    Align, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS, Family, FgStep, GlyphRole,
-    MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay, OverlayRule,
-    PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StylePatch, Surface, SyntaxRole, Theme,
-    ThemeBuilder, Variant,
+    Align, BorderSet, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS, Family, FgStep,
+    GlyphRole, MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay,
+    OverlayRule, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StylePatch, Surface,
+    SyntaxRole, Theme, ThemeBuilder, Variant,
 };
 // layout and measurement
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
@@ -100,8 +100,9 @@ pub use collection::{
 // components (Slice 4, append-only region, alphabetical)
 pub use components::{
     BlurPolicy, Button, ButtonCmd, Dialog, DialogAction, DialogCmd, DialogState, EditPhase, Field,
-    List, ListAction, ListCmd, ListState, Props, ScrollRegion, Tabs, TabsAction, TabsCmd,
-    TabsState, TextAction, TextCmd, TextInput, TextInputState,
+    List, ListAction, ListCmd, ListState, Props, PropsAction, PropsCmd, PropsList, PropsRow,
+    PropsState, PropsValue, ScrollRegion, Tabs, TabsAction, TabsCmd, TabsState, TextAction,
+    TextCmd, TextInput, TextInputState,
 };
 // components — work package 4B (fields, inputs, textarea, select, choice, chips),
 // appended as its own line so the shared list above is never rewritten
@@ -156,4 +157,5 @@ pub use validate::{FieldError, NoValidate, Validate};
 pub use ratatui_core::buffer::{Buffer, Cell};
 pub use ratatui_core::layout::{Position, Rect};
 pub use ratatui_core::style::{Color, Style};
+pub use ratatui_core::symbols::{line::Set as LineSet, scrollbar::Set as ScrollbarSet};
 pub use ratatui_core::terminal::Frame;

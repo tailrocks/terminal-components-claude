@@ -1,8 +1,20 @@
 [workspace]
 resolver = "3"
-members = ["crates/tui", "crates/tui-testing", "xtask"]
-# The root package itself is automatically a member; `cargo build` never compiles xtask.
-default-members = [".", "crates/tui", "crates/tui-testing"]
+members = [
+    "crates/tui",
+    "crates/tui-testing",
+    "xtask",
+    "apps/showcase",
+    "apps/tablepro",
+    "apps/jackin-preview",
+]
+default-members = [
+    "crates/tui",
+    "crates/tui-testing",
+    "apps/showcase",
+    "apps/tablepro",
+    "apps/jackin-preview",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -12,11 +24,8 @@ license = "MIT"
 repository = "https://github.com/donbeave/terminal-components-claude"
 
 [workspace.dependencies]
-# `tui-next` is the TEMPORARY name of `crates/tui` (COMPONENT_ARCHITECTURE.md §21 item 31). It is
-# kept through Slices 5, 6 and 7 and renamed to `junie-tui` / `junie_tui` in one scripted commit
-# between Slice 7 and Slice 8 (§47.1); the earlier "start of Slice 5" plan is struck by §46.1.
-tui-next = { path = "crates/tui" }
-tui-next-testing = { path = "crates/tui-testing" }
+junie-tui = { path = "crates/tui" }
+junie-tui-testing = { path = "crates/tui-testing" }
 ratatui-core = { version = "0.1.2", default-features = false, features = ["std", "underline-color"] }
 ratatui-crossterm = { version = "0.1.2" } # default = crossterm_0_29 + underline-color
 unicode-width = "0.2.2"
@@ -61,37 +70,6 @@ cast_possible_truncation = "allow"            # u16 terminal coordinates — rat
 cast_sign_loss = "allow"                      #   (ratatui-core-0.1.2/Cargo.toml:179-182); staying
 cast_precision_loss = "allow"                 #   consistent with the ecosystem we live inside
 cast_possible_wrap = "allow"
-
-[package]
-name = "junie-tui"
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.88"
-description = "Junie-inspired Ratatui design-system laboratory"
-license = "MIT"
-
-default-run = "showcase"
-
-[lib]
-name = "junie_tui"
-path = "src/lib.rs"
-
-[[bin]]
-name = "showcase"
-path = "src/bin/showcase/main.rs"
-
-[[bin]]
-name = "tablepro"
-path = "src/bin/tablepro/main.rs"
-
-[[bin]]
-name = "jackin-preview"
-path = "src/bin/jackin_preview/main.rs"
-
-[dependencies]
-ratatui = { version = "0.30", features = ["crossterm_0_29"] }
-unicode-width = "0.2"
-unicode-segmentation = "1"
 
 [profile.release]
 lto = "thin"

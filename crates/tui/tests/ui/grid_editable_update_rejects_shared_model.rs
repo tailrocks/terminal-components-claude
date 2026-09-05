@@ -1,4 +1,4 @@
-use tui_next::{
+use junie_tui::{
     CellRef, Column, ColumnKey, Cx, EditIntent, FieldError, Grid, GridEditor, GridModel, GridState,
     ItemKey,
 };
@@ -46,5 +46,5 @@ fn cannot_select_editing_through_shared_model(
 
 fn main() {
     let columns = [Column::new(ColumnKey::num(1), "value")];
-    let _grid = Grid::new(tui_next::Id::root("grid"), &columns);
+    let _grid = Grid::new(junie_tui::Id::root("grid"), &columns);
 }

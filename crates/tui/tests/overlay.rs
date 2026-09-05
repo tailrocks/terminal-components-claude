@@ -17,12 +17,12 @@
     )
 )]
 
-use tui_next::{
+use junie_tui::{
     Action, ActionKey, Anchor, App, Backdrop, Button, CrossAlign, Cx, Dialog, DialogState, Dismiss,
     Family, FrameRead, Id, ItemKey, KeyCode, LayerSpec, List, ListState, Part, PartRef, Rect,
     Response, RowUi, Side, StateFlags, Theme, Ui, Variant, backdrop_area,
 };
-use tui_next_testing::Harness;
+use junie_tui_testing::Harness;
 
 const OPEN: Id = Id::root("ovl.open");
 const DLG: Id = Id::root("ovl.dialog");
@@ -127,7 +127,7 @@ impl App for Nested {
             r |= picker()
                 .update(cx, &mut self.pick, &PEOPLE)
                 .on_action(|a| {
-                    if let tui_next::ListAction::Chose(k) = a {
+                    if let junie_tui::ListAction::Chose(k) = a {
                         self.owner = PEOPLE
                             .iter()
                             .find(|p| ItemKey::text(p) == k)

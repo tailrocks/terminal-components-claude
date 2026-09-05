@@ -1,21 +1,22 @@
 # Migration from the old experimental API
 
-This maps the pre-refactor `junie-tui` (the root package, `src/core/`,
-`src/ui/`, `src/widgets/`) onto the new library (`crates/tui`, temporarily
-`tui-next` / `tui_next` through Slices 5–7, then `junie-tui` / `junie_tui` in
-one scripted commit between Slice 7 and Slice 8).
+This maps the pre-refactor root source tree (`src/core/`, `src/ui/`,
+`src/widgets/`) onto the current component library in `crates/tui`, whose
+package and Rust path are `junie-tui` / `junie_tui` in this workspace. The old
+root package and legacy source tree are removed; the three applications now
+live under `apps/` and consume the library facade.
 
 Two ground rules for reading it:
 
 - **"Before" blocks are legacy illustrations.** They are the old API and they
   do not compile against the new crate. They are shown to make the mapping
   concrete, nothing more.
-- **"After" blocks compile against the current tree.** Where a replacement
-  does not exist yet, the row says so explicitly rather than describing
-  something that is not there.
+- **"After" blocks target the current `junie-tui` library.** Where a legacy
+  concept has no replacement, the row says so explicitly rather than
+  describing something that is not there.
 
 See the note at the top of [`quickstart.md`](quickstart.md) about the
-temporary crate name (`tui-next` through Slices 5–7).
+current package names and the separate application migrations.
 
 ---
 
@@ -481,11 +482,12 @@ Only visible rows invoke the renderer. Selection lives in the caller-owned
 
 ## Part 3 — the widget modules
 
-Status is against the current **Slice 4** library tree. "not yet" means the
-type does not exist; it is scheduled, not silently dropped. A ✅ library API
-does not mean the staged application moves have happened: the apps land in
-`apps/showcase`, `apps/tablepro`, and `apps/jackin-preview` across Slices 5–7,
-while `tui-next` remains the library package until the post-Slice-7 rename.
+Status is against the current public `crates/tui` library tree (package
+`junie-tui`, Rust path `junie_tui`), not a Slice-4 snapshot. ✅ means the named
+replacement type is implemented and exported by the current library source;
+it does not claim source compatibility with the old API or that every
+application binary has migrated. `⛔ deleted` is reserved for an old concept
+that the current library intentionally absorbs or does not replace.
 
 | Old module | New | Status | Notes |
 |---|---|---|---|
@@ -500,42 +502,45 @@ while `tui-next` remains the library package until the post-Slice-7 rename.
 | `input` | `TextInput`, `TextInputState`, `BlurPolicy`, `Secret`, `SecretPolicy` | ✅ | render-time commit+validate impossible; `validator: Option<fn>` → `&dyn Validate`; `plain_label` deleted (`Field` owns chrome); `HEIGHT` deleted (`measure`); five tiny-rect underflows fixed |
 | `keyhint` | `KeyHint` | ✅ | rendered by `HintBar`; the one-off entry point stays |
 | `list` | `List`, `ListState`, `SelectMode`, `KeySet` | ✅ | owned `ListItem` deleted; `row_id`/`locate`/`owns` deleted; the boundary-wheel violation fixed; `SelectMode` gains `Range`/`None` |
-| `panel` | `Panel` | ⛔ not yet | `ScrollPanel` is **removed**, not ported — its callers move to `TextViewport`. `bg: Color`, `Panel::bg(t)` and `pub bg_override` are deleted whatever happens |
+| `panel` | `Panel` | ✅ | `Panel` is the current non-interactive container. `ScrollPanel` remains **removed**; use `TextViewport` for scrollable text. `bg: Color`, `Panel::bg(t)` and `pub bg_override` are deleted |
 | `progress` | `Spinner`, `ProgressBar` | ✅ | five `bg: Color` parameters deleted; `SPINNER` frames move to `DesignTokens::motion` |
 | `progress` (meters) | `Meter`, `MeterTone`, `MeterVisual` | ✅ | `METER_LOW_MAX` / `MEDIUM_MAX` move to `DesignTokens::meter`; the jackin-specific tones move to the application |
-| `props` | `Props` | ✅ | the **two independent render paths** (a free fn and `PropsList::render`) collapse to one. `PropsList` — the two-column `List` variant — is ⛔ not yet |
+| `props` | `Props`, `PropsList` | ✅ | the **two independent render paths** collapse to the current public `Props` / `PropsList` components; both are exported |
 | `scrollbar` | `Part::TRACK` / `Part::THUMB` of `ScrollRegion` | ✅ | `scrollbar::id_for` deleted (48+ call sites); one `on_scrollbar` implementation replaces seven copies; thumb drag uses pointer capture |
 | `segments` | absorbed by `StatusBar` | ✅ | two priority-drop loops become one `Left`/`Center`/`Right` item strip |
 | `select` | `Select`, `SelectState`, `SelectAction`, `LabelSelect` | ✅ | render-time overlay close impossible; the popup is a `Popover` layer, so the old focus-barrier bug disappears; the 10-row clip becomes a real scroll region |
 | `statusbar` | `StatusBar`, `StatusItem`, `Emphasis`, `Group` | ✅ | absorbs `segments`; `STATUS_METER_TRACK` moves to `design.size.meter_track` |
 | `tabs` | `Tabs`, `TabsState`, `TabsAction` | ✅ | positional `tab_id(i)`/`close_id(i)` deleted → `ItemKey`; per-frame `areas`/`widths` `Vec`s deleted; the "rebuild the widget and rescue `first`/`active`" idiom in both applications deleted |
 | `textarea` | `TextArea`, `TextAreaState` | ✅ | render-time commit impossible; shares `TextEditorCore` with `input`; the missing `owns`/`on_scrollbar` supplied by `ScrollRegion`; a 1-cell-width underflow fixed |
-| `code` | `CodeEditor`, `CodeEditorState`, `Highlighter`, `Segmenter`, `CodeDiagnostic` | ⛔ not yet | planned: `fn`-pointer `Highlighter`/`Segmenter` → `&dyn Fn`; per-frame `hash_text` → an edit counter; the vim key table → a default `KeyMap` |
+| `code` | `CodeEditor`, `CodeEditorState`, `Highlighter`, `Segmenter`, `CodeDiagnostic` | ✅ | the editor, state, diagnostics, and caller-supplied highlighter/segmenter traits are implemented and exported; closures implement both traits |
 | `completion` | `Completion`, `CompletionState`, `CompletionController` | ✅ | `CompletionController::new(editor_id, popup_id)` opens the popover without moving focus; call `Completion::update_for(editor_id, …)` before the editor update so editor-addressed completion bindings win while text remains editor-owned |
-| `diff` | `DiffView`, `DiffViewState`, `DiffSource`, `DiffMode` | ⛔ not yet | planned: the data model moves behind `DiffSource`; `review_lines(f, width)` becomes `measure` |
+| `diff` | `DiffView`, `DiffViewState`, `DiffSource`, `DiffMode` | ✅ | the current view accepts a borrowed `DiffSource` and composes the public `TextViewport` projection |
 | `grid` | `Grid`, `GridState`, `GridModel`, `GridEditor`, `GridAction`, `GridCmd`, `ColumnKey`, `Column`, `CellRef`, `CellAction`, `NavUnit`, `SortDir` | ✅ | absorbs `table`. `GridModel` has exactly three required methods (`row_count`, `row_key`, `cell`), no associated `Row` and no `col_count`; `Grid::new(id, columns)` is the sole schema authority. `cell` returns `Option<CellRef<'_>>` so `None` is a structural ragged-row hole. `CellRef::new` inherits `Column::align`; `.align(…)` is an explicit override. Everything database-shaped stays in the application adapter |
-| `menu` | `MenuBar`, `ContextMenu`, `MenuItem`, `MenuState` | ⛔ not yet | planned: render-time cursor move on hover → an explicit `Intent::Pointer`; `shortcut: &'static str` → a real `Chord` that both renders and binds; label-string dispatch → `ActionKey` |
-| `picker` | `FilterList` (headless), `Picker` (overlay), `CommandPalette`, `PickerState`, `ScopeKey` | ⛔ not yet | `crates/tui/examples/10_nested_overlay.rs` substitutes a `List` in a popover, and says so |
-| `splitter` + `ui::layout::Split` | `SplitPane`, `SplitPaneState` | ⛔ not yet | planned: one component owning its container rect, drag through capture, four app-side copies deleted |
-| `steps` | `Steps`, `StepsState`, `StepsAction`, `StepsCmd`, `StepState` | ✅ | stays a display or navigable lifecycle rail with a runtime-cached derived frontier; call `StepsState::invalidate()` after lifecycle regression or same-length interior reorder. The future step *flow* remains a separate `Wizard`. Lifecycle `Part::META` is component-owned; caller `RowUi` metadata remains row-owned. Component patches reach `CONTAINER`/`LABEL`, while arbitrary row `META`/`CELL`/custom parts remain isolated; patch, part-patch and slot overrides propagate to the embedded scrollbar |
+| `menu` | `Menu`, `MenuBar`, `ContextMenu`, `MenuItem`, `MenuState` | ✅ | typed menu actions, commands and bindings are implemented; the menu family is exported by the current facade |
+| `picker` | `FilterList` (headless), `Picker` (overlay), `CommandPalette`, `PickerState`, `ScopeKey`, `PickerChain` | ✅ | picker, filter-list and chained-picker types are implemented and exported; example 10 intentionally demonstrates a separate List-in-a-popover composition |
+| `splitter` + `ui::layout::Split` | `SplitPane`, `SplitPaneState` | ✅ | the current split owns its seam geometry and supports keyboard/pointer interaction through the public state and action types |
+| `steps` | `Steps`, `StepsState`, `StepsAction`, `StepsCmd`, `StepState` | ✅ | stays a display or navigable lifecycle rail with a runtime-cached derived frontier; call `StepsState::invalidate()` after lifecycle regression or same-length interior reorder. The step *flow* remains a separate `Wizard`. Lifecycle `Part::META` is component-owned; caller `RowUi` metadata remains row-owned. Component patches reach `CONTAINER`/`LABEL`, while arbitrary row `META`/`CELL`/custom parts remain isolated; patch, part-patch and slot overrides propagate to the embedded scrollbar |
 | `table` | — | ⛔ deleted, not replaced | absorbed by `Grid` |
-| `tree` | `Tree`, `TreeState`, `TreeNode`, `TreeAction` | ⛔ not yet | planned: `path: Vec<usize>` identity → `ItemKey`; `flatten()` becomes incremental and borrow-based |
-| `viewport` | `TextViewport`, `ViewportState`, `ViewportAction` | ⛔ not yet | `Span<'a>` has **already** moved to `text/span.rs` and is re-exported at the root; the viewport itself is not ported |
+| `tree` | `Tree`, `TreeState`, `TreeNode`, `TreeAction` | ✅ | the current tree is keyed through the collection key vocabulary and exposes its public state/action types |
+| `viewport` | `TextViewport`, `ViewportState`, `ViewportAction` | ✅ | `TextViewport` is implemented and exported; `Span<'a>` remains re-exported from the text module |
 | *(showcase sidebar)* | `NavList`, `NavListState`, `NavListAction`, `NavListCmd`, `NavMode` | ✅ | `Enter`/`Space`/click emit `Chose(ItemKey)`; Right/plain `l` emit `EnterContent(ItemKey)`. The shell, not `NavList`, hands focus to content |
 | *(application minimum-size notice)* | `TooSmall` | ✅ | uses the dedicated named `Family::TOO_SMALL`, isolated from `Family::PANEL`; exact four-line copy and geometry remain unchanged |
 
-New components that had no old module: `Field` (✅, the label / control / help
-/ error chrome that `input`, `choice` and `select` each half-implemented),
-`ScrollRegion` (✅), `NavList` (✅) and `TooSmall` (✅).
-
-Also planned and ⛔ not yet: `Form`, `Wizard`, `HelpOverlay`, `PickerChain`.
+New components that had no old module include `Field` (the label / control /
+help / error chrome), `ScrollRegion`, `NavList`, `TooSmall`, `Form`, `Wizard`,
+`HelpOverlay`, and `PickerChain`; all are implemented and exported by the
+current library facade.
 
 ---
 
 ## Part 4 — application-level machinery that simply disappears
 
-None of this is a widget; all of it was hand-written in each of the three
-applications and is now library behaviour:
+None of this is a widget; these bullets describe the target ownership mapping
+from the legacy applications into the library. Verify application migration
+separately: the current workspace hosts the migrated applications under
+`apps/showcase`, `apps/tablepro`, and `apps/jackin-preview`; the legacy root
+application tree is removed.
+The mapping is:
 
 - three `Focus` / `FocusRing` field sets and 186+ direct manipulation sites;
 - three `HitRegistry` fields and six manual re-registration blocks;

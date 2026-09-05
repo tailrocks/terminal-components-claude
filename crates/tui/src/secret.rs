@@ -21,8 +21,8 @@ impl Secret {
         Secret(s)
     }
 
-    /// The raw value. Deliberately verbose.
-    pub fn expose(&self) -> &str {
+    /// The raw value for crate-internal consumers.
+    pub(crate) fn expose(&self) -> &str {
         &self.0
     }
 

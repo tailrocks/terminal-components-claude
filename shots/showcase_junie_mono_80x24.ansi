@@ -1,0 +1,24 @@
+ SHOWCASE   public junie-tui API        
+
+
+ Foundations              [1m        [0m      
+▎›• Overview               [1m       [0m      
+
+[1m Components             [0m                
+  • Buttons         
+  • Inputs          
+  • Text areas      
+  • Forms                                       [1mshowcase[0m                        
+  • Lists                                  Terminal too small                   
+  • Trees                                Need 72×20, have 56×20                 
+  • Tables          
+  • Editable tables                              q Quit                         
+  • Panels          
+  • Sidebars        
+  • Dialogs         
+  • Progress                [1m                  [0m                                  
+  • Scrolling       
+  • Terminal        
+  • Code editor     
+  • Data grid       
+ showcase                                                        q quit  ? help 

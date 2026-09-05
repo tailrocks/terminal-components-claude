@@ -5,7 +5,7 @@ use core::fmt::{self, Write as _};
 
 use ratatui_core::layout::Rect;
 
-use super::{Overrides, SlotFn, shift};
+use super::{PartStyle, SlotFn, shift};
 use crate::event::Chord;
 use crate::id::{Id, Part};
 use crate::keymap::Hint;
@@ -144,7 +144,7 @@ pub struct KeyHint<'a> {
     chord: Chord,
     label: &'a str,
     variant: Variant,
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for KeyHint<'_> {
@@ -169,7 +169,7 @@ impl<'a> KeyHint<'a> {
             chord,
             label,
             variant: Variant::DEFAULT,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -181,7 +181,7 @@ impl<'a> KeyHint<'a> {
             chord: h.chord,
             label: h.label,
             variant: Variant::DEFAULT,
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
         }
     }
 
@@ -200,14 +200,14 @@ impl<'a> KeyHint<'a> {
     /// An instance patch over every part (precedence 6).
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
     /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -238,7 +238,7 @@ impl<'a> KeyHint<'a> {
             return area;
         }
         // neither half: a key hint is static chrome
-        let live = Overrides::flags(StateFlags::empty(), StateFlags::empty());
+        let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         let ov = self.ov;
         let key_text = ChordText::of(self.chord);
         let key_cell = Rect {

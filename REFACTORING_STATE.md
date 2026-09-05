@@ -1,6 +1,6 @@
 # Refactoring State
 
-**RESUMED 2026-09-04 on Opus 5 routing (see Assignments). Ground truth verified at HEAD 0c87fb0: `cargo build -p tui-next --all-targets` OK; 190 lib tests pass; legacy root package 247 tests green; two expected failures from the interruption — `crates/tui/tests/conformance.rs` does not compile (components WIP) and `architecture::doc_check_resolves_every_reference` fails (architecture amendments half-applied). Both are owned by running builders.**
+**RESUMED 2026-09-04 on Opus 5 routing (see Assignments). Ground truth verified at HEAD 0c87fb0: `cargo build -p junie-tui --all-targets` OK; 190 lib tests pass; legacy root package 247 tests green; two expected failures from the interruption — `crates/tui/tests/conformance.rs` does not compile (components WIP) and `architecture::doc_check_resolves_every_reference` fails (architecture amendments half-applied). Both are owned by running builders.**
 
 ## Status
 
@@ -16,11 +16,11 @@
 ## !! SESSION 2 INTERRUPTION (token limit) — READ THIS FIRST !!
 
 Three subagents were killed mid-work. Their partial output is committed as WIP and **does not compile**:
-`cargo build -p tui-next --all-targets` fails with one `E0502` (borrow conflict) in the `tui-next` lib-test target.
+`cargo build -p junie-tui --all-targets` fails with one `E0502` (borrow conflict) in the `junie-tui` lib-test target.
 
 Last fully green commit: **`0f66160`** (`cargo test --all-targets` exit 0, 797 passed). Everything after it is WIP.
 
-**First action on resume:** `cargo build -p tui-next --all-targets`, read the `E0502`, and decide per-file whether to finish or revert. `git diff 0f66160 -- crates/` shows exactly what the three builders had produced. Reverting a single unfinished component to `0f66160` and re-running that package is a legitimate and often faster choice than repairing a half-written file.
+**First action on resume:** `cargo build -p junie-tui --all-targets`, read the `E0502`, and decide per-file whether to finish or revert. `git diff 0f66160 -- crates/` shows exactly what the three builders had produced. Reverting a single unfinished component to `0f66160` and re-running that package is a legitimate and often faster choice than repairing a half-written file.
 
 Interrupted packages and what each had produced:
 - `digest-race-fix` — owns `crates/tui-testing/src/{digest.rs,harness.rs}`. `digest.rs` modified. Task: replace the per-assertion whole-file read-modify-write with an accumulate-and-write-once or locked merge, so blessing is thread-count independent. Must prove byte-identical output at 1 and N threads, add a concurrency regression test, and move **no** baseline.
@@ -46,7 +46,7 @@ Interrupted packages and what each had produced:
 ## Accepted decisions (all recorded in COMPONENT_ARCHITECTURE.md; reviews under docs/reviews/, audits under docs/audit/)
 
 - A–I: component model (retained XState + props + explicit update/draw; immediate-mode `show` rejected), Id/ItemKey/Part/PartRef, `Response<A>`, tokens+recipes+StylePatch+overlays precedence 1–6, layer stack/focus scopes/capture/wheel/cursor, workspace + crate name `junie-tui`, keyed collections + Grid split, Field/TextEditorCore/Secret, dispositions + J1–J13.
-- J (§21): Slice 2 review corrections (34 items). Staging: root package stays `junie-tui`; new lib at crates/tui is TEMPORARILY `tui-next`/`tui_next` until Slice 5 (single scripted rename). `junie-tui-legacy` rename REJECTED.
+- J (§21): Slice 2 review corrections (34 items). Staging: root package stays `junie-tui`; new lib at crates/tui is TEMPORARILY `junie-tui`/`junie_tui` until Slice 5 (single scripted rename). `junie-tui-legacy` rename REJECTED.
 - K (§23): Form API (library component, `FormData`, no `values()`); Grid `update<M: GridModel>(&M)` + `update_editable<M: GridEditor>(&mut M)`; `GridCellActions` deleted.
 - L (§22): ratatui-core + ratatui-crossterm (normal dep; `crossterm` feature gates only the session), no ratatui/ratatui-widgets/macros; one width fn via CellWidth; set_stringn/set_line/set_span painters; Stylize banned; Masked forbidden; BorderSet = alias of symbols::border::Set; bitflags yes, smallvec no; 20 rules R-1..R-20 + 26 forbidden patterns; lints block; MSRV 1.88 with `cargo +1.88.0 check` gate.
 - M (§24): no rename of our Size/Span; ratatui text types only in `author::raw`; `theme::border::ASCII` const; `FieldKind` closed over Label* aliases; `FormData::{options,value_and_options}`.
@@ -65,7 +65,7 @@ Interrupted packages and what each had produced:
 - HELD until Q1 lands (it may move `List` baselines): `4A` buttons/choices/brand-chrome, `4C` lists/trees/props/steps/nav, `4E` containers/scrolling. Wave 2 after: `4D` tabs, `4F` overlays, `4H` code/diff, `4I` grid.
 
 - DONE (587c53b) `arch-amend`: §25 (eight adjudications, D-1..D-13 verdicts, F1–F26 obligation table with test names, gate additions) and §26 (Adjudication N) appended; 83 `§25` + 35 `§26` inline markers; superseded text struck in place (§20.9-1 per-query bound, §21 item 20 `(u16,u16)`, §21 item 29 CIE76, §24.5 `author/raw.rs` file-placement paragraph, Appendix B.2 optional-crossterm). §17 self-check: 44 references, 0 unresolved library references.
-- DONE (7899678 — commit subject "feat(tui): add component architecture foundations" is a misnomer; the change is the F1–F26 + N1/N2 correction pass) `foundations-fix`. Verified independently by the coordinator: fmt clean; clippy `-D warnings` clean; `tui-next` lib 190→**220**; architecture 19+1F→**28**; render **8**; perf **22**; doc 1; `cargo check --no-default-features` OK; `RUSTDOCFLAGS=-D warnings cargo doc` 0 warnings; `xtask boundary` **23/23** with `legacy_api.txt` and `domain.txt` both empty; legacy root package **247** green. `tests/conformance.rs` 186 pass / **5 fail** — owned by the next builder, and 4 of the 5 are the intended effect of F17 (case 9 now requires the full ten mono states).
+- DONE (7899678 — commit subject "feat(tui): add component architecture foundations" is a misnomer; the change is the F1–F26 + N1/N2 correction pass) `foundations-fix`. Verified independently by the coordinator: fmt clean; clippy `-D warnings` clean; `junie-tui` lib 190→**220**; architecture 19+1F→**28**; render **8**; perf **22**; doc 1; `cargo check --no-default-features` OK; `RUSTDOCFLAGS=-D warnings cargo doc` 0 warnings; `xtask boundary` **23/23** with `legacy_api.txt` and `domain.txt` both empty; legacy root package **247** green. `tests/conformance.rs` 186 pass / **5 fail** — owned by the next builder, and 4 of the 5 are the intended effect of F17 (case 9 now requires the full ten mono states).
 - DONE (8ec40c1) `components-finish`. Verified independently: conformance **193/193** (20 cases × 9 components + 2 suite-level + registry), render_components **48** (384 baseline lines: 6 components × 8 states × {junie,paper} × {truecolor,mono} × {120×40,40×10}), overrides **5**, overlay **4**, showcase_buttons **4**, lib **220**, render 8, perf 27, doc 1, examples build, legacy **247** green. Only failure repo-wide is `every_named_test_exists`, owed the three §27 test names.
 - DONE (bb92a65) `adjudication-o-code`. Verified independently: **workspace fully green — 788 tests, 0 failing targets, `cargo test --all-targets` exit 0, `xtask boundary` exit 0, `xtask doc-check` exit 0**, `every_named_test_exists` passing, legacy root package 247. `perf_baseline.txt` diff is header-only; no data row moved. The generation-wrap test was proven a genuine detector by restoring the old code and watching it fail with the stale hit.
 - DONE Adjudication P (docs/reviews/adjudication-p-prototype-decisions.md), which **corrected two of the premises I gave it**: (P3) a `Dialog`-owned modal records **no** `UndeliveredIntent` today, because the dialog registers only `Decorative` regions and the diagnostic is gated on `delivers_to` — so the gated `if cx.is_open(…)` shape drops the dismissal *silently*, which is worse than the leak I described; (P6) `ListCase` does **not** narrow `DISABLED`, and both it and `FieldCase` pass only because they paint `Part::LABEL`, which the existing rule reaches. **It also found a defect neither I nor the builder saw: at `ColorLevel::Mono`, `disabled_fg #4d4d4d` and `Fg(Faint) #262626` both map to `Black` on a `Black` canvas, so §11.4's prescribed `fg = Role::Fg(Faint)` makes a disabled control black-on-black — invisible, not merely colourless. This is a goal §29 violation caused by the specification, not the implementation.** Decisions: P1 keep the two-half showcase split until Slice 5 (widening the `.state_override` exemption would cost the matrix's assertions and loosen a gate permanently); P2 confirm the two-target render split, with the *test path* as the contract and every gate naming both targets; P3 widen the diagnostic to cover runtime-addressed intents whatever the owner registered, and make example 11 unconditional; P4 confirm `input_rows` in `measured_height`; P5 confirm `state_override`/`inherit_forced` and generalise `inherit_forced` onto `FieldControl` (a forced `Field` still registers a live control today); P6 add the `FIELD`/`TEXT` mono rules with `Fg(Primary)`, make `Fixture` carry `Status` so case 9 can see props-driven affordances, turn `mono_states_required_by` into a union, and revert the narrowings it was hiding.
@@ -109,38 +109,38 @@ Interrupted packages and what each had produced:
 - Open, not decided: rustdoc-json upgrades for `every_foreign_type_in_the_public_surface_is_re_exported` and `xtask doc-check`, both deferred to Slice 8.
 
 - F1–F26 correction obligations (slice3-foundations-review.md §5) and N1/N2 code changes not applied.
-- Components WIP state unknown; `cargo test -p tui-next --all-targets` must be re-run first.
+- Components WIP state unknown; `cargo test -p junie-tui --all-targets` must be re-run first.
 - Perf findings P1 (viewport double relayout), P2 (debug/release 1-alloc delta; review adjudicated tolerance ≤1) — P1 addressed by §20.9 item 7 (Slice 4E).
 
 ## Next action (Resume) — session 3
 
-0. **Recover the build.** `cargo build -p tui-next --all-targets`; fix or revert per the interruption block above. Target: back to green, then commit and push before starting anything new.
-1. **Finish Slice 4 wave 1.** Re-run or complete `digest-race-fix`, `4B`, `4G` (scopes in the ownership section). Gate each: fmt, clippy `-D warnings`, `cargo test -p tui-next -p tui-next-testing --all-targets --all-features`, doc tests, `RUSTDOCFLAGS="-D warnings" cargo doc`, examples build, `--test render --test render_components`, `xtask doc-check`, `xtask boundary`, and `cargo test --all-targets` with the legacy root package still at 247.
+0. **Recover the build.** `cargo build -p junie-tui --all-targets`; fix or revert per the interruption block above. Target: back to green, then commit and push before starting anything new.
+1. **Finish Slice 4 wave 1.** Re-run or complete `digest-race-fix`, `4B`, `4G` (scopes in the ownership section). Gate each: fmt, clippy `-D warnings`, `cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features`, doc tests, `RUSTDOCFLAGS="-D warnings" cargo doc`, examples build, `--test render --test render_components`, `xtask doc-check`, `xtask boundary`, and `cargo test --all-targets` with the legacy root package still at 247.
 2. **Apply Adjudication Q** (`docs/reviews/adjudication-q-residuals.md`): Q1 the shared bracket helper taking two reserved cells (and fix `Button`'s in-run bracket, which can truncate a full-width label); Q2 make `Fixture::{state_override,status}` private with accessors; Q3 add `Conformance::mono_narrowing_reason()` and its case-9 check, then write the ~8 missing reasons. Record as §29 in `COMPONENT_ARCHITECTURE.md` with the nine listed amendments. **Confirm Q's R1 first** by disabling the `Tabs` bracket block and checking case 9 is still red.
 3. **Fix the live `RowUi` glyph defect** (`Resolved.glyph: Option<GlyphRole>` → `Slot<GlyphRole>`; `marker()`/`part()` must honour it; `label*()` deliberately out of scope). Two callers already exist in `examples/{07,08}`, so Adjudication Q's A4 gate fails as written and must be re-stated.
 4. **Slice 4 remaining packages**: `4A` buttons/choices/brand-chrome, `4C` lists/trees/props/steps/nav, `4E` containers/scrolling (wave 1); then wave 2 `4D` tabs, `4F` overlays, `4H` code/diff, `4I` grid. A fresh `opus-analyst` reviews API consistency after each package.
-5. **Slice 5** showcase migration — including the scripted `tui-next`/`tui_next` → `junie-tui`/`junie_tui` rename, removal of the root `src/` and its three `[[bin]]`s, `tools/capture.sh`'s `BIN` default, and P1's obligation to merge the two halves of the Buttons page into `apps/showcase` and strike §18.3 #4's deviation paragraph.
+5. **Slice 5** showcase migration — including the scripted `junie-tui`/`junie_tui` → `junie-tui`/`junie_tui` rename, removal of the root `src/` and its three `[[bin]]`s, `tools/capture.sh`'s `BIN` default, and P1's obligation to merge the two halves of the Buttons page into `apps/showcase` and strike §18.3 #4's deviation paragraph.
 6. **Slices 6 and 7** (TablePro, Jackin — parallel, disjoint app trees), then **Slice 8** cleanup with a fresh Opus architecture review, a separate fresh Opus visual review, and the §30 final report.
 
 ### Superseded resume steps (session 1)
 
-1. `git status`; `cargo test -p tui-next -p tui-next-testing --all-targets --all-features` and `cargo run -p xtask -- boundary` to learn the WIP state. Do NOT run the legacy digest blessing.
+1. `git status`; `cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features` and `cargo run -p xtask -- boundary` to learn the WIP state. Do NOT run the legacy digest blessing.
 2. Spawn fable-builder "arch-amend": redo §25/§26 + inline amendments per docs/reviews/slice3-foundations-review.md (§2, §3, §4(f)) and docs/reviews/adjudication-n-layer-measure.md ("Document amendments" table); owns COMPONENT_ARCHITECTURE.md only. Commit + push.
 3. Spawn fable-builder "foundations-fix": apply F1–F26 + N1/N2 code changes to crates/tui/src (non-components), crates/tui-testing, xtask; re-bless crates/tui/tests/perf_baseline.txt with note; run the review §6 gate command set. Serial with step 4 (shared crate).
 4. Spawn fable-builder "components-finish": bring components/examples/tests to the slice2 review §9(c) acceptance (conformance 20×7, render digests junie/paper × truecolor/mono, overrides tests, overlay tests, showcase_buttons example + 3 retained tests, component perf benches), adapting to the F-fixes (paint_spans signature, LayerSize, Ui::resolve, Resolved::over).
 5. Spawn fresh opus-analyst: review of the prototype's real API (slice2 review §9(c) item 14) + verify every §6 gate; record; correction pass if needed.
-6. Slice 3 gate green → Slice 4 wave 1 (4A,4B,4C,4E,4G) parallel per Appendix A with disjoint files; each followed by fresh Opus API-consistency review; wave 2 (4D,4F,4H,4I); Slice 5 (rename tui-next→junie-tui + showcase); Slices 6/7 parallel; Slice 8 cleanup + two fresh Opus reviews + final report (§30).
+6. Slice 3 gate green → Slice 4 wave 1 (4A,4B,4C,4E,4G) parallel per Appendix A with disjoint files; each followed by fresh Opus API-consistency review; wave 2 (4D,4F,4H,4I); Slice 5 (rename junie-tui→junie-tui + showcase); Slices 6/7 parallel; Slice 8 cleanup + two fresh Opus reviews + final report (§30).
 
 ## Session 2 addendum — 4B landed after the stop order
 
 - `4B` self-persisted a checkpoint at `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/fb791879-76d3-4f15-9d62-e9ff3d33d23c/scratchpad/4B_PROGRESS.md` (next steps, planned `Caps` per case, allow-list lines to delete). Delivered: `textarea.rs`, `choice.rs` (RadioGroup cursor/value split), `chip.rs`, `select.rs` (Popover layer sized by `measured_size`, D1 re-asserted); `input.rs` gained `TextCmd::{Newline,PageUp,PageDown}` and the nine §16.1 test names. `Secret`/`Validate` already complete, untouched.
 - NOT done by 4B: conformance cases, render matrix + bless, allow-list deletions, full gate.
-- Build state now: `cargo test -p tui-next --lib` 257 passed. Remaining clippy failure is `crates/tui/src/components/progress.rs:56` (`buf[len] = b
+- Build state now: `cargo test -p junie-tui --lib` 257 passed. Remaining clippy failure is `crates/tui/src/components/progress.rs:56` (`buf[len] = b
 ## Session 2 addendum — 4B landed after the stop order
 
 - `4B` self-persisted a checkpoint at `<scratchpad>/4B_PROGRESS.md` (next steps, planned `Caps` per case, allow-list lines to delete). Delivered: `textarea.rs`, `choice.rs` (RadioGroup cursor/value split), `chip.rs`, `select.rs` (Popover layer sized by `measured_size`, D1 re-asserted); `input.rs` gained `TextCmd::{Newline,PageUp,PageDown}` and the nine §16.1 test names. `Secret`/`Validate` were already complete and untouched.
 - NOT done by 4B: conformance cases, render matrix + bless, allow-list deletions, full gate.
-- Build state after 4B: `cargo test -p tui-next --lib` 257 passed. The remaining clippy failure is `crates/tui/src/components/progress.rs:56` (indexing trips `-D clippy::indexing_slicing`) — 4G in-flight, not 4B. The earlier E0502 is resolved.
+- Build state after 4B: `cargo test -p junie-tui --lib` 257 passed. The remaining clippy failure is `crates/tui/src/components/progress.rs:56` (indexing trips `-D clippy::indexing_slicing`) — 4G in-flight, not 4B. The earlier E0502 is resolved.
 - THREE QUESTIONS for `opus-analyst` on resume:
   1. **RESOLVED in Adjudication Q:** `Caps::OVERLAY` means "opens a layer"; `Caps::TRAPS_FOCUS` separately opts into case 14 and implies `OVERLAY`. Modal cases declare both. A `Popover` remains pointer-only, so `Select` declares `OVERLAY` only and does not trap focus.
   2. `FieldControl` has no item channel. §15 says implement it for `Select`/`RadioGroup`, but §24 M3 moved items to the per-phase channel and `draw(&self, ui, area, st)` cannot carry `&[T]`. Implemented for `TextArea`/`Checkbox`/`Toggle` only; 4F's `Form` must drive the three choice controls directly.
@@ -154,13 +154,13 @@ Interrupted packages and what each had produced:
 
 ### BLOCKER to clear first on resume (small, precise)
 
-`cargo test -p tui-next --lib` does not compile. `crates/tui/src/components/choice.rs:1229`, inside its `#[cfg(test)]` module:
+`cargo test -p junie-tui --lib` does not compile. `crates/tui/src/components/choice.rs:1229`, inside its `#[cfg(test)]` module:
 
 ```rust
 g.choose(&mut st, &items, st.cursor_index(), &mut acc);   // E0502: st borrowed mutably and immutably
 ```
 
-Fix by hoisting: `let i = st.cursor_index(); g.choose(&mut st, &items, i, &mut acc);`. The library target builds; only the test target is blocked. `cargo build -p tui-next` is green. (Earlier ledger lines describing an unresolved E0502 elsewhere are superseded by this one.)
+Fix by hoisting: `let i = st.cursor_index(); g.choose(&mut st, &items, i, &mut acc);`. The library target builds; only the test target is blocked. `cargo build -p junie-tui` is green. (Earlier ledger lines describing an unresolved E0502 elsewhere are superseded by this one.)
 
 ### Research request for `opus-analyst` (4G)
 
@@ -178,12 +178,12 @@ A stateless `StatusBar` cannot paint per-item hover, which the legacy `src/widge
 
 ### Build state on resume — MEASURE, do not trust either prior note
 
-Two builders reported different pictures minutes apart: 4G saw a single `E0502` in `choice.rs:1229`, the digest builder later saw 17-18 compile errors across the wave's in-flight files. Neither number is authoritative now. **Step 0 on resume is `cargo build -p tui-next --all-targets` and `cargo test -p tui-next --lib`, and fix what they actually report** — starting with the `choice.rs:1229` hoist, which is confirmed and one line.
+Two builders reported different pictures minutes apart: 4G saw a single `E0502` in `choice.rs:1229`, the digest builder later saw 17-18 compile errors across the wave's in-flight files. Neither number is authoritative now. **Step 0 on resume is `cargo build -p junie-tui --all-targets` and `cargo test -p junie-tui --lib`, and fix what they actually report** — starting with the `choice.rs:1229` hoist, which is confirmed and one line.
 
 ## Session 2 continuation/addendum — current baseline diagnostic (2026-09-04)
 
 - Current-state baseline result: no files changed; the branch was `main...origin/main`.
-- The previously claimed `crates/tui/src/components/choice.rs:1229` `E0502` was not reproduced in the current state. Both requested `tui-next` commands exited 0; no compiler errors or test failures were emitted.
+- The previously claimed `crates/tui/src/components/choice.rs:1229` `E0502` was not reproduced in the current state. Both requested `junie-tui` commands exited 0; no compiler errors or test failures were emitted.
 - Exact commands, captured outputs, and exit codes:
 
   - Command: `rtk --version`
@@ -213,7 +213,7 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 
     Exit code: `0`.
 
-  - Command: `rtk cargo build -p tui-next --all-targets`
+  - Command: `rtk cargo build -p junie-tui --all-targets`
     Output:
 
     ```text
@@ -223,7 +223,7 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 
     Exit code: `0`.
 
-  - Command: `rtk cargo test -p tui-next --lib`
+  - Command: `rtk cargo test -p junie-tui --lib`
     Output:
 
     ```text
@@ -238,7 +238,7 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - **Q1 remains blocked** pending the `Slot<GlyphRole>` migration. The shared build exited `101` with 22 incomplete-migration errors. No Q1 files, baselines, or docs changed.
 - **Q2 implementation changed only** `crates/tui-testing/src/conformance/mod.rs`: `state_override` and `status` are private, `forced()` and `status()` accessors were added, and `force` is the sole writer.
 - `git diff --check` exited `0`.
-- `rtk cargo test -p tui-next-testing --lib` exited `101` with 22 compile errors and no tests, because `conformance.rs` consumers remain unmigrated.
+- `rtk cargo test -p junie-tui-testing --lib` exited `101` with 22 compile errors and no tests, because `conformance.rs` consumers remain unmigrated.
 - **Open follow-up:** finish the `Slot` migration and migrate `Fixture` consumers, then rerun Q1.
 
 ## Session 3 checkpoint — Pauli's paused proof wiring (2026-09-04)
@@ -254,8 +254,8 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 
 - Peirce resumed and changed `crates/tui/src/theme/resolve.rs`, `crates/tui/src/collection/rowui.rs`, `crates/tui/src/measure.rs`, `crates/tui/src/theme/mod.rs`, `crates/tui/src/components/hintbar.rs`, `crates/tui/src/components/meter.rs`, `crates/tui/src/components/progress.rs`, `crates/tui/src/components/select.rs`, `crates/tui/src/components/tabs.rs`, `crates/tui/src/components/textarea.rs`, `crates/tui/examples/12_author_component.rs`, and `crates/tui/tests/perf.rs`.
 - `PartMetrics.glyph` is now `Slot<GlyphRole>`.
-- Focused test command: `rtk cargo test -p tui-next --lib collection::rowui`; output: `6 passed; 258 filtered`; exit code `0`.
-- Current all-target build command: `rtk cargo build -p tui-next --all-targets`; output: `55 errors; 11 warnings`; exit code `101`. Remaining failures are only concurrent `crates/tui/tests/conformance.rs` and `tui-testing` `Fixture` changes: private fields, two `Slot`/`Option` matches, and two inference errors.
+- Focused test command: `rtk cargo test -p junie-tui --lib collection::rowui`; output: `6 passed; 258 filtered`; exit code `0`.
+- Current all-target build command: `rtk cargo build -p junie-tui --all-targets`; output: `55 errors; 11 warnings`; exit code `101`. Remaining failures are only concurrent `crates/tui/tests/conformance.rs` and `tui-testing` `Fixture` changes: private fields, two `Slot`/`Option` matches, and two inference errors.
 - RowUi `Slot::Inherit` coverage is still missing.
 - No commit or push had been made for this migration at checkpoint time.
 
@@ -269,9 +269,9 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 ## Session 3 checkpoint — Sagan's Q3/Fixture consumers (2026-09-04)
 
 - Sagan completed the Q3 machinery and Fixture consumer compile work. Changed only `crates/tui-testing/src/conformance/mod.rs`, `crates/tui-testing/src/conformance/driver.rs`, and `crates/tui/tests/conformance.rs` for this pass.
-- `rtk cargo test -p tui-next-testing --lib`: `3 passed; 1 ignored`; exit code `0`.
-- `rtk cargo test -p tui-next --test conformance --no-run`: exit code `0`.
-- `rtk cargo test -p tui-next --test conformance`: `457 passed; 10 failed`; exit code `101`.
+- `rtk cargo test -p junie-tui-testing --lib`: `3 passed; 1 ignored`; exit code `0`.
+- `rtk cargo test -p junie-tui --test conformance --no-run`: exit code `0`.
+- `rtk cargo test -p junie-tui --test conformance`: `457 passed; 10 failed`; exit code `101`.
 - `rtk git diff --check` on the owned files: exit code `0`.
 - Rustfmt on the owned files: exit code `0`.
 - Remaining conformance failures: ChipBar ×4, RadioGroup ×2, registry META declaration ×1, and TextArea ×3.
@@ -290,9 +290,9 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 ## Session 3 checkpoint — Rawls's TextArea ownership fix (2026-09-04)
 
 - Rawls changed only `crates/tui/src/components/scroll_region.rs` and `crates/tui/src/components/textarea.rs`.
-- `rtk cargo test -p tui-next --lib textarea`: `2 passed; 265 filtered`; exit code `0`.
-- `rtk cargo test -p tui-next --lib scroll_region`: `0 passed; 267 filtered`; exit code `0`.
-- `rtk cargo build -p tui-next --all-targets`: success; exit code `0`.
+- `rtk cargo test -p junie-tui --lib textarea`: `2 passed; 265 filtered`; exit code `0`.
+- `rtk cargo test -p junie-tui --lib scroll_region`: `0 passed; 267 filtered`; exit code `0`.
+- `rtk cargo build -p junie-tui --all-targets`: success; exit code `0`.
 - `rtk git diff --check` on the owned files: exit code `0`.
 - Remaining TextArea conformance issues are fixture-only: `text_area::mono_states_are_distinguishable` lacks non-empty controlled text, and `text_area::cursor_write_is_rejected_off_top_layer` has harness focus-settle timing after `tab_to`.
 - The production cursor contract remains focused + editing.
@@ -340,7 +340,7 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - Godel proved the reorder failure is production-side: `ChipBar::painted_width()` includes right-aligned `RowUi::meta`, which inflates chip width and prevents the keyed label region from being registered.
 - Bohr proved the TextArea `BUSY` distinction was fixture-only; removing `BUSY` and naming it in the narrowing reason made the focused suite green. No readiness spinner was added.
 - Mill adjudicated Select's layer contract: retain `OVERLAY`, add `TRAPS_FOCUS`, split case 14 so only the latter requires focus confinement/Tab wrapping/zero-size trapping, and record the amendment as new §31.
-- Mencius implemented the `TRAPS_FOCUS` capability bit and case-14 split. `rtk cargo test -p tui-next-testing --lib`: `3 passed; 1 ignored`; exit code `0`. `rtk cargo test -p tui-next --test conformance focus_trap_and_restore`: `22 passed; 445 filtered out`; exit code `0`. No commit or push was made for Mencius's implementation.
+- Mencius implemented the `TRAPS_FOCUS` capability bit and case-14 split. `rtk cargo test -p junie-tui-testing --lib`: `3 passed; 1 ignored`; exit code `0`. `rtk cargo test -p junie-tui --test conformance focus_trap_and_restore`: `22 passed; 445 filtered out`; exit code `0`. No commit or push was made for Mencius's implementation.
 - This checkpoint makes no unsupported completion claim: full conformance is still red, ChipBar production/fixture fixes remain pending, and the complete Slice 4 gate has not been run to green.
 
 ## Session 4 — MAIN LEAD, multi-lead coordination (2026-09-04)
@@ -357,8 +357,8 @@ trees plus lane-prefixed files under `docs/reviews/` and `docs/status/`. Lane A 
 ### Measured ground truth (coordinator, 2026-09-04), HEAD `efe17ca` + uncommitted tree
 
 GREEN:
-- `cargo build -p tui-next --all-targets` exit 0.
-- `tui-next` lib **268** passed; `tui-next-testing` lib green.
+- `cargo build -p junie-tui --all-targets` exit 0.
+- `junie-tui` lib **268** passed; `junie-tui-testing` lib green.
 - `overrides` 5, `overlay` 4, `showcase_buttons` 4, `render` 8, `perf` **27** passed.
 - Legacy root package `cargo test --all-targets`: 76 + 67 + 33 + 41 + 30 = **247** passed.
 - `cargo run -p xtask -- doc-check` exit **0** (71 rust blocks, 583 references resolved).
@@ -366,7 +366,7 @@ GREEN:
 RED — the exact remaining Slice 4 wave-1 closure work:
 1. `cargo fmt --all --check` exit 1: 10 diffs in 7 files — `tui-testing/src/conformance/driver.rs`,
    `components/{chip,meter,mod,scroll_region,status}.rs`, `tests/perf.rs`.
-2. `cargo clippy` exit 1, **2 errors, both in `tui-next` lib**:
+2. `cargo clippy` exit 1, **2 errors, both in `junie-tui` lib**:
    `chip.rs:728` `use of eprintln!` (a leftover debug print that also spams every
    conformance run) and `progress.rs:56` `indexing may panic` on `buf[len] = b'%'`.
 3. `architecture::conformance_covers_every_public_component` FAILS: 21 components
@@ -393,7 +393,7 @@ RED — the exact remaining Slice 4 wave-1 closure work:
   is fixed: `Resolved.glyph` and `PartMetrics.glyph` are `Slot<GlyphRole>` and A4 is
   re-stated as a live caller gate. Under independent audit.
 - The prompt's "known-failing at last measure" list is stale in three places: `cargo fmt`
-  is 7 files not 5; clippy is **2** errors not ~18 in `tui-next` and **0** not 2 in `xtask`;
+  is 7 files not 5; clippy is **2** errors not ~18 in `junie-tui` and **0** not 2 in `xtask`;
   `components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells` now **passes**.
 - `xtask doc-check` and the legacy 247 are green, not pending.
 
@@ -435,7 +435,7 @@ parallel, a fresh analyst API-consistency review after each, then wave 2.
 ### COORDINATOR CORRECTION — my own clippy measurement was wrong (2026-09-04)
 
 I recorded "clippy exit 1, **2 errors**" above. That is wrong and I am correcting it rather
-than letting it stand. I measured with `cargo clippy -p tui-next --all-features` **without**
+than letting it stand. I measured with `cargo clippy -p junie-tui --all-features` **without**
 `-D warnings`, which reports only the hard errors. The required §26 gate is
 `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and under it this
 crate's restriction lints (`arithmetic_side_effects`, `indexing_slicing`, `byte_char_slices`,
@@ -579,17 +579,17 @@ accepted.
   disabled-input guard, the `Part::MARKER`/canonical `Check` affordance, metadata-safe
   `painted_width()`, and no debug output.
 - Measured ChipBar proof after those changes:
-  - `rtk cargo test -p tui-next --test conformance chip_bar`: **21 passed; 467 filtered
+  - `rtk cargo test -p junie-tui --test conformance chip_bar`: **21 passed; 467 filtered
     out**, exit code `0`.
-  - `rtk cargo test -p tui-next --lib chip`: **4 passed; 267 filtered out**, exit code `0`.
-  - `rtk cargo build -p tui-next --all-targets`: exit code `0`.
+  - `rtk cargo test -p junie-tui --lib chip`: **4 passed; 267 filtered out**, exit code `0`.
+  - `rtk cargo build -p junie-tui --all-targets`: exit code `0`.
   - `rtk git diff --check` for `chip.rs`: exit code `0`.
 - Jason's conformance-fixture changes produced **21 passed; 446 filtered out** for focused
   TextArea conformance and **465 passed / 2 failed** for full conformance before the ChipBar
   fixes. Those two historical failures were the ChipBar reorder-identity and styled-`META`
   checks; the count is not a current full-suite claim.
 - Mencius added `Caps::TRAPS_FOCUS` and split case 14: `rtk cargo test
-  -p tui-next-testing --lib` reported **3 passed; 1 ignored**, exit code `0`; the focused
+  -p junie-tui-testing --lib` reported **3 passed; 1 ignored**, exit code `0`; the focused
   `focus_trap_and_restore` case reported **22 passed; 445 filtered out**, exit code `0`.
 - Zeno's Select wiring measured **21 passed** for Select, **23 passed** for case 14, and
   **488 passed** for full conformance, all exit code `0`. It is not closure evidence yet:
@@ -910,14 +910,14 @@ empty state, suppressing the props-derived flags" — no consumer, and forbidden
 
 Measured by the coordinator, not reported by a builder:
 
-- `cargo test -p tui-next --test conformance` — **488 passed / 0 failed**. `select => SelectCase`
+- `cargo test -p junie-tui --test conformance` — **488 passed / 0 failed**. `select => SelectCase`
   is registered; `DialogCase` declares `TRAPS_FOCUS`; **conformance case 14's trap half executes
   for the first time in the project's history and passes.**
 - `cargo run -p xtask -- boundary` — **24 of 25 ok**. `conformance_covers_every_public_component`
   is finally green (22 registered / 23 entries). The single red is
   `every_named_test_exists` on the `capsule_pane_clone_4x2000` row, which is **correct** and stays
   red until Slice 7 deletes the benchmark.
-- `cargo run -p xtask -- doc-check` exit 0. `cargo test -p tui-next --lib` **292 passed / 0 failed**.
+- `cargo run -p xtask -- doc-check` exit 0. `cargo test -p junie-tui --lib` **292 passed / 0 failed**.
 - `--test render` 8/0. `--test render_components` 45 passed / 115 failed — the pending bless, of
   which **112 are missing baselines and 3 are genuine mismatches**.
 
@@ -970,12 +970,12 @@ Run by me after committing the wave-1 foundations, not reported by a builder:
 
 | target | result |
 |---|---|
-| `tui-next --lib` | **292 passed / 0 failed** |
+| `junie-tui --lib` | **292 passed / 0 failed** |
 | `--test conformance` | **488 passed / 0 failed** |
 | `--test render` | 8 passed / 0 failed |
 | `--test perf` | 27 passed / 0 failed |
 | `--test overrides` / `overlay` / `showcase_buttons` | 5 / 4 / 4, all green |
-| `tui-next-testing --lib` | 5 passed / 0 failed |
+| `junie-tui-testing --lib` | 5 passed / 0 failed |
 | legacy root package | 76 + 67 + 33 + 41 + 30 = **247 passed**, unchanged |
 | `xtask doc-check` | exit 0 |
 | `xtask boundary` | **24 of 25 ok** |
@@ -1003,12 +1003,12 @@ baseline is pushed `463efca`.
 
 | gate | exact result |
 |---|---|
-| `rtk cargo build -p tui-next --all-targets` | exit 0; 12.518s; 1 warning |
-| `rtk cargo test -p tui-next --lib` | exit 0; 292 passed / 0 failed |
+| `rtk cargo build -p junie-tui --all-targets` | exit 0; 12.518s; 1 warning |
+| `rtk cargo test -p junie-tui --lib` | exit 0; 292 passed / 0 failed |
 | focused Select conformance | 21 passed / 0 failed |
 | focused Dialog conformance | 21 passed / 0 failed |
 | full conformance | 488 passed / 0 failed |
-| `rtk cargo test -p tui-next-testing --lib` | 5 passed / 0 failed; 1 ignored |
+| `rtk cargo test -p junie-tui-testing --lib` | 5 passed / 0 failed; 1 ignored |
 | `rtk cargo fmt --all -- --check` | exit 0 |
 
 The canonical `architecture::every_named_test_exists` check exited 101 only because
@@ -1077,8 +1077,8 @@ This continuation re-measured the current tree before relying on that record.
 
 ### Measured state
 
-- `rtk cargo build -p tui-next --all-targets`: exit 0.
-- `rtk cargo test -p tui-next -p tui-next-testing --all-targets --all-features`: exit 101.
+- `rtk cargo build -p junie-tui --all-targets`: exit 0.
+- `rtk cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features`: exit 101.
   The library portion passed 303 tests; architecture failed only
   `every_named_test_exists`, `conformance_covers_every_public_component`, and
   `no_deprecated_or_legacy_api_usage`.
@@ -1318,12 +1318,12 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   conformance **22/22**, and strict library Clippy pass. Per-file formatting and scoped diff checks
   pass. The coordinator owns the interrupted full-conformance/doc-check rerun; workspace fmt was
   blocked only by the separately owned `tests/render_components.rs:639` formatting diff.
-- Exact evidence after the correction: full `tui-next` library **604/604 passed** and full
+- Exact evidence after the correction: full `junie-tui` library **604/604 passed** and full
   conformance **914/914 passed**; focused
   Button **2/2**, TextInput **11/11**, List **2/2**, Tabs **4/4**, TextArea **9/9**; focused
   conformance mono cases pass for Button, List, and Tabs, and full component-region runs pass for
   Button/TextInput/Tabs/TextArea (**21 each**) plus the List-filtered set (**63**). `cargo check
-  -p tui-next --lib --tests` and strict `cargo clippy -p tui-next --lib --all-features -- -D
+  -p junie-tui --lib --tests` and strict `cargo clippy -p junie-tui --lib --all-features -- -D
   warnings` pass. No baseline was blessed or modified.
 - Form F11 correction now claims effective Enter before child dispatch only for a focused, visible,
   non-editing control that does not swallow typing; child intents remain replayable and submit wins
@@ -1339,7 +1339,7 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   editor. Real Runtime regressions prove Down moves completion without moving CodeEditor, Tab and
   Enter accept, Esc dismisses, ordinary text remains editor-owned, and owner-scoped KeyMap remap and
   removal are effective. Completion unit evidence is now **7/7 passed** and focused conformance is
-  **21/21 passed**. `cargo check -p tui-next --lib` and `cargo doc -p tui-next --no-deps` complete;
+  **21/21 passed**. `cargo check -p junie-tui --lib` and `cargo doc -p junie-tui --no-deps` complete;
   strict Clippy remains unresolved only outside Completion due concurrent `collection/empty.rs` API
   mismatches and `viewport.rs` unused variables. No baseline was blessed or modified.
 - Cross-cutting binding/theme/viewport correction: dynamic menu and dialog action chords now publish
@@ -1366,7 +1366,7 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   Diff conformance **21/21 each**; `frame_tablepro_query_editor_2k_lines` reports **0 allocations / 0
   bytes**, stable one-time dense highlighting, and a **0.99** 2,000-line/100-line ratio while carrying
   dense diagnostics and find matches; `diff_2k_cached_projection` reports **0 allocations / 0
-  bytes** across warm update plus draw. `cargo clippy -p tui-next --all-targets --all-features -- -D
+  bytes** across warm update plus draw. `cargo clippy -p junie-tui --all-targets --all-features -- -D
   warnings`, `cargo fmt --check`, and scoped `git diff --check` all exit 0.
 - Fresh independent review first rejected the competing document cursor request, then passed after
   the exclusive find-cursor gate and exact `Runtime::cursor()` regression were added. Final verdict:
@@ -1397,8 +1397,8 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   change an actual symbol cell rather than style alone. `Fixture::force(DISABLED)` now couples the
   real disabled prop, while forcing empty clears it; semantic selection comes only from controlled
   state/setup or the explicit Button/Radio fixture knob, never from forced flags. Exact evidence:
-  full conformance **913/913 passed** and `tui-next-testing` **14 passed / 2 ignored**. Strict
-  all-target `tui-next-testing` Clippy passed before a concurrent Viewport change; the final rerun
+  full conformance **913/913 passed** and `junie-tui-testing` **14 passed / 2 ignored**. Strict
+  all-target `junie-tui-testing` Clippy passed before a concurrent Viewport change; the final rerun
   reaches only the separately owned `viewport.rs:1188` `too_many_lines` finding. No baseline was
   blessed or modified; existing first-generation Slice-4F/4H visual baselines remain unresolved as
   recorded below.
@@ -1408,8 +1408,8 @@ and certify dormant Slice-4 packages in dependency order. No slice-completion cl
   four retained Dialog contracts. The exact current conformance run is **892/892 passed**.
 - Focused unit evidence is Menu 4, Help 3, Completion 2, FilterList 3, Picker 4, Form 25, Wizard 1,
   and PickerChain 1, all passed. Theme downgrade passed 15 tests; the exact Menu pressed/Help
-  focused recipe test passed. `cargo test -p tui-next --doc` passed 2 doctests and
-  `cargo check -p tui-next --examples` passed.
+  focused recipe test passed. `cargo test -p junie-tui --doc` passed 2 doctests and
+  `cargo check -p junie-tui --examples` passed.
 - `cargo fmt --all -- --check` and strict library Clippy passed. Strict all-target Clippy is not yet
   green: the remaining finding is the separately owned picker performance fixture's
   `tests/perf_collections.rs` `stats`/`state` `similar_names` collision.
@@ -1494,7 +1494,7 @@ historical evidence; where it conflicts with this checkpoint, this checkpoint go
 - Slice 5, Slice 6, and Slice 7 remain unstarted.
 - There is no `apps/` directory.
 - The repository root still owns three binaries.
-- The `tui-next` crate name remains temporary. It stays temporary until an accepted ownership
+- The `junie-tui` crate name remains temporary. It stays temporary until an accepted ownership
   transition is adjudicated and recorded; renaming is not authorized by this checkpoint.
 
 ### Active read-only audits (fresh Opus 5 / high)
@@ -1618,7 +1618,7 @@ Recorded in `COMPONENT_ARCHITECTURE.md`, per the rule that every accepted decisi
 - `docs/visual-changes.md` step 4: the stale "`xtask bless-guard` … **is not implemented yet**"
   claim replaced with the measured state, including its fail-closed behaviour. No other ledger
   entry, key or classification was touched.
-- `Cargo.toml` and `crates/tui/Cargo.toml`: the comments said the `tui-next` → `junie-tui` rename
+- `Cargo.toml` and `crates/tui/Cargo.toml`: the comments said the `junie-tui` → `junie-tui` rename
   happens "at the start of Slice 5". That is the plan **§46.1 proved unresolvable and §47.1
   struck**. Corrected to the accepted timing — the name is kept through Slices 5, 6 and 7 and
   renamed in one scripted commit **between Slice 7 and Slice 8**. Comment text only; no manifest

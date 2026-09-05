@@ -9,8 +9,8 @@
 # §16.1 now exists; everything below belongs to a later work package.
 #
 # §16.5 is included in the scan by §47.4. The historical blind spot is retained in
-# §47 as evidence; it no longer makes a missing boundary test invisible. The three
-# `apps/` guards now exist, and §73 built `props_are_built_once`, scoped to
+# §47 as evidence; it no longer makes a missing boundary test invisible. The five
+# app/architecture guards now exist, and §73 built `props_are_built_once`, scoped to
 # `apps/**/src`, `crates/tui/examples/**` and `crates/tui/src/components/**` — the
 # composite components build child props across both phases exactly like a screen.
 
@@ -18,28 +18,13 @@
 every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.5 records the rustdoc-json resolver as a Slice-8 upgrade
 
 # ── Slices 5–7 application integration tests (`apps/**/tests`) ──
-author_component_page_participates_in_focus_and_hover  # Slices 5-7 — apps/**
 complete_flow_keyboard_first  # Slices 5-7 — apps/**
-complete_navigation_visits_every_page_and_every_state  # Slices 5-7 — apps/**
-connection_form_focuses_the_first_invalid_field  # Slices 5-7 — apps/**
-connection_form_keyboard_and_mouse_reach_every_field  # Slices 5-7 — apps/**
-connection_password_is_masked_and_absent_from_the_frame  # Slices 5-7 — apps/**
-custom_theme_injection_repaints_every_page  # Slices 5-7 — apps/**
-focus_is_restored_after_every_overlay_closes  # Slices 5-7 — apps/**
 form_dialog_secret_never_reaches_the_screen_as_a_string  # Slices 5-7 — apps/**
 form_dialog_toggles_visibility_and_keeps_drafts  # Slices 5-7 — apps/**
-grid_adapter_keeps_every_pending_change_capability  # Slices 5-7 — apps/**
-keyboard_flow_full_journey  # Slices 5-7 — apps/**
-local_override_page_shows_three_distinct_buttons  # Slices 5-7 — apps/**
-mouse_flow_full_journey  # Slices 5-7 — apps/**
-nested_overlay_picker_inside_dialog  # Slices 5-7 — apps/**
-resize_across_every_supported_size  # Slices 5-7 — apps/**
-result_grid_sorts_locally_and_refuses_edits  # Slices 5-7 — apps/**
-view_grid_is_read_only_with_a_reason  # Slices 5-7 — apps/**
 
 # ── §16.6 benchmarks whose subject does not exist yet ──
-frame_tablepro_connection_form_120x40  # Slices 4-7 — tests/perf.rs
+capsule_pane_clone_4x2000  # Slice 7 — deleted by the no-viewport-clone architecture; baseline line absence remains enforced
 
 # ── Slice 4 component state machines (`components/*.rs`, work packages 4A–4G) ──
-range_selection_uses_the_anchor  # Slice 4 — components/*.rs
-select_all_selects_only_enabled_items  # Slice 4 — components/*.rs
+range_selection_uses_the_anchor  # Blocked here: the state-machine implementation/test belongs in components/*.rs, outside this task's write boundary (Slice 4)
+select_all_selects_only_enabled_items  # Blocked here: the state-machine implementation/test belongs in components/*.rs, outside this task's write boundary (Slice 4)

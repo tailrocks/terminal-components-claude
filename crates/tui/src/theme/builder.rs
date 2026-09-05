@@ -310,7 +310,7 @@ impl ThemeBuilder {
     /// theme is actually at [`ColorLevel::Mono`](super::ColorLevel::Mono).
     ///
     /// ```
-    /// use tui_next::{
+    /// use junie_tui::{
     ///     ColorLevel, Family, GlyphRole, Part, Slot, StateFlags, StylePatch, Surface, Theme,
     ///     Variant,
     /// };

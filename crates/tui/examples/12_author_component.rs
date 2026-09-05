@@ -1,4 +1,4 @@
-//! A downstream component using only `tui_next::author`
+//! A downstream component using only `junie_tui::author`
 //! (`COMPONENT_ARCHITECTURE.md` §17 example 12, Scenario G).
 //!
 //! Theme resolution, focus, hover, press, dispatch, hit testing, capture,
@@ -11,7 +11,7 @@
     reason = "verbatim from COMPONENT_ARCHITECTURE.md §17 example 12"
 )]
 
-use tui_next::author::{
+use junie_tui::author::{
     ActionKey, Binding, BindingState, Bindings, Chord, Cx, Family, Focusability, FrameRead,
     GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, PartStyle, Phase, Rect, Resolved,
     Response, Slot, StateFlags, StylePatch, Ui, Variant,
@@ -276,8 +276,8 @@ fn main() {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tui_next::author::{ColorLevel, ReferenceState, ReferenceTarget, Role, Theme};
-    use tui_next_testing::Scene;
+    use junie_tui::author::{ColorLevel, ReferenceState, ReferenceTarget, Role, Theme};
+    use junie_tui_testing::Scene;
 
     const SEG: Id = Id::root("example.segmented");
     const LABELS: &[&str] = &["One", "Two", "Three"];

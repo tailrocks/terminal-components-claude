@@ -8,11 +8,11 @@
 pub mod driver;
 
 use bitflags::bitflags;
-use ratatui_core::layout::Rect;
-use tui_next::{
+use junie_tui::{
     ActionKey, Binding, BindingState, Chord, ColorLevel, Cx, Family, Id, ItemKey, Part, PartRef,
     Response, StateFlags, Status, StylePatch, Theme, Ui,
 };
+use ratatui_core::layout::Rect;
 
 bitflags! {
     /// What a component can do, selecting the capability-gated cases.
@@ -427,7 +427,7 @@ macro_rules! conformance_suite {
 #[cfg(test)]
 mod tests {
     use super::{Caps, Conformance, Fixture, PointerGesture, StateFlags, mono_states_required_by};
-    use tui_next::{Cx, Family, Id, Part, Rect, Response, Ui};
+    use junie_tui::{Cx, Family, Id, Part, Rect, Response, Ui};
 
     const ROOT: Id = Id::root("conformance.framework.composite");
     const CONTROL: Id = Id::root("conformance.framework.composite.control");

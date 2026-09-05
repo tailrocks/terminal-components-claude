@@ -1,6 +1,6 @@
 [package]
-name = "tui-next-testing"
-description = "Test harness, digest scene, conformance driver and perf allocator for tui-next"
+name = "junie-tui-testing"
+description = "Test harness, digest scene, conformance driver and perf allocator for junie-tui"
 publish = false
 version.workspace = true
 edition.workspace = true
@@ -9,13 +9,13 @@ license.workspace = true
 repository.workspace = true
 
 [lib]
-name = "tui_next_testing"
+name = "junie_tui_testing"
 path = "src/lib.rs"
 
 [lints]
 workspace = true
 
 [dependencies]
-tui-next = { workspace = true, features = ["testing"] }
+junie-tui = { workspace = true, features = ["testing"] }
 ratatui-core.workspace = true
 bitflags.workspace = true

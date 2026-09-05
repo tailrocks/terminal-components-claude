@@ -16,13 +16,13 @@ use std::cell::Cell;
 use std::fmt::Write as _;
 use std::hint::black_box;
 
-use tui_next::{
+use junie_tui::{
     AsItem, CellRef, ColorLevel, Column, ColumnKey, Grid, GridModel, GridState, Id, Item,
     ItemKey as StableItemKey, Picker, PickerState, Rect, Registry, StepState, Steps, StepsState,
     TextViewport, Theme, Tree, TreeNode, TreeState, ViewportLine, ViewportState, ViewportWorkProbe,
 };
-use tui_next_testing::Scene;
-use tui_next_testing::perf::{
+use junie_tui_testing::Scene;
+use junie_tui_testing::perf::{
     Counting, Stats, bench, big, check_ratio, env_flag, iters, lock, measure_once, report,
     unicode_line_inline,
 };
@@ -418,7 +418,7 @@ fn bench_tree_render(nodes: &[PerfTreeNode]) -> (Stats, usize, usize, usize) {
         }
         .keyed(StableItemKey::num(item.key))
     };
-    let row = |_: &PerfTreeNode, _: &mut tui_next::RowUi<'_>| {
+    let row = |_: &PerfTreeNode, _: &mut junie_tui::RowUi<'_>| {
         painted.set(painted.get().saturating_add(1));
     };
     let tree = Tree::new(TREE_ID).node(&node).row(row);
@@ -512,7 +512,7 @@ fn bench_steps_render(n: usize) -> (Stats, usize, usize, usize) {
         state_accesses.set(state_accesses.get().saturating_add(1));
         item.state
     };
-    let row = |_: &PerfStep, _: &mut tui_next::RowUi<'_>| {
+    let row = |_: &PerfStep, _: &mut junie_tui::RowUi<'_>| {
         painted.set(painted.get().saturating_add(1));
     };
     let steps = Steps::new(STEPS_ID)

@@ -10,7 +10,7 @@ use ratatui_core::style::Style;
 
 use super::form::InheritedFormState;
 use super::scroll_region::ScrollRegion;
-use super::{Acc, Overrides, SlotFn, cell_at, first_row};
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, EmptyState, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
@@ -303,7 +303,7 @@ pub struct Select<'a, T, K = ByIndex, R = DefaultRow> {
     /// (§45.7 obligation 2).
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
-    ov: Overrides<'a>,
+    ov: PartStyle<'a>,
     _t: PhantomData<fn() -> T>,
 }
 
@@ -333,7 +333,7 @@ impl<T> Select<'_, T, ByIndex, DefaultRow> {
             disabled: false,
             patch: None,
             parts: &[],
-            ov: Overrides::new(),
+            ov: PartStyle::new(),
             _t: PhantomData,
         }
     }
@@ -483,7 +483,7 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.patch = Some(p);
-        self.ov = self.ov.patch(p);
+        self.ov = self.ov.global(p);
         self
     }
 
@@ -491,7 +491,7 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
-        self.ov = self.ov.patch_part(ps);
+        self.ov = self.ov.part(ps);
         self
     }
 
@@ -816,7 +816,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
-        let mut live = Overrides::flags(ui.state(self.id), derived);
+        let mut live = PartStyle::flags(ui.state(self.id), derived);
         if st.value.is_none() {
             live = live.difference(StateFlags::SELECTED);
         }
