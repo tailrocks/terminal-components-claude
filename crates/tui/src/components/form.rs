@@ -1,6 +1,7 @@
 //! Declared-field form composition (`COMPONENT_ARCHITECTURE.md` §15.1, §67).
 
 use core::fmt;
+use std::borrow::Cow;
 
 use ratatui_core::layout::Rect;
 
@@ -356,6 +357,11 @@ fn field_is_secret(field: &FieldSpec<'_>) -> bool {
     }
 }
 
+static FORM_INVALID_VALUE: FieldError = FieldError {
+    message: Cow::Borrowed("Invalid value"),
+    code: None,
+};
+
 impl fmt::Debug for SlotValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -476,7 +482,7 @@ impl Clone for FormState {
                 .errors
                 .iter()
                 .map(|(id, error)| {
-                    if self.slot_is_sensitive(*id) {
+                    if self.error_requires_redaction(*id) {
                         (*id, ErrorState::sensitive())
                     } else {
                         (*id, error.clone())
@@ -497,7 +503,8 @@ impl PartialEq for FormState {
             && self.errors.iter().zip(&other.errors).all(
                 |((id, error), (other_id, other_error))| {
                     id == other_id
-                        && (self.slot_is_sensitive(*id)
+                        && (self.error_requires_redaction(*id)
+                            || other.error_requires_redaction(*other_id)
                             || other.slot_is_sensitive(*other_id)
                             || error.is_sensitive()
                             || other_error.is_sensitive()
@@ -539,7 +546,13 @@ impl FormState {
         self.errors
             .iter()
             .find(|(key, _)| *key == id)
-            .map(|(_, e)| e.as_ref())
+            .map(|(_, error)| {
+                if self.error_requires_redaction(id) {
+                    &FORM_INVALID_VALUE
+                } else {
+                    error.as_ref()
+                }
+            })
     }
 
     /// Set or clear a local validation error.
@@ -593,6 +606,30 @@ impl FormState {
         self.slot_sensitivity(id) == Some(true)
     }
 
+    fn slot_is_textual(&self, id: Id) -> bool {
+        self.slots
+            .iter()
+            .find(|slot| slot.id == id)
+            .is_some_and(|slot| matches!(slot.shape, FieldShape::Text | FieldShape::Area))
+    }
+
+    fn error_requires_redaction(&self, id: Id) -> bool {
+        self.slot_sensitivity(id).is_none() || self.slot_is_textual(id)
+    }
+
+    fn error_message(&self, id: Id, sensitive: bool) -> Option<&str> {
+        self.errors
+            .iter()
+            .find(|(key, _)| *key == id)
+            .map(|(_, error)| {
+                if sensitive {
+                    "Invalid value"
+                } else {
+                    error.as_ref().message.as_ref()
+                }
+            })
+    }
+
     fn redact_error(&mut self, id: Id) {
         if let Some((_, current)) = self.errors.iter_mut().find(|(key, _)| *key == id) {
             let old = core::mem::replace(current, ErrorState::sensitive());
@@ -601,14 +638,19 @@ impl FormState {
     }
 
     fn reconcile_error(&mut self, id: Id, sensitive: bool) {
-        if let Some((_, current)) = self.errors.iter_mut().find(|(key, _)| *key == id) {
-            let old = core::mem::replace(current, ErrorState::sensitive());
-            *current = if sensitive {
-                old.redact()
-            } else {
-                old.resolve_plain()
-            };
+        let Some(index) = self.errors.iter().position(|(key, _)| *key == id) else {
+            return;
+        };
+        let (id, old) = self.errors.remove(index);
+        if !sensitive && old.is_sensitive() {
+            return;
         }
+        let error = if sensitive {
+            old.redact()
+        } else {
+            old.resolve_plain()
+        };
+        self.errors.insert(index, (id, error));
     }
 
     fn clear_error(&mut self, id: Id) {
@@ -1280,12 +1322,12 @@ impl<'a> Form<'a> {
         field: &FieldSpec<'_>,
     ) -> Option<&'d str> {
         let id = field.id;
-        if field_is_secret(field) || matches!(data.value(id), FieldRef::Secret(_)) {
-            return (st.error(id).is_some() || data.error(id).is_some()).then_some("Invalid value");
+        let sensitive = field_is_secret(field) || matches!(data.value(id), FieldRef::Secret(_));
+        if sensitive {
+            return (st.error_message(id, true).is_some() || data.error(id).is_some())
+                .then_some("Invalid value");
         }
-        st.error(id)
-            .map(|error| error.message.as_ref())
-            .or_else(|| data.error(id))
+        st.error_message(id, false).or_else(|| data.error(id))
     }
 
     fn safe_error<D: FormData + ?Sized>(
@@ -2559,6 +2601,13 @@ mod tests {
         plain.reconcile_fields(&fields_with_secret_policy(false));
         assert_eq!(
             plain.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        let mut plain_data = Data::default();
+        plain_data.secret_mode = false;
+        let plain_fields = fields_with_secret_policy(false);
+        assert_eq!(
+            Form::field_error(&plain, &plain_data, &plain_fields[4]),
             Some(DETAIL)
         );
 
@@ -2628,6 +2677,55 @@ mod tests {
     }
 
     #[test]
+    fn resolved_plain_dynamic_text_and_area_errors_stay_generic_after_secret_transition() {
+        const DETAIL: &str = "resolved dynamic secret validation detail";
+
+        for area in [false, true] {
+            let kind = if area {
+                FieldKind::Area(TextArea::new(SECRET, 3))
+            } else {
+                FieldKind::Text(TextInput::new(SECRET))
+            };
+            let fields = [FieldSpec::new(SECRET, "Secret", kind)];
+            let mut data = Data::default();
+            data.secret_mode = false;
+            let mut state = FormState::default();
+            state.reconcile_fields(&fields);
+            state.set_error_with_sensitivity(SECRET, Some(FieldError::new(DETAIL)), Some(false));
+            assert_eq!(Form::field_error(&state, &data, &fields[0]), Some(DETAIL));
+
+            data.secret_mode = true;
+            assert!(matches!(data.value(SECRET), FieldRef::Secret(_)));
+            assert_eq!(
+                Form::field_error(&state, &data, &fields[0]),
+                Some("Invalid value")
+            );
+
+            assert_eq!(
+                state.error(SECRET).map(|error| error.message.as_ref()),
+                Some("Invalid value")
+            );
+            assert!(!format!("{state:?}").contains(DETAIL));
+            let copy = state.clone();
+            assert_eq!(
+                copy.error(SECRET).map(|error| error.message.as_ref()),
+                Some("Invalid value")
+            );
+            assert!(!format!("{copy:?}").contains(DETAIL));
+
+            {
+                let value = data.value_mut(SECRET);
+                assert!(matches!(&value, FieldMut::Secret(_)));
+                let _ = Form::prepare_slot(&mut state, 0, &fields[0], &value);
+            }
+            assert_eq!(
+                state.error(SECRET).map(|error| error.message.as_ref()),
+                Some("Invalid value")
+            );
+        }
+    }
+
+    #[test]
     fn secret_validator_error_is_generic_before_form_state_retention() {
         let mut data = Data::default();
         data.secret.set("swordfish");
@@ -2656,8 +2754,10 @@ mod tests {
         );
 
         state.reconcile_fields(&plain_fields);
+        let mut data = Data::default();
+        data.secret_mode = false;
         assert_eq!(
-            state.error(SECRET).map(|error| error.message.as_ref()),
+            Form::field_error(&state, &data, &plain_fields[4]),
             Some("swordfish")
         );
         state.reconcile_fields(&secret_fields);
@@ -2666,6 +2766,9 @@ mod tests {
             Some("Invalid value")
         );
         assert!(!format!("{state:?}").contains("swordfish"));
+
+        state.reconcile_fields(&plain_fields);
+        assert!(state.error(SECRET).is_none());
     }
 
     #[test]
@@ -2696,12 +2799,9 @@ mod tests {
         assert!(slot.input.is_sensitive());
         assert_eq!(
             copy.error(NAME).map(|error| error.message.as_ref()),
-            Some("name required")
+            Some("Invalid value")
         );
-        assert_eq!(
-            copy.error(NAME).and_then(|error| error.code),
-            Some("required")
-        );
+        assert_eq!(copy.error(NAME).and_then(|error| error.code), None);
         assert_eq!(
             copy.error(SECRET).map(|error| error.message.as_ref()),
             Some("Invalid value")
