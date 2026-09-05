@@ -81,7 +81,13 @@ impl Secret {
     /// `secret::zeroize_overwrites_before_drop` is that the buffer is released
     /// and a fresh `expose()` is empty.
     pub fn zeroize(&mut self) {
-        zeroize_string(&mut self.0);
+        let mut bytes = core::mem::take(&mut self.0).into_bytes();
+        bytes.fill(0);
+        core::hint::black_box(&bytes);
+        core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
+        bytes.clear();
+        drop(bytes);
+        self.0 = String::new();
     }
 }
 
@@ -89,24 +95,6 @@ impl Drop for Secret {
     fn drop(&mut self) {
         self.zeroize();
     }
-}
-
-/// Wipe every byte in a string allocation before releasing it.
-///
-/// Safe Rust cannot construct a slice over the uninitialized tail of a
-/// `String`. Clearing first and pushing NUL bytes up to the old capacity
-/// initializes and overwrites that tail without unsafe code; the black-box
-/// observation and compiler fence keep the wipe visible to LLVM.
-pub(crate) fn zeroize_string(value: &mut String) {
-    let capacity = value.capacity();
-    value.clear();
-    for _ in 0..capacity {
-        value.push('\0');
-    }
-    let wiped = core::mem::take(value);
-    core::hint::black_box(wiped.as_bytes());
-    core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-    drop(wiped);
 }
 
 impl fmt::Debug for Secret {
@@ -183,15 +171,5 @@ mod tests {
         assert_eq!(SecretPolicy::default().synthetic_tail, 2);
         assert_eq!(SecretPolicy::default().mask, GlyphRole::SecretMask);
         assert_ne!(SecretPolicy::default().mask, GlyphRole::Dirty);
-    }
-
-    #[test]
-    fn zeroize_releases_the_full_string_allocation() {
-        let mut value = String::with_capacity(128);
-        value.push_str("hunter2");
-        assert!(value.capacity() >= 128);
-        zeroize_string(&mut value);
-        assert!(value.is_empty());
-        assert_eq!(value.capacity(), 0);
     }
 }

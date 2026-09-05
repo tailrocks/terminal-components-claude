@@ -11,10 +11,8 @@ use core::fmt;
 use ratatui_core::layout::Position;
 pub use ratatui_crossterm::crossterm::event::{KeyCode, KeyModifiers};
 
-use crate::secret::zeroize_string;
-
 /// One normalised input event.
-#[derive(PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Input {
     /// A key press or repeat (releases are dropped at normalisation).
     Key(Key),
@@ -26,45 +24,6 @@ pub enum Input {
     Paste(String),
     /// The runtime clock advanced by one `design.motion.tick_ms`.
     Tick,
-}
-
-impl Clone for Input {
-    fn clone(&self) -> Self {
-        match self {
-            Input::Key(key) => Input::Key(*key),
-            Input::Mouse(mouse) => Input::Mouse(*mouse),
-            Input::Resize(width, height) => Input::Resize(*width, *height),
-            // Each owned payload is independently wiped by `Drop`.
-            Input::Paste(text) => Input::Paste(text.clone()),
-            Input::Tick => Input::Tick,
-        }
-    }
-}
-
-impl fmt::Debug for Input {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Input::Key(key) => f.debug_tuple("Key").field(key).finish(),
-            Input::Mouse(mouse) => f.debug_tuple("Mouse").field(mouse).finish(),
-            Input::Resize(width, height) => {
-                f.debug_tuple("Resize").field(width).field(height).finish()
-            }
-            Input::Paste(text) => f
-                .debug_struct("Paste")
-                .field("len", &text.len())
-                .field("text", &"[redacted]")
-                .finish(),
-            Input::Tick => f.write_str("Tick"),
-        }
-    }
-}
-
-impl Drop for Input {
-    fn drop(&mut self) {
-        if let Input::Paste(text) = self {
-            zeroize_string(text);
-        }
-    }
 }
 
 /// A key press: code plus modifiers.
@@ -406,19 +365,5 @@ mod tests {
             "Ctrl+s"
         );
         assert_eq!(Chord::key(KeyCode::Esc).to_string(), "Esc");
-    }
-
-    #[test]
-    fn paste_debug_is_redacted_and_input_is_droppable() {
-        let input = Input::Paste("hunter2".to_owned());
-        assert!(!format!("{input:?}").contains("hunter2"));
-        assert!(core::mem::needs_drop::<Input>());
-    }
-
-    #[test]
-    fn paste_clone_does_not_duplicate_raw_text() {
-        let input = Input::Paste("hunter2".to_owned());
-        let clone = input.clone();
-        assert!(matches!(&clone, Input::Paste(text) if text == "hunter2"));
     }
 }

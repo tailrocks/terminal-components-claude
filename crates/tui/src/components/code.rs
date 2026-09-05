@@ -502,7 +502,7 @@ struct FindState {
 }
 
 /// Durable state of a [`CodeEditor`]. `Debug` redacts document and find text.
-#[derive(PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct CodeEditorState {
     editor: TextEditorCore,
     editing: bool,
@@ -512,21 +512,6 @@ pub struct CodeEditorState {
     diagnostics: Vec<CodeDiagnostic>,
     has_error: bool,
     running: Option<Range<usize>>,
-}
-
-impl Clone for CodeEditorState {
-    fn clone(&self) -> Self {
-        CodeEditorState {
-            editor: self.editor.clone_plain(),
-            editing: self.editing,
-            scroll: self.scroll,
-            edit_generation: self.edit_generation,
-            find: self.find.clone(),
-            diagnostics: self.diagnostics.clone(),
-            has_error: self.has_error,
-            running: self.running.clone(),
-        }
-    }
 }
 
 impl Default for CodeEditorState {

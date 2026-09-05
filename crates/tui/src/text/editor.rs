@@ -115,10 +115,6 @@ impl fmt::Debug for TextEditorCore {
 }
 
 impl TextEditorCore {
-    pub(crate) const fn is_sensitive_storage(&self) -> bool {
-        self.buf.is_sensitive_storage()
-    }
-
     /// A single-line editor.
     pub fn single(text: &str) -> Self {
         TextEditorCore {
@@ -127,24 +123,10 @@ impl TextEditorCore {
         }
     }
 
-    pub(crate) fn secret_single(text: &str) -> Self {
-        TextEditorCore {
-            buf: TextBuffer::secret_single(text),
-            hscroll: 0,
-        }
-    }
-
     /// A multi-line editor.
     pub fn multi(text: &str) -> Self {
         TextEditorCore {
             buf: TextBuffer::multi(text),
-            hscroll: 0,
-        }
-    }
-
-    pub(crate) fn secret_multi(text: &str) -> Self {
-        TextEditorCore {
-            buf: TextBuffer::secret_multi(text),
             hscroll: 0,
         }
     }
@@ -206,14 +188,14 @@ impl TextEditorCore {
         self.buf.line_count()
     }
 
-    /// Place the cursor at `(line, col)`.
-    pub fn set_cursor_line_col(&mut self, line: usize, col: usize) {
-        self.buf.set_cursor_line_col(line, col);
-    }
-
     /// Byte offset of `(line, display column)`.
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         self.buf.offset_at(line, col)
+    }
+
+    /// Place the cursor at `(line, col)`.
+    pub fn set_cursor_line_col(&mut self, line: usize, col: usize) {
+        self.buf.set_cursor_line_col(line, col);
     }
 
     /// Select `a..b` (either order), cursor at `b`.
@@ -225,25 +207,6 @@ impl TextEditorCore {
     pub fn zeroize(&mut self) {
         self.buf.zeroize();
         self.hscroll = 0;
-    }
-
-    pub(crate) fn clear_draft(&mut self) {
-        self.buf.clear_draft();
-        self.hscroll = 0;
-    }
-
-    pub(crate) fn clone_plain(&self) -> Self {
-        TextEditorCore {
-            buf: self.buf.clone_plain(),
-            hscroll: self.hscroll,
-        }
-    }
-
-    pub(crate) fn redacted_clone(&self) -> Self {
-        TextEditorCore {
-            buf: self.buf.redacted_clone(),
-            hscroll: self.hscroll,
-        }
     }
 
     /// The only mutation entry point.
