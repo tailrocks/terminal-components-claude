@@ -20,7 +20,7 @@ pub(crate) enum Engine {
 }
 
 impl Engine {
-    #[allow(
+    #[expect(
         dead_code,
         reason = "engine labels remain available to the private connection adapter"
     )]
@@ -31,7 +31,7 @@ impl Engine {
             Engine::Sqlite => "SQLite",
         }
     }
-    #[allow(
+    #[expect(
         dead_code,
         reason = "engine labels remain available to the private connection adapter"
     )]
@@ -72,7 +72,7 @@ impl SafeMode {
         SafeMode::ReadOnly,
     ];
 
-    #[allow(
+    #[expect(
         dead_code,
         reason = "safe-mode display helpers remain available to the private connection adapter"
     )]
@@ -88,7 +88,7 @@ impl SafeMode {
     }
 
     /// Short token for the identity strip.
-    #[allow(
+    #[expect(
         dead_code,
         reason = "safe-mode display helpers remain available to the private connection adapter"
     )]
@@ -103,7 +103,7 @@ impl SafeMode {
         }
     }
 
-    #[allow(
+    #[expect(
         dead_code,
         reason = "safe-mode display helpers remain available to the private connection adapter"
     )]
@@ -429,7 +429,7 @@ fn idx(name: &str, cols: &[&str], unique: bool) -> Index {
 #[derive(Debug, Clone)]
 pub struct Catalog {
     pub(crate) database: String,
-    #[allow(
+    #[expect(
         dead_code,
         reason = "the catalog retains schema names for fixture completeness"
     )]
@@ -776,7 +776,7 @@ impl Catalog {
         })
     }
 
-    #[allow(
+    #[expect(
         dead_code,
         reason = "schema browsing remains available to the private catalog adapter"
     )]

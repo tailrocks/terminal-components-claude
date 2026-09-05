@@ -96,7 +96,7 @@ impl FilterOp {
         )
     }
     /// Put type-appropriate options first, retaining the complete menu.
-    #[allow(
+    #[expect(
         dead_code,
         reason = "typed operator ordering remains available to the private filter adapter"
     )]
@@ -249,7 +249,7 @@ impl Filter {
 
 /// Controlled filter form state.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(
+#[expect(
     dead_code,
     reason = "draft state remains available to the private filter adapter"
 )]
@@ -267,7 +267,7 @@ pub(crate) struct FilterDraft {
     /// Whether the editor is open.
     pub(crate) open: bool,
 }
-#[allow(
+#[expect(
     dead_code,
     reason = "draft state remains available to the private filter adapter"
 )]

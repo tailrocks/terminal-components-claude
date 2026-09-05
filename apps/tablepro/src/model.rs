@@ -22,7 +22,7 @@ pub(crate) enum HistorySource {
 
 impl HistorySource {
     /// Human-readable source label.
-    #[allow(
+    #[expect(
         dead_code,
         reason = "history labels remain available to the private history adapter"
     )]
@@ -87,7 +87,7 @@ impl HistoryEntry {
         }
     }
     /// Stable duration label.
-    #[allow(
+    #[expect(
         dead_code,
         reason = "history duration remains available to the private history adapter"
     )]
@@ -371,7 +371,7 @@ pub fn complete(source: &str, cursor: usize, catalog: &Catalog) -> Vec<Completio
 }
 
 /// Whether completion should open automatically at this cursor.
-#[allow(
+#[expect(
     dead_code,
     reason = "completion trigger remains available to the private editor adapter"
 )]
@@ -474,7 +474,7 @@ impl SwitcherIndex {
 }
 
 /// Return the columns of a table for filter/editor construction.
-#[allow(
+#[expect(
     dead_code,
     reason = "column projection remains available to the private editor adapter"
 )]
@@ -487,7 +487,7 @@ pub(crate) fn table_columns(table: &Table) -> Vec<(String, ColType)> {
 }
 
 /// Explicit app-level wrapper around the SQL tokenizer for tests and editor UI.
-#[allow(
+#[expect(
     dead_code,
     reason = "token projection remains available to the private editor adapter"
 )]

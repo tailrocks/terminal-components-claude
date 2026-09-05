@@ -6,7 +6,7 @@ use crate::db::{ColType, Table};
 
 /// Column metadata used by table grids and filter forms.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(
+#[expect(
     dead_code,
     reason = "column metadata remains available to the private grid adapter"
 )]
@@ -27,7 +27,7 @@ pub(crate) struct ColumnInfo {
     pub(crate) enum_values: Vec<&'static str>,
 }
 
-#[allow(
+#[expect(
     dead_code,
     reason = "column metadata remains available to the private grid adapter"
 )]
@@ -47,7 +47,7 @@ impl ColumnInfo {
 }
 
 /// Derive all metadata needed by a table editor.
-#[allow(
+#[expect(
     dead_code,
     reason = "column metadata remains available to the private grid adapter"
 )]
@@ -65,7 +65,7 @@ pub(crate) fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
 }
 
 /// Compact pending-change marker for the status bar.
-#[allow(
+#[expect(
     dead_code,
     reason = "pending marker remains available to the private grid adapter"
 )]

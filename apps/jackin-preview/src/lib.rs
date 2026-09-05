@@ -19,33 +19,33 @@
 )]
 
 mod app;
-#[allow(
+#[expect(
     dead_code,
     reason = "the private arbiter retains deterministic lifecycle branches for fixture coverage"
 )]
 mod arbiter;
-#[allow(
+#[expect(
     dead_code,
     reason = "the private clock retains deterministic formatting helpers for fixture coverage"
 )]
 mod clock;
-#[allow(
+#[expect(
     dead_code,
     reason = "private domain fixtures cover deterministic product states not on the shell path"
 )]
 mod domain;
-#[allow(
+#[expect(
     dead_code,
     reason = "private atmosphere helpers cover deterministic capture states beyond the shell path"
 )]
 mod rain;
 mod scenario;
-#[allow(
+#[expect(
     dead_code,
     reason = "private screen adapters retain deterministic flows for later shell composition"
 )]
 mod screens;
-#[allow(
+#[expect(
     dead_code,
     reason = "private simulators retain deterministic provider and terminal fixture branches"
 )]
