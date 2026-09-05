@@ -19,6 +19,7 @@ from typing import Any, NoReturn
 
 
 SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 
 
 def now() -> str:
@@ -29,10 +30,21 @@ def fail(message: str) -> NoReturn:
     raise SystemExit(f"capture provenance: {message}")
 
 
-def file_info(raw_path: str) -> dict[str, Any]:
+def provenance_path(raw_path: str) -> str:
+    """Return a stable workspace-relative path for published evidence."""
+    path = Path(raw_path)
+    if not path.is_absolute():
+        return raw_path
+    try:
+        return path.relative_to(WORKSPACE_ROOT).as_posix()
+    except ValueError:
+        return raw_path
+
+
+def file_info(raw_path: str, *, display_path: str | None = None) -> dict[str, Any]:
     """Describe a file without following a symlink at the requested path."""
     path = Path(raw_path)
-    info: dict[str, Any] = {"path": raw_path}
+    info: dict[str, Any] = {"path": raw_path if display_path is None else display_path}
     try:
         file_stat = path.lstat()
     except FileNotFoundError:
@@ -935,7 +947,7 @@ def metadata_record(metadata: dict[str, Any], args: argparse.Namespace) -> dict[
         key, separator, path = raw.partition("=")
         if not separator or key not in {"ansi", "cursor", "txt", "html", "png"}:
             fail(f"invalid artifact entry: {raw!r}")
-        artifacts[key] = file_info(path)
+        artifacts[key] = file_info(path, display_path=provenance_path(path))
     if set(artifacts) != {"ansi", "cursor", "txt", "html", "png"}:
         fail("all five capture artifacts are required")
 
@@ -969,7 +981,7 @@ def metadata_record(metadata: dict[str, Any], args: argparse.Namespace) -> dict[
         "exit_observed": args.exit_status.lstrip("-").isdigit(),
         "requested_dimensions": metadata.get("requested_dimensions"),
         "dimensions": {"columns": args.columns, "rows": args.rows},
-        "stderr": file_info(args.stderr),
+        "stderr": file_info(args.stderr, display_path=provenance_path(args.stderr)),
         "artifacts": artifacts,
     }
     return record
@@ -1003,7 +1015,9 @@ def command_finalize(args: argparse.Namespace) -> None:
         metadata["exit_observed"] = isinstance(parsed, int)
         metadata["termination"] = "natural_exit" if isinstance(parsed, int) else "capture_stop"
         metadata["finalized_at"] = now()
-        metadata["stderr_info"] = file_info(args.stderr)
+        metadata["stderr_info"] = file_info(
+            args.stderr, display_path=provenance_path(args.stderr)
+        )
         write_json_at(metadata_directory, metadata_path.name, metadata_path, metadata)
     finally:
         os.close(metadata_directory)
@@ -1021,7 +1035,9 @@ def command_finalize(args: argparse.Namespace) -> None:
             record["exit_observed"] = isinstance(parsed, int)
             record["termination"] = "natural_exit" if isinstance(parsed, int) else "capture_stop"
             record["finalized_at"] = now()
-            record["stderr"] = file_info(args.stderr)
+            record["stderr"] = file_info(
+                args.stderr, display_path=provenance_path(args.stderr)
+            )
             changed.append(record)
         return changed
 
