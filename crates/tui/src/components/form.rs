@@ -544,7 +544,18 @@ impl FormState {
 
     /// Set or clear a local validation error.
     pub fn set_error(&mut self, id: Id, error: Option<FieldError>) {
-        let error = error.map(|error| match self.slot_sensitivity(id) {
+        // A cached plain slot may be stale for owner-driven dynamic fields.
+        let sensitivity = self.slot_sensitivity(id).filter(|sensitive| *sensitive);
+        self.set_error_with_sensitivity(id, error, sensitivity);
+    }
+
+    fn set_error_with_sensitivity(
+        &mut self,
+        id: Id,
+        error: Option<FieldError>,
+        sensitivity: Option<bool>,
+    ) {
+        let error = error.map(|error| match sensitivity {
             Some(true) => {
                 discard_error(error);
                 ErrorState::sensitive()
@@ -1123,7 +1134,9 @@ impl<'a> Form<'a> {
                 continue;
             }
             if let Err(error) = data.validate(field.id, data.value(field.id)) {
-                st.set_error(
+                let sensitive =
+                    field_is_secret(field) || matches!(data.value(field.id), FieldRef::Secret(_));
+                st.set_error_with_sensitivity(
                     field.id,
                     Some(Self::safe_error(
                         data,
@@ -1131,6 +1144,7 @@ impl<'a> Form<'a> {
                         field.id,
                         error,
                     )),
+                    Some(sensitive),
                 );
                 st.reveal(field.id);
                 cx.focus(field.id);
@@ -1143,7 +1157,12 @@ impl<'a> Form<'a> {
                 .iter()
                 .find(|field| field.id == id)
                 .is_some_and(field_is_secret);
-            st.set_error(id, Some(Self::safe_error(data, declared_secret, id, error)));
+            let sensitive = declared_secret || matches!(data.value(id), FieldRef::Secret(_));
+            st.set_error_with_sensitivity(
+                id,
+                Some(Self::safe_error(data, declared_secret, id, error)),
+                Some(sensitive),
+            );
             st.reveal(id);
             cx.focus(id);
             return FormAction::Invalid(id);
@@ -2554,6 +2573,61 @@ mod tests {
     }
 
     #[test]
+    fn dynamic_secret_transition_keeps_form_error_generic_until_update() {
+        const DETAIL: &str = "dynamic secret validation detail";
+
+        let mut app = FieldsApp::default();
+        app.plain_secret_control = true;
+        app.data.secret_mode = false;
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer);
+
+        runtime
+            .app_mut()
+            .state
+            .reconcile_fields(&fields_with_secret_policy(false));
+        runtime
+            .app_mut()
+            .state
+            .set_error(SECRET, Some(FieldError::new(DETAIL)));
+        runtime.app_mut().data.secret_mode = true;
+
+        assert!(matches!(
+            runtime.app().data.value(SECRET),
+            FieldRef::Secret(_)
+        ));
+        {
+            let value = runtime.app_mut().data.value_mut(SECRET);
+            assert!(matches!(value, FieldMut::Secret(_)));
+        }
+
+        let state = &runtime.app().state;
+        assert_eq!(
+            state.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{state:?}").contains(DETAIL));
+
+        let copy = state.clone();
+        assert_eq!(
+            copy.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{copy:?}").contains(DETAIL));
+
+        let _ = runtime.handle(Input::Tick);
+        assert_eq!(
+            runtime
+                .app()
+                .state
+                .error(SECRET)
+                .map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+    }
+
+    #[test]
     fn secret_validator_error_is_generic_before_form_state_retention() {
         let mut data = Data::default();
         data.secret.set("swordfish");
@@ -2578,9 +2652,14 @@ mod tests {
         state.set_error(SECRET, Some(FieldError::new("swordfish")));
         assert_eq!(
             state.error(SECRET).map(|error| error.message.as_ref()),
-            Some("swordfish")
+            Some("Invalid value")
         );
 
+        state.reconcile_fields(&plain_fields);
+        assert_eq!(
+            state.error(SECRET).map(|error| error.message.as_ref()),
+            Some("swordfish")
+        );
         state.reconcile_fields(&secret_fields);
         assert_eq!(
             state.error(SECRET).map(|error| error.message.as_ref()),
@@ -2605,6 +2684,8 @@ mod tests {
         right.set_error(NAME, Some(FieldError::coded("name required", "required")));
         left.set_error(SECRET, Some(FieldError::new("swordfish")));
         right.set_error(SECRET, Some(FieldError::new("different")));
+        left.reconcile_fields(&fields());
+        right.reconcile_fields(&fields());
         assert_eq!(left, right);
         let copy = left.clone();
         let slot = copy

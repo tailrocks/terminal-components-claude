@@ -3,7 +3,7 @@
 
 use core::fmt;
 
-use super::{Acc, PartStyle, SlotFn};
+use super::{Acc, PartStyle, SlotFn, cell_at, paint_pressed_bracket};
 use crate::collection::{CellUi, Reconcile, Reconciliation};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -17,7 +17,7 @@ use crate::scroll::ScrollState;
 use crate::secret::{Secret, SecretPolicy};
 use crate::text::measure::graphemes;
 use crate::text::width;
-use crate::theme::{Family, Role, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Style;
@@ -819,6 +819,17 @@ impl<'a> PropsList<'a> {
                 .ov
                 .style(ui, self.id, Family::PROPS, self.variant, Part::LABEL, flags);
             paint_value(ui, value_area, row, value.style);
+            if matches!(value.glyph, Slot::Set(GlyphRole::PressLeft)) {
+                paint_pressed_bracket(
+                    ui,
+                    cell_at(row_area, content.x.saturating_add(label_width)),
+                    cell_at(
+                        row_area,
+                        content.x.saturating_add(label_width).saturating_add(1),
+                    ),
+                    value.style,
+                );
+            }
 
             if !ui.is_inert() && !visible_area.is_empty() {
                 ui.register_part(self.id, row_part, visible_area);
@@ -1364,6 +1375,49 @@ mod tests {
         assert_eq!(
             buffer.cell(Position::new(value_x, 1)).map(|cell| cell.bg),
             Some(theme.color.danger)
+        );
+    }
+
+    #[test]
+    fn mono_pressed_brackets_the_existing_column_gap() {
+        let rows = [PropsRow::new(FIRST_KEY, "Name", "value")];
+        let render = |target| {
+            let mut state = PropsState::default();
+            state.set_cursor(0, FIRST_KEY);
+            let theme = Theme::junie().downgrade(crate::ColorLevel::Mono);
+            let mut runtime = Runtime::new(Stub::default(), theme);
+            let mut buffer = Buffer::empty(AREA);
+            runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+                ui.reference(Some(target), |ui| {
+                    PropsList::new(ID).draw(ui, area, &state, &rows);
+                });
+            });
+            buffer
+        };
+
+        let focused = render(ReferenceTarget::new(ID, ReferenceState::FOCUSED));
+        let pressed = render(
+            ReferenceTarget::new(ID, ReferenceState::PRESSED)
+                .part(PartRef::item(Part::ROW, FIRST_KEY)),
+        );
+        let left = Theme::junie().design.glyphs.get(GlyphRole::PressLeft);
+        let right = Theme::junie().design.glyphs.get(GlyphRole::PressRight);
+
+        assert_eq!(
+            focused.cell(Position::new(4, 0)).map(|cell| cell.symbol()),
+            Some(" ")
+        );
+        assert_eq!(
+            focused.cell(Position::new(5, 0)).map(|cell| cell.symbol()),
+            Some(" ")
+        );
+        assert_eq!(
+            pressed.cell(Position::new(4, 0)).map(|cell| cell.symbol()),
+            Some(left)
+        );
+        assert_eq!(
+            pressed.cell(Position::new(5, 0)).map(|cell| cell.symbol()),
+            Some(right)
         );
     }
 
