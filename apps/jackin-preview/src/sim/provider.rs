@@ -14,37 +14,53 @@ use crate::sim::onepassword::{KeyOutcome, OpError, SecretClass, SimOnePassword, 
 /// Three-level validation result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationOutcome {
+    /// Highest validation level reached.
     pub level: Option<ValidationLevel>,
+    /// Public identity discovered for the account.
     pub identity: AccountIdentity,
+    /// Confidence assigned to the identity.
     pub confidence: Confidence,
+    /// Account lifecycle implied by the result.
     pub lifecycle: Lifecycle,
+    /// Recoverable issue, when validation did not fully succeed.
     pub issue: Option<RecoverableIssue>,
+    /// Usage windows returned by the provider.
     pub usage: Option<AccountUsage>,
     /// Three rows for the validation card.
     pub material: CheckRow,
+    /// Identity-check row for the validation card.
     pub identity_row: CheckRow,
+    /// Quota-check row for the validation card.
     pub quota_row: CheckRow,
 }
 
+/// One row in the validation summary card.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckRow {
+    /// The check succeeded.
     Ok(String),
+    /// The check failed.
     Failed(String),
+    /// The check was not attempted.
     Skipped(String),
 }
 
 /// Simulated local folder inventory for folder-backed sources.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FolderProbe {
+    /// No fixture folder matched the requested path.
     Missing,
+    /// The fixture folder exists but cannot be read.
     Unreadable,
     /// Folder exists, holds no credential file.
     NoCredential,
     /// Credential file exists but does not parse.
     Malformed,
+    /// A recognized credential was found.
     Found(DetectedKind),
 }
 
+/// Probe a fixture path for a simulated credential profile.
 pub fn probe_folder(path: &str) -> FolderProbe {
     let p = path.trim_end_matches('/');
     match p {

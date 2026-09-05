@@ -38,49 +38,83 @@ pub struct GlobalConfig {
 /// Typed results of deterministic asynchronous work.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
-    WorkspaceSaved { id: WorkspaceId, ok: bool },
-    Refreshed { ok: bool },
-    AccountRefreshed { account: AccountId },
+    /// A workspace save completed.
+    WorkspaceSaved {
+        /// Workspace identifier that was saved.
+        id: WorkspaceId,
+        /// Whether the save succeeded.
+        ok: bool,
+    },
+    /// A refresh operation completed.
+    Refreshed {
+        /// Whether the refresh succeeded.
+        ok: bool,
+    },
+    /// One account refresh completed.
+    AccountRefreshed {
+        /// Account identifier that was refreshed.
+        account: AccountId,
+    },
 }
 
+/// One delayed message in the virtual job queue.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Job {
+    /// Absolute virtual due time in milliseconds.
     pub due_ms: i64,
+    /// Message delivered when the deadline is reached.
     pub msg: Msg,
 }
 
+/// Complete deterministic service state for a preview scenario.
 #[derive(Debug, Clone)]
 pub struct World {
+    /// Scenario that seeded this world.
     pub scenario: Scenario,
+    /// Virtual fixture clock.
     pub clock: Clock,
+    /// Running-instance arbiter state.
     pub arbiter: Arbiter,
+    /// Fixture home directory.
     pub home: String,
     /// Mutable host configuration.
     pub global: GlobalConfig,
+    /// Durable workspace rows.
     pub workspaces: Vec<Workspace>,
+    /// Available role entries.
     pub roles: Vec<RoleEntry>,
+    /// Persisted instance rows.
     pub instances: Vec<Instance>,
     /// Live daemon models keyed by persisted instance id.
     pub daemons: BTreeMap<String, Daemon>,
+    /// Account registry.
     pub accounts: AccountRegistry,
+    /// Simulated 1Password service.
     pub op: SimOnePassword,
+    /// Delayed asynchronous jobs.
     pub jobs: Vec<Job>,
+    /// Whether the next refresh should fail.
     pub refresh_fails: bool,
+    /// Whether a workspace was saved during this run.
     pub saved: bool,
+    /// Last successful refresh time in fixture seconds.
     pub last_refresh_secs: i64,
     /// Last copied transcript selection, if any.
     pub clipboard: Option<String>,
 }
 
 impl World {
+    /// Current fixture time in seconds.
     pub fn now_secs(&self) -> i64 {
         self.clock.now_secs()
     }
 
+    /// Current fixture time in milliseconds.
     pub fn now_ms(&self) -> i64 {
         self.clock.now_ms
     }
 
+    /// Queue a message after a non-negative virtual delay.
     pub fn schedule(&mut self, delay_ms: i64, msg: Msg) {
         let due_ms = self.clock.now_ms.saturating_add(delay_ms.max(0));
         self.jobs.push(Job { due_ms, msg });
@@ -114,24 +148,29 @@ impl World {
         ready
     }
 
+    /// Find a workspace by stable identifier.
     pub fn workspace(&self, id: WorkspaceId) -> Option<&Workspace> {
         self.workspaces.iter().find(|workspace| workspace.id == id)
     }
 
+    /// Find a mutable workspace by stable identifier.
     pub fn workspace_mut(&mut self, id: WorkspaceId) -> Option<&mut Workspace> {
         self.workspaces
             .iter_mut()
             .find(|workspace| workspace.id == id)
     }
 
+    /// Find an instance by stable identifier.
     pub fn instance(&self, id: &str) -> Option<&Instance> {
         self.instances.iter().find(|instance| instance.id == id)
     }
 
+    /// Find a mutable instance by stable identifier.
     pub fn instance_mut(&mut self, id: &str) -> Option<&mut Instance> {
         self.instances.iter_mut().find(|instance| instance.id == id)
     }
 
+    /// Count instances currently in the running state.
     pub fn running_count(&self) -> usize {
         self.instances
             .iter()
@@ -139,6 +178,7 @@ impl World {
             .count()
     }
 
+    /// Return instances currently in the running state.
     pub fn running(&self) -> Vec<&Instance> {
         self.instances
             .iter()
@@ -146,6 +186,7 @@ impl World {
             .collect()
     }
 
+    /// Return visible instances belonging to a workspace.
     pub fn instances_of(&self, workspace: Option<WorkspaceId>) -> Vec<&Instance> {
         self.instances
             .iter()
@@ -153,15 +194,18 @@ impl World {
             .collect()
     }
 
+    /// Synchronize the arbiter with the current running-instance count.
     pub fn sync_arbiter(&mut self) {
         self.arbiter.set_running(self.running_count());
     }
 
+    /// Allocate the next deterministic instance identifier.
     pub fn new_instance_id(&self) -> String {
         let next = self.instances.len().saturating_add(1);
         format!("jk-{next:04x}")
     }
 
+    /// Resolve the account selected for a launch context.
     pub fn account_for(
         &self,
         provider: Provider,
@@ -177,6 +221,7 @@ impl World {
         AuthMode::Sync
     }
 
+    /// Return usable account identifiers for an agent and context.
     pub fn eligible_accounts(
         &self,
         agent: Agent,
@@ -186,6 +231,7 @@ impl World {
         self.offer_for(agent, workspace, role).accounts
     }
 
+    /// Build the account offer shown for one agent.
     pub fn offer_for(
         &self,
         agent: Agent,
@@ -248,6 +294,7 @@ impl World {
         }
     }
 
+    /// Return agents with at least one configured or blocked account.
     pub fn offered_agents(
         &self,
         workspace: Option<&Workspace>,
@@ -376,9 +423,13 @@ pub fn world_for(scenario: Scenario) -> World {
 /// What a new session knows about one agent's account choices.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentOffer {
+    /// Whether the agent has a configured or blocked account.
     pub configured: bool,
+    /// Usable account identifiers, preselected first when applicable.
     pub accounts: Vec<AccountId>,
+    /// Account selected by workspace/role precedence, if usable.
     pub preselected: Option<AccountId>,
+    /// Human-readable blocking reason when no account is usable.
     pub blocked: Option<String>,
 }
 

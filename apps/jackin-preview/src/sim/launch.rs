@@ -7,22 +7,35 @@ use junie_tui::StepState;
 use crate::domain::agent::Agent;
 use crate::domain::instance::RunId;
 
+/// Ordered stages in the deterministic launch pipeline.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Stage {
+    /// Resolve the launch identity.
     Identity,
+    /// Load and validate the role manifest.
     Role,
+    /// Resolve the selected credential source.
     Credentials,
+    /// Prepare the Construct image.
     Construct,
+    /// Install the selected agent binaries.
     AgentBinaries,
+    /// Build the derived image.
     DerivedImage,
+    /// Mount the selected workspace.
     Workspace,
+    /// Attach the runtime network.
     Network,
+    /// Start the sidecar service.
     Sidecar,
+    /// Wait for the Capsule daemon.
     Capsule,
+    /// Open the final hardline connection.
     Hardline,
 }
 
 impl Stage {
+    /// All stages in execution order.
     pub const ALL: [Stage; 11] = [
         Stage::Identity,
         Stage::Role,
@@ -37,6 +50,7 @@ impl Stage {
         Stage::Hardline,
     ];
 
+    /// Human-readable stage label.
     pub fn label(self) -> &'static str {
         match self {
             Stage::Identity => "Identity",
@@ -53,6 +67,7 @@ impl Stage {
         }
     }
 
+    /// Zero-based position in [`Self::ALL`].
     pub fn index(self) -> usize {
         Stage::ALL.iter().position(|s| *s == self).unwrap_or(0)
     }
@@ -88,50 +103,82 @@ pub enum LaunchPlan {
     BlockedSidecar,
 }
 
+/// Structured failure details for a launch stage.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LaunchFailure {
+    /// Stage at which the launch stopped.
     pub stage: Stage,
+    /// Short operator-facing summary.
     pub summary: String,
+    /// Suggested next action.
     pub next_step: String,
+    /// Detailed deterministic diagnostic lines.
     pub detail: Vec<String>,
 }
 
+/// Event emitted while a [`LaunchRun`] advances.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LaunchEvent {
+    /// A stage changed state.
     StageChanged(Stage, StepState),
+    /// Status text for the active stage.
     Activity(String),
+    /// One line from the derived-image build log.
     BuildLine(String),
+    /// The container became available before later stages run.
     ContainerReady(String),
+    /// Credential resolution completed.
     CredentialsResolved {
+        /// Credential source description.
         origin: String,
+        /// Validation result description.
         validation: String,
     },
     /// Recoverable: the operator may retry or cancel.
     CredentialError {
+        /// Operator-facing explanation of the credential error.
         message: String,
     },
+    /// The pipeline failed at a stage.
     Failed(LaunchFailure),
+    /// The pipeline reached the ready state.
     Ready,
 }
 
+/// Mutable deterministic state for one launch attempt.
 #[derive(Debug, Clone)]
 pub struct LaunchRun {
+    /// Fixture behavior selected for this run.
     pub plan: LaunchPlan,
+    /// Stable run identifier.
     pub run_id: RunId,
+    /// Container name shown by the fixture.
     pub container: String,
+    /// Agent being launched.
     pub agent: Agent,
+    /// State for each stage in [`Stage::ALL`] order.
     pub states: [StepState; 11],
+    /// Duration of each stage in virtual ticks.
     pub durations: [u64; 11],
+    /// Current virtual tick.
     pub tick: u64,
+    /// Tick at which the current stage started.
     pub stage_start: u64,
+    /// Index of the active stage, if the run has started.
     pub current: Option<usize>,
+    /// Whether all stages completed successfully.
     pub done: bool,
+    /// Failure details, when a stage failed.
     pub failure: Option<LaunchFailure>,
+    /// Stage at which a modeled blocked state occurred.
     pub blocked_at: Option<Stage>,
     /// Credentials stage paused on an error awaiting a decision.
     pub credential_hold: bool,
+    /// Whether the credential stage was retried.
     pub credential_retried: bool,
+    /// Number of build log lines emitted so far.
     pub build_lines_emitted: usize,
+    /// Whether the operator cancelled this run.
     pub cancelled: bool,
 }
 
@@ -184,6 +231,7 @@ pub const BUILD_LOG: [&str; 44] = [
 ];
 
 impl LaunchRun {
+    /// Construct a run at virtual tick zero.
     pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: RunId) -> Self {
         // durations in ticks (33 ms)
         let durations = [14, 18, 26, 30, 8, 92, 22, 20, 18, 34, 16];
@@ -207,6 +255,7 @@ impl LaunchRun {
         }
     }
 
+    /// Return `(done, skipped)` stage counts.
     pub fn counts(&self) -> (usize, usize) {
         (
             self.states
@@ -220,6 +269,7 @@ impl LaunchRun {
         )
     }
 
+    /// Whether the run can no longer advance.
     pub fn is_terminal(&self) -> bool {
         self.done || self.failure.is_some() || self.blocked_at.is_some() || self.cancelled
     }
@@ -231,6 +281,7 @@ impl LaunchRun {
         self.stage_start = self.tick;
     }
 
+    /// Cancel the run and mark its active stage failed.
     pub fn cancel(&mut self) {
         self.cancelled = true;
         if let Some(i) = self.current

@@ -1,6 +1,6 @@
 //! Simulated 1Password: accounts, vaults, items and fields with the
 //! session states the real picker can meet. Secret material exists only
-//! inside [`SimOnePassword::resolve_into`]'s closure; nothing else in the
+//! inside the `SimOnePassword::resolve_into` closure; nothing else in the
 //! preview can observe it.
 
 use std::fmt;
@@ -8,9 +8,17 @@ use std::fmt;
 use crate::domain::agent::Provider;
 use crate::domain::onepassword::OpReference;
 
-/// Opaque secret handle. Not `Clone`, not `Debug`; constructible only here.
+/// Opaque secret handle whose debug output redacts its material.
 pub struct Secret {
     bytes: Vec<u8>,
+}
+
+impl fmt::Debug for Secret {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Secret")
+            .field("bytes", &"[redacted]")
+            .finish()
+    }
 }
 
 impl Secret {
@@ -52,20 +60,31 @@ impl Drop for Secret {
     }
 }
 
+/// Result category for a synthetic provider key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyOutcome {
+    /// The key is accepted by the provider.
     Valid,
+    /// The key is rejected or rotated.
     Rejected,
+    /// The provider throttled the key.
     RateLimited,
+    /// The provider is unavailable.
     Unavailable,
 }
 
+/// Classification of material held by a [`Secret`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SecretClass {
+    /// No material was present.
     Empty,
+    /// The material did not match a recognized fixture shape.
     Unrecognised,
+    /// Material tagged for a provider and outcome.
     Key {
+        /// Provider family encoded by the fixture.
         provider: Provider,
+        /// Synthetic validation outcome.
         outcome: KeyOutcome,
     },
 }
@@ -76,34 +95,50 @@ impl SecretFree for SecretClass {}
 impl SecretFree for () {}
 impl SecretFree for bool {}
 
+/// Lock state of the simulated 1Password session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpSession {
+    /// The session can read available accounts.
     SignedIn,
+    /// Every operation is rejected as locked.
     Locked,
 }
 
+/// Availability state of one simulated 1Password account.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpAccountState {
+    /// The account can be queried.
     Available,
+    /// The account requires an unlock.
     Locked,
+    /// The account requires authorization.
     AuthorizationRequired,
 }
 
+/// Access level of a simulated vault.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VaultAccess {
+    /// Items can be read and changed by the fixture.
     ReadWrite,
+    /// Items can be read but not changed.
     ReadOnly,
+    /// The vault is visible but cannot be read.
     Denied,
 }
 
+/// Shape of one simulated 1Password field.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldKind {
+    /// Credential-like concealed value.
     Concealed,
+    /// Ordinary text value.
     Text,
+    /// URL value stored beside a credential.
     Url,
 }
 
 impl FieldKind {
+    /// Stable lower-case label for a picker row.
     pub fn label(self) -> &'static str {
         match self {
             FieldKind::Concealed => "concealed",
@@ -113,10 +148,14 @@ impl FieldKind {
     }
 }
 
+/// Item field metadata with an optional private fixture material tag.
 #[derive(Clone)]
 pub struct OpField {
+    /// Stable field identifier.
     pub id: String,
+    /// Operator-facing field label.
     pub label: String,
+    /// Field value shape.
     pub kind: FieldKind,
     /// Synthetic material tag (`openai:valid-cdx01`); never shown.
     material: Option<String>,
@@ -136,41 +175,94 @@ impl fmt::Debug for OpField {
     }
 }
 
+/// Simulated 1Password item metadata.
 #[derive(Debug, Clone)]
 pub struct OpItem {
+    /// Stable item identifier.
     pub id: String,
+    /// Operator-facing item title.
     pub title: String,
+    /// Fixture category label.
     pub category: &'static str,
+    /// Fields contained by the item.
     pub fields: Vec<OpField>,
 }
 
+/// Simulated 1Password vault metadata and items.
 #[derive(Debug, Clone)]
 pub struct OpVault {
+    /// Stable vault identifier.
     pub id: String,
+    /// Operator-facing vault name.
     pub name: String,
+    /// Access state for this vault.
     pub access: VaultAccess,
+    /// Items contained by the vault.
     pub items: Vec<OpItem>,
 }
 
+/// Simulated 1Password account and its vaults.
 #[derive(Debug, Clone)]
 pub struct OpAccount {
+    /// Stable account identifier.
     pub id: String,
+    /// Account email shown in the picker.
     pub email: String,
+    /// Account availability state.
     pub state: OpAccountState,
+    /// Vaults available under the account.
     pub vaults: Vec<OpVault>,
 }
 
+/// Errors exposed by simulated 1Password lookups.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpError {
+    /// The overall session is locked.
     Locked,
-    AuthorizationRequired { account: String },
-    PermissionDenied { vault: String },
-    MissingAccount { account: String },
-    MissingVault { vault: String },
-    MissingItem { item: String, vault: String },
-    MissingField { field: String, item: String },
-    EmptyMaterial { field: String },
-    WrongFieldShape { field: String },
+    /// The account needs an authorization flow.
+    AuthorizationRequired {
+        /// Account requiring authorization.
+        account: String,
+    },
+    /// The selected vault cannot be read.
+    PermissionDenied {
+        /// Vault whose contents cannot be read.
+        vault: String,
+    },
+    /// No account matched the requested identifier.
+    MissingAccount {
+        /// Requested account identifier.
+        account: String,
+    },
+    /// No vault matched the requested identifier.
+    MissingVault {
+        /// Requested vault identifier.
+        vault: String,
+    },
+    /// No item matched the requested identifier.
+    MissingItem {
+        /// Requested item identifier.
+        item: String,
+        /// Vault searched for the item.
+        vault: String,
+    },
+    /// No field matched the requested identifier.
+    MissingField {
+        /// Requested field identifier.
+        field: String,
+        /// Item searched for the field.
+        item: String,
+    },
+    /// The selected concealed field has no material.
+    EmptyMaterial {
+        /// Concealed field without material.
+        field: String,
+    },
+    /// The selected field is not a concealed credential field.
+    WrongFieldShape {
+        /// Field selected as a credential.
+        field: String,
+    },
 }
 
 impl OpError {
@@ -201,19 +293,25 @@ impl OpError {
         }
     }
 
+    /// Whether retrying the same operation may succeed after an unlock.
     pub fn retryable(&self) -> bool {
         matches!(self, OpError::Locked)
     }
 }
 
+/// Non-secret field metadata returned by [`SimOnePassword::describe`].
 #[derive(Debug, Clone)]
 pub struct FieldDescriptor {
+    /// Masked tail suitable for display.
     pub masked: String,
 }
 
+/// Deterministic in-memory 1Password service.
 #[derive(Debug, Clone)]
 pub struct SimOnePassword {
+    /// Current session state.
     pub session: OpSession,
+    /// Simulated accounts and their vaults.
     pub accounts: Vec<OpAccount>,
     /// Simulated latency for listing/validation, in virtual ms.
     pub latency_ms: i64,
@@ -470,11 +568,21 @@ impl SimOnePassword {
         }
     }
 
+    /// List accounts visible in the current session.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpError::Locked`] when the session is locked.
     pub fn list_accounts(&self) -> Result<Vec<&OpAccount>, OpError> {
         self.gate()?;
         Ok(self.accounts.iter().collect())
     }
 
+    /// List vaults for an account.
+    ///
+    /// # Errors
+    ///
+    /// Returns an account or session error when the account cannot be read.
     pub fn list_vaults(&self, account: &str) -> Result<Vec<&OpVault>, OpError> {
         Ok(self.account(account)?.vaults.iter().collect())
     }
@@ -496,6 +604,12 @@ impl SimOnePassword {
         Ok(v)
     }
 
+    /// List items in a readable vault.
+    ///
+    /// # Errors
+    ///
+    /// Returns an account, vault, session, or permission error when the vault
+    /// cannot be read.
     pub fn list_items(&self, account: &str, vault: &str) -> Result<Vec<&OpItem>, OpError> {
         Ok(self.vault(account, vault)?.items.iter().collect())
     }
@@ -513,6 +627,12 @@ impl SimOnePassword {
         Ok((v, it))
     }
 
+    /// List fields in a simulated item.
+    ///
+    /// # Errors
+    ///
+    /// Returns an account, vault, item, session, or permission error when the
+    /// item cannot be read.
     pub fn list_fields(
         &self,
         account: &str,
@@ -523,6 +643,11 @@ impl SimOnePassword {
     }
 
     /// Full reference (with names) for chosen ids.
+    ///
+    /// # Errors
+    ///
+    /// Returns an account, vault, item, field, session, or permission error
+    /// when a referenced object is unavailable.
     pub fn reference(
         &self,
         account: &str,
@@ -552,6 +677,11 @@ impl SimOnePassword {
     }
 
     /// Non-secret metadata plus a masked preview.
+    ///
+    /// # Errors
+    ///
+    /// Returns an account, vault, item, field, shape, empty-material, session,
+    /// or permission error when the reference cannot be described.
     pub fn describe(&self, r: &OpReference) -> Result<FieldDescriptor, OpError> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id)?;
         let f = it
@@ -579,6 +709,11 @@ impl SimOnePassword {
 
     /// The only path to secret bytes: the closure is the transient provider
     /// operation and its result cannot carry the secret.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same lookup, shape, and material errors as
+    /// [`Self::describe`].
     pub fn resolve_into<R: SecretFree>(
         &self,
         r: &OpReference,
@@ -646,6 +781,14 @@ pub fn classify_plain(provider: Provider, value: &str) -> SecretClass {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn secret_debug_redacts_material() {
+        let secret = Secret {
+            bytes: vec![1, 2, 3, 4],
+        };
+        assert_eq!(format!("{secret:?}"), r#"Secret { bytes: "[redacted]" }"#);
+    }
 
     #[test]
     fn resolves_only_inside_the_closure() {
