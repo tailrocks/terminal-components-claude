@@ -15,10 +15,6 @@
 # composite components build child props across both phases exactly like a screen.
 
 # ── Slices 5–7 application integration tests (`apps/**/tests`) ──
-complete_flow_keyboard_first  # Slices 5-7 — apps/**
-form_dialog_secret_never_reaches_the_screen_as_a_string  # Slices 5-7 — apps/**
-form_dialog_toggles_visibility_and_keeps_drafts  # Slices 5-7 — apps/**
-
 # ── §16.6 benchmarks whose subject does not exist yet ──
 capsule_pane_clone_4x2000  # Slice 7 — deleted by the no-viewport-clone architecture; baseline line absence remains enforced
 

@@ -394,7 +394,23 @@ mod tests {
         assert_eq!(first.running_count(), 0);
 
         let returning = world_for(Scenario::Returning);
-        assert_eq!(returning.workspaces.len(), 1);
+        // Returning starts from the populated registry, not the single
+        // launch fixture. Keep every durable row in the assertion so a
+        // scenario change cannot silently drop manager coverage.
+        assert_eq!(returning.workspaces.len(), 4);
+        assert_eq!(
+            returning
+                .workspaces
+                .iter()
+                .map(|workspace| workspace.name.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "payments-platform",
+                "infra-control-plane",
+                "customer-portal",
+                "data-pipeline",
+            ]
+        );
         assert_eq!(returning.running_count(), 1);
         assert_eq!(returning.instances[0].run_id.value(), 0x9c41_e2f0);
     }

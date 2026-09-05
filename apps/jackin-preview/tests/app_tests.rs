@@ -268,6 +268,14 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     );
 }
 
+/// §16.4's stable name for the secret-frame acceptance journey.  Keep the
+/// product-specific test above as the readable inventory entry while exposing
+/// the architecture name used by the cross-workspace gate.
+#[test]
+fn form_dialog_secret_never_reaches_the_screen_as_a_string() {
+    accounts_register_with_a_1password_reference_and_never_render_the_secret();
+}
+
 #[test]
 fn accounts_plain_key_is_masked_everywhere_and_remove_asks_first() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
@@ -484,6 +492,12 @@ fn editor_env_plain_value_stays_masked_and_can_be_shown() {
     assert!(t.contains("************1234"), "{t}");
     assert!(!t.contains("abcdefghijklmnop"));
     assert!(t.contains("• 1 change"), "{t}");
+}
+
+/// §16.4's stable name for the controlled secret draft journey.
+#[test]
+fn form_dialog_toggles_visibility_and_keeps_drafts() {
+    editor_env_plain_value_stays_masked_and_can_be_shown();
 }
 
 #[test]
@@ -938,6 +952,13 @@ fn complete_jackin_flow_keyboard_first() {
     );
     h.key(KeyCode::Enter);
     assert!(h.app().should_quit());
+}
+
+/// §16.4's stable name for the complete keyboard-first journey.  The retained
+/// product test above carries the detailed step inventory.
+#[test]
+fn complete_flow_keyboard_first() {
+    complete_jackin_flow_keyboard_first();
 }
 
 #[test]
