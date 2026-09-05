@@ -42,13 +42,13 @@ action_keys! {
 }
 
 impl ActionKey {
-    /// An application-owned key in the namespace below component keys.
+    /// An application-owned key in the middle range, isolated from component keys.
     pub const fn application(name: &'static str) -> ActionKey {
         let h = fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes());
         ActionKey(0x4000 | ((h as u16) & 0x3FFF))
     }
 
-    /// A custom key named by the application; lands in the high range.
+    /// A component-owned custom key; lands in the high range.
     pub const fn custom(name: &'static str) -> ActionKey {
         let h = fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes());
         ActionKey(0x8000 | ((h as u16) & 0x7FFF))
@@ -159,13 +159,13 @@ mod tests {
 
     #[test]
     fn custom_keys_land_in_the_high_range_and_names_resolve() {
-        assert!(ActionKey::custom("delete").raw() >= 0x8000);
         assert!(ActionKey::application("jackin.quit").raw() >= 0x4000);
         assert!(ActionKey::application("jackin.quit").raw() < 0x8000);
         assert_ne!(
             ActionKey::application("jackin.quit"),
             ActionKey::custom("jackin.quit")
         );
+        assert!(ActionKey::custom("delete").raw() >= 0x8000);
         assert_eq!(ActionKey::SAVE.name(), Some("SAVE"));
         assert_eq!(ActionKey::custom("x").name(), None);
         assert_ne!(ActionKey::custom("a"), ActionKey::custom("b"));
@@ -173,5 +173,4 @@ mod tests {
         assert!(a.is_danger() && !a.is_enabled());
         assert_eq!(a.variant(), Variant::DANGER);
     }
-
 }

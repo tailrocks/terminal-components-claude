@@ -963,6 +963,7 @@ fn shift(p: &mut CellPos, dropped: usize) {
 pub struct TextViewport<'a> {
     id: Id,
     wrap: bool,
+    click_selects_word: bool,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     slot: Option<(Part, SlotFn<'a>)>,
@@ -975,6 +976,7 @@ impl fmt::Debug for TextViewport<'_> {
         f.debug_struct("TextViewport")
             .field("id", &self.id)
             .field("wrap", &self.wrap)
+            .field("click_selects_word", &self.click_selects_word)
             .field("slot", &self.slot.map(|(p, _)| p))
             .finish_non_exhaustive()
     }
@@ -998,6 +1000,7 @@ impl<'a> TextViewport<'a> {
         TextViewport {
             id,
             wrap: false,
+            click_selects_word: false,
             patch: None,
             parts: &[],
             slot: None,
@@ -1042,6 +1045,17 @@ impl<'a> TextViewport<'a> {
     #[must_use]
     pub const fn wrap(mut self, yes: bool) -> Self {
         self.wrap = yes;
+        self
+    }
+
+    /// Select the word under a single click as well as a double click.
+    ///
+    /// The default remains terminal-style double-click selection.  A caller
+    /// can opt into single-click word selection when its surrounding shell
+    /// treats a click as an explicit text-selection gesture.
+    #[must_use]
+    pub const fn click_selects_word(mut self, yes: bool) -> Self {
+        self.click_selects_word = yes;
         self
     }
 
@@ -1230,6 +1244,7 @@ impl<'a> TextViewport<'a> {
         let (phase, pos) = pointer;
         match phase {
             Phase::Press | Phase::DragStart => {
+                cx.focus(self.id);
                 let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
                 let had = st.selection.take().is_some();
                 st.anchor = self.pos_at(cx, lines, (area, key, st.scroll.offset()), pos);
@@ -1264,7 +1279,12 @@ impl<'a> TextViewport<'a> {
                     _ => acc.consumed(),
                 }
             }
-            Phase::DoubleClick => {
+            Phase::Click if !self.click_selects_word => {
+                cx.focus(self.id);
+                acc.consumed();
+            }
+            Phase::Click | Phase::DoubleClick => {
+                cx.focus(self.id);
                 let at = self.pos_at(cx, lines, (area, key, st.scroll.offset()), pos);
                 match at.and_then(|p| {
                     lines
@@ -1286,7 +1306,7 @@ impl<'a> TextViewport<'a> {
                 st.anchor = None;
                 acc.consumed();
             }
-            Phase::Click | Phase::Secondary => acc.consumed(),
+            Phase::Secondary => acc.consumed(),
             Phase::Move => {}
         }
     }

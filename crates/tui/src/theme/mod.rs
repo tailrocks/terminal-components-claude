@@ -450,5 +450,4 @@ mod tests {
         );
         assert_eq!(out.style.fg, Some(d.color.warning));
     }
-
 }

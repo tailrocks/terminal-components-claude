@@ -696,8 +696,7 @@ pub fn fixture_workspace() -> Workspace {
     ];
     workspace.keep_awake = true;
     workspace.git_pull = true;
-    workspace.accounts.enabled =
-        BTreeSet::from(["acct-claude-work".into(), "grok-host".into()]);
+    workspace.accounts.enabled = BTreeSet::from(["acct-claude-work".into(), "grok-host".into()]);
     workspace
         .accounts
         .preferred

@@ -2461,8 +2461,13 @@ pub struct ActionKey(u16);
 impl ActionKey {
     pub const CONFIRM: ActionKey; pub const CANCEL: ActionKey; pub const CLOSE: ActionKey;
     pub const SAVE: ActionKey;    pub const DISCARD: ActionKey; pub const RETRY: ActionKey;
-    pub const fn custom(name: &'static str) -> ActionKey;   // FNV into the high range
+    pub const fn application(name: &'static str) -> ActionKey; // FNV into 0x4000..=0x7FFF
+    pub const fn custom(name: &'static str) -> ActionKey;      // FNV into 0x8000..=0xFFFF
 }
+
+Application-owned commands use `application`; `custom` is reserved for component-owned
+bindings. The disjoint ranges prevent an application command from colliding with a
+component's internal action identity.
 pub struct Action<'a> { /* key, label, variant, chord, enabled, danger */ }
 impl<'a> Action<'a> {
     pub const fn new(key: ActionKey, label: &'a str) -> Self;
@@ -3283,7 +3288,7 @@ use junie_tui::{id, layout, Action, ActionKey, Constraints, Cx, Dialog, DialogAc
 const CONFIRM: Id = id!("confirm.delete");
 const TOKEN: Id = CONFIRM.part(Part::FIELD);          // a child COMPONENT id inside the dialog (§21 item 16)
 const K_CANCEL: ActionKey = ActionKey::CANCEL;
-const K_DELETE: ActionKey = ActionKey::custom("delete");
+const K_DELETE: ActionKey = ActionKey::application("delete");
 
 struct Screen { dlg: DialogState, token: String, token_st: TextInputState, target: String, deleted: bool }
 

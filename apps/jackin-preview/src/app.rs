@@ -9,8 +9,8 @@ use junie_tui::{
     ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction, DialogState,
     FrameRead, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
     ListAction, ListState, Panel, Picker, PickerAction, PickerState, Rect, Response, SecretPolicy,
-    Position, Tabs, TabsState, TextAction, TextInput, TextInputState, TooSmall, Ui, UpdateCause,
-    Variant,
+    Tabs, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
+    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -90,44 +90,42 @@ const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list
 const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
 const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
-const CMD_QUIT: ActionKey = ActionKey::custom("jackin.quit");
-const CMD_MANAGER: ActionKey = ActionKey::custom("jackin.manager");
-const CMD_ACCOUNTS: ActionKey = ActionKey::custom("jackin.accounts");
-const CMD_USAGE: ActionKey = ActionKey::custom("jackin.usage");
-const CMD_SETTINGS: ActionKey = ActionKey::custom("jackin.settings");
-const CMD_SETTINGS_TRUST_KEY: ActionKey = ActionKey::custom("jackin.settings.trust-key");
-const CMD_CAPSULE: ActionKey = ActionKey::custom("jackin.capsule");
-const CMD_NEW_WORKSPACE: ActionKey = ActionKey::custom("jackin.new-workspace");
-const CMD_EDITOR_NEXT: ActionKey = ActionKey::custom("jackin.editor.next-tab");
-const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::custom("jackin.editor.previous-tab");
-const CMD_EDITOR_ENV: ActionKey = ActionKey::custom("jackin.editor.environments");
-const CMD_SAVE: ActionKey = ActionKey::custom("jackin.save");
-const CMD_MANAGER_EXPAND: ActionKey = ActionKey::custom("jackin.manager.expand");
-const CMD_EDITOR_OPEN: ActionKey = ActionKey::custom("jackin.editor.open");
-const CMD_EDITOR_ROLES: ActionKey = ActionKey::custom("jackin.editor.roles");
-const CMD_EDITOR_ACCOUNTS: ActionKey = ActionKey::custom("jackin.editor.accounts");
-const CMD_EDITOR_PREFER: ActionKey = ActionKey::custom("jackin.editor.prefer");
-const CMD_NAV_DOWN: ActionKey = ActionKey::custom("jackin.navigation.down");
-const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::custom("jackin.navigation.tab-five");
-const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::custom("jackin.capsule.prefix");
-const CMD_CAPSULE_COPY: ActionKey = ActionKey::custom("jackin.capsule.copy-selection");
-const CMD_CAPSULE_DETACH: ActionKey = ActionKey::custom("jackin.capsule.detach");
-const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::custom("jackin.capsule.split-right");
-const CMD_CAPSULE_SPLIT_BELOW: ActionKey = ActionKey::custom("jackin.capsule.split-below");
-const CMD_CAPSULE_ZOOM: ActionKey = ActionKey::custom("jackin.capsule.zoom");
-const CMD_CAPSULE_FOCUS_LEFT: ActionKey = ActionKey::custom("jackin.capsule.focus-left");
-const CMD_CAPSULE_PALETTE: ActionKey = ActionKey::custom("jackin.capsule.palette");
-const CMD_EXIT_DIALOG: ActionKey = ActionKey::custom("jackin.exit.dialog");
-const CMD_EXIT_CONFIRM: ActionKey = ActionKey::custom("jackin.exit.confirm");
-const CMD_PRELUDE_BACKSPACE: ActionKey = ActionKey::custom("jackin.prelude.backspace");
-const CMD_PRELUDE_SPACE: ActionKey = ActionKey::custom("jackin.prelude.space");
-const CMD_ACCOUNT_DOWN: ActionKey = ActionKey::custom("jackin.account.down");
-const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::custom("jackin.account.refresh");
-const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::custom("jackin.account.validate");
-const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::custom("jackin.account.remove");
-const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::custom("jackin.account.default");
-const CMD_ACCOUNT_HELP: ActionKey = ActionKey::custom("jackin.account.help");
-const CMD_COCKPIT_LOG: ActionKey = ActionKey::custom("jackin.cockpit.build-log");
+const CMD_QUIT: ActionKey = ActionKey::application("jackin.quit");
+const CMD_MANAGER: ActionKey = ActionKey::application("jackin.manager");
+const CMD_ACCOUNTS: ActionKey = ActionKey::application("jackin.accounts");
+const CMD_USAGE: ActionKey = ActionKey::application("jackin.usage");
+const CMD_SETTINGS: ActionKey = ActionKey::application("jackin.settings");
+const CMD_SETTINGS_TRUST_KEY: ActionKey = ActionKey::application("jackin.settings.trust-key");
+const CMD_CAPSULE: ActionKey = ActionKey::application("jackin.capsule");
+const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
+const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
+const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
+const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
+const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
+const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
+const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
+const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
+const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
+const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
+const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::application("jackin.navigation.tab-five");
+const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
+const CMD_CAPSULE_DETACH: ActionKey = ActionKey::application("jackin.capsule.detach");
+const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::application("jackin.capsule.split-right");
+const CMD_CAPSULE_SPLIT_BELOW: ActionKey = ActionKey::application("jackin.capsule.split-below");
+const CMD_CAPSULE_ZOOM: ActionKey = ActionKey::application("jackin.capsule.zoom");
+const CMD_CAPSULE_FOCUS_LEFT: ActionKey = ActionKey::application("jackin.capsule.focus-left");
+const CMD_CAPSULE_PALETTE: ActionKey = ActionKey::application("jackin.capsule.palette");
+const CMD_EXIT_DIALOG: ActionKey = ActionKey::application("jackin.exit.dialog");
+const CMD_EXIT_CONFIRM: ActionKey = ActionKey::application("jackin.exit.confirm");
+const CMD_PRELUDE_BACKSPACE: ActionKey = ActionKey::application("jackin.prelude.backspace");
+const CMD_PRELUDE_SPACE: ActionKey = ActionKey::application("jackin.prelude.space");
+const CMD_ACCOUNT_DOWN: ActionKey = ActionKey::application("jackin.account.down");
+const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::application("jackin.account.refresh");
+const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::application("jackin.account.validate");
+const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.remove");
+const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
+const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
+const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 /// The visible product route.
@@ -330,8 +328,7 @@ pub struct App {
     exit_choice: Option<u8>,
     capsule_input: String,
     capsule_input_state: TextInputState,
-    capsule_selection_anchor: Option<Position>,
-    capsule_selected_text: Option<String>,
+    capsule_viewport: ViewportState,
     pending_capsule_action: Option<CapsuleAction>,
     capsule_interaction: CapsuleInteraction,
     editor_accounts: ListState,
@@ -470,8 +467,7 @@ impl App {
             exit_choice: None,
             capsule_input: String::new(),
             capsule_input_state: TextInputState::default(),
-            capsule_selection_anchor: None,
-            capsule_selected_text: None,
+            capsule_viewport: ViewportState::default(),
             pending_capsule_action: None,
             capsule_interaction: CapsuleInteraction::default(),
             editor_accounts: ListState::default(),
@@ -568,13 +564,17 @@ impl App {
         }
     }
 
-    fn sync_capsule_projection(&mut self) {
-        let Some(instance_id) = self.active_instance.clone().or_else(|| {
+    fn active_running_instance_id(&self) -> Option<String> {
+        self.active_instance.as_ref().and_then(|id| {
             self.world
-                .running()
-                .first()
+                .instance(id)
+                .filter(|instance| instance.status == InstanceStatus::Running)
                 .map(|instance| instance.id.clone())
-        }) else {
+        })
+    }
+
+    fn sync_capsule_projection(&mut self) {
+        let Some(instance_id) = self.active_running_instance_id() else {
             return;
         };
         self.active_instance = Some(instance_id.clone());
@@ -1008,13 +1008,7 @@ impl App {
     }
 
     fn apply_capsule_action(&mut self, action: CapsuleAction, account: AccountOption) {
-        let Some(instance_id) = self
-            .world
-            .instances
-            .iter()
-            .find(|instance| instance.status == InstanceStatus::Running)
-            .map(|instance| instance.id.clone())
-        else {
+        let Some(instance_id) = self.active_running_instance_id() else {
             self.status = Some("Capsule unavailable · no running instance".into());
             return;
         };
@@ -1238,8 +1232,9 @@ impl App {
         instance.accounts = accounts;
         instance.daemon = daemon.snapshot();
         let instance_id = instance.id.clone();
-        self.world.daemons.insert(instance_id, daemon);
+        self.world.daemons.insert(instance_id.clone(), daemon);
         self.world.instances.push(instance);
+        self.active_instance = Some(instance_id.clone());
         self.world.sync_arbiter();
         self.manager_rows_cache.clear();
     }
@@ -1250,13 +1245,7 @@ impl App {
 
     fn commit_capsule_input(&mut self) {
         let input = mem::take(&mut self.capsule_input);
-        let Some(instance_id) = self
-            .world
-            .instances
-            .iter()
-            .find(|instance| instance.status == InstanceStatus::Running)
-            .map(|instance| instance.id.clone())
-        else {
+        let Some(instance_id) = self.active_running_instance_id() else {
             return;
         };
         let now_ms = self.world.now_ms();
@@ -2257,8 +2246,34 @@ impl App {
         if self.capsule_prefix {
             return Response::ignored();
         }
-        if !self.capsule_input_state.is_editing() && self.capsule_selected_text.is_none() {
+        if !self.capsule_input_state.is_editing()
+            && self.exit_choice.is_none()
+            && self.capsule_viewport.selection().is_none()
+        {
             cx.focus(CAPSULE_INPUT);
+        }
+        let rows = self.capsule_rows();
+        let lines = rows
+            .iter()
+            .map(|line| ViewportLine::Plain(line.as_str()))
+            .collect::<Vec<_>>();
+        let viewport = TextViewport::new(CAPSULE_PANES).click_selects_word(true);
+        let viewport_response = viewport.update(cx, &mut self.capsule_viewport, &lines);
+        let viewport_action = viewport_response.action_ref().cloned();
+        let mut result = viewport_response.erase();
+        let copied = match viewport_action {
+            Some(ViewportAction::Copy(text)) => Some(text),
+            Some(ViewportAction::SelectionChanged) => {
+                let mut text = String::new();
+                self.capsule_viewport
+                    .copy_into(&lines, &mut text)
+                    .then_some(text)
+            }
+            _ => None,
+        };
+        if let Some(text) = copied {
+            self.world.clipboard = Some(text);
+            result |= Response::changed();
         }
         let input = Self::capsule_input().update(
             cx,
@@ -2268,7 +2283,6 @@ impl App {
         let committed = input
             .action_ref()
             .is_some_and(|action| *action == TextAction::Committed);
-        let mut result = self.update_capsule_pointer(cx);
         result |= input.erase();
         let prefix_key = self
             .capsule_prefix
@@ -2509,13 +2523,6 @@ impl App {
                 self.editor_env_role = None;
                 Some(Response::changed())
             }
-            CMD_CAPSULE_COPY if self.route == Route::Capsule => {
-                if let Some(text) = self.capsule_selected_text.clone() {
-                    self.world.clipboard = Some(text);
-                    self.status = Some("Copied selection".into());
-                }
-                Some(Response::changed())
-            }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
                 self.capsule_prefix = true;
                 self.status = Some("prefix… New tab · Split · Copy · Detach".into());
@@ -2526,6 +2533,7 @@ impl App {
                 self.pending_capsule_action = None;
                 self.status = Some("Detached from Capsule".into());
                 self.route = Route::Manager;
+                self.manager.list.set_cursor(0, ItemKey::index(0));
                 cx.focus(MANAGER_LIST);
                 Some(Response::changed())
             }
@@ -2543,12 +2551,7 @@ impl App {
             }
             CMD_CAPSULE_ZOOM if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
-                if let Some(instance_id) = self
-                    .world
-                    .instances
-                    .iter()
-                    .find(|instance| instance.status == InstanceStatus::Running)
-                    .map(|instance| instance.id.clone())
+                if let Some(instance_id) = self.active_running_instance_id()
                     && let Some(daemon) = self.world.daemons.get_mut(&instance_id)
                     && let Some(tab) = daemon.active_tab_mut()
                 {
@@ -2572,12 +2575,7 @@ impl App {
             }
             CMD_CAPSULE_FOCUS_LEFT if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
-                if let Some(instance_id) = self
-                    .world
-                    .instances
-                    .iter()
-                    .find(|instance| instance.status == InstanceStatus::Running)
-                    .map(|instance| instance.id.clone())
+                if let Some(instance_id) = self.active_running_instance_id()
                     && let Some(daemon) = self.world.daemons.get_mut(&instance_id)
                     && let Some(tab) = daemon.active_tab_mut()
                 {
@@ -2616,6 +2614,8 @@ impl App {
             }
             CMD_EXIT_DIALOG if self.route == Route::Capsule => {
                 self.exit_choice = Some(0);
+                self.capsule_input_state.begin(&self.capsule_input);
+                cx.focus(CAPSULE_INPUT);
                 self.status = Some("Unsaved work · Stay inside · Exit & keep · Cancel".into());
                 Some(Response::changed())
             }
@@ -2635,25 +2635,24 @@ impl App {
             CMD_EXIT_CONFIRM if self.route == Route::Capsule => {
                 if self.exit_choice.is_some_and(|choice| choice >= 2) {
                     self.exit_choice = None;
-                    self.status = None;
-                    if self.world.running_count() > 1 {
-                        if let Some(instance) = self
-                            .world
-                            .instances
-                            .iter_mut()
-                            .find(|instance| instance.status == InstanceStatus::Running)
-                        {
-                            instance.status = InstanceStatus::CleanExited;
-                        }
-                        self.manager_rows_cache.clear();
+                    if let Some(instance_id) = self.active_instance.clone()
+                        && let Some(instance) = self.world.instance_mut(&instance_id)
+                        && instance.status == InstanceStatus::Running
+                    {
+                        instance.status = InstanceStatus::CleanExited;
+                    }
+                    self.world.sync_arbiter();
+                    self.manager_rows_cache.clear();
+                    if self.world.running_count() > 0 {
                         self.route = Route::Manager;
+                        self.active_instance = None;
+                        self.manager.list.set_cursor(0, ItemKey::index(0));
+                        cx.focus(MANAGER_LIST);
                         self.status =
                             Some("Still inside the Construct · another instance is running".into());
-                    } else if self.world.scenario == Scenario::OutroLast {
+                    } else {
                         self.outro = Some(OutroState::new(self.motion, Some(8_040), 0));
                         self.route = Route::Outro;
-                    } else {
-                        self.route = Route::Manager;
                     }
                     Some(Response::changed())
                 } else {
@@ -2767,7 +2766,7 @@ impl App {
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
-            CMD_EDITOR_ACCOUNTS if self.route == Route::Editor => {
+            CMD_NAV_TAB_FIVE if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
@@ -3681,10 +3680,8 @@ impl App {
     }
 
     fn capsule_rows(&self) -> Vec<String> {
-        self.world
-            .instances
-            .iter()
-            .find(|instance| instance.status == InstanceStatus::Running)
+        self.active_running_instance_id()
+            .and_then(|id| self.world.instance(&id))
             .map_or_else(
                 || vec!["Capsule is empty".into()],
                 |instance| {
@@ -3705,7 +3702,11 @@ impl App {
                                 });
                                 let tab_line = format!(
                                     "{}{} · {}",
-                                    if tab_index == daemon.active { "▸ " } else { "  " },
+                                    if tab_index == daemon.active {
+                                        "▸ "
+                                    } else {
+                                        "  "
+                                    },
                                     label,
                                     daemon.tab_state(tab).label()
                                 );
@@ -3721,13 +3722,14 @@ impl App {
                                                 "idle focus"
                                             }
                                         );
-                                        let transcript = pane.term.lines.iter().filter_map(|line| {
-                                            let text = line
-                                                .iter()
-                                                .map(|span| span.text.as_str())
-                                                .collect::<String>();
-                                            (!text.is_empty()).then_some(text)
-                                        });
+                                        let transcript =
+                                            pane.term.lines.iter().filter_map(|line| {
+                                                let text = line
+                                                    .iter()
+                                                    .map(|span| span.text.as_str())
+                                                    .collect::<String>();
+                                                (!text.is_empty()).then_some(text)
+                                            });
                                         std::iter::once(heading)
                                             .chain(transcript)
                                             .collect::<Vec<_>>()
@@ -3745,7 +3747,11 @@ impl App {
                                         "{} · {} · {}",
                                         pane.label,
                                         pane.state.label(),
-                                        if pane.focused { "focused" } else { "idle focus" }
+                                        if pane.focused {
+                                            "focused"
+                                        } else {
+                                            "idle focus"
+                                        }
                                     )
                                 })
                                 .collect::<Vec<_>>(),
@@ -3755,70 +3761,6 @@ impl App {
                     }
                 },
             )
-    }
-
-    fn capsule_copy_at(&self, area: Rect, pos: Position) -> Option<String> {
-        let row = usize::from(pos.y.saturating_sub(area.y));
-        let rows = self.capsule_rows();
-        let line = rows.get(row)?;
-        let chars = line.chars().collect::<Vec<_>>();
-        if chars.is_empty() {
-            return None;
-        }
-        let mut index = usize::from(pos.x.saturating_sub(area.x)).min(chars.len().saturating_sub(1));
-        if chars[index].is_whitespace() {
-            while index > 0 && chars[index].is_whitespace() {
-                index = index.saturating_sub(1);
-            }
-        }
-        if chars[index].is_whitespace() {
-            return None;
-        }
-        let mut start = index;
-        while start > 0 && !chars[start.saturating_sub(1)].is_whitespace() {
-            start = start.saturating_sub(1);
-        }
-        let mut end = index.saturating_add(1);
-        while end < chars.len() && !chars[end].is_whitespace() {
-            end = end.saturating_add(1);
-        }
-        Some(chars[start..end].iter().collect())
-    }
-
-    fn update_capsule_pointer(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let Some(area) = cx.area(CAPSULE_PANES) else {
-            return Response::ignored();
-        };
-        let mut result = Response::ignored();
-        for intent in cx.intents(CAPSULE_PANES) {
-            let Intent::Pointer { phase, pos, .. } = intent else {
-                continue;
-            };
-            match phase {
-                junie_tui::Phase::Press => {
-                    self.capsule_selection_anchor = Some(pos);
-                    cx.focus(CAPSULE_PANES);
-                }
-                junie_tui::Phase::DragEnd => {
-                    let source = self.capsule_selection_anchor.take().unwrap_or(pos);
-                    if let Some(text) = self.capsule_copy_at(area, source) {
-                        self.capsule_selected_text = Some(text.clone());
-                        self.world.clipboard = Some(text);
-                        result |= Response::changed();
-                    }
-                }
-                junie_tui::Phase::Click | junie_tui::Phase::DoubleClick => {
-                    self.capsule_selection_anchor = None;
-                    if let Some(text) = self.capsule_copy_at(area, pos) {
-                        self.capsule_selected_text = Some(text.clone());
-                        self.world.clipboard = Some(text);
-                        result |= Response::changed();
-                    }
-                }
-                _ => {}
-            }
-        }
-        result
     }
 
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -3846,7 +3788,13 @@ impl App {
             ..area
         };
         let rows = self.capsule_rows();
-        List::new(CAPSULE_PANES).draw(ui, pane_area, &ListState::default(), &rows);
+        let lines = rows
+            .iter()
+            .map(|line| ViewportLine::Plain(line.as_str()))
+            .collect::<Vec<_>>();
+        TextViewport::new(CAPSULE_PANES)
+            .click_selects_word(true)
+            .draw(ui, pane_area, &self.capsule_viewport, &lines);
         if self.capsule_usage {
             paint_lines(
                 ui,
@@ -3930,14 +3878,6 @@ impl TuiApp for App {
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx);
         self.ensure_manager_header();
-        if self.route == Route::Capsule
-            && self.exit_choice.is_some()
-            && cx.command() == Some(ActionKey::custom("Commit"))
-        {
-            return self
-                .update_command(cx, CMD_EXIT_CONFIRM)
-                .unwrap_or_else(Response::ignored);
-        }
         if let Some(command) = cx.command()
             && let Some(result) = self.update_command(cx, command)
         {
@@ -4057,6 +3997,10 @@ impl TuiApp for App {
         }
         if self.route == Route::Capsule && self.capsule_prefix {
             self.capsule_prefix = false;
+            self.status = None;
+            return Response::changed();
+        }
+        if self.route == Route::Capsule {
             self.status = None;
             return Response::changed();
         }
@@ -4200,11 +4144,6 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Capture,
             Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
             CMD_CAPSULE_PREFIX,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('y')),
-            CMD_CAPSULE_COPY,
         )
         .bind(
             KeyPhase::Bubble,
