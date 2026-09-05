@@ -995,6 +995,39 @@ fn provenance_dimensions(record: &Value, key: &str) -> Option<(u16, u16)> {
     Some((columns, rows))
 }
 
+fn capture_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -> bool {
+    let expected = root().join(relative);
+    let expected = expected.to_string_lossy();
+    info.get("path").and_then(Value::as_str) == Some(expected.as_ref())
+        && info.get("resolved_path").and_then(Value::as_str) == Some(expected.as_ref())
+}
+
+fn validate_empty_capture_file(path: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(path).map_err(|error| {
+        format!(
+            "cannot inspect empty capture file {}: {error}",
+            path.display()
+        )
+    })?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(format!(
+            "empty capture file is not a regular file: {}",
+            path.display()
+        ));
+    }
+    let file = open_capture_artifact(path)?;
+    let opened_metadata = file.metadata().map_err(|error| {
+        format!(
+            "cannot inspect opened empty capture file {}: {error}",
+            path.display()
+        )
+    })?;
+    if !opened_metadata.is_file() || opened_metadata.len() != 0 {
+        return Err(format!("capture stderr is not empty: {}", path.display()));
+    }
+    Ok(())
+}
+
 fn validate_capture_provenance(
     expected: &[CaptureCase],
     path: &Path,
@@ -1035,6 +1068,9 @@ fn validate_capture_provenance(
             errors.push(format!("unexpected capture provenance cell: {name}"));
             continue;
         };
+        if object.get("schema_version").and_then(Value::as_u64) != Some(2) {
+            errors.push(format!("{name}: provenance schema version is not 2"));
+        }
         if !seen.insert(name.to_owned()) {
             errors.push(format!("duplicate capture provenance cell: {name}"));
         }
@@ -1110,10 +1146,10 @@ fn validate_capture_provenance(
                 errors.push(format!("{name}: provenance is missing the {kind} artifact"));
                 continue;
             };
-            let artifact_path = format!("shots/{name}.{extension}");
-            if info.get("path").and_then(Value::as_str) != Some(artifact_path.as_str()) {
+            let artifact_path = format!("shots/{name}/{extension}");
+            if !capture_path_matches(info, &artifact_path) {
                 errors.push(format!(
-                    "{name}: {kind} artifact path is not {artifact_path}"
+                    "{name}: {kind} artifact path is not the published generation path {artifact_path}"
                 ));
             }
             if info.get("status").and_then(Value::as_str) != Some("ok") {
@@ -1138,8 +1174,22 @@ fn validate_capture_provenance(
             errors.push(format!("{name}: provenance is missing stderr information"));
             continue;
         };
-        if stderr.get("path").and_then(Value::as_str) != Some("shots/stderr.log") {
-            errors.push(format!("{name}: stderr path is not shots/stderr.log"));
+        let run_id = provenance_string(record, "run_id");
+        if run_id.is_none() {
+            errors.push(format!("{name}: provenance has no run id"));
+        } else if !capture_name_is_safe(run_id.unwrap_or_default()) {
+            errors.push(format!("{name}: provenance run id is unsafe"));
+        }
+        let stderr_path = run_id
+            .filter(|run_id| capture_name_is_safe(run_id))
+            .map(|run_id| format!("shots/.capture-state/{run_id}/stderr.log"));
+        if stderr_path
+            .as_deref()
+            .is_none_or(|expected| !capture_path_matches(stderr, expected))
+        {
+            errors.push(format!(
+                "{name}: stderr path is not its run-owned capture state file"
+            ));
         }
         if stderr.get("status").and_then(Value::as_str) != Some("empty")
             || stderr.get("bytes").and_then(Value::as_u64) != Some(0)
@@ -1149,6 +1199,11 @@ fn validate_capture_provenance(
             errors.push(format!(
                 "{name}: application stderr is not recorded as empty"
             ));
+        }
+        if let Some(stderr_path) = stderr_path {
+            if let Err(error) = validate_empty_capture_file(&root().join(stderr_path)) {
+                errors.push(format!("{name}: {error}"));
+            }
         }
     }
 
@@ -1222,7 +1277,7 @@ fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), Str
     let expected_by_path: BTreeMap<String, CaptureCase> = expected
         .iter()
         .copied()
-        .map(|case| (format!("shots/{}.png", case.shot_name()), case))
+        .map(|case| (format!("shots/{}/png", case.shot_name()), case))
         .collect();
     let mut seen = BTreeSet::new();
     let mut errors = Vec::new();
@@ -1684,7 +1739,6 @@ fn capture_provenance_contract_hits(script: &str) -> Vec<String> {
     .collect()
 }
 
-#[cfg(test)]
 fn capture_name_is_safe(name: &str) -> bool {
     let mut chars = name.chars();
     matches!(chars.next(), Some(first) if first.is_ascii_alphanumeric())
