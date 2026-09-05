@@ -6366,7 +6366,9 @@ fn rustdoc_json() -> Result<Value, String> {
         ));
     }
 
-    let json_path = target_dir.join("doc/tui_next.json");
+    let json_path = target_dir
+        .join("doc")
+        .join(format!("{}.json", LIB_CRATE_IDENTS[0]));
     let json = fs::read_to_string(&json_path).map_err(|error| {
         format!(
             "cargo +nightly rustdoc succeeded but did not produce {}: {error}",
@@ -6417,7 +6419,7 @@ fn rustdoc_json_component_docs(document: &Value) -> Result<Vec<(String, String)>
         let Some(path_parts) = path.get("path").and_then(Value::as_array) else {
             continue;
         };
-        if path_parts.first().and_then(Value::as_str) != Some("tui_next")
+        if path_parts.first().and_then(Value::as_str) != Some(LIB_CRATE_IDENTS[0])
             || path_parts.get(1).and_then(Value::as_str) != Some("components")
         {
             continue;
@@ -6537,6 +6539,35 @@ fn rustdoc_json_collect_resolved_paths(value: &Value, ids: &mut BTreeSet<String>
     }
 }
 
+fn rustdoc_json_collect_reexport_targets(
+    id: &str,
+    index: &serde_json::Map<String, Value>,
+    paths: &serde_json::Map<String, Value>,
+    visited: &mut BTreeSet<String>,
+    ratatui_ids: &mut BTreeSet<String>,
+) {
+    if !visited.insert(id.to_owned()) {
+        return;
+    }
+    if paths.get(id).is_some_and(rustdoc_json_is_ratatui_path) {
+        ratatui_ids.insert(id.to_owned());
+        return;
+    }
+    let Some(item) = index.get(id) else {
+        return;
+    };
+    if let Some(target_id) = item.pointer("/inner/use/id").and_then(rustdoc_json_id) {
+        rustdoc_json_collect_reexport_targets(&target_id, index, paths, visited, ratatui_ids);
+    }
+    if let Some(type_alias) = item.pointer("/inner/type_alias/type") {
+        let mut targets = BTreeSet::new();
+        rustdoc_json_collect_resolved_paths(type_alias, &mut targets);
+        for target_id in targets {
+            rustdoc_json_collect_reexport_targets(&target_id, index, paths, visited, ratatui_ids);
+        }
+    }
+}
+
 fn rustdoc_json_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, String> {
     let index = rustdoc_json_index(document)?;
     let paths = rustdoc_json_paths(document)?;
@@ -6551,7 +6582,7 @@ fn rustdoc_json_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, 
         .pointer("/inner/module/items")
         .and_then(Value::as_array)
         .ok_or_else(|| "rustdoc-json root module has no item list".to_owned())?;
-    let mut names = BTreeSet::new();
+    let mut ratatui_ids = BTreeSet::new();
     for item_id in items.iter().filter_map(rustdoc_json_id) {
         let Some(item) = index.get(&item_id) else {
             continue;
@@ -6559,23 +6590,17 @@ fn rustdoc_json_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, 
         if item.get("visibility").and_then(Value::as_str) != Some("public") {
             continue;
         }
-        let Some(use_item) = item.pointer("/inner/use") else {
-            continue;
-        };
-        let Some(target_id) = use_item.get("id").and_then(rustdoc_json_id) else {
-            continue;
-        };
-        let Some(target) = paths.get(&target_id) else {
-            continue;
-        };
-        if !rustdoc_json_is_ratatui_path(target) {
-            continue;
-        }
-        if let Some(name) = use_item.get("name").and_then(Value::as_str) {
-            names.insert(name.to_owned());
+        if item.pointer("/inner/use").is_some() || item.pointer("/inner/type_alias").is_some() {
+            rustdoc_json_collect_reexport_targets(
+                &item_id,
+                index,
+                paths,
+                &mut BTreeSet::new(),
+                &mut ratatui_ids,
+            );
         }
     }
-    Ok(names)
+    Ok(ratatui_ids)
 }
 
 /// §16.5 / §24 M1. Inspect the compiled public surface, not source text:
@@ -6614,10 +6639,7 @@ fn every_foreign_type_in_the_public_surface_is_re_exported() -> Result<(), Strin
         let Some(path_parts) = path.get("path").and_then(Value::as_array) else {
             continue;
         };
-        let Some(name) = path_parts.last().and_then(Value::as_str) else {
-            continue;
-        };
-        if !reexports.contains(name) {
+        if !reexports.contains(id) {
             missing.insert(
                 path_parts
                     .iter()

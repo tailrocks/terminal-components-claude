@@ -78,10 +78,10 @@ pub use layer::{
 };
 // theme
 pub use theme::{
-    Align, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS, Family, FgStep, GlyphRole,
-    MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay, OverlayRule,
-    PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StylePatch, Surface, SyntaxRole, Theme,
-    ThemeBuilder, Variant,
+    Align, BorderSet, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS, Family, FgStep,
+    GlyphRole, MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay,
+    OverlayRule, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StylePatch, Surface,
+    SyntaxRole, Theme, ThemeBuilder, Variant,
 };
 // layout and measurement
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
@@ -157,4 +157,5 @@ pub use validate::{FieldError, NoValidate, Validate};
 pub use ratatui_core::buffer::{Buffer, Cell};
 pub use ratatui_core::layout::{Position, Rect};
 pub use ratatui_core::style::{Color, Style};
+pub use ratatui_core::symbols::{line::Set as LineSet, scrollbar::Set as ScrollbarSet};
 pub use ratatui_core::terminal::Frame;
