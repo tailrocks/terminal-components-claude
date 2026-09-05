@@ -16,9 +16,9 @@
 
 **[F5] §11.4 already mandates the bracket.** The `PRESSED` row reads `CONTAINER` reverse + `BOLD` "**and** `Part::LABEL` bracketed with `GlyphRole::PressLeft` / `GlyphRole::PressRight`" (`COMPONENT_ARCHITECTURE.md:1041`). §11.4 never says *who* paints it.
 
-**[F6] The Slice-4 shapes split two ways.** `ChipBar::PARTS = [CONTAINER, LABEL, CLOSE, OVERFLOW]` (`COMPONENT_ARCHITECTURE.md:2621`) — tab-shaped, pads and a close cell, no `MARKER`/`GUTTER`. `RadioGroup::PARTS = [CONTAINER, GUTTER, MARKER, LABEL]` (`:2607`) — list-shaped. Menu items, steps and picker rows are list-shaped.
+**[F6] The Slice-4 shapes split two ways in the review snapshot.** The snapshot recorded `ChipBar::PARTS = [CONTAINER, LABEL, CLOSE, OVERFLOW]` (`COMPONENT_ARCHITECTURE.md:2621`) — tab-shaped, pads and a close cell, no `MARKER`/`GUTTER`. The current contract supersedes that snapshot: `ChipBar::PARTS = [CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW, NEW]`; `MARKER` paints the checked-set `CHECKED` affordance and `NEW` is the add affordance (§30, §50.2). `RadioGroup::PARTS = [CONTAINER, GUTTER, MARKER, LABEL]` (`:2607`) — list-shaped. Menu items, steps and picker rows are list-shaped.
 
-**[F7] `Fixture::state_override` is `pub` (`crates/tui-testing/src/conformance/mod.rs:76`), `status` is `pub` (`:83`), and `force` is the only writer that pairs them (`:110-129`).** Case 9 is the only caller (`driver.rs:439`). Every case reads the field (`crates/tui/tests/conformance.rs:387`, `:396`, `:450`, `:552`). §16.2's declared `Fixture` (`COMPONENT_ARCHITECTURE.md:1782-1786`) lists **none** of `state_override`, `patch`, `secret`, `status` — the doc's type is three amendments stale.
+**[F7] The review snapshot exposed a public forced-state pair.** `state_override` and `status` were public in the snapshot (`crates/tui-testing/src/conformance/mod.rs`), and `force` was the only writer that paired them. The current applied shape is `reference_state: Option<StateFlags>` plus private `status`; `forced() -> Option<StateFlags>` and `status()` are reads, and `force(StateFlags)` is the paired writer. The current `Fixture` has ten public fields (`disabled`, `read_only`, `theme`, `color`, `area`, `rows`, `decor_flags`, `selected`, `patch`, `secret`) and two private fields. `Some(StateFlags::empty())` remains distinct from no reference state.
 
 **[F8] The named grep can never exit 0, and its intent is not satisfied today either.** `rg -n 'fn mono_states' … -A2` yields, per case, the signature line (filtered: contains `]`), the `const STATES: …` line (filtered: contains `const`), and `StateFlags::empty(),` — which matches none of `///|//|const|&STATES|STATES:|\]|\}` and always survives, so `rg -v` exits 0 and `!` fails (`COMPONENT_ARCHITECTURE.md:6173`, `:6202`). Separately, counting drops against the ten-state default (`conformance/mod.rs:138-149`): `TabsCase` drops **ERROR, WARNING, EDITING, BUSY, ACTIVE** but documents only `ACTIVE` (`conformance.rs:618-634`); `FieldCase` drops **SELECTED, PRESSED, WARNING, BUSY, ACTIVE** and documents none (`:406-419`); `TextInputCase` drops **SELECTED, PRESSED, WARNING, ACTIVE** and documents none (`:344-358`); only `ListCase` names all three of its drops (`:513-530`). §28.6's claim that the intent "is currently satisfied by doc comments on all five cases" is **false for four of the five**.
 
@@ -30,7 +30,7 @@
 
 **(a) is not a new affordance; it is compliance with §11.4 as already written [F5].** The `PRESSED` row requires the bracket *in addition to* the `CONTAINER` rule. `Button` discharges it; `Tabs` now discharges it. What was missing from the spec is the sentence saying who paints it, and Adjudication P's table assumed every component paints its own label the way `Button` does.
 
-**R1 is proven in three phases.** With the Tabs bracket block enabled, `conformance::tabs::mono_states_are_distinguishable` exited `0`. With only `tabs.rs:719–728` disabled, the same test exited nonzero because `TabsCase` reported mono `PRESSED`/`FOCUSED` equality. Restoring that block returned the test to exit `0`. The `CONTAINER` rule's `BOLD` alone therefore did not distinguish this pair; the reserved-cell bracket is independently required.
+**R1 is proven in three phases.** With the Tabs bracket block enabled, `tabs::mono_states_are_distinguishable` in the `conformance` integration target exited `0`. With only `tabs.rs:719–728` disabled, the same test exited nonzero because `TabsCase` reported mono `PRESSED`/`FOCUSED` equality. Restoring that block returned the test to exit `0`. The `CONTAINER` rule's `BOLD` alone therefore did not distinguish this pair; the reserved-cell bracket is independently required.
 
 **Why the bracket cannot move into `RowUi` (rejects (c) as stated).** The bracket needs two columns that are not the label's. `Button` has a gutter and a trailing pad; a tab has two pad cells [F2]; a `List`/`Tree`/`Props`/`Grid` row has none — `RowUi::label` fills the whole remainder (`rowui.rs:170-188`). Teaching `label` to bracket would take two content columns from every pressed row and pull the ellipsis in by two — a mono fallback changing geometry, which §28.6 already rejected in terms ("a bracket glyph steals two columns … a mono fallback must never change geometry", `COMPONENT_ARCHITECTURE.md:6171`). `RowUi` has no information with which to reserve those columns; only the component that laid out the row does. This is structurally the same conclusion §28.6(b) reached for the spinner: **the theme rule states the affordance; the component that owns the cells paints it.**
 
@@ -40,13 +40,13 @@
 
 **The `marker`/`part` correction is applied.** `Resolved.glyph` and `PartMetrics.glyph` are now `Slot<GlyphRole>`, so `Slot::Clear` remains distinct from `Slot::Inherit`; cell-owning `RowUi` methods honor `Inherit`, `Set` and `Clear` without changing reserved geometry. The existing callers in `crates/tui/examples/07_borrowed_rows.rs` and `crates/tui/examples/08_dynamic_tabs.rs` are live regression coverage. Label methods remain text-run methods with no automatic glyph placement.
 
-**Scaling to Slice 4** (this is the answer the question asks for): chips are tab-shaped [F6] and use the same reserved-pad bracket; menu items, steps, picker rows and radio rows are list-shaped and need **nothing** — `CONTAINER`'s reverse + `BOLD` already carries `PRESSED`, as `ListCase` proves [F3]. So the rule is one sentence, not five implementations.
+**Scaling to Slice 4** (this is the answer the question asks for): chips are tab-shaped [F6] and use the same reserved-pad bracket; menu items, steps, picker rows and `RadioGroup` rows are list-shaped and need **nothing** — `CONTAINER`'s reverse + `BOLD` already carries `PRESSED`, as `ListCase` proves [F3]. Choice's in-run bracket and Brand's reserved-pad obligation remain separate unresolved questions; Q1 does not close those gates. So the rule is one sentence, not five implementations.
 
 **Applied geometry rule.** The shared bracket helper takes two already-reserved cells and does not resize, shift, measure or truncate the label. `Button` passes its gutter and trailing pad; `Tabs` (and ChipBar) pass their existing pads. The label rectangle, total width and close-cell geometry remain unchanged.
 
 ---
 
-## Q2 — `Fixture::state_override`
+## Q2 — `Fixture` forced-state reference
 
 **Decision: make the field private, with a read accessor. `force` becomes the only way to set it.**
 
@@ -57,22 +57,23 @@ Keeping it public with a documented invariant plus a check is a symptom patch: t
 pub struct Fixture {
     pub disabled: bool, pub read_only: bool, pub theme: Theme,
     pub color: ColorLevel, pub area: Rect, pub rows: Vec<FixtureRow>,
+    pub decor_flags: StateFlags, pub selected: bool,
     pub patch: Option<(Part, StylePatch)>, pub secret: Option<&'static str>,
     /// Forced state (A11) — private, because setting it without the props
     /// the state implies re-opens the P6(iii) gap. Write it with
     /// [`Fixture::force`]; read it with [`Fixture::forced`].
-    state_override: StateFlags,
+    reference_state: Option<StateFlags>,
     /// Readiness, derived from `force`. Private for the same reason.
     status: Status,
 }
 impl Fixture {
-    #[must_use] pub const fn forced(&self) -> StateFlags { self.state_override }
+    #[must_use] pub const fn forced(&self) -> Option<StateFlags> { self.reference_state }
     #[must_use] pub const fn status(&self) -> Status { self.status }
     #[must_use] pub fn force(mut self, s: StateFlags) -> Self { /* unchanged body */ }
 }
 ```
 
-`status` goes private with it — a case that sets `status` alone would reproduce the mirror-image gap (props busy, theme flags not). All existing uses are reads [F7] and become `f.forced()` / `f.status()`; `Default` is in the same module and is unaffected. `Fixture` keeps `Clone + Debug`; nothing constructs it by struct literal outside the crate.
+`status` goes private with it — a case that sets `status` alone would reproduce the mirror-image gap (props busy, theme flags not). All existing uses are reads [F7] and become `f.forced()` / `f.status()`; `Some(StateFlags::empty())` is distinct from no reference state. `Default` is in the same module and is unaffected. `Fixture` keeps `Clone + Debug`; nothing constructs it by struct literal outside the crate.
 
 **Rejected.** *Public + documented invariant + a `debug_assert` in the driver* — fires only on the path that happens to run, says nothing at review time, and leaves the field settable. *A `Forced(StateFlags, Status)` newtype field, still public* — same hole one indirection deeper. *An `xtask` boundary rule forbidding `state_override =`* — a text check standing in for a language feature that is already available and free here.
 
@@ -105,7 +106,7 @@ for s in &dropped {
 }
 ```
 
-It lives in case 9 rather than as a 21st case, so the "20-case matrix" language, the §16.2 table and `every_named_test_exists` are all untouched, and the failure lands in `conformance::<component>::mono_states_are_distinguishable` — beside the narrowing it is about. `iter_names()` is available (`bitflags` is already the dependency, `conformance/mod.rs:10`), and `StateFlags::empty()` yields no names and is in every list, so it never trips.
+It lives in case 9 rather than as a 21st case, so the "20-case matrix" language, the §16.2 table and `every_named_test_exists` are all untouched, and the failure lands in `<component>::mono_states_are_distinguishable` inside the `conformance` integration target — beside the narrowing it is about. `iter_names()` is available (`bitflags` is already the dependency, `conformance/mod.rs:10`), and `StateFlags::empty()` yields no names and is in every list, so it never trips.
 
 Unlike the grep, this survives a file move, cannot be satisfied by a comment about a different state, and catches the recurrence the grep was aimed at: a reason written once and a second state dropped later.
 
@@ -156,19 +157,19 @@ Architecture §51 subsequently accepted keyed runtime-owned hover and its integr
 ## Risks
 
 1. **R1 is closed.** The enabled → bracket-disabled → restored sequence above proves that this Tabs pair needs the reserved-cell bracket in addition to `CONTAINER`'s `BOLD`.
-2. **Q1 is a per-component obligation, so it can be forgotten.** Mitigated by the shared helper plus the boundary condition A3: no component may open-code `GlyphRole::PressLeft`.
+2. **Q1 is a per-component obligation, so it can be forgotten.** Mitigated for the approved reserved-pad components by the shared helper plus the boundary condition A3; `choice.rs` is explicitly excluded because its separate in-run bracket remains unresolved.
 3. **The Button mono baseline is intentionally eligible to move.** The bracket now uses reserved cells, so its mono line requires the §20.10 item 18 capture/classify/bless sequence before blessing.
 4. **Q3's reason check is now a maintained invariant.** Any future narrowing without a reason, or any omitted state name, fails case 9.
-5. **Q2 is a `tui-next-testing` public-API break** (two fields). Dev-only crate, `publish = false` (`COMPONENT_ARCHITECTURE.md:1665`); no consumer outside the workspace.
+5. **Q2 is a `junie-tui-testing` public-API break** (two fields). Dev-only crate, `publish = false` (`COMPONENT_ARCHITECTURE.md:1665`); no consumer outside the workspace.
 6. **The `RowUi::marker`/`part` defect is fixed in the current source.** The `Slot<GlyphRole>` migration and the two existing example callers are covered by the applied A4 contract.
 
 ---
 
 ## Exact document amendments
 
-1. **§11.4, `PRESSED` row (`COMPONENT_ARCHITECTURE.md:1041`)** — append: *"The `CONTAINER` half is a `StateRule`. The bracket is a **component obligation**, like the `BUSY` spinner two rows down and for the same reason: a rule binds a glyph but cannot reserve the two columns it needs. A component that reserves pad cells around its label (`Button`'s gutter and trailing pad, a tab's or a chip's pads) paints `PressLeft`/`PressRight` **into those cells**, never into the label's own run, so a mono fallback never changes geometry. A component whose row has no spare pad — every `RowUi`-labelled collection row — expresses `PRESSED` through the `CONTAINER` rule alone, which is already distinguishable (`conformance::list::mono_states_are_distinguishable`). `RowUi` does not paint the bracket. <!-- amended by §29 -->"*
+1. **§11.4, `PRESSED` row (`COMPONENT_ARCHITECTURE.md:1041`)** — append: *"The `CONTAINER` half is a `StateRule`. The bracket is a **component obligation**, like the `BUSY` spinner two rows down and for the same reason: a rule binds a glyph but cannot reserve the two columns it needs. A component that reserves pad cells around its label (`Button`'s gutter and trailing pad, a tab's or a chip's pads) paints `PressLeft`/`PressRight` **into those cells**, never into the label's own run, so a mono fallback never changes geometry. A component whose row has no spare pad — every `RowUi`-labelled collection row — expresses `PRESSED` through the `CONTAINER` rule alone, which is already distinguishable (`list::mono_states_are_distinguishable` in the `conformance` integration target). `RowUi` does not paint the bracket. <!-- amended by §29 -->"*
 2. **§12.2, after the `RowUi` block (`:1122`)** — add: *"**The glyph slot (binding).** `Resolved.glyph` and `PartMetrics.glyph` are `Slot<GlyphRole>`, preserving `Inherit`, `Set` and `Clear`. Cell-owning `RowUi` methods honor the resolved slot and reserved geometry; `label`, `label_patched`, `label_spans` and `label_fmt` remain text-run methods without automatic glyph placement. The existing example callers are regression coverage. <!-- amended by §29 -->"*
-3. **§16.2's `Fixture` declaration (`:1782-1786`)** — replace with the real eight-field shape of Q2 above, `state_override` and `status` private, and add: *"`force(StateFlags)` is the only way to set a forced state; it sets `status` alongside the flags, so P6(iii)'s props-driven-affordance gap cannot be re-opened by a later case. `forced()` and `status()` are the reads."*
+3. **§16.2's `Fixture` declaration (`:1782-1786`)** — replace with the real ten-public-field shape of Q2 above, `reference_state: Option<StateFlags>` and `status` private, and add: *"`force(StateFlags)` is the only way to set a forced state; it sets `status` alongside the flags, so P6(iii)'s props-driven-affordance gap cannot be re-opened by a later case. `forced() -> Option<StateFlags>` and `status()` are the reads."*
 4. **§16.2 case 9 (`:1828`)** — append: *"Every narrowing carries a machine-checked reason: `Conformance::mono_narrowing_reason()` is non-empty exactly when `mono_states()` narrows, and names every state dropped (checked by `iter_names()` containment inside this case). The grep §28.6 named in its place could never exit 0 and did not express the property. <!-- amended by §29 -->"*
 5. **§28.6, Tests paragraph (`:6173`)** — strike the `! rg -n 'fn mono_states' …` sentence; replace with: *"~~The narrowing must stay visible in one place…~~ **Struck (§29 Q3):** the grep always matched the `StateFlags::empty(),` line every case has and could never exit 0, and four of the five narrowings did not in fact name the states they dropped. Replaced by `Conformance::mono_narrowing_reason()`, asserted inside case 9."*
 6. **§28.8 (`:6202`)** — delete the grep line; replace with the A5/A6 commands below.
@@ -182,8 +183,8 @@ Architecture §51 subsequently accepted keyed runtime-owned hover and its integr
 
 ```bash
 # ── A1 (R1): settle what actually distinguishes mono PRESSED, before any prose lands
-cargo test -p tui-next --test conformance conformance::tabs::mono_states_are_distinguishable
-cargo test -p tui-next --lib components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
+cargo test -p junie-tui --test conformance tabs::mono_states_are_distinguishable
+cargo test -p junie-tui --lib components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
 #   new: at ColorLevel::Mono with forced PRESSED, cells tab.x and tab.x+1+label_w hold
 #   PressLeft/PressRight; the label run is byte-identical to the FOCUSED rendering.
 #   Then, with the bracket block at tabs.rs:719-728 temporarily disabled, case 9 must
@@ -191,25 +192,32 @@ cargo test -p tui-next --lib components::tabs::tests::mono_pressed_brackets_the_
 #   §29 Q1's narrative is corrected to say so.
 
 # ── A2: Q1 — the idiom is shared, and geometry never moves
-cargo test -p tui-next --lib components::button::tests::mono_pressed_does_not_truncate_the_label
-cargo test -p tui-next --test conformance conformance::button::mono_states_are_distinguishable
-cargo test -p tui-next --test conformance conformance::list::mono_states_are_distinguishable
+cargo test -p junie-tui --lib components::button::tests::mono_pressed_does_not_truncate_the_label
+cargo test -p junie-tui --test conformance button::mono_states_are_distinguishable
+cargo test -p junie-tui --test conformance list::mono_states_are_distinguishable
 
-# ── A3: exactly one implementation of the bracket
-test "$(rg -c -- 'GlyphRole::PressLeft' crates/tui/src/components/ | rg -v 'mod\.rs' | wc -l)" -eq 0
+# ── A3: one shared implementation for the approved reserved-pad bracket.
+# Choice is intentionally excluded: its separate in-run bracket remains the
+# unresolved §29.7 obligation and is not silently counted as closed.
+while IFS= read -r file; do
+  if ! rg -q -- 'paint_pressed_bracket' "$file"; then
+    printf 'missing paint_pressed_bracket call: %s\n' "$file"
+    exit 1
+  fi
+done < <(rg -l -- 'GlyphRole::PressLeft' crates/tui/src/components/ | rg -v '/(mod|choice)\.rs$')
 
 # ── A4: live RowUi callers exercise the Slot contract
 rg -n '\.marker\(' crates/tui/examples/07_borrowed_rows.rs crates/tui/examples/08_dynamic_tabs.rs
-rtk cargo test -p tui-next --lib collection::rowui
+rtk cargo test -p junie-tui --lib collection::rowui
 
 # ── A5: Q2 — the forced state is unsettable except through `force`
-! rg -n 'pub (state_override|status)\s*:' crates/tui-testing/src/conformance/mod.rs
-rg -n 'state_override\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs
-cargo test -p tui-next --test conformance          # every case compiles against forced()/status()
-rg -n 'state_override: StateFlags,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
+! rg -n 'pub (reference_state|status)\s*:' crates/tui-testing/src/conformance/mod.rs
+rg -n 'reference_state\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs
+cargo test -p junie-tui --test conformance          # every case compiles against forced()/status()
+rg -n 'reference_state: Option<StateFlags),' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
 
 # ── A6: Q3 — the reason is declared and checked, not grepped
-cargo test -p tui-next --test conformance conformance:: -- --include-ignored
+cargo test -p junie-tui --test conformance -- --include-ignored
 !  rg -n "rg -v '///" COMPONENT_ARCHITECTURE.md      # the broken grep is gone from the doc
 rg -n 'mono_narrowing_reason' crates/tui-testing/src/conformance/{mod,driver}.rs \
       crates/tui/tests/conformance.rs COMPONENT_ARCHITECTURE.md
@@ -222,6 +230,15 @@ cargo test --workspace --test architecture every_named_test_exists
 rg -n 'Adjudication Q' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
 ```
 
-**Gate pass condition.** Every command exits 0; the 797-test suite is green with the reasons written; `docs/visual-changes.md` carries a §20.10 item 18 line **before** any mono baseline is blessed, and only if A2 moves `Button`'s bracket; `crates/tui/tests/allow/*.txt` stay empty; the nine amendments above are applied and mirrored in `REFACTORING_STATE.md`.
+**Gate condition (not currently met).** The commands above are acceptance conditions, not evidence that this review is green. `ebfa8b8` closes the prior TextArea case-10 false negative by checking the recorded resolved style when a composed painter leaves the digest unchanged; current HEAD `f713ccb` reports **934 passing conformance tests** (the later revert removed one incomplete provenance test from the earlier 935-test count). A future `Conformance::patch_part()` hook may remove the remaining `PARTS.first()` ordering convention, but it is not an open gate. The Choice/Brand bracket questions remain open. No full-workspace gate, baseline edit or blessing is claimed by this document; the nine amendments are applied and mirrored in `REFACTORING_STATE.md`.
+
+**Current TextArea evidence boundary.** `TextArea::PARTS` starts
+`[FIELD, TEXT, PLACEHOLDER, …]`. With `ebfa8b8`,
+`text_area::local_override_does_not_mutate_the_theme` checks the recorded
+`Resolved` style for the selected part when the composed painter covers the
+patched cells, and is included in the 934 passing conformance tests at current
+HEAD `f713ccb`. The
+`PARTS.first()` convention remains documented as future hook-hardening work;
+this docs pass made no source or baseline edit.
 
 **Relevant paths:** `/Users/donbeave/Projects/terminal-components-claude/crates/tui/src/collection/rowui.rs`, `/Users/donbeave/Projects/terminal-components-claude/crates/tui/src/components/{tabs,button,list}.rs`, `/Users/donbeave/Projects/terminal-components-claude/crates/tui/src/theme/downgrade.rs`, `/Users/donbeave/Projects/terminal-components-claude/crates/tui/src/ui/paint.rs`, `/Users/donbeave/Projects/terminal-components-claude/crates/tui-testing/src/conformance/{mod,driver}.rs`, `/Users/donbeave/Projects/terminal-components-claude/crates/tui/tests/conformance.rs`, `/Users/donbeave/Projects/terminal-components-claude/COMPONENT_ARCHITECTURE.md`, `/Users/donbeave/Projects/terminal-components-claude/docs/reviews/adjudication-p-prototype-decisions.md`.

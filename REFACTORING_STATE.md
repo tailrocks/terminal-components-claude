@@ -2000,3 +2000,31 @@ not claim Slice or goal completion.
   picker, launch, and perf fixes are landed, but fresh provenance-backed captures and independent
   review are still required.
 - No baseline was edited and no blessing was performed. Visual blessing remains unauthorized.
+
+## Documentation evidence checkpoint — §29 alignment (2026-09-05, source `f713ccb`, fix `ebfa8b8`)
+
+This checkpoint supersedes only the current §29 command/prose claims above; earlier adjudication
+snapshots remain historical evidence. It is a documentation-only update. No source or baseline
+edit is included here.
+
+- Conformance integration-test filters are `<component>::<case>` inside `--test conformance`;
+  the old `conformance::` prefix matched no generated test. Layer/select targeted paths are
+  `layer::runtime_tests::focus_out_dismisses_a_popover_but_never_a_modal` and
+  `components::select::tests::an_open_popup_closes_when_focus_leaves_the_field`.
+- The current `Fixture` has ten public fields and private
+  `reference_state: Option<StateFlags>`/`status`; `forced() -> Option<StateFlags>` preserves
+  `Some(StateFlags::empty())` as a real reference, and `force(StateFlags)` is the paired writer.
+- The current ChipBar contract is six parts:
+  `[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW, NEW]`. `MARKER` paints checked-set `CHECKED`
+  through `GlyphRole::Checked`; `NEW` is the payloadless add affordance. The older four-part
+  review snapshot is historical. The Choice in-run bracket remains an explicit §29.7 open item.
+- The invalid `rg -L` gate is replaced by a valid helper-check loop. That loop excludes
+  `choice.rs` intentionally: Choice directly paints its separate in-run bracket and is not
+  falsely counted as using the shared reserved-pad helper.
+- `ebfa8b8` makes case 10 compare the recorded resolved style when a composed painter leaves
+  the final digest unchanged. The TextArea case is therefore covered by the reported 934
+  passing conformance tests at current HEAD `f713ccb` (the later revert removed one incomplete
+  provenance test from the earlier 935-test count); a future `Conformance::patch_part()` hook
+  may remove the remaining `PARTS.first()` ordering convention, but it is not an unresolved gate.
+- No full workspace/Slice 4 completion claim follows. Capture provenance, visual blockers and
+  baseline blessing status remain as recorded above.
