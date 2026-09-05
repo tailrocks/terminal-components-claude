@@ -48,17 +48,6 @@ impl ActionKey {
         ActionKey(0x8000 | ((h as u16) & 0x7FFF))
     }
 
-    /// An application-owned key in a namespace disjoint from component keys.
-    ///
-    /// Runtime dispatch carries component and application bindings through
-    /// the same `ActionKey` channel. Keeping application keys in their own
-    /// range prevents a generic component action from being mistaken for an
-    /// application command when their short hashes happen to match.
-    pub const fn application(name: &'static str) -> ActionKey {
-        let h = fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes());
-        ActionKey(0x4000 | ((h as u16) & 0x3FFF))
-    }
-
     /// The raw key number.
     pub const fn raw(self) -> u16 {
         self.0
@@ -173,12 +162,4 @@ mod tests {
         assert_eq!(a.variant(), Variant::DANGER);
     }
 
-    #[test]
-    fn application_keys_are_disjoint_from_component_keys() {
-        let app = ActionKey::application("jackin.editor.next-tab");
-        let component = ActionKey::custom("button.activate.enter");
-        assert!(app.raw() >= 0x4000 && app.raw() < 0x8000);
-        assert!(component.raw() >= 0x8000);
-        assert_ne!(app, component);
-    }
 }

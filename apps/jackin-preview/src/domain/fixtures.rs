@@ -327,7 +327,9 @@ fn legacy_fixture_accounts(_op: &SimOnePassword, now: i64) -> Vec<Account> {
     );
     primary.identity = handle("ChatGPT account org_7Hq2");
     primary.identity.plan = Some("Pro 20x".into());
-    primary.default_for_provider = true;
+    // The compact `openai-primary` record is the provider default.  Keep this
+    // legacy id available for migration coverage without creating a second
+    // inherited Codex account in workspace policy projections.
     out.push(primary);
 
     let mut experiments = account_with_source(
@@ -694,7 +696,8 @@ pub fn fixture_workspace() -> Workspace {
     ];
     workspace.keep_awake = true;
     workspace.git_pull = true;
-    workspace.accounts.enabled = BTreeSet::from(["grok-host".into()]);
+    workspace.accounts.enabled =
+        BTreeSet::from(["acct-claude-work".into(), "grok-host".into()]);
     workspace
         .accounts
         .preferred

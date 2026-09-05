@@ -89,41 +89,40 @@ const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list
 const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
 const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
-const CMD_QUIT: ActionKey = ActionKey::application("jackin.quit");
-const CMD_MANAGER: ActionKey = ActionKey::application("jackin.manager");
-const CMD_ACCOUNTS: ActionKey = ActionKey::application("jackin.accounts");
-const CMD_USAGE: ActionKey = ActionKey::application("jackin.usage");
-const CMD_SETTINGS: ActionKey = ActionKey::application("jackin.settings");
-const CMD_CAPSULE: ActionKey = ActionKey::application("jackin.capsule");
-const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
-const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
-const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
-const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
-const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
-const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
-const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
-const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
-const CMD_EDITOR_ACCOUNTS: ActionKey = ActionKey::application("jackin.editor.accounts");
-const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
-const CMD_USAGE_NEXT: ActionKey = ActionKey::application("jackin.usage.next");
-const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
-const CMD_CAPSULE_DETACH: ActionKey = ActionKey::application("jackin.capsule.detach");
-const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::application("jackin.capsule.split-right");
-const CMD_CAPSULE_SPLIT_BELOW: ActionKey = ActionKey::application("jackin.capsule.split-below");
-const CMD_CAPSULE_ZOOM: ActionKey = ActionKey::application("jackin.capsule.zoom");
-const CMD_CAPSULE_FOCUS_LEFT: ActionKey = ActionKey::application("jackin.capsule.focus-left");
-const CMD_CAPSULE_PALETTE: ActionKey = ActionKey::application("jackin.capsule.palette");
-const CMD_EXIT_DIALOG: ActionKey = ActionKey::application("jackin.exit.dialog");
-const CMD_EXIT_CONFIRM: ActionKey = ActionKey::application("jackin.exit.confirm");
-const CMD_PRELUDE_BACKSPACE: ActionKey = ActionKey::application("jackin.prelude.backspace");
-const CMD_PRELUDE_DOWN: ActionKey = ActionKey::application("jackin.prelude.down");
-const CMD_PRELUDE_SPACE: ActionKey = ActionKey::application("jackin.prelude.space");
-const CMD_ACCOUNT_DOWN: ActionKey = ActionKey::application("jackin.account.down");
-const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::application("jackin.account.refresh");
-const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::application("jackin.account.validate");
-const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.remove");
-const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
-const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
+const CMD_QUIT: ActionKey = ActionKey::custom("jackin.quit");
+const CMD_MANAGER: ActionKey = ActionKey::custom("jackin.manager");
+const CMD_ACCOUNTS: ActionKey = ActionKey::custom("jackin.accounts");
+const CMD_USAGE: ActionKey = ActionKey::custom("jackin.usage");
+const CMD_SETTINGS: ActionKey = ActionKey::custom("jackin.settings");
+const CMD_SETTINGS_TRUST_KEY: ActionKey = ActionKey::custom("jackin.settings.trust-key");
+const CMD_CAPSULE: ActionKey = ActionKey::custom("jackin.capsule");
+const CMD_NEW_WORKSPACE: ActionKey = ActionKey::custom("jackin.new-workspace");
+const CMD_EDITOR_NEXT: ActionKey = ActionKey::custom("jackin.editor.next-tab");
+const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::custom("jackin.editor.previous-tab");
+const CMD_EDITOR_ENV: ActionKey = ActionKey::custom("jackin.editor.environments");
+const CMD_SAVE: ActionKey = ActionKey::custom("jackin.save");
+const CMD_MANAGER_EXPAND: ActionKey = ActionKey::custom("jackin.manager.expand");
+const CMD_EDITOR_OPEN: ActionKey = ActionKey::custom("jackin.editor.open");
+const CMD_EDITOR_ROLES: ActionKey = ActionKey::custom("jackin.editor.roles");
+const CMD_EDITOR_PREFER: ActionKey = ActionKey::custom("jackin.editor.prefer");
+const CMD_NAV_DOWN: ActionKey = ActionKey::custom("jackin.navigation.down");
+const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::custom("jackin.capsule.prefix");
+const CMD_CAPSULE_DETACH: ActionKey = ActionKey::custom("jackin.capsule.detach");
+const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::custom("jackin.capsule.split-right");
+const CMD_CAPSULE_SPLIT_BELOW: ActionKey = ActionKey::custom("jackin.capsule.split-below");
+const CMD_CAPSULE_ZOOM: ActionKey = ActionKey::custom("jackin.capsule.zoom");
+const CMD_CAPSULE_FOCUS_LEFT: ActionKey = ActionKey::custom("jackin.capsule.focus-left");
+const CMD_CAPSULE_PALETTE: ActionKey = ActionKey::custom("jackin.capsule.palette");
+const CMD_EXIT_DIALOG: ActionKey = ActionKey::custom("jackin.exit.dialog");
+const CMD_EXIT_CONFIRM: ActionKey = ActionKey::custom("jackin.exit.confirm");
+const CMD_PRELUDE_BACKSPACE: ActionKey = ActionKey::custom("jackin.prelude.backspace");
+const CMD_PRELUDE_SPACE: ActionKey = ActionKey::custom("jackin.prelude.space");
+const CMD_ACCOUNT_DOWN: ActionKey = ActionKey::custom("jackin.account.down");
+const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::custom("jackin.account.refresh");
+const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::custom("jackin.account.validate");
+const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::custom("jackin.account.remove");
+const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::custom("jackin.account.default");
+const CMD_ACCOUNT_HELP: ActionKey = ActionKey::custom("jackin.account.help");
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 /// The visible product route.
@@ -329,6 +328,7 @@ pub struct App {
     pending_capsule_action: Option<CapsuleAction>,
     capsule_interaction: CapsuleInteraction,
     editor_accounts: ListState,
+    editor_accounts_transition: bool,
     editor_role_picker: bool,
     editor_env_role: Option<String>,
     usage_list: ListState,
@@ -466,6 +466,7 @@ impl App {
             pending_capsule_action: None,
             capsule_interaction: CapsuleInteraction::default(),
             editor_accounts: ListState::default(),
+            editor_accounts_transition: false,
             editor_role_picker: false,
             editor_env_role: None,
             usage_list: ListState::default(),
@@ -826,22 +827,20 @@ impl App {
     }
 
     fn account_rows(&self) -> Vec<String> {
-        let mut rows = vec!["Overview".to_owned()];
-        rows.extend(
-            self.world
-                .accounts
-                .sorted()
-                .into_iter()
-                .map(|account| {
-                    format!(
-                        "{} · {} · {}",
-                        account.title(),
-                        account.status_word(),
-                        account.source.safe_detail()
-                    )
-                })
-                .collect::<Vec<_>>(),
-        );
+        let mut rows = vec!["Overview · Health · Registration · Quota".to_owned()];
+        let mut provider = None;
+        for account in self.world.accounts.sorted() {
+            if provider != Some(account.provider) {
+                rows.push(account.provider.label().to_owned());
+                provider = Some(account.provider);
+            }
+            rows.push(format!(
+                "  {} · {} · {}",
+                account.title(),
+                account.status_word(),
+                account.source.safe_detail()
+            ));
+        }
         rows
     }
 
@@ -858,15 +857,13 @@ impl App {
                     .map_or_else(
                         || "disabled here".to_owned(),
                         |entry| {
-                            format!(
-                                "{} · {}",
-                                entry.origin.label(),
-                                if entry.preferred {
-                                    "preferred"
-                                } else {
-                                    "active for this Workspace"
-                                }
-                            )
+                            if entry.preferred {
+                                format!("{} · preferred", entry.origin.label())
+                            } else if entry.origin.label() == "enabled here" {
+                                "active for this Workspace · enabled here".to_owned()
+                            } else {
+                                "inherited default · active for this Workspace".to_owned()
+                            }
                         },
                     );
                 format!("{} · {state}", account.title())
@@ -880,6 +877,40 @@ impl App {
             .sorted()
             .get(index)
             .map(|account| account.id.clone())
+    }
+
+    fn toggle_editor_account(&mut self) {
+        let Some(ItemKey::Index(index)) = self.editor_accounts.cursor() else {
+            return;
+        };
+        let Some(id) = self.editor_account_id(index) else {
+            return;
+        };
+        eprintln!("DEBUG toggle index={index} id={id}");
+        match self
+            .editor
+            .pending
+            .toggle_account(id.clone(), &self.world.accounts)
+        {
+            Ok(active) => {
+                self.editor.mark_dirty();
+                self.status = Some(if active {
+                    format!("{id} · active for this Workspace")
+                } else {
+                    format!("{id} · off for this Workspace")
+                });
+            }
+            Err(error) => self.status = Some(error),
+        }
+    }
+
+    fn set_selected_account_default(&mut self) {
+        if let Some(id) = self.accounts.selected_id.clone() {
+            match self.world.accounts.set_default(&id) {
+                Ok(()) => self.status = Some("Default set for provider".into()),
+                Err(error) => self.status = Some(error),
+            }
+        }
     }
 
     fn launch_dialog() -> Dialog<'static> {
@@ -1256,10 +1287,15 @@ impl App {
         result |= response.erase();
         if cx.is_open(ROLE_PICKER)
             && let Some(PickerAction::Chosen(key)) = action
-            && let Some(index) = self
-                .roles
-                .iter()
-                .position(|role| ItemKey::text(&role.key) == key)
+            && let Some(index) = self.roles.iter().position(|role| {
+                if self.editor_role_picker && !self.role_state.query().is_empty() {
+                    role.key
+                        .to_ascii_lowercase()
+                        .contains(&self.role_state.query().to_ascii_lowercase())
+                } else {
+                    ItemKey::text(&role.key) == key
+                }
+            })
         {
             if self.editor_role_picker {
                 let role = self.roles[index].key.rsplit_once('/').map_or_else(
@@ -1610,6 +1646,7 @@ impl App {
             result |= save.erase();
             if save_chosen {
                 self.save_account();
+                cx.focus(ACCOUNTS_LIST);
                 result |= Response::changed();
             }
             return result;
@@ -1619,14 +1656,24 @@ impl App {
         let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &rows);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
+        let previous = self.accounts.selected_id.clone();
         self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
+            self.status = self
+                .accounts
+                .selected_id
+                .as_deref()
+                .and_then(|id| self.world.accounts.get(id))
+                .map(|account| {
+                    format!(
+                        "Accounts › {} › {}",
+                        account.surface.surface_name(),
+                        account.display_name
+                    )
+                });
+        }
         if matches!(list_action, Some(ListAction::Chose(_))) {
-            if let Some(id) = self.accounts.selected_id.clone() {
-                match self.world.accounts.set_default(&id) {
-                    Ok(()) => self.status = Some("Default set for provider".into()),
-                    Err(error) => self.status = Some(error),
-                }
-            }
+            self.set_selected_account_default();
             result |= Response::changed();
         }
         let add = Self::account_add_button().update(cx);
@@ -1756,14 +1803,7 @@ impl App {
         self.world.accounts.insert(account);
         let selected_id = id.clone();
         self.accounts.selected_id = Some(id);
-        if let Some(index) = self
-            .world
-            .accounts
-            .sorted()
-            .iter()
-            .position(|account| account.id == selected_id)
-            .map(|index| index.saturating_add(1))
-        {
+        if let Some(index) = account_row_index(&self.world, &selected_id) {
             self.accounts.list.set_cursor(index, ItemKey::index(index));
         }
         self.account_options = self
@@ -1997,43 +2037,14 @@ impl App {
                     List::new(EDITOR_ACCOUNTS_LIST).update(cx, &mut self.editor_accounts, &rows);
                 let action = list.action_ref().copied();
                 result |= list.erase();
-                if let Some(ItemKey::Index(index)) = self.editor_accounts.cursor()
-                    && let Some(id) = self.editor_account_id(index)
-                    && matches!(action, Some(ListAction::Activated(_)))
-                {
-                    match self
-                        .editor
-                        .pending
-                        .toggle_account(id.clone(), &self.world.accounts)
-                    {
-                        Ok(active) => {
-                            self.editor.mark_dirty();
-                            self.status = Some(if active {
-                                format!("{id} · active for this Workspace")
-                            } else {
-                                format!("{id} · off for this Workspace")
-                            });
-                            result |= Response::changed();
-                        }
-                        Err(error) => self.status = Some(error),
+                if matches!(action, Some(ListAction::Activated(_))) {
+                    eprintln!("DEBUG list activated transition={}", self.editor_accounts_transition);
+                    if self.editor_accounts_transition {
+                        self.editor_accounts_transition = false;
+                    } else {
+                        self.toggle_editor_account();
                     }
-                }
-                if matches!(action, Some(ListAction::Chose(_)))
-                    && let Some(ItemKey::Index(index)) = self.editor_accounts.cursor()
-                    && let Some(id) = self.editor_account_id(index)
-                {
-                    match self
-                        .editor
-                        .pending
-                        .prefer_account(id.clone(), &self.world.accounts)
-                    {
-                        Ok(()) => {
-                            self.editor.mark_dirty();
-                            self.status = Some(format!("Preferred for {}", id));
-                            result |= Response::changed();
-                        }
-                        Err(error) => self.status = Some(error),
-                    }
+                    result |= Response::changed();
                 }
             }
             EditorTab::Environments => {
@@ -2256,12 +2267,16 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNTS => {
+                if cx.update_cause() == UpdateCause::Settle {
+                    return Some(Response::changed());
+                }
                 if self.route == Route::Accounts {
                     self.accounts.open_new();
                     self.op_item_key.clear();
                     cx.focus(crate::screens::accounts::START);
                 } else {
                     self.route = Route::Accounts;
+                    cx.focus(ACCOUNTS_LIST);
                 }
                 Some(Response::changed())
             }
@@ -2350,12 +2365,16 @@ impl App {
                 Some(Response::changed())
             }
             CMD_CAPSULE => {
+                if cx.update_cause() == UpdateCause::Settle {
+                    return Some(Response::changed());
+                }
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.status = Some("New tab · Account for Claude Code".into());
                     self.open_capsule_account_picker(cx, CapsuleAction::NewTab);
                 } else if self.route == Route::Manager {
                     self.route = Route::Accounts;
+                    cx.focus(ACCOUNTS_LIST);
                 } else {
                     self.route = Route::Capsule;
                 }
@@ -2496,7 +2515,7 @@ impl App {
                 self.status = Some("Unsaved work · Stay inside · Exit & keep · Cancel".into());
                 Some(Response::changed())
             }
-            CMD_PRELUDE_DOWN if self.route == Route::Capsule => {
+            CMD_NAV_DOWN if self.route == Route::Capsule => {
                 if let Some(choice) = &mut self.exit_choice {
                     *choice = (*choice + 1).min(2);
                     self.status = Some(match *choice {
@@ -2554,7 +2573,7 @@ impl App {
                 self.prelude.source_back();
                 Some(Response::changed())
             }
-            CMD_PRELUDE_DOWN if self.route == Route::Prelude => {
+            CMD_NAV_DOWN if self.route == Route::Prelude => {
                 self.prelude.move_selection(true);
                 Some(Response::changed())
             }
@@ -2562,6 +2581,22 @@ impl App {
                 if self.prelude.step() == 1 {
                     self.prelude.choose_source();
                     cx.focus(crate::screens::prelude::CONTINUE);
+                }
+                Some(Response::changed())
+            }
+            CMD_PRELUDE_SPACE if self.route == Route::Accounts && !self.accounts.form_open => {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.set_selected_account_default();
+                }
+                Some(Response::changed())
+            }
+            CMD_PRELUDE_SPACE
+                if self.route == Route::Editor
+                    && self.editor.tab == EditorTab::Accounts =>
+            {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor_accounts_transition = false;
+                    self.toggle_editor_account();
                 }
                 Some(Response::changed())
             }
@@ -2619,13 +2654,15 @@ impl App {
                 cx.focus(EDITOR_ROLE_EDIT);
                 Some(Response::changed())
             }
-            CMD_EDITOR_ACCOUNTS if self.route == Route::Settings => {
+            CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
-            CMD_EDITOR_ACCOUNTS if self.route == Route::Editor => {
+            CMD_SETTINGS_TRUST_KEY if self.route == Route::Editor => {
+                eprintln!("DEBUG cmd5 cause={:?} transition={}", cx.update_cause(), self.editor_accounts_transition);
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(5);
+                    self.editor_accounts_transition = true;
                 }
                 cx.focus(EDITOR_ACCOUNTS_LIST);
                 Some(Response::changed())
@@ -2650,10 +2687,6 @@ impl App {
                 }
                 Some(Response::changed())
             }
-            CMD_PRELUDE_DOWN if self.route == Route::Usage => {
-                self.usage.next_tab();
-                Some(Response::changed())
-            }
             CMD_SAVE if self.route == Route::Editor => {
                 self.editor.mark_dirty();
                 self.editor.open_preview();
@@ -2669,7 +2702,18 @@ impl App {
                 self.status = Some("Save settings · choose a confirmation action".into());
                 Some(Response::changed())
             }
-            CMD_USAGE_NEXT if self.route == Route::Usage => {
+            CMD_PRELUDE_SPACE if self.route == Route::Settings => {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.trusted = !self.trusted;
+                    if self.settings.dirty {
+                        self.settings.mark_dirty();
+                    } else {
+                        self.settings.begin_draft();
+                    }
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Usage => {
                 self.usage.next_tab();
                 Some(Response::changed())
             }
@@ -3806,6 +3850,15 @@ impl TuiApp for App {
             return Response::changed();
         }
         if self.route == Route::Accounts {
+            eprintln!("DEBUG esc accounts");
+            if self
+                .status
+                .as_deref()
+                .is_some_and(|status| status.starts_with("Credential sources"))
+            {
+                self.status = None;
+                return Response::changed();
+            }
             if self.accounts.remove_confirmation.take().is_some() {
                 self.status = None;
                 return Response::changed();
@@ -3819,6 +3872,9 @@ impl TuiApp for App {
                 }
                 return Response::changed();
             }
+            self.route = Route::Manager;
+            cx.focus(crate::screens::manager::TREE);
+            return Response::changed();
         }
         if self.route == Route::Prelude {
             if self.prelude.step() == 2 {
@@ -3983,7 +4039,7 @@ fn app_keymap() -> KeyMap {
         .bind(
             KeyPhase::Bubble,
             Chord::key(KeyCode::Down),
-            CMD_PRELUDE_DOWN,
+            CMD_NAV_DOWN,
         )
         .bind(
             KeyPhase::Bubble,
@@ -4023,14 +4079,13 @@ fn app_keymap() -> KeyMap {
         .bind(
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('5')),
-            CMD_EDITOR_ACCOUNTS,
+            CMD_SETTINGS_TRUST_KEY,
         )
         .bind(
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('p')),
             CMD_EDITOR_PREFER,
         )
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), CMD_USAGE_NEXT)
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),
@@ -4088,9 +4143,41 @@ fn selected_account_id(world: &World, key: Option<ItemKey>) -> Option<String> {
     let Some(ItemKey::Index(index)) = key else {
         return None;
     };
-    index
-        .checked_sub(1)
-        .and_then(|index| world.accounts.sorted().get(index).map(|a| a.id.clone()))
+    if index == 0 {
+        return None;
+    }
+    let mut row = 1;
+    let mut provider = None;
+    for account in world.accounts.sorted() {
+        if provider != Some(account.provider) {
+            if row == index {
+                return None;
+            }
+            provider = Some(account.provider);
+            row += 1;
+        }
+        if row == index {
+            return Some(account.id.clone());
+        }
+        row += 1;
+    }
+    None
+}
+
+fn account_row_index(world: &World, id: &str) -> Option<usize> {
+    let mut row = 1;
+    let mut provider = None;
+    for account in world.accounts.sorted() {
+        if provider != Some(account.provider) {
+            provider = Some(account.provider);
+            row += 1;
+        }
+        if account.id == id {
+            return Some(row);
+        }
+        row += 1;
+    }
+    None
 }
 
 fn capsule_tabs() -> Vec<String> {

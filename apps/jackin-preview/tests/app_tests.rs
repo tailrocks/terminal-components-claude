@@ -45,7 +45,7 @@ fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
         Route::Manager,
         "an active Construct joins without replay"
     );
-    assert!(r.text().contains("2 running"));
+    assert!(r.text().contains("1 running"));
 }
 
 #[test]
