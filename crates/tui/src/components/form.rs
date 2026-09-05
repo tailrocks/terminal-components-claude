@@ -378,6 +378,7 @@ impl fmt::Debug for SlotValue {
 struct FieldSlot {
     id: Id,
     shape: FieldShape,
+    sensitive: bool,
     value: SlotValue,
     input: TextInputState,
     area: TextAreaState,
@@ -391,6 +392,7 @@ impl FieldSlot {
         FieldSlot {
             id,
             shape: FieldShape::Other,
+            sensitive: false,
             value: SlotValue::None,
             input: TextInputState::default(),
             area: TextAreaState::default(),
@@ -417,11 +419,13 @@ impl FieldSlot {
         self.area.zeroize();
         self.input.set_sensitive(false);
         self.area.set_sensitive(false);
+        self.sensitive = false;
         self.shape = shape;
     }
 
     fn set_sensitive(&mut self, sensitive: bool) -> bool {
-        let was_sensitive = self.is_sensitive();
+        let was_sensitive = self.sensitive;
+        self.sensitive = sensitive;
         match self.shape {
             FieldShape::Text => {
                 self.input.set_sensitive(sensitive);
@@ -436,15 +440,11 @@ impl FieldSlot {
                 self.area.set_sensitive(false);
             }
         }
-        was_sensitive != self.is_sensitive()
+        was_sensitive != sensitive
     }
 
     fn is_sensitive(&self) -> bool {
-        match self.shape {
-            FieldShape::Text => self.input.is_sensitive(),
-            FieldShape::Area => self.area.is_sensitive(),
-            FieldShape::Other => false,
-        }
+        self.sensitive
     }
 }
 
@@ -453,6 +453,7 @@ impl fmt::Debug for FieldSlot {
         f.debug_struct("FieldSlot")
             .field("id", &self.id)
             .field("shape", &self.shape)
+            .field("sensitive", &self.sensitive)
             .field("value", &self.value)
             .field("input", &self.input)
             .field("area", &self.area)
@@ -2866,6 +2867,28 @@ mod tests {
 
         data.secret_mode = true;
         assert_public_error_is_redacted(&state, SECRET, DETAIL);
+    }
+
+    #[test]
+    fn malformed_dynamic_secret_error_does_not_reappear_after_downgrade() {
+        const DETAIL: &str = "non-text downgrade detail";
+
+        let fields = [FieldSpec::new(
+            SECRET,
+            "Secret",
+            FieldKind::Check(Checkbox::new(SECRET, "Secret")),
+        )];
+        let mut data = Data::default();
+        data.secret_mode = true;
+        let mut state = FormState::default();
+        state.reconcile_fields_with_data(&fields, &data);
+        state.set_error(SECRET, Some(FieldError::new(DETAIL)));
+        assert_public_error_is_redacted(&state, SECRET, DETAIL);
+
+        data.secret_mode = false;
+        state.reconcile_fields_with_data(&fields, &data);
+        assert!(state.error(SECRET).is_none());
+        assert!(Form::field_error(&state, &data, &fields[0]).is_none());
     }
 
     #[test]
