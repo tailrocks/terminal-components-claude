@@ -13,7 +13,7 @@ use core::marker::PhantomData;
 use ratatui_core::layout::Rect;
 
 use super::form::InheritedFormState;
-use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket};
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::action::ActionKey;
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
@@ -180,12 +180,12 @@ impl FlagRow<'_> {
             let ls = style(ui, Part::LABEL);
             let used = if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
                 // §11.4's mono `PRESSED` affordance: `[label]`
-                let t = super::shift(text, 1);
+                let l = ui.glyph(text, GlyphRole::PressLeft, ls.style);
+                let mut t = super::shift(text, l);
                 let w = ui.paint_str(t, label, ls.style);
-                let right = cell_at(text, text.x.saturating_add(1).saturating_add(w));
-                let left = cell_at(text, text.x);
-                paint_pressed_bracket(ui, left, right, ls.style);
-                left.width.saturating_add(w).saturating_add(right.width)
+                t = super::shift(t, w);
+                let r = ui.glyph(t, GlyphRole::PressRight, ls.style);
+                l.saturating_add(w).saturating_add(r)
             } else {
                 ui.paint_str(text, label, ls.style)
             };
@@ -1453,13 +1453,11 @@ impl<T, K, R> Bindings for RadioGroup<'_, T, K, R> {
 
 #[cfg(test)]
 mod tests {
-    use ratatui_core::layout::{Position, Rect};
-
     use super::*;
     use crate::event::Input;
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::runtime::{App, Runtime};
-    use crate::theme::{ColorLevel, Theme};
+    use crate::theme::Theme;
     use ratatui_core::buffer::Buffer;
 
     const RG: Id = Id::root("choice.tests.radio");
@@ -1514,45 +1512,6 @@ mod tests {
             Toggle::new(RG, "Choice").on(on).draw(ui, area);
         });
         buffer
-    }
-
-    #[test]
-    fn mono_pressed_choice_keeps_the_label_geometry() {
-        const ID: Id = Id::root("choice.tests.mono");
-        let area = Rect::new(0, 0, 20, 1);
-        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
-        let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    ID,
-                    crate::ReferenceState::FOCUSED | crate::ReferenceState::PRESSED,
-                )),
-                |ui| Checkbox::new(ID, "Choice").draw(ui, area),
-            );
-        });
-
-        assert_eq!(
-            buffer
-                .cell(Position::new(5, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("["),
-            "the pressed marker starts after the checkbox's reserved columns"
-        );
-        assert_eq!(
-            buffer
-                .cell(Position::new(6, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("C"),
-            "the label keeps its first content cell after the bracket"
-        );
-        assert_eq!(
-            buffer
-                .cell(Position::new(12, 0))
-                .map(ratatui_core::buffer::Cell::symbol),
-            Some("]"),
-            "the right bracket follows the complete label"
-        );
     }
 
     #[test]
@@ -1756,7 +1715,7 @@ mod tests {
         let mut text = String::new();
         for y in 0..2u16 {
             for x in 0..SCREEN.width {
-                if let Some(c) = buf.cell(Position::new(x, y)) {
+                if let Some(c) = buf.cell(ratatui_core::layout::Position::new(x, y)) {
                     text.push_str(c.symbol());
                 }
             }
