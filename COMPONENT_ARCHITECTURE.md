@@ -6850,7 +6850,7 @@ The evidence is symmetric and damning in both directions. `ChipBar` declared `Pa
 
 The override surface keeps the home it already has: every component's `## Overrides` rustdoc section, whose presence is already machine-checked <!-- amended by §45: true and insufficient. Presence is checked by a rustdoc-json **heading** scan; **content was checked by nothing**, so this sentence moved the override surface into exactly the artefact class §33.4 rejects two paragraphs below — checkable for shape, never for truth. Seven of eighteen sections were wrong when §45 measured them. The decision stands; §45 supplies the missing check. -->. It does not need a second `const`, and a second `const` is a second thing to drift.
 
-**The structural fix is attribution, not an allow-list.** The enabling condition is that `note_styled` stamps `(owner, part)` with the *component's* id for parts the *caller's* closure chose, so the instrument cannot tell "ChipBar styled META" from "the caller styled META through ChipBar's RowUi". Under `cfg(feature = "testing")`, the record carries a `StyledBy { Component, Row }`: `Overrides::style` records `Component`, every `RowUi` resolution records `Row` — **including the four that record nothing at all today**: `RowUi::new`'s container fill, `gutter`, `label_patched` and `trailing`. Then `ChipBar` drops `META`, `List` drops `LABEL` and `META`, and no exemption is needed for either.
+**The structural fix is attribution, not an allow-list.** The enabling condition is that `note_styled` stamps `(owner, part)` with the *component's* id for parts the *caller's* closure chose, so the instrument cannot tell "ChipBar styled META" from "the caller styled META through ChipBar's RowUi". Under `cfg(feature = "testing")`, the record carries a `StyledBy { Component, Row }`: `PartStyle::style` records `Component`, every `RowUi` resolution records `Row` — **including the four that record nothing at all today**: `RowUi::new`'s container fill, `gutter`, `label_patched` and `trailing`. Then `ChipBar` drops `META`, `List` drops `LABEL` and `META`, and no exemption is needed for either.
 
 Rejected: recording `RowUi` resolutions under a derived id so the existing owner filter drops them. Cheaper, but it lies about the owner in `styled_queries`, which §16.4's theme-coupling migration contract reads and which needs the real owner and family.
 
@@ -7081,7 +7081,7 @@ The audit that found this checked all eight components the coordinator suspected
 
 ### §38.3 A fixture bug that disabled six cases <!-- amended by §38 -->
 
-`Overrides::flags` is `self.state.unwrap_or(live)`, and `state_override(x)` sets `Some(x)` **including `Some(StateFlags::empty())`**. Six cases — `status_bar`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — call `.state_override(f.forced())` **unconditionally**, so whenever nothing is forced they **erase the component's own derived base flags**. Every other case guards with `if !f.forced().is_empty()`.
+`PartStyle::flags` is `self.state.unwrap_or(live)`, and `state_override(x)` sets `Some(x)` **including `Some(StateFlags::empty())`**. Six cases — `status_bar`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — call `.state_override(f.forced())` **unconditionally**, so whenever nothing is forced they **erase the component's own derived base flags**. Every other case guards with `if !f.forced().is_empty()`.
 
 The concrete consequence: `Spinner::draw` sets `live = ov.flags(StateFlags::BUSY)` and the fixture clobbers it, so **the Spinner conformance case has never rendered a spinner in its own declared state.**
 
@@ -7105,7 +7105,7 @@ The root cause is that `mono_states()` **conflates two properties and only one i
 
 ## §39 Adjudication — forcing substitutes for the runtime, never for the props <!-- amended by §39 -->
 
-**Status: accepted and implemented. Unblocks the §36 first-generation correction — see §39.4 and §49.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged three times: it changes the exact type of `Overrides::flags`, adds an invariant to §12.1's A11 clause, and changes the exact type of `Fixture::forced` in §16.2. <!-- implementation completed in Session 5: the two-half operator, `Option<StateFlags>` fixture contract, Empty forwarding, and Progress done-rule proof -->
+**Status: accepted and implemented. Unblocks the §36 first-generation correction — see §39.4 and §49.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged three times: it changes the exact type of `PartStyle::flags`, adds an invariant to §12.1's A11 clause, and changes the exact type of `Fixture::forced` in §16.2. <!-- implementation completed in Session 5: the two-half operator, `Option<StateFlags>` fixture contract, Empty forwarding, and Progress done-rule proof -->
 
 ### §39.0 Corrections to the finding that prompted it <!-- amended by §39 -->
 
@@ -7117,7 +7117,7 @@ Three load-bearing premises handed to this adjudication were **false against the
 
 ### §39.1 The defect <!-- amended by §39 -->
 
-`Overrides::flags` was `self.state.unwrap_or(live)`: a forced state **replaced** the whole derived state. **`live` is not one thing.** It is the union of two halves with opposite ownership — the **runtime** half the frame supplies, and the **props-derived** half the caller's own props imply. Forcing must replace the first and may never erase the second.
+`PartStyle::flags` was `self.state.unwrap_or(live)`: a forced state **replaced** the whole derived state. **`live` is not one thing.** It is the union of two halves with opposite ownership — the **runtime** half the frame supplies, and the **props-derived** half the caller's own props imply. Forcing must replace the first and may never erase the second.
 
 One argument cannot express two ownerships, so every component resolved the ambiguity locally, and **six components produced five answers**: `Button` and `StatusBar` or the props half back in by hand; `ProgressBar`, `Spinner`, `Meter` and `HintBar` do not; `Empty` routes only its container fill through the overrides and lets `EmptyState::draw` re-derive its own flags, so **three of its four declared parts are unreachable through the override system it advertises**. A sixth shape exists in the glyph fallback, where `Meter::icon` reads the prop while `StatusBar` and `HintBar` read the resolved flags.
 
@@ -7129,7 +7129,7 @@ The visible consequence is in the render matrix, where forced and derived disagr
 
 > A forced state substitutes for the **runtime**, never for the caller's **props**. The flags a part resolves under are `forced.map_or(runtime | derived, |f| f | derived)`. **`flags(r, d) ⊇ d` holds unconditionally**: a reference rendering may show a state the runtime never produced, and may never hide a state the props declare.
 
-`Overrides::flags` takes the two halves as **separate arguments**. `StatusBar`'s and `Button`'s hand-written union moves into the operator; the four divergent components pass an empty runtime half; `Meter::icon`'s fallback reads the resolved flags so one glyph has one source of truth.
+`PartStyle::flags` takes the two halves as **separate arguments**. `StatusBar`'s and `Button`'s hand-written union moves into the operator; the four divergent components pass an empty runtime half; `Meter::icon`'s fallback reads the resolved flags so one glyph has one source of truth.
 
 Why neither pure semantics is right: **replacement alone** makes `.status(Error).state_override(DISABLED)` mean "disabled and *not* in error" — a rendering the caller cannot ask for any other way, and §16.2's `Fixture::force` spends its whole existence making forced and derived *agree*. **Merge alone** cannot render an unhovered instance while the snapshot still carries `HOVERED` from a previous frame, which is the runtime-substitution job A11 exists for.
 
