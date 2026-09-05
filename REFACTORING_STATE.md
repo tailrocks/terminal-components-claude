@@ -1961,3 +1961,39 @@ gates. It does not claim slice or goal completion.
   remain required.
 - No baseline was edited or blessed. Baseline blessing remains unauthorized while stale provenance
   and the visual failures remain unresolved.
+
+## Current source-and-gate checkpoint — AUTHORITATIVE (2026-09-05, origin/main `b23df21`)
+
+This checkpoint supersedes the `c152b97` source checkpoint for current identity and measured
+gates. Earlier checkpoints remain historical. It records landed source and evidence only; it does
+not claim Slice or goal completion.
+
+### Identity and measured gates
+
+- Verified committed identity: `HEAD == origin/main == b23df21c93a4694a4e71c4e76029bea14e275759`.
+  The current lineage adds `5dc310a` (form test clippy cleanup), `c936d51` (masked environment
+  drafts and save-only persistence), and `b23df21` (redacted environment debug values).
+- `rtk cargo fmt --all -- --check`: **PASS**.
+- `rtk cargo run -p xtask -- doc-check`: **PASS** — 76 Rust blocks, 864 references resolved;
+  the existing allow-listed not-yet-built references remain explicit.
+- `rtk cargo run -p xtask -- boundary`: all named structural checks pass except the fail-closed
+  `baseline_moves_are_classified` check without a comparison base. `props_are_built_once` passes
+  at 131 configured constructions; `every_named_test_exists` passes at 388 names, 387 present,
+  1 deferred.
+- `junie-tui` conformance: **934 passed**; library tests: **735 passed**; strict all-target
+  clippy: **PASS**.
+- TablePro route fixture: **1 passed**; TablePro perf: **11 passed**. Jackin library: **40
+  passed**; Jackin perf: **4 passed**. The broad Jackin app suite remains noisy: **11 passed,
+  15 stale journey failures**.
+
+### Visual and authorization blockers
+
+- Tracked capture provenance remains schema 1 at revision
+  `a358272665d49d74e4fc17a262d6061621e861d2`, with 96 TSV cells, stale against this tip.
+- TablePro visual still stops at the retained `connections` digest mismatch
+  (`c1fdb4fc02dacd7f` baseline vs `fb80a107b5df738a` real Connections route). Restoring the old
+  digest would reintroduce the pre-migration wrong workbench route; no baseline edit is safe.
+- Jackin aggregate visual still fails at an existing `capsule-app-menu`/journey frontier; focused
+  picker, launch, and perf fixes are landed, but fresh provenance-backed captures and independent
+  review are still required.
+- No baseline was edited and no blessing was performed. Visual blessing remains unauthorized.
