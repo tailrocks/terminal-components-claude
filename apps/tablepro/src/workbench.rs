@@ -71,7 +71,12 @@ impl Workbench {
     }
     /// Open the named table.
     pub fn open_table(&mut self, name: &str) -> bool {
-        let Some(table) = self.catalog.find(Some("public"), name).cloned() else {
+        self.open_table_in_schema("public", name)
+    }
+
+    /// Open a table by its schema-qualified identity.
+    pub fn open_table_in_schema(&mut self, schema: &str, name: &str) -> bool {
+        let Some(table) = self.catalog.find(Some(schema), name).cloned() else {
             return false;
         };
         let key = self.allocate_tab_key();
@@ -80,13 +85,22 @@ impl Workbench {
         self.active = self.tabs.len().saturating_sub(1);
         true
     }
+
+    /// Open the exact explorer object, retaining its schema identity.
+    pub fn open_explorer_item(&mut self, item: &ExplorerItem) -> bool {
+        self.open_table_in_schema(&item.schema, &item.name)
+    }
     /// Open the selected explorer table.
     pub fn open_selected(&mut self) -> bool {
-        let name = self
+        let item = self
             .visible_explorer()
             .get(self.explorer_selected)
-            .map(|(_, item)| item.name.clone());
-        name.is_some_and(|name| self.open_table(&name))
+            .map(|(_, item)| (*item).clone());
+        if let Some(item) = item {
+            self.open_explorer_item(&item)
+        } else {
+            false
+        }
     }
     /// Open a new query tab.
     pub fn new_query(&mut self, query: impl Into<String>) -> usize {

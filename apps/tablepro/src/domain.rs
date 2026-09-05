@@ -16,7 +16,10 @@ use crate::sql;
 /// Application-owned pending edits over a rectangular result set.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PendingEdits {
-    original: Vec<Vec<Value>>,
+    // Most result sets are rendered and discarded without an edit. Keep the
+    // clean snapshot lazy so loading a large result does not clone every
+    // database value solely to support a possible later undo/save.
+    original: Option<Vec<Vec<Value>>>,
     current: Vec<Vec<Value>>,
     inserted: Vec<bool>,
     deleted: Vec<bool>,
@@ -27,7 +30,7 @@ impl PendingEdits {
     pub fn new(rows: Vec<Vec<Value>>) -> Self {
         let flags = vec![false; rows.len()];
         Self {
-            original: rows.clone(),
+            original: None,
             current: rows,
             inserted: flags.clone(),
             deleted: flags,
@@ -45,11 +48,28 @@ impl PendingEdits {
     }
 
     fn original_value(&self, row: usize, col: usize) -> Option<&Value> {
-        self.original.get(row).and_then(|cells| cells.get(col))
+        self.original
+            .as_ref()
+            .and_then(|rows| rows.get(row))
+            .and_then(|cells| cells.get(col))
+            .or_else(|| self.current.get(row).and_then(|cells| cells.get(col)))
+    }
+
+    fn snapshot(&mut self) {
+        if self.original.is_none() {
+            self.original = Some(self.current.clone());
+        }
     }
 
     /// Set one cell. Returns whether the value changed.
     pub fn set(&mut self, row: usize, col: usize, value: Value) -> bool {
+        let Some(cell) = self.value(row, col) else {
+            return false;
+        };
+        if *cell == value {
+            return false;
+        }
+        self.snapshot();
         let Some(cell) = self
             .current
             .get_mut(row)
@@ -57,15 +77,13 @@ impl PendingEdits {
         else {
             return false;
         };
-        if *cell == value {
-            return false;
-        }
         *cell = value;
         true
     }
 
     /// Add a new row initialized to SQL NULLs and return its row index.
     pub fn insert_row(&mut self, columns: usize) -> usize {
+        self.snapshot();
         let row = self.current.len();
         let values = vec![Value::Null; columns];
         self.current.push(values);
@@ -76,6 +94,10 @@ impl PendingEdits {
 
     /// Mark a row for deletion. Deleting an inserted row cancels that insert.
     pub fn delete_row(&mut self, row: usize) -> bool {
+        if row >= self.deleted.len() {
+            return false;
+        }
+        self.snapshot();
         let Some(deleted) = self.deleted.get_mut(row) else {
             return false;
         };
@@ -84,7 +106,7 @@ impl PendingEdits {
                 *inserted = false;
             }
             if let Some(current) = self.current.get_mut(row)
-                && let Some(original) = self.original.get(row)
+                && let Some(original) = self.original.as_ref().and_then(|rows| rows.get(row))
             {
                 current.clone_from(original);
             }
@@ -115,7 +137,7 @@ impl PendingEdits {
                 .is_some_and(|value| *value != Value::Null);
         }
         self.value(row, col)
-            .zip(self.original.get(row).and_then(|cells| cells.get(col)))
+            .zip(self.original_value(row, col))
             .is_some_and(|(current, original)| current != original)
     }
 
@@ -149,30 +171,37 @@ impl PendingEdits {
             .collect()
     }
 
-    /// Reset the current state as the new clean baseline.
+    /// Discard pending edits and restore the loaded clean rows.
     pub fn clear(&mut self) {
-        // `clear` is the discard transition, not a save transition.  Restore
+        // `clear` is the discard transition, not a save transition. Restore
         // the immutable load snapshot and drop rows that only exist in the
         // pending edit set; callers can then safely rebuild their display
         // cache without silently committing user edits.
-        self.current.clone_from(&self.original);
-        self.inserted = vec![false; self.original.len()];
-        self.deleted = vec![false; self.original.len()];
+        if let Some(original) = self.original.take() {
+            self.current = original;
+        }
+        self.inserted = vec![false; self.current.len()];
+        self.deleted = vec![false; self.current.len()];
     }
 
     /// Reorder rows while preserving each row's pending state.
     pub fn reorder(&mut self, order: &[usize]) {
-        self.original = reorder_rows(&self.original, order);
-        self.current = reorder_rows(&self.current, order);
+        if let Some(original) = self.original.as_mut() {
+            let rows = core::mem::take(original);
+            *original = reorder_owned(rows, order);
+        }
+        let rows = core::mem::take(&mut self.current);
+        self.current = reorder_owned(rows, order);
         self.inserted = reorder_flags(&self.inserted, order);
         self.deleted = reorder_flags(&self.deleted, order);
     }
 }
 
-fn reorder_rows(rows: &[Vec<Value>], order: &[usize]) -> Vec<Vec<Value>> {
+fn reorder_owned(rows: Vec<Vec<Value>>, order: &[usize]) -> Vec<Vec<Value>> {
+    let mut rows: Vec<Option<Vec<Value>>> = rows.into_iter().map(Some).collect();
     order
         .iter()
-        .filter_map(|&index| rows.get(index).cloned())
+        .filter_map(|&index| rows.get_mut(index).and_then(Option::take))
         .collect()
 }
 
@@ -311,7 +340,9 @@ pub struct ResultGrid {
     editable: bool,
     source: Option<String>,
     read_only_reason: Option<String>,
-    display: Vec<Vec<String>>,
+    // Text and JSON cells borrow their already-owned value at read time;
+    // only scalar values that need formatting allocate a cached string.
+    display: Vec<Option<String>>,
     undo: Vec<PendingEdits>,
 }
 
@@ -477,8 +508,26 @@ impl ResultGrid {
             .pending
             .current
             .iter()
-            .map(|row| row.iter().map(Value::display).collect())
+            .flat_map(|row| {
+                row.iter().map(|value| match value {
+                    Value::Text(_) | Value::Json(_) => None,
+                    value => Some(value.display()),
+                })
+            })
             .collect();
+    }
+
+    fn display_cell(&self, row: usize, col: usize) -> Option<&str> {
+        match self.pending.value(row, col)? {
+            Value::Text(value) | Value::Json(value) => Some(value.as_str()),
+            _ => self
+                .types
+                .len()
+                .checked_mul(row)
+                .and_then(|offset| offset.checked_add(col))
+                .and_then(|index| self.display.get(index))
+                .and_then(Option::as_deref),
+        }
     }
 
     fn parse_value(&self, col: usize, text: &str) -> Result<Value, FieldError> {
@@ -527,10 +576,7 @@ impl GridModel for ResultGrid {
     }
 
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
-        self.display
-            .get(row)
-            .and_then(|cells| cells.get(col))
-            .map(|text| CellRef::new(text))
+        self.display_cell(row, col).map(CellRef::new)
     }
 
     fn row_decor(&self, row: usize) -> RowDecor<'_> {
@@ -571,15 +617,12 @@ impl GridEditor for ResultGrid {
                     .unwrap_or("Cell is read-only"),
             };
         }
-        self.display
-            .get(row)
-            .and_then(|cells| cells.get(col))
-            .map_or(
-                EditIntent::Refuse {
-                    reason: "Missing cell",
-                },
-                |initial| EditIntent::Inline { initial },
-            )
+        self.display_cell(row, col).map_or(
+            EditIntent::Refuse {
+                reason: "Missing cell",
+            },
+            |initial| EditIntent::Inline { initial },
+        )
     }
 
     fn apply_cycle(&mut self, row: usize, col: usize) {

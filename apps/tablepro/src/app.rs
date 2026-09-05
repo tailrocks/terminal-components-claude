@@ -390,6 +390,10 @@ impl TableProApp {
         self.connections_screen.error = None;
         self.workbench = Workbench::new(connection.clone(), self.catalog.clone());
         self.workbench.new_query("");
+        self.explorer_tree_state = TreeState::default();
+        self.tabs_state = TabsState::default();
+        self.split_state = SplitPaneState::default();
+        self.sync_tabs_state();
         self.query.clear();
         self.query_state = TextInputState::default();
         self.columns.clear();
@@ -425,10 +429,20 @@ impl TableProApp {
         self.grid_state = GridState::default();
     }
 
-    fn open_table(&mut self, name: &str) -> bool {
-        let opened = self.workbench.open_table(name);
+    fn sync_tabs_state(&mut self) {
+        let active = self.workbench.active;
+        if let Some(key) = self.workbench.tabs.get(active).map(tab_key) {
+            self.tabs_state.set_active(active, key);
+        } else {
+            self.tabs_state = TabsState::default();
+        }
+    }
+
+    fn open_table(&mut self, item: &ExplorerItem) -> bool {
+        let opened = self.workbench.open_explorer_item(item);
         if opened {
             self.sync_active_table();
+            self.sync_tabs_state();
             self.surface = Surface::TableGrid;
         }
         opened
@@ -436,6 +450,7 @@ impl TableProApp {
 
     fn new_query(&mut self, query: impl Into<String>) {
         self.workbench.new_query(query);
+        self.sync_tabs_state();
         self.query.clear();
         self.query_state = TextInputState::default();
         self.columns.clear();
@@ -499,6 +514,7 @@ impl TableProApp {
             }
         }
         self.grid_state = GridState::default();
+        self.sync_tabs_state();
     }
     /// Change the active safe-mode policy.
     pub fn set_safe_mode(&mut self, mode: SafeMode) {
@@ -716,13 +732,13 @@ fn connection_row(connection: &Connection, row: &mut RowUi<'_>) {
 }
 
 fn explorer_key(item: &ExplorerItem) -> ItemKey {
-    // The deterministic catalog keeps table names unique; the key is derived
-    // from domain identity, never from the row position.
-    ItemKey::text(&item.name)
+    // Include schema: equal table names in different schemas are distinct
+    // catalog objects and must not share collection state.
+    ItemKey::text(&format!("{}.{}", item.schema, item.name))
 }
 
-fn explorer_node(_item: &ExplorerItem) -> TreeNode {
-    TreeNode::leaf(0)
+fn explorer_node(item: &ExplorerItem) -> TreeNode {
+    TreeNode::leaf(0).keyed(explorer_key(item))
 }
 
 fn explorer_row(item: &ExplorerItem, row: &mut RowUi<'_>) {
@@ -913,8 +929,8 @@ impl App for TableProApp {
                 .iter()
                 .find(|item| explorer_key(item) == *key)
         {
-            let name = item.name.clone();
-            let _ = self.open_table(&name);
+            let item = item.clone();
+            let _ = self.open_table(&item);
         }
         response |= tree_response.erase();
 
@@ -993,7 +1009,7 @@ impl App for TableProApp {
                 });
         } else if self.screen == Screen::Connections {
             let title = format!(
-                "TablePro · Connections · {} configured",
+                "TablePro · connections · {} configured",
                 self.connections_screen.connections.len()
             );
             ui.paint_str(header, &title, ui.surface_style());
