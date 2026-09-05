@@ -74,7 +74,9 @@ impl Page for ProgressPage {
         self.frame = self.frame.wrapping_add(1);
         self.checks = 60_u16.saturating_add(u16::try_from(self.frame.rem_euclid(41)).unwrap_or(0));
         cx.request_repaint_after(Duration::from_millis(120));
-        Response::changed()
+        // Animation invalidation must not consume unrelated application keys.
+        // `]`/`[` bubble to the shell navigation while this page is active.
+        Response::ignored().repaint()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

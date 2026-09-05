@@ -1,9 +1,9 @@
 //! Searchable semantic picker with query and scope state.
 
 use junie_tui::{
-    ActionKey, Button, ContextMenu, Cx, FilterList, FilterListState, Id, Item, ItemKey, Menu,
-    MenuBar, MenuItem, MenuState, Picker, PickerAction, PickerChain, PickerChainState, PickerStage,
-    PickerState, Position, Rect, Response, Ui, Variant, id, layout,
+    ActionKey, Binding, Button, ContextMenu, Cx, FilterList, FilterListState, FrameRead, Id, Item,
+    ItemKey, Menu, MenuBar, MenuItem, MenuState, Picker, PickerAction, PickerChain,
+    PickerChainState, PickerStage, PickerState, Position, Rect, Response, Ui, Variant, id, layout,
 };
 
 use super::{Page, frame, lines};
@@ -14,6 +14,10 @@ const FILTER: Id = id!("pickers.filter");
 const CHAIN: Id = id!("pickers.chain");
 const MENU: Id = id!("pickers.menu");
 const CONTEXT: Id = id!("pickers.context");
+// The page's inventory list is a standalone focus stop. Its library binding
+// table also declares Picker's optional scope command, so shadow that table
+// after drawing to keep Tab owned by the runtime focus ring here.
+const STANDALONE_FILTER_BINDINGS: &[Binding<()>] = &[];
 const SCOPES: &[junie_tui::ScopeKey] = &[junie_tui::ScopeKey::new(1), junie_tui::ScopeKey::new(2)];
 const ITEMS: &[Item<'static>] = &[
     Item::new(ItemKey::Num(1), "Deploy production")
@@ -187,6 +191,7 @@ impl Page for PickersPage {
                 let (filter_area, chain_area) =
                     layout::split_v(left, left.height.saturating_sub(2));
                 filter_list().draw(ui, filter_area, &self.filter_state, ITEMS);
+                ui.publish_bindings(FILTER, ui.state(FILTER), STANDALONE_FILTER_BINDINGS);
                 picker_chain().draw(ui, chain_area, &self.chain_state);
                 context_menu().draw(ui, right, &self.context_state);
             },

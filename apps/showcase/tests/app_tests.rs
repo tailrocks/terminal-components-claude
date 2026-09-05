@@ -277,7 +277,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             assert!(h.text().contains("Command palette"));
             press(h, KeyCode::Down);
             press(h, KeyCode::Enter);
-            assert!(h.text().contains("last result: Deploy production"));
+            assert!(h.text().contains("last result: Open pull request"));
         }
         PageId::Chrome => {
             let (x, y) = require(h.find("Junie"), "chrome brand");
