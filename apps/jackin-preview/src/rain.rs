@@ -4,7 +4,10 @@
 //! the public facade when the shell paints it, while this module keeps the
 //! exact virtual-frame contracts used by the preview and its tests.
 
-use junie_tui::{Buffer, Color, Rect, Style, Theme};
+use junie_tui::{
+    Buffer, Color, Family, FgStep, Part, Rect, Role, StateFlags, Style, StylePatch, Surface, Theme,
+    Variant,
+};
 
 use crate::scenario::Motion;
 
@@ -51,26 +54,57 @@ pub enum Tone {
     Accent,
 }
 
+const RAIN_FAMILY: Family = Family::custom("jackin-preview.rain");
+const RAIN_PART: Part = Part::custom("jackin-preview.rain.style");
+
+fn role_style(theme: &Theme, patch: StylePatch) -> Style {
+    theme
+        .clone()
+        .define_family(RAIN_FAMILY, |family| {
+            family.part(RAIN_PART).base(patch);
+        })
+        .resolve(
+            RAIN_FAMILY,
+            Variant::DEFAULT,
+            RAIN_PART,
+            StateFlags::empty(),
+            Surface::Canvas,
+        )
+        .style
+}
+
 /// Resolve a tone to a theme style.  Dim is index arithmetic over the
 /// foreground ladder; no colour equality is used, so themes with distinct
 /// accent/focus/success colours remain distinct.
 pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
-    let color = match tone {
+    let role = match tone {
         Tone::Ladder(level) => {
             let index = usize::from(level.saturating_sub(dim).min(4));
-            theme.color.fg.get(index).copied().unwrap_or(Color::Reset)
+            Role::Fg(match index {
+                0 => FgStep::Primary,
+                1 => FgStep::Secondary,
+                2 => FgStep::Muted,
+                3 => FgStep::Faint,
+                _ => FgStep::Ghost,
+            })
         }
         Tone::Accent if dim >= 3 => return None,
-        Tone::Accent if dim == 2 => theme.color.fg.get(2).copied().unwrap_or(Color::Reset),
-        Tone::Accent if dim == 1 => theme.color.fg.get(3).copied().unwrap_or(Color::Reset),
-        Tone::Accent => theme.color.accent,
+        Tone::Accent if dim == 2 => Role::Fg(FgStep::Muted),
+        Tone::Accent if dim == 1 => Role::Fg(FgStep::Faint),
+        Tone::Accent => Role::Accent,
     };
-    Some(Style::new().fg(color))
+    Some(role_style(theme, StylePatch::new().set_fg(role)))
 }
 
 /// Fill a field with the theme canvas colour.
 pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
-    buf.set_style(area, Style::new().bg(theme.color.surfaces[0]));
+    buf.set_style(
+        area,
+        role_style(
+            theme,
+            StylePatch::new().set_bg(Role::Surface(Surface::Canvas)),
+        ),
+    );
 }
 
 /// Dim existing cells by replacing their foreground with a ladder step.
