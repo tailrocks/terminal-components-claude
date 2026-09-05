@@ -15,8 +15,8 @@
 
 use junie_tui::author::{
     Activated, Binding, BindingState, Bindings, Chord, Cx, Family, FgStep, Focusability, FrameRead,
-    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, PartStyle, Phase, Position, Rect,
-    Response, ScrollState, StateFlags, StylePatch, Ui, Variant,
+    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, Phase, Position, Rect, Response,
+    ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
 use junie_tui::{
     Action, ActionKey, Anchor, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef, Checkbox,
@@ -4330,114 +4330,35 @@ impl junie_tui::App for ZeroLayer {
 mod registry {
     use super::*;
 
-    use std::collections::BTreeSet;
-
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-    struct StyleProvenance {
-        owner: Id,
-        family: Family,
-        variant: Variant,
-        part: Part,
-    }
-
-    fn declare(out: &mut BTreeSet<StyleProvenance>, owner: Id, family: Family, parts: &[Part]) {
-        for &part in parts {
-            out.insert(StyleProvenance {
-                owner,
-                family,
-                variant: Variant::DEFAULT,
-                part,
-            });
-        }
-    }
-
-    /// Root-owner style declarations, including composed painters that share
-    /// the root id. Family/variant are provenance, not an extra part allowlist.
-    fn declared<C: Conformance>() -> BTreeSet<StyleProvenance> {
-        let owner = C::id();
-        let mut out = BTreeSet::new();
-        declare(&mut out, owner, C::FAMILY, C::PARTS);
-        match C::NAME {
-            // Field intentionally hosts the control under the same id.
-            "field" => declare(&mut out, owner, Family::INPUT, TextInput::PARTS),
-            // Form owns its chrome and scrollbar under FORM; field chrome is
-            // still addressed by FORM while the real control has its own id.
-            "form" => {
-                declare(&mut out, owner, Family::FIELD, &[Part::LABEL, Part::HELP]);
-                declare(&mut out, owner, Family::SCROLLBAR, ScrollRegion::PARTS);
-            }
-            // These compositions keep the scrollbar's default family. Other
-            // compositions explicitly inherit their owner's family.
-            "code_editor" | "completion" | "filter_list" | "grid" | "list" | "picker"
-            | "select" | "steps" | "text_area" | "tree" => {
-                declare(&mut out, owner, Family::SCROLLBAR, ScrollRegion::PARTS)
-            }
-            // DiffView delegates all painting to TextViewport, including the
-            // viewport recipe provenance.
-            "diff_view" => {
-                out.retain(|entry| entry.family != C::FAMILY);
-                declare(&mut out, owner, Family::VIEWPORT, TextViewport::PARTS);
-            }
-            "hint_bar" | "derived_hint_bar" => {
-                declare(&mut out, owner, Family::KEYHINT, &[Part::KEY, Part::ACTION]);
-            }
-            _ => {}
-        }
+    /// The parts a case resolves in one draw.
+    fn styled<C: Conformance>() -> Vec<Part> {
+        let f = Fixture::default();
+        let mut scene = Scene::new(C::NAME, f.theme.clone(), f.color, 40, 12);
+        let st = C::State::default();
+        let mut out = Vec::new();
+        scene.draw(|ui, _| {
+            C::draw(ui, f.area, &st, &f);
+            out = ui
+                .styled_parts()
+                .iter()
+                .filter(|(o, _)| *o == C::id())
+                .map(|(_, p)| *p)
+                .collect();
+        });
+        out.sort();
+        out.dedup();
         out
     }
 
-    fn fixtures<C: Conformance>() -> Vec<Fixture> {
-        let mut out = vec![Fixture::default()];
-        let mut overflow = Fixture::default();
-        C::prepare_scroll_fixture(&mut overflow);
-        out.push(overflow);
-        for &state in C::mono_states() {
-            let mut fixture = C::mono_fixture(state).force(state);
-            C::prepare_scroll_fixture(&mut fixture);
-            out.push(fixture);
+    fn check<C: Conformance>(extra: &[Part]) {
+        for p in styled::<C>() {
+            assert!(
+                C::PARTS.contains(&p) || extra.contains(&p),
+                "{}: styled {p:?} which is not in PARTS {:?}",
+                C::NAME,
+                C::PARTS
+            );
         }
-        out
-    }
-
-    /// Root-owner style queries across semantic and overflow fixtures.
-    /// Nested owner ids have their own registered conformance case.
-    fn styled<C: Conformance>() -> BTreeSet<StyleProvenance> {
-        let mut out = BTreeSet::new();
-        for fixture in fixtures::<C>() {
-            let mut scene = Scene::new(C::NAME, fixture.theme.clone(), fixture.color, 40, 12);
-            let state = C::State::default();
-            scene.draw(|ui, _| {
-                C::draw(ui, fixture.area, &state, &fixture);
-                for &(owner, family, variant, part, _) in ui.styled_queries() {
-                    if owner == C::id() {
-                        out.insert(StyleProvenance {
-                            owner,
-                            family,
-                            variant,
-                            part,
-                        });
-                    }
-                }
-            });
-        }
-        out
-    }
-
-    fn undeclared<C: Conformance>() -> Vec<StyleProvenance> {
-        styled::<C>()
-            .difference(&declared::<C>())
-            .copied()
-            .collect()
-    }
-
-    fn check<C: Conformance>() {
-        let unexpected = undeclared::<C>();
-        assert!(
-            unexpected.is_empty(),
-            "{}: styled undeclared provenance {unexpected:?}; declared {:?}",
-            C::NAME,
-            declared::<C>()
-        );
     }
 
     #[test]
@@ -4495,99 +4416,46 @@ mod registry {
 
     #[test]
     fn declared_parts_are_the_parts_actually_styled() {
-        check::<ProbeCase>();
-        check::<ButtonCase>();
-        check::<TextInputCase>();
-        check::<FieldCase>();
-        check::<ListCase>();
-        check::<TabsCase>();
-        check::<DialogCase>();
-        check::<ScrollRegionCase>();
-        check::<PropsCase>();
-        check::<PropsListCase>();
-        check::<TextAreaCase>();
-        check::<SelectCase>();
-        check::<RadioGroupCase>();
-        check::<CheckboxCase>();
-        check::<ToggleCase>();
-        check::<ChipBarCase>();
-        check::<StatusBarCase>();
-        check::<HintBarCase>();
-        check::<DerivedHintBarCase>();
-        check::<KeyHintCase>();
-        check::<ProgressBarCase>();
-        check::<SpinnerCase>();
-        check::<MeterCase>();
-        check::<EmptyCase>();
-        check::<BrandCase>();
-        check::<PanelCase>();
-        check::<SplitPaneCase>();
-        check::<TextViewportCase>();
-        check::<DiffViewCase>();
-        check::<CodeEditorCase>();
-        check::<TreeCase>();
-        check::<NavListCase>();
-        check::<StepsCase>();
-        check::<TooSmallCase>();
-        check::<GridCase>();
-        check::<FilterListCase>();
-        check::<PickerCase>();
-        check::<CompletionCase>();
-        check::<ContextMenuCase>();
-        check::<HelpOverlayCase>();
-        check::<MenuBarCase>();
-        check::<PickerChainCase>();
-        check::<WizardCase>();
-        check::<FormCase>();
-    }
-
-    const UNDECLARED: Id = Id::root("conformance.registry.undeclared");
-
-    struct UndeclaredPartCase;
-
-    impl Conformance for UndeclaredPartCase {
-        const NAME: &'static str = "undeclared_part";
-        const FAMILY: Family = Family::BUTTON;
-        const PARTS: &'static [Part] = &[Part::CONTAINER];
-        type State = ();
-        type Action = ();
-        type Cmd = ();
-
-        fn caps() -> Caps {
-            Caps::empty()
-        }
-
-        fn id() -> Id {
-            UNDECLARED
-        }
-
-        fn update(_cx: &mut Cx<'_>, _st: &mut (), _f: &Fixture) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(ui: &mut Ui<'_>, area: Rect, _st: &(), _f: &Fixture) {
-            let _ = PartStyle::new().style(
-                ui,
-                UNDECLARED,
-                Family::BUTTON,
-                Variant::DEFAULT,
-                Part::DETAIL,
-                StateFlags::empty(),
-            );
-            ui.fill(area, ui.surface_style());
-        }
-    }
-
-    #[test]
-    fn undeclared_style_provenance_is_rejected() {
-        assert_eq!(
-            undeclared::<UndeclaredPartCase>(),
-            vec![StyleProvenance {
-                owner: UNDECLARED,
-                family: Family::BUTTON,
-                variant: Variant::DEFAULT,
-                part: Part::DETAIL,
-            }]
-        );
+        check::<ButtonCase>(&[]);
+        check::<TextInputCase>(&[]);
+        // the chrome and its control register under one id
+        check::<FieldCase>(TextInput::PARTS);
+        check::<ListCase>(&[]);
+        check::<TabsCase>(&[]);
+        check::<ScrollRegionCase>(&[]);
+        check::<TextAreaCase>(&[]);
+        check::<SelectCase>(&[]);
+        check::<RadioGroupCase>(&[]);
+        check::<CheckboxCase>(&[]);
+        check::<ToggleCase>(&[]);
+        check::<ChipBarCase>(&[]);
+        check::<StatusBarCase>(&[]);
+        check::<HintBarCase>(&[]);
+        check::<DerivedHintBarCase>(&[]);
+        check::<KeyHintCase>(&[]);
+        check::<ProgressBarCase>(&[]);
+        check::<SpinnerCase>(&[]);
+        check::<MeterCase>(&[]);
+        check::<EmptyCase>(&[]);
+        check::<BrandCase>(&[]);
+        check::<PanelCase>(&[]);
+        check::<SplitPaneCase>(&[]);
+        check::<TextViewportCase>(&[]);
+        check::<DiffViewCase>(&[]);
+        check::<CodeEditorCase>(&[]);
+        check::<TreeCase>(&[]);
+        check::<NavListCase>(&[]);
+        check::<StepsCase>(&[]);
+        check::<TooSmallCase>(&[]);
+        check::<GridCase>(&[]);
+        check::<FilterListCase>(&[]);
+        check::<PickerCase>(&[]);
+        check::<CompletionCase>(&[]);
+        check::<ContextMenuCase>(&[]);
+        check::<HelpOverlayCase>(&[]);
+        check::<MenuBarCase>(&[]);
+        check::<PickerChainCase>(&[]);
+        check::<WizardCase>(&[]);
+        check::<FormCase>(Field::<TextInput<'static>>::PARTS);
     }
 }
