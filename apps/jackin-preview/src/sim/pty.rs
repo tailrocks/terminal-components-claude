@@ -1216,11 +1216,7 @@ impl Daemon {
             daemon.tabs.push(Tab {
                 custom_label: Some(tab.label.clone()),
                 root: PaneNode::Leaf(pane),
-                focused: if first.is_some_and(|pane| pane.focused) {
-                    pane
-                } else {
-                    pane
-                },
+                focused: pane,
                 zoomed: None,
             });
             for pane_snapshot in tab.panes.iter().skip(1) {

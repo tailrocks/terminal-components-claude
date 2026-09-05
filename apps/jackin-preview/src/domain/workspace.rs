@@ -8,24 +8,34 @@ use std::{fmt, mem};
 use super::account::{AccountId, AccountRegistry, Lifecycle};
 use super::agent::Provider;
 
+/// Stable identifier for a configured workspace.
 pub type WorkspaceId = u32;
+/// Fully qualified role name (`namespace/name`).
 pub type RoleName = String;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Workspace {
+    /// Stable workspace identifier.
     pub id: WorkspaceId,
+    /// Display name shown in navigation.
     pub name: String,
+    /// Host working directory.
     pub workdir: String,
+    /// Filesystem mounts exposed to the Construct.
     pub mounts: Vec<Mount>,
+    /// Role allow-list and preferred role.
     pub roles: RolePolicy,
     /// Workspace-scope environment variables.
     pub env: Vec<EnvVar>,
     /// Role-scope environment variables keyed by Role name.
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
+    /// Keep the workspace alive after its last session exits.
     pub keep_awake: bool,
+    /// Pull the configured repository before starting a session.
     pub git_pull: bool,
     /// Which registry accounts this Workspace activates, and which it prefers.
     pub accounts: AccountPolicy,
+    /// Policy for leaving with unsaved workspace changes.
     pub dirty_policy: DirtyExitPolicy,
 }
 
@@ -66,6 +76,7 @@ pub enum Effective {
 }
 
 impl Effective {
+    /// Human-readable origin label.
     pub fn label(self) -> &'static str {
         match self {
             Effective::InheritedDefault => "inherited default",
@@ -77,14 +88,18 @@ impl Effective {
 /// Whether an effective account can actually back a session right now.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Usability {
+    /// The account can back a session.
     Ready,
     /// Switched off in the registry (kept in the policy so it comes back when re-enabled).
     Disabled(String),
+    /// The account requires an interactive login.
     NeedsLogin,
+    /// The account cannot be used for the requested operation.
     Invalid(String),
 }
 
 impl Usability {
+    /// Return the display label, preserving detailed failure text.
     pub fn label(&self) -> String {
         match self {
             Usability::Ready => "ready".into(),
@@ -94,6 +109,7 @@ impl Usability {
         }
     }
 
+    /// Whether this account is ready for use.
     pub fn is_ready(&self) -> bool {
         matches!(self, Usability::Ready)
     }
@@ -101,10 +117,15 @@ impl Usability {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveAccount {
+    /// Registry account identifier.
     pub id: AccountId,
+    /// Provider served by the account.
     pub provider: Provider,
+    /// How the account entered the workspace's effective set.
     pub origin: Effective,
+    /// Whether this is the selected account for its provider.
     pub preferred: bool,
+    /// Current usability state.
     pub usable: Usability,
 }
 
@@ -130,6 +151,7 @@ pub fn usability_of(a: &super::account::Account) -> Usability {
 }
 
 impl Workspace {
+    /// Create a workspace with safe default policies and no mounts.
     pub fn new(id: WorkspaceId, name: &str, workdir: &str) -> Self {
         Self {
             id,
@@ -243,6 +265,7 @@ impl Workspace {
         n
     }
 
+    /// Count environment variables across workspace and role scopes.
     pub fn env_count(&self) -> usize {
         self.env.len() + self.role_env.values().map(Vec::len).sum::<usize>()
     }
@@ -267,12 +290,16 @@ fn keyed<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DirtyExitPolicy {
+    /// Ask before leaving with changes.
     Ask,
+    /// Keep changes when leaving.
     Keep,
+    /// Discard changes when leaving.
     Discard,
 }
 
 impl DirtyExitPolicy {
+    /// Human-readable policy label.
     pub fn label(self) -> &'static str {
         match self {
             DirtyExitPolicy::Ask => "ask",
@@ -286,10 +313,15 @@ impl DirtyExitPolicy {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mount {
+    /// Source path or repository URL.
     pub source: MountSource,
+    /// Path visible inside the Construct.
     pub destination: String,
+    /// Whether the mount is read-only.
     pub readonly: bool,
+    /// Isolation strategy for repository-backed mounts.
     pub isolation: Isolation,
+    /// Directory or repository mount kind.
     pub kind: MountKind,
     /// Scope for global mounts (Settings); Workspace mounts are `Workspace`.
     pub scope: MountScope,
@@ -301,6 +333,7 @@ pub struct Mount {
 }
 
 impl Mount {
+    /// Construct a shared writable directory mount.
     pub fn host(source: &str, destination: &str) -> Self {
         Self {
             source: MountSource::Host(source.to_owned()),
@@ -314,6 +347,7 @@ impl Mount {
         }
     }
 
+    /// Construct a cloned repository mount.
     pub fn git(url: &str, destination: &str) -> Self {
         Self {
             source: MountSource::Git(url.to_owned()),
@@ -327,32 +361,38 @@ impl Mount {
         }
     }
 
+    /// Set the read-only flag.
     pub fn readonly(mut self, ro: bool) -> Self {
         self.readonly = ro;
         self
     }
 
+    /// Set the repository isolation mode.
     pub fn isolation(mut self, iso: Isolation) -> Self {
         self.isolation = iso;
         self
     }
 
+    /// Mark this mount as a repository.
     pub fn repository(mut self) -> Self {
         self.kind = MountKind::Repository;
         self
     }
 
+    /// Set the scope owning this mount.
     pub fn scope(mut self, scope: MountScope) -> Self {
         self.scope = scope;
         self
     }
 
+    /// Return the source path or URL.
     pub fn source_label(&self) -> &str {
         match &self.source {
             MountSource::Host(p) | MountSource::Git(p) => p,
         }
     }
 
+    /// Return the read/write display label.
     pub fn mode_label(&self) -> &'static str {
         if self.readonly { "ro" } else { "rw" }
     }
@@ -360,18 +400,24 @@ impl Mount {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MountSource {
+    /// Host filesystem path.
     Host(String),
+    /// Git repository URL.
     Git(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Isolation {
+    /// Share the source directory directly.
     Shared,
+    /// Use a linked worktree.
     Worktree,
+    /// Use a full clone.
     Clone,
 }
 
 impl Isolation {
+    /// Human-readable isolation label.
     pub fn label(self) -> &'static str {
         match self {
             Isolation::Shared => "Shared",
@@ -392,18 +438,24 @@ impl Isolation {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MountKind {
+    /// A regular directory mount.
     Directory,
+    /// A repository mount.
     Repository,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MountScope {
+    /// Global settings mount.
     Global,
+    /// Workspace-local mount.
     Workspace,
+    /// Role-local mount.
     Role(RoleName),
 }
 
 impl MountScope {
+    /// Human-readable scope label.
     pub fn label(&self) -> String {
         match self {
             MountScope::Global => "global".into(),
@@ -417,19 +469,25 @@ impl MountScope {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RolePolicy {
+    /// Allowed role set.
     pub allowed: AllowedRoles,
+    /// Explicit default role.
     pub default: Option<RoleName>,
+    /// Last selected role.
     pub last: Option<RoleName>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum AllowedRoles {
+    /// All roles are allowed.
     #[default]
     All,
+    /// Only the listed roles are allowed.
     Custom(Vec<RoleName>),
 }
 
 impl RolePolicy {
+    /// Check whether a role is allowed by this policy.
     pub fn allows(&self, role: &str) -> bool {
         match &self.allowed {
             AllowedRoles::All => true,
@@ -437,6 +495,7 @@ impl RolePolicy {
         }
     }
 
+    /// Summarize the policy for the editor.
     pub fn summary(&self) -> String {
         match &self.allowed {
             AllowedRoles::All => "Allowed roles: all".into(),
@@ -448,16 +507,24 @@ impl RolePolicy {
 /// A Role as the host registry knows it: namespace/name, source, trust.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoleEntry {
+    /// Role namespace.
     pub namespace: String,
+    /// Role name within its namespace.
     pub name: String,
+    /// Registry source metadata.
     pub source: RoleSource,
+    /// Whether the role has been trusted.
     pub trusted: bool,
+    /// Whether the role is present in the registry.
     pub in_registry: bool,
+    /// Human-readable role description.
     pub description: String,
+    /// Loading failure, if any.
     pub load_error: Option<String>,
 }
 
 impl RoleEntry {
+    /// Return the fully qualified role name.
     pub fn full_name(&self) -> String {
         format!("{}/{}", self.namespace, self.name)
     }
@@ -465,11 +532,14 @@ impl RoleEntry {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RoleSource {
+    /// Git-backed role source.
     Git { url: String, branch: String },
+    /// Local role source.
     Local { path: String },
 }
 
 impl RoleSource {
+    /// Return a display description of this source.
     pub fn label(&self) -> String {
         match self {
             RoleSource::Git { url, branch } => format!("{url} @ {branch}"),
@@ -482,11 +552,14 @@ impl RoleSource {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnvVar {
+    /// Environment key.
     pub key: String,
+    /// Secret-safe source metadata or plain value.
     pub value: EnvValue,
 }
 
 impl EnvVar {
+    /// Create a plain environment variable.
     pub fn plain(key: &str, value: &str) -> Self {
         Self {
             key: key.to_owned(),
@@ -494,6 +567,7 @@ impl EnvVar {
         }
     }
 
+    /// Create a 1Password-backed environment variable.
     pub fn op(key: &str, reference: super::onepassword::OpReference) -> Self {
         Self {
             key: key.to_owned(),
@@ -501,6 +575,7 @@ impl EnvVar {
         }
     }
 
+    /// Create a host-environment forwarding variable.
     pub fn host(key: &str, host_var: &str) -> Self {
         Self {
             key: key.to_owned(),
@@ -539,6 +614,7 @@ impl Drop for EnvValue {
 }
 
 impl EnvValue {
+    /// Return the non-secret source label used by the editor.
     pub fn source_label(&self) -> &'static str {
         match self {
             EnvValue::Plain(_) => "plain text",
@@ -551,6 +627,8 @@ impl EnvValue {
 /// Asterisk runs, never `•` (which marks modified rows in the tables).
 /// API-key-shaped values keep their last four characters so two keys can
 /// be told apart; anything with path or URL structure is fully masked.
+/// The result never contains the original value except for the synthetic key
+/// tail described above.
 pub fn mask(v: &str) -> String {
     if v.is_empty() {
         return "(empty)".into();
@@ -573,6 +651,7 @@ pub fn mask(v: &str) -> String {
 }
 
 /// Reserved and forbidden environment keys (validation before save).
+/// Returns `None` when the key is valid, otherwise a user-facing explanation.
 pub fn env_key_error(key: &str) -> Option<String> {
     let k = key.trim();
     if k.is_empty() {
