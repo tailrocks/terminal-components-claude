@@ -373,15 +373,40 @@ impl<'a> Wizard<'a> {
                     Part::MARKER,
                     flags,
                 );
-                ui.paint_str(
-                    marker,
-                    if st.current == Some(step.key) {
-                        "●"
-                    } else {
-                        "○"
-                    },
-                    s.style,
-                );
+                if flags.contains(StateFlags::FOCUSED) {
+                    // Focus must remain visible when colour is unavailable.
+                    // Keep the active marker in the second cell so focus does
+                    // not erase the step's current-state affordance.
+                    ui.glyph(
+                        Rect {
+                            width: marker.width.min(1),
+                            ..marker
+                        },
+                        crate::theme::GlyphRole::FocusBar,
+                        s.style,
+                    );
+                    if st.current == Some(step.key) && marker.width > 1 {
+                        ui.paint_str(
+                            Rect {
+                                x: marker.x.saturating_add(1),
+                                width: marker.width.saturating_sub(1),
+                                ..marker
+                            },
+                            "●",
+                            s.style,
+                        );
+                    }
+                } else {
+                    ui.paint_str(
+                        marker,
+                        if st.current == Some(step.key) {
+                            "●"
+                        } else {
+                            "○"
+                        },
+                        s.style,
+                    );
+                }
             }
             let label = Rect {
                 x: marker.right(),

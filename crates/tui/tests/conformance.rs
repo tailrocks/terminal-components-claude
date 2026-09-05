@@ -703,7 +703,10 @@ impl Conformance for TabsCase {
         &STATES
     }
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
-        const ACTIVATE: &[Chord] = &[Chord::key(KeyCode::Enter)];
+        // The default update seeds the first tab as active. Move through the
+        // real next-tab activation path so SELECTED changes the rendered
+        // active rule instead of reproducing the empty state.
+        const ACTIVATE: &[Chord] = &[Chord::key(KeyCode::Right)];
         if state.contains(StateFlags::SELECTED) {
             ACTIVATE
         } else {
@@ -2311,8 +2314,16 @@ impl Conformance for TextViewportCase {
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &ViewportState, f: &Fixture) {
         let mut reference = st.clone();
         reference.set_follow(false);
-        reference.set_caret(Some(CellPos::new(reference.scroll().offset(), 0)));
-        text_viewport(f).draw(ui, area, &reference, &viewport_lines(f));
+        let lines = viewport_lines(f);
+        let caret_line = reference
+            .scroll()
+            .offset()
+            .min(lines.len().saturating_sub(1));
+        // `ScrollState` can transiently hold the unclamped tail offset from
+        // the zero-viewport bootstrap frame. The cursor fixture must name a
+        // visible logical line, not that pre-layout sentinel.
+        reference.set_caret(Some(CellPos::new(caret_line, 0)));
+        text_viewport(f).draw(ui, area, &reference, &lines);
     }
 
     fn activation_part() -> PartRef {
@@ -4338,6 +4349,7 @@ mod registry {
                 "dialog",
                 "scroll_region",
                 "props",
+                "props_list",
                 "text_area",
                 "select",
                 "radio_group",
