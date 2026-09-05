@@ -15,6 +15,7 @@ pub struct Clock {
 }
 
 impl Clock {
+    /// Create a clock at the fixture epoch with ticking enabled.
     pub const fn new() -> Self {
         Self {
             now_ms: 0,
