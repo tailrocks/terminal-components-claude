@@ -3,8 +3,8 @@
 ## Latest stop update — 2026-09-05
 
 The user stopped the continuation again. Resume from pushed `main` at
-`5564835`; all tracked chrome changes below are preserved through that commit. Do
-not claim Slice 4 or the merge goal complete.
+`5564835` (`HEAD == origin/main`). All tracked chrome changes below are
+preserved through that commit. Do not claim Slice 4 or the merge goal complete.
 
 Pushed proof commits now on `origin/main`:
 
@@ -22,17 +22,25 @@ Measured by the proof worker:
 - render matrix: 326 passed, with six pre-existing Grid digest failures;
 - formatting and diff checks: pass.
 
-Tracked but unverified at this stop:
+Tracked and committed, but behaviorally unverified after the final edits:
 
 - `apps/jackin-preview/src/app.rs`;
 - `crates/tui/src/components/menu.rs`.
 
-These contain an in-progress chrome attempt: top-level menu switching,
+These contain the in-progress chrome attempt: top-level menu switching,
 expanded Capsule menu/palette entries, context-menu lifecycle state, prefix
-routing, last-row generic hints, and `Ctrl+B` display. The chrome suite was
-previously `0/6`; no post-edit chrome result exists because the user stopped
-the worker. Review or revert selectively after running the focused suite; do
-not overwrite the files wholesale.
+routing, last-row generic hints, and `Ctrl+B` display. The last measured
+focused run, before the final routing/title/fallback edits, was:
+
+```text
+app_tests_chrome: 2 passed; 4 failed
+```
+
+The final edits were not re-tested. Re-run the focused suite first. The four
+remaining observations from the last measured run were palette wheel-up marker
+determinism, Inspect dispatch, New-tab picker text, and `Ctrl+B` then `m`
+context-menu routing; the final source commit contains attempted fixes for
+those points. Do not overwrite the files wholesale.
 
 The architecture audit resolved the four old open questions: no new
 amendment is needed; `FieldControl` stays unwidened, Select/RadioGroup/ChipBar
@@ -42,7 +50,17 @@ Jackin visual evidence remain unresolved, and six Grid digest failures remain.
 
 Only build-cache directories are untracked. Never stage them with `git add -A`.
 
-## Latest session handoff — 2026-09-05 stop
+Current restart order:
+
+1. Run the focused chrome suite and inspect the four previously failing cases.
+2. Run the functional Jackin app suite.
+3. Run the full release gates below, preserving unresolved proof failures and
+   stale visual evidence as explicit blockers.
+4. Recheck launch-scope identity separately, then clean only stale worktrees.
+
+Historical handoff record follows for provenance; the block above supersedes it.
+
+## Historical handoff record — 2026-09-05 stop
 
 The user stopped the merge/implementation session. Resume from pushed `main` at
 `6584b66`; the Capsule chrome implementation is preserved in `c9b765b`.
