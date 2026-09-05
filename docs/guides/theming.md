@@ -683,7 +683,6 @@ speaks (`Set` or `Clear`), and `a` otherwise. Worked:
 let base    = StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD);
 let silent  = StylePatch::new().set_bg(Role::Danger);   // says nothing about fg
 let cleared = StylePatch::new().clear_fg();
-let no_glyph = StylePatch::new().clear_glyph();
 
 // `Inherit` says nothing: the lower layer survives.
 assert_eq!(base.merge(silent).fg, Slot::Set(Role::Accent));
@@ -697,10 +696,6 @@ assert_eq!(
 // `Clear` also wins, and resolves to "no colour" — the surface shows through.
 assert_eq!(base.merge(cleared).fg, Slot::Clear);
 assert_eq!(base.merge(cleared).fg.get(), None);
-
-// `clear_glyph` is the explicit glyph equivalent: the owning component
-// paints its reserved cell blank instead of inheriting or choosing a glyph.
-assert_eq!(StylePatch::new().set_glyph(GlyphRole::Chosen).merge(no_glyph).glyph, Slot::Clear);
 
 // Modifiers are symmetric: the later word wins, in both directions.
 assert!(base.merge(StylePatch::new().remove(Modifier::BOLD)).add.is_empty());

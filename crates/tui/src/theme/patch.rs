@@ -136,16 +136,6 @@ impl StylePatch {
         self
     }
 
-    /// Clear the glyph while retaining its reserved cell and geometry.
-    ///
-    /// This is distinct from omitting a glyph (`Inherit`): a component that
-    /// owns the cell must paint the reserved cell blank for `Clear`.
-    #[must_use]
-    pub const fn clear_glyph(mut self) -> Self {
-        self.glyph = Slot::Clear;
-        self
-    }
-
     /// Set the size.
     #[must_use]
     pub const fn set_size(mut self, n: u16) -> Self {
@@ -256,16 +246,6 @@ mod tests {
         assert_eq!(p.fg, Slot::Clear);
         assert_eq!(p.fg.get(), None);
         assert!(p.fg.speaks());
-    }
-
-    #[test]
-    fn patch_clear_glyph_is_explicit_and_overrides_a_set() {
-        let p = StylePatch::new()
-            .set_glyph(GlyphRole::Chosen)
-            .merge(StylePatch::new().clear_glyph());
-        assert_eq!(p.glyph, Slot::Clear);
-        assert!(p.glyph.speaks());
-        assert_eq!(StylePatch::new().clear_glyph().glyph.get(), None);
     }
 
     #[test]

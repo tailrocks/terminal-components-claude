@@ -43,7 +43,7 @@ Button::new(RESET, "Reset").patch_part(&RESET_LABEL).draw(ui, area);
 
 `StylePatch` is `const`-constructible end to end (`set_fg`, `clear_fg`,
 `set_bg`, `clear_bg`, `set_underline`, `add`, `remove`, `set_glyph`,
-`clear_glyph`, `set_size`, `set_align` are all `const fn`), so the whole override is baked
+`set_size`, `set_align` are all `const fn`), so the whole override is baked
 into the binary and costs one slice scan per styled part at render time.
 
 ## `.patch` — one instance, every part
@@ -179,7 +179,7 @@ declaring a family with an **empty** edit replaces the neutral fallback recipe
 rather than merging into it, and an **undeclared** custom family receives the
 generic mono fallback manifest but no family-targeted or authored mono rules at
 `ColorLevel::Mono`. Use a `clear_*` patch explicitly when suppressing one
-inherited value, including `clear_glyph` for a reserved glyph cell.
+inherited value.
 
 ### `define_*` versus `override_*`
 
