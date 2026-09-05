@@ -35,9 +35,9 @@ use junie_tui::{
     ChipBarState, Chord, CodeEditor, CodeEditorState, ColorLevel, Column, ColumnKey, Completion,
     CompletionState, ContextMenu, Cx, Dialog, DialogState, DiffLineKind, DiffRow, DiffSource,
     DiffView, DiffViewState, Empty, EmptyState, Family, Field, FieldKind, FieldMut, FieldRef,
-    FieldSpec, FilterList, FilterListState, Form, FormData, FormState, Grid, GridModel, GridState,
-    HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Item, ItemKey,
-    KeyCode, KeyHint, List, ListState, Menu, MenuBar, MenuItem, MenuState, Meter, NavList,
+    FieldSpec, FilterList, FilterListState, Form, FormData, FormState, GlyphRole, Grid, GridModel,
+    GridState, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Item,
+    ItemKey, KeyCode, KeyHint, List, ListState, Menu, MenuBar, MenuItem, MenuState, Meter, NavList,
     NavListState, Panel, PanelKind, Part, PartRef, Picker, PickerChain, PickerChainState,
     PickerStage, PickerState, Position, ProgressBar, RadioGroup, RadioGroupState, Rect,
     ReferenceState, ReferenceTarget, Response, RowUi, ScrollRegion, ScrollState, Select,
@@ -956,6 +956,104 @@ impl App for ChipBarAddFixture {
     fn draw(&self, ui: &mut Ui<'_>) {
         draw_chip_bar_with_add(ui, ui.full(), &self.state);
     }
+}
+
+#[derive(Clone, Copy)]
+struct TextAreaStatusFixture {
+    status: Status,
+}
+
+impl App for TextAreaStatusFixture {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        draw_text_area_status(self.status, ui, ui.full());
+    }
+}
+
+#[test]
+fn text_area_status_paints_the_readiness_affordance() {
+    let ready = Harness::new(
+        TextAreaStatusFixture {
+            status: Status::Ready,
+        },
+        Theme::junie(),
+        40,
+        10,
+    );
+    let ready_icon = ready
+        .area_of_part(TEXT_AREA, PartRef::of(Part::ICON))
+        .expect("TextArea registers its readiness icon cell");
+    let ready_symbol = ready.cell(ready_icon.x, ready_icon.y).symbol().to_owned();
+    assert_eq!(
+        ready_symbol, " ",
+        "ready must leave the readiness cell blank"
+    );
+
+    let spinner = Theme::junie()
+        .design
+        .motion
+        .spinner_frames
+        .first()
+        .copied()
+        .expect("the built-in theme has a spinner frame");
+    let error = Theme::junie().design.glyphs.get(GlyphRole::Error);
+    for (status, expected) in [
+        (Status::Busy, spinner),
+        (Status::Loading, spinner),
+        (Status::Error, error),
+    ] {
+        let harness = Harness::new(TextAreaStatusFixture { status }, Theme::junie(), 40, 10);
+        let icon = harness
+            .area_of_part(TEXT_AREA, PartRef::of(Part::ICON))
+            .expect("TextArea registers its readiness icon cell");
+        assert_eq!(icon, ready_icon, "{status:?} changed readiness geometry");
+        assert_eq!(
+            harness.cell(icon.x, icon.y).symbol(),
+            expected,
+            "{status:?} did not paint its readiness affordance"
+        );
+        assert_ne!(expected, ready_symbol, "{status:?} must differ from Ready");
+    }
+}
+
+#[test]
+fn chip_bar_add_emits_add_requested_and_keeps_new_distinct_from_items() {
+    let mut keyboard = Harness::new(ChipBarAddFixture::default(), Theme::junie(), 40, 2);
+    let item = PartRef::item(Part::LABEL, ItemKey::text("Ada Lovelace"));
+    let new = PartRef::of(Part::NEW);
+    assert_ne!(item, new);
+    assert!(keyboard.area_of_part(CHIP_BAR, item).is_some());
+    assert!(keyboard.area_of_part(CHIP_BAR, new).is_some());
+    assert!(
+        keyboard.tab_to(CHIP_BAR),
+        "ChipBar must be keyboard reachable"
+    );
+    assert!(keyboard.key(KeyCode::End).is_consumed());
+    assert!(keyboard.key(KeyCode::Enter).is_consumed());
+    assert_eq!(
+        keyboard.app().actions,
+        [ChipBarAction::AddRequested],
+        "keyboard activation of NEW must not become an item activation"
+    );
+
+    let mut mouse = Harness::new(ChipBarAddFixture::default(), Theme::junie(), 40, 2);
+    let new_area = mouse
+        .area_of_part(CHIP_BAR, new)
+        .expect("configured add affordance is registered");
+    assert!(mouse.click_part(CHIP_BAR, new).is_consumed());
+    assert_eq!(
+        mouse.app().actions,
+        [ChipBarAction::AddRequested],
+        "mouse activation of NEW must emit the payloadless add action"
+    );
+    assert_eq!(
+        mouse.area_of_part(CHIP_BAR, new),
+        Some(new_area),
+        "mouse activation must preserve the NEW hit region"
+    );
 }
 
 fn draw_status_bar(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {

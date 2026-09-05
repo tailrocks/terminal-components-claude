@@ -268,6 +268,65 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     );
 }
 
+#[test]
+fn one_password_picker_uses_active_items_and_stable_stage_two_keys() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Char('a'));
+    h.key(KeyCode::Enter);
+    h.type_str("Team");
+    h.tab_to(jackin_app::screens::accounts::PROVIDER);
+    h.key(KeyCode::Down);
+    h.tab_to(jackin_app::screens::accounts::OP);
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+
+    let picker = h
+        .harness
+        .layer_area(jackin_app::ACCOUNT_PICKER)
+        .expect("1Password account picker should be open");
+    assert_eq!(
+        picker.height, 6,
+        "one option needs one visible list row plus picker chrome: {picker:?}"
+    );
+    assert!(h.text().contains("chainargos.1pa"), "{}", h.text());
+    assert!(!h.text().contains("Codex Primary"), "{}", h.text());
+
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    let picker = h
+        .harness
+        .layer_area(jackin_app::ACCOUNT_PICKER)
+        .expect("vault picker should remain open");
+    assert_eq!(
+        picker.height, 6,
+        "one vault needs one visible list row plus picker chrome: {picker:?}"
+    );
+
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    assert!(h.text().contains("OpenAI · Codex Primary"), "{}", h.text());
+    h.type_str("Throttled");
+    h.ticks(4);
+    h.key(KeyCode::Enter);
+    h.ticks(4);
+    assert!(
+        h.text().contains("OpenAI · Throttled sandbox"),
+        "{}",
+        h.text()
+    );
+
+    h.key(KeyCode::Enter);
+    h.ticks(2);
+    let selected = h
+        .app()
+        .accounts
+        .selected_op
+        .as_ref()
+        .expect("stage three should resolve a reference");
+    assert_eq!(selected.item_id, "it_thr01");
+    assert!(h.text().contains("OpenAI · Throttled sandbox › credential"));
+}
+
 /// §16.4's stable name for the secret-frame acceptance journey.  Keep the
 /// product-specific test above as the readable inventory entry while exposing
 /// the architecture name used by the cross-workspace gate.
