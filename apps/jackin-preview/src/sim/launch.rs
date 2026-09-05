@@ -8,7 +8,7 @@ use crate::domain::agent::Agent;
 use crate::domain::instance::RunId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum Stage {
+pub enum Stage {
     Identity,
     Role,
     Credentials,
@@ -23,7 +23,7 @@ pub(crate) enum Stage {
 }
 
 impl Stage {
-    pub(crate) const ALL: [Stage; 11] = [
+    pub const ALL: [Stage; 11] = [
         Stage::Identity,
         Stage::Role,
         Stage::Credentials,
@@ -37,7 +37,7 @@ impl Stage {
         Stage::Hardline,
     ];
 
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Stage::Identity => "Identity",
             Stage::Role => "Role",
@@ -53,12 +53,12 @@ impl Stage {
         }
     }
 
-    pub(crate) fn index(self) -> usize {
+    pub fn index(self) -> usize {
         Stage::ALL.iter().position(|s| *s == self).unwrap_or(0)
     }
 
     /// Activity text while running (first word upper-cased, trailing `…`).
-    pub(crate) fn activity(self, agent: Agent) -> String {
+    pub fn activity(self, agent: Agent) -> String {
         match self {
             Stage::Identity => "Resolving launch identity…".into(),
             Stage::Role => "Loading role manifest…".into(),
@@ -77,7 +77,7 @@ impl Stage {
 
 /// How the fixture wants the pipeline to behave.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum LaunchPlan {
+pub enum LaunchPlan {
     /// Every stage succeeds; Agent Binaries is skipped (cached).
     Clean,
     /// Fails at Network after the build produced output.
@@ -89,7 +89,7 @@ pub(crate) enum LaunchPlan {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct LaunchFailure {
+pub struct LaunchFailure {
     pub stage: Stage,
     pub summary: String,
     pub next_step: String,
@@ -97,7 +97,7 @@ pub(crate) struct LaunchFailure {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum LaunchEvent {
+pub enum LaunchEvent {
     StageChanged(Stage, StepState),
     Activity(String),
     BuildLine(String),
@@ -115,31 +115,28 @@ pub(crate) enum LaunchEvent {
 }
 
 #[derive(Debug, Clone)]
-/// Deterministic state of one launch pipeline run.
 pub struct LaunchRun {
-    pub(crate) plan: LaunchPlan,
-    /// Stable identity assigned to this launch attempt.
+    pub plan: LaunchPlan,
     pub run_id: RunId,
-    pub(crate) container: String,
-    pub(crate) agent: Agent,
-    pub(crate) states: [StepState; 11],
-    pub(crate) durations: [u64; 11],
-    pub(crate) tick: u64,
-    pub(crate) stage_start: u64,
-    pub(crate) current: Option<usize>,
-    /// Whether the pipeline completed successfully.
+    pub container: String,
+    pub agent: Agent,
+    pub states: [StepState; 11],
+    pub durations: [u64; 11],
+    pub tick: u64,
+    pub stage_start: u64,
+    pub current: Option<usize>,
     pub done: bool,
-    pub(crate) failure: Option<LaunchFailure>,
-    pub(crate) blocked_at: Option<Stage>,
+    pub failure: Option<LaunchFailure>,
+    pub blocked_at: Option<Stage>,
     /// Credentials stage paused on an error awaiting a decision.
     pub credential_hold: bool,
     pub credential_retried: bool,
-    pub(crate) build_lines_emitted: usize,
-    pub(crate) cancelled: bool,
+    pub build_lines_emitted: usize,
+    pub cancelled: bool,
 }
 
 /// Fixture Docker build output (ANSI-like markup handled by the viewer).
-pub(crate) const BUILD_LOG: [&str; 44] = [
+pub const BUILD_LOG: [&str; 44] = [
     "#1 [internal] load build definition from Dockerfile.derived",
     "#1 transferring dockerfile: 2.31kB done",
     "#1 DONE 0.0s",
@@ -187,7 +184,7 @@ pub(crate) const BUILD_LOG: [&str; 44] = [
 ];
 
 impl LaunchRun {
-    pub(crate) fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: RunId) -> Self {
+    pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: RunId) -> Self {
         // durations in ticks (33 ms)
         let durations = [14, 18, 26, 30, 8, 92, 22, 20, 18, 34, 16];
         Self {
@@ -210,7 +207,7 @@ impl LaunchRun {
         }
     }
 
-    pub(crate) fn counts(&self) -> (usize, usize) {
+    pub fn counts(&self) -> (usize, usize) {
         (
             self.states
                 .iter()
@@ -223,18 +220,18 @@ impl LaunchRun {
         )
     }
 
-    pub(crate) fn is_terminal(&self) -> bool {
+    pub fn is_terminal(&self) -> bool {
         self.done || self.failure.is_some() || self.blocked_at.is_some() || self.cancelled
     }
 
     /// The operator retries the credential stage after fixing the source.
-    pub(crate) fn retry_credentials(&mut self) {
+    pub fn retry_credentials(&mut self) {
         self.credential_hold = false;
         self.credential_retried = true;
         self.stage_start = self.tick;
     }
 
-    pub(crate) fn cancel(&mut self) {
+    pub fn cancel(&mut self) {
         self.cancelled = true;
         if let Some(i) = self.current
             && let Some(state) = self.states.get_mut(i)
@@ -244,7 +241,7 @@ impl LaunchRun {
     }
 
     /// Advance one tick; returns the events produced.
-    pub(crate) fn advance(&mut self) -> Vec<LaunchEvent> {
+    pub fn advance(&mut self) -> Vec<LaunchEvent> {
         let mut ev = vec![];
         if self.is_terminal() || self.credential_hold {
             return ev;
@@ -351,25 +348,8 @@ impl LaunchRun {
             }
             _ => {}
         }
-        let mut next_index = i.saturating_add(1);
-        loop {
-            let Some(next) = Stage::ALL.get(next_index).copied() else {
-                self.done = true;
-                ev.push(LaunchEvent::Ready);
-                break;
-            };
-            if self.plan == LaunchPlan::Clean && next == Stage::AgentBinaries {
-                // Keep the ordered stage event contract for observers while
-                // making the final state immediate: cached binaries consume
-                // no virtual ticks and never remain queued in the rail.
-                ev.push(LaunchEvent::StageChanged(next, StepState::Running));
-                if let Some(state) = self.states.get_mut(next_index) {
-                    *state = StepState::Skipped;
-                }
-                ev.push(LaunchEvent::StageChanged(next, StepState::Skipped));
-                next_index = next_index.saturating_add(1);
-                continue;
-            }
+        let next_index = i.saturating_add(1);
+        if let Some(next) = Stage::ALL.get(next_index).copied() {
             self.current = Some(next_index);
             self.stage_start = self.tick;
             if let Some(state) = self.states.get_mut(next_index) {
@@ -377,13 +357,15 @@ impl LaunchRun {
             }
             ev.push(LaunchEvent::StageChanged(next, StepState::Running));
             ev.push(LaunchEvent::Activity(next.activity(self.agent)));
-            break;
+        } else {
+            self.done = true;
+            ev.push(LaunchEvent::Ready);
         }
         ev
     }
 
     /// Seek to a deterministic frame without consulting wall time.
-    pub(crate) fn seek(&mut self, frame: u64) {
+    pub fn seek(&mut self, frame: u64) {
         for _ in 0..frame {
             if self.is_terminal() {
                 break;

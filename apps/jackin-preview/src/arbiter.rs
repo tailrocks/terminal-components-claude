@@ -11,13 +11,13 @@
 //! - Repeating a message (claim, release, complete, exit) is idempotent.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum DiscoveryError {
+pub enum DiscoveryError {
     /// The daemon index could not be read.
     IndexUnreadable,
 }
 
 impl DiscoveryError {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             DiscoveryError::IndexUnreadable => "instance index unreadable",
         }
@@ -25,7 +25,7 @@ impl DiscoveryError {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum EntryDecision {
+pub enum EntryDecision {
     /// Zero running instances and no other claim: play the intro.
     PlayIntro,
     /// The Construct is active with `running` instances: join without replay.
@@ -37,7 +37,7 @@ pub(crate) enum EntryDecision {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ExitDecision {
+pub enum ExitDecision {
     /// This client consumed the exit token: play the rich outro.
     Outro { elapsed_secs: Option<u64> },
     /// Other instances remain: compact still-inside feedback.
@@ -49,7 +49,7 @@ pub(crate) enum ExitDecision {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Arbiter {
+pub struct Arbiter {
     /// What remaining-instance discovery reports; scenarios seed it.
     pub discovery: Result<usize, DiscoveryError>,
     /// Another (simulated) client already entering the empty Construct.
@@ -61,7 +61,7 @@ pub(crate) struct Arbiter {
 }
 
 impl Arbiter {
-    pub(crate) fn new(running: usize) -> Self {
+    pub fn new(running: usize) -> Self {
         Self {
             discovery: Ok(running),
             foreign_claim: false,
@@ -72,21 +72,21 @@ impl Arbiter {
     }
 
     #[cfg(test)]
-    pub(crate) fn pending_entry(&self) -> bool {
+    pub fn pending_entry(&self) -> bool {
         self.pending_entry
     }
 
-    pub(crate) fn running(&self) -> Result<usize, DiscoveryError> {
+    pub fn running(&self) -> Result<usize, DiscoveryError> {
         self.discovery
     }
 
-    pub(crate) fn set_running(&mut self, n: usize) {
+    pub fn set_running(&mut self, n: usize) {
         self.discovery = Ok(n);
     }
 
     /// Ask to enter. Idempotent: a client that already holds the claim gets
     /// `PlayIntro` again rather than `Duplicate`.
-    pub(crate) fn request_entry(&mut self) -> EntryDecision {
+    pub fn request_entry(&mut self) -> EntryDecision {
         match self.discovery {
             Err(e) => EntryDecision::Unknown(e),
             Ok(0) => {
@@ -102,12 +102,12 @@ impl Arbiter {
     }
 
     /// An idle quit before any instance started: drop the claim.
-    pub(crate) fn release_entry(&mut self) {
+    pub fn release_entry(&mut self) {
         self.pending_entry = false;
     }
 
     /// The ritual finished or the client joined: the Construct is entered.
-    pub(crate) fn complete_entry(&mut self, now_ms: i64) {
+    pub fn complete_entry(&mut self, now_ms: i64) {
         self.pending_entry = false;
         if self.entered_at_ms.is_none() {
             self.entered_at_ms = Some(now_ms);
@@ -116,7 +116,7 @@ impl Arbiter {
 
     /// A foreground client is leaving its instance; `discovery` already
     /// reflects what remains once this instance is gone.
-    pub(crate) fn request_exit(&mut self, now_ms: i64) -> ExitDecision {
+    pub fn request_exit(&mut self, now_ms: i64) -> ExitDecision {
         match self.discovery {
             Err(e) => ExitDecision::Unknown(e),
             Ok(n) if n > 0 => ExitDecision::StillInside { remaining: n },
@@ -136,7 +136,7 @@ impl Arbiter {
     }
 
     #[cfg(test)]
-    pub(crate) fn exit_consumed(&self) -> bool {
+    pub fn exit_consumed(&self) -> bool {
         self.exit_consumed
     }
 }

@@ -5,10 +5,10 @@ use super::agent::{Agent, Provider, UsageSurface};
 use super::onepassword::OpReference;
 use super::usage::{AccountUsage, Freshness};
 
-pub(crate) type AccountId = String;
+pub type AccountId = String;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum AccountOrigin {
+pub enum AccountOrigin {
     /// Created in the Center; editable, removable.
     Registered,
     /// Found by simulated host discovery; read-only.
@@ -16,7 +16,7 @@ pub(crate) enum AccountOrigin {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum CredentialSource {
+pub enum CredentialSource {
     OnePassword(OpReference),
     LocalFolder {
         path: String,
@@ -36,7 +36,7 @@ pub(crate) enum CredentialSource {
 }
 
 impl CredentialSource {
-    pub(crate) fn origin_label(&self) -> &'static str {
+    pub fn origin_label(&self) -> &'static str {
         match self {
             CredentialSource::OnePassword(_) => "1Password",
             CredentialSource::LocalFolder { .. } => "Local folder",
@@ -46,7 +46,7 @@ impl CredentialSource {
     }
 
     /// Non-secret detail: reference path, folder path, or key fingerprint.
-    pub(crate) fn safe_detail(&self) -> String {
+    pub fn safe_detail(&self) -> String {
         match self {
             CredentialSource::OnePassword(r) => r.display_path(),
             CredentialSource::LocalFolder { path, .. } => path.clone(),
@@ -59,13 +59,13 @@ impl CredentialSource {
 }
 
 /// `••••••••…k7Qz`
-pub(crate) fn masked(tail: &str) -> String {
+pub fn masked(tail: &str) -> String {
     format!("••••••••…{tail}")
 }
 
 /// Deterministic 8-hex fingerprint of a fixture key (not of secret bytes
 /// in the real product; here of the synthetic value so duplicates match).
-pub(crate) fn fingerprint(value: &str) -> String {
+pub fn fingerprint(value: &str) -> String {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for b in value.bytes() {
         h ^= b as u64;
@@ -75,13 +75,13 @@ pub(crate) fn fingerprint(value: &str) -> String {
 }
 
 /// Last four characters of a typed key become the synthetic tail.
-pub(crate) fn tail_of(value: &str) -> String {
+pub fn tail_of(value: &str) -> String {
     let n = value.chars().count();
     value.chars().skip(n.saturating_sub(4)).collect()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum DetectedKind {
+pub enum DetectedKind {
     ClaudeOAuthProfile,
     ClaudeApiKeyEnv,
     CodexAuthJson,
@@ -95,7 +95,7 @@ pub(crate) enum DetectedKind {
 }
 
 impl DetectedKind {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             DetectedKind::ClaudeOAuthProfile => "Claude OAuth profile",
             DetectedKind::ClaudeApiKeyEnv => "Claude API key env",
@@ -110,7 +110,7 @@ impl DetectedKind {
         }
     }
 
-    pub(crate) fn provider(self) -> Option<Provider> {
+    pub fn provider(self) -> Option<Provider> {
         match self {
             DetectedKind::ClaudeOAuthProfile | DetectedKind::ClaudeApiKeyEnv => {
                 Some(Provider::Anthropic)
@@ -128,12 +128,12 @@ impl DetectedKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum IdentitySubject {
+pub enum IdentitySubject {
     Handle(String),
 }
 
 impl IdentitySubject {
-    pub(crate) fn label(&self) -> &str {
+    pub fn label(&self) -> &str {
         match self {
             IdentitySubject::Handle(s) => s,
         }
@@ -141,13 +141,13 @@ impl IdentitySubject {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub(crate) struct AccountIdentity {
+pub struct AccountIdentity {
     pub subject: Option<IdentitySubject>,
     pub plan: Option<String>,
 }
 
 impl AccountIdentity {
-    pub(crate) fn label(&self) -> String {
+    pub fn label(&self) -> String {
         match &self.subject {
             Some(s) => s.label().to_owned(),
             None => "unresolved identity".into(),
@@ -156,13 +156,13 @@ impl AccountIdentity {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum Provenance {
+pub enum Provenance {
     ConfiguredSource,
     LiveHost,
 }
 
 impl Provenance {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Provenance::ConfiguredSource => "configured source",
             Provenance::LiveHost => "live host",
@@ -171,7 +171,7 @@ impl Provenance {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Confidence {
+pub enum Confidence {
     Authoritative,
     Estimated,
     PresenceOnly,
@@ -179,7 +179,7 @@ pub(crate) enum Confidence {
 }
 
 impl Confidence {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Confidence::Authoritative => "authoritative",
             Confidence::Estimated => "estimated",
@@ -190,7 +190,7 @@ impl Confidence {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Lifecycle {
+pub enum Lifecycle {
     Available,
     AgentUninitialized,
     NeedsLogin,
@@ -201,7 +201,7 @@ pub(crate) enum Lifecycle {
 }
 
 impl Lifecycle {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Lifecycle::Available => "available",
             Lifecycle::AgentUninitialized => "agent uninitialized",
@@ -215,14 +215,14 @@ impl Lifecycle {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum ValidationLevel {
+pub enum ValidationLevel {
     MaterialDiscovered,
     IdentityAuthenticated,
     QuotaReadable,
 }
 
 impl ValidationLevel {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             ValidationLevel::MaterialDiscovered => "material discovered",
             ValidationLevel::IdentityAuthenticated => "identity authenticated",
@@ -232,7 +232,7 @@ impl ValidationLevel {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum ValidationState {
+pub enum ValidationState {
     NeverValidated,
     Validating { started_tick: u64 },
     Valid(ValidationLevel),
@@ -240,7 +240,7 @@ pub(crate) enum ValidationState {
 }
 
 impl ValidationState {
-    pub(crate) fn label(&self) -> String {
+    pub fn label(&self) -> String {
         match self {
             ValidationState::NeverValidated => "never validated".into(),
             ValidationState::Validating { .. } => "validating…".into(),
@@ -249,7 +249,7 @@ impl ValidationState {
         }
     }
 
-    pub(crate) fn level(&self) -> Option<ValidationLevel> {
+    pub fn level(&self) -> Option<ValidationLevel> {
         match self {
             ValidationState::Valid(l) => Some(*l),
             _ => None,
@@ -258,7 +258,7 @@ impl ValidationState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum IssueCode {
+pub enum IssueCode {
     QuotaUnsupported,
     FolderMissing,
     FolderUnreadable,
@@ -281,14 +281,14 @@ pub(crate) enum IssueCode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Recoverability {
+pub enum Recoverability {
     Retryable,
     ActionRequired,
     Unsupported,
 }
 
 impl Recoverability {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Recoverability::Retryable => "retryable",
             Recoverability::ActionRequired => "action required",
@@ -298,7 +298,7 @@ impl Recoverability {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct RecoverableIssue {
+pub struct RecoverableIssue {
     pub code: IssueCode,
     pub message: String,
     pub detail: Option<String>,
@@ -307,7 +307,7 @@ pub(crate) struct RecoverableIssue {
 }
 
 impl RecoverableIssue {
-    pub(crate) fn new(code: IssueCode, message: impl Into<String>, rec: Recoverability) -> Self {
+    pub fn new(code: IssueCode, message: impl Into<String>, rec: Recoverability) -> Self {
         Self {
             code,
             message: message.into(),
@@ -316,29 +316,29 @@ impl RecoverableIssue {
             retry_secs: None,
         }
     }
-    pub(crate) fn detail(mut self, d: impl Into<String>) -> Self {
+    pub fn detail(mut self, d: impl Into<String>) -> Self {
         self.detail = Some(d.into());
         self
     }
-    pub(crate) fn retry(mut self, secs: i64) -> Self {
+    pub fn retry(mut self, secs: i64) -> Self {
         self.retry_secs = Some(secs);
         self
     }
 
     /// Issues that are status, not errors.
-    pub(crate) fn is_informational(&self) -> bool {
+    pub fn is_informational(&self) -> bool {
         matches!(self.code, IssueCode::Stale | IssueCode::IdentityUnresolved)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Endpoint {
+pub struct Endpoint {
     pub label: String,
     pub host: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Account {
+pub struct Account {
     pub id: AccountId,
     pub origin: AccountOrigin,
     pub display_name: String,
@@ -362,12 +362,7 @@ pub(crate) struct Account {
 }
 
 impl Account {
-    pub(crate) fn registered(
-        id: &str,
-        name: &str,
-        provider: Provider,
-        source: CredentialSource,
-    ) -> Self {
+    pub fn registered(id: &str, name: &str, provider: Provider, source: CredentialSource) -> Self {
         Self {
             id: id.to_owned(),
             origin: AccountOrigin::Registered,
@@ -391,19 +386,14 @@ impl Account {
         }
     }
 
-    pub(crate) fn discovered(
-        id: &str,
-        name: &str,
-        provider: Provider,
-        source: CredentialSource,
-    ) -> Self {
+    pub fn discovered(id: &str, name: &str, provider: Provider, source: CredentialSource) -> Self {
         let mut a = Self::registered(id, name, provider, source);
         a.origin = AccountOrigin::Discovered;
         a.provenance = vec![Provenance::LiveHost];
         a
     }
 
-    pub(crate) fn with_endpoint(mut self, label: &str, host: &str) -> Self {
+    pub fn with_endpoint(mut self, label: &str, host: &str) -> Self {
         if self.provider.supports_endpoint() {
             self.endpoint = Some(Endpoint {
                 label: label.to_owned(),
@@ -413,17 +403,17 @@ impl Account {
         self
     }
 
-    pub(crate) fn mutations_allowed(&self) -> bool {
+    pub fn mutations_allowed(&self) -> bool {
         self.origin == AccountOrigin::Registered
     }
 
     /// `Codex · Primary`
-    pub(crate) fn title(&self) -> String {
+    pub fn title(&self) -> String {
         format!("{} · {}", self.surface.surface_name(), self.display_name)
     }
 
     /// Row status word: exhausted > error > needs … > warning > stale > refreshing > ok.
-    pub(crate) fn status_word(&self) -> &'static str {
+    pub fn status_word(&self) -> &'static str {
         if !self.enabled {
             return "disabled";
         }
@@ -452,7 +442,7 @@ impl Account {
         }
     }
 
-    pub(crate) fn is_error_state(&self) -> bool {
+    pub fn is_error_state(&self) -> bool {
         matches!(
             self.lifecycle,
             Lifecycle::Error
@@ -464,7 +454,7 @@ impl Account {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum DuplicateProbe {
+pub enum DuplicateProbe {
     Folder {
         provider: Provider,
         path: String,
@@ -484,31 +474,31 @@ pub(crate) enum DuplicateProbe {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct AccountRegistry {
+pub struct AccountRegistry {
     pub accounts: Vec<Account>,
     pub revision: u64,
 }
 
 impl AccountRegistry {
-    pub(crate) fn get(&self, id: &str) -> Option<&Account> {
+    pub fn get(&self, id: &str) -> Option<&Account> {
         self.accounts.iter().find(|a| a.id == id)
     }
 
-    pub(crate) fn get_mut(&mut self, id: &str) -> Option<&mut Account> {
+    pub fn get_mut(&mut self, id: &str) -> Option<&mut Account> {
         self.accounts.iter_mut().find(|a| a.id == id)
     }
 
-    pub(crate) fn by_provider(&self, p: Provider) -> impl Iterator<Item = &Account> {
+    pub fn by_provider(&self, p: Provider) -> impl Iterator<Item = &Account> {
         self.accounts.iter().filter(move |a| a.provider == p)
     }
 
-    pub(crate) fn default_for(&self, p: Provider) -> Option<&Account> {
+    pub fn default_for(&self, p: Provider) -> Option<&Account> {
         self.accounts
             .iter()
             .find(|a| a.provider == p && a.default_for_provider && a.enabled)
     }
 
-    pub(crate) fn discovered_current(&self, p: Provider) -> Option<&Account> {
+    pub fn discovered_current(&self, p: Provider) -> Option<&Account> {
         self.accounts.iter().find(|a| {
             a.provider == p
                 && a.origin == AccountOrigin::Discovered
@@ -517,7 +507,7 @@ impl AccountRegistry {
         })
     }
 
-    pub(crate) fn find_duplicate(&self, probe: &DuplicateProbe) -> Option<&Account> {
+    pub fn find_duplicate(&self, probe: &DuplicateProbe) -> Option<&Account> {
         self.accounts.iter().find(|a| match probe {
             DuplicateProbe::Folder { provider, path } => {
                 a.provider == *provider
@@ -540,7 +530,7 @@ impl AccountRegistry {
     }
 
     /// Soft warning: same display name for the same provider.
-    pub(crate) fn name_taken(&self, provider: Provider, name: &str, except: Option<&str>) -> bool {
+    pub fn name_taken(&self, provider: Provider, name: &str, except: Option<&str>) -> bool {
         self.accounts.iter().any(|a| {
             a.provider == provider
                 && a.display_name.eq_ignore_ascii_case(name)
@@ -549,7 +539,7 @@ impl AccountRegistry {
     }
 
     /// One default per provider: clears the sibling.
-    pub(crate) fn set_default(&mut self, id: &str) -> Result<(), String> {
+    pub fn set_default(&mut self, id: &str) -> Result<(), String> {
         let Some(target) = self.get(id) else {
             return Err("account not found".into());
         };
@@ -566,19 +556,19 @@ impl AccountRegistry {
         Ok(())
     }
 
-    pub(crate) fn remove(&mut self, id: &str) -> Option<Account> {
+    pub fn remove(&mut self, id: &str) -> Option<Account> {
         let i = self.accounts.iter().position(|a| a.id == id)?;
         self.revision += 1;
         Some(self.accounts.remove(i))
     }
 
-    pub(crate) fn insert(&mut self, account: Account) {
+    pub fn insert(&mut self, account: Account) {
         self.accounts.push(account);
         self.revision += 1;
     }
 
     /// Registry order: surface registry order, defaults first, then name.
-    pub(crate) fn sorted(&self) -> Vec<&Account> {
+    pub fn sorted(&self) -> Vec<&Account> {
         let mut v: Vec<&Account> = self.accounts.iter().collect();
         v.sort_by(|a, b| {
             a.surface

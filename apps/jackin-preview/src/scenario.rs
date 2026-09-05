@@ -2,7 +2,6 @@
 //! in, how motion behaves, and which tick a paused capture shows.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Deterministic fixture world used by the preview.
 pub enum Scenario {
     /// Zero instances, no saved Workspaces, no accounts: intro then an
     /// empty manager.
@@ -24,7 +23,6 @@ pub enum Scenario {
 }
 
 impl Scenario {
-    /// All supported scenarios in stable capture order.
     pub const ALL: [Scenario; 8] = [
         Scenario::FirstUse,
         Scenario::Returning,
@@ -36,7 +34,6 @@ impl Scenario {
         Scenario::HardCases,
     ];
 
-    /// Stable command-line and capture name.
     pub fn name(self) -> &'static str {
         match self {
             Scenario::FirstUse => "first-use",
@@ -50,14 +47,12 @@ impl Scenario {
         }
     }
 
-    /// Parse a stable scenario name.
     pub fn from_name(s: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|sc| sc.name() == s)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-/// How the deterministic preview advances virtual time.
 pub enum Motion {
     /// Tick-driven rituals and atmosphere.
     #[default]
@@ -69,7 +64,6 @@ pub enum Motion {
 }
 
 impl Motion {
-    /// Parse a command-line motion name.
     pub fn from_name(s: &str) -> Option<Self> {
         match s {
             "full" => Some(Motion::Full),

@@ -12,7 +12,7 @@ use junie_tui::{FgStep, Role};
 
 /// The kind of one line in a unified diff.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum DiffLineKind {
+pub enum DiffLineKind {
     /// Present on both sides.
     Context,
     /// Present only on the new side.
@@ -23,7 +23,7 @@ pub(crate) enum DiffLineKind {
 
 /// One owned diff line.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct DiffLine {
+pub struct DiffLine {
     /// The semantic line kind.
     pub kind: DiffLineKind,
     /// Source text without the diff marker.
@@ -32,7 +32,7 @@ pub(crate) struct DiffLine {
 
 impl DiffLine {
     /// Construct a context line.
-    pub(crate) fn context(text: impl Into<String>) -> Self {
+    pub fn context(text: impl Into<String>) -> Self {
         Self {
             kind: DiffLineKind::Context,
             text: text.into(),
@@ -40,7 +40,7 @@ impl DiffLine {
     }
 
     /// Construct an added line.
-    pub(crate) fn add(text: impl Into<String>) -> Self {
+    pub fn add(text: impl Into<String>) -> Self {
         Self {
             kind: DiffLineKind::Add,
             text: text.into(),
@@ -48,7 +48,7 @@ impl DiffLine {
     }
 
     /// Construct a removed line.
-    pub(crate) fn remove(text: impl Into<String>) -> Self {
+    pub fn remove(text: impl Into<String>) -> Self {
         Self {
             kind: DiffLineKind::Remove,
             text: text.into(),
@@ -56,17 +56,17 @@ impl DiffLine {
     }
 
     /// Whether the line exists only on the new side.
-    pub(crate) const fn is_addition(&self) -> bool {
+    pub const fn is_addition(&self) -> bool {
         matches!(self.kind, DiffLineKind::Add)
     }
 
     /// Whether the line exists only on the old side.
-    pub(crate) const fn is_deletion(&self) -> bool {
+    pub const fn is_deletion(&self) -> bool {
         matches!(self.kind, DiffLineKind::Remove)
     }
 
     /// The theme role a diff renderer should use for this line.
-    pub(crate) const fn role(&self) -> Role {
+    pub const fn role(&self) -> Role {
         match self.kind {
             DiffLineKind::Context => Role::Fg(FgStep::Primary),
             DiffLineKind::Add => Role::Success,
@@ -77,7 +77,7 @@ impl DiffLine {
 
 /// One hunk in a changed file.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Hunk {
+pub struct Hunk {
     /// First old-side line number.
     pub old_start: usize,
     /// First new-side line number.
@@ -88,17 +88,17 @@ pub(crate) struct Hunk {
 
 impl Hunk {
     /// Number of old-side lines represented by this hunk.
-    pub(crate) fn old_len(&self) -> usize {
+    pub fn old_len(&self) -> usize {
         self.lines.iter().filter(|line| !line.is_addition()).count()
     }
 
     /// Number of new-side lines represented by this hunk.
-    pub(crate) fn new_len(&self) -> usize {
+    pub fn new_len(&self) -> usize {
         self.lines.iter().filter(|line| !line.is_deletion()).count()
     }
 
     /// Conventional unified-diff header.
-    pub(crate) fn header(&self) -> String {
+    pub fn header(&self) -> String {
         format!(
             "@@ -{},{} +{},{} @@",
             self.old_start,
@@ -111,7 +111,7 @@ impl Hunk {
 
 /// File-level change status.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum DiffStatus {
+pub enum DiffStatus {
     /// A newly created file.
     Added,
     /// An existing file changed in place.
@@ -127,7 +127,7 @@ pub(crate) enum DiffStatus {
 
 impl DiffStatus {
     /// One-letter status marker.
-    pub(crate) const fn marker(&self) -> &'static str {
+    pub const fn marker(&self) -> &'static str {
         match self {
             Self::Added => "A",
             Self::Modified => "M",
@@ -137,7 +137,7 @@ impl DiffStatus {
     }
 
     /// Human-readable status label.
-    pub(crate) const fn label(&self) -> &'static str {
+    pub const fn label(&self) -> &'static str {
         match self {
             Self::Added => "added",
             Self::Modified => "modified",
@@ -147,7 +147,7 @@ impl DiffStatus {
     }
 
     /// Theme role for the status marker.
-    pub(crate) const fn role(&self) -> Role {
+    pub const fn role(&self) -> Role {
         match self {
             Self::Added => Role::Success,
             Self::Modified => Role::Warning,
@@ -159,7 +159,7 @@ impl DiffStatus {
 
 /// One changed file in an instance's deterministic diff.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ChangedFile {
+pub struct ChangedFile {
     /// Current repository-relative path.
     pub path: String,
     /// File status.
@@ -170,7 +170,7 @@ pub(crate) struct ChangedFile {
 
 impl ChangedFile {
     /// Count added lines.
-    pub(crate) fn additions(&self) -> usize {
+    pub fn additions(&self) -> usize {
         self.hunks
             .iter()
             .flat_map(|hunk| hunk.lines.iter())
@@ -179,7 +179,7 @@ impl ChangedFile {
     }
 
     /// Count removed lines.
-    pub(crate) fn deletions(&self) -> usize {
+    pub fn deletions(&self) -> usize {
         self.hunks
             .iter()
             .flat_map(|hunk| hunk.lines.iter())
@@ -188,7 +188,7 @@ impl ChangedFile {
     }
 
     /// Compact file summary.
-    pub(crate) fn summary(&self) -> String {
+    pub fn summary(&self) -> String {
         let n = self.hunks.len();
         format!(
             "+{} −{} · {} hunk{}",
@@ -200,7 +200,7 @@ impl ChangedFile {
     }
 
     /// File header suitable for a diff list.
-    pub(crate) fn header(&self) -> String {
+    pub fn header(&self) -> String {
         match &self.status {
             DiffStatus::Renamed { from } => {
                 format!("{} {from} → {}", self.status.marker(), self.path)
@@ -212,7 +212,7 @@ impl ChangedFile {
 
 /// Everything the inspector shows for one instance.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ChangeSet {
+pub struct ChangeSet {
     /// Changed files, in stable input order with duplicates removed.
     pub files: Vec<ChangedFile>,
     /// Commits ahead of the remote, shown separately from file rows.
@@ -221,22 +221,22 @@ pub(crate) struct ChangeSet {
 
 impl ChangeSet {
     /// Count added lines across all files.
-    pub(crate) fn additions(&self) -> usize {
+    pub fn additions(&self) -> usize {
         self.files.iter().map(ChangedFile::additions).sum()
     }
 
     /// Count removed lines across all files.
-    pub(crate) fn deletions(&self) -> usize {
+    pub fn deletions(&self) -> usize {
         self.files.iter().map(ChangedFile::deletions).sum()
     }
 
     /// Whether there is no file or unpushed commit to inspect.
-    pub(crate) const fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.files.is_empty() && self.unpushed == 0
     }
 
     /// Compact summary such as `3 files · +41 −12`.
-    pub(crate) fn summary(&self) -> String {
+    pub fn summary(&self) -> String {
         let n = self.files.len();
         format!(
             "{n} file{} · +{} −{}",
@@ -405,7 +405,7 @@ fn renamed_file() -> ChangedFile {
 }
 
 /// Build the deterministic change set for one simulated instance.
-pub(crate) fn changes_for(
+pub fn changes_for(
     instance_id: &str,
     touched: &[String],
     uncommitted: usize,

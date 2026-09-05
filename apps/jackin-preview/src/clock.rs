@@ -4,25 +4,18 @@
 //! renders the same picture every time.
 
 /// Fixed epoch for fixture timestamps: 2026-09-03 09:14:00 local (UTC+7).
-pub(crate) const EPOCH_SECS: i64 = 1_788_401_640;
+pub const EPOCH_SECS: i64 = 1_788_401_640;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Clock {
+pub struct Clock {
     /// Virtual milliseconds since the fixture epoch.
     pub now_ms: i64,
     /// Whether ticks advance at all (`--motion paused` freezes them).
     pub running: bool,
 }
 
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "fixture clock formatting helpers remain available to deterministic screen adapters"
-    )
-)]
 impl Clock {
-    pub(crate) const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             now_ms: 0,
             running: true,
@@ -30,26 +23,26 @@ impl Clock {
     }
 
     /// Advance by one runtime tick of `interval_ms`.
-    pub(crate) fn advance(&mut self, interval_ms: i64) {
+    pub fn advance(&mut self, interval_ms: i64) {
         if self.running {
             self.now_ms += interval_ms;
         }
     }
 
     /// Seconds since the fixture epoch.
-    pub(crate) fn now_secs(&self) -> i64 {
+    pub fn now_secs(&self) -> i64 {
         EPOCH_SECS + self.now_ms.div_euclid(1000)
     }
 
     /// `HH:MM` for a fixture instant, local to the fixture zone (UTC+7).
-    pub(crate) fn hhmm(secs: i64) -> String {
+    pub fn hhmm(secs: i64) -> String {
         let local = secs + 7 * 3600;
         let day = local.rem_euclid(86_400);
         format!("{:02}:{:02}", day / 3600, (day % 3600) / 60)
     }
 
     /// `2026-09-03 09:14` for a fixture instant.
-    pub(crate) fn stamp(secs: i64) -> String {
+    pub fn stamp(secs: i64) -> String {
         let local = secs + 7 * 3600;
         let days = local.div_euclid(86_400);
         let (y, m, d) = civil_from_days(days);
@@ -57,7 +50,7 @@ impl Clock {
     }
 
     /// Weekday short name for a fixture instant (`Mon`).
-    pub(crate) fn weekday(secs: i64) -> &'static str {
+    pub fn weekday(secs: i64) -> &'static str {
         let days = (secs + 7 * 3600).div_euclid(86_400);
         // 1970-01-01 was a Thursday
         const NAMES: [&str; 7] = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
@@ -68,7 +61,7 @@ impl Clock {
     }
 
     /// `just now`, `3 min ago`, `2 h ago`, `yesterday`, `3 d ago`.
-    pub(crate) fn ago(&self, then_secs: i64) -> String {
+    pub fn ago(&self, then_secs: i64) -> String {
         let delta = (self.now_secs() - then_secs).max(0) as u64;
         match delta {
             0..=59 => format!("{delta} s ago"),
@@ -80,7 +73,7 @@ impl Clock {
     }
 
     /// `resets in 2 h 14 min` / `resets Mon 09:00` for far instants.
-    pub(crate) fn reset_label(&self, then_secs: i64) -> String {
+    pub fn reset_label(&self, then_secs: i64) -> String {
         let delta = then_secs - self.now_secs();
         if delta <= 0 {
             "resets now".into()
@@ -103,13 +96,6 @@ impl Default for Clock {
 }
 
 /// Howard Hinnant's days-to-civil algorithm.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "fixture timestamp formatting retains the complete civil-date helper"
-    )
-)]
 fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let z = z + 719_468;
     let era = z.div_euclid(146_097);
@@ -125,14 +111,7 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
 
 /// Human duration with spaced units: `38 s`, `3 min 2 s`, `2 h 14 min`,
 /// `1 d 2 h`. Two most significant units, never more.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "fixture duration labels remain available to deterministic screen adapters"
-    )
-)]
-pub(crate) fn format_duration(secs: u64) -> String {
+pub fn format_duration(secs: u64) -> String {
     let d = secs / 86_400;
     let h = (secs % 86_400) / 3600;
     let m = (secs % 3600) / 60;

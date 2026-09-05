@@ -13,7 +13,7 @@ use crate::sim::onepassword::{KeyOutcome, OpError, SecretClass, SimOnePassword, 
 
 /// Three-level validation result.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ValidationOutcome {
+pub struct ValidationOutcome {
     pub level: Option<ValidationLevel>,
     pub identity: AccountIdentity,
     pub confidence: Confidence,
@@ -27,7 +27,7 @@ pub(crate) struct ValidationOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum CheckRow {
+pub enum CheckRow {
     Ok(String),
     Failed(String),
     Skipped(String),
@@ -35,7 +35,7 @@ pub(crate) enum CheckRow {
 
 /// Simulated local folder inventory for folder-backed sources.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FolderProbe {
+pub enum FolderProbe {
     Missing,
     Unreadable,
     /// Folder exists, holds no credential file.
@@ -45,7 +45,7 @@ pub(crate) enum FolderProbe {
     Found(DetectedKind),
 }
 
-pub(crate) fn probe_folder(path: &str) -> FolderProbe {
+pub fn probe_folder(path: &str) -> FolderProbe {
     let p = path.trim_end_matches('/');
     match p {
         "~/.claude" | "/Users/alexey/.claude" => {
@@ -93,7 +93,7 @@ fn identity_for(provider: Provider, tag: &str) -> (AccountIdentity, Confidence) 
 }
 
 /// Windows a freshly validated key-backed account reports.
-pub(crate) fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaWindow> {
+pub fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaWindow> {
     let h = 3600;
     match provider {
         Provider::Anthropic => vec![
@@ -176,7 +176,7 @@ pub(crate) fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec
 
 /// Validate a credential source for `provider`. Runs the provider op
 /// inside the 1Password closure when the source is a reference.
-pub(crate) fn validate(
+pub fn validate(
     provider: Provider,
     source: &CredentialSource,
     plain_value: Option<&str>,
@@ -499,7 +499,7 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
 }
 
 /// Apply a validation outcome to an account (never touches the source).
-pub(crate) fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
+pub fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
     a.validation = match (&v.level, &v.issue) {
         (Some(l), None) => crate::domain::account::ValidationState::Valid(*l),
         (Some(l), Some(i))
@@ -527,7 +527,7 @@ pub(crate) fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64)
 }
 
 /// Refresh duration in virtual ms for an account (deterministic table).
-pub(crate) fn refresh_duration_ms(a: &Account) -> i64 {
+pub fn refresh_duration_ms(a: &Account) -> i64 {
     let base = match a.provider {
         Provider::Anthropic => 800,
         Provider::OpenAi => 1_000,

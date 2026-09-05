@@ -3,6 +3,8 @@
 //! `World` owns virtual time, durable fixture data, live instance snapshots,
 //! and a typed job queue.  It has no terminal or process access.
 
+use std::collections::BTreeMap;
+
 use crate::arbiter::Arbiter;
 use crate::clock::{Clock, EPOCH_SECS};
 use crate::domain::account::{AccountId, AccountRegistry};
@@ -15,64 +17,78 @@ use crate::domain::instance::{Instance, InstanceStatus};
 use crate::domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
 use crate::scenario::Scenario;
 use crate::sim::onepassword::SimOnePassword;
+use crate::sim::pty::Daemon;
+
+/// Host trust setting projected by the Settings route.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrustRow {
+    /// Stable source label.
+    pub source: String,
+    /// Whether the source is trusted.
+    pub trusted: bool,
+}
+
+/// Host-level configuration shared by workspace drafts.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct GlobalConfig {
+    /// Trust rows edited by Settings.
+    pub trust: Vec<TrustRow>,
+}
 
 /// Typed results of deterministic asynchronous work.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Msg {
+pub enum Msg {
     WorkspaceSaved { id: WorkspaceId, ok: bool },
     Refreshed { ok: bool },
     AccountRefreshed { account: AccountId },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Job {
+pub struct Job {
     pub due_ms: i64,
     pub msg: Msg,
 }
 
 #[derive(Debug, Clone)]
-/// Deterministic services and fixture state for one preview scenario.
 pub struct World {
-    pub(crate) scenario: Scenario,
-    pub(crate) clock: Clock,
-    pub(crate) arbiter: Arbiter,
-    pub(crate) home: String,
-    pub(crate) workspaces: Vec<Workspace>,
-    pub(crate) roles: Vec<RoleEntry>,
-    pub(crate) instances: Vec<Instance>,
-    pub(crate) accounts: AccountRegistry,
-    pub(crate) op: SimOnePassword,
-    pub(crate) jobs: Vec<Job>,
-    pub(crate) refresh_fails: bool,
-    pub(crate) saved: bool,
-    pub(crate) last_refresh_secs: i64,
+    pub scenario: Scenario,
+    pub clock: Clock,
+    pub arbiter: Arbiter,
+    pub home: String,
+    /// Mutable host configuration.
+    pub global: GlobalConfig,
+    pub workspaces: Vec<Workspace>,
+    pub roles: Vec<RoleEntry>,
+    pub instances: Vec<Instance>,
+    /// Live daemon models keyed by persisted instance id.
+    pub daemons: BTreeMap<String, Daemon>,
+    pub accounts: AccountRegistry,
+    pub op: SimOnePassword,
+    pub jobs: Vec<Job>,
+    pub refresh_fails: bool,
+    pub saved: bool,
+    pub last_refresh_secs: i64,
+    /// Last copied transcript selection, if any.
+    pub clipboard: Option<String>,
 }
 
 impl World {
-    pub(crate) fn now_secs(&self) -> i64 {
+    pub fn now_secs(&self) -> i64 {
         self.clock.now_secs()
     }
 
-    /// Current virtual time in milliseconds.
     pub fn now_ms(&self) -> i64 {
         self.clock.now_ms
     }
 
-    /// Stable container identifiers for every fixture instance.
-    pub fn container_uids(&self) -> impl Iterator<Item = String> + '_ {
-        self.instances
-            .iter()
-            .map(|instance| instance.run_id.container_uid())
-    }
-
-    pub(crate) fn schedule(&mut self, delay_ms: i64, msg: Msg) {
+    pub fn schedule(&mut self, delay_ms: i64, msg: Msg) {
         let due_ms = self.clock.now_ms.saturating_add(delay_ms.max(0));
         self.jobs.push(Job { due_ms, msg });
         self.jobs.sort_by_key(|job| job.due_ms);
     }
 
     /// Advance virtual time and return jobs whose deadline has passed.
-    pub(crate) fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
+    pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         self.clock.advance(interval_ms.max(0));
         if !self.clock.running {
             return Vec::new();
@@ -87,58 +103,66 @@ impl World {
                 true
             }
         });
+        for daemon in self.daemons.values_mut() {
+            daemon.tick(now);
+        }
+        for instance in &mut self.instances {
+            if let Some(daemon) = self.daemons.get(&instance.id) {
+                instance.daemon = daemon.snapshot();
+            }
+        }
         ready
     }
 
-    pub(crate) fn workspace(&self, id: WorkspaceId) -> Option<&Workspace> {
+    pub fn workspace(&self, id: WorkspaceId) -> Option<&Workspace> {
         self.workspaces.iter().find(|workspace| workspace.id == id)
     }
 
-    pub(crate) fn workspace_mut(&mut self, id: WorkspaceId) -> Option<&mut Workspace> {
+    pub fn workspace_mut(&mut self, id: WorkspaceId) -> Option<&mut Workspace> {
         self.workspaces
             .iter_mut()
             .find(|workspace| workspace.id == id)
     }
 
-    pub(crate) fn instance(&self, id: &str) -> Option<&Instance> {
+    pub fn instance(&self, id: &str) -> Option<&Instance> {
         self.instances.iter().find(|instance| instance.id == id)
     }
 
-    pub(crate) fn instance_mut(&mut self, id: &str) -> Option<&mut Instance> {
+    pub fn instance_mut(&mut self, id: &str) -> Option<&mut Instance> {
         self.instances.iter_mut().find(|instance| instance.id == id)
     }
 
-    pub(crate) fn running_count(&self) -> usize {
+    pub fn running_count(&self) -> usize {
         self.instances
             .iter()
             .filter(|instance| instance.status == InstanceStatus::Running)
             .count()
     }
 
-    pub(crate) fn running(&self) -> Vec<&Instance> {
+    pub fn running(&self) -> Vec<&Instance> {
         self.instances
             .iter()
             .filter(|instance| instance.status == InstanceStatus::Running)
             .collect()
     }
 
-    pub(crate) fn instances_of(&self, workspace: Option<WorkspaceId>) -> Vec<&Instance> {
+    pub fn instances_of(&self, workspace: Option<WorkspaceId>) -> Vec<&Instance> {
         self.instances
             .iter()
             .filter(|instance| instance.workspace == workspace && !instance.status.hidden())
             .collect()
     }
 
-    pub(crate) fn sync_arbiter(&mut self) {
+    pub fn sync_arbiter(&mut self) {
         self.arbiter.set_running(self.running_count());
     }
 
-    pub(crate) fn new_instance_id(&self) -> String {
+    pub fn new_instance_id(&self) -> String {
         let next = self.instances.len().saturating_add(1);
         format!("jk-{next:04x}")
     }
 
-    pub(crate) fn account_for(
+    pub fn account_for(
         &self,
         provider: Provider,
         workspace: Option<&Workspace>,
@@ -149,11 +173,11 @@ impl World {
     }
 
     /// The preview has one deterministic default mode for every agent.
-    pub(crate) fn agent_mode(&self, _agent: Agent) -> AuthMode {
+    pub fn agent_mode(&self, _agent: Agent) -> AuthMode {
         AuthMode::Sync
     }
 
-    pub(crate) fn eligible_accounts(
+    pub fn eligible_accounts(
         &self,
         agent: Agent,
         workspace: Option<&Workspace>,
@@ -162,7 +186,7 @@ impl World {
         self.offer_for(agent, workspace, role).accounts
     }
 
-    pub(crate) fn offer_for(
+    pub fn offer_for(
         &self,
         agent: Agent,
         workspace: Option<&Workspace>,
@@ -224,7 +248,7 @@ impl World {
         }
     }
 
-    pub(crate) fn offered_agents(
+    pub fn offered_agents(
         &self,
         workspace: Option<&Workspace>,
         role: Option<&str>,
@@ -315,26 +339,43 @@ pub fn world_for(scenario: Scenario) -> World {
         .iter()
         .filter(|instance| instance.status == InstanceStatus::Running)
         .count();
+    let mut daemons = BTreeMap::new();
+    for instance in &instances {
+        if let crate::domain::instance::DaemonSnapshot::Tabs(_) = &instance.daemon {
+            daemons.insert(
+                instance.id.clone(),
+                Daemon::from_snapshot(&instance.daemon, &instance.container, now),
+            );
+        }
+    }
     World {
         scenario,
         clock,
         arbiter: Arbiter::new(running),
         home: HOME.into(),
+        global: GlobalConfig {
+            trust: vec![TrustRow {
+                source: "chainargos/the-architect".into(),
+                trusted: false,
+            }],
+        },
         workspaces,
         roles,
         instances,
+        daemons,
         accounts,
         op,
         jobs: Vec::new(),
         refresh_fails: scenario == Scenario::HardCases,
         saved: false,
         last_refresh_secs: now,
+        clipboard: None,
     }
 }
 
 /// What a new session knows about one agent's account choices.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct AgentOffer {
+pub struct AgentOffer {
     pub configured: bool,
     pub accounts: Vec<AccountId>,
     pub preselected: Option<AccountId>,

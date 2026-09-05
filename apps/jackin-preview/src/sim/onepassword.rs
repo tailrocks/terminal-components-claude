@@ -9,24 +9,15 @@ use crate::domain::agent::Provider;
 use crate::domain::onepassword::OpReference;
 
 /// Opaque secret handle. Not `Clone`, not `Debug`; constructible only here.
-pub(crate) struct Secret {
+pub struct Secret {
     bytes: Vec<u8>,
-}
-
-impl fmt::Debug for Secret {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("Secret")
-            .field("bytes", &"[redacted]")
-            .finish()
-    }
 }
 
 impl Secret {
     /// Which provider family the material belongs to, and whether the
     /// provider would accept it. This is the only question a provider
     /// operation may ask; it never sees the bytes as text.
-    pub(crate) fn classify(&self) -> SecretClass {
+    pub fn classify(&self) -> SecretClass {
         let s = String::from_utf8_lossy(&self.bytes);
         if s.is_empty() {
             return SecretClass::Empty;
@@ -62,7 +53,7 @@ impl Drop for Secret {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum KeyOutcome {
+pub enum KeyOutcome {
     Valid,
     Rejected,
     RateLimited,
@@ -70,7 +61,7 @@ pub(crate) enum KeyOutcome {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SecretClass {
+pub enum SecretClass {
     Empty,
     Unrecognised,
     Key {
@@ -80,40 +71,40 @@ pub(crate) enum SecretClass {
 }
 
 /// Marker for closure results that cannot carry the secret out.
-pub(crate) trait SecretFree {}
+pub trait SecretFree {}
 impl SecretFree for SecretClass {}
 impl SecretFree for () {}
 impl SecretFree for bool {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum OpSession {
+pub enum OpSession {
     SignedIn,
     Locked,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum OpAccountState {
+pub enum OpAccountState {
     Available,
     Locked,
     AuthorizationRequired,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum VaultAccess {
+pub enum VaultAccess {
     ReadWrite,
     ReadOnly,
     Denied,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FieldKind {
+pub enum FieldKind {
     Concealed,
     Text,
     Url,
 }
 
 impl FieldKind {
-    pub(crate) fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             FieldKind::Concealed => "concealed",
             FieldKind::Text => "text",
@@ -123,7 +114,7 @@ impl FieldKind {
 }
 
 #[derive(Clone)]
-pub(crate) struct OpField {
+pub struct OpField {
     pub id: String,
     pub label: String,
     pub kind: FieldKind,
@@ -146,7 +137,7 @@ impl fmt::Debug for OpField {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct OpItem {
+pub struct OpItem {
     pub id: String,
     pub title: String,
     pub category: &'static str,
@@ -154,7 +145,7 @@ pub(crate) struct OpItem {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct OpVault {
+pub struct OpVault {
     pub id: String,
     pub name: String,
     pub access: VaultAccess,
@@ -162,7 +153,7 @@ pub(crate) struct OpVault {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct OpAccount {
+pub struct OpAccount {
     pub id: String,
     pub email: String,
     pub state: OpAccountState,
@@ -170,7 +161,7 @@ pub(crate) struct OpAccount {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum OpError {
+pub enum OpError {
     Locked,
     AuthorizationRequired { account: String },
     PermissionDenied { vault: String },
@@ -184,7 +175,7 @@ pub(crate) enum OpError {
 
 impl OpError {
     /// Operator-facing message (sentence case, colon introduces the reason).
-    pub(crate) fn message(&self) -> String {
+    pub fn message(&self) -> String {
         match self {
             OpError::Locked => "1Password locked: unlock the app and retry".into(),
             OpError::AuthorizationRequired { account } => {
@@ -210,18 +201,18 @@ impl OpError {
         }
     }
 
-    pub(crate) fn retryable(&self) -> bool {
+    pub fn retryable(&self) -> bool {
         matches!(self, OpError::Locked)
     }
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct FieldDescriptor {
+pub struct FieldDescriptor {
     pub masked: String,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct SimOnePassword {
+pub struct SimOnePassword {
     pub session: OpSession,
     pub accounts: Vec<OpAccount>,
     /// Simulated latency for listing/validation, in virtual ms.
@@ -255,7 +246,7 @@ fn item(
 
 impl SimOnePassword {
     /// The fixture directory shared by every scenario.
-    pub(crate) fn fixture(epoch: i64) -> Self {
+    pub fn fixture(epoch: i64) -> Self {
         let d = 86_400;
         let engineering = OpVault {
             id: "v_eng01".into(),
@@ -479,12 +470,12 @@ impl SimOnePassword {
         }
     }
 
-    pub(crate) fn list_accounts(&self) -> Result<Vec<&OpAccount>, OpError> {
+    pub fn list_accounts(&self) -> Result<Vec<&OpAccount>, OpError> {
         self.gate()?;
         Ok(self.accounts.iter().collect())
     }
 
-    pub(crate) fn list_vaults(&self, account: &str) -> Result<Vec<&OpVault>, OpError> {
+    pub fn list_vaults(&self, account: &str) -> Result<Vec<&OpVault>, OpError> {
         Ok(self.account(account)?.vaults.iter().collect())
     }
 
@@ -505,7 +496,7 @@ impl SimOnePassword {
         Ok(v)
     }
 
-    pub(crate) fn list_items(&self, account: &str, vault: &str) -> Result<Vec<&OpItem>, OpError> {
+    pub fn list_items(&self, account: &str, vault: &str) -> Result<Vec<&OpItem>, OpError> {
         Ok(self.vault(account, vault)?.items.iter().collect())
     }
 
@@ -522,7 +513,7 @@ impl SimOnePassword {
         Ok((v, it))
     }
 
-    pub(crate) fn list_fields(
+    pub fn list_fields(
         &self,
         account: &str,
         vault: &str,
@@ -532,7 +523,7 @@ impl SimOnePassword {
     }
 
     /// Full reference (with names) for chosen ids.
-    pub(crate) fn reference(
+    pub fn reference(
         &self,
         account: &str,
         vault: &str,
@@ -561,7 +552,7 @@ impl SimOnePassword {
     }
 
     /// Non-secret metadata plus a masked preview.
-    pub(crate) fn describe(&self, r: &OpReference) -> Result<FieldDescriptor, OpError> {
+    pub fn describe(&self, r: &OpReference) -> Result<FieldDescriptor, OpError> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id)?;
         let f = it
             .fields
@@ -588,7 +579,7 @@ impl SimOnePassword {
 
     /// The only path to secret bytes: the closure is the transient provider
     /// operation and its result cannot carry the secret.
-    pub(crate) fn resolve_into<R: SecretFree>(
+    pub fn resolve_into<R: SecretFree>(
         &self,
         r: &OpReference,
         op: impl FnOnce(&Secret) -> R,
@@ -609,7 +600,7 @@ impl SimOnePassword {
     }
 
     /// Endpoint URL stored beside a credential (Grok fixture only).
-    pub(crate) fn endpoint_of(&self, r: &OpReference) -> Option<String> {
+    pub fn endpoint_of(&self, r: &OpReference) -> Option<String> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id).ok()?;
         it.fields
             .iter()
@@ -621,7 +612,7 @@ impl SimOnePassword {
 /// Classify plain-text key material typed by the operator. Fixture rule:
 /// keys that contain `valid` are accepted; `rotated` is rejected;
 /// `throttled` is rate limited; anything else is rejected.
-pub(crate) fn classify_plain(provider: Provider, value: &str) -> SecretClass {
+pub fn classify_plain(provider: Provider, value: &str) -> SecretClass {
     if value.trim().is_empty() {
         return SecretClass::Empty;
     }

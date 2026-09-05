@@ -19,38 +19,18 @@
 )]
 
 mod app;
-#[expect(
-    dead_code,
-    reason = "the private arbiter retains deterministic lifecycle branches for fixture coverage"
-)]
 mod arbiter;
 mod clock;
-#[expect(
-    dead_code,
-    reason = "private domain fixtures cover deterministic product states not on the shell path"
-)]
-mod domain;
-#[expect(
-    dead_code,
-    reason = "private atmosphere helpers cover deterministic capture states beyond the shell path"
-)]
-mod rain;
+pub mod domain;
+pub mod rain;
 mod scenario;
-#[expect(
-    dead_code,
-    reason = "private screen adapters retain deterministic flows for later shell composition"
-)]
-mod screens;
-#[expect(
-    dead_code,
-    reason = "private simulators retain deterministic provider and terminal fixture branches"
-)]
-mod sim;
+pub mod screens;
+pub mod sim;
 
 pub use app::{
     ACCOUNT_ADD, ACCOUNT_PICKER, ACCOUNTS, ACCOUNTS_LIST, APP, App, CAPSULE, CAPSULE_PANES,
-    CAPSULE_TABS, ENTER, LAUNCH, LAUNCH_CANCEL, LAUNCH_DIALOG, LAUNCH_RETRY, LAUNCH_STEPS, MANAGER,
-    MANAGER_LIST, ROLE_CHOOSE, ROLE_PICKER, Route, SETTINGS, SETTINGS_TRUST, USAGE,
+    CAPSULE_TABS, ENTER, LAUNCH, LAUNCH_CANCEL, LAUNCH_DIALOG, LAUNCH_RETRY, MANAGER, MANAGER_LIST,
+    ROLE_CHOOSE, ROLE_PICKER, Route, SETTINGS, SETTINGS_TRUST, USAGE,
 };
 pub use domain::instance::RunId;
 pub use rain::{INTRO_END, TICK_MS};

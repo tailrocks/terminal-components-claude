@@ -12,18 +12,18 @@ use crate::scenario::Motion;
 /// interval; the virtual clock advances by the active route's cadence.
 pub const TICK_MS: u64 = 33;
 /// Seed used by all deterministic atmosphere fields.
-pub(crate) const MOTION_SEED: u64 = 0x4A41_434B_494E_5E5E;
+pub const MOTION_SEED: u64 = 0x4A41_434B_494E_5E5E;
 /// Number of two-tick glitch passes around the handoff.
-pub(crate) const GLITCH_PASS_TICKS: u64 = 2;
+pub const GLITCH_PASS_TICKS: u64 = 2;
 /// Number of glitch passes in the intro and outro cadence.
-pub(crate) const GLITCH_PASSES: u64 = 5;
+pub const GLITCH_PASSES: u64 = 5;
 /// Warp duration in 33 ms ticks.
-pub(crate) const WARP_TICKS: u64 = 95;
+pub const WARP_TICKS: u64 = 95;
 
 const POOL: &[u8] = b" .,:;+=*#%@";
 
 /// Stable integer mixer used for atmosphere placement.
-pub(crate) const fn mix(mut a: u64, b: u64, c: u64) -> u64 {
+pub const fn mix(mut a: u64, b: u64, c: u64) -> u64 {
     a ^= b.wrapping_mul(0x9E37_79B9_7F4A_7C15);
     a = a.rotate_left(17).wrapping_mul(0xBF58_476D_1CE4_E5B9);
     a ^= c.wrapping_mul(0x94D0_49BB_1331_11EB);
@@ -31,12 +31,12 @@ pub(crate) const fn mix(mut a: u64, b: u64, c: u64) -> u64 {
 }
 
 /// Map a mixed value to a percentage without floating point.
-pub(crate) const fn pct(value: u64) -> u64 {
+pub const fn pct(value: u64) -> u64 {
     value % 100
 }
 
 /// Stable atmosphere glyph.
-pub(crate) fn glyph(x: u64, y: u64, epoch: u64) -> char {
+pub fn glyph(x: u64, y: u64, epoch: u64) -> char {
     POOL.get((mix(x, y, epoch) as usize) % POOL.len())
         .copied()
         .unwrap_or(b' ') as char
@@ -44,7 +44,7 @@ pub(crate) fn glyph(x: u64, y: u64, epoch: u64) -> char {
 
 /// Semantic tone accepted by the compatibility painting helpers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Tone {
+pub enum Tone {
     /// One of the five foreground ladder levels, ghost through primary.
     Ladder(u8),
     /// Accent trace.
@@ -54,7 +54,7 @@ pub(crate) enum Tone {
 /// Resolve a tone to a theme style.  Dim is index arithmetic over the
 /// foreground ladder; no colour equality is used, so themes with distinct
 /// accent/focus/success colours remain distinct.
-pub(crate) fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
+pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     let color = match tone {
         Tone::Ladder(level) => {
             let index = usize::from(level.saturating_sub(dim).min(4));
@@ -65,39 +65,39 @@ pub(crate) fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
         Tone::Accent if dim == 1 => theme.color.fg.get(3).copied().unwrap_or(Color::Reset),
         Tone::Accent => theme.color.accent,
     };
-    let mut style = Style::new();
-    style.fg = Some(color);
-    Some(style)
+    Some(Style::new().fg(color))
 }
 
 /// Fill a field with the theme canvas colour.
-pub(crate) fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
-    let mut style = Style::new();
-    style.bg = Some(theme.color.surfaces[0]);
-    buf.set_style(area, style);
+pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
+    buf.set_style(area, Style::new().bg(theme.color.surfaces[0]));
 }
 
 /// Dim existing cells by replacing their foreground with a ladder step.
 /// Caller-owned background and glyphs remain untouched.
-pub(crate) fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
-    for pos in area.positions() {
-        if let Some(cell) = buf.cell_mut((pos.x, pos.y)) {
-            let fg = cell.fg;
-            let level = theme
-                .color
-                .fg
-                .iter()
-                .position(|candidate| *candidate == fg)
-                .unwrap_or(4);
-            let next = level.saturating_sub(usize::from(steps)).min(4);
-            cell.set_fg(theme.color.fg.get(next).copied().unwrap_or(Color::Reset));
+pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
+    for row in area.rows() {
+        for column in area.columns() {
+            let x = column.x;
+            let y = row.y;
+            if let Some(cell) = buf.cell_mut((x, y)) {
+                let fg = cell.fg;
+                let level = theme
+                    .color
+                    .fg
+                    .iter()
+                    .position(|candidate| *candidate == fg)
+                    .unwrap_or(4);
+                let next = level.saturating_sub(usize::from(steps)).min(4);
+                cell.set_fg(theme.color.fg.get(next).copied().unwrap_or(Color::Reset));
+            }
         }
     }
 }
 
 /// One deterministic warp cell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct WarpCell {
+pub struct WarpCell {
     /// Painted glyph.
     pub ch: char,
     /// Foreground ladder level, ghost through primary.
@@ -109,7 +109,7 @@ pub(crate) struct WarpCell {
 /// A bounded, reproducible star/warp field.  The implementation is integer
 /// only: it is cheap enough for captures and byte-identical across machines.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Starfield {
+pub struct Starfield {
     seed: u64,
     cols: u16,
     rows: u16,
@@ -120,7 +120,7 @@ pub(crate) struct Starfield {
 
 impl Starfield {
     /// Build a seeded field for `cols × rows`.
-    pub(crate) fn new(cols: u16, rows: u16, salt: u64) -> Self {
+    pub fn new(cols: u16, rows: u16, salt: u64) -> Self {
         Self {
             seed: mix(MOTION_SEED ^ salt, u64::from(cols), u64::from(rows)),
             cols,
@@ -131,7 +131,7 @@ impl Starfield {
     }
 
     /// Advance and regenerate one field frame.
-    pub(crate) fn advance(&mut self, accelerating: bool, frame: u64) {
+    pub fn advance(&mut self, accelerating: bool, frame: u64) {
         self.cells.fill(None);
         let cols = usize::from(self.cols);
         let rows = usize::from(self.rows);
@@ -165,12 +165,12 @@ impl Starfield {
     }
 
     /// Dimensions of the field.
-    pub(crate) const fn size(&self) -> (u16, u16) {
+    pub const fn size(&self) -> (u16, u16) {
         (self.cols, self.rows)
     }
 
     /// Paint the last generated frame.
-    pub(crate) fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, theme: &Theme) {
+    pub fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, theme: &Theme) {
         let cols = self.cols.min(area.width);
         let rows = self.rows.min(area.height);
         for y in 0..rows {
@@ -207,36 +207,35 @@ const fn phrase_ticks(chars: u64, char_ms: u64, hold_ms: u64) -> u64 {
 }
 
 /// Phrase texts and original pacing.
-pub(crate) const PHRASES: [(&str, u64, u64); 3] = [
+pub const PHRASES: [(&str, u64, u64); 3] = [
     ("Stand up, operator…", 60, 950),
     ("Host stays outside…", 55, 950),
     ("Follow the green.", 50, 850),
 ];
 /// Caption shown during the entry knock.
-pub(crate) const CAPTION: &str = "Knock, knock, operator.";
+pub const CAPTION: &str = "Knock, knock, operator.";
 /// Caption hold duration in milliseconds.
-pub(crate) const CAPTION_HOLD_MS: u64 = 850;
+pub const CAPTION_HOLD_MS: u64 = 850;
 /// First phrase duration in virtual ticks.
-pub(crate) const P1_LEN: u64 = phrase_ticks(19, 60, 950);
+pub const P1_LEN: u64 = phrase_ticks(19, 60, 950);
 /// Second phrase duration in virtual ticks.
-pub(crate) const P2_LEN: u64 = phrase_ticks(19, 55, 950);
+pub const P2_LEN: u64 = phrase_ticks(19, 55, 950);
 /// Third phrase duration in virtual ticks.
-pub(crate) const P3_LEN: u64 = phrase_ticks(17, 50, 850);
+pub const P3_LEN: u64 = phrase_ticks(17, 50, 850);
 /// Start of the knock phase.
-pub(crate) const KNOCK_START: u64 = P1_LEN + P2_LEN + P3_LEN;
+pub const KNOCK_START: u64 = P1_LEN + P2_LEN + P3_LEN;
 /// Duration of the knock phase.
-pub(crate) const KNOCK_LEN: u64 =
-    GLITCH_PASSES * GLITCH_PASS_TICKS + CAPTION_HOLD_MS.div_ceil(TICK_MS);
+pub const KNOCK_LEN: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + CAPTION_HOLD_MS.div_ceil(TICK_MS);
 /// Start of the warp phase.
-pub(crate) const WARP_START: u64 = KNOCK_START + KNOCK_LEN;
+pub const WARP_START: u64 = KNOCK_START + KNOCK_LEN;
 /// End of the intro ritual.
 pub const INTRO_END: u64 = WARP_START + WARP_TICKS;
 /// Reduced-motion intro hold duration.
-pub(crate) const REDUCED_HOLD: u64 = 45;
+pub const REDUCED_HOLD: u64 = 45;
 
 /// Intro phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum IntroPhase {
+pub enum IntroPhase {
     Phrases,
     Warp,
     Done,
@@ -244,7 +243,7 @@ pub(crate) enum IntroPhase {
 
 impl IntroPhase {
     /// Resolve phase at a virtual frame.
-    pub(crate) const fn of(tick: u64) -> Self {
+    pub const fn of(tick: u64) -> Self {
         if tick < WARP_START {
             Self::Phrases
         } else if tick < INTRO_END {
@@ -257,7 +256,7 @@ impl IntroPhase {
 
 /// Deterministic intro state.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct IntroState {
+pub struct IntroState {
     /// Current virtual frame.
     pub tick: u64,
     /// Motion policy.
@@ -266,12 +265,12 @@ pub(crate) struct IntroState {
 
 impl IntroState {
     /// Construct at an exact frame.
-    pub(crate) const fn new(mode: Motion, frame: u64) -> Self {
+    pub const fn new(mode: Motion, frame: u64) -> Self {
         Self { tick: frame, mode }
     }
 
     /// Current phase.
-    pub(crate) const fn phase(&self) -> IntroPhase {
+    pub const fn phase(&self) -> IntroPhase {
         match self.mode {
             Motion::Reduced if self.tick < REDUCED_HOLD => IntroPhase::Phrases,
             Motion::Reduced => IntroPhase::Done,
@@ -280,12 +279,12 @@ impl IntroState {
     }
 
     /// Whether the entry ritual finished.
-    pub(crate) const fn is_done(&self) -> bool {
+    pub const fn is_done(&self) -> bool {
         matches!(self.phase(), IntroPhase::Done)
     }
 
     /// Advance one virtual frame.
-    pub(crate) fn advance(&mut self) -> bool {
+    pub fn advance_tick(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
             return false;
         }
@@ -293,13 +292,8 @@ impl IntroState {
         true
     }
 
-    /// Compatibility spelling for callers that model one runtime tick.
-    pub(crate) fn on_tick(&mut self) -> bool {
-        Self::advance(self)
-    }
-
     /// Skip phrases to warp, then warp to done.
-    pub(crate) fn skip(&mut self) {
+    pub fn skip(&mut self) {
         self.tick = match self.mode {
             Motion::Reduced => REDUCED_HOLD,
             _ => match self.phase() {
@@ -313,7 +307,7 @@ impl IntroState {
 
 /// Outro phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum OutroPhase {
+pub enum OutroPhase {
     Warp,
     Caption,
     Done,
@@ -321,7 +315,7 @@ pub(crate) enum OutroPhase {
 
 /// Deterministic exit ritual state.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct OutroState {
+pub struct OutroState {
     /// Current virtual frame.
     pub tick: u64,
     /// Duration spent inside the Construct, if discovery supplied it.
@@ -332,13 +326,13 @@ pub(crate) struct OutroState {
 
 /// Glitch reveal plus the original 2.4 s caption hold.
 /// Warp duration for the outro.
-pub(crate) const OUT_WARP: u64 = WARP_TICKS;
+pub const OUT_WARP: u64 = WARP_TICKS;
 /// Caption duration for the outro.
-pub(crate) const OUT_CAPTION: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + 2_400u64.div_ceil(TICK_MS);
+pub const OUT_CAPTION: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + 2_400u64.div_ceil(TICK_MS);
 
 impl OutroState {
     /// Construct at an exact frame.
-    pub(crate) const fn new(mode: Motion, elapsed_secs: Option<u64>, frame: u64) -> Self {
+    pub const fn new(mode: Motion, elapsed_secs: Option<u64>, frame: u64) -> Self {
         Self {
             tick: frame,
             elapsed_secs,
@@ -347,7 +341,7 @@ impl OutroState {
     }
 
     /// End frame.
-    pub(crate) const fn end(&self) -> u64 {
+    pub const fn end(&self) -> u64 {
         match self.mode {
             Motion::Reduced => REDUCED_HOLD,
             _ if self.elapsed_secs.is_some() => OUT_WARP + OUT_CAPTION,
@@ -356,7 +350,7 @@ impl OutroState {
     }
 
     /// Current phase.
-    pub(crate) const fn phase(&self) -> OutroPhase {
+    pub const fn phase(&self) -> OutroPhase {
         match self.mode {
             Motion::Reduced => {
                 if self.tick < REDUCED_HOLD {
@@ -372,12 +366,12 @@ impl OutroState {
     }
 
     /// Whether the exit ritual finished.
-    pub(crate) const fn is_done(&self) -> bool {
+    pub const fn is_done(&self) -> bool {
         matches!(self.phase(), OutroPhase::Done)
     }
 
     /// Advance one virtual frame.
-    pub(crate) fn advance(&mut self) -> bool {
+    pub fn advance_tick(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
             return false;
         }
@@ -385,13 +379,8 @@ impl OutroState {
         true
     }
 
-    /// Compatibility spelling for callers that model one runtime tick.
-    pub(crate) fn on_tick(&mut self) -> bool {
-        Self::advance(self)
-    }
-
     /// Skip warp to caption, then caption to done.
-    pub(crate) fn skip(&mut self) {
+    pub fn skip(&mut self) {
         self.tick = match self.phase() {
             OutroPhase::Warp => OUT_WARP,
             OutroPhase::Caption | OutroPhase::Done => self.end(),
@@ -399,7 +388,7 @@ impl OutroState {
     }
 
     /// Product wording for the elapsed caption.
-    pub(crate) fn caption(&self) -> Option<String> {
+    pub fn caption(&self) -> Option<String> {
         self.elapsed_secs.map(|secs| {
             format!(
                 "You were in the Construct for {}",
@@ -410,7 +399,7 @@ impl OutroState {
 }
 
 /// Format the two largest duration units, using the original wording.
-pub(crate) fn format_universe_duration(secs: u64) -> String {
+pub fn format_universe_duration(secs: u64) -> String {
     fn unit(n: u64, name: &str) -> String {
         format!("{n} {name}{}", if n == 1 { "" } else { "s" })
     }
@@ -431,7 +420,7 @@ pub(crate) fn format_universe_duration(secs: u64) -> String {
 
 /// Handoff stage used to coordinate cockpit/capsule cross-fade.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum HandoffStage {
+pub enum HandoffStage {
     CockpitDim(u8),
     Canvas,
     CapsuleDim(u8),
@@ -439,7 +428,7 @@ pub(crate) enum HandoffStage {
 }
 
 /// Resolve a handoff frame without consulting wall time.
-pub(crate) const fn handoff_stage(frame: u64) -> HandoffStage {
+pub const fn handoff_stage(frame: u64) -> HandoffStage {
     match frame {
         0..=3 => HandoffStage::CockpitDim((frame + 1) as u8),
         4..=5 => HandoffStage::Canvas,
@@ -449,10 +438,10 @@ pub(crate) const fn handoff_stage(frame: u64) -> HandoffStage {
 }
 
 /// Number of handoff frames.
-pub(crate) const HANDOFF_LEN: u64 = 12;
+pub const HANDOFF_LEN: u64 = 12;
 
 /// Paint deterministic atmosphere cells outside excluded rectangles.
-pub(crate) fn paint_atmosphere(
+pub fn paint_atmosphere(
     buf: &mut Buffer,
     area: Rect,
     exclude: &[Rect],
@@ -461,34 +450,36 @@ pub(crate) fn paint_atmosphere(
     frozen: bool,
     theme: &Theme,
 ) {
-    for pos in area.positions() {
-        let x = pos.x;
-        let y = pos.y;
+    for column in area.columns() {
+        let x = column.x;
         if pct(mix(u64::from(x), 11, 0)) >= 18 {
             continue;
         }
         let head = (frame + (mix(u64::from(x), 12, 0) % u64::from(area.height.max(1))))
             % u64::from(area.height.max(1));
-        if exclude.iter().any(|rect| rect.contains((x, y).into())) {
-            continue;
-        }
-        let distance = (u64::from(y.saturating_sub(area.y)) + u64::from(area.height) - head)
-            % u64::from(area.height.max(1));
-        if distance > 2 {
-            continue;
-        }
-        let tone = if distance == 0 && running && !frozen && frame >= 15 {
-            Tone::Accent
-        } else {
-            Tone::Ladder(1u8.saturating_sub(distance as u8))
-        };
-        if let Some(resolved) = style(theme, tone, 0) {
-            buf.set_string(
-                x,
-                y,
-                glyph(u64::from(x), u64::from(y), frame >> 3).to_string(),
-                resolved,
-            );
+        for row in area.rows() {
+            let y = row.y;
+            if exclude.iter().any(|rect| rect.contains((x, y).into())) {
+                continue;
+            }
+            let distance = (u64::from(y.saturating_sub(area.y)) + u64::from(area.height) - head)
+                % u64::from(area.height.max(1));
+            if distance > 2 {
+                continue;
+            }
+            let tone = if distance == 0 && running && !frozen && frame >= 15 {
+                Tone::Accent
+            } else {
+                Tone::Ladder(1u8.saturating_sub(distance as u8))
+            };
+            if let Some(resolved) = style(theme, tone, 0) {
+                buf.set_string(
+                    x,
+                    y,
+                    glyph(u64::from(x), u64::from(y), frame >> 3).to_string(),
+                    resolved,
+                );
+            }
         }
     }
 }
