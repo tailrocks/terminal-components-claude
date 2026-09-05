@@ -8678,7 +8678,7 @@ captures / classification: `(pending — filled when the change lands)`
     fn the_2010_item_list_survives_the_split_tables() {
         let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
         let items = visual_change_items(&doc);
-        let want: BTreeSet<u32> = (1..=33).collect();
+        let want: BTreeSet<u32> = (1..=34).collect();
         assert_eq!(
             items.keys().copied().collect::<BTreeSet<u32>>(),
             want,
