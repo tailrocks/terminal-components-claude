@@ -857,6 +857,31 @@ impl Conformance for DialogCase {
     }
 }
 
+#[test]
+fn dialog_prompt_renders_caller_owned_error_in_the_field() {
+    const ERROR: &str = "Name cannot be empty";
+    let fixture = Fixture::default();
+    let mut scene = Scene::new(
+        "dialog_prompt_error",
+        fixture.theme.clone(),
+        fixture.color,
+        80,
+        24,
+    );
+    let dialog = Dialog::prompt(DLG, "Rename", "Task name").error(Some(ERROR));
+    let state = junie_tui::DialogState::default();
+
+    scene.draw(|ui, area| {
+        dialog.draw(ui, area, &state, |_, _| {});
+    });
+
+    let frame = scene.text();
+    assert!(
+        frame.contains(ERROR),
+        "prompt field dropped caller error: {frame}"
+    );
+}
+
 const SCROLL: Id = Id::root("conformance.scroll_region");
 const SCROLL_ROWS: usize = 40;
 
@@ -2180,6 +2205,7 @@ impl Conformance for PanelCase {
         let panel = Panel::new(PANEL)
             .title("Panel")
             .meta("meta")
+            .badge("EDIT")
             .patch_part(patch_of(f));
         panel.draw(ui, area, |ui, body| {
             let style = ui

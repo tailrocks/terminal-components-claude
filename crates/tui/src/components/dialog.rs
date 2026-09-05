@@ -9,7 +9,7 @@ use super::button::Button;
 use super::field::Field;
 use super::input::{TextAction, TextInput, TextInputState, redacted_text};
 use super::keyhint::ChordText;
-use super::{Acc, PartStyle};
+use super::{Acc, PartStyle, overlay_chrome};
 use crate::action::{Action, ActionKey};
 use crate::event::{Chord, KeyCode};
 use crate::id::{Id, Part, PartRef};
@@ -197,7 +197,8 @@ fn zeroize_string(value: &mut String) {
 /// (`design.size.dialog_width`), `.body_rows(u16)` (rows for the body slot;
 /// `code_preview_lines` for `new`, `0` for the conveniences — the dialog
 /// never sees the body closure before `draw`, so the caller states it),
-/// `.patch`, `.patch_part`.
+/// `.error(Option<&str>)` for caller-owned prompt validation, `.patch`,
+/// `.patch_part`.
 ///
 /// ## Variants
 /// `Family::DIALOG`, `DEFAULT` only; the action buttons carry their
@@ -267,6 +268,7 @@ pub struct Dialog<'a> {
     body_rows: Option<u16>,
     prompt: Option<&'a str>,
     ack: Option<&'a str>,
+    error: Option<&'a str>,
     ov: PartStyle<'a>,
 }
 
@@ -312,6 +314,7 @@ impl<'a> Dialog<'a> {
             body_rows: None,
             prompt: None,
             ack: None,
+            error: None,
             ov: PartStyle::new(),
         }
     }
@@ -409,6 +412,15 @@ impl<'a> Dialog<'a> {
     #[must_use]
     pub const fn description(mut self, s: &'a str) -> Self {
         self.description = Some(s);
+        self
+    }
+
+    /// A caller-owned validation message for the prompt or acknowledgement
+    /// field. The message is borrowed for this dialog's draw/update props and
+    /// is never copied into [`DialogState`].
+    #[must_use]
+    pub const fn error(mut self, error: Option<&'a str>) -> Self {
+        self.error = error;
         self
     }
 
@@ -712,187 +724,189 @@ impl<'a> Dialog<'a> {
         st: &DialogState,
         body: impl FnOnce(&mut Ui<'_>, Rect) -> R,
     ) -> R {
-        ui.with_surface(Surface::Elevated, |ui| {
-            if area.is_empty() {
-                let empty = Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: 0,
-                    height: 0,
+        let (rect, desc_h) = self.frame_rect(ui, area);
+        let chrome = if rect.width < 4 || rect.height < 4 {
+            Rect {
+                x: area.x,
+                y: area.y,
+                width: 0,
+                height: 0,
+            }
+        } else {
+            rect
+        };
+        let ov = self.ov;
+        let id = self.id;
+        // Dialog chrome has no runtime state of its own. Its border is the
+        // authored strong rule; fixture interaction flags belong to one
+        // prompt/action child below, never to the composite surface.
+        let live = StateFlags::empty();
+        overlay_chrome(
+            ui,
+            id,
+            chrome,
+            Family::DIALOG,
+            Surface::Elevated,
+            ov,
+            live,
+            StateFlags::FOCUSED,
+            |ui, framed| {
+                if framed.is_empty() {
+                    return body(ui, framed);
+                }
+                let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
+                    ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)
                 };
-                return ui.with_area(empty, |ui| body(ui, empty));
-            }
-            let (rect, desc_h) = self.frame_rect(ui, area);
-            if rect.width < 4 || rect.height < 4 {
-                let empty = Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: 0,
-                    height: 0,
-                };
-                return ui.with_area(empty, |ui| body(ui, empty));
-            }
-            let ov = self.ov;
-            let id = self.id;
-            // Dialog chrome has no runtime state of its own. Its border is the
-            // authored strong rule; fixture interaction flags belong to one
-            // prompt/action child below, never to the composite surface.
-            let live = StateFlags::empty();
-            let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
-                ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)
-            };
-            let container = style(ui, Part::CONTAINER, StateFlags::empty());
-            ui.fill(rect, container.style);
-            let border = style(ui, Part::BORDER, StateFlags::FOCUSED);
-            let framed = ui.frame(rect, border.style);
-            ui.register_decor(id, PartRef::of(Part::CONTAINER), rect);
-            ui.register_decor(id, PartRef::of(Part::BORDER), rect);
-            // the horizontal inset `measured_height` wraps the description
-            // against; vertically the frame is the padding (§26 N1)
-            let pad = ui.design().space.dialog_inset;
-            let inner = crate::layout::inset(
-                framed,
-                crate::layout::Insets {
-                    l: pad,
-                    t: 0,
-                    r: pad,
-                    b: 0,
-                },
-            );
-            if inner.is_empty() {
-                return ui.with_area(inner, |ui| body(ui, inner));
-            }
-            let mut y = inner.y;
-            if let Some(t) = self.title {
-                let ts = style(ui, Part::TITLE, StateFlags::empty());
-                let row = Rect {
-                    y,
-                    height: 1,
-                    ..inner
-                };
-                ui.paint_str(row, t, ts.style);
-                ui.register_decor(id, PartRef::of(Part::TITLE), row);
-            }
-            y = y.saturating_add(1);
-            let actions_y = if self.actions.is_empty() {
-                inner.bottom()
-            } else {
-                inner.bottom().saturating_sub(1)
-            };
-            if let Some(d) = self.description {
-                let ds = style(ui, Part::DETAIL, StateFlags::empty());
-                for line in wrap(d, inner.width).iter().take(usize::from(desc_h)) {
-                    if y >= actions_y {
-                        break;
-                    }
+                // the horizontal inset `measured_height` wraps the description
+                // against; vertically the frame is the padding (§26 N1)
+                let pad = ui.design().space.dialog_inset;
+                let inner = crate::layout::inset(
+                    framed,
+                    crate::layout::Insets {
+                        l: pad,
+                        t: 0,
+                        r: pad,
+                        b: 0,
+                    },
+                );
+                if inner.is_empty() {
+                    return ui.with_area(inner, |ui| body(ui, inner));
+                }
+                let mut y = inner.y;
+                if let Some(t) = self.title {
+                    let ts = style(ui, Part::TITLE, StateFlags::empty());
                     let row = Rect {
                         y,
                         height: 1,
                         ..inner
                     };
-                    ui.paint_str(row, line, ds.style);
-                    y = y.saturating_add(1);
+                    ui.paint_str(row, t, ts.style);
+                    ui.register_decor(id, PartRef::of(Part::TITLE), row);
                 }
-            }
-            if self.has_input() {
-                let field_h = ui.design().size.field_height;
-                let r = Rect {
-                    x: inner.x.saturating_sub(1),
-                    y,
-                    width: inner.width.saturating_add(1),
-                    height: field_h.min(actions_y.saturating_sub(y)),
-                };
-                let value = if self.ack.is_some() {
-                    st.ack_draft.expose()
+                y = y.saturating_add(1);
+                let actions_y = if self.actions.is_empty() {
+                    inner.bottom()
                 } else {
-                    &st.draft
+                    inner.bottom().saturating_sub(1)
                 };
-                let input = self.input_control().value(value);
-                let label = self.prompt.unwrap_or("Type the token to confirm");
-                Field::new(label, input).plain(true).draw(ui, r, &st.input);
-                y = y.saturating_add(field_h);
-                if self.ack.is_some() {
-                    y = y.saturating_add(1);
-                }
-            }
-            // one blank row separates the body from what precedes it, exactly
-            // as `measured_height`'s `[blank + body]` term says
-            let body_top = if self.body_block(ui.design()) == 0 {
-                y
-            } else {
-                y.saturating_add(1)
-            };
-            let body_bottom = actions_y.saturating_sub(u16::from(!self.actions.is_empty()));
-            let body_rect = Rect {
-                x: inner.x,
-                y: body_top.min(inner.bottom()),
-                width: inner.width,
-                height: body_bottom.saturating_sub(body_top),
-            };
-            ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
-            let out = ui.with_area(body_rect, |ui| body(ui, body_rect));
-            if !self.actions.is_empty() {
-                let row = Rect {
-                    x: inner.x,
-                    y: actions_y,
-                    width: inner.width,
-                    height: 1,
-                };
-                ui.register_decor(id, PartRef::of(Part::ACTIONS), row);
-                let mut widths = [0u16; Self::MAX_ACTIONS];
-                let actions = self.effective_actions();
-                let n = actions.len();
-                for (i, a) in actions.iter().enumerate() {
-                    let action_id = self.action_id(i);
-                    let chord_width = ui
-                        .effective_chord(action_id, a.key(), a.chord_ref())
-                        .map_or(0, |chord| {
-                            width(ChordText::of(chord).as_str()).saturating_add(1)
-                        });
-                    let w = Button::new(action_id, a.label())
-                        .measure(ui, Constraints::loose(row.width, 1))
-                        .preferred
-                        .0
-                        .saturating_add(chord_width);
-                    if let Some(slot) = widths.get_mut(i) {
-                        *slot = w;
-                    }
-                }
-                let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 1, RowAlign::End);
-                for ((i, a), r) in actions.iter().enumerate().zip(rects) {
-                    let action_id = self.action_id(i);
-                    let enabled = self.enabled(i, a, st);
-                    Button::new(action_id, a.label())
-                        .variant(self.variant_of(a))
-                        .disabled(!enabled)
-                        .draw(ui, r);
-                    if enabled {
-                        ui.publish_dynamic_bindings(
-                            action_id,
-                            ui.state(action_id),
-                            core::iter::once((a.key(), a.chord_ref())),
-                        );
-                    }
-                    if let Some(chord) = ui.effective_chord(action_id, a.key(), a.chord_ref()) {
-                        let text = ChordText::of(chord);
-                        let key_width = width(text.as_str()).min(r.width);
-                        let key = Rect {
-                            x: r.right().saturating_sub(key_width),
-                            width: key_width,
-                            ..r
+                if let Some(d) = self.description {
+                    let ds = style(ui, Part::DETAIL, StateFlags::empty());
+                    for line in wrap(d, inner.width).iter().take(usize::from(desc_h)) {
+                        if y >= actions_y {
+                            break;
+                        }
+                        let row = Rect {
+                            y,
+                            height: 1,
+                            ..inner
                         };
-                        let style = ui.resolve(
-                            Family::BUTTON,
-                            self.variant_of(a),
-                            Part::LABEL,
-                            ui.state(action_id),
-                        );
-                        ui.paint_str(key, text.as_str(), style.style);
+                        ui.paint_str(row, line, ds.style);
+                        y = y.saturating_add(1);
                     }
                 }
-            }
-            out
-        })
+                if self.has_input() {
+                    let field_h = ui.design().size.field_height;
+                    let r = Rect {
+                        x: inner.x.saturating_sub(1),
+                        y,
+                        width: inner.width.saturating_add(1),
+                        height: field_h.min(actions_y.saturating_sub(y)),
+                    };
+                    let value = if self.ack.is_some() {
+                        st.ack_draft.expose()
+                    } else {
+                        &st.draft
+                    };
+                    let input = self.input_control().value(value);
+                    let label = self.prompt.unwrap_or("Type the token to confirm");
+                    Field::new(label, input)
+                        .plain(true)
+                        .error(self.error)
+                        .draw(ui, r, &st.input);
+                    y = y.saturating_add(field_h);
+                    if self.ack.is_some() {
+                        y = y.saturating_add(1);
+                    }
+                }
+                // one blank row separates the body from what precedes it, exactly
+                // as `measured_height`'s `[blank + body]` term says
+                let body_top = if self.body_block(ui.design()) == 0 {
+                    y
+                } else {
+                    y.saturating_add(1)
+                };
+                let body_bottom = actions_y.saturating_sub(u16::from(!self.actions.is_empty()));
+                let body_rect = Rect {
+                    x: inner.x,
+                    y: body_top.min(inner.bottom()),
+                    width: inner.width,
+                    height: body_bottom.saturating_sub(body_top),
+                };
+                ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
+                let out = ui.with_area(body_rect, |ui| body(ui, body_rect));
+                if !self.actions.is_empty() {
+                    let row = Rect {
+                        x: inner.x,
+                        y: actions_y,
+                        width: inner.width,
+                        height: 1,
+                    };
+                    ui.register_decor(id, PartRef::of(Part::ACTIONS), row);
+                    let mut widths = [0u16; Self::MAX_ACTIONS];
+                    let actions = self.effective_actions();
+                    let n = actions.len();
+                    for (i, a) in actions.iter().enumerate() {
+                        let action_id = self.action_id(i);
+                        let chord_width = ui
+                            .effective_chord(action_id, a.key(), a.chord_ref())
+                            .map_or(0, |chord| {
+                                width(ChordText::of(chord).as_str()).saturating_add(1)
+                            });
+                        let w = Button::new(action_id, a.label())
+                            .measure(ui, Constraints::loose(row.width, 1))
+                            .preferred
+                            .0
+                            .saturating_add(chord_width);
+                        if let Some(slot) = widths.get_mut(i) {
+                            *slot = w;
+                        }
+                    }
+                    let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 1, RowAlign::End);
+                    for ((i, a), r) in actions.iter().enumerate().zip(rects) {
+                        let action_id = self.action_id(i);
+                        let enabled = self.enabled(i, a, st);
+                        Button::new(action_id, a.label())
+                            .variant(self.variant_of(a))
+                            .disabled(!enabled)
+                            .draw(ui, r);
+                        if enabled {
+                            ui.publish_dynamic_bindings(
+                                action_id,
+                                ui.state(action_id),
+                                core::iter::once((a.key(), a.chord_ref())),
+                            );
+                        }
+                        if let Some(chord) = ui.effective_chord(action_id, a.key(), a.chord_ref()) {
+                            let text = ChordText::of(chord);
+                            let key_width = width(text.as_str()).min(r.width);
+                            let key = Rect {
+                                x: r.right().saturating_sub(key_width),
+                                width: key_width,
+                                ..r
+                            };
+                            let style = ui.resolve(
+                                Family::BUTTON,
+                                self.variant_of(a),
+                                Part::LABEL,
+                                ui.state(action_id),
+                            );
+                            ui.paint_str(key, text.as_str(), style.style);
+                        }
+                    }
+                }
+                out
+            },
+        )
     }
 
     /// The preferred size: exactly what [`Dialog::layer`] asks the resolver
@@ -1387,6 +1401,31 @@ mod tests {
             .saturating_add(d.body_block(dt))
             .saturating_add(actions);
         assert_eq!(d.measured_height(dt).saturating_sub(rest), d.input_rows(dt));
+    }
+
+    #[test]
+    fn caller_owned_prompt_error_is_rendered_by_the_field() {
+        const ERROR: &str = "Name cannot be empty";
+        let (mut rt, mut buf) = scene();
+        let st = DialogState::default();
+        let d = prompt().error(Some(ERROR));
+        let before = d.measured_height(&Theme::junie().design);
+
+        rt.draw_scene(SCREEN, &mut buf, |ui, area| {
+            d.draw(ui, area, &st, |_, _| {});
+        });
+
+        let frame: String = buf
+            .content()
+            .iter()
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect();
+        assert!(
+            frame.contains(ERROR),
+            "prompt field dropped caller error: {frame}"
+        );
+        assert_eq!(st, DialogState::default(), "draw mutated prompt state");
+        assert_eq!(before, prompt().measured_height(&Theme::junie().design));
     }
 
     /// §13 / §28 P3: a component that owns a layer runs its `update`
