@@ -237,14 +237,7 @@ impl CompletionController {
     /// Dismissal is performed even when the buffer rejects an empty insertion;
     /// the semantic item was still accepted and the popup must not remain
     /// live after that decision.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "completion acceptance is exercised by component tests"
-        )
-    )]
-    pub(crate) fn accept(
+    pub fn accept(
         &self,
         cx: &mut Cx<'_>,
         state: &mut CompletionState,

@@ -87,7 +87,7 @@ pub use theme::{
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
 pub use measure::{Constraints, Measure, Size};
 // text — `text` is `pub(crate)` (Appendix B.3 item 2): `grapheme_width`,
-// `is_word_char` and `thousands` are internal, and the rest is curated here.
+// `is_word_char` and `thousands` are internal, and the rest is curated here
 pub use text::{
     CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
     truncate, truncate_middle, width, wrap, wrapped_rows,
@@ -100,9 +100,8 @@ pub use collection::{
 // components (Slice 4, append-only region, alphabetical)
 pub use components::{
     BlurPolicy, Button, ButtonCmd, Dialog, DialogAction, DialogCmd, DialogState, EditPhase, Field,
-    List, ListAction, ListCmd, ListState, Props, PropsAction, PropsCmd, PropsList, PropsState,
-    ScrollRegion, Tabs, TabsAction, TabsCmd, TabsState, TextAction, TextCmd, TextInput,
-    TextInputState,
+    List, ListAction, ListCmd, ListState, Props, ScrollRegion, Tabs, TabsAction, TabsCmd,
+    TabsState, TextAction, TextCmd, TextInput, TextInputState,
 };
 // components — work package 4B (fields, inputs, textarea, select, choice, chips),
 // appended as its own line so the shared list above is never rewritten
