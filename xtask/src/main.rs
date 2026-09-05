@@ -10627,7 +10627,7 @@ printf 'new-png\n' > "$3"
 
         let original_path = std::env::var_os("PATH").expect("PATH is set");
         let path = format!("{}:{}", fake_bin.display(), original_path.to_string_lossy());
-        let first = Command::new("/bin/bash")
+        let mut first = Command::new("/bin/bash")
             .arg(root().join("tools/capture.sh"))
             .arg("shot")
             .arg(case_name)
@@ -10642,13 +10642,27 @@ printf 'new-png\n' > "$3"
             .env("CAPTURE_STATE_DIR", &state_root)
             .spawn()
             .expect("start first concurrent shot");
-        for _ in 0..500 {
+        let readiness_timeout = std::time::Duration::from_secs(30);
+        let readiness_deadline = std::time::Instant::now() + readiness_timeout;
+        loop {
             if ready.exists() {
                 break;
             }
+            if let Some(status) = first.try_wait().expect("poll first concurrent shot") {
+                panic!(
+                    "first shot exited before reaching provenance: status={status}; readiness={}",
+                    ready.display()
+                );
+            }
+            if std::time::Instant::now() >= readiness_deadline {
+                let status = first.try_wait().expect("poll timed-out concurrent shot");
+                panic!(
+                    "first shot did not reach provenance within {readiness_timeout:?}: status={status:?}; readiness={}",
+                    ready.display()
+                );
+            }
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
-        assert!(ready.exists(), "first shot did not reach provenance");
 
         let second = Command::new("/bin/bash")
             .arg(root().join("tools/capture.sh"))
