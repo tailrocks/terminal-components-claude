@@ -19,3 +19,4 @@
 capsule_pane_clone_4x2000  # Slice 7 — deleted by the no-viewport-clone architecture; baseline line absence remains enforced
 
 # ── Slice 4 component state machines (`components/*.rs`, work packages 4A–4G) ──
+mono_pressed_choice_keeps_the_label_geometry  # Slice 4A — Choice's separate in-run bracket remains unresolved under §29.7
