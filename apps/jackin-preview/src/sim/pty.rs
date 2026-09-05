@@ -584,7 +584,7 @@ pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
             ),
             emit(
                 180,
-                mixed(&[("› ", Tone::Muted), ("inspect retry policy", Tone::Normal)]),
+                mixed(&[("› ", Tone::Muted), ("Refactor retry policy", Tone::Normal)]),
             ),
             emit(
                 360,
