@@ -998,7 +998,7 @@ fn provenance_dimensions(record: &Value, key: &str) -> Option<(u16, u16)> {
 fn capture_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -> bool {
     let expected = root().join(relative);
     let expected = expected.to_string_lossy();
-    info.get("path").and_then(Value::as_str) == Some(expected.as_ref())
+    info.get("path").and_then(Value::as_str) == Some(relative)
         && info.get("resolved_path").and_then(Value::as_str) == Some(expected.as_ref())
 }
 
