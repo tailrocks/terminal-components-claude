@@ -3013,15 +3013,21 @@ mod tests {
         });
 
         assert_eq!(
-            buffer.cell(Position::new(17, 0)).map(|cell| cell.symbol()),
+            buffer
+                .cell(Position::new(17, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
             Some("…")
         );
         assert_eq!(
-            buffer.cell(Position::new(18, 0)).map(|cell| cell.symbol()),
+            buffer
+                .cell(Position::new(18, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
             Some("1")
         );
         assert_eq!(
-            buffer.cell(Position::new(19, 0)).map(|cell| cell.symbol()),
+            buffer
+                .cell(Position::new(19, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
             Some("›")
         );
     }

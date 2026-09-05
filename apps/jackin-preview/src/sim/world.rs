@@ -58,6 +58,13 @@ impl World {
         self.clock.now_ms
     }
 
+    /// Stable container identifiers for every fixture instance.
+    pub fn container_uids(&self) -> impl Iterator<Item = String> + '_ {
+        self.instances
+            .iter()
+            .map(|instance| instance.run_id.container_uid())
+    }
+
     pub(crate) fn schedule(&mut self, delay_ms: i64, msg: Msg) {
         let due_ms = self.clock.now_ms.saturating_add(delay_ms.max(0));
         self.jobs.push(Job { due_ms, msg });

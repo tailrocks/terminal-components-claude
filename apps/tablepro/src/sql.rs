@@ -836,7 +836,7 @@ pub(crate) struct Risk {
     pub(crate) dangerous: bool,
     pub(crate) action: String,
     pub(crate) scope: String,
-    pub(crate) risk: String,
+    pub(crate) summary: String,
     pub(crate) reversible: &'static str,
 }
 
@@ -937,7 +937,7 @@ pub(crate) fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
             (
                 format!("EXPLAIN ANALYZE runs {}", r.action),
                 r.scope,
-                r.risk,
+                r.summary,
                 r.reversible,
             )
         }
@@ -949,7 +949,7 @@ pub(crate) fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
         dangerous,
         action,
         scope,
-        risk,
+        summary: risk,
         reversible,
     }
 }

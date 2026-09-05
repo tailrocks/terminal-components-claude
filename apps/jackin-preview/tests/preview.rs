@@ -229,8 +229,7 @@ fn paused_frames_freeze_the_virtual_clock() {
 fn container_uid_is_total_for_every_fixture_scenario() {
     for scenario in Scenario::ALL {
         let world = world_for(scenario);
-        for instance in world.instances {
-            let uid = instance.container_uid();
+        for uid in world.container_uids() {
             assert_eq!(uid.len(), 16);
             assert!(uid.starts_with("3f9c"));
         }

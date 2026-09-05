@@ -24,7 +24,7 @@ pub use domain::{PendingEdits, ResultGrid};
 pub use filter_editor::{Filter, FilterOp};
 pub use grid_model::preview_for;
 pub use model::{Completion, History, SwitchItem, SwitchTarget, SwitcherIndex, complete};
-pub use sql::{Decision, ResultSet, gate, parse};
+pub use sql::{Decision, ParseError, ResultSet, gate, parse};
 pub use tabs::{ExplorerItem, HistoryTab, QueryTab, Tab, TableTab};
 pub use workbench::Workbench;
 

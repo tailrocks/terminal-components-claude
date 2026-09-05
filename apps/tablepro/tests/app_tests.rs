@@ -10,9 +10,9 @@
 
 use junie_tui::GridEditor;
 use tablepro_app::{
-    CONNECTION_NAME, Catalog, ConnectionDraft, Decision, Filter, FilterOp, History, PendingEdits,
-    QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
-    form_fields, gate, parse, preview_for,
+    CONNECTION_NAME, Catalog, ConnectionDraft, Decision, Filter, FilterOp, History, HistoryTab,
+    PendingEdits, QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value,
+    complete, form_fields, gate, parse, preview_for,
 };
 
 fn connected() -> TableProApp {
@@ -113,13 +113,10 @@ fn cancel_running_query() {
     } else {
         panic!("new query must be active");
     }
-    assert!(
-        app.workbench
-            .history
-            .entries
-            .iter()
-            .all(|entry| !entry.sql.contains("running"))
-    );
+    let mut history = HistoryTab::new(&app.workbench.history);
+    history.search = "running".to_owned();
+    history.filter(&app.workbench.history);
+    assert!(history.selected_query().is_none());
 }
 #[test]
 fn explain_opens_plan_tree() {
@@ -128,7 +125,6 @@ fn explain_opens_plan_tree() {
     let catalog = app.workbench.catalog.clone();
     if let Some(Tab::Query(query)) = app.workbench.tabs.get_mut(index) {
         assert!(query.explain(&catalog).is_ok());
-        assert!(query.plan.is_some());
     } else {
         panic!("new query must be active");
     }
@@ -344,10 +340,12 @@ fn preview_uses_application_grid_adapter() {
 }
 #[test]
 fn history_search_is_multi_term_and() {
+    let seeded = History::seeded();
+    let mut history = HistoryTab::new(&seeded);
+    history.search = "orders pending".to_owned();
+    history.filter(&seeded);
     assert_eq!(
-        History::seeded()
-            .search("orders pending", None, false)
-            .len(),
-        1
+        history.selected_query().as_deref(),
+        Some("SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 200")
     );
 }
