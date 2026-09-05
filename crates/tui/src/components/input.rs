@@ -604,6 +604,8 @@ impl fmt::Debug for TextInputState {
             .field("draft_len", &self.draft.text().len())
             .field("phase", &self.phase)
             .field("error", &self.error.as_ref().map(|_| "[redacted]"))
+            .field("redacted_snapshot", &self.redacted_snapshot)
+            .field("sensitivity", &self.sensitivity)
             .field("sensitive", &self.is_sensitive())
             .finish()
     }

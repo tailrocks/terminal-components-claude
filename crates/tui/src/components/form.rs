@@ -636,10 +636,12 @@ impl FormState {
                 .zip(fields)
                 .all(|(slot, field)| slot.id == field.id && slot.shape == field_shape(&field.kind))
         {
-            for (index, field) in fields.iter().enumerate() {
+            for (slot, field) in self.slots.iter_mut().zip(fields) {
                 let sensitive = field_is_secret(field);
-                self.slots[index].set_sensitive(sensitive);
-                self.reconcile_error(field.id, sensitive);
+                slot.set_sensitive(sensitive);
+            }
+            for field in fields {
+                self.reconcile_error(field.id, field_is_secret(field));
             }
             return;
         }

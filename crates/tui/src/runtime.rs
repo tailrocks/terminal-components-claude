@@ -940,6 +940,10 @@ impl<A: App> Runtime<A> {
     }
 
     /// `Runtime::handle` — steps 1–9.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one input lifecycle pass preserves event ownership and paste wiping"
+    )]
     pub fn handle(&mut self, input: Input) -> Response<()> {
         self.ensure_bootstrap();
         self.services.diagnostics.clear();
@@ -961,16 +965,17 @@ impl<A: App> Runtime<A> {
             }
         }
         self.pump_layer_events();
-        let mut key_input: Option<Key> = None;
+        let mut key_input = None;
         let mut update_cause = UpdateCause::Event;
-        match input {
+        match &input {
             Input::Resize(w, h) => {
-                self.resize(w, h);
+                self.resize(*w, *h);
                 // step 1 then the ordinary update pass: the `FocusOut`/
                 // `FocusIn` pair staged for a `pending_focus` is already in
                 // the queue and must reach `app.update` before `finish`
                 // clears it (MA-7).
                 let r = self.run_update(None, UpdateCause::Event) | Response::changed().relayout();
+                drop(input);
                 return self.finish(r);
             }
             Input::Tick => {
@@ -994,19 +999,20 @@ impl<A: App> Runtime<A> {
             Input::Key(k) => {
                 // step 2: capture chords first
                 let swallows = self.swallows_typing();
-                if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Capture, &k, swallows) {
+                if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Capture, k, swallows) {
                     let r = self.run_update(Some(cmd), UpdateCause::Event);
+                    drop(input);
                     return self.finish(r);
                 }
-                key_input = Some(k);
-                self.enqueue_key(k);
+                key_input = Some(*k);
+                self.enqueue_key(*k);
             }
-            Input::Mouse(m) => self.enqueue_mouse(m),
-            Input::Paste(ref s) => {
+            Input::Mouse(m) => self.enqueue_mouse(*m),
+            Input::Paste(s) => {
                 if let Some(owner) = self.focus.current()
                     && self.focused_is_editing()
                 {
-                    self.intents.paste(owner, &s);
+                    self.intents.paste(owner, s.as_str());
                 }
             }
         }
@@ -1048,6 +1054,7 @@ impl<A: App> Runtime<A> {
                 }
             }
         }
+        drop(input);
         self.finish(r)
     }
 

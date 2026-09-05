@@ -308,6 +308,8 @@ impl fmt::Debug for TextAreaState {
             .field("phase", &self.phase)
             .field("scroll", &self.scroll)
             .field("error", &self.error.as_ref().map(|_| "[redacted]"))
+            .field("redacted_snapshot", &self.redacted_snapshot)
+            .field("sensitivity", &self.sensitivity)
             .field("sensitive", &self.is_sensitive())
             .finish()
     }
