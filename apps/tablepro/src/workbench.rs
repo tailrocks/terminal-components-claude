@@ -3,7 +3,7 @@
 use crate::db::{Catalog, Connection, ObjectKind};
 use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
-use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TableTab};
+use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TableTab};
 
 /// Workbench state for one active connection.
 #[derive(Debug, Clone)]
@@ -24,6 +24,8 @@ pub struct Workbench {
     pub active: usize,
     /// Next query number.
     pub query_counter: usize,
+    /// Next monotonic tab identity.
+    next_tab_key: u64,
     /// Query history.
     pub history: History,
     /// Whether the active tab is maximised.
@@ -42,6 +44,7 @@ impl Workbench {
             tabs: Vec::new(),
             active: 0,
             query_counter: 0,
+            next_tab_key: 1,
             history: History::seeded(),
             maximized: false,
         }
@@ -71,8 +74,9 @@ impl Workbench {
         let Some(table) = self.catalog.find(Some("public"), name).cloned() else {
             return false;
         };
+        let key = self.allocate_tab_key();
         self.tabs
-            .push(Tab::Table(TableTab::new(table, &self.catalog)));
+            .push(Tab::Table(TableTab::with_key(key, table, &self.catalog)));
         self.active = self.tabs.len().saturating_sub(1);
         true
     }
@@ -87,14 +91,20 @@ impl Workbench {
     /// Open a new query tab.
     pub fn new_query(&mut self, query: impl Into<String>) -> usize {
         self.query_counter = self.query_counter.saturating_add(1);
-        self.tabs
-            .push(Tab::Query(QueryTab::new(self.query_counter, query)));
+        let key = self.allocate_tab_key();
+        self.tabs.push(Tab::Query(QueryTab::with_key(
+            key,
+            self.query_counter,
+            query,
+        )));
         self.active = self.tabs.len().saturating_sub(1);
         self.active
     }
     /// Open history.
     pub fn open_history(&mut self) -> usize {
-        self.tabs.push(Tab::History(HistoryTab::new(&self.history)));
+        let key = self.allocate_tab_key();
+        self.tabs
+            .push(Tab::History(HistoryTab::with_key(key, &self.history)));
         self.active = self.tabs.len().saturating_sub(1);
         self.active
     }
@@ -106,6 +116,12 @@ impl Workbench {
         self.tabs.remove(index);
         self.active = self.active.min(self.tabs.len().saturating_sub(1));
         true
+    }
+
+    fn allocate_tab_key(&mut self) -> TabKey {
+        let key = TabKey::new(self.next_tab_key);
+        self.next_tab_key = self.next_tab_key.saturating_add(1);
+        key
     }
     /// Active tab.
     pub fn active(&self) -> Option<&Tab> {

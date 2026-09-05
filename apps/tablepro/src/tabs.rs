@@ -7,6 +7,29 @@ use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry};
 use crate::sql::{self, PlanNode};
 
+/// Stable identity for an open workbench tab.
+///
+/// The identity is allocated by [`crate::workbench::Workbench`] and remains
+/// stable when another tab is inserted or closed.  UI collections use this
+/// value rather than a position, so focus and pending state cannot drift to a
+/// neighbouring tab.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct TabKey(u64);
+
+impl TabKey {
+    /// Build a tab identity from a monotonically increasing value.
+    #[must_use]
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Return the underlying value for diagnostics and keyed UI adapters.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
 /// Table tab body.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum TableMode {
@@ -19,6 +42,8 @@ pub(crate) enum TableMode {
 /// A table tab with data and structure modes.
 #[derive(Debug, Clone)]
 pub struct TableTab {
+    /// Stable identity in the workbench tab strip.
+    pub key: TabKey,
     /// Catalog table.
     pub table: Table,
     /// Current mode.
@@ -34,6 +59,11 @@ pub struct TableTab {
 impl TableTab {
     /// Load a bounded deterministic result for a table.
     pub fn new(table: Table, catalog: &Catalog) -> Self {
+        Self::with_key(TabKey::new(0), table, catalog)
+    }
+
+    /// Load a table tab with a caller-assigned stable identity.
+    pub fn with_key(key: TabKey, table: Table, catalog: &Catalog) -> Self {
         let query = format!("SELECT * FROM {}.{}", table.schema, table.name);
         let result = sql::parse(&query)
             .ok()
@@ -43,6 +73,7 @@ impl TableTab {
             })
             .map_or_else(ResultGrid::empty, |result| ResultGrid::from_result(&result));
         Self {
+            key,
             table,
             mode: TableMode::Data,
             result,
@@ -128,6 +159,8 @@ impl TableTab {
 /// Query editor tab.
 #[derive(Debug, Clone)]
 pub struct QueryTab {
+    /// Stable identity in the workbench tab strip.
+    pub key: TabKey,
     /// Stable tab id.
     pub id: usize,
     /// Display name.
@@ -147,7 +180,13 @@ pub struct QueryTab {
 impl QueryTab {
     /// New empty query tab.
     pub fn new(id: usize, query: impl Into<String>) -> Self {
+        Self::with_key(TabKey::new(id as u64), id, query)
+    }
+
+    /// Build a query tab with a caller-assigned stable identity.
+    pub fn with_key(key: TabKey, id: usize, query: impl Into<String>) -> Self {
         Self {
+            key,
             id,
             name: format!("Query {id}"),
             query: query.into(),
@@ -197,6 +236,8 @@ impl QueryTab {
 /// History tab.
 #[derive(Debug, Clone)]
 pub struct HistoryTab {
+    /// Stable identity in the workbench tab strip.
+    pub key: TabKey,
     /// Search text.
     pub search: String,
     /// Selected entry index.
@@ -208,7 +249,13 @@ pub struct HistoryTab {
 impl HistoryTab {
     /// Build from history.
     pub fn new(history: &History) -> Self {
+        Self::with_key(TabKey::new(0), history)
+    }
+
+    /// Build a history tab with a caller-assigned stable identity.
+    pub fn with_key(key: TabKey, history: &History) -> Self {
         Self {
+            key,
             search: String::new(),
             selected: 0,
             entries: history.entries.clone(),
@@ -243,6 +290,16 @@ pub enum Tab {
 }
 
 impl Tab {
+    /// Stable identity used by keyed public UI collections.
+    #[must_use]
+    pub const fn key(&self) -> TabKey {
+        match self {
+            Self::Table(tab) => tab.key,
+            Self::Query(tab) => tab.key,
+            Self::History(tab) => tab.key,
+        }
+    }
+
     /// Display label.
     pub fn label(&self) -> String {
         match self {

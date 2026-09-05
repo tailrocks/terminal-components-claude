@@ -68,7 +68,6 @@ impl PendingEdits {
     pub fn insert_row(&mut self, columns: usize) -> usize {
         let row = self.current.len();
         let values = vec![Value::Null; columns];
-        self.original.push(values.clone());
         self.current.push(values);
         self.inserted.push(true);
         self.deleted.push(false);
@@ -152,9 +151,13 @@ impl PendingEdits {
 
     /// Reset the current state as the new clean baseline.
     pub fn clear(&mut self) {
-        self.original.clone_from(&self.current);
-        self.inserted.fill(false);
-        self.deleted.fill(false);
+        // `clear` is the discard transition, not a save transition.  Restore
+        // the immutable load snapshot and drop rows that only exist in the
+        // pending edit set; callers can then safely rebuild their display
+        // cache without silently committing user edits.
+        self.current.clone_from(&self.original);
+        self.inserted = vec![false; self.original.len()];
+        self.deleted = vec![false; self.original.len()];
     }
 
     /// Reorder rows while preserving each row's pending state.

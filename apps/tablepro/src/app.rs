@@ -2,13 +2,16 @@
 
 use junie_tui::{
     Action, ActionKey, App, Chord, ColorLevel, Cx, Field, Form, FormAction, FormState, Grid,
-    GridAction, GridState, Id, KeyCode, KeyMap, KeyModifiers, KeyPhase, Panel, PanelKind, Response,
-    Size, StatusBar, StatusItem, TextInput, TextInputState, Theme, Ui, UpdateCause, Variant,
+    GridAction, GridState, Id, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List, ListAction,
+    ListState, Panel, PanelKind, Response, RowUi, Size, SplitAxis, SplitPane, SplitPaneState,
+    StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme, Tree,
+    TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
 use crate::db::{self, Catalog, ColType, ConnectOutcome, Connection, SafeMode};
 use crate::domain::ResultGrid;
+use crate::tabs::{ExplorerItem, Tab, TableTab};
 use crate::workbench::Workbench;
 
 /// Minimum terminal width.
@@ -19,6 +22,12 @@ const QUERY: Id = Id::root("tablepro.query");
 const RESULTS: Id = Id::root("tablepro.results");
 const STATUS: Id = Id::root("tablepro.status");
 const HEADER: Id = Id::root("tablepro.header");
+const CONNECTIONS: Id = Id::root("tablepro.connections.list");
+const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
+const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
+const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
+const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
+const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const RUN: ActionKey = ActionKey::custom("tablepro.run");
 const QUIT: ActionKey = ActionKey::custom("tablepro.quit");
 const OPEN: ActionKey = ActionKey::custom("tablepro.open");
@@ -221,6 +230,10 @@ pub struct TableProApp {
     pub connections_screen: ConnectionsScreen,
     /// Connected workbench.
     pub workbench: Workbench,
+    connection_list_state: ListState,
+    explorer_tree_state: TreeState,
+    tabs_state: TabsState,
+    split_state: SplitPaneState,
     draft: Option<ConnectionDraft>,
     form_state: FormState,
     form_fields: Box<[junie_tui::FieldSpec<'static>]>,
@@ -237,6 +250,10 @@ impl core::fmt::Debug for TableProApp {
             .field("connections", &self.connections.len())
             .field("connection", &self.connection.name)
             .field("keymap", &"<keymap>")
+            .field("connection_list_state", &"<list state>")
+            .field("explorer_tree_state", &"<tree state>")
+            .field("tabs_state", &"<tabs state>")
+            .field("split_state", &"<split state>")
             .field("safe_mode", &self.safe_mode)
             .field("query", &"[redacted]")
             .field("query_state", &"<input state>")
@@ -290,6 +307,10 @@ impl TableProApp {
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
             workbench: Workbench::new(connection, catalog),
+            connection_list_state: ListState::default(),
+            explorer_tree_state: TreeState::default(),
+            tabs_state: TabsState::default(),
+            split_state: SplitPaneState::default(),
             draft: None,
             form_state: FormState::default(),
             form_fields: Box::from(connections::form_fields()),
@@ -366,11 +387,118 @@ impl TableProApp {
         }
         self.safe_mode = connection.safe_mode;
         self.connection = connection.clone();
+        self.connections_screen.error = None;
         self.workbench = Workbench::new(connection.clone(), self.catalog.clone());
+        self.workbench.new_query("");
+        self.query.clear();
+        self.query_state = TextInputState::default();
+        self.columns.clear();
+        self.result = ResultGrid::empty();
+        self.grid_state = GridState::default();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
         self.status = format!("Connected to {}", connection.name);
         true
+    }
+
+    fn sync_active_table(&mut self) {
+        let Some(Tab::Table(tab)) = self.workbench.active() else {
+            self.columns.clear();
+            self.result = ResultGrid::empty();
+            self.grid_state = GridState::default();
+            return;
+        };
+        self.columns = if tab.is_structure() {
+            tab.structure_columns()
+        } else {
+            tab.table
+                .columns
+                .iter()
+                .map(|column| (column.name.clone(), column.ty))
+                .collect()
+        };
+        self.result = if tab.is_structure() {
+            structure_grid(tab)
+        } else {
+            tab.result.clone()
+        };
+        self.grid_state = GridState::default();
+    }
+
+    fn open_table(&mut self, name: &str) -> bool {
+        let opened = self.workbench.open_table(name);
+        if opened {
+            self.sync_active_table();
+            self.surface = Surface::TableGrid;
+        }
+        opened
+    }
+
+    fn new_query(&mut self, query: impl Into<String>) {
+        self.workbench.new_query(query);
+        self.query.clear();
+        self.query_state = TextInputState::default();
+        self.columns.clear();
+        self.result = ResultGrid::empty();
+        self.grid_state = GridState::default();
+        self.surface = Surface::QueryEditing;
+    }
+
+    fn sync_query_tab(&mut self) {
+        let query = self.query.clone();
+        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
+            tab.query = query;
+        }
+    }
+
+    fn commit_query_edit(&mut self) {
+        let _ = self
+            .query_state
+            .commit(&mut self.query, &junie_tui::NoValidate);
+        self.sync_query_tab();
+    }
+
+    fn sync_active_tab(&mut self) {
+        match self.workbench.active() {
+            Some(Tab::Table(tab)) => {
+                self.columns = if tab.is_structure() {
+                    tab.structure_columns()
+                } else {
+                    tab.table
+                        .columns
+                        .iter()
+                        .map(|column| (column.name.clone(), column.ty))
+                        .collect()
+                };
+                self.result = if tab.is_structure() {
+                    structure_grid(tab)
+                } else {
+                    tab.result.clone()
+                };
+                self.surface = if tab.is_structure() {
+                    Surface::StructureView
+                } else {
+                    Surface::TableGrid
+                };
+            }
+            Some(Tab::Query(tab)) => {
+                self.query.clone_from(&tab.query);
+                self.query_state = TextInputState::default();
+                self.columns.clear();
+                self.result = tab.result.clone().unwrap_or_else(ResultGrid::empty);
+                self.surface = Surface::QueryEditing;
+            }
+            Some(Tab::History(_)) => {
+                self.columns.clear();
+                self.result = ResultGrid::empty();
+                self.surface = Surface::HistoryTab;
+            }
+            None => {
+                self.columns.clear();
+                self.result = ResultGrid::empty();
+            }
+        }
+        self.grid_state = GridState::default();
     }
     /// Change the active safe-mode policy.
     pub fn set_safe_mode(&mut self, mode: SafeMode) {
@@ -383,6 +511,7 @@ impl TableProApp {
     pub fn run_query(&mut self, query: impl Into<String>) -> QueryOutcome {
         self.query = query.into();
         self.query_state = TextInputState::default();
+        self.sync_query_tab();
         self.execute_query()
     }
     /// Parse, gate and execute the current query.
@@ -431,6 +560,9 @@ impl TableProApp {
                             };
                             self.columns.clone_from(&result.columns);
                             self.result = ResultGrid::from_result(&result);
+                            if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
+                                tab.result = Some(self.result.clone());
+                            }
                             self.grid_state = GridState::default();
                             self.status = outcome_message(&out);
                             out
@@ -560,8 +692,90 @@ fn query_input(value: Option<&str>) -> TextInput<'_> {
         None => input,
     }
 }
+
+fn structure_grid(tab: &TableTab) -> ResultGrid {
+    let rows = tab.structure();
+    let result = crate::sql::ResultSet {
+        columns: tab.structure_columns(),
+        total: rows.len(),
+        rows,
+        source: Some(tab.table.qualified()),
+        duration_ms: 0,
+        editable: false,
+    };
+    ResultGrid::from_result(&result)
+}
+
+fn connection_key(connection: &Connection) -> ItemKey {
+    ItemKey::text(&connection.name)
+}
+
+fn connection_row(connection: &Connection, row: &mut RowUi<'_>) {
+    row.label(&connection.name);
+    row.meta(connection.environment.label());
+}
+
+fn explorer_key(item: &ExplorerItem) -> ItemKey {
+    // The deterministic catalog keeps table names unique; the key is derived
+    // from domain identity, never from the row position.
+    ItemKey::text(&item.name)
+}
+
+fn explorer_node(_item: &ExplorerItem) -> TreeNode {
+    TreeNode::leaf(0)
+}
+
+fn explorer_row(item: &ExplorerItem, row: &mut RowUi<'_>) {
+    row.label(&item.name);
+    row.meta(&item.schema);
+}
+
+fn tab_key(tab: &Tab) -> ItemKey {
+    ItemKey::num(tab.key().get())
+}
+
+fn tab_row(tab: &Tab, row: &mut RowUi<'_>) {
+    row.label(&tab.label());
+    if tab.dirty() {
+        row.meta("*");
+    }
+}
+
+fn connection_list()
+-> List<'static, Connection, impl Fn(&Connection) -> ItemKey, impl Fn(&Connection, &mut RowUi<'_>)>
+{
+    List::new(CONNECTIONS)
+        .key(connection_key)
+        .row(connection_row)
+}
+
+fn explorer_tree() -> Tree<
+    'static,
+    ExplorerItem,
+    impl Fn(&ExplorerItem) -> ItemKey,
+    impl Fn(&ExplorerItem, &mut RowUi<'_>),
+> {
+    Tree::new(EXPLORER)
+        .key(explorer_key)
+        .node(&explorer_node)
+        .row(explorer_row)
+}
+
+fn tab_strip() -> Tabs<'static, Tab, impl Fn(&Tab) -> ItemKey, impl Fn(&Tab, &mut RowUi<'_>)> {
+    Tabs::new(TAB_STRIP)
+        .key(tab_key)
+        .row(tab_row)
+        .allow_new(true)
+        .closable(true)
+}
+
 fn header_panel() -> Panel<'static> {
     Panel::new(HEADER).kind(PanelKind::Framed)
+}
+fn connections_panel() -> Panel<'static> {
+    Panel::new(CONNECTIONS_PANEL)
+        .kind(PanelKind::Framed)
+        .title("Connections")
 }
 fn results_panel() -> Panel<'static> {
     Panel::new(RESULTS).kind(PanelKind::Framed).title("Results")
@@ -579,6 +793,10 @@ fn result_grid<'a>(columns: &'a [junie_tui::Column<'a>]) -> Grid<'a> {
 }
 
 impl App for TableProApp {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "update keeps public component routing and product command arbitration in one phase"
+    )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         if matches!(
@@ -593,6 +811,7 @@ impl App for TableProApp {
                     response |= Response::consumed();
                 }
                 c if c == RUN => {
+                    self.commit_query_edit();
                     let _ = self.execute_query();
                     response |= Response::changed();
                 }
@@ -601,18 +820,17 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == NEW_QUERY => {
-                    self.workbench.new_query("");
-                    self.surface = Surface::QueryEditing;
+                    self.new_query("");
                     response |= Response::changed();
                 }
                 c if c == HISTORY => {
                     self.workbench.open_history();
-                    self.surface = Surface::HistoryTab;
+                    self.sync_active_tab();
                     response |= Response::changed();
                 }
                 c if c == STRUCTURE => {
                     let _ = self.workbench.toggle_structure();
-                    self.surface = Surface::StructureView;
+                    self.sync_active_tab();
                     response |= Response::changed();
                 }
                 c if c == FORM => {
@@ -648,6 +866,7 @@ impl App for TableProApp {
                                     draft.to_connection(Some(&self.connection))
                             {
                                 self.connections.push(connection.clone());
+                                self.connections_screen.connections.push(connection.clone());
                                 if action == &FormAction::Action(connections::SAVE_CONNECT) {
                                     let _ = self.connect(self.connections.len().saturating_sub(1));
                                     self.form_open = false;
@@ -661,9 +880,78 @@ impl App for TableProApp {
             }
             return response;
         }
+        if self.screen == Screen::Connections {
+            let list_response = connection_list().update(
+                cx,
+                &mut self.connection_list_state,
+                &self.connections_screen.connections,
+            );
+            if let Some(action) = list_response.action_ref()
+                && let ListAction::Activated(key) | ListAction::Chose(key) = action
+                && let Some(index) = self
+                    .connections_screen
+                    .connections
+                    .iter()
+                    .position(|connection| connection_key(connection) == *key)
+            {
+                let _ = self.connect(index);
+            }
+            response |= list_response.erase();
+            return response;
+        }
+
+        let split = SplitPane::new(WORKBENCH_SPLIT, SplitAxis::Horizontal)
+            .min_first(28)
+            .min_second(20);
+        response |= split.update(cx, &mut self.split_state).erase();
+        let tree_response =
+            explorer_tree().update(cx, &mut self.explorer_tree_state, &self.workbench.explorer);
+        if let Some(TreeAction::Activated(key)) = tree_response.action_ref()
+            && let Some(item) = self
+                .workbench
+                .explorer
+                .iter()
+                .find(|item| explorer_key(item) == *key)
+        {
+            let name = item.name.clone();
+            let _ = self.open_table(&name);
+        }
+        response |= tree_response.erase();
+
+        let tabs_response = tab_strip().update(cx, &mut self.tabs_state, &self.workbench.tabs);
+        if let Some(action) = tabs_response.action_ref() {
+            match *action {
+                TabsAction::Activated(key) => {
+                    if let Some(index) = self
+                        .workbench
+                        .tabs
+                        .iter()
+                        .position(|tab| tab_key(tab) == key)
+                    {
+                        self.workbench.active = index;
+                        self.sync_active_tab();
+                    }
+                }
+                TabsAction::Close(key) => {
+                    if let Some(index) = self
+                        .workbench
+                        .tabs
+                        .iter()
+                        .position(|tab| tab_key(tab) == key)
+                    {
+                        let _ = self.workbench.close_tab(index);
+                        self.sync_active_tab();
+                    }
+                }
+                TabsAction::New => self.new_query(""),
+            }
+        }
+        response |= tabs_response.erase();
+
         response |= query_input(None)
             .update(cx, &mut self.query_state, &mut self.query)
             .erase();
+        self.sync_query_tab();
         let editable = self.result.is_editable();
         let columns = Self::column_specs(&self.columns, editable);
         let grid = result_grid(&columns);
@@ -703,6 +991,20 @@ impl App for TableProApp {
                         );
                     }
                 });
+        } else if self.screen == Screen::Connections {
+            let title = format!(
+                "TablePro · Connections · {} configured",
+                self.connections_screen.connections.len()
+            );
+            ui.paint_str(header, &title, ui.surface_style());
+            connections_panel().draw(ui, body, |ui, area| {
+                connection_list().draw(
+                    ui,
+                    area,
+                    &self.connection_list_state,
+                    &self.connections_screen.connections,
+                );
+            });
         } else {
             let title = format!(
                 "TablePro · {} · {}",
@@ -710,19 +1012,55 @@ impl App for TableProApp {
                 self.connection.environment.label()
             );
             ui.paint_str(header, &title, ui.surface_style());
-            Field::new("SQL query", query_input(Some(&self.query)))
-                .plain(true)
-                .draw(ui, body, &self.query_state);
-            let columns = Self::column_specs(&self.columns, self.result.is_editable());
-            let grid = result_grid(&columns);
-            let meta = format!(
-                "{} rows · {}",
-                self.result.total(),
-                self.result.source().unwrap_or("no relation")
+            let workbench_rows = junie_tui::layout::rows(
+                body,
+                &[junie_tui::Track::Fixed(2), junie_tui::Track::Flex(1)],
             );
-            results_panel().meta(&meta).draw(ui, body, |ui, area| {
-                grid.draw(ui, area, &self.grid_state, &self.result);
-            });
+            let tabs_area = workbench_rows.first().copied().unwrap_or(body);
+            let content = workbench_rows.get(1).copied().unwrap_or(body);
+            tab_strip().draw(ui, tabs_area, &self.tabs_state, &self.workbench.tabs);
+            let split = SplitPane::new(WORKBENCH_SPLIT, SplitAxis::Horizontal)
+                .min_first(28)
+                .min_second(20);
+            split.draw(
+                ui,
+                content,
+                &self.split_state,
+                |ui, explorer_area, work_area| {
+                    Panel::new(EXPLORER_PANEL)
+                        .kind(PanelKind::Framed)
+                        .title("Explorer")
+                        .draw(ui, explorer_area, |ui, area| {
+                            explorer_tree().draw(
+                                ui,
+                                area,
+                                &self.explorer_tree_state,
+                                &self.workbench.explorer,
+                            );
+                        });
+                    let work_rows = junie_tui::layout::rows(
+                        work_area,
+                        &[junie_tui::Track::Fixed(3), junie_tui::Track::Flex(1)],
+                    );
+                    let query_area = work_rows.first().copied().unwrap_or(work_area);
+                    let result_area = work_rows.get(1).copied().unwrap_or(work_area);
+                    Field::new("SQL query", query_input(Some(&self.query)))
+                        .plain(true)
+                        .draw(ui, query_area, &self.query_state);
+                    let columns = Self::column_specs(&self.columns, self.result.is_editable());
+                    let grid = result_grid(&columns);
+                    let meta = format!(
+                        "{} rows · {}",
+                        self.result.total(),
+                        self.result.source().unwrap_or("no relation")
+                    );
+                    results_panel()
+                        .meta(&meta)
+                        .draw(ui, result_area, |ui, area| {
+                            grid.draw(ui, area, &self.grid_state, &self.result);
+                        });
+                },
+            );
         }
         let left = [StatusItem::new(&self.connection.name).strong()];
         let right = [StatusItem::new(&self.status)];
@@ -759,28 +1097,87 @@ impl App for TableProApp {
 /// Returns the terminal runtime's I/O error when the session cannot start
 /// or restore the terminal.
 pub fn run() -> std::io::Result<()> {
+    let (theme, connect) = parse_args(std::env::args().skip(1))?;
+    run_with(theme, connect.as_deref())
+}
+
+/// Start the app with an explicit theme and optional connection name.
+///
+/// # Errors
+///
+/// Returns an invalid-input error when the requested connection does not
+/// exist, or the terminal runtime's I/O error when the session cannot start
+/// or restore the terminal.
+pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
+    let mut app = TableProApp::default();
+    if let Some(name) = connect {
+        let Some(index) = app
+            .connections
+            .iter()
+            .position(|connection| connection.name.eq_ignore_ascii_case(name))
+        else {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("unknown connection: {name}"),
+            ));
+        };
+        let _ = app.connect(index);
+    }
+    junie_tui::run(app, theme)
+}
+
+fn parse_args<I>(args: I) -> std::io::Result<(Theme, Option<String>)>
+where
+    I: IntoIterator<Item = String>,
+{
     let mut theme = Theme::junie();
     let mut requested_color = None;
-    let mut args = std::env::args().skip(1);
+    let mut connect = None;
+    let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--theme" => {
-                if let Some(value) = args.next()
-                    && value.eq_ignore_ascii_case("paper")
-                {
-                    theme = Theme::paper();
-                }
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--theme requires a value"))?;
+                theme = match value.to_ascii_lowercase().as_str() {
+                    "junie" => Theme::junie(),
+                    "paper" => Theme::paper(),
+                    _ => return Err(invalid_arg("--theme must be junie or paper")),
+                };
             }
             "--color" => {
-                requested_color = args.next().and_then(|value| parse_color_level(&value));
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--color requires a value"))?;
+                requested_color =
+                    Some(parse_color_level(&value).ok_or_else(|| {
+                        invalid_arg("--color must be truecolor, 256, 16, or none")
+                    })?);
             }
-            _ => {}
+            "--connect" => {
+                connect = Some(
+                    args.next()
+                        .ok_or_else(|| invalid_arg("--connect requires a connection name"))?,
+                );
+            }
+            "-h" | "--help" => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "usage: tablepro [--theme junie|paper] [--color truecolor|256|16|none] [--connect NAME]",
+                ));
+            }
+            _ => return Err(invalid_arg("unknown option")),
         }
     }
     if let Some(level) = requested_color {
         theme = theme.for_level(level);
     }
-    junie_tui::run(TableProApp::default(), theme)
+    Ok((theme, connect))
+}
+
+fn invalid_arg(message: &str) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::InvalidInput, message)
 }
 
 fn parse_color_level(value: &str) -> Option<ColorLevel> {

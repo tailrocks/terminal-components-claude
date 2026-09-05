@@ -8,11 +8,12 @@
     clippy::panic
 )]
 
-use junie_tui::GridEditor;
+use junie_tui::{Axis, GridEditor, Id, KeyCode, Theme};
+use junie_tui_testing::Harness;
 use tablepro_app::{
-    CONNECTION_NAME, Catalog, ConnectionDraft, Decision, Filter, FilterOp, History, HistoryTab,
-    PendingEdits, QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value,
-    complete, form_fields, gate, parse, preview_for,
+    CONNECTION_NAME, Catalog, Decision, Filter, FilterOp, History, HistoryTab, PendingEdits,
+    QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
+    form_fields, gate, parse, preview_for,
 };
 
 fn connected() -> TableProApp {
@@ -23,11 +24,12 @@ fn connected() -> TableProApp {
 
 #[test]
 fn connections_screen_lists_and_connects_with_keyboard() {
-    let mut app = TableProApp::default();
-    assert_eq!(app.screen(), Screen::Connections);
-    assert!(app.connect(0));
-    assert_eq!(app.screen(), Screen::Workbench);
-    assert_eq!(app.surface(), Surface::WorkbenchDefault);
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    assert!(harness.find("Connections").is_some());
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(harness.app().screen(), Screen::Workbench);
+    assert_eq!(harness.app().surface(), Surface::WorkbenchDefault);
+    assert!(harness.diagnostics().is_empty());
 }
 #[test]
 fn failed_connection_shows_error_and_retry() {
@@ -250,71 +252,100 @@ fn narrow_terminals_turn_the_explorer_into_a_drawer() {
 }
 #[test]
 fn keyboard_flow_full_journey() {
-    let mut app = connected();
-    assert!(app.workbench.open_table("orders"));
-    assert!(app.workbench.toggle_structure());
-    assert!(app.workbench.toggle_structure());
-    assert_eq!(
-        app.run_query("SELECT * FROM customers LIMIT 3"),
-        QueryOutcome::Executed {
-            rows: 3,
-            editable: true
-        }
-    );
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.ctrl('t');
+    assert!(harness.tab_to(Id::root("tablepro.query")));
+    let _ = harness.type_str("SELECT * FROM customers LIMIT 3");
+    let _ = harness.ctrl('r');
+    assert!(harness.app().query().contains("customers"));
+    assert!(harness.app().status().contains("Loaded 3 rows"));
+    assert!(harness.diagnostics().is_empty());
 }
 #[test]
 fn mouse_flow_full_journey() {
-    let mut app = connected();
-    app.begin_connection_form();
-    assert!(app.connection_form_open());
-    assert!(app.connection_draft().is_some());
-    assert_eq!(
-        app.connection_draft().map(ConnectionDraft::password_status),
-        Some("not set")
-    );
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let (x, y) = harness.find("Local PostgreSQL").expect("connection row");
+    let _ = harness.click(x, y);
+    assert_eq!(harness.app().screen(), Screen::Workbench);
+    let (x, y) = harness.find("orders").expect("explorer row");
+    let _ = harness.double_click(x, y);
+    assert!(harness.app().workbench().active_table().is_some());
+    assert!(harness.diagnostics().is_empty());
 }
 #[test]
 fn connection_form_keyboard_and_mouse_reach_every_field() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.ctrl('n');
+    assert!(harness.app().connection_form_open());
     let fields = form_fields();
     assert_eq!(fields.len(), 15);
-    let ids: Vec<_> = fields.iter().map(|field| field.id).collect();
-    ids.windows(2).for_each(|pair| assert_ne!(pair[0], pair[1]));
+    // Form content scrolls through the same public focus ring. Advance the
+    // viewport as needed until each declared control becomes addressable.
+    for (index, field) in fields.iter().enumerate() {
+        let mut reached = false;
+        for _ in 0..32 {
+            if harness.tab_to(field.id) {
+                reached = true;
+                break;
+            }
+            let _ = harness.wheel(Axis::V, 1, 60, 26);
+        }
+        assert!(reached, "field {:?} was unreachable", field.id);
+        // SSH host is conditional; enable the toggle before continuing into
+        // the newly visible host and startup controls.
+        if index == 12 {
+            let _ = harness.key(KeyCode::Char(' '));
+        }
+    }
+    assert!(harness.diagnostics().is_empty());
 }
 #[test]
 fn connection_form_focuses_the_first_invalid_field() {
-    let draft = ConnectionDraft::default();
-    assert_eq!(
-        draft.validate_all().map_err(|(id, _)| id),
-        Err(CONNECTION_NAME)
-    );
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.ctrl('n');
+    let _ = harness.ctrl('s');
+    assert_eq!(harness.focus(), Some(CONNECTION_NAME));
 }
 #[test]
 fn connection_password_is_masked_and_absent_from_the_frame() {
-    let mut draft = ConnectionDraft::default();
-    draft.password.set("hunter2");
-    assert!(format!("{draft:?}").contains("password: Secret([redacted])"));
-    assert!(!format!("{draft:?}").contains("hunter2"));
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.ctrl('n');
+    let fields = form_fields();
+    assert!(harness.tab_to(fields[6].id));
+    let _ = harness.type_str("hunter2");
+    assert!(!harness.text().contains("hunter2"));
+    assert!(harness.diagnostics().is_empty());
 }
 #[test]
 fn resize_across_every_supported_size() {
-    let sizes = [(60, 15), (72, 20), (80, 24), (120, 40), (160, 50)];
-    let app = TableProApp::default();
-    let min = <TableProApp as junie_tui::App>::min_size(&app).min;
-    assert!(sizes.iter().any(|&(width, height)| (width, height) == min));
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    for (width, height) in [(72, 20), (80, 24), (120, 40), (160, 50)] {
+        let _ = harness.resize(width, height);
+        assert_eq!(harness.buffer().area().width, width);
+        assert_eq!(harness.buffer().area().height, height);
+    }
+    assert!(harness.diagnostics().is_empty());
 }
 #[test]
 fn focus_is_restored_after_every_overlay_closes() {
-    let mut app = TableProApp::default();
-    app.begin_connection_form();
-    assert!(app.connection_form_open());
-    app.form_open_for_test(false);
-    assert!(!app.connection_form_open());
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.ctrl('n');
+    assert!(harness.app().connection_form_open());
+    let _ = harness.key(KeyCode::Esc);
+    assert!(!harness.app().connection_form_open());
+    assert!(harness.find("Connections").is_some());
 }
 #[test]
 fn no_diagnostics_are_emitted_during_the_journey() {
-    let mut app = connected();
-    assert!(app.workbench.open_table("orders"));
-    assert!(app.status().contains("Connected"));
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.ctrl('t');
+    assert!(harness.tab_to(Id::root("tablepro.query")));
+    let _ = harness.type_str("SELECT * FROM orders LIMIT 1");
+    let _ = harness.ctrl('r');
+    let _ = harness.resize(96, 28);
+    assert!(harness.diagnostics().is_empty());
 }
 #[test]
 fn acceptance_flow_keyboard_only() {
@@ -331,7 +362,11 @@ fn pending_edits_keep_original_keys() {
 }
 #[test]
 fn preview_uses_application_grid_adapter() {
-    let app = connected();
+    let mut app = connected();
+    assert!(matches!(
+        app.run_query("SELECT * FROM orders LIMIT 1"),
+        QueryOutcome::Executed { .. }
+    ));
     let catalog = Catalog::acme_prod();
     let table = catalog.find(Some("public"), "orders").expect("orders");
     let grid = ResultGrid::empty();

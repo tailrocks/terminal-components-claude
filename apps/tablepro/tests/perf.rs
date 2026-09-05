@@ -13,6 +13,7 @@ static GLOBAL: perf::Counting = perf::Counting;
 
 fn full_result_app() -> TableProApp {
     let mut app = TableProApp::default();
+    assert!(app.connect(0));
     assert_eq!(
         app.run_query("SELECT * FROM orders"),
         QueryOutcome::Executed {
@@ -25,7 +26,15 @@ fn full_result_app() -> TableProApp {
 
 #[test]
 fn frame_tablepro_grid_500x12_120x40() {
-    let harness = Harness::new(full_result_app(), Theme::junie(), 120, 40);
+    let mut harness =
+        Harness::new(full_result_app(), Theme::junie(), 120, 40).with_auto_draw(false);
+
+    let stats = perf::bench(2, perf::iters(100), &mut || harness.draw());
+    assert!(
+        stats.allocs < 100,
+        "frame_tablepro_grid_500x12_120x40 exceeded 100 allocs: {}",
+        stats.allocs
+    );
 
     assert_eq!(harness.app().result().row_count(), 500);
     assert!(harness.find("Results").is_some());
@@ -101,10 +110,33 @@ fn wheel_tablepro_grid() {
 
 #[test]
 fn grid_500x12_load() {
-    let app = full_result_app();
-
-    assert_eq!(app.result().row_count(), 500);
-    assert_eq!(app.result().total(), 1_203_338);
+    let result = ResultSet {
+        columns: (0..12)
+            .map(|column| (format!("column_{column}"), ColType::Text))
+            .collect(),
+        rows: (0..500)
+            .map(|row| {
+                (0..12)
+                    .map(|column| Value::Text(format!("{row}-{column}")))
+                    .collect()
+            })
+            .collect(),
+        total: 500,
+        source: Some("public.orders".to_owned()),
+        duration_ms: 0,
+        editable: false,
+    };
+    let _guard = perf::lock();
+    let mut grid = ResultGrid::empty();
+    let stats = perf::bench(0, perf::iters(8), &mut || {
+        grid = ResultGrid::from_result(&result);
+        std::hint::black_box(&grid);
+    });
+    assert!(
+        stats.allocs < 8_000,
+        "grid_500x12_load exceeded 8000 allocs: {}",
+        stats.allocs
+    );
 }
 
 #[test]
@@ -120,7 +152,13 @@ fn debug_and_release_alloc_counts_match() {
 fn frame_tablepro_connection_form_120x40() {
     let mut app = TableProApp::default();
     app.begin_connection_form();
-    let harness = Harness::new(app, Theme::junie(), 120, 40);
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40).with_auto_draw(false);
+    let stats = perf::bench(2, perf::iters(100), &mut || harness.draw());
+    assert!(
+        stats.allocs < 40,
+        "frame_tablepro_connection_form_120x40 exceeded 40 allocs: {}",
+        stats.allocs
+    );
     assert!(harness.find("Connect to database").is_some());
     assert!(harness.diagnostics().is_empty());
 }
@@ -128,12 +166,19 @@ fn frame_tablepro_connection_form_120x40() {
 #[test]
 fn frame_tablepro_query_editor_2k_lines() {
     let mut app = TableProApp::default();
+    assert!(app.connect(0));
     let query = format!(
         "-- generated query\n{}",
         "SELECT * FROM orders\n".repeat(2_000)
     );
     let _ = app.run_query(query);
-    let harness = Harness::new(app, Theme::junie(), 120, 40);
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40).with_auto_draw(false);
+    let stats = perf::bench(2, perf::iters(100), &mut || harness.draw());
+    assert!(
+        stats.allocs < 40,
+        "frame_tablepro_query_editor_2k_lines exceeded 40 allocs: {}",
+        stats.allocs
+    );
     assert!(harness.find("TablePro").is_some());
     assert!(harness.diagnostics().is_empty());
 }

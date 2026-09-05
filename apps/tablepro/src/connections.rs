@@ -2,7 +2,7 @@
 
 use junie_tui::{
     Action, ActionKey, Checkbox, Chord, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec,
-    FormData, GroupKey, Id, RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, Toggle,
+    FormData, Id, RadioGroup, Secret, SecretPolicy, Select, TextArea, TextInput, Toggle,
 };
 
 use crate::db::{self, ConnectOutcome, Connection, Engine, Environment, SafeMode};
@@ -46,10 +46,6 @@ pub(crate) mod field {
     pub(crate) const STARTUP: Id = Id::root("tablepro.connections.form.startup");
 }
 
-/// Basic connection fields group.
-pub(crate) const BASIC: GroupKey = GroupKey::custom("tablepro.connections.basic");
-/// Advanced connection fields group.
-pub(crate) const ADVANCED: GroupKey = GroupKey::custom("tablepro.connections.advanced");
 /// Test action.
 pub(crate) const TEST: ActionKey = ActionKey::custom("tablepro.connections.test");
 /// Save-and-connect action.
@@ -95,38 +91,32 @@ pub fn form_fields() -> [FieldSpec<'static>; 15] {
         SSH, SSH_HOST, SSL, STARTUP, USER,
     };
     [
-        FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME)))
-            .required(true)
-            .group(BASIC),
-        FieldSpec::new(ENGINE, "Engine", FieldKind::Select(Select::new(ENGINE))).group(BASIC),
+        FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))).required(true),
+        FieldSpec::new(ENGINE, "Engine", FieldKind::Select(Select::new(ENGINE))),
         FieldSpec::new(
             HOST,
             "Host",
             FieldKind::Text(TextInput::new(HOST).placeholder("localhost")),
         )
-        .span(FieldSpan::Half)
-        .group(BASIC),
+        .span(FieldSpan::Half),
         FieldSpec::new(
             PORT,
             "Port",
             FieldKind::Text(TextInput::new(PORT).validate(&valid_port)),
         )
-        .span(FieldSpan::Half)
-        .group(BASIC),
+        .span(FieldSpan::Half),
         FieldSpec::new(
             DATABASE,
             "Database",
             FieldKind::Text(TextInput::new(DATABASE)),
-        )
-        .group(BASIC),
-        FieldSpec::new(USER, "Username", FieldKind::Text(TextInput::new(USER))).group(BASIC),
+        ),
+        FieldSpec::new(USER, "Username", FieldKind::Text(TextInput::new(USER))),
         FieldSpec::new(
             PASSWORD,
             "Password",
             FieldKind::Text(TextInput::new(PASSWORD).secret(SecretPolicy::default())),
         )
-        .help("Never written to connections.json")
-        .group(BASIC),
+        .help("Never written to connections.json"),
         FieldSpec::new(
             ASK_PASSWORD,
             "",
@@ -135,44 +125,36 @@ pub fn form_fields() -> [FieldSpec<'static>; 15] {
                 "Prompt for password on connect",
             )),
         )
-        .plain(true)
-        .group(BASIC),
+        .plain(true),
         FieldSpec::new(
             ENVIRONMENT,
             "Environment",
             FieldKind::Radio(RadioGroup::new(ENVIRONMENT)),
-        )
-        .group(BASIC),
-        FieldSpec::new(GROUP, "Group", FieldKind::Select(Select::new(GROUP))).group(BASIC),
+        ),
+        FieldSpec::new(GROUP, "Group", FieldKind::Select(Select::new(GROUP))),
         FieldSpec::new(
             SAFE_MODE,
             "Safe Mode",
             FieldKind::Radio(RadioGroup::new(SAFE_MODE)),
-        )
-        .group(BASIC),
+        ),
         FieldSpec::new(
             SSL,
             "",
             FieldKind::Toggle(Toggle::new(SSL, "Use SSL / TLS")),
         )
-        .plain(true)
-        .group(ADVANCED),
-        FieldSpec::new(SSH, "", FieldKind::Toggle(Toggle::new(SSH, "SSH tunnel")))
-            .plain(true)
-            .group(ADVANCED),
+        .plain(true),
+        FieldSpec::new(SSH, "", FieldKind::Toggle(Toggle::new(SSH, "SSH tunnel"))).plain(true),
         FieldSpec::new(
             SSH_HOST,
             "SSH host",
             FieldKind::Text(TextInput::new(SSH_HOST).placeholder("bastion.example.com")),
-        )
-        .group(ADVANCED),
+        ),
         FieldSpec::new(
             STARTUP,
             "Startup commands",
             FieldKind::Area(TextArea::new(STARTUP, 3)),
         )
-        .help("Run after every connect, one per line")
-        .group(ADVANCED),
+        .help("Run after every connect, one per line"),
     ]
 }
 
@@ -351,6 +333,10 @@ impl ConnectionDraft {
 }
 
 impl FormData for ConnectionDraft {
+    fn options(&self, id: Id) -> &[&str] {
+        Self::options(id)
+    }
+
     fn value(&self, id: Id) -> FieldRef<'_> {
         use field::{
             ASK_PASSWORD, DATABASE, ENGINE, ENVIRONMENT, GROUP, HOST, NAME, PASSWORD, PORT,

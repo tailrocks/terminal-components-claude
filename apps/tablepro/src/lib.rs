@@ -15,17 +15,17 @@ mod workbench;
 
 mod app;
 
-pub use app::{MIN_HEIGHT, MIN_WIDTH, QueryOutcome, Screen, Surface, TableProApp, run};
+pub use app::{MIN_HEIGHT, MIN_WIDTH, QueryOutcome, Screen, Surface, TableProApp, run, run_with};
 /// Stable id for the connection name field.
 pub const CONNECTION_NAME: junie_tui::Id = connections::field::NAME;
 pub use connections::{ConnectionDraft, ConnectionsScreen, form_fields};
 pub use db::{Catalog, ColType, Connection, SafeMode, Table, Value};
 pub use domain::{PendingEdits, ResultGrid};
 pub use filter_editor::{Filter, FilterOp};
-pub use grid_model::preview_for;
+pub use grid_model::{ResultGridModel, StructureModel, TableGridModel, preview_for};
 pub use model::{Completion, History, SwitchItem, SwitchTarget, SwitcherIndex, complete};
 pub use sql::{Decision, ParseError, ResultSet, gate, parse};
-pub use tabs::{ExplorerItem, HistoryTab, QueryTab, Tab, TableTab};
+pub use tabs::{ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TableTab};
 pub use workbench::Workbench;
 
 #[cfg(test)]
@@ -69,6 +69,24 @@ mod tablepro {
 
         pending.clear();
         assert!(pending.dirty_rows().is_empty());
+    }
+
+    #[test]
+    fn pending_clear_discards_values_and_inserted_rows() {
+        let original = vec![vec![Value::Int(7), Value::Text("pending".to_owned())]];
+        let mut pending = PendingEdits::new(original.clone());
+        assert!(pending.set(0, 1, Value::Text("changed".to_owned())));
+        let inserted = pending.insert_row(1);
+        assert!(pending.set(inserted, 0, Value::Int(99)));
+
+        pending.clear();
+
+        assert_eq!(
+            pending.value(0, 1),
+            Some(&Value::Text("pending".to_owned()))
+        );
+        assert_eq!(pending.row_count(), original.len());
+        assert_eq!(pending.dirty_rows(), Vec::<usize>::new());
     }
 
     #[test]
