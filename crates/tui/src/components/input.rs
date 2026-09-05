@@ -348,7 +348,7 @@ impl EditorDraft {
         }
         self.zeroize();
         *self = if sensitive {
-            EditorDraft::Secret(TextEditorCore::default())
+            EditorDraft::Secret(TextEditorCore::sensitive_single(""))
         } else {
             EditorDraft::Plain(TextEditorCore::default())
         };
@@ -357,7 +357,11 @@ impl EditorDraft {
     pub(crate) fn begin_single(&mut self, current: &str) {
         let sensitive = self.is_sensitive();
         self.zeroize();
-        let editor = TextEditorCore::single(current);
+        let editor = if sensitive {
+            TextEditorCore::sensitive_single(current)
+        } else {
+            TextEditorCore::single(current)
+        };
         *self = if sensitive {
             EditorDraft::Secret(editor)
         } else {
@@ -368,7 +372,11 @@ impl EditorDraft {
     pub(crate) fn begin_multi(&mut self, current: &str) {
         let sensitive = self.is_sensitive();
         self.zeroize();
-        let editor = TextEditorCore::multi(current);
+        let editor = if sensitive {
+            TextEditorCore::sensitive_multi(current)
+        } else {
+            TextEditorCore::multi(current)
+        };
         *self = if sensitive {
             EditorDraft::Secret(editor)
         } else {
@@ -450,9 +458,9 @@ impl EditorDraft {
             EditorDraft::Plain(editor) => EditorDraft::Plain(editor.clone()),
             EditorDraft::Secret(editor) => {
                 let mut snapshot = if editor.is_multiline() {
-                    TextEditorCore::multi(&redacted_text(editor.text()))
+                    TextEditorCore::sensitive_multi(&redacted_text(editor.text()))
                 } else {
-                    TextEditorCore::single(&redacted_text(editor.text()))
+                    TextEditorCore::sensitive_single(&redacted_text(editor.text()))
                 };
                 let cursor = editor.cursor_pos();
                 snapshot.set_cursor_line_col(cursor.line, cursor.col);

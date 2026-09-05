@@ -123,10 +123,24 @@ impl TextEditorCore {
         }
     }
 
+    pub(crate) fn sensitive_single(text: &str) -> Self {
+        TextEditorCore {
+            buf: TextBuffer::sensitive_single(text),
+            hscroll: 0,
+        }
+    }
+
     /// A multi-line editor.
     pub fn multi(text: &str) -> Self {
         TextEditorCore {
             buf: TextBuffer::multi(text),
+            hscroll: 0,
+        }
+    }
+
+    pub(crate) fn sensitive_multi(text: &str) -> Self {
+        TextEditorCore {
+            buf: TextBuffer::sensitive_multi(text),
             hscroll: 0,
         }
     }
