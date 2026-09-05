@@ -1,6 +1,6 @@
 # COMPONENT_ARCHITECTURE.md
 
-**Status:** Accepted through §74. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
+**Status:** Accepted through §74, including the §73 disabled-pointer, shared-Props, and inert-registration adjudication. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
 
 Sections §40–§49 record subsequent gate, API, migration and baseline findings; §§50–§55 are
 accepted fresh adjudications for choice semantics, StatusBar hover, Grid ownership, incremental
@@ -12,7 +12,7 @@ Tree indexing, Jackin timing/status/dimming, and closure-bearing containers. <!-
 
 `docs/reviews/adjudication-p...` and `docs/reviews/adjudication-q-residuals.md` are the binding §28/§29 review inputs; the Q and §30 records below preserve unresolved API questions rather than deciding them implicitly. <!-- amended by §29; §30 -->
 
-Sections §74.1–§74.3 record the accepted Slice-5 color, capture, and per-app evidence contracts. <!-- amended by §74 -->
+Section §73 records the accepted disabled-pointer, shared-Props, and inert-registration contract. Sections §74.1–§74.3 record the accepted Slice-5 color, capture, and per-app evidence contracts. <!-- amended by §73; §74 -->
 
 Every claim tagged **[F]** is a collected fact carried from an audit with its citation. Everything else is a decision or its rationale.
 
@@ -48,7 +48,7 @@ Every claim tagged **[F]** is a collected fact carried from an audit with its ci
 | 20 Known trade-offs | §20 |
 | — additional | §15 Forms and text editing (goal §19) with §15.1 `Form`; Appendix A Slice plan; §21 Slice 2 review corrections; §22 Adjudication L (modern API and dependency policy); §23 Adjudication K (`Form` API, `Grid::update` bound); §24 Adjudication M (re-exports, ASCII border set, `FieldKind`); §25 Slice 3 foundations review (eight adjudications, deviations D‑1…D‑13, corrections F1–F26); §26 Adjudication N (layer sizing, `Measure` style access); §27 Adjudication O (Slice 3 foundations follow-ups: memo associativity, ASCII glyph coupling, the `border_subtle` downgrade correction, two perf substitutes); §28 Adjudication P; §29 Adjudication Q; §30 Slice 4 ChipBar adjudication |
 
-The additional adjudication record continues through §28 (Adjudication P), §29 (Adjudication Q — Slice 3 residuals), and §30 (Slice 4 ChipBar). <!-- amended by §29; §30 -->
+The additional adjudication record continues through §28 (Adjudication P), §29 (Adjudication Q — Slice 3 residuals), §30 (Slice 4 ChipBar), §73 (disabled pointer, shared Props, and inert registration), and §74 (Slice 5 contracts). <!-- amended by §29; §30; §73; §74 -->
 
 ### 0.2 Goal §23 scenarios (M20)
 
@@ -2131,7 +2131,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::msrv_and_edition_are_unchanged` <!-- amended by §22 --> | `cargo metadata` **plus** the blocking CI job `msrv`: `cargo +1.88.0 check --workspace --all-targets --all-features` — the metadata proves the *field*, the job proves the code compiles on 1.88 (on a 1.98 toolchain a builder could otherwise use a 1.95 API and every gate would pass) | edition 2024, `rust-version = "1.88"` on every package, held deliberately (§22 §5) |
 | `architecture::cache_types_are_derived_only` <!-- §21 item 2 --> | `syn` scan in `xtask`: every `T` used as `ui.cache::<T>(…)` | `T` appears in no `Response` and no `XState` (R8) |
 | `architecture::app_libs_are_not_published_and_are_not_depended_on_by_the_library` <!-- §21 item 23 --> | `cargo metadata` | every scheduled app has its `apps/<app>/Cargo.toml` and expected lib/bin targets, `publish = false`, and is absent from the library's dependency closure; a missing due manifest is a failure |
-| `architecture::props_are_built_once` <!-- §21 item 30 --> | `syn` scan over `apps/**/src` and `crates/tui/examples/**` | no configured `X::new(` for the same `const Id` appears more than once per screen module (§13) |
+| `architecture::props_are_built_once` <!-- §21 item 30; amended by §73 --> | `syn` source scan over `apps/**/src`, `crates/tui/examples/**`, and `crates/tui/src/components/**`; configured `X::new(CONST_ID, …)` constructions are counted per screen/module; dynamic IDs, unconfigured constructors, and `#[cfg(test)]` fixtures are exempt; parse errors, empty existing roots, and zero observed constructions fail closed; this is an intra-module/source-scan contract, not a cross-file call-graph proof | one configured `X::new(CONST_ID, …)` construction per screen/module, reached through one private non-method constructor for both phases; controlled props are identical |
 | `architecture::legacy_forced_state_apis_are_absent` <!-- §72 --> | source scan over production Rust | component `state_override` and `inherit_forced` declarations/calls are absent; test-only historical strings do not create an API |
 | `architecture::reference_rendering_is_ui_scoped` <!-- §72 --> | source scan plus public-API inventory | reference calls are confined to application/fixture/testing paths, and reference matrices use `Ui::reference` with an exact `ReferenceTarget` or inert `None` scope |
 | `architecture::every_component_doc_has_the_standard_sections` <!-- §21 item 33 --> | rustdoc-json heading scan | every public component's docs carry the 15 §13.2 headings in order |
@@ -8404,6 +8404,59 @@ Item 31 authorizes only root-class corrections measured from the fresh discarded
 other accepted items own the remaining 75 movements and 1,280 first-generation additions.
 Independent frame review and separate bless authorization remain required. No retained baseline
 change is authorized by this records migration.
+
+## 73. Disabled pointer, shared Props, and inert registration — accepted
+
+**Status:** accepted/binding for Slice 4 and later. §74 is independent; its preamble already says §73 is not a dependency.
+
+### D1 — Disabled pointer absorbs; no fall-through
+
+`Focusability::Disabled` registers both a hit region and a `FocusEntry { disabled: true }`; it remains inspectable but is excluded from traversal.
+
+`Registry::hit` selects exactly one owner by `(layer, registration index)`. If that selected owner is disabled, runtime refuses activation and does not search lower regions. Therefore a disabled region absorbs the pointer; underlying controls receive no `Press`, `Release`, `Click`, `DoubleClick`, `Drag*`, or `Secondary`.
+
+Move/hover remains observable for disabled controls; component presentation must remove `HOVERED | PRESSED`. Wheel remains routable to a disabled scroll owner. `ClickOnly` remains active because it has no disabled ring entry. A hit below the active layer is classified as outside before disabled filtering, so outside-click dismissal still works.
+
+Pointer capture remains governed by §8.2. This rule applies to a fresh hit; dynamic disabling during an already-live capture is currently unspecified and must either be explicitly excluded or separately tested.
+
+### D2 — Props are built once
+
+For a configured `X::new(CONST_ID, …)` used in both phases, one private, non-method constructor owns the configuration. Both `update` and `draw` reach that constructor; no same-ID construction exists outside it. Controlled props are identical in both phases.
+
+Scope:
+
+- `apps/**/src`
+- `crates/tui/examples/**`
+- `crates/tui/src/components/**` (composite components)
+
+Dynamic IDs, unconfigured `X::new(id, …)`, and `#[cfg(test)]` fixtures are exempt. The gate fails closed on parse errors, empty existing roots, and zero observed constructions.
+
+### D3 — Public registration APIs are inert-safe
+
+`Ui::is_inert()` reports both `inert_below` and `Ui::reference` suppression.
+
+All public registration APIs are centrally suppression-safe: components may guard calls for clarity/performance, but correctness must not depend on every component doing so. `register_control`, `register_focus_only`, `register_editor`, `register_part`, `register_decor`, `register_scroll`, and binding publication are no-ops when suppressed.
+
+`Ui::reference` still paints and resolves style, but suppresses registration, focus scopes, layers, layout, cursor, and bindings. Nested references restore their outer target. Regular `inert_below` layers still paint and retain layer semantics while suppressing background interaction registration.
+
+### Evidence
+
+- Pointer implementation: `7763d50`; shared focus admissibility: `b0ad014`.
+- Props gate/refactors: `54b15ce`, `4cfefea`, `69fb70d`.
+- `ac1_a_disabled_control_refuses_every_activating_pointer_intent`: passes.
+- `ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact`: passes.
+- Conformance `disabled_cannot_activate`: 44 cases pass.
+- `inert_below_registers_nothing`, reference sink/restoration tests, and external author reference test pass.
+- `rtk cargo run -p xtask -- boundary --check props_are_built_once` passes: 126 files, 129 configured constructions.
+- Props red-proof gate tests: 5 pass.
+- `architecture::reference_rendering_is_ui_scoped` passes.
+
+### Evidence gaps
+
+1. No direct runtime test currently overlaps a disabled top region with an enabled lower region. Add/name an AC proving the lower owner receives no click, or explicitly record source-level `Registry::hit` + `deliverable` proof as acceptance.
+2. `pointer_captured` bypasses `deliverable`; document dynamic-disable capture scope.
+3. The Props gate does not syntactically enforce the “no `&self` constructor” clause or cross-file call graphs; the current contract is intra-module/source-scan scoped.
+4. The stale §16.5 Props row is corrected above: marker `§73`, `crates/tui/src/components/**` scope, and fail-closed behavior are explicit.
 
 
 ## 74. Slice 5 decisions D1, D2, D3 — accepted

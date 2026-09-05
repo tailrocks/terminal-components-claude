@@ -1626,26 +1626,73 @@ Recorded in `COMPONENT_ARCHITECTURE.md`, per the rule that every accepted decisi
 - `README.md`: `--color` was documented as "force a colour level", which contradicts both the
   documented `NO_COLOR` fallback in the same file and D1. Corrected to a ceiling.
 
-### Still owed — not recorded, and blocking
+## 73. Disabled pointer, shared Props, and inert registration — accepted
 
-1. **§73 — the disabled-pointer and props-constructor adjudication.** The decision text and its
-   acceptance conditions are **not in this repository** and were not reconstructible from it. The
-   pointer half turns on a question the code does not answer: a control registered
-   `Focusability::Disabled` still occupies its hit region and every component then subtracts
-   `HOVERED | PRESSED` locally after the fact (`components/button.rs`), so whether a disabled
-   control **absorbs** the pointer or lets it fall through to what is behind it is an open
-   architectural choice, not a detail. **`opus-analyst` must supply §73's verdict and acceptance
-   conditions verbatim before §73 is written.** §74 was numbered around this gap and does not
-   depend on it.
-2. **The Slice-4 public-API review findings.** Not recorded, for the same reason: the report is not
+**Status:** accepted/binding for Slice 4 and later. §74 is independent; its preamble already says §73 is not a dependency.
+
+### D1 — Disabled pointer absorbs; no fall-through
+
+`Focusability::Disabled` registers both a hit region and a `FocusEntry { disabled: true }`; it remains inspectable but is excluded from traversal.
+
+`Registry::hit` selects exactly one owner by `(layer, registration index)`. If that selected owner is disabled, runtime refuses activation and does not search lower regions. Therefore a disabled region absorbs the pointer; underlying controls receive no `Press`, `Release`, `Click`, `DoubleClick`, `Drag*`, or `Secondary`.
+
+Move/hover remains observable for disabled controls; component presentation must remove `HOVERED | PRESSED`. Wheel remains routable to a disabled scroll owner. `ClickOnly` remains active because it has no disabled ring entry. A hit below the active layer is classified as outside before disabled filtering, so outside-click dismissal still works.
+
+Pointer capture remains governed by §8.2. This rule applies to a fresh hit; dynamic disabling during an already-live capture is currently unspecified and must either be explicitly excluded or separately tested.
+
+### D2 — Props are built once
+
+For a configured `X::new(CONST_ID, …)` used in both phases, one private, non-method constructor owns the configuration. Both `update` and `draw` reach that constructor; no same-ID construction exists outside it. Controlled props are identical in both phases.
+
+Scope:
+
+- `apps/**/src`
+- `crates/tui/examples/**`
+- `crates/tui/src/components/**` (composite components)
+
+Dynamic IDs, unconfigured `X::new(id, …)`, and `#[cfg(test)]` fixtures are exempt. The gate fails closed on parse errors, empty existing roots, and zero observed constructions.
+
+### D3 — Public registration APIs are inert-safe
+
+`Ui::is_inert()` reports both `inert_below` and `Ui::reference` suppression.
+
+All public registration APIs are centrally suppression-safe: components may guard calls for clarity/performance, but correctness must not depend on every component doing so. `register_control`, `register_focus_only`, `register_editor`, `register_part`, `register_decor`, `register_scroll`, and binding publication are no-ops when suppressed.
+
+`Ui::reference` still paints and resolves style, but suppresses registration, focus scopes, layers, layout, cursor, and bindings. Nested references restore their outer target. Regular `inert_below` layers still paint and retain layer semantics while suppressing background interaction registration.
+
+### Evidence
+
+- Pointer implementation: `7763d50`; shared focus admissibility: `b0ad014`.
+- Props gate/refactors: `54b15ce`, `4cfefea`, `69fb70d`.
+- `ac1_a_disabled_control_refuses_every_activating_pointer_intent`: passes.
+- `ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact`: passes.
+- Conformance `disabled_cannot_activate`: 44 cases pass.
+- `inert_below_registers_nothing`, reference sink/restoration tests, and external author reference test pass.
+- `rtk cargo run -p xtask -- boundary --check props_are_built_once` passes: 126 files, 129 configured constructions.
+- Props red-proof gate tests: 5 pass.
+- `architecture::reference_rendering_is_ui_scoped` passes.
+
+### Evidence gaps
+
+1. No direct runtime test currently overlaps a disabled top region with an enabled lower region. Add/name an AC proving the lower owner receives no click, or explicitly record source-level `Registry::hit` + `deliverable` proof as acceptance.
+2. `pointer_captured` bypasses `deliverable`; document dynamic-disable capture scope.
+3. The Props gate does not syntactically enforce the “no `&self` constructor” clause or cross-file call graphs; the current contract is intra-module/source-scan scoped.
+4. The stale §16.5 Props row is corrected in `COMPONENT_ARCHITECTURE.md`: marker `§73`, `crates/tui/src/components/**` scope, and fail-closed behavior are explicit.
+
+### Remaining ledger items — §73 resolved
+
+The prior §73 ledger entry is superseded by the accepted §73 record above and in
+`COMPONENT_ARCHITECTURE.md`; §73 is no longer an outstanding decision or blocker.
+
+1. **The Slice-4 public-API review findings.** Not recorded, for the same reason: the report is not
    in the tree. Needed as an itemised list with each finding's accepted disposition.
-3. **The independent visual FAIL findings.** Needed itemised, each mapped to a numbered §20.10
+2. **The independent visual FAIL findings.** Needed itemised, each mapped to a numbered §20.10
    item and classified, before any bless run.
 
 ### Critical path — ordered, at `26913cc`
 
-1. **Record the three items above.** Every one of them is a missing *decision*, not missing code;
-   no builder may resolve any of them locally.
+1. **Record the two remaining items above.** Every one is a missing *decision*, not missing code;
+   no builder may resolve either locally.
 2. **Adjudicate and fix the visual FAIL.** Corrections land, frames are re-reviewed independently,
    and only then is a bless authorized. **Slice 4 does not close before this.**
 3. **§54.1–§54.5, the library half of the Jackin runtime contract.** Implementable now; §54.6 and
@@ -1664,8 +1711,8 @@ the review.
 
 ### Blocker
 
-- **Yes.** Slice 4 closure is blocked on the independent visual FAIL findings being recorded and
-  adjudicated. §73 is blocked on `opus-analyst` supplying its verdict and acceptance conditions.
+- **Yes.** Slice 4 closure remains blocked on the independent visual FAIL findings being recorded
+  and adjudicated. §73 is recorded and is not a current blocker.
 
 ## Slice 5 boundary-guard hardening — working-tree checkpoint (2026-09-05)
 
@@ -1838,3 +1885,47 @@ verified identity was `HEAD == origin/main == de302085869c04939e6d9e2e2e712f6fbe
 
 - The verified worktree contains untracked `.codex-target-*` build directories. They are outside
   this ledger checkpoint and were preserved; the lineage above is `origin/main`, not those artifacts.
+
+## Current authoritative checkpoint — §73 recorded (2026-09-05, source HEAD/origin/main `a7e64c6b60979bea14cf74d3efc2c917e94e34c4`)
+
+This checkpoint supersedes the stale current-source checkpoint above; earlier checkpoints remain
+historical evidence. It records the accepted §73 decision, the measured gates at this tip, and the
+visual state that still blocks baseline authorization.
+
+### Identity and scope
+
+- Source `HEAD == origin/main == a7e64c6b60979bea14cf74d3efc2c917e94e34c4` at measurement
+  (`test(xtask): tolerate slow capture startup`); this branch adds only the two requested docs.
+- The §73 decision is recorded in both this ledger and `COMPONENT_ARCHITECTURE.md`; no source,
+  baseline, or prompt file is part of this documentation change.
+
+### Measured gates
+
+- `rtk cargo run -p xtask -- doc-check`: **PASS** — 76 Rust blocks, 864 references resolved;
+  35 references remain explicitly allow-listed as not yet built.
+- `rtk cargo run -p xtask -- boundary --check props_are_built_once`: **PASS** — 126 files
+  (apps 74, examples 14, components 38), 129 configured constructions.
+- `rtk cargo run -p xtask -- boundary --check no_deprecated_or_legacy_api_usage`: **PASS**.
+- `git diff --check`: **PASS** for the docs-only diff.
+
+### Capture provenance and visual blockers
+
+- `shots/capture-provenance.json` is schema 1 and records revision
+  `a358272665d49d74e4fc17a262d6061621e861d2`, not this HEAD; `shots/capture-matrix.tsv` has its
+  header plus 96 cells. A fresh provenance-backed matrix run remains pending.
+- The latest recorded independent audit remains provisional: Showcase/Rain passed, TablePro failed
+  on the `connections` digest `c1fdb4fc → fb80a107`, and Jackin failed at the
+  `accounts-1password-step-1` fixture chain. Fresh app captures and independent review are still
+  required against this source tip.
+- No baseline was edited and no blessing was performed. Visual blessing remains unauthorized while
+  the TablePro regression, Jackin fixture failure, and stale provenance remain unresolved.
+
+### §73 residual evidence gaps
+
+- No direct runtime overlap test yet proves that a disabled top region prevents an enabled lower
+  region from receiving a click; the source-level `Registry::hit` + `deliverable` proof is recorded.
+- `pointer_captured` bypasses `deliverable`; dynamic disabling during an existing capture needs an
+  explicit scope or a dedicated test.
+- The Props gate is an intra-module/source-scan contract and does not prove the no-`&self`
+  constructor clause or cross-file call graphs syntactically.
+- The §16.5 Props row now carries the §73 marker, composite-component scope, and fail-closed rules.
