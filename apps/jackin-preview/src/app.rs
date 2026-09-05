@@ -1798,6 +1798,15 @@ impl App {
         if provider == Provider::XAi {
             account = account.with_endpoint("Grok Team", "https://api.x.ai");
         }
+        if !self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .any(|existing| existing.provider == provider && existing.default_for_provider)
+        {
+            account.default_for_provider = true;
+        }
         let title = account.title();
         let issue = account.issue.as_ref().map(|issue| issue.message.clone());
         self.world.accounts.insert(account);
