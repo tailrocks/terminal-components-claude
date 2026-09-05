@@ -21,6 +21,8 @@ pub struct ManagerState {
     /// Public-list selection state owned by this route.
     pub list: ListState,
     expanded: Vec<WorkspaceId>,
+    /// Monotonic key for derived row projections.
+    rows_revision: u64,
     selected_workspace: Option<WorkspaceId>,
     detail_open: bool,
 }
@@ -38,6 +40,12 @@ impl ManagerState {
         } else {
             self.expanded.push(id);
         }
+        self.rows_revision = self.rows_revision.wrapping_add(1);
+    }
+
+    /// Revision of the expanded-row projection.
+    pub const fn rows_revision(&self) -> u64 {
+        self.rows_revision
     }
 
     /// Select a workspace for detail inspection.

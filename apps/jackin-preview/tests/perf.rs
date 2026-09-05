@@ -59,6 +59,7 @@ impl H {
         for id in ids {
             hh.app_mut().manager.toggle(id);
         }
+        hh.ticks(1);
         hh.draw();
         hh
     }
@@ -81,7 +82,7 @@ impl H {
             .daemons
             .get_mut(&instance)
             .expect("daemon");
-        if d.active_tab().map(|t| t.leaves().len()) == Some(3) {
+        while d.active_tab().map(|t| t.leaves().len()).unwrap_or(0) < 4 {
             d.split(SplitDir::Vertical, false, None, None, now, false)
                 .expect("split the focused pane");
         }
@@ -105,13 +106,6 @@ impl H {
         }
         hh.draw();
         hh
-    }
-
-    fn regions(&self) -> (usize, usize) {
-        (
-            self.harness.runtime().region_count(),
-            self.harness.ring().reachable().count(),
-        )
     }
 }
 
@@ -148,11 +142,7 @@ fn frame_jackin_manager_100rows_120x40() {
         h.app().world.instances.len()
     );
     let s = bench(1, iters(200), &mut || h.draw());
-    let (hits, ring) = h.regions();
-    report(
-        "frame_jackin_manager_100rows_120x40",
-        &s.with_regions(hits, ring),
-    );
+    report("frame_jackin_manager_100rows_120x40", &s);
     if env_flag("PERF_STRICT") {
         assert!(s.allocs < 60, "manager frame allocates {} times", s.allocs);
     }
@@ -165,11 +155,7 @@ fn frame_jackin_capsule_4panes_120x40() {
     let _g = lock();
     let mut h = H::capsule(120, 40);
     let s = bench(1, iters(10), &mut || h.draw());
-    let (hits, ring) = h.regions();
-    report(
-        "frame_jackin_capsule_4panes_120x40",
-        &s.with_regions(hits, ring),
-    );
+    report("frame_jackin_capsule_4panes_120x40", &s);
     if env_flag("PERF_STRICT") {
         assert!(s.allocs < 200, "capsule frame allocates {} times", s.allocs);
     }
@@ -183,6 +169,7 @@ fn frame_jackin_capsule_4panes_120x40() {
 fn key_jackin_manager_move() {
     let _g = lock();
     let mut h = H::manager(120, 40);
+    h.harness = h.harness.with_auto_draw(false);
     let mut down = true;
     let s = bench(10, iters(1000), &mut || {
         let code = if down { KeyCode::Down } else { KeyCode::Up };

@@ -435,6 +435,20 @@ mod tests {
     }
 
     #[test]
+    fn network_failure_tick_matches_the_stage_frontier() {
+        let mut run = LaunchRun::new(LaunchPlan::FailNetwork, Agent::Codex, "c", RunId::new(5));
+        let network_end = 1 + run.durations[..=Stage::Network.index()].iter().sum::<u64>();
+        while !run.is_terminal() {
+            let _ = run.advance();
+        }
+        assert_eq!(run.tick, network_end);
+        assert_eq!(
+            run.failure.as_ref().map(|failure| failure.stage),
+            Some(Stage::Network)
+        );
+    }
+
+    #[test]
     fn credential_error_holds_until_retry() {
         let mut r = LaunchRun::new(
             LaunchPlan::CredentialsLocked,

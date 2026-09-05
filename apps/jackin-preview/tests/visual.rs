@@ -55,7 +55,7 @@ fn digest(h: &H) -> u64 {
 /// Reduced-motion ticks after which the `LaunchFailure` cockpit shows its
 /// failure state (the failure is clock-driven, so a paused seek cannot reach
 /// it; the virtual clock advances only with ticks, so the count is exact).
-const FAILURE_TICKS: usize = 77;
+const FAILURE_TICKS: usize = 231;
 /// Mid-pipeline frame of the `LaunchRunning` cockpit.
 const RUNNING_FRAME: u64 = 20;
 /// Outro frame inside the caption phase.

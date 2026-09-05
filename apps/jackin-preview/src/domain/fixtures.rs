@@ -670,6 +670,10 @@ pub fn fixture_workspace() -> Workspace {
     };
     workspace.env = vec![
         EnvVar::plain("APP_ENV", "staging"),
+        EnvVar::plain(
+            "DATABASE_URL",
+            "postgres://payments:pw-fixture-only@db.internal:5432/payments",
+        ),
         EnvVar::host("TERM_PROGRAM", "TERM_PROGRAM"),
         EnvVar::op(
             "DEPLOY_TOKEN",

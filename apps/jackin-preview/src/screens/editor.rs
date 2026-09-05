@@ -10,9 +10,15 @@ pub const ROOT: Id = Id::root("jackin.editor");
 /// Editor form root retained as a stable namespace for nested controls.
 pub const FORM: Id = ROOT.sub("form");
 /// Save action.
-pub const SAVE: Id = FORM.sub("save");
+pub const SAVE: Id = Id::root("editor.cfg").sub("form").sub("save");
 /// Editor tabs.
 pub const TABS: Id = ROOT.sub("tabs");
+/// New environment-variable key input.
+pub const ENV_KEY: Id = FORM.sub("env-key");
+/// New environment-variable source selector.
+pub const ENV_SOURCE: Id = FORM.sub("env-source");
+/// New environment-variable value input.
+pub const ENV_VALUE: Id = FORM.sub("env-value");
 
 /// Editor tab projection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -37,6 +43,11 @@ pub struct EditorState {
     pub dirty: bool,
     pub preview_open: bool,
     pub env_visible: bool,
+    pub env_form_open: bool,
+    pub env_key: String,
+    pub env_value: String,
+    pub env_key_input: junie_tui::TextInputState,
+    pub env_value_input: junie_tui::TextInputState,
     /// Mutable workspace draft projected by the editor controls.
     pub pending: PendingWorkspace,
 }

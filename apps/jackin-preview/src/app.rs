@@ -7,9 +7,9 @@ use std::time::Duration;
 
 use junie_tui::{
     ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction, DialogState,
-    FrameRead, Id, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List, ListAction,
-    ListState, Panel, Picker, PickerAction, PickerState, Rect, Response, SecretPolicy, Tabs,
-    TabsState, TextInput, TooSmall, Ui, UpdateCause, Variant,
+    FrameRead, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
+    ListAction, ListState, Panel, Picker, PickerAction, PickerState, Rect, Response, SecretPolicy,
+    Tabs, TabsState, TextInput, TextInputState, TooSmall, Ui, UpdateCause, Variant,
 };
 
 use crate::domain::account::{
@@ -17,6 +17,7 @@ use crate::domain::account::{
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
+use crate::domain::workspace::{EnvValue, EnvVar, mask};
 use crate::rain::{
     HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
 };
@@ -80,6 +81,7 @@ const CMD_CAPSULE: ActionKey = ActionKey::custom("jackin.capsule");
 const CMD_NEW_WORKSPACE: ActionKey = ActionKey::custom("jackin.new-workspace");
 const CMD_EDITOR_NEXT: ActionKey = ActionKey::custom("jackin.editor.next-tab");
 const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::custom("jackin.editor.previous-tab");
+const CMD_EDITOR_ENV: ActionKey = ActionKey::custom("jackin.editor.environments");
 const CMD_SAVE: ActionKey = ActionKey::custom("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::custom("jackin.manager.expand");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::custom("jackin.editor.open");
@@ -218,6 +220,12 @@ pub struct App {
     pub capsule: CapsuleState,
     /// Read-only instance inspection state.
     pub inspect: InspectState,
+    /// Cached manager projection; rebuilt only when expansion or source data changes.
+    manager_rows_cache: Vec<String>,
+    manager_rows_revision: u64,
+    shell_meta: String,
+    manager_header: String,
+    manager_header_running: usize,
     route: Route,
     motion: Motion,
     quit: bool,
@@ -319,6 +327,11 @@ impl App {
                 route = Route::Handoff;
             }
         }
+        let manager_header_running = world.running_count();
+        let manager_header = format!(
+            "Current directory · {} · {} running",
+            world.home, manager_header_running
+        );
         Self {
             world,
             manager: ManagerState::default(),
@@ -330,6 +343,11 @@ impl App {
             cockpit: CockpitState::default(),
             capsule: CapsuleState::default(),
             inspect: InspectState::default(),
+            manager_rows_cache: Vec::new(),
+            manager_rows_revision: 0,
+            shell_meta: format!("scenario · {}", scenario.name()),
+            manager_header,
+            manager_header_running,
             route,
             motion,
             quit: false,
@@ -442,6 +460,20 @@ impl App {
         Button::new(crate::screens::editor::SAVE, "Save workspace").variant(Variant::PRIMARY)
     }
 
+    fn editor_env_source_button() -> Button<'static> {
+        Button::new(crate::screens::editor::ENV_SOURCE, "Plain text")
+    }
+
+    fn editor_env_key_input() -> TextInput<'static> {
+        TextInput::new(crate::screens::editor::ENV_KEY).placeholder("Variable name")
+    }
+
+    fn editor_env_value_input() -> TextInput<'static> {
+        TextInput::new(crate::screens::editor::ENV_VALUE)
+            .placeholder("Value")
+            .secret(SecretPolicy::default())
+    }
+
     fn prelude_continue_button() -> Button<'static> {
         Button::new(crate::screens::prelude::CONTINUE, "Continue").variant(Variant::PRIMARY)
     }
@@ -460,6 +492,22 @@ impl App {
             .secret(SecretPolicy::default())
     }
 
+    fn text_input_empty_commit(cx: &Cx<'_>, id: Id, state: &TextInputState) -> bool {
+        state.is_editing()
+            && cx
+                .intents(id)
+                .any(|intent| matches!(intent, Intent::Binding(_)))
+    }
+
+    fn rearm_text_input(should_rearm: bool, state: &mut TextInputState, value: &str) -> bool {
+        if should_rearm && !state.is_editing() && value.is_empty() {
+            state.begin(value);
+            true
+        } else {
+            false
+        }
+    }
+
     fn role_picker() -> Picker<'static, RoleOption> {
         Picker::new(ROLE_PICKER).title("Choose a role")
     }
@@ -472,7 +520,7 @@ impl App {
         Panel::new(APP).title("Jackin Preview").meta(meta)
     }
 
-    fn manager_rows(&self) -> Vec<String> {
+    fn build_manager_rows(&self) -> Vec<String> {
         let mut rows = Vec::new();
         for workspace in &self.world.workspaces {
             let expanded = self.manager.is_expanded(workspace.id);
@@ -522,6 +570,26 @@ impl App {
             );
         }
         rows
+    }
+
+    fn ensure_manager_rows(&mut self) {
+        if self.manager_rows_cache.is_empty()
+            || self.manager_rows_revision != self.manager.rows_revision()
+        {
+            self.manager_rows_cache = self.build_manager_rows();
+            self.manager_rows_revision = self.manager.rows_revision();
+        }
+    }
+
+    fn ensure_manager_header(&mut self) {
+        let running = self.world.running_count();
+        if running != self.manager_header_running {
+            self.manager_header = format!(
+                "Current directory · {} · {} running",
+                self.world.home, running
+            );
+            self.manager_header_running = running;
+        }
     }
 
     fn account_rows(&self) -> Vec<String> {
@@ -668,8 +736,7 @@ impl App {
         let response = dialog.update(cx, &mut self.launch_dialog);
         let action = response.action_ref().copied();
         result |= response.erase();
-        let role_label = self.selected_role().to_owned();
-        let role = Button::new(ROLE_CHOOSE, &role_label).update(cx);
+        let role = Button::new(ROLE_CHOOSE, self.selected_role()).update(cx);
         let role_chosen = role.activated();
         result |= role.erase();
         if role_chosen && cx.is_open(LAUNCH_DIALOG) && !cx.is_open(ROLE_PICKER) {
@@ -817,8 +884,9 @@ impl App {
     }
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let rows = self.manager_rows();
-        let list = List::new(MANAGER_LIST).update(cx, &mut self.manager.list, &rows);
+        self.ensure_manager_rows();
+        let list =
+            List::new(MANAGER_LIST).update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
         match list_action {
@@ -937,20 +1005,44 @@ impl App {
 
             match self.accounts.source_index {
                 1 => {
+                    let rearm = Self::text_input_empty_commit(
+                        cx,
+                        crate::screens::accounts::FOLDER,
+                        &self.accounts.folder_input,
+                    );
                     let folder = Self::account_folder_input().update(
                         cx,
                         &mut self.accounts.folder_input,
                         &mut self.accounts.masked_input,
                     );
                     result |= folder.erase();
+                    if Self::rearm_text_input(
+                        rearm,
+                        &mut self.accounts.folder_input,
+                        &self.accounts.masked_input,
+                    ) {
+                        result |= Response::changed();
+                    }
                 }
                 2 => {
+                    let rearm = Self::text_input_empty_commit(
+                        cx,
+                        crate::screens::accounts::SECRET,
+                        &self.accounts.secret_input,
+                    );
                     let secret = Self::account_secret_input().update(
                         cx,
                         &mut self.accounts.secret_input,
                         &mut self.accounts.masked_input,
                     );
                     result |= secret.erase();
+                    if Self::rearm_text_input(
+                        rearm,
+                        &mut self.accounts.secret_input,
+                        &self.accounts.masked_input,
+                    ) {
+                        result |= Response::changed();
+                    }
                 }
                 _ => {}
             }
@@ -1175,6 +1267,67 @@ impl App {
     }
 
     fn update_editor(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.editor.env_form_open {
+            let key_rearm = Self::text_input_empty_commit(
+                cx,
+                crate::screens::editor::ENV_KEY,
+                &self.editor.env_key_input,
+            );
+            let key = Self::editor_env_key_input().update(
+                cx,
+                &mut self.editor.env_key_input,
+                &mut self.editor.env_key,
+            );
+            let mut result = key.erase();
+            if Self::rearm_text_input(
+                key_rearm,
+                &mut self.editor.env_key_input,
+                &self.editor.env_key,
+            ) {
+                result |= Response::changed();
+            }
+
+            let source = Self::editor_env_source_button().update(cx);
+            result |= source.erase();
+
+            let value_rearm = Self::text_input_empty_commit(
+                cx,
+                crate::screens::editor::ENV_VALUE,
+                &self.editor.env_value_input,
+            );
+            let value = Self::editor_env_value_input().update(
+                cx,
+                &mut self.editor.env_value_input,
+                &mut self.editor.env_value,
+            );
+            result |= value.erase();
+            if Self::rearm_text_input(
+                value_rearm,
+                &mut self.editor.env_value_input,
+                &self.editor.env_value,
+            ) {
+                result |= Response::changed();
+            }
+
+            let save = Self::editor_save_button().update(cx);
+            let save_chosen = save.activated();
+            result |= save.erase();
+            if save_chosen {
+                let key = self.editor.env_key.trim();
+                if key.is_empty() {
+                    self.status = Some("Environment key is required".into());
+                } else if let Some(workspace) = self.world.workspaces.first_mut() {
+                    workspace
+                        .env
+                        .push(EnvVar::plain(key, &self.editor.env_value));
+                    self.editor.env_form_open = false;
+                    self.editor.dirty = true;
+                    self.status = Some(format!("Added environment variable {key}"));
+                    result |= Response::changed();
+                }
+            }
+            return result;
+        }
         let save = Self::editor_save_button().update(cx);
         let chosen = save.activated();
         let mut result = save.erase();
@@ -1308,6 +1461,13 @@ impl App {
                 cx.quit();
                 Some(Response::changed())
             }
+            CMD_MANAGER
+                if self.route == Route::Editor
+                    && self.editor.tab == crate::screens::editor::Tab::Environments =>
+            {
+                self.editor.env_visible = !self.editor.env_visible;
+                Some(Response::changed())
+            }
             CMD_MANAGER => {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
@@ -1320,6 +1480,18 @@ impl App {
                         Route::Manager
                     };
                 }
+                Some(Response::changed())
+            }
+            CMD_ACCOUNTS
+                if self.route == Route::Editor
+                    && self.editor.tab == crate::screens::editor::Tab::Environments =>
+            {
+                self.editor.env_form_open = true;
+                self.editor.env_key.clear();
+                self.editor.env_value.clear();
+                self.editor.env_key_input = TextInputState::default();
+                self.editor.env_value_input = TextInputState::default();
+                cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
             CMD_ACCOUNTS => {
@@ -1416,6 +1588,7 @@ impl App {
                 if let Some(workspace) = self.world.workspaces.first() {
                     self.manager.toggle(workspace.id);
                     self.manager.set_detail_open(true);
+                    self.ensure_manager_rows();
                 }
                 Some(Response::changed())
             }
@@ -1460,6 +1633,7 @@ impl App {
                         {
                             instance.status = InstanceStatus::CleanExited;
                         }
+                        self.manager_rows_cache.clear();
                         self.route = Route::Manager;
                         self.status =
                             Some("Still inside the Construct · another instance is running".into());
@@ -1521,6 +1695,11 @@ impl App {
                 });
                 Some(Response::changed())
             }
+            CMD_EDITOR_ENV if self.route == Route::Editor => {
+                self.editor.tab = crate::screens::editor::Tab::Environments;
+                self.editor.env_visible = false;
+                Some(Response::changed())
+            }
             CMD_EDITOR_PREVIOUS if self.route == Route::Editor => {
                 self.editor.tab = crate::screens::editor::Tab::General;
                 Some(Response::changed())
@@ -1569,6 +1748,7 @@ impl App {
                                     "/Users/alexey/src/new-workspace",
                                 ));
                         }
+                        self.manager_rows_cache.clear();
                         self.route = Route::Manager;
                     }
                 }
@@ -1772,6 +1952,74 @@ impl App {
             crate::screens::editor::Tab::Environments => "Environments",
             crate::screens::editor::Tab::Accounts => "Accounts",
         };
+        if self.editor.env_form_open {
+            paint_lines(
+                ui,
+                area,
+                &["New workspace environment key", "Key · source · value"],
+            );
+            Self::editor_env_key_input()
+                .value(&self.editor.env_key)
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
+                    &self.editor.env_key_input,
+                );
+            Self::editor_env_source_button().draw(
+                ui,
+                Rect::new(area.x, area.y.saturating_add(4), area.width.min(20), 1),
+            );
+            Self::editor_env_value_input()
+                .value(&self.editor.env_value)
+                .draw(
+                    ui,
+                    Rect::new(area.x, area.y.saturating_add(5), area.width, 1),
+                    &self.editor.env_value_input,
+                );
+            Self::editor_save_button().draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
+            return;
+        }
+        if self.editor.tab == crate::screens::editor::Tab::Environments {
+            let mut lines = vec![format!(
+                "{}{} · edit · {tab}",
+                if self.editor.dirty {
+                    "• 1 change · "
+                } else {
+                    ""
+                },
+                workspace
+            )];
+            if let Some(workspace) = self.world.workspaces.first() {
+                for env in &workspace.env {
+                    let (value, source): (String, &str) = match &env.value {
+                        EnvValue::Plain(value) => {
+                            if self.editor.env_visible {
+                                (value.clone(), "plain · shown")
+                            } else {
+                                (mask(value), "plain")
+                            }
+                        }
+                        EnvValue::OnePassword(reference) => (reference.display_path(), "1Password"),
+                        EnvValue::HostEnv(host) => (host.clone(), "host env"),
+                    };
+                    lines.push(format!("{} · {value} · {source}", env.key));
+                }
+            }
+            lines.push(if self.editor.env_visible {
+                "m hide plain values · a add variable".to_owned()
+            } else {
+                "m show plain values · a add variable".to_owned()
+            });
+            paint_lines(ui, area, &lines);
+            Self::editor_save_button().draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
+            return;
+        }
         let lines = [
             format!("{workspace} · edit · {tab}"),
             "Mounts · inherited defaults".to_owned(),
@@ -1838,7 +2086,6 @@ impl App {
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
-        let rows = self.manager_rows();
         let list_area = Rect {
             y: area.y.saturating_add(2),
             height: area.height.saturating_sub(5),
@@ -1847,13 +2094,9 @@ impl App {
         paint_lines(
             ui,
             Rect { height: 2, ..area },
-            &[format!(
-                "Current directory · {} · {} running",
-                self.world.home,
-                self.world.running_count()
-            )],
+            std::slice::from_ref(&self.manager_header),
         );
-        List::new(MANAGER_LIST).draw(ui, list_area, &self.manager.list, &rows);
+        List::new(MANAGER_LIST).draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
         if self.manager.detail_open() {
             ui.paint_str(
                 Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
@@ -2196,11 +2439,10 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
-        let role_label = self.selected_role().to_owned();
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
-                Button::new(ROLE_CHOOSE, &role_label).draw(ui, body)
+                Button::new(ROLE_CHOOSE, self.selected_role()).draw(ui, body)
             })
         });
         let role_picker = Self::role_picker();
@@ -2228,12 +2470,15 @@ impl TuiApp for App {
         // Keep the shell's configured props owned by one constructor.  The
         // runtime only updates parts here; drawing consumes the same panel
         // shape below, so the app cannot drift between update and draw.
-        let meta = format!("scenario · {}", self.world.scenario.name());
-        let _shell = Self::shell_panel(&meta);
         let mut result = self.advance_virtual_state(cx);
+        self.ensure_manager_header();
         if let Some(command) = cx.command()
             && let Some(result) = self.update_command(cx, command)
         {
+            if self.route == Route::Manager {
+                self.ensure_manager_rows();
+            }
+            self.ensure_manager_header();
             return result;
         }
         result |= self.update_overlays(cx);
@@ -2247,6 +2492,10 @@ impl TuiApp for App {
             result |= self.update_navigation(cx);
         }
         result |= self.update_route(cx);
+        if self.route == Route::Manager {
+            self.ensure_manager_rows();
+        }
+        self.ensure_manager_header();
         result
     }
 
@@ -2257,8 +2506,7 @@ impl TuiApp for App {
             too_small.draw(ui, full);
             return;
         }
-        let meta = format!("scenario · {}", self.world.scenario.name());
-        Self::shell_panel(&meta).draw(ui, full, |ui, inner| {
+        Self::shell_panel(&self.shell_meta).draw(ui, full, |ui, inner| {
             let header_height = inner.height.min(3);
             let footer_height = inner.height.saturating_sub(header_height).min(2);
             let header = Rect {
@@ -2498,6 +2746,11 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('[')),
             CMD_EDITOR_PREVIOUS,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('4')),
+            CMD_EDITOR_ENV,
         )
         .bind(
             KeyPhase::Bubble,
