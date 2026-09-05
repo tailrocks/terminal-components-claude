@@ -487,8 +487,7 @@ let t = Theme::junie().define_family(BADGE, |r| {
 level 2 (a variant delta) — they *define* the recipe. `override_family` and
 `override_variant` are level 4 — they *override* whatever a recipe says. Use
 `define_*` for a family you own; use `override_*` to restyle a family somebody
-else defined. All four editors are sparse: when a custom family is first
-mutated, its omitted parts start from the neutral recipe and remain available.
+else defined.
 
 > **A family you never declare resolves through the neutral recipe.**
 > `Recipes::get_or_neutral` falls back to a neutral row-like recipe
@@ -502,11 +501,10 @@ mutated, its omitted parts start from the neutral recipe and remain available.
 >    state signals, but no family-targeted or authored mono rules. Declare the
 >    family with `define_family` when it needs a targeted affordance (or paint
 >    the affordance yourself; see [`authoring.md`](authoring.md)).
-> 2. Sparse family edits preserve that neutral recipe. In particular,
->    `define_family(F, |_| {})` registers no new parts and leaves the
->    row-like fallback intact; setting one label or variant cannot make the
->    omitted parts disappear. Use a part-level `clear_*` patch when the
->    intention is to suppress a specific inherited value.
+> 2. Declaring a family replaces the neutral fallback. In particular,
+>    `define_family(F, |_| {})` creates an empty recipe; declaring a family
+>    means declaring its parts. Use `clear_*` when suppressing a specific
+>    value in a recipe that already owns that part.
 
 ---
 

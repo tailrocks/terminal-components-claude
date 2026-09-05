@@ -175,8 +175,8 @@ and inside a `PartEdit`:
 - `size(u16)` — the part's size
 
 Two traps, both covered in [`theming.md`](theming.md#scenario-10--an-application-specific-component-on-the-same-theme):
-family edits are sparse, so an **empty** edit keeps the neutral fallback rather
-than creating an empty recipe. An **undeclared** custom family receives the
+declaring a family with an **empty** edit replaces the neutral fallback recipe
+rather than merging into it, and an **undeclared** custom family receives the
 generic mono fallback manifest but no family-targeted or authored mono rules at
 `ColorLevel::Mono`. Use a `clear_*` patch explicitly when suppressing one
 inherited value, including `clear_glyph` for a reserved glyph cell.

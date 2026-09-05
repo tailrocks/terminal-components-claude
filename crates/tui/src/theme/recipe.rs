@@ -406,14 +406,6 @@ pub(crate) struct GlobalOverride {
 /// `const fn` with no declaration event, so that fallback is a *reachable*
 /// painting path, not a placeholder.
 ///
-/// A mutation of a missing family is sparse too: [`Recipes::get_mut`] seeds
-/// the new entry from `neutral` before the caller applies its edit. This
-/// keeps a custom family from silently losing the fallback parts merely
-/// because it sets one label or variant. Authors that need a deliberately
-/// empty part still express that at the part level with [`Slot::Clear`] or a
-/// replacement patch; family mutation itself never turns an omitted part
-/// into an empty recipe.
-///
 /// The static mono fallback layer keys on the requested family rather than
 /// enumerating storage. Undeclared custom families therefore receive generic
 /// non-colour state signals while their authored base remains neutral.
@@ -470,12 +462,7 @@ impl Recipes {
         self.get(f).unwrap_or(&self.neutral)
     }
 
-    /// The recipe for a family, created from [`Self::neutral`] if absent.
-    ///
-    /// Family editors are intentionally sparse. A custom family that only
-    /// changes one part must retain the neutral recipe for every omitted
-    /// part; inserting [`Recipe::default`] here would make the family
-    /// declaration silently suppress that reachable fallback.
+    /// The recipe for a family, created if absent.
     #[expect(
         clippy::indexing_slicing,
         reason = "`i` is either the index binary_search found or the index Vec::insert(i, _) just \
@@ -485,7 +472,7 @@ impl Recipes {
         let i = match self.by_family.binary_search_by_key(&f, |(k, _)| *k) {
             Ok(i) => i,
             Err(i) => {
-                self.by_family.insert(i, (f, self.neutral.clone()));
+                self.by_family.insert(i, (f, Recipe::default()));
                 i
             }
         };
@@ -737,31 +724,6 @@ mod tests {
                 .is_some()
         );
         assert_eq!(rs.len(), 1);
-    }
-
-    #[test]
-    fn a_sparse_family_entry_is_seeded_from_neutral() {
-        let mut rs = Recipes::default();
-        let f = Family::custom("sparse");
-        let neutral = rs.neutral().clone();
-
-        rs.get_mut(f).parts.entry(Part::LABEL).base = StylePatch::new().set_fg(Role::Accent);
-
-        let family = rs
-            .get(f)
-            .expect("the family mutation must register the family");
-        assert_eq!(
-            family.parts.get(Part::CONTAINER),
-            neutral.parts.get(Part::CONTAINER)
-        );
-        assert_eq!(
-            family.parts.get(Part::GUTTER),
-            neutral.parts.get(Part::GUTTER)
-        );
-        assert_eq!(
-            family.parts.get(Part::LABEL).map(|part| part.base.fg),
-            Some(Slot::Set(Role::Accent))
-        );
     }
 
     #[test]
