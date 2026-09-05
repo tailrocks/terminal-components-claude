@@ -1,13 +1,14 @@
 # Goal — Finish Slice 4 wave 1 of the Rust TUI component-system refactor
 
-## Latest session handoff — 2026-09-05
+## Latest session handoff — 2026-09-05 stop
 
-The user stopped the merge/implementation session. Resume from the pushed `main`
-branch after commit `f01703a`, plus the pending commit created by this session.
+The user stopped the merge/implementation session. Resume from pushed `main` at
+`6584b66`; the Capsule chrome implementation is preserved in `c9b765b`.
 Do not treat the chrome work below as complete: it is committed for preservation
 but its focused suite is red.
 
-Current tracked work staged for handoff:
+The tracked tree is clean after the handoff commit. The preserved implementation
+includes:
 
 - `apps/jackin-preview/src/app.rs`: Capsule shell chrome, menu/context/palette
   state, status/hint rendering, inspect/rename/help behavior.
@@ -30,7 +31,7 @@ Known failure roots from the run:
 - Inspect/context-menu assertions remain blocked behind the menu/hint dispatch
   failures.
 
-The latest chrome implementation compiles and `git diff --check` is clean.
+The latest chrome implementation compiled and `git diff --check` was clean.
 Previous pushed functional evidence at `f01703a`: Jackin app tests passed
 27/27, targeted exit/active-identity tests passed, and workspace formatting
 passed. Re-run both focused suites after fixing chrome; do not infer that the
@@ -40,7 +41,7 @@ Untracked `.codex-target-*` directories are build caches. They are intentionally
 not committed. Preserve or move them to `/private/tmp`; never stage with
 `git add -A`.
 
-At the stop point, `main` and `origin/main` both point to `c9b765b`. Registered
+At the stop point, `main` and `origin/main` both point to `6584b66`. Registered
 non-root worktrees remain for later cleanup:
 
 - `/private/tmp/terminal-components-before-e4` — stale ancestor `4daa524`.
