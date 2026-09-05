@@ -1,5 +1,68 @@
 # Goal — Finish Slice 4 wave 1 of the Rust TUI component-system refactor
 
+## Latest session handoff — 2026-09-05
+
+The user stopped the merge/implementation session. Resume from the pushed `main`
+branch after commit `f01703a`, plus the pending commit created by this session.
+Do not treat the chrome work below as complete: it is committed for preservation
+but its focused suite is red.
+
+Current tracked work staged for handoff:
+
+- `apps/jackin-preview/src/app.rs`: Capsule shell chrome, menu/context/palette
+  state, status/hint rendering, inspect/rename/help behavior.
+- `crates/tui/src/components/menu.rs`: public `MenuBar::open_menu` helper.
+- This handoff update.
+
+Observed focused result before handoff:
+
+```text
+app_tests_chrome: 0 passed; 6 failed
+```
+
+Known failure roots from the run:
+
+- `MenuBar` open-dropdown `Right` does not switch top-level menus yet.
+- Generic shell `HintBar` is not painted on the physical last row; Capsule
+  renders `Ctrl+b` while the acceptance text expects `Ctrl+B`.
+- Capsule command palette has only four rows, so wheel scrolling cannot move
+  its viewport at the tested height.
+- Inspect/context-menu assertions remain blocked behind the menu/hint dispatch
+  failures.
+
+The latest chrome implementation compiles and `git diff --check` is clean.
+Previous pushed functional evidence at `f01703a`: Jackin app tests passed
+27/27, targeted exit/active-identity tests passed, and workspace formatting
+passed. Re-run both focused suites after fixing chrome; do not infer that the
+current dirty-state tests still pass.
+
+Untracked `.codex-target-*` directories are build caches. They are intentionally
+not committed. Preserve or move them to `/private/tmp`; never stage with
+`git add -A`.
+
+Fast restart order:
+
+1. Fix `MenuBar` open-state Left/Right switching in
+   `crates/tui/src/components/menu.rs`.
+2. Fix generic/Capsule hint placement and display case.
+3. Give the command palette enough semantic items to exercise wheel offset;
+   map only real actions, and retain `New tab` as the first selected item.
+4. Run:
+
+   ```text
+   CARGO_TARGET_DIR=/tmp/tc-final-chrome rtk proxy cargo test -p jackin-preview --test app_tests_chrome -- --nocapture
+   CARGO_TARGET_DIR=/tmp/tc-final-functional rtk proxy cargo test -p jackin-preview --test app_tests -- --nocapture
+   ```
+
+5. Fix workspace launch scope separately: selected non-first workspace and
+   CurrentDirectory still lose identity before `materialize_launch`.
+6. Run full release gates, then prune only stale registered worktrees. Confirm
+   `HEAD == origin/main`, clean tracked status, one root worktree, and no stale
+   implementation branches before declaring the merge goal complete.
+
+The handoff commit itself may contain known-red tests because the user asked to
+stop and preserve all current tracked work. Report that fact plainly.
+
 Continue the in-progress refactor in this repository. Do not restart, do not re-audit, do not redesign.
 
 ## Read first, in this order

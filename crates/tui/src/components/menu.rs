@@ -933,6 +933,20 @@ impl<'a> MenuBar<'a> {
         MenuAction::Opened(index)
     }
 
+    /// Open a menu programmatically, preserving the same state and layer
+    /// ownership as keyboard and pointer activation.
+    pub fn open_menu(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut MenuState,
+        index: usize,
+    ) -> Response<MenuAction> {
+        if self.menus.is_empty() {
+            return Response::ignored();
+        }
+        Response::action(self.open(cx, st, index)).for_id(self.id)
+    }
+
     /// Close a dropdown whose owning declaration is no longer present.
     ///
     /// `MenuBar` owns both the durable open index and the runtime layer.  A

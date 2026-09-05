@@ -6,11 +6,12 @@
 use std::{mem, time::Duration};
 
 use junie_tui::{
-    ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction, DialogState,
-    FrameRead, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
-    ListAction, ListState, Panel, Picker, PickerAction, PickerState, Rect, Response, SecretPolicy,
-    Tabs, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
-    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    ActionKey, App as TuiApp, AsItem, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
+    DialogState, FrameRead, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
+    MenuState, Panel, Phase, Picker, PickerAction, PickerState, Position, Rect, Response,
+    SecretPolicy, StatusBar, StatusItem, Tabs, TabsState, TextAction, TextInput, TextInputState,
+    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -83,6 +84,12 @@ pub const ACCOUNT_PICKER: Id = APP.sub("account-picker");
 pub const LAUNCH_CANCEL: Id = APP.sub("launch-cancel");
 /// Launch retry action id.
 pub const LAUNCH_RETRY: Id = APP.sub("launch-retry");
+/// Capsule menu-bar id.
+pub const CAPSULE_MENU_BAR: Id = APP.sub("capsule-menu-bar");
+/// Capsule tab context-menu id.
+pub const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
+/// Capsule command-palette id.
+pub const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
 const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
@@ -126,6 +133,48 @@ const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.rem
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
+const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-rename");
+const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
+const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
+const CMD_COPY_SELECTION: ActionKey = ActionKey::application("jackin.capsule.copy-selection");
+const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
+const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
+
+const CAPSULE_FILE_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_CAPSULE, "New tab"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below"),
+    MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
+    MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
+];
+const CAPSULE_MENU_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
+    MenuItem::new(CMD_CAPSULE, "New tab"),
+];
+const CAPSULE_VIEW_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane"),
+    MenuItem::new(CMD_CAPSULE_FOCUS_LEFT, "Focus left"),
+    MenuItem::new(CMD_USAGE, "Usage"),
+    MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
+];
+const CAPSULE_HELP_ITEMS: &[MenuItem<'static>] =
+    &[MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Keyboard shortcuts")];
+const CAPSULE_MENUS: &[Menu<'static>] = &[
+    Menu::new("File", CAPSULE_FILE_ITEMS),
+    Menu::new("Capsule", CAPSULE_MENU_ITEMS),
+    Menu::new("View", CAPSULE_VIEW_ITEMS),
+    Menu::new("Help", CAPSULE_HELP_ITEMS),
+];
+const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
+];
+const CAPSULE_COMMANDS: &[Item<'static>] = &[
+    Item::new(ItemKey::num(1), "New tab"),
+    Item::new(ItemKey::num(2), "Split right"),
+    Item::new(ItemKey::num(3), "Copy selection"),
+    Item::new(ItemKey::num(4), "Inspect changes ·"),
+];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 /// The visible product route.
@@ -305,6 +354,10 @@ pub struct App {
     motion: Motion,
     quit: bool,
     keymap: KeyMap,
+    capsule_menu_state: MenuState,
+    capsule_tab_menu_state: MenuState,
+    capsule_tab_menu_pos: Position,
+    capsule_palette_state: PickerState,
     tabs_state: TabsState,
     launch_dialog: DialogState,
     role_state: PickerState,
@@ -329,6 +382,9 @@ pub struct App {
     capsule_input: String,
     capsule_input_state: TextInputState,
     capsule_viewport: ViewportState,
+    capsule_tab_title: String,
+    capsule_tab_title_dialog: bool,
+    capsule_tab_title_editing: bool,
     pending_capsule_action: Option<CapsuleAction>,
     capsule_interaction: CapsuleInteraction,
     editor_accounts: ListState,
@@ -336,6 +392,9 @@ pub struct App {
     editor_role_picker: bool,
     editor_env_role: Option<String>,
     usage_list: ListState,
+    help_open: bool,
+    inspect_detail: bool,
+    inspect_files: bool,
     active_instance: Option<String>,
     launch_agent: Agent,
     launch_account: Option<String>,
@@ -443,6 +502,10 @@ impl App {
             motion,
             quit: false,
             keymap: app_keymap(),
+            capsule_menu_state: MenuState::default(),
+            capsule_tab_menu_state: MenuState::default(),
+            capsule_tab_menu_pos: Position::new(0, 0),
+            capsule_palette_state: PickerState::default(),
             tabs_state: TabsState::default(),
             launch_dialog: DialogState::default(),
             role_state: PickerState::default(),
@@ -468,6 +531,9 @@ impl App {
             capsule_input: String::new(),
             capsule_input_state: TextInputState::default(),
             capsule_viewport: ViewportState::default(),
+            capsule_tab_title: "Shell".into(),
+            capsule_tab_title_dialog: false,
+            capsule_tab_title_editing: false,
             pending_capsule_action: None,
             capsule_interaction: CapsuleInteraction::default(),
             editor_accounts: ListState::default(),
@@ -475,6 +541,9 @@ impl App {
             editor_role_picker: false,
             editor_env_role: None,
             usage_list: ListState::default(),
+            help_open: false,
+            inspect_detail: false,
+            inspect_files: false,
             active_instance: None,
             launch_agent: Agent::ClaudeCode,
             launch_account: None,
@@ -754,6 +823,20 @@ impl App {
 
     fn shell_panel<'a>(meta: &'a str) -> Panel<'a> {
         Panel::new(APP).title("Jackin Preview").meta(meta)
+    }
+
+    fn capsule_menu_bar() -> MenuBar<'static> {
+        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+    }
+
+    fn capsule_tab_context(position: Position) -> ContextMenu<'static> {
+        ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title("Tab")
+    }
+
+    fn capsule_command_palette() -> Picker<'static, Item<'static>> {
+        Picker::new(CAPSULE_COMMAND_PALETTE)
+            .title("Command palette")
+            .placeholder("Search commands…")
     }
 
     fn build_manager_rows(&self) -> Vec<String> {
@@ -1272,6 +1355,16 @@ impl App {
     }
 
     fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
+        if key == 'm' {
+            self.capsule_prefix = false;
+            self.capsule_tab_menu_state = MenuState::default();
+            self.capsule_tab_menu_pos = Position::new(8, 2);
+            cx.open_layer(
+                CAPSULE_TAB_MENU,
+                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+            );
+            return Response::changed();
+        }
         let command = match key {
             'c' => Some(CMD_CAPSULE),
             'd' => Some(CMD_CAPSULE_DETACH),
@@ -1280,7 +1373,6 @@ impl App {
             'z' => Some(CMD_CAPSULE_ZOOM),
             'h' => Some(CMD_CAPSULE_FOCUS_LEFT),
             'u' => Some(CMD_USAGE),
-            'm' => Some(CMD_MANAGER),
             _ => None,
         };
         if let Some(command) = command {
@@ -2241,10 +2333,82 @@ impl App {
     }
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut result = Response::ignored();
+        let menu = Self::capsule_menu_bar();
+        let menu_response = menu.update(cx, &mut self.capsule_menu_state);
+        if let Some(MenuAction::Chosen(action)) = menu_response.action_ref().copied() {
+            if let Some(response) = self.update_command(cx, action) {
+                result |= response;
+            }
+        }
+        result |= menu_response.erase();
+
+        let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
+        let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
+        if let Some(MenuAction::Chosen(action)) = context_response.action_ref().copied() {
+            if let Some(response) = self.update_command(cx, action) {
+                result |= response;
+            }
+        }
+        result |= context_response.erase();
+
+        if !cx.is_open(CAPSULE_TAB_MENU) {
+            for intent in cx.intents(CAPSULE_PANES) {
+                if let Intent::Pointer {
+                    phase: Phase::Secondary,
+                    pos,
+                    ..
+                } = intent
+                {
+                    self.capsule_tab_menu_pos = pos;
+                    self.capsule_tab_menu_state = MenuState::default();
+                    cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                    result |= Response::changed();
+                    break;
+                }
+            }
+            for intent in cx.intents(CAPSULE_TABS) {
+                if let Intent::Pointer {
+                    phase: Phase::Secondary,
+                    pos,
+                    ..
+                } = intent
+                {
+                    self.capsule_tab_menu_pos = pos;
+                    self.capsule_tab_menu_state = MenuState::default();
+                    cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                    result |= Response::changed();
+                    break;
+                }
+            }
+        }
+
+        if cx.is_open(CAPSULE_COMMAND_PALETTE) {
+            let palette = Self::capsule_command_palette();
+            let palette_response =
+                palette.update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS);
+            if let Some(PickerAction::Chosen(key)) = palette_response.action_ref().copied() {
+                let action = match key {
+                    ItemKey::Num(1) => Some(CMD_CAPSULE),
+                    ItemKey::Num(2) => Some(CMD_CAPSULE_SPLIT_RIGHT),
+                    ItemKey::Num(3) => Some(CMD_COPY_SELECTION),
+                    ItemKey::Num(4) => Some(CMD_INSPECT_CHANGES),
+                    _ => None,
+                };
+                if let Some(action) = action
+                    && let Some(response) = self.update_command(cx, action)
+                {
+                    result |= response;
+                }
+                cx.close_layer(CAPSULE_COMMAND_PALETTE, None);
+            }
+            result |= palette_response.erase();
+        }
+
         // Prefix commands own the next key. Do not let the focused command
         // input consume it before the bubble action can dispatch.
         if self.capsule_prefix {
-            return Response::ignored();
+            return result;
         }
         if !self.capsule_input_state.is_editing()
             && self.exit_choice.is_none()
@@ -2260,7 +2424,7 @@ impl App {
         let viewport = TextViewport::new(CAPSULE_PANES).click_selects_word(true);
         let viewport_response = viewport.update(cx, &mut self.capsule_viewport, &lines);
         let viewport_action = viewport_response.action_ref().cloned();
-        let mut result = viewport_response.erase();
+        result |= viewport_response.erase();
         let copied = match viewport_action {
             Some(ViewportAction::Copy(text)) => Some(text),
             Some(ViewportAction::SelectionChanged) => {
@@ -2294,7 +2458,13 @@ impl App {
             result |= self.capsule_prefix_key(cx, key);
         }
         if committed {
-            if let Some(action) = self.pending_capsule_action.take() {
+            if self.capsule_tab_title_editing {
+                self.capsule_tab_title = mem::take(&mut self.capsule_input);
+                self.capsule_tab_title_editing = false;
+                self.capsule_tab_title_dialog = false;
+                self.capsule_input_state = TextInputState::default();
+                self.status = None;
+            } else if let Some(action) = self.pending_capsule_action.take() {
                 self.open_capsule_account_picker(cx, action);
                 self.status = Some("New tab · Account for Claude Code".into());
             } else if self.exit_choice.is_some() {
@@ -2306,7 +2476,7 @@ impl App {
             }
             result |= Response::changed();
         }
-        let tabs = capsule_tabs();
+        let tabs = self.capsule_tabs();
         result
             | Tabs::new(CAPSULE_TABS)
                 .update(cx, &mut self.tabs_state, &tabs)
@@ -2329,6 +2499,25 @@ impl App {
     }
 
     fn update_command(&mut self, cx: &mut Cx<'_>, command: ActionKey) -> Option<Response<()>> {
+        if self.route == Route::Capsule
+            && self.inspect.instance.is_some()
+            && matches!(command, CMD_MANAGER | CMD_CAPSULE_DETACH | CMD_EXIT_CONFIRM)
+        {
+            match command {
+                CMD_MANAGER => {
+                    self.inspect_files = true;
+                    self.inspect_detail = false;
+                }
+                CMD_CAPSULE_DETACH => {
+                    self.inspect_detail = true;
+                }
+                CMD_EXIT_CONFIRM => {
+                    self.inspect_detail = true;
+                }
+                _ => {}
+            }
+            return Some(Response::changed());
+        }
         match command {
             CMD_QUIT => {
                 self.quit = true;
@@ -2436,6 +2625,11 @@ impl App {
                 }
                 Some(Response::changed())
             }
+            CMD_ACCOUNT_HELP if self.route == Route::Manager => {
+                self.help_open = true;
+                self.status = Some("Keyboard shortcuts".into());
+                Some(Response::changed())
+            }
             CMD_ACCOUNT_HELP if self.route == Route::Accounts => {
                 self.status =
                     Some("Credential sources · 1Password · Local agent folder · API key".into());
@@ -2483,6 +2677,46 @@ impl App {
                 } else {
                     self.route = Route::Capsule;
                 }
+                Some(Response::changed())
+            }
+            CMD_MENU_OPEN if self.route == Route::Capsule => {
+                let index = self.capsule_menu_state.open_menu().unwrap_or(0);
+                let response =
+                    Self::capsule_menu_bar().open_menu(cx, &mut self.capsule_menu_state, index);
+                Some(response.erase())
+            }
+            CMD_COPY_SELECTION if self.route == Route::Capsule => {
+                let rows = self.capsule_rows();
+                let lines = rows
+                    .iter()
+                    .map(|line| ViewportLine::Plain(line.as_str()))
+                    .collect::<Vec<_>>();
+                let mut text = String::new();
+                if self.capsule_viewport.copy_into(&lines, &mut text) {
+                    self.world.clipboard = Some(text);
+                    self.status = Some("Copied selection".into());
+                }
+                Some(Response::changed())
+            }
+            CMD_INSPECT_CHANGES if self.route == Route::Capsule => {
+                self.inspect.instance = self.active_instance.clone();
+                self.inspect_detail = false;
+                self.inspect_files = false;
+                self.status = Some("Inspect changes · choose a file".into());
+                Some(Response::changed())
+            }
+            CMD_KEYBOARD_SHORTCUTS if self.route == Route::Capsule => {
+                self.status = Some("Keyboard shortcuts · Enter choose · Esc close".into());
+                Some(Response::changed())
+            }
+            CMD_TAB_RENAME if self.route == Route::Capsule => {
+                self.capsule_tab_title_dialog = true;
+                self.capsule_tab_title_editing = false;
+                self.status = Some("Change tab title".into());
+                Some(Response::changed())
+            }
+            CMD_TAB_CLOSE if self.route == Route::Capsule => {
+                self.status = Some("Close tab? · Enter confirm · Esc cancel".into());
                 Some(Response::changed())
             }
             CMD_COCKPIT_LOG if matches!(self.route, Route::Launch | Route::Cockpit) => {
@@ -2597,7 +2831,20 @@ impl App {
             }
             CMD_CAPSULE_PALETTE if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
+                self.capsule_palette_state = PickerState::default();
+                let palette = Self::capsule_command_palette();
+                cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
                 self.status = Some("Command palette · type an action".into());
+                Some(Response::changed())
+            }
+            CMD_EXIT_CONFIRM if self.route == Route::Capsule && self.capsule_tab_title_dialog => {
+                if !self.capsule_tab_title_editing {
+                    self.capsule_input.clear();
+                    self.capsule_input_state = TextInputState::default();
+                    self.capsule_input_state.begin(&self.capsule_input);
+                    self.capsule_tab_title_editing = true;
+                    cx.focus(CAPSULE_INPUT);
+                }
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.route == Route::Outro => {
@@ -3763,8 +4010,17 @@ impl App {
             )
     }
 
+    fn capsule_tabs(&self) -> Vec<String> {
+        vec![
+            self.capsule_tab_title.clone(),
+            "Overview".into(),
+            "Logs".into(),
+            "Environment".into(),
+        ]
+    }
+
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
-        let tabs = capsule_tabs();
+        let tabs = self.capsule_tabs();
         Tabs::new(CAPSULE_TABS).draw(ui, area, &self.tabs_state, &tabs);
         let style = ui.surface_style();
         ui.paint_str(
@@ -3795,6 +4051,43 @@ impl App {
         TextViewport::new(CAPSULE_PANES)
             .click_selects_word(true)
             .draw(ui, pane_area, &self.capsule_viewport, &lines);
+        if self.capsule_tab_title_dialog {
+            ui.paint_str(
+                Rect::new(area.x.saturating_add(2), area.y.saturating_add(1), 30, 1),
+                "Change tab title",
+                ui.surface_style(),
+            );
+        }
+        if self.inspect.instance.is_some() {
+            let inspect_area = Rect::new(
+                area.x.saturating_add(2),
+                area.y.saturating_add(2),
+                area.width.saturating_sub(4),
+                area.height.saturating_sub(4),
+            );
+            let lines = if self.inspect_files {
+                vec![
+                    "Inspect changes · files".to_owned(),
+                    "src/main.rs".to_owned(),
+                    "src/lib.rs".to_owned(),
+                    "Tab · open diff".to_owned(),
+                ]
+            } else if self.inspect_detail {
+                vec![
+                    "Inspect changes · src/main.rs".to_owned(),
+                    "@@ -1,4 +1,4 @@".to_owned(),
+                    "│ - old configuration".to_owned(),
+                    "│ + new configuration".to_owned(),
+                ]
+            } else {
+                vec![
+                    "Inspect changes · choose a file".to_owned(),
+                    "src/main.rs".to_owned(),
+                    "src/lib.rs".to_owned(),
+                ]
+            };
+            paint_lines(ui, inspect_area, &lines);
+        }
         if self.capsule_usage {
             paint_lines(
                 ui,
@@ -3821,6 +4114,118 @@ impl App {
         }
     }
 
+    fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
+        let style = ui.surface_style();
+        let menu_area = Rect::new(
+            area.x.saturating_add(9),
+            area.y,
+            area.width.saturating_sub(9),
+            1,
+        );
+        ui.paint_str(Rect::new(area.x, area.y, 9, 1), "jackin❯", style);
+        Self::capsule_menu_bar().draw(ui, menu_area, &self.capsule_menu_state);
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        ui.paint_str(
+            Rect::new(area.right().saturating_sub(36), area.y, 36, 1),
+            &format!("{workspace} ›"),
+            style,
+        );
+        if self.capsule_prefix {
+            ui.paint_str(
+                Rect::new(
+                    area.x.saturating_add(9),
+                    area.y,
+                    area.width.saturating_sub(9),
+                    1,
+                ),
+                "prefix… New tab · Split right · Detach",
+                style,
+            );
+        }
+        ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+            "Capsule",
+            style,
+        );
+        let footer_y = area.bottom().saturating_sub(2);
+        let content = Rect::new(
+            area.x,
+            area.y.saturating_add(2),
+            area.width,
+            footer_y.saturating_sub(area.y.saturating_add(2)),
+        );
+        self.draw_capsule(ui, content);
+
+        let status_left = [StatusItem::new("PR #482").strong()];
+        let status_center = [StatusItem::new("usage").meter(0.72)];
+        StatusBar::new(APP.sub("capsule-status"))
+            .left(&status_left)
+            .center(&status_center)
+            .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
+
+        let hints = if self.capsule_menu_state.is_open() || self.capsule_tab_menu_state.is_open() {
+            HintLayer {
+                hints: vec![
+                    Hint {
+                        chord: Chord::key(KeyCode::Esc),
+                        label: "Close",
+                        priority: 90,
+                    },
+                    Hint {
+                        chord: Chord::key(KeyCode::Enter),
+                        label: "Choose",
+                        priority: 80,
+                    },
+                    Hint {
+                        chord: Chord::key(KeyCode::F(10)),
+                        label: "Menu",
+                        priority: 70,
+                    },
+                ],
+                badge: None,
+                status: None,
+                centered: false,
+            }
+        } else if self.capsule_prefix {
+            HintLayer {
+                hints: vec![
+                    Hint {
+                        chord: Chord::key(KeyCode::Char('c')),
+                        label: "New tab",
+                        priority: 90,
+                    },
+                    Hint {
+                        chord: Chord::key(KeyCode::Char('d')),
+                        label: "Detach",
+                        priority: 80,
+                    },
+                ],
+                badge: None,
+                status: None,
+                centered: false,
+            }
+        } else {
+            HintLayer {
+                hints: vec![Hint {
+                    chord: Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
+                    label: "prefix",
+                    priority: 90,
+                }],
+                badge: None,
+                status: None,
+                centered: false,
+            }
+        };
+        HintBar::new(APP.sub("capsule-hint"), &hints).draw(
+            ui,
+            Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
+        );
+    }
+
     fn draw_content(&self, ui: &mut Ui<'_>, area: Rect) {
         Panel::new(APP.sub("content"))
             .title(self.route.title())
@@ -3840,6 +4245,21 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
+        let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
+            Self::capsule_tab_context(self.capsule_tab_menu_pos).draw(
+                ui,
+                area,
+                &self.capsule_tab_menu_state,
+            )
+        });
+        let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
+            Self::capsule_command_palette().draw(
+                ui,
+                area,
+                &self.capsule_palette_state,
+                CAPSULE_COMMANDS,
+            )
+        });
         let dialog = Self::launch_dialog();
         let _ = ui.layer(LAUNCH_DIALOG, |ui, area| {
             dialog.draw(ui, area, &self.launch_dialog, |ui, body| {
@@ -3916,6 +4336,11 @@ impl TuiApp for App {
             too_small.draw(ui, full);
             return;
         }
+        if self.route == Route::Capsule {
+            self.draw_capsule_shell(ui, full);
+            self.draw_layers(ui);
+            return;
+        }
         Self::shell_panel(&self.shell_meta).draw(ui, full, |ui, inner| {
             let header_height = inner.height.min(3);
             let footer_height = inner.height.saturating_sub(header_height).min(2);
@@ -3942,14 +4367,46 @@ impl TuiApp for App {
             }
             let style = ui.surface_style();
             if let Some(status) = &self.status {
-                ui.paint_str(footer, status, style);
-            } else {
                 ui.paint_str(
-                    footer,
-                    "q quit · m manager · a accounts · u usage · s settings",
+                    Rect {
+                        height: 1,
+                        ..footer
+                    },
+                    status,
                     style,
                 );
             }
+            let hints = if self.help_open {
+                HintLayer {
+                    hints: vec![Hint {
+                        chord: Chord::key(KeyCode::Esc),
+                        label: "Close",
+                        priority: 90,
+                    }],
+                    badge: None,
+                    status: None,
+                    centered: false,
+                }
+            } else {
+                HintLayer {
+                    hints: vec![Hint {
+                        chord: Chord::key(KeyCode::Enter),
+                        label: "Choose",
+                        priority: 90,
+                    }],
+                    badge: None,
+                    status: None,
+                    centered: false,
+                }
+            };
+            HintBar::new(APP.sub("hint"), &hints).draw(
+                ui,
+                Rect {
+                    y: footer.y.saturating_add(1),
+                    height: 1,
+                    ..footer
+                },
+            );
         });
         self.draw_layers(ui);
     }
@@ -3974,8 +4431,33 @@ impl TuiApp for App {
             self.quit = true;
             return Response::changed();
         }
+        if self.help_open {
+            self.help_open = false;
+            self.status = None;
+            return Response::changed();
+        }
         if matches!(self.route, Route::Launch | Route::Cockpit) && self.cockpit.log_open {
             self.cockpit.log_open = false;
+            self.status = None;
+            return Response::changed();
+        }
+        if self.route == Route::Capsule && self.inspect.instance.is_some() {
+            if self.inspect_detail {
+                self.inspect_detail = false;
+            } else if self.inspect_files {
+                self.inspect_files = false;
+                self.inspect.instance = None;
+                self.status = None;
+            } else {
+                self.inspect.instance = None;
+                self.status = None;
+            }
+            return Response::changed();
+        }
+        if self.route == Route::Capsule && self.capsule_tab_title_dialog {
+            self.capsule_tab_title_dialog = false;
+            self.capsule_tab_title_editing = false;
+            self.capsule_input_state = TextInputState::default();
             self.status = None;
             return Response::changed();
         }
@@ -4110,6 +4592,7 @@ fn app_keymap() -> KeyMap {
             Chord::key(KeyCode::Char('b')),
             CMD_COCKPIT_LOG,
         )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::F(10)), CMD_MENU_OPEN)
         .bind(
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('r')),
@@ -4333,10 +4816,6 @@ fn account_row_index(world: &World, id: &str) -> Option<usize> {
         row += 1;
     }
     None
-}
-
-fn capsule_tabs() -> Vec<String> {
-    vec!["Overview".into(), "Logs".into(), "Environment".into()]
 }
 
 fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
