@@ -98,7 +98,7 @@ pub struct Fixture {
     ///
     /// Private so [`Fixture::force`] remains the only way to set a forced
     /// state and its coupled readiness status.
-    state_override: Option<StateFlags>,
+    reference_state: Option<StateFlags>,
     /// An instance patch for the override case.
     pub patch: Option<(Part, StylePatch)>,
     /// Secret bytes to type for the secret case.
@@ -127,7 +127,7 @@ impl Default for Fixture {
                 .collect(),
             decor_flags: StateFlags::empty(),
             selected: false,
-            state_override: None,
+            reference_state: None,
             patch: None,
             secret: None,
             status: Status::Ready,
@@ -139,7 +139,7 @@ impl Fixture {
     /// The forced state flags, if this is a reference rendering.
     #[must_use]
     pub const fn forced(&self) -> Option<StateFlags> {
-        self.state_override
+        self.reference_state
     }
 
     /// The readiness coupled to the forced state.
@@ -155,7 +155,7 @@ impl Fixture {
     /// and row decoration remain caller-owned data.
     #[must_use]
     pub fn force(mut self, s: StateFlags) -> Self {
-        self.state_override = Some(s);
+        self.reference_state = Some(s);
         self.disabled = s.contains(StateFlags::DISABLED);
         self.selected = s.contains(StateFlags::SELECTED);
         self.decor_flags = s & (StateFlags::ERROR | StateFlags::WARNING);

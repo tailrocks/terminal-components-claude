@@ -3277,6 +3277,34 @@ mod tests {
     }
 
     #[test]
+    fn grid_edit_errors_resolve_plain_sensitivity_but_keep_secret_errors_redacted() {
+        const DETAIL: &str = "validation detail";
+
+        let mut state = GridState::default();
+        state
+            .editor
+            .set_error(Some(FieldError::coded(DETAIL, "typed")));
+        assert_eq!(
+            state.edit_error().map(|error| error.message.as_ref()),
+            Some(DETAIL)
+        );
+        assert_eq!(
+            state.edit_error().and_then(|error| error.code),
+            Some("typed")
+        );
+
+        state.editor.set_sensitive(true);
+        state
+            .editor
+            .set_error(Some(FieldError::coded(DETAIL, "secret")));
+        assert_eq!(
+            state.edit_error().map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(state.edit_error().and_then(|error| error.code).is_none());
+    }
+
+    #[test]
     fn grid_model_only_supports_read_only_update_and_draw() {
         let app = DisplayOnlyApp {
             state: GridState::default(),
