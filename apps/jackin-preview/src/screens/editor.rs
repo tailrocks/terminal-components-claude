@@ -41,13 +41,21 @@ pub enum Tab {
 /// Durable editor state.
 #[derive(PartialEq, Eq, Default)]
 pub struct EditorState {
+    /// Active editor tab.
     pub tab: Tab,
+    /// Whether the draft has unsaved changes.
     pub dirty: bool,
+    /// Whether the read-only preview is open.
     pub preview_open: bool,
+    /// Whether the environment-variable form is open.
     pub env_form_open: bool,
+    /// Draft environment-variable key.
     pub env_key: String,
+    /// Draft environment-variable value; never rendered unmasked.
     pub env_value: String,
+    /// Runtime state for the key input.
     pub env_key_input: junie_tui::TextInputState,
+    /// Sensitive runtime state for the value input.
     pub env_value_input: junie_tui::TextInputState,
     /// Mutable workspace draft projected by the editor controls.
     pub pending: PendingWorkspace,
