@@ -40,6 +40,17 @@ Untracked `.codex-target-*` directories are build caches. They are intentionally
 not committed. Preserve or move them to `/private/tmp`; never stage with
 `git add -A`.
 
+At the stop point, `main` and `origin/main` both point to `c9b765b`. Registered
+non-root worktrees remain for later cleanup:
+
+- `/private/tmp/terminal-components-before-e4` — stale ancestor `4daa524`.
+- `/private/tmp/terminal-components-launch-scope` — `codex/launch-scope-fix`
+  at `f01703a`; no unique implementation was found.
+- `/private/tmp/tui-conformance-repair.NuX6gv` — stale ancestor `d053258`.
+
+Do not remove them until the next session has rechecked that no uncommitted
+work is present and has recovered anything useful.
+
 Fast restart order:
 
 1. Fix `MenuBar` open-state Left/Right switching in
