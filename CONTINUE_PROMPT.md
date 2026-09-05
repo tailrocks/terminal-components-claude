@@ -37,14 +37,18 @@ overrides.
 
 ## Current state — measured at the current tip
 
-The current **committed** source tip is **`HEAD == origin/main == 5ba0116`
-(`5ba0116de5a6c401c3f3a5e098b9303ea2b2dbe5`)**. The latest lineage is:
+The current **committed** source tip is **`HEAD == origin/main == c152b97`
+(`c152b97109774d0a43472de6daf20aa1567e1b6c`)**. The latest lineage is:
 
-- `5ba0116` — close dynamic error and mono props gaps;
-- `316731a` — materialize TablePro visual-surface fixtures;
-- `bbc48bb` — render Jackin's active picker mode;
-- `40233b7` — clear scoped clippy diagnostics;
-- `07bb719` — record the prior source/gate checkpoint;
+- `c152b97` — register Jackin shell props from `update`;
+- `a69a7f1` — retain dynamic Form sensitivity state across updates;
+- `e92944f` — clear stale Grid edit errors;
+- `ff68306` — expose safe sensitive-text state constructors;
+- `85ecac1` — close remaining Jackin preview gates;
+- `0369742` — record the §73 adjudication;
+- `e49de3f` — close dynamic Form error disclosure;
+- `5ba0116`, `316731a`, `bbc48bb`, `40233b7`, and `07bb719` — prior
+  source, visual-fixture, picker, clippy, and checkpoint work;
 - `de30208`, `2bddd2b`, and `7016f5a` — test cleanup and disabled code-text
   preservation;
 - `82158df`, `0f01836`, `776a2ce`, and `5d61076` — architecture-checker,
@@ -68,16 +72,21 @@ paths, not pending work. `bless-guard` must fail closed unless
 
 Measured at this tip:
 
-- `cargo run -p xtask -- doc-check`: **PASS**, 76 Rust blocks and 859 resolved
-  references; 35 references are explicitly allow-listed as not yet built.
-- `cargo run -p xtask -- boundary`: every named source/contract check passes;
-  the overall command has one expected failure, `baseline_moves_are_classified`,
-  because no comparison base was supplied. `every_named_test_exists` reports
-  388 names, 387 present, and 1 deferred, and passes.
+- `cargo fmt --all --check`: **PASS**.
+- `cargo run -p xtask -- doc-check`: **PASS**, 76 Rust blocks and 865 resolved
+  references; the existing not-yet-built allow-list remains explicit.
+- `cargo run -p xtask -- boundary`: all named source/contract checks pass except
+  the fail-closed `baseline_moves_are_classified` check without a comparison
+  base. `props_are_built_once` passes at 131 configured constructions, and
+  `every_named_test_exists` reports 388 names, 387 present, and 1 deferred, and
+  passes.
 - `shots/capture-provenance.json` is schema 1 at revision `a358272…`; the TSV
   contains 96 cells. Those captures predate the current tip and are stale
-  evidence. No baseline edit or visual blessing is authorized from them.
-- The full workspace §26 gate set has not been re-run at `5ba0116`; do not claim
+  evidence. The latest recorded independent audit still has the TablePro
+  `connections` digest regression and the Jackin
+  `accounts-1password-step-1` fixture failure. No baseline edit or visual
+  blessing is authorized from them.
+- The full workspace §26 gate set has not been re-run at `c152b97`; do not claim
   Slice or goal completion from the named checks above.
 
 ## Resume actions

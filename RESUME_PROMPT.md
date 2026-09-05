@@ -29,13 +29,15 @@ not pass model or effort overrides.
 
 ## Current tip — measured
 
-The current **committed** tip is `HEAD == origin/main == 5ba0116`
-(`5ba0116de5a6c401c3f3a5e098b9303ea2b2dbe5`). Its immediate lineage is
-`316731a` (TablePro visual fixtures), `bbc48bb` (Jackin active picker),
-`40233b7` (scoped clippy diagnostics), `07bb719` (source/gate checkpoint), and
-the preceding capture, architecture-checker, sensitive-text, props/grid, and
-rain-style fixes. The worktree may contain uncommitted work from another owner;
-inspect status before treating the committed tip as the complete source tree.
+The current **committed** tip is `HEAD == origin/main == c152b97`
+(`c152b97109774d0a43472de6daf20aa1567e1b6c`). Its immediate lineage is
+`c152b97` (Jackin shell props registration), `e92944f` (stale Grid edit errors),
+`ff68306` (safe sensitive-text state
+constructors), `85ecac1` (Jackin preview gates), `0369742` (§73 adjudication),
+and `e49de3f` (dynamic Form error disclosure), following the prior capture,
+architecture-checker, props/grid, and rain-style fixes. The worktree may contain
+uncommitted work from another owner; inspect status before treating the committed
+tip as the complete source tree.
 
 The library is already package `junie-tui` / library `junie_tui` in
 `crates/tui`; the workspace has `apps/showcase`, `apps/tablepro`, and
@@ -45,15 +47,20 @@ the removed root package.
 `xtask` dispatches `doc-check`, `boundary`, `bless-guard`, `capture-matrix`,
 and `list`. Current named checks:
 
-- `doc-check`: PASS — 76 Rust blocks, 859 resolved references, 35 explicit
-  allow-listed not-yet-built references.
+- `cargo fmt --all --check`: PASS.
+- `doc-check`: PASS — 76 Rust blocks and 865 resolved references; the existing
+  not-yet-built allow-list remains explicit.
 - `boundary`: all named checks pass except the fail-closed
-  `baseline_moves_are_classified` check when no `BLESS_GUARD_BASE` or
-  `GITHUB_BASE_REF` is supplied; `every_named_test_exists` is 388/387 with one
-  deferred name and passes.
+  `baseline_moves_are_classified` check needs `BLESS_GUARD_BASE` or
+-  `GITHUB_BASE_REF`; `props_are_built_once` passes at 131 configured
+  constructions. `every_named_test_exists` is 388/387 with one deferred name
+  and passes.
 - Tracked capture provenance is schema 1 at revision `a358272…` with 96 cells,
-  stale against `5ba0116`. No baseline blessing is authorized until a fresh
-  provenance-backed matrix and independent visual review exist.
+  stale against `c152b97`; the latest independent audit still records the
+  TablePro `connections` digest regression and Jackin
+  `accounts-1password-step-1` fixture failure. No baseline edit or blessing is
+  authorized until fresh provenance-backed captures and independent review exist.
+- The full workspace §26 gate set has not been re-run at `c152b97`.
 
 ## First actions
 

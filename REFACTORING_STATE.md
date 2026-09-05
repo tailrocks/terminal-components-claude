@@ -1929,3 +1929,35 @@ visual state that still blocks baseline authorization.
 - The Props gate is an intra-module/source-scan contract and does not prove the no-`&self`
   constructor clause or cross-file call graphs syntactically.
 - The §16.5 Props row now carries the §73 marker, composite-component scope, and fail-closed rules.
+
+## Current source-and-gate checkpoint — AUTHORITATIVE (2026-09-05, origin/main `c152b97`)
+
+This checkpoint supersedes the prior §73 checkpoint for current source identity and gate status;
+earlier sections remain historical evidence. It records only the committed source tip and measured
+gates. It does not claim slice or goal completion.
+
+### Identity and measured gates
+
+- Verified committed identity: `HEAD == origin/main == c152b97109774d0a43472de6daf20aa1567e1b6c`
+  (`c152b97`, Jackin shell props registration), after `a69a7f1` (dynamic Form sensitivity),
+  `e92944f` (Grid edit-error cleanup), `ff68306` (safe sensitive-text constructors), and
+  `85ecac1` (Jackin preview gates).
+- `rtk cargo fmt --all --check`: **PASS**; `git diff --check`: **PASS** for this docs-only diff.
+- `rtk cargo run -p xtask -- doc-check`: **PASS** — 76 Rust blocks, 865 references resolved;
+  the existing not-yet-built references remain explicitly allow-listed.
+- `rtk cargo run -p xtask -- boundary`: all named structural checks pass except the fail-closed
+  `baseline_moves_are_classified` check without a comparison base. `props_are_built_once` passes
+  at 131 configured constructions; `every_named_test_exists` passes at 388 names, 387 present,
+  1 deferred.
+- The full workspace §26 gate set was not re-run at this tip; no completion claim follows.
+
+### Visual and application blockers
+
+- Tracked capture provenance remains schema 1 at revision
+  `a358272665d49d74e4fc17a262d6061621e861d2`, with 96 TSV cells, stale against this tip.
+- The latest independent visual audit remains provisional and records the TablePro `connections`
+  digest regression (`c1fdb4fc → fb80a107`) and the Jackin
+  `accounts-1password-step-1` fixture-chain failure. Fresh app captures and independent review
+  remain required.
+- No baseline was edited or blessed. Baseline blessing remains unauthorized while stale provenance
+  and the visual failures remain unresolved.
