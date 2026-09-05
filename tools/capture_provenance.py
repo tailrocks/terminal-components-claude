@@ -30,6 +30,15 @@ def fail(message: str) -> NoReturn:
     raise SystemExit(f"capture provenance: {message}")
 
 
+def nofollow_nonblocking_flags(label: str) -> int:
+    """Return flags that reject symlinks and never block on special files."""
+    nofollow = getattr(os, "O_NOFOLLOW", None)
+    nonblocking = getattr(os, "O_NONBLOCK", None)
+    if nofollow is None or nonblocking is None:
+        fail(f"cannot safely open {label} without O_NOFOLLOW and O_NONBLOCK")
+    return nofollow | nonblocking
+
+
 def provenance_path(raw_path: str) -> str:
     """Return a stable workspace-relative path for published evidence."""
     path = Path(raw_path)
@@ -220,12 +229,10 @@ def load_json(path: Path) -> Any:
 
 def read_regular_text_at(directory: int, name: str, label: str) -> str:
     """Read a regular leaf below an already pinned directory descriptor."""
-    nofollow = getattr(os, "O_NOFOLLOW", None)
-    if nofollow is None:
-        fail(f"cannot safely read {label} without O_NOFOLLOW")
+    flags = os.O_RDONLY | nofollow_nonblocking_flags(label)
     descriptor = -1
     try:
-        descriptor = os.open(name, os.O_RDONLY | nofollow, dir_fd=directory)
+        descriptor = os.open(name, flags, dir_fd=directory)
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             os.close(descriptor)
@@ -301,10 +308,9 @@ def write_text_atomic(path: Path, value: str) -> None:
 
 def open_stderr(path: Path) -> Any:
     """Open owned stderr state without following a symlink or special file."""
-    nofollow = getattr(os, "O_NOFOLLOW", None)
-    if nofollow is None:
-        fail("cannot safely open capture stderr without O_NOFOLLOW")
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | nofollow
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | nofollow_nonblocking_flags(
+        "capture stderr"
+    )
     directory = open_trusted_directory(path.parent, "capture stderr parent directory")
     descriptor = -1
     try:
@@ -327,14 +333,12 @@ def open_stderr(path: Path) -> Any:
 
 def open_regular_read(path: str, label: str) -> tuple[int, os.stat_result]:
     """Open a regular file while pinning every parent directory component."""
-    nofollow = getattr(os, "O_NOFOLLOW", None)
-    if nofollow is None:
-        fail(f"cannot safely open {label} without O_NOFOLLOW")
-    candidate = Path(path)
+    candidate = Path(os.path.abspath(path))
+    flags = os.O_RDONLY | nofollow_nonblocking_flags(label)
     directory = open_trusted_directory(candidate.parent, f"{label} parent directory")
     descriptor = -1
     try:
-        descriptor = os.open(candidate.name, os.O_RDONLY | nofollow, dir_fd=directory)
+        descriptor = os.open(candidate.name, flags, dir_fd=directory)
         metadata = os.fstat(descriptor)
     except OSError as error:
         if descriptor >= 0:
@@ -408,9 +412,9 @@ def restore_execution_directory(descriptor: int, path: Path, mode: int) -> None:
 
 def open_manifest_lock(path: Path, directory: int | None = None) -> Any:
     """Open a manifest lock without following a replaced symlink."""
-    nofollow = getattr(os, "O_NOFOLLOW", None)
-    if nofollow is None:
-        fail("cannot safely open capture manifest lock without O_NOFOLLOW")
+    flags = os.O_RDWR | os.O_CREAT | nofollow_nonblocking_flags(
+        "capture manifest lock"
+    )
     owns_directory = directory is None
     if owns_directory:
         directory = open_trusted_directory(
@@ -419,7 +423,7 @@ def open_manifest_lock(path: Path, directory: int | None = None) -> Any:
     descriptor = -1
     try:
         descriptor = os.open(
-            path.name, os.O_RDWR | os.O_CREAT | nofollow, 0o600, dir_fd=directory
+            path.name, flags, 0o600, dir_fd=directory
         )
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
@@ -465,12 +469,12 @@ def lock_path_parts(lock: Path, guard: Path) -> tuple[str, str, int]:
 
 
 def open_lock_guard(directory: int, name: str) -> int:
-    nofollow = getattr(os, "O_NOFOLLOW", None)
-    if nofollow is None:
-        fail("cannot safely open capture lock guard without O_NOFOLLOW")
+    flags = os.O_RDWR | os.O_CREAT | nofollow_nonblocking_flags(
+        "capture lock guard"
+    )
     descriptor = -1
     try:
-        descriptor = os.open(name, os.O_RDWR | os.O_CREAT | nofollow, 0o600, dir_fd=directory)
+        descriptor = os.open(name, flags, 0o600, dir_fd=directory)
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             os.close(descriptor)
@@ -484,12 +488,10 @@ def open_lock_guard(directory: int, name: str) -> int:
 
 
 def read_owner_at(directory: int, name: str, label: str) -> str:
-    nofollow = getattr(os, "O_NOFOLLOW", None)
-    if nofollow is None:
-        fail(f"cannot safely read {label} without O_NOFOLLOW")
+    flags = os.O_RDONLY | nofollow_nonblocking_flags(label)
     descriptor = -1
     try:
-        descriptor = os.open(name, os.O_RDONLY | nofollow, dir_fd=directory)
+        descriptor = os.open(name, flags, dir_fd=directory)
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             os.close(descriptor)

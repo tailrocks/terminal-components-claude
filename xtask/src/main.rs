@@ -1002,6 +1002,18 @@ fn capture_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -
         && info.get("resolved_path").and_then(Value::as_str) == Some(expected.as_ref())
 }
 
+fn capture_legacy_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -> bool {
+    info.get("path").and_then(Value::as_str) == Some(relative)
+}
+
+fn capture_artifact_path(name: &str, extension: &str, legacy_flat: bool) -> String {
+    if legacy_flat {
+        format!("shots/{name}.{extension}")
+    } else {
+        format!("shots/{name}/{extension}")
+    }
+}
+
 fn validate_empty_capture_file(path: &Path) -> Result<(), String> {
     let metadata = fs::symlink_metadata(path).map_err(|error| {
         format!(
@@ -1068,9 +1080,20 @@ fn validate_capture_provenance(
             errors.push(format!("unexpected capture provenance cell: {name}"));
             continue;
         };
-        if object.get("schema_version").and_then(Value::as_u64) != Some(2) {
-            errors.push(format!("{name}: provenance schema version is not 2"));
-        }
+        let legacy_flat = match object.get("schema_version").and_then(Value::as_u64) {
+            Some(1) => true,
+            Some(2) => false,
+            Some(version) => {
+                errors.push(format!(
+                    "{name}: unsupported provenance schema version {version}"
+                ));
+                false
+            }
+            None => {
+                errors.push(format!("{name}: provenance has no schema version"));
+                false
+            }
+        };
         if !seen.insert(name.to_owned()) {
             errors.push(format!("duplicate capture provenance cell: {name}"));
         }
@@ -1146,10 +1169,15 @@ fn validate_capture_provenance(
                 errors.push(format!("{name}: provenance is missing the {kind} artifact"));
                 continue;
             };
-            let artifact_path = format!("shots/{name}/{extension}");
-            if !capture_path_matches(info, &artifact_path) {
+            let artifact_path = capture_artifact_path(name, extension, legacy_flat);
+            let path_matches = if legacy_flat {
+                capture_legacy_path_matches(info, &artifact_path)
+            } else {
+                capture_path_matches(info, &artifact_path)
+            };
+            if !path_matches {
                 errors.push(format!(
-                    "{name}: {kind} artifact path is not the published generation path {artifact_path}"
+                    "{name}: {kind} artifact path is not {artifact_path}"
                 ));
             }
             if info.get("status").and_then(Value::as_str) != Some("ok") {
@@ -1180,15 +1208,23 @@ fn validate_capture_provenance(
         } else if !capture_name_is_safe(run_id.unwrap_or_default()) {
             errors.push(format!("{name}: provenance run id is unsafe"));
         }
-        let stderr_path = run_id
-            .filter(|run_id| capture_name_is_safe(run_id))
-            .map(|run_id| format!("shots/.capture-state/{run_id}/stderr.log"));
-        if stderr_path
-            .as_deref()
-            .is_none_or(|expected| !capture_path_matches(stderr, expected))
-        {
+        let stderr_path = if legacy_flat {
+            Some("shots/stderr.log".to_owned())
+        } else {
+            run_id
+                .filter(|run_id| capture_name_is_safe(run_id))
+                .map(|run_id| format!("shots/.capture-state/{run_id}/stderr.log"))
+        };
+        let stderr_matches = stderr_path.as_deref().is_some_and(|expected| {
+            if legacy_flat {
+                capture_legacy_path_matches(stderr, expected)
+            } else {
+                capture_path_matches(stderr, expected)
+            }
+        });
+        if !stderr_matches {
             errors.push(format!(
-                "{name}: stderr path is not its run-owned capture state file"
+                "{name}: stderr path is not its expected capture state file"
             ));
         }
         if stderr.get("status").and_then(Value::as_str) != Some("empty")
@@ -1200,10 +1236,10 @@ fn validate_capture_provenance(
                 "{name}: application stderr is not recorded as empty"
             ));
         }
-        if let Some(stderr_path) = stderr_path {
-            if let Err(error) = validate_empty_capture_file(&root().join(stderr_path)) {
-                errors.push(format!("{name}: {error}"));
-            }
+        if let Some(stderr_path) = stderr_path
+            && let Err(error) = validate_empty_capture_file(&root().join(stderr_path))
+        {
+            errors.push(format!("{name}: {error}"));
         }
     }
 
@@ -1274,12 +1310,24 @@ fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), Str
         ));
     }
 
-    let expected_by_path: BTreeMap<String, CaptureCase> = expected
+    let expected_by_path: BTreeMap<String, (CaptureCase, bool)> = expected
         .iter()
         .copied()
-        .map(|case| (format!("shots/{}/png", case.shot_name()), case))
+        .flat_map(|case| {
+            [
+                (
+                    capture_artifact_path(&case.shot_name(), "png", false),
+                    (case, false),
+                ),
+                (
+                    capture_artifact_path(&case.shot_name(), "png", true),
+                    (case, true),
+                ),
+            ]
+        })
         .collect();
     let mut seen = BTreeSet::new();
+    let mut layout = None;
     let mut errors = Vec::new();
     for (index, line) in lines.enumerate() {
         let fields: Vec<&str> = line.split('\t').collect();
@@ -1294,10 +1342,17 @@ fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), Str
         let [path, size, color, theme, bytes, sha256] = fields.as_slice() else {
             unreachable!("length checked above");
         };
-        let Some(case) = expected_by_path.get(*path).copied() else {
+        let Some((case, legacy_flat)) = expected_by_path.get(*path).copied() else {
             errors.push(format!("unexpected capture matrix path: {path}"));
             continue;
         };
+        if let Some(previous) = layout {
+            if previous != legacy_flat {
+                errors.push("capture matrix mixes flat and generation artifact paths".to_owned());
+            }
+        } else {
+            layout = Some(legacy_flat);
+        }
         if !seen.insert((*path).to_owned()) {
             errors.push(format!("duplicate capture matrix path: {path}"));
         }
@@ -1317,10 +1372,11 @@ fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), Str
             Err(error) => errors.push(error),
         }
     }
-    let missing: Vec<&str> = expected_by_path
-        .keys()
-        .filter(|path| !seen.contains(*path))
-        .map(String::as_str)
+    let legacy_flat = layout.unwrap_or(false);
+    let missing: Vec<String> = expected
+        .iter()
+        .map(|case| capture_artifact_path(&case.shot_name(), "png", legacy_flat))
+        .filter(|path| !seen.contains(path))
         .collect();
     if !missing.is_empty() {
         errors.push(format!(
@@ -1542,7 +1598,6 @@ fn capture_script_contract_hits(script: &str) -> Vec<String> {
         ("no-follow shell state reader", "read-state"),
         ("no-follow shell state writer", "write-state"),
         ("trusted shell state interpreter", "STATE_PYTHON"),
-        ("stale shot lock check", "shot_lock_owner_is_live"),
         ("COLOR dispatch", "case \"$COLOR\" in"),
         ("truecolor branch", "truecolor)"),
         ("256-color branch", "256)"),
@@ -1720,6 +1775,8 @@ fn capture_provenance_contract_hits(script: &str) -> Vec<String> {
             "hash_descriptor(binary_descriptor)",
         ),
         ("execution directory pin", "lock_execution_directory"),
+        ("stale shot lock recovery", "inspect_and_recover_stale_lock"),
+        ("nonblocking special-file opens", "O_NONBLOCK"),
     ]
     .into_iter()
     .filter(|(_, fragment)| !script.contains(fragment))
@@ -11052,6 +11109,53 @@ set -eu
         fs::remove_dir_all(directory).expect("remove isolated parent fixture");
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn capture_provenance_rejects_fifo_state_without_blocking() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-capture-fifo-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).expect("create isolated FIFO fixture");
+        let fifo = directory.join("state");
+        let fifo_status = Command::new("/usr/bin/mkfifo")
+            .arg(&fifo)
+            .status()
+            .expect("create FIFO fixture");
+        assert!(fifo_status.success(), "mkfifo failed: {fifo_status}");
+
+        let mut child = Command::new("/usr/bin/python3")
+            .arg(root().join("tools/capture_provenance.py"))
+            .arg("read-state")
+            .arg("--path")
+            .arg(&fifo)
+            .spawn()
+            .expect("run FIFO state reader");
+        let mut finished = None;
+        for _ in 0..100 {
+            match child.try_wait().expect("poll FIFO state reader") {
+                Some(status) => {
+                    finished = Some(status);
+                    break;
+                }
+                None => std::thread::sleep(std::time::Duration::from_millis(10)),
+            }
+        }
+        let status = if let Some(status) = finished {
+            status
+        } else {
+            child.kill().expect("stop blocked FIFO state reader");
+            let _ = child.wait();
+            panic!("FIFO state reader blocked before descriptor validation");
+        };
+        assert!(!status.success(), "FIFO state must fail closed: {status}");
+        fs::remove_dir_all(directory).expect("remove isolated FIFO fixture");
+    }
+
     #[test]
     fn capture_tmux_entrypoint_executes_serialized_argv_without_shell_interpretation() {
         use std::os::unix::fs::PermissionsExt;
@@ -11083,16 +11187,18 @@ set -eu
         let marker = directory.join("must-not-exist");
         let shaped = format!("$(touch {})", marker.display());
         let stage = Command::new("python3")
+            .current_dir(&directory)
             .arg(root().join("tools/capture_provenance.py"))
             .arg("stage-binary")
             .arg("--source")
-            .arg(&source)
+            .arg("source-runner")
             .arg("--destination")
             .arg(&executable)
             .output()
             .expect("stage serialized runner executable");
         assert!(stage.status.success(), "{stage:?}");
         let init = Command::new("python3")
+            .current_dir(&directory)
             .arg(root().join("tools/capture_provenance.py"))
             .arg("init")
             .arg("--metadata")
@@ -11105,6 +11211,8 @@ set -eu
             .arg("$serialized")
             .arg("--binary")
             .arg(&executable)
+            .arg("--source-binary")
+            .arg("source-runner")
             .arg("--revision")
             .arg("0".repeat(40))
             .arg("--dirty")
@@ -11126,13 +11234,27 @@ set -eu
             .arg("--env")
             .arg("COLOR=truecolor")
             .arg("--argv")
-            .arg(&executable)
+            .arg("source-runner")
             .arg("%s\\n")
             .arg("argument with spaces")
             .arg(&shaped)
             .output()
             .expect("initialize serialized runner metadata");
         assert!(init.status.success(), "{init:?}");
+        let metadata_value: Value = serde_json::from_str(
+            &fs::read_to_string(&metadata).expect("read relative-source metadata"),
+        )
+        .expect("parse relative-source metadata");
+        assert_eq!(
+            metadata_value["binary_source"]["path"],
+            Value::String("source-runner".to_owned())
+        );
+        assert!(
+            metadata_value["binary_source"]["resolved_path"]
+                .as_str()
+                .is_some_and(|path| Path::new(path).is_absolute()),
+            "relative BIN must retain an absolute resolved_path"
+        );
 
         let output = Command::new("/bin/bash")
             .arg(root().join("tools/capture_exec.sh"))
