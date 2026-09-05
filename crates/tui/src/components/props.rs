@@ -195,7 +195,11 @@ impl Reconcile for PropsState {
 ///
 /// Items are passed to each phase. `.key` supplies durable identity and
 /// `.row` paints the two columns through [`RowUi::label`] and
-/// [`RowUi::meta`]. `.copyable_item` is only an authorization predicate;
+/// [`RowUi::meta`]. `.label_width` is the caller-supplied width of the label
+/// column, normally the widest emitted label; the component adds the design's
+/// two-cell gap before values. If omitted, labels use the full available row
+/// after the gutter and no value column is guessed. `.copyable_item` is only
+/// an authorization predicate;
 /// [`PropsAction::Copy`] carries a key, never the value. Secret owners must
 /// paint through [`crate::Secret::write_mask`] and leave that predicate false.
 pub struct PropsList<'a, T, K = ByIndex, R = DefaultRow> {
@@ -203,6 +207,7 @@ pub struct PropsList<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     copyable_item: Option<&'a dyn Fn(&T) -> bool>,
+    label_width: Option<u16>,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: Overrides<'a>,
@@ -226,6 +231,7 @@ impl<T> PropsList<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             copyable_item: None,
+            label_width: None,
             patch: None,
             parts: &[],
             ov: Overrides::new(),
@@ -252,6 +258,7 @@ impl<'a, T, K, R> PropsList<'a, T, K, R> {
             key,
             row: self.row,
             copyable_item: self.copyable_item,
+            label_width: self.label_width,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -266,11 +273,24 @@ impl<'a, T, K, R> PropsList<'a, T, K, R> {
             key: self.key,
             row,
             copyable_item: self.copyable_item,
+            label_width: self.label_width,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
             _item: PhantomData,
         }
+    }
+
+    /// Set the stable label-column width in terminal cells.
+    ///
+    /// Pass the widest label width for the rows supplied to both phases. The
+    /// component never invokes the row renderer for measurement, so this
+    /// keeps side effects single-shot and column positions stable while
+    /// scrolling. Without this builder, the fallback is a label-only row.
+    #[must_use]
+    pub const fn label_width(mut self, width: u16) -> Self {
+        self.label_width = Some(width);
+        self
     }
 
     /// Authorize copy for selected items. Secret-bearing rows must return
@@ -571,10 +591,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> PropsList<'_, T, K, R> {
         let view = ScrollRegion::view(st.core.scroll(), content, items.len());
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
-        // Interactive rows use a viewport-derived split. The renderer runs
-        // once per visible item, and its column geometry cannot change when
-        // scrolling reveals a differently sized label.
-        let label_width = content.width.saturating_sub(3) / 2;
+        // The caller supplies the widest label width when values are present.
+        // No renderer pass guesses it. The fallback deliberately preserves a
+        // label-only row instead of inventing a column split from the viewport.
+        let label_width = self
+            .label_width
+            .unwrap_or_else(|| content.width.saturating_sub(1));
         for (visible, index) in view.visible_range().enumerate() {
             let Some(item) = items.get(index) else { break };
             let key = self.key.key(item, index);
@@ -836,6 +858,7 @@ mod tests {
         PropsList::new(ID)
             .key(fact_key as fn(&Fact) -> ItemKey)
             .row(fact_row as fn(&Fact, &mut RowUi<'_>))
+            .label_width(5)
             .copyable_item(&fact_copyable)
     }
 
@@ -962,6 +985,7 @@ mod tests {
         }];
         let list = PropsList::new(ID)
             .row(secret_row as fn(&SecretFact, &mut RowUi<'_>))
+            .label_width(5)
             .copyable_item(&never_copy);
         let mut state = PropsState::default();
         state.set_cursor(0, ItemKey::index(0));
@@ -1059,7 +1083,7 @@ mod tests {
     }
 
     #[test]
-    fn generic_props_rows_use_the_same_viewport_columns() {
+    fn generic_props_rows_use_the_explicit_widest_label_column() {
         let state = PropsState::default();
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
@@ -1068,11 +1092,44 @@ mod tests {
         });
 
         assert_eq!(
-            (13..18)
+            (8..13)
                 .filter_map(|x| buffer.cell(Position::new(x, 0)))
                 .map(ratatui_core::buffer::Cell::symbol)
                 .collect::<String>(),
             "first"
+        );
+        assert_eq!(
+            (8..13)
+                .filter_map(|x| buffer.cell(Position::new(x, 2)))
+                .map(ratatui_core::buffer::Cell::symbol)
+                .collect::<String>(),
+            "third",
+            "the widest explicit label still leaves the value column intact"
+        );
+    }
+
+    #[test]
+    fn props_list_without_label_width_uses_a_stable_label_only_fallback() {
+        let state = PropsState::default();
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            PropsList::new(ID)
+                .row(|_: &usize, row: &mut RowUi<'_>| {
+                    row.label("Label");
+                    row.meta("value");
+                })
+                .draw(ui, area, &state, &[0]);
+        });
+        assert_eq!(
+            buffer.cell(Position::new(1, 0)).map(BufferCell::symbol),
+            Some("L")
+        );
+        assert!(
+            AREA.positions()
+                .filter_map(|position| buffer.cell(position))
+                .all(|cell| cell.symbol() != "v"),
+            "unset label width must not invent a value-column split"
         );
     }
 

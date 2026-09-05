@@ -977,6 +977,7 @@ fn props_list(f: &Fixture) -> FixturePropsList<'_> {
     PropsList::new(PROPS_LIST)
         .key(row_key as fn(&FixtureRow) -> ItemKey)
         .row(row_paint as fn(&FixtureRow, &mut RowUi<'_>))
+        .label_width(5)
         .copyable_item(&row_copyable)
         .patch_part(patch_of(f))
 }
