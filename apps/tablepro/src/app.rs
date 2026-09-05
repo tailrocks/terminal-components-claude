@@ -601,22 +601,24 @@ impl TableProApp {
             }
         }
     }
-    fn column_specs(columns: &[(String, ColType)], editable: bool) -> Vec<junie_tui::Column<'_>> {
-        columns
-            .iter()
-            .take(junie_tui::GRID_MAX_COLUMNS)
-            .enumerate()
-            .map(|(index, (name, _))| {
-                let mut col = junie_tui::Column::new(
-                    junie_tui::ColumnKey::num((index as u16).saturating_add(1)),
-                    name.as_str(),
-                );
-                col.sortable = true;
-                col.editable = editable;
-                col.sticky = index == 0;
-                col
-            })
-            .collect()
+    fn column_specs(
+        columns: &[(String, ColType)],
+        editable: bool,
+    ) -> ([junie_tui::Column<'_>; junie_tui::GRID_MAX_COLUMNS], usize) {
+        let count = columns.len().min(junie_tui::GRID_MAX_COLUMNS);
+        let mut specs =
+            [junie_tui::Column::new(junie_tui::ColumnKey::num(0), ""); junie_tui::GRID_MAX_COLUMNS];
+        for (index, (name, _)) in columns.iter().take(count).enumerate() {
+            let mut col = junie_tui::Column::new(
+                junie_tui::ColumnKey::num((index as u16).saturating_add(1)),
+                name.as_str(),
+            );
+            col.sortable = true;
+            col.editable = editable;
+            col.sticky = index == 0;
+            specs[index] = col;
+        }
+        (specs, count)
     }
     fn connection_form<'a>(
         fields: &'a [junie_tui::FieldSpec<'a>],
@@ -709,6 +711,55 @@ fn query_input(value: Option<&str>) -> TextInput<'_> {
     }
 }
 
+fn fixed_flex_rows(
+    area: junie_tui::Rect,
+    first_height: u16,
+    last_height: u16,
+) -> [junie_tui::Rect; 3] {
+    let first = first_height.min(area.height);
+    let remaining = area.height.saturating_sub(first);
+    let last = last_height.min(remaining);
+    let middle = remaining.saturating_sub(last);
+    [
+        junie_tui::Rect {
+            x: area.x,
+            y: area.y,
+            width: area.width,
+            height: first,
+        },
+        junie_tui::Rect {
+            x: area.x,
+            y: area.y.saturating_add(first),
+            width: area.width,
+            height: middle,
+        },
+        junie_tui::Rect {
+            x: area.x,
+            y: area.y.saturating_add(first).saturating_add(middle),
+            width: area.width,
+            height: last,
+        },
+    ]
+}
+
+fn fixed_flex_pair(area: junie_tui::Rect, first_height: u16) -> [junie_tui::Rect; 2] {
+    let first = first_height.min(area.height);
+    [
+        junie_tui::Rect {
+            x: area.x,
+            y: area.y,
+            width: area.width,
+            height: first,
+        },
+        junie_tui::Rect {
+            x: area.x,
+            y: area.y.saturating_add(first),
+            width: area.width,
+            height: area.height.saturating_sub(first),
+        },
+    ]
+}
+
 fn structure_grid(tab: &TableTab) -> ResultGrid {
     let rows = tab.structure();
     let result = crate::sql::ResultSet {
@@ -734,7 +785,16 @@ fn connection_row(connection: &Connection, row: &mut RowUi<'_>) {
 fn explorer_key(item: &ExplorerItem) -> ItemKey {
     // Include schema: equal table names in different schemas are distinct
     // catalog objects and must not share collection state.
-    ItemKey::text(&format!("{}.{}", item.schema, item.name))
+    ItemKey::pair(stable_text_key(&item.schema), stable_text_key(&item.name))
+}
+
+fn stable_text_key(value: &str) -> u64 {
+    value
+        .as_bytes()
+        .iter()
+        .fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+            (hash ^ u64::from(*byte)).wrapping_mul(0x0000_0100_0000_01b3)
+        })
 }
 
 fn explorer_node(item: &ExplorerItem) -> TreeNode {
@@ -751,7 +811,11 @@ fn tab_key(tab: &Tab) -> ItemKey {
 }
 
 fn tab_row(tab: &Tab, row: &mut RowUi<'_>) {
-    row.label(&tab.label());
+    match tab {
+        Tab::Table(table) => row.label(&table.table.name),
+        Tab::Query(query) => row.label(&query.name),
+        Tab::History(_) => row.label("History"),
+    }
     if tab.dirty() {
         row.meta("*");
     }
@@ -969,8 +1033,8 @@ impl App for TableProApp {
             .erase();
         self.sync_query_tab();
         let editable = self.result.is_editable();
-        let columns = Self::column_specs(&self.columns, editable);
-        let grid = result_grid(&columns);
+        let (columns, column_count) = Self::column_specs(&self.columns, editable);
+        let grid = result_grid(&columns[..column_count]);
         let grid_response = if self.result.is_editable() {
             grid.update_editable(cx, &mut self.grid_state, &mut self.result)
         } else {
@@ -983,17 +1047,10 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        let rows = junie_tui::layout::rows(
-            ui.full(),
-            &[
-                junie_tui::Track::Fixed(3),
-                junie_tui::Track::Flex(1),
-                junie_tui::Track::Fixed(1),
-            ],
-        );
-        let header = rows.first().copied().unwrap_or_else(|| ui.full());
-        let body = rows.get(1).copied().unwrap_or_else(|| ui.full());
-        let footer = rows.get(2).copied().unwrap_or_else(|| ui.full());
+        let rows = fixed_flex_rows(ui.full(), 3, 1);
+        let header = rows[0];
+        let body = rows[1];
+        let footer = rows[2];
         if self.form_open {
             header_panel()
                 .title("Connect to database")
@@ -1028,12 +1085,9 @@ impl App for TableProApp {
                 self.connection.environment.label()
             );
             ui.paint_str(header, &title, ui.surface_style());
-            let workbench_rows = junie_tui::layout::rows(
-                body,
-                &[junie_tui::Track::Fixed(2), junie_tui::Track::Flex(1)],
-            );
-            let tabs_area = workbench_rows.first().copied().unwrap_or(body);
-            let content = workbench_rows.get(1).copied().unwrap_or(body);
+            let workbench_rows = fixed_flex_pair(body, 2);
+            let tabs_area = workbench_rows[0];
+            let content = workbench_rows[1];
             tab_strip().draw(ui, tabs_area, &self.tabs_state, &self.workbench.tabs);
             let split = SplitPane::new(WORKBENCH_SPLIT, SplitAxis::Horizontal)
                 .min_first(28)
@@ -1054,17 +1108,15 @@ impl App for TableProApp {
                                 &self.workbench.explorer,
                             );
                         });
-                    let work_rows = junie_tui::layout::rows(
-                        work_area,
-                        &[junie_tui::Track::Fixed(3), junie_tui::Track::Flex(1)],
-                    );
-                    let query_area = work_rows.first().copied().unwrap_or(work_area);
-                    let result_area = work_rows.get(1).copied().unwrap_or(work_area);
+                    let work_rows = fixed_flex_pair(work_area, 3);
+                    let query_area = work_rows[0];
+                    let result_area = work_rows[1];
                     Field::new("SQL query", query_input(Some(&self.query)))
                         .plain(true)
                         .draw(ui, query_area, &self.query_state);
-                    let columns = Self::column_specs(&self.columns, self.result.is_editable());
-                    let grid = result_grid(&columns);
+                    let (columns, column_count) =
+                        Self::column_specs(&self.columns, self.result.is_editable());
+                    let grid = result_grid(&columns[..column_count]);
                     let meta = format!(
                         "{} rows · {}",
                         self.result.total(),
