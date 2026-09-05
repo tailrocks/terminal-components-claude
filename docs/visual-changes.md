@@ -1541,3 +1541,24 @@ fresh frame evidence, and a new independent review.
 - **No baseline was modified and no bless was run.** Visual blessing remains unauthorized until
   the four regressions are resolved, deferred changes are adjudicated, stale app captures are
   refreshed, and a fresh independent review grants separate authorization.
+
+### Latest independent app audit — source `06bf0e6`/`4534a11` (2026-09-05)
+
+**Mixed result against `origin/main` `1852338`. No baseline was edited, regenerated, copied, or blessed.** This entry supersedes
+the prior audit's current-result claims while retaining that entry as historical evidence.
+
+| Surface | Result | Exact evidence |
+|---|---|---|
+| Showcase | **PASS** | Inspected Showcase frames, including the available ANSI16 evidence. |
+| TablePro `connections` | **FAIL** | Digest `c1fdb4fc → fb80a107`; regression under §20.10 items 14 and 32. |
+| Jackin visual fixture | **FAIL** | `accounts-1password-step-1` fails its `chainargos` expectation. |
+| Jackin rain | **3 PASS** | Intro timeline, outro caption/skip, and deterministic starfield checks. |
+
+Capture provenance is stale: `shots/capture-provenance.json` records revision
+`a358272665d49d74e4fc17a262d6061621e861d2`, not the audited `06bf0e6`/`4534a11` lineage. The
+TablePro and Jackin evidence therefore requires a fresh provenance-backed capture run. ANSI16
+evidence remains provisional until that run is independently reconciled.
+
+**Visual blessing remains unauthorized.** The TablePro movement and Jackin fixture failure must be
+resolved, captures rerun with current provenance, and the resulting frames independently reviewed
+before any retained baseline change or bless.

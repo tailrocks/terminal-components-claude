@@ -5,7 +5,7 @@
 ## Status
 
 - **READ FIRST: the authoritative state is the last section of this file,
-  `Fresh independent visual audit checkpoint — AUTHORITATIVE (2026-09-05, candidate fb017a7)`.** Every bullet
+  `Latest independent visual audit checkpoint — AUTHORITATIVE (2026-09-05, source 06bf0e6/4534a11)`.** Every bullet
   below it and every earlier checkpoint is historical evidence, retained unedited; where they
   conflict, the last checkpoint governs. In particular the "until Slice 5 (single scripted rename)"
   clause under adjudication J is superseded by §47.1, and the `a1759b2` visual **PASS** is
@@ -1757,3 +1757,39 @@ status. It does not claim a green gate, a cleared review, or final completion.
 
 - **Yes.** The candidate bundle is rejected; stale app captures and the unresolved Showcase
   ANSI16 contrast block any visual blessing or baseline change.
+
+## Latest independent visual audit checkpoint — AUTHORITATIVE (2026-09-05, source `06bf0e6`/`4534a11`)
+
+This checkpoint records the latest independent visual audit of the current source lineage, recorded
+against `origin/main` `1852338`. The audited source lineage is `06bf0e6` plus `4534a11`. The
+candidate findings above remain historical evidence; this section supersedes their current-result
+claims. It does not authorize a baseline edit or a visual blessing.
+
+### Audit findings
+
+- **Showcase: PASS.** The inspected Showcase frames pass, including the available ANSI16 evidence.
+  The stale-provenance caveat below means this is an audit result, not blessing authority.
+- **TablePro: FAIL.** The current `connections` digest moves
+  `c1fdb4fc → fb80a107`; classify it as a regression under §20.10 items 14 and 32. The source
+  and capture must be reconciled before any retained digest changes.
+- **Jackin: FAIL.** The visual fixture chainargos expectation fails in the
+  `accounts-1password-step-1` journey; this is unresolved source/fixture evidence, not a baseline
+  approval.
+- **Rain: 3 PASS.** The three rain checks — intro timeline, outro caption/skip, and deterministic
+  starfield — pass. This does not clear the Jackin fixture failure.
+
+### Evidence and blocker status
+
+- Capture provenance is stale: `shots/capture-provenance.json` records revision
+  `a358272665d49d74e4fc17a262d6061621e861d2`, not the audited `06bf0e6`/`4534a11` lineage. The
+  app captures therefore require a fresh provenance-backed run before they can support blessing.
+- ANSI16 evidence is recorded as inspected Showcase evidence, but its stale capture revision keeps
+  the result provisional until the capture is rerun and independently reconciled.
+- **No baseline was edited and no blessing was performed.** Visual blessing remains unauthorized
+  while the TablePro digest regression, Jackin fixture failure, and stale capture provenance remain
+  unresolved.
+
+### Blocker
+
+- **Yes.** The TablePro and Jackin failures plus stale provenance block any visual baseline change
+  or blessing, despite the Showcase and rain passes.
