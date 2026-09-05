@@ -20,8 +20,7 @@ use ratatui_crossterm::crossterm::event::{
 };
 use ratatui_crossterm::crossterm::execute;
 use ratatui_crossterm::crossterm::terminal::{
-    DisableLineWrap, EnableLineWrap, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode,
-    enable_raw_mode,
+    EnableLineWrap, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
 
 use super::{App, Runtime};
@@ -31,8 +30,8 @@ use crate::theme::Theme;
 /// The terminal every application draws into.
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
 
-/// Owns raw mode, the alternate screen, mouse capture, bracketed paste and
-/// line wrap for the duration of the session.
+/// Owns raw mode, the alternate screen, mouse capture and bracketed paste for
+/// the duration of the session.
 pub struct TerminalSession {
     terminal: DefaultTerminal,
     left: bool,
@@ -72,7 +71,7 @@ pub fn chain_panic_hook(restore: impl Fn() + Send + Sync + 'static) {
 
 impl TerminalSession {
     /// Enter the session: hook first, then raw mode, then the alternate
-    /// screen, mouse capture, bracketed paste and no line wrap.
+    /// screen, mouse capture and bracketed paste.
     ///
     /// # Errors
     /// Any terminal command that fails; nothing is left half-set because
@@ -87,8 +86,7 @@ impl TerminalSession {
             out,
             EnterAlternateScreen,
             EnableMouseCapture,
-            EnableBracketedPaste,
-            DisableLineWrap
+            EnableBracketedPaste
         )?;
         let terminal = Terminal::new(CrosstermBackend::new(out))?;
         Ok(TerminalSession {
