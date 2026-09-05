@@ -187,8 +187,8 @@ pub use crate::theme::{
 // layout and measurement
 pub use crate::layout::{self, Insets, RowAlign, SplitModel, Track};
 pub use crate::measure::{Constraints, Measure, Size};
-// text — curated: the core types are public author-facing editing storage;
-// grapheme internals remain private (Appendix B.4).
+// text — curated: `grapheme_width`, `is_word_char` and `thousands` stay
+// internal (Appendix B.4 lists neither)
 pub use crate::text::{
     CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
     truncate, truncate_middle, width, wrap, wrapped_rows,

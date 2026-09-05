@@ -87,7 +87,7 @@ pub use theme::{
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
 pub use measure::{Constraints, Measure, Size};
 // text — `text` is `pub(crate)` (Appendix B.3 item 2): `grapheme_width`,
-// `is_word_char` and `thousands` are internal, and the rest is curated here.
+// `is_word_char` and `thousands` are internal, and the rest is curated here
 pub use text::{
     CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
     truncate, truncate_middle, width, wrap, wrapped_rows,
