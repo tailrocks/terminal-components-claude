@@ -5,7 +5,7 @@
 ## Status
 
 - **READ FIRST: the authoritative state is the last section of this file,
-  `Latest independent visual audit checkpoint — AUTHORITATIVE (2026-09-05, source 06bf0e6/4534a11)`.** Every bullet
+  `Current source-and-gate checkpoint — AUTHORITATIVE (2026-09-05, origin/main de30208)`.** Every bullet
   below it and every earlier checkpoint is historical evidence, retained unedited; where they
   conflict, the last checkpoint governs. In particular the "until Slice 5 (single scripted rename)"
   clause under adjudication J is superseded by §47.1, and the `a1759b2` visual **PASS** is
@@ -1793,3 +1793,48 @@ claims. It does not authorize a baseline edit or a visual blessing.
 
 - **Yes.** The TablePro and Jackin failures plus stale provenance block any visual baseline change
   or blessing, despite the Showcase and rain passes.
+
+## Current source-and-gate checkpoint — AUTHORITATIVE (2026-09-05, origin/main `de30208`)
+
+This checkpoint records the landed lineage and evidence visible at the verified tip. Earlier
+sections remain historical evidence; this section governs current integration status. The exact
+verified identity was `HEAD == origin/main == de302085869c04939e6d9e2e2e712f6fbea1e5c7`.
+
+### Landed lineage
+
+- **Sensitive text and validation:** `06bf0e6` and `f98ebe1` harden input/textarea targets and
+  pending-error redaction; `dae0176` defers FormState error disclosure until sensitivity is known.
+- **State identity and props:** `5d61076` preserves Grid validation errors; `776a2ce` preserves
+  keyed PropsList identity; `ce7ed97` and `69fb70d` reduce TablePro frame/props churn.
+- **Jackin:** `4534a11` resolves rain styles through theme roles; `4cfefea` centralizes repeated
+  widget constructors.
+- **Follow-on TUI fixes:** `7016f5a` preserves disabled code-text styling; `2bddd2b` and `de30208`
+  are test/type-cleanup commits landed at this tip.
+- **Capture and architecture contract:** `be0a12f` hardens capture provenance/path and special-file
+  handling; `15ecde1`, `dcd3d1e`, `0f01836`, and `82158df` align, allowlist, and correct the
+  architecture documentation/checker contract.
+
+### Current observed evidence
+
+- `xtask doc-check`: **PASS** — 76 Rust blocks, 859 references resolved; 35 references remain
+  explicitly allow-listed as not yet built.
+- `xtask boundary --check props_are_built_once`: **PASS** — 126 files, 129 configured
+  constructions.
+- `xtask boundary --check no_deprecated_or_legacy_api_usage`: **PASS**.
+- These are named-check results only, not a claim that every workspace gate is green.
+
+### Capture, visual review, and baseline authorization
+
+- Tracked capture evidence is stale against this tip: `shots/capture-provenance.json` is schema 1
+  and records revision `a358272665d49d74e4fc17a262d6061621e861d2`; `shots/capture-matrix.tsv` has
+  its header plus 96 cells. A fresh provenance-backed capture-matrix run remains pending.
+- The last recorded independent visual audit was against older `06bf0e6`/`4534a11` evidence and
+  reported Showcase/Rain passes but TablePro/Jackin failures; it is provisional, not current proof.
+  Fresh app captures and independent review remain required.
+- No baseline edit or blessing is authorized. No baseline change is recorded in this checkpoint;
+  any future blessing needs separate review and explicit serial authorization.
+
+### Worktree caveat
+
+- The verified worktree contains untracked `.codex-target-*` build directories. They are outside
+  this ledger checkpoint and were preserved; the lineage above is `origin/main`, not those artifacts.
