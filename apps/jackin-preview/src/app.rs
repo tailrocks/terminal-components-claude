@@ -426,6 +426,40 @@ impl App {
             .variant(Variant::PRIMARY)
     }
 
+    fn account_start_button() -> Button<'static> {
+        Button::new(crate::screens::accounts::START, "New account").variant(Variant::PRIMARY)
+    }
+
+    fn account_agent_button() -> Button<'static> {
+        Button::new(crate::screens::accounts::AGENT, "Claude Code").checked(true)
+    }
+
+    fn account_save_button() -> Button<'static> {
+        Button::new(crate::screens::accounts::SAVE, "Save account").variant(Variant::PRIMARY)
+    }
+
+    fn editor_save_button() -> Button<'static> {
+        Button::new(crate::screens::editor::SAVE, "Save workspace").variant(Variant::PRIMARY)
+    }
+
+    fn prelude_continue_button() -> Button<'static> {
+        Button::new(crate::screens::prelude::CONTINUE, "Continue").variant(Variant::PRIMARY)
+    }
+
+    fn account_name_input() -> TextInput<'static> {
+        TextInput::new(crate::screens::accounts::NAME).placeholder("Display name")
+    }
+
+    fn account_folder_input() -> TextInput<'static> {
+        TextInput::new(crate::screens::accounts::FOLDER).placeholder("Local agent folder")
+    }
+
+    fn account_secret_input() -> TextInput<'static> {
+        TextInput::new(crate::screens::accounts::SECRET)
+            .placeholder("API key")
+            .secret(SecretPolicy::default())
+    }
+
     fn role_picker() -> Picker<'static, RoleOption> {
         Picker::new(ROLE_PICKER).title("Choose a role")
     }
@@ -819,9 +853,7 @@ impl App {
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.accounts.form_open {
             if !self.accounts.started {
-                let start = Button::new(crate::screens::accounts::START, "New account")
-                    .variant(Variant::PRIMARY)
-                    .update(cx);
+                let start = Self::account_start_button().update(cx);
                 let chosen = start.activated();
                 let mut result = start.erase();
                 if chosen {
@@ -832,21 +864,17 @@ impl App {
                 return result;
             }
 
-            let name = TextInput::new(crate::screens::accounts::NAME)
-                .placeholder("Display name")
-                .update(
-                    cx,
-                    &mut self.accounts.name_input,
-                    &mut self.accounts.draft_name,
-                );
+            let name = Self::account_name_input().update(
+                cx,
+                &mut self.accounts.name_input,
+                &mut self.accounts.draft_name,
+            );
             let mut result = name.erase();
 
             // Keep the agent choice explicit in the tab order.  The current
             // account flow registers the provider for a selected agent, so a
             // public button is preferable to an implicit/raw form field.
-            let agent = Button::new(crate::screens::accounts::AGENT, "Claude Code")
-                .checked(true)
-                .update(cx);
+            let agent = Self::account_agent_button().update(cx);
             result |= agent.erase();
 
             let provider_rows = vec![
@@ -903,32 +931,25 @@ impl App {
 
             match self.accounts.source_index {
                 1 => {
-                    let folder = TextInput::new(crate::screens::accounts::FOLDER)
-                        .placeholder("Local agent folder")
-                        .update(
-                            cx,
-                            &mut self.accounts.folder_input,
-                            &mut self.accounts.masked_input,
-                        );
+                    let folder = Self::account_folder_input().update(
+                        cx,
+                        &mut self.accounts.folder_input,
+                        &mut self.accounts.masked_input,
+                    );
                     result |= folder.erase();
                 }
                 2 => {
-                    let secret = TextInput::new(crate::screens::accounts::SECRET)
-                        .placeholder("API key")
-                        .secret(SecretPolicy::default())
-                        .update(
-                            cx,
-                            &mut self.accounts.secret_input,
-                            &mut self.accounts.masked_input,
-                        );
+                    let secret = Self::account_secret_input().update(
+                        cx,
+                        &mut self.accounts.secret_input,
+                        &mut self.accounts.masked_input,
+                    );
                     result |= secret.erase();
                 }
                 _ => {}
             }
 
-            let save = Button::new(crate::screens::accounts::SAVE, "Save account")
-                .variant(Variant::PRIMARY)
-                .update(cx);
+            let save = Self::account_save_button().update(cx);
             let save_chosen = save.activated();
             result |= save.erase();
             if save_chosen {
@@ -1102,9 +1123,7 @@ impl App {
     }
 
     fn update_prelude(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let continue_button = Button::new(crate::screens::prelude::CONTINUE, "Continue")
-            .variant(Variant::PRIMARY)
-            .update(cx);
+        let continue_button = Self::prelude_continue_button().update(cx);
         let chosen = continue_button.activated();
         let mut result = continue_button.erase();
         if chosen {
@@ -1134,9 +1153,7 @@ impl App {
     }
 
     fn update_editor(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let save = Button::new(crate::screens::editor::SAVE, "Save workspace")
-            .variant(Variant::PRIMARY)
-            .update(cx);
+        let save = Self::editor_save_button().update(cx);
         let chosen = save.activated();
         let mut result = save.erase();
         if chosen {
@@ -1713,12 +1730,10 @@ impl App {
             ],
         };
         paint_lines(ui, area, &lines);
-        Button::new(crate::screens::prelude::CONTINUE, "Continue")
-            .variant(Variant::PRIMARY)
-            .draw(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 14, 1),
-            );
+        Self::prelude_continue_button().draw(
+            ui,
+            Rect::new(area.x, area.bottom().saturating_sub(1), 14, 1),
+        );
     }
 
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -1750,12 +1765,10 @@ impl App {
             ),
         ];
         paint_lines(ui, area, &lines);
-        Button::new(crate::screens::editor::SAVE, "Save workspace")
-            .variant(Variant::PRIMARY)
-            .draw(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-            );
+        Self::editor_save_button().draw(
+            ui,
+            Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+        );
     }
 
     fn draw_handoff(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -1857,8 +1870,7 @@ impl App {
                         "Register a provider account without storing secret material.",
                     ],
                 );
-                Button::new(crate::screens::accounts::START, "New account")
-                    .variant(Variant::PRIMARY)
+                Self::account_start_button()
                     .draw(ui, Rect::new(area.x, area.y.saturating_add(3), 18, 1));
                 return;
             }
@@ -1870,9 +1882,8 @@ impl App {
                     "Name · provider · credential source",
                 ],
             );
-            TextInput::new(crate::screens::accounts::NAME)
+            Self::account_name_input()
                 .value(&self.accounts.draft_name)
-                .placeholder("Display name")
                 .draw(
                     ui,
                     Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
@@ -1883,12 +1894,10 @@ impl App {
                 "Agent · Claude Code",
                 ui.surface_style(),
             );
-            Button::new(crate::screens::accounts::AGENT, "Claude Code")
-                .checked(true)
-                .draw(
-                    ui,
-                    Rect::new(area.x, area.y.saturating_add(5), area.width.min(28), 1),
-                );
+            Self::account_agent_button().draw(
+                ui,
+                Rect::new(area.x, area.y.saturating_add(5), area.width.min(28), 1),
+            );
             List::new(crate::screens::accounts::PROVIDER).draw(
                 ui,
                 Rect::new(area.x, area.y.saturating_add(6), area.width.min(34), 4),
@@ -1920,9 +1929,8 @@ impl App {
                     .draw(ui, Rect::new(area.x, input_y, area.width.min(38), 1));
                 }
                 1 => {
-                    TextInput::new(crate::screens::accounts::FOLDER)
+                    Self::account_folder_input()
                         .value(&self.accounts.masked_input)
-                        .placeholder("Local agent folder")
                         .draw(
                             ui,
                             Rect::new(area.x, input_y, area.width, 1),
@@ -1930,10 +1938,8 @@ impl App {
                         );
                 }
                 2 => {
-                    TextInput::new(crate::screens::accounts::SECRET)
+                    Self::account_secret_input()
                         .value(&self.accounts.masked_input)
-                        .placeholder("API key")
-                        .secret(SecretPolicy::default())
                         .draw(
                             ui,
                             Rect::new(area.x, input_y, area.width, 1),
@@ -1965,12 +1971,10 @@ impl App {
                     }
                 }
             }
-            Button::new(crate::screens::accounts::SAVE, "Save account")
-                .variant(Variant::PRIMARY)
-                .draw(
-                    ui,
-                    Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-                );
+            Self::account_save_button().draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
             return;
         }
         let rows = self.account_rows();
