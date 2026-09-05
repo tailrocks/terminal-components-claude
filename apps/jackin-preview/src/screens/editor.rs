@@ -3,7 +3,7 @@
 use junie_tui::Id;
 
 use crate::domain::account::{AccountId, AccountRegistry};
-use crate::domain::workspace::{AccountPolicy, EffectiveAccount, Mount, Workspace};
+use crate::domain::workspace::{AccountPolicy, EffectiveAccount, EnvVar, Mount, Workspace};
 
 /// Editor root.
 pub const ROOT: Id = Id::root("jackin.editor");
@@ -42,7 +42,6 @@ pub struct EditorState {
     pub tab: Tab,
     pub dirty: bool,
     pub preview_open: bool,
-    pub env_visible: bool,
     pub env_form_open: bool,
     pub env_key: String,
     pub env_value: String,
@@ -74,6 +73,8 @@ pub struct PendingWorkspace {
     pub workdir: String,
     /// Mount rows.
     pub mounts: Vec<Mount>,
+    /// Workspace environment draft. Persisted only after the editor save job succeeds.
+    pub env: Vec<EnvVar>,
     /// Account activation policy.
     pub accounts: AccountPolicy,
 }
@@ -87,6 +88,7 @@ impl Default for PendingWorkspace {
                 "/Users/alexey/src/payments-platform",
                 "/Users/alexey/src/payments-platform",
             )],
+            env: vec![],
             accounts: AccountPolicy::default(),
         }
     }

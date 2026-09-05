@@ -456,7 +456,7 @@ fn editor_edits_count_once_preview_then_saves_and_returns() {
 }
 
 #[test]
-fn editor_env_plain_value_stays_masked_and_can_be_shown() {
+fn editor_env_plain_value_stays_masked() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Down);
     h.key(KeyCode::Char('e'));
@@ -466,10 +466,14 @@ fn editor_env_plain_value_stays_masked_and_can_be_shown() {
     assert!(t.contains("DATABASE_URL"));
     assert!(!t.contains("pw-fixture-only"), "plain value leaked: {t}");
     h.key(KeyCode::Char('m'));
-    assert!(h.text().contains("postgres://"), "{}", h.text());
-    assert!(h.text().contains("plain · shown"));
-    h.key(KeyCode::Char('m'));
-    assert!(!h.text().contains("pw-fixture-only"));
+    assert_eq!(h.app().route(), Route::Editor);
+    assert!(!h.text().contains("postgres://"), "{}", h.text());
+    assert!(!h.text().contains("pw-fixture-only"), "{}", h.text());
+    assert!(
+        h.text().contains("plain values stay masked"),
+        "{}",
+        h.text()
+    );
     // add a variable through the form
     h.key(KeyCode::Char('a'));
     assert!(
@@ -492,12 +496,75 @@ fn editor_env_plain_value_stays_masked_and_can_be_shown() {
     assert!(t.contains("************1234"), "{t}");
     assert!(!t.contains("abcdefghijklmnop"));
     assert!(t.contains("• 1 change"), "{t}");
+    assert!(
+        h.app()
+            .world
+            .workspace(1)
+            .unwrap()
+            .env
+            .iter()
+            .all(|env| env.key != "NEW_SECRET"),
+        "draft environment leaked before workspace save: {t}"
+    );
+    h.ctrl('s');
+    h.tab_to(junie_tui::Id::root("editor.cfg").sub("form").sub("save"));
+    h.key(KeyCode::Enter);
+    h.ticks(20);
+    assert_eq!(h.app().route(), Route::Manager, "{}", h.text());
+    assert!(
+        h.app()
+            .world
+            .workspace(1)
+            .unwrap()
+            .env
+            .iter()
+            .any(|env| env.key == "NEW_SECRET"),
+        "saved environment draft was not committed: {}",
+        h.text()
+    );
 }
 
 /// §16.4's stable name for the controlled secret draft journey.
 #[test]
 fn form_dialog_toggles_visibility_and_keeps_drafts() {
-    editor_env_plain_value_stays_masked_and_can_be_shown();
+    editor_env_plain_value_stays_masked();
+}
+
+#[test]
+fn editor_env_rejects_invalid_key_before_staging() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char('4'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char('a'));
+    h.key(KeyCode::Enter);
+    h.type_str("BAD-NAME");
+    h.tab_to(junie_tui::Id::root("editor.cfg").sub("form").sub("save"));
+    h.key(KeyCode::Enter);
+    assert!(h.app().editor.env_form_open);
+    assert!(
+        h.text().contains("letters, digits and underscores"),
+        "{}",
+        h.text()
+    );
+    assert!(
+        h.app()
+            .editor
+            .pending
+            .env
+            .iter()
+            .all(|env| env.key != "BAD-NAME")
+    );
+    assert!(
+        h.app()
+            .world
+            .workspace(1)
+            .unwrap()
+            .env
+            .iter()
+            .all(|env| env.key != "BAD-NAME")
+    );
 }
 
 #[test]

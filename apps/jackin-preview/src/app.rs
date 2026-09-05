@@ -17,7 +17,7 @@ use crate::domain::account::{
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
-use crate::domain::workspace::{EnvValue, EnvVar, mask};
+use crate::domain::workspace::{EnvValue, EnvVar, env_key_error, mask};
 use crate::rain::{
     HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
 };
@@ -1314,10 +1314,11 @@ impl App {
             result |= save.erase();
             if save_chosen {
                 let key = self.editor.env_key.trim();
-                if key.is_empty() {
-                    self.status = Some("Environment key is required".into());
-                } else if let Some(workspace) = self.world.workspaces.first_mut() {
-                    workspace
+                if let Some(error) = env_key_error(key) {
+                    self.status = Some(error);
+                } else {
+                    self.editor
+                        .pending
                         .env
                         .push(EnvVar::plain(key, &self.editor.env_value));
                     self.editor.env_form_open = false;
@@ -1465,7 +1466,7 @@ impl App {
                 if self.route == Route::Editor
                     && self.editor.tab == crate::screens::editor::Tab::Environments =>
             {
-                self.editor.env_visible = !self.editor.env_visible;
+                self.status = Some("Plain values stay masked · a add variable".into());
                 Some(Response::changed())
             }
             CMD_MANAGER => {
@@ -1595,6 +1596,9 @@ impl App {
             CMD_EDITOR_OPEN if self.route == Route::Manager => {
                 self.route = Route::Editor;
                 self.editor = EditorState::default();
+                if let Some(workspace) = self.world.workspaces.first() {
+                    self.editor.pending.env = workspace.env.clone();
+                }
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -1697,7 +1701,6 @@ impl App {
             }
             CMD_EDITOR_ENV if self.route == Route::Editor => {
                 self.editor.tab = crate::screens::editor::Tab::Environments;
-                self.editor.env_visible = false;
                 Some(Response::changed())
             }
             CMD_EDITOR_PREVIOUS if self.route == Route::Editor => {
@@ -1739,14 +1742,21 @@ impl App {
                         format!("Workspace {id} save failed")
                     });
                     if ok && self.route == Route::Editor {
-                        if self.world.workspaces.is_empty() {
-                            self.world
-                                .workspaces
-                                .push(crate::domain::workspace::Workspace::new(
-                                    id,
-                                    self.prelude.name(),
-                                    "/Users/alexey/src/new-workspace",
-                                ));
+                        if let Some(workspace) = self
+                            .world
+                            .workspaces
+                            .iter_mut()
+                            .find(|workspace| workspace.id == id)
+                        {
+                            workspace.env = self.editor.pending.env.clone();
+                        } else {
+                            let mut workspace = crate::domain::workspace::Workspace::new(
+                                id,
+                                self.prelude.name(),
+                                "/Users/alexey/src/new-workspace",
+                            );
+                            workspace.env = self.editor.pending.env.clone();
+                            self.world.workspaces.push(workspace);
                         }
                         self.manager_rows_cache.clear();
                         self.route = Route::Manager;
@@ -1992,27 +2002,15 @@ impl App {
                 },
                 workspace
             )];
-            if let Some(workspace) = self.world.workspaces.first() {
-                for env in &workspace.env {
-                    let (value, source): (String, &str) = match &env.value {
-                        EnvValue::Plain(value) => {
-                            if self.editor.env_visible {
-                                (value.clone(), "plain · shown")
-                            } else {
-                                (mask(value), "plain")
-                            }
-                        }
-                        EnvValue::OnePassword(reference) => (reference.display_path(), "1Password"),
-                        EnvValue::HostEnv(host) => (host.clone(), "host env"),
-                    };
-                    lines.push(format!("{} · {value} · {source}", env.key));
-                }
+            for env in &self.editor.pending.env {
+                let (value, source): (String, &str) = match &env.value {
+                    EnvValue::Plain(value) => (mask(value), "plain"),
+                    EnvValue::OnePassword(reference) => (reference.display_path(), "1Password"),
+                    EnvValue::HostEnv(host) => (host.clone(), "host env"),
+                };
+                lines.push(format!("{} · {value} · {source}", env.key));
             }
-            lines.push(if self.editor.env_visible {
-                "m hide plain values · a add variable".to_owned()
-            } else {
-                "m show plain values · a add variable".to_owned()
-            });
+            lines.push("m plain values stay masked · a add variable".to_owned());
             paint_lines(ui, area, &lines);
             Self::editor_save_button().draw(
                 ui,

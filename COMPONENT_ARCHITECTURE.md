@@ -1408,7 +1408,7 @@ impl TextEditorCore {
     pub fn apply(&mut self, a: EditAction) -> EditOutcome;   // the only mutation entry point
     pub fn selection(&self) -> Option<Range<usize>>;
     pub fn cursor_pos(&self) -> CursorPos;
-    pub fn zeroize(&mut self);                                // overwrites bytes before drop
+    pub fn zeroize(&mut self);                                // best-effort overwrite under safe-Rust MA-13
 }
 
 // Explicit lifecycle. `render` is not in this list, and cannot be.
@@ -1416,6 +1416,7 @@ pub enum EditPhase { Idle, Editing }
 pub enum BlurPolicy { CommitAndValidate, Commit, Cancel, Keep }
 pub struct EditLifecycle { pub blur: BlurPolicy }
 impl TextInputState {
+    pub fn sensitive() -> Self;                               // direct secret-String lifecycle path
     pub fn is_editing(&self) -> bool;
     pub fn begin(&mut self, current: &str);
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError>;
@@ -1423,6 +1424,11 @@ impl TextInputState {
     pub fn blur(&mut self, value: &mut String, v: &impl Validate, p: BlurPolicy) -> Result<(), FieldError>;
     pub fn set_error(&mut self, e: Option<FieldError>);       // external / async validation
 }
+impl TextAreaState {
+    pub fn sensitive() -> Self;                               // direct secret-String lifecycle path
+}
+// `Default` is plain-only for direct lifecycle calls; use `sensitive()` before
+// `begin` can copy secret text. Normal control updates establish sensitivity first.
 
 // Validation: a trait with a blanket closure impl. No fn pointers anywhere.
 pub trait Validate { fn check(&self, s: &str) -> Result<(), FieldError>; }
@@ -1434,9 +1440,9 @@ pub struct FieldError { pub message: Cow<'static, str>, pub code: Option<&'stati
 pub struct Secret(String);
 impl Secret {
     pub fn new(s: String) -> Self;
-    pub fn expose(&self) -> &str;                             // deliberately verbose
+    pub(crate) fn expose(&self) -> &str;                      // crate-internal raw access only
     pub fn fingerprint(&self) -> [u8; 8];
-    pub fn write_mask(&self, out: &mut CellUi<'_>, n: usize); // SYNTHETIC tail, never the real one; writes cells, no String (P5)
+    pub fn write_mask(&self, out: &mut CellUi<'_>, n: usize, policy: SecretPolicy); // SYNTHETIC tail, never the real one; writes cells, no String (P5)
     pub fn zeroize(&mut self);
 }
 impl fmt::Debug   for Secret { /* "Secret([redacted])" */ }
@@ -1468,7 +1474,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
 }
 ```
 
-**Decisions.** `Field<C>` owns label (`*` required, `optional` suffix), help/error row, gutter and height (never focus registration, which stays with the control — §21 item 7) — deleting the per-control re-implementations and the `plain_label` flag, and deleting TextInput height arithmetic/Select height arithmetic/`RadioGroup::height()` arithmetic from three apps. Values are **controlled** (`&mut String`), so the "rebuild the widget to change its value" idiom (five sites) disappears. Blur is an explicit intent-driven transition with a per-control policy (`CommitAndValidate` for `TextInput`, `Commit` for `TextArea`/`CodeEditor`, `Cancel` where a dialog demands it) — removing all five render-time commits. `RadioGroup` separates cursor from value. Masked fields render a synthetic tail, never the real characters (the safety property moves from jackin into the library, closing **[F]** API §5 item 13). Manual `Debug` impls redact on `TextInput`, `TextInputState`, `Field`, `Dialog`, `Form`, `EditState`, `TextEditorCore`; `conformance::secret_never_appears_in_debug` asserts it. `TextEditorCore::zeroize` overwrites before drop. <!-- amended by §25 MA‑13 --> `Secret::zeroize` / `TextEditorCore::zeroize` fill the bytes and then `core::hint::black_box(&bytes)` + `compiler_fence(Ordering::SeqCst)` so the stores are not elided, under `#![forbid(unsafe_code)]`; the property tested in safe Rust (`text::zeroize_overwrites_before_drop`) is that the capacity is released and a fresh `expose()` is empty, and the compiler-elision risk is recorded in the code as a known limit of safe-Rust zeroization.
+**Decisions.** `Field<C>` owns label (`*` required, `optional` suffix), help/error row, gutter and height (never focus registration, which stays with the control — §21 item 7) — deleting the per-control re-implementations and the `plain_label` flag, and deleting TextInput height arithmetic/Select height arithmetic/`RadioGroup::height()` arithmetic from three apps. Values are **controlled** (`&mut String`), so the "rebuild the widget to change its value" idiom (five sites) disappears. Blur is an explicit intent-driven transition with a per-control policy (`CommitAndValidate` for `TextInput`, `Commit` for `TextArea`/`CodeEditor`, `Cancel` where a dialog demands it) — removing all five render-time commits. `RadioGroup` separates cursor from value. Masked fields render a synthetic tail, never the real characters (the safety property moves from jackin into the library, closing **[F]** API §5 item 13). Manual `Debug` impls redact on `TextInput`, `TextInputState`, `Field`, `Dialog`, `Form`, `EditState`, `TextEditorCore`; `conformance::secret_never_appears_in_debug` asserts it. `TextEditorCore::zeroize` and `Secret::zeroize` attempt to overwrite before drop. <!-- amended by §25 MA‑13 --> They fill the bytes and then use `core::hint::black_box(&bytes)` + `compiler_fence(Ordering::SeqCst)` so the stores are not elided, under `#![forbid(unsafe_code)]`; the property tested in safe Rust (`text::zeroize_overwrites_before_drop`) is that the capacity is released and a fresh `expose()` is empty. Compiler-elision risk remains a known limit: safe-Rust zeroization is best-effort under MA-13.
 
 ### 15.1 `Form` — the declared-field form component (Adjudication K, K1)
 
