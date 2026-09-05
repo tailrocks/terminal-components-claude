@@ -1,5 +1,7 @@
 //! Workspace editor state and public control ids.
 
+use core::{fmt, mem};
+
 use junie_tui::Id;
 
 use crate::domain::account::{AccountId, AccountRegistry};
@@ -37,7 +39,7 @@ pub enum Tab {
 }
 
 /// Durable editor state.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(PartialEq, Eq, Default)]
 pub struct EditorState {
     pub tab: Tab,
     pub dirty: bool,
@@ -51,6 +53,48 @@ pub struct EditorState {
     pub pending: PendingWorkspace,
 }
 
+impl Clone for EditorState {
+    fn clone(&self) -> Self {
+        Self {
+            tab: self.tab,
+            dirty: self.dirty,
+            preview_open: self.preview_open,
+            env_form_open: self.env_form_open,
+            env_key: self.env_key.clone(),
+            // A cloned editor is a safe snapshot, not a continuation that
+            // copies an in-flight environment secret.
+            env_value: String::new(),
+            env_key_input: self.env_key_input.clone(),
+            env_value_input: junie_tui::TextInputState::sensitive(),
+            pending: self.pending.clone(),
+        }
+    }
+}
+
+impl fmt::Debug for EditorState {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EditorState")
+            .field("tab", &self.tab)
+            .field("dirty", &self.dirty)
+            .field("preview_open", &self.preview_open)
+            .field("env_form_open", &self.env_form_open)
+            .field("env_key", &self.env_key)
+            .field("env_value", &"[redacted]")
+            .field("env_key_input", &self.env_key_input)
+            .field("env_value_input", &self.env_value_input)
+            .field("pending", &self.pending)
+            .finish()
+    }
+}
+
+impl Drop for EditorState {
+    fn drop(&mut self) {
+        self.env_value_input.zeroize();
+        wipe_string(&mut self.env_value);
+    }
+}
+
 impl EditorState {
     /// Select a tab by one-based fixture index.
     pub const fn select_index(&mut self, index: u8) {
@@ -62,6 +106,39 @@ impl EditorState {
             _ => Tab::General,
         };
     }
+
+    /// Open a fresh environment-variable form, dropping any previous input.
+    pub(crate) fn open_env_form(&mut self) {
+        self.clear_env_form();
+        self.env_form_open = true;
+    }
+
+    /// Cancel and clear all transient environment-variable input.
+    pub(crate) fn clear_env_form(&mut self) {
+        self.env_form_open = false;
+        self.env_key.clear();
+        self.env_key_input = junie_tui::TextInputState::default();
+        self.env_value_input.zeroize();
+        self.env_value_input = junie_tui::TextInputState::default();
+        wipe_string(&mut self.env_value);
+    }
+
+    /// Drop the transient value while retaining the rest of the form.
+    pub(crate) fn discard_env_value(&mut self) {
+        self.env_value_input.zeroize();
+        wipe_string(&mut self.env_value);
+    }
+
+    /// Move the committed transient value into its durable draft owner.
+    pub(crate) fn take_env_value(&mut self) -> String {
+        self.env_value_input.zeroize();
+        mem::take(&mut self.env_value)
+    }
+}
+
+fn wipe_string(value: &mut String) {
+    let mut secret = junie_tui::Secret::new(mem::take(value));
+    secret.zeroize();
 }
 
 /// Workspace draft owned by the editor route.
@@ -106,5 +183,41 @@ impl PendingWorkspace {
     /// Set a proposed account as enabled in this workspace.
     pub fn enable_account(&mut self, id: impl Into<AccountId>) {
         self.accounts.enabled.insert(id.into());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn debug_and_clone_redact_transient_environment_value() {
+        let mut state = EditorState::default();
+        state.env_form_open = true;
+        state.env_key = "DATABASE_URL".into();
+        state.env_value = "pw-fixture-only".into();
+
+        let debug = format!("{state:?}");
+        assert!(debug.contains("[redacted]"));
+        assert!(!debug.contains("pw-fixture-only"));
+
+        let snapshot = state.clone();
+        assert!(snapshot.env_value.is_empty());
+        assert_eq!(snapshot.env_key, "DATABASE_URL");
+    }
+
+    #[test]
+    fn clearing_environment_form_zeroizes_transient_input() {
+        let mut state = EditorState::default();
+        state.open_env_form();
+        state.env_value = "transient-secret".into();
+        state.env_value_input = junie_tui::TextInputState::sensitive();
+        state.env_value_input.begin("transient-secret");
+
+        state.clear_env_form();
+
+        assert!(!state.env_form_open);
+        assert!(state.env_value.is_empty());
+        assert!(!state.env_value_input.is_editing());
     }
 }

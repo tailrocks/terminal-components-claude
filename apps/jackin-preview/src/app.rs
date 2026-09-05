@@ -3,13 +3,13 @@
 //! This module owns only interaction state and paints through `tui-next`'s
 //! public facade.  Domain and simulation state stay in sibling modules.
 
-use std::time::Duration;
+use std::{mem, time::Duration};
 
 use junie_tui::{
     ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction, DialogState,
     FrameRead, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
     ListAction, ListState, Panel, Picker, PickerAction, PickerState, Rect, Response, SecretPolicy,
-    Tabs, TabsState, TextInput, TextInputState, TooSmall, Ui, UpdateCause, Variant,
+    Tabs, TabsState, TextAction, TextInput, TextInputState, TooSmall, Ui, UpdateCause, Variant,
 };
 
 use crate::domain::account::{
@@ -237,6 +237,7 @@ pub struct App {
     roles: Vec<RoleOption>,
     account_options: Vec<AccountOption>,
     op_options: Vec<AccountOption>,
+    op_item_key: String,
     picker_mode: Option<PickerMode>,
     selected_role: usize,
     launch: Option<LaunchRun>,
@@ -359,6 +360,7 @@ impl App {
             roles,
             account_options,
             op_options: Vec::new(),
+            op_item_key: String::new(),
             picker_mode: None,
             selected_role,
             launch,
@@ -516,6 +518,15 @@ impl App {
         Picker::new(ACCOUNT_PICKER).title("Choose a configured account")
     }
 
+    fn active_account_picker(&self) -> Picker<'static, AccountOption> {
+        match self.picker_mode {
+            Some(PickerMode::OnePassword) => {
+                Self::account_picker().title("Choose 1Password account")
+            }
+            _ => Self::account_picker(),
+        }
+    }
+
     fn shell_panel<'a>(meta: &'a str) -> Panel<'a> {
         Panel::new(APP).title("Jackin Preview").meta(meta)
     }
@@ -645,6 +656,7 @@ impl App {
     fn open_op_picker(&mut self, cx: &mut Cx<'_>) {
         self.accounts.op_stage = 0;
         self.accounts.op_item.clear();
+        self.op_item_key.clear();
         self.accounts.selected_op = None;
         self.picker_mode = Some(PickerMode::OnePassword);
         self.account_state = PickerState::default();
@@ -774,14 +786,19 @@ impl App {
             result |= Response::changed();
         }
 
-        let picker = Self::account_picker();
+        let picker = self.active_account_picker();
+        let response = match self.picker_mode {
+            Some(PickerMode::OnePassword) => {
+                picker.update(cx, &mut self.account_state, &self.op_options)
+            }
+            _ => picker.update(cx, &mut self.account_state, &self.account_options),
+        };
+        let action = response.action_ref().copied();
+        result |= response.erase();
         let picker_items = match self.picker_mode {
             Some(PickerMode::OnePassword) => &self.op_options,
             _ => &self.account_options,
         };
-        let response = picker.update(cx, &mut self.account_state, picker_items);
-        let action = response.action_ref().copied();
-        result |= response.erase();
         if cx.is_open(ACCOUNT_PICKER)
             && let Some(PickerAction::Chosen(key)) = action
             && let Some(account) = picker_items
@@ -801,24 +818,17 @@ impl App {
                     }
                     2 => {
                         self.accounts.op_item = account.label.clone();
+                        self.op_item_key = account.key.clone();
                         self.set_op_stage(3);
                         self.status = Some(account.label.clone());
                     }
                     _ => {
                         let item = self.accounts.op_item.clone();
-                        let title = item
-                            .split_once(" · ")
-                            .map_or(item.as_str(), |(_, name)| name);
+                        let item_key = self.op_item_key.clone();
                         if let Ok(reference) = self.world.op.reference(
                             "chainargos.1password.com",
                             "Engineering",
-                            match title {
-                                "Anthropic · Work" | "Work" => "it_ant01",
-                                "OpenAI · Codex Primary" | "Codex Primary" => "it_cdx01",
-                                "OpenAI · Throttled sandbox" | "Throttled sandbox" => "it_thr01",
-                                "xAI · Grok Team" | "Grok Team" => "it_grk01",
-                                _ => "it_ocg01",
-                            },
+                            &item_key,
                             "credential",
                         ) {
                             self.accounts.selected_op = Some(reference.clone());
@@ -837,6 +847,9 @@ impl App {
                 }
             }
             result |= Response::changed();
+        }
+        if !cx.is_open(ACCOUNT_PICKER) {
+            self.picker_mode = None;
         }
         result
     }
@@ -1278,6 +1291,9 @@ impl App {
                 &mut self.editor.env_key_input,
                 &mut self.editor.env_key,
             );
+            let key_cancelled = key
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Cancelled);
             let mut result = key.erase();
             if Self::rearm_text_input(
                 key_rearm,
@@ -1300,7 +1316,13 @@ impl App {
                 &mut self.editor.env_value_input,
                 &mut self.editor.env_value,
             );
+            let value_cancelled = value
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Cancelled);
             result |= value.erase();
+            if key_cancelled || value_cancelled {
+                self.editor.discard_env_value();
+            }
             if Self::rearm_text_input(
                 value_rearm,
                 &mut self.editor.env_value_input,
@@ -1313,17 +1335,19 @@ impl App {
             let save_chosen = save.activated();
             result |= save.erase();
             if save_chosen {
-                let key = self.editor.env_key.trim();
-                if let Some(error) = env_key_error(key) {
+                let key = self.editor.env_key.trim().to_owned();
+                if let Some(error) = env_key_error(&key) {
                     self.status = Some(error);
                 } else {
-                    self.editor
-                        .pending
-                        .env
-                        .push(EnvVar::plain(key, &self.editor.env_value));
-                    self.editor.env_form_open = false;
+                    let status = format!("Added environment variable {key}");
+                    let value = self.editor.take_env_value();
+                    self.editor.pending.env.push(EnvVar {
+                        key,
+                        value: EnvValue::Plain(value),
+                    });
+                    self.editor.clear_env_form();
                     self.editor.dirty = true;
-                    self.status = Some(format!("Added environment variable {key}"));
+                    self.status = Some(status);
                     result |= Response::changed();
                 }
             }
@@ -1487,17 +1511,14 @@ impl App {
                 if self.route == Route::Editor
                     && self.editor.tab == crate::screens::editor::Tab::Environments =>
             {
-                self.editor.env_form_open = true;
-                self.editor.env_key.clear();
-                self.editor.env_value.clear();
-                self.editor.env_key_input = TextInputState::default();
-                self.editor.env_value_input = TextInputState::default();
+                self.editor.open_env_form();
                 cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
             CMD_ACCOUNTS => {
                 if self.route == Route::Accounts {
                     self.accounts.open_new();
+                    self.op_item_key.clear();
                     cx.focus(crate::screens::accounts::START);
                 } else {
                     self.route = Route::Accounts;
@@ -1748,14 +1769,14 @@ impl App {
                             .iter_mut()
                             .find(|workspace| workspace.id == id)
                         {
-                            workspace.env = self.editor.pending.env.clone();
+                            workspace.env = mem::take(&mut self.editor.pending.env);
                         } else {
                             let mut workspace = crate::domain::workspace::Workspace::new(
                                 id,
                                 self.prelude.name(),
                                 "/Users/alexey/src/new-workspace",
                             );
-                            workspace.env = self.editor.pending.env.clone();
+                            workspace.env = mem::take(&mut self.editor.pending.env);
                             self.world.workspaces.push(workspace);
                         }
                         self.manager_rows_cache.clear();
@@ -2447,12 +2468,7 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let account_picker = match self.picker_mode {
-            Some(PickerMode::OnePassword) => {
-                Self::account_picker().title("Choose 1Password account")
-            }
-            _ => Self::account_picker(),
-        };
+        let account_picker = self.active_account_picker();
         let account_items = match self.picker_mode {
             Some(PickerMode::OnePassword) => &self.op_options,
             _ => &self.account_options,
@@ -2615,6 +2631,10 @@ impl TuiApp for App {
             return Response::changed();
         }
         if self.route == Route::Editor {
+            if self.editor.env_form_open {
+                self.editor.clear_env_form();
+                return Response::changed();
+            }
             if self.editor.dirty {
                 self.status = Some("Save changes before leaving?".into());
             } else {

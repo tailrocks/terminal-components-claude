@@ -3,7 +3,7 @@
 //! instance records and live daemon snapshots.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt;
+use std::{fmt, mem};
 
 use super::account::{AccountId, AccountRegistry, Lifecycle};
 use super::agent::Provider;
@@ -524,7 +524,16 @@ impl fmt::Debug for EnvValue {
         match self {
             Self::Plain(_) => formatter.write_str("Plain([redacted])"),
             Self::OnePassword(_) => formatter.write_str("OnePassword([redacted])"),
-            Self::HostEnv(host) => formatter.debug_tuple("HostEnv").field(host).finish(),
+            Self::HostEnv(_) => formatter.write_str("HostEnv([redacted])"),
+        }
+    }
+}
+
+impl Drop for EnvValue {
+    fn drop(&mut self) {
+        if let Self::Plain(value) = self {
+            let mut secret = junie_tui::Secret::new(mem::take(value));
+            secret.zeroize();
         }
     }
 }
@@ -614,6 +623,26 @@ mod tests {
         let debug = format!("{value:?}");
         assert!(debug.contains("redacted"));
         assert!(!debug.contains("pw-fixture-only"));
+
+        let host = EnvVar::host("API_KEY", "HOST_SECRET");
+        let debug = format!("{host:?}");
+        assert!(debug.contains("redacted"));
+        assert!(!debug.contains("HOST_SECRET"));
+
+        let reference = super::super::onepassword::OpReference {
+            account: "account-secret".into(),
+            vault_id: "vault-secret".into(),
+            vault_name: "vault-secret".into(),
+            item_id: "item-secret".into(),
+            item_title: "item-secret".into(),
+            section: None,
+            field_id: "field-secret".into(),
+            field_label: "field-secret".into(),
+        };
+        let value = EnvVar::op("API_KEY", reference);
+        let debug = format!("{value:?}");
+        assert!(debug.contains("redacted"));
+        assert!(!debug.contains("item-secret"));
     }
 
     #[test]
