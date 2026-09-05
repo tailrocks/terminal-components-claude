@@ -611,6 +611,40 @@ mod tests {
     }
 
     #[test]
+    fn pressed_button_stays_inside_narrow_clip_bounds() {
+        const LABEL: &str = "Full width";
+        let screen = Rect::new(0, 0, 16, 1);
+        let component_x = 4;
+
+        for width in [0, 1, 2] {
+            let area = Rect::new(component_x, 0, width, 1);
+            let mut runtime =
+                Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
+            let mut buffer = Buffer::empty(screen);
+            let before = buffer.clone();
+            runtime.draw_scene(screen, &mut buffer, |ui, _| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        BUTTON,
+                        crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| Button::new(BUTTON, LABEL).draw(ui, area),
+                );
+            });
+
+            for x in 0..screen.width {
+                if x < area.x || x >= area.right() {
+                    assert_eq!(
+                        buffer.cell(Position::new(x, 0)),
+                        before.cell(Position::new(x, 0)),
+                        "pressed button wrote outside {area:?} at x={x}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn readiness_owns_one_leading_lane_and_keeps_the_toggle_marker() {
         assert!(Button::PARTS.contains(&Part::ICON));
         assert_eq!(draw_status(None), draw_status(Some(Status::Ready)));

@@ -31,11 +31,11 @@
 )]
 
 use junie_tui::{
-    Action, ActionKey, App, Brand, Button, CellPos, CellRef, Checkbox, ChipBar, ChipBarState,
-    Chord, CodeEditor, CodeEditorState, ColorLevel, Column, ColumnKey, Completion, CompletionState,
-    ContextMenu, Cx, Dialog, DialogState, DiffLineKind, DiffRow, DiffSource, DiffView,
-    DiffViewState, Empty, EmptyState, Family, Field, FieldKind, FieldMut, FieldRef, FieldSpec,
-    FilterList, FilterListState, Form, FormData, FormState, Grid, GridModel, GridState,
+    Action, ActionKey, App, Brand, Button, CellPos, CellRef, Checkbox, ChipBar, ChipBarAction,
+    ChipBarState, Chord, CodeEditor, CodeEditorState, ColorLevel, Column, ColumnKey, Completion,
+    CompletionState, ContextMenu, Cx, Dialog, DialogState, DiffLineKind, DiffRow, DiffSource,
+    DiffView, DiffViewState, Empty, EmptyState, Family, Field, FieldKind, FieldMut, FieldRef,
+    FieldSpec, FilterList, FilterListState, Form, FormData, FormState, Grid, GridModel, GridState,
     HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Item, ItemKey,
     KeyCode, KeyHint, List, ListState, Menu, MenuBar, MenuItem, MenuState, Meter, NavList,
     NavListState, Panel, PanelKind, Part, PartRef, Picker, PickerChain, PickerChainState,
@@ -105,6 +105,8 @@ const ROWS: [(&str, &str); 6] = [
     ("Barbara Liskov", "professor"),
     ("Ken Thompson", "engineer"),
 ];
+
+const CHIP_ADD_ITEMS: [(&str, &str); 1] = [("Ada Lovelace", "analyst")];
 
 const TAB_LABELS: [&str; 5] = ["General", "Mounts", "Roles", "Audit", "Advanced"];
 
@@ -850,6 +852,13 @@ fn draw_text_area(st: St, ui: &mut Ui<'_>, area: Rect) {
     text_area(st).draw(ui, area, &state);
 }
 
+fn draw_text_area_status(status: Status, ui: &mut Ui<'_>, area: Rect) {
+    TextArea::new(TEXT_AREA, 4)
+        .value("Ada Lovelace\nanalyst")
+        .status(status)
+        .draw(ui, area, &TextAreaState::default());
+}
+
 fn draw_select(st: St, ui: &mut Ui<'_>, area: Rect) {
     let key: fn(&(&str, &str)) -> ItemKey = row_key;
     let row: fn(&(&str, &str), &mut RowUi<'_>) = row_paint;
@@ -907,6 +916,46 @@ fn draw_chip_bar(st: St, ui: &mut Ui<'_>, area: Rect) {
         .closable(true)
         .disabled(matches!(st, St::Disabled))
         .draw(ui, area, &state, rows_for(st));
+}
+
+fn draw_chip_bar_with_add(ui: &mut Ui<'_>, area: Rect, state: &ChipBarState) {
+    let key: fn(&(&str, &str)) -> ItemKey = row_key;
+    let row: fn(&(&str, &str), &mut RowUi<'_>) = row_paint;
+    ChipBar::new(CHIP_BAR)
+        .key(key)
+        .row(row)
+        .select_mode(SelectMode::Single)
+        .closable(true)
+        .add("+ Add")
+        .draw(ui, area, state, &CHIP_ADD_ITEMS);
+}
+
+#[derive(Default)]
+struct ChipBarAddFixture {
+    state: ChipBarState,
+    actions: Vec<ChipBarAction>,
+}
+
+impl App for ChipBarAddFixture {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let key: fn(&(&str, &str)) -> ItemKey = row_key;
+        let row: fn(&(&str, &str), &mut RowUi<'_>) = row_paint;
+        let response = ChipBar::new(CHIP_BAR)
+            .key(key)
+            .row(row)
+            .select_mode(SelectMode::Single)
+            .closable(true)
+            .add("+ Add")
+            .update(cx, &mut self.state, &CHIP_ADD_ITEMS);
+        if let Some(action) = response.action_ref() {
+            self.actions.push(*action);
+        }
+        response.erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        draw_chip_bar_with_add(ui, ui.full(), &self.state);
+    }
 }
 
 fn draw_status_bar(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {

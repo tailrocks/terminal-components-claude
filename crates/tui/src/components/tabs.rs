@@ -1037,7 +1037,7 @@ impl<T, K, R> Bindings for Tabs<'_, T, K, R> {
 mod tests {
     use core::cell::Cell;
 
-    use ratatui_core::buffer::Buffer;
+    use ratatui_core::buffer::{Buffer, Cell as BufferCell};
     use ratatui_core::layout::{Position, Rect};
     use ratatui_core::style::Modifier;
 
@@ -1130,6 +1130,37 @@ mod tests {
         });
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
+    }
+
+    #[test]
+    fn mono_pressed_closable_tab_keeps_the_close_cell_after_the_bracket() {
+        let items = ["tab"];
+        let key = ItemKey::index(0);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
+        let mut buffer = Buffer::empty(AREA);
+        let mut state = TabsState::default();
+        state.set_active(0, key);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            let target = crate::ReferenceTarget::new(
+                TABS,
+                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+            )
+            .part(PartRef::item(Part::TAB, key));
+            ui.reference(Some(target), |ui| {
+                Tabs::new(TABS)
+                    .closable(true)
+                    .draw(ui, area, &state, &items);
+            });
+        });
+
+        assert_eq!(
+            buffer.cell(Position::new(4, 0)).map(BufferCell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::PressRight))
+        );
+        assert_eq!(
+            buffer.cell(Position::new(5, 0)).map(BufferCell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::Close))
+        );
     }
 
     #[test]

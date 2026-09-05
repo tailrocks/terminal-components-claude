@@ -395,26 +395,7 @@ impl TableProApp {
             | Surface::PendingChangeBar
             | Surface::StructureView
             | Surface::FilterEditor
-            | Surface::MaximisedTab => {
-                self.reset_visual_workbench();
-                let _ = self.workbench.open_table("orders");
-                self.sync_active_table();
-                self.sync_tabs_state();
-                if surface == Surface::GridCellEditing || surface == Surface::PendingChangeBar {
-                    if let Some(tab) = self.workbench.active_table_mut() {
-                        let _ = tab.result.commit_cell(0, 6, "EUR");
-                    }
-                    self.sync_active_table();
-                }
-                if surface == Surface::StructureView {
-                    let _ = self.workbench.toggle_structure();
-                    self.sync_active_table();
-                }
-                if surface == Surface::MaximisedTab {
-                    self.workbench.maximized = true;
-                }
-                self.surface = surface;
-            }
+            | Surface::MaximisedTab => self.set_table_surface(surface),
             Surface::QueryEditing | Surface::CompletionPopup => {
                 self.reset_visual_workbench();
                 self.set_visual_query(if surface == Surface::CompletionPopup {
@@ -461,6 +442,27 @@ impl TableProApp {
                 self.surface = surface;
             }
         }
+    }
+
+    fn set_table_surface(&mut self, surface: Surface) {
+        self.reset_visual_workbench();
+        let _ = self.workbench.open_table("orders");
+        self.sync_active_table();
+        self.sync_tabs_state();
+        if surface == Surface::GridCellEditing || surface == Surface::PendingChangeBar {
+            if let Some(tab) = self.workbench.active_table_mut() {
+                let _ = tab.result.commit_cell(0, 6, "EUR");
+            }
+            self.sync_active_table();
+        }
+        if surface == Surface::StructureView {
+            let _ = self.workbench.toggle_structure();
+            self.sync_active_table();
+        }
+        if surface == Surface::MaximisedTab {
+            self.workbench.maximized = true;
+        }
+        self.surface = surface;
     }
 
     fn reset_visual_workbench(&mut self) {

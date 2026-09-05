@@ -1526,4 +1526,33 @@ mod tests {
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
+
+    #[test]
+    fn mono_pressed_closable_chip_keeps_the_close_cell_after_the_bracket() {
+        let items = ["tab"];
+        let key = ItemKey::index(0);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            let target = crate::ReferenceTarget::new(
+                BAR,
+                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+            )
+            .part(PartRef::item(Part::LABEL, key));
+            ui.reference(Some(target), |ui| {
+                ChipBar::new(BAR)
+                    .closable(true)
+                    .draw(ui, area, &ChipBarState::default(), &items);
+            });
+        });
+
+        assert_eq!(
+            buffer.cell(Position::new(4, 0)).map(Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::PressRight))
+        );
+        assert_eq!(
+            buffer.cell(Position::new(5, 0)).map(Cell::symbol),
+            Some(Theme::junie().design.glyphs.get(GlyphRole::Close))
+        );
+    }
 }
