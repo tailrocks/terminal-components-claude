@@ -150,6 +150,7 @@ fn scenarios_and_references_are_stable_without_secret_material() {
     let debug = format!("{world:?}");
     assert!(debug.contains("v_eng01"));
     assert!(debug.contains("it_cdx01"));
+    assert!(!debug.contains("pw-fixture-only"));
     assert!(!debug.contains("op://v_eng01/it_cdx01/credential"));
     assert!(!debug.contains("openai:valid-cdx01"));
     assert!(!debug.contains("anthropic:valid-ant01"));

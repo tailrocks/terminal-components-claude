@@ -3,6 +3,7 @@
 //! instance records and live daemon snapshots.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
 
 use super::account::{AccountId, AccountRegistry, Lifecycle};
 use super::agent::Provider;
@@ -508,7 +509,7 @@ impl EnvVar {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum EnvValue {
     /// Plain text; rendered masked by default.
     Plain(String),
@@ -516,6 +517,16 @@ pub enum EnvValue {
     OnePassword(super::onepassword::OpReference),
     /// Forward a host environment variable by name.
     HostEnv(String),
+}
+
+impl fmt::Debug for EnvValue {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Plain(_) => formatter.write_str("Plain([redacted])"),
+            Self::OnePassword(_) => formatter.write_str("OnePassword([redacted])"),
+            Self::HostEnv(host) => formatter.debug_tuple("HostEnv").field(host).finish(),
+        }
+    }
 }
 
 impl EnvValue {
@@ -595,6 +606,14 @@ mod tests {
         assert!(env_key_error("PATH").is_some());
         assert!(env_key_error("1ABC").is_some());
         assert!(env_key_error("DATABASE_URL").is_none());
+    }
+
+    #[test]
+    fn plain_environment_debug_is_redacted() {
+        let value = EnvVar::plain("DATABASE_URL", "pw-fixture-only");
+        let debug = format!("{value:?}");
+        assert!(debug.contains("redacted"));
+        assert!(!debug.contains("pw-fixture-only"));
     }
 
     #[test]
