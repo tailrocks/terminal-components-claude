@@ -98,7 +98,7 @@ pub struct Fixture {
     ///
     /// Private so [`Fixture::force`] remains the only way to set a forced
     /// state and its coupled readiness status.
-    reference_state: Option<StateFlags>,
+    state_override: Option<StateFlags>,
     /// An instance patch for the override case.
     pub patch: Option<(Part, StylePatch)>,
     /// Secret bytes to type for the secret case.
@@ -127,7 +127,7 @@ impl Default for Fixture {
                 .collect(),
             decor_flags: StateFlags::empty(),
             selected: false,
-            reference_state: None,
+            state_override: None,
             patch: None,
             secret: None,
             status: Status::Ready,
@@ -139,7 +139,7 @@ impl Fixture {
     /// The forced state flags, if this is a reference rendering.
     #[must_use]
     pub const fn forced(&self) -> Option<StateFlags> {
-        self.reference_state
+        self.state_override
     }
 
     /// The readiness coupled to the forced state.
@@ -155,7 +155,7 @@ impl Fixture {
     /// and row decoration remain caller-owned data.
     #[must_use]
     pub fn force(mut self, s: StateFlags) -> Self {
-        self.reference_state = Some(s);
+        self.state_override = Some(s);
         self.disabled = s.contains(StateFlags::DISABLED);
         self.selected = s.contains(StateFlags::SELECTED);
         self.decor_flags = s & (StateFlags::ERROR | StateFlags::WARNING);
@@ -427,7 +427,7 @@ macro_rules! conformance_suite {
 #[cfg(test)]
 mod tests {
     use super::{Caps, Conformance, Fixture, PointerGesture, StateFlags, mono_states_required_by};
-    use junie_tui::{Cx, Family, Id, Part, Rect, Response, Ui};
+    use junie_tui::{Cx, Family, Id, Part, Rect, Response, Status, Ui};
 
     const ROOT: Id = Id::root("conformance.framework.composite");
     const CONTROL: Id = Id::root("conformance.framework.composite.control");
@@ -525,11 +525,26 @@ mod tests {
         assert!(disabled.disabled);
         assert!(!disabled.selected);
         assert_eq!(disabled.forced(), Some(StateFlags::DISABLED));
+        assert_eq!(disabled.status(), Status::Ready);
 
         let enabled = disabled.force(StateFlags::empty());
         assert!(!enabled.disabled);
         assert!(!enabled.selected);
         assert_eq!(enabled.forced(), Some(StateFlags::empty()));
+        assert_eq!(enabled.status(), Status::Ready);
+
+        assert_eq!(
+            Fixture::default().force(StateFlags::BUSY).status(),
+            Status::Busy
+        );
+        assert_eq!(
+            Fixture::default().force(StateFlags::LOADING).status(),
+            Status::Loading
+        );
+        assert_eq!(
+            Fixture::default().force(StateFlags::ERROR).status(),
+            Status::Error
+        );
 
         let forced_selected = Fixture::default().force(StateFlags::SELECTED);
         assert!(
