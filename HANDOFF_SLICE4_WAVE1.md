@@ -3,8 +3,8 @@
 ## Latest stop update — 2026-09-05
 
 The user stopped the continuation again. Resume from pushed `main` at
-`d7255b0`; all tracked chrome changes below are preserved in the next stop
-commit. Do not claim Slice 4 or the merge goal complete.
+`a0e60b0`; all tracked chrome changes below are preserved in that commit. Do
+not claim Slice 4 or the merge goal complete.
 
 Pushed proof commits now on `origin/main`:
 
