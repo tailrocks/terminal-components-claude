@@ -316,6 +316,19 @@ impl fmt::Debug for TextAreaState {
 }
 
 impl TextAreaState {
+    /// Construct state for direct editing of a secret `String`.
+    ///
+    /// Use this instead of [`TextAreaState::default`] when calling the public
+    /// lifecycle methods directly, without [`TextArea::update`] establishing
+    /// sensitivity first. The returned state is sensitive before
+    /// [`TextAreaState::begin`] can copy caller data into its draft.
+    #[must_use]
+    pub fn sensitive() -> Self {
+        let mut state = Self::default();
+        state.set_sensitive(true);
+        state
+    }
+
     /// Whether a draft is in flight.
     pub const fn is_editing(&self) -> bool {
         matches!(self.phase, EditPhase::Editing)
@@ -1422,6 +1435,28 @@ mod tests {
             mods: KeyModifiers::NONE,
         }));
         runtime.app().state.clone()
+    }
+
+    #[test]
+    fn sensitive_constructor_makes_direct_lifecycle_safe() {
+        const SECRET: &str = "one\ntwo";
+        let mut state = TextAreaState::sensitive();
+        assert!(state.is_sensitive());
+
+        state.begin(SECRET);
+        assert!(!format!("{state:?}").contains(SECRET));
+
+        let mut copy = state.clone();
+        let mut copied_value = String::new();
+        copy.commit(&mut copied_value, &NoValidate)
+            .expect("a redacted snapshot must not fail validation");
+        assert!(copied_value.is_empty());
+
+        let mut value = String::new();
+        state
+            .commit(&mut value, &NoValidate)
+            .expect("the sensitive draft must commit");
+        assert_eq!(value, SECRET);
     }
 
     #[test]
