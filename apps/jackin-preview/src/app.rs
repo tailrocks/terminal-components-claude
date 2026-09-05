@@ -2470,6 +2470,7 @@ impl TuiApp for App {
         // Keep the shell's configured props owned by one constructor.  The
         // runtime only updates parts here; drawing consumes the same panel
         // shape below, so the app cannot drift between update and draw.
+        let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx);
         self.ensure_manager_header();
         if let Some(command) = cx.command()
