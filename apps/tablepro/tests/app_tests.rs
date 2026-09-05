@@ -243,6 +243,28 @@ fn every_screen_renders_at_representative_sizes() {
     assert_eq!(size.min, (72, 20));
     assert!(size.preferred.0 >= size.min.0 && size.preferred.1 >= size.min.1);
 }
+
+#[test]
+fn visual_surface_fixture_materializes_the_real_route() {
+    for surface in Surface::ALL {
+        let mut app = TableProApp::default();
+        app.set_surface(surface);
+        assert_eq!(app.surface(), surface);
+        let harness = Harness::new(app, Theme::junie(), 120, 40);
+        assert!(
+            harness.text().contains(surface.label()),
+            "{} fixture did not reach its named renderer",
+            surface.label()
+        );
+        match surface {
+            Surface::Connections | Surface::ConnectionsFailed => {
+                assert_eq!(harness.app().screen(), Screen::Connections);
+            }
+            _ => assert_eq!(harness.app().screen(), Screen::Workbench),
+        }
+    }
+}
+
 #[test]
 fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     let mut app = connected();

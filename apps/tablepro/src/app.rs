@@ -2,10 +2,10 @@
 
 use junie_tui::{
     Action, ActionKey, App, Chord, ColorLevel, Cx, Field, Form, FormAction, FormState, Grid,
-    GridAction, GridState, Id, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List, ListAction,
-    ListState, Panel, PanelKind, Response, RowUi, Size, SplitAxis, SplitPane, SplitPaneState,
-    StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme, Tree,
-    TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant,
+    GridAction, GridEditor, GridState, Id, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
+    ListAction, ListState, Panel, PanelKind, Response, RowUi, Size, SplitAxis, SplitPane,
+    SplitPaneState, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextInput, TextInputState,
+    Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, Variant,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -344,9 +344,133 @@ impl TableProApp {
     pub const fn surface(&self) -> Surface {
         self.surface
     }
-    /// Set a named surface for capture/tests.
-    pub const fn set_surface(&mut self, surface: Surface) {
-        self.surface = surface;
+    /// Set a named surface and materialize its deterministic capture state.
+    ///
+    /// Visual captures enter through this method instead of mutating the
+    /// surface marker after constructing an unrelated screen.  That keeps the
+    /// renderer on the same connection/workbench route as the product.
+    pub fn set_surface(&mut self, surface: Surface) {
+        self.form_open = false;
+        self.draft = None;
+
+        match surface {
+            Surface::Connections => {
+                self.screen = Screen::Connections;
+                self.connections_screen.error = None;
+                self.surface = surface;
+            }
+            Surface::ConnectionsFailed => {
+                let _ = self.connect(3);
+                self.screen = Screen::Connections;
+                self.surface = surface;
+            }
+            Surface::WorkbenchDefault
+            | Surface::ExplorerFocused
+            | Surface::QuickSwitcher
+            | Surface::TabListPicker
+            | Surface::SafeModePicker
+            | Surface::HelpDialog => {
+                self.reset_visual_workbench();
+                if surface == Surface::ExplorerFocused
+                    && let Some((index, item)) = self.workbench.explorer.iter().enumerate().nth(2)
+                {
+                    self.explorer_tree_state
+                        .set_cursor(index, explorer_key(item));
+                }
+                if surface == Surface::TabListPicker {
+                    for _ in 0..12 {
+                        self.workbench.new_query("SELECT 1");
+                    }
+                    self.sync_tabs_state();
+                }
+                if surface == Surface::SafeModePicker {
+                    self.safe_mode = SafeMode::SafeFull;
+                    self.connection.safe_mode = self.safe_mode;
+                    self.workbench.connection.safe_mode = self.safe_mode;
+                }
+                self.surface = surface;
+            }
+            Surface::TableGrid
+            | Surface::GridCellEditing
+            | Surface::PendingChangeBar
+            | Surface::StructureView
+            | Surface::FilterEditor
+            | Surface::MaximisedTab => {
+                self.reset_visual_workbench();
+                let _ = self.workbench.open_table("orders");
+                self.sync_active_table();
+                self.sync_tabs_state();
+                if surface == Surface::GridCellEditing || surface == Surface::PendingChangeBar {
+                    if let Some(tab) = self.workbench.active_table_mut() {
+                        let _ = tab.result.commit_cell(0, 6, "EUR");
+                    }
+                    self.sync_active_table();
+                }
+                if surface == Surface::StructureView {
+                    let _ = self.workbench.toggle_structure();
+                    self.sync_active_table();
+                }
+                if surface == Surface::MaximisedTab {
+                    self.workbench.maximized = true;
+                }
+                self.surface = surface;
+            }
+            Surface::QueryEditing | Surface::CompletionPopup => {
+                self.reset_visual_workbench();
+                self.set_visual_query(if surface == Surface::CompletionPopup {
+                    "SELECT * FROM ord"
+                } else {
+                    "SELECT * FROM orders"
+                });
+                self.surface = surface;
+            }
+            Surface::ResultsGrid => {
+                self.reset_visual_workbench();
+                self.set_visual_query("SELECT * FROM orders LIMIT 25");
+                let _ = self.execute_query();
+                self.surface = surface;
+            }
+            Surface::ErrorResult => {
+                self.reset_visual_workbench();
+                self.set_visual_query("SELECT nope FROM orders");
+                let _ = self.execute_query();
+                self.surface = surface;
+            }
+            Surface::ExplainPlan => {
+                self.reset_visual_workbench();
+                self.set_visual_query("SELECT * FROM orders LIMIT 10");
+                if let Some(Tab::Query(query)) = self.workbench.active_mut() {
+                    let _ = query.explain(&self.catalog);
+                }
+                self.status = "Explain plan ready".to_owned();
+                self.surface = surface;
+            }
+            Surface::HistoryTab => {
+                self.reset_visual_workbench();
+                self.workbench.open_history();
+                self.sync_active_tab();
+                self.surface = surface;
+            }
+            Surface::SafetyDialogTypedAck => {
+                self.reset_visual_workbench();
+                self.safe_mode = SafeMode::Safe;
+                self.connection.safe_mode = self.safe_mode;
+                self.workbench.connection.safe_mode = self.safe_mode;
+                self.set_visual_query("DELETE FROM orders");
+                let _ = self.execute_query();
+                self.surface = surface;
+            }
+        }
+    }
+
+    fn reset_visual_workbench(&mut self) {
+        let _ = self.connect(0);
+    }
+
+    fn set_visual_query(&mut self, query: &str) {
+        self.query = query.to_owned();
+        self.query_state = TextInputState::default();
+        self.sync_query_tab();
     }
     /// Borrow the connected workbench.
     pub const fn workbench(&self) -> &Workbench {
@@ -1081,7 +1205,8 @@ impl App for TableProApp {
                 });
         } else if self.screen == Screen::Connections {
             let title = format!(
-                "TablePro · connections · {} configured",
+                "TablePro · {} · {} configured",
+                self.surface.label(),
                 self.connections_screen.connections.len()
             );
             ui.paint_str(header, &title, ui.surface_style());
