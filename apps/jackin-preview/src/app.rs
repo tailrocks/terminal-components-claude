@@ -360,6 +360,10 @@ impl App {
         Button::new(ACCOUNT_ADD, "Choose 1Password reference…").variant(Variant::PRIMARY)
     }
 
+    fn navigation_button(id: Id, label: &'static str, active: bool) -> Button<'static> {
+        Button::new(id, label).checked(active)
+    }
+
     fn launch_button(disabled: bool) -> Button<'static> {
         Button::new(LAUNCH, "Launch session")
             .variant(Variant::PRIMARY)
@@ -565,9 +569,7 @@ impl App {
             (CAPSULE, "Capsule", Route::Capsule),
         ];
         for (id, label, route) in nav {
-            let button = Button::new(id, label)
-                .checked(self.route == route)
-                .update(cx);
+            let button = Self::navigation_button(id, label, self.route == route).update(cx);
             let chosen = button.activated();
             result |= button.erase();
             if chosen {
@@ -868,16 +870,19 @@ impl App {
         let mut x = area.x;
         for (id, label) in labels {
             let width = 12;
-            Button::new(id, label)
-                .checked(match id {
+            Self::navigation_button(
+                id,
+                label,
+                match id {
                     MANAGER => self.route == Route::Manager,
                     ACCOUNTS => self.route == Route::Accounts,
                     USAGE => self.route == Route::Usage,
                     SETTINGS => self.route == Route::Settings,
                     CAPSULE => self.route == Route::Capsule,
                     _ => false,
-                })
-                .draw(ui, Rect::new(x, y, width, 1));
+                },
+            )
+            .draw(ui, Rect::new(x, y, width, 1));
             x = x.saturating_add(width);
         }
     }
