@@ -19,15 +19,33 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 ROOT_DIR=$(pwd -P)
 PROVENANCE_TOOL=$ROOT_DIR/tools/capture_provenance.py
 RUNNER=$ROOT_DIR/tools/capture_exec.sh
+workspace_key=$(pwd -P | tr -c '[:alnum:]' '_')
+SESSION_NAMESPACE="junie_cap_${workspace_key}"
 
 : "${BIN:?BIN must be set to the owning application binary}"
 COLOR=${COLOR:-truecolor}
 CAPTURE_DIR=${CAPTURE_DIR:-shots}
 CAPTURE_MANIFEST=${CAPTURE_MANIFEST:-$CAPTURE_DIR/capture-provenance.json}
 CAPTURE_STATE_DIR=${CAPTURE_STATE_DIR:-$CAPTURE_DIR/.capture-state}
+CAPTURE_LOCK_DIR=${CAPTURE_LOCK_DIR:-$CAPTURE_STATE_DIR/lock}
 PYTHON_BIN=${PY:-python3}
 cmd=${1:-}
 shift || true
+
+CAPTURE_LOCK_DIR_PATH=
+CAPTURE_LOCK_OWNER_FILE=
+RUN_DIR=
+RUN_DIR_CREATED=0
+RUN_METADATA_FILE=
+RUN_SESSION_ID_FILE=
+RUN_EXIT_FILE=
+RUN_BIN_FILE=
+RUN_EXECUTABLE_FILE=
+RUN_CAPTURE_DIR_FILE=
+RUN_MANIFEST_FILE=
+RUN_STDERR_FILE=
+RUN_COLOR_FILE=
+STDERR_FILE=
 
 # A failed start must not leave a live tmux session or a half-owned run
 # directory behind.  The session id is recorded as soon as tmux creates the
@@ -54,7 +72,7 @@ cleanup_failed_start() {
 
     # Keep state when cleanup itself fails.  The caller can then report or
     # retry an explicit stop; deleting unverifiable state would hide a leak.
-    if (( cleanup_failed == 0 )); then
+    if (( cleanup_failed == 0 && RUN_DIR_CREATED != 0 )); then
       for path in \
         "$RUN_METADATA_FILE" \
         "$RUN_SESSION_ID_FILE" \
@@ -87,6 +105,9 @@ cleanup_failed_start() {
         cleanup_failed=1
         echo "capture cleanup failed: cannot remove run state $RUN_DIR" >&2
       fi
+    fi
+    if ! release_capture_lock; then
+      cleanup_failed=1
     fi
     if (( cleanup_failed != 0 )); then
       echo "capture cleanup incomplete; run state retained: $RUN_DIR" >&2
@@ -161,6 +182,48 @@ write_state() {
   chmod 600 "$temporary"
   printf '%s\n' "$value" > "$temporary"
   mv -f "$temporary" "$path"
+}
+
+capture_lock_path() {
+  CAPTURE_LOCK_DIR_PATH=$(absolute_path "$CAPTURE_LOCK_DIR")
+  CAPTURE_LOCK_OWNER_FILE=$CAPTURE_LOCK_DIR_PATH/owner
+}
+
+acquire_capture_lock() {
+  capture_lock_path
+  ensure_directory "$(dirname "$CAPTURE_LOCK_DIR_PATH")" "capture lock parent"
+  if [[ -L "$CAPTURE_LOCK_DIR_PATH" || -e "$CAPTURE_LOCK_DIR_PATH" ]]; then
+    echo "capture failed: another capture run owns $CAPTURE_LOCK_DIR_PATH" >&2
+    return 1
+  fi
+  if ! mkdir -m 700 "$CAPTURE_LOCK_DIR_PATH"; then
+    echo "capture failed: cannot acquire capture lock: $CAPTURE_LOCK_DIR_PATH" >&2
+    return 1
+  fi
+  if ! write_state "$CAPTURE_LOCK_OWNER_FILE" "$CAPTURE_RUN_ID"; then
+    rmdir "$CAPTURE_LOCK_DIR_PATH" 2>/dev/null || true
+    echo "capture failed: cannot initialize capture lock: $CAPTURE_LOCK_DIR_PATH" >&2
+    return 1
+  fi
+}
+
+release_capture_lock() {
+  capture_lock_path
+  if [[ -z "$CAPTURE_RUN_ID" || ! -d "$CAPTURE_LOCK_DIR_PATH" || -L "$CAPTURE_LOCK_DIR_PATH" ]]; then
+    return 0
+  fi
+  if [[ -L "$CAPTURE_LOCK_OWNER_FILE" || ! -f "$CAPTURE_LOCK_OWNER_FILE" ]]; then
+    echo "capture cleanup failed: capture lock owner is missing or unsafe: $CAPTURE_LOCK_OWNER_FILE" >&2
+    return 1
+  fi
+  if [[ "$(state_value "$CAPTURE_LOCK_OWNER_FILE" "")" != "$CAPTURE_RUN_ID" ]]; then
+    echo "capture cleanup failed: capture lock ownership changed: $CAPTURE_LOCK_DIR_PATH" >&2
+    return 1
+  fi
+  if ! rm -f "$CAPTURE_LOCK_OWNER_FILE" || ! rmdir "$CAPTURE_LOCK_DIR_PATH"; then
+    echo "capture cleanup failed: cannot release capture lock: $CAPTURE_LOCK_DIR_PATH" >&2
+    return 1
+  fi
 }
 
 state_value() {
@@ -461,7 +524,7 @@ load_run_state() {
   RUN_MANIFEST_FILE=$RUN_DIR/manifest
   RUN_STDERR_FILE=$RUN_DIR/stderr
   RUN_COLOR_FILE=$RUN_DIR/color
-  SESSION_NAME="junie_cap_${CAPTURE_RUN_ID}"
+  SESSION_NAME="${SESSION_NAMESPACE}_${CAPTURE_RUN_ID}"
 
   local stored_bin stored_capture_dir stored_manifest stored_stderr
   stored_bin=$(required_state "$RUN_BIN_FILE" "binary state")
@@ -514,7 +577,7 @@ case "$cmd" in
       CAPTURE_RUN_ID=$(new_run_id)
     fi
     validate_run_id "$CAPTURE_RUN_ID"
-    SESSION_NAME="junie_cap_${CAPTURE_RUN_ID}"
+    SESSION_NAME="${SESSION_NAMESPACE}_${CAPTURE_RUN_ID}"
     if session_exists; then
       echo "capture failed: capture session already exists: $SESSION_NAME" >&2
       exit 1
@@ -525,12 +588,15 @@ case "$cmd" in
     ensure_directory "$CAPTURE_DIR_PATH" "capture directory"
     ensure_directory "$(dirname "$CAPTURE_MANIFEST_PATH")" "manifest parent"
     ensure_directory "$STATE_ROOT_PATH" "capture state directory"
+    acquire_capture_lock
+    trap 'cleanup_failed_start "$?"' EXIT
     RUN_DIR=$STATE_ROOT_PATH/$CAPTURE_RUN_ID
     if [[ -e "$RUN_DIR" || -L "$RUN_DIR" ]]; then
       echo "capture failed: run state already exists: $RUN_DIR" >&2
       exit 1
     fi
     mkdir -m 700 "$RUN_DIR"
+    RUN_DIR_CREATED=1
     RUN_METADATA_FILE=$RUN_DIR/metadata.json
     RUN_SESSION_ID_FILE=$RUN_DIR/session.id
     RUN_EXIT_FILE=$RUN_DIR/exit.status
@@ -543,7 +609,6 @@ case "$cmd" in
     # Keep per-run stderr inside the ignored, mode-0700 state directory so
     # concurrent captures never share or leave a global stderr artifact.
     STDERR_FILE=$RUN_DIR/stderr.log
-    trap 'cleanup_failed_start "$?"' EXIT
     theme=$(capture_theme)
     case "$COLOR" in
       truecolor)
@@ -939,6 +1004,7 @@ case "$cmd" in
       exit 1
     fi
     finalize_provenance "$final_exit_status"
+    release_capture_lock
     ;;
   *)
     echo "unknown: $cmd" >&2
