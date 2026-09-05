@@ -2023,7 +2023,7 @@ edit is included here.
   falsely counted as using the shared reserved-pad helper.
 - `ebfa8b8` makes case 10 compare the recorded resolved style when a composed painter leaves
   the final digest unchanged. The TextArea case is therefore covered by the reported 934
-  passing conformance tests at current HEAD `f713ccb` (the later revert removed one incomplete
+  passing conformance tests in tested source `f713ccb` (the later revert removed one incomplete
   provenance test from the earlier 935-test count); a future `Conformance::patch_part()` hook
   may remove the remaining `PARTS.first()` ordering convention, but it is not an unresolved gate.
 - No full workspace/Slice 4 completion claim follows. Capture provenance, visual blockers and

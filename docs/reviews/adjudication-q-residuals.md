@@ -214,7 +214,7 @@ rtk cargo test -p junie-tui --lib collection::rowui
 ! rg -n 'pub (reference_state|status)\s*:' crates/tui-testing/src/conformance/mod.rs
 rg -n 'reference_state\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs
 cargo test -p junie-tui --test conformance          # every case compiles against forced()/status()
-rg -n 'reference_state: Option<StateFlags),' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
+rg -n 'reference_state: Option<StateFlags>,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
 
 # ── A6: Q3 — the reason is declared and checked, not grepped
 cargo test -p junie-tui --test conformance -- --include-ignored
@@ -230,14 +230,14 @@ cargo test --workspace --test architecture every_named_test_exists
 rg -n 'Adjudication Q' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
 ```
 
-**Gate condition (not currently met).** The commands above are acceptance conditions, not evidence that this review is green. `ebfa8b8` closes the prior TextArea case-10 false negative by checking the recorded resolved style when a composed painter leaves the digest unchanged; current HEAD `f713ccb` reports **934 passing conformance tests** (the later revert removed one incomplete provenance test from the earlier 935-test count). A future `Conformance::patch_part()` hook may remove the remaining `PARTS.first()` ordering convention, but it is not an open gate. The Choice/Brand bracket questions remain open. No full-workspace gate, baseline edit or blessing is claimed by this document; the nine amendments are applied and mirrored in `REFACTORING_STATE.md`.
+**Gate condition (not currently met).** The commands above are acceptance conditions, not evidence that this review is green. `ebfa8b8` closes the prior TextArea case-10 false negative by checking the recorded resolved style when a composed painter leaves the digest unchanged; tested source `f713ccb` reports **934 passing conformance tests** (the later revert removed one incomplete provenance test from the earlier 935-test count). A future `Conformance::patch_part()` hook may remove the remaining `PARTS.first()` ordering convention, but it is not an open gate. The Choice/Brand bracket questions remain open. No full-workspace gate, baseline edit or blessing is claimed by this document; the nine amendments are applied and mirrored in `REFACTORING_STATE.md`.
 
 **Current TextArea evidence boundary.** `TextArea::PARTS` starts
 `[FIELD, TEXT, PLACEHOLDER, …]`. With `ebfa8b8`,
 `text_area::local_override_does_not_mutate_the_theme` checks the recorded
 `Resolved` style for the selected part when the composed painter covers the
-patched cells, and is included in the 934 passing conformance tests at current
-HEAD `f713ccb`. The
+patched cells, and is included in the 934 passing conformance tests for tested
+source `f713ccb`. The
 `PARTS.first()` convention remains documented as future hook-hardening work;
 this docs pass made no source or baseline edit.
 

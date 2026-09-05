@@ -6375,7 +6375,7 @@ cargo test -p junie-tui --test conformance mono_states_required_by_is_a_union
 ! rg -n 'pub (reference_state|status)\s*:' crates/tui-testing/src/conformance/mod.rs
 rg -n 'reference_state\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs  # only Fixture::force writes the paired state
 cargo test -p junie-tui --test conformance
-rg -n 'reference_state: Option<StateFlags),' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
+rg -n 'reference_state: Option<StateFlags>,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
 
 # ── Q3/A6: the declared reason is checked in case 9, not by a source-shape grep ──
 cargo test -p junie-tui --test conformance -- --include-ignored
@@ -6603,7 +6603,7 @@ cargo test -p junie-tui --lib collection::rowui
 ! rg -n 'pub (reference_state|status)\s*:' crates/tui-testing/src/conformance/mod.rs
 rg -n 'reference_state\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs  # only Fixture::force writes the paired state
 cargo test -p junie-tui --test conformance -- --include-ignored
-rg -n 'reference_state: Option<StateFlags),' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
+rg -n 'reference_state: Option<StateFlags>,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
 rg -n 'mono_narrowing_reason' crates/tui-testing/src/conformance/{mod,driver}.rs \
       crates/tui/tests/conformance.rs COMPONENT_ARCHITECTURE.md
 ```
@@ -6728,7 +6728,7 @@ composed painter leaves the final digest unchanged. This closes the prior false
 negative for TextArea's covered `FIELD` surface without weakening the theme
 immutability assertion or comparing an unrelated sibling. The current
 `text_area::local_override_does_not_mutate_the_theme` case is included in the
-reported **934 passing conformance tests** at current HEAD `f713ccb` (the later
+reported **934 passing conformance tests** in tested source `f713ccb` (the later
 revert removed one incomplete provenance test from the earlier 935-test count).
 
 `Conformance::patch_part()` remains a future ordering-hardening option because
