@@ -110,6 +110,7 @@ const CMD_EDITOR_PREFER: ActionKey = ActionKey::custom("jackin.editor.prefer");
 const CMD_NAV_DOWN: ActionKey = ActionKey::custom("jackin.navigation.down");
 const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::custom("jackin.navigation.tab-five");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::custom("jackin.capsule.prefix");
+const CMD_CAPSULE_COPY: ActionKey = ActionKey::custom("jackin.capsule.copy-selection");
 const CMD_CAPSULE_DETACH: ActionKey = ActionKey::custom("jackin.capsule.detach");
 const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::custom("jackin.capsule.split-right");
 const CMD_CAPSULE_SPLIT_BELOW: ActionKey = ActionKey::custom("jackin.capsule.split-below");
@@ -329,6 +330,8 @@ pub struct App {
     exit_choice: Option<u8>,
     capsule_input: String,
     capsule_input_state: TextInputState,
+    capsule_selection_anchor: Option<Position>,
+    capsule_selected_text: Option<String>,
     pending_capsule_action: Option<CapsuleAction>,
     capsule_interaction: CapsuleInteraction,
     editor_accounts: ListState,
@@ -467,6 +470,8 @@ impl App {
             exit_choice: None,
             capsule_input: String::new(),
             capsule_input_state: TextInputState::default(),
+            capsule_selection_anchor: None,
+            capsule_selected_text: None,
             pending_capsule_action: None,
             capsule_interaction: CapsuleInteraction::default(),
             editor_accounts: ListState::default(),
@@ -559,11 +564,7 @@ impl App {
                 .into_iter()
                 .find(|instance| instance.status.reconnectable())
                 .map(|instance| instance.id.clone()),
-            ManagerRowKey::CurrentDirectory | ManagerRowKey::NewWorkspace => self
-                .world
-                .running()
-                .first()
-                .map(|instance| instance.id.clone()),
+            ManagerRowKey::CurrentDirectory | ManagerRowKey::NewWorkspace => None,
         }
     }
 
@@ -787,23 +788,22 @@ impl App {
                 }
             }
         }
-        if rows.is_empty() && !self.world.instances.is_empty() {
-            rows.extend(
-                self.world
-                    .instances
-                    .iter()
-                    .filter(|instance| !instance.status.hidden())
-                    .map(|instance| {
-                        format!(
-                            "{} · {} · run {} · {}",
-                            instance.id,
-                            instance.status.label(),
-                            instance.run_id.short(),
-                            instance.dirty_summary()
-                        )
-                    }),
-            );
-        }
+        rows.push(format!("Current directory · {}", self.world.home));
+        rows.extend(
+            self.world
+                .instances
+                .iter()
+                .filter(|instance| instance.workspace.is_none() && !instance.status.hidden())
+                .map(|instance| {
+                    format!(
+                        "{} · {} · run {} · {}",
+                        instance.id,
+                        instance.status.label(),
+                        instance.run_id.short(),
+                        instance.dirty_summary()
+                    )
+                }),
+        );
         rows
     }
 
@@ -834,6 +834,10 @@ impl App {
                 }
             }
         }
+        if cursor == index {
+            return Some(ManagerRowKey::CurrentDirectory);
+        }
+        cursor = cursor.saturating_add(1);
         self.world
             .instances
             .iter()
@@ -1004,10 +1008,6 @@ impl App {
     }
 
     fn apply_capsule_action(&mut self, action: CapsuleAction, account: AccountOption) {
-        eprintln!(
-            "DEBUG apply capsule action {action:?} account={} ({})",
-            account.key, account.label
-        );
         let Some(instance_id) = self
             .world
             .instances
@@ -1126,6 +1126,19 @@ impl App {
         self.begin_launch_with(self.launch_agent, self.launch_account.clone());
     }
 
+    fn next_launch_run_id(&self) -> crate::RunId {
+        let mut value = 0x9c41_e2f0_u64;
+        while self
+            .world
+            .instances
+            .iter()
+            .any(|instance| instance.run_id.value() == value)
+        {
+            value = value.saturating_add(1);
+        }
+        crate::RunId::new(value)
+    }
+
     fn begin_launch_with(&mut self, agent: Agent, account: Option<String>) {
         let plan = if self.world.scenario == Scenario::LaunchFailure {
             LaunchPlan::FailNetwork
@@ -1136,7 +1149,7 @@ impl App {
             plan,
             agent,
             "jackin-payments-platform",
-            crate::RunId::new(0x9c41_e2f0),
+            self.next_launch_run_id(),
         ));
         self.launch_agent = agent;
         self.launch_account = account;
@@ -1438,12 +1451,6 @@ impl App {
                     }
                 },
                 Some(PickerMode::Capsule) => {
-                    eprintln!(
-                        "DEBUG capsule picker chosen cause={:?} cursor={:?} account={}",
-                        cx.update_cause(),
-                        self.account_state.cursor(),
-                        account.key
-                    );
                     if let Some(action) = self.pending_capsule_action.take() {
                         self.apply_capsule_action(action, account);
                     }
@@ -2250,7 +2257,7 @@ impl App {
         if self.capsule_prefix {
             return Response::ignored();
         }
-        if !self.capsule_input_state.is_editing() {
+        if !self.capsule_input_state.is_editing() && self.capsule_selected_text.is_none() {
             cx.focus(CAPSULE_INPUT);
         }
         let input = Self::capsule_input().update(
@@ -2308,15 +2315,6 @@ impl App {
     }
 
     fn update_command(&mut self, cx: &mut Cx<'_>, command: ActionKey) -> Option<Response<()>> {
-        if matches!(command, CMD_EXIT_DIALOG | CMD_NAV_DOWN | CMD_EXIT_CONFIRM)
-            && self.route == Route::Capsule
-        {
-            eprintln!(
-                "DEBUG exit command={command:?} cause={:?} choice={:?}",
-                cx.update_cause(),
-                self.exit_choice
-            );
-        }
         match command {
             CMD_QUIT => {
                 self.quit = true;
@@ -2509,6 +2507,13 @@ impl App {
                 self.editor_accounts = ListState::default();
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
+                Some(Response::changed())
+            }
+            CMD_CAPSULE_COPY if self.route == Route::Capsule => {
+                if let Some(text) = self.capsule_selected_text.clone() {
+                    self.world.clipboard = Some(text);
+                    self.status = Some("Copied selection".into());
+                }
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -2763,14 +2768,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_EDITOR_ACCOUNTS if self.route == Route::Editor => {
-                if cx.update_cause() == UpdateCause::Event {
-                    self.editor.select_alias(5);
-                    self.editor_accounts_transition = true;
-                }
-                cx.focus(EDITOR_ACCOUNTS_LIST);
-                Some(Response::changed())
-            }
-            CMD_NAV_TAB_FIVE if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
@@ -3788,7 +3785,7 @@ impl App {
         Some(chars[start..end].iter().collect())
     }
 
-    fn update_capsule_pointer(&mut self, cx: &Cx<'_>) -> Response<()> {
+    fn update_capsule_pointer(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let Some(area) = cx.area(CAPSULE_PANES) else {
             return Response::ignored();
         };
@@ -3797,11 +3794,28 @@ impl App {
             let Intent::Pointer { phase, pos, .. } = intent else {
                 continue;
             };
-            if matches!(phase, junie_tui::Phase::Click | junie_tui::Phase::DoubleClick | junie_tui::Phase::DragEnd)
-                && let Some(text) = self.capsule_copy_at(area, pos)
-            {
-                self.world.clipboard = Some(text);
-                result |= Response::changed();
+            match phase {
+                junie_tui::Phase::Press => {
+                    self.capsule_selection_anchor = Some(pos);
+                    cx.focus(CAPSULE_PANES);
+                }
+                junie_tui::Phase::DragEnd => {
+                    let source = self.capsule_selection_anchor.take().unwrap_or(pos);
+                    if let Some(text) = self.capsule_copy_at(area, source) {
+                        self.capsule_selected_text = Some(text.clone());
+                        self.world.clipboard = Some(text);
+                        result |= Response::changed();
+                    }
+                }
+                junie_tui::Phase::Click | junie_tui::Phase::DoubleClick => {
+                    self.capsule_selection_anchor = None;
+                    if let Some(text) = self.capsule_copy_at(area, pos) {
+                        self.capsule_selected_text = Some(text.clone());
+                        self.world.clipboard = Some(text);
+                        result |= Response::changed();
+                    }
+                }
+                _ => {}
             }
         }
         result
@@ -3916,6 +3930,14 @@ impl TuiApp for App {
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx);
         self.ensure_manager_header();
+        if self.route == Route::Capsule
+            && self.exit_choice.is_some()
+            && cx.command() == Some(ActionKey::custom("Commit"))
+        {
+            return self
+                .update_command(cx, CMD_EXIT_CONFIRM)
+                .unwrap_or_else(Response::ignored);
+        }
         if let Some(command) = cx.command()
             && let Some(result) = self.update_command(cx, command)
         {
@@ -4178,6 +4200,11 @@ fn app_keymap() -> KeyMap {
             KeyPhase::Capture,
             Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
             CMD_CAPSULE_PREFIX,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('y')),
+            CMD_CAPSULE_COPY,
         )
         .bind(
             KeyPhase::Bubble,
