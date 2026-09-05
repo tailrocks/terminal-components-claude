@@ -1448,4 +1448,49 @@ The current digest movement is classified before the refreshed capture matrix an
 - reason:    §20.10 item 34; the Paper/ANSI16 contrast repair and shared Grid/Table geometry correction changed only the exact cells listed above.
 ```
 
+## Review status — current Grid and TablePro digest movements (2026-09-05)
+
+**Classification only. No baseline was modified, regenerated, copied, or blessed.** The
+read-only current-main render audit records these exact old→new pairs so a later review can
+distinguish the source correction from approval of a retained digest.
+
+```
+- surface:   junie-tui Grid / 120x40 / Junie / truecolor
+- captures:  current no-BLESS frame-text output; retained `crates/tui/tests/baselines/components.txt`
+             remains unchanged
+- tests:     `render::components::grid::{default,disabled,editing,focused,hovered,selected}`
+- moved:     6 keys:
+  render::components::grid::default 120 40 junie truecolor 9817dac1ed7c9346 → da9a5d1263990b5e
+  render::components::grid::disabled 120 40 junie truecolor 9817dac1ed7c9346 → da9a5d1263990b5e
+  render::components::grid::editing 120 40 junie truecolor 9817dac1ed7c9346 → da9a5d1263990b5e
+  render::components::grid::focused 120 40 junie truecolor 58ca02d397496888 → a1a2abce7d5923e0
+  render::components::grid::hovered 120 40 junie truecolor 1cccb015edb67dd0 → 9c96eae598803c28
+  render::components::grid::selected 120 40 junie truecolor 2f975888c9b83ac7 → d08b7201048fb0cf
+- added:     none
+- class:     fix
+- reason:    §20.10 item 7. The current Grid geometry/runtime correction changes the rendered
+             overflow/state cells; these hashes are recorded as an unblessed source-fix movement,
+             not as permission to update `components.txt`.
+```
+
+```
+- surface:   TablePro `connections` / 120x40 / Junie / truecolor
+- captures:  current app-owned digest evidence; the frozen pre-refactor root digest remains
+             untouched at `tests/baselines/tablepro.txt`, and the app digest remains untouched at
+             `apps/tablepro/tests/baselines/tablepro.txt`
+- tests:     pre-refactor `src/bin/tablepro/visual_tests.rs::tablepro_visual_baseline`;
+             `apps/tablepro/tests/visual.rs::tablepro_visual_baseline`
+- moved:     1 key (cross-owner migration mapping):
+  `tests/baselines/tablepro.txt` `120x40 connections` 9c7fb68135d17b20
+    → `apps/tablepro/tests/baselines/tablepro.txt` `connections 120 40 junie truecolor` c1fdb4fc02dacd7f
+- added:     none in this audit entry
+- class:     intended
+- reason:    §20.10 items 14 and 32. The application package owns the first-generation TablePro
+             matrix after the package split; this cross-owner pair is recorded for auditability,
+             not asserted as byte-equivalent retained evidence and not approved for blessing.
+```
+
+The seven pairs above are unblessed audit evidence. A future independent frame review and separate
+serial authorization are still required before any retained baseline change.
+
  ## Review status — Slice 4 component matrix, independent visual review (2026-09-05)
