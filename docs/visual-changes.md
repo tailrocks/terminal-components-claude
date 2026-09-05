@@ -1511,3 +1511,33 @@ any retained baseline change; a future independent frame review and separate ser
 are still required before blessing.
 
  ## Review status — Slice 4 component matrix, independent visual review (2026-09-05)
+
+### Fresh independent audit — candidate `fb017a7` (2026-09-05)
+
+**Result: FAIL. Candidate rejected as a bundle. No baseline was edited, regenerated, copied, or
+blessed.** The findings below are review evidence only; they do not authorize any retained digest
+movement.
+
+#### Exact regressions
+
+| Surface | Finding | Classification / contract |
+|---|---|---|
+| Steps | The candidate adds a `Bullet` glyph to `Skipped`. | **Regression** — §20.10 item 25; `Skipped` lifecycle/glyph semantics changed. |
+| TooSmall | The `empty` fixture renders non-empty content. | **Regression** — §20.10 item 24; the first-generation empty fixture contract is violated. |
+| PickerChain | The selected fixture drops `Vault` from the rendered chain. | **Regression** — §20.10 item 27; stage ordering/content is not preserved. |
+| Wizard | The fixture fabricates a `Details` state/step. | **Regression** — §20.10 item 27; the fixture is not source-backed. |
+
+The candidate was reviewed as one bundle (`fb017a7`, including its staged visual-contract changes),
+so no individual hunk is accepted by this audit. Other plausible disabled-contrast, semantic-
+selection, glyph, and state-affordance changes are **deferred** pending isolated source changes,
+fresh frame evidence, and a new independent review.
+
+#### Current capture and blessing status
+
+- The latest **TablePro and Jackin captures are stale** against the current source lineage and
+  must be rerun through the capture matrix before they support review or classification.
+- **Showcase ANSI16 contrast is suspect**, not cleared; fresh Showcase captures and independent
+  review are required.
+- **No baseline was modified and no bless was run.** Visual blessing remains unauthorized until
+  the four regressions are resolved, deferred changes are adjudicated, stale app captures are
+  refreshed, and a fresh independent review grants separate authorization.

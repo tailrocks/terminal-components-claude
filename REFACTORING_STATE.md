@@ -5,7 +5,7 @@
 ## Status
 
 - **READ FIRST: the authoritative state is the last section of this file,
-  `Integration checkpoint — AUTHORITATIVE (2026-09-05, origin/main 5d17cc0)`.** Every bullet
+  `Fresh independent visual audit checkpoint — AUTHORITATIVE (2026-09-05, candidate fb017a7)`.** Every bullet
   below it and every earlier checkpoint is historical evidence, retained unedited; where they
   conflict, the last checkpoint governs. In particular the "until Slice 5 (single scripted rename)"
   clause under adjudication J is superseded by §47.1, and the `a1759b2` visual **PASS** is
@@ -1718,3 +1718,42 @@ The stale `OWED, not done` wording is retained as struck historical text in
 declares `TRAPS_FOCUS`; case 14 checks the modal/trap contract, non-empty wrapping, and zero-area
 trapping; and runtime focus-out dismissal has a producer with targeted coverage. This is an
 implementation record, not a passing-gate or completion claim.
+
+## Fresh independent visual audit checkpoint — AUTHORITATIVE (2026-09-05, candidate `fb017a7`)
+
+This checkpoint records a fresh read-only visual audit against the candidate bundle. Earlier
+capture and review entries remain historical evidence; this section governs the current visual
+status. It does not claim a green gate, a cleared review, or final completion.
+
+### Candidate disposition
+
+- Candidate `fb017a7` is **rejected as a bundle**. Its plausible changes are not separable
+  evidence, and no part of the candidate is approved for baseline or blessing use.
+- The audit found four exact regressions:
+  - **Steps — `Skipped` glyph:** the candidate introduces a `Bullet` glyph for `Skipped`, a
+    lifecycle/glyph regression under §20.10 item 25.
+  - **TooSmall — empty fixture:** the empty fixture is no longer empty, violating the
+    first-generation fixture contract under §20.10 item 24.
+  - **PickerChain — `Vault` drop:** the selected fixture drops `Vault` from the rendered chain,
+    violating the item 27 ordering/content contract.
+  - **Wizard — fabricated `Details`:** the fixture fabricates a `Details` state/step, also
+    violating item 27's source-backed ordering/content contract.
+- Other plausible candidate changes (disabled contrast, semantic selection, and related glyph or
+  state affordances) are **deferred**. They require isolated source changes, fresh captures, and
+  a new independent review before adjudication.
+
+### Current capture and blessing status
+
+- The latest **TablePro and Jackin captures are stale** relative to the current source lineage;
+  both require a fresh capture-matrix run before they can support review or classification.
+- **Showcase ANSI16 contrast remains suspect**, not cleared. Treat it as unresolved until fresh
+  Showcase captures are independently reviewed.
+- **No baseline was edited and no blessing was performed.** Visual blessing remains unauthorized
+  until the candidate regressions and plausible changes are resolved, the TablePro/Jackin captures
+  are rerun, the Showcase ANSI16 contrast is rechecked, and a fresh independent review authorizes
+  the retained changes.
+
+### Blocker
+
+- **Yes.** The candidate bundle is rejected; stale app captures and the unresolved Showcase
+  ANSI16 contrast block any visual blessing or baseline change.
