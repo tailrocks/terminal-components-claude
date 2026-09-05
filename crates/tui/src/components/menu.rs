@@ -6,7 +6,7 @@ use core::fmt;
 use ratatui_core::layout::{Position, Rect};
 
 use super::keyhint::ChordText;
-use super::{Acc, PartStyle, SlotFn, first_row, shift};
+use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
@@ -1087,15 +1087,11 @@ impl<'a> MenuBar<'a> {
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
             } else if matches!(style.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                ui.glyph(Rect { width: 1, ..rect }, GlyphRole::PressLeft, style.style);
                 ui.paint_str(label, menu.label, style.style);
-                ui.glyph(
-                    Rect {
-                        x: rect.right().saturating_sub(1),
-                        width: 1,
-                        ..rect
-                    },
-                    GlyphRole::PressRight,
+                paint_pressed_bracket(
+                    ui,
+                    cell_at(rect, rect.x),
+                    cell_at(rect, rect.right().saturating_sub(1)),
                     style.style,
                 );
             } else {
@@ -1185,6 +1181,7 @@ fn set_cursor(st: &mut MenuState, index: Option<usize>) -> Response<MenuAction> 
 #[cfg(test)]
 mod tests {
     use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Position;
 
     use super::*;
     use crate::event::{Input, Key, KeyModifiers};
@@ -1231,6 +1228,49 @@ mod tests {
         assert!(chord.matches(&key(KeyCode::Char('o'))));
         assert_eq!(ChordText::of(chord).as_str(), "o");
         assert_eq!(item.action(), OPEN);
+    }
+
+    #[test]
+    fn mono_pressed_menu_title_keeps_both_reserved_pads() {
+        const ID: Id = Id::root("menu.tests.mono");
+        const MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(
+            crate::runtime::stub::Stub::default(),
+            Theme::junie().downgrade(crate::ColorLevel::Mono),
+        );
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            ui.reference(
+                Some(
+                    crate::ReferenceTarget::new(ID, crate::ReferenceState::PRESSED)
+                        .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
+                ),
+                |ui| MenuBar::new(ID, &MENUS).draw(ui, area, &MenuState::default()),
+            );
+        });
+
+        assert_eq!(
+            buffer
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("["),
+            "the title's left bracket occupies its leading pad"
+        );
+        assert_eq!(
+            buffer
+                .cell(Position::new(2, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("F"),
+            "the title text starts inside the reserved pads"
+        );
+        assert_eq!(
+            buffer
+                .cell(Position::new(6, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("]"),
+            "the title's right bracket occupies its trailing pad"
+        );
     }
 
     #[test]

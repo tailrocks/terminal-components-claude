@@ -5,7 +5,7 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{PartStyle, SlotFn, first_row, shift};
+use super::{PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::focus::Focusability;
 use crate::id::{Id, Part};
 use crate::intent::{Intent, Phase};
@@ -281,12 +281,13 @@ impl<'a> Brand<'a> {
             if bracketed {
                 // §11.4's mono `PRESSED` rule: `[mark]`, painted into the
                 // padding columns so the lockup keeps its width
-                let mut t = lockup;
-                let used = ui.glyph(t, GlyphRole::PressLeft, s.style);
-                t = shift(t, used);
-                let used = ui.paint_str(t, self.text, s.style);
-                t = shift(t, used);
-                ui.glyph(t, GlyphRole::PressRight, s.style);
+                ui.paint_str(shift(lockup, 1), self.text, s.style);
+                paint_pressed_bracket(
+                    ui,
+                    cell_at(lockup, lockup.x),
+                    cell_at(lockup, lockup.right().saturating_sub(1)),
+                    s.style,
+                );
             } else {
                 ui.paint_str(shift(lockup, pad), self.text, s.style);
             }
@@ -318,16 +319,16 @@ impl<'a> Brand<'a> {
 #[cfg(test)]
 mod tests {
     use ratatui_core::buffer::Buffer;
-    use ratatui_core::layout::Position;
+    use ratatui_core::layout::{Position, Rect};
     use ratatui_core::style::Color;
 
     use super::*;
     use crate::event::MouseKind;
     use crate::id::PartRef;
-    use crate::runtime::stub::{SCREEN, mouse};
+    use crate::runtime::stub::{SCREEN, Stub, mouse};
     use crate::runtime::{App, Runtime};
     use crate::theme::resolve::bind_role;
-    use crate::theme::{Role, Surface, Theme};
+    use crate::theme::{ColorLevel, Role, Surface, Theme};
 
     const MARK: Id = Id::root("brand.tests");
     const OTHER: Id = Id::root("brand.tests.stop");
@@ -398,6 +399,45 @@ mod tests {
 
     fn bg_at(buf: &Buffer, x: u16, y: u16) -> Option<Color> {
         buf.cell(Position::new(x, y)).map(|c| c.bg)
+    }
+
+    #[test]
+    fn mono_pressed_brand_keeps_the_lockup_padding() {
+        const ID: Id = Id::root("brand.tests.mono");
+        let area = Rect::new(0, 0, 12, 1);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_scene(area, &mut buffer, |ui, area| {
+            ui.reference(
+                Some(crate::ReferenceTarget::new(
+                    ID,
+                    crate::ReferenceState::PRESSED,
+                )),
+                |ui| Brand::new(ID, TEXT).clickable(true).draw(ui, area),
+            );
+        });
+
+        assert_eq!(
+            buffer
+                .cell(Position::new(0, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("["),
+            "the left bracket occupies the lockup's leading pad"
+        );
+        assert_eq!(
+            buffer
+                .cell(Position::new(1, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("J"),
+            "the mark stays one cell inside the lockup"
+        );
+        assert_eq!(
+            buffer
+                .cell(Position::new(6, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
+            Some("]"),
+            "the right bracket occupies the lockup's trailing pad"
+        );
     }
 
     /// The centre of the lockup, in both the clickable and the plain case.
