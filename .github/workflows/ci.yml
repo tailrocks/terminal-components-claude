@@ -82,6 +82,8 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           components: rustfmt, clippy
+      - name: Install nightly rustdoc toolchain
+        run: rustup toolchain install nightly --profile minimal --no-self-update
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.toolchain }}
