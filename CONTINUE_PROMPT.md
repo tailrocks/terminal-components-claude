@@ -77,7 +77,7 @@ paths, not pending work. `bless-guard` must fail closed unless
 Measured at this tip:
 
 - `cargo fmt --all --check`: **PASS**.
-- `cargo run -p xtask -- doc-check`: **PASS**, 76 Rust blocks and 864 resolved
+- `cargo run -p xtask -- doc-check`: **PASS**, 76 Rust blocks and 863 resolved
   references; the existing not-yet-built allow-list remains explicit.
 - `cargo run -p xtask -- boundary`: all named source/contract checks pass except
   the fail-closed `baseline_moves_are_classified` check without a comparison

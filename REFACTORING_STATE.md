@@ -1977,7 +1977,7 @@ not claim Slice or goal completion.
   `5dc310a` (form test clippy cleanup), `c936d51` (masked environment drafts and save-only
   persistence), and `b23df21` (redacted environment debug values).
 - `rtk cargo fmt --all -- --check`: **PASS**.
-- `rtk cargo run -p xtask -- doc-check`: **PASS** — 76 Rust blocks, 864 references resolved;
+- `rtk cargo run -p xtask -- doc-check`: **PASS** — 76 Rust blocks, 863 references resolved;
   the existing allow-listed not-yet-built references remain explicit.
 - `rtk cargo run -p xtask -- boundary`: all named structural checks pass except the fail-closed
   `baseline_moves_are_classified` check without a comparison base. `props_are_built_once` passes

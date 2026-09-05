@@ -51,7 +51,7 @@ the removed root package.
 and `list`. Current named checks:
 
 - `cargo fmt --all --check`: PASS.
-- `doc-check`: PASS — 76 Rust blocks and 864 resolved references; the existing
+- `doc-check`: PASS — 76 Rust blocks and 863 resolved references; the existing
   not-yet-built allow-list remains explicit.
 - `boundary`: all named checks pass except the fail-closed
   `baseline_moves_are_classified` check needs `BLESS_GUARD_BASE` or
