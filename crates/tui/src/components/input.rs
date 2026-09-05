@@ -16,7 +16,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::secret::{Secret, SecretPolicy};
+use crate::secret::{Secret, SecretPolicy, wipe_string};
 use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
@@ -36,7 +36,7 @@ mod text_target {
 /// forms to edit `Secret` in place, without cloning it or widening the API.
 pub(crate) trait TextTarget: text_target::Sealed {
     fn expose(&self) -> &str;
-    fn set(&mut self, value: &str);
+    fn set(&mut self, value: &str, sensitive: bool);
     fn is_sensitive(&self) -> bool;
 }
 
@@ -45,8 +45,12 @@ impl TextTarget for String {
         self
     }
 
-    fn set(&mut self, value: &str) {
-        self.clear();
+    fn set(&mut self, value: &str, sensitive: bool) {
+        if sensitive {
+            wipe_string(core::mem::take(self));
+        } else {
+            self.clear();
+        }
         self.push_str(value);
     }
 
@@ -60,7 +64,7 @@ impl TextTarget for Secret {
         Secret::expose(self)
     }
 
-    fn set(&mut self, value: &str) {
+    fn set(&mut self, value: &str, _sensitive: bool) {
         Secret::set(self, value);
     }
 
@@ -474,6 +478,7 @@ impl EditorDraft {
 /// Sensitive errors carry no caller message or code.
 pub(crate) enum ErrorState {
     Plain(FieldError),
+    Pending(FieldError),
     Sensitive,
 }
 
@@ -489,6 +494,7 @@ impl ErrorState {
     pub(crate) const fn as_ref(&self) -> &FieldError {
         match self {
             ErrorState::Plain(error) => error,
+            ErrorState::Pending(_) => &INVALID_VALUE,
             ErrorState::Sensitive => &INVALID_VALUE,
         }
     }
@@ -496,21 +502,42 @@ impl ErrorState {
     pub(crate) fn clone_snapshot(&self) -> Self {
         match self {
             ErrorState::Plain(error) => ErrorState::Plain(error.clone()),
-            ErrorState::Sensitive => ErrorState::Sensitive,
+            ErrorState::Pending(_) | ErrorState::Sensitive => ErrorState::Sensitive,
         }
     }
 
     pub(crate) fn same(&self, other: &Self) -> bool {
         match (self, other) {
             (ErrorState::Plain(left), ErrorState::Plain(right)) => left == right,
-            (ErrorState::Sensitive, ErrorState::Sensitive) => true,
+            (ErrorState::Pending(_), ErrorState::Pending(_))
+            | (ErrorState::Pending(_), ErrorState::Sensitive)
+            | (ErrorState::Sensitive, ErrorState::Pending(_))
+            | (ErrorState::Sensitive, ErrorState::Sensitive) => true,
             _ => false,
         }
     }
 
+    pub(crate) fn redact(self) -> Self {
+        match self {
+            ErrorState::Plain(error) | ErrorState::Pending(error) => {
+                discard_error(error);
+                ErrorState::Sensitive
+            }
+            ErrorState::Sensitive => ErrorState::Sensitive,
+        }
+    }
+
+    pub(crate) fn resolve_plain(self) -> Self {
+        match self {
+            ErrorState::Pending(error) => ErrorState::Plain(error),
+            other => other,
+        }
+    }
+
     pub(crate) fn discard(self) {
-        if let ErrorState::Plain(error) = self {
-            discard_error(error);
+        match self {
+            ErrorState::Plain(error) | ErrorState::Pending(error) => discard_error(error),
+            ErrorState::Sensitive => {}
         }
     }
 }
@@ -535,6 +562,7 @@ pub struct TextInputState {
     phase: EditPhase,
     error: Option<ErrorState>,
     redacted_snapshot: bool,
+    sensitivity: Option<bool>,
 }
 
 impl Clone for TextInputState {
@@ -544,6 +572,7 @@ impl Clone for TextInputState {
             phase: self.phase,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
             redacted_snapshot: self.is_sensitive(),
+            sensitivity: self.sensitivity,
         }
     }
 }
@@ -597,6 +626,11 @@ impl TextInputState {
     }
 
     /// The last validation error.
+    ///
+    /// Before the first update reconciles the control's sensitivity, an
+    /// externally supplied error is exposed as `Invalid value`. A plain
+    /// control resolves that pending error during reconciliation and restores
+    /// its detail; a secret control discards the detail.
     pub const fn error(&self) -> Option<&FieldError> {
         match &self.error {
             Some(error) => Some(error.as_ref()),
@@ -606,32 +640,50 @@ impl TextInputState {
 
     pub(crate) fn set_sensitive(&mut self, sensitive: bool) {
         let changed = self.is_sensitive() != sensitive;
+        let pending_error = self
+            .error
+            .as_ref()
+            .is_some_and(|error| matches!(error, ErrorState::Pending(_)));
         self.draft.set_sensitive(sensitive);
+        self.sensitivity = Some(sensitive);
         if changed {
             self.phase = EditPhase::Idle;
             self.redacted_snapshot = false;
-            self.clear_error();
-        } else if sensitive
-            && self
-                .error
-                .as_ref()
-                .is_some_and(|error| !error.is_sensitive())
-        {
-            self.clear_error();
-            self.error = Some(ErrorState::sensitive());
+            if sensitive && pending_error {
+                self.redact_error();
+            } else {
+                self.clear_error();
+            }
+        } else if sensitive {
+            self.redact_error();
+        } else {
+            self.resolve_pending_error();
         }
     }
 
     /// Set (or clear) the error from an external / async validation.
     pub fn set_error(&mut self, e: Option<FieldError>) {
         self.clear_error();
-        if self.is_sensitive() {
-            if let Some(error) = e {
+        self.error = match (self.sensitivity, e) {
+            (_, None) => None,
+            (Some(true), Some(error)) => {
                 discard_error(error);
-                self.error = Some(ErrorState::sensitive());
+                Some(ErrorState::sensitive())
             }
-        } else {
-            self.error = e.map(ErrorState::Plain);
+            (Some(false), Some(error)) => Some(ErrorState::Plain(error)),
+            (None, Some(error)) => Some(ErrorState::Pending(error)),
+        };
+    }
+
+    fn redact_error(&mut self) {
+        if let Some(error) = self.error.take() {
+            self.error = Some(error.redact());
+        }
+    }
+
+    fn resolve_pending_error(&mut self) {
+        if let Some(error) = self.error.take() {
+            self.error = Some(error.resolve_plain());
         }
     }
 
@@ -664,7 +716,7 @@ impl TextInputState {
 
     fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
         if self.is_editing() && !self.redacted_snapshot {
-            value.set(self.draft.text());
+            value.set(self.draft.text(), self.is_sensitive());
         }
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
@@ -1713,6 +1765,7 @@ mod tests {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         let mut st = TextInputState::default();
+        st.set_sensitive(false);
         st.set_error(Some(FieldError::coded("Already taken", "dup")));
         for _ in 0..3 {
             rt.draw_scene(SCREEN, &mut buf, |ui, a| {
@@ -1722,6 +1775,59 @@ mod tests {
         assert_eq!(st.error().map(|e| e.code), Some(Some("dup")));
         st.set_error(None);
         assert!(st.error().is_none());
+    }
+
+    #[test]
+    fn sensitive_string_target_replaces_the_old_allocation() {
+        let mut st = TextInputState::default();
+        st.set_sensitive(true);
+        st.begin("new secret");
+
+        let mut value = String::with_capacity(1024);
+        value.push_str("old secret");
+        let old_capacity = value.capacity();
+
+        st.commit(&mut value, &NoValidate)
+            .expect("the replacement must not fail validation");
+
+        assert_eq!(value, "new secret");
+        assert!(
+            value.capacity() < old_capacity,
+            "sensitive replacement retained the old caller allocation"
+        );
+    }
+
+    #[test]
+    fn pending_error_is_masked_until_sensitivity_is_reconciled() {
+        const DETAIL: &str = "secret validation detail";
+
+        let mut plain = TextInputState::default();
+        plain.set_error(Some(FieldError::new(DETAIL.to_owned())));
+        assert!(matches!(plain.error, Some(ErrorState::Pending(_))));
+        assert_eq!(
+            plain.error().map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        plain.set_sensitive(false);
+        assert!(matches!(plain.error, Some(ErrorState::Plain(_))));
+        assert_eq!(
+            plain.error().map(|error| error.message.as_ref()),
+            Some(DETAIL)
+        );
+
+        let mut secret = TextInputState::default();
+        secret.set_error(Some(FieldError::new(DETAIL.to_owned())));
+        assert!(matches!(secret.error, Some(ErrorState::Pending(_))));
+        assert_eq!(
+            secret.error().map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        secret.set_sensitive(true);
+        assert!(matches!(secret.error, Some(ErrorState::Sensitive)));
+        assert_eq!(
+            secret.error().map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
     }
 
     #[test]
