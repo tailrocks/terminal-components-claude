@@ -104,6 +104,7 @@ const CMD_USAGE: ActionKey = ActionKey::application("jackin.usage");
 const CMD_SETTINGS: ActionKey = ActionKey::application("jackin.settings");
 const CMD_SETTINGS_TRUST_KEY: ActionKey = ActionKey::application("jackin.settings.trust-key");
 const CMD_CAPSULE: ActionKey = ActionKey::application("jackin.capsule");
+const CMD_CAPSULE_NEW_TAB: ActionKey = ActionKey::application("jackin.capsule.new-tab");
 const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
 const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
 const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
@@ -138,18 +139,20 @@ const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-clos
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
 const CMD_COPY_SELECTION: ActionKey = ActionKey::application("jackin.capsule.copy-selection");
 const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
+const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
 
 const CAPSULE_FILE_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_CAPSULE, "New tab"),
+    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
     MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right"),
     MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below"),
     MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
     MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
 ];
-const CAPSULE_MENU_ITEMS: &[MenuItem<'static>] = &[
+const CAPSULE_EDIT_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
     MenuItem::new(CMD_COPY_SELECTION, "Copy selection"),
-    MenuItem::new(CMD_CAPSULE, "New tab"),
+    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
 ];
 const CAPSULE_VIEW_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_CAPSULE_ZOOM, "Zoom pane"),
@@ -157,12 +160,20 @@ const CAPSULE_VIEW_ITEMS: &[MenuItem<'static>] = &[
     MenuItem::new(CMD_USAGE, "Usage"),
     MenuItem::new(CMD_INSPECT_CHANGES, "Inspect changes ·"),
 ];
-const CAPSULE_HELP_ITEMS: &[MenuItem<'static>] =
-    &[MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Keyboard shortcuts")];
+const CAPSULE_SESSION_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_CAPSULE_NEW_TAB, "New tab"),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
+    MenuItem::new(CMD_CAPSULE_DETACH, "Detach"),
+];
+const CAPSULE_HELP_ITEMS: &[MenuItem<'static>] = &[
+    MenuItem::new(CMD_KEYBOARD_SHORTCUTS, "Keyboard shortcuts"),
+    MenuItem::new(CMD_ABOUT, "About Capsule"),
+];
 const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("File", CAPSULE_FILE_ITEMS),
-    Menu::new("Capsule", CAPSULE_MENU_ITEMS),
+    Menu::new("Edit", CAPSULE_EDIT_ITEMS),
     Menu::new("View", CAPSULE_VIEW_ITEMS),
+    Menu::new("Session", CAPSULE_SESSION_ITEMS),
     Menu::new("Help", CAPSULE_HELP_ITEMS),
 ];
 const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
@@ -172,8 +183,16 @@ const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
     Item::new(ItemKey::num(1), "New tab"),
     Item::new(ItemKey::num(2), "Split right"),
-    Item::new(ItemKey::num(3), "Copy selection"),
-    Item::new(ItemKey::num(4), "Inspect changes ·"),
+    Item::new(ItemKey::num(3), "Split below"),
+    Item::new(ItemKey::num(4), "Copy selection"),
+    Item::new(ItemKey::num(5), "Inspect changes ·"),
+    Item::new(ItemKey::num(6), "Zoom pane"),
+    Item::new(ItemKey::num(7), "Focus left"),
+    Item::new(ItemKey::num(8), "Usage"),
+    Item::new(ItemKey::num(9), "Change title…"),
+    Item::new(ItemKey::num(10), "Close tab"),
+    Item::new(ItemKey::num(11), "Keyboard shortcuts"),
+    Item::new(ItemKey::num(12), "Detach"),
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
@@ -357,6 +376,7 @@ pub struct App {
     capsule_menu_state: MenuState,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
+    capsule_tab_menu_open: bool,
     capsule_palette_state: PickerState,
     tabs_state: TabsState,
     launch_dialog: DialogState,
@@ -505,6 +525,7 @@ impl App {
             capsule_menu_state: MenuState::default(),
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
+            capsule_tab_menu_open: false,
             capsule_palette_state: PickerState::default(),
             tabs_state: TabsState::default(),
             launch_dialog: DialogState::default(),
@@ -1082,7 +1103,12 @@ impl App {
     }
 
     fn open_capsule_account_picker(&mut self, cx: &mut Cx<'_>, action: CapsuleAction) {
-        let picker = Self::account_picker().title("Account for Claude Code");
+        let title = match action {
+            CapsuleAction::NewTab => "New tab · Account for Claude Code",
+            CapsuleAction::Split(SplitDir::Horizontal) => "Split right · Account for Claude Code",
+            CapsuleAction::Split(SplitDir::Vertical) => "Split below · Account for Claude Code",
+        };
+        let picker = Self::account_picker().title(title);
         self.pending_capsule_action = Some(action);
         self.picker_mode = Some(PickerMode::Capsule);
         self.account_state = PickerState::default();
@@ -1357,6 +1383,7 @@ impl App {
     fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
         if key == 'm' {
             self.capsule_prefix = false;
+            self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
             self.capsule_tab_menu_pos = Position::new(8, 2);
             cx.open_layer(
@@ -2334,6 +2361,9 @@ impl App {
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+        if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
+            self.capsule_tab_menu_open = false;
+        }
         let menu = Self::capsule_menu_bar();
         let menu_response = menu.update(cx, &mut self.capsule_menu_state);
         if let Some(MenuAction::Chosen(action)) = menu_response.action_ref().copied() {
@@ -2345,10 +2375,15 @@ impl App {
 
         let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
         let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
-        if let Some(MenuAction::Chosen(action)) = context_response.action_ref().copied() {
-            if let Some(response) = self.update_command(cx, action) {
-                result |= response;
+        match context_response.action_ref().copied() {
+            Some(MenuAction::Chosen(action)) => {
+                self.capsule_tab_menu_open = false;
+                if let Some(response) = self.update_command(cx, action) {
+                    result |= response;
+                }
             }
+            Some(MenuAction::Closed(_)) => self.capsule_tab_menu_open = false,
+            _ => {}
         }
         result |= context_response.erase();
 
@@ -2361,6 +2396,7 @@ impl App {
                 } = intent
                 {
                     self.capsule_tab_menu_pos = pos;
+                    self.capsule_tab_menu_open = true;
                     self.capsule_tab_menu_state = MenuState::default();
                     cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
                     result |= Response::changed();
@@ -2375,6 +2411,7 @@ impl App {
                 } = intent
                 {
                     self.capsule_tab_menu_pos = pos;
+                    self.capsule_tab_menu_open = true;
                     self.capsule_tab_menu_state = MenuState::default();
                     cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
                     result |= Response::changed();
@@ -2389,10 +2426,18 @@ impl App {
                 palette.update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS);
             if let Some(PickerAction::Chosen(key)) = palette_response.action_ref().copied() {
                 let action = match key {
-                    ItemKey::Num(1) => Some(CMD_CAPSULE),
+                    ItemKey::Num(1) => Some(CMD_CAPSULE_NEW_TAB),
                     ItemKey::Num(2) => Some(CMD_CAPSULE_SPLIT_RIGHT),
-                    ItemKey::Num(3) => Some(CMD_COPY_SELECTION),
-                    ItemKey::Num(4) => Some(CMD_INSPECT_CHANGES),
+                    ItemKey::Num(3) => Some(CMD_CAPSULE_SPLIT_BELOW),
+                    ItemKey::Num(4) => Some(CMD_COPY_SELECTION),
+                    ItemKey::Num(5) => Some(CMD_INSPECT_CHANGES),
+                    ItemKey::Num(6) => Some(CMD_CAPSULE_ZOOM),
+                    ItemKey::Num(7) => Some(CMD_CAPSULE_FOCUS_LEFT),
+                    ItemKey::Num(8) => Some(CMD_USAGE),
+                    ItemKey::Num(9) => Some(CMD_TAB_RENAME),
+                    ItemKey::Num(10) => Some(CMD_TAB_CLOSE),
+                    ItemKey::Num(11) => Some(CMD_KEYBOARD_SHORTCUTS),
+                    ItemKey::Num(12) => Some(CMD_CAPSULE_DETACH),
                     _ => None,
                 };
                 if let Some(action) = action
@@ -2408,6 +2453,15 @@ impl App {
         // Prefix commands own the next key. Do not let the focused command
         // input consume it before the bubble action can dispatch.
         if self.capsule_prefix {
+            let prefix_key = cx.intents(CAPSULE_INPUT).find_map(|intent| match intent {
+                Intent::Key(key) => key.bare_char(),
+                _ => None,
+            });
+            if let Some(key) = prefix_key {
+                self.capsule_input.clear();
+                self.capsule_input_state = TextInputState::default();
+                result |= self.capsule_prefix_key(cx, key);
+            }
             return result;
         }
         if !self.capsule_input_state.is_editing()
@@ -2458,7 +2512,11 @@ impl App {
             result |= self.capsule_prefix_key(cx, key);
         }
         if committed {
-            if self.capsule_tab_title_editing {
+            if self.capsule_tab_title_dialog && !self.capsule_tab_title_editing {
+                self.capsule_input_state.begin(&self.capsule_input);
+                self.capsule_tab_title_editing = true;
+                cx.focus(CAPSULE_INPUT);
+            } else if self.capsule_tab_title_editing {
                 self.capsule_tab_title = mem::take(&mut self.capsule_input);
                 self.capsule_tab_title_editing = false;
                 self.capsule_tab_title_dialog = false;
@@ -2499,6 +2557,7 @@ impl App {
     }
 
     fn update_command(&mut self, cx: &mut Cx<'_>, command: ActionKey) -> Option<Response<()>> {
+        eprintln!("jackin command={command:?} route={:?}", self.route);
         if self.route == Route::Capsule
             && self.inspect.instance.is_some()
             && matches!(command, CMD_MANAGER | CMD_CAPSULE_DETACH | CMD_EXIT_CONFIRM)
@@ -2533,9 +2592,7 @@ impl App {
             }
             CMD_MANAGER => {
                 if self.route == Route::Capsule && self.capsule_prefix {
-                    self.capsule_prefix = false;
-                    self.status = Some("Detached from Capsule".into());
-                    self.route = Route::Manager;
+                    return Some(self.capsule_prefix_key(cx, 'm'));
                 } else {
                     if self.route == Route::Usage {
                         self.accounts.selected_id = self.usage.manage_target().map(str::to_owned);
@@ -2663,6 +2720,11 @@ impl App {
                 self.settings.clear_error();
                 Some(Response::changed())
             }
+            CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
+                self.open_capsule_account_picker(cx, CapsuleAction::NewTab);
+                self.status = Some("New tab · Account for Claude Code".into());
+                Some(Response::changed())
+            }
             CMD_CAPSULE => {
                 if cx.update_cause() == UpdateCause::Settle {
                     return Some(Response::changed());
@@ -2699,7 +2761,10 @@ impl App {
                 Some(Response::changed())
             }
             CMD_INSPECT_CHANGES if self.route == Route::Capsule => {
-                self.inspect.instance = self.active_instance.clone();
+                self.inspect.instance = self
+                    .active_instance
+                    .clone()
+                    .or_else(|| self.active_running_instance_id());
                 self.inspect_detail = false;
                 self.inspect_files = false;
                 self.status = Some("Inspect changes · choose a file".into());
@@ -2707,6 +2772,10 @@ impl App {
             }
             CMD_KEYBOARD_SHORTCUTS if self.route == Route::Capsule => {
                 self.status = Some("Keyboard shortcuts · Enter choose · Esc close".into());
+                Some(Response::changed())
+            }
+            CMD_ABOUT if self.route == Route::Capsule => {
+                self.status = Some("Capsule · terminal workspace control plane".into());
                 Some(Response::changed())
             }
             CMD_TAB_RENAME if self.route == Route::Capsule => {
@@ -4167,7 +4236,7 @@ impl App {
             .center(&status_center)
             .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
 
-        let hints = if self.capsule_menu_state.is_open() || self.capsule_tab_menu_state.is_open() {
+        let hints = if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
             HintLayer {
                 hints: vec![
                     Hint {
@@ -4211,7 +4280,7 @@ impl App {
         } else {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
+                    chord: Chord::with(KeyCode::Char('B'), KeyModifiers::CONTROL),
                     label: "prefix",
                     priority: 90,
                 }],
@@ -4341,6 +4410,29 @@ impl TuiApp for App {
             self.draw_layers(ui);
             return;
         }
+        let hints = if self.help_open {
+            HintLayer {
+                hints: vec![Hint {
+                    chord: Chord::key(KeyCode::Esc),
+                    label: "Close",
+                    priority: 90,
+                }],
+                badge: None,
+                status: None,
+                centered: false,
+            }
+        } else {
+            HintLayer {
+                hints: vec![Hint {
+                    chord: Chord::key(KeyCode::Enter),
+                    label: "Choose",
+                    priority: 90,
+                }],
+                badge: None,
+                status: None,
+                centered: false,
+            }
+        };
         Self::shell_panel(&self.shell_meta).draw(ui, full, |ui, inner| {
             let header_height = inner.height.min(3);
             let footer_height = inner.height.saturating_sub(header_height).min(2);
@@ -4376,38 +4468,15 @@ impl TuiApp for App {
                     style,
                 );
             }
-            let hints = if self.help_open {
-                HintLayer {
-                    hints: vec![Hint {
-                        chord: Chord::key(KeyCode::Esc),
-                        label: "Close",
-                        priority: 90,
-                    }],
-                    badge: None,
-                    status: None,
-                    centered: false,
-                }
-            } else {
-                HintLayer {
-                    hints: vec![Hint {
-                        chord: Chord::key(KeyCode::Enter),
-                        label: "Choose",
-                        priority: 90,
-                    }],
-                    badge: None,
-                    status: None,
-                    centered: false,
-                }
-            };
-            HintBar::new(APP.sub("hint"), &hints).draw(
-                ui,
-                Rect {
-                    y: footer.y.saturating_add(1),
-                    height: 1,
-                    ..footer
-                },
-            );
         });
+        HintBar::new(APP.sub("hint"), &hints).draw(
+            ui,
+            Rect {
+                y: full.bottom().saturating_sub(1),
+                height: 1,
+                ..full
+            },
+        );
         self.draw_layers(ui);
     }
 

@@ -291,6 +291,99 @@ const BAR_BINDINGS: &[Binding<MenuCmd>] = &[
     ),
 ];
 
+const BAR_CONTEXT_BINDINGS: &[Binding<MenuCmd>] = &[
+    binding(
+        ActionKey::custom("menu.context.prev.up"),
+        Chord::key(KeyCode::Up),
+        MenuCmd::Prev,
+        true,
+    ),
+    binding(
+        ActionKey::custom("menu.context.prev.k"),
+        Chord::key(KeyCode::Char('k')),
+        MenuCmd::Prev,
+        false,
+    ),
+    binding(
+        ActionKey::custom("menu.context.next.down"),
+        Chord::key(KeyCode::Down),
+        MenuCmd::Next,
+        true,
+    ),
+    binding(
+        ActionKey::custom("menu.context.next.j"),
+        Chord::key(KeyCode::Char('j')),
+        MenuCmd::Next,
+        false,
+    ),
+    binding(
+        ActionKey::custom("menu.context.first"),
+        Chord::key(KeyCode::Home),
+        MenuCmd::First,
+        false,
+    ),
+    binding(
+        ActionKey::custom("menu.context.last"),
+        Chord::key(KeyCode::End),
+        MenuCmd::Last,
+        false,
+    ),
+    binding(
+        ActionKey::custom("menu.context.activate.enter"),
+        Chord::key(KeyCode::Enter),
+        MenuCmd::Activate,
+        true,
+    ),
+    binding(
+        ActionKey::custom("menu.context.activate.space"),
+        Chord::key(KeyCode::Char(' ')),
+        MenuCmd::Activate,
+        false,
+    ),
+    binding(
+        ActionKey::custom("menu.bar.prev.left"),
+        Chord::key(KeyCode::Left),
+        MenuCmd::PrevMenu,
+        true,
+    ),
+    binding(
+        ActionKey::custom("menu.bar.prev.h"),
+        Chord::key(KeyCode::Char('h')),
+        MenuCmd::PrevMenu,
+        false,
+    ),
+    binding(
+        ActionKey::custom("menu.bar.next.right"),
+        Chord::key(KeyCode::Right),
+        MenuCmd::NextMenu,
+        true,
+    ),
+    binding(
+        ActionKey::custom("menu.bar.next.l"),
+        Chord::key(KeyCode::Char('l')),
+        MenuCmd::NextMenu,
+        false,
+    ),
+    binding(
+        ActionKey::custom("menu.bar.activate.down"),
+        Chord::key(KeyCode::Down),
+        MenuCmd::Activate,
+        true,
+    ),
+    binding(
+        ActionKey::custom("menu.bar.activate.enter"),
+        Chord::key(KeyCode::Enter),
+        MenuCmd::Activate,
+        false,
+    ),
+    binding(
+        ActionKey::custom("menu.bar.activate.space"),
+        Chord::key(KeyCode::Char(' ')),
+        MenuCmd::Activate,
+        false,
+    ),
+];
+
 /// Anchored popup content. The runtime owns placement, dismissal and z-order.
 ///
 /// ## Construction
@@ -354,6 +447,7 @@ pub struct ContextMenu<'a> {
     anchor: Anchor,
     title: Option<&'a str>,
     ov: PartStyle<'a>,
+    bar_navigation: Option<(usize, usize)>,
 }
 
 impl fmt::Debug for ContextMenu<'_> {
@@ -363,6 +457,7 @@ impl fmt::Debug for ContextMenu<'_> {
             .field("items", &self.items.len())
             .field("anchor", &self.anchor)
             .field("title", &self.title)
+            .field("bar_navigation", &self.bar_navigation)
             .finish_non_exhaustive()
     }
 }
@@ -388,12 +483,18 @@ impl<'a> ContextMenu<'a> {
             anchor,
             title: None,
             ov: PartStyle::new(),
+            bar_navigation: None,
         }
     }
 
     /// A context menu at a pointer position.
     pub const fn at(id: Id, items: &'a [MenuItem<'a>], position: Position) -> Self {
         Self::new(id, items, Anchor::Point(position))
+    }
+
+    const fn menu_bar_navigation(mut self, index: usize, count: usize) -> Self {
+        self.bar_navigation = Some((index, count));
+        self
     }
 
     /// Optional heading.
@@ -437,6 +538,7 @@ impl<'a> ContextMenu<'a> {
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         LayerSpec::popover(self.id, self.anchor)
             .dismiss(Dismiss::ALL)
+            .initial_focus(self.id)
             .size(self.measured_size(cx))
     }
 
@@ -520,6 +622,40 @@ impl<'a> ContextMenu<'a> {
         }
     }
 
+    fn switch_menu(&self, delta: isize) -> Response<MenuAction> {
+        let Some((index, count)) = self.bar_navigation else {
+            return Response::ignored();
+        };
+        let next = index
+            .wrapping_add_signed(delta)
+            .checked_rem(count)
+            .unwrap_or_default();
+        Response::action(MenuAction::Opened(next))
+    }
+
+    fn binding_response(&self, st: &mut MenuState, action: ActionKey) -> Response<MenuAction> {
+        if self.bar_navigation.is_some()
+            && let Some(command) = Binding::command(BAR_BINDINGS, action)
+        {
+            return match command {
+                MenuCmd::PrevMenu => self.switch_menu(-1),
+                MenuCmd::NextMenu => self.switch_menu(1),
+                command => self.command(st, command),
+            };
+        }
+        Binding::command(CONTEXT_BINDINGS, action).map_or_else(
+            || {
+                self.items
+                    .iter()
+                    .find(|item| !item.disabled && item.action == action)
+                    .map_or_else(Response::ignored, |item| {
+                        Response::action(MenuAction::Chosen(item.action))
+                    })
+            },
+            |command| self.command(st, command),
+        )
+    }
+
     fn pointer(&self, st: &mut MenuState, index: usize, phase: Phase) -> Response<MenuAction> {
         if !self.enabled_at(index) {
             return Response::consumed();
@@ -560,17 +696,7 @@ impl<'a> ContextMenu<'a> {
                     cx.close_layer(self.id, None);
                     Response::action(MenuAction::Closed(DismissReason::Esc))
                 }
-                Intent::Binding(action) => Binding::command(CONTEXT_BINDINGS, action).map_or_else(
-                    || {
-                        self.items
-                            .iter()
-                            .find(|item| !item.disabled && item.action == action)
-                            .map_or_else(Response::ignored, |item| {
-                                Response::action(MenuAction::Chosen(item.action))
-                            })
-                    },
-                    |command| self.command(st, command),
-                ),
+                Intent::Binding(action) => self.binding_response(st, action),
                 Intent::Pointer {
                     phase,
                     part:
@@ -625,7 +751,12 @@ impl<'a> ContextMenu<'a> {
                 slot(ui, area);
             }
             ui.register_control(self.id, area, Focusability::Focusable);
-            ui.publish_bindings(self.id, live, CONTEXT_BINDINGS);
+            let bindings = if self.bar_navigation.is_some() {
+                BAR_CONTEXT_BINDINGS
+            } else {
+                CONTEXT_BINDINGS
+            };
+            ui.publish_bindings(self.id, live, bindings);
             ui.publish_dynamic_bindings(
                 self.id,
                 live,
@@ -916,6 +1047,7 @@ impl<'a> MenuBar<'a> {
             anchor: self.anchor(cx, index),
             title: None,
             ov: self.ov,
+            bar_navigation: Some((index, self.menus.len())),
         })
     }
 
@@ -977,18 +1109,24 @@ impl<'a> MenuBar<'a> {
                 return response;
             };
             let response = dropdown.update(cx, st);
-            if matches!(
-                response.action_ref(),
-                Some(MenuAction::Chosen(_) | MenuAction::Closed(_))
-            ) {
-                st.open = None;
-                cx.close_layer(
-                    self.id,
-                    response.action_ref().and_then(|a| match a {
-                        MenuAction::Chosen(key) => Some(*key),
-                        _ => None,
-                    }),
-                );
+            eprintln!("menu dropdown open={open} cursor={} response={response:?}", st.cursor);
+            match response.action_ref().copied() {
+                Some(MenuAction::Opened(index)) => {
+                    let _ = self.open(cx, st, index);
+                    if let Some(next) = self.dropdown(cx, index) {
+                        cx.resize_layer(self.id, next.measured_size(cx));
+                        cx.reanchor_layer(self.id, next.anchor);
+                    }
+                }
+                Some(MenuAction::Chosen(key)) => {
+                    st.open = None;
+                    cx.close_layer(self.id, Some(key));
+                }
+                Some(MenuAction::Closed(_)) => {
+                    st.open = None;
+                    cx.close_layer(self.id, None);
+                }
+                _ => {}
             }
             return response;
         }
@@ -1132,6 +1270,7 @@ impl<'a> MenuBar<'a> {
                 anchor: Anchor::Screen(crate::layer::ScreenAlign::UpperThird),
                 title: None,
                 ov: self.ov,
+                bar_navigation: Some((open, self.menus.len())),
             };
             let _ = ui.layer(self.id, |ui, layer| dropdown.draw(ui, layer, st));
         }

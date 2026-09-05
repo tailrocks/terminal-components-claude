@@ -1,5 +1,47 @@
 # Goal — Finish Slice 4 wave 1 of the Rust TUI component-system refactor
 
+## Latest stop update — 2026-09-05
+
+The user stopped the continuation again. Resume from pushed `main` at
+`d7255b0`; all tracked chrome changes below are preserved in the next stop
+commit. Do not claim Slice 4 or the merge goal complete.
+
+Pushed proof commits now on `origin/main`:
+
+- `ac2637a` — defers the unresolved Choice geometry proof in the named-test
+  allow list; this is intentional and remains an open proof obligation.
+- `d7255b0` — aligns ChipBar/TextArea render fixtures.
+
+Measured by the proof worker:
+
+- actual package is `junie-tui`; `tui-next` is invalid;
+- `cargo build -p junie-tui --all-targets`: pass;
+- `cargo test -p junie-tui --lib`: 741 passed;
+- conformance: 934 passed;
+- named-test boundary: pass;
+- render matrix: 326 passed, with six pre-existing Grid digest failures;
+- formatting and diff checks: pass.
+
+Tracked but unverified at this stop:
+
+- `apps/jackin-preview/src/app.rs`;
+- `crates/tui/src/components/menu.rs`.
+
+These contain an in-progress chrome attempt: top-level menu switching,
+expanded Capsule menu/palette entries, context-menu lifecycle state, prefix
+routing, last-row generic hints, and `Ctrl+B` display. The chrome suite was
+previously `0/6`; no post-edit chrome result exists because the user stopped
+the worker. Review or revert selectively after running the focused suite; do
+not overwrite the files wholesale.
+
+The architecture audit resolved the four old open questions: no new
+amendment is needed; `FieldControl` stays unwidened, Select/RadioGroup/ChipBar
+use per-phase data, and RowUi/Q are already applied. Independent visual
+blessing remains unauthorized: app capture provenance is stale, TablePro and
+Jackin visual evidence remain unresolved, and six Grid digest failures remain.
+
+Only build-cache directories are untracked. Never stage them with `git add -A`.
+
 ## Latest session handoff — 2026-09-05 stop
 
 The user stopped the merge/implementation session. Resume from pushed `main` at
