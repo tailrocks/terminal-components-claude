@@ -251,8 +251,14 @@ fn visual_surface_fixture_materializes_the_real_route() {
         app.set_surface(surface);
         assert_eq!(app.surface(), surface);
         let harness = Harness::new(app, Theme::junie(), 120, 40);
+        // Historical headers are shared by route: connection surfaces render
+        // "Connections"; every workbench surface renders "Production".
+        let expected_marker = match surface {
+            Surface::Connections | Surface::ConnectionsFailed => "Connections",
+            _ => "Production",
+        };
         assert!(
-            harness.text().contains(surface.label()),
+            harness.text().contains(expected_marker),
             "{} fixture did not reach its named renderer",
             surface.label()
         );
