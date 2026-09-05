@@ -1,113 +1,99 @@
-# Refactoring Completion Audit
+# Current refactor audit — UI/TUI restoration required
 
-Date: 2026-09-05  
-Repository: terminal-components-claude  
-Auditors: 8 delegated subagents, all gpt-5.6-luna, reasoning max
+Date: 2026-09-05
+Repository tip audited: `54a7aa1`
+Historical source: `d5e7075` (`cc14dd6` UI/source state)
 
 ## Result
 
-Estimated implementation completion: **about 45%**.
-Current acceptance/proof readiness: **about 40%**.
+The architecture migration is substantially present. Historical UI/TUI parity
+is not present or proven. The current work must restore the old experience
+through the new architecture; it must not continue redesigning the products.
 
-This is an evidence-based estimate, not a claim that the repository defines a mathematically exact percentage. Independent audits produced a 30–57% range. Current code and live gates support a 40–50% range; the center is about 45% because the new library foundation and quality gates are substantial, while the required application migration and legacy removal are still effectively untouched.
+## Proven current state
 
-The markdown ledgers were used as a rubric. Code, tests, command output, and current package structure were treated as authoritative.
+- Workspace packages exist in `Cargo.toml` for `crates/tui`,
+  `crates/tui-testing`, `apps/showcase`, `apps/tablepro`,
+  `apps/jackin-preview`, and `xtask`.
+- All three applications use the `junie-tui` public facade under `apps/*`.
+- Shared runtime, focus, hit testing, layers, themes, components, testing,
+  security hardening, and package boundaries are implemented.
+- Current component/conformance, package, and focused application evidence is
+  substantial. It does not prove historical product rendering.
 
-## Done or substantially proven
+## Historical contract
 
-- tui-next exists as a separate library with a curated public facade.
-- The new library contains 37 component modules and a broad component export catalog.
-- Foundation work exists for IDs, focus, hit testing, pointer capture, layers, runtime state, themes, overrides, collections, validation, secrets, and rendering contracts.
-- tui-next library tests pass: **679 passed**.
-- tui-next checks pass with and without default features.
-- tui-next examples build.
-- Workspace rustdoc with '-D warnings' passes.
-- Existing root application tests pass: **247 passed**.
-- Architecture, API, interaction, domain-boundary, performance, migration, and authoring documents exist.
-- Formatting and 'git diff --check' pass.
-- Conformance coverage and many structural xtask boundary checks exist.
+`baseline/before/MANIFEST.md` records 499 real-terminal captures made from the
+known-good local source at `d5e7075`. The archive covers all three applications,
+four sizes, color modes, themes, menus, dialogs, forms, grids, editors,
+scrolling, mouse, resize, and route journeys. The archive contains exact ANSI,
+plain-text, cursor, HTML, and PNG evidence.
 
-## Partial or in progress
+The current `shots/capture-matrix.tsv` has 96 cells and stale provenance. The
+current package baselines are post-migration self-baselines. Current visual
+tests do not read `baseline/before/**`, so they can pass while output differs
+from the accepted UI.
 
-- Component parity is not fully proven. Old and new catalogs coexist, and several mappings remain unresolved.
-- Slice 4 runtime/component work is substantial but not closed.
-- Visual QA is incomplete. Existing pre-refactor baselines do not prove current UI correctness. The current state notes record visual review failure, with no complete current capture/finding set.
-- Secret handling has a safe Secret primitive, but secret-bearing control state still needs stronger guarantees. TextInputState can retain a raw draft while deriving Clone/equality, and dialog acknowledgement state retains a raw token in String.
-- Boundary checks pass partly vacuously because there are no migrated apps packages for the checks to scan.
-- Documentation checks pass with an allowlist containing unresolved/not-yet-built references.
-- The final report and clean definition-of-done evidence are missing.
+Direct evidence:
 
-## Not done
+- Historical Showcase overview:
+  `baseline/before/showcase_overview_default_120x40.txt`.
+- Current Showcase overview:
+  `shots/showcase_junie_truecolor_120x40.txt`.
+- Historical TablePro Connections:
+  `baseline/before/tablepro_connections_default_120x40.txt`.
+- Current TablePro capture shows a different results-grid surface:
+  `shots/tablepro_junie_truecolor_120x40.txt`.
+- Historical Jackin manager/Capsule frames are in `baseline/before/` and the
+  historical local `shots/` copy; current app captures are structurally
+  different.
 
-### Application migration
+## Root cause
 
-All three applications remain on the legacy stack:
+`18afddd` added the correct new foundations. `7784719` removed the historical
+renderer before executable parity existed. Later migration rewrites changed
+product rendering and interaction contracts:
 
-- showcase
-- tablepro
-- jackin-preview
+- Showcase: `4e07ea1`; current shell at `apps/showcase/src/app.rs:627`.
+- TablePro: `5042a40`; current update/draw at
+  `apps/tablepro/src/app.rs:1016` and `:1190`.
+- Jackin: `444a8f4`; current route/update and draw paths at
+  `apps/jackin-preview/src/app.rs:2544` and `:3257`.
+- Facade/evidence enforcement then cemented the new output without a
+  historical comparison: `1378c31`.
 
-The root manifest still owns their binaries. There is no apps package layout. Application code still imports legacy core, ui, widgets, and theme modules. The applications still manually own or route focus, hits, hover, pressed state, mouse events, modal behavior, cursor state, and scrolling.
+The common architectural failure was treating rendering as replaceable. The
+new runtime has no parity adapter preserving historical geometry, paint order,
+focus order, hit regions, cursor placement, or interaction transitions.
 
-Relevant evidence:
+## Fresh gate snapshot
 
-- [root Cargo manifest](/Users/donbeave/Projects/terminal-components-claude/Cargo.toml:65)
-- [new library facade](/Users/donbeave/Projects/terminal-components-claude/crates/tui/src/lib.rs:46)
-- [showcase application](/Users/donbeave/Projects/terminal-components-claude/src/bin/showcase/app.rs:12)
-- [TablePro application](/Users/donbeave/Projects/terminal-components-claude/src/bin/tablepro/app.rs:11)
-- [Jackin Preview application](/Users/donbeave/Projects/terminal-components-claude/src/bin/jackin-preview/app.rs:5)
+Measured during this audit, after the documentation edits:
 
-### Legacy removal
+- `rtk proxy git diff --check`: pass.
+- `rtk cargo run -p xtask -- doc-check`: pass; 76 Rust blocks and 865 resolved
+  references.
+- `rtk cargo test --workspace --all-targets --all-features`: fail; 63 tests
+  passed and 3 Jackin journey tests failed:
+  `detach_reconnect_and_final_exit_plays_one_outro`,
+  `complete_flow_keyboard_first`, and `complete_jackin_flow_keyboard_first`.
+- `rtk cargo test -p showcase --test visual`: pass; this is still a
+  post-migration self-baseline, not historical parity proof.
+- `rtk cargo run -p xtask -- boundary`: fail closed for
+  `baseline_moves_are_classified` without an explicit comparison base, and
+  fails `props_are_built_once` on seven Jackin constructors in
+  `apps/jackin-preview/src/app.rs`.
 
-The old src/core, src/ui, src/widgets, and flat theme/API path remain active. They cannot be removed until all consumers migrate.
+These results are evidence for the continuation goal, not a completion claim.
 
-### Product-boundary work
+## Required continuation
 
-The generic grid/TablePro adapter boundary, public application composition, and complete app-level use of the new library are not finished.
+Follow [`GOAL.md`](../GOAL.md): build a dual-run parity oracle first, restore
+shared visual contracts, restore Showcase/TablePro/Jackin route by route, add
+non-vacuous historical-reference tests, classify approved additions and bug
+fixes, refresh provenance, and run independent visual review before any
+baseline blessing.
 
-### Visual and security proof
-
-Current Paper/Junie captures, responsive sizes, overlays, mouse/scroll/resize behavior, and secret-redaction evidence are not complete enough to close the goal.
-
-## Verification snapshot captured during audit
-
-| Check | Result |
-|---|---|
-| 'cargo fmt --all -- --check' | Pass |
-| 'git diff --check' | Pass |
-| 'cargo check -p tui-next --all-features' | Pass |
-| 'cargo check -p tui-next --no-default-features' | Pass |
-| 'cargo test -p tui-next --lib --all-features' | 679 passed |
-| 'cargo build -p tui-next --examples --all-features' | Pass |
-| 'cargo test -p junie-tui --all-targets' | 247 passed |
-| 'cargo test --workspace --all-targets --all-features' | 926 passed, 1 failed |
-| strict workspace build | Pass |
-| strict workspace clippy | Pass |
-| 'xtask boundary' | Structural checks pass; app scans are vacuous; baseline guard lacks base |
-| 'xtask doc-check' | Exit 0; 853 references resolved, with a non-empty allowlist |
-| current visual completion | Not proven; state records failure |
-
-The one workspace test failure is the baseline guard refusing to run without BLESS_GUARD_BASE. Running it with BLESS_GUARD_BASE=a1759b2 showed zero moved or added baseline keys; that proves guard execution, not fresh visual correctness.
-
-This is the audit snapshot. Delegated worktree edits may have changed results afterward; rerun every gate before relying on it.
-
-## Completion blockers in priority order
-
-1. Migrate all three applications to tui-next and the new runtime/foundation APIs.
-2. Move application packages/binaries to the required boundary and make boundary checks non-vacuous.
-3. Remove app-owned interaction plumbing: manual focus, hit registration, hover/pressed state, cursor, modal routing, and scroll routing.
-4. Preserve and test product semantics: Showcase catalog/custom themes, TablePro SQL/query safety and editing workflow, and Jackin Preview simulation/control behavior.
-5. Complete component parity and resolve every legacy/new component disposition.
-6. Finish secret-state hardening and leakage/redaction tests.
-7. Generate and inspect current visual captures across required sizes, color modes, overlays, input, mouse, scroll, and resize cases.
-8. Remove legacy APIs and duplicate implementation paths after migration.
-9. Fix all strict build, clippy, test, baseline, boundary, and documentation gates.
-10. Update REFACTORING_STATE.md, GOAL.md evidence, and the final report only from fresh command/capture evidence.
-
-## Worktree note
-
-The audit ran on clean HEAD '0877cda'. No application migration exists at that commit. Preserve any later user or delegated changes; uncommitted code does not count as completed delivery until it passes the final gates and is intentionally integrated.
-
-## Bottom line
-
-The project has a credible new-library foundation. The central outcome is not achieved: the three real applications still run on the old stack, the old API remains active, current visual proof is incomplete, and the final gates are not clean.
+Do not treat this report, `REFACTORING_STATE.md`, stale captures, or green
+self-baseline tests as completion proof. Fresh source, commands, captures, and
+review decide completion.
