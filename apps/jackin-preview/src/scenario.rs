@@ -2,6 +2,7 @@
 //! in, how motion behaves, and which tick a paused capture shows.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Deterministic fixture world and journey selected by the preview.
 pub enum Scenario {
     /// Zero instances, no saved Workspaces, no accounts: intro then an
     /// empty manager.
@@ -23,6 +24,7 @@ pub enum Scenario {
 }
 
 impl Scenario {
+    /// All scenarios in their stable CLI/display order.
     pub const ALL: [Scenario; 8] = [
         Scenario::FirstUse,
         Scenario::Returning,
@@ -34,6 +36,7 @@ impl Scenario {
         Scenario::HardCases,
     ];
 
+    /// Return the stable CLI name for this scenario.
     pub fn name(self) -> &'static str {
         match self {
             Scenario::FirstUse => "first-use",
@@ -47,6 +50,7 @@ impl Scenario {
         }
     }
 
+    /// Parse a stable CLI scenario name.
     pub fn from_name(s: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|sc| sc.name() == s)
     }
@@ -64,6 +68,7 @@ pub enum Motion {
 }
 
 impl Motion {
+    /// Parse a stable CLI motion name.
     pub fn from_name(s: &str) -> Option<Self> {
         match s {
             "full" => Some(Motion::Full),

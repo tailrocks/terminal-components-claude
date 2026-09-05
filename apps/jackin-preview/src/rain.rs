@@ -270,8 +270,11 @@ pub const REDUCED_HOLD: u64 = 45;
 /// Intro phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntroPhase {
+    /// Entry phrases and the knock sequence.
     Phrases,
+    /// Warp transition into the Construct.
     Warp,
+    /// Entry ritual is complete.
     Done,
 }
 
@@ -342,8 +345,11 @@ impl IntroState {
 /// Outro phase.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutroPhase {
+    /// Warp transition out of the Construct.
     Warp,
+    /// Exit caption is being held.
     Caption,
+    /// Exit ritual is complete.
     Done,
 }
 
@@ -358,10 +364,9 @@ pub struct OutroState {
     pub mode: Motion,
 }
 
-/// Glitch reveal plus the original 2.4 s caption hold.
 /// Warp duration for the outro.
 pub const OUT_WARP: u64 = WARP_TICKS;
-/// Caption duration for the outro.
+/// Glitch reveal plus the original 2.4-second caption hold duration.
 pub const OUT_CAPTION: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + 2_400u64.div_ceil(TICK_MS);
 
 impl OutroState {
@@ -455,9 +460,13 @@ pub fn format_universe_duration(secs: u64) -> String {
 /// Handoff stage used to coordinate cockpit/capsule cross-fade.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HandoffStage {
+    /// Dim the cockpit by the given ladder step.
     CockpitDim(u8),
+    /// Paint only the shared canvas during the transition.
     Canvas,
+    /// Dim the capsule by the given ladder step.
     CapsuleDim(u8),
+    /// Capsule is fully revealed.
     Capsule,
 }
 
