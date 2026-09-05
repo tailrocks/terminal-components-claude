@@ -18,16 +18,6 @@ use crate::text::Span;
 use crate::theme::{FgStep, GlyphRole, Role, Surface, Theme};
 
 impl Ui<'_> {
-    fn replace_modifier(cell: &mut ratatui_core::buffer::Cell, style: Style) {
-        // `Cell::set_style` is intentionally patching: that is correct for
-        // ordinary widget composition, but Ui painters are cell owners. A
-        // later painter must not inherit a modifier left by an earlier
-        // component on the same cell (historical shell overlays rely on
-        // this overwrite contract).
-        cell.modifier = Modifier::empty();
-        cell.set_style(style);
-    }
-
     /// Paint one grapheme at `pos`. The cells shadowed by a wide grapheme
     /// are reset, as `set_stringn` does, so the diff stays correct (R‑6).
     pub fn paint_cell(&mut self, pos: Position, symbol: &str, s: Style) {
@@ -45,8 +35,7 @@ impl Ui<'_> {
         let right = self.clip.right();
         let buf = self.buffer();
         if let Some(c) = buf.cell_mut(pos) {
-            c.set_symbol(symbol);
-            Self::replace_modifier(c, s);
+            c.set_symbol(symbol).set_style(s);
         }
         let mut x = pos.x.saturating_add(1);
         let end = pos.x.saturating_add(w as u16);
@@ -73,11 +62,6 @@ impl Ui<'_> {
         let (end, _) = self
             .buffer()
             .set_stringn(area.x, area.y, text, usize::from(area.width), s);
-        for x in area.x..end {
-            if let Some(cell) = self.buffer().cell_mut(Position::new(x, area.y)) {
-                Self::replace_modifier(cell, s);
-            }
-        }
         let written = end.saturating_sub(area.x);
         self.mark_area(Rect {
             x: area.x,
@@ -121,11 +105,6 @@ impl Ui<'_> {
             let (end, _) = self
                 .buffer()
                 .set_span(x, area.y, &RawSpan::styled(sp.text, st), width);
-            for column in x..end {
-                if let Some(cell) = self.buffer().cell_mut(Position::new(column, area.y)) {
-                    Self::replace_modifier(cell, st);
-                }
-            }
             self.mark_area(Rect {
                 x,
                 y: area.y,
@@ -144,11 +123,7 @@ impl Ui<'_> {
         if area.is_empty() {
             return;
         }
-        for pos in area.positions() {
-            if let Some(cell) = self.buffer().cell_mut(pos) {
-                Self::replace_modifier(cell, s);
-            }
-        }
+        self.buffer().set_style(area, s);
         self.mark_area(area);
     }
 
@@ -162,8 +137,7 @@ impl Ui<'_> {
             let buf = self.buffer();
             for pos in area.positions() {
                 if let Some(c) = buf.cell_mut(pos) {
-                    c.set_symbol(" ");
-                    Self::replace_modifier(c, s);
+                    c.set_symbol(" ").set_style(s);
                 }
             }
         }
@@ -403,21 +377,6 @@ mod tests {
 
     fn fg_of(theme: &Theme, step: FgStep) -> Color {
         crate::theme::resolve::bind_role(theme, Role::Fg(step), Surface::Canvas).expect("fg")
-    }
-
-    #[test]
-    fn later_paint_replaces_stale_modifiers() {
-        let (_, page) = with_ui(&Theme::junie(), |ui| {
-            ui.paint_str(
-                Rect::new(0, 0, 1, 1),
-                "x",
-                Style::new().add_modifier(Modifier::BOLD),
-            );
-            ui.paint_str(Rect::new(0, 0, 1, 1), "y", Style::new());
-        });
-        let cell = page.cell(Position::ORIGIN).expect("painted cell");
-        assert_eq!(cell.symbol(), "y");
-        assert!(cell.modifier.is_empty());
     }
 
     /// §54: `dim_layer(area, 0)` is identity. It is not a restyle to the
