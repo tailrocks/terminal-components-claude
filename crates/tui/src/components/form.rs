@@ -544,14 +544,18 @@ impl FormState {
 
     /// Set or clear a local validation error.
     pub fn set_error(&mut self, id: Id, error: Option<FieldError>) {
-        let error = error.map(|error| {
-            if self.slot_is_sensitive(id) {
+        let error = error.map(|error| match self.slot_sensitivity(id) {
+            Some(true) => {
                 discard_error(error);
                 ErrorState::sensitive()
-            } else {
-                ErrorState::Plain(error)
             }
+            Some(false) => ErrorState::Plain(error),
+            None => ErrorState::Pending(error),
         });
+        self.replace_error(id, error);
+    }
+
+    fn replace_error(&mut self, id: Id, error: Option<ErrorState>) {
         if let Some(index) = self.errors.iter().position(|(key, _)| *key == id) {
             if let Some(error) = error {
                 if let Some((_, current)) = self.errors.get_mut(index) {
@@ -567,17 +571,32 @@ impl FormState {
         }
     }
 
-    fn slot_is_sensitive(&self, id: Id) -> bool {
+    fn slot_sensitivity(&self, id: Id) -> Option<bool> {
         self.slots
             .iter()
             .find(|slot| slot.id == id)
-            .is_some_and(FieldSlot::is_sensitive)
+            .map(FieldSlot::is_sensitive)
+    }
+
+    fn slot_is_sensitive(&self, id: Id) -> bool {
+        self.slot_sensitivity(id) == Some(true)
     }
 
     fn redact_error(&mut self, id: Id) {
         if let Some((_, current)) = self.errors.iter_mut().find(|(key, _)| *key == id) {
             let old = core::mem::replace(current, ErrorState::sensitive());
-            old.discard();
+            *current = old.redact();
+        }
+    }
+
+    fn reconcile_error(&mut self, id: Id, sensitive: bool) {
+        if let Some((_, current)) = self.errors.iter_mut().find(|(key, _)| *key == id) {
+            let old = core::mem::replace(current, ErrorState::sensitive());
+            *current = if sensitive {
+                old.redact()
+            } else {
+                old.resolve_plain()
+            };
         }
     }
 
@@ -620,13 +639,27 @@ impl FormState {
             for (index, field) in fields.iter().enumerate() {
                 let sensitive = field_is_secret(field);
                 self.slots[index].set_sensitive(sensitive);
-                if sensitive {
-                    self.redact_error(field.id);
-                }
+                self.reconcile_error(field.id, sensitive);
             }
             return;
         }
-        self.clear_errors();
+        let old_errors = core::mem::take(&mut self.errors);
+        for (id, error) in old_errors {
+            let Some(field) = fields.iter().find(|field| field.id == id) else {
+                error.discard();
+                continue;
+            };
+            if !matches!(error, ErrorState::Pending(_)) {
+                error.discard();
+                continue;
+            }
+            let error = if field_is_secret(field) {
+                error.redact()
+            } else {
+                error.resolve_plain()
+            };
+            self.errors.push((id, error));
+        }
         let mut old = core::mem::take(&mut self.slots);
         self.slots.reserve(fields.len());
         for field in fields {
@@ -2483,6 +2516,39 @@ mod tests {
         );
         state.zeroize();
         assert!(state.error(SECRET).is_none());
+    }
+
+    #[test]
+    fn unreconciled_field_errors_stay_generic_until_sensitivity_is_known() {
+        const DETAIL: &str = "secret validation detail";
+
+        let mut plain = FormState::default();
+        plain.set_error(SECRET, Some(FieldError::new(DETAIL)));
+        assert_eq!(
+            plain.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{plain:?}").contains(DETAIL));
+        let plain_copy = plain.clone();
+        assert_eq!(
+            plain_copy.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+
+        plain.reconcile_fields(&fields_with_secret_policy(false));
+        assert_eq!(
+            plain.error(SECRET).map(|error| error.message.as_ref()),
+            Some(DETAIL)
+        );
+
+        let mut secret = FormState::default();
+        secret.set_error(SECRET, Some(FieldError::new(DETAIL)));
+        secret.reconcile_fields(&fields());
+        assert_eq!(
+            secret.error(SECRET).map(|error| error.message.as_ref()),
+            Some("Invalid value")
+        );
+        assert!(!format!("{secret:?}").contains(DETAIL));
     }
 
     #[test]
