@@ -444,10 +444,9 @@ fn mono_rules_extra() -> [MonoRule; 5] {
 /// The name is historical and is **not** a per-family total: it is cited by
 /// name in §16.1 and §20.10 item 18, so it keeps it. Six built-in families
 /// declare targeted rules on top of these (`VIEWPORT` 1, `GRID` 2, `MENU` 2,
-/// `HELP` 2, `PICKER` 3, `SELECT` 3, `WIZARD` 1) — `PICKER`'s
-/// `(LABEL, PRESSED)` and `WIZARD`'s `(LABEL, FOCUSED)` retarget pairs the
-/// generic set already covers, so they reach 22 and 20 `(part, state)` pairs
-/// respectively, where `SELECT` reaches 23 — and a theme author can give any family —
+/// `HELP` 2, `PICKER` 3, `SELECT` 3) — `PICKER`'s `(LABEL, PRESSED)` retargets
+/// a pair the generic set already covers, so `PICKER` reaches 22 `(part,
+/// state)` pairs where `SELECT` reaches 23 — and a theme author can give any family —
 /// including a `Family::custom` one — its own targeted set through
 /// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules). The count
 /// that is constant across families is exactly this generic one; the total a
@@ -486,13 +485,6 @@ fn grid_mono_rules() -> [MonoRule; 2] {
     ]
 }
 
-fn wizard_mono_rules() -> [MonoRule; 1] {
-    [(
-        Part::LABEL,
-        StateFlags::FOCUSED,
-        StylePatch::new().add(Modifier::BOLD | Modifier::UNDERLINED),
-    )]
-}
 fn menu_mono_rules() -> [MonoRule; 2] {
     [
         (
@@ -607,7 +599,6 @@ pub(crate) fn apply_mono_fallback(
         Family::HELP => &help_mono_rules(),
         Family::PICKER => &picker_mono_rules(),
         Family::SELECT => &select_mono_rules(),
-        Family::WIZARD => &wizard_mono_rules(),
         _ => &[],
     };
     // Whole-set semantics: an authored manifest *replaces* the built-in one
@@ -1040,26 +1031,6 @@ mod tests {
     }
 
     #[test]
-    fn wizard_mono_focused_step_is_distinct_from_active_step() {
-        let mono = Theme::junie().downgrade(ColorLevel::Mono);
-        let resolve = |state| {
-            mono.resolve(
-                Family::WIZARD,
-                Variant::DEFAULT,
-                Part::LABEL,
-                state,
-                Surface::Canvas,
-            )
-        };
-        let active = resolve(StateFlags::ACTIVE);
-        let focused = resolve(StateFlags::ACTIVE | StateFlags::FOCUSED);
-
-        assert!(!active.style.add_modifier.contains(Modifier::UNDERLINED));
-        assert!(focused.style.add_modifier.contains(Modifier::UNDERLINED));
-        assert_ne!(focused.style.add_modifier, active.style.add_modifier);
-    }
-
-    #[test]
     fn author_override_precedence_beats_the_static_mono_layer() {
         let mono = Theme::junie()
             .override_family(Family::BUTTON, |recipe| {
@@ -1234,8 +1205,6 @@ mod tests {
             // PRESSED)`, which the generic set already answers
             (Family::PICKER, 22),
             (Family::SELECT, 23),
-            // `WIZARD` retargets generic `(LABEL, FOCUSED)`.
-            (Family::WIZARD, 20),
         ] {
             assert_eq!(responding_pairs(&r, f), pairs, "{f:?}");
         }

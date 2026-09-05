@@ -129,7 +129,6 @@ impl<'a> Menu<'a> {
 pub struct MenuState {
     cursor: usize,
     open: Option<usize>,
-    selected: Option<usize>,
 }
 
 impl MenuState {
@@ -146,21 +145,6 @@ impl MenuState {
     /// Whether a dropdown is open.
     pub const fn is_open(&self) -> bool {
         self.open.is_some()
-    }
-
-    /// Current committed menu selection, if one is supplied by the caller.
-    pub const fn selected(&self) -> Option<usize> {
-        self.selected
-    }
-
-    /// Point the menu cursor at a declared row.
-    pub const fn set_cursor(&mut self, index: usize) {
-        self.cursor = index;
-    }
-
-    /// Set the committed selection without moving the keyboard cursor.
-    pub const fn set_selected(&mut self, index: Option<usize>) {
-        self.selected = index;
     }
 }
 
@@ -711,8 +695,7 @@ impl<'a> ContextMenu<'a> {
             StateFlags::FOCUSED
                 | StateFlags::FOCUS_VISIBLE
                 | StateFlags::HOVERED
-                | StateFlags::PRESSED
-                | StateFlags::SELECTED,
+                | StateFlags::PRESSED,
         );
         if FrameRead::hovered_part(ui, self.id)
             == Some(PartRef::item(Part::ROW, ItemKey::index(index)))
@@ -722,9 +705,6 @@ impl<'a> ContextMenu<'a> {
         if index == st.cursor {
             derived |=
                 StateFlags::ACTIVE | parent & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
-        }
-        if st.selected == Some(index) {
-            derived |= StateFlags::SELECTED;
         }
         if item.disabled {
             derived |= StateFlags::DISABLED;
@@ -746,23 +726,16 @@ impl<'a> ContextMenu<'a> {
             .style(ui, self.id, Family::MENU, variant, Part::ROW, flags);
         ui.fill(row, style.style);
         let marker = Rect { width: 1, ..row };
-        if item.submenu.is_some() || flags.contains(StateFlags::SELECTED) {
+        if item.submenu.is_some() {
             let marker_style =
                 self.ov
                     .style(ui, self.id, Family::MENU, variant, Part::MARKER, flags);
             if let Some(slot) = self.ov.slot_for(Part::MARKER) {
                 slot(ui, marker);
             } else {
-                let glyph = if flags.contains(StateFlags::SELECTED) {
-                    match marker_style.glyph {
-                        Slot::Set(glyph) => glyph,
-                        Slot::Inherit | Slot::Clear => GlyphRole::Chosen,
-                    }
-                } else {
-                    match marker_style.glyph {
-                        Slot::Set(glyph) => glyph,
-                        Slot::Inherit | Slot::Clear => GlyphRole::Expanded,
-                    }
+                let glyph = match marker_style.glyph {
+                    Slot::Set(glyph) => glyph,
+                    Slot::Inherit | Slot::Clear => GlyphRole::Expanded,
                 };
                 ui.glyph(marker, glyph, marker_style.style);
             }
@@ -1053,10 +1026,6 @@ impl<'a> MenuBar<'a> {
     }
 
     /// Paint the strip, then the open dropdown in its runtime layer.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one pass owns title state, registration and open-layer painting"
-    )]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &MenuState) -> Rect {
         let row = first_row(area);
         if row.is_empty() {
@@ -1095,12 +1064,6 @@ impl<'a> MenuBar<'a> {
                 flags |=
                     StateFlags::ACTIVE | live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
             }
-            if st.selected == Some(index) {
-                flags |= StateFlags::SELECTED;
-            }
-            if !menu.items.is_empty() && menu.items.iter().all(|item| item.disabled) {
-                flags |= StateFlags::DISABLED;
-            }
             if FrameRead::hovered_part(ui, self.id)
                 == Some(PartRef::item(Part::TITLE, ItemKey::index(index)))
             {
@@ -1123,11 +1086,6 @@ impl<'a> MenuBar<'a> {
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
-            } else if flags.contains(StateFlags::SELECTED)
-                && matches!(style.glyph, Slot::Set(GlyphRole::Chosen))
-            {
-                ui.glyph(Rect { width: 1, ..rect }, GlyphRole::Chosen, style.style);
-                ui.paint_str(label, menu.label, style.style);
             } else if matches!(style.glyph, Slot::Set(GlyphRole::PressLeft)) {
                 ui.glyph(Rect { width: 1, ..rect }, GlyphRole::PressLeft, style.style);
                 ui.paint_str(label, menu.label, style.style);
@@ -1281,7 +1239,6 @@ mod tests {
         let mut state = MenuState {
             cursor: 3,
             open: None,
-            selected: None,
         };
         assert_eq!(
             menu.activate(&mut state),

@@ -4,7 +4,6 @@
 use core::fmt;
 
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Modifier;
 
 use super::button::Button;
 use super::field::Field;
@@ -22,7 +21,7 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy, zeroize_string};
 use crate::text::{width, wrap, wrapped_rows};
-use crate::theme::{DesignTokens, Family, FgStep, Role, StylePatch, Surface, Variant};
+use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// What a dialog reports.
@@ -92,14 +91,6 @@ const ACK_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
     Action::danger(ActionKey::CONFIRM, "Confirm"),
 ];
-
-// Disabled actions retain the disabled background and gain a non-colour DIM
-// signal, while using primary text so the action label remains readable on
-// every built-in theme and colour capability.
-const DISABLED_ACTION_PATCH: StylePatch = StylePatch::new()
-    .set_fg(Role::Fg(FgStep::Primary))
-    .remove(Modifier::all())
-    .add(Modifier::DIM);
 const INFO_ACTIONS: [Action<'static>; 1] = [Action::new(ActionKey::CLOSE, "Close")];
 
 /// Durable state of a [`Dialog`]: the prompt / acknowledgement draft.
@@ -867,14 +858,10 @@ impl<'a> Dialog<'a> {
                 for ((i, a), r) in actions.iter().enumerate().zip(rects) {
                     let action_id = self.action_id(i);
                     let enabled = self.enabled(i, a, st);
-                    let button = Button::new(action_id, a.label())
+                    Button::new(action_id, a.label())
                         .variant(self.variant_of(a))
-                        .disabled(!enabled);
-                    if enabled {
-                        button.draw(ui, r);
-                    } else {
-                        button.patch(&DISABLED_ACTION_PATCH).draw(ui, r);
-                    }
+                        .disabled(!enabled)
+                        .draw(ui, r);
                     if enabled {
                         ui.publish_dynamic_bindings(
                             action_id,
@@ -890,22 +877,12 @@ impl<'a> Dialog<'a> {
                             width: key_width,
                             ..r
                         };
-                        let style = if enabled {
-                            ui.resolve(
-                                Family::BUTTON,
-                                self.variant_of(a),
-                                Part::LABEL,
-                                ui.state(action_id),
-                            )
-                        } else {
-                            ui.style_patched(
-                                Family::BUTTON,
-                                self.variant_of(a),
-                                Part::LABEL,
-                                ui.state(action_id),
-                                &DISABLED_ACTION_PATCH,
-                            )
-                        };
+                        let style = ui.resolve(
+                            Family::BUTTON,
+                            self.variant_of(a),
+                            Part::LABEL,
+                            ui.state(action_id),
+                        );
                         ui.paint_str(key, text.as_str(), style.style);
                     }
                 }
@@ -946,8 +923,7 @@ mod tests {
     use crate::keymap::KeyMap;
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::runtime::{App, Runtime};
-    use crate::theme::builder::contrast;
-    use crate::theme::{ColorLevel, Theme};
+    use crate::theme::Theme;
 
     const DLG: Id = Id::root("dialog.tests");
     const BODY: Id = Id::root("dialog.tests.body");
@@ -965,11 +941,6 @@ mod tests {
         Dialog::acknowledge(DLG, "Delete table", TOKEN)
     }
 
-    const DISABLED_ACTIONS: [Action<'static>; 2] = [
-        Action::quiet(ActionKey::CANCEL, "Cancel").enabled(false),
-        Action::new(ActionKey::CONFIRM, "OK").enabled(false),
-    ];
-
     fn esc() -> Input {
         Input::Key(Key {
             code: KeyCode::Esc,
@@ -983,63 +954,6 @@ mod tests {
             Runtime::new(Stub::default(), Theme::junie()),
             Buffer::empty(SCREEN),
         )
-    }
-
-    #[test]
-    fn disabled_action_labels_keep_contrast_and_dim_at_every_level() {
-        let levels = [
-            ColorLevel::TrueColor,
-            ColorLevel::Ansi256,
-            ColorLevel::Ansi16,
-            ColorLevel::Mono,
-        ];
-        for base in [Theme::junie(), Theme::paper()] {
-            for level in levels {
-                let mut runtime = Runtime::new(Stub::default(), base.downgrade(level));
-                let mut buffer = Buffer::empty(SCREEN);
-                runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                    Dialog::new(DLG)
-                        .width(32)
-                        .body_rows(0)
-                        .actions(&DISABLED_ACTIONS)
-                        .draw(
-                            ui,
-                            Rect::new(0, 0, 32, 5),
-                            &DialogState::default(),
-                            |_, _| (),
-                        );
-                });
-                for label in ["Cancel", "OK"] {
-                    let cells: Vec<_> = SCREEN
-                        .positions()
-                        .filter_map(|position| {
-                            buffer
-                                .cell(position)
-                                .filter(|cell| cell.symbol() != " ")
-                                .filter(|cell| label.contains(cell.symbol()))
-                                .map(|cell| (position, cell))
-                        })
-                        .collect();
-                    assert_eq!(
-                        cells.len(),
-                        label.chars().count(),
-                        "{base:?}/{level:?}: dialog action {label:?} was not painted once"
-                    );
-                    for (_, cell) in cells {
-                        assert!(
-                            contrast(cell.fg, cell.bg) >= 3.0,
-                            "{base:?}/{level:?}: dialog action {label:?} has {:?} on {:?}",
-                            cell.fg,
-                            cell.bg
-                        );
-                        assert!(
-                            cell.modifier.contains(Modifier::DIM),
-                            "{base:?}/{level:?}: dialog action {label:?} lost DIM"
-                        );
-                    }
-                }
-            }
-        }
     }
 
     #[test]
@@ -1641,7 +1555,7 @@ mod tests {
     fn reference_dialog_targets_one_owned_control_without_broadcasting() {
         let render = |dialog: Dialog<'_>, target| {
             let (mut runtime, mut buffer) = scene();
-            runtime.set_theme(Theme::junie().downgrade(ColorLevel::Mono));
+            runtime.set_theme(Theme::junie().downgrade(crate::ColorLevel::Mono));
             runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
                 ui.reference(target, |ui| {
                     dialog.draw(ui, area, &DialogState::default(), |_, _| {});

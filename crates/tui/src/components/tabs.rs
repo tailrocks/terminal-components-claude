@@ -237,14 +237,6 @@ impl TabsState {
         self.active = Some(key);
         self.core.set_cursor(index, key);
     }
-
-    /// Point the keyboard cursor at `(index, key)` without activating it.
-    ///
-    /// This is the fixture and controlled-state counterpart to
-    /// [`TabsState::set_active`]: focus is not semantic activation.
-    pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
-        self.core.set_cursor(index, key);
-    }
 }
 
 impl Reconcile for TabsState {
@@ -551,6 +543,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         if st.core.cursor().is_none() && len > 0 {
             let key = self.key_at(items, 0);
             st.core.set_cursor(0, key);
+        }
+        if st.active.is_none() {
+            st.active = st.core.cursor();
         }
         if st.first.is_none() && len > 0 {
             st.first = Some(self.key_at(items, 0));
