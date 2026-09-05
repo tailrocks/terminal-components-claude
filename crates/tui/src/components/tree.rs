@@ -2501,7 +2501,7 @@ mod tests {
                 .collect::<Vec<_>>()
         };
         let unselected = render(theme.clone(), &tree, &empty, &items);
-        assert_eq!(marker_rows(&unselected), []);
+        assert_eq!(marker_rows(&unselected), Vec::<u16>::new());
 
         let original = render(theme.clone(), &tree, &state, &items);
         assert_eq!(marker_rows(&original), [1]);
