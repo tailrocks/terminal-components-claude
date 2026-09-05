@@ -2123,7 +2123,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::conformance_covers_every_public_component` | `syn` scan of `pub struct`s in `components/**` vs the `conformance_suite!` list | G10 / §16.2 |
 | `architecture::every_named_test_exists` <!-- amended by §25 F12: must exist in `xtask`'s `CHECKS` and `tests/architecture.rs`; it was absent at `18afddd` and is the gate that makes §25's renamed/missing names visible --> | one-directional and scoped (§21 item 28): every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo test --workspace -- --list`; §16.6 perf names are checked against `cargo test --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases against `tests/ui/*.rs` filenames; extra tests are allowed | Documentation and the suite cannot drift; the `capsule_pane_clone_4x2000` deletion is asserted by line-absence in `perf_baseline.txt` |
 | `architecture::binary_names_are_preserved` | `cargo metadata` target names | `showcase`, `tablepro`, `jackin-preview` (goal §21) |
-| `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list`; it reads `tools/capture.sh` | `xtask capture-matrix` exists, uses exactly `showcase` × `tablepro` × `jackin-preview`, `80×24|100×30|120×40|160×50`, `junie|paper` and `truecolor|256|16|mono` (96 cells), and proves the script consumes `BIN`, `COLOR`, `ARGS`, tmux capture and PNG conversion before a visual review |
+| `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list`; it reads `tools/capture.sh` | `xtask capture-matrix` exists, uses exactly `showcase` × `tablepro` × `jackin-preview`, `80×24|100×30|120×40|160×50`, `junie|paper` and `truecolor|256|16|mono` (96 cells), and proves the script consumes `BIN`, explicit argv, `COLOR`, an owned run/session, tmux capture and PNG conversion before a visual review |
 | `architecture::msrv_and_edition_are_unchanged` <!-- amended by §22 --> | `cargo metadata` **plus** the blocking CI job `msrv`: `cargo +1.88.0 check --workspace --all-targets --all-features` — the metadata proves the *field*, the job proves the code compiles on 1.88 (on a 1.98 toolchain a builder could otherwise use a 1.95 API and every gate would pass) | edition 2024, `rust-version = "1.88"` on every package, held deliberately (§22 §5) |
 | `architecture::cache_types_are_derived_only` <!-- §21 item 2 --> | `syn` scan in `xtask`: every `T` used as `ui.cache::<T>(…)` | `T` appears in no `Response` and no `XState` (R8) |
 | `architecture::app_libs_are_not_published_and_are_not_depended_on_by_the_library` <!-- §21 item 23 --> | `cargo metadata` | every scheduled app has its `apps/<app>/Cargo.toml` and expected lib/bin targets, `publish = false`, and is absent from the library's dependency closure; a missing due manifest is a failure |
@@ -4232,7 +4232,8 @@ Shared, contended files are handled by convention rather than by ownership: `com
 4. `tools/capture.sh`: `S=junie_cap` (tmux session name) and `BIN=${BIN:-target/debug/junie-tui}` — the latter is already stale (the package has no binary of that name) and becomes `BIN=${BIN:-target/debug/showcase}` in Slice 5 regardless of any rename.
 5. `README.md` and `DESIGN.md` prose, install snippets, and the `UPDATE_BASELINE` documentation.
 6. `tests/showcase_baseline.txt` moves to `apps/showcase/tests/baselines/showcase.txt` in Slice 5 regardless; its `CARGO_MANIFEST_DIR` anchor changes crates either way.
-7. `shots/` filenames are unaffected.
+7. `shots/` keeps one safe name per capture; each name is published as a
+   transactional directory containing `ansi`, `txt`, `cursor`, `html`, and `png`.
 8. `architecture::binary_names_are_preserved` and `architecture::msrv_and_edition_are_unchanged` are unaffected — the *binary* names never change.
 
 **Binary names are preserved exactly** (goal §21): `showcase`, `tablepro`, `jackin-preview`. Each becomes its own package whose single `[[bin]]` carries the required name, so `cargo run -p showcase` and `target/debug/showcase` both work and `cargo build --workspace` produces all three. The current `default-run = "showcase"` has no workspace equivalent and is dropped; `cargo run -p showcase` replaces it and is documented in `README.md`.
@@ -4543,7 +4544,7 @@ What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `
 
 * The thirteen §17 examples live in `crates/tui/examples/` and are built by `cargo build -p junie-tui --examples` in every slice gate. Because Cargo compiles examples as separate crates linked against `junie_tui`, they see exactly the public API and nothing else — the "external-style consumer" requirement of goal §21 is satisfied structurally, not by convention.
 * Doctests carry the condensed forms of examples 1–10 on the corresponding types and run under `cargo test --workspace --doc`.
-* `tools/capture.sh` changes in two places, both in Slice 5: `BIN` is required explicitly (an implicit legacy default could capture the wrong owner), and `ARGS` gains documented `--theme {junie|paper}` and `--color {truecolor|256|16|none}` pass-through so the §20.10 review matrix is scriptable. `xtask capture-matrix` drives it over the full size × theme × colour × app grid and writes into `shots/`, so the visual reviewer receives a complete, reproducible set rather than ad-hoc screenshots.
+* `tools/capture.sh` requires `BIN` explicitly and accepts the exact application argv after `--`; `--theme {junie|paper}` and `--color {truecolor|256|16|none}` are passed as separate arguments so the §20.10 review matrix is scriptable without shell interpolation. Each run has its own state/session identity and records binary, Git, environment, and tool provenance. `xtask capture-matrix` drives it over the full size × theme × colour × app grid and writes into `shots/`, so the visual reviewer receives a complete, reproducible set rather than ad-hoc screenshots.
 
 ---
 
@@ -8429,8 +8430,8 @@ computing a level at all and pass the request through.
 
 **Consequence for the capture matrix.** `tools/capture.sh`'s `mono` arm deliberately sets
 `NO_COLOR=1` while leaving `COLORTERM=truecolor` set, so that a mono capture *proves* `NO_COLOR`
-outranks `COLORTERM` (§40). Under the present override that proof is destroyed the moment `ARGS`
-carries a `--color`, because the flag wins over the environment. Under the ceiling it cannot be.
+outranks `COLORTERM` (§40). Under the present override that proof is destroyed the moment the
+explicit argv carries a `--color`, because the flag wins over the environment. Under the ceiling it cannot be.
 
 **Acceptance.**
 
@@ -8483,8 +8484,8 @@ and gate lists so its absence becomes reportable rather than invisible (§47.4).
 **Implementation pin.** `xtask` independently asserts the exact four sizes `80×24`, `100×30`,
 `120×40`, `160×50`, the exact colour axis `truecolor|256|16|mono`, the exact theme axis
 `junie|paper`, and the three app owners `showcase|tablepro|jackin-preview` (96 cells). The check
-also reads `tools/capture.sh` and requires explicit `BIN`, `COLOR` branching, `${ARGS:-}`
-consumption, tmux dimensions/pane capture and the `ansi2png.py` conversion. The harness rejects the
+also reads `tools/capture.sh` and requires explicit `BIN`, explicit argv, `COLOR` branching,
+owned run/session identity, tmux dimensions/pane capture and the `ansi2png.py` conversion. The harness rejects the
 legacy implicit showcase binary, so a capture cannot silently use the wrong owner.
 
 ### 74.3 D3 — per-app baselines have declared locations, and two new ledger items

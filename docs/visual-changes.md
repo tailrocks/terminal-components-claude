@@ -16,7 +16,7 @@ A capture cannot exist before the change, so `bless-guard` never runs locally ag
 ```
 
 - surface:   <app>/<page or component>/<state> @ <w>x<h> / <theme> / <color level>
-- captures:  shots/<before>.png  →  shots/<after>.png
+- captures:  shots/<before>/png  →  shots/<after>/png
              — for a headless `Scene` matrix instead: `none under shots/`, the reason,
                and the named frame-text dump that replaces it
 - tests:     <baseline file>:<line or name>, <test names>
