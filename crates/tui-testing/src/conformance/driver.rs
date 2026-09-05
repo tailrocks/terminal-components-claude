@@ -633,12 +633,13 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     let plain = harness::<C>(Fixture::default());
     let before = plain.runtime().theme().fingerprint();
     let plain_digest = plain.snapshot().digest();
+    let patch_part = C::PARTS
+        .first()
+        .copied()
+        .unwrap_or(junie_tui::Part::CONTAINER);
     let mut f = Fixture::default();
     f.patch = Some((
-        C::PARTS
-            .first()
-            .copied()
-            .unwrap_or(junie_tui::Part::CONTAINER),
+        patch_part,
         junie_tui::StylePatch::new().set_fg(junie_tui::Role::Warning),
     ));
     let patched = harness::<C>(f);
@@ -650,15 +651,30 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     );
     assert_eq!(plain.runtime().theme().fingerprint(), before);
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 {
-        // a component that honours `patch_part` renders differently; one that
-        // declares no parts cannot, and is exempt
+        // Usually the override changes the final buffer.  A composed painter
+        // may cover a resolved part later (TextArea's scroll surface covers
+        // FIELD), so use the recorded query as the focused fallback when the
+        // digest is intentionally unchanged.
         if !C::PARTS.is_empty() {
-            assert_ne!(
-                patched.snapshot().digest(),
-                plain_digest,
-                "{}: the instance patch had no effect",
-                C::NAME
-            );
+            if patched.snapshot().digest() == plain_digest {
+                assert_ne!(
+                    patched.resolved(C::id(), patch_part),
+                    plain.resolved(C::id(), patch_part),
+                    "{}: the instance patch had no effect; plain={:?} patched={:?}",
+                    C::NAME,
+                    plain.resolved(C::id(), patch_part),
+                    patched.resolved(C::id(), patch_part),
+                );
+            }
+
+            if let Some(sibling) = C::PARTS.iter().copied().find(|p| *p != patch_part) {
+                assert_eq!(
+                    patched.resolved(C::id(), sibling),
+                    plain.resolved(C::id(), sibling),
+                    "{}: patching {patch_part:?} changed sibling {sibling:?}",
+                    C::NAME,
+                );
+            }
         }
     }
 }
