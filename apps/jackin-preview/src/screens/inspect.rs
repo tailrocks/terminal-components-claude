@@ -11,6 +11,6 @@ pub const BODY: Id = ROOT.sub("body");
 /// displayed fields are projected from the current `World` on every draw.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct InspectState {
+    /// Identifier of the instance being inspected, if selected.
     pub instance: Option<String>,
 }
-    /// Identifier of the instance being inspected, if selected.
