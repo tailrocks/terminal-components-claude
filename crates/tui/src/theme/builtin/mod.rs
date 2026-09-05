@@ -247,6 +247,42 @@ fn field_like(m: &mut PartMap<PartRecipe>) {
     );
 }
 
+/// Code editors fill a surface of their own. Keep that surface visibly
+/// disabled in truecolor too; the generic mono `TEXT` fallback is not enough
+/// because syntax spans intentionally replace the text foreground.
+fn code_like(m: &mut PartMap<PartRecipe>) {
+    field_like(m);
+    let disabled = p()
+        .set_fg(Role::Fg(FgStep::Primary))
+        .remove(Modifier::all())
+        .add(Modifier::DIM);
+    part(m, Part::CONTAINER, p().set_bg(Role::CurrentSurface))
+        .when(StateFlags::DISABLED, disabled.set_bg(Role::DisabledBg));
+    // Code paint starts from the container fill. These explicit rules keep
+    // every textual lane readable when disabled, including optional footer
+    // details and placeholders that do not inherit a field part.
+    for part_name in [
+        Part::TEXT,
+        Part::META,
+        Part::PLACEHOLDER,
+        Part::QUERY,
+        Part::DETAIL,
+    ] {
+        part(m, part_name, p()).when(StateFlags::DISABLED, disabled);
+    }
+}
+
+/// Wizard labels and markers are the only stateful parts of this compact
+/// stepper. A disabled step must remain visibly disabled in truecolor.
+fn wizard(m: &mut PartMap<PartRecipe>) {
+    container_like(m);
+    part(m, Part::LABEL, p()).when(
+        StateFlags::DISABLED,
+        p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),
+    );
+    part(m, Part::MARKER, p()).when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+}
+
 fn container_like(m: &mut PartMap<PartRecipe>) {
     part(
         m,
@@ -341,10 +377,21 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD),
         );
-    part(m, Part::TITLE, p()).when(
-        StateFlags::PRESSED,
-        p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
-    );
+    part(m, Part::TITLE, p())
+        .when(
+            StateFlags::PRESSED,
+            p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::SELECTED,
+            p().set_glyph(GlyphRole::Chosen).add(Modifier::BOLD),
+        )
+        .when(
+            StateFlags::DISABLED,
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::all())
+                .add(Modifier::DIM),
+        );
     part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
     part(
         r.variant_mut(Variant::DANGER),
@@ -574,10 +621,16 @@ fn grid(m: &mut PartMap<PartRecipe>) {
 
 fn picker(m: &mut PartMap<PartRecipe>) {
     row_like(m);
-    part(m, Part::LABEL, p()).when(
-        StateFlags::ACTIVE | StateFlags::FOCUSED,
-        p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
-    );
+    part(m, Part::LABEL, p())
+        .when(
+            StateFlags::ACTIVE | StateFlags::FOCUSED,
+            p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
+        )
+        .when(
+            StateFlags::SELECTED,
+            p().set_fg(Role::Accent)
+                .add(Modifier::BOLD | Modifier::UNDERLINED),
+        );
 }
 
 fn button(r: &mut Recipe) {
@@ -612,12 +665,14 @@ pub(crate) fn default_recipes() -> Recipes {
         match f {
             Family::BUTTON => button(r),
             Family::MENU => menu(r),
-            Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::CODE | Family::SELECT => {
+            Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::SELECT => {
                 field_like(&mut r.parts);
             }
-            Family::PANEL | Family::DIALOG | Family::OVERLAY | Family::FORM | Family::WIZARD => {
+            Family::CODE => code_like(&mut r.parts),
+            Family::PANEL | Family::DIALOG | Family::OVERLAY | Family::FORM => {
                 container_like(&mut r.parts);
             }
+            Family::WIZARD => wizard(&mut r.parts),
             Family::HELP => help(r),
             Family::TABS => tabs(&mut r.parts),
             Family::SCROLLBAR => scrollbar(&mut r.parts),
@@ -648,9 +703,10 @@ pub(crate) fn default_recipes() -> Recipes {
 mod tests {
     use super::*;
     use crate::Slot;
-    use crate::theme::Theme;
     use crate::theme::border;
+    use crate::theme::builder::contrast;
     use crate::theme::patch::StateRule;
+    use crate::theme::{ColorLevel, Theme};
 
     #[test]
     fn every_family_has_a_recipe_and_rules_are_sorted() {
@@ -854,6 +910,87 @@ mod tests {
     }
 
     #[test]
+    fn disabled_code_and_menu_styles_keep_contrast_at_every_level() {
+        let levels = [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ];
+        for base in [Theme::junie(), Theme::paper()] {
+            for level in levels {
+                let theme = base.downgrade(level);
+                let code_container = theme.resolve(
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    StateFlags::DISABLED,
+                    Surface::Canvas,
+                );
+                let code_bg = code_container.style.bg.unwrap_or(theme.bg(Surface::Canvas));
+                for part in [
+                    Part::CONTAINER,
+                    Part::META,
+                    Part::TEXT,
+                    Part::PLACEHOLDER,
+                    Part::QUERY,
+                    Part::DETAIL,
+                ] {
+                    let resolved = theme.resolve(
+                        Family::CODE,
+                        Variant::DEFAULT,
+                        part,
+                        StateFlags::DISABLED,
+                        Surface::Canvas,
+                    );
+                    let fg = resolved
+                        .style
+                        .fg
+                        .unwrap_or_else(|| panic!("{base:?}/{level:?} CODE/{part:?} has no fg"));
+                    let bg = resolved.style.bg.unwrap_or(code_bg);
+                    assert!(
+                        contrast(fg, bg) >= 3.0,
+                        "{base:?}/{level:?} CODE/{part:?}: {fg:?} on {bg:?} is below 3:1"
+                    );
+                    assert!(
+                        resolved.style.add_modifier.contains(Modifier::DIM),
+                        "{base:?}/{level:?} CODE/{part:?} lost the non-colour DIM signal"
+                    );
+                }
+
+                let menu_container = theme.resolve(
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    StateFlags::empty(),
+                    Surface::Canvas,
+                );
+                let container_bg = menu_container.style.bg.unwrap_or(theme.bg(Surface::Canvas));
+                let menu_title = theme.resolve(
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    StateFlags::DISABLED,
+                    Surface::Canvas,
+                );
+                let title_fg = menu_title
+                    .style
+                    .fg
+                    .unwrap_or_else(|| panic!("{base:?}/{level:?} MENU/TITLE has no fg"));
+                let title_surface_bg = menu_title.style.bg.unwrap_or(container_bg);
+                assert!(
+                    contrast(title_fg, title_surface_bg) >= 3.0,
+                    "{base:?}/{level:?} MENU/TITLE: {title_fg:?} on {title_surface_bg:?} is below 3:1"
+                );
+                assert!(
+                    menu_title.style.add_modifier.contains(Modifier::DIM),
+                    "{base:?}/{level:?} MENU/TITLE lost the non-colour DIM signal"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn builtin_select_disclosures_are_exact_single_cell_glyphs() {
         for theme in [Theme::junie(), Theme::paper()] {
             let closed = theme.design.glyphs.get(GlyphRole::SelectClosed);
@@ -888,7 +1025,7 @@ mod tests {
     #[test]
     fn grid_pressed_cell_is_explicit_inversion_after_semantic_cell_states() {
         for base in [Theme::junie(), Theme::paper()] {
-            for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
+            for theme in [base.clone(), base.downgrade(ColorLevel::Mono)] {
                 let pressed = theme.resolve(
                     Family::GRID,
                     Variant::DEFAULT,
@@ -928,7 +1065,7 @@ mod tests {
         assert!(picker.parts.get(Part::TITLE).is_none());
 
         for base in [Theme::junie(), Theme::paper()] {
-            for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
+            for theme in [base.clone(), base.downgrade(ColorLevel::Mono)] {
                 let resolve = |part, flags| {
                     theme.resolve(
                         Family::PICKER,

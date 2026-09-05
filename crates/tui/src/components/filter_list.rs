@@ -196,6 +196,7 @@ pub struct FilterListState {
     core: CollectionCore,
     matches: Vec<usize>,
     initialized: bool,
+    selected: Option<ItemKey>,
 }
 
 impl FilterListState {
@@ -211,6 +212,27 @@ impl FilterListState {
     /// Current item key.
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
+    }
+
+    /// Current committed selection, if the caller has one.
+    pub const fn selected(&self) -> Option<ItemKey> {
+        self.selected
+    }
+
+    /// Set the committed selection without moving the keyboard cursor.
+    ///
+    /// Filtering remains headless and activation remains an action; this
+    /// value is only the caller-owned semantic selection used by row painters.
+    pub const fn set_selected(&mut self, key: Option<ItemKey>) {
+        self.selected = key;
+    }
+
+    /// Point the keyboard cursor at `(index, key)` without choosing it.
+    ///
+    /// Drawing never initializes semantic state, so controlled renderers and
+    /// deterministic fixtures use this to expose their intended row.
+    pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
+        self.core.set_cursor(index, key);
     }
     /// Scroll state.
     pub const fn scroll(&self) -> &ScrollState {
@@ -498,6 +520,12 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     }
 
     fn rebuild(st: &mut FilterListState, items: &[T]) {
+        if st
+            .selected
+            .is_some_and(|selected| !items.iter().any(|item| item.as_item().key == selected))
+        {
+            st.selected = None;
+        }
         st.matches.clear();
         st.matches.extend(
             items.iter().enumerate().filter_map(|(i, item)| {
@@ -808,6 +836,9 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             };
             let semantic = item.as_item();
             let mut flags = self.status.flags();
+            if st.selected == Some(semantic.key) {
+                flags |= StateFlags::SELECTED;
+            }
             if st.core.cursor() == Some(semantic.key) {
                 flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
                 if self.row_is_pressed(ui, semantic.key) {
@@ -909,6 +940,19 @@ mod tests {
         state.set_query("a");
         FilterList::<Domain, ItemRow>::rebuild(&mut state, &items);
         assert_eq!(state.matches.capacity(), capacity);
+    }
+
+    #[test]
+    fn selected_key_is_cleared_when_its_item_is_removed() {
+        let first = Item::new(ItemKey::num(1), "one");
+        let second = Item::new(ItemKey::num(2), "two");
+        let mut state = FilterListState::default();
+        state.set_selected(Some(ItemKey::num(1)));
+        FilterList::<Item<'_>, ItemRow>::rebuild(&mut state, &[first, second]);
+        assert_eq!(state.selected(), Some(ItemKey::num(1)));
+
+        FilterList::<Item<'_>, ItemRow>::rebuild(&mut state, &[second]);
+        assert_eq!(state.selected(), None);
     }
 
     #[test]
