@@ -23,12 +23,21 @@ use crate::rain::{
 };
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
-    accounts::AccountsState, capsule::CapsuleState, cockpit::CockpitState, editor::EditorState,
-    inspect::InspectState, manager::ManagerState, prelude::PreludeState, settings::SettingsState,
-    usage::UsageState,
+    accounts::AccountsState,
+    capsule::{
+        CapsuleFocus, CapsuleInteraction, CapsuleLayer, CapsuleState, ExitDecision, PrefixCommand,
+    },
+    cockpit::{AccountLine, CockpitState},
+    editor::{EditorState, Tab as EditorTab},
+    inspect::InspectState,
+    manager::{LaunchCandidate, ManagerRowKey, ManagerState},
+    prelude::PreludeState,
+    settings::SettingsState,
+    usage::{Tab as UsageTab, UsageState},
 };
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::provider;
+use crate::sim::pty::{Daemon, SplitDir};
 use crate::sim::world::{World, world_for};
 
 /// Root id for the Jackin Preview component tree.
@@ -48,17 +57,19 @@ pub const CAPSULE: Id = APP.sub("capsule");
 /// Manager instance list id.
 pub const MANAGER_LIST: Id = crate::screens::manager::TREE;
 /// Accounts list id.
-pub const ACCOUNTS_LIST: Id = APP.sub("accounts-list");
+pub const ACCOUNTS_LIST: Id = crate::screens::accounts::LIST;
 /// Launch action id.
-pub const LAUNCH: Id = APP.sub("launch");
+pub const LAUNCH: Id = crate::screens::manager::LAUNCH;
 /// Add-account action id.
 pub const ACCOUNT_ADD: Id = APP.sub("account-add");
 /// Trust-local-role action id.
-pub const SETTINGS_TRUST: Id = APP.sub("settings-trust");
+pub const SETTINGS_TRUST: Id = crate::screens::settings::TRUST;
 /// Capsule tab strip id.
-pub const CAPSULE_TABS: Id = APP.sub("capsule-tabs");
+pub const CAPSULE_TABS: Id = crate::screens::capsule::TABS;
 /// Capsule pane list id.
-pub const CAPSULE_PANES: Id = APP.sub("capsule-panes");
+pub const CAPSULE_PANES: Id = crate::screens::capsule::PANES;
+/// Capsule command input id.
+pub const CAPSULE_INPUT: Id = APP.sub("capsule-input");
 /// Launch confirmation dialog id.
 pub const LAUNCH_DIALOG: Id = APP.sub("launch-dialog");
 /// Role control inside the launch dialog.
@@ -71,6 +82,12 @@ pub const ACCOUNT_PICKER: Id = APP.sub("account-picker");
 pub const LAUNCH_CANCEL: Id = APP.sub("launch-cancel");
 /// Launch retry action id.
 pub const LAUNCH_RETRY: Id = APP.sub("launch-retry");
+const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
+const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
+const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
+const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list");
+const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
+const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
 const CMD_QUIT: ActionKey = ActionKey::custom("jackin.quit");
 const CMD_MANAGER: ActionKey = ActionKey::custom("jackin.manager");
@@ -85,7 +102,18 @@ const CMD_EDITOR_ENV: ActionKey = ActionKey::custom("jackin.editor.environments"
 const CMD_SAVE: ActionKey = ActionKey::custom("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::custom("jackin.manager.expand");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::custom("jackin.editor.open");
+const CMD_EDITOR_ROLES: ActionKey = ActionKey::custom("jackin.editor.roles");
+const CMD_EDITOR_ACCOUNTS: ActionKey = ActionKey::custom("jackin.editor.accounts");
+const CMD_EDITOR_PREFER: ActionKey = ActionKey::custom("jackin.editor.prefer");
+const CMD_SETTINGS_TRUST_KEY: ActionKey = ActionKey::custom("jackin.settings.trust-key");
+const CMD_USAGE_NEXT: ActionKey = ActionKey::custom("jackin.usage.next");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::custom("jackin.capsule.prefix");
+const CMD_CAPSULE_DETACH: ActionKey = ActionKey::custom("jackin.capsule.detach");
+const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::custom("jackin.capsule.split-right");
+const CMD_CAPSULE_SPLIT_BELOW: ActionKey = ActionKey::custom("jackin.capsule.split-below");
+const CMD_CAPSULE_ZOOM: ActionKey = ActionKey::custom("jackin.capsule.zoom");
+const CMD_CAPSULE_FOCUS_LEFT: ActionKey = ActionKey::custom("jackin.capsule.focus-left");
+const CMD_CAPSULE_PALETTE: ActionKey = ActionKey::custom("jackin.capsule.palette");
 const CMD_EXIT_DIALOG: ActionKey = ActionKey::custom("jackin.exit.dialog");
 const CMD_EXIT_CONFIRM: ActionKey = ActionKey::custom("jackin.exit.confirm");
 const CMD_PRELUDE_BACKSPACE: ActionKey = ActionKey::custom("jackin.prelude.backspace");
@@ -189,9 +217,55 @@ struct AccountOption {
 enum PickerMode {
     Launch,
     OnePassword,
+    Capsule,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CapsuleAction {
+    NewTab,
+    Split(SplitDir),
 }
 
 impl AsItem for AccountOption {
+    fn as_item(&self) -> Item<'_> {
+        Item::new(ItemKey::text(&self.key), &self.label).detail(&self.detail)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct AgentOption {
+    key: String,
+    label: String,
+    detail: String,
+    agent: Agent,
+    account: Option<String>,
+    blocked: bool,
+}
+
+impl AgentOption {
+    fn from_candidate(candidate: LaunchCandidate, world: &World) -> Self {
+        let account = candidate.account.clone();
+        let account_label = account
+            .as_deref()
+            .and_then(|id| world.accounts.get(id))
+            .map(Account::title);
+        let detail = match (&account_label, &candidate.blocked) {
+            (_, Some(reason)) => format!("blocked · {reason}"),
+            (Some(account), None) => format!("ready · {account}"),
+            (None, None) => "ready".to_owned(),
+        };
+        Self {
+            key: candidate.agent.short().to_owned(),
+            label: candidate.agent.label().to_owned(),
+            detail,
+            agent: candidate.agent,
+            account,
+            blocked: candidate.blocked.is_some(),
+        }
+    }
+}
+
+impl AsItem for AgentOption {
     fn as_item(&self) -> Item<'_> {
         Item::new(ItemKey::text(&self.key), &self.label).detail(&self.detail)
     }
@@ -233,8 +307,10 @@ pub struct App {
     tabs_state: TabsState,
     launch_dialog: DialogState,
     role_state: PickerState,
+    agent_state: PickerState,
     account_state: PickerState,
     roles: Vec<RoleOption>,
+    agent_options: Vec<AgentOption>,
     account_options: Vec<AccountOption>,
     op_options: Vec<AccountOption>,
     op_item_key: String,
@@ -249,6 +325,15 @@ pub struct App {
     capsule_prefix: bool,
     capsule_usage: bool,
     exit_choice: Option<u8>,
+    capsule_input: String,
+    capsule_input_state: TextInputState,
+    pending_capsule_action: Option<CapsuleAction>,
+    capsule_interaction: CapsuleInteraction,
+    editor_accounts: ListState,
+    usage_list: ListState,
+    active_instance: Option<String>,
+    launch_agent: Agent,
+    launch_account: Option<String>,
 }
 
 impl App {
@@ -333,7 +418,7 @@ impl App {
             "Current directory · {} · {} running",
             world.home, manager_header_running
         );
-        Self {
+        let mut app = Self {
             world,
             manager: ManagerState::default(),
             accounts: AccountsState::default(),
@@ -356,8 +441,10 @@ impl App {
             tabs_state: TabsState::default(),
             launch_dialog: DialogState::default(),
             role_state: PickerState::default(),
+            agent_state: PickerState::default(),
             account_state: PickerState::default(),
             roles,
+            agent_options: Vec::new(),
             account_options,
             op_options: Vec::new(),
             op_item_key: String::new(),
@@ -373,7 +460,32 @@ impl App {
             capsule_prefix: false,
             capsule_usage: false,
             exit_choice: None,
+            capsule_input: String::new(),
+            capsule_input_state: TextInputState::default(),
+            pending_capsule_action: None,
+            capsule_interaction: CapsuleInteraction::default(),
+            editor_accounts: ListState::default(),
+            usage_list: ListState::default(),
+            active_instance: None,
+            launch_agent: Agent::ClaudeCode,
+            launch_account: None,
+        };
+        if app.launch.as_ref().is_some_and(|run| run.done) {
+            app.materialize_launch();
         }
+        if app.route == Route::Handoff {
+            app.cockpit.handoff.start();
+        }
+        if app.route == Route::Capsule {
+            app.active_instance = app
+                .world
+                .instances
+                .iter()
+                .find(|instance| instance.status == InstanceStatus::Running)
+                .map(|instance| instance.id.clone());
+            app.sync_capsule_projection();
+        }
+        app
     }
 
     /// The current route.
@@ -419,6 +531,67 @@ impl App {
         self.quit
     }
 
+    fn launch_candidates(&self) -> Vec<AgentOption> {
+        let workspace = self
+            .manager
+            .selected()
+            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
+        ManagerState::launch_candidates(&self.world, workspace, Some(self.selected_role()))
+            .into_iter()
+            .map(|candidate| AgentOption::from_candidate(candidate, &self.world))
+            .collect()
+    }
+
+    fn selected_instance_id(&self) -> Option<String> {
+        match self.manager.selected_row() {
+            ManagerRowKey::Instance(id) => Some(id.clone()),
+            ManagerRowKey::Workspace(workspace) => self
+                .world
+                .instances_of(Some(*workspace))
+                .into_iter()
+                .find(|instance| instance.status.reconnectable())
+                .map(|instance| instance.id.clone()),
+            ManagerRowKey::CurrentDirectory | ManagerRowKey::NewWorkspace => self
+                .world
+                .running()
+                .first()
+                .map(|instance| instance.id.clone()),
+        }
+    }
+
+    fn sync_capsule_projection(&mut self) {
+        let Some(instance_id) = self.active_instance.clone().or_else(|| {
+            self.world
+                .running()
+                .first()
+                .map(|instance| instance.id.clone())
+        }) else {
+            return;
+        };
+        self.active_instance = Some(instance_id.clone());
+        let Some(daemon) = self.world.daemons.get(&instance_id) else {
+            return;
+        };
+        self.capsule.tab = u8::try_from(daemon.active).unwrap_or(u8::MAX);
+        self.capsule.selected_pane = daemon.focused_pane().unwrap_or_default();
+        self.capsule.zoomed = daemon.active_tab().is_some_and(|tab| tab.zoomed.is_some());
+    }
+
+    fn refresh_cockpit_account_line(&mut self, agent: Agent) {
+        let workspace = self.world.workspaces.first().or_else(|| {
+            self.manager
+                .selected()
+                .and_then(|id| self.world.workspace(id))
+        });
+        let labels = self
+            .world
+            .offer_for(agent, workspace, Some(self.selected_role()))
+            .accounts
+            .into_iter()
+            .filter_map(|id| self.world.accounts.get(&id).map(Account::title));
+        self.cockpit.account_line = AccountLine::from_labels(labels);
+    }
+
     fn enter_button() -> Button<'static> {
         Button::new(ENTER, "Enter Construct").variant(Variant::PRIMARY)
     }
@@ -460,6 +633,26 @@ impl App {
 
     fn editor_save_button() -> Button<'static> {
         Button::new(crate::screens::editor::SAVE, "Save workspace").variant(Variant::PRIMARY)
+    }
+
+    fn editor_save_confirm_button() -> Button<'static> {
+        Button::new(EDITOR_SAVE_CONFIRM, "Apply changes").variant(Variant::PRIMARY)
+    }
+
+    fn settings_save_confirm_button() -> Button<'static> {
+        Button::new(SETTINGS_SAVE_CONFIRM, "Apply settings").variant(Variant::PRIMARY)
+    }
+
+    fn editor_mount_button() -> Button<'static> {
+        Button::new(EDITOR_MOUNT_EDIT, "Edit mount")
+    }
+
+    fn editor_role_button() -> Button<'static> {
+        Button::new(EDITOR_ROLE_EDIT, "Default role")
+    }
+
+    fn editor_role_load_button() -> Button<'static> {
+        Button::new(EDITOR_ROLE_LOAD, "+ Load role…")
     }
 
     fn editor_env_source_button() -> Button<'static> {
@@ -592,6 +785,32 @@ impl App {
         }
     }
 
+    fn manager_row_at(&self, index: usize) -> Option<ManagerRowKey> {
+        let mut cursor = 0usize;
+        for workspace in &self.world.workspaces {
+            if cursor == index {
+                return Some(ManagerRowKey::Workspace(workspace.id));
+            }
+            cursor = cursor.saturating_add(1);
+            if self.manager.is_expanded(workspace.id) {
+                for instance in self.world.instances.iter().filter(|instance| {
+                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
+                }) {
+                    if cursor == index {
+                        return Some(ManagerRowKey::Instance(instance.id.clone()));
+                    }
+                    cursor = cursor.saturating_add(1);
+                }
+            }
+        }
+        self.world
+            .instances
+            .iter()
+            .filter(|instance| instance.workspace.is_none() && !instance.status.hidden())
+            .nth(index.saturating_sub(cursor))
+            .map(|instance| ManagerRowKey::Instance(instance.id.clone()))
+    }
+
     fn ensure_manager_header(&mut self) {
         let running = self.world.running_count();
         if running != self.manager_header_running {
@@ -623,6 +842,36 @@ impl App {
         rows
     }
 
+    fn editor_account_rows(&self) -> Vec<String> {
+        self.editor
+            .pending
+            .effective_accounts(&self.world.accounts)
+            .into_iter()
+            .map(|account| {
+                format!(
+                    "{} · {}",
+                    self.world
+                        .accounts
+                        .get(&account.id)
+                        .map_or_else(|| account.id.clone(), Account::title),
+                    if account.preferred {
+                        "preferred"
+                    } else {
+                        "active for this Workspace"
+                    }
+                )
+            })
+            .collect()
+    }
+
+    fn editor_account_id(&self, index: usize) -> Option<String> {
+        self.editor
+            .pending
+            .effective_accounts(&self.world.accounts)
+            .get(index)
+            .map(|account| account.id.clone())
+    }
+
     fn launch_dialog() -> Dialog<'static> {
         Dialog::confirm(
             LAUNCH_DIALOG,
@@ -639,6 +888,20 @@ impl App {
         cx.open_layer(LAUNCH_DIALOG, spec);
     }
 
+    fn open_agent_picker(&mut self, cx: &mut Cx<'_>) {
+        self.agent_options = self.launch_candidates();
+        self.agent_state = PickerState::default();
+        if self.agent_options.is_empty() {
+            self.status = Some("No configured agent account is available".into());
+            return;
+        }
+        let picker =
+            Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent");
+        let spec = picker.layer(cx, &self.agent_options);
+        cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
+        self.status = Some("Launch · choose Agent".into());
+    }
+
     fn open_role_picker(&mut self, cx: &mut Cx<'_>) {
         let picker = Self::role_picker();
         let spec = picker.layer(cx, &self.roles);
@@ -651,6 +914,68 @@ impl App {
         self.account_state = PickerState::default();
         let spec = picker.layer(cx, &self.account_options);
         cx.open_layer(ACCOUNT_PICKER, spec);
+    }
+
+    fn open_capsule_account_picker(&mut self, cx: &mut Cx<'_>, action: CapsuleAction) {
+        let picker = Self::account_picker().title("Account for Claude Code");
+        self.pending_capsule_action = Some(action);
+        self.picker_mode = Some(PickerMode::Capsule);
+        self.account_state = PickerState::default();
+        let spec = picker.layer(cx, &self.account_options);
+        cx.open_layer(ACCOUNT_PICKER, spec);
+    }
+
+    fn apply_capsule_action(&mut self, action: CapsuleAction, account: AccountOption) {
+        let Some(instance_id) = self
+            .world
+            .instances
+            .iter()
+            .find(|instance| instance.status == InstanceStatus::Running)
+            .map(|instance| instance.id.clone())
+        else {
+            self.status = Some("Capsule unavailable · no running instance".into());
+            return;
+        };
+        let now_ms = self.world.now_ms();
+        let observed_secs = self.world.now_secs();
+        let (snapshot, status) = {
+            let Some(daemon) = self.world.daemons.get_mut(&instance_id) else {
+                self.status = Some("Capsule unavailable · daemon not connected".into());
+                return;
+            };
+            let result = match action {
+                CapsuleAction::NewTab => {
+                    daemon.new_tab(
+                        Some(Agent::ClaudeCode),
+                        Some(account.key.clone()),
+                        now_ms,
+                        true,
+                    );
+                    format!("New tab · Account for Claude Code · {}", account.label)
+                }
+                CapsuleAction::Split(direction) => {
+                    let _ = daemon.split(
+                        direction,
+                        false,
+                        Some(Agent::ClaudeCode),
+                        Some(account.key.clone()),
+                        now_ms,
+                        true,
+                    );
+                    let label = match direction {
+                        SplitDir::Horizontal => "Split right",
+                        SplitDir::Vertical => "Split below",
+                    };
+                    format!("{label} · Account for Claude Code · {}", account.label)
+                }
+            };
+            (daemon.snapshot(), result)
+        };
+        if let Some(instance) = self.world.instance_mut(&instance_id) {
+            instance.daemon = snapshot;
+            instance.last_seen_secs = observed_secs;
+        }
+        self.status = Some(status);
     }
 
     fn open_op_picker(&mut self, cx: &mut Cx<'_>) {
@@ -716,6 +1041,10 @@ impl App {
     }
 
     fn begin_launch(&mut self) {
+        self.begin_launch_with(self.launch_agent, self.launch_account.clone());
+    }
+
+    fn begin_launch_with(&mut self, agent: Agent, account: Option<String>) {
         let plan = if self.world.scenario == Scenario::LaunchFailure {
             LaunchPlan::FailNetwork
         } else {
@@ -723,10 +1052,14 @@ impl App {
         };
         self.launch = Some(LaunchRun::new(
             plan,
-            Agent::ClaudeCode,
+            agent,
             "jackin-payments-platform",
             crate::RunId::new(0x9c41_e2f0),
         ));
+        self.launch_agent = agent;
+        self.launch_account = account;
+        self.refresh_cockpit_account_line(agent);
+        self.cockpit.handoff = Default::default();
         self.route = Route::Cockpit;
         self.handoff_frame = None;
         self.status = Some(format!(
@@ -734,6 +1067,135 @@ impl App {
             self.selected_role(),
             plan_label(plan)
         ));
+    }
+
+    fn materialize_launch(&mut self) {
+        let Some(run) = self.launch.as_ref() else {
+            return;
+        };
+        let run_id = run.run_id;
+        if self
+            .world
+            .instances
+            .iter()
+            .any(|instance| instance.run_id == run_id)
+        {
+            return;
+        }
+
+        let agent = run.agent;
+        let container = run.container.clone();
+        let role = self.selected_role().to_owned();
+        let workspace = self.world.workspaces.first().cloned();
+        let mut accounts = self
+            .world
+            .offer_for(agent, workspace.as_ref(), Some(&role))
+            .accounts;
+        if let Some(account) = self.launch_account.clone()
+            && self.world.accounts.get(&account).is_some()
+        {
+            accounts.retain(|id| id != &account);
+            accounts.insert(0, account);
+        }
+        let now_ms = self.world.now_ms();
+        let now_secs = self.world.now_secs();
+        let snapshot = crate::domain::fixtures::live_capsule();
+        let mut daemon = Daemon::from_snapshot(&snapshot, &container, now_ms);
+        if let Some(account) = accounts.first().cloned()
+            && let Some(pane) = daemon
+                .panes
+                .iter_mut()
+                .find(|pane| pane.proc.agent == Some(agent))
+        {
+            pane.proc.account = Some(account);
+        }
+        for pane in &mut daemon.panes {
+            pane.boot_all();
+        }
+
+        let mut instance = crate::domain::fixtures::fixture_instance(
+            InstanceStatus::Running,
+            run_id,
+            now_secs,
+            snapshot,
+        );
+        instance.id = self.world.new_instance_id();
+        instance.container = container;
+        instance.workspace = workspace.as_ref().map(|workspace| workspace.id);
+        instance.workdir = workspace
+            .as_ref()
+            .map_or_else(String::new, |workspace| workspace.workdir.clone());
+        instance.role = role;
+        instance.agent = agent;
+        instance.created_secs = now_secs;
+        instance.last_seen_secs = now_secs;
+        instance.accounts = accounts;
+        instance.daemon = daemon.snapshot();
+        let instance_id = instance.id.clone();
+        self.world.daemons.insert(instance_id, daemon);
+        self.world.instances.push(instance);
+        self.world.sync_arbiter();
+        self.manager_rows_cache.clear();
+    }
+
+    fn capsule_input() -> TextInput<'static> {
+        TextInput::new(CAPSULE_INPUT).placeholder("Type a command")
+    }
+
+    fn commit_capsule_input(&mut self) {
+        let input = mem::take(&mut self.capsule_input);
+        let Some(instance_id) = self
+            .world
+            .instances
+            .iter()
+            .find(|instance| instance.status == InstanceStatus::Running)
+            .map(|instance| instance.id.clone())
+        else {
+            return;
+        };
+        let now_ms = self.world.now_ms();
+        let observed_secs = self.world.now_secs();
+        let (snapshot, last_seen_secs) = {
+            let Some(daemon) = self.world.daemons.get_mut(&instance_id) else {
+                return;
+            };
+            let workspace = daemon.workspace.clone();
+            if let Some(pane_id) = daemon.focused_pane()
+                && let Some(pane) = daemon.pane_mut(pane_id)
+            {
+                for character in input.chars() {
+                    pane.type_char(character, now_ms, &workspace);
+                }
+                pane.commit(now_ms, &workspace);
+            }
+            (daemon.snapshot(), observed_secs)
+        };
+        if let Some(instance) = self.world.instance_mut(&instance_id) {
+            instance.daemon = snapshot;
+            instance.last_seen_secs = last_seen_secs;
+        }
+    }
+
+    fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
+        let command = match key {
+            'c' => Some(CMD_CAPSULE),
+            'd' => Some(CMD_CAPSULE_DETACH),
+            '%' => Some(CMD_CAPSULE_SPLIT_RIGHT),
+            '"' => Some(CMD_CAPSULE_SPLIT_BELOW),
+            'z' => Some(CMD_CAPSULE_ZOOM),
+            'h' => Some(CMD_CAPSULE_FOCUS_LEFT),
+            'u' => Some(CMD_USAGE),
+            'm' => Some(CMD_MANAGER),
+            _ => None,
+        };
+        if let Some(command) = command {
+            return self
+                .update_command(cx, command)
+                .unwrap_or_else(Response::changed);
+        }
+        self.capsule_prefix = false;
+        self.status = Some(format!("Unknown Capsule prefix · {key}"));
+        Response::changed()
     }
 
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -783,6 +1245,31 @@ impl App {
         {
             self.selected_role = index;
             cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
+            result |= Response::changed();
+        }
+
+        let agent_picker =
+            Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent");
+        let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
+        let action = response.action_ref().copied();
+        result |= response.erase();
+        if cx.is_open(crate::screens::manager::AGENT_PICKER)
+            && let Some(PickerAction::Chosen(key)) = action
+            && let Some(option) = self
+                .agent_options
+                .iter()
+                .find(|option| ItemKey::text(&option.key) == key)
+                .cloned()
+        {
+            cx.close_layer(
+                crate::screens::manager::AGENT_PICKER,
+                Some(ActionKey::CONFIRM),
+            );
+            if option.blocked {
+                self.status = Some(format!("{} unavailable · {}", option.label, option.detail));
+            } else {
+                self.begin_launch_with(option.agent, option.account);
+            }
             result |= Response::changed();
         }
 
@@ -840,6 +1327,13 @@ impl App {
                         cx.close_layer(ACCOUNT_PICKER, Some(ActionKey::CONFIRM));
                     }
                 },
+                Some(PickerMode::Capsule) => {
+                    if let Some(action) = self.pending_capsule_action.take() {
+                        self.apply_capsule_action(action, account);
+                    }
+                    self.picker_mode = None;
+                    cx.close_layer(ACCOUNT_PICKER, Some(ActionKey::CONFIRM));
+                }
                 _ => {
                     self.status = Some(format!("Selected reference · {}", account.detail));
                     self.picker_mode = None;
@@ -902,16 +1396,36 @@ impl App {
             List::new(MANAGER_LIST).update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
+        if let Some(ItemKey::Index(index)) = self.manager.list.cursor()
+            && let Some(row) = self.manager_row_at(index)
+        {
+            self.manager.select_row(row);
+        }
         match list_action {
             Some(ListAction::Activated(_)) => {
-                if self.world.running_count() == 1 {
+                if let Some(instance_id) = self.selected_instance_id()
+                    && self
+                        .world
+                        .instance(&instance_id)
+                        .is_some_and(|instance| instance.status.reconnectable())
+                {
+                    self.active_instance = Some(instance_id);
                     self.route = Route::Capsule;
+                    self.capsule_interaction.focus_pane();
+                    self.sync_capsule_projection();
                 }
                 result |= Response::changed();
             }
             Some(ListAction::Chose(_)) => {
                 self.manager.set_detail_open(true);
-                self.status = Some("Workspaces › infra-control-plane".into());
+                self.status = match self.manager.selected_row() {
+                    ManagerRowKey::Workspace(id) => self
+                        .world
+                        .workspace(*id)
+                        .map(|workspace| format!("Workspaces › {}", workspace.name)),
+                    ManagerRowKey::Instance(id) => Some(format!("Instance › {id}")),
+                    ManagerRowKey::CurrentDirectory | ManagerRowKey::NewWorkspace => None,
+                };
                 result |= Response::changed();
             }
             _ => {}
@@ -928,11 +1442,12 @@ impl App {
             self.prelude = crate::screens::prelude::PreludeState::default();
             result |= Response::changed();
         }
-        let button = Self::launch_button(self.world.workspaces.is_empty()).update(cx);
+        let launch_disabled = self.launch_candidates().is_empty();
+        let button = Self::launch_button(launch_disabled).update(cx);
         let chosen = button.activated();
         result |= button.erase();
         if chosen {
-            self.open_launch_dialog(cx);
+            self.open_agent_picker(cx);
         }
         result
     }
@@ -1242,9 +1757,45 @@ impl App {
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let button = Self::settings_trust_button(self.trusted).update(cx);
         let chosen = button.activated();
-        let result = button.erase();
+        let mut result = button.erase();
         if chosen {
             self.trusted = !self.trusted;
+            if self.settings.dirty {
+                self.settings.mark_dirty();
+            } else {
+                self.settings.begin_draft();
+            }
+            result |= Response::changed();
+        }
+        let save = Button::new(crate::screens::settings::SAVE, "Save settings")
+            .variant(Variant::PRIMARY)
+            .update(cx);
+        let save_chosen = save.activated();
+        result |= save.erase();
+        let confirm = Self::settings_save_confirm_button().update(cx);
+        let confirm_chosen = confirm.activated();
+        result |= confirm.erase();
+        if save_chosen {
+            if self.settings.dirty {
+                cx.focus(SETTINGS_SAVE_CONFIRM);
+                self.status = Some("Save settings · choose a confirmation action".into());
+                result |= Response::changed();
+            } else {
+                self.status = Some("No settings changes".into());
+            }
+        }
+        if confirm_chosen && self.settings.dirty {
+            let keep = self.settings.attempt_save(self.world.refresh_fails);
+            if keep {
+                self.status = self.settings.save_error.clone();
+            } else {
+                if let Some(trust) = self.world.global.trust.first_mut() {
+                    trust.trusted = self.trusted;
+                }
+                self.status = Some("Settings saved".into());
+                self.route = Route::Manager;
+            }
+            result |= Response::changed();
         }
         result
     }
@@ -1353,11 +1904,104 @@ impl App {
             }
             return result;
         }
+        let mut result = Response::ignored();
+        match self.editor.tab {
+            EditorTab::Mounts => {
+                let mount = Self::editor_mount_button().update(cx);
+                let chosen = mount.activated();
+                result |= mount.erase();
+                if chosen {
+                    if let Some(mount) = self.editor.pending.mounts.first_mut() {
+                        mount.readonly = true;
+                        mount.isolation = crate::domain::workspace::Isolation::Clone;
+                    }
+                    self.editor.mark_dirty();
+                    self.status = Some("Mounts · 1 modified · readonly · worktree".into());
+                    result |= Response::changed();
+                }
+            }
+            EditorTab::Roles => {
+                let role = Self::editor_role_button().update(cx);
+                let chosen = role.activated();
+                result |= role.erase();
+                if chosen {
+                    self.editor.pending.roles.default = Some("chainargos/the-architect".into());
+                    self.editor.mark_dirty();
+                    self.status = Some("Default role ★ chainargos/the-architect".into());
+                    result |= Response::changed();
+                }
+                let load = Self::editor_role_load_button().update(cx);
+                let load_chosen = load.activated();
+                result |= load.erase();
+                if load_chosen {
+                    self.status = Some("Add role override · type a role name".into());
+                    result |= Response::changed();
+                }
+            }
+            EditorTab::Accounts => {
+                let rows = self.editor_account_rows();
+                let list =
+                    List::new(EDITOR_ACCOUNTS_LIST).update(cx, &mut self.editor_accounts, &rows);
+                let action = list.action_ref().copied();
+                result |= list.erase();
+                if let Some(ItemKey::Index(index)) = self.editor_accounts.cursor()
+                    && let Some(id) = self.editor_account_id(index)
+                    && matches!(action, Some(ListAction::Activated(_)))
+                {
+                    match self
+                        .editor
+                        .pending
+                        .toggle_account(id.clone(), &self.world.accounts)
+                    {
+                        Ok(active) => {
+                            self.editor.mark_dirty();
+                            self.status = Some(if active {
+                                format!("{id} · active for this Workspace")
+                            } else {
+                                format!("{id} · off for this Workspace")
+                            });
+                            result |= Response::changed();
+                        }
+                        Err(error) => self.status = Some(error),
+                    }
+                }
+                if matches!(action, Some(ListAction::Chose(_)))
+                    && let Some(ItemKey::Index(index)) = self.editor_accounts.cursor()
+                    && let Some(id) = self.editor_account_id(index)
+                {
+                    match self
+                        .editor
+                        .pending
+                        .prefer_account(id.clone(), &self.world.accounts)
+                    {
+                        Ok(()) => {
+                            self.editor.mark_dirty();
+                            self.status = Some(format!("Preferred for {}", id));
+                            result |= Response::changed();
+                        }
+                        Err(error) => self.status = Some(error),
+                    }
+                }
+            }
+            EditorTab::Environments | EditorTab::General => {}
+        }
+
         let save = Self::editor_save_button().update(cx);
-        let chosen = save.activated();
-        let mut result = save.erase();
-        if chosen {
-            self.editor.dirty = false;
+        let save_chosen = save.activated();
+        result |= save.erase();
+        let confirm = Self::editor_save_confirm_button().update(cx);
+        let confirm_chosen = confirm.activated();
+        result |= confirm.erase();
+        if save_chosen {
+            if self.editor.open_preview() {
+                cx.focus(EDITOR_SAVE_CONFIRM);
+                self.status = Some("Save workspace · preview changes before commit".into());
+                result |= Response::changed();
+            }
+        }
+        if confirm_chosen && self.editor.preview_open {
+            self.editor.close_preview();
+            self.editor.mark_saved();
             self.world.saved = true;
             let id = self
                 .world
@@ -1440,12 +2084,14 @@ impl App {
                     if self.world.running_count() > 0 {
                         self.route = Route::Manager;
                         self.status = Some(format!(
-                            "Launch failed · {} · another instance is still running",
+                            "Launch failed · {} · {} · another instance is still running",
+                            failure.stage.label(),
                             failure.summary
                         ));
                     }
                 }
                 LaunchEvent::Ready => {
+                    self.materialize_launch();
                     self.status = Some("Capsule ready".into());
                     self.route = Route::Handoff;
                     self.handoff_frame = Some(0);
@@ -1458,10 +2104,42 @@ impl App {
     }
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !self.capsule_input_state.is_editing() {
+            cx.focus(CAPSULE_INPUT);
+        }
+        let input = Self::capsule_input().update(
+            cx,
+            &mut self.capsule_input_state,
+            &mut self.capsule_input,
+        );
+        let committed = input
+            .action_ref()
+            .is_some_and(|action| *action == TextAction::Committed);
+        let mut result = input.erase();
+        let prefix_key = self
+            .capsule_prefix
+            .then(|| self.capsule_input_state.draft_text())
+            .flatten();
+        if let Some(key) = prefix_key.and_then(|draft| draft.chars().next()) {
+            self.capsule_input.clear();
+            self.capsule_input_state = TextInputState::default();
+            result |= self.capsule_prefix_key(cx, key);
+        }
+        if committed {
+            if self.exit_choice.is_some() {
+                if let Some(response) = self.update_command(cx, CMD_EXIT_CONFIRM) {
+                    result |= response;
+                }
+            } else {
+                self.commit_capsule_input();
+            }
+            result |= Response::changed();
+        }
         let tabs = capsule_tabs();
-        Tabs::new(CAPSULE_TABS)
-            .update(cx, &mut self.tabs_state, &tabs)
-            .erase()
+        result
+            | Tabs::new(CAPSULE_TABS)
+                .update(cx, &mut self.tabs_state, &tabs)
+                .erase()
     }
 
     fn update_route(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -1499,11 +2177,17 @@ impl App {
                     self.status = Some("Detached from Capsule".into());
                     self.route = Route::Manager;
                 } else {
-                    self.route = if self.route == Route::Usage {
-                        Route::Accounts
+                    if self.route == Route::Usage {
+                        self.accounts.selected_id = self.usage.manage_target().map(str::to_owned);
+                        self.route = Route::Accounts;
+                        if let Some(id) = self.accounts.selected_id.as_deref()
+                            && let Some(account) = self.world.accounts.get(id)
+                        {
+                            self.status = Some(format!("Accounts › {}", account.title()));
+                        }
                     } else {
-                        Route::Manager
-                    };
+                        self.route = Route::Manager;
+                    }
                 }
                 Some(Response::changed())
             }
@@ -1581,24 +2265,43 @@ impl App {
                     Some("Credential sources · 1Password · Local agent folder · API key".into());
                 Some(Response::changed())
             }
+            CMD_ACCOUNT_HELP if self.route == Route::Usage => {
+                self.status = Some("Reading meters · usage is read-only".into());
+                Some(Response::changed())
+            }
             CMD_USAGE => {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.capsule_usage = true;
                     self.status = Some("Usage".into());
                 } else {
+                    if self.usage.selected().is_none() {
+                        let selected = self
+                            .world
+                            .accounts
+                            .sorted()
+                            .first()
+                            .map(|account| account.id.clone());
+                        self.usage.select(selected);
+                    }
                     self.route = Route::Usage;
                 }
                 Some(Response::changed())
             }
             CMD_SETTINGS => {
                 self.route = Route::Settings;
+                self.settings.clear_error();
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
+                cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
             CMD_CAPSULE => {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.status = Some("New tab · Account for Claude Code".into());
+                    self.open_capsule_account_picker(cx, CapsuleAction::NewTab);
                 } else if self.route == Route::Manager {
                     self.route = Route::Accounts;
                 } else {
@@ -1616,16 +2319,112 @@ impl App {
             }
             CMD_EDITOR_OPEN if self.route == Route::Manager => {
                 self.route = Route::Editor;
-                self.editor = EditorState::default();
                 if let Some(workspace) = self.world.workspaces.first() {
-                    self.editor.pending.env = workspace.env.clone();
+                    self.editor.load_workspace(workspace);
+                } else {
+                    self.editor = EditorState::default();
                 }
+                self.editor.select_alias(1);
+                self.editor_accounts = ListState::default();
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
                 self.capsule_prefix = true;
                 self.status = Some("prefix… New tab · Split · Copy · Detach".into());
                 Some(Response::changed())
+            }
+            CMD_CAPSULE_DETACH if self.route == Route::Capsule && self.capsule_prefix => {
+                self.capsule_prefix = false;
+                self.pending_capsule_action = None;
+                self.status = Some("Detached from Capsule".into());
+                self.route = Route::Manager;
+                cx.focus(MANAGER_LIST);
+                Some(Response::changed())
+            }
+            CMD_CAPSULE_SPLIT_RIGHT if self.route == Route::Capsule && self.capsule_prefix => {
+                self.capsule_prefix = false;
+                self.status = Some("Split right · Account for Claude Code".into());
+                self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Horizontal));
+                Some(Response::changed())
+            }
+            CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
+                self.capsule_prefix = false;
+                self.status = Some("Split below · Account for Claude Code".into());
+                self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
+                Some(Response::changed())
+            }
+            CMD_CAPSULE_ZOOM if self.route == Route::Capsule && self.capsule_prefix => {
+                self.capsule_prefix = false;
+                if let Some(instance_id) = self
+                    .world
+                    .instances
+                    .iter()
+                    .find(|instance| instance.status == InstanceStatus::Running)
+                    .map(|instance| instance.id.clone())
+                    && let Some(daemon) = self.world.daemons.get_mut(&instance_id)
+                    && let Some(tab) = daemon.active_tab_mut()
+                {
+                    tab.zoomed = if tab.zoomed == Some(tab.focused) {
+                        None
+                    } else {
+                        Some(tab.focused)
+                    };
+                    self.capsule.zoomed = tab.zoomed.is_some();
+                    self.status = Some(if tab.zoomed.is_some() {
+                        "zoom · focused pane".into()
+                    } else {
+                        "zoom off".into()
+                    });
+                    let snapshot = daemon.snapshot();
+                    if let Some(instance) = self.world.instance_mut(&instance_id) {
+                        instance.daemon = snapshot;
+                    }
+                }
+                Some(Response::changed())
+            }
+            CMD_CAPSULE_FOCUS_LEFT if self.route == Route::Capsule && self.capsule_prefix => {
+                self.capsule_prefix = false;
+                if let Some(instance_id) = self
+                    .world
+                    .instances
+                    .iter()
+                    .find(|instance| instance.status == InstanceStatus::Running)
+                    .map(|instance| instance.id.clone())
+                    && let Some(daemon) = self.world.daemons.get_mut(&instance_id)
+                    && let Some(tab) = daemon.active_tab_mut()
+                {
+                    let leaves = tab.leaves();
+                    if let Some(position) = leaves.iter().position(|id| *id == tab.focused) {
+                        tab.focused = leaves
+                            .get(position.saturating_sub(1))
+                            .copied()
+                            .unwrap_or(tab.focused);
+                        self.capsule.selected_pane = tab.focused;
+                        self.status = Some("focus left".into());
+                        let snapshot = daemon.snapshot();
+                        if let Some(instance) = self.world.instance_mut(&instance_id) {
+                            instance.daemon = snapshot;
+                        }
+                    }
+                }
+                Some(Response::changed())
+            }
+            CMD_CAPSULE_PALETTE if self.route == Route::Capsule => {
+                self.capsule_prefix = false;
+                self.status = Some("Command palette · type an action".into());
+                Some(Response::changed())
+            }
+            CMD_EXIT_CONFIRM if self.route == Route::Outro => {
+                if let Some(outro) = &mut self.outro {
+                    outro.skip();
+                    if outro.is_done() {
+                        self.quit = true;
+                        cx.quit();
+                    }
+                    Some(Response::changed())
+                } else {
+                    None
+                }
             }
             CMD_EXIT_DIALOG if self.route == Route::Capsule => {
                 self.exit_choice = Some(0);
@@ -1663,11 +2462,7 @@ impl App {
                         self.status =
                             Some("Still inside the Construct · another instance is running".into());
                     } else if self.world.scenario == Scenario::OutroLast {
-                        self.outro = Some(OutroState::new(
-                            self.motion,
-                            Some((self.world.now_ms().max(0) as u64) / 1000),
-                            0,
-                        ));
+                        self.outro = Some(OutroState::new(self.motion, Some(8_040), 0));
                         self.route = Route::Outro;
                     } else {
                         self.route = Route::Manager;
@@ -1711,31 +2506,79 @@ impl App {
                 Some(Response::changed())
             }
             CMD_EDITOR_NEXT if self.route == Route::Editor => {
-                self.editor.select_index(match self.editor.tab {
-                    crate::screens::editor::Tab::General => 1,
-                    crate::screens::editor::Tab::Mounts => 2,
-                    crate::screens::editor::Tab::Roles => 3,
-                    crate::screens::editor::Tab::Environments => 4,
-                    crate::screens::editor::Tab::Accounts => 1,
-                });
+                let before = self.editor.tab;
+                self.editor.next_tab();
+                self.status = Some(format!("editor-tab {before:?}->{:?}", self.editor.tab));
+                match self.editor.tab {
+                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
+                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
+                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
+                    EditorTab::Environments | EditorTab::General => {}
+                }
                 Some(Response::changed())
             }
             CMD_EDITOR_ENV if self.route == Route::Editor => {
-                self.editor.tab = crate::screens::editor::Tab::Environments;
+                self.editor.select_alias(4);
+                cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
             CMD_EDITOR_PREVIOUS if self.route == Route::Editor => {
-                self.editor.tab = crate::screens::editor::Tab::General;
+                self.editor.previous_tab();
+                match self.editor.tab {
+                    EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
+                    EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
+                    EditorTab::Accounts => cx.focus(EDITOR_ACCOUNTS_LIST),
+                    EditorTab::Environments | EditorTab::General => {}
+                }
+                Some(Response::changed())
+            }
+            CMD_EDITOR_ROLES if self.route == Route::Editor => {
+                self.editor.select_alias(3);
+                cx.focus(EDITOR_ROLE_EDIT);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_ACCOUNTS if self.route == Route::Editor => {
+                self.editor.select_alias(5);
+                cx.focus(EDITOR_ACCOUNTS_LIST);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_PREFER
+                if self.route == Route::Editor && self.editor.tab == EditorTab::Accounts =>
+            {
+                if let Some(ItemKey::Index(index)) = self.editor_accounts.cursor()
+                    && let Some(id) = self.editor_account_id(index)
+                {
+                    match self
+                        .editor
+                        .pending
+                        .prefer_account(id.clone(), &self.world.accounts)
+                    {
+                        Ok(()) => {
+                            self.editor.mark_dirty();
+                            self.status = Some(format!("Preferred for {id}"));
+                        }
+                        Err(error) => self.status = Some(error),
+                    }
+                }
                 Some(Response::changed())
             }
             CMD_SAVE if self.route == Route::Editor => {
-                self.editor.dirty = true;
+                self.editor.mark_dirty();
+                self.editor.open_preview();
+                cx.focus(EDITOR_SAVE_CONFIRM);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 Some(Response::changed())
             }
             CMD_SAVE if self.route == Route::Settings => {
-                self.settings.dirty = true;
+                if !self.settings.dirty {
+                    self.settings.begin_draft();
+                }
+                cx.focus(SETTINGS_SAVE_CONFIRM);
                 self.status = Some("Save settings · choose a confirmation action".into());
+                Some(Response::changed())
+            }
+            CMD_USAGE_NEXT if self.route == Route::Usage => {
+                self.usage.next_tab();
                 Some(Response::changed())
             }
             _ => None,
@@ -2039,8 +2882,103 @@ impl App {
             );
             return;
         }
+        if self.editor.tab == EditorTab::Mounts {
+            let mount = self.editor.pending.mounts.first();
+            let mount_line = mount.map_or_else(
+                || "Mounts · none".to_owned(),
+                |mount| {
+                    format!(
+                        "Mounts {} · {} · {}",
+                        if mount.readonly { "•" } else { "" },
+                        mount.mode_label(),
+                        if matches!(mount.isolation, crate::domain::workspace::Isolation::Clone) {
+                            "worktree"
+                        } else {
+                            "shared"
+                        }
+                    )
+                },
+            );
+            paint_lines(
+                ui,
+                area,
+                &[
+                    workspace.to_owned(),
+                    mount_line,
+                    "Mount source · workspace".into(),
+                    if self.editor.dirty {
+                        "1 modified".into()
+                    } else {
+                        String::new()
+                    },
+                ],
+            );
+            Self::editor_mount_button()
+                .draw(ui, Rect::new(area.x, area.y.saturating_add(4), 18, 1));
+            if self.editor.preview_open {
+                Self::editor_save_confirm_button().draw(
+                    ui,
+                    Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+                );
+            } else {
+                Self::editor_save_button().draw(
+                    ui,
+                    Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+                );
+            }
+            return;
+        }
+        if self.editor.tab == EditorTab::Roles {
+            let default = self
+                .editor
+                .pending
+                .roles
+                .default
+                .as_deref()
+                .unwrap_or("none");
+            paint_lines(
+                ui,
+                area,
+                &[
+                    format!("{workspace} › edit · Roles"),
+                    format!("Default role ★ {default}"),
+                    format!(
+                        "Role overrides · {} configured · {} in registry",
+                        self.editor.pending.configured_role_count(),
+                        self.world.roles.len()
+                    ),
+                ],
+            );
+            Self::editor_role_button().draw(ui, Rect::new(area.x, area.y.saturating_add(4), 20, 1));
+            Self::editor_role_load_button()
+                .draw(ui, Rect::new(area.x, area.y.saturating_add(5), 18, 1));
+            return;
+        }
+        if self.editor.tab == EditorTab::Accounts {
+            paint_lines(
+                ui,
+                Rect { height: 2, ..area },
+                &[format!("{workspace} › edit · Active accounts")],
+            );
+            let rows = self.editor_account_rows();
+            List::new(EDITOR_ACCOUNTS_LIST).draw(
+                ui,
+                Rect {
+                    y: area.y.saturating_add(2),
+                    height: area.height.saturating_sub(4),
+                    ..area
+                },
+                &self.editor_accounts,
+                &rows,
+            );
+            Self::editor_save_button().draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
+            return;
+        }
         let lines = [
-            format!("{workspace} · edit · {tab}"),
+            format!("{workspace} › edit · {tab}"),
             "Mounts · inherited defaults".to_owned(),
             "Environments · references only; values stay masked".to_owned(),
             format!("Roles · {} configured", self.world.roles.len()),
@@ -2132,7 +3070,7 @@ impl App {
                 ..area
             },
         );
-        Self::launch_button(self.world.workspaces.is_empty()).draw(
+        Self::launch_button(self.launch_candidates().is_empty()).draw(
             ui,
             Rect {
                 y: area.bottom().saturating_sub(1),
@@ -2338,6 +3276,26 @@ impl App {
             style,
         );
         let mut y = area.y.saturating_add(1);
+        let workspace = self.world.workspaces.first();
+        let account_labels = self
+            .world
+            .offer_for(launch.agent, workspace, Some(self.selected_role()))
+            .accounts
+            .iter()
+            .filter_map(|id| self.world.accounts.get(id).map(Account::title))
+            .collect::<Vec<_>>();
+        let accounts = if account_labels.is_empty() {
+            "Accounts · none".to_owned()
+        } else {
+            format!(
+                "{} accounts · {} · {}",
+                account_labels.len(),
+                launch.agent.provider().usage_surface().surface_name(),
+                account_labels.join(" · ")
+            )
+        };
+        ui.paint_str(Rect::new(area.x, y, area.width, 1), &accounts, style);
+        y = y.saturating_add(1);
         for (index, stage) in Stage::ALL.iter().enumerate() {
             if y >= area.bottom().saturating_sub(2) {
                 break;
@@ -2379,9 +3337,25 @@ impl App {
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
         let tabs = capsule_tabs();
         Tabs::new(CAPSULE_TABS).draw(ui, area, &self.tabs_state, &tabs);
+        let style = ui.surface_style();
+        ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
+            "jackin❯",
+            style,
+        );
+        Self::capsule_input().value(&self.capsule_input).draw(
+            ui,
+            Rect::new(
+                area.x.saturating_add(8),
+                area.y.saturating_add(3),
+                area.width.saturating_sub(8),
+                1,
+            ),
+            &self.capsule_input_state,
+        );
         let pane_area = Rect {
-            y: area.y.saturating_add(3),
-            height: area.height.saturating_sub(3),
+            y: area.y.saturating_add(4),
+            height: area.height.saturating_sub(4),
             ..area
         };
         let rows = self
@@ -2391,25 +3365,81 @@ impl App {
             .find(|instance| instance.status == InstanceStatus::Running)
             .map_or_else(
                 || vec!["Capsule is empty".into()],
-                |instance| match &instance.daemon {
-                    DaemonSnapshot::Tabs(tabs) => tabs
-                        .iter()
-                        .flat_map(|tab| tab.panes.iter())
-                        .map(|pane| {
-                            format!(
-                                "{} · {} · {}",
-                                pane.label,
-                                pane.state.label(),
-                                if pane.focused {
-                                    "focused"
-                                } else {
-                                    "idle focus"
-                                }
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                    DaemonSnapshot::Unavailable => vec!["Daemon unavailable".into()],
-                    DaemonSnapshot::NoTabs => vec!["No tabs reported".into()],
+                |instance| {
+                    let live = self.world.daemons.get(&instance.id);
+                    match live {
+                        Some(daemon) if !daemon.panes.is_empty() => daemon
+                            .tabs
+                            .iter()
+                            .enumerate()
+                            .flat_map(|(tab_index, tab)| {
+                                let account_registry = self.world.accounts.clone();
+                                let label = daemon.tab_label(tab, &|pane| {
+                                    pane.proc
+                                        .account
+                                        .as_ref()
+                                        .and_then(|id| account_registry.get(id))
+                                        .map(|account| account.display_name.clone())
+                                });
+                                let tab_line = format!(
+                                    "{}{} · {}",
+                                    if tab_index == daemon.active {
+                                        "▸ "
+                                    } else {
+                                        "  "
+                                    },
+                                    label,
+                                    daemon.tab_state(tab).label()
+                                );
+                                let panes = tab.leaves().into_iter().filter_map(|pane_id| {
+                                    daemon.pane(pane_id).map(|pane| {
+                                        let heading = format!(
+                                            "{} · {} · {}",
+                                            pane.label(),
+                                            pane.state().label(),
+                                            if tab.focused == pane.id {
+                                                "focused"
+                                            } else {
+                                                "idle focus"
+                                            }
+                                        );
+                                        let transcript =
+                                            pane.term.lines.iter().filter_map(|line| {
+                                                let text = line
+                                                    .iter()
+                                                    .map(|span| span.text.as_str())
+                                                    .collect::<String>();
+                                                (!text.is_empty()).then_some(text)
+                                            });
+                                        std::iter::once(heading)
+                                            .chain(transcript)
+                                            .collect::<Vec<_>>()
+                                    })
+                                });
+                                std::iter::once(tab_line).chain(panes.flatten())
+                            })
+                            .collect::<Vec<_>>(),
+                        _ => match &instance.daemon {
+                            DaemonSnapshot::Tabs(tabs) => tabs
+                                .iter()
+                                .flat_map(|tab| tab.panes.iter())
+                                .map(|pane| {
+                                    format!(
+                                        "{} · {} · {}",
+                                        pane.label,
+                                        pane.state.label(),
+                                        if pane.focused {
+                                            "focused"
+                                        } else {
+                                            "idle focus"
+                                        }
+                                    )
+                                })
+                                .collect::<Vec<_>>(),
+                            DaemonSnapshot::Unavailable => vec!["Daemon unavailable".into()],
+                            DaemonSnapshot::NoTabs => vec!["No tabs reported".into()],
+                        },
+                    }
                 },
             );
         List::new(CAPSULE_PANES).draw(ui, pane_area, &ListState::default(), &rows);
@@ -2468,6 +3498,11 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
+        let agent_picker =
+            Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent");
+        let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
+            agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
+        });
         let account_picker = self.active_account_picker();
         let account_items = match self.picker_mode {
             Some(PickerMode::OnePassword) => &self.op_options,
@@ -2497,7 +3532,11 @@ impl TuiApp for App {
             return result;
         }
         result |= self.update_overlays(cx);
-        if cx.is_open(ROLE_PICKER) || cx.is_open(ACCOUNT_PICKER) || cx.is_open(LAUNCH_DIALOG) {
+        if cx.is_open(ROLE_PICKER)
+            || cx.is_open(crate::screens::manager::AGENT_PICKER)
+            || cx.is_open(ACCOUNT_PICKER)
+            || cx.is_open(LAUNCH_DIALOG)
+        {
             return result;
         }
         if matches!(
@@ -2581,11 +3620,7 @@ impl TuiApp for App {
         }
         if self.route == Route::Capsule && self.world.scenario == Scenario::OutroLast {
             self.status = Some("Detached from Capsule; closing the Construct…".into());
-            self.outro = Some(OutroState::new(
-                self.motion,
-                Some((self.world.now_ms().max(0) as u64) / 1000),
-                0,
-            ));
+            self.outro = Some(OutroState::new(self.motion, Some(8_040), 0));
             self.route = Route::Outro;
             return Response::changed();
         }
@@ -2718,6 +3753,36 @@ fn app_keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('d')),
+            CMD_CAPSULE_DETACH,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('%')),
+            CMD_CAPSULE_SPLIT_RIGHT,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('"')),
+            CMD_CAPSULE_SPLIT_BELOW,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('z')),
+            CMD_CAPSULE_ZOOM,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('h')),
+            CMD_CAPSULE_FOCUS_LEFT,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('\\'), KeyModifiers::CONTROL),
+            CMD_CAPSULE_PALETTE,
+        )
+        .bind(
+            KeyPhase::Bubble,
             Chord::with(KeyCode::Char('q'), KeyModifiers::CONTROL),
             CMD_EXIT_DIALOG,
         )
@@ -2771,6 +3836,22 @@ fn app_keymap() -> KeyMap {
             Chord::key(KeyCode::Char('4')),
             CMD_EDITOR_ENV,
         )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('3')),
+            CMD_EDITOR_ROLES,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('5')),
+            CMD_EDITOR_ACCOUNTS,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('p')),
+            CMD_EDITOR_PREFER,
+        )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), CMD_USAGE_NEXT)
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),

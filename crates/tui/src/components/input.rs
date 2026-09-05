@@ -635,6 +635,19 @@ impl TextInputState {
         self.phase
     }
 
+    /// Return the current non-secret draft while editing.
+    ///
+    /// Secret drafts intentionally return `None`; callers that need to react
+    /// to a non-secret transient command can inspect this without exposing
+    /// credential material through a public state accessor.
+    pub fn draft_text(&self) -> Option<&str> {
+        if self.is_sensitive() || !self.is_editing() {
+            None
+        } else {
+            Some(self.draft.text())
+        }
+    }
+
     pub(crate) const fn is_sensitive(&self) -> bool {
         self.draft.is_sensitive()
     }
