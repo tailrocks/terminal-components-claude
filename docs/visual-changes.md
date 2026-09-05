@@ -1490,7 +1490,24 @@ distinguish the source correction from approval of a retained digest.
              not asserted as byte-equivalent retained evidence and not approved for blessing.
 ```
 
-The seven pairs above are unblessed audit evidence. A future independent frame review and separate
-serial authorization are still required before any retained baseline change.
+```
+- surface:   current TablePro `connections` / 120x40 / Junie / truecolor
+- captures:  current no-BLESS app audit; the application-owned baseline remains unchanged and no
+             capture is accepted as approval
+- tests:     `apps/tablepro/tests/visual.rs::tablepro_visual_baseline`
+- moved:     1 key:
+  `apps/tablepro/tests/baselines/tablepro.txt` `connections 120 40 junie truecolor`
+    c1fdb4fc02dacd7f → c61db28c2277776b
+- added:     none
+- class:     regression
+- reason:    §20.10 items 14 and 32. The current source does not render the `connections` screen
+             through the audited route, so this movement is a source regression, not an intended
+             visual migration. Repair routing, rerun the no-BLESS audit, and obtain fresh review;
+             this entry never authorizes a baseline update or blessing.
+```
+
+The eight pairs above are unblessed audit evidence. The TablePro regression must be fixed before
+any retained baseline change; a future independent frame review and separate serial authorization
+are still required before blessing.
 
  ## Review status — Slice 4 component matrix, independent visual review (2026-09-05)
