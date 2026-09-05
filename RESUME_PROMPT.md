@@ -1,49 +1,89 @@
 # Resume prompt — Complete Rust TUI Component-System Refactor
 
-Paste this as the first message of the new session.
+Paste this as the first message of a new session.
 
----
+Continue the in-progress refactor. Do not restart from scratch or treat old
+checkpoint summaries as current measurements.
 
-Continue the in-progress refactor in this repository. Do not restart from scratch and do not re-audit what is already recorded.
+## Read first
 
-## Read first, in this order
+1. `REFACTORING_STATE.md` — the durable ledger. Older checkpoint sections are
+   historical evidence; use the measured tip below until the ledger is refreshed.
+2. `GOAL.md` and `REFACTORING_GOAL.md` — definition of done §29 and final report
+   §30.
+3. `COMPONENT_ARCHITECTURE.md` — **8,559 lines, accepted through §74; §29 is
+   present**. Changes to decisions, invariants, exact types, or precedence rules
+   require fresh `opus-analyst` adjudication recorded in the architecture and
+   ledger.
+4. `docs/reviews/`, `docs/plans/`, `docs/audit/`, and `docs/guides/` — accepted
+   evidence and executable plans.
 
-1. `REFACTORING_STATE.md` — the durable ledger. Its "Next action (Resume)" section is your plan.
-2. `GOAL.md` and `REFACTORING_GOAL.md` — the contract (definition of done is §29; final report is §30).
-3. `COMPONENT_ARCHITECTURE.md` — the accepted architecture, §1–§24 plus Adjudications A–M. Change control: any change to a Decision, invariant, exact type or precedence rule needs fresh `opus-analyst` adjudication recorded in the document and the ledger.
-4. `docs/reviews/slice3-foundations-review.md` — accepted; its §2 (eight adjudications), §3 (deviations D-1…D-13), §5 (fix list F1–F26) and §6 (Slice 3 gate commands) are binding.
-5. `docs/reviews/adjudication-n-layer-measure.md` — accepted; its "Document amendments" table is binding.
-6. `docs/audit/*.md` — the six Slice 1 audits plus the modern-API audit (dependency and API policy).
+## Routing exception
 
-## Mandatory execution model (unchanged)
+Coordinator, `fable-builder` implementation workers, and `opus-analyst` all run
+`claude-opus-5` at effort `high`. Fable 5.1 was unavailable because its monthly
+credits were exhausted; the user explicitly authorized continuing on Opus 5.
+This is a known, authorized exception, not an active blocker. The
+`fable-builder` label is historical; retain its implementation-only role and do
+not pass model or effort overrides.
 
-- Coordinator and every implementation worker: **`claude-opus-5`, effort `high`** — a user-authorized deviation from the goal's `claude-fable-5-1` mandate, because Fable 5.1 credits were exhausted. `.claude/agents/{refactor-coordinator,fable-builder}.md` and `.claude/settings.json` are already repointed; agent definitions own routing, so never pass a per-invocation model override. Revert all three to `claude-fable-5-1` if Fable capacity returns.
-- Every audit, research question, architecture decision, alternative comparison, root-cause diagnosis, public-API or test-design critique, domain-boundary decision, security analysis, performance interpretation, visual judgment and independent verification: a fresh, read-only `opus-analyst` (`claude-opus-5`, high).
-- All implementation through `fable-builder` subagents. The coordinator only spawns agents, records results into `REFACTORING_STATE.md` and the architecture document, commits, and reports. User directive: **all audits and implementations run in subagents.**
-- Never use generic, inheriting, built-in Explore or built-in Plan agents. Never override configured agent models or effort.
-- Parallel builders must have explicit, disjoint file ownership; keep shared foundations under one owner.
-- User directives to keep: use the latest dependency versions and their latest APIs and modern practices; commit and push `origin/main` after every recorded result.
+## Current tip — measured
 
-## Recorded blocker and its user-authorized resolution
+The current **committed** tip is `HEAD == origin/main == 5ba0116`
+(`5ba0116de5a6c401c3f3a5e098b9303ea2b2dbe5`). Its immediate lineage is
+`316731a` (TablePro visual fixtures), `bbc48bb` (Jackin active picker),
+`40233b7` (scoped clippy diagnostics), `07bb719` (source/gate checkpoint), and
+the preceding capture, architecture-checker, sensitive-text, props/grid, and
+rain-style fixes. The worktree may contain uncommitted work from another owner;
+inspect status before treating the committed tip as the complete source tree.
 
-The previous session ended because the Fable 5.1 monthly spend limit was reached — three `fable-builder` agents were terminated mid-task (HTTP 429). The goal treats an unavailable required model as a blocker. The user resolved it by directing that the work continue on Opus 5 only. The routing files are already updated; surface this deviation in the final report rather than treating it as unresolved.
+The library is already package `junie-tui` / library `junie_tui` in
+`crates/tui`; the workspace has `apps/showcase`, `apps/tablepro`, and
+`apps/jackin-preview`. Do not apply the obsolete planned crate rename or restore
+the removed root package.
 
-## Immediate state (session 2 ended at a token limit)
+`xtask` dispatches `doc-check`, `boundary`, `bless-guard`, `capture-matrix`,
+and `list`. Current named checks:
 
-The tree does **not** compile at HEAD. Three Slice-4 builders were killed mid-work and their partial output is committed as WIP; `cargo build -p junie-tui --all-targets` fails with one `E0502`. The last fully green commit is `0f66160` (797 tests, exit 0). Start by reading `REFACTORING_STATE.md`'s "SESSION 2 INTERRUPTION" block, then `git diff 0f66160 -- crates/` to see what the three builders produced, and decide per file whether to finish or revert. Reverting an unfinished component and re-running its package is often faster than repairing a half-written file.
-
-## Earlier state
-
-- HEAD `69fcdca`, pushed to `origin/main`, worktree clean.
-- Slice 1 (baseline + six audits + 499 before-captures + TablePro/Jackin digests + perf baseline, tag `perf/baseline`) is complete.
-- Slice 2 (architecture, independent review, corrections §21–§24) is complete.
-- Slice 3 foundations exist at `crates/tui` (package `junie-tui`, lib `junie_tui` — a deliberate temporary name renamed to `junie-tui`/`junie_tui` at Slice 5), `crates/tui-testing`, `xtask`. They were green at commit `18afddd` and were then independently reviewed; **the F1–F26 corrections and Adjudication N code changes are not applied**.
-- Two tasks were interrupted and their partial output is committed as WIP: the prototype components (`crates/tui/src/components/**`, examples 01/05–11) may not compile or pass gates, and the §25/§26 architecture amendments were not appended.
-- The legacy package at the repository root still builds and its 247 tests pass; it must stay green until Slices 5–7 migrate the applications.
+- `doc-check`: PASS — 76 Rust blocks, 859 resolved references, 35 explicit
+  allow-listed not-yet-built references.
+- `boundary`: all named checks pass except the fail-closed
+  `baseline_moves_are_classified` check when no `BLESS_GUARD_BASE` or
+  `GITHUB_BASE_REF` is supplied; `every_named_test_exists` is 388/387 with one
+  deferred name and passes.
+- Tracked capture provenance is schema 1 at revision `a358272…` with 96 cells,
+  stale against `5ba0116`. No baseline blessing is authorized until a fresh
+  provenance-backed matrix and independent visual review exist.
 
 ## First actions
 
-1. Establish ground truth: `git status`, `cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features`, `cargo run -p xtask -- boundary`, `cargo test --all-targets`.
-2. Then follow `REFACTORING_STATE.md` → "Next action (Resume)" steps 2–6, updating the ledger and pushing after each result.
+1. Run `git status --short`, `git log --oneline -5`, and the gate relevant to the
+   assigned work. Preserve unrelated worktree changes.
+2. Run `cargo run -p xtask -- doc-check` and `cargo run -p xtask -- boundary`
+   after documentation or contract changes; provide the exact results.
+3. For visual work, run `capture-matrix` only with the required authorization,
+   classify moved keys before blessing, and provide a comparison base to
+   `bless-guard`.
+4. Do not claim full completion until the entire §26 gate set and required fresh
+   architecture/visual reviews are green.
 
-At every turn end, report completed evidence, unresolved criteria and active blockers, and do not claim completion without surfaced command results and review findings.
+## Historical record — superseded session-2 prompt
+
+The old resume text is retained as provenance, not as an action list:
+
+- It described a post-token-limit tree with an `E0502`, last green commit
+  `0f66160`, and interrupted Slice-4 builders. That was repaired before the
+  current tip.
+- It recorded an old `HEAD` of `69fcdca`, a temporary `junie-tui` crate name,
+  an un-migrated root package, and 247 legacy tests. Those facts belong to the
+  pre-migration history.
+- It correctly records the origin of the model exception: three Fable builders
+  were terminated by HTTP 429 and the user authorized Opus 5 continuation.
+
+### Historical session-2 details
+
+That old prompt also recorded a first action of building `junie-tui`, running
+the package tests and boundary check, and keeping the root package's 247 tests
+green. It described the interrupted prototype components and architecture
+amendments as WIP. Those instructions applied to the old tree only; use the
+current tip and gate state above.
