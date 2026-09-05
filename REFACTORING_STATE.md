@@ -5,7 +5,7 @@
 ## Status
 
 - **READ FIRST: the authoritative state is the last section of this file,
-  `Session 5 audit-landing checkpoint — AUTHORITATIVE (2026-09-05, HEAD 26913cc)`.** Every bullet
+  `Integration checkpoint — AUTHORITATIVE (2026-09-05, origin/main 5d17cc0)`.** Every bullet
   below it and every earlier checkpoint is historical evidence, retained unedited; where they
   conflict, the last checkpoint governs. In particular the "until Slice 5 (single scripted rename)"
   clause under adjudication J is superseded by §47.1, and the `a1759b2` visual **PASS** is
@@ -1685,3 +1685,36 @@ present and 22 deferred**, not the earlier 380-name snapshot.
   `truecolor|256|16|mono`, `junie|paper`, and `showcase|tablepro|jackin-preview` (96 cells), and
   verifies `tools/capture.sh` consumes explicit `BIN`, `COLOR`, `ARGS`, tmux capture and PNG output.
   The harness no longer defaults `BIN` to the legacy showcase path.
+
+## Integration checkpoint — AUTHORITATIVE (2026-09-05, origin/main `5d17cc0`)
+
+This checkpoint records the integration state at the current `origin/main` tip. Earlier
+checkpoints remain historical evidence; this section governs the blockers below. It does not
+claim green gates or final completion.
+
+### Merged on `origin/main`
+
+- **Jackin chain:** `444a8f4` (`feat(jackin): restore complete preview journeys`), `d10baab`
+  (`fix(tui): protect redacted secret snapshots`), and `fdc299f`
+  (`test(jackin): close named journey gates`).
+- **Selection:** `e6ba8f7` (`fix(tui): honor list range and disabled selection`).
+- **Documentation / visual ledger:** `c31f136` (`docs(visual): classify current digest movements`)
+  and `5d17cc0` (`docs(visual): record tablepro digest regression`).
+
+### Explicit blockers
+
+- **TablePro source fix pending.** The current `connections` route movement remains classified as
+  a source regression; repair the route before changing any retained digest.
+- **Capture reconciliation pending.** Reconcile the current no-BLESS capture/digest evidence with
+  the ledger and capture contract; do not treat current frames as baseline approval.
+- **Visual blessing unauthorized.** No bless is authorized while the TablePro regression,
+  capture reconciliation, and independent visual review remain unresolved. Baseline changes need
+  separate review and serial authorization.
+
+### §29.8 correction
+
+The stale `OWED, not done` wording is retained as struck historical text in
+`COMPONENT_ARCHITECTURE.md` and amended there with current implementation evidence: `DialogCase`
+declares `TRAPS_FOCUS`; case 14 checks the modal/trap contract, non-empty wrapping, and zero-area
+trapping; and runtime focus-out dismissal has a producer with targeted coverage. This is an
+implementation record, not a passing-gate or completion claim.
