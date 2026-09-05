@@ -24,5 +24,6 @@ pub enum Tab {
 /// Read-only usage state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct UsageState {
+    /// Active usage tab.
     pub tab: Tab,
 }

@@ -18,8 +18,12 @@ pub const DETACH: Id = ROOT.sub("detach");
 /// Capsule interaction state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CapsuleState {
+    /// Selected capsule tab index.
     pub tab: u8,
+    /// Whether the selected pane is zoomed.
     pub zoomed: bool,
+    /// Stable identifier of the selected pane.
     pub selected_pane: u64,
+    /// Whether the pane context menu is open.
     pub context_open: bool,
 }

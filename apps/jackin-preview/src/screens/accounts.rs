@@ -34,13 +34,19 @@ pub const SECRET: Id = FORM.sub("secret");
 pub struct AccountsState {
     /// Public-list selection state owned by this route.
     pub list: ListState,
+    /// Whether the account form is visible.
     pub form_open: bool,
     /// Whether the opener has handed focus to the editable form.
     pub started: bool,
+    /// Existing account name being edited, if any.
     pub editing: Option<String>,
+    /// Draft account display name.
     pub draft_name: String,
+    /// Masked transient credential input.
     pub masked_input: String,
+    /// Pending account refresh message, if any.
     pub pending_refresh: Option<String>,
+    /// Pending account-removal confirmation, if any.
     pub remove_confirmation: Option<String>,
     /// Controlled public text field state for the display name.
     pub name_input: TextInputState,

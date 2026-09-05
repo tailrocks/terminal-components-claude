@@ -12,9 +12,13 @@ use crate::sim::onepassword::OpError;
 /// Ordered stages in the 1Password reference flow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OpFlowStage {
+    /// Account selection stage.
     Account,
+    /// Vault selection stage.
     Vault,
+    /// Item selection stage.
     Item,
+    /// Field selection stage.
     Field,
 }
 
@@ -63,9 +67,20 @@ impl OpFlowStage {
 /// Safe loading/error state projected below a picker breadcrumb.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpFlowStatus {
+    /// The current stage is ready for input.
     Ready,
-    Loading { label: String },
-    Error { message: String, detail: String },
+    /// A stage request is in progress.
+    Loading {
+        /// Human-readable loading label.
+        label: String,
+    },
+    /// A stage request failed with safe operator-facing details.
+    Error {
+        /// Safe error summary.
+        message: String,
+        /// Recovery guidance for the operator.
+        detail: String,
+    },
 }
 
 impl OpFlowStatus {
@@ -83,13 +98,23 @@ impl OpFlowStatus {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpFlowAction {
     /// Move to a new stage with a stable provider id.
-    Entered { stage: OpFlowStage, id: String },
+    Entered {
+        /// Stage entered by the flow.
+        stage: OpFlowStage,
+        /// Stable provider identifier selected at that stage.
+        id: String,
+    },
     /// Return to an earlier breadcrumb.
     Back(OpFlowStage),
     /// Retry the current operation.
     Retry(OpFlowStage),
     /// Accept a metadata-only reference.
-    Completed { stage: OpFlowStage, id: String },
+    Completed {
+        /// Final stage completed by the flow.
+        stage: OpFlowStage,
+        /// Stable provider identifier selected at that stage.
+        id: String,
+    },
 }
 
 /// State retained by the app-side OpFlow composition.

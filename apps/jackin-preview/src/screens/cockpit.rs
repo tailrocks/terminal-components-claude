@@ -16,6 +16,8 @@ pub const RETRY: Id = ROOT.sub("retry");
 /// Cockpit interaction state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CockpitState {
+    /// Whether the launch log is visible.
     pub log_open: bool,
+    /// Current launch-log scroll offset.
     pub log_scroll: u16,
 }

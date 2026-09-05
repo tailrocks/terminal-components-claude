@@ -13,3 +13,4 @@ pub const BODY: Id = ROOT.sub("body");
 pub struct InspectState {
     pub instance: Option<String>,
 }
+    /// Identifier of the instance being inspected, if selected.

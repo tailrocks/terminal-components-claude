@@ -12,8 +12,11 @@ pub const SAVE: Id = FORM.sub("save");
 /// Settings draft and save lifecycle.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SettingsState {
+    /// Whether the settings draft has unsaved changes.
     pub dirty: bool,
+    /// Number of save attempts made for the current draft.
     pub save_attempts: u8,
+    /// Latest save error, if one occurred.
     pub save_error: Option<String>,
 }
 
