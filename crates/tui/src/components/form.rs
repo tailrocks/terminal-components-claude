@@ -2639,8 +2639,10 @@ mod tests {
             plain.error(SECRET).map(|error| error.message.as_ref()),
             Some("Invalid value")
         );
-        let mut plain_data = Data::default();
-        plain_data.secret_mode = false;
+        let plain_data = Data {
+            secret_mode: false,
+            ..Default::default()
+        };
         let plain_fields = fields_with_secret_policy(false);
         assert_eq!(
             Form::field_error(&plain, &plain_data, &plain_fields[4]),
@@ -2661,8 +2663,10 @@ mod tests {
     fn dynamic_secret_transition_keeps_form_error_generic_until_update() {
         const DETAIL: &str = "dynamic secret validation detail";
 
-        let mut app = FieldsApp::default();
-        app.plain_secret_control = true;
+        let mut app = FieldsApp {
+            plain_secret_control: true,
+            ..Default::default()
+        };
         app.data.secret_mode = false;
         let mut runtime = Runtime::new(app, Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
@@ -2776,8 +2780,10 @@ mod tests {
     fn inactive_dynamic_secret_transition_redacts_error_and_draft() {
         const DETAIL: &str = "inactive dynamic secret detail";
 
-        let mut app = FieldsApp::default();
-        app.inactive_secret = true;
+        let mut app = FieldsApp {
+            inactive_secret: true,
+            ..Default::default()
+        };
         app.data.flags.show_hidden = true;
         app.data.hidden_secret_mode = false;
         let mut runtime = Runtime::new(app, Theme::junie());
@@ -2833,8 +2839,10 @@ mod tests {
                 FieldKind::Text(TextInput::new(SECRET))
             };
             let fields = [FieldSpec::new(SECRET, "Secret", kind)];
-            let mut data = Data::default();
-            data.secret_mode = false;
+            let mut data = Data {
+                secret_mode: false,
+                ..Default::default()
+            };
             let mut state = FormState::default();
             state.reconcile_fields_with_data(&fields, &data);
             state.set_error_with_sensitivity(SECRET, Some(FieldError::new(DETAIL)), Some(false));
@@ -2858,8 +2866,10 @@ mod tests {
             "Secret",
             FieldKind::Check(Checkbox::new(SECRET, "Secret")),
         )];
-        let mut data = Data::default();
-        data.secret_mode = false;
+        let mut data = Data {
+            secret_mode: false,
+            ..Default::default()
+        };
         let mut state = FormState::default();
         state.reconcile_fields_with_data(&fields, &data);
         state.set_error_with_sensitivity(SECRET, Some(FieldError::new(DETAIL)), Some(false));
@@ -2878,8 +2888,10 @@ mod tests {
             "Secret",
             FieldKind::Check(Checkbox::new(SECRET, "Secret")),
         )];
-        let mut data = Data::default();
-        data.secret_mode = true;
+        let mut data = Data {
+            secret_mode: true,
+            ..Default::default()
+        };
         let mut state = FormState::default();
         state.reconcile_fields_with_data(&fields, &data);
         state.set_error(SECRET, Some(FieldError::new(DETAIL)));
@@ -2902,8 +2914,10 @@ mod tests {
                 FieldKind::Text(TextInput::new(SECRET))
             };
             let fields = [FieldSpec::new(SECRET, "Secret", kind)];
-            let mut data = Data::default();
-            data.secret_mode = false;
+            let mut data = Data {
+                secret_mode: false,
+                ..Default::default()
+            };
             let mut state = FormState::default();
             state.reconcile_fields(&fields);
             state.set_error_with_sensitivity(SECRET, Some(FieldError::new(DETAIL)), Some(false));
@@ -2969,8 +2983,10 @@ mod tests {
         );
 
         state.reconcile_fields(&plain_fields);
-        let mut data = Data::default();
-        data.secret_mode = false;
+        let data = Data {
+            secret_mode: false,
+            ..Default::default()
+        };
         assert_eq!(
             Form::field_error(&state, &data, &plain_fields[4]),
             Some("swordfish")
