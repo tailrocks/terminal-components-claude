@@ -1617,7 +1617,7 @@ pub struct FormState { /* slots: Vec<FieldSlot> keyed by Id (Vec, not SmallVec �
 impl FormState {
     pub fn is_dirty(&self) -> bool;
     pub fn mark_clean(&mut self);
-    pub fn error(&self, id: Id) -> Option<&FieldError>;
+    pub fn error(&self, id: Id) -> Option<&FieldError>; // public errors are generic at the state boundary
     pub fn set_error(&mut self, id: Id, e: Option<FieldError>);
     pub fn clear_errors(&mut self);
     pub fn reveal(&mut self, id: Id);          // request scroll-to-field on the next layout
@@ -1644,7 +1644,7 @@ impl fmt::Debug for FormState { /* manual; every draft renders as "[redacted]" *
 * **F10 — Submit sequence is fixed and total.** On the submit `ActionKey`: (1) blur-commit the focused control if editing; (2) for every **visible** field in declaration order, `FormData::validate(id, value)`; (3) `FormData::validate_all()`; (4) on the first failure — `st.set_error`, `st.reveal(id)`, `cx.focus(id)`, emit `FormAction::Invalid(id)`; (5) otherwise emit `FormAction::Action(submit)`. Replaces `connections.rs:246-250` + `:704-711` and gives jackin's `FormDialog` the validation it has none of (**[F]** DOM §3.2).
 * **F11 — Enter-submits is arbitrated, not guessed.** `EnterPolicy::SubmitsWhenIdle` submits only when the focused control's focus entry does not set `swallows_typing` and does not carry `StateFlags::EDITING`. Generalises `modals.rs:1204-1212`'s `if !editing` and the six ad-hoc `!editing` guards §13.1 names. A submit chord (`Ctrl+S`, `connections.rs:577`) is declared as `Action::new(SAVE, "Save").chord(Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL))` — no new API (§17.0 A4).
 * **F12 — Dirty is set only by a committed change.** `FormAction::Committed` and a toggle/choice change set `st.dirty`; a keystroke inside a draft does not. This corrects `modals.rs:1119-1121`, where a mid-edit `TextAction::Changed` sets `dirty` before anything is committed.
-* **F13 — `FormState` redacts.** Manual `Debug` on `FormState` and every `FieldSlot`; `zeroize()` overwrites secret drafts before drop (§15).
+* **F13 — `FormState` redacts.** Manual `Debug` on `FormState` and every `FieldSlot`; `zeroize()` overwrites secret drafts before drop (§15). Public `FormState::error` returns generic `"Invalid value"` for every slot because state cannot observe a dynamic owner's current sensitivity between updates. `Form` alone resolves plain detail through a private render path using current `FormData`; hidden and inactive fields are reconciled against that owner data during `update`.
 * <!-- amended by §24 --> **M3‑1 … M3‑4** (§24) — `FormState` stores no props (`SlotValue { None, Text, Choice(usize), Flag(bool), Chips(KeySet) }` is `Clone + PartialEq + Eq`; no `FieldKind` is reachable from state); `FieldKind` holds configuration only and the item slice never enters it; the form's identity model is positional by construction (`ByIndex`); `Chooser` is the escape hatch for a richer control.
 
 **How values reach the application without cloning secrets — exactly.** There is no `values()`; the mechanism is elimination, not redaction. **[F]** Today `FormDialog::values()` (`modals.rs:1039-1044`) clones **every** field name and value into `FormValues = Vec<(String, FieldValue)>`, including password fields, and DOM §3.3 traces that vector through `ModalResult::Form(Some(values))` into `accounts.rs` — every API key in jackin is copied at least twice per submit. Under this design the values were never inside the form: the caller's draft struct is an ordinary field of the screen; `Form::update` reaches each value through `FormData::value_mut(id)` for the duration of one control's `update` call and writes through it; `Form::draw` reaches it through `FormData::value(id)` and reads it; both borrows end when the phase method returns. On submit the screen already owns the values, so the "result" crosses no boundary — `FormAction::Action(ActionKey::SAVE)` is a 2-word `Copy` enum. Secrets specifically: `FieldMut::Secret(&mut Secret)` / `FieldRef::Secret(&Secret)`; `Secret` is **not `Clone`, not `PartialEq`, not `Serialize`** (§15), so a clone is a compile error, not a review item. `Form::draw` renders it with `Secret::write_mask(&mut CellUi, n)` (§21 item 30 P5), which writes cells with a **synthetic** tail — no `String` of the secret is ever constructed. The in-flight draft lives in the field's `TextInputState` inside `FormState`, whose `Debug` is manual and redacting (F13) and whose `zeroize()` overwrites it. Closing the enclosing layer calls `FormState::zeroize()` on `LayerEvent::Dismissed`/`Closed`, so a cancelled password is overwritten rather than dropped.
@@ -2960,7 +2960,8 @@ pub enum FormAction { Changed(Id), Committed(Id), Chose(Id), Action(ActionKey), 
 pub struct FormState { /* slots: Vec<FieldSlot> keyed by Id, scroll: ScrollState, errors: Vec<(Id, FieldError)>, dirty, gen stamp */ }
 impl FormState {
     pub fn is_dirty(&self) -> bool;   pub fn mark_clean(&mut self);
-    pub fn error(&self, id: Id) -> Option<&FieldError>;   pub fn set_error(&mut self, id: Id, e: Option<FieldError>);
+    pub fn error(&self, id: Id) -> Option<&FieldError>;   // public errors are generic at the state boundary
+    pub fn set_error(&mut self, id: Id, e: Option<FieldError>);
     pub fn clear_errors(&mut self);   pub fn reveal(&mut self, id: Id);   pub fn zeroize(&mut self);
 }
 impl Default for FormState { /* … */ }   impl Reconcile for FormState { /* … */ }   impl fmt::Debug for FormState { /* redacting */ }

@@ -503,12 +503,7 @@ impl PartialEq for FormState {
             && self.errors.iter().zip(&other.errors).all(
                 |((id, error), (other_id, other_error))| {
                     id == other_id
-                        && (Self::public_errors_are_redacted()
-                            || Self::public_errors_are_redacted()
-                            || other.slot_is_sensitive(*other_id)
-                            || error.is_sensitive()
-                            || other_error.is_sensitive()
-                            || error.same(other_error))
+                        && (Self::public_errors_are_redacted() || error.same(other_error))
                 },
             )
             && self.dirty == other.dirty
@@ -543,7 +538,7 @@ impl FormState {
 
     /// Local validation error for `id`.
     ///
-    /// Text and area errors are returned as the generic `"Invalid value"`.
+    /// Errors are returned as the generic `"Invalid value"`.
     /// `FormState` has no owner-data reference with which to classify a dynamic
     /// secret between updates; `Form` resolves plain detail privately while
     /// rendering against the current [`FormData`].
@@ -605,10 +600,6 @@ impl FormState {
             .iter()
             .find(|slot| slot.id == id)
             .map(FieldSlot::is_sensitive)
-    }
-
-    fn slot_is_sensitive(&self, id: Id) -> bool {
-        self.slot_sensitivity(id) == Some(true)
     }
 
     const fn public_errors_are_redacted() -> bool {
@@ -2855,6 +2846,26 @@ mod tests {
             );
             assert_public_error_is_redacted(&state, SECRET, DETAIL);
         }
+    }
+
+    #[test]
+    fn malformed_dynamic_secret_is_redacted_for_non_text_slots() {
+        const DETAIL: &str = "non-text dynamic secret detail";
+
+        let fields = [FieldSpec::new(
+            SECRET,
+            "Secret",
+            FieldKind::Check(Checkbox::new(SECRET, "Secret")),
+        )];
+        let mut data = Data::default();
+        data.secret_mode = false;
+        let mut state = FormState::default();
+        state.reconcile_fields_with_data(&fields, &data);
+        state.set_error_with_sensitivity(SECRET, Some(FieldError::new(DETAIL)), Some(false));
+        assert_eq!(Form::field_error(&state, &data, &fields[0]), Some(DETAIL));
+
+        data.secret_mode = true;
+        assert_public_error_is_redacted(&state, SECRET, DETAIL);
     }
 
     #[test]
