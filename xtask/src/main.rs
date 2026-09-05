@@ -7349,21 +7349,43 @@ fn rustdoc_json_collect_reexport_targets(
     }
 }
 
-fn rustdoc_json_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, String> {
-    let index = rustdoc_json_index(document)?;
-    let paths = rustdoc_json_paths(document)?;
-    let root_id = document
-        .get("root")
-        .and_then(rustdoc_json_id)
-        .ok_or_else(|| "rustdoc-json has no root module id".to_owned())?;
-    let root = index
-        .get(&root_id)
-        .ok_or_else(|| format!("rustdoc-json root module {root_id} is missing"))?;
-    let items = root
+fn rustdoc_json_module_id(document: &Value, expected_path: &[&str]) -> Option<String> {
+    rustdoc_json_paths(document)
+        .ok()?
+        .iter()
+        .find_map(|(id, path)| {
+            let path_parts = path.get("path").and_then(Value::as_array)?;
+            let kind = path.get("kind").and_then(Value::as_str)?;
+            (kind == "module"
+                && path_parts.len() == expected_path.len()
+                && path_parts
+                    .iter()
+                    .zip(expected_path)
+                    .all(|(actual, expected)| actual.as_str() == Some(*expected)))
+            .then(|| id.clone())
+        })
+}
+
+fn rustdoc_json_collect_module_reexports(
+    id: &str,
+    index: &serde_json::Map<String, Value>,
+    paths: &serde_json::Map<String, Value>,
+    recurse_modules: bool,
+    visited: &mut BTreeSet<String>,
+    ratatui_ids: &mut BTreeSet<String>,
+) {
+    if !visited.insert(id.to_owned()) {
+        return;
+    }
+    let Some(module) = index.get(id) else {
+        return;
+    };
+    let Some(items) = module
         .pointer("/inner/module/items")
         .and_then(Value::as_array)
-        .ok_or_else(|| "rustdoc-json root module has no item list".to_owned())?;
-    let mut ratatui_ids = BTreeSet::new();
+    else {
+        return;
+    };
     for item_id in items.iter().filter_map(rustdoc_json_id) {
         let Some(item) = index.get(&item_id) else {
             continue;
@@ -7377,31 +7399,134 @@ fn rustdoc_json_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, 
                 index,
                 paths,
                 &mut BTreeSet::new(),
-                &mut ratatui_ids,
+                ratatui_ids,
+            );
+        }
+        if recurse_modules
+            && let Some(target_id) = item.pointer("/inner/use/id").and_then(rustdoc_json_id)
+            && index
+                .get(&target_id)
+                .is_some_and(|target| target.pointer("/inner/module").is_some())
+        {
+            rustdoc_json_collect_module_reexports(
+                &target_id,
+                index,
+                paths,
+                true,
+                visited,
+                ratatui_ids,
+            );
+        }
+        if recurse_modules && item.pointer("/inner/module").is_some() {
+            rustdoc_json_collect_module_reexports(
+                &item_id,
+                index,
+                paths,
+                true,
+                visited,
+                ratatui_ids,
             );
         }
     }
+}
+
+fn rustdoc_json_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, String> {
+    let index = rustdoc_json_index(document)?;
+    let paths = rustdoc_json_paths(document)?;
+    let root_id = document
+        .get("root")
+        .and_then(rustdoc_json_id)
+        .ok_or_else(|| "rustdoc-json has no root module id".to_owned())?;
+    let mut ratatui_ids = BTreeSet::new();
+    if !index.contains_key(&root_id) {
+        return Err(format!("rustdoc-json root module {root_id} is missing"));
+    }
+    rustdoc_json_collect_module_reexports(
+        &root_id,
+        index,
+        paths,
+        false,
+        &mut BTreeSet::new(),
+        &mut ratatui_ids,
+    );
+    Ok(ratatui_ids)
+}
+
+fn rustdoc_json_author_ratatui_reexports(document: &Value) -> Result<BTreeSet<String>, String> {
+    let index = rustdoc_json_index(document)?;
+    let paths = rustdoc_json_paths(document)?;
+    let author_id = rustdoc_json_module_id(document, &[LIB_CRATE_IDENTS[0], "author"])
+        .ok_or_else(|| "rustdoc-json has no public `junie_tui::author` module".to_owned())?;
+    let mut ratatui_ids = BTreeSet::new();
+    rustdoc_json_collect_module_reexports(
+        &author_id,
+        index,
+        paths,
+        true,
+        &mut BTreeSet::new(),
+        &mut ratatui_ids,
+    );
     Ok(ratatui_ids)
 }
 
 /// §16.5 / §24 M1. Inspect the compiled public surface, not source text:
 /// every `ratatui-core` type that appears in a public item must also have a
-/// root-facade re-export. A missing `Line`-style type therefore fails with the
-/// exact external path instead of being hidden by a substring allow-list.
+/// re-export in that item's facade (`junie_tui` or `junie_tui::author`). A
+/// missing `Line`-style type therefore fails with the exact external path
+/// instead of being hidden by a substring allow-list.
 fn every_foreign_type_in_the_public_surface_is_re_exported() -> Result<(), String> {
     let document = rustdoc_json()?;
     let index = rustdoc_json_index(&document)?;
     let paths = rustdoc_json_paths(&document)?;
-    let reexports = rustdoc_json_ratatui_reexports(&document)?;
+    let root_reexports = rustdoc_json_ratatui_reexports(&document)?;
+    let author_reexports = rustdoc_json_author_ratatui_reexports(&document)?;
     let mut referenced = BTreeSet::new();
-    for item in index.values() {
+    let mut missing = BTreeSet::new();
+    for (item_id, item) in index {
         if item.get("crate_id").and_then(Value::as_u64) != Some(0)
             || item.get("visibility").and_then(Value::as_str) != Some("public")
         {
             continue;
         }
         if let Some(inner) = item.get("inner") {
-            rustdoc_json_collect_resolved_paths(inner, &mut referenced);
+            let mut item_references = BTreeSet::new();
+            rustdoc_json_collect_resolved_paths(inner, &mut item_references);
+            let is_author_item = paths
+                .get(item_id)
+                .and_then(|path| path.get("path"))
+                .and_then(Value::as_array)
+                .is_some_and(|parts| {
+                    parts.len() >= 2
+                        && parts.first().and_then(Value::as_str) == Some(LIB_CRATE_IDENTS[0])
+                        && parts.get(1).and_then(Value::as_str) == Some("author")
+                });
+            let scope = if is_author_item { "author" } else { "root" };
+            let reexports = if is_author_item {
+                &author_reexports
+            } else {
+                &root_reexports
+            };
+            for id in item_references {
+                if let Some(path) = paths.get(&id)
+                    && rustdoc_json_is_ratatui_path(path)
+                {
+                    referenced.insert(id.clone());
+                    if !reexports.contains(&id) {
+                        let path_name = path
+                            .get("path")
+                            .and_then(Value::as_array)
+                            .map(|parts| {
+                                parts
+                                    .iter()
+                                    .filter_map(Value::as_str)
+                                    .collect::<Vec<_>>()
+                                    .join("::")
+                            })
+                            .unwrap_or_else(|| id.clone());
+                        missing.insert(format!("{scope}: {path_name}"));
+                    }
+                }
+            }
         }
     }
 
@@ -7409,37 +7534,17 @@ fn every_foreign_type_in_the_public_surface_is_re_exported() -> Result<(), Strin
         .iter()
         .filter(|id| paths.get(*id).is_some_and(rustdoc_json_is_ratatui_path))
         .count();
-    let mut missing = BTreeSet::new();
-    for id in &referenced {
-        let Some(path) = paths.get(id) else {
-            continue;
-        };
-        if !rustdoc_json_is_ratatui_path(path) {
-            continue;
-        }
-        let Some(path_parts) = path.get("path").and_then(Value::as_array) else {
-            continue;
-        };
-        if !reexports.contains(id) {
-            missing.insert(
-                path_parts
-                    .iter()
-                    .filter_map(Value::as_str)
-                    .collect::<Vec<_>>()
-                    .join("::"),
-            );
-        }
-    }
     println!(
-        "every_foreign_type_in_the_public_surface_is_re_exported: {} ratatui-core type reference(s), {} root re-export(s)",
+        "every_foreign_type_in_the_public_surface_is_re_exported: {} ratatui-core type reference(s), {} root re-export(s), {} author re-export(s)",
         external_count,
-        reexports.len()
+        root_reexports.len(),
+        author_reexports.len()
     );
     if missing.is_empty() {
         Ok(())
     } else {
         Err(format!(
-            "ratatui-core types in public items lack a root facade re-export:\n  {}",
+            "ratatui-core types in public items lack a required facade re-export:\n  {}",
             missing.into_iter().collect::<Vec<_>>().join("\n  ")
         ))
     }
