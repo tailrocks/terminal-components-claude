@@ -638,7 +638,7 @@ pub const GRID_MAX_COLUMNS: usize = 64;
 ///
 /// Its public readers expose only durable state owned by the grid (§52), not
 /// model indices, editor drafts or derived viewport geometry.
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GridState {
     /// Row cursor key, row selection, vertical scroll and the stamp.
     core: CollectionCore,
@@ -656,6 +656,23 @@ pub struct GridState {
     /// Last requested sort, used only to alternate the header affordance.
     /// The adapter remains the sole owner of the actual row permutation.
     sort: Option<(ColumnKey, SortDir)>,
+}
+
+impl Default for GridState {
+    fn default() -> Self {
+        let mut editor = TextInputState::default();
+        editor.set_sensitive(false);
+        Self {
+            core: CollectionCore::default(),
+            col: None,
+            col_index: 0,
+            anchor: None,
+            col_offset: 0,
+            edit: None,
+            editor,
+            sort: None,
+        }
+    }
 }
 
 impl GridState {
