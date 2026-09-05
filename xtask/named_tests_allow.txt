@@ -14,9 +14,6 @@
 # `apps/**/src`, `crates/tui/examples/**` and `crates/tui/src/components/**` — the
 # composite components build child props across both phases exactly like a screen.
 
-# ── §16.5 architecture checks not yet built (§47.4) ──
-every_component_doc_has_the_standard_sections  # Slice 8 — rustdoc-json; §16.5 records the rustdoc-json resolver as a Slice-8 upgrade
-
 # ── Slices 5–7 application integration tests (`apps/**/tests`) ──
 complete_flow_keyboard_first  # Slices 5-7 — apps/**
 form_dialog_secret_never_reaches_the_screen_as_a_string  # Slices 5-7 — apps/**

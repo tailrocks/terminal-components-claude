@@ -181,6 +181,11 @@ mod architecture {
     }
 
     #[test]
+    fn every_component_doc_has_the_standard_sections() {
+        check("every_component_doc_has_the_standard_sections");
+    }
+
+    #[test]
     fn no_unreachable_spin_loops() {
         check("no_unreachable_spin_loops");
     }
@@ -314,12 +319,9 @@ mod architecture {
         t.compile_fail("tests/ui/*.rs");
     }
 
-    /// **Recorded deferral (MA-11).** The strict rustdoc-json implementation
-    /// is registered in `xtask` and reports four missing ratatui facade
-    /// targets (`symbols::*::Set` and `terminal::Terminal`). Their fixes are
-    /// in `crates/tui/src` files outside this bounded gate task, so this local
-    /// source pin remains the green compatibility check rather than claiming
-    /// complete public-surface coverage.
+    /// §24 M1 / §25 MA-11. The strict rustdoc-json implementation is registered
+    /// in `xtask`; this local source pin keeps the facade's qualified text
+    /// escape hatch explicit while the executable gate checks the full surface.
     #[test]
     fn every_foreign_type_in_the_public_surface_is_re_exported() {
         // Adjudication M1: every ratatui type named by a `pub` signature has
