@@ -116,7 +116,9 @@ Unlike the grep, this survives a file move, cannot be satisfied by a comment abo
 ## Fresh analyst adjudications carried forward
 
 These Slice 4 findings were supplied after the Q pass. The decisions are recorded here for
-status; the open items remain open. They add no new Q architecture.
+status. The `FieldControl` item-channel question remains open; the three historical questions
+below are retained as review evidence and are explicitly superseded by architecture §§50–51.
+They add no new Q architecture.
 
 **`OVERLAY` versus `TRAPS_FOCUS` — decision.** `Caps::OVERLAY` means that a component opens a
 layer. `Caps::TRAPS_FOCUS` is separate, implies `OVERLAY`, and is reserved for a real focus
@@ -131,20 +133,25 @@ stay on their direct per-phase paths; `Form` drives the three choice controls di
 to add an item-aware composition path or widen the scalar trait remains open. Q does not widen
 the trait or move items into props.
 
-**`RadioGroup::value(ItemKey)` — open contract question.** The draw-time controlled prop and
-cursor/value separation exist in code, but §17.0 A7 does not document them. The public contract
-wording and controlled-state adjudication remain open; Q records no replacement API.
+**Historical review record — `RadioGroup::value(ItemKey)` (superseded by architecture §50.3–§50.4).**
+The draw-time controlled prop and cursor/value separation existed in code, but §17.0 A7 did not
+document them. At this review snapshot, the public contract wording and controlled-state
+adjudication were open; Q recorded no replacement API. Architecture §50.3–§50.4 subsequently
+accepted the caller-owned controlled-value contract and its acceptance coverage.
 
-**`ChipBar` `Activated(add_key)` — open action-naming question.** The add affordance uses the
-caller-stated `add_key` and currently emits the existing `Activated(ItemKey)` action. There is
-no `Added`/`AddRequested` variant. Whether that action should be renamed or split remains open;
-Q does not change the current behavior.
+**Historical review record — `ChipBar` `Activated(add_key)` (superseded by architecture §50.2 and §50.4).**
+The add affordance used the caller-stated `add_key` and, in this review snapshot, emitted the
+existing `Activated(ItemKey)` action; there was no `Added`/`AddRequested` variant. The action
+naming question was open at that time, and Q did not change the then-current behavior.
+Architecture §50.2–§50.4 subsequently rejected fabricated add keys, accepted
+`ChipBarAction::AddRequested`, and defined the real-item/add-action acceptance coverage.
 
-**`StatusBar` `hovered_part` — open integration question.** The analyst found that a stateless
-status bar could not paint per-item hover from the old frame snapshot. A `FrameRead::hovered_part`
-primitive is now present in the concurrent tree, but `StatusBar` still does not consume it.
-Whether per-item hover becomes a StatusBar contract and test remains open; Q does not claim the
-visual gap closed.
+**Historical review record — `StatusBar` `hovered_part` (superseded by architecture §51).**
+The analyst found that a stateless status bar could not paint per-item hover from the old frame
+snapshot. A `FrameRead::hovered_part` primitive was present in the concurrent tree, but
+`StatusBar` did not consume it in this review snapshot. Whether per-item hover became a
+`StatusBar` contract and test was open at that time; Q did not claim the visual gap closed.
+Architecture §51 subsequently accepted keyed runtime-owned hover and its integration coverage.
 
 ## Risks
 
