@@ -731,7 +731,7 @@ The stack is runtime state; the **content** is drawn by the app inside `ui.layer
 
 ### 9.2 Dialog content is open
 
-`DialogBody` is deleted. the current dialog body-slot primitive-equivalent takes a body slot; `confirm`, `destructive`, `prompt`, `acknowledge`, `facts`, `choice`, `info` are convenience constructors over the same primitive and the same rendering path (goal §14). Action arming is a predicate evaluated in `update`, never a `disabled` flag flipped during draw. <!-- amended by §26 --> `Dialog` sizes its own layer — `Dialog::layer(cx)`, `body_rows`, `measured_width`/`measured_height` (§17.0 A7) — as a pure function of props and `DesignTokens` (`text::wrapped_rows` is the single wrap both `measured_height` and `draw` use), and re-asserts it at the top of every `update` with `cx.resize_layer(self.id, LayerSize::Fixed(w, h))` (**invariant D1**), so a description that grows, an error row that appears or a theme swap corrects the layer on the next draw without the opener predicting anything. `Select`, `Picker`, `ContextMenu` and `MenuBar` do the same with their own arithmetic (`Select`: `popup_min_width ≤ w ≤ popup_max_width` from the labels it receives per phase, `h = min(items, popup_max_rows) + 2`). No overlay component opens a bare `LayerSpec` and none computes a rect: `! rg -n 'centered|centered_horizontally|centered_vertically|resolve_anchor' crates/tui/src/components/`.
+`DialogBody` is deleted. The current body-slot primitive is `Dialog::draw`, whose `body` closure receives the inner area; `confirm`, `destructive`, `prompt`, `acknowledge`, `facts`, `choice`, `info` are convenience constructors over the same primitive and rendering path (goal §14). Action arming is a predicate evaluated in `update`, never a `disabled` flag flipped during draw. <!-- amended by §26 --> `Dialog` sizes its own layer — `Dialog::layer(cx)`, `body_rows`, `measured_width`/`measured_height` (§17.0 A7) — as a pure function of props and `DesignTokens` (`text::wrapped_rows` is the single wrap both `measured_height` and `draw` use), and re-asserts it at the top of every `update` with `cx.resize_layer(self.id, LayerSize::Fixed(w, h))` (**invariant D1**), so a description that grows, an error row that appears or a theme swap corrects the layer on the next draw without the opener predicting anything. `Select`, `Picker`, `ContextMenu` and `MenuBar` do the same with their own arithmetic (`Select`: `popup_min_width ≤ w ≤ popup_max_width` from the labels it receives per phase, `h = min(items, popup_max_rows) + 2`). No overlay component opens a bare `LayerSpec` and none computes a rect: `! rg -n 'centered|centered_horizontally|centered_vertically|resolve_anchor' crates/tui/src/components/`.
 
 ---
 
@@ -794,7 +794,7 @@ impl Ui<'_> {
 }
 ```
 
-Containers push the surface they fill; children inherit. `raise` is **index arithmetic on an ordered ladder**, not colour equality — this is what makes a light theme, a high-contrast theme, or a theme with duplicated plane colours behave correctly, and it removes the single biggest obstacle to Scenario B. The only remaining public raw colour is `Role::Custom(Color)` inside a `StylePatch` (§11), which still passes through capability downgrade. `panel background override` is deleted.
+Containers push the surface they fill; children inherit. `raise` is **index arithmetic on an ordered ladder**, not colour equality — this is what makes a light theme, a high-contrast theme, or a theme with duplicated plane colours behave correctly, and it removes the single biggest obstacle to Scenario B. The only remaining public raw colour is `Role::Custom(Color)` inside a `StylePatch` (§11), which still passes through capability downgrade; the panel background override is deleted.
 
 **Resize** is a first-class `Invalidate::Layout` with capture release and layer re-clamping, not a stored field.
 
@@ -2148,7 +2148,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::no_unreachable_spin_loops` <!-- §25 F2 --> | `xtask` rule 27a: `loop {` with `spin_loop` forbidden in `crates/tui/src/**` | no `unreachable_*` helper hangs the process with raw mode on — a livelock with the alternate screen entered is strictly worse than a panic, whose hook restores the terminal; `Vec::insert(i, _)` makes `get_mut(i)` infallible and is written as one documented `#[expect(clippy::expect_used, reason = …)]` |
 | CI gate `readme_compiles` <!-- §22 --> | `cargo test --workspace --doc` with `#![doc = include_str!("../README.md")]` at the top of `crates/tui/src/lib.rs` | every README code fence is valid Rust or tagged ` ```text `/` ```ignore ` (goal §24, §25.5) |
 | `xtask semver` <!-- §22 §3.4: DEFERRED --> | `cargo semver-checks --baseline-rev <tag>` | **Not a shipped gate during the refactor**: during a total public-API rewrite every check fails by construction. Added at the end of Slice 8 against tag `v0.1.0`; blocking in CI from `v0.1.1` onward |
-| `xtask doc-check` <!-- §21 item 34; amended by §23, §24, §25 F23 --> | extracts every `Ident::method` reference and every Rust code block from `COMPONENT_ARCHITECTURE.md` §3–§17 and §21–§26 and resolves each against the library's rustdoc-json. At `18afddd` the range stopped at §23 and the resolver is a heuristic whose `foreign_members()` once treated deleted row/interaction names as foreign API — recorded as a **deviation** (MA‑14): the range covers §24–§26 now, stale suppressions are removed from `doc_check_allow.txt`, and the rustdoc-json resolver is a Slice‑8 upgrade | every reference resolves, or is on the printed "not yet built (Slice 3/4)" allow-list; run in every slice gate |
+| `xtask doc-check` <!-- §21 item 34; amended by §23, §24, §25 F23 --> | `xtask` source scan: `doc_sections` keeps top-level §3–§17 and §21 through the current numbered tail; regexes inspect backticked type/member references and `use junie_tui...` names against a `syn`-collected source API plus a small foreign-member table. It rejects stale and duplicate `xtask/doc_check_allow.txt` entries. It does not compile examples, verify signatures or visibility, or read `crates/tui-testing`. The earlier fixed-range/rustdoc-json description is historical (see §40.1 and §42.2). | every reference resolves, or is on the printed allow-list; run in every slice gate |
 
 ---
 
@@ -2346,7 +2346,7 @@ impl<'f> Cx<'f> {
     pub fn reanchor_layer(&mut self, id: Id, anchor: Anchor);         // a popover whose owner moved
     pub fn quit(&mut self);
     #[cfg(feature = "testing")]
-    pub fn record(&mut self, tag: &'static str);                      // feeds `Harness::records` (§21 item 19)
+    pub fn record(&mut self, tag: &'static str);                      // adds a tag read through `Runtime::records` and `Harness::records` (§21 item 19)
 }
 pub struct IntentIter<'f> { /* … */ }
 impl<'f> Iterator for IntentIter<'f> { type Item = Intent<'f>; /* … */ }
@@ -4748,11 +4748,11 @@ F7 (not a bug): `Harness::new` draws and `Harness::handle` draws after every inp
 
 **Item 18 — M1, M2, and the review's §3 `FrameRead`.** Amends §17.0 A2, §8.2, §3.3 step 7, §3.4, §8.5.
 
-Declared: `Ui::full()`, `Ui::register_part(owner, PartRef, Rect)`, `Ui::register_decor(owner, PartRef, Rect)`, `Cx::focus(id)`, `Cx::request_repaint()`, `Cx::request_repaint_after(Duration)`, `Cx::capture(owner, part) -> bool` (a `Cx` has no "current component"; `intents`/`area` already take the id explicitly), `Cx::capture_owner() -> Option<Id>`, and the shared read trait `FrameRead { state, theme, design, area, layout }` implemented for both `Ui` and `Cx` and re-exported from `author` — one vocabulary, two capability sets. `HintCtx` is deleted; screen-level hints is `fn hints(&self, w: &World) -> HintLayer`. The painting methods of R3 get exact signatures in A2.
+Declared: `Ui::full()`, `Ui::register_part(owner, PartRef, Rect)`, `Ui::register_decor(owner, PartRef, Rect)`, `Cx::focus(id)`, `Cx::request_repaint()`, `Cx::request_repaint_after(Duration)`, `Cx::capture(owner, part) -> bool` (a `Cx` has no "current component"; `intents`/`area` already take the id explicitly), `Cx::capture_owner() -> Option<Id>`, and the shared read trait `FrameRead { state, theme, design, area, layout }` implemented for both `Ui` and `Cx` and re-exported from `author` — one vocabulary, two capability sets. `HintCtx` is deleted; the earlier screen-level `hints` hook is historical, not a current `Screen` API. Current code supplies an optional `HintLayer` to `HintBar`. The painting methods of R3 get exact signatures in A2.
 
 **Item 19 — M6: declared and deleted types.** Amends §17.0 (new A8, A9), §11.2 `Capability`, §13, B.4.
 
-Declared in A8: `Status`, `KeySet`, `ColorLevel`, `BindingState`, `Backdrop`, `Density`, `SortDir`, `Hit`, `RegionKind`, `KeyPhase`, `SyntaxTokens::derive`, `MeterTokens::derive`, `Chord::key`, `Chord::with`, `Key::is`, `Key::chord`, `Column`, `CodeDiagnostic`; in A9: `Diagnostic` (seven variants). Deleted: `UnicodeLevel` (`Capability { color: ColorLevel }` only), `LayoutError` (§13 errors row, B.4), `AppActionRecord` and `Harness::records` — replaced by `#[cfg(feature = "testing")] Cx::record(&'static str)` and `Runtime::records()` / `Harness::records()`.
+Declared in A8: `Status`, `KeySet`, `ColorLevel`, `BindingState`, `Backdrop`, `Density`, `SortDir`, `Hit`, `RegionKind`, `KeyPhase`, `SyntaxTokens::derive`, `MeterTokens::derive`, `Chord::key`, `Chord::with`, `Key::is`, `Key::chord`, `Column`, `CodeDiagnostic`; in A9: `Diagnostic` (seven variants). Deleted: `UnicodeLevel` (`Capability { color: ColorLevel }` only), `LayoutError` (§13 errors row, B.4), and `AppActionRecord`. `#[cfg(feature = "testing")] Cx::record(&'static str)` populates runtime-owned tags, exposed by `Runtime::records` and, in the test harness, `Harness::records`.
 
 **Item 20 — M7: `ScreenAlign` versus `Align`; `LayerSpec.min_size`.** `pub enum ScreenAlign { Center, UpperThird, Bottom }` is the `Anchor::Screen` payload; `pub enum Align { Left, Center, Right }` is text alignment (`StylePatch.align`, `CellUi::align`, `Column.align`). ~~`LayerSpec.min_size` is `(u16, u16)`, not `Size` (a min-size whose type is a min/preferred pair).~~ <!-- amended by §26 (Adjudication N1) --> **Struck.** `LayerSpec.size` is `LayerSize`, a two-variant `#[non_exhaustive]` enum (`Fill`, `Fixed(u16, u16)`), declared in §9.1. The `(u16, u16)` field with its `(0, 0)` ⇒ whole-screen sentinel is gone, and so is the name: it was **never** a minimum — `resolve_anchor` clamps to the screen and `Rect::clamp`s, so the field was always a maximum, and every reader who trusted the name would size dialogs wrongly. `Fixed(0, _)` / `Fixed(_, 0)` resolves to `Rect::ZERO`. The builder is `.size(LayerSize)`, not `.min_size(w, h)`. Retained from the original item: `ScreenAlign` versus `Align` is unchanged, and a layer's size is still not a `Size` (a min/preferred pair has no meaning for a layer, which is clamped and never grown).
 
@@ -4845,7 +4845,7 @@ fn update(&mut self, cx: &mut Cx<'_>, jx: &mut Jx<'_>, w: &mut World) -> Respons
 // Jx is jackin-owned: requests, go, status, open, close, help, copy, with_form.
 ```
 
-Rejected: `Cx<'f, R>` generic over a request payload — it puts a type parameter into every component's `update` signature (§13 "no gratuitous generic parameters"). screen-level message hook is subsumed by: *Domain messages enter at the top of `App::update`, drained from the application's own queue before any screen `update` runs. `Input` deliberately has no `Msg` variant.* Showcase's `PageCtx` and tablepro's `Request` bus take the same two-context shape (§18.3 #22).
+Rejected: `Cx<'f, R>` generic over a request payload — it puts a type parameter into every component's `update` signature (§13 "no gratuitous generic parameters"). The screen-level message hook is subsumed by: *Domain messages enter at the top of `App::update`, drained from the application's own queue before any screen `update` runs. `Input` deliberately has no `Msg` variant.* Showcase's `PageCtx` and tablepro's `Request` bus take the same two-context shape (§18.3 #22).
 
 **Item 33 — M19, M20, M31, A15, A16, A17, §20.10-15.** Amends §0 (new), §13.2 (new), §16.5, §16.1, §20.10.
 
@@ -4853,7 +4853,7 @@ Rejected: `Cx<'f, R>` generic over a request payload — it puts a type paramete
 
 **Item 34 — `xtask doc-check`.** Amends Appendix A (Slice 3 deliverables and every slice gate), §16.5.
 
-`cargo run -p xtask -- doc-check` extracts every `` `Ident::method` `` and every fenced `rust` block from `COMPONENT_ARCHITECTURE.md` §3–§17 and §21–§23 <!-- amended by §23 --> and asserts each resolves against the compiled library's rustdoc-json, or is on an explicit "not yet built (Slice 3/4)" allow-list that the check prints. This converts the §17.0-versus-§3–§15 drift the review found into a permanent CI gate.
+**Historical Item 34 wording (superseded):** the original plan said `cargo run -p xtask -- doc-check` would extract backticked type/member references and fenced `rust` blocks from `COMPONENT_ARCHITECTURE.md` §3–§17 and §21–§23 and resolve them against the library's rustdoc-json. That was a proposal, not the implementation. Current checker behavior is recorded in §16.5, §35.2 and §42.2: it uses a syn/regex source scan, has the corrected open-ended section scope, and leaves rustdoc JSON to separate architecture checks.
 
 ### Formerly "Not applied" — resolved by §23
 
@@ -6291,17 +6291,17 @@ Every command in §27.1–§27.4 exits 0; `crates/tui/tests/perf_baseline.txt` c
 
 ### 28.5 P5 — superseded forced-state builder proposal
 
-**Decision. Confirm both, with one amendment that makes the property general instead of dialog-specific, and one that keeps the boundary check honest.**
+**Historical decision, superseded by §72.** The earlier proposal would have confirmed both the dialog-specific and generalized forced-state paths, with amendments for propagation and boundary checking. It is retained as historical evidence, not as the current production contract.
 
-**Superseded by §72.** The earlier forced-state builder design is not part of the production API. The current contract is fixture-side reference state (`Fixture::force` / `Fixture::forced`); production components expose no forced-state override builder, and the absence gate in §21.7 keeps deleted declarations and calls out of the library.
+**Current contract under §72.** The earlier forced-state builder design is not part of the production API. The current contract is fixture-side reference state (`Fixture::force` / `Fixture::forced`); production components expose no forced-state override builder, and the absence gate in §21.7 keeps deleted declarations and calls out of the library.
 
-**Amendment withdrawn.** The proposed field/control propagation hook is not implemented; §72 owns the current decision and supersedes this composition mechanism.
+**Historical amendment withdrawn.** The proposed field/control propagation hook is not implemented; §72 owns the current decision and supersedes this composition mechanism.
 
-**Amendment 2 — keep the escape hatch closed.** A new `xtask` boundary rule: `inherit_forced` may appear only under `crates/tui/src/components/**` and `crates/tui/src/field_control.rs`, and never in a `pub fn` signature outside the trait default. Without it a later slice can make the crate-internal path public and the A11 boundary check becomes decorative.
+**Historical boundary proposal.** Amendment 2 would have kept the escape hatch closed: `inherit_forced` may appear only under `crates/tui/src/components/**` and `crates/tui/src/field_control.rs`, and never in a `pub fn` signature outside the trait default. Without that boundary, a later slice could make the crate-internal path public and the A11 check would become decorative.
 
-**Rationale.** A11's contract is *"a forced rendering is a picture, not a control."* Half a picture with a live text input in it is a `DuplicateId` and a focus stop waiting to happen the first time a showcase page renders the same control twice — the defect the button matrix's registration assertion was written to catch. The mechanism is already right; only its reach was short.
+**Historical rationale.** A11's contract is *"a forced rendering is a picture, not a control."* Half a picture with a live text input in it is a `DuplicateId` and a focus stop waiting to happen the first time a showcase page renders the same control twice — the defect the button matrix's registration assertion was written to catch. The earlier proposal judged the mechanism right but its reach too short.
 
-**Rejected.** *Make `state_override` public on the container and propagate through the public builder* — every propagation site would then match `\.state_override(` and the boundary check would have to allow-list library source, destroying it. *A `Ui`-level "forced" scope pushed around the reference rendering* — silently disables registration for everything drawn inside, including a control the page wants live; scope-shaped state that changes registration semantics is the `begin_modal` mistake (§1.2(5), §18.1) in a new place.
+**Historical rejected alternatives.** *Make `state_override` public on the container and propagate through the public builder* — every propagation site would then match `\.state_override(` and the boundary check would have to allow-list library source, destroying it. *A `Ui`-level "forced" scope pushed around the reference rendering* — silently disables registration for everything drawn inside, including a control the page wants live; scope-shaped state that changes registration semantics is the `begin_modal` mistake (§1.2(5), §18.1) in a new place.
 
 **Historical tests.** This adjudication proposed forced Dialog/Field registration tests and an
 `inherit_forced` boundary. §72 supersedes their exact names and mechanism with
@@ -6849,13 +6849,13 @@ The evidence is symmetric and damning in both directions. `ChipBar` declared `Pa
 
 ### §33.2 Decision — Invariant P <!-- amended by §33 -->
 
-> For every registered component `C`, the set of parts `C`'s own `draw` resolves — unioned over the driver's fixture sweep and including parts resolved by components `C` composes **under its own `Id`** — is **exactly** the component's PARTS. Parts resolved by a caller-supplied row closure are attributed to the row, not to `C`, and are never in the component's PARTS.
+> **Target contract:** For every registered component `C`, the set of parts `C`'s own `draw` resolves — unioned over the driver's fixture sweep and including parts resolved by components `C` composes **under its own `Id`** — is **exactly** the component's PARTS. Parts resolved by a caller-supplied row closure remain row-owned, not component-owned. The current `StyledQuery` record does not encode that provenance split; see below.
 
 The override surface keeps the home it already has: every component's `## Overrides` rustdoc section, whose presence is already machine-checked <!-- amended by §45: true and insufficient. Presence is checked by a rustdoc-json **heading** scan; **content was checked by nothing**, so this sentence moved the override surface into exactly the artefact class §33.4 rejects two paragraphs below — checkable for shape, never for truth. Seven of eighteen sections were wrong when §45 measured them. The decision stands; §45 supplies the missing check. -->. It does not need a second `const`, and a second `const` is a second thing to drift.
 
-**The structural fix is attribution, not an allow-list.** The enabling condition is that `note_styled` stamps `(owner, part)` with the *component's* id for parts the *caller's* closure chose, so the instrument cannot tell "ChipBar styled META" from "the caller styled META through ChipBar's RowUi". Under `cfg(feature = "testing")`, the record carries a `StyledBy { Component, Row }`: `PartStyle::style` records `Component`, every `RowUi` resolution records `Row` — **including the four that record nothing at all today**: `RowUi::new`'s container fill, `gutter`, `label_patched` and `trailing`. Then `ChipBar` drops `META`, `List` drops `LABEL` and `META`, and no exemption is needed for either.
+**Current instrumentation.** `note_styled` records `(owner, part)` in `styled_parts` and `(owner, family, variant, part, resolved)` in `StyledQuery`. It does not carry the proposed `StyledBy { Component, Row }` split. Current collection components pass their component id to `RowUi`, so a caller row closure's resolution is recorded under that supplied owner and is not separately identifiable as row provenance. The `PARTS` contract therefore remains the ownership boundary; the earlier attribution design is historical, not implemented by the current record.
 
-Rejected: recording `RowUi` resolutions under a derived id so the existing owner filter drops them. Cheaper, but it lies about the owner in `styled_queries`, which §16.4's theme-coupling migration contract reads and which needs the real owner and family.
+**Historical rejected alternative.** Recording `RowUi` resolutions under a derived id so the existing owner filter drops them would be cheaper, but it would lie about the owner in `styled_queries`, which §16.4's theme-coupling migration contract reads and which needs the real owner and family.
 
 ### §33.3 The `extra` escape hatch is deleted — OWED, not done <!-- amended by §33; corrected by §40 -->
 
@@ -6867,13 +6867,13 @@ Composition is expressed the way the project already expresses it — `List::PAR
 
 ### §33.4 Conditional parts are driven, not declared — and no reason string <!-- amended by §33 -->
 
-`PARTS ⊆ styled` genuinely fails under a single fixture for the list's empty-state branch, `Part::{OVERFLOW, CLOSE, MARKER}`, `Part::{ROW, TRACK, THUMB, EMPTY, PLACEHOLDER}` and `Part::ICON`.
+`PARTS ⊆ styled` genuinely fails under a single fixture for the List empty-state branch, ChipBar's `OVERFLOW`, `CLOSE` and `MARKER`, Select's `ROW`, `TRACK`, `THUMB`, `EMPTY` and `PLACEHOLDER`, and TextInput's `ICON`.
 
 A `conditional_parts()` hook with a stated reason is **rejected**, and the precedent is decisive. §32.4 records that `mono_narrowing_reason()`'s containment check is satisfied by all registered cases while nine reasons say something false about their own component — and that this is the *second* time the property has been asserted and not held, after §28.6's doc comments. A reason string is checkable for **shape**, never for **truth**. A conditional-parts reason would be **worse** than the precedent: `mono_narrowing_reason()` at least sits beside case 9, which independently proves the kept states are distinguishable, so the string is a supplement — a conditional-parts reason would be the entire contract with nothing proving anything.
 
 Instead the check unions over a **driver-derived** sweep, built only from data the `Conformance` impl already supplies, so there is nothing new to lie in: the default fixture; one per `mono_states()` entry through `Fixture::force` (which already couples `status`, so readiness affordances are real); an empty-rows fixture; a disabled fixture; a narrowed-area fixture; and one drawn after `update` has been fed `activation_chords().first()` — which opens `Select`'s popover **through the component's own public path**, needing no test-only opener.
 
-The residue is closed by the case's props, not by an exemption: `Part::CLOSE` is unreachable because the fixture never sets `.closable(true)`, so the fixture sets it. **After the sweep a part still unpainted has exactly two legal outcomes — paint it, or remove it from `PARTS`.** There is no third, and that is a real choice with a real consequence, which a sentence is not.
+The residue is closed by the case's props, not by an exemption: ChipBar's `CLOSE` is unreachable because the fixture never sets `.closable(true)`, so the fixture sets it. **After the sweep, a component-owned part still unpainted has exactly two legal outcomes — paint it or remove it from `PARTS`.** There is no third, and that is a real choice with a real consequence, which a sentence is not.
 
 ### §33.5 `PARTS` ordering ceases to be load-bearing <!-- amended by §33 -->
 
@@ -6958,11 +6958,11 @@ Four independent reasons, any one sufficient:
 
 ### §35.2 The defect class, now stateable <!-- amended by §35 -->
 
-This is the **third** instance: §16.3's `xtask bless-guard`, still written in the present indicative while `xtask` dispatches only `doc-check | boundary | list`; §29's A3 grep, corrected by §32.2 as one that could never pass; and this.
+**Historical snapshot:** This was the **third** instance: §16.3's `xtask bless-guard` was written in the present indicative while `xtask` then dispatched only `doc-check | boundary | list`; §29's A3 grep was corrected by §32.2 as one that could never pass; and this.
 
 > **The common enabling condition is that a Decision section may assert an executable artefact — a method, a command, a grep — in the present indicative, and every mechanism that could contradict it has a documented way to be told not to.**
 
-`xtask doc-check` **did** see the old Ui scroll convenience, matched it, found it resolved to nothing, and was told to ignore it by `xtask/doc_check_allow.txt`. **The mechanism worked and the escape hatch defeated it.** That is the finding, and it is the same shape as §33.3's `extra` hatch on the parts check.
+In that historical snapshot, `xtask doc-check` **did** see the old Ui scroll convenience, matched it, found it resolved to nothing, and was told to ignore it by `xtask/doc_check_allow.txt`. **The mechanism worked and the escape hatch defeated it.** That is the finding, and it is the same shape as §33.3's `extra` hatch on the parts check.
 
 Two related discoveries, recorded so they are not rediscovered:
 
@@ -7165,27 +7165,27 @@ The union does **not** make the twenty-three guards removable. They are not abou
 
 **Status: recorded.** A fresh read-only `opus-analyst`, given none of the session's context, was asked to find what was wrong with §29.8 and §31–§37. It found the premise underneath all of them.
 
-### §40.1 `xtask doc-check` does not scan any section written this session <!-- amended by §40 -->
+### §40.1 Historical record — `xtask doc-check` did not scan the then-written sections <!-- amended by §40 -->
 
-`doc_sections` keeps `Some(3..=17 | 21..=26)`. **§18–§20 and §27 through §39 are not scanned at all.** Every reference in Adjudications O, P, Q, and §30–§39 is invisible to it, and the "71 rust blocks, N references resolved, exit 0" green that this session leaned on repeatedly **covers none of its own output**.
+**Historical snapshot (before the current scope fix):** `doc_sections` kept `Some(3..=17 | 21..=26)`. **§18–§20 and §27 through §39 were not scanned at all.** Every reference in Adjudications O, P, Q, and §30–§39 was invisible to it, and the "71 rust blocks, N references resolved, exit 0" green that this session leaned on repeatedly **covered none of its own output**.
 
-It is worse than the range. From §29 onward the headings are `## §29 …`, and the parser reads `rest.split('.').next().parse::<u32>()` — which fails on the `§`, yields `None`, and sets `keep = false`. **The new sections are invisible twice over**, and fixing the range alone would not reach them.
+**Historical parser failure:** it was worse than the range. From §29 onward the headings were `## §29 …`, and the parser read `rest.split('.').next().parse::<u32>()` — which failed on the `§`, yielded `None`, and set `keep = false`. **The new sections were invisible twice over.** The current parser accepts both heading forms and uses an open-ended numbered tail.
 
 This is the **seventh** decorative gate and the different shape the audit was asked to look for: not a check whose subject does not exist, and not evidence that is text rather than structure, but **a check whose scope excludes the region where all new claims are written**. It is the direct mechanism by which three sections below assert code that does not exist, while every gate stayed green.
 
-Two corollaries in the same function. The §35.2 rule — *"a suppression with no hits is a failure"* — is implemented by `doc_check`: it rejects stale entries and duplicates. The allow file now contains only pending app/test-harness references; stale legacy suppressions have been removed.
+The stale/duplicate allow-list premise in that historical snapshot is corrected in the current implementation: `doc-check` rejects stale entries and duplicates. The allow file now contains only pending app/test-harness references; stale legacy suppressions have been removed.
 
-**A second unchecked premise, same shape:** §16.5's gate table is not the registry of gates. `CHECKS` has 24 entries; the table names roughly 35 `architecture::*` checks, of which eleven are unregistered and unmarked. **Nothing compares the table to `CHECKS`.** §36 diagnosed `bless-guard`'s root cause as "§16.5 never registered it" — that is the symptom. The enabling condition is that the table and the registry are never compared, and adding a row fixes one instance of eleven.
+**A second unchecked premise remains:** §16.5's gate table is not compared with the `CHECKS` registry. The counts in this historical record are stale; the source still has no table-to-registry comparison. §36 diagnosed `bless-guard`'s root cause as "§16.5 never registered it" — that is the symptom. The enabling condition is that the table and the registry are never compared.
 
-### §40.2 Three sections assert code that does not exist <!-- amended by §40 -->
+### §40.2 Historical record — three sections asserted code absent at that snapshot <!-- amended by §40 -->
 
-Corrected in place above; recorded here so the pattern is visible as one thing rather than three.
+The following historical wording was corrected in place above; it remains here so the pattern is visible as one thing rather than three.
 
-- **§29.8** states "`DialogCase` gains `TRAPS_FOCUS`" and "the driver now refuses that state". Neither is true: `DialogCase` still declares `ACTIVATES | FOCUSABLE | OVERLAY`, the driver has none of the three modifications, and **case 14's trap half has still never executed**. The two acceptance tests §29.8 names could not have been produced, and the assertion message it quotes appears nowhere.
-- **§33** states the `extra` escape hatch "is deleted". It is not; the parameter and its one use are both present. The ledger correctly says "code pending"; the section's own prose does not.
-- **§34.4** states that `tools/capture.sh` strips `NO_COLOR` and has no colour-level parameter. **Both halves are now false** — the script gained a `COLOR` parameter whose `mono` arm sets `NO_COLOR=1` and deliberately keeps `COLORTERM=truecolor` so the precedence is proved rather than hidden.
+- **Historical §29.8 wording:** it stated "`DialogCase` gains `TRAPS_FOCUS`" and "the driver now refuses that state". At that snapshot, `DialogCase` still declared `ACTIVATES | FOCUSABLE | OVERLAY`, the driver had none of the three modifications, and **case 14's trap half had still never executed**. The two acceptance tests §29.8 named could not have been produced, and the assertion message it quoted appeared nowhere.
+- **Historical §33 wording:** it stated the `extra` escape hatch "is deleted". At that snapshot it was not; the parameter and its one use were both present. The ledger correctly said "code pending"; the section's own prose did not.
+- **Historical §34.4 wording:** it stated that `tools/capture.sh` strips `NO_COLOR` and has no colour-level parameter. **Both claims were later corrected** — the script gained a `COLOR` parameter whose `mono` arm sets `NO_COLOR=1` and deliberately keeps `COLORTERM=truecolor` so the precedence is proved rather than hidden.
 
-**The failure mode in this session is not bad engineering.** The fixes it produced are correct, well-argued and properly instrumented. It is that **seven adjudications were written in a region of the document no gate reads**, and three of them drifted from the code within hours of being written.
+**The historical failure mode was not bad engineering.** The fixes it produced were correct, well-argued and properly instrumented. The problem was that **seven adjudications were written in a region of the document no gate read**, and three of them drifted from the code within hours of being written.
 
 ### §40.3 The clippy gate's output is a prefix, not a set <!-- amended by §40 -->
 
@@ -7280,7 +7280,7 @@ The consequence is exactly the one B.3's reason exists to prevent: every compone
 - **It does not check visibility.** The API collector inserts every struct, enum and trait ident with **no visibility test**, unlike the conformance coverage check, which does. So a documented "public API" resolves happily against a `pub(crate)` or private item. **`doc-check` proves a name exists somewhere in the crate; it does not prove the documented API is public.** Combined with §41.4's arity blindness and §35's finding that it never compiles §17's examples, the gate proves very little.
 - **It never reads `crates/tui-testing`.** Every `Harness`, `Scene`, `Baseline`, `Conformance`, `Fixture` and `Caps` reference in §16.2/§16.3/§16.4 is **permanently** unresolvable and **permanently** allow-listed. The testing crate's documented API — which is §16.4's migration contract — has no reference check at all.
 
-`doc_check_allow.txt` has ~167 unique entries with **five duplicate pairs** — a list with duplicates has never been curated — and **at least 45 are already satisfied**. Since there is no staleness check, a satisfied entry silently becomes inert. §35.2's owed `KIND` column is necessary but **not sufficient**: the list needs at least four kinds — *not-yet-built* (the only kind that can go stale), *deleted-by-design*, *example-local*, and *other-crate* — because today all four are spelled identically. The worst entries are the bare ones: `Self`, `Runtime` and `Registry` each silence **every** member reference on that type across the whole document.
+The historical audit counted ~167 unique `doc_check_allow.txt` entries, five duplicate pairs and at least 45 already-satisfied entries; that snapshot predates the current 35-entry file. Today the file is a one-name-per-line list of pending app/test-harness references, and `doc-check` rejects duplicate entries plus entries that suppress no unresolved reference. It still has no explicit kind, owner or expiry metadata, so that remains open design work. The historical warning about bare entries such as `Self`, `Runtime` and `Registry` still describes a parser capability, even though those names are no longer in the current list.
 
 **Consequence for the ledger:** "rustdoc-json upgrades for `doc-check`" is recorded as a Slice 8 *nice-to-have*. It is not an upgrade — the visibility blindness is **the reason the gate is decorative**, and it belongs in the gate-audit package as a correction.
 
@@ -7744,9 +7744,10 @@ only to a real item. The exact public parts list is
 `[CONTAINER, MARKER, LABEL, CLOSE, OVERFLOW, NEW]`. A fabricated add key is rejected because it
 can collide with a real item and route the add click through item lookup. `Added` is rejected
 because the component does not mutate caller data; `AddRequested` matches the request vocabulary.
-Caller row renderers may still paint `RowUi::meta`; that resolution is attributed to
-`StyledQuery`, not ChipBar, and therefore `META` is deliberately absent from `ChipBar::PARTS`
-and from its component-owned override promise. The existing component slot set remains CLOSE and
+Caller row renderers may still paint `RowUi::meta`. `StyledQuery` records the supplied owner,
+family, variant, part and resolved style; it does not encode a separate component/row attribution.
+`META` therefore remains outside `ChipBar::PARTS` and its component-owned override promise by the
+component contract, not because the query record proves row provenance. The existing component slot set remains CLOSE and
 OVERFLOW only; adding NEW to `PARTS` does not silently create a NEW slot contract. MARKER is
 component-owned and consults the resolved glyph binding from `.patch`/`.patch_part`: for a checked
 chip `Set(g)` paints `g`, `Inherit` paints `GlyphRole::Checked`, and `Clear` blanks the reserved
@@ -7756,8 +7757,9 @@ cell. This is not a `SlotFn` contract and `slot_for(MARKER)` remains unused. <!-
 override parts. A crate-private RowUi construction path carries only the merged component patch
 for its automatic container fill and label methods. It must not carry `Overrides` or a generic
 part callback: META, CELL, MARKER and arbitrary row parts stay row-owned. Explicit
-`label_patched` wins over the forwarded component patch. Resolution attribution remains
-`StyledQuery`; patch source and query ownership are distinct. <!-- fresh §50 patch-forwarding follow-up -->
+`label_patched` wins over the forwarded component patch. Resolution is recorded in `StyledQuery`
+under the supplied owner; patch source and query ownership are distinct. The current tuple does
+not carry the proposed `StyledBy` split. <!-- fresh §50 patch-forwarding follow-up -->
 
 ### §50.3 Radio value remains caller-owned
 
@@ -7848,7 +7850,7 @@ plus cache-clear and keyed reorder regressions.
 **Status: accepted for the library contract.** Binding input is
 `docs/reviews/laneC-app-tick.md`; implementation remains blocked on Slice 4 and atomic app move.
 
-the right-status-strip projection is replaced by a pure draw-time projection of prioritized, toned
+The right-status-strip projection is replaced by a pure draw-time projection of prioritized, toned
 `StatusItem`s from current screen state; no mutable Jx cache duplicates that projection. Runtime
 exposes update cause `Bootstrap | Event | Tick | Settle`; tick is reported only on the first
 settle pass. Terminal and headless runtimes share bootstrap scheduling. Repaint deadlines persist
@@ -7932,7 +7934,7 @@ is not the accepted one. The corrected cross-fade moves handoff digests; each mo
 
 ### §54.6 The status projection is pure **and fixed-buffer** <!-- amended by §54 -->
 
-the right-status-strip projection is removed without adding a seventh `Screen` trait method: each applicable
+The right-status-strip projection is removed without adding a seventh `Screen` trait method: each applicable
 screen gets an **inherent, pure, draw-time** projection producing `StatusItem` values, and the
 Jackin shell dispatches to it by route while composing the host `StatusBar`.
 
