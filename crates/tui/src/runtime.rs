@@ -940,7 +940,7 @@ impl<A: App> Runtime<A> {
     }
 
     /// `Runtime::handle` — steps 1–9.
-    pub fn handle(&mut self, input: Input) -> Response<()> {
+    pub fn handle(&mut self, mut input: Input) -> Response<()> {
         self.ensure_bootstrap();
         self.services.diagnostics.clear();
         self.sync_keymap();
@@ -963,9 +963,9 @@ impl<A: App> Runtime<A> {
         self.pump_layer_events();
         let mut key_input: Option<Key> = None;
         let mut update_cause = UpdateCause::Event;
-        match input {
+        match &mut input {
             Input::Resize(w, h) => {
-                self.resize(w, h);
+                self.resize(*w, *h);
                 // step 1 then the ordinary update pass: the `FocusOut`/
                 // `FocusIn` pair staged for a `pending_focus` is already in
                 // the queue and must reach `app.update` before `finish`
@@ -994,19 +994,20 @@ impl<A: App> Runtime<A> {
             Input::Key(k) => {
                 // step 2: capture chords first
                 let swallows = self.swallows_typing();
-                if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Capture, &k, swallows) {
+                if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Capture, k, swallows) {
                     let r = self.run_update(Some(cmd), UpdateCause::Event);
                     return self.finish(r);
                 }
-                key_input = Some(k);
-                self.enqueue_key(k);
+                key_input = Some(*k);
+                self.enqueue_key(*k);
             }
-            Input::Mouse(m) => self.enqueue_mouse(m),
+            Input::Mouse(m) => self.enqueue_mouse(*m),
             Input::Paste(s) => {
                 if let Some(owner) = self.focus.current()
                     && self.focused_is_editing()
                 {
-                    self.intents.paste(owner, &s);
+                    let text = core::mem::take(s);
+                    self.intents.paste_owned(owner, text);
                 }
             }
         }
@@ -2535,7 +2536,15 @@ mod tests {
         s.page[0].editor = true;
         let (mut rt, mut buf) = runtime(s);
         let _ = step(&mut rt, &mut buf, Input::Paste("hi".to_owned()));
-        assert!(rt.app().saw(A, "Paste(\"hi\")"));
+        assert!(rt.app().saw(A, "Paste"));
+        assert!(
+            rt.app()
+                .log
+                .iter()
+                .all(|(_, message)| !message.contains("hi")),
+            "paste payload reached the runtime debug log: {:?}",
+            rt.app().log
+        );
         let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
         assert_eq!(rt.focus(), Some(B));
         let _ = step(&mut rt, &mut buf, Input::Paste("no".to_owned()));

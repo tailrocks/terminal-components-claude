@@ -20,13 +20,40 @@ pub struct CursorPos {
 }
 
 /// Text, cursor, selection anchor and the single/multi-line flag.
-#[derive(Clone, Default, PartialEq, Eq)]
+///
+/// Public constructors create ordinary text storage. Secret editor drafts use
+/// private sensitivity-tagged constructors; their mutation paths rebuild and
+/// wipe allocations, and `Clone` returns a redacted snapshot rather than
+/// copying secret bytes.
+#[derive(Default)]
 pub struct TextBuffer {
     text: String,
     cursor: usize,
     anchor: Option<usize>,
     multiline: bool,
+    sensitive: bool,
 }
+
+impl Clone for TextBuffer {
+    fn clone(&self) -> Self {
+        if self.sensitive {
+            self.redacted_clone()
+        } else {
+            self.clone_plain()
+        }
+    }
+}
+
+impl PartialEq for TextBuffer {
+    fn eq(&self, other: &Self) -> bool {
+        self.text == other.text
+            && self.cursor == other.cursor
+            && self.anchor == other.anchor
+            && self.multiline == other.multiline
+    }
+}
+
+impl Eq for TextBuffer {}
 
 impl fmt::Debug for TextBuffer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -36,6 +63,7 @@ impl fmt::Debug for TextBuffer {
             .field("cursor", &self.cursor)
             .field("anchor", &self.anchor)
             .field("multiline", &self.multiline)
+            .field("sensitive", &self.sensitive)
             .finish()
     }
 }
@@ -47,25 +75,48 @@ impl Drop for TextBuffer {
 }
 
 impl TextBuffer {
+    pub(crate) const fn is_sensitive_storage(&self) -> bool {
+        self.sensitive
+    }
+
     /// A single-line buffer with the cursor at the end.
     pub fn single(text: impl Into<String>) -> Self {
-        let text = text.into();
+        Self::with_sensitivity(text.into(), false)
+    }
+
+    /// A single-line buffer whose allocation is treated as sensitive.
+    pub(crate) fn secret_single(text: impl Into<String>) -> Self {
+        Self::with_sensitivity(text.into(), true)
+    }
+
+    fn with_sensitivity(text: String, sensitive: bool) -> Self {
         TextBuffer {
             cursor: text.len(),
             text,
             anchor: None,
             multiline: false,
+            sensitive,
         }
     }
 
     /// A multi-line buffer with the cursor at the end.
     pub fn multi(text: impl Into<String>) -> Self {
-        let text = text.into();
+        Self::with_multiline_sensitivity(text.into(), false)
+    }
+
+    /// A multi-line buffer whose allocation is treated as sensitive.
+    pub(crate) fn secret_multi(text: impl Into<String>) -> Self {
+        Self::with_multiline_sensitivity(text.into(), true)
+    }
+
+    fn with_multiline_sensitivity(text: String, sensitive: bool) -> Self {
+        let text_len = text.len();
         TextBuffer {
-            cursor: text.len(),
+            cursor: text_len,
             text,
             anchor: None,
             multiline: true,
+            sensitive,
         }
     }
 
@@ -91,22 +142,82 @@ impl TextBuffer {
 
     /// Overwrite every byte with zero, then clear (§15 `zeroize`).
     pub fn zeroize(&mut self) {
-        let mut bytes = core::mem::take(&mut self.text).into_bytes();
-        bytes.fill(0);
-        core::hint::black_box(&bytes);
-        core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-        bytes.clear();
-        drop(bytes);
-        self.text = String::new();
+        crate::secret::zeroize_string(&mut self.text);
         self.cursor = 0;
         self.anchor = None;
     }
 
+    pub(crate) fn clear_draft(&mut self) {
+        if self.sensitive {
+            self.zeroize();
+        } else {
+            self.text.clear();
+            self.cursor = 0;
+            self.anchor = None;
+        }
+    }
+
+    pub(crate) fn clone_plain(&self) -> Self {
+        TextBuffer {
+            text: self.text.clone(),
+            cursor: self.cursor,
+            anchor: self.anchor,
+            multiline: self.multiline,
+            sensitive: false,
+        }
+    }
+
+    pub(crate) fn redacted_clone(&self) -> Self {
+        let mut text = String::with_capacity(self.text.len());
+        for (_, grapheme) in graphemes(&self.text) {
+            if grapheme == "\n" {
+                text.push('\n');
+            } else {
+                text.push('•');
+            }
+        }
+        let cursor = self.cursor_pos();
+        let anchor = self.anchor.map(|at| Self::pos_of(&self.text, at));
+        let mut snapshot = if self.multiline {
+            Self::with_multiline_sensitivity(text, true)
+        } else {
+            Self::with_sensitivity(text, true)
+        };
+        snapshot.cursor = snapshot.offset_at(cursor.line, cursor.col);
+        snapshot.anchor = anchor.map(|at| snapshot.offset_at(at.line, at.col));
+        snapshot
+    }
+
     /// Replace the text; cursor at the end, no selection.
     pub fn set_text(&mut self, text: &str) {
-        self.zeroize();
-        self.text.push_str(text);
+        if self.sensitive {
+            let mut replacement = String::from(text);
+            crate::secret::zeroize_string(&mut self.text);
+            core::mem::swap(&mut self.text, &mut replacement);
+        } else {
+            self.text.clear();
+            self.text.push_str(text);
+        }
         self.cursor = self.text.len();
+        self.anchor = None;
+    }
+
+    /// Make room for an insertion without allowing `String` to release the
+    /// old allocation unwiped. Secret drafts use this same buffer, so the
+    /// normal `String::insert*` growth path must be guarded too.
+    fn reserve_for_insert(&mut self, additional: usize) {
+        let required = self.text.len().saturating_add(additional);
+        if required <= self.text.capacity() {
+            return;
+        }
+        if self.sensitive {
+            let mut replacement = String::with_capacity(required);
+            replacement.push_str(&self.text);
+            crate::secret::zeroize_string(&mut self.text);
+            self.text = replacement;
+        } else {
+            self.text.reserve(additional);
+        }
     }
 
     /// Select `a..b` (either order), cursor at `b`.
@@ -320,13 +431,36 @@ impl TextBuffer {
 
     fn delete_selection(&mut self) -> bool {
         if let Some(r) = self.selection() {
-            self.text.replace_range(r.clone(), "");
+            self.replace_range(r.clone(), "");
             self.cursor = r.start;
             self.anchor = None;
             true
         } else {
             self.anchor = None;
             false
+        }
+    }
+
+    /// Replace a range by rebuilding the allocation before releasing the old
+    /// one. `String::replace_range` may leave deleted secret bytes in its
+    /// allocation, so every deletion and selection replacement goes through
+    /// this path.
+    fn replace_range(&mut self, range: Range<usize>, replacement: &str) {
+        if self.sensitive {
+            let retained = range.end.saturating_sub(range.start);
+            let capacity = self
+                .text
+                .len()
+                .saturating_sub(retained)
+                .saturating_add(replacement.len());
+            let mut next = String::with_capacity(capacity);
+            next.push_str(&self.text[..range.start]);
+            next.push_str(replacement);
+            next.push_str(&self.text[range.end..]);
+            crate::secret::zeroize_string(&mut self.text);
+            self.text = next;
+        } else {
+            self.text.replace_range(range, replacement);
         }
     }
 
@@ -337,6 +471,7 @@ impl TextBuffer {
             return false;
         }
         self.delete_selection();
+        self.reserve_for_insert(c.len_utf8());
         self.text.insert(self.cursor, c);
         self.cursor = self.cursor.saturating_add(c.len_utf8());
         true
@@ -347,8 +482,15 @@ impl TextBuffer {
         self.delete_selection();
         let before = self.text.len();
         if self.multiline {
+            self.reserve_for_insert(s.len());
             self.text.insert_str(self.cursor, s);
         } else {
+            let additional = s
+                .chars()
+                .filter(|c| *c != '\n' && *c != '\r')
+                .map(char::len_utf8)
+                .sum();
+            self.reserve_for_insert(additional);
             let mut at = self.cursor;
             for c in s.chars().filter(|c| *c != '\n' && *c != '\r') {
                 self.text.insert(at, c);
@@ -369,7 +511,7 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.text.replace_range(start..self.cursor, "");
+        self.replace_range(start..self.cursor, "");
         self.cursor = start;
         true
     }
@@ -383,7 +525,7 @@ impl TextBuffer {
         if end == self.cursor {
             return false;
         }
-        self.text.replace_range(self.cursor..end, "");
+        self.replace_range(self.cursor..end, "");
         true
     }
 
@@ -396,7 +538,7 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.text.replace_range(start..self.cursor, "");
+        self.replace_range(start..self.cursor, "");
         self.cursor = start;
         true
     }
@@ -410,7 +552,7 @@ impl TextBuffer {
         if end == self.cursor {
             return false;
         }
-        self.text.replace_range(self.cursor..end, "");
+        self.replace_range(self.cursor..end, "");
         true
     }
 
@@ -423,7 +565,7 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.text.replace_range(start..self.cursor, "");
+        self.replace_range(start..self.cursor, "");
         self.cursor = start;
         true
     }
@@ -604,5 +746,125 @@ mod tests {
         // Drop runs zeroize: the same path, exercised through `set_text`
         b.set_text("again");
         assert_eq!(b.text(), "again");
+    }
+
+    #[test]
+    fn sensitive_clone_is_redacted_while_plain_clone_preserves_text() {
+        let plain = TextBuffer::single("visible");
+        assert_eq!(plain.clone().text(), "visible");
+        let secret = TextBuffer::secret_single("hunter2");
+        let copy = secret.clone();
+        assert_eq!(copy.text(), "•••••••");
+        assert!(!copy.text().contains("hunter2"));
+        assert!(!copy.is_multiline());
+        assert!(copy.sensitive);
+        let multiline = TextBuffer::secret_multi("one\ntwo");
+        let multiline_copy = multiline.clone();
+        assert_eq!(multiline_copy.text(), "•••\n•••");
+        assert!(multiline_copy.is_multiline());
+    }
+
+    fn forced_capacity(text: &str) -> TextBuffer {
+        let mut owned = String::with_capacity(128);
+        owned.push_str(text);
+        assert_eq!(owned.capacity(), 128);
+        TextBuffer::secret_single(owned)
+    }
+
+    fn forced_multiline_capacity(text: &str) -> TextBuffer {
+        let mut owned = String::with_capacity(128);
+        owned.push_str(text);
+        assert_eq!(owned.capacity(), 128);
+        TextBuffer::secret_multi(owned)
+    }
+
+    fn assert_rebuilt(
+        mut buffer: TextBuffer,
+        expected: &str,
+        mutate: impl FnOnce(&mut TextBuffer) -> bool,
+    ) {
+        let old_capacity = buffer.text.capacity();
+        assert_eq!(old_capacity, 128, "test fixture lost its forced allocation");
+        assert!(mutate(&mut buffer));
+        assert_eq!(buffer.text(), expected);
+        assert!(
+            buffer.text.capacity() < old_capacity,
+            "mutation retained old capacity: {} >= {old_capacity}",
+            buffer.text.capacity()
+        );
+    }
+
+    #[test]
+    fn deletion_and_selection_replacement_release_old_capacity() {
+        assert_rebuilt(forced_capacity("hunter2"), "hunter", TextBuffer::backspace);
+        assert_rebuilt(forced_capacity("hunter2"), "unter2", |b| {
+            b.move_doc_start(false);
+            b.delete()
+        });
+        assert_rebuilt(forced_capacity("hunter2"), "", |b| {
+            b.select_all();
+            b.delete_selection()
+        });
+        assert_rebuilt(forced_capacity("hunter2"), "x", |b| {
+            b.select_all();
+            b.insert_str("x")
+        });
+        assert_rebuilt(forced_capacity("hunter2"), "", TextBuffer::delete_word_left);
+        assert_rebuilt(forced_capacity("hunter2"), "x", |b| {
+            b.set_text("x");
+            true
+        });
+    }
+
+    #[test]
+    fn multiline_deletions_release_old_capacity() {
+        assert_rebuilt(
+            forced_multiline_capacity("first\nsecret"),
+            "\nsecret",
+            |b| {
+                b.move_doc_start(false);
+                b.delete_to_line_end()
+            },
+        );
+        assert_rebuilt(
+            forced_multiline_capacity("first\nsecret"),
+            "first\ncret",
+            |b| {
+                b.set_cursor_line_col(1, 2);
+                b.delete_to_line_start()
+            },
+        );
+    }
+
+    #[test]
+    fn zeroize_releases_capacity_after_deleted_text() {
+        let mut b = TextBuffer::single("hunter2");
+        b.set_text("x");
+        b.zeroize();
+        assert_eq!(b.text(), "");
+        assert_eq!(b.text.capacity(), 0);
+    }
+
+    #[test]
+    fn insertion_growth_uses_a_wiped_replacement_allocation() {
+        let mut b = forced_capacity("a");
+        let old_capacity = b.text.capacity();
+        b.insert_str(&"x".repeat(old_capacity.saturating_add(1)));
+        assert!(b.text.len() > old_capacity);
+        assert!(b.text.capacity() > old_capacity);
+        assert_eq!(b.text.chars().next(), Some('a'));
+    }
+
+    #[test]
+    fn plain_mutations_reuse_capacity_when_growth_is_not_needed() {
+        let mut b = TextBuffer::single(String::with_capacity(128));
+        b.set_text("hunter2");
+        let old_capacity = b.text.capacity();
+        assert!(b.backspace());
+        assert_eq!(b.text(), "hunter");
+        assert_eq!(b.text.capacity(), old_capacity);
+        assert!(b.insert_str("!"));
+        assert_eq!(b.text(), "hunter!");
+        assert_eq!(b.text.capacity(), old_capacity);
     }
 }
