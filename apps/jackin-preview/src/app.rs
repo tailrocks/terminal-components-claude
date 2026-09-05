@@ -2557,7 +2557,6 @@ impl App {
     }
 
     fn update_command(&mut self, cx: &mut Cx<'_>, command: ActionKey) -> Option<Response<()>> {
-        eprintln!("jackin command={command:?} route={:?}", self.route);
         if self.route == Route::Capsule
             && self.inspect.instance.is_some()
             && matches!(command, CMD_MANAGER | CMD_CAPSULE_DETACH | CMD_EXIT_CONFIRM)

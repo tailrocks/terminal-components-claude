@@ -492,11 +492,6 @@ impl<'a> ContextMenu<'a> {
         Self::new(id, items, Anchor::Point(position))
     }
 
-    const fn menu_bar_navigation(mut self, index: usize, count: usize) -> Self {
-        self.bar_navigation = Some((index, count));
-        self
-    }
-
     /// Optional heading.
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
@@ -1109,7 +1104,10 @@ impl<'a> MenuBar<'a> {
                 return response;
             };
             let response = dropdown.update(cx, st);
-            eprintln!("menu dropdown open={open} cursor={} response={response:?}", st.cursor);
+            eprintln!(
+                "menu dropdown open={open} cursor={} response={response:?}",
+                st.cursor
+            );
             match response.action_ref().copied() {
                 Some(MenuAction::Opened(index)) => {
                     let _ = self.open(cx, st, index);
