@@ -19,9 +19,26 @@ fi
 
 : "${CAPTURE_METADATA_FILE:?capture_exec: metadata path is required}"
 : "${CAPTURE_RUN_ID:?capture_exec: run id is required}"
+: "${CAPTURE_READY_FILE:?capture_exec: ready marker path is required}"
 : "${CAPTURE_STDERR_FILE:?capture_exec: stderr path is required}"
 : "${CAPTURE_EXIT_FILE:?capture_exec: exit path is required}"
 : "${CAPTURE_COLOR_MODE:?capture_exec: color mode is required}"
+
+ready=
+for _ in {1..200}; do
+  if ready=$(
+    "$PROVENANCE_PYTHON" "$ROOT_DIR/tools/capture_provenance.py" read-state \
+      --path "$CAPTURE_READY_FILE" 2>/dev/null
+  ) && [[ "$ready" == "$CAPTURE_RUN_ID" ]]; then
+    break
+  fi
+  ready=
+  sleep 0.05
+done
+if [[ "$ready" != "$CAPTURE_RUN_ID" ]]; then
+  echo "capture_exec: parent did not publish the ready marker" >&2
+  exit 1
+fi
 exec "$PROVENANCE_PYTHON" "$ROOT_DIR/tools/capture_provenance.py" exec \
   --metadata "$CAPTURE_METADATA_FILE" \
   --run-id "$CAPTURE_RUN_ID" \

@@ -3,7 +3,9 @@
 #
 #   tools/capture.sh start <cols> <rows> -- <binary> [arg ...]
 #   tools/capture.sh keys <keys...>
+#   tools/capture.sh type <text>
 #   tools/capture.sh mouse <x> <y> [move|click|wheelup|wheeldown]
+#   tools/capture.sh wait <seconds>
 #   tools/capture.sh shot <name>
 #   tools/capture.sh resize <cols> <rows>
 #   tools/capture.sh stop
@@ -43,6 +45,7 @@ RUN_DIR=
 RUN_DIR_CREATED=0
 RUN_METADATA_FILE=
 RUN_SESSION_ID_FILE=
+RUN_READY_FILE=
 RUN_EXIT_FILE=
 RUN_BIN_FILE=
 RUN_EXECUTABLE_FILE=
@@ -81,6 +84,7 @@ cleanup_failed_start() {
       for path in \
         "$RUN_METADATA_FILE" \
         "$RUN_SESSION_ID_FILE" \
+        "$RUN_READY_FILE" \
         "$RUN_EXIT_FILE" \
         "$RUN_BIN_FILE" \
         "$RUN_EXECUTABLE_FILE" \
@@ -298,6 +302,23 @@ configure_session() {
   tmux set-option -s escape-time 0 2>/dev/null || return 1
   tmux set-option -g default-terminal "tmux-256color" 2>/dev/null || return 1
   tmux set-option -ga terminal-overrides ",*:Tc" 2>/dev/null || return 1
+}
+
+wait_for_render() {
+  local attempt=0 pane
+  while (( attempt < 40 )); do
+    if ! require_owned_session; then
+      return 1
+    fi
+    pane=$(tmux capture-pane -t "$SESSION_NAME" -p -N 2>/dev/null || true)
+    if [[ -n "${pane//[[:space:]]/}" ]]; then
+      return 0
+    fi
+    sleep 0.05
+    attempt=$((attempt + 1))
+  done
+  echo "capture failed: application did not render before readiness timeout; stderr: $STDERR_FILE" >&2
+  return 1
 }
 
 read_exit_status() {
@@ -551,6 +572,7 @@ case "$cmd" in
     RUN_DIR_CREATED=1
     RUN_METADATA_FILE=$RUN_DIR/metadata.json
     RUN_SESSION_ID_FILE=$RUN_DIR/session.id
+    RUN_READY_FILE=$RUN_DIR/ready
     RUN_EXIT_FILE=$RUN_DIR/exit.status
     RUN_BIN_FILE=$RUN_DIR/bin
     RUN_EXECUTABLE_FILE=$RUN_DIR/executable
@@ -671,6 +693,7 @@ case "$cmd" in
       -s "$SESSION_NAME" -c "$ROOT_DIR" -x "$cols" -y "$rows" \
       -e "CAPTURE_METADATA_FILE=$RUN_METADATA_FILE" \
       -e "CAPTURE_RUN_ID=$CAPTURE_RUN_ID" \
+      -e "CAPTURE_READY_FILE=$RUN_READY_FILE" \
       -e "CAPTURE_STDERR_FILE=$STDERR_FILE" \
       -e "CAPTURE_EXIT_FILE=$RUN_EXIT_FILE" \
       -e "CAPTURE_COLOR_MODE=$COLOR" \
@@ -708,7 +731,8 @@ case "$cmd" in
       echo "capture failed: tmux session ended during setup (app exit status $exit_status); stderr: $STDERR_FILE" >&2
       exit 1
     fi
-    sleep 0.6
+    write_state "$RUN_READY_FILE" "$CAPTURE_RUN_ID"
+    wait_for_render
     if [[ -s "$RUN_EXIT_FILE" ]]; then
       exit_status=$(read_exit_status)
       echo "capture failed: $BIN exited before capture (status $exit_status); stderr: $STDERR_FILE" >&2
@@ -729,6 +753,16 @@ case "$cmd" in
       sleep 0.08
     done
     sleep 0.15
+    ;;
+  type)
+    load_run_state
+    require_owned_session
+    if (( $# != 1 )) || [[ "$1" == *$'\n'* || "$1" == *$'\r'* ]]; then
+      echo "capture failed: type requires one newline-free text argument" >&2
+      exit 1
+    fi
+    tmux send-keys -t "$SESSION_NAME" -l -- "$1"
+    sleep 0.2
     ;;
   mouse)
     load_run_state
@@ -751,6 +785,15 @@ case "$cmd" in
     esac
     tmux send-keys -t "$SESSION_NAME" -l "$sequence"
     sleep 0.15
+    ;;
+  wait)
+    load_run_state
+    require_owned_session
+    if (( $# != 1 )) || ! [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+      echo "capture failed: wait requires one non-negative seconds argument" >&2
+      exit 1
+    fi
+    sleep "$1"
     ;;
   shot)
     name=${1:-shot}
@@ -828,7 +871,10 @@ case "$cmd" in
     text_tmp=$(mktemp "$stage_dir/.txt.XXXXXX")
     html_tmp=$(mktemp "$stage_dir/.html.XXXXXX")
     png_tmp=$(mktemp "$stage_dir/.png.XXXXXX")
-    temporary_artifacts=("$ansi_tmp" "$cursor_tmp" "$text_tmp" "$html_tmp" "$png_tmp")
+    # Pillow selects its encoder from the output suffix. Keep the secure
+    # mktemp reservation, then give the actual PNG path an explicit suffix.
+    png_output=$png_tmp.png
+    temporary_artifacts=("$ansi_tmp" "$cursor_tmp" "$text_tmp" "$html_tmp" "$png_tmp" "$png_output")
     tmux capture-pane -t "$SESSION_NAME" -e -p -N > "$ansi_tmp"
     tmux display -p -t "$SESSION_NAME" '#{cursor_x} #{cursor_y} #{cursor_flag}' > "$cursor_tmp"
     tmux capture-pane -t "$SESSION_NAME" -p > "$text_tmp"
@@ -842,11 +888,11 @@ case "$cmd" in
     else
       mv -f "$html_tmp" "$stage_html"
     fi
-    if ! "$PYTHON_BIN" "$ROOT_DIR/tools/ansi2png.py" "$stage_ansi" "$png_tmp" "$cols" "$rows" "$stage_cursor"; then
+    if ! "$PYTHON_BIN" "$ROOT_DIR/tools/ansi2png.py" "$stage_ansi" "$png_output" "$cols" "$rows" "$stage_cursor"; then
       echo "capture failed: ansi2png could not convert $stage_ansi" >&2
       conversion_failed=1
     else
-      mv -f "$png_tmp" "$stage_png"
+      mv -f "$png_output" "$stage_png"
     fi
 
     exit_status=$(read_exit_status)
@@ -951,6 +997,24 @@ case "$cmd" in
         final_exit_status=terminated_by_capture_stop
       fi
       tmux kill-session -t "$SESSION_NAME"
+      # capture_exec pins its run directory while the application is alive.
+      # Wait for its finally block to restore write access before finalizing
+      # metadata; otherwise stop races the security pin and leaves stale state.
+      for _ in {1..200}; do
+        if [[ -w "$RUN_DIR" && -s "$RUN_EXIT_FILE" ]]; then
+          break
+        fi
+        sleep 0.01
+      done
+      if [[ ! -w "$RUN_DIR" ]]; then
+        # tmux may terminate capture_exec before its Python finally block can
+        # restore the directory mode. The owned session is gone, so restore
+        # the private run directory before writing terminal provenance.
+        if ! chmod u+w "$RUN_DIR"; then
+          echo "capture failed: run directory remained pinned after stop: $RUN_DIR" >&2
+          exit 1
+        fi
+      fi
     elif [[ "$final_exit_status" == unknown ]]; then
       echo "capture failed: run has no live owned session or recorded exit status" >&2
       exit 1
