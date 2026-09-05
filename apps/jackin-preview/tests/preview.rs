@@ -93,7 +93,7 @@ fn product_routes_and_account_picker_render_through_the_facade() {
 }
 
 #[test]
-fn launch_dialog_contains_a_nested_role_picker() {
+fn nested_overlay_picker_inside_dialog() {
     let mut harness = Harness::new(
         App::for_scenario(Scenario::Returning, Motion::Paused),
         Theme::junie(),
@@ -102,11 +102,14 @@ fn launch_dialog_contains_a_nested_role_picker() {
     );
     let _ = harness.click_id(LAUNCH);
     assert!(harness.is_open(LAUNCH_DIALOG));
+    assert!(harness.area_of(LAUNCH_DIALOG).is_some());
     assert!(harness.area_of(ROLE_CHOOSE).is_some());
 
     let _ = harness.click_id(ROLE_CHOOSE);
     assert!(harness.is_open(LAUNCH_DIALOG));
     assert!(harness.is_open(ROLE_PICKER));
+    assert!(harness.area_of(ROLE_PICKER).is_some());
+    assert!(harness.text().contains("Choose a role"));
 
     let _ = harness.key(KeyCode::Esc);
     assert!(!harness.is_open(ROLE_PICKER));
