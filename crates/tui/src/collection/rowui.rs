@@ -33,11 +33,20 @@ pub struct RowUi<'u> {
     flags: StateFlags,
     key: ItemKey,
     row: Rect,
+    gutter_patch: Option<StylePatch>,
     label_patch: Option<StylePatch>,
+    meta_patch: Option<StylePatch>,
+    props_columns: PropsColumns,
     /// Next free column from the left.
     left: u16,
     /// Columns reserved from the right (already consumed).
     right: u16,
+}
+
+#[derive(Clone, Copy)]
+enum PropsColumns {
+    None,
+    Paint { label_width: u16, ellipsis: bool },
 }
 
 impl fmt::Debug for RowUi<'_> {
@@ -64,7 +73,9 @@ impl<'u> RowUi<'u> {
         key: ItemKey,
         row: Rect,
     ) -> RowUi<'u> {
-        Self::new_with_patches(ui, owner, family, variant, flags, key, row, None, None)
+        Self::new_with_column_patches(
+            ui, owner, family, variant, flags, key, row, None, None, None,
+        )
     }
 
     /// Begin a row with component-owned patches forwarded only to the
@@ -84,15 +95,84 @@ impl<'u> RowUi<'u> {
         container_patch: Option<StylePatch>,
         label_patch: Option<StylePatch>,
     ) -> RowUi<'u> {
+        Self::new_with_column_patches(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            container_patch,
+            label_patch,
+            None,
+        )
+    }
+
+    /// Begin a row with component-owned patches forwarded to both text
+    /// columns. Props is the only built-in whose `META` column is primary
+    /// content rather than optional decoration.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the crate-private constructor extends RowUi's phase context with three scoped patches"
+    )]
+    pub(crate) fn new_with_column_patches<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+        meta_patch: Option<StylePatch>,
+    ) -> RowUi<'u> {
+        Self::new_with_column_patches_mode(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            container_patch,
+            None,
+            label_patch,
+            meta_patch,
+            true,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the crate-private constructor carries scoped row patches and the fill mode"
+    )]
+    fn new_with_column_patches_mode<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        container_patch: Option<StylePatch>,
+        gutter_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+        meta_patch: Option<StylePatch>,
+        fill_container: bool,
+    ) -> RowUi<'u> {
         let mut ui = ui.reborrow();
-        let container = match container_patch {
-            Some(patch) => {
-                ui.style_patched(family, variant, Part::CONTAINER, flags, &patch)
-                    .style
-            }
-            None => ui.style(family, variant, Part::CONTAINER, flags).style,
-        };
-        ui.fill(row, container);
+        if fill_container {
+            let container = match container_patch {
+                Some(patch) => {
+                    ui.style_patched(family, variant, Part::CONTAINER, flags, &patch)
+                        .style
+                }
+                None => ui.style(family, variant, Part::CONTAINER, flags).style,
+            };
+            ui.fill(row, container);
+        }
         RowUi {
             ui,
             owner,
@@ -101,10 +181,53 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            gutter_patch,
             label_patch,
+            meta_patch,
+            props_columns: PropsColumns::None,
             left: 0,
             right: 0,
         }
+    }
+
+    /// Paint a Props row using its legacy META-label/LABEL-value columns.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the crate-private constructor mirrors RowUi's phase context with scoped patches"
+    )]
+    pub(crate) fn new_props<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        label_width: u16,
+        container_patch: Option<StylePatch>,
+        gutter_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+        value_patch: Option<StylePatch>,
+        fill_container: bool,
+        ellipsis: bool,
+    ) -> RowUi<'u> {
+        let mut row_ui = Self::new_with_column_patches_mode(
+            ui,
+            owner,
+            Family::PROPS,
+            Variant::DEFAULT,
+            flags,
+            key,
+            row,
+            container_patch,
+            gutter_patch,
+            value_patch,
+            label_patch,
+            fill_container,
+        );
+        row_ui.props_columns = PropsColumns::Paint {
+            label_width,
+            ellipsis,
+        };
+        row_ui
     }
 
     /// The row's state flags.
@@ -138,8 +261,13 @@ impl<'u> RowUi<'u> {
     }
 
     fn style_of(&mut self, part: Part) -> Style {
-        let r = match (part, self.label_patch) {
-            (Part::LABEL, Some(patch)) => {
+        let patch = match part {
+            Part::LABEL => self.label_patch,
+            Part::META => self.meta_patch,
+            _ => None,
+        };
+        let r = match patch {
+            Some(patch) => {
                 self.ui
                     .style_patched(self.family, self.variant, part, self.flags, &patch)
             }
@@ -184,9 +312,18 @@ impl<'u> RowUi<'u> {
     /// Paint the focus gutter (`GlyphRole::FocusBar` when the recipe says so,
     /// else a blank gutter cell).
     pub fn gutter(&mut self) {
-        let r = self
-            .ui
-            .style(self.family, self.variant, Part::GUTTER, self.flags);
+        let r = match self.gutter_patch {
+            Some(patch) => {
+                self.ui
+                    .style_patched(self.family, self.variant, Part::GUTTER, self.flags, &patch)
+            }
+            None => self
+                .ui
+                .style(self.family, self.variant, Part::GUTTER, self.flags),
+        };
+        #[cfg(feature = "testing")]
+        self.ui
+            .note_styled(self.owner, self.family, self.variant, Part::GUTTER, r);
         let area = self.remaining();
         let cell = Rect {
             width: area.width.min(1),
@@ -201,6 +338,13 @@ impl<'u> RowUi<'u> {
         self.left = self.left.saturating_add(1);
     }
 
+    /// Reserve the focus-gutter cell without painting it. Components with a
+    /// custom gutter slot use this to preserve row geometry while letting the
+    /// slot own the cell's contents.
+    pub(crate) fn reserve_gutter(&mut self) {
+        self.left = self.left.saturating_add(1);
+    }
+
     /// Indent by `depth` tree levels.
     pub fn indent(&mut self, depth: u16) {
         let step = self.ui.design().space.tree_indent;
@@ -210,23 +354,44 @@ impl<'u> RowUi<'u> {
     /// Paint the label into what is left, ending with the ellipsis glyph
     /// when it does not fit (the legacy `fit` contract, now allocation-free).
     pub fn label(&mut self, s: &str) {
-        let st = self.style_of(Part::LABEL);
+        let part = if matches!(self.props_columns, PropsColumns::Paint { .. }) {
+            Part::META
+        } else {
+            Part::LABEL
+        };
+        let st = self.style_of(part);
         self.label_in(s, st);
     }
 
     /// Paint the label with an instance patch.
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
-        let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
+        let (part, forwarded) = if matches!(self.props_columns, PropsColumns::Paint { .. }) {
+            (Part::META, self.meta_patch)
+        } else {
+            (Part::LABEL, self.label_patch)
+        };
+        let patch = forwarded.map_or(*p, |forwarded| forwarded.merge(*p));
         let st = self
             .ui
-            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch)
+            .style_patched(self.family, self.variant, part, self.flags, &patch)
             .style;
         self.label_in(s, st);
     }
 
     fn label_in(&mut self, s: &str, st: Style) {
-        let area = self.remaining();
-        let used = if width(s) <= area.width {
+        let remaining = self.remaining();
+        let area = match self.props_columns {
+            PropsColumns::Paint { label_width, .. } => Rect {
+                width: remaining.width.min(label_width),
+                ..remaining
+            },
+            PropsColumns::None => remaining,
+        };
+        let ellipsis = match self.props_columns {
+            PropsColumns::None => true,
+            PropsColumns::Paint { ellipsis, .. } => ellipsis,
+        };
+        let used = if width(s) <= area.width || !ellipsis {
             self.ui.paint_str(area, s, st)
         } else {
             let head = Rect {
@@ -241,21 +406,57 @@ impl<'u> RowUi<'u> {
             };
             used.saturating_add(self.ui.glyph(tail, GlyphRole::Ellipsis, st))
         };
-        self.left = self.left.saturating_add(used);
+        self.left = match self.props_columns {
+            PropsColumns::Paint { label_width, .. } => self
+                .left
+                .saturating_add(label_width.min(remaining.width))
+                .saturating_add(2),
+            PropsColumns::None => self.left.saturating_add(used),
+        };
     }
 
     /// Paint role-carrying spans as the label (`Buffer::set_line`).
     pub fn label_spans(&mut self, spans: &[Span<'_>]) {
-        let st = self.style_of(Part::LABEL);
-        let area = self.remaining();
+        let part = if matches!(self.props_columns, PropsColumns::Paint { .. }) {
+            Part::META
+        } else {
+            Part::LABEL
+        };
+        let st = self.style_of(part);
+        let remaining = self.remaining();
+        let area = match self.props_columns {
+            PropsColumns::Paint { label_width, .. } => Rect {
+                width: remaining.width.min(label_width),
+                ..remaining
+            },
+            PropsColumns::None => remaining,
+        };
         let used = self.ui.paint_spans(area, spans, st);
-        self.left = self.left.saturating_add(used);
+        self.left = match self.props_columns {
+            PropsColumns::Paint { label_width, .. } => self
+                .left
+                .saturating_add(label_width.min(remaining.width))
+                .saturating_add(2),
+            PropsColumns::None => self.left.saturating_add(used),
+        };
     }
 
     /// Format the label in place (0 allocations).
     pub fn label_fmt(&mut self, args: fmt::Arguments<'_>) {
-        let st = self.style_of(Part::LABEL);
-        let area = self.remaining();
+        let part = if matches!(self.props_columns, PropsColumns::Paint { .. }) {
+            Part::META
+        } else {
+            Part::LABEL
+        };
+        let st = self.style_of(part);
+        let remaining = self.remaining();
+        let area = match self.props_columns {
+            PropsColumns::Paint { label_width, .. } => Rect {
+                width: remaining.width.min(label_width),
+                ..remaining
+            },
+            PropsColumns::None => remaining,
+        };
         let mut w = CellWriter {
             ui: &mut self.ui,
             area,
@@ -264,12 +465,25 @@ impl<'u> RowUi<'u> {
         };
         let _ = w.write_fmt(args);
         let used = w.x.saturating_sub(area.x);
-        self.left = self.left.saturating_add(used);
+        self.left = match self.props_columns {
+            PropsColumns::Paint { label_width, .. } => self
+                .left
+                .saturating_add(label_width.min(remaining.width))
+                .saturating_add(2),
+            PropsColumns::None => self.left.saturating_add(used),
+        };
     }
 
     /// Right-aligned meta text, dropped all-or-none when it does not fit
     /// after a two-cell gap (`DESIGN.md:478`).
     pub fn meta(&mut self, s: &str) {
+        if matches!(self.props_columns, PropsColumns::Paint { .. }) {
+            let area = self.remaining();
+            let st = self.style_of(Part::LABEL);
+            let used = self.ui.paint_str(area, s, st);
+            self.left = self.left.saturating_add(used);
+            return;
+        }
         let need = width(s);
         let area = self.remaining();
         if need == 0 || need.saturating_add(2) > area.width {
