@@ -494,8 +494,7 @@ impl ErrorState {
     pub(crate) const fn as_ref(&self) -> &FieldError {
         match self {
             ErrorState::Plain(error) => error,
-            ErrorState::Pending(_) => &INVALID_VALUE,
-            ErrorState::Sensitive => &INVALID_VALUE,
+            ErrorState::Pending(_) | ErrorState::Sensitive => &INVALID_VALUE,
         }
     }
 
@@ -509,10 +508,10 @@ impl ErrorState {
     pub(crate) fn same(&self, other: &Self) -> bool {
         match (self, other) {
             (ErrorState::Plain(left), ErrorState::Plain(right)) => left == right,
-            (ErrorState::Pending(_), ErrorState::Pending(_))
-            | (ErrorState::Pending(_), ErrorState::Sensitive)
-            | (ErrorState::Sensitive, ErrorState::Pending(_))
-            | (ErrorState::Sensitive, ErrorState::Sensitive) => true,
+            (
+                ErrorState::Pending(_) | ErrorState::Sensitive,
+                ErrorState::Pending(_) | ErrorState::Sensitive,
+            ) => true,
             _ => false,
         }
     }
