@@ -4,7 +4,10 @@
 //! assertions check rendered evidence, focus, keyed regions, and durable
 //! state transitions; a missing control is a test failure, never a skip.
 
-use junie_tui::{Axis, ColorLevel, Id, ItemKey, KeyCode, LayerId, MouseKind, Part, PartRef, Theme};
+use junie_tui::{
+    Axis, Color, ColorLevel, Id, ItemKey, KeyCode, LayerId, Modifier, MouseKind, Part, PartRef,
+    StateFlags, Theme,
+};
 use junie_tui_testing::Harness;
 use showcase_app::{App, NAV_ENTRIES, PageId};
 
@@ -61,6 +64,248 @@ fn resize(h: &mut Harness<App>, width: u16, height: u16) {
 
 fn focus_bar_x(h: &Harness<App>, y: u16) -> Option<u16> {
     (0..h.buffer().area().width).find(|x| h.cell(*x, y).symbol() == "▎")
+}
+
+fn cell_style(h: &Harness<App>, needle: &str) -> (Color, Color, Modifier) {
+    let (x, y) = require(h.find(needle), needle);
+    let cell = h.cell(x, y);
+    (cell.fg, cell.bg, cell.modifier)
+}
+
+fn exercise_focus_ring(h: &mut Harness<App>, page: PageId) {
+    let reachable: Vec<Id> = h.ring().reachable().map(|entry| entry.id).collect();
+    assert!(!reachable.is_empty(), "{page:?} has no reachable controls");
+    let initial = require(h.focus(), "initial focus");
+    assert!(
+        reachable.contains(&initial),
+        "{page:?} initial focus is outside the reachable ring"
+    );
+
+    let mut seen = Vec::with_capacity(reachable.len());
+    loop {
+        let focused = require(h.focus(), "focus disappeared during traversal");
+        assert!(
+            reachable.contains(&focused),
+            "{page:?} focus escaped its initial ring"
+        );
+        assert!(
+            h.state_of(focused).contains(StateFlags::FOCUSED),
+            "{page:?} focused control lacks FOCUSED state"
+        );
+        if seen.contains(&focused) {
+            break;
+        }
+        seen.push(focused);
+        press(h, KeyCode::Tab);
+    }
+    assert_eq!(h.focus(), Some(initial), "{page:?} focus ring did not wrap");
+    assert_eq!(
+        seen.len(),
+        reachable.len(),
+        "{page:?} ring has an unreachable stop"
+    );
+}
+
+fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
+    match page {
+        PageId::Overview => {
+            let (x, y) = require(h.find("Author component"), "overview author control");
+            click(h, x, y);
+            assert!(h.text().contains("Author component · selected"));
+        }
+        PageId::Buttons => {
+            let (x, y) = require(h.find("Run task"), "run button");
+            click(h, x, y);
+            assert!(h.text().contains("Run task ✓"));
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("Preview ✓"));
+        }
+        PageId::Inputs => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::End);
+            type_text(h, "-visited");
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("operator-visited"));
+            press(h, KeyCode::Enter);
+            type_text(h, "discarded");
+            press(h, KeyCode::Esc);
+            assert!(!h.text().contains("discarded"));
+        }
+        PageId::TextAreas => {
+            let (x, y) = require(h.find("1. Read"), "checklist");
+            let before = h.snapshot().digest();
+            wheel(h, Axis::V, 3, x, y);
+            assert_ne!(
+                before,
+                h.snapshot().digest(),
+                "textarea wheel did not scroll"
+            );
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Enter);
+            for _ in 0..30 {
+                press(h, KeyCode::Down);
+            }
+            assert!(h.text().contains("28. Run"));
+            press(h, KeyCode::Esc);
+        }
+        PageId::Forms => {
+            control(h, 's');
+            assert!(h.text().contains("Required: summary"));
+            assert_eq!(h.focus(), Some(FORM_SUMMARY));
+            let summary = require(h.area_of(FORM_SUMMARY), "summary field");
+            click(h, summary.x.saturating_add(1), summary.y);
+            type_text(h, "Fix navigation");
+            press(h, KeyCode::Enter);
+            control(h, 's');
+            assert!(h.text().contains("Creating task"));
+        }
+        PageId::Lists => {
+            press(h, KeyCode::Tab);
+            for _ in 0..19 {
+                press(h, KeyCode::Down);
+            }
+            assert!(h.text().contains("Erlang"));
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("Chosen: Erlang"));
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Char(' '));
+            press(h, KeyCode::Char('a'));
+            assert!(h.text().contains("checked rows: 10"));
+        }
+        PageId::Trees => {
+            press(h, KeyCode::Tab);
+            let src_y = require(h.find_row("src"), "tree root");
+            let bar_x = require(focus_bar_x(h, src_y), "tree focus bar");
+            assert!(h.text().contains("config.rs"));
+            press(h, KeyCode::Left);
+            assert!(!h.text().contains("config.rs"));
+            press(h, KeyCode::Right);
+            press(h, KeyCode::Down);
+            press(h, KeyCode::Right);
+            assert!(h.text().contains("auth.rs"));
+            press(h, KeyCode::Down);
+            let auth_y = require(h.find_row("auth.rs"), "expanded api file");
+            assert_eq!(focus_bar_x(h, auth_y), Some(bar_x));
+        }
+        PageId::Tables => {
+            let (x, y) = require(h.find("Changes"), "changes header");
+            click(h, x, y);
+            assert!(first_data_row(h).contains("#1043"));
+            assert!(h.text().contains("ascending"));
+        }
+        PageId::Editable => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("EDIT"));
+            press(h, KeyCode::End);
+            type_text(h, " now");
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("Add rate limiting to auth endpoints now"));
+        }
+        PageId::Panels => {
+            assert!(h.text().contains("Raised card"));
+            assert!(h.text().contains("Patched title"));
+        }
+        PageId::Sidebars => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Down);
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("active section: Activity"));
+        }
+        PageId::Dialogs => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("Run task now?"));
+            press(h, KeyCode::Esc);
+            assert!(h.text().contains("Cancelled"));
+            assert_eq!(h.top_layer(), LayerId::PAGE);
+        }
+        PageId::Progress => {
+            let before = h.snapshot().digest();
+            h.ticks(1);
+            assert_ne!(
+                before,
+                h.snapshot().digest(),
+                "progress tick did not repaint"
+            );
+            assert!(h.text().contains("72%") || h.text().contains("73%"));
+        }
+        PageId::Scrolling => {
+            let (x, y) = require(h.find("Row 001"), "scroll list row");
+            let before = h.snapshot().digest();
+            wheel(h, Axis::V, 8, x, y);
+            assert_ne!(before, h.snapshot().digest(), "scroll list did not move");
+            assert!(h.text().contains("list="));
+        }
+        PageId::Terminal => {
+            let (x, y) = require(h.find("Resolving workspace members"), "terminal output");
+            let before = h.snapshot().digest();
+            wheel(h, Axis::V, 4, x, y);
+            assert_ne!(
+                before,
+                h.snapshot().digest(),
+                "terminal output did not scroll"
+            );
+            assert!(h.text().contains("status: ready"));
+        }
+        PageId::Editor => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Char('i'));
+            type_text(h, "x");
+            assert!(h.text().contains("document changed"));
+            press(h, KeyCode::Esc);
+        }
+        PageId::Grid => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Down);
+            press(h, KeyCode::Enter);
+            assert!(!h.text().contains("selected metric: none"));
+        }
+        PageId::Chips => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Char(' '));
+            assert!(h.text().contains("filter toggled"));
+        }
+        PageId::Pickers => {
+            let (x, y) = require(h.find("Open command palette"), "picker launcher");
+            click(h, x, y);
+            assert!(h.text().contains("Command palette"));
+            press(h, KeyCode::Down);
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("last result: Deploy production"));
+        }
+        PageId::Chrome => {
+            let (x, y) = require(h.find("Junie"), "chrome brand");
+            click(h, x, y);
+            assert!(h.text().contains("brand activations: 1"));
+        }
+        PageId::Settings => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Right);
+            assert!(h.text().contains("members"));
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Down);
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Enter);
+            assert!(h.text().contains("Remove member?"));
+            press(h, KeyCode::Esc);
+            assert_eq!(h.top_layer(), LayerId::PAGE);
+        }
+        PageId::TaskRunner => {
+            press(h, KeyCode::Char('r'));
+            assert!(h.text().contains("Pipeline · running"));
+            let before = h.snapshot().digest();
+            h.ticks(4);
+            assert_ne!(
+                before,
+                h.snapshot().digest(),
+                "task runner tick did not advance"
+            );
+            assert!(h.text().contains("compile started"));
+        }
+    }
 }
 
 #[test]
@@ -529,4 +774,77 @@ fn author_component_page_participates_in_focus_and_hover() {
     assert!(h.text().contains("Author component · selected"));
     press(&mut h, KeyCode::Tab);
     assert!(h.focus().is_some());
+}
+
+#[test]
+fn complete_navigation_visits_every_page_and_every_state() {
+    let mut navigation = harness(PageId::Overview);
+    let mut visited = Vec::with_capacity(PageId::ALL.len());
+
+    for (index, page) in PageId::ALL.into_iter().enumerate() {
+        assert_eq!(navigation.app().page(), page);
+        assert!(navigation.text().contains(page.title()));
+        exercise_focus_ring(&mut navigation, page);
+        assert!(navigation.diagnostics().is_empty(), "{page:?} diagnostics");
+        visited.push(navigation.app().page());
+
+        if index + 1 < PageId::ALL.len() {
+            press(&mut navigation, KeyCode::Char(']'));
+        }
+    }
+
+    assert_eq!(visited, PageId::ALL.into_iter().collect::<Vec<_>>());
+    press(&mut navigation, KeyCode::Char(']'));
+    assert_eq!(navigation.app().page(), PageId::Overview);
+    press(&mut navigation, KeyCode::Char('['));
+    assert_eq!(navigation.app().page(), PageId::TaskRunner);
+
+    for page in PageId::ALL {
+        let mut h = harness(page);
+        exercise_page_state(&mut h, page);
+        assert_eq!(h.app().page(), page);
+        assert!(h.text().contains(page.title()));
+        assert!(h.diagnostics().is_empty(), "{page:?} diagnostics");
+    }
+}
+
+#[test]
+fn custom_theme_injection_repaints_every_page() {
+    for page in PageId::ALL {
+        let junie = Harness::new(App::with_page(page), Theme::junie(), 120, 40);
+        let paper = Harness::new(App::with_page(page), Theme::paper(), 120, 40);
+
+        assert_eq!(paper.app().page(), page);
+        assert!(paper.text().contains(page.title()));
+        assert!(junie.diagnostics().is_empty(), "{page:?} Junie diagnostics");
+        assert!(paper.diagnostics().is_empty(), "{page:?} Paper diagnostics");
+        assert_ne!(
+            junie.snapshot().digest(),
+            paper.snapshot().digest(),
+            "Paper theme failed to repaint {page:?}"
+        );
+    }
+}
+
+#[test]
+fn local_override_page_shows_three_distinct_buttons() {
+    let buttons = harness(PageId::Buttons);
+    let primary = cell_style(&buttons, "Run task");
+    let secondary = cell_style(&buttons, "Preview");
+    let danger = cell_style(&buttons, "Delete branch");
+    assert_ne!(primary, secondary, "primary and secondary buttons merged");
+    assert_ne!(primary, danger, "primary and danger buttons merged");
+    assert_ne!(secondary, danger, "secondary and danger buttons merged");
+
+    let panels = harness(PageId::Panels);
+    let patched = cell_style(&panels, "Patched title");
+    let default = cell_style(&panels, "Raised card");
+    assert_ne!(
+        patched, default,
+        "local panel override had no visual effect"
+    );
+    assert_eq!(patched.0, Theme::junie().color.accent);
+    assert!(patched.2.contains(Modifier::BOLD));
+    assert!(panels.text().contains("per-instance patch"));
+    assert!(panels.diagnostics().is_empty(), "Panels diagnostics");
 }
