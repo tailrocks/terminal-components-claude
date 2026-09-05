@@ -718,6 +718,10 @@ impl<'a> PropsList<'a> {
     }
 
     /// The draw phase.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one pass over scrolling, state styling, value painting and row registration"
+    )]
     pub fn draw(
         &self,
         ui: &mut Ui<'_>,
@@ -1404,19 +1408,27 @@ mod tests {
         let right = Theme::junie().design.glyphs.get(GlyphRole::PressRight);
 
         assert_eq!(
-            focused.cell(Position::new(4, 0)).map(|cell| cell.symbol()),
+            focused
+                .cell(Position::new(4, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
         assert_eq!(
-            focused.cell(Position::new(5, 0)).map(|cell| cell.symbol()),
+            focused
+                .cell(Position::new(5, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
             Some(" ")
         );
         assert_eq!(
-            pressed.cell(Position::new(4, 0)).map(|cell| cell.symbol()),
+            pressed
+                .cell(Position::new(4, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
             Some(left)
         );
         assert_eq!(
-            pressed.cell(Position::new(5, 0)).map(|cell| cell.symbol()),
+            pressed
+                .cell(Position::new(5, 0))
+                .map(ratatui_core::buffer::Cell::symbol),
             Some(right)
         );
     }

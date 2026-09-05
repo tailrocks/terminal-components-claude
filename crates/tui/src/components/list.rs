@@ -1060,10 +1060,17 @@ mod tests {
         intents.binding(ID, action, Chord::key(KeyCode::Char('a')));
         let mut services = FrameServices::default();
         let mut core = UiCore::default();
-        let last = LastFrame::default();
+        let last_frame = LastFrame::default();
         let response = {
             let theme = Theme::junie();
-            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            let mut cx = Cx::new(
+                &intents,
+                &mut services,
+                &mut core,
+                &last_frame,
+                &theme,
+                None,
+            );
             list.update(&mut cx, &mut state, &items)
         };
 

@@ -710,6 +710,18 @@ impl GridState {
         self.col_index = col_index;
         self.col = Some(col);
     }
+
+    /// Cancel the inline editor and discard any cell-local error.
+    ///
+    /// `TextInputState::cancel` preserves plain validation errors for callers
+    /// that want to display them after a commit. A Grid error belongs to the
+    /// edited cell, so retaining it after that cell is gone or the edit is
+    /// cancelled would paint stale text on the next cursor cell.
+    fn cancel_editor(&mut self) {
+        self.edit = None;
+        self.editor.cancel();
+        self.editor.set_error(None);
+    }
 }
 
 impl Reconcile for GridState {
@@ -723,8 +735,7 @@ impl Reconcile for GridState {
         if let Some((e, _)) = self.edit
             && !(0..len).any(|i| key(i) == e)
         {
-            self.edit = None;
-            self.editor.cancel();
+            self.cancel_editor();
         }
         r
     }
@@ -1632,8 +1643,7 @@ impl Grid<'_> {
             st.col_index = 0;
             st.col_offset = 0;
             st.anchor = None;
-            st.edit = None;
-            st.editor.cancel();
+            st.cancel_editor();
         } else if st.col.is_none() {
             st.col = self.col_key(0);
             st.col_index = 0;
@@ -1641,8 +1651,7 @@ impl Grid<'_> {
             st.col_index = st.col_index.min(column_count.saturating_sub(1));
             st.col = self.col_key(st.col_index);
             st.anchor = None;
-            st.edit = None;
-            st.editor.cancel();
+            st.cancel_editor();
         }
         let mut pending = Pending::default();
         let total = len.saturating_add(usize::from(model.has_more()));
@@ -2006,15 +2015,13 @@ impl Grid<'_> {
             self.col_index(ck),
             Self::row_index(model, rk, st.core.cursor_index()),
         ) else {
-            st.edit = None;
-            st.editor.cancel();
+            st.cancel_editor();
             return;
         };
         // one owned copy per frame **while editing only**; the editor writes
         // its draft back into it on commit
         let Some(cell) = model.cell(row, col) else {
-            st.edit = None;
-            st.editor.cancel();
+            st.cancel_editor();
             return;
         };
         let mut value = cell.text.to_owned();
@@ -2037,7 +2044,7 @@ impl Grid<'_> {
                 }
             },
             Some(TextAction::Cancelled) => {
-                st.edit = None;
+                st.cancel_editor();
                 cx.focus(self.id);
                 acc.changed();
             }
@@ -3951,6 +3958,10 @@ mod tests {
             runtime.app().state.edit_error().and_then(|e| e.code),
             Some("grid-test")
         );
+
+        let _ = runtime.handle(key(KeyCode::Esc));
+        assert!(!runtime.app().state.is_editing());
+        assert!(runtime.app().state.edit_error().is_none());
     }
 
     #[test]
