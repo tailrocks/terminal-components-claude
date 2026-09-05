@@ -4,7 +4,7 @@
 use core::fmt;
 
 use super::{Acc, PartStyle, SlotFn};
-use crate::collection::CellUi;
+use crate::collection::{CellUi, Reconcile, Reconciliation};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -321,8 +321,16 @@ impl PropsState {
 
     /// Invalidate the keyed collection after in-place row changes.
     pub fn invalidate(&mut self) {
-        use crate::collection::Reconcile;
+        self.core.invalidate();
+    }
+}
 
+impl Reconcile for PropsState {
+    fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
+        self.core.reconcile(len, key)
+    }
+
+    fn invalidate(&mut self) {
         self.core.invalidate();
     }
 }
@@ -572,7 +580,11 @@ impl<'a> PropsList<'a> {
     }
 
     fn copy_cursor(st: &PropsState, rows: &[PropsRow<'_>], acc: &mut Acc<PropsAction>) {
-        let Some(row) = rows.get(st.core.cursor_index()) else {
+        let Some(cursor) = st.core.cursor() else {
+            acc.consumed();
+            return;
+        };
+        let Some(row) = rows.iter().find(|row| row.key == cursor) else {
             acc.consumed();
             return;
         };
@@ -765,7 +777,7 @@ impl<'a> PropsList<'a> {
                 height,
             };
             let row_part = PartRef::item(Part::ROW, row.key);
-            let mut flags = live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+            let mut flags = StateFlags::empty();
             if cursor == Some(row.key) {
                 flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
             }
@@ -1109,6 +1121,8 @@ impl<'a> Props<'a> {
 
 #[cfg(test)]
 mod tests {
+    use core::cell::Cell;
+
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
 
@@ -1118,6 +1132,7 @@ mod tests {
     use crate::runtime::{App, Runtime};
     use crate::secret::Secret;
     use crate::theme::{GlyphRole, Theme};
+    use crate::{ReferenceState, ReferenceTarget};
 
     const ID: Id = Id::root("props.tests");
     const AREA: Rect = Rect::new(0, 0, 40, 4);
@@ -1234,5 +1249,139 @@ mod tests {
             runtime.app().actions,
             [PropsAction::Copy(FIRST_KEY), PropsAction::Copy(FIRST_KEY)]
         );
+    }
+
+    #[test]
+    fn reconcile_tracks_a_stable_key_across_reorder() {
+        let keys = [FIRST_KEY, SECOND_KEY];
+        let mut state = PropsState::default();
+        state.set_cursor(0, FIRST_KEY);
+        assert_eq!(
+            state.reconcile(keys.len(), |index| keys[index]),
+            crate::collection::Reconciliation::Unchanged
+        );
+
+        let reordered = [SECOND_KEY, FIRST_KEY];
+        assert_eq!(
+            state.reconcile(reordered.len(), |index| reordered[index]),
+            crate::collection::Reconciliation::Unchanged
+        );
+        assert_eq!(state.cursor(), Some(FIRST_KEY));
+        assert_eq!(state.cursor_index(), 1);
+    }
+
+    #[derive(Default)]
+    struct ReorderApp {
+        state: PropsState,
+        reordered: bool,
+        copied: Option<ItemKey>,
+    }
+
+    const REORDER_ROWS: [PropsRow<'static>; 4] = [
+        PropsRow::new(ItemKey::num(1), "One", "1").copyable(),
+        PropsRow::new(ItemKey::num(2), "Two", "2").copyable(),
+        PropsRow::new(ItemKey::num(3), "Three", "3").copyable(),
+        PropsRow::new(ItemKey::num(4), "Four", "4").copyable(),
+    ];
+    const SAME_ENDS_REORDERED: [PropsRow<'static>; 4] = [
+        REORDER_ROWS[0],
+        REORDER_ROWS[2],
+        REORDER_ROWS[1],
+        REORDER_ROWS[3],
+    ];
+
+    impl ReorderApp {
+        fn rows(&self) -> &'static [PropsRow<'static>] {
+            if self.reordered {
+                &SAME_ENDS_REORDERED
+            } else {
+                &REORDER_ROWS
+            }
+        }
+    }
+
+    impl App for ReorderApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let rows = self.rows();
+            let response = PropsList::new(ID).update(cx, &mut self.state, rows);
+            if let Some(PropsAction::Copy(key)) = response.action_ref() {
+                self.copied = Some(*key);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            PropsList::new(ID).draw(ui, AREA, &self.state, self.rows());
+        }
+    }
+
+    #[test]
+    fn copy_resolves_the_cursor_by_key_after_same_length_reorder() {
+        let mut runtime = Runtime::new(ReorderApp::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer);
+        let _ = runtime.handle(key(KeyCode::Down));
+        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(2)));
+
+        runtime.app_mut().reordered = true;
+        let _ = runtime.handle(key(KeyCode::Char('y')));
+        assert_eq!(runtime.app().copied, Some(ItemKey::num(2)));
+    }
+
+    #[test]
+    fn only_the_cursor_row_receives_focus_flags() {
+        let theme = Theme::junie().define_family(Family::PROPS, |recipe| {
+            recipe.part(Part::LABEL).when(
+                StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE,
+                StylePatch::new().set_bg(Role::Danger),
+            );
+        });
+        let rows = [
+            PropsRow::new(FIRST_KEY, "First", "plain"),
+            PropsRow::new(SECOND_KEY, "Second", "cursor"),
+        ];
+        let mut state = PropsState::default();
+        state.set_cursor(1, SECOND_KEY);
+        let mut runtime = Runtime::new(Stub::default(), theme.clone());
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+            ui.reference(
+                Some(ReferenceTarget::new(
+                    ID,
+                    ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE,
+                )),
+                |ui| {
+                    PropsList::new(ID).draw(ui, area, &state, &rows);
+                },
+            );
+        });
+
+        let value_x = 8;
+        assert_ne!(
+            buffer.cell(Position::new(value_x, 0)).map(|cell| cell.bg),
+            Some(theme.color.danger)
+        );
+        assert_eq!(
+            buffer.cell(Position::new(value_x, 1)).map(|cell| cell.bg),
+            Some(theme.color.danger)
+        );
+    }
+
+    #[test]
+    fn track_and_thumb_slots_are_forwarded_independently() {
+        let rows = [PropsRow::new(FIRST_KEY, "Name", "value"); 12];
+        for part in [Part::TRACK, Part::THUMB] {
+            let called = Cell::new(false);
+            let painter = |_: &mut Ui<'_>, _: Rect| called.set(true);
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(AREA);
+            let state = PropsState::default();
+            runtime.draw_scene(AREA, &mut buffer, |ui, area| {
+                PropsList::new(ID)
+                    .slot(part, &painter)
+                    .draw(ui, area, &state, &rows);
+            });
+            assert!(called.get(), "{part:?} slot was not forwarded");
+        }
     }
 }
