@@ -406,7 +406,10 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .min(usize::from(d.size.popup_max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
-        LayerSize::Fixed(width, rows.saturating_add(4))
+        // The frame, title, query, and list each need their own rows.  The
+        // list starts three rows into the framed inner area, so reserving
+        // only `rows + 4` leaves a one-item picker with an empty viewport.
+        LayerSize::Fixed(width, rows.saturating_add(5))
     }
 
     /// Layer specification supplied by this picker.

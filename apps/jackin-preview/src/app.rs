@@ -611,6 +611,11 @@ impl App {
                     detail: "Codex credential".into(),
                 },
                 AccountOption {
+                    key: "it_thr01".into(),
+                    label: "OpenAI · Throttled sandbox".into(),
+                    detail: "Codex credential · rate limited".into(),
+                },
+                AccountOption {
                     key: "it_grk01".into(),
                     label: "xAI · Grok Team".into(),
                     detail: "Grok credential".into(),
@@ -743,6 +748,7 @@ impl App {
                             match title {
                                 "Anthropic · Work" | "Work" => "it_ant01",
                                 "OpenAI · Codex Primary" | "Codex Primary" => "it_cdx01",
+                                "OpenAI · Throttled sandbox" | "Throttled sandbox" => "it_thr01",
                                 "xAI · Grok Team" | "Grok Team" => "it_grk01",
                                 _ => "it_ocg01",
                             },
@@ -1096,7 +1102,20 @@ impl App {
             account = account.with_endpoint("Grok Team", "https://api.x.ai");
         }
         let title = account.title();
+        let issue = account.issue.as_ref().map(|issue| issue.message.clone());
         self.world.accounts.insert(account);
+        let selected_id = id.clone();
+        self.accounts.selected_id = Some(id);
+        if let Some(index) = self
+            .world
+            .accounts
+            .sorted()
+            .iter()
+            .position(|account| account.id == selected_id)
+            .map(|index| index.saturating_add(1))
+        {
+            self.accounts.list.set_cursor(index, ItemKey::index(index));
+        }
         self.account_options = self
             .world
             .accounts
@@ -1109,7 +1128,10 @@ impl App {
         self.accounts.masked_input.clear();
         self.accounts.secret_input = junie_tui::TextInputState::default();
         self.accounts.folder_input = junie_tui::TextInputState::default();
-        self.status = Some(format!("Saved {title}"));
+        self.status = Some(match issue {
+            Some(issue) => format!("Saved {title} · {issue}"),
+            None => format!("Saved {title}"),
+        });
     }
 
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -2185,9 +2207,18 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let account_picker = Self::account_picker();
+        let account_picker = match self.picker_mode {
+            Some(PickerMode::OnePassword) => {
+                Self::account_picker().title("Choose 1Password account")
+            }
+            _ => Self::account_picker(),
+        };
+        let account_items = match self.picker_mode {
+            Some(PickerMode::OnePassword) => &self.op_options,
+            _ => &self.account_options,
+        };
         let _ = ui.layer(ACCOUNT_PICKER, |ui, area| {
-            account_picker.draw(ui, area, &self.account_state, &self.account_options)
+            account_picker.draw(ui, area, &self.account_state, account_items)
         });
     }
 }
