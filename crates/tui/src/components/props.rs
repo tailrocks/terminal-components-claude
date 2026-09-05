@@ -340,11 +340,79 @@ impl PropsState {
 /// The caller owns rows and [`PropsState`]. The runtime owns focus, hover,
 /// pressed state, pointer routing, and scrollbar capture.
 ///
+/// ## Configuration
+///
+/// `.variant(Variant::DEFAULT)`, `.patch`, `.patch_part`, and `.slot`; the
+/// default variant is `Variant::DEFAULT`.
+///
+/// ## Variants
+///
+/// `Family::PROPS`; `.variant` selects the theme variant and defaults to
+/// `Variant::DEFAULT`.
+///
+/// ## States
+///
+/// The list wears `FOCUSED` and `FOCUS_VISIBLE`; keyed rows add `HOVERED` and
+/// `PRESSED` from runtime pointer state. Cursor and scroll state live in
+/// [`PropsState`]. It derives no disabled, selected, editing, or readiness
+/// state.
+///
 /// ## Actions
 ///
 /// Navigation changes state. Copy emits [`PropsAction::Copy`] with only the
 /// row's [`ItemKey`]; the caller resolves the borrowed value and owns the
-/// clipboard effect.
+/// clipboard effect. Secret rows and non-copyable rows consume copy without
+/// emitting an action.
+///
+/// ## Focus
+///
+/// One `Focusability::Focusable` stop when the list is not inert. It does not
+/// swallow typing and has no autofocus or focus trap.
+///
+/// ## Keyboard
+///
+/// `Up`/`Down` and `k`/`j` move one row; `PageUp`/`PageDown`, `Home`/`g`, and
+/// `End`/`G` navigate by range; `y` and `Enter` request copy of the cursor row.
+///
+/// ## Mouse
+///
+/// `PartRef::item(Part::ROW, key)` selects on press and selects plus copies on
+/// click or double-click. Wheel, `TRACK`, and `THUMB` intents are handled by
+/// the embedded scrollbar.
+///
+/// ## Layout
+///
+/// Labels occupy the widest label column; values use the remaining column and
+/// may wrap into multiple visual rows. The scrollbar reserves its own column;
+/// `measure` prefers `(32, available height)` with a minimum of `(12, 1)`, and
+/// `draw` returns `area`. An empty area registers nothing.
+///
+/// ## Parts
+///
+/// `CONTAINER` (row fill), `META` (labels), `LABEL` (values), `ROW` (keyed row
+/// hit regions), `TRACK`, and `THUMB` (scrollbar).
+///
+/// ## Overrides
+///
+/// `.patch` and `.patch_part` apply to named style resolutions. `.slot` is
+/// honoured for `TRACK` and `THUMB`; row, label, value, and container painters
+/// are not slot-addressable.
+///
+/// ## Identity
+///
+/// Rows are keyed by [`PropsRow::key`]. Keep keys stable across reorder; the
+/// list has no separate positional identity.
+///
+/// ## Testing
+///
+/// Module tests cover keyed metadata, secret masking and redaction, and copy
+/// through keyboard and mouse runtime intents.
+///
+/// ## Invariants
+///
+/// Secret values never appear in painted text or debug output and cannot emit
+/// `Copy`. Reconciliation is keyed; `draw` never mutates rows or
+/// [`PropsState`].
 pub struct PropsList<'a> {
     id: Id,
     variant: Variant,

@@ -156,6 +156,11 @@ impl PickerChainState {
 ///
 /// ## Testing
 /// Conformance covers focus, activation, tiny rectangles and status.
+///
+/// ## Invariants
+/// `update` emits at most one keyed action. Only historical stages can be
+/// rewound, and retry is available only for the active errored stage. `draw`
+/// does not mutate [`PickerChainState`] and an empty area registers nothing.
 #[derive(Debug)]
 pub struct PickerChain<'a> {
     id: Id,

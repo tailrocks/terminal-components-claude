@@ -663,39 +663,55 @@ impl FormState {
 /// inherited and combined with each configured control's disabled state.
 ///
 /// ## Actions
-/// Reports [`FormAction`]. No field value leaves through an action.
+/// Reports [`FormAction`]: field changes and commits carry the field [`Id`],
+/// chooser events carry the field [`Id`], and action-row commands carry their
+/// [`ActionKey`]. No field value leaves through an action. The submit identity
+/// comes from `.submit`; action-row commands retain their declared key,
+/// including an ordinary cancel action.
 ///
-/// ## Commands
-/// The submit identity comes from `.submit`; action-row commands retain their
-/// declared [`ActionKey`], including an ordinary cancel action.
+/// ## Focus
+/// The form is not itself a focus stop. Visible child controls and enabled
+/// action-row buttons own their focus stops; child controls decide whether they
+/// `swallows_typing`. The form adds no autofocus or focus trap.
 ///
-/// ## Bindings
+/// ## Keyboard
 /// Child controls publish their own bindings. Action chords are declared on
-/// [`Action`]. Enter submission obeys [`EnterPolicy`].
+/// [`Action`]. Enter submission obeys [`EnterPolicy`] and is claimed only for
+/// a focused idle child that does not swallow typing.
 ///
-/// ## Update
-/// Reconciles slots, updates visible controls in declaration order, tracks
-/// commits, updates scrolling, and runs submit validation.
+/// ## Mouse
+/// Field controls receive pointer input through their own ids and parts;
+/// action-row buttons use `id.part(Part::ACTIONS).index(index)`. The form's
+/// `BODY` and `ACTIONS` registrations are decorative.
 ///
-/// ## Render
-/// Registers and paints visible fields in declaration order, omits hidden
-/// fields completely, and paints the optional action row.
+/// ## Layout
+/// `update` reconciles slots, updates visible controls in declaration order,
+/// tracks commits, updates scrolling, and runs submit validation. `draw`
+/// registers and paints visible fields in declaration order, omits hidden
+/// fields, and paints the optional action row. Field heights derive only from
+/// declarations and current design tokens; two adjacent half-width fields
+/// share one row. `measure` reports the declared field rows plus the optional
+/// action row, and `draw` returns `area`.
 ///
-/// ## Measure
-/// Field heights derive only from declarations and current design tokens.
-/// Two adjacent half-width fields share one row.
+/// ## Parts
+/// `CONTAINER` (form fill), `BODY` (scrollable field region), `ACTIONS`
+/// (action row), `HELP` (help, error and note chrome), `MARKER` (required
+/// marker), `TRACK` and `THUMB` (the embedded scrollbar).
 ///
 /// ## Overrides
-/// `.patch_part` applies to [`Form::PARTS`]. Child-control overrides remain on
-/// each configured [`FieldKind`].
+/// `.patch_part` is the form-level override for [`Form::PARTS`]; matching
+/// entries reach form chrome and the embedded scrollbar. Child controls and
+/// action buttons retain their own overrides. Form has no `.patch` or `.slot`.
 ///
 /// ## Identity
 /// The form and every field use caller-supplied [`Id`] values. No parallel
 /// field-key namespace exists.
 ///
 /// ## Testing
-/// `FormCase` supplies conformance coverage; module tests cover declaration
-/// order, visibility, validation, scrolling, dirty state, and secret handling.
+/// `FormCase` supplies `EDITS | SECRET | FOCUSABLE | SCROLLS | TYPES`
+/// conformance coverage; the `render::components::form::*` matrix and module
+/// tests cover declaration order, visibility, validation, scrolling, dirty
+/// state, and secret handling.
 ///
 /// ## Invariants
 /// Draw never mutates state or values. At most one action is returned per

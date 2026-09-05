@@ -182,6 +182,11 @@ impl<S> WizardState<S> {
 ///
 /// ## Testing
 /// Conformance plus retained-state rewind coverage.
+///
+/// ## Invariants
+/// Forward navigation and pointer activation skip disabled steps, which are
+/// not registered as clickable parts. `update` emits at most one keyed action;
+/// `draw` does not mutate [`WizardState`], and per-step state survives rewind.
 #[derive(Debug)]
 pub struct Wizard<'a> {
     id: Id,
