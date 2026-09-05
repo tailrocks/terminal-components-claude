@@ -29,6 +29,11 @@ CAPTURE_MANIFEST=${CAPTURE_MANIFEST:-$CAPTURE_DIR/capture-provenance.json}
 CAPTURE_STATE_DIR=${CAPTURE_STATE_DIR:-$CAPTURE_DIR/.capture-state}
 CAPTURE_LOCK_DIR=${CAPTURE_LOCK_DIR:-$CAPTURE_STATE_DIR/lock}
 PYTHON_BIN=${PY:-python3}
+STATE_PYTHON=/usr/bin/python3
+if [[ ! -x "$STATE_PYTHON" ]]; then
+  echo "capture failed: trusted metadata Python is unavailable: $STATE_PYTHON" >&2
+  exit 1
+fi
 cmd=${1:-}
 shift || true
 
@@ -106,11 +111,14 @@ cleanup_failed_start() {
         echo "capture cleanup failed: cannot remove run state $RUN_DIR" >&2
       fi
     fi
+    if (( cleanup_failed != 0 )); then
+      echo "capture cleanup incomplete; run state retained: $RUN_DIR" >&2
+    fi
     if ! release_capture_lock; then
       cleanup_failed=1
     fi
     if (( cleanup_failed != 0 )); then
-      echo "capture cleanup incomplete; run state retained: $RUN_DIR" >&2
+      echo "capture cleanup incomplete; capture lock retained" >&2
     fi
   fi
   exit "$status"
@@ -176,12 +184,10 @@ ensure_state_target() {
 }
 
 write_state() {
-  local path=$1 value=$2 temporary
-  ensure_state_target "$path" "capture state"
-  temporary=$(mktemp "${path}.tmp.XXXXXX")
-  chmod 600 "$temporary"
-  printf '%s\n' "$value" > "$temporary"
-  mv -f "$temporary" "$path"
+  local path=$1 value=$2
+  "$STATE_PYTHON" "$PROVENANCE_TOOL" write-state \
+    --path "$path" \
+    --value "$value"
 }
 
 capture_lock_path() {
@@ -209,7 +215,7 @@ acquire_capture_lock() {
 
 release_capture_lock() {
   capture_lock_path
-  if [[ -z "$CAPTURE_RUN_ID" || ! -d "$CAPTURE_LOCK_DIR_PATH" || -L "$CAPTURE_LOCK_DIR_PATH" ]]; then
+  if [[ -z "${CAPTURE_RUN_ID:-}" || ! -d "$CAPTURE_LOCK_DIR_PATH" || -L "$CAPTURE_LOCK_DIR_PATH" ]]; then
     return 0
   fi
   if [[ -L "$CAPTURE_LOCK_OWNER_FILE" || ! -f "$CAPTURE_LOCK_OWNER_FILE" ]]; then
@@ -228,20 +234,17 @@ release_capture_lock() {
 
 state_value() {
   local path=$1 fallback=$2
-  if [[ -f "$path" && ! -L "$path" ]]; then
-    tr -d '\r\n' < "$path"
-  else
+  if ! "$STATE_PYTHON" "$PROVENANCE_TOOL" read-state --path "$path" 2>/dev/null; then
     printf '%s\n' "$fallback"
   fi
 }
 
 required_state() {
   local path=$1 label=$2 value
-  if [[ ! -f "$path" || -L "$path" ]]; then
+  if ! value=$("$STATE_PYTHON" "$PROVENANCE_TOOL" read-state --path "$path"); then
     echo "capture failed: $label is missing or unsafe: $path" >&2
     return 1
   fi
-  value=$(state_value "$path" "")
   if [[ -z "$value" ]]; then
     echo "capture failed: $label is empty: $path" >&2
     return 1
@@ -345,7 +348,7 @@ snapshot_value() {
 
 finalize_provenance() {
   local exit_status=$1
-  python3 "$PROVENANCE_TOOL" finalize \
+  "$STATE_PYTHON" "$PROVENANCE_TOOL" finalize \
     --metadata "$RUN_METADATA_FILE" \
     --manifest "$CAPTURE_MANIFEST_PATH" \
     --run-id "$CAPTURE_RUN_ID" \
@@ -356,7 +359,7 @@ finalize_provenance() {
 record_provenance() {
   local name=$1 columns=$2 rows=$3 status=$4 exit_status=$5
   local ansi_path=$6 cursor_path=$7 text_path=$8 html_path=$9 png_path=${10}
-  python3 "$PROVENANCE_TOOL" record \
+  "$STATE_PYTHON" "$PROVENANCE_TOOL" record \
     --metadata "$RUN_METADATA_FILE" \
     --manifest "$CAPTURE_MANIFEST_PATH" \
     --run-id "$CAPTURE_RUN_ID" \
@@ -414,94 +417,43 @@ move_failed_generation_aside() {
 }
 
 SHOT_LOCK_DIR=
-SHOT_LOCK_OWNER_FILE=
+SHOT_LOCK_GUARD=
 SHOT_LOCK_OWNER=
 
-shot_lock_owner_is_live() {
-  local pid=$1
-  kill -0 "$pid" 2>/dev/null || ps -p "$pid" >/dev/null 2>&1
-}
-
 release_shot_lock() {
-  local owner
   if [[ -z "$SHOT_LOCK_DIR" ]]; then
     return 0
   fi
-  if [[ -L "$SHOT_LOCK_DIR" || ! -d "$SHOT_LOCK_DIR" ]]; then
-    echo "capture cleanup failed: shot lock is not a directory: $SHOT_LOCK_DIR" >&2
-    return 1
-  fi
-  if [[ -L "$SHOT_LOCK_OWNER_FILE" || ! -f "$SHOT_LOCK_OWNER_FILE" ]]; then
-    echo "capture cleanup failed: shot lock owner is missing or unsafe: $SHOT_LOCK_OWNER_FILE" >&2
-    return 1
-  fi
-  owner=$(state_value "$SHOT_LOCK_OWNER_FILE" "")
-  if [[ "$owner" != "$SHOT_LOCK_OWNER" ]]; then
-    echo "capture cleanup failed: shot lock ownership changed: $SHOT_LOCK_DIR" >&2
-    return 1
-  fi
-  if ! rm -f "$SHOT_LOCK_OWNER_FILE" || ! rmdir "$SHOT_LOCK_DIR"; then
+  if ! "$STATE_PYTHON" "$PROVENANCE_TOOL" shot-lock release \
+    --lock "$SHOT_LOCK_DIR" \
+    --guard "$SHOT_LOCK_GUARD" \
+    --owner "$SHOT_LOCK_OWNER"; then
     echo "capture cleanup failed: cannot release shot lock: $SHOT_LOCK_DIR" >&2
     return 1
   fi
   SHOT_LOCK_DIR=
-  SHOT_LOCK_OWNER_FILE=
+  SHOT_LOCK_GUARD=
   SHOT_LOCK_OWNER=
 }
 
 cleanup_shot_lock_only() {
   local status=$?
   trap - EXIT
-  release_shot_lock || true
+  if ! release_shot_lock && (( status == 0 )); then
+    status=1
+  fi
   exit "$status"
 }
 
 acquire_shot_lock() {
-  local name=$1 owner pid
+  local name=$1
   SHOT_LOCK_DIR=$CAPTURE_DIR_PATH/.${name}.lock
-  SHOT_LOCK_OWNER_FILE=$SHOT_LOCK_DIR/owner
+  SHOT_LOCK_GUARD=$CAPTURE_DIR_PATH/.${name}.lock.guard
   SHOT_LOCK_OWNER="$$:$CAPTURE_RUN_ID"
-  if mkdir -m 700 "$SHOT_LOCK_DIR" 2>/dev/null; then
-    if ! write_state "$SHOT_LOCK_OWNER_FILE" "$SHOT_LOCK_OWNER"; then
-      rmdir "$SHOT_LOCK_DIR" 2>/dev/null || true
-      echo "capture failed: cannot initialize shot lock: $SHOT_LOCK_DIR" >&2
-      return 1
-    fi
-    return 0
-  fi
-  if [[ -L "$SHOT_LOCK_DIR" || ! -d "$SHOT_LOCK_DIR" ]]; then
-    echo "capture failed: shot lock path is unsafe: $SHOT_LOCK_DIR" >&2
-    return 1
-  fi
-  if [[ -L "$SHOT_LOCK_OWNER_FILE" || ! -f "$SHOT_LOCK_OWNER_FILE" ]]; then
-    echo "capture failed: cannot prove shot lock is stale: $SHOT_LOCK_DIR" >&2
-    return 1
-  fi
-  owner=$(state_value "$SHOT_LOCK_OWNER_FILE" "")
-  if [[ ! "$owner" =~ ^([0-9]+):([A-Za-z0-9_-]{1,64})$ ]]; then
-    echo "capture failed: shot lock owner is invalid: $SHOT_LOCK_DIR" >&2
-    return 1
-  fi
-  pid=${BASH_REMATCH[1]}
-  if shot_lock_owner_is_live "$pid"; then
-    echo "capture failed: shot is already running: $name" >&2
-    return 1
-  fi
-  # A dead owner may be recovered, but only when the lock contains exactly
-  # the owner record. rmdir below refuses unexpected debris or replacement.
-  if ! rm -f "$SHOT_LOCK_OWNER_FILE" || ! rmdir "$SHOT_LOCK_DIR"; then
-    echo "capture failed: cannot recover stale shot lock: $SHOT_LOCK_DIR" >&2
-    return 1
-  fi
-  if ! mkdir -m 700 "$SHOT_LOCK_DIR" 2>/dev/null; then
-    echo "capture failed: shot lock was claimed concurrently: $SHOT_LOCK_DIR" >&2
-    return 1
-  fi
-  if ! write_state "$SHOT_LOCK_OWNER_FILE" "$SHOT_LOCK_OWNER"; then
-    rmdir "$SHOT_LOCK_DIR" 2>/dev/null || true
-    echo "capture failed: cannot initialize recovered shot lock: $SHOT_LOCK_DIR" >&2
-    return 1
-  fi
+  "$STATE_PYTHON" "$PROVENANCE_TOOL" shot-lock acquire \
+    --lock "$SHOT_LOCK_DIR" \
+    --guard "$SHOT_LOCK_GUARD" \
+    --owner "$SHOT_LOCK_OWNER"
 }
 
 load_run_state() {
@@ -675,7 +627,7 @@ case "$cmd" in
     tool_versions=(
       --tool "bash=$BASH_VERSION"
       --tool "tmux=$(tool_version tmux -V)"
-      --tool "python3=$(tool_version python3)"
+      --tool "python3=$(tool_version "$STATE_PYTHON")"
       --tool "png-python=$(tool_version "$PYTHON_BIN")"
       --tool "git=$(tool_version git)"
     )
@@ -692,10 +644,10 @@ case "$cmd" in
     write_state "$RUN_MANIFEST_FILE" "$CAPTURE_MANIFEST_PATH"
     write_state "$RUN_STDERR_FILE" "$STDERR_FILE"
     write_state "$RUN_COLOR_FILE" "$COLOR"
-    python3 "$PROVENANCE_TOOL" stage-binary \
+    "$STATE_PYTHON" "$PROVENANCE_TOOL" stage-binary \
       --source "$BIN" \
       --destination "$RUN_EXECUTABLE_FILE"
-    python3 "$PROVENANCE_TOOL" init \
+    "$STATE_PYTHON" "$PROVENANCE_TOOL" init \
       --metadata "$RUN_METADATA_FILE" \
       --run-id "$CAPTURE_RUN_ID" \
       --session "$SESSION_NAME" \
@@ -747,7 +699,7 @@ case "$cmd" in
     fi
     START_SESSION_ID=$actual_session_id
     write_state "$RUN_SESSION_ID_FILE" "$actual_session_id"
-    python3 "$PROVENANCE_TOOL" set-session \
+    "$STATE_PYTHON" "$PROVENANCE_TOOL" set-session \
       --metadata "$RUN_METADATA_FILE" \
       --run-id "$CAPTURE_RUN_ID" \
       --session-id "$actual_session_id"
@@ -884,7 +836,7 @@ case "$cmd" in
     mv -f "$cursor_tmp" "$stage_cursor"
     mv -f "$text_tmp" "$stage_text"
     conversion_failed=0
-    if ! python3 "$ROOT_DIR/tools/ansi2html.py" "$stage_ansi" "$html_tmp" "$cols" "$rows"; then
+    if ! "$STATE_PYTHON" "$ROOT_DIR/tools/ansi2html.py" "$stage_ansi" "$html_tmp" "$cols" "$rows"; then
       echo "capture failed: ansi2html could not convert $stage_ansi" >&2
       conversion_failed=1
     else

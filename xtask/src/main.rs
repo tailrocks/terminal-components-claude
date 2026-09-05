@@ -135,10 +135,12 @@ struct CaptureMatrixLock {
 
 impl Drop for CaptureMatrixLock {
     fn drop(&mut self) {
-        let owner = fs::read_to_string(&self.owner_path).ok();
+        let owner = read_capture_lock_owner(&self.owner_path).ok();
         if owner.as_deref() == Some(&self.owner) {
-            let _ = fs::remove_file(&self.owner_path);
-            let _ = fs::remove_dir(&self.path);
+            let quarantine = capture_lock_quarantine(&self.path);
+            if fs::rename(&self.path, &quarantine).is_ok() {
+                let _ = remove_capture_lock_directory(&quarantine);
+            }
         }
     }
 }
@@ -182,6 +184,264 @@ fn capture_process_is_live(_pid: u32) -> bool {
     true
 }
 
+fn capture_lock_quarantine(path: &Path) -> PathBuf {
+    path.with_file_name(format!(
+        ".capture-matrix.lock.stale.{}.{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default()
+    ))
+}
+
+fn capture_lock_staging(shots: &Path) -> PathBuf {
+    shots.join(format!(
+        ".capture-matrix.lock.tmp.{}.{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default()
+    ))
+}
+
+fn capture_lock_destination_exists(error: &std::io::Error) -> bool {
+    if error.kind() == std::io::ErrorKind::AlreadyExists {
+        return true;
+    }
+    #[cfg(unix)]
+    {
+        error.raw_os_error() == Some(libc::EEXIST) || error.raw_os_error() == Some(libc::ENOTEMPTY)
+    }
+    #[cfg(not(unix))]
+    {
+        false
+    }
+}
+
+fn read_capture_lock_owner(path: &Path) -> Result<String, String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut options = OpenOptions::new();
+        options
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+        let mut file = options.open(path).map_err(|error| {
+            format!(
+                "cannot read capture matrix lock owner {}: {error}",
+                rel(path)
+            )
+        })?;
+        let metadata = file.metadata().map_err(|error| {
+            format!(
+                "cannot inspect capture matrix lock owner {}: {error}",
+                rel(path)
+            )
+        })?;
+        if !metadata.is_file() {
+            return Err(format!(
+                "capture matrix lock owner is not a regular file: {}",
+                rel(path)
+            ));
+        }
+        let mut owner = String::new();
+        file.read_to_string(&mut owner).map_err(|error| {
+            format!(
+                "cannot read capture matrix lock owner {}: {error}",
+                rel(path)
+            )
+        })?;
+        Ok(owner)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        Err("cannot safely read capture matrix lock owner without O_NOFOLLOW".to_owned())
+    }
+}
+
+fn remove_capture_lock_directory(path: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| format!("cannot inspect capture matrix lock {}: {error}", rel(path)))?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(format!(
+            "capture matrix lock path is not a directory: {}",
+            rel(path)
+        ));
+    }
+    let owner = path.join("owner");
+    let owner_metadata = fs::symlink_metadata(&owner).map_err(|error| {
+        format!(
+            "cannot inspect capture matrix lock owner {}: {error}",
+            rel(&owner)
+        )
+    })?;
+    if owner_metadata.file_type().is_symlink() || !owner_metadata.is_file() {
+        return Err(format!(
+            "capture matrix lock owner is not a regular file: {}",
+            rel(&owner)
+        ));
+    }
+    fs::remove_file(&owner).map_err(|error| {
+        format!(
+            "cannot remove capture matrix lock owner {}: {error}",
+            rel(&owner)
+        )
+    })?;
+    fs::remove_dir(path)
+        .map_err(|error| format!("cannot remove capture matrix lock {}: {error}", rel(path)))
+}
+
+fn remove_capture_lock_staging(path: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(path).map_err(|error| {
+        format!(
+            "cannot inspect capture matrix staging {}: {error}",
+            rel(path)
+        )
+    })?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(format!(
+            "capture matrix staging path is not a directory: {}",
+            rel(path)
+        ));
+    }
+    for entry in fs::read_dir(path).map_err(|error| {
+        format!(
+            "cannot inspect capture matrix staging {}: {error}",
+            rel(path)
+        )
+    })? {
+        let entry = entry.map_err(|error| {
+            format!(
+                "cannot inspect capture matrix staging {}: {error}",
+                rel(path)
+            )
+        })?;
+        let child = entry.path();
+        let child_metadata = fs::symlink_metadata(&child).map_err(|error| {
+            format!(
+                "cannot inspect capture matrix staging {}: {error}",
+                rel(&child)
+            )
+        })?;
+        if child.file_name().and_then(|name| name.to_str()) != Some("owner")
+            || child_metadata.file_type().is_symlink()
+            || !child_metadata.is_file()
+        {
+            return Err(format!(
+                "capture matrix staging contains an unexpected entry: {}",
+                rel(&child)
+            ));
+        }
+        fs::remove_file(&child).map_err(|error| {
+            format!(
+                "cannot remove capture matrix staging {}: {error}",
+                rel(&child)
+            )
+        })?;
+    }
+    fs::remove_dir(path).map_err(|error| {
+        format!(
+            "cannot remove capture matrix staging {}: {error}",
+            rel(path)
+        )
+    })
+}
+
+fn cleanup_orphaned_capture_staging(shots: &Path) -> Result<(), String> {
+    let entries = fs::read_dir(shots)
+        .map_err(|error| format!("cannot inspect capture staging in {}: {error}", rel(shots)))?;
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            format!("cannot inspect capture staging in {}: {error}", rel(shots))
+        })?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        let prefix = ".capture-matrix.lock.tmp.";
+        let Some(rest) = name.strip_prefix(prefix) else {
+            continue;
+        };
+        let Some((pid, _token)) = rest.split_once('.') else {
+            continue;
+        };
+        let Ok(pid) = pid.parse::<u32>() else {
+            continue;
+        };
+        if capture_process_is_live(pid) {
+            continue;
+        }
+        remove_capture_lock_staging(&entry.path())?;
+    }
+    Ok(())
+}
+
+fn publish_capture_matrix_lock(path: &Path, owner: &str) -> Result<(), String> {
+    let staging = path
+        .parent()
+        .ok_or_else(|| format!("capture matrix lock has no parent: {}", rel(path)))
+        .map(capture_lock_staging)?;
+    fs::create_dir(&staging).map_err(|error| {
+        format!(
+            "cannot create capture matrix lock staging {}: {error}",
+            rel(&staging)
+        )
+    })?;
+    let owner_path = staging.join("owner");
+    let publish_result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&owner_path)
+            .map_err(|error| {
+                format!(
+                    "cannot create capture matrix lock owner {}: {error}",
+                    rel(&owner_path)
+                )
+            })?;
+        file.write_all(owner.as_bytes()).map_err(|error| {
+            format!(
+                "cannot write capture matrix lock owner {}: {error}",
+                rel(&owner_path)
+            )
+        })?;
+        file.sync_all().map_err(|error| {
+            format!(
+                "cannot sync capture matrix lock owner {}: {error}",
+                rel(&owner_path)
+            )
+        })?;
+        Ok(())
+    })();
+    if let Err(error) = publish_result {
+        let _ = remove_capture_lock_staging(&staging);
+        return Err(error);
+    }
+    match fs::symlink_metadata(path) {
+        Ok(_) => {
+            let _ = remove_capture_lock_staging(&staging);
+            return Err("capture matrix lock exists".to_owned());
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            let _ = remove_capture_lock_staging(&staging);
+            return Err(format!(
+                "cannot inspect capture matrix lock {}: {error}",
+                rel(path)
+            ));
+        }
+    }
+    if let Err(error) = fs::rename(&staging, path) {
+        let _ = remove_capture_lock_staging(&staging);
+        if capture_lock_destination_exists(&error) {
+            return Err("capture matrix lock exists".to_owned());
+        }
+        return Err(error.to_string());
+    }
+    Ok(())
+}
+
 fn acquire_capture_matrix_lock(shots: &Path) -> Result<CaptureMatrixLock, String> {
     let path = shots.join(".capture-matrix.lock");
     let owner_path = path.join("owner");
@@ -193,43 +453,17 @@ fn acquire_capture_matrix_lock(shots: &Path) -> Result<CaptureMatrixLock, String
             .map_err(|error| format!("cannot create capture lock owner token: {error}"))?
             .as_nanos()
     );
-    for attempt in 0..2 {
-        match fs::create_dir(&path) {
+    cleanup_orphaned_capture_staging(shots)?;
+    for attempt in 0..3 {
+        match publish_capture_matrix_lock(&path, &owner) {
             Ok(()) => {
-                let mut file = OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open(&owner_path)
-                    .map_err(|error| {
-                        let _ = fs::remove_dir(&path);
-                        format!(
-                            "cannot create capture matrix lock owner {}: {error}",
-                            rel(&owner_path)
-                        )
-                    })?;
-                file.write_all(owner.as_bytes()).map_err(|error| {
-                    let _ = fs::remove_file(&owner_path);
-                    let _ = fs::remove_dir(&path);
-                    format!(
-                        "cannot write capture matrix lock owner {}: {error}",
-                        rel(&owner_path)
-                    )
-                })?;
-                file.sync_all().map_err(|error| {
-                    let _ = fs::remove_file(&owner_path);
-                    let _ = fs::remove_dir(&path);
-                    format!(
-                        "cannot sync capture matrix lock owner {}: {error}",
-                        rel(&owner_path)
-                    )
-                })?;
                 return Ok(CaptureMatrixLock {
                     path,
                     owner_path,
                     owner,
                 });
             }
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists && attempt == 0 => {
+            Err(error) if attempt < 2 && error == "capture matrix lock exists" => {
                 let metadata = fs::symlink_metadata(&path).map_err(|inspect| {
                     format!(
                         "cannot inspect capture matrix lock {}: {inspect}",
@@ -242,24 +476,7 @@ fn acquire_capture_matrix_lock(shots: &Path) -> Result<CaptureMatrixLock, String
                         rel(&path)
                     ));
                 }
-                let owner_metadata = fs::symlink_metadata(&owner_path).map_err(|inspect| {
-                    format!(
-                        "cannot inspect capture matrix lock owner {}: {inspect}",
-                        rel(&owner_path)
-                    )
-                })?;
-                if owner_metadata.file_type().is_symlink() || !owner_metadata.is_file() {
-                    return Err(format!(
-                        "cannot prove capture matrix lock is stale: {}",
-                        rel(&path)
-                    ));
-                }
-                let existing = fs::read_to_string(&owner_path).map_err(|read| {
-                    format!(
-                        "cannot read capture matrix lock owner {}: {read}",
-                        rel(&owner_path)
-                    )
-                })?;
+                let existing = read_capture_lock_owner(&owner_path)?;
                 let Some((pid, _token)) = existing.trim().split_once(':') else {
                     return Err(format!(
                         "capture matrix lock owner is invalid: {}",
@@ -275,18 +492,14 @@ fn acquire_capture_matrix_lock(shots: &Path) -> Result<CaptureMatrixLock, String
                         rel(&path)
                     ));
                 }
-                fs::remove_file(&owner_path).map_err(|remove| {
+                let quarantine = capture_lock_quarantine(&path);
+                fs::rename(&path, &quarantine).map_err(|remove| {
                     format!(
-                        "cannot recover stale capture matrix lock owner {}: {remove}",
-                        rel(&owner_path)
-                    )
-                })?;
-                fs::remove_dir(&path).map_err(|remove| {
-                    format!(
-                        "cannot recover stale capture matrix lock {}: {remove}",
+                        "cannot quarantine stale capture matrix lock {}: {remove}",
                         rel(&path)
                     )
                 })?;
+                remove_capture_lock_directory(&quarantine)?;
             }
             Err(error) => {
                 return Err(format!(
@@ -1270,6 +1483,10 @@ fn capture_script_contract_hits(script: &str) -> Vec<String> {
         ("rollback publication", "backup_dir"),
         ("per-shot lock", "acquire_shot_lock"),
         ("shot lock cleanup", "cleanup_shot_lock_only"),
+        ("guarded shot lock helper", "shot-lock acquire"),
+        ("no-follow shell state reader", "read-state"),
+        ("no-follow shell state writer", "write-state"),
+        ("trusted shell state interpreter", "STATE_PYTHON"),
         ("stale shot lock check", "shot_lock_owner_is_live"),
         ("COLOR dispatch", "case \"$COLOR\" in"),
         ("truecolor branch", "truecolor)"),
@@ -1397,22 +1614,21 @@ fn capture_matrix_contract() -> Result<(), String> {
 
 fn capture_exec_contract_hits(script: &str) -> Vec<String> {
     [
-        ("opaque command execution", "\"$@\" 2>\"$stderr_path\""),
-        (
-            "atomic exit status recording",
-            "printf '%s\\n' \"$rc\" > \"$exit_tmp\"",
-        ),
-        (
-            "atomic exit status publication",
-            "mv -f \"$exit_tmp\" \"$exit_path\"",
-        ),
         (
             "serialized argv execution",
-            "exec python3 \"$ROOT_DIR/tools/capture_provenance.py\" exec",
+            "exec \"$PROVENANCE_PYTHON\" \"$ROOT_DIR/tools/capture_provenance.py\" exec",
         ),
         (
             "serialized metadata argument",
             "--metadata \"$CAPTURE_METADATA_FILE\"",
+        ),
+        (
+            "fixed metadata interpreter",
+            "PROVENANCE_PYTHON=/usr/bin/python3",
+        ),
+        (
+            "legacy argv rejection",
+            "positional argv mode is unsupported",
         ),
     ]
     .into_iter()
@@ -1438,6 +1654,17 @@ fn capture_provenance_contract_hits(script: &str) -> Vec<String> {
             "no inherited execution environment",
             "environment = recorded_environment(metadata)",
         ),
+        ("no-follow JSON reader", "read_regular_text(path"),
+        ("trusted directory walk", "open_trusted_directory"),
+        ("no-follow atomic state writer", "write_json_at"),
+        ("no-follow manifest lock", "open_manifest_lock"),
+        ("guarded shot lock", "command_shot_lock"),
+        ("atomic shot lock publication", "publish_shot_lock"),
+        (
+            "descriptor binary hash",
+            "hash_descriptor(binary_descriptor)",
+        ),
+        ("execution directory pin", "lock_execution_directory"),
     ]
     .into_iter()
     .filter(|(_, fragment)| !script.contains(fragment))
@@ -1445,6 +1672,12 @@ fn capture_provenance_contract_hits(script: &str) -> Vec<String> {
     .chain(
         (script.contains("os.environ.copy()") || script.contains("env=os.environ")).then(|| {
             "capture execution inherits the tmux environment; use the recorded sanitized snapshot"
+                .to_owned()
+        }),
+    )
+    .chain(
+        (script.contains("path.open(") || script.contains("lock_path.open(")).then(|| {
+            "capture provenance reopens check-then-open state paths; use no-follow descriptors"
                 .to_owned()
         }),
     )
@@ -9752,11 +9985,10 @@ captures / classification: `(pending — filled when the change lands)`
         // this assertion proves the unsafe-launch diagnostic itself rather
         // than merely reporting unrelated omissions.
         let unsafe_runner = r#"
-"$@" 2>"$stderr_path"
-printf '%s\n' "$rc" > "$exit_tmp"
-mv -f "$exit_tmp" "$exit_path"
-exec python3 "$ROOT_DIR/tools/capture_provenance.py" exec
+PROVENANCE_PYTHON=/usr/bin/python3
+exec "$PROVENANCE_PYTHON" "$ROOT_DIR/tools/capture_provenance.py" exec
 --metadata "$CAPTURE_METADATA_FILE"
+positional argv mode is unsupported
 "$BIN $ARGS" 2>$stderr_path
 "#;
         let errors = capture_exec_contract_hits(unsafe_runner);
@@ -9771,6 +10003,21 @@ exec python3 "$ROOT_DIR/tools/capture_provenance.py" exec
             1,
             "unsafe launch is the sole defect: {errors:?}"
         );
+    }
+
+    #[test]
+    fn capture_global_run_lock_and_session_namespace_are_contractual() {
+        let script = fs::read_to_string(root().join("tools/capture.sh"))
+            .expect("capture script is readable");
+        for fragment in [
+            "workspace_key=",
+            "SESSION_NAMESPACE=",
+            "CAPTURE_LOCK_DIR=",
+            "acquire_capture_lock",
+            "release_capture_lock",
+        ] {
+            assert!(script.contains(fragment), "capture script lacks {fragment}");
+        }
     }
 
     #[test]
@@ -10020,9 +10267,11 @@ printf 'new-png\n' > "$3"
                     .into_owned()
             })
             .collect();
+        let mut leftovers = leftovers;
+        leftovers.sort_unstable();
         assert_eq!(
             leftovers,
-            vec![case_name],
+            vec![format!(".{case_name}.lock.guard"), case_name.to_owned()],
             "transactional debris remained: {leftovers:?}"
         );
         fs::remove_dir_all(directory).expect("remove isolated rollback fixture");
@@ -10067,11 +10316,57 @@ printf 'new-png\n' > "$3"
         ] {
             fs::write(run_dir.join(name), contents).expect("write concurrent shot state");
         }
-        fs::write(run_dir.join("metadata.json"), b"{}\n").expect("write concurrent metadata");
+        let metadata = run_dir.join("metadata.json");
+        let init = Command::new("/usr/bin/python3")
+            .arg(root().join("tools/capture_provenance.py"))
+            .arg("init")
+            .arg("--metadata")
+            .arg(&metadata)
+            .arg("--run-id")
+            .arg("concurrent-run")
+            .arg("--session")
+            .arg("concurrent-session")
+            .arg("--session-id")
+            .arg("$concurrent-session")
+            .arg("--binary")
+            .arg("/usr/bin/tail")
+            .arg("--revision")
+            .arg("0".repeat(40))
+            .arg("--dirty")
+            .arg("false")
+            .arg("--columns")
+            .arg("80")
+            .arg("--rows")
+            .arg("24")
+            .arg("--capture-dir")
+            .arg(&shots)
+            .arg("--manifest")
+            .arg(directory.join("manifest.json"))
+            .arg("--stderr")
+            .arg(run_dir.join("stderr.log"))
+            .arg("--theme")
+            .arg("junie")
+            .arg("--color")
+            .arg("truecolor")
+            .arg("--env")
+            .arg("COLOR=truecolor")
+            .arg("--argv")
+            .arg("/usr/bin/tail")
+            .output()
+            .expect("initialize concurrent metadata");
+        assert!(init.status.success(), "{init:?}");
         let stale_lock = shots.join(format!(".{case_name}.lock"));
-        fs::create_dir(&stale_lock).expect("create stale shot lock");
-        fs::write(stale_lock.join("owner"), b"999999999:crashed-run\n")
-            .expect("write stale shot owner");
+        let mut stale_process = Command::new("/usr/bin/true")
+            .spawn()
+            .expect("spawn stale shot owner");
+        let stale_pid = stale_process.id();
+        stale_process.wait().expect("reap stale shot owner");
+        fs::create_dir(&stale_lock).expect("create legacy stale shot lock");
+        fs::write(
+            stale_lock.join("owner"),
+            format!("{stale_pid}:crashed-run\n"),
+        )
+        .expect("write stale shot owner");
 
         let write_executable = |path: &Path, contents: &str| {
             fs::write(path, contents).expect("write concurrent fake executable");
@@ -10088,6 +10383,7 @@ case "$1" in
   has-session) exit 0 ;;
   display-message) printf '%s\n' '$concurrent-session' ;;
   display)
+    : > "$CAPTURE_PROVENANCE_READY"
     case "$*" in
       *'#{pane_width}'*) printf '80\n' ;;
       *'#{pane_height}'*) printf '24\n' ;;
@@ -10104,21 +10400,12 @@ esac
 exit 0
 "#,
         );
-        write_executable(
-            &fake_bin.join("python3"),
-            r#"#!/bin/bash
-case "$1" in
-  *ansi2html.py) printf '<html>new</html>\n' > "$3" ;;
-  *capture_provenance.py) printf 'ready\n' > "$CAPTURE_PROVENANCE_READY"; sleep 1 ;;
-esac
-exit 0
-"#,
-        );
         let fake_png = directory.join("fake-png");
         write_executable(
             &fake_png,
             r#"#!/bin/bash
 printf 'new-png\n' > "$3"
+/bin/sleep 1
 "#,
         );
 
@@ -10258,6 +10545,60 @@ printf 'new-png\n' > "$3"
             "recovered lock must be released cleanly"
         );
         fs::remove_dir_all(directory).expect("remove isolated stale lock fixture");
+    }
+
+    #[test]
+    fn capture_matrix_lock_recovers_staging_left_after_killed_creator() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-capture-lock-staging-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).expect("create isolated staging fixture");
+        let shots = directory.join("shots");
+        fs::create_dir(&shots).expect("create staging output directory");
+        let mut killed_creator = Command::new("/usr/bin/true")
+            .spawn()
+            .expect("spawn staging creator");
+        let killed_pid = killed_creator.id();
+        killed_creator.wait().expect("reap staging creator");
+        let orphan = shots.join(format!(
+            ".capture-matrix.lock.tmp.{killed_pid}.killed-after-create-dir"
+        ));
+        fs::create_dir(&orphan).expect("simulate kill after staging create");
+
+        let lock = acquire_capture_matrix_lock(&shots)
+            .expect("an orphaned unpublished staging directory must be recoverable");
+        assert!(!orphan.exists(), "orphaned staging must be reclaimed");
+        assert!(shots.join(".capture-matrix.lock/owner").is_file());
+        drop(lock);
+        fs::remove_dir_all(directory).expect("remove isolated staging fixture");
+    }
+
+    #[test]
+    fn capture_matrix_lock_rejects_ownerless_published_directory() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-capture-lock-ownerless-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).expect("create isolated ownerless fixture");
+        let shots = directory.join("shots");
+        fs::create_dir(&shots).expect("create ownerless output directory");
+        let lock_path = shots.join(".capture-matrix.lock");
+        fs::create_dir(&lock_path).expect("create ownerless published lock");
+
+        let error = acquire_capture_matrix_lock(&shots)
+            .expect_err("an ownerless published lock must fail closed");
+        assert!(error.contains("owner"), "{error}");
+        assert!(lock_path.is_dir(), "ownerless lock must not be deleted");
+        fs::remove_dir_all(directory).expect("remove isolated ownerless fixture");
     }
 
     #[cfg(unix)]
@@ -10430,7 +10771,7 @@ set -eu
     }
 
     #[test]
-    fn capture_runner_preserves_spaced_and_injection_shaped_arguments() {
+    fn capture_runner_rejects_legacy_positional_arguments() {
         let suffix = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock after epoch")
@@ -10440,32 +10781,122 @@ set -eu
             std::process::id()
         ));
         fs::create_dir(&directory).expect("create isolated runner fixture");
-        let stderr = directory.join("stderr");
-        let exit = directory.join("exit");
-        let marker = directory.join("must-not-exist");
-        let shaped = format!("$(touch {})", marker.display());
         let output = Command::new("/bin/bash")
             .arg(root().join("tools/capture_exec.sh"))
-            .arg(&stderr)
-            .arg(&exit)
             .arg("/usr/bin/printf")
             .arg("%s\\n")
             .arg("argument with spaces")
-            .arg(&shaped)
             .output()
             .expect("run capture runner fixture");
-        assert!(output.status.success(), "{output:?}");
-        assert_eq!(
-            String::from_utf8_lossy(&output.stdout),
-            format!("argument with spaces\n{shaped}\n")
+        assert!(
+            !output.status.success(),
+            "legacy argv mode must be rejected"
         );
-        assert_eq!(fs::read_to_string(&exit).expect("exit state"), "0\n");
-        assert!(!marker.exists(), "injection-shaped argv was evaluated");
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("positional argv mode is unsupported"),
+            "{output:?}"
+        );
         fs::remove_dir_all(directory).expect("remove isolated runner fixture");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn capture_shell_state_reader_rejects_a_replaced_symlink() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-capture-state-symlink-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).expect("create isolated shell state fixture");
+        let shots = directory.join("shots");
+        let state_root = directory.join("state");
+        let run_dir = state_root.join("state-run");
+        fs::create_dir(&shots).expect("create shell state output directory");
+        fs::create_dir_all(&run_dir).expect("create shell state run directory");
+        let target = directory.join("state-target");
+        fs::write(&target, b"/usr/bin/tail\n").expect("write state target");
+        symlink(&target, run_dir.join("bin")).expect("create state symlink");
+        fs::write(run_dir.join("metadata.json"), b"{}\n").expect("write shell state metadata");
+
+        let output = Command::new("/bin/bash")
+            .arg(root().join("tools/capture.sh"))
+            .arg("shot")
+            .arg("state")
+            .current_dir(root())
+            .env("BIN", "/usr/bin/tail")
+            .env("CAPTURE_RUN_ID", "state-run")
+            .env("CAPTURE_DIR", &shots)
+            .env("CAPTURE_MANIFEST", directory.join("manifest.json"))
+            .env("CAPTURE_STATE_DIR", &state_root)
+            .output()
+            .expect("run shell state symlink fixture");
+        assert!(!output.status.success(), "a state symlink must fail closed");
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("binary state is missing or unsafe"),
+            "unexpected state symlink error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            fs::read(&target).expect("read untouched state target"),
+            b"/usr/bin/tail\n"
+        );
+        fs::remove_dir_all(directory).expect("remove isolated shell state fixture");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn capture_provenance_rejects_symlinked_parent_directories() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-capture-parent-symlink-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).expect("create isolated parent fixture");
+        let real = directory.join("real");
+        let alias = directory.join("alias");
+        fs::create_dir(&real).expect("create trusted parent fixture");
+        symlink(&real, &alias).expect("create parent symlink");
+        let state = real.join("state");
+        fs::write(&state, b"untouched\n").expect("write state fixture");
+
+        let read = Command::new("/usr/bin/python3")
+            .arg(root().join("tools/capture_provenance.py"))
+            .arg("read-state")
+            .arg("--path")
+            .arg(alias.join("state"))
+            .output()
+            .expect("run parent state reader fixture");
+        assert!(!read.status.success(), "state parent symlink must fail");
+        let write = Command::new("/usr/bin/python3")
+            .arg(root().join("tools/capture_provenance.py"))
+            .arg("write-state")
+            .arg("--path")
+            .arg(alias.join("state"))
+            .arg("--value")
+            .arg("redirected")
+            .output()
+            .expect("run parent state writer fixture");
+        assert!(
+            !write.status.success(),
+            "state writer parent symlink must fail"
+        );
+        assert_eq!(
+            fs::read(&state).expect("read untouched state"),
+            b"untouched\n"
+        );
+        fs::remove_dir_all(directory).expect("remove isolated parent fixture");
     }
 
     #[test]
     fn capture_tmux_entrypoint_executes_serialized_argv_without_shell_interpretation() {
+        use std::os::unix::fs::PermissionsExt;
+
         let suffix = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock after epoch")
@@ -10475,11 +10906,33 @@ set -eu
             std::process::id()
         ));
         fs::create_dir(&directory).expect("create isolated serialized runner fixture");
-        let metadata = directory.join("metadata.json");
-        let stderr = directory.join("stderr");
-        let exit = directory.join("exit.status");
+        let run_dir = directory.join("run");
+        fs::create_dir(&run_dir).expect("create serialized run directory");
+        let metadata = run_dir.join("metadata.json");
+        let stderr = run_dir.join("stderr");
+        let exit = run_dir.join("exit.status");
+        let executable = run_dir.join("executable");
+        let source = directory.join("source-runner");
+        fs::write(&source, b"#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
+            .expect("write serialized runner source");
+        let mut source_permissions = fs::metadata(&source)
+            .expect("inspect serialized runner source")
+            .permissions();
+        source_permissions.set_mode(0o700);
+        fs::set_permissions(&source, source_permissions)
+            .expect("make serialized source executable");
         let marker = directory.join("must-not-exist");
         let shaped = format!("$(touch {})", marker.display());
+        let stage = Command::new("python3")
+            .arg(root().join("tools/capture_provenance.py"))
+            .arg("stage-binary")
+            .arg("--source")
+            .arg(&source)
+            .arg("--destination")
+            .arg(&executable)
+            .output()
+            .expect("stage serialized runner executable");
+        assert!(stage.status.success(), "{stage:?}");
         let init = Command::new("python3")
             .arg(root().join("tools/capture_provenance.py"))
             .arg("init")
@@ -10492,7 +10945,7 @@ set -eu
             .arg("--session-id")
             .arg("$serialized")
             .arg("--binary")
-            .arg("/usr/bin/printf")
+            .arg(&executable)
             .arg("--revision")
             .arg("0".repeat(40))
             .arg("--dirty")
@@ -10514,7 +10967,7 @@ set -eu
             .arg("--env")
             .arg("COLOR=truecolor")
             .arg("--argv")
-            .arg("/usr/bin/printf")
+            .arg(&executable)
             .arg("%s\\n")
             .arg("argument with spaces")
             .arg(&shaped)
@@ -10534,7 +10987,7 @@ set -eu
         assert!(output.status.success(), "{output:?}");
         assert_eq!(
             String::from_utf8_lossy(&output.stdout),
-            format!("argument with spaces\n{shaped}\n")
+            format!("%s\\n\nargument with spaces\n{shaped}\n")
         );
         assert_eq!(
             fs::read_to_string(&exit).expect("serialized exit state"),
