@@ -698,7 +698,7 @@ pub fn fixture_workspace() -> Workspace {
     workspace
         .accounts
         .preferred
-        .insert(Provider::Anthropic, "anthropic-work".into());
+        .insert(Provider::Anthropic, "acct-claude-work".into());
     workspace
         .accounts
         .preferred

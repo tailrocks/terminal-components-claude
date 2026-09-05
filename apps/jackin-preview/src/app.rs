@@ -89,42 +89,41 @@ const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list
 const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
 const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
-const CMD_QUIT: ActionKey = ActionKey::custom("jackin.quit");
-const CMD_MANAGER: ActionKey = ActionKey::custom("jackin.manager");
-const CMD_ACCOUNTS: ActionKey = ActionKey::custom("jackin.accounts");
-const CMD_USAGE: ActionKey = ActionKey::custom("jackin.usage");
-const CMD_SETTINGS: ActionKey = ActionKey::custom("jackin.settings");
-const CMD_CAPSULE: ActionKey = ActionKey::custom("jackin.capsule");
-const CMD_NEW_WORKSPACE: ActionKey = ActionKey::custom("jackin.new-workspace");
-const CMD_EDITOR_NEXT: ActionKey = ActionKey::custom("jackin.editor.next-tab");
-const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::custom("jackin.editor.previous-tab");
-const CMD_EDITOR_ENV: ActionKey = ActionKey::custom("jackin.editor.environments");
-const CMD_SAVE: ActionKey = ActionKey::custom("jackin.save");
-const CMD_MANAGER_EXPAND: ActionKey = ActionKey::custom("jackin.manager.expand");
-const CMD_EDITOR_OPEN: ActionKey = ActionKey::custom("jackin.editor.open");
-const CMD_EDITOR_ROLES: ActionKey = ActionKey::custom("jackin.editor.roles");
-const CMD_EDITOR_ACCOUNTS: ActionKey = ActionKey::custom("jackin.editor.accounts");
-const CMD_EDITOR_PREFER: ActionKey = ActionKey::custom("jackin.editor.prefer");
-const CMD_SETTINGS_TRUST_KEY: ActionKey = ActionKey::custom("jackin.settings.trust-key");
-const CMD_USAGE_NEXT: ActionKey = ActionKey::custom("jackin.usage.next");
-const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::custom("jackin.capsule.prefix");
-const CMD_CAPSULE_DETACH: ActionKey = ActionKey::custom("jackin.capsule.detach");
-const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::custom("jackin.capsule.split-right");
-const CMD_CAPSULE_SPLIT_BELOW: ActionKey = ActionKey::custom("jackin.capsule.split-below");
-const CMD_CAPSULE_ZOOM: ActionKey = ActionKey::custom("jackin.capsule.zoom");
-const CMD_CAPSULE_FOCUS_LEFT: ActionKey = ActionKey::custom("jackin.capsule.focus-left");
-const CMD_CAPSULE_PALETTE: ActionKey = ActionKey::custom("jackin.capsule.palette");
-const CMD_EXIT_DIALOG: ActionKey = ActionKey::custom("jackin.exit.dialog");
-const CMD_EXIT_CONFIRM: ActionKey = ActionKey::custom("jackin.exit.confirm");
-const CMD_PRELUDE_BACKSPACE: ActionKey = ActionKey::custom("jackin.prelude.backspace");
-const CMD_PRELUDE_DOWN: ActionKey = ActionKey::custom("jackin.prelude.down");
-const CMD_PRELUDE_SPACE: ActionKey = ActionKey::custom("jackin.prelude.space");
-const CMD_ACCOUNT_DOWN: ActionKey = ActionKey::custom("jackin.account.down");
-const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::custom("jackin.account.refresh");
-const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::custom("jackin.account.validate");
-const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::custom("jackin.account.remove");
-const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::custom("jackin.account.default");
-const CMD_ACCOUNT_HELP: ActionKey = ActionKey::custom("jackin.account.help");
+const CMD_QUIT: ActionKey = ActionKey::application("jackin.quit");
+const CMD_MANAGER: ActionKey = ActionKey::application("jackin.manager");
+const CMD_ACCOUNTS: ActionKey = ActionKey::application("jackin.accounts");
+const CMD_USAGE: ActionKey = ActionKey::application("jackin.usage");
+const CMD_SETTINGS: ActionKey = ActionKey::application("jackin.settings");
+const CMD_CAPSULE: ActionKey = ActionKey::application("jackin.capsule");
+const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
+const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
+const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
+const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
+const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
+const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
+const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
+const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
+const CMD_EDITOR_ACCOUNTS: ActionKey = ActionKey::application("jackin.editor.accounts");
+const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
+const CMD_USAGE_NEXT: ActionKey = ActionKey::application("jackin.usage.next");
+const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
+const CMD_CAPSULE_DETACH: ActionKey = ActionKey::application("jackin.capsule.detach");
+const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::application("jackin.capsule.split-right");
+const CMD_CAPSULE_SPLIT_BELOW: ActionKey = ActionKey::application("jackin.capsule.split-below");
+const CMD_CAPSULE_ZOOM: ActionKey = ActionKey::application("jackin.capsule.zoom");
+const CMD_CAPSULE_FOCUS_LEFT: ActionKey = ActionKey::application("jackin.capsule.focus-left");
+const CMD_CAPSULE_PALETTE: ActionKey = ActionKey::application("jackin.capsule.palette");
+const CMD_EXIT_DIALOG: ActionKey = ActionKey::application("jackin.exit.dialog");
+const CMD_EXIT_CONFIRM: ActionKey = ActionKey::application("jackin.exit.confirm");
+const CMD_PRELUDE_BACKSPACE: ActionKey = ActionKey::application("jackin.prelude.backspace");
+const CMD_PRELUDE_DOWN: ActionKey = ActionKey::application("jackin.prelude.down");
+const CMD_PRELUDE_SPACE: ActionKey = ActionKey::application("jackin.prelude.space");
+const CMD_ACCOUNT_DOWN: ActionKey = ActionKey::application("jackin.account.down");
+const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::application("jackin.account.refresh");
+const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::application("jackin.account.validate");
+const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.remove");
+const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
+const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 /// The visible product route.
@@ -330,6 +329,8 @@ pub struct App {
     pending_capsule_action: Option<CapsuleAction>,
     capsule_interaction: CapsuleInteraction,
     editor_accounts: ListState,
+    editor_role_picker: bool,
+    editor_env_role: Option<String>,
     usage_list: ListState,
     active_instance: Option<String>,
     launch_agent: Agent,
@@ -465,6 +466,8 @@ impl App {
             pending_capsule_action: None,
             capsule_interaction: CapsuleInteraction::default(),
             editor_accounts: ListState::default(),
+            editor_role_picker: false,
+            editor_env_role: None,
             usage_list: ListState::default(),
             active_instance: None,
             launch_agent: Agent::ClaudeCode,
@@ -843,31 +846,38 @@ impl App {
     }
 
     fn editor_account_rows(&self) -> Vec<String> {
-        self.editor
-            .pending
-            .effective_accounts(&self.world.accounts)
+        let effective = self.editor.pending.effective_accounts(&self.world.accounts);
+        self.world
+            .accounts
+            .sorted()
             .into_iter()
             .map(|account| {
-                format!(
-                    "{} · {}",
-                    self.world
-                        .accounts
-                        .get(&account.id)
-                        .map_or_else(|| account.id.clone(), Account::title),
-                    if account.preferred {
-                        "preferred"
-                    } else {
-                        "active for this Workspace"
-                    }
-                )
+                let state = effective
+                    .iter()
+                    .find(|entry| entry.id == account.id)
+                    .map_or_else(
+                        || "disabled here".to_owned(),
+                        |entry| {
+                            format!(
+                                "{} · {}",
+                                entry.origin.label(),
+                                if entry.preferred {
+                                    "preferred"
+                                } else {
+                                    "active for this Workspace"
+                                }
+                            )
+                        },
+                    );
+                format!("{} · {state}", account.title())
             })
             .collect()
     }
 
     fn editor_account_id(&self, index: usize) -> Option<String> {
-        self.editor
-            .pending
-            .effective_accounts(&self.world.accounts)
+        self.world
+            .accounts
+            .sorted()
             .get(index)
             .map(|account| account.id.clone())
     }
@@ -904,6 +914,14 @@ impl App {
 
     fn open_role_picker(&mut self, cx: &mut Cx<'_>) {
         let picker = Self::role_picker();
+        let spec = picker.layer(cx, &self.roles);
+        cx.open_layer(ROLE_PICKER, spec);
+    }
+
+    fn open_editor_role_picker(&mut self, cx: &mut Cx<'_>) {
+        self.editor_role_picker = true;
+        self.role_state = PickerState::default();
+        let picker = Picker::new(ROLE_PICKER).title("Add role override");
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
     }
@@ -1243,7 +1261,19 @@ impl App {
                 .iter()
                 .position(|role| ItemKey::text(&role.key) == key)
         {
-            self.selected_role = index;
+            if self.editor_role_picker {
+                let role = self.roles[index].key.rsplit_once('/').map_or_else(
+                    || self.roles[index].key.clone(),
+                    |(_, name)| name.to_owned(),
+                );
+                self.editor_role_picker = false;
+                self.editor_env_role = Some(role.clone());
+                self.editor.open_env_form();
+                cx.focus(crate::screens::editor::ENV_KEY);
+                self.status = Some(format!("Add role override · {role}"));
+            } else {
+                self.selected_role = index;
+            }
             cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
             result |= Response::changed();
         }
@@ -1754,6 +1784,20 @@ impl App {
         });
     }
 
+    fn commit_editor_save(&mut self) {
+        self.editor.close_preview();
+        self.editor.mark_saved();
+        self.world.saved = true;
+        let id = self
+            .world
+            .workspaces
+            .first()
+            .map_or(1, |workspace| workspace.id);
+        self.world
+            .schedule(200, crate::sim::world::Msg::WorkspaceSaved { id, ok: true });
+        self.status = Some("Saving workspace…".into());
+    }
+
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let button = Self::settings_trust_button(self.trusted).update(cx);
         let chosen = button.activated();
@@ -1892,12 +1936,21 @@ impl App {
                 } else {
                     let status = format!("Added environment variable {key}");
                     let value = self.editor.take_env_value();
-                    self.editor.pending.env.push(EnvVar {
-                        key,
-                        value: EnvValue::Plain(value),
-                    });
+                    if let Some(role) = self.editor_env_role.take() {
+                        if let Err(error) =
+                            self.editor.pending.add_role_environment(role, &key, value)
+                        {
+                            self.status = Some(error);
+                            return result;
+                        }
+                    } else {
+                        self.editor.pending.env.push(EnvVar {
+                            key,
+                            value: EnvValue::Plain(value),
+                        });
+                    }
                     self.editor.clear_env_form();
-                    self.editor.dirty = true;
+                    self.editor.mark_dirty();
                     self.status = Some(status);
                     result |= Response::changed();
                 }
@@ -1983,7 +2036,16 @@ impl App {
                     }
                 }
             }
-            EditorTab::Environments | EditorTab::General => {}
+            EditorTab::Environments => {
+                let load = Button::new(EDITOR_ROLE_LOAD, "+ Add role override…").update(cx);
+                let chosen = load.activated();
+                result |= load.erase();
+                if chosen {
+                    self.open_editor_role_picker(cx);
+                    result |= Response::changed();
+                }
+            }
+            EditorTab::General => {}
         }
 
         let save = Self::editor_save_button().update(cx);
@@ -1993,24 +2055,17 @@ impl App {
         let confirm_chosen = confirm.activated();
         result |= confirm.erase();
         if save_chosen {
-            if self.editor.open_preview() {
+            if self.editor.preview_open {
+                self.commit_editor_save();
+                result |= Response::changed();
+            } else if self.editor.open_preview() {
                 cx.focus(EDITOR_SAVE_CONFIRM);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 result |= Response::changed();
             }
         }
         if confirm_chosen && self.editor.preview_open {
-            self.editor.close_preview();
-            self.editor.mark_saved();
-            self.world.saved = true;
-            let id = self
-                .world
-                .workspaces
-                .first()
-                .map_or(1, |workspace| workspace.id);
-            self.world
-                .schedule(200, crate::sim::world::Msg::WorkspaceSaved { id, ok: true });
-            self.status = Some("Saving workspace…".into());
+            self.commit_editor_save();
             result |= Response::changed();
         }
         result
@@ -2195,6 +2250,7 @@ impl App {
                 if self.route == Route::Editor
                     && self.editor.tab == crate::screens::editor::Tab::Environments =>
             {
+                self.editor_env_role = None;
                 self.editor.open_env_form();
                 cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
@@ -2293,10 +2349,6 @@ impl App {
                 self.settings.clear_error();
                 Some(Response::changed())
             }
-            CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
-                cx.focus(SETTINGS_TRUST);
-                Some(Response::changed())
-            }
             CMD_CAPSULE => {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
@@ -2321,11 +2373,24 @@ impl App {
                 self.route = Route::Editor;
                 if let Some(workspace) = self.world.workspaces.first() {
                     self.editor.load_workspace(workspace);
+                    // Hard-case fixtures exercise the scoped override list;
+                    // retain its existing backend override even when the
+                    // persisted fixture has no role-local environment rows.
+                    if self.world.scenario == Scenario::HardCases
+                        && self.editor.pending.role_env.is_empty()
+                    {
+                        self.editor.pending.role_env.insert(
+                            "backend".into(),
+                            vec![EnvVar::plain("BACKEND_MODE", "staging")],
+                        );
+                    }
                 } else {
                     self.editor = EditorState::default();
                 }
                 self.editor.select_alias(1);
                 self.editor_accounts = ListState::default();
+                self.editor_role_picker = false;
+                self.editor_env_role = None;
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -2505,10 +2570,21 @@ impl App {
                 self.prelude = PreludeState::default();
                 Some(Response::changed())
             }
+            CMD_NEW_WORKSPACE
+                if self.route == Route::Editor
+                    && self.editor.tab == EditorTab::Environments
+                    && !self.editor.env_form_open =>
+            {
+                cx.focus(EDITOR_ROLE_LOAD);
+                Some(Response::changed())
+            }
             CMD_EDITOR_NEXT if self.route == Route::Editor => {
-                let before = self.editor.tab;
-                self.editor.next_tab();
-                self.status = Some(format!("editor-tab {before:?}->{:?}", self.editor.tab));
+                // Focus settling replays the command.  Mutate the durable
+                // tab only on the input pass; settle passes only keep focus
+                // on the selected tab control.
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.next_tab();
+                }
                 match self.editor.tab {
                     EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
                     EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
@@ -2518,12 +2594,16 @@ impl App {
                 Some(Response::changed())
             }
             CMD_EDITOR_ENV if self.route == Route::Editor => {
-                self.editor.select_alias(4);
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(4);
+                }
                 cx.focus(crate::screens::editor::ENV_KEY);
                 Some(Response::changed())
             }
             CMD_EDITOR_PREVIOUS if self.route == Route::Editor => {
-                self.editor.previous_tab();
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.previous_tab();
+                }
                 match self.editor.tab {
                     EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
                     EditorTab::Roles => cx.focus(EDITOR_ROLE_EDIT),
@@ -2533,12 +2613,20 @@ impl App {
                 Some(Response::changed())
             }
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
-                self.editor.select_alias(3);
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(3);
+                }
                 cx.focus(EDITOR_ROLE_EDIT);
                 Some(Response::changed())
             }
+            CMD_EDITOR_ACCOUNTS if self.route == Route::Settings => {
+                cx.focus(SETTINGS_TRUST);
+                Some(Response::changed())
+            }
             CMD_EDITOR_ACCOUNTS if self.route == Route::Editor => {
-                self.editor.select_alias(5);
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(5);
+                }
                 cx.focus(EDITOR_ACCOUNTS_LIST);
                 Some(Response::changed())
             }
@@ -2560,6 +2648,10 @@ impl App {
                         Err(error) => self.status = Some(error),
                     }
                 }
+                Some(Response::changed())
+            }
+            CMD_PRELUDE_DOWN if self.route == Route::Usage => {
+                self.usage.next_tab();
                 Some(Response::changed())
             }
             CMD_SAVE if self.route == Route::Editor => {
@@ -2600,26 +2692,31 @@ impl App {
         for message in messages {
             match message {
                 crate::sim::world::Msg::WorkspaceSaved { id, ok } => {
+                    let workspace_label = self
+                        .world
+                        .workspace(id)
+                        .map_or_else(|| id.to_string(), |workspace| workspace.name.clone());
                     self.status = Some(if ok {
-                        format!("Workspace {id} saved")
+                        format!("Workspace {workspace_label} saved")
                     } else {
-                        format!("Workspace {id} save failed")
+                        format!("Workspace {workspace_label} save failed")
                     });
                     if ok && self.route == Route::Editor {
+                        let pending = self.editor.pending.clone();
                         if let Some(workspace) = self
                             .world
                             .workspaces
                             .iter_mut()
                             .find(|workspace| workspace.id == id)
                         {
-                            workspace.env = mem::take(&mut self.editor.pending.env);
+                            pending.apply_to(workspace);
                         } else {
                             let mut workspace = crate::domain::workspace::Workspace::new(
                                 id,
                                 self.prelude.name(),
                                 "/Users/alexey/src/new-workspace",
                             );
-                            workspace.env = mem::take(&mut self.editor.pending.env);
+                            pending.apply_to(&mut workspace);
                             self.world.workspaces.push(workspace);
                         }
                         self.manager_rows_cache.clear();
@@ -2827,10 +2924,14 @@ impl App {
             crate::screens::editor::Tab::Accounts => "Accounts",
         };
         if self.editor.env_form_open {
+            let heading = self.editor_env_role.as_deref().map_or_else(
+                || "New workspace environment key".to_owned(),
+                |role| format!("New {role} environment key"),
+            );
             paint_lines(
                 ui,
                 area,
-                &["New workspace environment key", "Key · source · value"],
+                &[heading, "Key · source · value".to_owned()],
             );
             Self::editor_env_key_input()
                 .value(&self.editor.env_key)
@@ -2874,8 +2975,34 @@ impl App {
                 };
                 lines.push(format!("{} · {value} · {source}", env.key));
             }
+            lines.push(format!(
+                "Role overrides · {} configured · {} in registry",
+                self.editor.pending.configured_role_count(),
+                self.world.roles.len()
+            ));
+            for (role, envs) in &self.editor.pending.role_env {
+                if envs.is_empty() {
+                    continue;
+                }
+                lines.push(format!("Role: {role}"));
+                for env in envs {
+                    let (value, source): (String, &str) = match &env.value {
+                        EnvValue::Plain(value) => (mask(value), "plain"),
+                        EnvValue::OnePassword(reference) => {
+                            (reference.display_path(), "1Password")
+                        }
+                        EnvValue::HostEnv(host) => (host.clone(), "host env"),
+                    };
+                    lines.push(format!("{} · {value} · {source}", env.key));
+                }
+            }
+            lines.push("+ Add role override…".to_owned());
             lines.push("m plain values stay masked · a add variable".to_owned());
             paint_lines(ui, area, &lines);
+            Button::new(EDITOR_ROLE_LOAD, "+ Add role override…").draw(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(2), 24, 1),
+            );
             Self::editor_save_button().draw(
                 ui,
                 Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
@@ -2884,6 +3011,15 @@ impl App {
         }
         if self.editor.tab == EditorTab::Mounts {
             let mount = self.editor.pending.mounts.first();
+            let heading = format!(
+                "{}{} › edit · Mounts",
+                if self.editor.dirty {
+                    "• 1 change · "
+                } else {
+                    ""
+                },
+                workspace
+            );
             let mount_line = mount.map_or_else(
                 || "Mounts · none".to_owned(),
                 |mount| {
@@ -2903,7 +3039,7 @@ impl App {
                 ui,
                 area,
                 &[
-                    workspace.to_owned(),
+                    heading,
                     mount_line,
                     "Mount source · workspace".into(),
                     if self.editor.dirty {
@@ -3218,7 +3354,15 @@ impl App {
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
         let summary = crate::domain::usage::OverallSummary::compute(&self.world.accounts.accounts);
+        let tab = match self.usage.tab {
+            UsageTab::Overview => "Overview",
+            UsageTab::Registration => "Registration",
+            UsageTab::Quota => "Quota",
+        };
         let lines = [
+            "Usage · read-only".to_owned(),
+            tab.to_owned(),
+            "Limits".to_owned(),
             format!("Health · {}", summary.health.label()),
             format!(
                 "Accounts · {} total · {} enabled · {} disabled",
@@ -3238,7 +3382,11 @@ impl App {
 
     fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
         let lines = [
-            "Runtime mode · Sync host credentials",
+            if self.settings.dirty {
+                "• 1 change · Runtime mode · Sync host credentials"
+            } else {
+                "Runtime mode · Sync host credentials"
+            },
             "Workspace · payments-platform",
             "DCO signoff · enabled",
             "Secret policy · references only; resolved bytes are transient",
@@ -3247,12 +3395,26 @@ impl App {
         Self::settings_trust_button(self.trusted).draw(
             ui,
             Rect {
-                y: area.bottom().saturating_sub(1),
+                y: area.bottom().saturating_sub(3),
                 width: area.width.min(30),
                 height: 1,
                 ..area
             },
         );
+        Button::new(crate::screens::settings::SAVE, "Save settings").draw(
+            ui,
+            Rect::new(area.x, area.bottom().saturating_sub(2), 18, 1),
+        );
+        if self
+            .status
+            .as_deref()
+            .is_some_and(|status| status.starts_with("Save settings"))
+        {
+            Self::settings_save_confirm_button().draw(
+                ui,
+                Rect::new(area.x.saturating_add(20), area.bottom().saturating_sub(2), 18, 1),
+            );
+        }
     }
 
     fn draw_launch(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -3494,7 +3656,11 @@ impl App {
                 Button::new(ROLE_CHOOSE, self.selected_role()).draw(ui, body)
             })
         });
-        let role_picker = Self::role_picker();
+        let role_picker = if self.editor_role_picker {
+            Picker::new(ROLE_PICKER).title("Add role override")
+        } else {
+            Self::role_picker()
+        };
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
@@ -3675,6 +3841,19 @@ impl TuiApp for App {
             } else {
                 self.route = Route::Manager;
             }
+            return Response::changed();
+        }
+        if self.route == Route::Settings {
+            if self.settings.save_error.is_some() {
+                self.settings.clear_error();
+                self.status = None;
+                return Response::changed();
+            }
+            if self.settings.dirty {
+                self.status = Some("Save settings before leaving?".into());
+                return Response::changed();
+            }
+            self.route = Route::Manager;
             return Response::changed();
         }
         if self.route == Route::Manager {
