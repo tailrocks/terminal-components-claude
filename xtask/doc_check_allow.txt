@@ -32,6 +32,7 @@ Harness::click_id
 Harness::handle
 Harness::new
 Harness::resolved
+Harness::records
 ManagerScreen::apply_msg
 Probes::draw
 Probes::update
