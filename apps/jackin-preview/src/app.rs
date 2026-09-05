@@ -9,7 +9,8 @@ use junie_tui::{
     ActionKey, App as TuiApp, AsItem, Button, Chord, Cx, Dialog, DialogAction, DialogState,
     FrameRead, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
     ListAction, ListState, Panel, Picker, PickerAction, PickerState, Rect, Response, SecretPolicy,
-    Tabs, TabsState, TextAction, TextInput, TextInputState, TooSmall, Ui, UpdateCause, Variant,
+    Position, Tabs, TabsState, TextAction, TextInput, TextInputState, TooSmall, Ui, UpdateCause,
+    Variant,
 };
 
 use crate::domain::account::{
@@ -17,7 +18,7 @@ use crate::domain::account::{
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
-use crate::domain::workspace::{EnvValue, EnvVar, env_key_error, mask};
+use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
 use crate::rain::{
     HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
 };
@@ -35,7 +36,7 @@ use crate::screens::{
     settings::SettingsState,
     usage::{Tab as UsageTab, UsageState},
 };
-use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun, Stage};
+use crate::sim::launch::{BUILD_LOG, LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::provider;
 use crate::sim::pty::{Daemon, SplitDir};
 use crate::sim::world::{World, world_for};
@@ -104,8 +105,10 @@ const CMD_SAVE: ActionKey = ActionKey::custom("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::custom("jackin.manager.expand");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::custom("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::custom("jackin.editor.roles");
+const CMD_EDITOR_ACCOUNTS: ActionKey = ActionKey::custom("jackin.editor.accounts");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::custom("jackin.editor.prefer");
 const CMD_NAV_DOWN: ActionKey = ActionKey::custom("jackin.navigation.down");
+const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::custom("jackin.navigation.tab-five");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::custom("jackin.capsule.prefix");
 const CMD_CAPSULE_DETACH: ActionKey = ActionKey::custom("jackin.capsule.detach");
 const CMD_CAPSULE_SPLIT_RIGHT: ActionKey = ActionKey::custom("jackin.capsule.split-right");
@@ -123,6 +126,7 @@ const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::custom("jackin.account.valida
 const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::custom("jackin.account.remove");
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::custom("jackin.account.default");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::custom("jackin.account.help");
+const CMD_COCKPIT_LOG: ActionKey = ActionKey::custom("jackin.cockpit.build-log");
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 /// The visible product route.
@@ -639,8 +643,31 @@ impl App {
         Button::new(crate::screens::editor::SAVE, "Save workspace").variant(Variant::PRIMARY)
     }
 
-    fn editor_save_confirm_button() -> Button<'static> {
-        Button::new(EDITOR_SAVE_CONFIRM, "Apply changes").variant(Variant::PRIMARY)
+    fn editor_save_confirm_button(create: bool) -> Button<'static> {
+        Button::new(
+            EDITOR_SAVE_CONFIRM,
+            if create {
+                "Create workspace"
+            } else {
+                "Apply changes"
+            },
+        )
+        .variant(Variant::PRIMARY)
+    }
+
+    fn draw_editor_save_footer(&self, ui: &mut Ui<'_>, area: Rect) {
+        let label = if self.editor.preview_open {
+            if self.world.workspaces.is_empty() {
+                "Create workspace"
+            } else {
+                "Apply changes"
+            }
+        } else {
+            "Save workspace"
+        };
+        Button::new(crate::screens::editor::SAVE, label)
+            .variant(Variant::PRIMARY)
+            .draw(ui, area);
     }
 
     fn settings_save_confirm_button() -> Button<'static> {
@@ -977,6 +1004,10 @@ impl App {
     }
 
     fn apply_capsule_action(&mut self, action: CapsuleAction, account: AccountOption) {
+        eprintln!(
+            "DEBUG apply capsule action {action:?} account={} ({})",
+            account.key, account.label
+        );
         let Some(instance_id) = self
             .world
             .instances
@@ -1150,7 +1181,18 @@ impl App {
         }
         let now_ms = self.world.now_ms();
         let now_secs = self.world.now_secs();
-        let snapshot = crate::domain::fixtures::live_capsule();
+        // A fresh launch starts one session.  The richer two-tab snapshot is
+        // reserved for reconnecting to an already-running Capsule.
+        let snapshot = match crate::domain::fixtures::live_capsule() {
+            DaemonSnapshot::Tabs(mut tabs) => {
+                tabs.truncate(1);
+                if let Some(tab) = tabs.first_mut() {
+                    tab.panes.truncate(1);
+                }
+                DaemonSnapshot::Tabs(tabs)
+            }
+            snapshot => snapshot,
+        };
         let mut daemon = Daemon::from_snapshot(&snapshot, &container, now_ms);
         if let Some(account) = accounts.first().cloned()
             && let Some(pane) = daemon
@@ -1396,6 +1438,12 @@ impl App {
                     }
                 },
                 Some(PickerMode::Capsule) => {
+                    eprintln!(
+                        "DEBUG capsule picker chosen cause={:?} cursor={:?} account={}",
+                        cx.update_cause(),
+                        self.account_state.cursor(),
+                        account.key
+                    );
                     if let Some(action) = self.pending_capsule_action.take() {
                         self.apply_capsule_action(action, account);
                     }
@@ -1481,6 +1529,13 @@ impl App {
                     self.route = Route::Capsule;
                     self.capsule_interaction.focus_pane();
                     self.sync_capsule_projection();
+                } else if matches!(
+                    self.manager.selected_row(),
+                    ManagerRowKey::Workspace(_)
+                        | ManagerRowKey::CurrentDirectory
+                        | ManagerRowKey::NewWorkspace
+                ) {
+                    self.open_agent_picker(cx);
                 }
                 result |= Response::changed();
             }
@@ -1978,7 +2033,11 @@ impl App {
             }
 
             let save = Self::editor_save_button().update(cx);
-            let save_chosen = save.activated();
+            let raw_save_chosen = save.activated();
+            let save_chosen = raw_save_chosen
+                && cx
+                    .state(crate::screens::editor::SAVE)
+                    .contains(junie_tui::StateFlags::FOCUSED);
             result |= save.erase();
             if save_chosen {
                 let key = self.editor.env_key.trim().to_owned();
@@ -2070,10 +2129,16 @@ impl App {
         }
 
         let save = Self::editor_save_button().update(cx);
-        let save_chosen = save.activated();
+        let save_chosen = save.activated()
+            && cx
+                .state(crate::screens::editor::SAVE)
+                .contains(junie_tui::StateFlags::FOCUSED);
         result |= save.erase();
-        let confirm = Self::editor_save_confirm_button().update(cx);
-        let confirm_chosen = confirm.activated();
+        let confirm = Self::editor_save_confirm_button(self.world.workspaces.is_empty()).update(cx);
+        let confirm_chosen = confirm.activated()
+            && cx
+                .state(EDITOR_SAVE_CONFIRM)
+                .contains(junie_tui::StateFlags::FOCUSED);
         result |= confirm.erase();
         if save_chosen {
             if self.editor.preview_open {
@@ -2180,6 +2245,11 @@ impl App {
     }
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        // Prefix commands own the next key. Do not let the focused command
+        // input consume it before the bubble action can dispatch.
+        if self.capsule_prefix {
+            return Response::ignored();
+        }
         if !self.capsule_input_state.is_editing() {
             cx.focus(CAPSULE_INPUT);
         }
@@ -2191,7 +2261,8 @@ impl App {
         let committed = input
             .action_ref()
             .is_some_and(|action| *action == TextAction::Committed);
-        let mut result = input.erase();
+        let mut result = self.update_capsule_pointer(cx);
+        result |= input.erase();
         let prefix_key = self
             .capsule_prefix
             .then(|| self.capsule_input_state.draft_text())
@@ -2202,7 +2273,10 @@ impl App {
             result |= self.capsule_prefix_key(cx, key);
         }
         if committed {
-            if self.exit_choice.is_some() {
+            if let Some(action) = self.pending_capsule_action.take() {
+                self.open_capsule_account_picker(cx, action);
+                self.status = Some("New tab · Account for Claude Code".into());
+            } else if self.exit_choice.is_some() {
                 if let Some(response) = self.update_command(cx, CMD_EXIT_CONFIRM) {
                     result |= response;
                 }
@@ -2234,6 +2308,15 @@ impl App {
     }
 
     fn update_command(&mut self, cx: &mut Cx<'_>, command: ActionKey) -> Option<Response<()>> {
+        if matches!(command, CMD_EXIT_DIALOG | CMD_NAV_DOWN | CMD_EXIT_CONFIRM)
+            && self.route == Route::Capsule
+        {
+            eprintln!(
+                "DEBUG exit command={command:?} cause={:?} choice={:?}",
+                cx.update_cause(),
+                self.exit_choice
+            );
+        }
         match command {
             CMD_QUIT => {
                 self.quit = true;
@@ -2380,14 +2463,20 @@ impl App {
                 }
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
-                    self.status = Some("New tab · Account for Claude Code".into());
-                    self.open_capsule_account_picker(cx, CapsuleAction::NewTab);
+                    self.pending_capsule_action = Some(CapsuleAction::NewTab);
+                    self.status = Some("New tab".into());
                 } else if self.route == Route::Manager {
                     self.route = Route::Accounts;
                     cx.focus(ACCOUNTS_LIST);
                 } else {
                     self.route = Route::Capsule;
                 }
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_LOG if matches!(self.route, Route::Launch | Route::Cockpit) => {
+                self.cockpit.log_open = true;
+                self.cockpit.log_scroll = 0;
+                self.status = Some("Docker build · scroll to inspect output".into());
                 Some(Response::changed())
             }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
@@ -2601,8 +2690,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE
-                if self.route == Route::Editor
-                    && self.editor.tab == EditorTab::Accounts =>
+                if self.route == Route::Editor && self.editor.tab == EditorTab::Accounts =>
             {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor_accounts_transition = false;
@@ -2629,6 +2717,7 @@ impl App {
                 // on the selected tab control.
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.next_tab();
+                    self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
                 match self.editor.tab {
                     EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
@@ -2648,6 +2737,7 @@ impl App {
             CMD_EDITOR_PREVIOUS if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.previous_tab();
+                    self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
                 }
                 match self.editor.tab {
                     EditorTab::Mounts => cx.focus(EDITOR_MOUNT_EDIT),
@@ -2668,7 +2758,19 @@ impl App {
                 cx.focus(SETTINGS_TRUST);
                 Some(Response::changed())
             }
-            CMD_SETTINGS_TRUST_KEY if self.route == Route::Editor => {
+            CMD_NAV_TAB_FIVE if self.route == Route::Settings => {
+                cx.focus(SETTINGS_TRUST);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_ACCOUNTS if self.route == Route::Editor => {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(5);
+                    self.editor_accounts_transition = true;
+                }
+                cx.focus(EDITOR_ACCOUNTS_LIST);
+                Some(Response::changed())
+            }
+            CMD_NAV_TAB_FIVE if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(5);
                     self.editor_accounts_transition = true;
@@ -2682,6 +2784,11 @@ impl App {
                 if let Some(ItemKey::Index(index)) = self.editor_accounts.cursor()
                     && let Some(id) = self.editor_account_id(index)
                 {
+                    let provider = self
+                        .world
+                        .accounts
+                        .get(&id)
+                        .map_or("provider", |account| account.provider.label());
                     match self
                         .editor
                         .pending
@@ -2689,7 +2796,7 @@ impl App {
                     {
                         Ok(()) => {
                             self.editor.mark_dirty();
-                            self.status = Some(format!("Preferred for {id}"));
+                            self.status = Some(format!("Preferred for {provider}"));
                         }
                         Err(error) => self.status = Some(error),
                     }
@@ -2699,7 +2806,7 @@ impl App {
             CMD_SAVE if self.route == Route::Editor => {
                 self.editor.mark_dirty();
                 self.editor.open_preview();
-                cx.focus(EDITOR_SAVE_CONFIRM);
+                cx.focus(crate::screens::editor::SAVE);
                 self.status = Some("Save workspace · preview changes before commit".into());
                 Some(Response::changed())
             }
@@ -2774,6 +2881,7 @@ impl App {
                         }
                         self.manager_rows_cache.clear();
                         self.route = Route::Manager;
+                        cx.focus(MANAGER_LIST);
                     }
                 }
                 crate::sim::world::Msg::Refreshed { ok } => {
@@ -2981,11 +3089,7 @@ impl App {
                 || "New workspace environment key".to_owned(),
                 |role| format!("New {role} environment key"),
             );
-            paint_lines(
-                ui,
-                area,
-                &[heading, "Key · source · value".to_owned()],
-            );
+            paint_lines(ui, area, &[heading, "Key · source · value".to_owned()]);
             Self::editor_env_key_input()
                 .value(&self.editor.env_key)
                 .draw(
@@ -3041,9 +3145,7 @@ impl App {
                 for env in envs {
                     let (value, source): (String, &str) = match &env.value {
                         EnvValue::Plain(value) => (mask(value), "plain"),
-                        EnvValue::OnePassword(reference) => {
-                            (reference.display_path(), "1Password")
-                        }
+                        EnvValue::OnePassword(reference) => (reference.display_path(), "1Password"),
                         EnvValue::HostEnv(host) => (host.clone(), "host env"),
                     };
                     lines.push(format!("{} · {value} · {source}", env.key));
@@ -3056,7 +3158,7 @@ impl App {
                 ui,
                 Rect::new(area.x, area.bottom().saturating_sub(2), 24, 1),
             );
-            Self::editor_save_button().draw(
+            self.draw_editor_save_footer(
                 ui,
                 Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
             );
@@ -3104,17 +3206,10 @@ impl App {
             );
             Self::editor_mount_button()
                 .draw(ui, Rect::new(area.x, area.y.saturating_add(4), 18, 1));
-            if self.editor.preview_open {
-                Self::editor_save_confirm_button().draw(
-                    ui,
-                    Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-                );
-            } else {
-                Self::editor_save_button().draw(
-                    ui,
-                    Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-                );
-            }
+            self.draw_editor_save_footer(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+            );
             return;
         }
         if self.editor.tab == EditorTab::Roles {
@@ -3153,23 +3248,29 @@ impl App {
                 },
                 workspace
             );
-            paint_lines(
-                ui,
-                Rect { height: 2, ..area },
-                &[heading],
+            let effective = self.editor.pending.effective_accounts(&self.world.accounts);
+            let inherited = effective
+                .iter()
+                .filter(|account| account.origin == Effective::InheritedDefault)
+                .count();
+            let enabled = effective.len().saturating_sub(inherited);
+            let summary = format!(
+                "{} effective · {inherited} inherited · {enabled} enabled here",
+                effective.len()
             );
+            paint_lines(ui, Rect { height: 3, ..area }, &[heading, summary]);
             let rows = self.editor_account_rows();
             List::new(EDITOR_ACCOUNTS_LIST).draw(
                 ui,
                 Rect {
-                    y: area.y.saturating_add(2),
-                    height: area.height.saturating_sub(4),
+                    y: area.y.saturating_add(3),
+                    height: area.height.saturating_sub(5),
                     ..area
                 },
                 &self.editor_accounts,
                 &rows,
             );
-            Self::editor_save_button().draw(
+            self.draw_editor_save_footer(
                 ui,
                 Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
             );
@@ -3190,7 +3291,7 @@ impl App {
             ),
         ];
         paint_lines(ui, area, &lines);
-        Self::editor_save_button().draw(
+        self.draw_editor_save_footer(
             ui,
             Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
         );
@@ -3474,7 +3575,12 @@ impl App {
         {
             Self::settings_save_confirm_button().draw(
                 ui,
-                Rect::new(area.x.saturating_add(20), area.bottom().saturating_sub(2), 18, 1),
+                Rect::new(
+                    area.x.saturating_add(20),
+                    area.bottom().saturating_sub(2),
+                    18,
+                    1,
+                ),
             );
         }
     }
@@ -3499,6 +3605,25 @@ impl App {
             &header,
             style,
         );
+        if self.cockpit.log_open {
+            let emitted = launch.build_lines_emitted.min(BUILD_LOG.len());
+            let mut lines = vec!["Docker build".to_owned()];
+            if emitted == 0 {
+                lines.push("Waiting for derived image output…".to_owned());
+            } else {
+                lines.extend(BUILD_LOG[..emitted].iter().map(|line| (*line).to_owned()));
+            }
+            paint_lines(
+                ui,
+                Rect {
+                    y: area.y.saturating_add(1),
+                    height: area.height.saturating_sub(2),
+                    ..area
+                },
+                &lines,
+            );
+            return;
+        }
         let mut y = area.y.saturating_add(1);
         let workspace = self.world.workspaces.first();
         let account_labels = self
@@ -3558,6 +3683,130 @@ impl App {
         }
     }
 
+    fn capsule_rows(&self) -> Vec<String> {
+        self.world
+            .instances
+            .iter()
+            .find(|instance| instance.status == InstanceStatus::Running)
+            .map_or_else(
+                || vec!["Capsule is empty".into()],
+                |instance| {
+                    let live = self.world.daemons.get(&instance.id);
+                    match live {
+                        Some(daemon) if !daemon.panes.is_empty() => daemon
+                            .tabs
+                            .iter()
+                            .enumerate()
+                            .flat_map(|(tab_index, tab)| {
+                                let account_registry = self.world.accounts.clone();
+                                let label = daemon.tab_label(tab, &|pane| {
+                                    pane.proc
+                                        .account
+                                        .as_ref()
+                                        .and_then(|id| account_registry.get(id))
+                                        .map(|account| account.display_name.clone())
+                                });
+                                let tab_line = format!(
+                                    "{}{} · {}",
+                                    if tab_index == daemon.active { "▸ " } else { "  " },
+                                    label,
+                                    daemon.tab_state(tab).label()
+                                );
+                                let panes = tab.leaves().into_iter().filter_map(|pane_id| {
+                                    daemon.pane(pane_id).map(|pane| {
+                                        let heading = format!(
+                                            "{} · {} · {}",
+                                            pane.label(),
+                                            pane.state().label(),
+                                            if tab.focused == pane.id {
+                                                "focused"
+                                            } else {
+                                                "idle focus"
+                                            }
+                                        );
+                                        let transcript = pane.term.lines.iter().filter_map(|line| {
+                                            let text = line
+                                                .iter()
+                                                .map(|span| span.text.as_str())
+                                                .collect::<String>();
+                                            (!text.is_empty()).then_some(text)
+                                        });
+                                        std::iter::once(heading)
+                                            .chain(transcript)
+                                            .collect::<Vec<_>>()
+                                    })
+                                });
+                                std::iter::once(tab_line).chain(panes.flatten())
+                            })
+                            .collect::<Vec<_>>(),
+                        _ => match &instance.daemon {
+                            DaemonSnapshot::Tabs(tabs) => tabs
+                                .iter()
+                                .flat_map(|tab| tab.panes.iter())
+                                .map(|pane| {
+                                    format!(
+                                        "{} · {} · {}",
+                                        pane.label,
+                                        pane.state.label(),
+                                        if pane.focused { "focused" } else { "idle focus" }
+                                    )
+                                })
+                                .collect::<Vec<_>>(),
+                            DaemonSnapshot::Unavailable => vec!["Daemon unavailable".into()],
+                            DaemonSnapshot::NoTabs => vec!["No tabs reported".into()],
+                        },
+                    }
+                },
+            )
+    }
+
+    fn capsule_copy_at(&self, area: Rect, pos: Position) -> Option<String> {
+        let row = usize::from(pos.y.saturating_sub(area.y));
+        let rows = self.capsule_rows();
+        let line = rows.get(row)?;
+        let chars = line.chars().collect::<Vec<_>>();
+        if chars.is_empty() {
+            return None;
+        }
+        let mut index = usize::from(pos.x.saturating_sub(area.x)).min(chars.len().saturating_sub(1));
+        if chars[index].is_whitespace() {
+            while index > 0 && chars[index].is_whitespace() {
+                index = index.saturating_sub(1);
+            }
+        }
+        if chars[index].is_whitespace() {
+            return None;
+        }
+        let mut start = index;
+        while start > 0 && !chars[start.saturating_sub(1)].is_whitespace() {
+            start = start.saturating_sub(1);
+        }
+        let mut end = index.saturating_add(1);
+        while end < chars.len() && !chars[end].is_whitespace() {
+            end = end.saturating_add(1);
+        }
+        Some(chars[start..end].iter().collect())
+    }
+
+    fn update_capsule_pointer(&mut self, cx: &Cx<'_>) -> Response<()> {
+        let Some(area) = cx.area(CAPSULE_PANES) else {
+            return Response::ignored();
+        };
+        let mut result = Response::ignored();
+        for intent in cx.intents(CAPSULE_PANES) {
+            let Intent::Pointer { phase, pos, .. } = intent else {
+                continue;
+            };
+            if matches!(phase, junie_tui::Phase::Click | junie_tui::Phase::DoubleClick | junie_tui::Phase::DragEnd)
+                && let Some(text) = self.capsule_copy_at(area, pos)
+            {
+                self.world.clipboard = Some(text);
+                result |= Response::changed();
+            }
+        }
+        result
+    }
+
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
         let tabs = capsule_tabs();
         Tabs::new(CAPSULE_TABS).draw(ui, area, &self.tabs_state, &tabs);
@@ -3582,90 +3831,7 @@ impl App {
             height: area.height.saturating_sub(4),
             ..area
         };
-        let rows = self
-            .world
-            .instances
-            .iter()
-            .find(|instance| instance.status == InstanceStatus::Running)
-            .map_or_else(
-                || vec!["Capsule is empty".into()],
-                |instance| {
-                    let live = self.world.daemons.get(&instance.id);
-                    match live {
-                        Some(daemon) if !daemon.panes.is_empty() => daemon
-                            .tabs
-                            .iter()
-                            .enumerate()
-                            .flat_map(|(tab_index, tab)| {
-                                let account_registry = self.world.accounts.clone();
-                                let label = daemon.tab_label(tab, &|pane| {
-                                    pane.proc
-                                        .account
-                                        .as_ref()
-                                        .and_then(|id| account_registry.get(id))
-                                        .map(|account| account.display_name.clone())
-                                });
-                                let tab_line = format!(
-                                    "{}{} · {}",
-                                    if tab_index == daemon.active {
-                                        "▸ "
-                                    } else {
-                                        "  "
-                                    },
-                                    label,
-                                    daemon.tab_state(tab).label()
-                                );
-                                let panes = tab.leaves().into_iter().filter_map(|pane_id| {
-                                    daemon.pane(pane_id).map(|pane| {
-                                        let heading = format!(
-                                            "{} · {} · {}",
-                                            pane.label(),
-                                            pane.state().label(),
-                                            if tab.focused == pane.id {
-                                                "focused"
-                                            } else {
-                                                "idle focus"
-                                            }
-                                        );
-                                        let transcript =
-                                            pane.term.lines.iter().filter_map(|line| {
-                                                let text = line
-                                                    .iter()
-                                                    .map(|span| span.text.as_str())
-                                                    .collect::<String>();
-                                                (!text.is_empty()).then_some(text)
-                                            });
-                                        std::iter::once(heading)
-                                            .chain(transcript)
-                                            .collect::<Vec<_>>()
-                                    })
-                                });
-                                std::iter::once(tab_line).chain(panes.flatten())
-                            })
-                            .collect::<Vec<_>>(),
-                        _ => match &instance.daemon {
-                            DaemonSnapshot::Tabs(tabs) => tabs
-                                .iter()
-                                .flat_map(|tab| tab.panes.iter())
-                                .map(|pane| {
-                                    format!(
-                                        "{} · {} · {}",
-                                        pane.label,
-                                        pane.state.label(),
-                                        if pane.focused {
-                                            "focused"
-                                        } else {
-                                            "idle focus"
-                                        }
-                                    )
-                                })
-                                .collect::<Vec<_>>(),
-                            DaemonSnapshot::Unavailable => vec!["Daemon unavailable".into()],
-                            DaemonSnapshot::NoTabs => vec!["No tabs reported".into()],
-                        },
-                    }
-                },
-            );
+        let rows = self.capsule_rows();
         List::new(CAPSULE_PANES).draw(ui, pane_area, &ListState::default(), &rows);
         if self.capsule_usage {
             paint_lines(
@@ -3846,6 +4012,11 @@ impl TuiApp for App {
             self.quit = true;
             return Response::changed();
         }
+        if matches!(self.route, Route::Launch | Route::Cockpit) && self.cockpit.log_open {
+            self.cockpit.log_open = false;
+            self.status = None;
+            return Response::changed();
+        }
         if self.route == Route::Capsule && self.world.scenario == Scenario::OutroLast {
             self.status = Some("Detached from Capsule; closing the Construct…".into());
             self.outro = Some(OutroState::new(self.motion, Some(8_040), 0));
@@ -3970,6 +4141,11 @@ fn app_keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('b')),
+            CMD_COCKPIT_LOG,
+        )
+        .bind(
+            KeyPhase::Bubble,
             Chord::key(KeyCode::Char('r')),
             CMD_ACCOUNT_REFRESH,
         )
@@ -3999,7 +4175,7 @@ fn app_keymap() -> KeyMap {
             CMD_MANAGER_EXPAND,
         )
         .bind(
-            KeyPhase::Bubble,
+            KeyPhase::Capture,
             Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
             CMD_CAPSULE_PREFIX,
         )
@@ -4053,11 +4229,7 @@ fn app_keymap() -> KeyMap {
             Chord::key(KeyCode::Char(' ')),
             CMD_PRELUDE_SPACE,
         )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Down),
-            CMD_NAV_DOWN,
-        )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), CMD_NAV_DOWN)
         .bind(
             KeyPhase::Bubble,
             Chord::key(KeyCode::Enter),
@@ -4096,7 +4268,7 @@ fn app_keymap() -> KeyMap {
         .bind(
             KeyPhase::Bubble,
             Chord::key(KeyCode::Char('5')),
-            CMD_SETTINGS_TRUST_KEY,
+            CMD_NAV_TAB_FIVE,
         )
         .bind(
             KeyPhase::Bubble,
