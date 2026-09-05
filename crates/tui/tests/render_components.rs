@@ -925,7 +925,6 @@ fn draw_chip_bar_with_add(ui: &mut Ui<'_>, area: Rect, state: &ChipBarState) {
         .key(key)
         .row(row)
         .select_mode(SelectMode::Single)
-        .closable(true)
         .add("+ Add")
         .draw(ui, area, state, &CHIP_ADD_ITEMS);
 }
@@ -944,7 +943,6 @@ impl App for ChipBarAddFixture {
             .key(key)
             .row(row)
             .select_mode(SelectMode::Single)
-            .closable(true)
             .add("+ Add")
             .update(cx, &mut self.state, &CHIP_ADD_ITEMS);
         if let Some(action) = response.action_ref() {
@@ -983,9 +981,18 @@ fn text_area_status_paints_the_readiness_affordance() {
         40,
         10,
     );
-    let ready_icon = ready
-        .area_of_part(TEXT_AREA, PartRef::of(Part::ICON))
-        .expect("TextArea registers its readiness icon cell");
+    // TextArea's readiness icon is a reserved paint cell, not an interactive
+    // hit region. Derive that cell from the stable component area rather than
+    // requiring a decorative part to appear in the hit registry.
+    let ready_area = ready
+        .area_of(TEXT_AREA)
+        .expect("TextArea registers its body area");
+    let ready_icon = Rect::new(
+        ready_area.right().saturating_sub(1),
+        ready_area.y,
+        1.min(ready_area.width),
+        1.min(ready_area.height),
+    );
     let ready_symbol = ready.cell(ready_icon.x, ready_icon.y).symbol().to_owned();
     assert_eq!(
         ready_symbol, " ",
@@ -1006,9 +1013,15 @@ fn text_area_status_paints_the_readiness_affordance() {
         (Status::Error, error),
     ] {
         let harness = Harness::new(TextAreaStatusFixture { status }, Theme::junie(), 40, 10);
-        let icon = harness
-            .area_of_part(TEXT_AREA, PartRef::of(Part::ICON))
-            .expect("TextArea registers its readiness icon cell");
+        let area = harness
+            .area_of(TEXT_AREA)
+            .expect("TextArea registers its body area");
+        let icon = Rect::new(
+            area.right().saturating_sub(1),
+            area.y,
+            1.min(area.width),
+            1.min(area.height),
+        );
         assert_eq!(icon, ready_icon, "{status:?} changed readiness geometry");
         assert_eq!(
             harness.cell(icon.x, icon.y).symbol(),
