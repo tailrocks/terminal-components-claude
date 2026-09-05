@@ -20,10 +20,6 @@ pub(crate) enum Engine {
 }
 
 impl Engine {
-    #[expect(
-        dead_code,
-        reason = "engine labels remain available to the private connection adapter"
-    )]
     pub(crate) fn label(self) -> &'static str {
         match self {
             Engine::Postgres => "PostgreSQL",
@@ -31,10 +27,6 @@ impl Engine {
             Engine::Sqlite => "SQLite",
         }
     }
-    #[expect(
-        dead_code,
-        reason = "engine labels remain available to the private connection adapter"
-    )]
     pub(crate) fn short(self) -> &'static str {
         match self {
             Engine::Postgres => "pg",
@@ -72,10 +64,6 @@ impl SafeMode {
         SafeMode::ReadOnly,
     ];
 
-    #[expect(
-        dead_code,
-        reason = "safe-mode display helpers remain available to the private connection adapter"
-    )]
     pub(crate) fn label(self) -> &'static str {
         match self {
             SafeMode::Silent => "Silent",
@@ -88,10 +76,6 @@ impl SafeMode {
     }
 
     /// Short token for the identity strip.
-    #[expect(
-        dead_code,
-        reason = "safe-mode display helpers remain available to the private connection adapter"
-    )]
     pub(crate) fn token(self) -> &'static str {
         match self {
             SafeMode::Silent => "silent",
@@ -103,10 +87,6 @@ impl SafeMode {
         }
     }
 
-    #[expect(
-        dead_code,
-        reason = "safe-mode display helpers remain available to the private connection adapter"
-    )]
     pub(crate) fn description(self) -> &'static str {
         match self {
             SafeMode::Silent => "Writes run without asking. Destructive statements still confirm.",
@@ -429,10 +409,6 @@ fn idx(name: &str, cols: &[&str], unique: bool) -> Index {
 #[derive(Debug, Clone)]
 pub struct Catalog {
     pub(crate) database: String,
-    #[expect(
-        dead_code,
-        reason = "the catalog retains schema names for fixture completeness"
-    )]
     pub(crate) schemas: Vec<String>,
     pub(crate) tables: Vec<Table>,
 }
