@@ -1914,21 +1914,22 @@ activation id/part, and wraps the whole component draw in `Ui::reference`. `Fixt
 
 ```rust
 conformance_suite!(   // <!-- amended by §25 D‑8: `name => Case` form -->
-    button => ButtonCase, chip => ChipCase, checkbox => CheckboxCase, radio_group => RadioGroupCase,
-    toggle => ToggleCase, brand => BrandCase, key_hint => KeyHintCase,
-    field => FieldCase, text_input => TextInputCase, text_area => TextAreaCase, select => SelectCase,
-    list => ListCase, nav_list => NavListCase, tree => TreeCase, props => PropsCase, props_list => PropsListCase,
-    steps => StepsCase, grid => GridCase, tabs => TabsCase, chip_bar => ChipBarCase,
-    panel => PanelCase, split_pane => SplitPaneCase, scroll_region => ScrollRegionCase,
-    text_viewport => TextViewportCase, diff_view => DiffViewCase, code_editor => CodeEditorCase,
-    dialog => DialogCase, menu_bar => MenuBarCase, context_menu => ContextMenuCase, picker => PickerCase,
-    filter_list => FilterListCase, completion => CompletionCase,
-    form => FormCase, wizard => WizardCase, picker_chain => PickerChainCase, help_overlay => HelpOverlayCase,
-    progress_bar => ProgressBarCase, spinner => SpinnerCase, meter => MeterCase,
-    status_bar => StatusBarCase, hint_bar => HintBarCase, too_small => TooSmallCase,
+    probe => ProbeCase, button => ButtonCase, text_input => TextInputCase, field => FieldCase,
+    list => ListCase, tabs => TabsCase, dialog => DialogCase, scroll_region => ScrollRegionCase,
+    props => PropsCase, props_list => PropsListCase, text_area => TextAreaCase, select => SelectCase,
+    radio_group => RadioGroupCase, checkbox => CheckboxCase, toggle => ToggleCase,
+    chip_bar => ChipBarCase, status_bar => StatusBarCase, hint_bar => HintBarCase,
+    derived_hint_bar => DerivedHintBarCase, key_hint => KeyHintCase, progress_bar => ProgressBarCase,
+    spinner => SpinnerCase, meter => MeterCase, empty => EmptyCase, brand => BrandCase,
+    panel => PanelCase, split_pane => SplitPaneCase, text_viewport => TextViewportCase,
+    diff_view => DiffViewCase, code_editor => CodeEditorCase, tree => TreeCase, nav_list => NavListCase,
+    steps => StepsCase, too_small => TooSmallCase, grid => GridCase, filter_list => FilterListCase,
+    picker => PickerCase, completion => CompletionCase, context_menu => ContextMenuCase,
+    help_overlay => HelpOverlayCase, menu_bar => MenuBarCase, picker_chain => PickerChainCase,
+    wizard => WizardCase, form => FormCase,
 );
-// ScrollbarCase (a part), EmptyCase (a data enum) and SecretInputCase (no such type) are removed; the
-// secret path is a Caps::SECRET fixture variant of TextInputCase (§21 item 27).
+// ScrollRegionCase covers the reusable scrollbar component; the secret path is a Caps::SECRET
+// fixture variant of TextInputCase (§21 item 27).
 ```
 
 **Generated tests.** The macro emits one module per component (`mod button { … }`), so the fully-qualified names are `conformance::<component>::<case>`. Cases marked *(cap)* are emitted only when the capability is declared; the driver asserts a component never silently skips a case it should run.
