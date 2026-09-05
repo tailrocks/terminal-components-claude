@@ -534,19 +534,16 @@ pub struct TextInputState {
     draft: EditorDraft,
     phase: EditPhase,
     error: Option<ErrorState>,
+    redacted_snapshot: bool,
 }
 
 impl Clone for TextInputState {
     fn clone(&self) -> Self {
-        let phase = if self.is_sensitive() {
-            EditPhase::Idle
-        } else {
-            self.phase
-        };
         TextInputState {
             draft: self.draft.clone_snapshot(),
-            phase,
+            phase: self.phase,
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
+            redacted_snapshot: self.is_sensitive(),
         }
     }
 }
@@ -612,6 +609,7 @@ impl TextInputState {
         self.draft.set_sensitive(sensitive);
         if changed {
             self.phase = EditPhase::Idle;
+            self.redacted_snapshot = false;
             self.clear_error();
         } else if sensitive
             && self
@@ -642,6 +640,7 @@ impl TextInputState {
         if self.is_editing() {
             return;
         }
+        self.redacted_snapshot = false;
         self.draft.begin_single(current);
         self.phase = EditPhase::Editing;
     }
@@ -664,16 +663,18 @@ impl TextInputState {
     }
 
     fn write_target<T: TextTarget + ?Sized>(&mut self, value: &mut T) {
-        if self.is_editing() {
+        if self.is_editing() && !self.redacted_snapshot {
             value.set(self.draft.text());
         }
         self.phase = EditPhase::Idle;
+        self.redacted_snapshot = false;
         self.draft.zeroize();
     }
 
     /// Drop the draft.
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
+        self.redacted_snapshot = false;
         self.draft.zeroize();
         if self.is_sensitive() {
             self.clear_error();

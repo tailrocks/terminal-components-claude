@@ -617,16 +617,12 @@ impl FormState {
                 .zip(fields)
                 .all(|(slot, field)| slot.id == field.id && slot.shape == field_shape(&field.kind))
         {
-            let mut redact = Vec::new();
-            for (slot, field) in self.slots.iter_mut().zip(fields) {
+            for (index, field) in fields.iter().enumerate() {
                 let sensitive = field_is_secret(field);
-                slot.set_sensitive(sensitive);
+                self.slots[index].set_sensitive(sensitive);
                 if sensitive {
-                    redact.push(field.id);
+                    self.redact_error(field.id);
                 }
-            }
-            for id in redact {
-                self.redact_error(id);
             }
             return;
         }
