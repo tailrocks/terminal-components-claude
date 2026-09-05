@@ -71,7 +71,7 @@ jobs:
       # §25.12 F18: a perf run must never re-bless. Only PERF_BLESS=1 rewrites these,
       # and that happens in the commit that changes the code, reviewed in the diff.
       - name: Baselines were not re-blessed (§25.12 F18)
-        run: git diff --exit-code tests/perf_baseline.txt crates/tui/tests/perf_baseline.txt apps/showcase/tests/perf_baseline.txt apps/tablepro/tests/perf_baseline.txt apps/jackin-preview/tests/perf_baseline.txt
+        run: git diff --exit-code -- ':(glob)**/perf_baseline.txt'
       # §16.6 / goal §30 item 13.
       - name: Collect PERF lines
         if: always()

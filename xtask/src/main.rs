@@ -3881,9 +3881,8 @@ fn showcase_page_sources(
     }
     if !missing.is_empty() {
         return Err(format!(
-            "showcase registry entries {:?} have no reachable page source; \
-             coverage cannot be proven",
-            missing
+            "showcase registry entries {missing:?} have no reachable page source; \
+             coverage cannot be proven"
         ));
     }
     selected.sort_by(|a, b| a.0.cmp(&b.0));

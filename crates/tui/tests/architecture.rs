@@ -25,12 +25,21 @@ fn workspace_root() -> PathBuf {
 }
 
 fn xtask(args: &[&str]) -> (bool, String) {
-    let out = Command::new("cargo")
+    let mut command = Command::new("cargo");
+    command
         .args(["run", "-q", "-p", "xtask", "--"])
         .args(args)
-        .current_dir(workspace_root())
-        .output()
-        .expect("run xtask");
+        .current_dir(workspace_root());
+    // The production guard correctly refuses a missing base. Give its test
+    // wrapper a real local range when no CI/PR base was inherited.
+    let has_env = |name| std::env::var(name).is_ok_and(|value| !value.trim().is_empty());
+    if args == ["boundary", "--check", "baseline_moves_are_classified"]
+        && !has_env("BLESS_GUARD_BASE")
+        && !has_env("GITHUB_BASE_REF")
+    {
+        command.env("BLESS_GUARD_BASE", "HEAD^");
+    }
+    let out = command.output().expect("run xtask");
     let text = format!(
         "{}{}",
         String::from_utf8_lossy(&out.stdout),
