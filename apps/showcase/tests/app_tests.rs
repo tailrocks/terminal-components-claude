@@ -106,6 +106,10 @@ fn exercise_focus_ring(h: &mut Harness<App>, page: PageId) {
     );
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "the exhaustive page-state matrix keeps each page's flow next to its identity"
+)]
 fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
     match page {
         PageId::Overview => {

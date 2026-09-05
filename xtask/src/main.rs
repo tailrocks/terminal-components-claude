@@ -6383,18 +6383,14 @@ fn rustdoc_json() -> Result<Value, String> {
     })
 }
 
-fn rustdoc_json_index<'a>(
-    document: &'a Value,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn rustdoc_json_index(document: &Value) -> Result<&serde_json::Map<String, Value>, String> {
     document
         .get("index")
         .and_then(Value::as_object)
         .ok_or_else(|| "rustdoc-json has no object `index`".to_owned())
 }
 
-fn rustdoc_json_paths<'a>(
-    document: &'a Value,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn rustdoc_json_paths(document: &Value) -> Result<&serde_json::Map<String, Value>, String> {
     document
         .get("paths")
         .and_then(Value::as_object)
@@ -6526,10 +6522,12 @@ fn rustdoc_json_collect_resolved_paths(value: &Value, ids: &mut BTreeSet<String>
             }
         }
         Value::Object(values) => {
-            if let Some(id) = values.get("resolved_path").and_then(|path| path.get("id")) {
-                if let Some(id) = rustdoc_json_id(id) {
-                    ids.insert(id);
-                }
+            if let Some(id) = values
+                .get("resolved_path")
+                .and_then(|path| path.get("id"))
+                .and_then(rustdoc_json_id)
+            {
+                ids.insert(id);
             }
             for value in values.values() {
                 rustdoc_json_collect_resolved_paths(value, ids);
