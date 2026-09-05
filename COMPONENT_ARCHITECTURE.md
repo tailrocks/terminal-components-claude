@@ -1789,7 +1789,7 @@ One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module pa
 `form::reference_form_registers_no_controls_or_parts_for_any_field_kind` and
 `form::reference_form_targets_only_one_child`.
 
-<!-- amended by §29 --> Q1 geometry regressions in `components/*.rs`: `button::mono_pressed_does_not_truncate_the_label`, `tabs::mono_pressed_brackets_the_reserved_pad_cells`.
+<!-- amended by §29; Slice A3 --> Q1 geometry regressions in `components/*.rs`: `button::mono_pressed_does_not_truncate_the_label`, `tabs::mono_pressed_brackets_the_reserved_pad_cells`, `choice::mono_pressed_choice_keeps_the_label_geometry`, `brand::mono_pressed_brand_keeps_the_lockup_padding`, `menu::mono_pressed_menu_title_keeps_both_reserved_pads`.
 
 **`components/form.rs`** (§15.1, §23 K1) — the form state machine, buffer-free:
 `form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value`, `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value`, <!-- amended by §24 M3 --> `form::select_field_options_come_from_form_data` (the painted list is `FormData::options(id)`; a `FieldKind::Select` built with no items renders it), `form::changing_options_between_frames_does_not_rebuild_props` (the `&[FieldSpec]` array is byte-identical across two frames whose `options` differ), `form::state_holds_no_props` (static assertion: `FormState: Clone + PartialEq + Default`; `SlotValue: Clone + PartialEq + Eq`), `form::value_and_options_is_a_single_borrow` (a `Form::update`-shaped body over one `value_and_options` call compiles; the two-call form is a compile-fail via `trybuild`, E0502).
@@ -6563,7 +6563,7 @@ The following nine amendments from `docs/reviews/adjudication-q-residuals.md` ar
 5. **§28.6 tests:** strike the impossible source-shape grep and replace it with the machine-checked `mono_narrowing_reason()` assertion in case 9. <!-- amended by §29 -->
 6. **§28.8:** remove the old grep gate; use the Q2 privacy/accessor checks and Q3 case-9/symbol-presence checks. <!-- amended by §29 -->
 7. **§20.10 item 18:** include `render::components::button::pressed`'s mono digest if the Button bracket moves out of the text run; no new visual-change item is created. <!-- amended by §29 -->
-8. **§16.1 component tests:** add `button::mono_pressed_does_not_truncate_the_label` and `tabs::mono_pressed_brackets_the_reserved_pad_cells`. <!-- amended by §29 -->
+8. **§16.1 component tests:** add `button::mono_pressed_does_not_truncate_the_label`, `tabs::mono_pressed_brackets_the_reserved_pad_cells`, `choice::mono_pressed_choice_keeps_the_label_geometry`, `brand::mono_pressed_brand_keeps_the_lockup_padding` and `menu::mono_pressed_menu_title_keeps_both_reserved_pads`. <!-- amended by §29; Slice A3 -->
 9. **New §29:** this adjudication record carries Q1/Q2/Q3, the corrected live A4/`Slot` contract, the nine amendment markers, and the unresolved questions. It is mirrored in `REFACTORING_STATE.md` under the change-control rule at line 3. <!-- amended by §29 -->
 
 ### §29.5 Corrected acceptance conditions <!-- amended by §29 -->
@@ -6573,6 +6573,9 @@ The following nine amendments from `docs/reviews/adjudication-q-residuals.md` ar
 cargo test -p junie-tui --test conformance conformance::tabs::mono_states_are_distinguishable
 cargo test -p junie-tui --lib components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
 cargo test -p junie-tui --lib components::button::tests::mono_pressed_does_not_truncate_the_label
+cargo test -p junie-tui --lib components::choice::tests::mono_pressed_choice_keeps_the_label_geometry
+cargo test -p junie-tui --lib components::brand::tests::mono_pressed_brand_keeps_the_lockup_padding
+cargo test -p junie-tui --lib components::menu::tests::mono_pressed_menu_title_keeps_both_reserved_pads
 
 # A3: exactly one *implementation* of the bracket. Only mod.rs paints it; every other
 # component-file mention of the role is the resolved-slot guard that calls the helper.

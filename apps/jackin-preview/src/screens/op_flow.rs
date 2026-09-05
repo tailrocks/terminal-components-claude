@@ -153,6 +153,27 @@ impl OpFlowState {
             .and_then(Option::as_deref)
     }
 
+    /// Reconcile one selected provider key against the latest collection.
+    ///
+    /// A picker may outlive an asynchronous refresh.  If its selected item
+    /// disappeared, clear that key and every dependent breadcrumb rather
+    /// than dispatching an action for stale provider data.
+    pub fn reconcile_selection(&mut self, stage: OpFlowStage, valid: &[String]) -> bool {
+        let index = Self::index(stage);
+        let Some(selected) = self.selected.get(index).and_then(Option::as_deref) else {
+            return false;
+        };
+        if valid.iter().any(|candidate| candidate == selected) {
+            return false;
+        }
+        self.clear_from(index);
+        if Self::index(self.current) >= index {
+            self.current = stage;
+        }
+        self.status = OpFlowStatus::Ready;
+        true
+    }
+
     /// Begin a deterministic loading state for one stage.
     pub fn begin_load(&mut self, stage: OpFlowStage, label: impl Into<String>) {
         self.current = stage;
@@ -168,8 +189,10 @@ impl OpFlowState {
             return None;
         }
         let stage = self.current;
-        let selection = self.selected.get_mut(Self::index(stage))?;
+        let index = Self::index(stage);
+        let selection = self.selected.get_mut(index)?;
         *selection = Some(id.clone());
+        self.clear_after(index);
         self.status = OpFlowStatus::Ready;
         match stage.next() {
             Some(next) => {
@@ -184,6 +207,7 @@ impl OpFlowState {
     pub fn back(&mut self) -> Option<OpFlowAction> {
         let previous = self.current.previous()?;
         self.current = previous;
+        self.clear_after(Self::index(previous));
         self.status = OpFlowStatus::Ready;
         Some(OpFlowAction::Back(previous))
     }
@@ -194,9 +218,7 @@ impl OpFlowState {
             return None;
         }
         self.current = stage;
-        for slot in self.selected.iter_mut().skip(Self::index(stage) + 1) {
-            *slot = None;
-        }
+        self.clear_after(Self::index(stage));
         self.status = OpFlowStatus::Ready;
         Some(OpFlowAction::Back(stage))
     }
@@ -237,6 +259,18 @@ impl OpFlowState {
     /// Reset the chain without retaining prior choices.
     pub fn reset(&mut self) {
         *self = Self::default();
+    }
+
+    fn clear_after(&mut self, index: usize) {
+        for slot in self.selected.iter_mut().skip(index.saturating_add(1)) {
+            *slot = None;
+        }
+    }
+
+    fn clear_from(&mut self, index: usize) {
+        for slot in self.selected.iter_mut().skip(index) {
+            *slot = None;
+        }
     }
 
     const fn index(stage: OpFlowStage) -> usize {
@@ -288,5 +322,44 @@ mod tests {
             Some(OpFlowAction::Retry(OpFlowStage::Account))
         );
         assert!(matches!(state.status(), OpFlowStatus::Loading { .. }));
+    }
+
+    #[test]
+    fn stale_collection_clears_the_stage_and_dependent_choices() {
+        let mut state = OpFlowState::default();
+        let _ = state.choose("acct");
+        let _ = state.choose("vault");
+        let _ = state.choose("item");
+        assert!(state.reconcile_selection(OpFlowStage::Vault, &["other".into()]));
+        assert_eq!(state.current(), OpFlowStage::Vault);
+        assert_eq!(state.selected(OpFlowStage::Account), Some("acct"));
+        assert_eq!(state.selected(OpFlowStage::Vault), None);
+        assert_eq!(state.selected(OpFlowStage::Item), None);
+    }
+
+    #[test]
+    fn stale_account_clears_the_entire_dependent_chain() {
+        let mut state = OpFlowState::default();
+        let _ = state.choose("acct");
+        let _ = state.choose("vault");
+        assert!(state.reconcile_selection(OpFlowStage::Account, &["other".into()]));
+        assert_eq!(state.current(), OpFlowStage::Account);
+        assert_eq!(state.selected(OpFlowStage::Account), None);
+        assert_eq!(state.selected(OpFlowStage::Vault), None);
+    }
+
+    #[test]
+    fn moving_back_to_a_stage_drops_dependent_choices_before_reentering_it() {
+        let mut state = OpFlowState::default();
+        let _ = state.choose("acct");
+        let _ = state.choose("vault");
+        let _ = state.choose("item");
+        assert_eq!(
+            state.back_to(OpFlowStage::Vault),
+            Some(OpFlowAction::Back(OpFlowStage::Vault))
+        );
+        assert_eq!(state.selected(OpFlowStage::Account), Some("acct"));
+        assert_eq!(state.selected(OpFlowStage::Vault), Some("vault"));
+        assert_eq!(state.selected(OpFlowStage::Item), None);
     }
 }
