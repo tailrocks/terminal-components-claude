@@ -70,6 +70,26 @@ def git_revision() -> str:
     return revision
 
 
+def git_status_paths() -> list[str]:
+    """Return every path named by porcelain status, including rename pairs."""
+    output = git_output("status", "--porcelain=v1", "--untracked-files=all", "-z")
+    records = output.split("\0")
+    paths: list[str] = []
+    index = 0
+    while index < len(records):
+        record = records[index]
+        index += 1
+        if not record:
+            continue
+        if len(record) < 4 or record[2] != " ":
+            fail(f"invalid Git status record: {record!r}")
+        paths.append(record[3:])
+        if any(status in "RC" for status in record[:2]) and index < len(records):
+            paths.append(records[index])
+            index += 1
+    return paths
+
+
 def source_path_allowed(raw: str) -> bool:
     path = raw.replace("\\", "/")
     parts = path.split("/")
@@ -112,6 +132,11 @@ def source_fingerprint() -> str:
         digest.update(b"\0")
         digest.update(data)
     return digest.hexdigest()
+
+
+def source_dirty() -> bool:
+    """Report changes that can affect replay, ignoring generated workspace files."""
+    return any(source_path_allowed(path) for path in git_status_paths())
 
 
 def remove_safely(path: Path, label: str) -> None:
@@ -240,6 +265,7 @@ def augment_provenance(
     recipe_id: str,
     revision: str,
     source_digest: str,
+    source_is_dirty: bool,
     trace_path: str,
     trace_digest: str,
 ) -> bool:
@@ -255,11 +281,18 @@ def augment_provenance(
         record = value
     else:
         fail(f"{recipe_id}: provenance is not an object or array")
-    if record.get("revision") != revision or record.get("git", {}).get("revision") != revision:
+    git = record.get("git")
+    if not isinstance(git, dict):
+        fail(f"{recipe_id}: capture provenance git binding is invalid")
+    if record.get("revision") != revision or git.get("revision") != revision:
         fail(f"{recipe_id}: capture provenance revision is stale")
-    dirty = record.get("git", {}).get("dirty")
-    if not isinstance(dirty, bool):
+    if not isinstance(git.get("dirty"), bool):
         fail(f"{recipe_id}: capture provenance dirty flag is invalid")
+    # capture.sh observes the worktree when each row starts. Replay outputs
+    # make that raw observation change after the first row. Bind both
+    # validator-facing dirty fields to the one pre-replay source snapshot.
+    record["dirty"] = source_is_dirty
+    git["dirty"] = source_is_dirty
     record["parity"] = {
         "recipe_id": recipe_id,
         "revision": revision,
@@ -268,7 +301,7 @@ def augment_provenance(
         "trace_sha256": trace_digest,
     }
     write_json(path, value, "replay provenance")
-    return dirty
+    return source_is_dirty
 
 
 def parse_steps(raw: str) -> list[tuple[str, object]]:
@@ -342,6 +375,7 @@ def run_recipe(
     index: int,
     revision: str,
     source_digest: str,
+    source_is_dirty: bool,
     state_root: Path,
 ) -> bool:
     recipe_id = row["recipe_id"]
@@ -447,6 +481,7 @@ def run_recipe(
         recipe_id,
         revision,
         source_digest,
+        source_is_dirty,
         row["trace_path"],
         trace_hash(trace_data),
     )
@@ -464,15 +499,18 @@ def main() -> int:
     if any(not SAFE.fullmatch(recipe_id) for recipe_id in ids) or len(set(ids)) != EXPECTED_RECIPE_COUNT:
         fail("parity mapping must contain exactly 499 unique safe recipe IDs")
     revision = git_revision()
-    clear_replay_outputs()
     source_digest = source_fingerprint()
+    source_is_dirty = source_dirty()
+    clear_replay_outputs()
     dirty_by_recipe: dict[str, bool] = {}
     with tempfile.TemporaryDirectory(prefix="junie-parity-") as state:
         state_root = Path(state) / "state"
         state_root.mkdir()
         for index, row in enumerate(rows, start=1):
             print(f"replay {index}/{len(rows)}: {row['recipe_id']}", flush=True)
-            dirty_by_recipe[row["recipe_id"]] = run_recipe(row, index, revision, source_digest, state_root)
+            dirty_by_recipe[row["recipe_id"]] = run_recipe(
+                row, index, revision, source_digest, source_is_dirty, state_root
+            )
 
     evidence = [HEADER]
     for row in rows:

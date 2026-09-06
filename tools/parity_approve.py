@@ -224,10 +224,6 @@ def current_revision() -> str:
     return revision
 
 
-def current_dirty() -> bool:
-    return bool(git_text("status", "--porcelain", "--untracked-files=all"))
-
-
 def source_path_allowed(raw: str) -> bool:
     path = raw.replace("\\", "/")
     parts = path.split("/")
@@ -240,6 +236,52 @@ def source_path_allowed(raw: str) -> bool:
     if path == "parity" or path.startswith("parity/"):
         return False
     return True
+
+
+def git_status_paths() -> list[str]:
+    """Return every path named by porcelain status, including rename pairs."""
+    records = git_text(
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "-z",
+    ).split("\0")
+    paths: list[str] = []
+    index = 0
+    while index < len(records):
+        record = records[index]
+        index += 1
+        if not record:
+            continue
+        if len(record) < 4 or record[2] != " ":
+            fail(f"invalid Git status record: {record!r}")
+        paths.append(record[3:])
+        if record[:2][0] in "RC":
+            if index == len(records):
+                fail("Git status rename record is incomplete")
+            paths.append(records[index])
+            index += 1
+    return paths
+
+
+def source_dirty() -> bool:
+    return any(source_path_allowed(path) for path in git_status_paths())
+
+
+def revision_exists(revision: str) -> bool:
+    if not REVISION.fullmatch(revision):
+        return False
+    object_name = f"{revision}^{{commit}}"
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", "--quiet", object_name],
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as error:
+        fail(f"cannot validate evidence revision: {error}")
+    return result.returncode == 0
 
 
 def source_fingerprint() -> str:
@@ -284,6 +326,7 @@ def validate_evidence(
     dirty: bool,
 ) -> None:
     require_exact_ids("parity evidence", [row["recipe_id"] for row in rows], expected_ids)
+    captured_revisions: set[str] = set()
     for row in rows:
         recipe_id = row["recipe_id"]
         mapping = mappings.get(recipe_id)
@@ -291,8 +334,9 @@ def validate_evidence(
             fail(f"evidence references unknown recipe {recipe_id}")
         if row["replay_status"] != "ok":
             fail(f"{recipe_id}: replay status is not ok")
-        if row["current_revision"] != revision:
-            fail(f"{recipe_id}: evidence revision is not current HEAD")
+        if not REVISION.fullmatch(row["current_revision"]):
+            fail(f"{recipe_id}: evidence revision is invalid")
+        captured_revisions.add(row["current_revision"])
         if not SHA256.fullmatch(row["source_fingerprint"]):
             fail(f"{recipe_id}: evidence source fingerprint is invalid")
         if row["source_fingerprint"] != source_digest:
@@ -316,6 +360,11 @@ def validate_evidence(
             repo_path(relative, label)
         if row["visual_review"] != "pending" or row["reviewer"] != "pending":
             fail(f"{recipe_id}: evidence is not fresh pending replay")
+    for captured_revision in captured_revisions:
+        if not revision_exists(captured_revision):
+            fail(f"evidence revision {captured_revision} is not a reachable commit")
+    if not REVISION.fullmatch(revision):
+        fail("current Git revision is invalid")
 
 
 def validate_artifacts(mappings: dict[str, dict[str, str]]) -> None:
@@ -428,7 +477,7 @@ def main() -> int:
     evidence_rows = read_tsv(EVIDENCE, EVIDENCE_HEADER, "parity replay evidence")
     revision = current_revision()
     source_digest = source_fingerprint()
-    dirty = current_dirty()
+    dirty = source_dirty()
     validate_evidence(evidence_rows, manifest_ids, mappings, revision, source_digest, dirty)
     validate_artifacts(mappings)
     review_rows = read_tsv(VISUAL_REVIEW, VISUAL_REVIEW_HEADER, "independent visual review")

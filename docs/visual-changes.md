@@ -182,13 +182,17 @@ captures / classification: `(pending — filled when the change lands)`
 The current uncommitted baseline diff is classified here in full. No baseline was blessed or
 edited by this ledger entry.
 
-~~~
+```
 - surface:   junie-tui/ScrollRegion and junie-tui/Grid @ {120x40, 40x10} /
              {junie, paper} / {truecolor, mono}
 - captures:  none under shots/ — these are headless Scene matrix cells; tools/capture.sh
              cannot address a Scene. Named evidence: the no-BLESS Scene::assert_against
              frame-text dump from
              rtk cargo test -p junie-tui --test render_components -- --nocapture.
+             Durable evidence paths: docs/visual-changes.md:180 (this entry and its
+             embedded frame text), crates/tui/tests/render_components.rs:1459 (the
+             headless Scene matrix runner), and
+             crates/tui/tests/baselines/components.txt (the exact baseline diff).
              The seven reported ScrollRegion mismatches stop at 40x10 / junie / truecolor:
              default, disabled, editing, focused, hovered, and selected report baseline
              9a8c97d4cf642078 → got f56b60ecfbd2c323; pressed reports baseline
@@ -328,7 +332,7 @@ edited by this ledger entry.
              transitively, so its 48 movements are not a separate Grid visual change.
              The seven reported no-BLESS mismatches keep this entry as audit evidence only;
              it does not authorize a baseline bless.
-~~~
+```
 
 ## Item 8 — The backdrop excludes the footer row uniformly
 
