@@ -11213,6 +11213,8 @@ set -eu
         let metadata = run_dir.join("metadata.json");
         let stderr = run_dir.join("stderr");
         let exit = run_dir.join("exit.status");
+        let ready = run_dir.join("ready");
+        fs::write(&ready, b"serialized-run\n").expect("publish serialized ready marker");
         let executable = run_dir.join("executable");
         let source = directory.join("source-runner");
         fs::write(&source, b"#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
@@ -11299,6 +11301,7 @@ set -eu
             .arg(root().join("tools/capture_exec.sh"))
             .env("CAPTURE_METADATA_FILE", &metadata)
             .env("CAPTURE_RUN_ID", "serialized-run")
+            .env("CAPTURE_READY_FILE", &ready)
             .env("CAPTURE_STDERR_FILE", &stderr)
             .env("CAPTURE_EXIT_FILE", &exit)
             .env("CAPTURE_COLOR_MODE", "truecolor")
@@ -11373,6 +11376,8 @@ set -eu
         let metadata = run_dir.join("metadata.json");
         let stderr = run_dir.join("stderr");
         let exit = run_dir.join("exit.status");
+        let ready = run_dir.join("ready");
+        fs::write(&ready, b"staged-run\n").expect("publish staged ready marker");
         let output_file = directory.join("observed-environment");
         let init = Command::new("python3")
             .arg(root().join("tools/capture_provenance.py"))
@@ -11429,6 +11434,7 @@ set -eu
             .arg(root().join("tools/capture_exec.sh"))
             .env("CAPTURE_METADATA_FILE", &metadata)
             .env("CAPTURE_RUN_ID", "staged-run")
+            .env("CAPTURE_READY_FILE", &ready)
             .env("CAPTURE_STDERR_FILE", &stderr)
             .env("CAPTURE_EXIT_FILE", &exit)
             .env("CAPTURE_COLOR_MODE", "truecolor")

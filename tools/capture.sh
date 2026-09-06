@@ -894,6 +894,20 @@ case "$cmd" in
     else
       mv -f "$png_output" "$stage_png"
     fi
+    # The suffix-free mktemp path only reserves a private name for Pillow's
+    # suffix-bearing output. It is not part of the published generation and
+    # must be gone before transactional publication; otherwise rollback's
+    # exact-artifact cleanup correctly refuses to remove a non-empty tree.
+    if [[ -L "$png_tmp" ]]; then
+      echo "capture failed: refusing symlink temporary artifact: $png_tmp" >&2
+      conversion_failed=1
+    elif [[ -e "$png_tmp" && ! -f "$png_tmp" ]]; then
+      echo "capture failed: temporary artifact is not a regular file: $png_tmp" >&2
+      conversion_failed=1
+    elif [[ -e "$png_tmp" ]] && ! rm -f "$png_tmp"; then
+      echo "capture failed: cannot remove temporary artifact: $png_tmp" >&2
+      conversion_failed=1
+    fi
 
     exit_status=$(read_exit_status)
     app_failed=0
