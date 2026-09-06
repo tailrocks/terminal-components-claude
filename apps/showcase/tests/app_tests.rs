@@ -6,7 +6,7 @@
 
 use junie_tui::{
     Axis, Color, ColorLevel, Id, ItemKey, KeyCode, LayerId, Modifier, MouseKind, Part, PartRef,
-    StateFlags, Theme,
+    Rect, StateFlags, Theme,
 };
 use junie_tui_testing::Harness;
 use showcase_app::{App, PageId, NAV_ENTRIES};
@@ -15,6 +15,7 @@ const FORM_SUMMARY: Id = Id::root("showcase_app::pages::forms::forms.summary");
 const SCROLL_LIST: Id = Id::root("showcase_app::pages::scrolling::scrolling.list");
 const APP_NAV: Id = Id::root("showcase_app::app::navigation");
 const CHROME_BRAND: Id = Id::root("showcase_app::pages::chrome::chrome.brand");
+const SIDEBAR_CONTENT: Id = Id::root("showcase_app::pages::sidebars::sidebars.content");
 
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
@@ -61,6 +62,17 @@ fn drag(h: &mut Harness<App>, from: (u16, u16), to: (u16, u16)) {
 
 fn resize(h: &mut Harness<App>, width: u16, height: u16) {
     let _ = h.resize(width, height);
+}
+
+fn area_text(h: &Harness<App>, area: Rect) -> String {
+    (area.y..area.bottom())
+        .map(|y| {
+            (area.x..area.right())
+                .map(|x| h.cell(x, y).symbol().to_owned())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn focus_bar_x(h: &Harness<App>, y: u16) -> Option<u16> {
@@ -219,7 +231,8 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::Tab);
             press(h, KeyCode::Down);
             press(h, KeyCode::Enter);
-            assert!(h.text().contains("active section: Activity"));
+            let content = require(h.area_of(SIDEBAR_CONTENT), "sidebar content");
+            assert!(area_text(h, content).contains("Runs"));
         }
         PageId::Dialogs => {
             press(h, KeyCode::Tab);
@@ -258,10 +271,12 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             assert!(h.text().contains("status: ready"));
         }
         PageId::Editor => {
+            let before = h.snapshot().digest();
             press(h, KeyCode::Tab);
             press(h, KeyCode::Char('i'));
             type_text(h, "x");
-            assert!(h.text().contains("document changed"));
+            assert_ne!(before, h.snapshot().digest(), "editor edit did not repaint");
+            assert!(h.text().contains("retry.rs"));
             press(h, KeyCode::Esc);
         }
         PageId::Grid => {
@@ -276,7 +291,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             assert!(h.text().contains("filter toggled"));
         }
         PageId::Pickers => {
-            let (x, y) = require(h.find("Open command palette"), "picker launcher");
+            let (x, y) = require(h.find("Open a picker"), "picker launcher");
             click(h, x, y);
             assert!(h.text().contains("Command palette"));
             press(h, KeyCode::Down);

@@ -406,8 +406,8 @@ impl Page for PickersPage {
             self.title(),
             "One modal list for files, tabs and levels: searc…",
             |ui, body| {
+                open_button().draw(ui, body);
                 ui.reference(None, |ui| {
-                    open_button().draw(ui, body);
                     filter_list().draw(ui, body, &self.filter_state, ITEMS);
                     picker_chain().draw(ui, body, &self.chain_state);
                     menu_bar().draw(ui, body, &self.menu_state);

@@ -421,10 +421,10 @@ impl Page for ChromePage {
             self.title(),
             "Brand lockup · menu bar with anchored menus · sta…",
             |ui, body| {
-                ui.reference(None, |ui| {
-                    brand().draw(ui, body);
-                    status_bar(&CENTER, self.frame).draw(ui, body);
-                });
+                // Keep the component projection live so it owns hit testing;
+                // the frozen paint below restores the historical cells.
+                brand().draw(ui, body);
+                status_bar(&CENTER, self.frame).draw(ui, body);
                 paint_body(
                     ui,
                     body,

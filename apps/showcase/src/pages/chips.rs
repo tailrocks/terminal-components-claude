@@ -2,7 +2,7 @@
 
 use junie_tui::{
     ChipBar, ChipBarAction, ChipBarState, Cx, Id, ItemKey, Modifier, Part, Rect, Response, RowUi,
-    Select, SelectAction, SelectState, StateFlags, Style, Surface, Ui, Variant, id, width,
+    Select, SelectAction, SelectState, StateFlags, Style, Surface, Ui, Variant, id, layout, width,
 };
 
 use crate::data::LANGUAGES;
@@ -401,10 +401,11 @@ impl Page for ChipsPage {
             self.title(),
             "Removable chips, a popup select, and str…",
             |ui, body| {
-                ui.reference(None, |ui| {
-                    chips().draw(ui, body, &self.chip_state, FILTERS);
-                    select().draw(ui, body, &self.select_state, LANGUAGES);
-                });
+                // Keep both controls live in the frozen source geometry.
+                let (chip_area, rest) = layout::split_v(body, 4);
+                chips().draw(ui, chip_area, &self.chip_state, FILTERS);
+                let (select_area, _) = layout::split_v(rest, 3);
+                select().draw(ui, select_area, &self.select_state, LANGUAGES);
                 paint_body(
                     ui,
                     body,

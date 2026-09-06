@@ -153,7 +153,7 @@ fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str
 
 fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, message: &str) {
     let progress = if running {
-        format!("{:>3}%", ((frame % 4 + 1) * 25).min(99))
+        format!("{:>3}%", frame.saturating_mul(12).min(99))
     } else {
         String::new()
     };

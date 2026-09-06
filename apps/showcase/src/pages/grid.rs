@@ -275,9 +275,11 @@ impl Page for GridPage {
             self.title(),
             "Typed cells, a pending-change queue, paging an…",
             |ui, body| {
-                ui.reference(None, |ui| {
-                    metrics().draw(ui, body, &self.state, &MetricModel);
-                });
+                // Keep the migrated Grid live. The compatibility paint below
+                // owns the historical body pixels, but reference rendering
+                // would also make the Grid inert and let Enter bubble into
+                // the shell's page navigation.
+                metrics().draw(ui, body, &self.state, &MetricModel);
                 paint_body(
                     ui,
                     body,
@@ -405,6 +407,21 @@ impl Page for GridPage {
                         },
                         StateFlags::empty(),
                     );
+                }
+                if let Some(key) = self.selected {
+                    let row = body.y.saturating_add(17);
+                    if row < body.bottom() {
+                        let selected = format!("  selected metric: {key:?}");
+                        ui.paint_str(
+                            Rect {
+                                y: row,
+                                height: 1,
+                                ..body
+                            },
+                            &selected,
+                            ui.surface_style(),
+                        );
+                    }
                 }
             },
         );
