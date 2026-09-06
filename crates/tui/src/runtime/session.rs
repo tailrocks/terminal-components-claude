@@ -25,6 +25,7 @@ use ratatui_crossterm::crossterm::terminal::{
 
 use super::{App, Runtime};
 use crate::event::Input;
+use crate::response::Invalidate;
 use crate::theme::Theme;
 
 /// The terminal every application draws into.
@@ -156,8 +157,14 @@ pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
     // runtime's requested duration changes. Thus unrelated input cannot
     // postpone an already scheduled deadline.
     let mut scheduled: Option<(Duration, Instant)> = None;
+    let mut dirty = true;
     loop {
-        session.terminal().draw(|f| rt.draw(f))?;
+        if dirty {
+            session.terminal().draw(|f| rt.draw(f))?;
+            // A draw can reconcile focus after painting. Preserve exactly one
+            // immediate settle frame, then wait for input or a deadline.
+            dirty = rt.take_repaint_request();
+        }
         if rt.app().should_quit() || rt.quit_requested() {
             break;
         }
@@ -166,7 +173,9 @@ pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
         while poll(Duration::ZERO)? {
             if let Some(input) = Input::from_crossterm(read()?) {
                 let is_tick = matches!(&input, Input::Tick);
-                let _ = rt.handle(input);
+                let redraw = immediate_redraw(&input);
+                let response = rt.handle(input);
+                dirty |= redraw || response.invalidate() >= Invalidate::Paint;
                 sync_deadline(&rt, &mut scheduled, is_tick);
                 got_input = true;
             }
@@ -180,17 +189,24 @@ pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
         if poll(wait)? {
             if let Some(input) = Input::from_crossterm(read()?) {
                 let is_tick = matches!(&input, Input::Tick);
-                let _ = rt.handle(input);
+                let redraw = immediate_redraw(&input);
+                let response = rt.handle(input);
+                dirty |= redraw || response.invalidate() >= Invalidate::Paint;
                 sync_deadline(&rt, &mut scheduled, is_tick);
             }
         } else if scheduled.is_some_and(|(_, at)| Instant::now() >= at) {
             // A timeout is a timer delivery only when a deadline exists. In
             // particular, an idle poll never creates an unsolicited tick.
-            let _ = rt.handle(Input::Tick);
+            let response = rt.handle(Input::Tick);
+            dirty |= immediate_redraw(&Input::Tick) || response.invalidate() >= Invalidate::Paint;
             sync_deadline(&rt, &mut scheduled, true);
         }
     }
     session.leave()
+}
+
+fn immediate_redraw(input: &Input) -> bool {
+    matches!(input, Input::Tick | Input::Resize(..))
 }
 
 fn sync_deadline<A: App>(

@@ -1134,6 +1134,9 @@ impl Default for App {
 
 impl TuiApp for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() == junie_tui::UpdateCause::Bootstrap {
+            cx.focus(NAV);
+        }
         let mut response = Response::ignored();
         response |= shell_brand().update(cx).erase();
         response |= shell_status().update(cx).erase();

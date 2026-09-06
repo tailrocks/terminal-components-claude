@@ -177,6 +177,159 @@ Items (b), (e) and (f) change pixels in the current baseline and are called out 
 
 captures / classification: `(pending — filled when the change lands)`
 
+### 7a — ScrollRegion track height and Grid's transitive movement (2026-09-06)
+
+The current uncommitted baseline diff is classified here in full. No baseline was blessed or
+edited by this ledger entry.
+
+~~~
+- surface:   junie-tui/ScrollRegion and junie-tui/Grid @ {120x40, 40x10} /
+             {junie, paper} / {truecolor, mono}
+- captures:  none under shots/ — these are headless Scene matrix cells; tools/capture.sh
+             cannot address a Scene. Named evidence: the no-BLESS Scene::assert_against
+             frame-text dump from
+             rtk cargo test -p junie-tui --test render_components -- --nocapture.
+             The seven reported ScrollRegion mismatches stop at 40x10 / junie / truecolor:
+             default, disabled, editing, focused, hovered, and selected report baseline
+             9a8c97d4cf642078 → got f56b60ecfbd2c323; pressed reports baseline
+             7eeb9df24da45ab4 → got 2bd782ba4ada20cf. Each dump prints this exact
+             headless frame text:
+             row 0                                  ┃
+             row 1                                  │
+             row 2                                  │
+             row 3                                  │
+             row 4                                  │
+             row 5                                  │
+             row 6                                  │
+             row 7                                  │
+             row 8                                  │
+             row 9                                  │
+             The complete run reported 311 passed and 21 failed:
+             panel::{default,disabled,editing,focused,hovered,pressed,selected},
+             scroll_region::{default,disabled,editing,focused,hovered,pressed,selected},
+             and tree::{default,disabled,editing,focused,hovered,pressed,selected}.
+             Only the seven ScrollRegion failures overlap this baseline diff; all six Grid
+             state tests completed without a reported mismatch. Each failing state stops
+             at its first matrix cell, so this evidence does not silently claim later
+             cells were rechecked.
+- tests:     crates/tui/tests/baselines/components.txt (104 moved lines);
+             render::components::scroll_region::{default,disabled,editing,focused,hovered,pressed,selected};
+             render::components::grid::{default,disabled,editing,focused,hovered,selected}
+- moved:     104 keys: 56 ScrollRegion keys and 48 transitive Grid keys. Exact old → new
+             pairs read from git diff:
+  render::components::grid::default 120 40 junie mono 22033dea6d2bf9fa → cc1660d468c321f6
+  render::components::grid::default 120 40 junie truecolor 9817dac1ed7c9346 → da9a5d1263990b5e
+  render::components::grid::default 120 40 paper mono ecb5c18eb843e652 → a4ef9c7153baec0e
+  render::components::grid::default 120 40 paper truecolor 57a32353c9645ef8 → 6e879f182a0999c8
+  render::components::grid::default 40 10 junie mono 4db3f21e5183ceda → 868216137c400e56
+  render::components::grid::default 40 10 junie truecolor 3cbc77c150eba2c6 → ac35cfc16cf230de
+  render::components::grid::default 40 10 paper mono 920c828a493eeeb2 → 8604c7205f535dee
+  render::components::grid::default 40 10 paper truecolor de69e7bb7de4fb28 → 4c4ebbc67c9eb0f8
+  render::components::grid::disabled 120 40 junie mono 22033dea6d2bf9fa → cc1660d468c321f6
+  render::components::grid::disabled 120 40 junie truecolor 9817dac1ed7c9346 → da9a5d1263990b5e
+  render::components::grid::disabled 120 40 paper mono ecb5c18eb843e652 → a4ef9c7153baec0e
+  render::components::grid::disabled 120 40 paper truecolor 57a32353c9645ef8 → 6e879f182a0999c8
+  render::components::grid::disabled 40 10 junie mono 4db3f21e5183ceda → 868216137c400e56
+  render::components::grid::disabled 40 10 junie truecolor 3cbc77c150eba2c6 → ac35cfc16cf230de
+  render::components::grid::disabled 40 10 paper mono 920c828a493eeeb2 → 8604c7205f535dee
+  render::components::grid::disabled 40 10 paper truecolor de69e7bb7de4fb28 → 4c4ebbc67c9eb0f8
+  render::components::grid::editing 120 40 junie mono 22033dea6d2bf9fa → cc1660d468c321f6
+  render::components::grid::editing 120 40 junie truecolor 9817dac1ed7c9346 → da9a5d1263990b5e
+  render::components::grid::editing 120 40 paper mono ecb5c18eb843e652 → a4ef9c7153baec0e
+  render::components::grid::editing 120 40 paper truecolor 57a32353c9645ef8 → 6e879f182a0999c8
+  render::components::grid::editing 40 10 junie mono 4db3f21e5183ceda → 868216137c400e56
+  render::components::grid::editing 40 10 junie truecolor 3cbc77c150eba2c6 → ac35cfc16cf230de
+  render::components::grid::editing 40 10 paper mono 920c828a493eeeb2 → 8604c7205f535dee
+  render::components::grid::editing 40 10 paper truecolor de69e7bb7de4fb28 → 4c4ebbc67c9eb0f8
+  render::components::grid::focused 120 40 junie mono 4675552f3c8fdebc → fe58af36f3b95730
+  render::components::grid::focused 120 40 junie truecolor 58ca02d397496888 → a1a2abce7d5923e0
+  render::components::grid::focused 120 40 paper mono 8a1a7ec4a118e744 → 727952ff097d7b98
+  render::components::grid::focused 120 40 paper truecolor 8535b80efaef9bda → 4d9360335993ba8a
+  render::components::grid::focused 40 10 junie mono 02b51a90ea6aed1c → 420a6954a9fdbe10
+  render::components::grid::focused 40 10 junie truecolor b1335bbb533c9088 → 42f95e2900e67be0
+  render::components::grid::focused 40 10 paper mono abc4c037c78599a4 → 236e17159fbdd1f8
+  render::components::grid::focused 40 10 paper truecolor fbfe85ffe7d4ec6a → ffc263d2b62c131a
+  render::components::grid::hovered 120 40 junie mono 22033dea6d2bf9fa → cc1660d468c321f6
+  render::components::grid::hovered 120 40 junie truecolor 1cccb015edb67dd0 → 9c96eae598803c28
+  render::components::grid::hovered 120 40 paper mono ecb5c18eb843e652 → a4ef9c7153baec0e
+  render::components::grid::hovered 120 40 paper truecolor 3e4841fd89e6f05c → 78ac72afe1767d5c
+  render::components::grid::hovered 40 10 junie mono 4db3f21e5183ceda → 868216137c400e56
+  render::components::grid::hovered 40 10 junie truecolor a56589a6e9e46050 → 33ef5132e8bec2a8
+  render::components::grid::hovered 40 10 paper mono 920c828a493eeeb2 → 8604c7205f535dee
+  render::components::grid::hovered 40 10 paper truecolor 70f17046b37c028c → d8eca39115a2c2cc
+  render::components::grid::selected 120 40 junie mono 050b58d82a4e5c0f → 47905521c7e525fb
+  render::components::grid::selected 120 40 junie truecolor 2f975888c9b83ac7 → d08b7201048fb0cf
+  render::components::grid::selected 120 40 paper mono cd1e44b3da4d8a67 → 98de920dc728f053
+  render::components::grid::selected 120 40 paper truecolor 099bfa5e05b3fb5f → c827837aadbba4b7
+  render::components::grid::selected 40 10 junie mono 3079c6b7652df86f → 95f1e6957b28b4db
+  render::components::grid::selected 40 10 junie truecolor cb9b5b737950a747 → 6faac865f1ed1e4f
+  render::components::grid::selected 40 10 paper mono 09c0568c8141d747 → 0eff8e472e6dcbb3
+  render::components::grid::selected 40 10 paper truecolor acc723446447120f → 40491be3c3a013e7
+  render::components::scroll_region::default 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
+  render::components::scroll_region::default 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
+  render::components::scroll_region::default 120 40 paper mono 043387647e609624 → a370dcbe028e4069
+  render::components::scroll_region::default 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
+  render::components::scroll_region::default 40 10 junie mono 12d6825601608969 → e690d21688da8040
+  render::components::scroll_region::default 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
+  render::components::scroll_region::default 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
+  render::components::scroll_region::default 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::disabled 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
+  render::components::scroll_region::disabled 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
+  render::components::scroll_region::disabled 120 40 paper mono 043387647e609624 → a370dcbe028e4069
+  render::components::scroll_region::disabled 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
+  render::components::scroll_region::disabled 40 10 junie mono 12d6825601608969 → e690d21688da8040
+  render::components::scroll_region::disabled 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
+  render::components::scroll_region::disabled 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
+  render::components::scroll_region::disabled 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::editing 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
+  render::components::scroll_region::editing 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
+  render::components::scroll_region::editing 120 40 paper mono 043387647e609624 → a370dcbe028e4069
+  render::components::scroll_region::editing 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
+  render::components::scroll_region::editing 40 10 junie mono 12d6825601608969 → e690d21688da8040
+  render::components::scroll_region::editing 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
+  render::components::scroll_region::editing 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
+  render::components::scroll_region::editing 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::focused 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
+  render::components::scroll_region::focused 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
+  render::components::scroll_region::focused 120 40 paper mono 043387647e609624 → a370dcbe028e4069
+  render::components::scroll_region::focused 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
+  render::components::scroll_region::focused 40 10 junie mono 12d6825601608969 → e690d21688da8040
+  render::components::scroll_region::focused 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
+  render::components::scroll_region::focused 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
+  render::components::scroll_region::focused 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::hovered 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
+  render::components::scroll_region::hovered 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
+  render::components::scroll_region::hovered 120 40 paper mono 043387647e609624 → a370dcbe028e4069
+  render::components::scroll_region::hovered 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
+  render::components::scroll_region::hovered 40 10 junie mono 12d6825601608969 → e690d21688da8040
+  render::components::scroll_region::hovered 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
+  render::components::scroll_region::hovered 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
+  render::components::scroll_region::hovered 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::pressed 120 40 junie mono 20508db0f18cabd3 → 55fca6c68455d891
+  render::components::scroll_region::pressed 120 40 junie truecolor d3bfbe6d9973c03a → 096334f1e8281d3b
+  render::components::scroll_region::pressed 120 40 paper mono 589ae64b3c2c0e53 → 5683416c3a3dd5dd
+  render::components::scroll_region::pressed 120 40 paper truecolor a6ffebcb4f6a941e → 8aaeabcacdc3668d
+  render::components::scroll_region::pressed 40 10 junie mono a18316cd09646786 → 93752b06582ead54
+  render::components::scroll_region::pressed 40 10 junie truecolor 81828afb93fa61e1 → 7eeb9df24da45ab4
+  render::components::scroll_region::pressed 40 10 paper mono 23041704cb98cb7a → 143ea17a392cca5c
+  render::components::scroll_region::pressed 40 10 paper truecolor 005fa10c26327af1 → eee2c5645e6af75e
+  render::components::scroll_region::selected 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
+  render::components::scroll_region::selected 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
+  render::components::scroll_region::selected 120 40 paper mono 043387647e609624 → a370dcbe028e4069
+  render::components::scroll_region::selected 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
+  render::components::scroll_region::selected 40 10 junie mono 12d6825601608969 → e690d21688da8040
+  render::components::scroll_region::selected 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
+  render::components::scroll_region::selected 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
+  render::components::scroll_region::selected 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+- added:     none
+- class:     fix
+- reason:    §20.10 item 7 (container/geometry defect fixes). ScrollRegion's shared
+             scrollbar now paints the complete bounded track; Grid inherits that correction
+             transitively, so its 48 movements are not a separate Grid visual change.
+             The seven reported no-BLESS mismatches keep this entry as audit evidence only;
+             it does not authorize a baseline bless.
+~~~
+
 ## Item 8 — The backdrop excludes the footer row uniformly
 
 captures / classification: `(pending — filled when the change lands)`

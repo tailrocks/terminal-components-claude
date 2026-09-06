@@ -243,6 +243,19 @@ impl<A: App> Runtime<A> {
             || self.last_invalidate >= Invalidate::Paint
     }
 
+    /// Consume an immediate repaint request raised during the draw phase.
+    ///
+    /// Terminal sessions use this for focus reconciliation: the first frame
+    /// can discover a different focus owner after it paints, which requires
+    /// one settle frame. Keeping this request separate from response
+    /// invalidation lets the terminal loop stay dirty-driven without exposing
+    /// frame-service state as public API.
+    pub(crate) fn take_repaint_request(&mut self) -> bool {
+        let requested = self.services.repaint;
+        self.services.repaint = false;
+        requested
+    }
+
     /// The earliest outstanding repaint deadline requested by the app.
     ///
     /// The duration is relative to the update that established the deadline.
@@ -1073,8 +1086,8 @@ impl<A: App> Runtime<A> {
         let area = frame.area();
         let buf = frame.buffer_mut();
         self.draw_into(area, buf);
-        if let Some(p) = self.cursor {
-            frame.set_cursor_position(p);
+        if let Some(cursor) = self.cursor {
+            frame.set_cursor_position(cursor);
         }
     }
 
