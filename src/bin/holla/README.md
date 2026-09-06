@@ -60,6 +60,63 @@ Scenarios: `first-use` `rust-dirty` `monorepo-root` `monorepo-child`
 `q`/`Ctrl+Q` quit (confirm; on production hosts the dialog names the remote
 identity) · `F10` menu · mouse everywhere, never required.
 
+## Verifying
+
+Logic is test-covered; visuals need eyes. Three layers, cheap to thorough:
+
+**1. Automated — logic and regression:**
+
+```sh
+cargo fmt --check                            # formatting
+cargo clippy --all-targets -- -D warnings    # lint
+cargo test                                   # every flow below, on TestBackend
+```
+
+**2. Interactive — one scenario at a time:**
+
+```sh
+cargo run --bin holla -- --scenario hard-cases
+```
+
+| Scenario | What to verify |
+|---|---|
+| `first-use` | discovery runs, empty state, footer hints |
+| `rust-dirty` | type to filter, `↑↓` move, `Enter` runs top match (simulated), footer status confirms |
+| `monorepo-root` | "Update all child projects" opens a plan DAG; gates ask for the typed phrase; run shows per-child ✓/✗ (billing diverges, legacy fast-forwards) |
+| `monorepo-child` | cwd-aware ranking; workspace scope tags on rows |
+| `docker-cleanup` | blocked rows state why; cleanup plan matches its apply effect |
+| `disk-cleanup` | freshness labels: `active today` is never removed, `inactive N days` is reclaimable |
+| `upgrade-plan` | remote host identity in the header; compound upgrade plan |
+| `activities-multi` | strip `● … − ✗`; `Ctrl+A` cycles from anywhere; digits `1–9` open activity pages; `0` returns home |
+| `remote-host` | ssh context; quit confirm names the remote identity |
+| `launch-failure` | strip shows `✗ 1 seed db` from the first frame; a failing run reports honestly |
+| `hard-cases` | detached HEAD, `▲ docker: discovery failed`, no-identity ssh host, long breadcrumb truncates before chrome drops |
+
+Cross-cutting, in any scenario: `F1`/`?` help, `Ctrl+S` scope cycle, `F10`
+menus, ranking controls via `Ctrl+O` (pin/alias/hide/reset — a hidden row
+resurfaces only when you type its exact command), live window resize, and
+`--color none` (mono must lose nothing but hue: warnings keep `▲`, errors a
+bold `!`) and `--motion reduced`.
+
+**3. Capture matrix — the full visual pass:**
+
+```sh
+tools/p6_matrix.sh           # 132 PNGs: 11 scenarios × 4 sizes × 3 color levels
+open shots/h_p6_*.png        # names: h_p6_<scenario>_<size>_<color>
+```
+
+After changing a surface, rerun only what moved, then look at the PNGs —
+rendered output is the evidence:
+
+```sh
+SCENARIOS=hard-cases SIZES="80x24 120x40" COLORS=mono tools/p6_matrix.sh
+```
+
+**Simulation guarantee (adversarial):** click through every plan and gate
+while watching `ps` for git/docker/ssh/mise/btm/pg_activity. Nothing spawns;
+every effect lands in the in-memory `World` and every run ends with a
+`simulated` status.
+
 ## Evidence
 
 `shots/h_*.png` — reviewed captures per phase (strip, activity pages, merged
