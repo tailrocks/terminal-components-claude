@@ -1,6 +1,6 @@
 ---
 name: fable-builder
-description: Implementation worker (Kimi k3 via claude-kimi endpoint). The ONLY agent allowed to implement. Receives accepted decisions, an explicit file-ownership list, and acceptance criteria; writes code, tests, and capture evidence. Does not make architecture or public-API decisions — pauses and reports back if a change needs one.
+description: Implementation worker. The ONLY agent allowed to implement. Receives accepted decisions, an explicit file-ownership list, and acceptance criteria; writes code, tests, and capture evidence. Does not make architecture or public-API decisions — pauses and reports back if a change needs one.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: k3
 effort: max
