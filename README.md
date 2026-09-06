@@ -19,6 +19,16 @@ Three binaries share one library:
   scenario is a fixture world with a virtual clock, so any frame can be
   reproduced. It never touches the real Jackin CLI, containers, 1Password or
   provider APIs.
+- **`holla`** — a context-adaptive action launcher ("this folder, this host,
+  right now"): an always-armed query over a ranked priority stack (Suggested
+  here / Recent here / Explore), context rings Here→Project→Workspace→Host→
+  Personal with an explicit scope and a reason on every row, previews that
+  answer *what will happen* before anything runs, compound intents as
+  reviewable DAG plans behind two gates (review, then a typed phrase bound to
+  the target host), destructive actions as first-class citizens, and named
+  activities with retained output for long-running work. Everything is a
+  deterministic in-memory fixture — mise, git, gh, docker, btm, pg_activity,
+  ssh and the filesystem are simulated; the real commands never execute.
 
 The application is the specification: *if the
 [Junie](https://junie.jetbrains.com) website had been designed for a terminal
@@ -41,6 +51,14 @@ cargo run --release --bin jackin-preview -- --scenario accounts-mixed   # first-
 cargo run --release --bin jackin-preview -- --scenario launch-running --motion reduced   # full | reduced | paused
 cargo run --release --bin jackin-preview -- --scenario first-use --motion paused --frame 282    # freeze one frame
 JACKIN_NO_MOTION=1 cargo run --release --bin jackin-preview   # same as --motion reduced
+
+cargo run --release --bin holla                      # the launcher, first-use scenario
+cargo run --release --bin holla -- --scenario remote-host   # first-use | rust-dirty | monorepo-root |
+                                                     # monorepo-child | docker-cleanup | disk-cleanup |
+                                                     # upgrade-plan | activities-multi | remote-host |
+                                                     # launch-failure | hard-cases
+cargo run --release --bin holla -- --scenario hard-cases --color 256   # truecolor | 256 | 16 | none
+cargo run --release --bin holla -- --motion paused --frame 4000        # freeze one frame
 ```
 
 Every screen's first row is the application menu bar (`F10`, or click a
