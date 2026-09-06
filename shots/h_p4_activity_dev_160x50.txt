@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                  Activity · dev server  devbox · local  truecolor · 160×50  ? help
+  ● 1 dev server   … 2 test watch   − 3 deploy logs   ✗ 4 seed db  0 home
+ ● dev server
+
+ Scope   ~/work/monorepo/apps/frontend
+ State   running · 2h ago
+ Output  2 retained lines
+
+ vite v5.4 ready in 412 ms
+ ➜ Local: http://localhost:5199/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                            0 Home  ↑ ↓ Scroll output  1–9 Switch activity  Ctrl+A Next  Esc Home

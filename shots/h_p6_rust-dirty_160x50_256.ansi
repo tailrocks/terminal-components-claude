@@ -1,0 +1,50 @@
+[38;5;231m[48;5;16m [1m[38;5;233m[48;5;78m holla❯ [0m[38;5;231m[48;5;16m  [38;5;249m File [38;5;231m [38;5;249m Go [38;5;231m [38;5;249m Help [38;5;231m                                                                          [38;5;249m~/work/pave[38;5;231m  [38;5;249mdevbox · local[38;5;231m  [38;5;238m256 colors · 160×50[38;5;231m [38;5;244m ? help 
+[38;5;231m                                                                                                                                                                
+ [38;5;78m[48;5;234m▎[38;5;231m [38;5;244mType to filter · actions, files, hosts[38;5;231m                                                                                                                      [48;5;16m 
+                                                                                                                                                                
+   [38;5;238mSuggested here[38;5;231m                                                                                                                                               
+ [38;5;16m▎[38;5;231m make test                                                                                                                                       [38;5;244mpinned here[38;5;231m  
+ [38;5;16m▎[38;5;231m Check git status                                                          [38;5;244mbranch is 3 commits behind · 4 modified files · 1 staged · 2 untracked · alias gs[38;5;231m  
+ [38;5;16m▎[38;5;231m Review modified files                                                                                             [38;5;244m4 modified files · 1 staged · 2 untracked[38;5;231m  
+ [38;5;16m▎[38;5;231m cargo build                                                                                                                    [38;5;244mused 6 times in this project[38;5;231m  
+                                                                                                                                                                
+   [38;5;238mRecent here[38;5;231m                                                                                                                                                  
+ [38;5;16m▎[38;5;231m cargo test                                                                                                                     [38;5;244mused 4 times in this project[38;5;231m  
+                                                                                                                                                                
+   [38;5;238mExplore[38;5;231m                                                                                                                                                      
+ [38;5;16m▎[38;5;231m Pull — fast-forward only [38;5;238m· project[38;5;231m                                                                                               [38;5;244mbranch is 3 commits behind[38;5;231m  
+ [38;5;16m▎[38;5;231m Run build                                                                                                        [38;5;244mdefined by project task runner · mise.toml[38;5;231m  
+ [38;5;16m▎[38;5;231m Run lint                                                                                                         [38;5;244mdefined by project task runner · mise.toml[38;5;231m  
+ [38;5;16m▎[38;5;231m Run test                                                                                                         [38;5;244mdefined by project task runner · mise.toml[38;5;231m  
+ [38;5;16m▎[38;5;231m Clone a repository                                                                                                              [38;5;244mgithub.com/octocat · 1 orgs[38;5;231m  
+ [38;5;16m▎[38;5;231m Inspect target                                                                                                         [38;5;244m900 MB · cargo target · active today[38;5;231m  
+ [38;5;16m▎[38;5;231m Connect to bastion [38;5;238m· host ssh config[38;5;231m                                                                           [38;5;244midentity id_ed25519 · available on this host[38;5;231m  
+ [38;5;16m▎[38;5;231m Connect to devbox-deb [38;5;238m· host ssh config[38;5;231m                                                                        [38;5;244midentity id_ed25519 · available on this host[38;5;231m  
+ [38;5;16m▎[38;5;231m Connect to prod-eu-1 [38;5;238m· host ssh config[38;5;231m                                                                                        [38;5;244mvia bastion · host-key strict[38;5;231m  
+ [38;5;16m▎[38;5;231m Monitor this host [38;5;238m· host devbox[38;5;231m                                                                          [38;5;244mbtm available on this host · hands off and returns[38;5;231m  
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ [1m[38;5;233m[48;5;78m EDIT [0m[38;5;231m[48;5;16m                                  [1mType[0m[38;5;231m[48;5;16m [38;5;244mFilter[38;5;231m  [1m↓[0m[38;5;231m[48;5;16m [38;5;244mResults[38;5;231m  [1mEnter[0m[38;5;231m[48;5;16m [38;5;244mRun top match[38;5;231m  [1mCtrl+S[0m[38;5;231m[48;5;16m [38;5;244mScope[38;5;231m  [1mF10[0m[38;5;231m[48;5;16m [38;5;244mMenu[38;5;231m  [1mq[0m[38;5;231m[48;5;16m [38;5;244mQuit[38;5;231m                                            

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help               Plan · Update all child projects  devbox · local  truecolor · 120×40  ? help
+
+ Update all child projects                          review · Space excludes · dependents recalculate · nothing runs yet
+
+ Target        host devbox
+ Will change   3 child repositories · 8 commits to fast-forward · diverged and detached children stay untouched
+ Steps         8 steps · 7 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — branches run in pa╭────────────────────────────────────────────────────────────────╮
+ ▎ · Resolve child reposito│                                                                │rev-parse --show-toplevel
+ ▎ · Fetch legacy · legacy │  Confirm: Update all child projects                            │ices/legacy fetch --prune
+ ▎ · Check out main (legacy│                                                                │ices/legacy checkout main
+ ▎ · Pull legacy — fast-for│  Will happen  7 of 8 steps run on devbox                       │ces/legacy pull --ff-only
+ ▎ · Fetch billing · billin│  Will change  3 child repositories · 8 commits to fast-forwa…  │ces/billing fetch --prune
+ ▎ · Check out trunk (billi│  Bound to     host devbox · phrase names the target            │es/billing checkout trunk
+ ▎ · Pull billing — fast-fo│  Safety       simulated · nothing on any real host executes    │es/billing pull --ff-only
+ ▎ − Update seed · required│                                                                │ched at a1b2c3d · skipped
+                           │  git -C <child> rev-parse --show-toplevel                      │
+                           │  git -C ~/work/monorepo/services/legacy fetch --prune          │
+                           │  git -C ~/work/monorepo/services/legacy checkout main          │
+                           │  git -C ~/work/monorepo/services/legacy pull --ff-only         │
+                           │  git -C ~/work/monorepo/services/billing fetch --prune         │
+                           │  git -C ~/work/monorepo/services/billing checkou… … 1 more     │
+                           │                                                                │
+                           │   Type UPDATE ALL CHILD PROJECTS IN ~/work/monorepo to confi…  │
+                           │ ▎ UPDATE ALL CHILD PROJECTS IN ~/work/monorepo                 │
+                           │                                                                │
+                           │                                                                │
+                           │                               ▎Cancel  ▎Run plan (simulated)   │
+                           │                                                                │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+                                         ← → Choose  Enter Confirm  Esc Close

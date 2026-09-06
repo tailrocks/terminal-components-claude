@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                              Activity · seed db  devbox · local  no color · 120×40  ? help
+  ● 1 dev server   … 2 test watch   − 3 deploy logs   ✗ 4 seed db  0 home
+ ✗ seed db
+
+ Scope   ~/work/monorepo
+ State   failed · 1h ago
+ Output  2 retained lines
+
+ psql: connection to server at "db.internal" failed
+ exit code 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        0 Home  ↑ ↓ Scroll output  1–9 Switch activity  Ctrl+A Next  Esc Home

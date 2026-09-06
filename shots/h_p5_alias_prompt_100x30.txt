@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                ~/work/pave  devbox · local  truecolor · 100×30  ? help
+
+ ▎ cargo build
+
+   Suggested here
+ ▎ cargo build                                                        used 6 times in this project
+
+   Explore
+ ▎ Run build                                            defined by project task runner · mise.toml
+
+                       ╭────────────────────────────────────────────────────╮
+                       │                                                    │
+                       │  Alias for “cargo build”                           │
+                       │                                                    │
+                       │   Short name (e.g. gs)                             │
+                       │ ▎                                                  │
+                       │                                                    │
+                       │                                                    │
+                       │                             ▎Cancel  ▎Save alias   │
+                       │                                                    │
+                       ╰────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+  EDIT                                Enter Next  Esc Cancel

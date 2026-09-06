@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                    ~/work/pave  devbox · local  truecolor · 120×40  ? help
+
+ ▎ prod-eu-1
+
+   Explore
+ ▎ Connect to prod-eu-1 · host ssh config                                                via bastion · host-key strict
+
+
+
+
+
+                      ╭──────────────────────────────────────────────────────────────────────────╮
+                      │                                                                          │
+                      │  Connect to prod-eu-1?                                                   │
+                      │                                                                          │
+                      │  Alias            prod-eu-1 · literal, ~/.ssh/config                     │
+                      │  HostName         10.20.30.40                                            │
+                      │  User             deploy                                                 │
+                      │  Port             default 22                                             │
+                      │  Identity file    id_ed25519_prod · filename only, contents never read   │
+                      │  Jump chain       bastion → prod-eu-1                                    │
+                      │  Host key policy  strict                                                 │
+                      │  Multiplexing     not multiplexed · new connection                       │
+                      │                                                                          │
+                      │  ssh prod-eu-1                                                           │
+                      │                                                                          │
+                      │                                           ▎Close  ▎Connect (simulated)   │
+                      │                                                                          │
+                      ╰──────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+                                         ← → Choose  Enter Confirm  Esc Close

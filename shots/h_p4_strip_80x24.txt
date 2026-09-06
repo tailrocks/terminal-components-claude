@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help            ~/work/monorepo  devbox · local  ? help
+  ● 1 dev server   … 2 test watch   − 3 deploy logs   ✗ 4 seed db  0 home
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ Run reset-db ▲ · project projects/backend
+ ▎ mise run //projects/frontend:build             used 3 times in this project
+ ▎ Check git status                                         working tree clean
+ ▎ Clone a repository                              github.com/octocat · 1 orgs
+
+   Explore
+ ▎ Inspect node_modules                   3.0 GB · node_modules · active today
+ ▎ Run build · project projects/frontend
+ ▎ Run dev · project projects/frontend
+ ▎ Run lint · project                 defined by project task runner · //:lint
+ ▎ Run test · project projects/backend
+ ▎ Status across child projects           1 nested repository (not submodules)
+ ▎ Clean up Docker data · host …box  2.1 GB builder cache · 3.9 GB reclaimable
+ ▎ Docker status · host devbox                        3 containers · 2 running
+ ▎ Follow container logs · host …box  multi-service · keeps container identity
+ ▎ Monitor this host        btm available on this host · hands off and returns
+
+
+  EDIT   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  …

@@ -1,0 +1,50 @@
+[38;5;15m[48;5;0m [1m[38;5;0m[48;5;7m holla❯ [0m[38;5;15m[48;5;0m  [38;5;7m File [38;5;15m [38;5;7m Go [38;5;15m [38;5;7m Help [38;5;15m                                                                        [38;5;7m~/work/monorepo[38;5;15m  [38;5;7mdevbox · local[38;5;15m  [38;5;8mno color · 160×50[38;5;15m [38;5;7m ? help 
+[38;5;15m                                                                                                                                                                
+ [38;5;7m▎[38;5;15m [38;5;7mType to filter · actions, files, hosts[38;5;15m                                                                                                                       
+                                                                                                                                                                
+   [38;5;8mSuggested here[38;5;15m                                                                                                                                               
+ [38;5;0m▎[38;5;15m Run reset-db [38;5;7m▲[38;5;15m [38;5;8m· project projects/backend[38;5;15m                                   [38;5;7mdefined by project task runner · //projects/backend:reset-db · untrusted config[38;5;15m  
+ [38;5;0m▎[38;5;15m mise run //projects/frontend:build                                                                                             [38;5;7mused 3 times in this project[38;5;15m  
+ [38;5;0m▎[38;5;15m Check git status                                                                                                                         [38;5;7mworking tree clean[38;5;15m  
+ [38;5;0m▎[38;5;15m Clone a repository                                                                                                              [38;5;7mgithub.com/octocat · 1 orgs[38;5;15m  
+                                                                                                                                                                
+   [38;5;8mExplore[38;5;15m                                                                                                                                                      
+ [38;5;0m▎[38;5;15m Inspect node_modules                                                                                                   [38;5;7m3.0 GB · node_modules · active today[38;5;15m  
+ [38;5;0m▎[38;5;15m Update all child projects [38;5;8m· workspace[38;5;15m                                                                  [38;5;7m3 child repositories · 8 commits behind · 1 diverged[38;5;15m  
+ [38;5;0m▎[38;5;15m Run build [38;5;8m· project projects/frontend[38;5;15m                                                            [38;5;7mdefined by project task runner · //projects/frontend:build[38;5;15m  
+ [38;5;0m▎[38;5;15m Run dev [38;5;8m· project projects/frontend[38;5;15m                                                                [38;5;7mdefined by project task runner · //projects/frontend:dev[38;5;15m  
+ [38;5;0m▎[38;5;15m Run lint [38;5;8m· project[38;5;15m                                                                                                 [38;5;7mdefined by project task runner · //:lint[38;5;15m  
+ [38;5;0m▎[38;5;15m Run test [38;5;8m· project projects/backend[38;5;15m                                                                [38;5;7mdefined by project task runner · //projects/backend:test[38;5;15m  
+ [38;5;0m▎[38;5;15m Status across child projects [38;5;8m· workspace[38;5;15m                                                                             [38;5;7m3 nested repositories (not submodules)[38;5;15m  
+ [38;5;0m▎[38;5;15m Clean up Docker data [38;5;8m· host devbox[38;5;15m                                                                                [38;5;7m2.1 GB builder cache · 3.9 GB reclaimable[38;5;15m  
+ [38;5;0m▎[38;5;15m Docker status [38;5;8m· host devbox[38;5;15m                                                                                                        [38;5;7m3 containers · 2 running[38;5;15m  
+ [38;5;0m▎[38;5;15m Follow container logs [38;5;8m· host devbox[38;5;15m                                                                                [38;5;7mmulti-service · keeps container identity[38;5;15m  
+ [38;5;0m▎[38;5;15m Monitor this host [38;5;8m· host devbox[38;5;15m                                                                          [38;5;7mbtm available on this host · hands off and returns[38;5;15m  
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ [1m[38;5;0m[48;5;7m EDIT [0m[38;5;15m[48;5;0m                                  [1mType[0m[38;5;15m[48;5;0m [38;5;7mFilter[38;5;15m  [1m↓[0m[38;5;15m[48;5;0m [38;5;7mResults[38;5;15m  [1mEnter[0m[38;5;15m[48;5;0m [38;5;7mRun top match[38;5;15m  [1mCtrl+S[0m[38;5;15m[48;5;0m [38;5;7mScope[38;5;15m  [1mF10[0m[38;5;15m[48;5;0m [38;5;7mMenu[38;5;15m  [1mq[0m[38;5;15m[48;5;0m [38;5;7mQuit[38;5;15m                                            

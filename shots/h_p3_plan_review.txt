@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                    Plan · Clean up Docker data  devbox · local  truecolor · 120×40  ? help
+
+ Clean up Docker data                               review · Space excludes · dependents recalculate · nothing runs yet
+
+ Target        host devbox
+ Will change   frees up to 15.5 GB across containers, images, volumes and builder cache
+ Steps         7 steps · 7 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — branches run in parallel where no dependency holds
+ ▎ · Inspect Docker usage · required · inspect                                                        docker system df
+ ▎ · Remove stopped containers · containers                                                  docker container prune -f
+ ▎ · Remove unused images · images                                                            docker image prune -a -f
+ ▎ · Remove unused volumes · volumes                                                            docker volume prune -f
+ ▎ · Prune builder cache · builder                                                          docker builder prune -a -f
+ ▎ · Remove unused networks · networks                                                         docker network prune -f
+ ▎ · Verify reclaimed space · required · verify                                                       docker system df
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                     ↑ ↓ Steps  Space Exclude / include  Enter Continue to confirmation  Esc Back

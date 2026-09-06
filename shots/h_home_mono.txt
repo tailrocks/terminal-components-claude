@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                     ~/work/pave  devbox · local  no color · 120×40  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ Run tests                                                                                    cargo test · workspace
+ ▎ Check git status                                                                                       working tree
+ ▎ Open in editor                                                                                          this folder
+
+   Recent here
+ ▎ cargo build --release                                                                                   ran 2 h ago
+ ▎ git pull                                                                                              ran yesterday
+
+   Explore
+ ▎ Disk usage                                                                                                     flow
+ ▎ Running tasks                                                                                                  flow
+ ▎ Services                                                                                                       flow
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT                      Type Filter  ↓ Results  Enter Run top match  F10 Menu  q Quit

@@ -1,0 +1,40 @@
+[38;5;15m[48;5;0m [1m[38;5;0m[48;5;7m holla❯ [0m[38;5;15m[48;5;0m  [38;5;7m File [38;5;15m [38;5;7m Go [38;5;15m [38;5;7m Help [38;5;15m                                      [38;5;7m~[38;5;15m  [38;5;7mdevbox-deb · ssh · dev[38;5;15m  [38;5;8mno color · 120×40[38;5;15m [38;5;7m ? help 
+[38;5;15m                                                                                                                        
+ [38;5;7m▎[38;5;15m [38;5;7mType to filter · actions, files, hosts[38;5;15m                                                                               
+                                                                                                                        
+   [38;5;8mSuggested here[38;5;15m                                                                                                       
+ [38;5;0m▎[38;5;15m Inspect mise                                                              [38;5;7m900 MB · package cache · inactive 21 days[38;5;15m  
+ [38;5;0m▎[38;5;15m Clean up Docker data [38;5;8m· host devbox-deb[38;5;15m                                    [38;5;7m2.1 GB builder cache · 2.7 GB reclaimable[38;5;15m  
+ [38;5;0m▎[38;5;15m Upgrade everything on this host [38;5;8m· host[38;5;15m             [38;5;7m47 upgrades pending · 6 security · 1 held back · reboot required[38;5;15m  
+ [38;5;0m▎[38;5;15m Connect to bastion [38;5;8m· host ssh config[38;5;15m                                   [38;5;7midentity id_ed25519 · available on this host[38;5;15m  
+                                                                                                                        
+   [38;5;8mExplore[38;5;15m                                                                                                              
+ [38;5;0m▎[38;5;15m Docker status [38;5;8m· host devbox-deb[38;5;15m                                                            [38;5;7m1 containers · 1 running[38;5;15m  
+ [38;5;0m▎[38;5;15m Monitor this host [38;5;8m· host devbox-deb[38;5;15m                              [38;5;7mbtm available on this host · hands off and returns[38;5;15m  
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ [1m[38;5;0m[48;5;7m EDIT [0m[38;5;15m[48;5;0m              [1mType[0m[38;5;15m[48;5;0m [38;5;7mFilter[38;5;15m  [1m↓[0m[38;5;15m[48;5;0m [38;5;7mResults[38;5;15m  [1mEnter[0m[38;5;15m[48;5;0m [38;5;7mRun top match[38;5;15m  [1mCtrl+S[0m[38;5;15m[48;5;0m [38;5;7mScope[38;5;15m  [1mF10[0m[38;5;15m[48;5;0m [38;5;7mMenu[38;5;15m  [1mq[0m[38;5;15m[48;5;0m [38;5;7mQuit[38;5;15m                        

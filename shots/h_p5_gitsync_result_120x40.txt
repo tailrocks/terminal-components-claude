@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help               Plan · Update all child projects  devbox · local  truecolor · 120×40  ? help
+
+ Update all child projects                                                     ran · 6 succeeded · 1 failed · 1 skipped
+
+ Target        host devbox
+ Will change   3 child repositories · 8 commits to fast-forward · diverged and detached children stay untouched
+ Steps         8 steps · 7 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — outcome per step
+ ▎ ✓ Resolve child repositories · inspect                                                                         done
+ ▎ ✓ Fetch legacy · legacy                                                                                        done
+ ▎ ✓ Check out main (legacy) · legacy                                                                             done
+ ▎ ✓ Pull legacy — fast-forward only · legacy                                                                     done
+ ▎ ✓ Fetch billing · billing                                                                                      done
+ ▎ ✓ Check out trunk (billing) · billing                                                                          done
+ ▎ ✗ Pull billing — fast-forward only · billing                      diverged · 2 ahead, 3 behind · needs manual merge
+ ▎ − Update seed · seed                                                                  detached at a1b2c3d · skipped
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Output — Resolve child repositories · $git -C <child> rev-parse --show-toplevel
+ ~/work/monorepo/services/legacy · primary main
+ ~/work/monorepo/services/billing · primary trunk
+ ~/work/monorepo/tools/seed · primary main
+
+
+                                   ↑ ↓ Steps  Esc Back home    Finished: 6 succeeded · 1 failed · 1 skipped · simulated

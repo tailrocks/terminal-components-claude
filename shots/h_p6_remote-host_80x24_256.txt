@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help             ◆ prod-eu-1 · ssh · production  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ Check git status                                  branch is 1 commit behind
+ ▎ Pull — fast-forward only · project                branch is 1 commit behind
+ ▎ Restart payments · host prod-eu-1                      service is unhealthy
+ ▎ Clean up Docker data · host …u-1  4.4 GB builder cache · 9.2 GB reclaimable
+
+   Explore
+ ▎ Upgrade everything on this host            12 upgrades pending · 3 security
+ ▎ Connect to bastion · host ssh config     no identity file · host-key strict
+ ▎ Disk usage · host                      largest-first · progressive analysis
+ ▎ Docker status · host prod-eu-1                     3 containers · 2 running
+ ▎ Follow container logs · host …u-1  multi-service · keeps container identity
+ ▎ Inspect database locks · host prod-eu-1               1 blocker · 2 waiting
+ ▎ Monitor this host        btm available on this host · hands off and returns
+
+
+
+
+
+  EDIT   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  …

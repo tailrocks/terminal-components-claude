@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                ~/work/pave  devbox · local  truecolor · 100×30  ? help
+
+ ▎ cb
+
+   Suggested here
+ ▎ cargo build                                             used 6 times in this project · alias cb
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT             Type Filter  ↓ Results  …   Would run: cargo build · simulated, nothing executed

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                  /srv/payments  ◆ prod-eu-1 · ssh · production  truecolor · 120×40  ? help
+
+ ▎ monitor
+
+   Explore
+ ▎ Monitor this host · host prod-eu-1                               btm available on this host · hands off and returns
+
+
+
+
+
+
+                  ╭──────────────────────────────────────────────────────────────────────────────────╮
+                  │                                                                                  │
+                  │  System snapshot                                                                 │
+                  │                                                                                  │
+                  │  Host     ◆ prod-eu-1 · ssh · production                                         │
+                  │  Load     3.10 2.80 2.50                                                         │
+                  │  Memory   14200 MB of 16384 MB                                                   │
+                  │  Disk /   not scanned                                                            │
+                  │  Docker   3 containers · 2 running                                               │
+                  │  Uptime   212 days                                                               │
+                  │  Handoff  btm takes over the screen for live monitoring · holla returns on exit  │
+                  │                                                                                  │
+                  │  btm                                                                             │
+                  │                                                                                  │
+                  │                                                  ▎Close  ▎Open btm (simulated)   │
+                  │                                                                                  │
+                  ╰──────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+                                ← → Choose  Enter Confirm  Esc Close    Cancelled pid 4201 · 2 waiting sessions resumed

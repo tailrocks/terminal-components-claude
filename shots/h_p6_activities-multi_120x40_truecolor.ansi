@@ -1,0 +1,40 @@
+[38;2;255;255;255m[48;2;0;0;0m [1m[38;2;25;25;28m[48;2;72;224;84m holla❯ [0m[38;2;255;255;255m[48;2;0;0;0m  [38;2;179;179;179m File [38;2;255;255;255m [38;2;179;179;179m Go [38;2;255;255;255m [38;2;179;179;179m Help [38;2;255;255;255m                               [38;2;179;179;179m~/work/monorepo[38;2;255;255;255m  [38;2;179;179;179mdevbox · local[38;2;255;255;255m  [38;2;77;77;77mtruecolor · 120×40[38;2;255;255;255m [38;2;128;128;128m ? help 
+[38;2;255;255;255m [38;2;72;224;84m ● 1 dev server [38;2;255;255;255m [38;2;245;158;9m … 2 test watch [38;2;255;255;255m [38;2;77;77;77m − 3 deploy logs [38;2;255;255;255m [38;2;228;69;69m ✗ 4 seed db [38;2;255;255;255m [38;2;77;77;77m0 home[38;2;255;255;255m                                               
+ [38;2;72;224;84m[48;2;30;30;34m▎[38;2;255;255;255m [38;2;128;128;128mType to filter · actions, files, hosts[38;2;255;255;255m                                                                              [48;2;0;0;0m 
+                                                                                                                        
+   [38;2;77;77;77mSuggested here[38;2;255;255;255m                                                                                                       
+ [38;2;0;0;0m▎[38;2;255;255;255m Run reset-db [38;2;245;158;9m▲[38;2;255;255;255m [38;2;77;77;77m· project pr…ackend[38;2;255;255;255m  [38;2;128;128;128mdefined by project task runner · //projects/backend:reset-db · untrusted config[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m mise run //projects/frontend:build                                                     [38;2;128;128;128mused 3 times in this project[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Check git status                                                                                 [38;2;128;128;128mworking tree clean[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Clone a repository                                                                      [38;2;128;128;128mgithub.com/octocat · 1 orgs[38;2;255;255;255m  
+                                                                                                                        
+   [38;2;77;77;77mExplore[38;2;255;255;255m                                                                                                              
+ [38;2;0;0;0m▎[38;2;255;255;255m Inspect node_modules                                                           [38;2;128;128;128m3.0 GB · node_modules · active today[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Update all child projects [38;2;77;77;77m· workspace[38;2;255;255;255m                          [38;2;128;128;128m3 child repositories · 8 commits behind · 1 diverged[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Run build [38;2;77;77;77m· project projects/frontend[38;2;255;255;255m                    [38;2;128;128;128mdefined by project task runner · //projects/frontend:build[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Run dev [38;2;77;77;77m· project projects/frontend[38;2;255;255;255m                        [38;2;128;128;128mdefined by project task runner · //projects/frontend:dev[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Run lint [38;2;77;77;77m· project[38;2;255;255;255m                                                         [38;2;128;128;128mdefined by project task runner · //:lint[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Run test [38;2;77;77;77m· project projects/backend[38;2;255;255;255m                        [38;2;128;128;128mdefined by project task runner · //projects/backend:test[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Status across child projects [38;2;77;77;77m· workspace[38;2;255;255;255m                                     [38;2;128;128;128m3 nested repositories (not submodules)[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Clean up Docker data [38;2;77;77;77m· host devbox[38;2;255;255;255m                                        [38;2;128;128;128m2.1 GB builder cache · 3.9 GB reclaimable[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Docker status [38;2;77;77;77m· host devbox[38;2;255;255;255m                                                                [38;2;128;128;128m3 containers · 2 running[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Follow container logs [38;2;77;77;77m· host devbox[38;2;255;255;255m                                        [38;2;128;128;128mmulti-service · keeps container identity[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m Monitor this host [38;2;77;77;77m· host devbox[38;2;255;255;255m                                  [38;2;128;128;128mbtm available on this host · hands off and returns[38;2;255;255;255m  
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ [1m[38;2;25;25;28m[48;2;72;224;84m EDIT [0m[38;2;255;255;255m[48;2;0;0;0m     [1mType[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mFilter[38;2;255;255;255m  [1m↓[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mResults[38;2;255;255;255m  [1mEnter[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mRun top match[38;2;255;255;255m  [1mCtrl+S[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mScope[38;2;255;255;255m  [1mF10[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mMenu[38;2;255;255;255m  [1mq[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mQuit[38;2;255;255;255m  [1mCtrl+A[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mActivities[38;2;255;255;255m              

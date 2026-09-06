@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                     Plan · Upgrade everything on this host  devbox-deb · ssh · dev  ? help
+
+ Upgrade everything on this host                    review · Space excludes · dependents recalculate · nothing runs yet
+
+ Target        host devbox-deb
+ Will change   47 upgrades (6 security) + node 22.7.0 → 22.9.0, rust 1.79.0 → 1.81.0 · reboot required after
+ Steps         7 steps · 6 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — branches run in pa╭────────────────────────────────────────────────────────────────╮
+ ▎ · Preflight checks · req│                                                                │      uname -a && df -h /
+ ▎ · Refresh package metada│  Confirm: Upgrade everything on this host                      │               apt update
+ ▎ − Apply upgrades · apt  │                                                                │excluded · Space restores
+ ▎ ▲ Remove orphaned packag│  Will happen  6 of 7 steps run on devbox-deb                   │     needs Apply upgrades
+ ▎ · Inspect tool versions │  Will change  47 upgrades (6 security) + node 22.7.0 → 22.9.…  │                  mise ls
+ ▎ · Upgrade outdated tools│  Bound to     host devbox-deb · phrase names the target        │p node@22.9.0 rust@1.81.0
+ ▎ ▲ Verify the host · requ│  Safety       simulated · nothing on any real host executes    │     needs Apply upgrades
+                           │                                                                │
+                           │  uname -a && df -h /                                           │
+                           │  apt update                                                    │
+                           │  apt autoremove -y                                             │
+                           │  mise ls                                                       │
+                           │  mise up node@22.9.0 rust@1.81.0                               │
+                           │  apt list --upgradable && mise ls                              │
+                           │                                                                │
+                           │   Type I UNDERSTAND: UPGRADE EVERYTHING ON devbox-deb to con…  │
+                           │ ▎ I UNDERSTAND: UPGRADE EVERYTHING ON devbox-deb               │
+                           │                                                                │
+                           │                                                                │
+                           │                               ▎Cancel  ▎Run plan (simulated)   │
+                           │                                                                │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+  EDIT                                          Enter Next  Esc Cancel                          Excluded Apply upgrades

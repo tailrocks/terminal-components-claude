@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help          devbox · local  truecolor · 80×24  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ docker system df                               used 4 times in this project
+ ▎ Inspect tmp                           300 MB · temp data · activity unknown
+ ▎ Restart legacy-billing · host devbox                   service is unhealthy
+ ▎ Clean up Docker data            12.4 GB builder cache · 15.5 GB reclaimable
+
+   Explore
+ ▎ Docker status · host devbox                        7 containers · 3 running
+ ▎ Follow container logs · host …box  multi-service · keeps container identity
+ ▎ Monitor this host        btm available on this host · hands off and returns
+ ▎ Inspect docker · host                  23.0 GB · docker data · active today
+
+
+
+
+
+
+
+
+  EDIT   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  …

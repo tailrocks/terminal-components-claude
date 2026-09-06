@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                    ~/work/pave  devbox · local  truecolor · 120×40  ? help
+
+ ▎ clone
+
+   Explore
+ ▎ Clone a repository                                                                      github.com/octocat · 1 orgs
+
+
+
+
+                            ╭──────────────────────────────────────────────────────────────╮
+                            │ Clone which repository?                                      │
+                            │ ▎ Type to search…                                            │
+                            │                                                              │
+                            │ ▎  pave-io/pave      pave-io · primary trunk · private       │
+                            │ ▎  octocat/dotfiles  octocat · primary main                  │
+                            │                                                              │
+                            │                                                              │
+                            ╰──────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          ↑↓ Move  Enter Choose  Esc Cancel

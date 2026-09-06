@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help        Plan · Restart payments  ◆ prod-eu-1 · ssh · production  truecolor · 120×40  ? help
+
+ Restart payments                                   review · Space excludes · dependents recalculate · nothing runs yet
+
+ Target        host prod-eu-1
+ Will change   restarts payments (acme/payments:2026.08.3) on prod-eu-1 · brief downtime for the service
+ Steps         3 steps · 3 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — branches run in parallel where no dependency holds
+ ▎ · Inspect payments · req╭────────────────────────────────────────────────────────────────╮  docker inspect payments
+ ▎ · Restart payments · req│                                                                │  docker restart payments
+ ▎ · Verify health · requir│  Confirm: Restart payments                                     │ps --filter name=payments
+                           │                                                                │
+                           │  Will happen  3 of 3 steps run on prod-eu-1                    │
+                           │  Will change  restarts payments (acme/payments:2026.08.3) on…  │
+                           │  Bound to     host prod-eu-1 · phrase names the target         │
+                           │  Safety       simulated · nothing on any real host executes    │
+                           │                                                                │
+                           │  docker inspect payments                                       │
+                           │  docker restart payments                                       │
+                           │  docker ps --filter name=payments                              │
+                           │                                                                │
+                           │   Type RESTART PAYMENTS ON prod-eu-1 to confirm                │
+                           │ ▎ RESTART PAYMENTS ON prod-eu-1                                │
+                           │                                                                │
+                           │                                                                │
+                           │                               ▎Cancel  ▎Run plan (simulated)   │
+                           │                                                                │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+  EDIT                                          Enter Next  Esc Cancel

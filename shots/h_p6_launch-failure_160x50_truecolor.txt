@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                            ~/work/pave  devbox · local  truecolor · 160×50  ? help
+  ✗ 1 seed db  0 home
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ make test                                                                                                                                       pinned here
+ ▎ Check git status                                                          branch is 3 commits behind · 4 modified files · 1 staged · 2 untracked · alias gs
+ ▎ Review modified files                                                                                             4 modified files · 1 staged · 2 untracked
+ ▎ cargo build                                                                                                                    used 6 times in this project
+
+   Recent here
+ ▎ cargo test                                                                                                                     used 4 times in this project
+
+   Explore
+ ▎ Pull — fast-forward only · project                                                                                               branch is 3 commits behind
+ ▎ Run build                                                                                                        defined by project task runner · mise.toml
+ ▎ Run lint                                                                                                         defined by project task runner · mise.toml
+ ▎ Run test                                                                                                         defined by project task runner · mise.toml
+ ▎ Clone a repository                                                                                                              github.com/octocat · 1 orgs
+ ▎ Inspect target                                                                                                         900 MB · cargo target · active today
+ ▎ Connect to bastion · host ssh config                                                                           identity id_ed25519 · available on this host
+ ▎ Connect to devbox-deb · host ssh config                                                                        identity id_ed25519 · available on this host
+ ▎ Connect to prod-eu-1 · host ssh config                                                                                        via bastion · host-key strict
+ ▎ Monitor this host · host devbox                                                                          btm available on this host · hands off and returns
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT                          Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  q Quit  Ctrl+A Activities

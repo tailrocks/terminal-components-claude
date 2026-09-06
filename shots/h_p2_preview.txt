@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                    ~/work/pave  devbox · local  truecolor · 120×40  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ make test                                                                                               pinned here
+ ▎ Check git status                             branch is 3 commits behind · 4 modified files · 1 staged · 2 untracked
+ ▎ Review modified files                                                     4 modified files · 1 staged · 2 untracked
+ ▎ cargo build                                                                            used 6 times in this project
+
+   Recent here
+ ▎ cargo test                                                                             used 4 times in this project
+                           ╭────────────────────────────────────────────────────────────────╮
+   Explore                 │                                                                │
+ ▎ Pull — fast-forward only│  make test                                                     │ranch is 3 commits behind
+ ▎ Run build               │                                                                │t task runner · mise.toml
+ ▎ Run lint                │  Will happen      make test · in ~/work/pave                   │t task runner · mise.toml
+ ▎ Run test                │  Target           here · ~/work/pave                           │t task runner · mise.toml
+ ▎ Clone a repository      │  Why recommended  pinned here                                  │thub.com/octocat · 1 orgs
+ ▎ Inspect target          │  Will change      nothing · inspection only                    │rgo target · active today
+ ▎ Connect to bastion · hos│  Freshness        discovered at launch · simulated fixture, …  │ · available on this host
+ ▎ Connect to devbox-deb · │  Confirmation     runs directly                                │ · available on this host
+ ▎ Connect to prod-eu-1 · h│                                                                │bastion · host-key strict
+ ▎ Monitor this host · host│  make test                                                     │t · hands off and returns
+                           │                                                                │
+                           │                                     ▎Close  ▎Run (simulated)   │
+                           │                                                                │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+                                         ← → Choose  Enter Confirm  Esc Close

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                ~/scratch/empty  ⠹ discovering…  devbox · local  truecolor · 120×40  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ Run tests                                                                                    cargo test · workspace
+ ▎ Check git status                                                                                       working tree
+ ▎ Open in editor                                                                                          this folder
+
+   Recent here
+ ▎ cargo build --release                                                                                   ran 2 h ago
+ ▎ git pull                                                                                              ran yesterday
+
+   Explore
+ ▎ Disk usage                                                                                                     flow
+ ▎ Running tasks                 ╭────────────────────────────────────────────────────╮                           flow
+ ▎ Services                      │                                                    │                           flow
+                                 │  Quit holla?                                       │
+                                 │                                                    │
+                                 │  The simulated session ends; nothing on this host  │
+                                 │  changes.                                          │
+                                 │                                                    │
+                                 │                                   ▎Cancel  ▎Quit   │
+                                 │                                                    │
+                                 ╰────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+   Scanning this folder…
+
+  EDIT                        ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                    Plan · Clean up Docker data  devbox · local  truecolor · 120×40  ? help
+
+ Clean up Docker data                                                          ran · 4 succeeded · 1 failed · 2 skipped
+
+ Target        host devbox
+ Will change   frees up to 15.5 GB across containers, images, volumes and builder cache
+ Steps         7 steps · 7 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — outcome per step
+ ▎ ✓ Inspect Docker usage · inspect                                                                               done
+ ▎ ✗ Remove stopped containers · containers                payments-old: bind mount still registered · removal refused
+ ▎ − Remove unused images · images                                                     needs Remove stopped containers
+ ▎ − Remove unused volumes · volumes                                                   needs Remove stopped containers
+ ▎ ✓ Prune builder cache · builder                                                                                done
+ ▎ ✓ Remove unused networks · networks                                                                            done
+ ▎ ✓ Verify reclaimed space · verify                                                                              done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Output — Inspect Docker usage · $docker system df
+ TYPE                TOTAL   SIZE
+ Images              9       6.1 GB
+ Containers          7       420 MB
+ Local Volumes       5       3.3 GB
+ Build Cache                 12.4 GB
+
+
+                                   ↑ ↓ Steps  Esc Back home    Finished: 4 succeeded · 1 failed · 2 skipped · simulated

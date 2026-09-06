@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                     Plan · Upgrade everything on this host  devbox-deb · ssh · dev  ? help
+
+ Upgrade everything on this host                                                          ran · 4 succeeded · 3 skipped
+
+ Target        host devbox-deb
+ Will change   47 upgrades (6 security) + node 22.7.0 → 22.9.0, rust 1.79.0 → 1.81.0 · reboot required after
+ Steps         7 steps · 7 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — outcome per step
+ ▎ ✓ Preflight checks · preflight                                                                                 done
+ ▎ ✓ Refresh package metadata · apt                                                                               done
+ ▎ − Apply upgrades · apt                                                                         excluded by reviewer
+ ▎ − Remove orphaned packages · apt                                                               needs Apply upgrades
+ ▎ ✓ Inspect tool versions · mise                                                                                 done
+ ▎ ✓ Upgrade outdated tools · mise                                                                                done
+ ▎ − Verify the host · verify                                                                     needs Apply upgrades
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                              ↑ ↓ Steps  Esc Back home    Finished: 4 succeeded · 3 skipped · simulated
