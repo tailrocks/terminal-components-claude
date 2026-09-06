@@ -29,6 +29,8 @@ Three binaries share one library:
   activities with retained output for long-running work. Everything is a
   deterministic in-memory fixture — mise, git, gh, docker, btm, pg_activity,
   ssh and the filesystem are simulated; the real commands never execute.
+  Model, keys and a full verification walkthrough:
+  [src/bin/holla/README.md](src/bin/holla/README.md).
 
 The application is the specification: *if the
 [Junie](https://junie.jetbrains.com) website had been designed for a terminal
