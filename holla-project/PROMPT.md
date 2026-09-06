@@ -1,0 +1,18 @@
+# /goal prompt (paste this into /goal)
+
+Read and execute holla-project/GOAL.md in full. It is the authoritative goal; this message only orients you.
+
+Mission: design and build "holla", a NEW binary app in this repo (src/bin/holla/, [[bin]] holla), following the same craft as src/bin/tablepro and src/bin/jackin_preview, in the Junie TUI design system (DESIGN.md).
+
+What Holla is: a context-adaptive action launcher — "this folder, this host, right now". The complete product definition is holla-project/CONCEPT.md plus holla-project/references/ (universal-launcher-patterns, terminal-workflow-patterns, context-adaptive-product-principles, technology-stack-workflows, mole-disk-cleanup-patterns). They define product needs ONLY — visuals are yours to derive, but every visual must obey DESIGN.md: theme resolvers only (no RGB literals), one green accent discipline, glyph table, state grammar, focus/hover/selection separation, hint bar + lockup shell, 72×20 minimum, responsive prioritisation. Nothing anywhere is a wireframe: every CONCEPT.md example is a semantic requirement, never a visual spec (CONCEPT.md §19). Brainstorm at least three interaction models per GOAL.md §3, pick one with a written justification, and derive every screen from it — impress with a better interface, not compliance to an implied sketch.
+
+Hard rules:
+- Fully simulated like jackin-preview: mise, git, gh, docker, btm, pg_activity, ssh and the filesystem are deterministic in-memory fixtures. The real stack commands are NEVER executed.
+- Research and brainstorm with subagents before coding (GOAL.md §3): concept synthesis, three-way interaction-model comparison with a justified winner, recipe audit of jackin_preview + tablepro, and an independent visual critique once screens render.
+- Build in gated phases per GOAL.md §4: skeleton+chrome → fixture world → root experience (empty state, cross-domain search, preview, scope navigation) → safety (two-gate target-bound confirmation) and DAG plans (docker cleanup, upgrade-everything) → activities multiplexer → depth + hard cases → full pass.
+- Track accepted decisions and open questions in your own working notes as you go.
+- Deterministic scenarios (first-use, rust-dirty, monorepo-root, monorepo-child, docker-cleanup, disk-cleanup, upgrade-plan, activities-multi, remote-host, launch-failure, hard-cases) with --scenario/--motion full|reduced|paused/--frame flags; test them; capture every scenario at 80×24, 100×30, 120×40, 160×50 and mono via tools/capture.sh (name captures h_*; tmux key is Escape, never Esc), and LOOK at the PNGs — rendered output is the evidence, never source code.
+- Preserve product truth: context rings Here→Project→Workspace→Host→Personal with cwd primary; capability ≠ action ≠ recommendation with a reason on every suggestion; destructive actions stay first-class, risk changes treatment not availability; compound intents become reviewable dependency-graph plans with optional branches and failure propagation; long-running work becomes named activities that survive navigation; the priority stack (mise, Git/GitHub, Docker, btm, disk, PostgreSQL, Rust/nextest, SSH, stack cleanup) dominates discovery.
+- Respect CONCEPT.md §14 boundaries: not a shell, not an encyclopedia, not an autonomous daemon, not a real executor.
+
+Verify per GOAL.md §6: cargo fmt --check, cargo clippy --all-targets -- -D warnings, cargo test, capture review. Deliver: runnable binary, scenarios+tests+captures, DESIGN.md updated only for conventions added on purpose, a design note recording the chosen interaction model, rejected alternatives, and how each CONCEPT.md product principle (§13) is satisfied.
