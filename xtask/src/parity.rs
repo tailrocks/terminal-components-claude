@@ -82,6 +82,18 @@ struct Recipe {
 }
 
 impl Recipe {
+    fn input_count(&self) -> usize {
+        self.parsed_steps
+            .iter()
+            .map(|step| match step {
+                ReplayStep::Keys(keys) => keys.len(),
+                ReplayStep::Type(text) => text.chars().count(),
+                ReplayStep::Mouse { .. } | ReplayStep::Resize(_) => 1,
+                ReplayStep::Wait(_) | ReplayStep::Anchor(_) => 0,
+            })
+            .sum()
+    }
+
     fn binary(&self) -> &'static str {
         match self.app.as_str() {
             "showcase" => "showcase",
@@ -151,8 +163,9 @@ pub(crate) fn contract(root: &Path) -> Result<(), String> {
     let evidence = load_evidence(root, &mappings, false)?;
     let revision = head_revision(root)?;
     let source_fingerprint = source_fingerprint(root)?;
+    let source_dirty = source_dirty(root)?;
     let loaded = LoadedContract { mappings, evidence };
-    validate_evidence(root, &loaded, &revision, &source_fingerprint, true)?;
+    validate_evidence(root, &loaded, &source_fingerprint, source_dirty, true)?;
     validate_visual_review(root, &loaded, None)?;
     compare_all(root, &loaded)?;
     println!(
@@ -171,6 +184,10 @@ pub(crate) fn dry_run(root: &Path) -> Result<(), String> {
     for mapping in &mappings {
         *counts.entry(mapping.recipe.app.as_str()).or_default() += 1;
     }
+    let input_count = mappings
+        .iter()
+        .map(|mapping| mapping.recipe.input_count())
+        .sum::<usize>();
     println!(
         "parity dry-run: {} recipes mapped; showcase={} tablepro={} jackin={}",
         mappings.len(),
@@ -178,6 +195,7 @@ pub(crate) fn dry_run(root: &Path) -> Result<(), String> {
         counts.get("tablepro").copied().unwrap_or_default(),
         counts.get("jackin").copied().unwrap_or_default()
     );
+    println!("parity dry-run: {} replay input events parsed", input_count);
     println!(
         "parity dry-run: current replay evidence is required at {}; no output approved",
         EVIDENCE_FILE
@@ -213,16 +231,10 @@ pub(crate) fn approve(root: &Path, reviewer: &str) -> Result<(), String> {
     }
     let mappings = load_mappings(root)?;
     let evidence = load_evidence(root, &mappings, true)?;
-    let revision = head_revision(root)?;
     let source_fingerprint = source_fingerprint(root)?;
+    let source_dirty = source_dirty(root)?;
     let loaded = LoadedContract { mappings, evidence };
-    validate_evidence(
-        root,
-        &loaded,
-        &revision,
-        &source_fingerprint,
-        false,
-    )?;
+    validate_evidence(root, &loaded, &source_fingerprint, source_dirty, false)?;
     validate_visual_review(root, &loaded, Some(reviewer))?;
     let script = root.join("tools/parity_approve.py");
     if !script.is_file() {
@@ -763,11 +775,34 @@ fn load_evidence(
     Ok(evidence)
 }
 
+fn validate_source_binding(
+    recipe_id: &str,
+    captured_revision: &str,
+    captured_source_fingerprint: &str,
+    captured_dirty: bool,
+    current_source_fingerprint: &str,
+    current_source_dirty: bool,
+) -> Result<(), String> {
+    if !is_revision(captured_revision) {
+        return Err(format!("{}: evidence revision is invalid", recipe_id));
+    }
+    if captured_source_fingerprint != current_source_fingerprint {
+        return Err(format!(
+            "{}: evidence source fingerprint is not current",
+            recipe_id
+        ));
+    }
+    if captured_dirty != current_source_dirty {
+        return Err(format!("{}: evidence dirty binding is stale", recipe_id));
+    }
+    Ok(())
+}
+
 fn validate_evidence(
     root: &Path,
     loaded: &LoadedContract,
-    revision: &str,
     source_fingerprint: &str,
+    source_dirty: bool,
     require_approved_review: bool,
 ) -> Result<(), String> {
     let mappings = loaded
@@ -776,6 +811,7 @@ fn validate_evidence(
         .map(|mapping| (mapping.recipe.id.as_str(), mapping))
         .collect::<BTreeMap<_, _>>();
     let mut errors = Vec::new();
+    let mut captured_revisions = BTreeSet::new();
     for evidence in &loaded.evidence {
         let Some(mapping) = mappings.get(evidence.recipe_id.as_str()).copied() else {
             errors.push(format!(
@@ -784,17 +820,18 @@ fn validate_evidence(
             ));
             continue;
         };
-        if evidence.current_revision != revision {
-            errors.push(format!(
-                "{}: evidence revision is not current HEAD",
-                evidence.recipe_id
-            ));
+        if let Err(error) = validate_source_binding(
+            &evidence.recipe_id,
+            &evidence.current_revision,
+            &evidence.source_fingerprint,
+            evidence.dirty,
+            source_fingerprint,
+            source_dirty,
+        ) {
+            errors.push(error);
         }
-        if evidence.source_fingerprint != source_fingerprint {
-            errors.push(format!(
-                "{}: evidence source fingerprint is not current",
-                evidence.recipe_id
-            ));
+        if is_revision(&evidence.current_revision) {
+            captured_revisions.insert(evidence.current_revision.as_str());
         }
         if require_approved_review && evidence.visual_review != "approved" {
             errors.push(format!(
@@ -818,7 +855,7 @@ fn validate_evidence(
             root,
             mapping,
             evidence,
-            revision,
+            &evidence.current_revision,
             source_fingerprint,
         ) {
             errors.push(error);
@@ -827,10 +864,20 @@ fn validate_evidence(
             root,
             mapping,
             evidence,
-            revision,
+            &evidence.current_revision,
             source_fingerprint,
         ) {
             errors.push(error);
+        }
+    }
+    for captured_revision in captured_revisions {
+        match revision_exists(root, captured_revision) {
+            Ok(true) => {}
+            Ok(false) => errors.push(format!(
+                "evidence revision {} is not a commit in this repository",
+                captured_revision
+            )),
+            Err(error) => errors.push(error),
         }
     }
     if errors.is_empty() {
@@ -1763,6 +1810,57 @@ fn source_path_allowed(path: &str) -> bool {
     normalized == "parity/recipes.tsv" || !normalized.starts_with("parity/")
 }
 
+fn source_dirty(root: &Path) -> Result<bool, String> {
+    let output = Command::new("git")
+        .current_dir(root)
+        .args(["status", "--porcelain=v1", "--untracked-files=all", "-z"])
+        .output()
+        .map_err(|error| format!("cannot inspect Git source dirtiness: {}", error))?;
+    if !output.status.success() {
+        return Err(format!(
+            "cannot inspect Git source dirtiness: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    source_dirty_from_status(&output.stdout)
+}
+
+fn source_dirty_from_status(status: &[u8]) -> Result<bool, String> {
+    let mut fields = status
+        .split(|byte| *byte == 0)
+        .filter(|field| !field.is_empty());
+    while let Some(record) = fields.next() {
+        if record.len() < 4 || record[2] != b' ' {
+            return Err("Git status output is malformed".to_owned());
+        }
+        let status_code = [record[0], record[1]];
+        if status_code.iter().any(|byte| {
+            !matches!(
+                byte,
+                b' ' | b'M' | b'A' | b'D' | b'R' | b'C' | b'T' | b'U' | b'?' | b'!'
+            )
+        }) {
+            return Err("Git status output contains an unknown status".to_owned());
+        }
+        let path = std::str::from_utf8(&record[3..])
+            .map_err(|error| format!("Git status path is not UTF-8: {}", error))?;
+        if source_path_allowed(path) {
+            return Ok(true);
+        }
+        if matches!(status_code[0], b'R' | b'C') {
+            let destination = fields
+                .next()
+                .ok_or_else(|| "Git status rename record is incomplete".to_owned())?;
+            let destination = std::str::from_utf8(destination)
+                .map_err(|error| format!("Git status path is not UTF-8: {}", error))?;
+            if source_path_allowed(destination) {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
 fn head_revision(root: &Path) -> Result<String, String> {
     let output = Command::new("git")
         .current_dir(root)
@@ -1783,6 +1881,19 @@ fn head_revision(root: &Path) -> Result<String, String> {
         return Err(format!("current Git revision is not full: {}", revision));
     }
     Ok(revision)
+}
+
+fn revision_exists(root: &Path, revision: &str) -> Result<bool, String> {
+    if !is_revision(revision) {
+        return Ok(false);
+    }
+    let object = format!("{}^{{commit}}", revision);
+    let status = Command::new("git")
+        .current_dir(root)
+        .args(["rev-parse", "--verify", "--quiet", &object])
+        .status()
+        .map_err(|error| format!("cannot validate evidence revision: {}", error))?;
+    Ok(status.success())
 }
 
 fn is_revision(value: &str) -> bool {
@@ -1857,6 +1968,94 @@ mod tests {
         .expect("manifest");
         let recipes = parse_manifest(&text).expect("steps");
         assert!(recipes.iter().any(|recipe| recipe.input_count() > 0));
+    }
+
+    #[test]
+    fn input_count_ignores_observation_steps() {
+        let parsed_steps = parse_steps(
+            r#"keys(Tab Enter) · type("ab") · mouse(click 1,1) · resize(80x24) · wait(1s) · (on "ready")"#,
+        )
+        .expect("steps");
+        let recipe = Recipe {
+            id: "test".to_owned(),
+            app: "showcase".to_owned(),
+            viewport: Viewport {
+                width: 80,
+                height: 24,
+            },
+            command: "showcase --page test".to_owned(),
+            steps: "test".to_owned(),
+            stderr: "test.log".to_owned(),
+            parsed_steps,
+        };
+        assert_eq!(recipe.input_count(), 6);
+    }
+
+    #[test]
+    fn source_dirty_ignores_generated_parity_outputs() {
+        assert_eq!(
+            source_dirty_from_status(b"?? parity/replays/example/txt\0"),
+            Ok(false)
+        );
+        assert_eq!(
+            source_dirty_from_status(b"?? parity/visual_review.tsv\0"),
+            Ok(false)
+        );
+        assert_eq!(
+            source_dirty_from_status(b"?? parity/recipes.tsv\0"),
+            Ok(true)
+        );
+        assert_eq!(
+            source_dirty_from_status(b" M crates/tui/src/lib.rs\0"),
+            Ok(true)
+        );
+    }
+
+    #[test]
+    fn source_dirty_fails_closed_on_malformed_status() {
+        let error = source_dirty_from_status(b" M").expect_err("malformed status");
+        assert!(error.contains("malformed"), "{}", error);
+        let error = source_dirty_from_status(b"Z  parity/output\0").expect_err("unknown status");
+        assert!(error.contains("unknown"), "{}", error);
+    }
+
+    #[test]
+    fn source_binding_accepts_revision_changes_with_same_source_state() {
+        let revision = "a".repeat(40);
+        let fingerprint = "b".repeat(64);
+        assert!(
+            validate_source_binding(
+                "recipe",
+                &revision,
+                &fingerprint,
+                false,
+                &fingerprint,
+                false,
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_source_binding(
+                "recipe",
+                &revision,
+                &"c".repeat(64),
+                false,
+                &fingerprint,
+                false,
+            )
+            .is_err()
+        );
+        assert!(
+            validate_source_binding("recipe", &revision, &fingerprint, true, &fingerprint, false,)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn evidence_revision_is_a_real_commit() {
+        let revision = head_revision(&workspace_root()).expect("HEAD");
+        assert!(revision_exists(&workspace_root(), &revision).expect("revision lookup"));
+        assert!(!revision_exists(&workspace_root(), &"0".repeat(40)).expect("revision lookup"));
     }
 
     #[test]
