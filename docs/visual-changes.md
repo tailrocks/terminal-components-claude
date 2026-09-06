@@ -219,7 +219,7 @@ edited by this ledger entry.
 - tests:     crates/tui/tests/baselines/components.txt (104 moved lines);
              render::components::scroll_region::{default,disabled,editing,focused,hovered,pressed,selected};
              render::components::grid::{default,disabled,editing,focused,hovered,selected}
-- moved:     104 keys: 56 ScrollRegion keys and 48 transitive Grid keys. Exact old → new
+- moved:     104 keys: 56 ScrollRegion keys and 48 transitive Grid keys. Exact old-to-new
              pairs read from git diff:
   render::components::grid::default 120 40 junie mono 22033dea6d2bf9fa → cc1660d468c321f6
   render::components::grid::default 120 40 junie truecolor 9817dac1ed7c9346 → da9a5d1263990b5e
