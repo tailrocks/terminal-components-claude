@@ -1,6 +1,6 @@
 ---
 name: opus-analyst
-description: Read-only analyst (Kimi k3 via claude-kimi endpoint). Owns ALL exploratory repository audits, research questions, architecture decisions, alternative comparison, root-cause diagnosis, public-API critique, test-design review, domain-boundary decisions, security analysis, performance interpretation, visual judgment, and independent verification for goal work. Returns evidence-based reports with file:line citations. NEVER edits files. Delegate every analysis/research/review task here instead of exploring inline.
+description: Read-only analyst. Owns ALL exploratory repository audits, research questions, architecture decisions, alternative comparison, root-cause diagnosis, public-API critique, test-design review, domain-boundary decisions, security analysis, performance interpretation, visual judgment, and independent verification for goal work. Returns evidence-based reports with file:line citations. NEVER edits files. Delegate every analysis/research/review task here instead of exploring inline.
 tools: Read, Grep, Glob, Bash, WebFetch
 model: k3
 effort: max
