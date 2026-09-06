@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                  /srv/payments  ◆ prod-eu-1 · ssh · production  ? help
+
+ ▎ locks
+
+   Explore
+ ▎ Inspect database locks · host prod-eu-1                                3 sessions · no blockers
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT                  Type Filter  ↓ Results  …   Cancelled pid 4201 · 2 waiting sessions resumed

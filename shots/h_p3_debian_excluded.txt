@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                     Plan · Upgrade everything on this host  devbox-deb · ssh · dev  ? help
+
+ Upgrade everything on this host                    review · Space excludes · dependents recalculate · nothing runs yet
+
+ Target        host devbox-deb
+ Will change   47 upgrades (6 security) + node 22.7.0 → 22.9.0, rust 1.79.0 → 1.81.0 · reboot required after
+ Steps         7 steps · 6 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — branches run in parallel where no dependency holds
+ ▎ · Preflight checks · required · preflight                                                       uname -a && df -h /
+ ▎ · Refresh package metadata · required · apt                                                              apt update
+ ▎ − Apply upgrades · apt                                                                    excluded · Space restores
+ ▎ ▲ Remove orphaned packages · apt                                                               needs Apply upgrades
+ ▎ · Inspect tool versions · required · mise                                                                   mise ls
+ ▎ · Upgrade outdated tools · mise                                                     mise up node@22.9.0 rust@1.81.0
+ ▎ ▲ Verify the host · required · verify                                                          needs Apply upgrades
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                ↑ ↓ Steps  Space Exclude / include  Enter Continue to confirmation  Esc Back    Excluded Apply upgrades

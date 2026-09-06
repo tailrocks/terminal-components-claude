@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help          devbox · local  truecolor · 80×24  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ Check git status                                        detached at 9f3a21c
+ ▎ Inspect detached HEAD         detached at 9f3a21c · primary branch is trunk
+ ▎ Inspect generated-artifacts         12.4 GB · dist build · activity unknown
+ ▎ Run very-long-task-name · project
+
+   Explore
+ ▎ Reclaim disk space · host
+ ▎ Status across child projects           1 nested repository (not submodules)
+ ▎ Connect to legacy-2009 · host ssh config    no identity file · host-key ask
+ ▎ Monitor this host        btm available on this host · hands off and returns
+ ▎ Docker status ▲ · host             discovery failed · docker did not answer
+
+
+
+
+
+   ▲ docker: discovery failed
+
+  EDIT   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  …

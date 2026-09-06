@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                  /srv/payments  ◆ prod-eu-1 · ssh · production  truecolor · 120×40  ? help
+
+ ▎ locks
+
+   Explore
+ ▎ Inspect database locks · host prod-eu-1                                                       1 blocker · 2 waiting
+
+
+
+
+
+
+
+                ╭──────────────────────────────────────────────────────────────────────────────────────╮
+                │                                                                                      │
+                │  Database lock tree                                                                  │
+                │                                                                                      │
+                │  Blocker        pid 4201 · payments · ALTER TABLE payments ADD COLUMN … · 47m        │
+                │  Waiting on it  pid 4217 app_ro · 41m; pid 4223 report · 12m                         │
+                │  Policy         cancel before terminate · terminate revalidates PID and query        │
+                │  Cancel effect  rolls back the blocking transaction · waiting sessions resume        │
+                │                                                                                      │
+                │  SELECT pg_cancel_backend(4201)                                                      │
+                │  SELECT pg_terminate_backend(4201)                                                   │
+                │                                                                                      │
+                │     ▎Close  ▎Cancel blocker (pg_cancel_backend)  ▎Terminate (pg_terminate_backend)   │
+                │                                                                                      │
+                ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+                                         ← → Choose  Enter Confirm  Esc Close

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help               Plan · Update all child projects  devbox · local  truecolor · 120×40  ? help
+
+ Update all child projects                          review · Space excludes · dependents recalculate · nothing runs yet
+
+ Target        host devbox
+ Will change   3 child repositories · 8 commits to fast-forward · diverged and detached children stay untouched
+ Steps         8 steps · 7 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — branches run in parallel where no dependency holds
+ ▎ · Resolve child repositories · required · inspect                          git -C <child> rev-parse --show-toplevel
+ ▎ · Fetch legacy · legacy                                        git -C ~/work/monorepo/services/legacy fetch --prune
+ ▎ · Check out main (legacy) · legacy                             git -C ~/work/monorepo/services/legacy checkout main
+ ▎ · Pull legacy — fast-forward only · legacy                    git -C ~/work/monorepo/services/legacy pull --ff-only
+ ▎ · Fetch billing · billing                                     git -C ~/work/monorepo/services/billing fetch --prune
+ ▎ · Check out trunk (billing) · billing                        git -C ~/work/monorepo/services/billing checkout trunk
+ ▎ · Pull billing — fast-forward only · billing                 git -C ~/work/monorepo/services/billing pull --ff-only
+ ▎ − Update seed · required · seed                                                       detached at a1b2c3d · skipped
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                     ↑ ↓ Steps  Space Exclude / include  Enter Continue to confirmation  Esc Back

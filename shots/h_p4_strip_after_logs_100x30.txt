@@ -1,0 +1,30 @@
+  holla❯  ▎ File   Go   Help             ~/work/scratch  devbox · local  truecolor · 100×30  ? help
+  ● 1 container logs  0 home
+ ▎ follow
+
+   Explore
+ ▎ Follow container logs · host devbox                    multi-service · keeps container identity
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT    Type Filter  ↓ Results  Enter Run top match  …   Following container logs · merged stream

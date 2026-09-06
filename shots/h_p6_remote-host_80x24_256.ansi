@@ -1,0 +1,24 @@
+[38;5;231m[48;5;16m [1m[38;5;233m[48;5;78m holla❯ [0m[38;5;231m[48;5;16m  [38;5;249m File [38;5;231m [38;5;249m Go [38;5;231m [38;5;249m Help [38;5;231m            [38;5;214m◆ prod-eu-1 · ssh · production[38;5;231m [38;5;244m ? help 
+[38;5;231m                                                                                
+ [38;5;78m[48;5;234m▎[38;5;231m [38;5;244mType to filter · actions, files, hosts[38;5;231m                                      [48;5;16m 
+                                                                                
+   [38;5;238mSuggested here[38;5;231m                                                               
+ [38;5;16m▎[38;5;231m Check git status                                  [38;5;244mbranch is 1 commit behind[38;5;231m  
+ [38;5;16m▎[38;5;231m Pull — fast-forward only [38;5;238m· project[38;5;231m                [38;5;244mbranch is 1 commit behind[38;5;231m  
+ [38;5;16m▎[38;5;231m Restart payments [38;5;238m· host prod-eu-1[38;5;231m                      [38;5;244mservice is unhealthy[38;5;231m  
+ [38;5;16m▎[38;5;231m Clean up Docker data [38;5;238m· host …u-1[38;5;231m  [38;5;244m4.4 GB builder cache · 9.2 GB reclaimable[38;5;231m  
+                                                                                
+   [38;5;238mExplore[38;5;231m                                                                      
+ [38;5;16m▎[38;5;231m Upgrade everything on this host            [38;5;244m12 upgrades pending · 3 security[38;5;231m  
+ [38;5;16m▎[38;5;231m Connect to bastion [38;5;238m· host ssh config[38;5;231m     [38;5;244mno identity file · host-key strict[38;5;231m  
+ [38;5;16m▎[38;5;231m Disk usage [38;5;238m· host[38;5;231m                      [38;5;244mlargest-first · progressive analysis[38;5;231m  
+ [38;5;16m▎[38;5;231m Docker status [38;5;238m· host prod-eu-1[38;5;231m                     [38;5;244m3 containers · 2 running[38;5;231m  
+ [38;5;16m▎[38;5;231m Follow container logs [38;5;238m· host …u-1[38;5;231m  [38;5;244mmulti-service · keeps container identity[38;5;231m  
+ [38;5;16m▎[38;5;231m Inspect database locks [38;5;238m· host prod-eu-1[38;5;231m               [38;5;244m1 blocker · 2 waiting[38;5;231m  
+ [38;5;16m▎[38;5;231m Monitor this host        [38;5;244mbtm available on this host · hands off and returns[38;5;231m  
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+ [1m[38;5;233m[48;5;78m EDIT [0m[38;5;231m[48;5;16m  [1mType[0m[38;5;231m[48;5;16m [38;5;244mFilter[38;5;231m  [1m↓[0m[38;5;231m[48;5;16m [38;5;244mResults[38;5;231m  [1mEnter[0m[38;5;231m[48;5;16m [38;5;244mRun top match[38;5;231m  [1mCtrl+S[0m[38;5;231m[48;5;16m [38;5;244mScope[38;5;231m  [1mF10[0m[38;5;231m[48;5;16m [38;5;244mMenu[38;5;231m  [38;5;238m…[38;5;231m 

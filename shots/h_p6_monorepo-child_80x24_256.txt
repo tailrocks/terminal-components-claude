@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help         devbox · local  256 colors · 80×24  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ pnpm dev                                       used 9 times in this project
+ ▎ Run dev                          defined by project task runner · mise.toml
+ ▎ Check git status                                         working tree clean
+ ▎ Clone a repository                              github.com/octocat · 1 orgs
+
+   Explore
+ ▎ Inspect node_modules                   3.0 GB · node_modules · active today
+ ▎ Run reset-db ▲ · workspace backend
+ ▎ Update all child projects · workspace monorepo
+ ▎ Run build · workspace frontend
+ ▎ Run dev · workspace frontend
+ ▎ Run lint · workspace monorepo      defined by project task runner · //:lint
+ ▎ Run test · workspace backend
+ ▎ Status across child projects         3 nested repositories (not submodules)
+ ▎ Clean up Docker data · host …box  2.1 GB builder cache · 3.9 GB reclaimable
+ ▎ Docker status · host devbox                        3 containers · 2 running
+ ▎ Follow container logs · host …box  multi-service · keeps container identity
+
+  EDIT   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  …

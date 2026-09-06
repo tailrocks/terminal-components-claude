@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                       ~/scratch/empty  devbox · local  256 colors · 160×50  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ Disk usage · host                                                                                                      largest-first · progressive analysis
+ ▎ Monitor this host · host devbox                                                                          btm available on this host · hands off and returns
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT                                   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  q Quit

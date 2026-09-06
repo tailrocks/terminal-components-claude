@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                      Activity · container logs  devbox · local  ? help
+  ● 1 container logs  0 home
+ ● container logs
+
+ Scope   devbox
+ State   running · just now
+ Output  10 retained lines
+
+ api      | 10:24:01 GET /health 200 · 2ms
+ redis    | 10:24:01 3 clients connected
+ worker   | 10:24:02 job 1148 done · 310ms
+ api      | 10:24:03 POST /orders 201 · 41ms
+ redis    | 10:24:05 background save done
+ worker   | 10:24:06 job 1149 done · 288ms
+ api      | 10:24:09 GET /health 200 · 1ms
+ redis    | 10:24:11 keyspace hits 10422 misses 91
+ worker   | 10:24:10 job 1150 running
+ api      | 10:24:12 GET /orders/9918 200 · 6ms
+
+
+
+
+
+
+
+
+
+
+
+                    0 Home  ↑ ↓ Scroll output  Esc Home    Following container logs · merged stream

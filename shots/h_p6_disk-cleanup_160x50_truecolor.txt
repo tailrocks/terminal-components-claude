@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                 ~/work  devbox · local  truecolor · 160×50  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ Inspect .gradle                                                                                                   12.4 GB · gradle build · activity unknown
+ ▎ Inspect node_modules                                                                                                   3.0 GB · node_modules · active today
+ ▎ Inspect target                                                                                                     8.2 GB · cargo target · inactive 31 days
+ ▎ Reclaim disk space · host                                                                        disk 92% full · 25.4 GB recoverable in generated artifacts
+
+   Explore
+ ▎ Monitor this host · host devbox                                                                          btm available on this host · hands off and returns
+ ▎ Inspect old · host                                                                                                         640 MB · logs · activity unknown
+ ▎ Inspect mise · personal                                                                                           900 MB · package cache · inactive 14 days
+ ▎ Inspect scratch · personal                                                                                            300 MB · temp data · inactive 90 days
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT                                   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  q Quit

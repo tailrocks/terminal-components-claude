@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help        Plan · Restart payments  ◆ prod-eu-1 · ssh · production  truecolor · 120×40  ? help
+
+ Restart payments                                   review · Space excludes · dependents recalculate · nothing runs yet
+
+ Target        host prod-eu-1
+ Will change   restarts payments (acme/payments:2026.08.3) on prod-eu-1 · brief downtime for the service
+ Steps         3 steps · 3 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — branches run in parallel where no dependency holds
+ ▎ · Inspect payments · required · inspect                                                     docker inspect payments
+ ▎ · Restart payments · required · restart                                                     docker restart payments
+ ▎ · Verify health · required · verify                                                docker ps --filter name=payments
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                     ↑ ↓ Steps  Space Exclude / include  Enter Continue to confirmation  Esc Back

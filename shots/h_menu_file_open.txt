@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                ~/scratch/empty  ⠹ discovering…  devbox · local  truecolor · 120×40  ? help
+           ╭─────────────────╮
+ ▎ Type to │  Quit    Ctrl+Q │iles, hosts
+           ╰─────────────────╯
+   Suggested here
+ ▎ Run tests                                                                                    cargo test · workspace
+ ▎ Check git status                                                                                       working tree
+ ▎ Open in editor                                                                                          this folder
+
+   Recent here
+ ▎ cargo build --release                                                                                   ran 2 h ago
+ ▎ git pull                                                                                              ran yesterday
+
+   Explore
+ ▎ Disk usage                                                                                                     flow
+ ▎ Running tasks                                                                                                  flow
+ ▎ Services                                                                                                       flow
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   Scanning this folder…
+
+  EDIT                                ← → Menu  ↑↓ Move  Enter Choose  Esc Close

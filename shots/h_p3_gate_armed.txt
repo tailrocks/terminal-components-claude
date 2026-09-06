@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                    Plan · Clean up Docker data  devbox · local  truecolor · 120×40  ? help
+
+ Clean up Docker data                               review · Space excludes · dependents recalculate · nothing runs yet
+
+ Target        host devbox
+ Will change   frees up to 15.5 GB across containers, images, volumes and builder cache
+ Steps         7 steps · 7 included after review
+ Confirmation  typed phrase, bound to the target
+
+ Steps — branches run in pa╭────────────────────────────────────────────────────────────────╮
+ ▎ · Inspect Docker usage ·│                                                                │         docker system df
+ ▎ · Remove stopped contain│  Confirm: Clean up Docker data                                 │docker container prune -f
+ ▎ · Remove unused images ·│                                                                │ docker image prune -a -f
+ ▎ · Remove unused volumes │  Will happen  7 of 7 steps run on devbox                       │   docker volume prune -f
+ ▎ · Prune builder cache · │  Will change  frees up to 15.5 GB across containers, images,…  │ocker builder prune -a -f
+ ▎ · Remove unused networks│  Bound to     host devbox · phrase names the target            │  docker network prune -f
+ ▎ · Verify reclaimed space│  Safety       simulated · nothing on any real host executes    │         docker system df
+                           │                                                                │
+                           │  docker system df                                              │
+                           │  docker container prune -f                                     │
+                           │  docker image prune -a -f                                      │
+                           │  docker volume prune -f                                        │
+                           │  docker builder prune -a -f                                    │
+                           │  docker network prune -f … 1 more                              │
+                           │                                                                │
+                           │   Type REMOVE ALL DOCKER DATA ON devbox to confirm             │
+                           │ ▎ REMOVE ALL DOCKER DATA ON devbox                             │
+                           │                                                                │
+                           │                                                                │
+                           │                               ▎Cancel  ▎Run plan (simulated)   │
+                           │                                                                │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+  EDIT                                          Enter Next  Esc Cancel

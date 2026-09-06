@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                    ~/work/pave  devbox · local  truecolor · 120×40  ? help
+
+ ▎ clone
+
+   Explore
+ ▎ Clone a repository                                                                      github.com/octocat · 1 orgs
+
+
+
+
+
+
+                           ╭────────────────────────────────────────────────────────────────╮
+                           │                                                                │
+                           │  Clone pave-io/pave?                                           │
+                           │                                                                │
+                           │  Account         github.com/octocat                            │
+                           │  Owner           pave-io                                       │
+                           │  Protocol        ssh                                           │
+                           │  Destination     ~/work/pave/pave                              │
+                           │  Primary branch  trunk                                         │
+                           │  Fork            no · direct clone                             │
+                           │  Confirmation    asks once before creating the directory       │
+                           │                                                                │
+                           │  gh repo clone pave-io/pave ~/work/pave/pave                   │
+                           │                                                                │
+                           │                                   ▎Close  ▎Clone (simulated)   │
+                           │                                                                │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+                                         ← → Choose  Enter Confirm  Esc Close

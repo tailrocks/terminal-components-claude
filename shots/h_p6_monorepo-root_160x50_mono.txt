@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                         ~/work/monorepo  devbox · local  no color · 160×50  ? help
+
+ ▎ Type to filter · actions, files, hosts
+
+   Suggested here
+ ▎ Run reset-db ▲ · project projects/backend                                   defined by project task runner · //projects/backend:reset-db · untrusted config
+ ▎ mise run //projects/frontend:build                                                                                             used 3 times in this project
+ ▎ Check git status                                                                                                                         working tree clean
+ ▎ Clone a repository                                                                                                              github.com/octocat · 1 orgs
+
+   Explore
+ ▎ Inspect node_modules                                                                                                   3.0 GB · node_modules · active today
+ ▎ Update all child projects · workspace                                                                  3 child repositories · 8 commits behind · 1 diverged
+ ▎ Run build · project projects/frontend                                                            defined by project task runner · //projects/frontend:build
+ ▎ Run dev · project projects/frontend                                                                defined by project task runner · //projects/frontend:dev
+ ▎ Run lint · project                                                                                                 defined by project task runner · //:lint
+ ▎ Run test · project projects/backend                                                                defined by project task runner · //projects/backend:test
+ ▎ Status across child projects · workspace                                                                             3 nested repositories (not submodules)
+ ▎ Clean up Docker data · host devbox                                                                                2.1 GB builder cache · 3.9 GB reclaimable
+ ▎ Docker status · host devbox                                                                                                        3 containers · 2 running
+ ▎ Follow container logs · host devbox                                                                                multi-service · keeps container identity
+ ▎ Monitor this host · host devbox                                                                          btm available on this host · hands off and returns
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  EDIT                                   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  q Quit

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                ~/scratch/empty  ⠹ discovering…  devbox · local  truecolor · 120×40  ? help
+
+ ▎ git
+
+   Suggested here
+ ▎ Check git status                                                                                       working tree
+
+   Recent here
+ ▎ git pull                                                                                              ran yesterday
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   Scanning this folder…
+
+  EDIT                      Type Filter  ↓ Results  Enter Run top match  F10 Menu  q Quit

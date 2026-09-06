@@ -1,0 +1,40 @@
+[38;2;255;255;255m[48;2;0;0;0m [1m[38;2;25;25;28m[48;2;72;224;84m holla❯ [0m[38;2;255;255;255m[48;2;0;0;0m  [38;2;179;179;179m File [38;2;255;255;255m [38;2;179;179;179m Go [38;2;255;255;255m [38;2;179;179;179m Help [38;2;255;255;255m       [38;2;179;179;179mPlan · Restart payments[38;2;255;255;255m  [38;2;245;158;9m◆ prod-eu-1 · ssh · production[38;2;255;255;255m  [38;2;77;77;77mtruecolor · 120×40[38;2;255;255;255m [38;2;128;128;128m ? help 
+[38;2;255;255;255m                                                                                                                        
+ [1mRestart payments[0m[38;2;255;255;255m[48;2;0;0;0m                                   [38;2;77;77;77mreview · Space excludes · dependents recalculate · nothing runs yet[38;2;255;255;255m 
+                                                                                                                        
+ [38;2;128;128;128mTarget[38;2;255;255;255m        host prod-eu-1                                                                                           
+ [38;2;128;128;128mWill change[38;2;255;255;255m   restarts payments (acme/payments:2026.08.3) on prod-eu-1 · brief downtime for the service                
+ [38;2;128;128;128mSteps[38;2;255;255;255m         3 steps · 3 included after review                                                                        
+ [38;2;128;128;128mConfirmation[38;2;255;255;255m  typed phrase, bound to the target                                                                        
+                                                                                                                        
+ [38;2;77;77;77mSteps — branches run in parallel where no dependency holds[38;2;255;255;255m                                                             
+ [1m[38;2;72;224;84m▎[38;2;255;255;255m [38;2;128;128;128m·[38;2;255;255;255m Inspect payments · required [38;2;77;77;77m· inspect[38;2;255;255;255m                                                     [38;2;128;128;128mdocker inspect payments[38;2;255;255;255m [0m[38;2;255;255;255m[48;2;0;0;0m 
+ [38;2;0;0;0m▎[38;2;255;255;255m [38;2;128;128;128m·[38;2;255;255;255m Restart payments · required [38;2;77;77;77m· restart[38;2;255;255;255m                                                     [38;2;128;128;128mdocker restart payments[38;2;255;255;255m  
+ [38;2;0;0;0m▎[38;2;255;255;255m [38;2;128;128;128m·[38;2;255;255;255m Verify health · required [38;2;77;77;77m· verify[38;2;255;255;255m                                                [38;2;128;128;128mdocker ps --filter name=payments[38;2;255;255;255m  
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                     [1m↑ ↓[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mSteps[38;2;255;255;255m  [1mSpace[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mExclude / include[38;2;255;255;255m  [1mEnter[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mContinue to confirmation[38;2;255;255;255m  [1mEsc[0m[38;2;255;255;255m[48;2;0;0;0m [38;2;128;128;128mBack[38;2;255;255;255m                       

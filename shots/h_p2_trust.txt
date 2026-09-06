@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                ~/work/monorepo  devbox · local  truecolor · 120×40  ? help
+
+ ▎ reset-db
+
+   Suggested here
+ ▎ Run reset-db ▲ · project projects/badefined by project task runner · //projects/backend:reset-db · untrusted config
+
+
+
+
+
+
+
+                           ╭────────────────────────────────────────────────────────────────╮
+                           │                                                                │
+                           │  Trust this task file?                                         │
+                           │                                                                │
+                           │  Config file  ~/work/monorepo/projects/backend/mise.toml       │
+                           │  Defines      //projects/backend:reset-db → mise run //proje…  │
+                           │  Effect       its tasks become runnable on this host           │
+                           │  Trust scope  this exact file only · revocable                 │
+                           │  Why asked    mise refuses untrusted task files                │
+                           │                                                                │
+                           │  mise run //projects/backend:reset-db                          │
+                           │                                                                │
+                           │                                          ▎Close  ▎Trust file   │
+                           │                                                                │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+                                         ← → Choose  Enter Confirm  Esc Close
