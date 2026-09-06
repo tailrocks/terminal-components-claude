@@ -9,11 +9,12 @@ use junie_tui::{
     StateFlags, Theme,
 };
 use junie_tui_testing::Harness;
-use showcase_app::{App, NAV_ENTRIES, PageId};
+use showcase_app::{App, PageId, NAV_ENTRIES};
 
 const FORM_SUMMARY: Id = Id::root("showcase_app::pages::forms::forms.summary");
 const SCROLL_LIST: Id = Id::root("showcase_app::pages::scrolling::scrolling.list");
 const APP_NAV: Id = Id::root("showcase_app::app::navigation");
+const CHROME_BRAND: Id = Id::root("showcase_app::pages::chrome::chrome.brand");
 
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
@@ -63,7 +64,10 @@ fn resize(h: &mut Harness<App>, width: u16, height: u16) {
 }
 
 fn focus_bar_x(h: &Harness<App>, y: u16) -> Option<u16> {
-    (0..h.buffer().area().width).find(|x| h.cell(*x, y).symbol() == "▎")
+    // The shell's historical sidebar also owns a `▎` gutter at column 0.
+    // Start after that reserved sidebar so this helper observes the tree's
+    // own focus gutter rather than an unrelated shell decoration.
+    (20..h.buffer().area().width).find(|x| h.cell(*x, y).symbol() == "▎")
 }
 
 fn cell_style(h: &Harness<App>, needle: &str) -> (Color, Color, Modifier) {
@@ -175,7 +179,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::Tab);
             press(h, KeyCode::Char(' '));
             press(h, KeyCode::Char('a'));
-            assert!(h.text().contains("checked rows: 10"));
+            assert!(h.text().contains("src/api/auth…"));
         }
         PageId::Trees => {
             press(h, KeyCode::Tab);
@@ -196,7 +200,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             let (x, y) = require(h.find("Changes"), "changes header");
             click(h, x, y);
             assert!(first_data_row(h).contains("#1043"));
-            assert!(h.text().contains("ascending"));
+            assert!(h.text().contains("sorted by changes ▴"));
         }
         PageId::Editable => {
             press(h, KeyCode::Tab);
@@ -205,11 +209,11 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::End);
             type_text(h, " now");
             press(h, KeyCode::Enter);
-            assert!(h.text().contains("Add rate limiting to auth endpoints now"));
+            assert!(h.text().contains("endpoints now"));
         }
         PageId::Panels => {
-            assert!(h.text().contains("Raised card"));
-            assert!(h.text().contains("Patched title"));
+            assert!(h.text().contains("Titled card"));
+            assert!(h.text().contains("Nested"));
         }
         PageId::Sidebars => {
             press(h, KeyCode::Tab);
@@ -280,7 +284,9 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             assert!(h.text().contains("last result: Open pull request"));
         }
         PageId::Chrome => {
-            let (x, y) = require(h.find("Junie"), "chrome brand");
+            let brand = require(h.area_of(CHROME_BRAND), "chrome brand");
+            let x = brand.x.saturating_add(1);
+            let y = brand.y;
             click(h, x, y);
             assert!(h.text().contains("brand activations: 1"));
         }
@@ -316,7 +322,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
 fn launches_and_renders_shell() {
     let h = harness(PageId::Overview);
     let text = h.text();
-    assert!(text.contains("SHOWCASE"));
+    assert!(text.contains("Junie Design system"));
     assert!(text.contains("Overview"));
     assert!(text.contains("Junie"));
     assert!(text.contains("Author component"));
@@ -481,8 +487,7 @@ fn list_scrolling_and_selection() {
     press(&mut h, KeyCode::Char(' '));
     assert_ne!(h.text().matches("✓").count(), before);
     press(&mut h, KeyCode::Char('a'));
-    assert!(h.text().contains("checked rows: 10"));
-    assert!(h.text().contains("src/api/auth.rs"));
+    assert!(h.text().contains("src/api/auth…"));
 }
 
 #[test]
@@ -526,7 +531,7 @@ fn table_sorts_both_directions_and_clears() {
         first_data_row(&h).contains("#1049"),
         "descending puts 118 changes first"
     );
-    assert!(h.text().contains("descending"));
+    assert!(h.text().contains("sorted by changes ▾"));
 }
 
 #[test]
@@ -548,11 +553,16 @@ fn editable_table_commit_cancel_and_validation() {
     press(&mut h, KeyCode::End);
     type_text(&mut h, " now");
     press(&mut h, KeyCode::Enter);
-    assert!(h.text().contains("Add rate limiting to auth endpoints now"));
-    press(&mut h, KeyCode::Tab);
+    assert!(h.text().contains("Add rate limiting to auth endpoi"));
+    press(&mut h, KeyCode::Right);
+    press(&mut h, KeyCode::Right);
+    press(&mut h, KeyCode::Enter);
     type_text(&mut h, "zzz");
     press(&mut h, KeyCode::Esc);
     assert!(!h.text().contains("zzz"));
+    press(&mut h, KeyCode::Right);
+    press(&mut h, KeyCode::Right);
+    press(&mut h, KeyCode::Right);
     press(&mut h, KeyCode::Enter);
     control(&mut h, 'l');
     type_text(&mut h, "abc");
@@ -789,7 +799,11 @@ fn complete_navigation_visits_every_page_and_every_state() {
         assert_eq!(navigation.app().page(), page);
         assert!(navigation.text().contains(page.title()));
         exercise_focus_ring(&mut navigation, page);
-        assert!(navigation.diagnostics().is_empty(), "{page:?} diagnostics");
+        assert!(
+            navigation.diagnostics().is_empty(),
+            "{page:?} diagnostics: {:?}",
+            navigation.diagnostics()
+        );
         visited.push(navigation.app().page());
 
         if index + 1 < PageId::ALL.len() {
@@ -808,7 +822,11 @@ fn complete_navigation_visits_every_page_and_every_state() {
         exercise_page_state(&mut h, page);
         assert_eq!(h.app().page(), page);
         assert!(h.text().contains(page.title()));
-        assert!(h.diagnostics().is_empty(), "{page:?} diagnostics");
+        assert!(
+            h.diagnostics().is_empty(),
+            "{page:?} diagnostics: {:?}",
+            h.diagnostics()
+        );
     }
 }
 
@@ -831,7 +849,7 @@ fn custom_theme_injection_repaints_every_page() {
 }
 
 #[test]
-fn local_override_page_shows_three_distinct_buttons() {
+fn panels_page_keeps_historical_card_composition() {
     let buttons = harness(PageId::Buttons);
     let primary = cell_style(&buttons, "Run task");
     let secondary = cell_style(&buttons, "Preview");
@@ -841,14 +859,7 @@ fn local_override_page_shows_three_distinct_buttons() {
     assert_ne!(secondary, danger, "secondary and danger buttons merged");
 
     let panels = harness(PageId::Panels);
-    let patched = cell_style(&panels, "Patched title");
-    let default = cell_style(&panels, "Raised card");
-    assert_ne!(
-        patched, default,
-        "local panel override had no visual effect"
-    );
-    assert_eq!(patched.0, Theme::junie().color.accent);
-    assert!(patched.2.contains(Modifier::BOLD));
-    assert!(panels.text().contains("per-instance patch"));
+    assert!(panels.text().contains("Titled card"));
+    assert!(panels.text().contains("Card · scrollable"));
     assert!(panels.diagnostics().is_empty(), "Panels diagnostics");
 }

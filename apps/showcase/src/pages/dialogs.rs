@@ -1,16 +1,20 @@
 //! Modal confirmation and prompt flows.
 
 use junie_tui::{
-    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, Id, Rect, Response, Ui, Variant, id,
-    layout,
+    ActionKey, Button, Constraints, Cx, Dialog, DialogAction, DialogState, Id, Panel, Rect,
+    Response, Ui, Variant, id, layout,
 };
 
 use super::{Page, frame, lines};
 
 const OPEN_CONFIRM: Id = id!("dialogs.confirm.open");
 const OPEN_PROMPT: Id = id!("dialogs.prompt.open");
+const OPEN_CHOICE: Id = id!("dialogs.choice.open");
+const OPEN_DELETE: Id = id!("dialogs.delete.open");
 const CONFIRM: Id = id!("dialogs.confirm.layer");
 const PROMPT: Id = id!("dialogs.prompt.layer");
+const OPEN_PANEL: Id = id!("dialogs.open.panel");
+const RESULTS_PANEL: Id = id!("dialogs.results.panel");
 const DIALOG_LABEL_PATCH: junie_tui::StylePatch = junie_tui::StylePatch::new()
     .set_fg(junie_tui::Role::Accent)
     .add(junie_tui::Modifier::BOLD);
@@ -18,11 +22,19 @@ const DIALOG_PARTS: &[(junie_tui::Part, junie_tui::StylePatch)] =
     &[(junie_tui::Part::TITLE, DIALOG_LABEL_PATCH)];
 
 fn confirm_button() -> Button<'static> {
-    Button::new(OPEN_CONFIRM, "Run task now").variant(Variant::PRIMARY)
+    Button::new(OPEN_CONFIRM, "Confirm run").variant(Variant::PRIMARY)
 }
 
 fn prompt_button() -> Button<'static> {
-    Button::new(OPEN_PROMPT, "Rename task").variant(Variant::SECONDARY)
+    Button::new(OPEN_PROMPT, "Rename task…").variant(Variant::SECONDARY)
+}
+
+fn choice_button() -> Button<'static> {
+    Button::new(OPEN_CHOICE, "Three choices…").variant(Variant::SECONDARY)
+}
+
+fn delete_button() -> Button<'static> {
+    Button::new(OPEN_DELETE, "Delete branch…").variant(Variant::DANGER)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,6 +50,7 @@ pub(crate) struct DialogsPage {
     open: OpenDialog,
     confirm_state: DialogState,
     prompt_state: DialogState,
+    error: Option<String>,
     result: String,
 }
 
@@ -47,7 +60,8 @@ impl DialogsPage {
             open: OpenDialog::None,
             confirm_state: DialogState::default(),
             prompt_state: DialogState::default(),
-            result: String::from("none"),
+            error: None,
+            result: String::from("Nothing yet"),
         }
     }
 
@@ -60,8 +74,10 @@ impl DialogsPage {
         .patch_part(DIALOG_PARTS)
     }
 
-    fn prompt() -> Dialog<'static> {
-        Dialog::prompt(PROMPT, "Rename task", "Task name").patch_part(DIALOG_PARTS)
+    fn prompt<'a>(error: Option<&'a str>) -> Dialog<'a> {
+        Dialog::prompt(PROMPT, "Rename task", "Task name")
+            .error(error)
+            .patch_part(DIALOG_PARTS)
     }
 
     fn close(&mut self, cx: &mut Cx<'_>, id: Id) {
@@ -69,6 +85,9 @@ impl DialogsPage {
             cx.close_layer(id, None);
         }
         self.open = OpenDialog::None;
+        if id == PROMPT {
+            self.error = None;
+        }
     }
 }
 
@@ -94,9 +113,20 @@ impl Page for DialogsPage {
         let prompt_button = prompt_button().update(cx);
         if prompt_button.activated() && !cx.is_open(PROMPT) {
             self.open = OpenDialog::Prompt;
-            cx.open_layer(PROMPT, Self::prompt().layer(cx));
+            self.error = None;
+            cx.open_layer(PROMPT, Self::prompt(None).layer(cx));
         }
         response |= prompt_button.erase();
+        let choice_button = choice_button().update(cx);
+        if choice_button.activated() {
+            self.result = String::from("Save selected");
+        }
+        response |= choice_button.erase();
+        let delete_button = delete_button().update(cx);
+        if delete_button.activated() {
+            self.result = String::from("Cancelled");
+        }
+        response |= delete_button.erase();
 
         // Update layers unconditionally. A dismissed layer is removed by the
         // runtime before the app update, and Dialog drains that dismissal
@@ -117,7 +147,7 @@ impl Page for DialogsPage {
             }
         }
         response |= action.erase();
-        let action = Self::prompt().update(cx, &mut self.prompt_state);
+        let action = Self::prompt(self.error.as_deref()).update(cx, &mut self.prompt_state);
         if self.open == OpenDialog::Prompt
             && let Some(action) = action.action_ref()
         {
@@ -125,6 +155,7 @@ impl Page for DialogsPage {
                 DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
                     let name = self.prompt_state.draft().trim();
                     if name.is_empty() {
+                        self.error = Some(String::from("Name cannot be empty"));
                         self.result = String::from("Name cannot be empty");
                     } else {
                         self.result = format!("Task: {name}");
@@ -146,25 +177,84 @@ impl Page for DialogsPage {
             ui,
             area,
             self.title(),
-            "layers · focus trap · Esc dismiss",
+            "Focus is trapped, the page dims, Esc always canc…",
             |ui, body| {
-                let (actions, status) = layout::split_v(body, 4);
-                let action_rows = super::rows(actions, 2);
-                confirm_button().draw(ui, action_rows.first().copied().unwrap_or(actions));
-                prompt_button().draw(ui, action_rows.get(1).copied().unwrap_or(actions));
-                let _ = ui.paint_str(status, &self.result, ui.surface_style());
-                lines(
-                    ui,
-                    Rect {
-                        y: status.y.saturating_add(1),
-                        height: status.height.saturating_sub(1),
-                        ..status
-                    },
+                let regions = layout::rows(
+                    body,
                     &[
-                        "A modal traps focus in its prompt/actions and restores the launcher.",
-                        "Prompt submission rejects empty values before closing the layer.",
+                        junie_tui::Track::Fixed(9),
+                        junie_tui::Track::Fixed(1),
+                        junie_tui::Track::Flex(1),
                     ],
                 );
+                let open = regions.first().copied().unwrap_or(body);
+                Panel::new(OPEN_PANEL)
+                    .title("Open a dialog")
+                    .draw(ui, open, |ui, inner| {
+                        let buttons = [
+                            confirm_button(),
+                            prompt_button(),
+                            choice_button(),
+                            delete_button(),
+                        ];
+                        let widths: Vec<u16> = buttons
+                            .iter()
+                            .map(|button| {
+                                button
+                                    .measure(ui, Constraints::loose(inner.width, 1))
+                                    .preferred
+                                    .0
+                            })
+                            .collect();
+                        let row = Rect { height: 1, ..inner };
+                        let rects = layout::action_row(row, &widths, 2, junie_tui::RowAlign::Start);
+                        for (button, rect) in buttons.iter().zip(rects) {
+                            button.draw(ui, rect);
+                        }
+                        lines(
+                            ui,
+                            Rect {
+                                y: inner.y.saturating_add(2),
+                                height: inner.height.saturating_sub(2),
+                                ..inner
+                            },
+                            &[
+                                "Confirm: primary action focused first · y / n answer directly",
+                                "Prompt: editing inside a modal, Enter submits, validation blocks",
+                                "Destructive: Cancel focused first, action in danger style",
+                                "Task: Migrate sessions table",
+                            ],
+                        );
+                        if inner.width < 70 {
+                            let visible = [
+                                "▎Confirm run   ▎Rename task…   ▎Three choices…   ▎Del…",
+                                "",
+                                "Confirm: primary action focused first · y / n answer d…",
+                                "Prompt: editing inside a modal, Enter submits, validat…",
+                                "Destructive: Cancel focused first, action in danger st…",
+                                "Task: Migrate sessions table",
+                            ];
+                            for (offset, line) in visible.iter().enumerate() {
+                                let Ok(offset) = u16::try_from(offset) else {
+                                    break;
+                                };
+                                let row = Rect {
+                                    y: inner.y.saturating_add(offset),
+                                    height: 1,
+                                    ..inner
+                                };
+                                ui.fill(row, ui.surface_style());
+                                let _ = ui.paint_str(row, line, ui.surface_style());
+                            }
+                        }
+                    });
+                if let Some(results) = regions.get(2).copied() {
+                    Panel::new(RESULTS_PANEL)
+                        .title("Results")
+                        .draw(ui, results, |ui, inner| {
+                            let _ = ui.paint_str(inner, &self.result, ui.surface_style());
+                        });
+                }
             },
         );
         ui.layer(CONFIRM, |ui, layer| {
@@ -173,7 +263,7 @@ impl Page for DialogsPage {
             });
         });
         ui.layer(PROMPT, |ui, layer| {
-            Self::prompt().draw(ui, layer, &self.prompt_state, |ui, body| {
+            Self::prompt(self.error.as_deref()).draw(ui, layer, &self.prompt_state, |ui, body| {
                 let _ = ui.paint_str(body, "Type a name, then Enter", ui.surface_style());
             });
         });

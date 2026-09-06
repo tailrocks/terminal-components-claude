@@ -403,6 +403,3 @@ pub(crate) const SCROLL_ROWS: &[&str] = &[
     "Row 105", "Row 106", "Row 107", "Row 108", "Row 109", "Row 110", "Row 111", "Row 112",
     "Row 113", "Row 114", "Row 115", "Row 116", "Row 117", "Row 118", "Row 119", "Row 120",
 ];
-
-/// Small source document used by the code editor page.
-pub(crate) const CODE: &str = "fn main() {\n    println!(\"hello from showcase\");\n}\n";

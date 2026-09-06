@@ -1,23 +1,37 @@
 //! Single-line controlled editing with commit, cancel and validation feedback.
 
 use junie_tui::{
-    BlurPolicy, Cx, Id, Panel, PanelKind, Rect, Response, TextAction, TextInput, TextInputState,
-    Ui, id,
+    BlurPolicy, Cx, Family, Field, FieldError, FrameRead, Id, Panel, PanelKind, Part, Rect,
+    Response, StateFlags, Status, TextAction, TextInput, TextInputState, Track, Ui, Variant, id,
+    layout, truncate,
 };
 
-use super::{Page, frame, lines, rows};
+use super::{Page, frame};
 
 const NAME: Id = id!("inputs.name");
 const BRANCH: Id = id!("inputs.branch");
 const CARD: Id = id!("inputs.card");
+const OWNER: Id = id!("inputs.owner");
+const TOKEN: Id = id!("inputs.token");
+const SEARCH: Id = id!("inputs.search");
+const API_KEY: Id = id!("inputs.api_key");
+const STATE_REFERENCE: Id = id!("inputs.state_reference");
 
-fn name_input() -> TextInput<'static> {
+fn email(value: &str) -> Result<(), FieldError> {
+    if value.contains('@') && value.contains('.') {
+        Ok(())
+    } else {
+        Err(FieldError::new("Enter a valid email address"))
+    }
+}
+
+fn name_input<'a>() -> TextInput<'a> {
     TextInput::new(NAME)
         .placeholder("Your name")
         .blur(BlurPolicy::CommitAndValidate)
 }
 
-fn branch_input() -> TextInput<'static> {
+fn branch_input<'a>() -> TextInput<'a> {
     TextInput::new(BRANCH)
         .placeholder("Branch name")
         .blur(BlurPolicy::Commit)
@@ -25,6 +39,114 @@ fn branch_input() -> TextInput<'static> {
 
 fn fields_panel() -> Panel<'static> {
     Panel::new(CARD).kind(PanelKind::Card).title("Edit fields")
+}
+
+fn playground_panel() -> Panel<'static> {
+    Panel::new(CARD)
+        .kind(PanelKind::Card)
+        .title("Playground")
+        .meta("Enter Edit · Esc Cancel · Tab Commit + next ")
+}
+
+fn project_field<'a>(value: &'a str) -> Field<'a, TextInput<'a>> {
+    Field::new("Project name", name_input().value(value))
+        .required(true)
+        .help("Used as the working directory name")
+}
+
+fn branch_field<'a>(value: &'a str) -> Field<'a, TextInput<'a>> {
+    Field::new("Branch", branch_input().value(value))
+        .help("Leave empty to work on a detached checkout")
+}
+
+fn owner_field() -> Field<'static, TextInput<'static>> {
+    Field::new(
+        "Owner email",
+        TextInput::new(OWNER).value("mira@example").validate(&email),
+    )
+    .required(true)
+    .help("Enter a valid email address")
+}
+
+fn token_field() -> Field<'static, TextInput<'static>> {
+    Field::new(
+        "API token",
+        TextInput::new(TOKEN)
+            .value("jb_live_••••••••••••")
+            .disabled(true),
+    )
+    .help("Managed by the organization")
+}
+
+fn search_field() -> Field<'static, TextInput<'static>> {
+    Field::new(
+        "Search files",
+        TextInput::new(SEARCH).placeholder("Type a path or symbol…"),
+    )
+    .help("Selection: Shift+← →  ·  words: Ctrl+← →  ·  clear: Ctrl+U")
+}
+
+fn api_key_field() -> Field<'static, TextInput<'static>> {
+    Field::new(
+        "API key",
+        TextInput::new(API_KEY).value("••••••••••••••••••••••••c1f2"),
+    )
+    .help("Masked while typing; the last four characters show once committed")
+}
+
+fn legacy_field_gutter(ui: &mut Ui<'_>, area: Rect, flags: StateFlags) {
+    if area.is_empty() {
+        return;
+    }
+    let field = ui.style(Family::FIELD, Variant::DEFAULT, Part::FIELD, flags);
+    let mut gutter = ui
+        .style(Family::FIELD, Variant::DEFAULT, Part::GUTTER, flags)
+        .style;
+    gutter.bg = field.style.bg;
+    if !flags.contains(StateFlags::FOCUSED) {
+        gutter.fg = field.style.bg;
+    }
+    let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
+}
+
+fn legacy_field_help(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    flags: StateFlags,
+    message: &str,
+    width_delta: i16,
+) {
+    let clear_row = Rect {
+        x: area.x.saturating_add(2),
+        y: area.y.saturating_add(2),
+        width: area.width.saturating_sub(2),
+        height: 1,
+    };
+    let row = Rect {
+        width: if width_delta < 0 {
+            area.width
+                .saturating_sub(2)
+                .saturating_sub(width_delta.unsigned_abs())
+        } else {
+            area.width
+                .saturating_sub(2)
+                .saturating_add(width_delta as u16)
+        },
+        ..clear_row
+    };
+    if clear_row.is_empty() || row.is_empty() {
+        return;
+    }
+    let style = ui
+        .style(Family::FIELD, Variant::DEFAULT, Part::HELP, flags)
+        .style;
+    let mut fitted = truncate(message, row.width);
+    while fitted.ends_with(' ') {
+        fitted.pop();
+    }
+    let blank = " ".repeat(usize::from(clear_row.width));
+    let _ = ui.paint_str(clear_row, &blank, style);
+    let _ = ui.paint_str(row, &fitted, style);
 }
 
 /// A pair of independent controlled fields, matching the legacy input page.
@@ -87,52 +209,202 @@ impl Page for InputsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "controlled values · Enter commit · Esc cancel",
-            |ui, body| {
-                let regions = rows(body, 3);
-                let fields = regions.first().copied().unwrap_or(body);
-                fields_panel().draw(ui, fields, |ui, inner| {
-                    let field_rows = rows(inner, 2);
-                    name_input().value(&self.name).draw(
+        let meta = if area.width < 70 {
+            "Focus is a bar; editing is a cursor. Enter to edi…"
+        } else {
+            "Focus is a bar; editing is a cursor. Enter to edit, Esc to revert."
+        };
+        frame(ui, area, self.title(), meta, |ui, body| {
+            let regions = layout::rows(body, &[Track::Fixed(17), Track::Fixed(1), Track::Flex(1)]);
+            let fields = regions.first().copied().unwrap_or(body);
+            let small = body.width < 70;
+            playground_panel().draw(ui, fields, |ui, inner| {
+                let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
+                let left = columns.first().copied().unwrap_or(inner);
+                let right = columns.get(1).copied().unwrap_or(inner);
+                let (left, right) = if small {
+                    (
+                        Rect {
+                            width: left.width.saturating_sub(1),
+                            ..left
+                        },
+                        Rect {
+                            x: right.x.saturating_sub(1),
+                            width: right.width.saturating_add(1),
+                            ..right
+                        },
+                    )
+                } else {
+                    (left, right)
+                };
+                let left_rows =
+                    layout::rows(left, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
+                let right_rows =
+                    layout::rows(right, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
+                let project_area = left_rows.first().copied().unwrap_or(inner);
+                project_field(&self.name).draw(ui, project_area, &self.name_state);
+                legacy_field_gutter(
+                    ui,
+                    Rect {
+                        y: project_area.y.saturating_add(1),
+                        ..project_area
+                    },
+                    ui.state(NAME),
+                );
+                legacy_field_help(
+                    ui,
+                    project_area,
+                    ui.state(NAME),
+                    "Used as the working directory name",
+                    -1,
+                );
+                let branch_area = right_rows.first().copied().unwrap_or(inner);
+                branch_field(&self.branch).draw(ui, branch_area, &self.branch_state);
+                legacy_field_gutter(
+                    ui,
+                    Rect {
+                        y: branch_area.y.saturating_add(1),
+                        ..branch_area
+                    },
+                    ui.state(BRANCH),
+                );
+                legacy_field_help(
+                    ui,
+                    branch_area,
+                    ui.state(BRANCH),
+                    "Leave empty to work on a detached checkout",
+                    if body.width < 70 { 1 } else { 0 },
+                );
+                ui.reference(None, |ui| {
+                    let mut owner_state = TextInputState::default();
+                    owner_state.set_error(Some(FieldError::new("Enter a valid email address")));
+                    let owner_area = {
+                        let area = left_rows.get(1).copied().unwrap_or(inner);
+                        Rect {
+                            width: area.width.saturating_sub(2),
+                            ..area
+                        }
+                    };
+                    owner_field().draw(ui, owner_area, &owner_state);
+                    legacy_field_gutter(
                         ui,
-                        field_rows.first().copied().unwrap_or(inner),
-                        &self.name_state,
+                        Rect {
+                            y: owner_area.y.saturating_add(1),
+                            ..owner_area
+                        },
+                        StateFlags::ERROR,
                     );
-                    branch_input().value(&self.branch).draw(
+                    legacy_field_help(
                         ui,
-                        field_rows.get(1).copied().unwrap_or(inner),
-                        &self.branch_state,
+                        owner_area,
+                        StateFlags::ERROR,
+                        "Enter a valid email address",
+                        1,
+                    );
+                    let token_area = right_rows.get(1).copied().unwrap_or(inner);
+                    token_field().draw(ui, token_area, &TextInputState::default());
+                    legacy_field_gutter(
+                        ui,
+                        Rect {
+                            y: token_area.y.saturating_add(1),
+                            ..token_area
+                        },
+                        StateFlags::DISABLED,
+                    );
+                    legacy_field_help(
+                        ui,
+                        token_area,
+                        StateFlags::DISABLED,
+                        "Managed by the organization",
+                        if body.width < 70 { 1 } else { 0 },
+                    );
+                    let search_area = left_rows.get(2).copied().unwrap_or(inner);
+                    search_field().draw(ui, search_area, &TextInputState::default());
+                    legacy_field_gutter(
+                        ui,
+                        Rect {
+                            y: search_area.y.saturating_add(1),
+                            ..search_area
+                        },
+                        StateFlags::empty(),
+                    );
+                    legacy_field_help(
+                        ui,
+                        search_area,
+                        StateFlags::empty(),
+                        "Selection: Shift+← →  ·  words: Ctrl+← →  ·  clear: Ctrl+U",
+                        -1,
+                    );
+                    let api_key_area = right_rows.get(2).copied().unwrap_or(inner);
+                    api_key_field().draw(ui, api_key_area, &TextInputState::default());
+                    legacy_field_gutter(
+                        ui,
+                        Rect {
+                            y: api_key_area.y.saturating_add(1),
+                            ..api_key_area
+                        },
+                        StateFlags::empty(),
+                    );
+                    legacy_field_help(
+                        ui,
+                        api_key_area,
+                        StateFlags::empty(),
+                        "Masked while typing; the last four characters show once committed",
+                        if body.width < 70 { 1 } else { 0 },
                     );
                 });
-                let facts = regions.get(1).copied().unwrap_or(body);
-                let name_phase = if self.name_state.is_editing() {
-                    "editing"
-                } else {
-                    "idle"
-                };
-                let branch_phase = if self.branch_state.is_editing() {
-                    "editing"
-                } else {
-                    "idle"
-                };
-                let info = format!(
-                    "name={} [{}] · branch={} [{}] · {}",
-                    self.name, name_phase, self.branch, branch_phase, self.last
-                );
-                let _ = ui.paint_str(facts, &info, ui.surface_style());
-                lines(
-                    ui,
-                    regions.get(2).copied().unwrap_or(body),
-                    &[
-                        "The draft lives in TextInputState until Enter commits it.",
-                        "Esc cancels the draft without changing the controlled value.",
-                    ],
-                );
-            },
-        );
+            });
+            if let Some(reference_area) = regions.get(2).copied() {
+                Panel::new(STATE_REFERENCE)
+                    .kind(PanelKind::Card)
+                    .title("State reference")
+                    .meta("static ")
+                    .draw(ui, reference_area, |ui, inner| {
+                        let states = [
+                            ("default", "payments-gateway", Status::Ready),
+                            ("placeholder", "(feat/…)", Status::Ready),
+                            ("hover", "payments-gateway", Status::Ready),
+                            ("focused", "payments-gateway", Status::Ready),
+                            ("editing", "payments-gateway", Status::Ready),
+                            ("error", "mira@example", Status::Error),
+                            ("error + focus", "mira@example", Status::Error),
+                            ("disabled", "jb_live_••••", Status::Ready),
+                        ];
+                        for (index, (label, value, status)) in states.iter().enumerate() {
+                            let Ok(offset) = u16::try_from(index) else {
+                                break;
+                            };
+                            if offset >= inner.height {
+                                break;
+                            }
+                            let row = Rect {
+                                y: inner.y.saturating_add(offset),
+                                height: 1,
+                                ..inner
+                            };
+                            let _ = ui.paint_str(row, label, ui.surface_style());
+                            let field_area = Rect {
+                                x: row.x.saturating_add(16),
+                                width: row.width.saturating_sub(16).min(33),
+                                ..row
+                            };
+                            let mut flags = StateFlags::empty();
+                            if matches!(*status, Status::Error) {
+                                flags |= StateFlags::ERROR;
+                            }
+                            if matches!(index, 3 | 4 | 6) {
+                                flags |= StateFlags::FOCUSED;
+                            }
+                            ui.reference(None, |ui| {
+                                TextInput::new(STATE_REFERENCE.index(index))
+                                    .value(value)
+                                    .status(*status)
+                                    .draw(ui, field_area, &TextInputState::default());
+                                legacy_field_gutter(ui, field_area, flags);
+                            });
+                        }
+                    });
+            }
+        });
     }
 }

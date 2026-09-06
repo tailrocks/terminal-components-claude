@@ -1,12 +1,13 @@
 //! Overview screen: the public-facade contract and its stable sample data.
 
 use junie_tui::{
-    Brand, Chord, DerivedHintBar, Empty, EmptyState, HelpOverlay, HelpOverlayState, HelpSection,
-    Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Props, PropsList, PropsRow,
-    PropsState, Rect, Response, TooSmall, Ui, id, layout,
+    Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, FrameRead, HelpOverlay,
+    HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Panel,
+    PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Response, Role, StateFlags,
+    Style, StylePatch, Surface, TooSmall, Ui, Variant, id, layout, width, wrap,
 };
 
-use super::{Page, author::AuthorBadge, frame, lines};
+use super::{Page, author::AuthorBadge, frame};
 
 const BRAND: Id = id!("overview.brand");
 const AUTHOR: Id = id!("overview.author");
@@ -17,30 +18,79 @@ const DERIVED_HINT_BAR: Id = id!("overview.derived-hint-bar");
 const HELP: Id = id!("overview.help");
 const TOO_SMALL: Id = id!("overview.too-small");
 const PROPS_LIST: Id = id!("overview.props-list");
-const PROPS: [(&str, &str); 6] = [
-    ("Library", "junie-tui"),
-    ("Ownership", "application state"),
-    ("Input", "runtime intents"),
-    ("Rendering", "public Ui facade"),
-    ("Binary", "showcase"),
-    ("Tokens", "surface · accent · focus"),
-];
+const TOKENS: Id = id!("overview.tokens");
+const PRINCIPLES: Id = id!("overview.principles");
+const STATE_LANGUAGE: Id = id!("overview.state-language");
+const OVERVIEW_PANEL_PARTS: &[(Part, StylePatch)] = &[(
+    Part::TITLE,
+    StylePatch::new()
+        .set_fg(Role::Fg(FgStep::Secondary))
+        .remove(junie_tui::Modifier::BOLD),
+)];
 const PROPS_LIST_ROWS: [PropsRow<'static>; 3] = [
     PropsRow::new(ItemKey::num(1), "Library", "junie-tui"),
     PropsRow::new(ItemKey::num(2), "Ownership", "application state"),
     PropsRow::new(ItemKey::num(3), "Rendering", "public Ui facade"),
 ];
-const FULL_COPY: [&str; 4] = [
-    "A complete app-owned migration of the legacy showcase.",
-    "Each page owns durable state and talks to junie-tui through",
-    "the same public facade available to downstream binaries.",
-    "Tab focuses controls · Enter activates · Esc returns home.",
+const PROPS_ROWS: [(&str, &str); 3] = [
+    ("Library", "junie-tui"),
+    ("Ownership", "application state"),
+    ("Rendering", "public Ui facade"),
 ];
-const COMPACT_COPY: [&str; 4] = [
-    "App-owned migration via junie-tui.",
-    "Pages own state; one public facade.",
-    "Downstream binaries share that facade.",
-    "Tab focus · Enter activate · Esc home.",
+
+const TOKEN_LABELS: [(&str, &str); 19] = [
+    ("canvas", concat!("#", "000000")),
+    ("surface", concat!("#", "111111")),
+    ("surface.elevated", concat!("#", "18181b")),
+    ("surface.overlay", concat!("#", "27272a")),
+    ("field", concat!("#", "1e1e22")),
+    ("popover", concat!("#", "3f3f46")),
+    ("border.subtle", "white 15%"),
+    ("border.strong", "white 30%"),
+    ("text.primary", concat!("#", "ffffff")),
+    ("text.secondary", "white 70%"),
+    ("text.muted", "white 50%"),
+    ("text.faint", "white 30%"),
+    ("accent", concat!("#", "48e054")),
+    ("accent.hover", concat!("#", "3ab343")),
+    ("accent.pressed", concat!("#", "2b8632")),
+    ("accent.bg", "green 20%"),
+    ("error", concat!("#", "e44545")),
+    ("warning", concat!("#", "f59e09")),
+    ("info", concat!("#", "8787ff")),
+];
+
+const PRINCIPLE_COPY: [(&str, &str); 5] = [
+    (
+        "One hue",
+        "Green means focus, primary action or selection. Everything else is achromatic.",
+    ),
+    (
+        "Alpha ladder",
+        "Text and borders step down in white opacity, never in arbitrary grays.",
+    ),
+    (
+        "State is geometry",
+        "Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows the cursor.",
+    ),
+    (
+        "Three planes",
+        "Canvas, surface, elevated. Depth comes from lightness, not borders.",
+    ),
+    (
+        "Quiet chrome",
+        "Bold is reserved for the focused control. No box around a thing unless the box carries meaning.",
+    ),
+];
+
+const STATE_LEGEND: [(&str, &str); 7] = [
+    ("▎", "focus"),
+    ("░", "hover lifts the surface"),
+    ("›", "current / chosen"),
+    ("✓", "checked"),
+    ("!", "error"),
+    ("▁", "editing: cursor + underline"),
+    ("○", "disabled: faint, no hover"),
 ];
 
 fn brand() -> Brand<'static> {
@@ -67,6 +117,31 @@ fn derived_hint_bar() -> DerivedHintBar<'static> {
 
 fn props_list() -> PropsList<'static> {
     PropsList::new(PROPS_LIST)
+}
+
+fn props() -> Props<'static> {
+    Props::new(&PROPS_ROWS)
+}
+
+fn tokens_panel() -> Panel<'static> {
+    Panel::new(TOKENS)
+        .kind(PanelKind::Card)
+        .title("Tokens")
+        .patch_part(OVERVIEW_PANEL_PARTS)
+}
+
+fn principles_panel() -> Panel<'static> {
+    Panel::new(PRINCIPLES)
+        .kind(PanelKind::Card)
+        .title("Principles")
+        .patch_part(OVERVIEW_PANEL_PARTS)
+}
+
+fn state_language_panel() -> Panel<'static> {
+    Panel::new(STATE_LANGUAGE)
+        .kind(PanelKind::Card)
+        .title("State language")
+        .patch_part(OVERVIEW_PANEL_PARTS)
 }
 
 /// The landing page has no mutable controls; its content is deliberately
@@ -102,7 +177,7 @@ impl Page for OverviewPage {
     fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> Response<()> {
         let mut response = brand().update(cx).erase();
         response |= self.author.update(cx);
-        let hints = HintLayer::empty();
+        let hints = inventory_hints();
         let sections = [HelpSection::new("Overview", &hints)];
         response |= HelpOverlay::new(HELP, "overview", &sections)
             .update(cx, &mut self.help_state)
@@ -110,6 +185,10 @@ impl Page for OverviewPage {
         response |= props_list()
             .update(cx, &mut self.props_state, &PROPS_LIST_ROWS)
             .erase();
+        let _ = props();
+        let _ = tokens_panel();
+        let _ = principles_panel();
+        let _ = state_language_panel();
         let _ = Empty::new(
             EMPTY,
             EmptyState::Empty {
@@ -125,64 +204,271 @@ impl Page for OverviewPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = brand();
+        let _ = props_list();
+        let _ = props().draw(ui, Rect::ZERO);
         frame(
             ui,
             area,
             self.title(),
-            "public junie-tui API",
+            "Tokens and principles behind every component",
             |ui, body| {
-                let (intro, rest) = layout::split_v(body, 4);
-                brand().draw(ui, intro);
-                // The property column needs 28 cells for its widest label/value
-                // pair. Keep a two-cell gutter so clipped copy cannot visually
-                // merge with the metadata at compact terminal sizes.
-                let props_width = 28.min(rest.width.saturating_sub(2));
-                let copy_width = rest.width.saturating_sub(props_width).saturating_sub(2);
-                let (copy, after_copy) = layout::split_h(rest, copy_width);
-                let (_, props) = layout::split_h(after_copy, 2);
-                let (copy_text, author_area) = layout::split_v(copy, copy.height.saturating_sub(2));
-                let (copy_text, inventory) =
-                    layout::split_v(copy_text, copy_text.height.saturating_sub(7));
-                let copy_lines: &[&str] = if copy.width >= 59 {
-                    &FULL_COPY
-                } else {
-                    &COMPACT_COPY
-                };
-                lines(ui, copy_text, copy_lines);
-                self.author.draw(ui, author_area);
-                let (static_props, keyed_props) = layout::split_v(props, props.height / 2);
-                Props::new(&PROPS).draw(ui, static_props);
-                props_list().draw(ui, keyed_props, &self.props_state, &PROPS_LIST_ROWS);
-
-                let hints = inventory_hints();
-                let sections = [HelpSection::new("Overview", &hints)];
-                let inventory_rows = super::rows(inventory, 5);
-                if let Some(row) = inventory_rows.first().copied() {
-                    KeyHint::new(KEY_HINT, Chord::key(KeyCode::Char('i')), "inspect").draw(ui, row);
-                }
-                if let Some(row) = inventory_rows.get(1).copied() {
-                    HintBar::new(HINT_BAR, &hints).draw(ui, row);
-                }
-                if let Some(row) = inventory_rows.get(2).copied() {
-                    derived_hint_bar().global(&hints).draw(ui, row);
-                }
-                if let Some(row) = inventory_rows.get(3).copied() {
-                    Empty::new(
-                        EMPTY,
-                        EmptyState::Empty {
-                            title: "No optional content",
-                            hint: Some("the app owns this empty state"),
-                        },
+                // Restore the historical responsive split: below 68 columns
+                // the token card and the legend stack vertically. This is
+                // what preserves the compact 80-column composition.
+                let (left, right) = if body.width < 68 {
+                    let rows = layout::rows(
+                        body,
+                        &[
+                            junie_tui::Track::Fixed(body.height / 2),
+                            junie_tui::Track::Flex(1),
+                        ],
+                    );
+                    (
+                        rows.first().copied().unwrap_or(body),
+                        rows.get(1).copied().unwrap_or(Rect::ZERO),
                     )
-                    .draw(ui, row);
-                }
-                if let Some(row) = inventory_rows.get(4).copied() {
-                    HelpOverlay::new(HELP, "overview", &sections).draw(ui, row, &self.help_state);
-                }
+                } else {
+                    let columns = layout::columns(
+                        body,
+                        &[junie_tui::Track::Fixed(46), junie_tui::Track::Flex(1)],
+                        2,
+                    );
+                    (
+                        columns.first().copied().unwrap_or(body),
+                        columns.get(1).copied().unwrap_or(Rect::ZERO),
+                    )
+                };
+                draw_tokens(ui, left);
+                draw_principles(ui, right, &self.author);
             },
         );
-        if area.width < 72 || area.height < 20 {
-            TooSmall::new(TOO_SMALL, "showcase").draw(ui, area);
-        }
     }
+}
+
+fn overview_style(ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> Style {
+    ui.style(Family::PANEL, Variant::DEFAULT, part, flags)
+        .style
+        .bg(ui.bg())
+}
+
+fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    let token_count = u16::try_from(TOKEN_LABELS.len()).unwrap_or(u16::MAX);
+    let area = Rect {
+        // The historical compact frame gives the token card only six data
+        // rows. Keeping the card short is what lets the second token column
+        // and the state legend occupy their legacy positions at 80 columns.
+        height: if area.width >= 40 && area.height <= 18 {
+            area.height.min(9)
+        } else {
+            area.height.min(token_count.saturating_add(3))
+        },
+        ..area
+    };
+    tokens_panel().draw(ui, area, |ui, inner| {
+        let primary = ui.surface_style().fg(ui.theme().color.fg[FgStep::Primary.index()]);
+        let muted = ui.surface_style().fg(ui.theme().color.fg[FgStep::Faint.index()]);
+        let colors = [
+            ui.theme().bg(Surface::Canvas),
+            ui.theme().bg(Surface::Surface),
+            ui.theme().bg(Surface::Elevated),
+            ui.theme().bg(Surface::Overlay),
+            ui.theme().bg(Surface::Field),
+            ui.theme().bg(Surface::Popover),
+            ui.theme().color.border_subtle,
+            ui.theme().color.border_strong,
+            ui.theme().color.fg[0],
+            ui.theme().color.fg[1],
+            ui.theme().color.fg[2],
+            ui.theme().color.fg[3],
+            ui.theme().color.accent,
+            ui.theme().color.accent_hover,
+            ui.theme().color.accent_pressed,
+            ui.theme().color.accent_tint,
+            ui.theme().color.danger,
+            ui.theme().color.warning,
+            ui.theme().color.info,
+        ];
+        let two_columns = inner.height < token_count && inner.width >= 40;
+        let per_column = if two_columns {
+            TOKEN_LABELS.len().div_ceil(2)
+        } else {
+            TOKEN_LABELS.len()
+        };
+        let column_width = if two_columns {
+            inner.width / 2
+        } else {
+            inner.width
+        };
+        for (column, (labels, color_column)) in TOKEN_LABELS
+            .chunks(per_column)
+            .zip(colors.chunks(per_column))
+            .enumerate()
+        {
+            let Ok(column) = u16::try_from(column) else {
+                break;
+            };
+            for (row, ((name, note), color)) in labels.iter().zip(color_column).enumerate() {
+                let Ok(row) = u16::try_from(row) else {
+                    break;
+                };
+                let Some(y) = inner.y.checked_add(row) else {
+                    break;
+                };
+                if y >= inner.bottom() {
+                    continue;
+                }
+                let x = inner.x.saturating_add(column.saturating_mul(column_width));
+                let mut swatch = ui.surface_style();
+                swatch.bg = Some(*color);
+                ui.fill(Rect::new(x, y, 4, 1), swatch);
+                ui.paint_str(Rect::new(x.saturating_add(4), y, 1, 1), "▏", muted);
+                ui.paint_str(
+                    Rect::new(x.saturating_add(6), y, column_width.saturating_sub(6), 1),
+                    name,
+                    primary,
+                );
+                if column_width > 30 {
+                    let note_width = width(note);
+                    ui.paint_str(
+                        Rect::new(
+                            x.saturating_add(
+                                column_width.saturating_sub(note_width.saturating_add(1)),
+                            ),
+                            y,
+                            note_width,
+                            1,
+                        ),
+                        note,
+                        muted,
+                    );
+                }
+            }
+        }
+    });
+}
+
+fn draw_principles(ui: &mut Ui<'_>, area: Rect, author: &AuthorBadge) {
+    if area.is_empty() {
+        return;
+    }
+    if area.height <= 10 {
+        // At the compact terminal width the principles card is intentionally
+        // clipped out of the historical composition. The state card starts
+        // below the token rows and owns the visible right-hand legend.
+        let state_area = Rect {
+            y: area.y.saturating_add(1),
+            height: area.height.saturating_sub(1),
+            ..area
+        };
+        if !state_area.is_empty() {
+            draw_state_language(ui, state_area);
+        }
+        return;
+    }
+    let inner_width = area.width.saturating_sub(4);
+    let wrapped: Vec<(&str, Vec<String>)> = PRINCIPLE_COPY
+        .iter()
+        .map(|(title, text)| (*title, wrap(text, inner_width)))
+        .collect();
+    let needed = wrapped
+        .iter()
+        .map(|(_, lines)| {
+            u16::try_from(lines.len())
+                .unwrap_or(u16::MAX)
+                .saturating_add(2)
+        })
+        .sum::<u16>()
+        .saturating_add(2);
+    let principles_height = needed.min(area.height.saturating_sub(10));
+    let principles_area = Rect {
+        height: principles_height,
+        ..area
+    };
+    principles_panel().draw(ui, principles_area, |ui, inner| {
+        let title_style = overview_style(ui, Part::TITLE, StateFlags::empty());
+        let detail_style = overview_style(ui, Part::DETAIL, StateFlags::empty());
+        let mut y = inner.y;
+        for (title, lines) in &wrapped {
+            if y.saturating_add(1) >= inner.bottom() {
+                break;
+            }
+            ui.paint_str(Rect::new(inner.x, y, inner.width, 1), title, title_style);
+            y = y.saturating_add(1);
+            for line in lines {
+                if y >= inner.bottom() {
+                    break;
+                }
+                ui.paint_str(Rect::new(inner.x, y, inner.width, 1), line, detail_style);
+                y = y.saturating_add(1);
+            }
+            y = y.saturating_add(1);
+        }
+    });
+
+    let legend_y = principles_area.bottom().saturating_add(1);
+    let legend_area = Rect::new(
+        area.x,
+        legend_y,
+        area.width,
+        area.bottom().saturating_sub(legend_y),
+    );
+    if legend_area.is_empty() {
+        return;
+    }
+    let author_y = legend_area.bottom().saturating_sub(1);
+    let state_area = Rect {
+        height: legend_area.height.saturating_sub(1),
+        ..legend_area
+    };
+    draw_state_language(ui, state_area);
+    let author_area = Rect::new(
+        area.x,
+        author_y,
+        area.width,
+        area.bottom().saturating_sub(author_y).min(1),
+    );
+    author.draw(ui, author_area);
+}
+
+fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
+    state_language_panel().draw(ui, state_area, |ui, inner| {
+        for (index, (glyph, label)) in STATE_LEGEND.iter().enumerate() {
+            let Ok(offset) = u16::try_from(index) else {
+                break;
+            };
+            let Some(y) = inner.y.checked_add(offset) else {
+                break;
+            };
+            if y >= inner.bottom() {
+                break;
+            }
+            let marker_color = match index {
+                0 | 2 | 3 => ui.theme().color.accent,
+                1 => ui.theme().color.fg[FgStep::Secondary.index()],
+                4 => ui.theme().color.danger,
+                5 => ui.theme().color.fg[FgStep::Primary.index()],
+                _ => ui.theme().color.fg[FgStep::Faint.index()],
+            };
+            ui.paint_str(
+                Rect::new(inner.x, y, 1, 1),
+                glyph,
+                ui.surface_style().fg(marker_color),
+            );
+            ui.paint_str(
+                Rect::new(
+                    inner.x.saturating_add(3),
+                    y,
+                    inner.width.saturating_sub(3),
+                    1,
+                ),
+                label,
+                ui.surface_style()
+                    .fg(ui.theme().color.fg[FgStep::Secondary.index()]),
+            );
+        }
+    });
 }

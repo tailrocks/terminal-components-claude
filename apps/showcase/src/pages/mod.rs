@@ -5,7 +5,7 @@
 //! application package a consumer of the public `junie-tui` facade rather than
 //! a second component implementation.
 
-use junie_tui::{Panel, PanelKind, Rect, Response, Ui, id};
+use junie_tui::{Family, Part, Rect, Response, StateFlags, Ui, Variant, truncate, width};
 
 /// A stateful screen in the showcase.
 pub(crate) trait Page: Send {
@@ -33,16 +33,49 @@ pub(crate) fn frame(
     meta: &'static str,
     body: impl FnOnce(&mut Ui<'_>, Rect),
 ) {
-    // At the minimum supported size the content frame is intentionally
-    // narrow.  Keep the page identity visible instead of letting a long
-    // metadata string consume the title's cells; the full metadata returns
-    // as soon as the frame has room for both labels.
-    let meta = if area.width < 60 { "" } else { meta };
-    Panel::new(id!("page.frame"))
-        .kind(PanelKind::Framed)
-        .title(title)
-        .meta(meta)
-        .draw(ui, area, body);
+    // The historical shell has a title row, a blank row, then page content;
+    // it does not put a second card around every page.  Keep the title/meta
+    // paint behind the new Ui boundary, while leaving ownership of the page
+    // body with the migrated component composition.
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, ui.surface_style());
+    let title_style = ui
+        .style(
+            Family::PANEL,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::empty(),
+        )
+        .style;
+    let meta_style = ui
+        .style(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::empty(),
+        )
+        .style;
+    let title_area = Rect { height: 1, ..area };
+    let title_width = width(title).min(area.width);
+    ui.paint_str(title_area, title, title_style);
+    if !meta.is_empty() && area.width > title_width.saturating_add(2) {
+        let meta_area = Rect {
+            x: area.x.saturating_add(title_width).saturating_add(2),
+            width: area.width.saturating_sub(title_width).saturating_sub(2),
+            height: 1,
+            ..area
+        };
+        let fitted = truncate(meta, meta_area.width);
+        ui.paint_str(meta_area, &fitted, meta_style);
+    }
+    let body_area = Rect {
+        y: area.y.saturating_add(2),
+        height: area.height.saturating_sub(2),
+        ..area
+    };
+    body(ui, body_area);
 }
 
 /// Paint a set of lines with one-cell spacing, clipping at the body edge.
@@ -62,37 +95,6 @@ pub(crate) fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
         };
         let _ = ui.paint_str(row, line, style);
     }
-}
-
-/// Split a body into equal-height rows with a one-cell gap.
-pub(crate) fn rows(area: Rect, count: u16) -> Vec<Rect> {
-    if count == 0 || area.is_empty() {
-        return Vec::new();
-    }
-    let gap = count.saturating_sub(1);
-    let height = area
-        .height
-        .saturating_sub(gap)
-        .checked_div(count)
-        .unwrap_or(0);
-    let mut result = Vec::with_capacity(usize::from(count));
-    let mut y = area.y;
-    for index in 0..count {
-        let remaining = area.bottom().saturating_sub(y);
-        let row_height = if index.checked_add(1) == Some(count) {
-            remaining
-        } else {
-            height
-        };
-        result.push(Rect {
-            x: area.x,
-            y,
-            width: area.width,
-            height: row_height,
-        });
-        y = y.saturating_add(row_height).saturating_add(1);
-    }
-    result
 }
 
 pub(crate) mod author;

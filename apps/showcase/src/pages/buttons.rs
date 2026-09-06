@@ -5,18 +5,34 @@
 //! props used by the live controls, so captures cannot drift from behavior.
 
 use junie_tui::{
-    Button, Constraints, Cx, FrameRead, Id, ItemKey, Part, PartRef, RadioGroup, RadioGroupState,
-    Rect, ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Toggle, Ui,
-    Variant, id, layout,
+    Button, Constraints, Cx, Family, FrameRead, Id, ItemKey, Panel, PanelKind, Part, PartRef,
+    RadioGroup, RadioGroupState, Rect, ReferenceState, ReferenceTarget, Response, RowAlign,
+    StateFlags, Status, Toggle, Ui, Variant, id, layout,
 };
 
 use super::{Page, frame};
 
 const BUTTONS: Id = id!("buttons");
+const PLAYGROUND_PANEL: Id = id!("buttons.playground");
 const MATRIX: Id = id!("buttons.matrix");
+const MATRIX_PANEL: Id = id!("buttons.matrix.panel");
 const TOGGLE: Id = id!("buttons.toggle");
 const RADIO: Id = id!("buttons.radio");
 const RADIO_OPTIONS: &[&str] = &["Primary", "Secondary", "Danger"];
+
+fn playground_panel() -> Panel<'static> {
+    Panel::new(PLAYGROUND_PANEL)
+        .kind(PanelKind::Card)
+        .title("Playground")
+        .meta("hover · click · Tab · Enter / Space ")
+}
+
+fn matrix_panel() -> Panel<'static> {
+    Panel::new(MATRIX_PANEL)
+        .kind(PanelKind::Card)
+        .title("State matrix")
+        .meta("reference rendering ")
+}
 
 fn api_toggle() -> Toggle<'static> {
     Toggle::new(TOGGLE, "API toggle").on(true).disabled(true)
@@ -74,6 +90,22 @@ const MATRIX_VARIANTS: [(Variant, &str); 4] = [
     (Variant::SUBTLE, "Subtle"),
     (Variant::DANGER, "Danger"),
 ];
+
+fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlags) {
+    if area.is_empty() {
+        return;
+    }
+    let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
+    let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
+    // The old showcase painted a gutter glyph for every button. The modern
+    // Button only binds that glyph to focus, so preserve the old picture at
+    // this page seam without changing the shared component contract.
+    gutter.bg = container.style.bg;
+    if !flags.contains(StateFlags::FOCUSED) {
+        gutter.fg = container.style.bg;
+    }
+    let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
+}
 
 fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
     let mut state = ReferenceState::default();
@@ -193,29 +225,42 @@ impl Page for ButtonsPage {
             ui,
             area,
             self.title(),
-            "Playground · State matrix · hover · click · Tab · Enter / Space",
+            "Primary, secondary, subtle, danger, toggle, disabled, busy ",
             |ui, body| {
                 let regions = layout::rows(
                     body,
                     &[
                         junie_tui::Track::Fixed(15),
                         junie_tui::Track::Fixed(1),
-                        junie_tui::Track::Fixed(8),
+                        junie_tui::Track::Fixed(11),
                         junie_tui::Track::Flex(1),
                     ],
                 );
-                self.draw_playground(ui, regions.first().copied().unwrap_or(body));
-                ui.rule(regions.get(1).copied().unwrap_or(body));
-                Self::draw_matrix(ui, regions.get(2).copied().unwrap_or(body));
+                playground_panel().draw(
+                    ui,
+                    regions.first().copied().unwrap_or(body),
+                    |ui, inner| self.draw_playground(ui, inner),
+                );
+                let matrix_area = regions.get(2).copied().unwrap_or(body);
+                if matrix_area.width < 70 && !matrix_area.is_empty() {
+                    matrix_panel().draw(ui, matrix_area, |_, _| ());
+                    Self::draw_matrix(
+                        ui,
+                        Rect {
+                            x: matrix_area.x.saturating_add(2),
+                            y: matrix_area.y.saturating_add(2),
+                            width: matrix_area.width.saturating_sub(4),
+                            height: 1,
+                        },
+                    );
+                } else {
+                    matrix_panel().draw(ui, matrix_area, Self::draw_matrix);
+                }
                 if let Some(status) = regions.get(3).copied() {
-                    let (last_area, controls) = layout::split_v(status, 1);
                     if let Some(last) = &self.last {
                         let text = format!("last: {last} · {} activations", self.clicks);
-                        let _ = ui.paint_str(last_area, &text, ui.surface_style());
+                        let _ = ui.paint_str(status, &text, ui.surface_style());
                     }
-                    let (toggle_area, radio_area) = layout::split_v(controls, 2);
-                    api_toggle().draw(ui, toggle_area);
-                    api_radio().draw(ui, radio_area, &self.radio_state, RADIO_OPTIONS);
                 }
             },
         );
@@ -261,7 +306,32 @@ impl ButtonsPage {
                     .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
             {
                 if let Some(button) = self.button(index) {
+                    let variant = SPECS[index].1;
+                    let mut flags = ui.state(button.id());
+                    if SPECS[index].2 {
+                        flags |= StateFlags::DISABLED;
+                    }
+                    if self.checked.get(index).copied().flatten() == Some(true) {
+                        flags |= StateFlags::CHECKED | StateFlags::SELECTED;
+                    }
+                    if self.busy_frames > 0 && index == LONG_JOB {
+                        flags |= StateFlags::BUSY;
+                    }
                     button.draw(ui, button_area);
+                    legacy_gutter(ui, button_area, variant, flags);
+                    if let Some(checked) = self.checked.get(index).copied().flatten() {
+                        let marker = ui.style(Family::BUTTON, variant, Part::MARKER, flags).style;
+                        let _ = ui.paint_str(
+                            Rect {
+                                x: button_area.x.saturating_add(1),
+                                y: button_area.y,
+                                width: 1,
+                                height: 1,
+                            },
+                            if checked { "●" } else { "○" },
+                            marker,
+                        );
+                    }
                 }
             }
             y = y.saturating_add(3);
@@ -317,7 +387,7 @@ impl ButtonsPage {
                     ReferenceTarget::new(id, state).part(PartRef::of(Part::CONTAINER))
                 });
                 ui.reference(target, |ui| {
-                    Button::new(id, "Label")
+                    Button::new(id, " Label")
                         .variant(*variant)
                         .disabled(flags.contains(StateFlags::DISABLED))
                         .draw(
@@ -329,6 +399,32 @@ impl ButtonsPage {
                                 height: 1,
                             },
                         );
+                    legacy_gutter(
+                        ui,
+                        Rect {
+                            x,
+                            y,
+                            width: column_width,
+                            height: 1,
+                        },
+                        *variant,
+                        *flags,
+                    );
+                    if flags.contains(StateFlags::PRESSED) {
+                        let container = ui
+                            .style(Family::BUTTON, *variant, Part::CONTAINER, *flags)
+                            .style;
+                        let _ = ui.paint_str(
+                            Rect {
+                                x: x.saturating_add(7),
+                                y,
+                                width: 1,
+                                height: 1,
+                            },
+                            " ",
+                            container,
+                        );
+                    }
                 });
             }
         }

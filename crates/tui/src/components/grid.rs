@@ -1941,6 +1941,14 @@ impl Grid<'_> {
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
         let mut acc = Acc::<GridAction>::new();
+        // A successful commit clears `st.edit` and restores focus to the grid.
+        // Runtime focus settlement can deliver the editor's FocusOut on the
+        // following pass, when there is no active editor for `drive_editor`
+        // to visit. The grid owns that child region, so drain the stale
+        // transition here instead of leaking an undelivered intent.
+        if st.edit.is_none() {
+            for _ in cx.intents(self.editor_id()) {}
+        }
         self.drive_editor(cx, st, model, &mut acc);
         let pending = self.navigate(cx, st, model, &mut acc);
         if let Some(request) = pending.edit

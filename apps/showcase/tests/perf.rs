@@ -54,7 +54,7 @@ fn frame_showcase_lists_80x24() {
 fn frame_showcase_dialog_open() {
     let mut h = app(PageId::Dialogs, 120, 40);
     let _ = h.key(KeyCode::Char('?'));
-    assert!(h.text().contains("Showcase help"));
+    assert!(h.text().contains("Keyboard & mouse"));
     // Opening a layer settles its focus scope on the next draw; benchmark the
     // steady-state frame rather than the hand-off frame.
     h.draw();

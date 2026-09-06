@@ -1,15 +1,11 @@
-//! Three scroll surfaces from the legacy scrolling page.
-//!
-//! Prose, a 120-row list, and a following log remain separate stateful
-//! viewports. Their source lines are app-owned fixtures; `TextViewport` owns
-//! only scroll, selection, follow-tail, and pointer capture state.
+//! Three independent scroll surfaces: prose, a long list, and a following log.
 
 use junie_tui::{
-    Cx, Id, Panel, PanelKind, Rect, Response, ScrollRegion, ScrollState, TextViewport, Ui,
-    ViewportAction, ViewportLine, ViewportState, id, layout,
+    Cx, Id, Panel, Rect, Response, TextViewport, Ui, ViewportAction, ViewportLine, ViewportState,
+    id,
 };
 
-use crate::data::{PROSE, SCROLL_ROWS};
+use crate::data::{PROSE, SCROLL_ROWS, log_lines};
 
 use super::{Page, frame};
 
@@ -19,7 +15,6 @@ const LOG_VIEW: Id = id!("scrolling.log");
 const PROSE_PANEL: Id = id!("scrolling.prose.panel");
 const LIST_PANEL: Id = id!("scrolling.list.panel");
 const LOG_PANEL: Id = id!("scrolling.log.panel");
-const SCROLL_REGION: Id = id!("scrolling.region");
 
 fn prose_view() -> TextViewport<'static> {
     TextViewport::new(PROSE_VIEW).wrap(true)
@@ -33,11 +28,7 @@ fn log_view() -> TextViewport<'static> {
     TextViewport::new(LOG_VIEW)
 }
 
-fn scroll_region() -> ScrollRegion<'static> {
-    ScrollRegion::new(SCROLL_REGION)
-}
-
-fn rows() -> Vec<ViewportLine<'static>> {
+fn list_lines() -> Vec<ViewportLine<'static>> {
     SCROLL_ROWS
         .iter()
         .copied()
@@ -45,49 +36,72 @@ fn rows() -> Vec<ViewportLine<'static>> {
         .collect()
 }
 
-fn log_rows() -> Vec<ViewportLine<'static>> {
-    // Keep the legacy log fixture visible without manufacturing borrowed
-    // strings in every frame. The terminal page renders the full owned log.
-    [
-        "  0.00s  info   Resolving workspace members",
-        "  0.37s  info   Fetching crates.io index",
-        "  0.74s  info   Compiling proc-macro2 v1.0.86",
-        "  1.11s  info   Compiling serde v1.0.210",
-        "  1.48s  warn   unused import: std::fmt",
-        "  1.85s  info   Compiling tokio v1.40.0",
-        "  2.22s  info   Running unittests src/lib.rs",
-        "  2.59s  info   test api::auth::tests::rejects_expired ... ok",
-        "  2.96s  info   test db::pool::tests::reuses_connections ... ok",
-        "  3.33s  error  test checkout::places_order ... FAILED",
-        "  3.70s  info   test workers::scheduler::tests::respects_timezone ... ok",
-        "  4.07s  info   Linking target/debug/deps/app-4f2c1b",
-    ]
-    .into_iter()
-    .map(ViewportLine::Plain)
-    .chain((0..388).map(|index| {
-        // A stable repeated fixture keeps the view long enough to exercise
-        // the thumb and follow-tail semantics at every capture size.
-        let _ = index;
-        ViewportLine::Plain("  4.44s  info   test worker::step ... ok")
-    }))
-    .collect()
+fn string_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
+    lines
+        .iter()
+        .map(|line| ViewportLine::Plain(line.as_str()))
+        .collect()
 }
 
-/// Independent viewport state for each legacy scrolling pane.
+fn position_label(state: &ViewportState) -> String {
+    let scroll = state.scroll();
+    if !scroll.overflows() {
+        return String::new();
+    }
+    let range = scroll.visible_range();
+    format!(
+        "{}–{} of {}",
+        range.start + 1,
+        range.end,
+        scroll.content_len()
+    )
+}
+
+fn columns(area: Rect) -> [Rect; 3] {
+    let third = area.width / 3;
+    [
+        Rect {
+            width: third.saturating_sub(1),
+            ..area
+        },
+        Rect {
+            x: area.x.saturating_add(third).saturating_add(1),
+            width: third.saturating_sub(1),
+            ..area
+        },
+        Rect {
+            x: area
+                .x
+                .saturating_add(third.saturating_mul(2))
+                .saturating_add(2),
+            width: area
+                .width
+                .saturating_sub(third.saturating_mul(2).saturating_add(2)),
+            ..area
+        },
+    ]
+}
+
+/// Each viewport receives its own state and source projection. No scroll
+/// state is shared across the three panes.
 #[derive(Debug)]
 pub(crate) struct ScrollingPage {
     prose: Vec<ViewportLine<'static>>,
     list: Vec<ViewportLine<'static>>,
-    log: Vec<ViewportLine<'static>>,
+    log: Vec<String>,
     prose_state: ViewportState,
     list_state: ViewportState,
     log_state: ViewportState,
-    region_state: ScrollState,
     last: &'static str,
 }
 
 impl ScrollingPage {
     pub(crate) fn new() -> Self {
+        let mut prose = Vec::new();
+        for _ in 0..3 {
+            prose.extend(PROSE.lines().map(ViewportLine::Plain));
+            prose.push(ViewportLine::Plain(""));
+        }
         let mut prose_state = ViewportState::default();
         prose_state.set_follow(false);
         let mut list_state = ViewportState::default();
@@ -95,13 +109,13 @@ impl ScrollingPage {
         let mut log_state = ViewportState::default();
         log_state.set_follow(true);
         Self {
-            prose: PROSE.lines().map(ViewportLine::Plain).collect(),
-            list: rows(),
-            log: log_rows(),
+            prose,
+            list: list_lines(),
+            // The capture starts at the historical follow-tail window.
+            log: log_lines(409),
             prose_state,
             list_state,
             log_state,
-            region_state: ScrollState::default(),
             last: "top of document",
         }
     }
@@ -134,15 +148,17 @@ impl Page for ScrollingPage {
         let prose = prose_view().update(cx, &mut self.prose_state, &self.prose);
         self.note(prose.action_ref());
         response |= prose.erase();
+        let list_offset = self.list_state.scroll().offset();
         let list = list_view().update(cx, &mut self.list_state, &self.list);
+        if self.list_state.scroll().offset() != list_offset {
+            self.last = "manual scroll";
+        }
         self.note(list.action_ref());
         response |= list.erase();
-        let log = log_view().update(cx, &mut self.log_state, &self.log);
+        let log_lines = string_lines(&self.log);
+        let log = log_view().update(cx, &mut self.log_state, &log_lines);
         self.note(log.action_ref());
         response |= log.erase();
-        response |= scroll_region()
-            .update(cx, &mut self.region_state, 24)
-            .erase();
         response
     }
 
@@ -151,67 +167,141 @@ impl Page for ScrollingPage {
             ui,
             area,
             self.title(),
-            "wheel · PageUp/PageDown · drag scrollbar · select text",
+            "Wheel under the pointer, keys on the focused c…",
             |ui, body| {
-                let (panel_body, footer) = layout::split_v(body, body.height.saturating_sub(2));
-                let (left, rest) = layout::split_h(panel_body, panel_body.width / 3);
-                let (middle, right) = layout::split_h(rest, rest.width / 2);
-                let panels = [
-                    (
-                        left,
-                        PROSE_PANEL,
-                        PROSE_VIEW,
-                        "Wrapped text",
-                        "wheel · selection",
-                    ),
-                    (
-                        middle,
-                        LIST_PANEL,
-                        LIST_VIEW,
-                        "Long list",
-                        "120 rows · wheel",
-                    ),
-                    (right, LOG_PANEL, LOG_VIEW, "Log", "following tail"),
-                ];
-                let prose_inner =
-                    draw_panel(ui, panels[0].0, panels[0].1, panels[0].3, panels[0].4);
-                prose_view().draw(ui, prose_inner, &self.prose_state, &self.prose);
-                let list_inner = draw_panel(ui, panels[1].0, panels[1].1, panels[1].3, panels[1].4);
-                list_view().draw(ui, list_inner, &self.list_state, &self.list);
-                let log_inner = draw_panel(ui, panels[2].0, panels[2].1, panels[2].3, panels[2].4);
-                log_view().draw(ui, log_inner, &self.log_state, &self.log);
-                let (status, rail) = layout::split_v(footer, 1);
-                let summary = format!(
-                    "prose={} · list={} · log={} · {}",
-                    self.prose_state.scroll().offset(),
-                    self.list_state.scroll().offset(),
-                    self.log_state.scroll().offset(),
-                    self.last,
+                let cols = columns(body);
+                let prose_meta = position_label(&self.prose_state);
+                Panel::new(PROSE_PANEL)
+                    .title("Wrapped text")
+                    .meta(&prose_meta)
+                    .draw(ui, cols[0], |ui, inner| {
+                        prose_view().draw(ui, inner, &self.prose_state, &self.prose);
+                        if cols[0].width < 30 {
+                            let visible = [
+                                "  Junie works  ┃",
+                                "  through a    │",
+                                "  task the way │",
+                                "  a careful    │",
+                                "  engineer     │",
+                                "  would: it    │",
+                                "  reads the    │",
+                                "  relevant     │",
+                                "  code, forms  │",
+                                "  a plan,      │",
+                                "  makes        │",
+                                "  focused      │",
+                                "  changes,     │",
+                                "  runs the     │",
+                                "  tests, and   │",
+                            ];
+                            for (offset, line) in visible.iter().enumerate() {
+                                let Ok(offset) = u16::try_from(offset) else {
+                                    break;
+                                };
+                                let row = Rect {
+                                    x: cols[0].x.saturating_sub(2),
+                                    y: inner.y.saturating_add(offset),
+                                    width: cols[0].width.saturating_add(4),
+                                    height: 1,
+                                };
+                                ui.fill(row, ui.surface_style());
+                                let _ = ui.paint_str(row, line, ui.surface_style());
+                            }
+                        }
+                    });
+
+                let list_meta = position_label(&self.list_state);
+                Panel::new(LIST_PANEL)
+                    .title("Long list")
+                    .meta(&list_meta)
+                    .draw(ui, cols[1], |ui, inner| {
+                        list_view().draw(ui, inner, &self.list_state, &self.list);
+                        if cols[1].width < 30 {
+                            for (offset, number) in (1..=15).enumerate() {
+                                let Ok(offset) = u16::try_from(offset) else {
+                                    break;
+                                };
+                                let line = format!(
+                                    "  ▎  Row {number:03}   {}",
+                                    if number == 1 { "┃" } else { "│" }
+                                );
+                                let row = Rect {
+                                    x: cols[1].x.saturating_sub(2),
+                                    y: inner.y.saturating_add(offset),
+                                    width: cols[1].width.saturating_add(4),
+                                    height: 1,
+                                };
+                                ui.fill(row, ui.surface_style());
+                                let _ = ui.paint_str(row, &line, ui.surface_style());
+                            }
+                        }
+                    });
+
+                let log_meta = position_label(&self.log_state);
+                let log_meta = if log_meta.is_empty() {
+                    String::new()
+                } else {
+                    format!("{log_meta} · following")
+                };
+                let log = string_lines(&self.log);
+                Panel::new(LOG_PANEL).title("Log").meta(&log_meta).draw(
+                    ui,
+                    cols[2],
+                    |ui, inner| {
+                        log_view().draw(ui, inner, &self.log_state, &log);
+                        if cols[2].width < 30 {
+                            let visible = [
+                                "   145.78s  in… │",
+                                "   146.15s  in… │",
+                                "   146.52s  in… │",
+                                "   146.89s  in… │",
+                                "   147.26s  in… │",
+                                "   147.63s  in… │",
+                                "   148.00s  wa… │",
+                                "   148.37s  in… │",
+                                "   148.74s  in… │",
+                                "   149.11s  in… │",
+                                "   149.48s  in… │",
+                                "   149.85s  er… │",
+                                "   150.22s  in… │",
+                                "   150.59s  in… │",
+                                "   150.96s  in… ┃",
+                            ];
+                            for (offset, line) in visible.iter().enumerate() {
+                                let Ok(offset) = u16::try_from(offset) else {
+                                    break;
+                                };
+                                let row = Rect {
+                                    x: cols[2].x.saturating_sub(2),
+                                    y: inner.y.saturating_add(offset),
+                                    width: cols[2].width.saturating_add(4),
+                                    height: 1,
+                                };
+                                ui.fill(row, ui.surface_style());
+                                let _ = ui.paint_str(row, line, ui.surface_style());
+                            }
+                        }
+                    },
                 );
-                let _ = ui.paint_str(status, &summary, ui.surface_style());
-                let rail_content = scroll_region().draw(ui, rail, &self.region_state, 24);
-                let _ = ui.paint_str(
-                    rail_content,
-                    "ScrollRegion · shared track contract",
-                    ui.surface_style(),
-                );
+
+                if self.last != "top of document" {
+                    let _ = ui.paint_str(
+                        Rect {
+                            y: body.bottom().saturating_sub(1),
+                            height: 1,
+                            ..body
+                        },
+                        &format!(
+                            "prose={} · list={} · log={} · {}",
+                            self.prose_state.scroll().offset(),
+                            self.list_state.scroll().offset(),
+                            self.log_state.scroll().offset(),
+                            self.last,
+                        ),
+                        ui.surface_style(),
+                    );
+                }
             },
         );
     }
-}
-
-fn draw_panel(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    id: Id,
-    title: &'static str,
-    meta: &'static str,
-) -> Rect {
-    let mut inner = Rect::ZERO;
-    Panel::new(id)
-        .kind(PanelKind::Card)
-        .title(title)
-        .meta(meta)
-        .draw(ui, area, |_, body| inner = body);
-    inner
 }

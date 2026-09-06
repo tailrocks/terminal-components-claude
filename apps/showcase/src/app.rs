@@ -1,9 +1,10 @@
 //! Application shell for the migrated showcase binary.
 
 use junie_tui::{
-    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState, Id,
-    ItemKey, KeyCode, KeyMap, KeyPhase, NavList, NavListAction, NavListState, Panel, PanelKind,
-    Response, Size, Status, StatusBar, StatusItem, Theme, TooSmall, Ui, id, layout,
+    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
+    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, NavList, NavListAction,
+    NavListState, Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags,
+    Status, StatusBar, StatusItem, Style, Theme, TooSmall, Ui, Variant, id, width,
 };
 
 use crate::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -22,11 +23,24 @@ const BRAND: Id = id!("brand");
 const STATUS: Id = id!("status");
 const HELP: Id = id!("help");
 const TOO_SMALL: Id = id!("too-small");
+const HEADER_HELP: Id = id!("header.help");
+const HEADER_INSPECT: Id = id!("header.inspect");
+const INSPECTOR: Id = id!("inspector");
 const QUIT: ActionKey = ActionKey::custom("showcase.quit");
 const QUIT_CTRL: ActionKey = ActionKey::custom("showcase.quit.ctrl");
 const HELP_COMMAND: ActionKey = ActionKey::custom("showcase.help");
+const INSPECTOR_COMMAND: ActionKey = ActionKey::custom("showcase.inspector");
 const NEXT_PAGE: ActionKey = ActionKey::custom("showcase.page.next");
 const PREV_PAGE: ActionKey = ActionKey::custom("showcase.page.previous");
+const HELP_TEXT: &str = "Tab / Shift+Tab   move keyboard focus\n\
+↑ ↓ ← →           move inside the focused control\n\
+Enter / Space     activate · start editing\n\
+Esc               cancel editing · back to navigation\n\
+[ ]               previous / next page\n\
+0                 jump to navigation\n\
+i                 toggle state inspector\n\
+q                 quit\n\n\
+Mouse: hover to preview, click to focus and activate, wheel to scroll, drag the scrollbar thumb.";
 
 const STATUS_LEFT: [StatusItem<'static>; 1] = [StatusItem::new("showcase")];
 const STATUS_RIGHT: [StatusItem<'static>; 2] = [
@@ -128,7 +142,7 @@ impl PageId {
             Self::Progress => "Progress",
             Self::Scrolling => "Scrolling",
             Self::Terminal => "Terminal",
-            Self::Editor => "Editor",
+            Self::Editor => "Code editor",
             Self::Grid => "Data grid",
             Self::Chips => "Chips & selects",
             Self::Pickers => "Pickers",
@@ -356,8 +370,13 @@ fn nav_row(entry: &NavEntry, row: &mut junie_tui::RowUi<'_>) {
 }
 
 fn nav_icon(entry: &NavEntry) -> &str {
+    // The historical shell reserves the icon column but intentionally paints
+    // it blank. Keep the accessor for the public NavList contract; the shell
+    // overlay below owns the legacy glyph placement.
     entry.icon
 }
+
+static NAV_ICON: fn(&NavEntry) -> &str = nav_icon;
 
 fn nav() -> NavList<
     'static,
@@ -368,12 +387,12 @@ fn nav() -> NavList<
     NavList::new(NAV)
         .key(nav_key)
         .section(&nav_section)
-        .icon(&nav_icon)
+        .icon(&NAV_ICON)
         .row(nav_row)
 }
 
 fn shell_brand() -> Brand<'static> {
-    Brand::new(BRAND, "SHOWCASE").tagline("public junie-tui API")
+    Brand::new(BRAND, "Junie").tagline("Design system")
 }
 
 fn shell_status() -> StatusBar<'static> {
@@ -387,6 +406,10 @@ fn missing_page_panel() -> Panel<'static> {
     Panel::new(BRAND)
         .kind(PanelKind::Framed)
         .title("Missing page")
+}
+
+fn inspector_panel() -> Panel<'static> {
+    Panel::new(INSPECTOR).kind(PanelKind::Card).title("State")
 }
 
 fn too_small_notice() -> TooSmall<'static> {
@@ -440,6 +463,11 @@ fn keymap() -> KeyMap {
             Chord::key(KeyCode::Char('?')),
             HELP_COMMAND,
         )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('i')),
+            INSPECTOR_COMMAND,
+        )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char(']')), NEXT_PAGE)
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('[')), PREV_PAGE)
         .bind(
@@ -461,6 +489,7 @@ pub struct App {
     pages: Vec<Box<dyn Page>>,
     help_state: DialogState,
     keymap: KeyMap,
+    inspector: bool,
     quit: bool,
 }
 
@@ -473,6 +502,7 @@ impl core::fmt::Debug for App {
             .field("pages", &self.pages.len())
             .field("help_state", &self.help_state)
             .field("keymap", &self.keymap)
+            .field("inspector", &self.inspector)
             .field("quit", &self.quit)
             .finish()
     }
@@ -487,7 +517,9 @@ impl App {
     /// Construct with a selected initial page.
     pub fn with_page(initial: PageId) -> Self {
         let mut nav_state = NavListState::new();
-        nav_state.set_current(Some(ItemKey::text(initial.slug())));
+        let initial_key = ItemKey::text(initial.slug());
+        nav_state.set_current(Some(initial_key));
+        nav_state.set_cursor(initial.index(), initial_key);
         let pages = PageId::ALL.into_iter().map(|kind| page(kind)).collect();
         Self {
             page: initial,
@@ -495,6 +527,7 @@ impl App {
             pages,
             help_state: DialogState::default(),
             keymap: keymap(),
+            inspector: false,
             quit: false,
         }
     }
@@ -511,19 +544,19 @@ impl App {
 
     fn goto(&mut self, page: PageId) {
         self.page = page;
-        self.nav_state.set_current(Some(ItemKey::text(page.slug())));
+        let key = ItemKey::text(page.slug());
+        self.nav_state.set_current(Some(key));
+        self.nav_state.set_cursor(page.index(), key);
     }
 
     fn active(&self) -> Option<&dyn Page> {
-        self.pages
-            .iter()
-            .find(|candidate| candidate.title() == self.page.title())
-            .map(Box::as_ref)
+        self.pages.get(self.page.index()).map(Box::as_ref)
     }
 
     fn help_dialog() -> Dialog<'static> {
-        Dialog::info(HELP, "Showcase help")
-            .description("Tab moves through controls. Enter activates. Esc closes layers or returns to Overview.")
+        Dialog::info(HELP, "Keyboard & mouse")
+            .description(HELP_TEXT)
+            .width(70)
     }
 
     fn update_help(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
@@ -538,6 +571,558 @@ impl App {
             }
         }
         *response |= help.erase();
+    }
+
+    fn update_header(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let help_clicked = cx.intents(HEADER_HELP).any(|intent| {
+            matches!(
+                intent,
+                Intent::Pointer {
+                    phase: Phase::Click,
+                    ..
+                }
+            )
+        });
+        if help_clicked {
+            if !cx.is_open(HELP) {
+                let layer = Self::help_dialog().layer(cx);
+                cx.open_layer(HELP, layer);
+            }
+            *response |= Response::changed();
+        }
+        let inspector_clicked = cx.intents(HEADER_INSPECT).any(|intent| {
+            matches!(
+                intent,
+                Intent::Pointer {
+                    phase: Phase::Click,
+                    ..
+                }
+            )
+        });
+        if inspector_clicked {
+            self.inspector = !self.inspector;
+            *response |= Response::changed();
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct ShellLayout {
+    header: Rect,
+    sidebar: Rect,
+    main: Rect,
+    inspector: Option<Rect>,
+    footer: Rect,
+}
+
+fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
+    let header = Rect::new(area.x, area.y, area.width, 1);
+    let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
+    let body = Rect::new(
+        area.x,
+        area.y.saturating_add(2),
+        area.width,
+        area.height.saturating_sub(4),
+    );
+    let sidebar_width = if area.width >= 110 { 24 } else { 19 };
+    let inspector_width = if inspector && area.width >= 100 {
+        30
+    } else {
+        0
+    };
+    let sidebar = Rect::new(body.x, body.y, sidebar_width, body.height);
+    let main_x = body.x.saturating_add(sidebar_width).saturating_add(2);
+    let main_width = body.width.saturating_sub(
+        sidebar_width
+            .saturating_add(2)
+            .saturating_add(inspector_width)
+            .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
+    );
+    let main = Rect::new(main_x, body.y, main_width, body.height);
+    let inspector = (inspector_width > 0).then(|| {
+        Rect::new(
+            main.right().saturating_add(2),
+            body.y,
+            inspector_width,
+            body.height,
+        )
+    });
+    ShellLayout {
+        header,
+        sidebar,
+        main,
+        inspector,
+        footer,
+    }
+}
+
+fn shell_part_style(
+    ui: &mut Ui<'_>,
+    family: junie_tui::Family,
+    part: Part,
+    flags: StateFlags,
+) -> Style {
+    let background = ui.bg();
+    shell_compat_style(
+        ui.style(family, Variant::DEFAULT, part, flags)
+            .style
+            .bg(background),
+    )
+}
+
+/// Clear component-first modifiers before the compatibility paint pass.
+///
+/// `Buffer::set_style` patches a cell, so a public component's bold state is
+/// otherwise retained by a later shell style that only changes colours. The
+/// historical shell starts from plain cells and adds bold only where its old
+/// renderer did.
+fn shell_compat_style(style: Style) -> Style {
+    let bold = style.add_modifier.contains(junie_tui::Modifier::BOLD);
+    let style = style.remove_modifier(junie_tui::Modifier::all());
+    if bold {
+        style.add_modifier(junie_tui::Modifier::BOLD)
+    } else {
+        style
+    }
+}
+
+fn shell_row_style(style: Style, flags: StateFlags) -> Style {
+    let style = shell_compat_style(style);
+    if flags.contains(StateFlags::FOCUSED) {
+        style.add_modifier(junie_tui::Modifier::BOLD)
+    } else {
+        style
+    }
+}
+
+fn shell_text_style(ui: &Ui<'_>, step: usize) -> Style {
+    shell_compat_style(ui.surface_style().fg(ui.theme().color.fg[step]))
+}
+
+fn paint_header(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    screen_width: u16,
+    screen_height: u16,
+    page: PageId,
+    inspector: bool,
+) {
+    if area.is_empty() {
+        return;
+    }
+    let canvas = shell_compat_style(ui.surface_style());
+    ui.fill(area, canvas);
+
+    let (title, secondary, muted, faint, marker) = header_styles(ui);
+    let left = paint_header_breadcrumb(ui, area, page, title, secondary, muted, marker);
+    paint_header_actions(
+        ui,
+        area,
+        (screen_width, screen_height),
+        left,
+        (muted, faint),
+        inspector,
+    );
+}
+
+fn header_styles(ui: &mut Ui<'_>) -> (Style, Style, Style, Style, Style) {
+    let title = shell_part_style(
+        ui,
+        junie_tui::Family::PANEL,
+        Part::TITLE,
+        StateFlags::empty(),
+    );
+    let secondary = shell_part_style(
+        ui,
+        junie_tui::Family::PANEL,
+        Part::DETAIL,
+        StateFlags::empty(),
+    );
+    let muted = shell_part_style(ui, junie_tui::Family::LIST, Part::META, StateFlags::empty());
+    let faint = shell_text_style(ui, 3);
+    let marker = shell_part_style(
+        ui,
+        junie_tui::Family::LIST,
+        Part::MARKER,
+        StateFlags::SELECTED,
+    );
+    (title, secondary, muted, faint, marker)
+}
+
+fn paint_header_breadcrumb(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: PageId,
+    title: Style,
+    secondary: Style,
+    muted: Style,
+    marker: Style,
+) -> u16 {
+    let mut x = area.x.saturating_add(1);
+    ui.paint_str(Rect::new(x, area.y, 1, 1), "▪", marker);
+    x = x.saturating_add(2);
+    ui.paint_str(
+        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+        "Junie",
+        title,
+    );
+    x = x.saturating_add(6);
+    ui.paint_str(
+        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+        "Design system",
+        secondary,
+    );
+    x = x.saturating_add(14);
+
+    let Some(entry) = NAV_ENTRIES
+        .get(page.index())
+        .copied()
+        .or_else(|| NAV_ENTRIES.first().copied())
+    else {
+        return x;
+    };
+    let crumb = format!("/ {} / {}", entry.section, entry.label);
+    ui.paint_str(
+        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+        &crumb,
+        muted,
+    );
+    x.saturating_add(width(&crumb))
+}
+
+fn paint_header_actions(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    screen: (u16, u16),
+    left: u16,
+    styles: (Style, Style),
+    inspector: bool,
+) {
+    let (screen_width, screen_height) = screen;
+    let (muted, faint) = styles;
+    let capability = ui.theme().capability.color.label();
+    let dimensions = format!("{screen_width}×{screen_height}");
+    let capability_width = width(capability)
+        .saturating_add(3)
+        .saturating_add(width(&dimensions));
+    let help_text = " ? Help ";
+    let inspector_text = if inspector {
+        " i Inspector · on "
+    } else {
+        " i Inspector "
+    };
+    let help_width = width(help_text);
+    let inspector_width = width(inspector_text);
+    let mut right = area.right().saturating_sub(1);
+    let help_x = right.saturating_sub(help_width);
+    let help_style = header_action_style(ui, HEADER_HELP, muted);
+    ui.paint_str(
+        Rect::new(help_x, area.y, help_width, 1),
+        help_text,
+        help_style,
+    );
+    ui.register_part(
+        HEADER_HELP,
+        PartRef::of(Part::LABEL),
+        Rect::new(help_x, area.y, help_width, 1),
+    );
+    right = help_x.saturating_sub(1);
+
+    let inspector_x = right.saturating_sub(inspector_width);
+    let inspector_style = header_action_style(ui, HEADER_INSPECT, muted);
+    ui.paint_str(
+        Rect::new(inspector_x, area.y, inspector_width, 1),
+        inspector_text,
+        inspector_style,
+    );
+    ui.register_part(
+        HEADER_INSPECT,
+        PartRef::of(Part::LABEL),
+        Rect::new(inspector_x, area.y, inspector_width, 1),
+    );
+    right = inspector_x.saturating_sub(1);
+    if right > left.saturating_add(capability_width) {
+        let cap_x = right.saturating_sub(capability_width);
+        ui.paint_str(
+            Rect::new(cap_x, area.y, width(capability), 1),
+            capability,
+            faint,
+        );
+        ui.paint_str(
+            Rect::new(cap_x.saturating_add(width(capability)), area.y, 3, 1),
+            " · ",
+            faint,
+        );
+        ui.paint_str(
+            Rect::new(
+                cap_x.saturating_add(width(capability)).saturating_add(3),
+                area.y,
+                width(&dimensions),
+                1,
+            ),
+            &dimensions,
+            faint,
+        );
+    }
+}
+
+fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: Style) -> Style {
+    if ui.state(id).contains(StateFlags::HOVERED) {
+        shell_part_style(
+            ui,
+            junie_tui::Family::LIST,
+            Part::CONTAINER,
+            StateFlags::HOVERED,
+        )
+    } else {
+        muted
+    }
+}
+
+struct SidebarContext<'a> {
+    state: &'a NavListState,
+    page: PageId,
+    focused: bool,
+    hovered: Option<PartRef>,
+    pressed: Option<PartRef>,
+}
+
+fn paint_sidebar_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    entry: &NavEntry,
+    context: &SidebarContext<'_>,
+) {
+    let key = nav_key(entry);
+    let current = entry.id == context.page;
+    let cursor = context.state.cursor() == Some(key);
+    let item = PartRef::item(Part::ROW, key);
+    let mut flags = StateFlags::empty();
+    if context.focused && cursor {
+        flags |= StateFlags::FOCUSED;
+    }
+    if context.hovered == Some(item) {
+        flags |= StateFlags::HOVERED;
+    }
+    if context.pressed == Some(item) {
+        flags |= StateFlags::PRESSED;
+    }
+    let row = Rect::new(area.x, y, area.width, 1);
+    let container = shell_compat_style(
+        ui.style(
+            junie_tui::Family::LIST,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            flags,
+        )
+        .style,
+    );
+    let row_background = container.bg.unwrap_or(ui.bg());
+    ui.fill(row, container);
+    let gutter = ui
+        .style(
+            junie_tui::Family::LIST,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            flags,
+        )
+        .style
+        .bg(row_background);
+    let gutter = if flags.contains(StateFlags::FOCUSED) {
+        gutter
+    } else {
+        gutter.fg(row_background)
+    };
+    let marker = ui
+        .style(
+            junie_tui::Family::LIST,
+            Variant::DEFAULT,
+            Part::MARKER,
+            if current {
+                flags | StateFlags::SELECTED
+            } else {
+                flags
+            },
+        )
+        .style
+        .bg(row_background);
+    let label = ui
+        .style(
+            junie_tui::Family::LIST,
+            Variant::DEFAULT,
+            Part::LABEL,
+            flags,
+        )
+        .style
+        .bg(row_background);
+    let secondary =
+        shell_part_style(ui, junie_tui::Family::PANEL, Part::DETAIL, flags).bg(row_background);
+    let gutter = shell_row_style(gutter, flags);
+    let marker = shell_row_style(marker, flags);
+    let label = shell_row_style(label, flags);
+    let secondary = shell_row_style(secondary, flags);
+    ui.paint_str(Rect::new(row.x, row.y, 1, 1), "▎", gutter);
+    ui.paint_str(
+        Rect::new(row.x.saturating_add(1), row.y, 1, 1),
+        if current { "›" } else { " " },
+        marker,
+    );
+    ui.paint_str(Rect::new(row.x.saturating_add(2), row.y, 1, 1), " ", label);
+    ui.paint_str(
+        Rect::new(
+            row.x.saturating_add(3),
+            row.y,
+            row.width.saturating_sub(4),
+            1,
+        ),
+        entry.label,
+        if current || cursor || context.hovered == Some(item) {
+            label
+        } else {
+            secondary
+        },
+    );
+    let label_style = if current || cursor || context.hovered == Some(item) {
+        label
+    } else {
+        secondary
+    };
+    let label_area = Rect::new(
+        row.x.saturating_add(3),
+        row.y,
+        row.width.saturating_sub(4),
+        1,
+    );
+    let used = width(entry.label).min(label_area.width);
+    if used < label_area.width {
+        ui.fill(
+            Rect::new(
+                label_area.x.saturating_add(used),
+                label_area.y,
+                label_area.width.saturating_sub(used),
+                1,
+            ),
+            label_style,
+        );
+    }
+}
+
+fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &NavListState, page: PageId) {
+    if area.is_empty() {
+        return;
+    }
+    let canvas = shell_compat_style(ui.surface_style());
+    ui.fill(area, canvas);
+    let focused = ui.state(NAV).contains(StateFlags::FOCUSED);
+    let hovered = ui.hovered_part(NAV);
+    let pressed = ui.pressed_part(NAV);
+    let nav_rows = u16::try_from(NAV_ENTRIES.len()).unwrap_or(u16::MAX);
+    let compact = area.height < nav_rows.saturating_add(6).saturating_sub(1);
+    let context = SidebarContext {
+        state,
+        page,
+        focused,
+        hovered,
+        pressed,
+    };
+    let mut y = area.y;
+    let mut section = "";
+    for entry in NAV_ENTRIES {
+        let changed_section = entry.section != section;
+        if changed_section {
+            if !compact && y > area.y {
+                y = y.saturating_add(1);
+            }
+            section = entry.section;
+            if !compact {
+                if y >= area.bottom() {
+                    break;
+                }
+                let style = shell_text_style(ui, 3);
+                ui.paint_str(
+                    Rect::new(area.x.saturating_add(3), y, area.width.saturating_sub(3), 1),
+                    entry.section,
+                    style,
+                );
+                y = y.saturating_add(1);
+            }
+        }
+        if y >= area.bottom() {
+            break;
+        }
+        paint_sidebar_row(ui, area, y, entry, &context);
+        y = y.saturating_add(1);
+    }
+}
+
+fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
+    inspector_panel().draw(ui, area, |ui, inner| {
+        let focus = if ui.state(NAV).contains(StateFlags::FOCUSED) {
+            "navigation"
+        } else {
+            "page"
+        };
+        let hover = if ui.hovered_part(NAV).is_some() {
+            "navigation"
+        } else {
+            "—"
+        };
+        let pressed = if ui.pressed_part(NAV).is_some() {
+            "navigation"
+        } else {
+            "—"
+        };
+        let rows = [
+            ("page", app.page.title()),
+            ("focus", focus),
+            ("hover", hover),
+            ("pressed", pressed),
+            ("colors", ui.theme().capability.color.label()),
+        ];
+        Props::new(&rows).draw(ui, inner);
+    });
+}
+
+fn paint_footer(ui: &mut Ui<'_>, area: Rect, nav_focused: bool) {
+    if area.is_empty() {
+        return;
+    }
+    let canvas = shell_compat_style(ui.surface_style());
+    ui.fill(area, canvas);
+    let key_style = shell_part_style(
+        ui,
+        junie_tui::Family::KEYHINT,
+        Part::KEY,
+        StateFlags::empty(),
+    );
+    let action_style = shell_part_style(
+        ui,
+        junie_tui::Family::KEYHINT,
+        Part::ACTION,
+        StateFlags::empty(),
+    );
+    let hints: &[(&str, &str)] = if nav_focused {
+        &[
+            ("↑ ↓", "Move"),
+            ("Enter", "Open"),
+            ("Tab", "Into page"),
+            ("q", "Quit"),
+        ]
+    } else {
+        &[("Tab", "Next"), ("Esc", "Navigation"), ("q", "Quit")]
+    };
+    let mut x = area.x.saturating_add(1);
+    for (key, action) in hints {
+        let key_width = width(key);
+        let action_width = width(action);
+        ui.paint_str(Rect::new(x, area.y, key_width, 1), key, key_style);
+        x = x.saturating_add(key_width.saturating_add(1));
+        ui.paint_str(Rect::new(x, area.y, action_width, 1), action, action_style);
+        x = x.saturating_add(action_width.saturating_add(2));
+        if x >= area.right() {
+            break;
+        }
     }
 }
 
@@ -558,7 +1143,9 @@ impl TuiApp for App {
         // fallback branches construction-safe under the props guard.
         let _ = too_small_notice();
         let _ = missing_page_panel();
+        let _ = inspector_panel();
         let command = cx.command();
+        self.update_header(cx, &mut response);
         match command {
             Some(QUIT | QUIT_CTRL) => {
                 self.quit = true;
@@ -589,17 +1176,17 @@ impl TuiApp for App {
             Some(HELP_COMMAND) if !cx.is_open(HELP) => {
                 cx.open_layer(HELP, Self::help_dialog().layer(cx));
             }
+            Some(INSPECTOR_COMMAND) => {
+                self.inspector = !self.inspector;
+            }
             _ => {}
         }
         if let Some(action) = command
             && !matches!(
                 action,
-                QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND
+                QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND | INSPECTOR_COMMAND
             )
-            && let Some(active) = self
-                .pages
-                .iter_mut()
-                .find(|candidate| candidate.title() == self.page.title())
+            && let Some(active) = self.pages.get_mut(self.page.index())
         {
             response |= active.command(cx, action);
         }
@@ -612,12 +1199,7 @@ impl TuiApp for App {
                     self.goto(page);
                 }
             });
-        let title = self.page.title();
-        if let Some(active) = self
-            .pages
-            .iter_mut()
-            .find(|candidate| candidate.title() == title)
-        {
+        if let Some(active) = self.pages.get_mut(self.page.index()) {
             response |= active.update(cx);
         }
         self.update_help(cx, &mut response);
@@ -626,23 +1208,46 @@ impl TuiApp for App {
 
     fn draw(&self, ui: &mut Ui<'_>) {
         let full = ui.full();
+        // The historical renderer establishes a complete canvas before any
+        // component paints. This clears cells that Brand/Nav/Status do not
+        // touch and gives the compatibility pass deterministic write state.
+        ui.fill(full, shell_compat_style(ui.surface_style()));
         if full.width < 72 || full.height < 20 {
             too_small_notice().draw(ui, full);
             return;
         }
-        let (without_status, status_area) = layout::split_v(full, full.height.saturating_sub(1));
-        let (header, body) = layout::split_v(without_status, 3);
-        let (sidebar, content) = layout::split_h(body, 24);
-        shell_brand().draw(ui, header);
-        nav().draw(ui, sidebar, &self.nav_state, NAV_ENTRIES);
+        let shell = shell_layout(full, self.inspector);
+
+        // Keep the public components as the source of registration, focus and
+        // binding facts. The historical paint pass below only restores the
+        // old shell geometry/glyph placement through Ui.
+        shell_brand().draw(ui, shell.header);
+        nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
+        shell_status().draw(ui, shell.footer);
+        paint_header(
+            ui,
+            shell.header,
+            full.width,
+            full.height,
+            self.page,
+            self.inspector,
+        );
+        paint_sidebar(ui, shell.sidebar, &self.nav_state, self.page);
         if let Some(active) = self.active() {
-            active.draw(ui, content);
+            active.draw(ui, shell.main);
         } else {
-            missing_page_panel().draw(ui, content, |ui, area| {
+            missing_page_panel().draw(ui, shell.main, |ui, area| {
                 let _ = ui.paint_str(area, "No page selected", ui.surface_style());
             });
         }
-        shell_status().draw(ui, status_area);
+        if let Some(inspector) = shell.inspector {
+            paint_inspector(ui, inspector, self);
+        }
+        paint_footer(
+            ui,
+            shell.footer,
+            ui.state(NAV).contains(StateFlags::FOCUSED),
+        );
         ui.layer(HELP, |ui, area| {
             Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
                 let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
