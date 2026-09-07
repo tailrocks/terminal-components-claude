@@ -1004,7 +1004,7 @@ impl<'f> Ui<'f> {
     /// stamp the current role over every cell `dim_layer` later walks.
     pub(crate) fn buffer_in(&mut self, area: Rect) -> (&mut Buffer, Rect) {
         let a = area.intersection(self.clip);
-        self.mark_area(a);
+        self.mark_area(a, None);
         (self.buffer(), a)
     }
 
@@ -1018,13 +1018,28 @@ impl<'f> Ui<'f> {
         }
     }
 
-    pub(crate) fn mark(&mut self, pos: Position) {
+    pub(crate) fn mark(&mut self, pos: Position, style: Option<ratatui_core::style::Style>) {
         match self.target {
             Target::Page => {
                 if let Some(i) = self.frame.role_index(pos)
                     && let Some(r) = self.frame.roles.get_mut(i)
                 {
-                    *r = self.roles;
+                    *r = match style {
+                        Some(style) => CellRoles {
+                            fg: self.roles.fg.map(|role| role.painted(self.surface)),
+                            // Ratatui patches absent backgrounds. Keep exactly
+                            // that cell's source role rather than erasing it
+                            // when a foreground-only label paints over a fill.
+                            bg: if style.bg.is_none() {
+                                r.bg
+                            } else {
+                                self.roles.bg.map(|role| role.painted(self.surface))
+                            },
+                        },
+                        // A raw writer may replace any cell; prior semantic
+                        // provenance cannot describe its arbitrary result.
+                        None => CellRoles::default(),
+                    };
                 }
             }
             Target::Layer(i) => {
@@ -1035,12 +1050,12 @@ impl<'f> Ui<'f> {
         }
     }
 
-    pub(crate) fn mark_area(&mut self, area: Rect) {
+    pub(crate) fn mark_area(&mut self, area: Rect, style: Option<ratatui_core::style::Style>) {
         let area = area.intersection(self.clip);
         match self.target {
             Target::Page => {
                 for pos in area.positions() {
-                    self.mark(pos);
+                    self.mark(pos, style);
                 }
             }
             Target::Layer(i) => {

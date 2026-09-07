@@ -47,7 +47,7 @@ impl Ui<'_> {
         }
         let mut px = pos.x;
         while px < end && px < right {
-            self.mark(Position::new(px, pos.y));
+            self.mark(Position::new(px, pos.y), (px == pos.x).then_some(s));
             px = px.saturating_add(1);
         }
     }
@@ -63,12 +63,15 @@ impl Ui<'_> {
             .buffer()
             .set_stringn(area.x, area.y, text, usize::from(area.width), s);
         let written = end.saturating_sub(area.x);
-        self.mark_area(Rect {
-            x: area.x,
-            y: area.y,
-            width: written,
-            height: 1,
-        });
+        self.mark_area(
+            Rect {
+                x: area.x,
+                y: area.y,
+                width: written,
+                height: 1,
+            },
+            Some(s),
+        );
         written
     }
 
@@ -105,12 +108,15 @@ impl Ui<'_> {
             let (end, _) = self
                 .buffer()
                 .set_span(x, area.y, &RawSpan::styled(sp.text, st), width);
-            self.mark_area(Rect {
-                x,
-                y: area.y,
-                width: end.saturating_sub(x),
-                height: 1,
-            });
+            self.mark_area(
+                Rect {
+                    x,
+                    y: area.y,
+                    width: end.saturating_sub(x),
+                    height: 1,
+                },
+                Some(st),
+            );
             x = end;
         }
         self.set_roles(base_roles);
@@ -124,7 +130,7 @@ impl Ui<'_> {
             return;
         }
         self.buffer().set_style(area, s);
-        self.mark_area(area);
+        self.mark_area(area, Some(s));
     }
 
     /// Fill `area` with spaces in `s` (per-position `set_symbol(" ")`).
@@ -141,7 +147,7 @@ impl Ui<'_> {
                 }
             }
         }
-        self.mark_area(area);
+        self.mark_area(area, Some(s));
     }
 
     /// A quiet rule across `area`'s first row (`GlyphRole::RuleQuiet`).
@@ -208,7 +214,7 @@ impl Ui<'_> {
     /// marks the whole clip rect written.
     pub fn raw(&mut self) -> (&mut Buffer, Rect) {
         let clip = self.clip;
-        self.mark_area(clip);
+        self.mark_area(clip, None);
         (self.buffer(), clip)
     }
 

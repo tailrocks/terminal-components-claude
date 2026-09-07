@@ -157,6 +157,12 @@ pub(crate) fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<C
     let color = match role {
         Role::CurrentSurface => theme.bg(surface),
         Role::RaisedSurface => theme.bg(theme.raise(surface)),
+        Role::HoverSurface => theme.bg(match surface {
+            Surface::Canvas => Surface::Elevated,
+            Surface::Surface | Surface::Elevated => Surface::Overlay,
+            Surface::Field => Surface::FieldHover,
+            Surface::Overlay | Surface::Popover | Surface::FieldHover => Surface::Popover,
+        }),
         Role::Surface(s) => theme.bg(s),
         Role::Fg(step) => fg(step.index()),
         Role::OnAccent => c.on_accent,

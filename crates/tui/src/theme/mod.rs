@@ -57,7 +57,7 @@ impl Theme {
         Theme {
             color: builtin::junie::tokens(),
             design: builtin::junie::design(),
-            recipes: builtin::default_recipes(),
+            recipes: builtin::junie::recipes(),
             capability: Capability {
                 color: ColorLevel::TrueColor,
             },
