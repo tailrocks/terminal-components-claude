@@ -7,6 +7,7 @@ members = [
     "apps/showcase",
     "apps/tablepro",
     "apps/jackin-preview",
+    "apps/holla",
 ]
 default-members = [
     "crates/tui",
@@ -14,6 +15,7 @@ default-members = [
     "apps/showcase",
     "apps/tablepro",
     "apps/jackin-preview",
+    "apps/holla",
 ]
 
 [workspace.package]
