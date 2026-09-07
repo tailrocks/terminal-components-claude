@@ -35,6 +35,9 @@ use crate::ui::{Cx, FrameRead, Ui};
 /// when it has no badge.
 pub type BadgeFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
 
+/// Borrowed full-row paint override, clipped to the component's row geometry.
+type NavRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
+
 /// How much of a nav row is shown.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum NavMode {
@@ -353,6 +356,9 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     mode: NavMode,
+    compact: Option<bool>,
+    header_indent: u16,
+    render_row: Option<NavRowRenderer<'a, T>>,
     section: Option<&'a dyn Fn(&T) -> &str>,
     icon: Option<&'a dyn Fn(&T) -> &str>,
     badge: Option<BadgeFn<'a, T>>,
@@ -382,6 +388,9 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             mode: NavMode::Full,
+            compact: Some(false),
+            header_indent: 1,
+            render_row: None,
             section: None,
             icon: None,
             badge: None,
@@ -433,6 +442,41 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
+    /// Hide section headings and separator rows, retaining full labels.
+    /// This is independent of the icon-only [`NavMode::Collapsed`] mode.
+    #[must_use]
+    pub const fn compact(mut self) -> Self {
+        self.compact = Some(true);
+        self
+    }
+
+    /// Hide headings and separators when all expanded rows would not fit.
+    /// Painting and input registration use this same policy and traversal.
+    #[must_use]
+    pub const fn compact_when_clipped(mut self) -> Self {
+        self.compact = None;
+        self
+    }
+
+    /// Horizontal inset of section text; the default is one cell.
+    #[must_use]
+    pub const fn header_indent(mut self, cells: u16) -> Self {
+        self.header_indent = cells;
+        self
+    }
+
+    /// Replace the entire row's painting, including its chrome.
+    /// The callback borrows each visible item, receives resolved interaction
+    /// flags and its stable key, and is clipped to the authoritative row rect.
+    /// The component still owns registration, navigation and disabled behavior.
+    /// No default row painter runs first. Instance part patches and slots apply
+    /// to the default painter; custom painters resolve their own semantic parts.
+    #[must_use]
+    pub fn render_row(mut self, renderer: NavRowRenderer<'a, T>) -> Self {
+        self.render_row = Some(renderer);
+        self
+    }
+
     /// The section an entry belongs to. A heading is painted whenever the
     /// text changes from the previous entry's; an empty section suppresses
     /// the heading.
@@ -478,6 +522,9 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             key: k,
             row: self.row,
             mode: self.mode,
+            compact: self.compact,
+            header_indent: self.header_indent,
+            render_row: self.render_row,
             section: self.section,
             icon: self.icon,
             badge: self.badge,
@@ -495,6 +542,9 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             key: self.key,
             row: r,
             mode: self.mode,
+            compact: self.compact,
+            header_indent: self.header_indent,
+            render_row: self.render_row,
             section: self.section,
             icon: self.icon,
             badge: self.badge,
@@ -718,6 +768,29 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc.finish(self.id)
     }
 
+    fn is_compact(&self, area: Rect, items: &[T]) -> bool {
+        if let Some(compact) = self.compact {
+            return compact;
+        }
+        let available = usize::from(area.height);
+        let mut rows = items.len();
+        let mut previous = None;
+        for item in items {
+            if rows > available {
+                return true;
+            }
+            let section = self.section_of(item);
+            if previous != Some(section) {
+                rows = rows.saturating_add(usize::from(previous.is_some()));
+                rows = rows.saturating_add(usize::from(
+                    self.mode == NavMode::Full && !section.is_empty(),
+                ));
+                previous = Some(section);
+            }
+        }
+        rows > available
+    }
+
     /// The draw phase.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &NavListState, items: &[T]) -> Rect {
         if area.is_empty() {
@@ -750,6 +823,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         let mut y = area.y;
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
+        let compact = self.is_compact(area, items);
         let mut section: Option<&str> = None;
         for (i, item) in items.iter().enumerate() {
             if y >= area.bottom() {
@@ -757,7 +831,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             }
             let s = self.section_of(item);
             let new_group = section != Some(s);
-            if new_group {
+            if new_group && !compact {
                 if section.is_some() {
                     y = y.saturating_add(1);
                 }
@@ -796,7 +870,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
             }
             let rect = row_at(area, y);
-            self.paint_row(ui, rect, flags, key, item);
+            if let Some(renderer) = self.render_row {
+                ui.with_area(rect, |ui| renderer(ui, rect, flags, key, item));
+            } else {
+                self.paint_row(ui, rect, flags, key, item);
+            }
             if !ui.is_inert() && !self.is_disabled(item) {
                 ui.register_part(self.id, PartRef::item(Part::ROW, key), rect);
             }
@@ -820,8 +898,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         );
         ui.fill(rect, h.style);
         let inner = Rect {
-            x: rect.x.saturating_add(1),
-            width: rect.width.saturating_sub(1),
+            x: rect.x.saturating_add(self.header_indent),
+            width: rect.width.saturating_sub(self.header_indent),
             ..rect
         };
         ui.paint_str(inner, text, h.style);

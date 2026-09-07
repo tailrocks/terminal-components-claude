@@ -221,6 +221,12 @@ pub struct NavEntry {
     pub icon: &'static str,
 }
 
+impl std::fmt::Display for NavEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.label)
+    }
+}
+
 /// The complete migrated navigation surface.
 pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
@@ -365,30 +371,13 @@ fn nav_section(entry: &NavEntry) -> &str {
     entry.section
 }
 
-fn nav_row(entry: &NavEntry, row: &mut junie_tui::RowUi<'_>) {
-    row.label(entry.label);
-}
-
-fn nav_icon(entry: &NavEntry) -> &str {
-    // The historical shell reserves the icon column but intentionally paints
-    // it blank. Keep the accessor for the public NavList contract; the shell
-    // overlay below owns the legacy glyph placement.
-    entry.icon
-}
-
-static NAV_ICON: fn(&NavEntry) -> &str = nav_icon;
-
-fn nav() -> NavList<
-    'static,
-    NavEntry,
-    impl Fn(&NavEntry) -> ItemKey,
-    impl Fn(&NavEntry, &mut junie_tui::RowUi<'_>),
-> {
+fn nav() -> NavList<'static, NavEntry, impl Fn(&NavEntry) -> ItemKey> {
     NavList::new(NAV)
         .key(nav_key)
         .section(&nav_section)
-        .icon(&NAV_ICON)
-        .row(nav_row)
+        .compact_when_clipped()
+        .header_indent(3)
+        .render_row(&paint_nav_row)
 }
 
 fn shell_brand() -> Brand<'static> {
@@ -879,36 +868,12 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: Style) -> Style {
     }
 }
 
-struct SidebarContext<'a> {
-    state: &'a NavListState,
-    page: PageId,
-    focused: bool,
-    hovered: Option<PartRef>,
-    pressed: Option<PartRef>,
-}
-
-fn paint_sidebar_row(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    y: u16,
-    entry: &NavEntry,
-    context: &SidebarContext<'_>,
-) {
-    let key = nav_key(entry);
-    let current = entry.id == context.page;
-    let cursor = context.state.cursor() == Some(key);
-    let item = PartRef::item(Part::ROW, key);
-    let mut flags = StateFlags::empty();
-    if context.focused && cursor {
-        flags |= StateFlags::FOCUSED;
-    }
-    if context.hovered == Some(item) {
-        flags |= StateFlags::HOVERED;
-    }
-    if context.pressed == Some(item) {
-        flags |= StateFlags::PRESSED;
-    }
-    let row = Rect::new(area.x, y, area.width, 1);
+fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, entry: &NavEntry) {
+    let current = flags.contains(StateFlags::SELECTED);
+    // Current destination is a marker, not row selection. Keyboard cursor
+    // and hover remain independent, as in the pinned product reference.
+    let flags = flags.difference(StateFlags::SELECTED);
+    let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
     let container = shell_compat_style(
         ui.style(
             junie_tui::Family::LIST,
@@ -977,17 +942,9 @@ fn paint_sidebar_row(
             1,
         ),
         entry.label,
-        if current || cursor || context.hovered == Some(item) {
-            label
-        } else {
-            secondary
-        },
+        if emphasized { label } else { secondary },
     );
-    let label_style = if current || cursor || context.hovered == Some(item) {
-        label
-    } else {
-        secondary
-    };
+    let label_style = if emphasized { label } else { secondary };
     let label_area = Rect::new(
         row.x.saturating_add(3),
         row.y,
@@ -1005,54 +962,6 @@ fn paint_sidebar_row(
             ),
             label_style,
         );
-    }
-}
-
-fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &NavListState, page: PageId) {
-    if area.is_empty() {
-        return;
-    }
-    let canvas = shell_compat_style(ui.surface_style());
-    ui.fill(area, canvas);
-    let focused = ui.state(NAV).contains(StateFlags::FOCUSED);
-    let hovered = ui.hovered_part(NAV);
-    let pressed = ui.pressed_part(NAV);
-    let nav_rows = u16::try_from(NAV_ENTRIES.len()).unwrap_or(u16::MAX);
-    let compact = area.height < nav_rows.saturating_add(6).saturating_sub(1);
-    let context = SidebarContext {
-        state,
-        page,
-        focused,
-        hovered,
-        pressed,
-    };
-    let mut y = area.y;
-    let mut section = "";
-    for entry in NAV_ENTRIES {
-        let changed_section = entry.section != section;
-        if changed_section {
-            if !compact && y > area.y {
-                y = y.saturating_add(1);
-            }
-            section = entry.section;
-            if !compact {
-                if y >= area.bottom() {
-                    break;
-                }
-                let style = shell_text_style(ui, 3);
-                ui.paint_str(
-                    Rect::new(area.x.saturating_add(3), y, area.width.saturating_sub(3), 1),
-                    entry.section,
-                    style,
-                );
-                y = y.saturating_add(1);
-            }
-        }
-        if y >= area.bottom() {
-            break;
-        }
-        paint_sidebar_row(ui, area, y, entry, &context);
-        y = y.saturating_add(1);
     }
 }
 
@@ -1221,9 +1130,8 @@ impl TuiApp for App {
         }
         let shell = shell_layout(full, self.inspector);
 
-        // Keep the public components as the source of registration, focus and
-        // binding facts. The historical paint pass below only restores the
-        // old shell geometry/glyph placement through Ui.
+        // Navigation owns both row painting and registration. Header/footer
+        // compatibility painting remains separate shell migration work.
         shell_brand().draw(ui, shell.header);
         nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
         shell_status().draw(ui, shell.footer);
@@ -1235,7 +1143,6 @@ impl TuiApp for App {
             self.page,
             self.inspector,
         );
-        paint_sidebar(ui, shell.sidebar, &self.nav_state, self.page);
         if let Some(active) = self.active() {
             active.draw(ui, shell.main);
         } else {
