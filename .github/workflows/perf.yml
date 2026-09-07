@@ -38,6 +38,11 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+# Explicit template: an omitted GitHub Actions shell does not enable pipefail.
+defaults:
+  run:
+    shell: bash --noprofile --norc -e -o pipefail {0}
+
 jobs:
   perf:
     name: perf (allocations and bytes, blocking)
@@ -48,14 +53,14 @@ jobs:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: Perf pipeline failure contract
+        run: python3 tools/test_perf_workflow.py
       # The guard must compare this revision with the pushed commit or PR base;
       # a shallow checkout or a HEAD fallback would make the check vacuous.
       - name: Baseline bless guard
         env:
           BLESS_GUARD_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: cargo run -p xtask -- bless-guard
-      # The default `run` shell is `bash -e -o pipefail`, so a cargo failure ahead of
-      # `tee` still fails the step.
       - name: Library perf (foundation and collections)
         run: |
           cargo test -p junie-tui --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
@@ -85,6 +90,7 @@ jobs:
             perf-*.log
 
   perf-strict:
+    needs: perf
     name: perf (wall clock, advisory)
     runs-on: ubuntu-latest
     # The one sanctioned continue-on-error in this repository: §16.6 asserts wall time
