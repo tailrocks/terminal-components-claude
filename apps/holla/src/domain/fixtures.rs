@@ -275,16 +275,16 @@ fn seed_rust_dirty(w: &mut World) {
             Freshness::ActiveToday,
         )],
     });
-    w.memory = Memory {
-        pins: vec![Pin {
+    w.memory = Memory::seeded(
+        vec![Pin {
             path: "~/work/pave".into(),
             command: "make test".into(),
         }],
-        aliases: vec![Alias {
+        vec![Alias {
             alias: "gs".into(),
             expansion: "git status".into(),
         }],
-        usage: vec![
+        vec![
             Usage {
                 path: "~/work/pave".into(),
                 command: "cargo build".into(),
@@ -296,8 +296,8 @@ fn seed_rust_dirty(w: &mut World) {
                 count: 4,
             },
         ],
-        hides: vec![],
-    };
+        vec![],
+    );
 }
 
 /// ~/work/monorepo (root or apps/frontend child): namespaced mise tasks,
@@ -426,10 +426,10 @@ fn seed_monorepo(w: &mut World, child: bool) {
             private: true,
         }],
     });
-    w.memory = Memory {
-        pins: vec![],
-        aliases: vec![],
-        usage: vec![if child {
+    w.memory = Memory::seeded(
+        vec![],
+        vec![],
+        vec![if child {
             Usage {
                 path: "~/work/monorepo/apps/frontend".into(),
                 command: "pnpm dev".into(),
@@ -442,8 +442,8 @@ fn seed_monorepo(w: &mut World, child: bool) {
                 count: 3,
             }
         }],
-        hides: vec![],
-    };
+        vec![],
+    );
 }
 
 /// ~/work/scratch: a Docker host whose complete cleanup is the point.
@@ -499,16 +499,16 @@ fn seed_docker_cleanup(w: &mut World) {
             ),
         ],
     });
-    w.memory = Memory {
-        pins: vec![],
-        aliases: vec![],
-        usage: vec![Usage {
+    w.memory = Memory::seeded(
+        vec![],
+        vec![],
+        vec![Usage {
             path: "~/work/scratch".into(),
             command: "docker system df".into(),
             count: 4,
         }],
-        hides: vec![],
-    };
+        vec![],
+    );
 }
 
 /// ~/work: disk at 92%, progressive candidates with freshness facts.
@@ -809,6 +809,30 @@ fn seed_hard_cases(w: &mut World) {
         host_key_policy: HostKeyPolicy::Ask,
         multiplexed: false,
     }];
+}
+
+/// Explicit authorization for simulated custom commands seeded by these
+/// fixtures. Stored text alone never grants an effect or a risk downgrade.
+pub fn memory_command(
+    scenario: Scenario,
+    cwd: &str,
+    command: &str,
+) -> Option<crate::domain::action::FixtureCommand> {
+    use crate::domain::action::FixtureCommand;
+    let allowed: &[FixtureCommand] = match (scenario, cwd) {
+        (Scenario::RustDirty, "~/work/pave") => &[
+            FixtureCommand::MakeTest,
+            FixtureCommand::CargoBuild,
+            FixtureCommand::CargoTest,
+        ],
+        (Scenario::MonorepoChild, "~/work/monorepo/apps/frontend") => &[FixtureCommand::PnpmDev],
+        (Scenario::DockerCleanup, "~/work/scratch") => &[FixtureCommand::DockerUsage],
+        _ => &[],
+    };
+    allowed
+        .iter()
+        .copied()
+        .find(|candidate| candidate.command() == command)
 }
 
 #[cfg(test)]

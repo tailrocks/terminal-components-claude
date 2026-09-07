@@ -95,8 +95,40 @@ pub enum ActionKind {
     System,
 }
 
+/// Effect identity is independent of the row that presents it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActionIntent {
+    Canonical(String),
+    FixtureCommand(FixtureCommand),
+    Unavailable,
+}
+
+/// Explicit simulation-only commands present in accepted ranking fixtures.
+/// These are data labels, never executable process arguments.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FixtureCommand {
+    MakeTest,
+    CargoBuild,
+    CargoTest,
+    PnpmDev,
+    DockerUsage,
+}
+
+impl FixtureCommand {
+    pub fn command(self) -> &'static str {
+        match self {
+            Self::MakeTest => "make test",
+            Self::CargoBuild => "cargo build",
+            Self::CargoTest => "cargo test",
+            Self::PnpmDev => "pnpm dev",
+            Self::DockerUsage => "docker system df",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Action {
+    intent: ActionIntent,
     /// Stable identity for focus, pins and modal tags (`task:test`,
     /// `git.pull`, `docker.cleanup`).
     pub id: String,
@@ -134,6 +166,7 @@ impl Action {
         command: &str,
     ) -> Self {
         Self {
+            intent: ActionIntent::Canonical(id.into()),
             id: id.into(),
             title: title.into(),
             kind,
@@ -148,6 +181,60 @@ impl Action {
             long_running: false,
             keywords: String::new(),
         }
+    }
+
+    pub fn intent(&self) -> &ActionIntent {
+        &self.intent
+    }
+
+    pub fn intent_id(&self) -> Option<&str> {
+        match &self.intent {
+            ActionIntent::Canonical(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    /// Preserve effect policy while presenting a separate stable memory row.
+    pub(crate) fn remembered(mut self, row_id: String, reason: String, pinned: bool) -> Self {
+        self.id = row_id;
+        self.title = self.command.clone();
+        self.kind = ActionKind::Task;
+        self.reason = reason;
+        self.scope = Scope::Here;
+        self.scope_label = if pinned { "pin".into() } else { String::new() };
+        self
+    }
+
+    pub(crate) fn fixture_memory(command: FixtureCommand, cwd: &str) -> Self {
+        let mut action = Self::new(
+            command.command(),
+            command.command(),
+            ActionKind::Task,
+            Scope::Here,
+            "fixture command",
+            Risk::ReadOnly,
+            cwd,
+            command.command(),
+        );
+        action.intent = ActionIntent::FixtureCommand(command);
+        action
+    }
+
+    pub(crate) fn unavailable_memory(command: &str, cwd: &str) -> Self {
+        let mut action = Self::new(
+            command,
+            command,
+            ActionKind::Task,
+            Scope::Here,
+            "stored command",
+            Risk::Broad,
+            cwd,
+            command,
+        );
+        action.intent = ActionIntent::Unavailable;
+        action.availability =
+            Availability::Blocked("stored command has no current action policy".into());
+        action
     }
 
     /// What changes when this runs — the preview's "What will change" row.

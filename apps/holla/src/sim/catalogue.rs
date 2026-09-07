@@ -131,9 +131,9 @@ fn mise_actions(w: &World, out: &mut Vec<Action>) {
             .unwrap_or_else(|| w.cwd.clone());
         // Ring: file in cwd subtree → Here; namespaced child → Project;
         // parent ecosystem visible from a child cwd → Workspace.
-        let scope = if t.defined_in.starts_with(&w.cwd) && !t.namespaced() {
+        let scope = if std::path::Path::new(&t.defined_in).starts_with(&w.cwd) && !t.namespaced() {
             Scope::Here
-        } else if t.namespaced() && workdir.starts_with(&w.cwd) {
+        } else if t.namespaced() && std::path::Path::new(&workdir).starts_with(&w.cwd) {
             Scope::Project
         } else {
             Scope::Workspace
@@ -554,36 +554,91 @@ fn flow_actions(w: &World, out: &mut Vec<Action>) {
 fn recent_actions(w: &World, out: &mut Vec<Action>) {
     let mut usage: Vec<_> = w.memory.usage.iter().filter(|u| u.path == w.cwd).collect();
     usage.sort_by_key(|u| std::cmp::Reverse(u.count));
+    let canonical = out.clone();
     for u in usage {
-        out.push(Action::new(
-            &format!("recent:{}", u.command),
-            &u.command,
-            ActionKind::Task,
-            Scope::Here,
-            &format!("used {} in this project", times(u.count)),
-            Risk::ReadOnly,
-            &w.cwd,
-            &u.command,
+        let action = memory_action(w, &canonical, &u.command);
+        out.push(action.remembered(
+            format!("recent:{}", u.command),
+            format!("used {} in this project", times(u.count)),
+            false,
         ));
     }
     for pin in &w.memory.pins {
-        if pin.path != w.cwd {
-            continue;
+        if pin.path == w.cwd {
+            let action = memory_action(w, &canonical, &pin.command);
+            out.push(action.remembered(format!("pin:{}", pin.command), "pinned here".into(), true));
         }
-        let mut a = Action::new(
-            &format!("pin:{}", pin.command),
-            &pin.command,
-            ActionKind::Task,
-            Scope::Here,
-            "pinned here",
-            Risk::ReadOnly,
-            &w.cwd,
-            &pin.command,
-        );
-        a.scope_label = "pin".into();
-        out.push(a);
     }
 }
+
+fn memory_action(w: &World, canonical: &[Action], command: &str) -> Action {
+    let mut matches = canonical.iter().filter(|action| action.command == command);
+    if let Some(action) = matches.next() {
+        // Ambiguous command text cannot choose an arbitrary target or policy.
+        if matches.next().is_none() {
+            return action.clone();
+        }
+        return Action::unavailable_memory(command, &w.cwd);
+    }
+    match crate::domain::fixtures::memory_command(w.scenario, &w.cwd, command) {
+        Some(command) => Action::fixture_memory(command, &w.cwd),
+        None => Action::unavailable_memory(command, &w.cwd),
+    }
+}
+
+/// Re-resolve current semantic intent at every invocation boundary. Presentation
+/// IDs (`pin:`, `recent:`) never become effect identifiers.
+///
+/// # Errors
+/// Refuses removed/changed targets, untrusted/blocked actions and arbitrary
+/// stored commands. Error codes contain no command or typed input payloads.
+pub fn resolve_intent(w: &World, row: &Action) -> Result<Action, IntentError> {
+    use crate::domain::action::ActionIntent;
+    let all = catalogue(w);
+    let current_row = all
+        .iter()
+        .find(|candidate| candidate.id == row.id)
+        .ok_or(IntentError::StaleTarget)?;
+    if current_row.intent() != row.intent()
+        || current_row.command != row.command
+        || current_row.target != row.target
+        || current_row.workdir != row.workdir
+    {
+        return Err(IntentError::StaleTarget);
+    }
+    let current = match current_row.intent() {
+        ActionIntent::Canonical(id) => all
+            .iter()
+            .find(|action| action.id == *id)
+            .ok_or(IntentError::StaleTarget)?
+            .clone(),
+        ActionIntent::FixtureCommand(_) => current_row.clone(),
+        ActionIntent::Unavailable => return Err(IntentError::Unavailable),
+    };
+    match current.availability {
+        Availability::Ready => Ok(current),
+        Availability::NeedsTrust(_) => Err(IntentError::NeedsTrust),
+        Availability::Blocked(_) => Err(IntentError::Unavailable),
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IntentError {
+    StaleTarget,
+    NeedsTrust,
+    Unavailable,
+}
+
+impl std::fmt::Display for IntentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::StaleTarget => "action target changed · review it again",
+            Self::NeedsTrust => "task file needs trust before running",
+            Self::Unavailable => "action is not currently available",
+        })
+    }
+}
+impl std::error::Error for IntentError {}
 
 // ---------------------------------------------------------------- helpers
 
@@ -641,7 +696,7 @@ pub fn visible(
 ) -> Vec<Action> {
     let q = query.trim().to_lowercase();
     let expansion = memory
-        .aliases
+        .aliases()
         .iter()
         .find(|a| a.alias.to_lowercase() == q)
         .map(|a| a.expansion.to_lowercase());
@@ -664,4 +719,130 @@ pub fn visible(
         })
         .cloned()
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::{
+        fixtures,
+        ranking::{Pin, Usage},
+    };
+    use crate::scenario::Scenario;
+
+    fn settled(scenario: Scenario) -> World {
+        let mut world = fixtures::world_for(scenario);
+        world.seek(4_000);
+        world
+    }
+
+    #[test]
+    fn pin_and_recent_preserve_broad_policy_and_canonical_target() {
+        let mut world = settled(Scenario::DockerCleanup);
+        let canonical = catalogue(&world)
+            .into_iter()
+            .find(|action| action.id == "docker.cleanup")
+            .unwrap();
+        world.memory.pins.push(Pin {
+            path: world.cwd.clone(),
+            command: canonical.command.clone(),
+        });
+        world.memory.usage.push(Usage {
+            path: world.cwd.clone(),
+            command: canonical.command.clone(),
+            count: 3,
+        });
+        for prefix in ["pin:", "recent:"] {
+            let mut row = catalogue(&world)
+                .into_iter()
+                .find(|action| action.id == format!("{prefix}{}", canonical.command))
+                .unwrap();
+            assert_eq!(row.risk, Risk::Broad);
+            assert_eq!(row.intent_id(), Some("docker.cleanup"));
+            assert_eq!(row.target, canonical.target);
+            row.risk = Risk::ReadOnly; // a stale or forged presentation cannot grant policy
+            let intent = resolve_intent(&world, &row).unwrap();
+            assert_eq!(intent.id, "docker.cleanup");
+            assert_eq!(intent.risk, Risk::Broad);
+        }
+    }
+
+    #[test]
+    fn trust_requirement_survives_every_memory_route() {
+        let mut world = settled(Scenario::MonorepoRoot);
+        let action = catalogue(&world)
+            .into_iter()
+            .find(|action| matches!(action.availability, Availability::NeedsTrust(_)))
+            .unwrap();
+        world.memory.pins.push(Pin {
+            path: world.cwd.clone(),
+            command: action.command.clone(),
+        });
+        world.memory.usage.push(Usage {
+            path: world.cwd.clone(),
+            command: action.command.clone(),
+            count: 9,
+        });
+        for row in catalogue(&world)
+            .into_iter()
+            .filter(|row| row.command == action.command)
+        {
+            assert!(matches!(row.availability, Availability::NeedsTrust(_)));
+            assert_eq!(resolve_intent(&world, &row), Err(IntentError::NeedsTrust));
+        }
+    }
+
+    #[test]
+    fn arbitrary_memory_is_blocked_and_fixture_policy_is_context_bound() {
+        let mut world = settled(Scenario::RustDirty);
+        world.memory.pins.push(Pin {
+            path: world.cwd.clone(),
+            command: "rm -rf /".into(),
+        });
+        let row = catalogue(&world)
+            .into_iter()
+            .find(|row| row.command == "rm -rf /")
+            .unwrap();
+        assert_eq!(resolve_intent(&world, &row), Err(IntentError::Unavailable));
+        let custom = catalogue(&world)
+            .into_iter()
+            .find(|row| row.id == "pin:make test")
+            .unwrap();
+        assert!(resolve_intent(&world, &custom).is_ok());
+        world.cwd.push_str("-other");
+        assert_eq!(
+            resolve_intent(&world, &custom),
+            Err(IntentError::StaleTarget)
+        );
+    }
+
+    #[test]
+    fn remembered_target_is_revalidated_when_host_changes() {
+        let mut world = settled(Scenario::DockerCleanup);
+        let action = catalogue(&world)
+            .into_iter()
+            .find(|action| action.id == "docker.cleanup")
+            .unwrap();
+        world.memory.pins.push(Pin {
+            path: world.cwd.clone(),
+            command: action.command.clone(),
+        });
+        let row = catalogue(&world)
+            .into_iter()
+            .find(|row| row.id == format!("pin:{}", action.command))
+            .unwrap();
+        world.host.name = "different-host".into();
+        assert_eq!(resolve_intent(&world, &row), Err(IntentError::StaleTarget));
+    }
+
+    #[test]
+    fn mise_scope_uses_path_components_not_sibling_prefixes() {
+        let mut world = settled(Scenario::MonorepoRoot);
+        world.cwd = "~/work/mono".into();
+        let action = catalogue(&world)
+            .into_iter()
+            .find(|action| action.id == "task://:lint")
+            .unwrap();
+        assert_eq!(action.scope, Scope::Workspace);
+    }
 }
