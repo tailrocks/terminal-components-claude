@@ -275,7 +275,10 @@ impl Reconcile for NavListState {
 /// `.disabled(bool)` (default `false`), `.key(Fn(&T) -> ItemKey)`
 /// (`ByIndex`, unstable under reorder), `.row(Fn(&T, &mut RowUi))`
 /// (`DefaultRow`: `Display`), `.patch`, `.patch_part`, `.slot`,
-/// runtime state.
+/// runtime state. `.compact()` hides grouping rows; `.compact_when_clipped()`
+/// chooses compact grouping only when expanded rows exceed available height.
+/// `.header_indent(cells)` sets heading inset; `.render_row(callback)` replaces
+/// the default row painter inside the same clipped layout traversal.
 ///
 /// ## Variants
 /// `Family::LIST`, `DEFAULT` only. A nav list resolves through the list
@@ -310,7 +313,7 @@ impl Reconcile for NavListState {
 /// Disabled entries register no region at all, so they cannot be clicked.
 ///
 /// ## Layout
-/// Every section change after the first gets one blank separator. Full mode
+/// By default every section change after the first gets one blank separator. Full mode
 /// then paints a nonempty heading; collapsed mode paints no heading. Every
 /// entry gets gutter, current-marker and icon cells; full mode also invokes
 /// the renderer with the badge budget already reserved on the right. Rows
