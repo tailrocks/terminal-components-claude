@@ -3,6 +3,7 @@
 //! Database semantics stay in application-owned adapters; terminal behavior
 //! is reached only through the public `junie-tui` facade.
 #![forbid(unsafe_code)]
+mod cli;
 mod connections;
 mod db;
 mod domain;
@@ -15,7 +16,8 @@ mod workbench;
 
 mod app;
 
-pub use app::{MIN_HEIGHT, MIN_WIDTH, QueryOutcome, Screen, Surface, TableProApp, run, run_with};
+pub use app::{MIN_HEIGHT, MIN_WIDTH, QueryOutcome, Screen, Surface, TableProApp, run_with};
+pub use cli::run;
 /// Stable id for the connection name field.
 pub const CONNECTION_NAME: junie_tui::Id = connections::field::NAME;
 pub use connections::{ConnectionDraft, ConnectionsScreen, form_fields};

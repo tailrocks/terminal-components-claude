@@ -1,12 +1,12 @@
 //! `TablePro` application shell built only on the public `junie-tui` facade.
 
 use junie_tui::{
-    Action, ActionKey, App, Chord, Color, ColorLevel, Cx, FgStep, Field, Form, FormAction,
-    FormState, FrameRead, Focusability, Grid, GridAction, GridEditor, GridState, Id, Intent,
-    ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, Modifier, NodeKind, Panel, PanelKind, Part,
-    Phase, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch,
-    Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction, TreeNode,
-    TreeState, Ui, UpdateCause, wrap,
+    Action, ActionKey, App, Chord, Color, Cx, FgStep, Field, Focusability, Form, FormAction,
+    FormState, FrameRead, Grid, GridAction, GridEditor, GridState, Id, Intent, ItemKey, KeyCode,
+    KeyMap, KeyModifiers, KeyPhase, Modifier, NodeKind, Panel, PanelKind, Part, Phase, Response,
+    Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction,
+    TabsState, TextInput, TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState, Ui,
+    UpdateCause, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -2403,17 +2403,6 @@ impl App for TableProApp {
     }
 }
 
-/// Start the interactive `TablePro` binary.
-///
-/// # Errors
-///
-/// Returns the terminal runtime's I/O error when the session cannot start
-/// or restore the terminal.
-pub fn run() -> std::io::Result<()> {
-    let (theme, connect) = parse_args(std::env::args().skip(1))?;
-    run_with(theme, connect.as_deref())
-}
-
 /// Start the app with an explicit theme and optional connection name.
 ///
 /// # Errors
@@ -2431,74 +2420,10 @@ pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
         else {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                format!("unknown connection: {name}"),
+                "no connection with the requested name",
             ));
         };
         let _ = app.connect(index);
     }
     junie_tui::run(app, theme)
-}
-
-fn parse_args<I>(args: I) -> std::io::Result<(Theme, Option<String>)>
-where
-    I: IntoIterator<Item = String>,
-{
-    let mut theme = Theme::junie();
-    let mut requested_color = None;
-    let mut connect = None;
-    let mut args = args.into_iter();
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--theme" => {
-                let value = args
-                    .next()
-                    .ok_or_else(|| invalid_arg("--theme requires a value"))?;
-                theme = match value.to_ascii_lowercase().as_str() {
-                    "junie" => Theme::junie(),
-                    "paper" => Theme::paper(),
-                    _ => return Err(invalid_arg("--theme must be junie or paper")),
-                };
-            }
-            "--color" => {
-                let value = args
-                    .next()
-                    .ok_or_else(|| invalid_arg("--color requires a value"))?;
-                requested_color =
-                    Some(parse_color_level(&value).ok_or_else(|| {
-                        invalid_arg("--color must be truecolor, 256, 16, or none")
-                    })?);
-            }
-            "--connect" => {
-                connect = Some(
-                    args.next()
-                        .ok_or_else(|| invalid_arg("--connect requires a connection name"))?,
-                );
-            }
-            "-h" | "--help" => {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    "usage: tablepro [--theme junie|paper] [--color truecolor|256|16|none] [--connect NAME]",
-                ));
-            }
-            _ => return Err(invalid_arg("unknown option")),
-        }
-    }
-    if let Some(level) = requested_color {
-        theme = theme.for_level(level);
-    }
-    Ok((theme, connect))
-}
-
-fn invalid_arg(message: &str) -> std::io::Error {
-    std::io::Error::new(std::io::ErrorKind::InvalidInput, message)
-}
-
-fn parse_color_level(value: &str) -> Option<ColorLevel> {
-    match value.to_ascii_lowercase().as_str() {
-        "truecolor" | "24bit" => Some(ColorLevel::TrueColor),
-        "256" | "ansi256" => Some(ColorLevel::Ansi256),
-        "16" | "ansi16" => Some(ColorLevel::Ansi16),
-        "none" | "mono" => Some(ColorLevel::Mono),
-        _ => None,
-    }
 }
