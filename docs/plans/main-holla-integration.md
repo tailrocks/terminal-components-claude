@@ -100,3 +100,38 @@ The integration branch is published as origin/codex/main-holla-integration throu
 bcaa200. Continue signed commits with the Codex co-author trailer and push each
 integrated slice. Publishing this work branch does not waive the acceptance gates
 required before merging main. Preserve the original dirty checkout.
+
+## Checkpoint: shared boundaries and CLI slices
+
+- Integrated and pushed `89090d6`: sidebar EnterContent uses deferred runtime
+  traversal; keyed hover no longer changes other rows, headings or gaps.
+  Integrator executed all ten sidebar tests: nine pass; the exact hover-token
+  mismatch remains red until the theme slice.
+- Integrated and pushed `4e84b74`: core owns keyboard vocabulary; backend is
+  optional. This supersedes historical R-14's unconditional backend aliases.
+  Integrator independently executed the isolated core/testing dependency graph
+  and executable gate: both pass without workspace feature unification.
+- TablePro CLI candidate `967f7e7` is committed and pushed separately, awaiting
+  independent review. Stable tests: 19 library, 35 application, 3 real-process
+  tests pass. Rust 1.88 process tests: 3 pass. Strict Clippy still reports the
+  seven existing application painter errors; no CLI-specific error remains.
+  Reference help exit 0 versus old candidate 1 and error exit 2 versus 1 were
+  reproduced against distinct binaries before repair. Argument-value redaction
+  is a narrow security correction. Explicit color versus runtime auto-detection
+  remains a shared session-API dependency, not a claimed end-to-end pass.
+- Holla pure domain forward-port and bounded seek corrections are committed on
+  a separate branch; validated DAG/one-shot target-bound approval work follows.
+  No Holla executable or migrated-screen completeness is claimed.
+- Runtime explicit initialization slice is in an isolated worktree. Painting
+  must never initialize the app; pure Scene focus-state equivalence needs its
+  own proof. Publication guard, input compatibility and real time remain next.
+- Tool repair `7d5d62c` has a passing independent synthetic cell oracle; tool
+  fixture schema migration is under independent source/cell/image review.
+  Application expected captures remain unchanged and unapproved.
+
+Current isolated ownership: runtime_audit (runtime/session/testing lifecycle),
+showcase_contract (Jackin CLI), holla_disposition (Junie theme and background
+provenance), baseline_gates (external capture tools), history_audit (independent
+tool migration review), holla_domain (Holla model/simulation),
+tablepro_cli_review (read-only CLI review). Root integrates and pushes reviewed
+slices. The original dirty checkout and pinned reference remain untouched.
