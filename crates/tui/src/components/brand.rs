@@ -391,6 +391,7 @@ mod tests {
             ..BrandPage::default()
         };
         let mut rt = Runtime::new(app, Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         rt.draw_buffer(SCREEN, &mut buf);

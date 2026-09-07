@@ -1824,6 +1824,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
 
@@ -1863,6 +1864,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         runtime.draw_buffer(SCREEN, &mut buffer);
@@ -1876,6 +1878,7 @@ mod tests {
     #[test]
     fn bottom_track_click_and_thumb_drag_reach_the_end() {
         let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         runtime.draw_buffer(SCREEN, &mut buffer);

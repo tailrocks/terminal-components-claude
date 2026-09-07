@@ -934,12 +934,17 @@ impl<A: App> Runtime<A> {
         folded
     }
 
-    /// Run the one update that precedes the first draw or externally handled
-    /// event. Keeping this on `Runtime` gives terminal and headless callers
-    /// identical lifecycle semantics.
-    fn ensure_bootstrap(&mut self) {
+    /// Run the application's bootstrap update exactly once.
+    ///
+    /// Live drivers call this before their first frame so initialization can
+    /// establish focus, layers and repaint deadlines. It never advances time.
+    /// Repeated calls return an ignored response without updating the app.
+    ///
+    /// Painting never calls this method: rendering a supplied model, including
+    /// its very first frame, cannot run application initialization or effects.
+    pub fn initialize(&mut self) -> Response<()> {
         if self.bootstrapped {
-            return;
+            return Response::ignored();
         }
         self.bootstrapped = true;
         self.sync_keymap();
@@ -950,16 +955,20 @@ impl<A: App> Runtime<A> {
         self.services.registry_gen = self.last.registry.generation();
         self.intents.clear();
         let r = self.run_update(None, UpdateCause::Bootstrap);
-        let _ = self.finish(r);
+        self.finish(r)
     }
 
     /// `Runtime::handle` — steps 1–9.
+    ///
+    /// Initializes an uninitialized application on this update path. Live
+    /// drivers should call [`Self::initialize`] and draw before delivering
+    /// input, since routing still uses the last drawn frame's geometry.
     #[expect(
         clippy::too_many_lines,
         reason = "one input lifecycle pass preserves event ownership and paste wiping"
     )]
     pub fn handle(&mut self, input: Input) -> Response<()> {
-        self.ensure_bootstrap();
+        let _ = self.initialize();
         self.services.diagnostics.clear();
         self.sync_keymap();
         self.refresh_keymap_conflicts();
@@ -1106,7 +1115,6 @@ impl<A: App> Runtime<A> {
         buf: &mut Buffer,
         paint: impl FnOnce(&A, &mut Ui<'_>),
     ) {
-        self.ensure_bootstrap();
         // step 10: new frame state
         if area != self.screen {
             self.screen = area;
@@ -1603,6 +1611,7 @@ pub(crate) mod stub {
     /// A runtime that has drawn once.
     pub(crate) fn runtime(stub: Stub) -> (Runtime<Stub>, Buffer) {
         let mut rt = Runtime::new(stub, Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         (rt, buf)
@@ -1669,6 +1678,7 @@ mod tests {
     #[test]
     fn bootstrap_runs_once_before_first_draw_without_a_tick() {
         let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
 
         assert_eq!(rt.clock_ms(), 0);
@@ -1708,6 +1718,7 @@ mod tests {
     #[test]
     fn tick_cause_is_delivered_once_when_focus_settles() {
         let mut rt = Runtime::new(TickCauseProbe::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         rt.app_mut().causes.clear();
@@ -1752,6 +1763,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         assert_eq!(
@@ -1785,6 +1797,7 @@ mod tests {
     #[test]
     fn headless_tick_uses_the_same_update_cause_without_wall_clock() {
         let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         rt.app_mut().causes.clear();
@@ -1854,6 +1867,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let _ = runtime.handle(Input::Tick);
         let mut actual = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut actual);
@@ -2008,6 +2022,7 @@ mod tests {
         let area = Rect::new(0, 0, 40, 3);
         let mut buffer = Buffer::empty(area);
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         runtime.draw_buffer(area, &mut buffer);
         runtime.draw_buffer(area, &mut buffer);
         (runtime, buffer)
@@ -2614,6 +2629,7 @@ mod tests {
             ActionKey::CLOSE,
         );
         let mut rt = Runtime::new(Mapped(s, km), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         // the editor swallows typing: `q` reaches the editor, not the keymap

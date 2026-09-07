@@ -773,6 +773,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
         runtime.set_focus(Some(EDITOR));
@@ -826,7 +827,7 @@ mod tests {
     }
 
     fn controller_runtime() -> Runtime<ControllerApp> {
-        Runtime::new(
+        let mut runtime = Runtime::new(
             ControllerApp {
                 controller: CompletionController::new(EDITOR, POPUP),
                 completion: CompletionState::default(),
@@ -836,7 +837,9 @@ mod tests {
                 editor_motion: false,
             },
             Theme::junie(),
-        )
+        );
+        let _ = runtime.initialize();
+        runtime
     }
 
     #[test]

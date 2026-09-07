@@ -1191,6 +1191,7 @@ mod tests {
         );
 
         let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
         runtime.draw_buffer(AREA, &mut buffer);
@@ -1200,6 +1201,7 @@ mod tests {
         assert_eq!(runtime.app().actions, [ChipBarAction::AddRequested]);
 
         let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
         runtime.draw_buffer(AREA, &mut buffer);
@@ -1221,6 +1223,7 @@ mod tests {
     fn add_affordance_cannot_collide_with_item_identity() {
         let item = ItemKey::index(0);
         let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
 

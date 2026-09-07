@@ -102,6 +102,7 @@ fn input() -> Input {
 
 fn runtime() -> (Runtime<Page>, Buffer) {
     let mut rt = Runtime::new(Page::default(), Theme::junie());
+    let _ = rt.initialize();
     let mut buffer = Buffer::empty(AREA);
     rt.draw_buffer(AREA, &mut buffer);
     let _ = rt.handle(input());

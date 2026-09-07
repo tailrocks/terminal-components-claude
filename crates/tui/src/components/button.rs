@@ -737,6 +737,7 @@ mod tests {
     #[test]
     fn autofocus_fires_once_and_never_takes_focus_back() {
         let mut runtime = Runtime::new(AutofocusApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         assert_eq!(runtime.focus(), Some(OTHER));
@@ -766,6 +767,7 @@ mod tests {
     #[test]
     fn a_disabled_autofocus_button_never_takes_focus() {
         let mut runtime = Runtime::new(AutofocusApp { disabled: true }, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         assert_eq!(runtime.focus(), Some(OTHER));
@@ -802,6 +804,7 @@ mod tests {
     #[test]
     fn a_pointer_move_without_a_hover_transition_does_not_repaint() {
         let mut runtime = Runtime::new(HoverApp, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
 

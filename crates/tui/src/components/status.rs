@@ -1065,6 +1065,7 @@ mod tests {
     fn a_keyed_item_click_reports_chose() {
         const SCREEN: Rect = Rect::new(0, 0, 20, 1);
         let mut runtime = Runtime::new(ClickApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let item = runtime
@@ -1116,6 +1117,7 @@ mod tests {
     #[test]
     fn a_pointer_move_without_a_hover_transition_does_not_repaint() {
         let mut runtime = Runtime::new(HoverApp, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(HOVER_ROW);
         runtime.draw_buffer(HOVER_ROW, &mut buffer);
         let area = |runtime: &Runtime<HoverApp>, k: ItemKey| {

@@ -700,6 +700,7 @@ impl App for Probes {
 fn probe_runtime(n: usize) -> (Runtime<Probes>, ratatui_core::buffer::Buffer) {
     let area = Rect::new(0, 0, 120, 40);
     let mut rt = Runtime::new(Probes(n), Theme::junie());
+    let _ = rt.initialize();
     let mut buf = ratatui_core::buffer::Buffer::empty(area);
     rt.draw_buffer(area, &mut buf);
     (rt, buf)
@@ -1080,6 +1081,7 @@ fn list_runtime(n: usize, mode: SelectMode) -> (Runtime<ListApp>, ratatui_core::
         },
         Theme::junie(),
     );
+    let _ = rt.initialize();
     let mut buf = ratatui_core::buffer::Buffer::empty(area);
     rt.draw_buffer(area, &mut buf);
     for _ in 0..2 {
@@ -1249,6 +1251,7 @@ fn frame_showcase_buttons_120x40() {
     let _g = lock();
     let area = Rect::new(0, 0, 120, 40);
     let mut rt = Runtime::new(ShowcaseButtons, Theme::junie());
+    let _ = rt.initialize();
     let mut buf = ratatui_core::buffer::Buffer::empty(area);
     // two warm frames: the runtime double-buffers the registry and the ring
     rt.draw_buffer(area, &mut buf);
@@ -1358,7 +1361,9 @@ fn frame_tablepro_query_editor_2k_lines() {
     let _g = lock();
     let area = Rect::new(0, 0, 120, 40);
     let mut runtime = Runtime::new(QueryEditor::with_lines(2_000), Theme::junie());
+    let _ = runtime.initialize();
     let mut small_runtime = Runtime::new(QueryEditor::with_lines(100), Theme::junie());
+    let _ = small_runtime.initialize();
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
     let mut small_buffer = ratatui_core::buffer::Buffer::empty(area);
     prepare_query_editor(&mut runtime, area, &mut buffer);
@@ -1461,6 +1466,7 @@ fn diff_2k_cached_projection_has_zero_warm_allocations() {
         },
         Theme::junie(),
     );
+    let _ = runtime.initialize();
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
     runtime.draw_buffer(area, &mut buffer);
     runtime.draw_buffer(area, &mut buffer);
@@ -1524,6 +1530,7 @@ fn frame_hintbar_derived() {
     let _g = lock();
     let area = Rect::new(0, 0, 80, 24);
     let mut runtime = Runtime::new(DerivedHintApp::default(), Theme::junie());
+    let _ = runtime.initialize();
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
     runtime.draw_buffer(area, &mut buffer);
     runtime.draw_buffer(area, &mut buffer);
@@ -1603,6 +1610,7 @@ fn frame_form_update_draw() {
     let _guard = lock();
     let area = Rect::new(0, 0, 80, 24);
     let mut runtime = Runtime::new(PerfFormApp::default(), Theme::junie());
+    let _ = runtime.initialize();
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
     runtime.draw_buffer(area, &mut buffer);
     let _ = runtime.handle(Input::Tick);

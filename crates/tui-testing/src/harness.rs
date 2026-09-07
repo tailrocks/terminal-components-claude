@@ -45,8 +45,8 @@ fn theme_label(theme: &Theme) -> &'static str {
 }
 
 impl<A: App> Harness<A> {
-    /// Build and draw the first frame (twice: the first draw settles the
-    /// initial focus, the second paints it).
+    /// Initialize the application, then draw its first frame twice: the first
+    /// draw settles initial focus and the second paints it.
     pub fn new(app: A, theme: Theme, w: u16, h: u16) -> Self {
         let theme_name = theme_label(&theme);
         let mut h = Harness {
@@ -56,6 +56,7 @@ impl<A: App> Harness<A> {
             theme_name,
             color: ColorLevel::TrueColor,
         };
+        let _ = h.rt.initialize();
         h.draw();
         h.draw();
         h

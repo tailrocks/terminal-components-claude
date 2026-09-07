@@ -2985,6 +2985,7 @@ mod tests {
 
     fn runtime(model: Model, editable: bool) -> (Runtime<GridApp>, Buffer) {
         let mut runtime = Runtime::new(GridApp::new(model, editable), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
         runtime.draw_buffer(AREA, &mut buffer);
@@ -3319,6 +3320,7 @@ mod tests {
             model: DisplayOnlyModel,
         };
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
         runtime.draw_buffer(AREA, &mut buffer);
@@ -3374,6 +3376,7 @@ mod tests {
             actions: Vec::new(),
         };
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
         runtime.draw_buffer(AREA, &mut buffer);
@@ -3412,6 +3415,7 @@ mod tests {
             actions: Vec::new(),
         };
         let mut pointer = Runtime::new(pointer_app, Theme::junie());
+        let _ = pointer.initialize();
         pointer.draw_buffer(AREA, &mut buffer);
         pointer.draw_buffer(AREA, &mut buffer);
         let hole = pointer
@@ -3473,6 +3477,7 @@ mod tests {
             actions: Vec::new(),
         };
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
         runtime.draw_buffer(AREA, &mut buffer);

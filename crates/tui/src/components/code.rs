@@ -1748,6 +1748,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(area);
         runtime.draw_buffer(area, &mut buffer);
         let _ = runtime.handle(key(KeyCode::Tab));

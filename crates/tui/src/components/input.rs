@@ -1614,6 +1614,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let _ = runtime.handle(Input::Key(Key {

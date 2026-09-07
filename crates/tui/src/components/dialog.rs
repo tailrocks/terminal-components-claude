@@ -1255,6 +1255,7 @@ mod tests {
             }
         }
         let mut rt = Runtime::new(Centered::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         let _ = rt.handle(Input::Tick);
@@ -1298,6 +1299,7 @@ mod tests {
             }
         }
         let mut rt = Runtime::new(Growing::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         let _ = rt.handle(Input::Tick);
@@ -1463,6 +1465,7 @@ mod tests {
         }
 
         let mut rt = Runtime::new(DialogApp::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         let _ = rt.handle(Input::Tick);
@@ -1525,6 +1528,7 @@ mod tests {
         }
 
         let mut runtime = Runtime::new(DynamicDialogApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let _ = runtime.handle(Input::Tick);

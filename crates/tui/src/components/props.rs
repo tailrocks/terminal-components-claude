@@ -1237,6 +1237,7 @@ mod tests {
     #[test]
     fn copy_is_keyed_and_reached_by_keyboard_and_mouse_runtime_intents() {
         let mut runtime = Runtime::new(ActionApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
 
@@ -1333,6 +1334,7 @@ mod tests {
     #[test]
     fn copy_resolves_the_cursor_by_key_after_same_length_reorder() {
         let mut runtime = Runtime::new(ReorderApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer);
         let _ = runtime.handle(key(KeyCode::Down));

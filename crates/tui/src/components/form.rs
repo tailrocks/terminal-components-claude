@@ -1861,6 +1861,7 @@ mod tests {
         let mut app = FieldsApp::default();
         app.data.secret.set("swordfish");
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         runtime.app().state.clone()
@@ -2087,6 +2088,7 @@ mod tests {
 
     fn matrix_runtime(kind: MatrixKind) -> (Runtime<MatrixApp>, Buffer) {
         let mut runtime = Runtime::new(MatrixApp::new(kind), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         assert_eq!(runtime.focus(), Some(MATRIX));
@@ -2224,6 +2226,7 @@ mod tests {
             ..FieldsApp::default()
         };
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(tiny);
         runtime.draw_buffer(tiny, &mut buffer);
         runtime.set_focus(Some(CHOOSER));
@@ -2263,6 +2266,7 @@ mod tests {
         let mut app = MatrixApp::new(MatrixKind::Check);
         app.data.config.validation = MatrixValidation::Reject;
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let _ = runtime.handle(press(KeyCode::Enter));
@@ -2279,6 +2283,7 @@ mod tests {
         app.data.config.visible = false;
         app.data.config.validation = MatrixValidation::Reject;
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let action_id = FORM.part(Part::ACTIONS).index(0);
@@ -2460,6 +2465,7 @@ mod tests {
         let mut app = MatrixApp::new(MatrixKind::Select);
         app.enter = EnterPolicy::Never;
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let _ = runtime.handle(press(KeyCode::Enter));
@@ -2490,6 +2496,7 @@ mod tests {
             .keymap
             .remove_component(MATRIX, ActionKey::custom("Toggle (Enter)"));
         let mut runtime = Runtime::new(removed, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let _ = runtime.handle(press(KeyCode::Enter));
@@ -2504,6 +2511,7 @@ mod tests {
             Chord::key(KeyCode::F(2)),
         );
         let mut runtime = Runtime::new(remapped, Theme::junie());
+        let _ = runtime.initialize();
         runtime.draw_buffer(SCREEN, &mut buffer);
         let _ = runtime.handle(press(KeyCode::Enter));
         runtime.draw_buffer(SCREEN, &mut buffer);
@@ -2669,6 +2677,7 @@ mod tests {
         };
         app.data.secret_mode = false;
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
 
@@ -2739,6 +2748,7 @@ mod tests {
         app.data.flags.show_hidden = true;
         app.data.hidden_secret_mode = false;
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
 
@@ -2787,6 +2797,7 @@ mod tests {
         app.data.flags.show_hidden = true;
         app.data.hidden_secret_mode = false;
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
 
@@ -3053,6 +3064,7 @@ mod tests {
             ))),
         );
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let _ = runtime.handle(Input::Tick);
@@ -3074,6 +3086,7 @@ mod tests {
         app.data.secret_text = "ordinary".to_owned();
         app.plain_secret_control = true;
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         {
@@ -3231,6 +3244,7 @@ mod tests {
         let mut app = FieldsApp::default();
         app.data.secret = Secret::new("hunter2".to_owned());
         let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         runtime.set_focus(Some(SECRET));

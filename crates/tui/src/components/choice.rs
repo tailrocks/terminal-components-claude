@@ -1529,6 +1529,7 @@ mod tests {
     #[test]
     fn disabled_update_does_not_initialize_collection_state() {
         let mut runtime = Runtime::new(DisabledRadioApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let _ = runtime.handle(Input::Tick);
         assert_eq!(runtime.app().state, RadioGroupState::default());
     }
@@ -1581,6 +1582,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let _ = runtime.handle(Input::Tick);
         assert_eq!(runtime.app().state.cursor(), Some(selected));
 

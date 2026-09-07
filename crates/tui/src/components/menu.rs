@@ -1545,6 +1545,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         runtime.draw_buffer(area, &mut buffer);
         runtime.draw_buffer(area, &mut buffer);
         (runtime, buffer)
@@ -1562,6 +1563,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         runtime.draw_buffer(area, &mut buffer);
         runtime.draw_buffer(area, &mut buffer);
         let _ = runtime.handle(Input::Key(key(KeyCode::Right)));
@@ -1594,6 +1596,7 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         runtime.draw_buffer(area, &mut buffer);
         runtime.draw_buffer(area, &mut buffer);
         let _ = runtime.handle(Input::Key(key(KeyCode::Enter)));

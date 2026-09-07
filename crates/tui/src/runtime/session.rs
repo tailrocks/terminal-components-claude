@@ -150,6 +150,7 @@ impl Drop for TerminalSession {
 pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
     let mut session = TerminalSession::enter()?;
     let mut rt = Runtime::new(app, theme.for_terminal());
+    let _ = rt.initialize();
     let idle = Duration::from_millis(rt.theme().design.motion.idle_tick_ms);
     // `Runtime::next_deadline` intentionally exposes a duration rather than
     // wall-clock state so headless callers remain deterministic. Keep the

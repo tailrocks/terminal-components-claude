@@ -130,6 +130,7 @@ impl Scene {
     }
 
     /// Run the whole draw phase with `f` as the page painter.
+    /// No application initialization or update runs on this path.
     pub fn draw(&mut self, f: impl FnOnce(&mut Ui<'_>, Rect)) {
         let area = self.area;
         let Some(rt) = self.rt.as_mut() else {

@@ -1229,6 +1229,7 @@ mod tests {
             closed: 0,
         };
         let mut rt = Runtime::new(app, Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf);
         assert_eq!(rt.focus(), Some(SEL));
@@ -1274,6 +1275,7 @@ mod tests {
         let theme = Theme::junie();
         let chosen = theme.design.glyphs.get(GlyphRole::Chosen);
         let mut runtime = Runtime::new(app, theme);
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
         let _ = runtime.handle(press(KeyCode::Enter));
@@ -1421,6 +1423,7 @@ mod tests {
             disabled: true,
         };
         let mut rt = Runtime::new(app, Theme::junie());
+        let _ = rt.initialize();
         let _ = rt.handle(Input::Tick);
         assert_eq!(rt.app().st, SelectState::default());
     }
@@ -1436,6 +1439,7 @@ mod tests {
             disabled: true,
         };
         let mut rt = Runtime::new(app, Theme::junie());
+        let _ = rt.initialize();
         for _ in 0..3 {
             let _ = rt.handle(Input::Tick);
         }
