@@ -135,3 +135,7 @@ provenance), baseline_gates (external capture tools), history_audit (independent
 tool migration review), holla_domain (Holla model/simulation),
 tablepro_cli_review (read-only CLI review). Root integrates and pushes reviewed
 slices. The original dirty checkout and pinned reference remain untouched.
+
+The user reinforced parallel execution: always delegate independent bounded work
+to subagents. Keep one writer per owned path, separate worktrees and build targets,
+and independent review of committed candidates. Root retains integration ownership.
