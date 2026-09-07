@@ -88,5 +88,15 @@ repairs, measured failures, current ownership and outstanding work. Full goal
 remains unchanged. Initial source audits are copied under docs/audit/main-holla;
 raw logs, captures, patches and hash manifests remain separate external evidence.
 The sidebar real-process reproducer now confirms the predicted wrong hit target.
-The next implementation slice restores shared compact NavList geometry while
-runtime lifecycle/time contracts are settled independently.
+Shared compact NavList geometry is integrated in 3710431 (documentation 1f869d8).
+Deferred focus traversal is integrated in bcaa200. Integrator independently ran
+the public compact-renderer tests (2 passed) and focus traversal tests (7 passed)
+on the candidate. Sidebar caller focus hookup and shared hover tokens remain
+pending; no full sidebar parity is claimed. Tool qualification found fidelity
+losses and correctly fails its strict gate; isolated tool repairs are underway.
+
+The user additionally requires every coherent change to be committed and pushed.
+The integration branch is published as origin/codex/main-holla-integration through
+bcaa200. Continue signed commits with the Codex co-author trailer and push each
+integrated slice. Publishing this work branch does not waive the acceptance gates
+required before merging main. Preserve the original dirty checkout.
