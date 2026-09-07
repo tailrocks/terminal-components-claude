@@ -92,7 +92,7 @@ pub fn rank(w: &World, actions: &mut [Action]) {
         if w.memory.alias_for(&a.command).is_some() {
             s += 90;
         }
-        s += (w.memory.usage_at(&w.cwd, &a.command) as i32).min(10) * 2;
+        s += w.memory.usage_at(&w.cwd, &a.command).min(10) as i32 * 2;
         if urgent(a) {
             s += 30;
         }
@@ -698,7 +698,7 @@ pub fn visible(
     let expansion = memory
         .aliases()
         .iter()
-        .find(|a| a.alias.to_lowercase() == q)
+        .find(|a| crate::domain::ranking::alias_key(&a.alias) == q)
         .map(|a| a.expansion.to_lowercase());
     actions
         .iter()
@@ -844,5 +844,43 @@ mod tests {
             .find(|action| action.id == "task://:lint")
             .unwrap();
         assert_eq!(action.scope, Scope::Workspace);
+    }
+    #[test]
+    fn extreme_usage_stays_positive_and_alias_queries_share_identity() {
+        let mut world = settled(Scenario::RustDirty);
+        let mut a = Action::new(
+            "a",
+            "A",
+            ActionKind::Task,
+            Scope::Here,
+            "",
+            Risk::ReadOnly,
+            "",
+            "a",
+        );
+        let b = Action::new(
+            "b",
+            "B",
+            ActionKind::Task,
+            Scope::Here,
+            "",
+            Risk::ReadOnly,
+            "",
+            "b",
+        );
+        world.memory.usage.push(Usage {
+            path: world.cwd.clone(),
+            command: "b".into(),
+            count: u32::MAX,
+        });
+        let mut actions = vec![a.clone(), b];
+        rank(&world, &mut actions);
+        assert_eq!(actions[0].id, "b");
+        world.memory.set_alias("Ålias", "a").unwrap();
+        a.title = "X".into();
+        assert_eq!(
+            visible(&[a], None, "åLIAS", &world.memory, &world.cwd).len(),
+            1
+        );
     }
 }

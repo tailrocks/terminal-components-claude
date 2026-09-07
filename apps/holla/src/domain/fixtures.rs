@@ -820,7 +820,7 @@ pub fn memory_command(
 ) -> Option<crate::domain::action::FixtureCommand> {
     use crate::domain::action::FixtureCommand;
     let allowed: &[FixtureCommand] = match (scenario, cwd) {
-        (Scenario::RustDirty, "~/work/pave") => &[
+        (Scenario::RustDirty | Scenario::LaunchFailure, "~/work/pave") => &[
             FixtureCommand::MakeTest,
             FixtureCommand::CargoBuild,
             FixtureCommand::CargoTest,

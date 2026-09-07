@@ -48,7 +48,7 @@ impl Memory {
             // Last seed declaration owns the name and command, just as an
             // explicit replacement does. Fixtures contain no external input.
             memory.aliases.retain(|old| {
-                !old.alias.eq_ignore_ascii_case(&alias.alias) && old.expansion != alias.expansion
+                alias_key(&old.alias) != alias_key(&alias.alias) && old.expansion != alias.expansion
             });
             memory.aliases.push(alias);
         }
@@ -71,7 +71,7 @@ impl Memory {
         if self
             .aliases
             .iter()
-            .any(|alias| alias.alias.eq_ignore_ascii_case(name) && alias.expansion != command)
+            .any(|alias| alias_key(&alias.alias) == alias_key(name) && alias.expansion != command)
         {
             return Err(AliasError::NameOwned);
         }
@@ -88,7 +88,7 @@ impl Memory {
             .iter()
             .filter(|u| u.path == path && u.command == command)
             .map(|u| u.count)
-            .sum()
+            .fold(0, u32::saturating_add)
     }
 
     pub fn pin_at(&self, path: &str, command: &str) -> bool {
@@ -106,7 +106,7 @@ impl Memory {
     pub fn alias(&self, name: &str) -> Option<&str> {
         self.aliases
             .iter()
-            .find(|a| a.alias.eq_ignore_ascii_case(name))
+            .find(|a| alias_key(&a.alias) == alias_key(name))
             .map(|a| a.expansion.as_str())
     }
 
@@ -127,6 +127,11 @@ impl Memory {
             .retain(|p| !(p.path == path && p.command == command));
         self.aliases.retain(|a| a.expansion != command);
     }
+}
+
+/// Shared alias comparison follows the query's Unicode lowercase grammar.
+pub(crate) fn alias_key(name: &str) -> String {
+    name.trim().to_lowercase()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -188,5 +193,37 @@ mod tests {
         assert!(memory.pin_at("b", "git status"));
         assert_eq!(memory.alias("gs"), None);
         assert_eq!(memory.usage_at("a", "git status"), 6);
+    }
+    #[test]
+    fn unicode_aliases_share_query_and_ownership_normalization() {
+        let mut memory = Memory::default();
+        memory.set_alias("Ålias", "git status").unwrap();
+        assert_eq!(memory.alias("åLIAS"), Some("git status"));
+        assert_eq!(
+            memory.set_alias("ålias", "git diff"),
+            Err(AliasError::NameOwned)
+        );
+    }
+
+    #[test]
+    fn usage_count_saturates_without_wrapping() {
+        let memory = Memory::seeded(
+            vec![],
+            vec![],
+            vec![
+                Usage {
+                    path: "a".into(),
+                    command: "x".into(),
+                    count: u32::MAX,
+                },
+                Usage {
+                    path: "a".into(),
+                    command: "x".into(),
+                    count: 1,
+                },
+            ],
+            vec![],
+        );
+        assert_eq!(memory.usage_at("a", "x"), u32::MAX);
     }
 }
