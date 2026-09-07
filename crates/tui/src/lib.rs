@@ -29,6 +29,7 @@ pub(crate) mod hit;
 pub(crate) mod id;
 pub(crate) mod intent;
 pub(crate) mod keymap;
+pub(crate) mod keys;
 pub(crate) mod layer;
 pub mod layout;
 pub(crate) mod measure;
@@ -58,6 +59,7 @@ pub use ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 // events, intents, responses
 pub use event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 pub use intent::{FocusVia, Intent, IntentIter, Phase};
+pub use keys::{MediaKeyCode, ModifierKeyCode};
 pub use response::{Activated, Flow, Invalidate, Response, StateFlags};
 // keymaps, actions, diagnostics
 pub use action::{Action, ActionKey};

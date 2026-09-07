@@ -19,13 +19,13 @@ default = ["crossterm"]
 # Terminal session (`TerminalSession`, `run()`, `DefaultTerminal`): the only code that names a
 # backend. `--no-default-features` compiles the whole paint/theme/layout/text/collection core
 # and the runtime without it (§22 §1.2 "core is backend-free").
-crossterm = []
+crossterm = ["dep:ratatui-crossterm"]
 # Runtime/Ui inspection surface for the test harness (§17.0 A1, A2). Never in a release binary.
 testing = []
 
 [dependencies]
 ratatui-core.workspace = true
-ratatui-crossterm.workspace = true
+ratatui-crossterm = { workspace = true, optional = true }
 unicode-width.workspace = true
 unicode-segmentation.workspace = true
 bitflags.workspace = true

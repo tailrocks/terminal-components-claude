@@ -250,6 +250,7 @@ impl<A: App> Runtime<A> {
     /// one settle frame. Keeping this request separate from response
     /// invalidation lets the terminal loop stay dirty-driven without exposing
     /// frame-service state as public API.
+    #[cfg(feature = "crossterm")]
     pub(crate) fn take_repaint_request(&mut self) -> bool {
         let requested = self.services.repaint;
         self.services.repaint = false;

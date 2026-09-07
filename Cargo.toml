@@ -24,7 +24,7 @@ license = "MIT"
 repository = "https://github.com/donbeave/terminal-components-claude"
 
 [workspace.dependencies]
-junie-tui = { path = "crates/tui" }
+junie-tui = { path = "crates/tui", default-features = false }
 junie-tui-testing = { path = "crates/tui-testing" }
 ratatui-core = { version = "0.1.2", default-features = false, features = ["std", "underline-color"] }
 ratatui-crossterm = { version = "0.1.2" } # default = crossterm_0_29 + underline-color

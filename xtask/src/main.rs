@@ -28,6 +28,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
+mod backend_free;
 mod parity;
 
 fn root() -> PathBuf {
@@ -5711,10 +5712,8 @@ fn no_unreachable_spin_loops() -> Result<(), String> {
     )
 }
 
-/// §22.1 as amended: `ratatui-crossterm` is a normal, non-optional dependency
-/// taken for its version-unified `crossterm` **event vocabulary**, never for
-/// `CrosstermBackend`. Exactly two files may name it: `event.rs` (the
-/// vocabulary) and `runtime/session.rs` (the backend).
+/// The optional adapter is confined to event normalization and the terminal
+/// session. The public key vocabulary remains backend-neutral.
 fn ratatui_crossterm_is_named_in_exactly_two_files() -> Result<(), String> {
     let re = Regex::new(r"ratatui_crossterm\b").map_err(|e| e.to_string())?;
     let mut files: Vec<String> = Vec::new();
@@ -6600,16 +6599,7 @@ fn no_boolean_capability_parameter_on_grid() -> Result<(), String> {
 }
 
 fn core_is_backend_free() -> Result<(), String> {
-    let status = Command::new("cargo")
-        .args(["check", "-p", LIB, "--no-default-features", "-q"])
-        .current_dir(root())
-        .status()
-        .map_err(|e| e.to_string())?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err("cargo check --no-default-features failed".to_owned())
-    }
+    backend_free::check(&root())
 }
 
 fn msrv_and_edition_are_unchanged() -> Result<(), String> {
