@@ -176,15 +176,20 @@ impl World {
     }
 
     /// Fast-forward to a fixture tick for `--motion paused --frame N`.
+    ///
+    /// Historical frames round upward in 80 ms increments from the current
+    /// instant. Discovery only compares deadlines, so crossing every tick adds
+    /// no information. Advance once to the same rounded instant; clamp values
+    /// outside the signed fixture-clock range rather than wrap or loop.
     pub fn seek(&mut self, frame_ms: u64) {
-        let target = frame_ms as i64;
-        let was_running = self.clock.running;
-        self.clock.running = true;
-        while self.clock.now_ms < target {
-            self.clock.advance(80);
-            self.step();
+        let target = i64::try_from(frame_ms).unwrap_or(i64::MAX);
+        if target <= self.clock.now_ms {
+            return;
         }
-        self.clock.running = was_running;
+        let distance = target.saturating_sub(self.clock.now_ms);
+        let ticks = distance / 80 + i64::from(distance % 80 != 0);
+        self.clock.now_ms = self.clock.now_ms.saturating_add(ticks.saturating_mul(80));
+        self.step();
     }
 
     /// Trust one exact mise task file; affected tasks re-resolve as Ready.
@@ -247,5 +252,33 @@ mod tests {
         // failures do not refire
         assert!(w.tick(100).is_empty());
         let _ = Environment::Local;
+    }
+    #[test]
+    fn seek_preserves_reference_quantization_and_pause() {
+        let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
+        w.clock.running = false;
+        w.seek(100);
+        assert_eq!(w.now_ms(), 160);
+        assert!(!w.clock.running);
+        w.seek(80);
+        assert_eq!(w.now_ms(), 160, "seek never moves backwards");
+        w.clock.now_ms = 33;
+        w.seek(100);
+        assert_eq!(
+            w.now_ms(),
+            113,
+            "quantization starts at the current instant"
+        );
+    }
+
+    #[test]
+    fn seek_maximum_frame_is_bounded_and_settles_discovery() {
+        let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
+        w.discovery = World::default_schedule();
+        w.seek(u64::MAX);
+        assert_eq!(w.now_ms(), i64::MAX);
+        assert!(!w.discovering());
+        assert!(w.tick(80).is_empty());
+        assert_eq!(w.now_ms(), i64::MAX);
     }
 }

@@ -28,7 +28,7 @@ impl Clock {
     /// Advance by one runtime tick of `interval_ms`.
     pub fn advance(&mut self, interval_ms: i64) {
         if self.running {
-            self.now_ms += interval_ms;
+            self.now_ms = self.now_ms.saturating_add(interval_ms.max(0));
         }
     }
 
@@ -143,5 +143,14 @@ mod tests {
         c.running = false;
         c.advance(33);
         assert_eq!(c.now_ms, 990);
+    }
+    #[test]
+    fn elapsed_intervals_never_rewind_or_overflow() {
+        let mut clock = Clock::new();
+        clock.advance(33);
+        clock.advance(-80);
+        assert_eq!(clock.now_ms, 33);
+        clock.advance(i64::MAX);
+        assert_eq!(clock.now_ms, i64::MAX);
     }
 }
