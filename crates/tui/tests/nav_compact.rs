@@ -108,3 +108,26 @@ fn full_row_override_is_clipped_and_receives_current_key_flags() {
         }
     }
 }
+
+#[test]
+fn whole_control_disabled_reaches_every_custom_row() {
+    let states = RefCell::new(Vec::new());
+    let painter = |_ui: &mut Ui<'_>, _area, flags, _key, _item: &(&str, &str)| {
+        states.borrow_mut().push(flags);
+    };
+    let mut scene = Scene::new("disabled_nav", Theme::junie(), ColorLevel::TrueColor, 20, 8);
+    scene.draw(|ui, _| {
+        NavList::new(NAV)
+            .key(key)
+            .row(|item, row| row.label(item.0))
+            .compact()
+            .disabled(true)
+            .render_row(&painter)
+            .draw(ui, Rect::new(0, 0, 20, 8), &NavListState::new(), &ITEMS);
+    });
+    assert_eq!(states.borrow().len(), 3);
+    for flags in states.borrow().iter() {
+        assert!(flags.contains(StateFlags::DISABLED));
+        assert!(!flags.intersects(StateFlags::PRESSED | StateFlags::HOVERED));
+    }
+}

@@ -1104,12 +1104,19 @@ impl TuiApp for App {
         }
         response |= nav()
             .update(cx, &mut self.nav_state, NAV_ENTRIES)
-            .on_action(|action| {
-                if let NavListAction::Chose(key) | NavListAction::EnterContent(key) = action
-                    && let Some(page) = PageId::from_key(key)
-                {
-                    self.goto(page);
+            .on_action(|action| match action {
+                NavListAction::Chose(key) => {
+                    if let Some(page) = PageId::from_key(key) {
+                        self.goto(page);
+                    }
                 }
+                NavListAction::EnterContent(key) => {
+                    if let Some(page) = PageId::from_key(key) {
+                        self.goto(page);
+                        cx.focus_next();
+                    }
+                }
+                NavListAction::Moved(_) => {}
             });
         if let Some(active) = self.pages.get_mut(self.page.index()) {
             response |= active.update(cx);

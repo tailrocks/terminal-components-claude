@@ -83,6 +83,15 @@ fn reference_hover_targets_only_the_visible_row() {
             let _ = h.mouse(MouseKind::Move, 4, y);
             assert_eq!(h.cell(4, y).fg, Color::Rgb(255, 255, 255));
             assert_eq!(h.cell(4, y).bg, Color::Rgb(24, 24, 27));
+            for other_y in 2..height.saturating_sub(2) {
+                if other_y != y {
+                    assert_eq!(
+                        h.cell(4, other_y).bg,
+                        Color::Rgb(0, 0, 0),
+                        "hover y{y} leaked to y{other_y} at height{height}"
+                    );
+                }
+            }
         }
     }
 }
@@ -95,8 +104,11 @@ fn right_and_l_enter_page_but_enter_stays_navigation() {
         if key == KeyCode::Enter {
             assert_eq!(h.focus(), Some(NAV));
         } else {
-            assert_ne!(h.focus(), Some(NAV));
-            assert!(h.focus().is_some());
+            // Pinned Buttons registers Run task first; index6/7 are disabled.
+            assert_eq!(
+                h.focus(),
+                Some(Id::root("showcase_app::pages::buttons::buttons").index(0))
+            );
         }
     }
 }
@@ -138,4 +150,46 @@ fn pressing_moves_cursor_and_release_elsewhere_does_not_navigate() {
             assert!(h.cell(3, y).modifier.contains(Modifier::BOLD));
         }
     }
+}
+
+#[test]
+fn row_hover_does_not_lift_headers_gaps_or_other_rows() {
+    for height in [24, 30, 31, 40] {
+        let mut h = Harness::new(App::new(), Theme::junie(), 80, height);
+        let hovered_y = if height < 31 { 3 } else { 6 };
+        let _ = h.mouse(MouseKind::Move, 4, hovered_y);
+        for y in 2..height.saturating_sub(2) {
+            if y != hovered_y {
+                assert_eq!(
+                    h.cell(4, y).bg,
+                    Color::Rgb(0, 0, 0),
+                    "hover leakage at height{height} y{y}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn entering_new_route_focuses_run_task_and_skips_disabled_buttons() {
+    let mut h = Harness::new(App::new(), Theme::junie(), 80, 24);
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Right);
+    let buttons = Id::root("showcase_app::pages::buttons::buttons");
+    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(h.focus(), Some(buttons.index(0)));
+    for index in 1..6 {
+        let _ = h.key(KeyCode::Tab);
+        assert_eq!(h.focus(), Some(buttons.index(index)));
+    }
+    let _ = h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(buttons.index(8)));
+}
+
+#[test]
+fn entering_static_overview_keeps_the_only_navigation_stop() {
+    let mut h = Harness::new(App::new(), Theme::junie(), 80, 24);
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(h.app().page(), PageId::Overview);
+    assert_eq!(h.focus(), Some(NAV));
 }

@@ -820,7 +820,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             Family::LIST,
             Variant::DEFAULT,
             Part::CONTAINER,
-            live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
+            live.difference(
+                StateFlags::FOCUSED
+                    | StateFlags::PRESSED
+                    | StateFlags::SELECTED
+                    | StateFlags::HOVERED,
+            ),
         );
         ui.fill(area, container.style);
         let mut y = area.y;
@@ -897,7 +902,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             Family::LIST,
             Variant::DEFAULT,
             Part::HEADER,
-            live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
+            live.difference(
+                StateFlags::FOCUSED
+                    | StateFlags::PRESSED
+                    | StateFlags::SELECTED
+                    | StateFlags::HOVERED,
+            ),
         );
         ui.fill(rect, h.style);
         let inner = Rect {
