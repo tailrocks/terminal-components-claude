@@ -122,7 +122,7 @@ pub enum PlanEffect {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Plan {
+pub struct PlanSpec {
     /// The catalogue action this plan reviews (`docker.cleanup`).
     pub action_id: String,
     pub title: String,
@@ -132,10 +132,108 @@ pub struct Plan {
     pub will_change: String,
     pub steps: Vec<PlanStep>,
     pub effect: Option<PlanEffect>,
-    pub ran: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Plan {
+    /// The catalogue action this plan reviews (`docker.cleanup`).
+    action_id: String,
+    title: String,
+    host: String,
+    /// The gate-2 typed phrase, bound to the target host.
+    phrase: String,
+    will_change: String,
+    steps: Vec<PlanStep>,
+    effect: Option<PlanEffect>,
+    ran: bool,
+}
+
+/// Invalid plan declarations and review transitions fail before execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlanError {
+    DuplicateId,
+    InvalidDependency,
+    InvalidInitialState,
+    MissingStep,
+    AlreadyRan,
+    RequiredStep(String),
+}
+
+impl std::fmt::Display for PlanError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DuplicateId => f.write_str("plan step IDs must be unique and nonempty"),
+            Self::InvalidDependency => f.write_str("plan dependencies must name earlier steps"),
+            Self::InvalidInitialState => f.write_str("plan contains an invalid initial step state"),
+            Self::MissingStep => f.write_str("plan step no longer exists"),
+            Self::AlreadyRan => f.write_str("plan already ran"),
+            Self::RequiredStep(title) => write!(f, "{title} is required · cannot exclude"),
+        }
+    }
+}
+impl std::error::Error for PlanError {}
+
 impl Plan {
+    /// Validate a declaration-ordered DAG before it can enter review.
+    ///
+    /// # Errors
+    /// Rejects duplicate/empty IDs, non-earlier dependencies, and pre-executed
+    /// states. Earlier-only edges guarantee acyclic, bounded traversal.
+    pub fn try_new(spec: PlanSpec) -> Result<Self, PlanError> {
+        let mut ids = std::collections::BTreeSet::new();
+        for (index, step) in spec.steps.iter().enumerate() {
+            if step.id.is_empty() || !ids.insert(&step.id) {
+                return Err(PlanError::DuplicateId);
+            }
+            if step.deps.iter().any(|&dependency| dependency >= index) {
+                return Err(PlanError::InvalidDependency);
+            }
+            if !matches!(
+                step.state,
+                StepState::Pending | StepState::Excluded | StepState::PolicySkipped(_)
+            ) || (!step.optional && step.state == StepState::Excluded)
+                || (step.optional && matches!(step.state, StepState::PolicySkipped(_)))
+            {
+                return Err(PlanError::InvalidInitialState);
+            }
+        }
+        Ok(Self {
+            action_id: spec.action_id,
+            title: spec.title,
+            host: spec.host,
+            phrase: spec.phrase,
+            will_change: spec.will_change,
+            steps: spec.steps,
+            effect: spec.effect,
+            ran: false,
+        })
+    }
+
+    pub fn action_id(&self) -> &str {
+        &self.action_id
+    }
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+    pub fn phrase(&self) -> &str {
+        &self.phrase
+    }
+    pub fn will_change(&self) -> &str {
+        &self.will_change
+    }
+    pub fn steps(&self) -> &[PlanStep] {
+        &self.steps
+    }
+    pub fn ran(&self) -> bool {
+        self.ran
+    }
+    pub(crate) fn effect(&self) -> Option<&PlanEffect> {
+        self.effect.as_ref()
+    }
+
     /// Included = not excluded and not policy-skipped.
     pub fn included_count(&self) -> usize {
         self.steps
@@ -147,27 +245,29 @@ impl Plan {
     /// The first excluded dependency of a pending step, if any — the
     /// recalculated consequence a reviewer sees before running anything.
     pub fn blocked_by_exclusion(&self, i: usize) -> Option<String> {
-        if !matches!(self.steps[i].state, StepState::Pending) {
+        if !matches!(self.steps.get(i)?.state, StepState::Pending) {
             return None;
+        }
+        let mut blocked = vec![false; i + 1];
+        for (index, step) in self.steps.iter().take(i + 1).enumerate() {
+            blocked[index] = matches!(step.state, StepState::Excluded)
+                || step.deps.iter().any(|&dependency| blocked[dependency]);
         }
         self.steps[i]
             .deps
             .iter()
-            .find(|&&d| {
-                matches!(self.steps[d].state, StepState::Excluded)
-                    || self.blocked_by_exclusion(d).is_some()
-            })
-            .map(|&d| self.steps[d].title.clone())
+            .find(|&&dependency| blocked[dependency])
+            .map(|&dependency| self.steps[dependency].title.clone())
     }
 
     /// Space on a row: toggle exclusion of an optional, not-yet-run step.
-    pub fn toggle(&mut self, i: usize) -> Result<String, String> {
-        let s = &self.steps[i];
+    pub fn toggle(&mut self, i: usize) -> Result<String, PlanError> {
+        let s = self.steps.get(i).ok_or(PlanError::MissingStep)?;
         if self.ran {
-            return Err("plan already ran".into());
+            return Err(PlanError::AlreadyRan);
         }
         if !s.optional {
-            return Err(format!("{} is required · cannot exclude", s.title));
+            return Err(PlanError::RequiredStep(s.title.clone()));
         }
         let s = &mut self.steps[i];
         s.state = if matches!(s.state, StepState::Excluded) {
@@ -183,7 +283,10 @@ impl Plan {
 
     /// Deterministic execution in declaration order (deps are always
     /// earlier indexes). A failure or skip propagates to dependents.
-    pub fn run(&mut self) {
+    pub(crate) fn run(&mut self) -> Result<(), PlanError> {
+        if self.ran {
+            return Err(PlanError::AlreadyRan);
+        }
         self.ran = true;
         for i in 0..self.steps.len() {
             if !matches!(self.steps[i].state, StepState::Pending) {
@@ -192,12 +295,10 @@ impl Plan {
                 }
                 continue;
             }
-            let bad_dep = self.steps[i].deps.iter().find(|&&d| {
-                matches!(
-                    self.steps[d].state,
-                    StepState::Failed(_) | StepState::Skipped(_)
-                )
-            });
+            let bad_dep = self.steps[i]
+                .deps
+                .iter()
+                .find(|&&d| !matches!(self.steps[d].state, StepState::Succeeded));
             if let Some(&d) = bad_dep {
                 let dep = self.steps[d].title.clone();
                 self.steps[i].state = StepState::Skipped(format!("needs {dep}"));
@@ -215,6 +316,7 @@ impl Plan {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn summary(&self) -> String {
@@ -256,7 +358,7 @@ mod tests {
     use super::*;
 
     fn dag() -> Plan {
-        Plan {
+        Plan::try_new(PlanSpec {
             action_id: "test".into(),
             title: "Test plan".into(),
             host: "devbox".into(),
@@ -269,8 +371,8 @@ mod tests {
                 PlanStep::new("d", "Parallel", "par", "other", &[0]),
             ],
             effect: None,
-            ran: false,
-        }
+        })
+        .unwrap()
     }
 
     #[test]
@@ -294,10 +396,86 @@ mod tests {
     fn failure_propagates_but_parallel_branch_runs() {
         let mut p = dag();
         p.steps[1].fails = Some("boom".into());
-        p.run();
+        p.run().unwrap();
         assert!(matches!(p.steps[1].state, StepState::Failed(_)));
         assert_eq!(p.steps[2].state, StepState::Skipped("needs Mutate".into()));
         assert_eq!(p.steps[3].state, StepState::Succeeded);
         assert_eq!(p.summary(), "2 succeeded · 1 failed · 1 skipped");
+    }
+    fn specification(steps: Vec<PlanStep>) -> PlanSpec {
+        PlanSpec {
+            action_id: "test".into(),
+            title: "test".into(),
+            host: "devbox".into(),
+            phrase: "CONFIRM".into(),
+            will_change: "fixture".into(),
+            steps,
+            effect: None,
+        }
+    }
+
+    #[test]
+    fn invalid_dag_declarations_are_rejected_without_execution() {
+        for deps in [vec![0], vec![1], vec![999]] {
+            assert_eq!(
+                Plan::try_new(specification(vec![PlanStep::new(
+                    "a", "A", "a", "a", &deps
+                )]))
+                .unwrap_err(),
+                PlanError::InvalidDependency
+            );
+        }
+        let cycle = vec![
+            PlanStep::new("a", "A", "a", "a", &[1]),
+            PlanStep::new("b", "B", "b", "b", &[0]),
+        ];
+        assert_eq!(
+            Plan::try_new(specification(cycle)).unwrap_err(),
+            PlanError::InvalidDependency
+        );
+        let duplicates = vec![
+            PlanStep::new("a", "A", "a", "a", &[]),
+            PlanStep::new("a", "B", "b", "b", &[0]),
+        ];
+        assert_eq!(
+            Plan::try_new(specification(duplicates)).unwrap_err(),
+            PlanError::DuplicateId
+        );
+    }
+
+    #[test]
+    fn policy_skipped_dependency_never_authorizes_effect() {
+        let steps = vec![
+            PlanStep::new("a", "A", "a", "a", &[]).policy_skipped("policy"),
+            PlanStep::new("b", "B", "b", "b", &[0]),
+            PlanStep::new("c", "C", "c", "c", &[]),
+        ];
+        let mut plan = Plan::try_new(specification(steps)).unwrap();
+        plan.run().unwrap();
+        assert_eq!(plan.steps()[1].state, StepState::Skipped("needs A".into()));
+        assert_eq!(plan.steps()[2].state, StepState::Succeeded);
+        let complete = plan.clone();
+        assert_eq!(plan.run(), Err(PlanError::AlreadyRan));
+        assert_eq!(plan, complete);
+    }
+
+    #[test]
+    fn absent_review_row_returns_error_and_recalculation_is_bounded() {
+        let mut plan = dag();
+        assert_eq!(plan.toggle(999), Err(PlanError::MissingStep));
+        assert_eq!(plan.blocked_by_exclusion(999), None);
+        let mut steps = vec![PlanStep::new("root", "Root", "inspect", "root", &[])];
+        for index in 1..10_000 {
+            steps.push(PlanStep::new(
+                &index.to_string(),
+                "Step",
+                "fixture",
+                "chain",
+                &[index - 1],
+            ));
+        }
+        let mut plan = Plan::try_new(specification(steps)).unwrap();
+        plan.toggle(0).unwrap();
+        assert_eq!(plan.blocked_by_exclusion(9_999).as_deref(), Some("Step"));
     }
 }

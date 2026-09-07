@@ -92,6 +92,8 @@ pub enum Msg {
 }
 
 pub struct World {
+    /// Monotonic simulation commit revision; never rendered or driven by ticks.
+    pub(crate) effect_revision: u64,
     pub scenario: Scenario,
     pub clock: Clock,
     pub host: Host,
@@ -114,6 +116,7 @@ pub struct World {
 impl World {
     pub fn new(scenario: Scenario, host: Host, cwd: &str) -> Self {
         Self {
+            effect_revision: 0,
             scenario,
             clock: Clock::new(),
             host,

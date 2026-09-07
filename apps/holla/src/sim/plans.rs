@@ -7,33 +7,202 @@ use crate::domain::disk::Freshness;
 use crate::domain::docker::{ContainerState, Health};
 use crate::domain::human_bytes;
 use crate::domain::mise::ToolState;
-use crate::domain::plan::{Plan, PlanEffect, PlanStep, StepState};
+use crate::domain::plan::{Plan, PlanEffect, PlanSpec, PlanStep, StepState};
 use crate::sim::world::World;
 
+/// A review bound to the exact simulated host and effect target facts.
+/// It cannot be cloned, reconstructed from UI fields, or executed twice.
+pub struct ReviewedPlan {
+    plan: Plan,
+    target: TargetSnapshot,
+}
+
+impl ReviewedPlan {
+    fn new(plan: Plan, world: &World) -> Self {
+        let target = TargetSnapshot::capture(&plan, world);
+        Self { plan, target }
+    }
+
+    pub fn plan(&self) -> &Plan {
+        &self.plan
+    }
+
+    pub fn toggle(&mut self, index: usize) -> Result<String, crate::domain::plan::PlanError> {
+        self.plan.toggle(index)
+    }
+
+    /// Bind an exact typed confirmation to this review and current target.
+    ///
+    /// # Errors
+    /// Refuses a wrong phrase, an already-consumed review or changed target.
+    /// The phrase is never retained or included in the error.
+    pub fn approve<'a>(
+        &'a mut self,
+        phrase: &str,
+        world: &World,
+    ) -> Result<Approval<'a>, ApprovalError> {
+        self.validate(world)?;
+        if phrase != self.plan.phrase() {
+            return Err(ApprovalError::WrongPhrase);
+        }
+        Ok(Approval { review: self })
+    }
+
+    fn validate(&self, world: &World) -> Result<(), ApprovalError> {
+        if self.plan.ran() {
+            return Err(ApprovalError::AlreadyConsumed);
+        }
+        if self.target != TargetSnapshot::capture(&self.plan, world) {
+            return Err(ApprovalError::StaleTarget);
+        }
+        Ok(())
+    }
+}
+
+/// Exclusive, one-use permission to apply this in-memory simulation.
+/// Dropping approval cancels it without running or consuming the review.
+pub struct Approval<'a> {
+    review: &'a mut ReviewedPlan,
+}
+
+impl Approval<'_> {
+    /// Revalidate immediately before running and applying deterministic effects.
+    ///
+    /// # Errors
+    /// A changed target refuses the whole run with no model mutation. Successful
+    /// execution consumes the review even when fixture steps fail partway.
+    pub fn execute(self, world: &mut World) -> Result<EffectReport, ApprovalError> {
+        self.review.validate(world)?;
+        let next_revision = world
+            .effect_revision
+            .checked_add(1)
+            .ok_or(ApprovalError::RevisionExhausted)?;
+        self.review
+            .plan
+            .run()
+            .map_err(|_| ApprovalError::AlreadyConsumed)?;
+        apply_effect(&self.review.plan, world);
+        world.effect_revision = next_revision;
+        let steps = self.review.plan.steps();
+        Ok(EffectReport {
+            succeeded: steps
+                .iter()
+                .filter(|s| s.state == StepState::Succeeded)
+                .count(),
+            failed: steps
+                .iter()
+                .filter(|s| matches!(s.state, StepState::Failed(_)))
+                .count(),
+            skipped: steps
+                .iter()
+                .filter(|s| matches!(s.state, StepState::Skipped(_) | StepState::PolicySkipped(_)))
+                .count(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EffectReport {
+    pub succeeded: usize,
+    pub failed: usize,
+    pub skipped: usize,
+}
+
+/// Failure codes never contain typed confirmation text or target payloads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApprovalError {
+    WrongPhrase,
+    StaleTarget,
+    AlreadyConsumed,
+    RevisionExhausted,
+}
+
+impl std::fmt::Display for ApprovalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::WrongPhrase => "confirmation does not match the reviewed target",
+            Self::StaleTarget => "target changed · review a new plan",
+            Self::AlreadyConsumed => "plan already ran",
+            Self::RevisionExhausted => "simulation revision exhausted",
+        })
+    }
+}
+impl std::error::Error for ApprovalError {}
+
+// Only effect-relevant facts participate; discovery time and unrelated UI
+// activity cannot invalidate a review. Exact value comparison detects direct
+// fixture edits, while the revision detects intervening simulated commits.
+#[derive(PartialEq, Eq)]
+struct TargetSnapshot {
+    host: (
+        String,
+        crate::domain::host::HostKind,
+        crate::domain::host::Environment,
+    ),
+    cwd: String,
+    revision: u64,
+    data: TargetData,
+}
+
+#[derive(PartialEq, Eq)]
+enum TargetData {
+    Docker(Option<crate::domain::docker::DockerState>),
+    Disk(Option<crate::domain::disk::DiskState>),
+    Git(Option<crate::domain::git::GitRepo>),
+    Upgrade(
+        Option<crate::domain::debian::DebianState>,
+        Option<crate::domain::mise::MiseState>,
+    ),
+    None,
+}
+
+impl TargetSnapshot {
+    fn capture(plan: &Plan, world: &World) -> Self {
+        let data = match plan.effect() {
+            Some(PlanEffect::DockerCleanup | PlanEffect::RestartContainer(_)) => {
+                TargetData::Docker(world.docker.clone())
+            }
+            Some(PlanEffect::DiskReclaim) => TargetData::Disk(world.disk.clone()),
+            Some(PlanEffect::GitSync) => TargetData::Git(world.git.clone()),
+            Some(PlanEffect::DebianUpgraded) => {
+                TargetData::Upgrade(world.debian.clone(), world.mise.clone())
+            }
+            None => TargetData::None,
+        };
+        Self {
+            host: (world.host.name.clone(), world.host.kind, world.host.env),
+            cwd: world.cwd.clone(),
+            revision: world.effect_revision,
+            data,
+        }
+    }
+}
+
 /// The plan behind a Broad action, if this world has one.
-pub fn plan_for(w: &World, action_id: &str) -> Option<Plan> {
-    match action_id {
+pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
+    let plan = match action_id {
         "docker.cleanup" => docker_cleanup(w),
         "disk.reclaim" => disk_reclaim(w),
         "debian.upgrade" => debian_upgrade(w),
         "git.sync" => git_sync(w),
         id if id.starts_with("docker.restart:") => restart_service(w, &id[15..]),
         _ => None,
-    }
+    }?;
+    Some(ReviewedPlan::new(plan, w))
 }
 
 /// Apply the honest effect of a finished plan to the world.
-pub fn apply_effect(plan: &Plan, w: &mut World) {
-    if !plan.ran {
+fn apply_effect(plan: &Plan, w: &mut World) {
+    if !plan.ran() {
         return;
     }
     let succeeded = |id: &str| {
-        plan.steps
+        plan.steps()
             .iter()
             .find(|s| s.id == id)
             .is_some_and(|s| matches!(s.state, StepState::Succeeded))
     };
-    match &plan.effect {
+    match &plan.effect() {
         Some(PlanEffect::RestartContainer(name)) => {
             if succeeded("restart")
                 && let Some(d) = &mut w.docker
@@ -56,7 +225,7 @@ pub fn apply_effect(plan: &Plan, w: &mut World) {
                     .map(|c| c.name.clone())
                     .collect()
             } else if plan
-                .steps
+                .steps()
                 .iter()
                 .any(|s| s.id == "containers" && matches!(s.state, StepState::Failed(_)))
             {
@@ -76,7 +245,7 @@ pub fn apply_effect(plan: &Plan, w: &mut World) {
         Some(PlanEffect::DiskReclaim) => {
             let Some(disk) = &mut w.disk else { return };
             let freed: Vec<String> = plan
-                .steps
+                .steps()
                 .iter()
                 .filter(|s| s.id.starts_with("rm:") && matches!(s.state, StepState::Succeeded))
                 .map(|s| s.id[3..].to_owned())
@@ -244,7 +413,7 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
             "reclaimable recounted · next scan is honest",
         ]),
     ];
-    Some(Plan {
+    Plan::try_new(PlanSpec {
         action_id: "docker.cleanup".into(),
         title: "Clean up Docker data".into(),
         phrase: format!("REMOVE ALL DOCKER DATA ON {host}"),
@@ -255,8 +424,8 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
         host,
         steps,
         effect: Some(PlanEffect::DockerCleanup),
-        ran: false,
     })
+    .ok()
 }
 
 /// Disk reclaim: one removal step per inactive/unknown candidate; artifacts
@@ -311,7 +480,7 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
         .filter(|c| !matches!(c.freshness, Freshness::ActiveToday))
         .map(|c| c.size_bytes)
         .sum();
-    Some(Plan {
+    Plan::try_new(PlanSpec {
         action_id: "disk.reclaim".into(),
         title: "Reclaim disk space".into(),
         phrase: format!("DELETE GENERATED ARTIFACTS ON {host}"),
@@ -322,8 +491,8 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
         host,
         steps,
         effect: Some(PlanEffect::DiskReclaim),
-        ran: false,
     })
+    .ok()
 }
 
 /// Upgrade everything on a Debian host: apt branch and mise branch in
@@ -435,7 +604,7 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
             "reboot still required · schedule separately",
         ]),
     ];
-    Some(Plan {
+    Plan::try_new(PlanSpec {
         action_id: "debian.upgrade".into(),
         title: "Upgrade everything on this host".into(),
         phrase: format!("I UNDERSTAND: UPGRADE EVERYTHING ON {host}"),
@@ -448,8 +617,8 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
         host,
         steps,
         effect: Some(PlanEffect::DebianUpgraded),
-        ran: false,
     })
+    .ok()
 }
 
 /// Update every nested child repo: one fetch→checkout-primary→pull chain
@@ -546,7 +715,7 @@ fn git_sync(w: &World) -> Option<Plan> {
         steps.push(pull);
     }
     let behind_total: u32 = git.children.iter().map(|c| c.behind).sum();
-    Some(Plan {
+    Plan::try_new(PlanSpec {
         action_id: "git.sync".into(),
         title: "Update all child projects".into(),
         phrase: format!("UPDATE ALL CHILD PROJECTS IN {}", git.root),
@@ -558,8 +727,7 @@ fn git_sync(w: &World) -> Option<Plan> {
         host,
         steps,
         effect: Some(PlanEffect::GitSync),
-        ran: false,
-    })
+    }).ok()
 }
 
 /// Restart one unhealthy service: inspect → restart → verify. On a
@@ -601,7 +769,7 @@ fn restart_service(w: &World, name: &str) -> Option<Plan> {
         .required()
         .lines(&[&format!("{name}  up 4 seconds (healthy)")]),
     ];
-    Some(Plan {
+    Plan::try_new(PlanSpec {
         action_id: format!("docker.restart:{name}"),
         title: format!("Restart {name}"),
         phrase: format!("RESTART {} ON {}", name.to_uppercase(), host),
@@ -612,8 +780,8 @@ fn restart_service(w: &World, name: &str) -> Option<Plan> {
         host,
         steps,
         effect: Some(PlanEffect::RestartContainer(name.into())),
-        ran: false,
     })
+    .ok()
 }
 
 fn basename(path: &str) -> &str {
@@ -637,12 +805,12 @@ mod tests {
     fn docker_plan_binds_phrase_and_propagates_failure() {
         let mut w = settled(Scenario::DockerCleanup);
         let mut p = plan_for(&w, "docker.cleanup").unwrap();
-        assert_eq!(p.phrase, "REMOVE ALL DOCKER DATA ON devbox");
-        p.run();
-        assert!(matches!(p.steps[1].state, StepState::Failed(_)));
-        assert!(matches!(p.steps[2].state, StepState::Skipped(_)));
-        assert!(matches!(p.steps[4].state, StepState::Succeeded));
-        apply_effect(&p, &mut w);
+        assert_eq!(p.plan().phrase(), "REMOVE ALL DOCKER DATA ON devbox");
+        let phrase = p.plan().phrase().to_owned();
+        p.approve(&phrase, &w).unwrap().execute(&mut w).unwrap();
+        assert!(matches!(p.plan().steps()[1].state, StepState::Failed(_)));
+        assert!(matches!(p.plan().steps()[2].state, StepState::Skipped(_)));
+        assert!(matches!(p.plan().steps()[4].state, StepState::Succeeded));
         let d = w.docker.unwrap();
         assert_eq!(d.build_cache_bytes, 0);
         assert!(d.containers.iter().any(|c| c.name == "payments-old"));
@@ -653,14 +821,24 @@ mod tests {
     fn debian_plan_has_parallel_branches_and_policy_phrase() {
         let mut w = settled(Scenario::UpgradePlan);
         let mut p = plan_for(&w, "debian.upgrade").unwrap();
-        assert_eq!(p.phrase, "I UNDERSTAND: UPGRADE EVERYTHING ON devbox-deb");
+        assert_eq!(
+            p.plan().phrase(),
+            "I UNDERSTAND: UPGRADE EVERYTHING ON devbox-deb"
+        );
         p.toggle(2).unwrap(); // exclude Apply upgrades
-        assert!(p.blocked_by_exclusion(3).is_some(), "autoremove blocked");
-        assert!(p.blocked_by_exclusion(6).is_some(), "verify blocked");
-        assert_eq!(p.blocked_by_exclusion(5), None, "mise branch parallel");
-        p.run();
-        assert!(matches!(p.steps[5].state, StepState::Succeeded));
-        apply_effect(&p, &mut w);
+        assert!(
+            p.plan().blocked_by_exclusion(3).is_some(),
+            "autoremove blocked"
+        );
+        assert!(p.plan().blocked_by_exclusion(6).is_some(), "verify blocked");
+        assert_eq!(
+            p.plan().blocked_by_exclusion(5),
+            None,
+            "mise branch parallel"
+        );
+        let phrase = p.plan().phrase().to_owned();
+        p.approve(&phrase, &w).unwrap().execute(&mut w).unwrap();
+        assert!(matches!(p.plan().steps()[5].state, StepState::Succeeded));
         assert_eq!(w.debian.as_ref().unwrap().pending, 47, "apt not applied");
         let mise = w.mise.as_ref().unwrap();
         assert!(
@@ -674,9 +852,9 @@ mod tests {
     fn restart_phrase_uses_uppercase_service_and_host() {
         let mut w = settled(Scenario::RemoteHost);
         let mut p = plan_for(&w, "docker.restart:payments").unwrap();
-        assert_eq!(p.phrase, "RESTART PAYMENTS ON prod-eu-1");
-        p.run();
-        apply_effect(&p, &mut w);
+        assert_eq!(p.plan().phrase(), "RESTART PAYMENTS ON prod-eu-1");
+        let phrase = p.plan().phrase().to_owned();
+        p.approve(&phrase, &w).unwrap().execute(&mut w).unwrap();
         let d = w.docker.as_ref().unwrap();
         assert!(d.unhealthy().is_empty());
     }
@@ -685,12 +863,112 @@ mod tests {
     fn disk_plan_policy_skips_active_today() {
         let w = settled(Scenario::DiskCleanup);
         let p = plan_for(&w, "disk.reclaim").unwrap();
-        assert_eq!(p.phrase, "DELETE GENERATED ARTIFACTS ON devbox");
+        assert_eq!(p.plan().phrase(), "DELETE GENERATED ARTIFACTS ON devbox");
         let active = p
-            .steps
+            .plan()
+            .steps()
             .iter()
             .find(|s| matches!(s.state, StepState::PolicySkipped(_)))
             .unwrap();
         assert!(active.title.contains("node_modules"));
+    }
+    #[test]
+    fn approval_revalidates_target_after_phrase_before_any_effect() {
+        let mut world = settled(Scenario::DiskCleanup);
+        let mut review = plan_for(&world, "disk.reclaim").unwrap();
+        let phrase = review.plan().phrase().to_owned();
+        let approval = review.approve(&phrase, &world).unwrap();
+        world.disk.as_mut().unwrap().candidates[0].freshness = Freshness::ActiveToday;
+        let before = world.disk.clone();
+        assert_eq!(
+            approval.execute(&mut world),
+            Err(ApprovalError::StaleTarget)
+        );
+        assert_eq!(world.disk, before);
+        assert!(!review.plan().ran());
+        assert_eq!(world.effect_revision, 0);
+    }
+
+    #[test]
+    fn approval_checks_phrase_host_and_revision_without_consuming_review() {
+        let mut world = settled(Scenario::RemoteHost);
+        let mut review = plan_for(&world, "docker.restart:payments").unwrap();
+        assert!(matches!(
+            review.approve("wrong", &world),
+            Err(ApprovalError::WrongPhrase)
+        ));
+        let phrase = review.plan().phrase().to_owned();
+        let old_host = world.host.clone();
+        world.host.env = crate::domain::host::Environment::Local;
+        assert!(matches!(
+            review.approve(&phrase, &world),
+            Err(ApprovalError::StaleTarget)
+        ));
+        world.host = old_host;
+        world.effect_revision += 1;
+        assert!(matches!(
+            review.approve(&phrase, &world),
+            Err(ApprovalError::StaleTarget)
+        ));
+        assert!(!review.plan().ran());
+    }
+
+    #[test]
+    fn successful_and_partially_failed_reviews_are_one_shot() {
+        for (scenario, action, expected_failures) in [
+            (Scenario::RemoteHost, "docker.restart:payments", 0),
+            (Scenario::DockerCleanup, "docker.cleanup", 1),
+        ] {
+            let mut world = settled(scenario);
+            let mut review = plan_for(&world, action).unwrap();
+            let phrase = review.plan().phrase().to_owned();
+            let report = review
+                .approve(&phrase, &world)
+                .unwrap()
+                .execute(&mut world)
+                .unwrap();
+            assert_eq!(report.failed, expected_failures);
+            let after = world.docker.clone();
+            assert!(matches!(
+                review.approve(&phrase, &world),
+                Err(ApprovalError::AlreadyConsumed)
+            ));
+            assert_eq!(world.docker, after);
+            assert_eq!(world.effect_revision, 1);
+            assert!(review.plan().ran());
+        }
+    }
+
+    #[test]
+    fn cancel_approval_keeps_world_and_review_unchanged() {
+        let mut world = settled(Scenario::DockerCleanup);
+        let mut review = plan_for(&world, "docker.cleanup").unwrap();
+        let before = world.docker.clone();
+        let phrase = review.plan().phrase().to_owned();
+        {
+            let _approval = review.approve(&phrase, &world).unwrap();
+        }
+        assert_eq!(world.docker, before);
+        assert!(!review.plan().ran());
+        world.tick(1000);
+        assert!(
+            review.approve(&phrase, &world).is_ok(),
+            "elapsed discovery time is not a target change"
+        );
+    }
+
+    #[test]
+    fn approval_refuses_revision_exhaustion_before_running() {
+        let mut world = settled(Scenario::DockerCleanup);
+        world.effect_revision = u64::MAX;
+        let mut review = plan_for(&world, "docker.cleanup").unwrap();
+        let before = world.docker.clone();
+        let phrase = review.plan().phrase().to_owned();
+        assert_eq!(
+            review.approve(&phrase, &world).unwrap().execute(&mut world),
+            Err(ApprovalError::RevisionExhausted)
+        );
+        assert_eq!(world.docker, before);
+        assert!(!review.plan().ran());
     }
 }
