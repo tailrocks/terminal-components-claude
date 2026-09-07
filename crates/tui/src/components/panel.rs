@@ -36,14 +36,14 @@ pub enum PanelKind {
 /// selects the bordered pane.
 ///
 /// ## Ownership
-/// The caller owns the title and the meta text (`&'a str`) and the
+/// The caller owns the title, meta and badge text (`&'a str`) and the
 /// `focused` predicate. `Panel` is stateless (§3: no `PanelState`) and the
 /// runtime owns nothing on its behalf beyond the decorative hit regions
 /// `draw` registers.
 ///
 /// ## Configuration
 /// `.kind(PanelKind)` (`Card`), `.title(&str)` (none), `.meta(&str)`
-/// (none), `.focused(bool)` (`false`), `.patch`, `.patch_part`, `.slot`,
+/// (none), `.badge(&str)` (none), `.focused(bool)` (`false`), `.patch`, `.patch_part`, `.slot`,
 /// reference fixtures use [`Ui::reference`](crate::Ui::reference).
 ///
 /// ## Variants
@@ -89,11 +89,12 @@ pub enum PanelKind {
 ///
 /// ## Parts
 /// `CONTAINER` (the fill), `GUTTER` (the container focus bar), `TITLE`,
-/// `DETAIL` (the right-aligned meta), `BORDER` (framed only).
+/// `DETAIL` (the right-aligned meta), `BADGE` (padded, before meta),
+/// `BORDER` (framed only).
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach every part. `.slot` is honoured for
-/// `Part::GUTTER`, `Part::TITLE`, `Part::DETAIL` and `Part::BORDER`.
+/// `Part::GUTTER`, `Part::TITLE`, `Part::DETAIL`, `Part::BADGE` and `Part::BORDER`.
 /// `Part::CONTAINER` is **not** slot-addressable: it is the plane the
 /// panel pushes and the body inherits, so replacing it would leave the
 /// content painted against a surface nothing filled.
@@ -114,6 +115,7 @@ pub struct Panel<'a> {
     kind: PanelKind,
     title: Option<&'a str>,
     meta: Option<&'a str>,
+    badge: Option<&'a str>,
     focused: bool,
     ov: PartStyle<'a>,
 }
@@ -125,6 +127,7 @@ impl fmt::Debug for Panel<'_> {
             .field("kind", &self.kind)
             .field("title", &self.title)
             .field("meta", &self.meta)
+            .field("badge", &self.badge)
             .field("focused", &self.focused)
             .field("overrides", &self.ov)
             .finish()
@@ -138,6 +141,7 @@ impl<'a> Panel<'a> {
         Part::GUTTER,
         Part::TITLE,
         Part::DETAIL,
+        Part::BADGE,
         Part::BORDER,
     ];
 
@@ -148,6 +152,7 @@ impl<'a> Panel<'a> {
             kind: PanelKind::Card,
             title: None,
             meta: None,
+            badge: None,
             focused: false,
             ov: PartStyle::new(),
         }
@@ -176,6 +181,16 @@ impl<'a> Panel<'a> {
     #[must_use]
     pub const fn meta(mut self, m: &'a str) -> Self {
         self.meta = Some(m);
+        self
+    }
+
+    /// A padded badge before the right-aligned metadata, styled by `Part::BADGE`.
+    ///
+    /// Empty badges are absent. A badge is hidden when its complete text,
+    /// padding and gaps cannot fit alongside the title and metadata.
+    #[must_use]
+    pub const fn badge(mut self, text: &'a str) -> Self {
+        self.badge = if text.is_empty() { None } else { Some(text) };
         self
     }
 
@@ -286,6 +301,19 @@ impl<'a> Panel<'a> {
             .saturating_add(meta_w)
             .saturating_add(u16::from(meta_w != 0))
             .saturating_add(2);
+        let head = self.badge.map_or(head, |badge| {
+            // Head starts two cells in and ends before the corner. Each
+            // framed text run reserves its existing border padding.
+            title_w
+                .saturating_add(meta_w)
+                .saturating_add(crate::text::width(badge))
+                .saturating_add(7)
+                .saturating_add(if self.kind == PanelKind::Framed {
+                    1u16.saturating_add(2u16.saturating_mul(u16::from(self.meta.is_some())))
+                } else {
+                    0
+                })
+        });
         Size {
             min: (chrome_w.saturating_add(1), chrome_h.saturating_add(1)),
             preferred: (
@@ -343,6 +371,37 @@ impl<'a> Panel<'a> {
         self.head(ui, area, live, container.style);
     }
 
+    fn draw_badge(&self, ui: &mut Ui<'_>, rect: Rect, live: StateFlags) {
+        let Some(text) = self.badge.filter(|_| !rect.is_empty()) else {
+            return;
+        };
+        let style = self.ov.style(
+            ui,
+            self.id,
+            Family::PANEL,
+            Variant::DEFAULT,
+            Part::BADGE,
+            live,
+        );
+        ui.with_area(rect, |ui| {
+            if let Some(paint) = self.ov.slot_for(Part::BADGE) {
+                paint(ui, rect);
+            } else {
+                ui.fill(rect, style.over(ui.surface_style()));
+                ui.paint_str(
+                    Rect::new(
+                        rect.x.saturating_add(1),
+                        rect.y,
+                        rect.width.saturating_sub(2),
+                        1,
+                    ),
+                    text,
+                    style.style,
+                );
+            }
+        });
+    }
+
     /// The head row: focus gutter, title, right-aligned meta.
     fn head(
         &self,
@@ -384,6 +443,28 @@ impl<'a> Panel<'a> {
             if want < span_w { want } else { 0 }
         });
         let title_room = span_w.saturating_sub(meta_block);
+        let badge_block = self.badge.map_or(0, |badge| {
+            let block = crate::text::width(badge).saturating_add(3);
+            let title = self.title.map_or(0, crate::text::width).saturating_add(pad);
+            if title.saturating_add(block).saturating_add(1) <= title_room {
+                block
+            } else {
+                0
+            }
+        });
+        self.draw_badge(
+            ui,
+            Rect::new(
+                text_x
+                    .saturating_add(title_room)
+                    .saturating_sub(badge_block),
+                head.y,
+                badge_block.saturating_sub(1),
+                1,
+            ),
+            live,
+        );
+        let title_room = title_room.saturating_sub(badge_block);
         if let Some(t) = self.title {
             let avail = title_room.saturating_sub(pad);
             let rect = Rect {
@@ -404,7 +485,10 @@ impl<'a> Panel<'a> {
             }
         }
         if let (Some(m), true) = (self.meta, meta_block > 0) {
-            let x = text_x.saturating_add(title_room).saturating_add(pad);
+            let x = text_x
+                .saturating_add(title_room)
+                .saturating_add(badge_block)
+                .saturating_add(pad);
             let rect = Rect {
                 x,
                 y: head.y,
@@ -651,6 +735,7 @@ mod tests {
                     .kind(PanelKind::Framed)
                     .title("Files")
                     .meta("12")
+                    .badge("EDIT")
                     .focused(true);
                 if patched.is_some() {
                     p = p.patch_part(&ps);
@@ -694,6 +779,7 @@ mod tests {
                     .kind(PanelKind::Framed)
                     .title("Files")
                     .meta("12")
+                    .badge("EDIT")
                     .focused(true);
                 if let Some(part) = slot {
                     p = p.slot(part, &marker);
@@ -704,7 +790,13 @@ mod tests {
         };
         let plain = render(None);
         // documented as slot-addressable
-        for part in [Part::GUTTER, Part::TITLE, Part::DETAIL, Part::BORDER] {
+        for part in [
+            Part::GUTTER,
+            Part::TITLE,
+            Part::DETAIL,
+            Part::BADGE,
+            Part::BORDER,
+        ] {
             assert_ne!(
                 render(Some(part)),
                 plain,
