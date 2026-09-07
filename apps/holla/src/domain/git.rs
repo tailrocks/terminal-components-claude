@@ -1,0 +1,130 @@
+//! git: one repository's truth. Dirty/ahead/behind/diverged/detached are all
+//! first-class; the primary branch is resolved per repo, never hard-coded.
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Worktree {
+    pub path: String,
+    pub branch: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitRepo {
+    pub root: String,
+    /// `None` when detached; `detached_sha` then carries the commit.
+    pub branch: Option<String>,
+    pub detached_sha: Option<String>,
+    pub upstream: Option<String>,
+    pub ahead: u32,
+    pub behind: u32,
+    pub modified: u32,
+    pub staged: u32,
+    pub untracked: u32,
+    /// Resolved primary branch for THIS repo (`trunk`, `main`, …).
+    pub primary_branch: String,
+    pub worktrees: Vec<Worktree>,
+    /// Submodules: children tracked by this repo.
+    pub submodules: Vec<String>,
+    /// Nested independent repositories that are NOT submodules — each a
+    /// full repo so bulk plans resolve per-child primary branches.
+    pub children: Vec<GitRepo>,
+}
+
+impl GitRepo {
+    pub fn dirty(&self) -> bool {
+        self.modified + self.staged + self.untracked > 0
+    }
+
+    pub fn detached(&self) -> bool {
+        self.branch.is_none()
+    }
+
+    pub fn diverged(&self) -> bool {
+        self.ahead > 0 && self.behind > 0
+    }
+
+    /// Short truth for reasons: `3 commits behind`, `4 modified files`.
+    pub fn summary(&self) -> Vec<String> {
+        let mut out = vec![];
+        if self.detached() {
+            out.push(format!(
+                "detached at {}",
+                self.detached_sha.as_deref().unwrap_or("?")
+            ));
+        }
+        if self.diverged() {
+            out.push(format!(
+                "diverged · {} ahead, {} behind",
+                self.ahead, self.behind
+            ));
+        } else if self.behind > 0 {
+            out.push(format!(
+                "branch is {} {} behind",
+                self.behind,
+                if self.behind == 1 {
+                    "commit"
+                } else {
+                    "commits"
+                }
+            ));
+        } else if self.ahead > 0 {
+            out.push(format!("{} ahead", self.ahead));
+        }
+        if self.modified > 0 {
+            out.push(format!(
+                "{} modified {}",
+                self.modified,
+                if self.modified == 1 { "file" } else { "files" }
+            ));
+        }
+        if self.staged > 0 {
+            out.push(format!("{} staged", self.staged));
+        }
+        if self.untracked > 0 {
+            out.push(format!("{} untracked", self.untracked));
+        }
+        if out.is_empty() {
+            out.push("working tree clean".to_owned());
+        }
+        out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn repo() -> GitRepo {
+        GitRepo {
+            root: "~/x".into(),
+            branch: Some("b".into()),
+            detached_sha: None,
+            upstream: None,
+            ahead: 0,
+            behind: 0,
+            modified: 0,
+            staged: 0,
+            untracked: 0,
+            primary_branch: "trunk".into(),
+            worktrees: vec![],
+            submodules: vec![],
+            children: vec![],
+        }
+    }
+
+    #[test]
+    fn summary_names_diverged_and_detached() {
+        let mut r = repo();
+        r.ahead = 2;
+        r.behind = 3;
+        assert!(r.diverged());
+        assert_eq!(r.summary()[0], "diverged · 2 ahead, 3 behind");
+
+        let mut r = repo();
+        r.branch = None;
+        r.detached_sha = Some("9f3a21c".into());
+        assert!(r.detached());
+        assert_eq!(r.summary()[0], "detached at 9f3a21c");
+
+        assert_eq!(repo().summary()[0], "working tree clean");
+    }
+}
