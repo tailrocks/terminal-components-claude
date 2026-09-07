@@ -106,8 +106,9 @@ pub use wizard::{Wizard, WizardAction, WizardCmd, WizardState, WizardStep};
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Style;
 
-use crate::id::Id;
-use crate::theme::GlyphRole;
+use crate::id::{Id, Part, PartRef};
+use crate::response::StateFlags;
+use crate::theme::{Family, GlyphRole, Surface, Variant};
 use crate::ui::Ui;
 
 pub(crate) use crate::author::PartStyle;
@@ -115,6 +116,45 @@ pub(crate) use crate::author::PartStyle;
 /// A replaced part: the component keeps layout, hit registration, focus and
 /// state; the closure paints the part's rect.
 pub(crate) type SlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect);
+
+/// Paint overlay chrome without taking ownership of placement or modality.
+/// The content runs exactly once, including under an empty clip when there
+/// is no drawable area. Surface and clipping scopes cannot escape the call.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "chrome keeps the component's surface and two authored state channels explicit"
+)]
+pub(crate) fn overlay_chrome<R>(
+    ui: &mut Ui<'_>,
+    id: Id,
+    area: Rect,
+    family: Family,
+    surface: Surface,
+    ov: PartStyle<'_>,
+    live: StateFlags,
+    border_live: StateFlags,
+    body: impl FnOnce(&mut Ui<'_>, Rect) -> R,
+) -> R {
+    ui.with_surface(surface, |ui| {
+        if area.is_empty() {
+            return ui.with_area(area, |ui| body(ui, area));
+        }
+        let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
+        ui.fill(area, container.style);
+        let border = ov.style(
+            ui,
+            id,
+            family,
+            Variant::DEFAULT,
+            Part::BORDER,
+            live | border_live,
+        );
+        let inner = ui.frame(area, border.style);
+        ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
+        ui.register_decor(id, PartRef::of(Part::BORDER), area);
+        ui.with_area(inner, |ui| body(ui, inner))
+    })
+}
 
 /// The first row of `area`, or an empty rect.
 pub(crate) const fn first_row(area: Rect) -> Rect {
