@@ -976,6 +976,9 @@ impl<A: App> Runtime<A> {
             if let Some(new) = to {
                 self.intents.focus_in(new, via);
             }
+            // A deferred traversal can leave a popover. Its semantic lifecycle
+            // belongs to this update, not to the draw that resolved the target.
+            self.dismiss_on_focus_out(to);
         }
         self.pump_layer_events();
         let mut key_input = None;
@@ -1152,8 +1155,20 @@ impl<A: App> Runtime<A> {
         // an `initial_focus` (§16.2 case 17: a component stays focused under
         // a popover and its cursor write is rejected)
         let previous = self.focus.current();
-        let reconciled = self.frame.ring.reconcile(&self.last.ring, previous);
+        let reconciled = if let Some(request) = self.services.deferred_focus.take() {
+            if request
+                .anchor
+                .is_some_and(|id| self.frame.ring.contains(id))
+            {
+                self.frame.ring.next(request.anchor)
+            } else {
+                self.frame.ring.reconcile(&self.last.ring, request.anchor)
+            }
+        } else {
+            self.frame.ring.reconcile(&self.last.ring, previous)
+        };
         core::mem::swap(&mut self.last.ring, &mut self.frame.ring);
+        let reconciled = reconciled.filter(|id| self.focus_target_admissible(*id));
         if reconciled != previous {
             let via = if self
                 .staged_focus

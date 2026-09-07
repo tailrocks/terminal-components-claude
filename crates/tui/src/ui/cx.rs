@@ -151,6 +151,12 @@ pub trait FrameRead {
     fn layout(&self, id: Id) -> Option<LayoutFacts>;
 }
 
+/// A semantic traversal whose target must come from the next frame's ring.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct DeferredFocus {
+    pub(crate) anchor: Option<Id>,
+}
+
 /// Mutable services `Cx` exposes; owned by the runtime.
 #[derive(Debug, Default)]
 pub(crate) struct FrameServices {
@@ -158,6 +164,7 @@ pub(crate) struct FrameServices {
     pub(crate) capture: CaptureSlot,
     pub(crate) events: Vec<(Id, LayerEvent)>,
     pub(crate) focus_request: Option<Id>,
+    pub(crate) deferred_focus: Option<DeferredFocus>,
     pub(crate) repaint: bool,
     pub(crate) repaint_after: Option<Duration>,
     pub(crate) quit: bool,
@@ -297,7 +304,27 @@ impl<'f> Cx<'f> {
 
     /// Stage a focus transition (applied after this pass, §3.3 step 7).
     pub fn focus(&mut self, id: Id) {
+        self.services.deferred_focus = None;
         self.services.focus_request = Some(id);
+    }
+
+    /// Focus the next reachable control in the next drawn frame.
+    ///
+    /// The current logical focus owner anchors traversal. This lets navigation
+    /// change a route and enter its content without inspecting the old focus
+    /// ring or naming the new page's first control. Traversal wraps and skips
+    /// disabled controls, respecting the new frame's active modal trap. If the
+    /// anchor disappears, ordinary nearest-survivor focus reconciliation applies.
+    ///
+    /// Requests repaint even when the update returns an ignored response. The
+    /// last call to `focus` or `focus_next` wins; focus notifications are delivered
+    /// by the next update after drawing, never by the painter itself.
+    pub fn focus_next(&mut self) {
+        self.services.focus_request = None;
+        self.services.deferred_focus = Some(DeferredFocus {
+            anchor: self.last.snapshot.focus,
+        });
+        self.services.repaint = true;
     }
 
     /// Ask for a repaint regardless of the returned `Response`.
@@ -368,7 +395,7 @@ impl<'f> Cx<'f> {
         if self.services.layers.open(id, spec, restore).is_some()
             && let Some(f) = spec.initial_focus
         {
-            self.services.focus_request = Some(f);
+            self.focus(f);
         }
     }
 
