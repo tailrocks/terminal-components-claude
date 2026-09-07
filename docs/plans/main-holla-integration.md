@@ -139,3 +139,33 @@ slices. The original dirty checkout and pinned reference remain untouched.
 The user reinforced parallel execution: always delegate independent bounded work
 to subagents. Keep one writer per owned path, separate worktrees and build targets,
 and independent review of committed candidates. Root retains integration ownership.
+
+## Checkpoint: initialization and Holla workspace integration
+
+Integrated/pushed slices: `493eacc` explicit initialization (root 12 focused tests
+pass); `52c9eed` independently reviewed Jackin CLI (root 3 parser + 5 process
+tests pass); Holla pure domain `2d1989a`, bounded seek `6be420e`, target-bound
+one-shot approval `00075c6`, Cargo library wiring `9f57ed6`, policy memory
+`0a00bd0`, and reviewed Unicode/usage corrections `217c43b`. Root Holla tests:
+35 pass stable/MSRV before memory, 45 pass stable after memory. Workspace wiring
+exposes inherited visibility/dead-code lint failures (197 warnings after private
+module wiring); owner is narrowing internal visibility without blanket suppression.
+No Holla executable or screens exist yet; this is partial migration, not completion.
+
+Theme commit `73a5ee9` was not integrated: root review found additional ambient
+style-provenance failures, independently reproduced by its owner. A typed
+`PaintStyle` carrier is approved as the structural replacement; raw Style cannot
+recover semantic roles from equal RGB values. Theme owner has theme/ui/author/
+collection and component files; runtime owner must defer component test edits
+until this ownership is released. Showcase/Jackin painter migration runs separately.
+TablePro guarded quit owner also owns its query state and pending-row accounting;
+cloned active result versus stored tab result remains a separately tracked cause
+of data loss, not waived by counting both in the guard.
+
+Runtime publication Slice B runs separately: exclusive painted-frame guard,
+commit after successful presentation, owned pending input, explicit settlement,
+and one input per compatible frame. Absolute monotonic time and explicit CLI
+color policy remain next shared dependencies. Tool repair has completed full
+feature/default-free visual matrices; a newly reproduced last-column physical
+cursor defect has a separate narrow engine correction under independent review.
+The exact tool commit will be pinned only after that review and final qualification.
