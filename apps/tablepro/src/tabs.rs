@@ -157,7 +157,7 @@ impl TableTab {
 }
 
 /// Query editor tab.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct QueryTab {
     /// Stable identity in the workbench tab strip.
     pub key: TabKey,
@@ -167,6 +167,8 @@ pub struct QueryTab {
     pub name: String,
     /// SQL text.
     pub query: String,
+    /// Last saved editor text; executing a query does not save it.
+    pub saved_text: String,
     /// Last result, when successful.
     pub result: Option<ResultGrid>,
     /// Last execution error.
@@ -177,6 +179,22 @@ pub struct QueryTab {
     pub running: bool,
 }
 
+impl core::fmt::Debug for QueryTab {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("QueryTab")
+            .field("key", &self.key)
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("query", &"[redacted]")
+            .field("saved_text", &"[redacted]")
+            .field("has_result", &self.result.is_some())
+            .field("has_error", &self.error.is_some())
+            .field("has_plan", &self.plan.is_some())
+            .field("running", &self.running)
+            .finish()
+    }
+}
+
 impl QueryTab {
     /// New empty query tab.
     pub fn new(id: usize, query: impl Into<String>) -> Self {
@@ -185,11 +203,13 @@ impl QueryTab {
 
     /// Build a query tab with a caller-assigned stable identity.
     pub fn with_key(key: TabKey, id: usize, query: impl Into<String>) -> Self {
+        let query = query.into();
         Self {
             key,
             id,
             name: format!("Query {id}"),
-            query: query.into(),
+            saved_text: query.clone(),
+            query,
             result: None,
             error: None,
             plan: None,
@@ -229,7 +249,7 @@ impl QueryTab {
     }
     /// Whether the editor has changed text since its last saved copy.
     pub fn dirty(&self) -> bool {
-        self.query.is_empty() || self.result.is_none()
+        self.query != self.saved_text
     }
 }
 

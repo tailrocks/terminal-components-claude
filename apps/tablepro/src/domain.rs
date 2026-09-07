@@ -407,12 +407,23 @@ impl ResultGrid {
         &self.pending
     }
 
-    /// Number of pending row inserts/deletes and cell updates.
+    /// Number of pending row updates, inserts and deletes.
+    /// Multiple changed cells in one existing row form one update.
     pub fn pending_total(&self) -> usize {
         self.pending
-            .dirty_rows()
-            .len()
-            .saturating_add(self.pending.dirty_cell_count())
+            .current
+            .iter()
+            .enumerate()
+            .map(|(row, cells)| {
+                if self.pending.is_inserted(row) {
+                    1
+                } else {
+                    usize::from(self.pending.is_deleted(row)).saturating_add(usize::from(
+                        (0..cells.len()).any(|col| self.pending.is_dirty(row, col)),
+                    ))
+                }
+            })
+            .sum()
     }
 
     /// Insert a row with typed NULL/default values.

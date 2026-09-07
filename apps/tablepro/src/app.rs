@@ -1,12 +1,12 @@
 //! `TablePro` application shell built only on the public `junie-tui` facade.
 
 use junie_tui::{
-    Action, ActionKey, App, Chord, Color, Cx, FgStep, Field, Focusability, Form, FormAction,
-    FormState, FrameRead, Grid, GridAction, GridEditor, GridState, Id, Intent, ItemKey, KeyCode,
-    KeyMap, KeyModifiers, KeyPhase, Modifier, NodeKind, Panel, PanelKind, Part, Phase, Response,
-    Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction,
-    TabsState, TextInput, TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState, Ui,
-    UpdateCause, wrap,
+    Action, ActionKey, App, Chord, Color, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
+    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridState,
+    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
+    Panel, PanelKind, Part, Phase, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane,
+    SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme,
+    Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -31,6 +31,12 @@ const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const RUN: ActionKey = ActionKey::custom("tablepro.run");
 const QUIT: ActionKey = ActionKey::custom("tablepro.quit");
+const CANCEL_OR_QUIT: ActionKey = ActionKey::custom("tablepro.cancel-or-quit");
+const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
+const QUIT_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Quit"),
+];
 const OPEN: ActionKey = ActionKey::custom("tablepro.open");
 const NEW_QUERY: ActionKey = ActionKey::custom("tablepro.new-query");
 const HISTORY: ActionKey = ActionKey::custom("tablepro.history");
@@ -196,17 +202,31 @@ impl Surface {
     }
 }
 
-fn keymap() -> KeyMap {
+fn quit_keymap() -> KeyMap {
     KeyMap::new()
         .bind(
             KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
-            RUN,
+            Chord::with(KeyCode::Char('q'), KeyModifiers::NONE),
+            QUIT,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('c'), KeyModifiers::CONTROL),
+            CANCEL_OR_QUIT,
         )
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('q'), KeyModifiers::CONTROL),
             QUIT,
+        )
+}
+
+fn keymap() -> KeyMap {
+    quit_keymap()
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
+            RUN,
         )
         .bind(
             KeyPhase::Bubble,
@@ -322,6 +342,8 @@ pub struct TableProApp {
     grid_state: GridState,
     status: String,
     quit: bool,
+    quit_question: Option<String>,
+    quit_state: DialogState,
     /// Current product screen.
     pub screen: Screen,
     /// Current visual matrix surface.
@@ -361,6 +383,8 @@ impl core::fmt::Debug for TableProApp {
             .field("grid_state", &"<grid state>")
             .field("status", &self.status)
             .field("quit", &self.quit)
+            .field("quit_question", &self.quit_question)
+            .field("quit_state", &self.quit_state)
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -417,6 +441,8 @@ impl TableProApp {
             grid_state: GridState::default(),
             status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
             quit: false,
+            quit_question: None,
+            quit_state: DialogState::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -970,6 +996,82 @@ impl TableProApp {
             }
             GridAction::Moved | GridAction::LeaveForward | GridAction::LeaveBackward => {}
         }
+    }
+
+    fn quit_dialog(question: &str) -> Dialog<'_> {
+        Dialog::destructive(QUIT_DIALOG, "Quit TablePro?", question).actions(&QUIT_ACTIONS)
+    }
+
+    fn request_quit(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.quit || cx.top_layer() != LayerId::PAGE {
+            return Response::consumed();
+        }
+        let mut pending: usize = 0;
+        let mut dirty_queries: usize = 0;
+        if self.screen == Screen::Workbench {
+            for (index, tab) in self.workbench.tabs.iter().enumerate() {
+                match tab {
+                    Tab::Table(tab) => {
+                        // The active editor currently owns a separate adapter. Count
+                        // its live draft without committing it merely to ask for exit.
+                        let changes = if index == self.workbench.active && !tab.is_structure() {
+                            self.result.pending_total()
+                        } else {
+                            tab.result.pending_total()
+                        };
+                        pending = pending.saturating_add(changes);
+                    }
+                    Tab::Query(tab) => {
+                        let dirty = if index == self.workbench.active {
+                            self.query_state.draft_text().unwrap_or(&self.query) != tab.saved_text
+                        } else {
+                            tab.dirty()
+                        };
+                        dirty_queries = dirty_queries.saturating_add(usize::from(dirty));
+                    }
+                    Tab::History(_) => {}
+                }
+            }
+        }
+        if pending == 0 && dirty_queries == 0 {
+            self.quit = true;
+            cx.quit();
+            return Response::consumed();
+        }
+        let mut parts = Vec::with_capacity(2);
+        if pending > 0 {
+            parts.push(format!(
+                "{pending} pending row change{}",
+                if pending == 1 { "" } else { "s" }
+            ));
+        }
+        if dirty_queries > 0 {
+            parts.push(format!(
+                "{dirty_queries} unsaved quer{}",
+                if dirty_queries == 1 { "y" } else { "ies" }
+            ));
+        }
+        let question = format!("{} will be lost.", parts.join(" and "));
+        cx.open_layer(QUIT_DIALOG, Self::quit_dialog(&question).layer(cx));
+        self.quit_question = Some(question);
+        Response::changed()
+    }
+
+    fn update_quit_dialog(&mut self, cx: &mut Cx<'_>) -> Option<Response<()>> {
+        let question = self.quit_question.as_deref()?;
+        let response = Self::quit_dialog(question).update(cx, &mut self.quit_state);
+        if let Some(action) = response.action_ref() {
+            if matches!(action, DialogAction::Action(ActionKey::CONFIRM))
+                && cx.is_open(QUIT_DIALOG)
+                && !self.quit
+            {
+                self.quit = true;
+                cx.quit();
+            }
+            cx.close_layer(QUIT_DIALOG, None);
+            self.quit_question = None;
+        }
+        Some(response.erase())
     }
 
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
@@ -2141,6 +2243,9 @@ impl App for TableProApp {
         reason = "update keeps public component routing and product command arbitration in one phase"
     )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if let Some(response) = self.update_quit_dialog(cx) {
+            return response;
+        }
         let mut response = Response::ignored();
         // Stateless props have no update method, but their factories remain
         // the single source of configuration for both runtime phases.
@@ -2155,9 +2260,20 @@ impl App for TableProApp {
         {
             match command {
                 c if c == QUIT => {
-                    self.quit = true;
-                    cx.quit();
-                    response |= Response::consumed();
+                    return self.request_quit(cx);
+                }
+                c if c == CANCEL_OR_QUIT => {
+                    if cx.top_layer() != LayerId::PAGE {
+                        return Response::consumed();
+                    }
+                    if let Some(Tab::Query(query)) = self.workbench.active_mut()
+                        && query.running
+                    {
+                        query.running = false;
+                        "Query cancelled".clone_into(&mut self.status);
+                        return Response::changed();
+                    }
+                    return self.request_quit(cx);
                 }
                 c if c == RUN => {
                     self.commit_query_edit();
@@ -2378,6 +2494,11 @@ impl App for TableProApp {
             }
         }
         draw_footer(ui, rows[2], self);
+        if let Some(question) = self.quit_question.as_deref() {
+            ui.layer(QUIT_DIALOG, |ui, area| {
+                Self::quit_dialog(question).draw(ui, area, &self.quit_state, |_, _| {});
+            });
+        }
     }
     fn should_quit(&self) -> bool {
         self.quit
