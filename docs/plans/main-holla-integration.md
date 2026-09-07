@@ -41,7 +41,7 @@ Current scouts are read-only against source; each owns its external report folde
 | Task | Requirements | Owner | Dependency | Current state |
 |---|---|---|---|---|
 | T01 Pin sources, isolate, preserve dirty work | §1–2 | integrator | none | verified |
-| T02 Exhaustive history/obligation map | §3 | history_audit | T01 | two-document history independently verified; Holla/DESIGN review finishing |
+| T02 Exhaustive history/obligation map | §3 | history_audit | T01 | two-document history independently verified; Holla/DESIGN semantic review complete |
 | T03 Baseline health/artifact inventory | §4, §8–9 | baseline_gates + integrator | T01 | investigating |
 | T04 Missing dialog chrome repair | §5 | integrator | baseline reproduction | implemented/reviewed/scoped verified fa99577; Panel follow-up ec7c965 |
 | T05 Runtime/time/identity/layout foundation | §5 | runtime_audit, then builder | T02, T03 | auditing |

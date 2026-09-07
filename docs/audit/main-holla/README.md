@@ -8,9 +8,9 @@ resumable work order is `docs/plans/main-holla-integration.md`.
 
 Local external paths in reports locate this execution's immutable evidence.
 Source-derived test inventories are explicitly separate from Cargo execution.
-Initial audits are bounded. Exhaustive semantic-history and Holla reviews are
-continuing in the external history/holla folders and will supersede their
-explicit partial-review notes when fully checked and integrated.
+Initial audits are bounded. Completed exhaustive semantic-history reports in
+history/ and holla-semantic-review.md supersede their initial partial-review
+notes. Runtime-proposal.md remains a design proposal, not implemented API.
 
 All source findings need production reproducers and acceptance proof. In
 particular, a green old digest does not prove Holla parity, and reference safety

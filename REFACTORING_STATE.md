@@ -2084,7 +2084,8 @@ required. No main reset, tree replacement, baseline blessing or merge occurred.
 - Runtime audit proposes explicit monotonic time/lifecycle/presented geometry;
   integrator retains sole shared runtime write ownership. No runtime replacement
   yet. Foundation must precede dependent time/interaction migrations.
-- Holla exhaustive branch/prose/DESIGN review finishing externally. Source
+- Holla exhaustive branch/prose/DESIGN review completed; semantic report and
+  hashes copied to docs/audit/main-holla. Source
   findings include confirmation target/risk bypasses in reference simulations;
   they need narrow reproduced, tested, independently reviewed corrections.
 - All app/component restoration, Holla migration, full tool qualification,
