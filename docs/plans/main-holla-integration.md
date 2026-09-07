@@ -41,9 +41,9 @@ Current scouts are read-only against source; each owns its external report folde
 | Task | Requirements | Owner | Dependency | Current state |
 |---|---|---|---|---|
 | T01 Pin sources, isolate, preserve dirty work | §1–2 | integrator | none | verified |
-| T02 Exhaustive history/obligation map | §3 | history_audit | T01 | investigating |
+| T02 Exhaustive history/obligation map | §3 | history_audit | T01 | two-document history independently verified; Holla/DESIGN review finishing |
 | T03 Baseline health/artifact inventory | §4, §8–9 | baseline_gates + integrator | T01 | investigating |
-| T04 Missing dialog chrome repair | §5 | integrator | baseline reproduction | reproducing |
+| T04 Missing dialog chrome repair | §5 | integrator | baseline reproduction | implemented/reviewed/scoped verified fa99577; Panel follow-up ec7c965 |
 | T05 Runtime/time/identity/layout foundation | §5 | runtime_audit, then builder | T02, T03 | auditing |
 | T06 Theme/components/customization/public core | §6 | components_contract, then builder | T02, T05 | auditing |
 | T07 Showcase 22 pages and shell | §7 Showcase | showcase_contract, then builder | T05–6 | auditing |
@@ -80,3 +80,13 @@ Green library tests, text-only screenshots, plausible source, and old reports do
 not prove the requested outcome. Every requirement needs current authoritative
 evidence on the resolved candidate and then exact merged commit. The full goal
 remains active until all requirements are proven; main has not been merged.
+
+## Latest evidence and next slice
+
+See REFACTORING_STATE.md, final checkpoint 2026-09-08, for exact committed
+repairs, measured failures, current ownership and outstanding work. Full goal
+remains unchanged. Initial source audits are copied under docs/audit/main-holla;
+raw logs, captures, patches and hash manifests remain separate external evidence.
+The sidebar real-process reproducer now confirms the predicted wrong hit target.
+The next implementation slice restores shared compact NavList geometry while
+runtime lifecycle/time contracts are settled independently.

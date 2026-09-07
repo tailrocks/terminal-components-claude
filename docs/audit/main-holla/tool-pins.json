@@ -1,0 +1,17 @@
+{
+  "tui-snap": {
+    "repository": "https://github.com/donbeave/tui-snap",
+    "revision": "5036cf87e621e6beb66deffe3224abdbefc955cb",
+    "package": "tuisnap",
+    "version": "0.2.0"
+  },
+  "tui-test": {
+    "repository": "https://github.com/microsoft/tui-test",
+    "revision": "2d5f8020ba6eb77b9c4da38892c2f6f200311b90",
+    "package": "tui-test-cli",
+    "version": "0.1.0-beta.3",
+    "rust_version": "1.90",
+    "build_zig": "0.16.0"
+  },
+  "policy": "Tool builds remain outside the Rust 1.88 workspace. Pinning and smoke evidence do not constitute full qualification."
+}

@@ -1,0 +1,1337 @@
+{
+  "main_base": "c12cad8728755cd2d03eefdd8e02891143fca86d",
+  "reference": "794b095c196562d38f1b6f7ce379c128af2a023d",
+  "components": [
+    {
+      "module": "brand",
+      "path": "crates/tui/src/components/brand.rs",
+      "public_types": [
+        "Brand"
+      ],
+      "parts": [
+        "LABEL",
+        "META"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "mono_pressed_brand_keeps_the_lockup_padding",
+        "only_a_clickable_lockup_registers_a_click_only_control_and_a_label_part",
+        "only_a_clickable_lockup_emits_activated_on_a_click",
+        "a_slot_changes_painted_cells_for_exactly_label_and_meta",
+        "only_a_clickable_lockup_lifts_to_accent_hover_under_the_pointer"
+      ]
+    },
+    {
+      "module": "button",
+      "path": "crates/tui/src/components/button.rs",
+      "public_types": [
+        "ButtonCmd",
+        "Button"
+      ],
+      "parts": [
+        "CONTAINER",
+        "GUTTER",
+        "LABEL",
+        "ICON",
+        "MARKER"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "checked_painting_comes_only_from_the_controlled_prop",
+        "mono_pressed_does_not_truncate_the_label",
+        "pressed_button_stays_inside_narrow_clip_bounds",
+        "readiness_owns_one_leading_lane_and_keeps_the_toggle_marker",
+        "autofocus_fires_once_and_never_takes_focus_back",
+        "a_disabled_autofocus_button_never_takes_focus",
+        "a_pointer_move_without_a_hover_transition_does_not_repaint"
+      ]
+    },
+    {
+      "module": "chip",
+      "path": "crates/tui/src/components/chip.rs",
+      "public_types": [
+        "ChipBarAction",
+        "ChipBarCmd",
+        "LabelChips",
+        "ChipBarState",
+        "ChipBar"
+      ],
+      "parts": [
+        "CONTAINER",
+        "MARKER",
+        "LABEL",
+        "CLOSE",
+        "OVERFLOW",
+        "NEW"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "add_affordance_emits_add_requested_by_keyboard_and_mouse",
+        "add_affordance_cannot_collide_with_item_identity",
+        "chip_bar_parts_are_exact",
+        "custom_row_meta_paints_without_joining_chip_bar_parts",
+        "chip_label_patch_changes_label_but_not_row_meta",
+        "a_slot_changes_painted_cells_for_exactly_close_and_overflow",
+        "checked_membership_paints_marker_and_unchecked_stays_blank",
+        "toggle_action_uses_the_items_stable_key",
+        "checked_marker_honours_resolved_glyph_set_and_clear",
+        "checked_marker_paints_the_canonical_truecolor_glyph_in_one_cell",
+        "toggle_and_close_name_the_chip",
+        "the_strip_window_is_keyed_so_a_reordered_chip_stays_addressable",
+        "mono_pressed_brackets_the_reserved_pad_cells",
+        "mono_pressed_closable_chip_keeps_the_close_cell_after_the_bracket"
+      ]
+    },
+    {
+      "module": "choice",
+      "path": "crates/tui/src/components/choice.rs",
+      "public_types": [
+        "RadioGroupAction",
+        "ChoiceCmd",
+        "Checkbox",
+        "Toggle",
+        "LabelRadio",
+        "RadioGroupState",
+        "RadioGroup"
+      ],
+      "parts": [
+        "CONTAINER",
+        "GUTTER",
+        "MARKER",
+        "LABEL"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "checked_painting_comes_only_from_the_checkbox_prop",
+        "checked_painting_comes_only_from_the_toggle_prop",
+        "disabled_update_does_not_initialize_collection_state",
+        "radio_group_separates_cursor_from_value",
+        "radio_group_value_is_controlled_by_the_caller",
+        "radio_group_missing_or_vanished_value_marks_no_option",
+        "selected_painting_comes_only_from_the_controlled_value",
+        "focus_styles_only_the_runtime_cursor_without_selecting_it",
+        "radio_choose_action_uses_the_items_stable_key",
+        "the_radio_marker_is_a_glyph_pair"
+      ]
+    },
+    {
+      "module": "code",
+      "path": "crates/tui/src/components/code.rs",
+      "public_types": [
+        "Highlighter",
+        "Segmenter",
+        "CodeSeverity",
+        "TabBehavior",
+        "CodeDiagnostic",
+        "CodeAction",
+        "CodeCmd",
+        "CodeEditorState",
+        "CodeEditor"
+      ],
+      "parts": [
+        "CONTAINER",
+        "GUTTER",
+        "MARKER",
+        "META",
+        "TEXT",
+        "PLACEHOLDER",
+        "ROW",
+        "QUERY",
+        "DETAIL",
+        "ICON",
+        "TRACK",
+        "THUMB"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "edit_counter_invalidates_the_highlight_cache",
+        "editing_style_comes_only_from_the_real_edit_state",
+        "saturation_never_reuses_stale_highlights",
+        "captured_highlighter_and_segmenter_are_supported",
+        "disabled_highlighting_keeps_the_disabled_text_style",
+        "draw_cannot_commit_or_change_the_state",
+        "find_input_routes_text_backspace_enter_and_escape",
+        "text_hit_coordinates_are_relative_to_the_text_part",
+        "read_only_blocks_document_commands_even_if_state_is_editing",
+        "cursor_is_only_returned_inside_nonempty_text_area"
+      ]
+    },
+    {
+      "module": "completion",
+      "path": "crates/tui/src/components/completion.rs",
+      "public_types": [
+        "CompletionAction",
+        "CompletionCmd",
+        "CompletionState",
+        "CompletionController",
+        "Completion"
+      ],
+      "parts": [
+        "CONTAINER",
+        "BORDER",
+        "GUTTER",
+        "ICON",
+        "ROW",
+        "LABEL",
+        "META",
+        "TRACK",
+        "THUMB",
+        "EMPTY"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "completion_controller_accept_splices_and_dismisses_atomically",
+        "completion_controller_dismisses_on_editor_motion",
+        "distinct_insert_text_is_spliced",
+        "none_insert_uses_label",
+        "focused_editor_down_moves_completion_not_editor",
+        "focused_editor_tab_and_enter_accept_completion",
+        "focused_editor_escape_dismisses_completion",
+        "ordinary_text_remains_owned_by_the_editor",
+        "editor_owned_completion_binding_honours_remap_and_remove",
+        "pressed_part_targets_only_its_popup_row"
+      ]
+    },
+    {
+      "module": "dialog",
+      "path": "crates/tui/src/components/dialog.rs",
+      "public_types": [
+        "DialogAction",
+        "DialogCmd",
+        "DialogState",
+        "Dialog"
+      ],
+      "parts": [
+        "CONTAINER",
+        "BORDER",
+        "TITLE",
+        "DETAIL",
+        "BODY",
+        "ACTIONS",
+        "BACKDROP"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": false,
+      "tests": [
+        "body_is_total_and_clipped_when_the_dialog_cannot_draw",
+        "valid_dialog_preserves_chrome_and_clips_its_body",
+        "convenience_constructors_render_through_the_body_slot",
+        "action_cap_is_shared_by_update_and_draw",
+        "layer_size_is_a_pure_function_of_props_and_design_tokens",
+        "draw_lays_out_against_the_height_it_asked_for",
+        "confirm_is_centred_by_the_resolver_not_by_the_dialog",
+        "a_growing_body_resizes_the_layer_on_the_next_frame",
+        "action_arming_is_evaluated_in_update",
+        "acknowledgement_frame_masks_confirmation_token",
+        "a_prompt_dialog_sizes_its_own_field_row",
+        "caller_owned_prompt_error_is_rendered_by_the_field",
+        "an_unconditional_update_receives_the_dismissal",
+        "action_chord_routes_remaps_removes_and_paints_effective_binding",
+        "a_reference_dialog_registers_no_control",
+        "reference_dialog_targets_one_owned_control_without_broadcasting"
+      ]
+    },
+    {
+      "module": "diff",
+      "path": "crates/tui/src/components/diff.rs",
+      "public_types": [
+        "DiffLineKind",
+        "DiffRow",
+        "DiffSource",
+        "DiffMode",
+        "DiffViewState",
+        "DiffView"
+      ],
+      "parts": [],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "counts_and_headers",
+        "unified_lists_every_line_with_markers",
+        "review_pairs_columns_and_emphasises_the_change",
+        "view_renders_and_scrolls_without_draw_mutation",
+        "source_revision_and_review_width_key_the_runtime_cache",
+        "reference_mode_makes_the_composed_viewport_inert"
+      ]
+    },
+    {
+      "module": "empty",
+      "path": "crates/tui/src/components/empty.rs",
+      "public_types": [
+        "Empty"
+      ],
+      "parts": [
+        "EMPTY",
+        "TITLE",
+        "HELP",
+        "ICON"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "nested_parts_honor_instance_patches",
+        "readiness_reaches_nested_parts"
+      ]
+    },
+    {
+      "module": "field",
+      "path": "crates/tui/src/components/field.rs",
+      "public_types": [
+        "Field"
+      ],
+      "parts": [
+        "CONTAINER",
+        "GUTTER",
+        "LABEL",
+        "MARKER",
+        "FIELD",
+        "HELP"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": false,
+      "tests": [
+        "a_reference_field_registers_no_control"
+      ]
+    },
+    {
+      "module": "filter_list",
+      "path": "crates/tui/src/components/filter_list.rs",
+      "public_types": [
+        "FilterListAction",
+        "FilterListCmd",
+        "FilterListState",
+        "FilterList"
+      ],
+      "parts": [
+        "CONTAINER",
+        "GUTTER",
+        "ROW",
+        "LABEL",
+        "META",
+        "ICON",
+        "TRACK",
+        "THUMB",
+        "EMPTY"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "filters_and_measures_from_semantic_label",
+        "filtering_borrowed_domain_items_reuses_one_index_buffer",
+        "same_key_navigation_reveals_a_reconciled_offscreen_cursor",
+        "readiness_icon_is_declared_and_ready_reserves_no_geometry",
+        "busy_error_and_icon_slot_are_visible"
+      ]
+    },
+    {
+      "module": "form",
+      "path": "crates/tui/src/components/form.rs",
+      "public_types": [
+        "FieldSpan",
+        "GroupKey",
+        "FieldKind",
+        "FieldSpec",
+        "FieldMut",
+        "FieldRef",
+        "FormData",
+        "EnterPolicy",
+        "FormAction",
+        "FormState",
+        "Form"
+      ],
+      "parts": [
+        "CONTAINER",
+        "BODY",
+        "ACTIONS",
+        "HELP",
+        "MARKER",
+        "TRACK",
+        "THUMB"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": false,
+      "tests": [
+        "tab_order_follows_declaration_order_skipping_hidden",
+        "first_draw_registers_fields_before_update_reconciles_state",
+        "hidden_field_registers_no_ring_entry_and_keeps_its_draft",
+        "declaration_reorder_preserves_field_state_by_id",
+        "field_height_is_a_pure_function_of_spec_and_design_tokens",
+        "scroll_reveals_the_focused_field_from_update_not_draw",
+        "submit_commits_the_in_flight_edit_before_validating",
+        "submit_validates_every_visible_field_then_focuses_the_first_error",
+        "submit_skips_hidden_fields_during_validation",
+        "enter_submits_only_when_the_focused_control_is_not_editing",
+        "submit_chord_is_declared_on_the_action_not_baked_in",
+        "dirty_is_set_by_a_commit_not_by_a_keystroke",
+        "chooser_activation_emits_chose_with_the_field_id",
+        "space_stays_child_owned_and_unrelated_intents_stay_ignored",
+        "note_rows_register_only_decorative_regions",
+        "at_most_one_action_per_frame_in_declaration_order",
+        "open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover",
+        "effective_enter_binding_can_be_removed_or_remapped",
+        "form_action_variants_carry_no_value",
+        "zeroize_overwrites_every_secret_draft",
+        "secret_field_frame_masks_even_without_control_policy",
+        "secret_area_frame_is_masked_instead_of_painting_plaintext",
+        "secret_field_errors_are_generic_in_the_frame_and_cleared_on_zeroize",
+        "unreconciled_field_errors_stay_generic_until_sensitivity_is_known",
+        "dynamic_secret_transition_keeps_form_error_generic_until_update",
+        "hidden_dynamic_secret_transition_redacts_error_and_draft",
+        "inactive_dynamic_secret_transition_redacts_error_and_draft",
+        "direct_owner_flip_redacts_rendered_text_before_update",
+        "malformed_dynamic_secret_is_redacted_for_non_text_slots",
+        "malformed_dynamic_secret_error_does_not_reappear_after_downgrade",
+        "resolved_plain_dynamic_text_and_area_errors_stay_generic_after_secret_transition",
+        "secret_validator_error_is_generic_before_form_state_retention",
+        "reconciling_same_shape_secret_fields_redacts_existing_errors",
+        "sensitive_form_state_clone_and_equality_do_not_copy_draft",
+        "form_update_classifies_secret_before_retaining_local_error",
+        "form_reconciles_secret_and_text_values_in_both_directions",
+        "every_declared_field_resolves_a_value",
+        "select_field_options_come_from_form_data",
+        "changing_options_between_frames_does_not_rebuild_props",
+        "state_holds_no_props",
+        "value_and_options_is_a_single_borrow",
+        "dynamic_disabled_state_is_inherited_by_configured_control",
+        "reference_form_registers_no_controls_or_parts_for_any_field_kind",
+        "reference_form_targets_only_one_child",
+        "direct_secret_editing_uses_the_sealed_text_target",
+        "nonclone_secret_path_masks_without_materialising_plaintext"
+      ]
+    },
+    {
+      "module": "grid",
+      "path": "crates/tui/src/components/grid.rs",
+      "public_types": [
+        "ColumnKey",
+        "NavUnit",
+        "CellRef",
+        "CellAction",
+        "EditIntent",
+        "Column",
+        "SortDir",
+        "GridModel",
+        "GridEditor",
+        "GridAction",
+        "GridCmd",
+        "GridState",
+        "Grid"
+      ],
+      "parts": [
+        "CONTAINER",
+        "HEADER",
+        "ROW",
+        "CELL",
+        "TRACK",
+        "THUMB",
+        "OVERFLOW",
+        "EMPTY",
+        "ACTIONS",
+        "TEXT"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "duplicate_column_keys_are_rejected_by_name",
+        "right_header_overflow_reserves_space_before_truncating_the_title",
+        "draw_rejects_duplicate_column_keys",
+        "column_key_num_rejects_the_hashed_range",
+        "column_key_num_keeps_every_number_it_accepts",
+        "numbered_and_named_column_keys_never_meet",
+        "column_key_of_uses_the_shared_custom_fold",
+        "column_key_debug_names_its_range",
+        "an_absent_column_index_has_no_key_rather_than_a_sentinel",
+        "parts_and_slot_contract_are_exact",
+        "grid_has_no_whole_surface_status_configuration",
+        "zero_rows_render_explicit_loading_and_error_empty_states",
+        "slot_surface_equals_the_documented_invariant_r_set",
+        "state_accessors_expose_only_keyed_owned_state",
+        "grid_edit_errors_resolve_plain_sensitivity_but_keep_secret_errors_redacted",
+        "grid_model_only_supports_read_only_update_and_draw",
+        "read_only_f2_never_activates_but_enter_still_does",
+        "explicit_edit_has_no_activation_fallback_for_a_locked_cell",
+        "ragged_holes_remain_navigable_without_cell_hooks",
+        "ragged_hole_resolves_and_fills_cell_patch",
+        "stale_cell_action_intent_rechecks_cell_presence",
+        "cell_alignment_distinguishes_inheritance_from_explicit_left",
+        "model_cell_calls_never_exceed_max_columns",
+        "nonzero_origin_tiny_grid_never_places_a_column_outside_its_area",
+        "oversized_first_column_is_clipped_to_positive_available_width",
+        "oversized_sticky_column_is_clipped_and_hides_nonsticky_columns_truthfully",
+        "variable_ragged_rows_survive_tiny_layout_measure_and_tsv",
+        "sort_is_a_permutation_and_edits_stay_bound_to_the_source_row",
+        "range_copy_is_tsv",
+        "sortable_header_emits_keyed_requests_without_reordering_the_model",
+        "edit_intent_inline_cycle_external_refuse",
+        "update_editable_commits_through_the_editor",
+        "click_inside_an_active_inline_edit_goes_to_the_editor",
+        "read_only_reason_is_rendered_from_a_grid_model",
+        "cell_actions_affordance_is_painted_for_a_read_only_model",
+        "nested_scroll_overrides_and_actions_slot_change_the_declared_parts",
+        "reference_grid_makes_its_nested_scroll_region_inert",
+        "reference_focus_and_press_cannot_fabricate_row_selection",
+        "column_reveal_updates_the_exact_horizontal_offset_reader",
+        "sortable_headers_use_typed_theme_glyphs"
+      ]
+    },
+    {
+      "module": "help",
+      "path": "crates/tui/src/components/help.rs",
+      "public_types": [
+        "HelpSection",
+        "HelpOverlayState",
+        "HelpAction",
+        "HelpCmd",
+        "HelpOverlay"
+      ],
+      "parts": [
+        "CONTAINER",
+        "BORDER",
+        "TITLE",
+        "DETAIL",
+        "HEADER",
+        "KEY",
+        "ACTION",
+        "TRACK",
+        "THUMB"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "sections_consume_the_same_visible_binding_metadata_as_hintbar",
+        "sections_are_distributed_round_robin_without_splitting",
+        "column_count_is_bounded_from_one_to_three"
+      ]
+    },
+    {
+      "module": "hintbar",
+      "path": "crates/tui/src/components/hintbar.rs",
+      "public_types": [
+        "HintBar",
+        "DerivedHintBar"
+      ],
+      "parts": [
+        "CONTAINER",
+        "BADGE",
+        "KEY",
+        "ACTION",
+        "LABEL",
+        "MARKER",
+        "ICON",
+        "OVERFLOW"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "the_topmost_layer_wins_and_the_fallback_is_none",
+        "narrow_rows_drop_hints_from_the_right"
+      ]
+    },
+    {
+      "module": "input",
+      "path": "crates/tui/src/components/input.rs",
+      "public_types": [
+        "BlurPolicy",
+        "EditPhase",
+        "TextAction",
+        "TextCmd",
+        "TextInputState",
+        "TextInput"
+      ],
+      "parts": [
+        "FIELD",
+        "TEXT",
+        "PLACEHOLDER",
+        "MARKER",
+        "GUTTER",
+        "ICON"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "sensitive_constructor_makes_direct_lifecycle_safe",
+        "begin_snapshots_the_value",
+        "commit_writes_the_controlled_value",
+        "commit_runs_validation_once",
+        "cancel_restores_the_snapshot",
+        "blur_commit_and_validate_policy",
+        "blur_cancel_policy",
+        "blur_keep_policy_leaves_the_draft",
+        "secret_blur_keep_policy_leaves_the_draft",
+        "external_error_survives_a_redraw",
+        "sensitive_string_target_replaces_the_old_allocation",
+        "pending_error_is_masked_until_sensitivity_is_reconciled",
+        "editing_style_comes_only_from_the_real_edit_state",
+        "write_mask_is_synthetic",
+        "sensitive_state_clone_keeps_shape_without_copying_draft",
+        "sensitive_state_clone_cannot_commit_redacted_draft",
+        "sensitive_state_equality_ignores_draft_contents",
+        "sensitive_state_masks_when_control_policy_is_removed",
+        "sensitive_validator_error_is_generic_and_not_retained",
+        "byte_offsets_follow_display_columns",
+        "one_trailing_lane_prioritizes_validation_over_status"
+      ]
+    },
+    {
+      "module": "keyhint",
+      "path": "crates/tui/src/components/keyhint.rs",
+      "public_types": [
+        "KeyHint"
+      ],
+      "parts": [
+        "KEY",
+        "ACTION"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "a_slot_changes_painted_cells_for_exactly_key_and_action",
+        "chord_text_renders_without_allocating_and_clips_whole_fragments",
+        "width_is_the_chord_the_gap_and_the_label"
+      ]
+    },
+    {
+      "module": "list",
+      "path": "crates/tui/src/components/list.rs",
+      "public_types": [
+        "ListAction",
+        "ListCmd",
+        "ListState",
+        "List"
+      ],
+      "parts": [
+        "CONTAINER",
+        "ICON",
+        "GUTTER",
+        "MARKER",
+        "LABEL",
+        "META",
+        "TRACK",
+        "THUMB",
+        "EMPTY"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "range_selection_uses_the_anchor",
+        "select_all_selects_only_enabled_items",
+        "readiness_rail_is_conditional_root_owned_and_patchable",
+        "chosen_marker_comes_only_from_semantic_state"
+      ]
+    },
+    {
+      "module": "menu",
+      "path": "crates/tui/src/components/menu.rs",
+      "public_types": [
+        "MenuItem",
+        "Menu",
+        "MenuState",
+        "MenuAction",
+        "MenuCmd",
+        "ContextMenu",
+        "MenuBar"
+      ],
+      "parts": [
+        "CONTAINER",
+        "BORDER",
+        "TITLE",
+        "ROW",
+        "LABEL",
+        "KEY",
+        "MARKER",
+        "RULE"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "keyboard_skips_disabled_and_wraps",
+        "displayed_chord_is_the_handled_chord",
+        "mono_pressed_menu_title_keeps_both_reserved_pads",
+        "submenu_is_typed_and_does_not_emit_parent_action",
+        "move_changes_cursor_but_press_does_not",
+        "menu_bar_closes_live_layer_and_reports_close_when_open_menu_shrinks",
+        "open_menu_bar_registers_only_the_dropdown_control",
+        "dynamic_item_binding_routes_remaps_removes_and_paints_effective_chord"
+      ]
+    },
+    {
+      "module": "meter",
+      "path": "crates/tui/src/components/meter.rs",
+      "public_types": [
+        "MeterTone",
+        "MeterVisual",
+        "Meter"
+      ],
+      "parts": [
+        "TRACK",
+        "THUMB",
+        "LABEL",
+        "ICON"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "tone_follows_the_design_thresholds_not_a_hard_coded_match",
+        "every_tone_names_a_meter_role"
+      ]
+    },
+    {
+      "module": "nav_list",
+      "path": "crates/tui/src/components/nav_list.rs",
+      "public_types": [
+        "BadgeFn",
+        "NavMode",
+        "NavListAction",
+        "NavListCmd",
+        "NavListState",
+        "NavList"
+      ],
+      "parts": [
+        "CONTAINER",
+        "GUTTER",
+        "MARKER",
+        "ICON",
+        "LABEL",
+        "HEADER",
+        "BADGE"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "the_cursor_skips_disabled_entries_in_both_directions",
+        "boundary_commands_are_consumed_without_false_moved_actions",
+        "steady_current_reconciliation_is_constant_time_and_invalidation_repairs_reorder",
+        "right_and_plain_l_enter_content_while_choose_inputs_stay_distinct",
+        "moving_the_cursor_never_navigates",
+        "a_section_heading_is_painted_once_per_change",
+        "the_collapsed_mode_paints_the_icon_and_not_the_label",
+        "empty_sections_are_real_group_sentinels",
+        "renderer_runs_only_for_visible_full_mode_item_rows",
+        "hover_state_belongs_only_to_the_exact_keyed_row",
+        "reference_rendering_registers_no_control_or_row_regions",
+        "selected_style_comes_only_from_the_actual_current_key",
+        "owner_patches_and_badge_slots_do_not_leak_into_row_owned_parts",
+        "slot_scope_is_exact_and_every_allowed_slot_substitutes"
+      ]
+    },
+    {
+      "module": "panel",
+      "path": "crates/tui/src/components/panel.rs",
+      "public_types": [
+        "PanelKind",
+        "Panel"
+      ],
+      "parts": [
+        "CONTAINER",
+        "GUTTER",
+        "TITLE",
+        "DETAIL",
+        "BORDER"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "body_runs_once_for_an_empty_area_and_returns_its_value",
+        "body_paint_is_clipped_to_the_inner_rect",
+        "the_inner_rect_never_escapes_the_panel",
+        "a_framed_head_row_keeps_the_corner_columns",
+        "the_focus_bar_is_painted_from_the_props_and_only_then",
+        "a_panel_registers_no_focus_stop",
+        "a_reference_panel_registers_nothing",
+        "every_declared_part_is_one_a_drawn_panel_styles",
+        "the_slot_addressable_parts_are_exactly_the_documented_ones"
+      ]
+    },
+    {
+      "module": "picker",
+      "path": "crates/tui/src/components/picker.rs",
+      "public_types": [
+        "Item",
+        "AsItem",
+        "ItemRow",
+        "ScopeKey",
+        "PickerAction",
+        "PickerState",
+        "Picker",
+        "CommandPalette"
+      ],
+      "parts": [
+        "CONTAINER",
+        "BORDER",
+        "TITLE",
+        "QUERY",
+        "GUTTER",
+        "ICON",
+        "ROW",
+        "LABEL",
+        "META",
+        "TRACK",
+        "THUMB",
+        "EMPTY"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "domain_item_needs_as_item_not_display",
+        "actions_use_semantic_item_key",
+        "matched_indices_are_original_grapheme_ordinals",
+        "query_change_emits_query_changed"
+      ]
+    },
+    {
+      "module": "picker_chain",
+      "path": "crates/tui/src/components/picker_chain.rs",
+      "public_types": [
+        "PickerStage",
+        "PickerChainAction",
+        "PickerChainCmd",
+        "PickerChainState",
+        "PickerChain"
+      ],
+      "parts": [
+        "CONTAINER",
+        "HEADER",
+        "LABEL",
+        "BODY",
+        "HELP",
+        "ICON"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "back_one_step_preserves_the_breadcrumb",
+        "readiness_icon_is_declared_and_chain_owned",
+        "icon_patch_and_slot_reach_the_computed_prefix_cell",
+        "earlier_crumb_and_error_retry_are_root_owned_keyed_parts",
+        "action_surface_is_only_back_and_retry"
+      ]
+    },
+    {
+      "module": "progress",
+      "path": "crates/tui/src/components/progress.rs",
+      "public_types": [
+        "ProgressBar",
+        "Spinner"
+      ],
+      "parts": [
+        "LABEL",
+        "TRACK",
+        "THUMB",
+        "META",
+        "ICON"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "percentages_format_without_allocating",
+        "the_indeterminate_sweep_crosses_the_track_and_stays_inside_it",
+        "a_determinate_span_starts_at_zero_and_rounds",
+        "a_done_bar_reaches_the_checked_recipe_rule"
+      ]
+    },
+    {
+      "module": "props",
+      "path": "crates/tui/src/components/props.rs",
+      "public_types": [
+        "PropsValue",
+        "PropsRow",
+        "PropsAction",
+        "PropsCmd",
+        "PropsState",
+        "PropsList",
+        "Props"
+      ],
+      "parts": [
+        "CONTAINER",
+        "META",
+        "LABEL",
+        "ROW",
+        "TRACK",
+        "THUMB"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "rows_preserve_keyed_borrowed_semantic_metadata",
+        "secret_rows_are_masked_redacted_and_non_copyable",
+        "copy_is_keyed_and_reached_by_keyboard_and_mouse_runtime_intents",
+        "reconcile_tracks_a_stable_key_across_reorder",
+        "copy_resolves_the_cursor_by_key_after_same_length_reorder",
+        "only_the_cursor_row_receives_focus_flags",
+        "mono_pressed_brackets_the_existing_column_gap",
+        "track_and_thumb_slots_are_forwarded_independently"
+      ]
+    },
+    {
+      "module": "scroll_region",
+      "path": "crates/tui/src/components/scroll_region.rs",
+      "public_types": [
+        "ScrollRegion"
+      ],
+      "parts": [
+        "TRACK",
+        "THUMB",
+        "CONTAINER"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "thumb_drag_preserves_the_grab_offset",
+        "scrollbar_paints_typed_begin_and_end_caps",
+        "a_reference_scroll_region_registers_nothing",
+        "owner_state_never_leaks_into_the_scrollbar",
+        "direct_reference_press_targets_only_the_thumb",
+        "container_patch_paints_even_without_overflow",
+        "slot_addressable_parts_are_exactly_track_and_thumb"
+      ]
+    },
+    {
+      "module": "select",
+      "path": "crates/tui/src/components/select.rs",
+      "public_types": [
+        "SelectAction",
+        "SelectCmd",
+        "LabelSelect",
+        "SelectState",
+        "Select"
+      ],
+      "parts": [
+        "FIELD",
+        "GUTTER",
+        "LABEL",
+        "PLACEHOLDER",
+        "MARKER",
+        "ROW",
+        "TRACK",
+        "THUMB",
+        "EMPTY"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "an_open_popup_closes_when_focus_leaves_the_field",
+        "open_popup_paints_exactly_one_chosen_marker",
+        "escape_closes_and_restores_the_cursor",
+        "arrows_move_the_cursor_not_the_value_while_closed",
+        "standalone_select_takes_items_per_phase",
+        "disabled_update_does_not_initialize_collection_state",
+        "a_select_reconciles_on_the_first_enabled_frame_after_disabled_ones",
+        "select_disclosure_is_exact_for_both_themes_and_color_levels",
+        "select_disclosure_set_inherit_and_clear_win_in_both_states",
+        "select_pressed_mono_brackets_preserve_field_geometry",
+        "selected_painting_comes_only_from_the_semantic_value",
+        "the_parts_a_drawn_select_styles_are_declared"
+      ]
+    },
+    {
+      "module": "split",
+      "path": "crates/tui/src/components/split.rs",
+      "public_types": [
+        "SplitAction",
+        "SplitCmd",
+        "SplitPaneState",
+        "SplitPane"
+      ],
+      "parts": [
+        "SEAM"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "body_runs_once_for_empty_input_with_anchored_rects",
+        "seam_is_painted_before_the_body_runs",
+        "body_paint_is_clipped_to_the_split_area",
+        "state_percent_is_always_clamped",
+        "resetting_maximization_is_a_full_state_change",
+        "drag_preserves_the_pointer_offset_inside_a_wide_seam",
+        "the_panes_and_the_seam_tile_the_container",
+        "a_non_resizable_split_declares_no_bindings_and_no_focus_stop",
+        "the_seam_distinguishes_focus_and_press_without_colour",
+        "the_first_pane_wins_when_the_minima_do_not_fit",
+        "a_reference_split_registers_nothing",
+        "every_declared_part_is_one_a_drawn_split_styles",
+        "the_slot_addressable_parts_are_exactly_the_documented_ones"
+      ]
+    },
+    {
+      "module": "status",
+      "path": "crates/tui/src/components/status.rs",
+      "public_types": [
+        "Group",
+        "Emphasis",
+        "StatusItem",
+        "StatusAction",
+        "StatusBar"
+      ],
+      "parts": [
+        "CONTAINER",
+        "LABEL",
+        "MARKER",
+        "ICON",
+        "TRACK",
+        "THUMB",
+        "OVERFLOW"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "a_wide_row_keeps_every_item",
+        "narrow_rows_drop_centre_then_right_then_left_and_keep_the_name",
+        "ties_take_the_later_item_first",
+        "items_past_the_cap_are_ignored",
+        "an_item_reports_its_own_columns",
+        "a_truncated_item_paints_the_overflow_glyph",
+        "a_keyed_item_click_reports_chose",
+        "a_pointer_move_without_a_hover_transition_does_not_repaint",
+        "the_left_group_starts_at_the_gutter_the_right_is_flush_and_the_centre_sits_between"
+      ]
+    },
+    {
+      "module": "steps",
+      "path": "crates/tui/src/components/steps.rs",
+      "public_types": [
+        "StepState",
+        "StepsAction",
+        "StepsCmd",
+        "StepsState",
+        "Steps"
+      ],
+      "parts": [
+        "CONTAINER",
+        "LABEL",
+        "GUTTER",
+        "ICON",
+        "META",
+        "TRACK",
+        "THUMB"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "the_frontier_is_the_first_unfinished_step",
+        "a_display_rail_is_click_only_and_a_navigable_rail_is_in_the_ring",
+        "forced_reference_rendering_registers_no_nested_or_row_regions",
+        "every_lifecycle_state_paints_a_symbol_that_separates_it",
+        "skipped_is_read_only_terminal_and_still_navigable",
+        "skipped_row_enter_and_click_remain_activatable_by_stable_key",
+        "fresh_navigable_update_seeds_first_key_silently",
+        "display_click_moves_and_double_click_activates_exact_key",
+        "boundary_movement_is_consumed_without_action_or_repaint",
+        "stable_cursor_identity_survives_same_endpoints_reorder",
+        "steps_parts_and_slot_parts_are_exact",
+        "only_exact_slot_parts_invoke_real_replacement_painters",
+        "icon_slot_replacement_and_glyph_clear_preserve_row_geometry",
+        "owner_patch_reaches_owned_parts_but_not_row_meta_cell_or_custom_part",
+        "every_override_channel_is_forwarded_to_scrollbar",
+        "steps_100k_rows_render_uses_incremental_frontier_accesses",
+        "completed_frontier_is_cached_until_invalidation",
+        "runtime_cache_clear_drops_only_frontier_acceleration",
+        "saturated_revision_recomputes_every_time"
+      ]
+    },
+    {
+      "module": "tabs",
+      "path": "crates/tui/src/components/tabs.rs",
+      "public_types": [
+        "TabsAction",
+        "TabsCmd",
+        "TabsState",
+        "Tabs"
+      ],
+      "parts": [
+        "CONTAINER",
+        "TAB",
+        "LABEL",
+        "META",
+        "CLOSE",
+        "NEW",
+        "RULE",
+        "OVERFLOW",
+        "BADGE",
+        "ICON",
+        "TAB"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "close_targets_the_logical_tab_after_a_reorder",
+        "mono_pressed_brackets_the_reserved_pad_cells",
+        "mono_pressed_closable_tab_keeps_the_close_cell_after_the_bracket",
+        "readiness_lane_is_far_right_conditional_patchable_and_replaceable",
+        "active_rule_comes_only_from_semantic_state"
+      ]
+    },
+    {
+      "module": "textarea",
+      "path": "crates/tui/src/components/textarea.rs",
+      "public_types": [
+        "TextAreaState",
+        "TextArea"
+      ],
+      "parts": [
+        "FIELD",
+        "TEXT",
+        "PLACEHOLDER",
+        "ROW",
+        "MARKER",
+        "GUTTER",
+        "ICON",
+        "TRACK",
+        "THUMB",
+        "CONTAINER"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "sensitive_constructor_makes_direct_lifecycle_safe",
+        "parts_include_every_owned_scroll_region_part",
+        "a_reference_text_area_leaves_the_owned_scroll_region_inert",
+        "sensitive_state_masks_when_control_policy_is_removed",
+        "sensitive_state_equality_ignores_draft_contents",
+        "sensitive_state_clone_cannot_commit_redacted_draft",
+        "sensitive_validator_error_is_generic_and_not_retained",
+        "sensitive_string_target_replaces_the_old_allocation",
+        "pending_error_is_masked_until_sensitivity_is_reconciled",
+        "blur_commits_without_validation",
+        "secret_blur_keep_policy_leaves_the_draft",
+        "vertical_motion_and_page_moves_stay_in_the_document",
+        "selected_style_is_painted_only_for_a_real_selection_range",
+        "busy_and_loading_paint_the_readiness_spinner",
+        "status_error_paints_the_icon_fallback_in_the_readiness_cell",
+        "ready_paints_no_readiness_affordance",
+        "the_icon_slot_replaces_the_readiness_spinner",
+        "validation_marker_wins_the_shared_lane_over_status_error"
+      ]
+    },
+    {
+      "module": "too_small",
+      "path": "crates/tui/src/components/too_small.rs",
+      "public_types": [
+        "TooSmall"
+      ],
+      "parts": [
+        "CONTAINER",
+        "TITLE",
+        "DETAIL",
+        "HELP",
+        "ACTIONS"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "the_notice_is_the_four_pinned_lines_with_both_sizes",
+        "quit_hint_paints_with_the_faint_tone_in_both_builtin_themes",
+        "draw_stays_inside_its_area",
+        "survives_tiny_rects_0x0_to_3x3",
+        "draw_twice_is_byte_identical",
+        "a_slot_changes_painted_cells_for_exactly_container_title_detail_help_and_actions",
+        "slots_keep_the_default_painters_geometry",
+        "fits_measure_and_copy_share_the_same_sizes",
+        "local_override_does_not_mutate_the_theme",
+        "every_declared_part_is_resolved_and_the_container_is_painted_every_frame"
+      ]
+    },
+    {
+      "module": "tree",
+      "path": "crates/tui/src/components/tree.rs",
+      "public_types": [
+        "NodeKind",
+        "TreeNode",
+        "TreeAction",
+        "TreeCmd",
+        "TreeState",
+        "Tree"
+      ],
+      "parts": [
+        "CONTAINER",
+        "GUTTER",
+        "ICON",
+        "MARKER",
+        "LABEL",
+        "TRACK",
+        "THUMB",
+        "EMPTY"
+      ],
+      "borrowed_slice": true,
+      "row_builder": true,
+      "slot_builder": true,
+      "tests": [
+        "expand_collapse_is_keyed_not_positional",
+        "lazy_children_do_not_reflatten_the_world",
+        "a_lazy_node_reports_its_expansion_by_key",
+        "expand_all_is_the_inverted_key_set",
+        "tree_100k_nodes_flatten",
+        "tree_100k_nodes_render",
+        "query_revision_rebuilds_once_preserves_ancestors_and_restores_expansion",
+        "query_navigation_reveals_results_without_mutating_expansion",
+        "query_preserves_chosen_until_the_source_removes_it",
+        "matching_lazy_node_can_request_children_during_query",
+        "source_invalidation_rebuilds_once_and_cache_clear_drops_only_derived_state",
+        "saturated_source_generation_never_reuses_a_stale_index",
+        "saturated_expansion_generation_rebuilds_after_every_mutation",
+        "parts_include_the_component_owned_marker_in_paint_order",
+        "mono_chosen_row_paints_marker_without_moving_the_label",
+        "chosen_marker_follows_key_across_reorder",
+        "chosen_marker_comes_only_from_semantic_key_and_survives_reorder",
+        "reference_focus_styles_only_the_runtime_cursor_without_selecting_it",
+        "choose_action_uses_the_reordered_nodes_stable_key",
+        "marker_honours_clear_and_slot_replacement",
+        "unselected_marker_is_blank_and_skips_theme_and_slot_resolution",
+        "owner_patches_reach_tree_parts_without_leaking_into_row_owned_parts"
+      ]
+    },
+    {
+      "module": "viewport",
+      "path": "crates/tui/src/components/viewport.rs",
+      "public_types": [
+        "ViewportWorkProbe",
+        "ViewportWorkSnapshot",
+        "ViewportLine",
+        "CellPos",
+        "ViewportAction",
+        "ViewportCmd",
+        "ViewportState",
+        "TextViewport"
+      ],
+      "parts": [
+        "CONTAINER",
+        "TEXT",
+        "GUTTER",
+        "TRACK",
+        "THUMB"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "track_registration_includes_the_cap_cells",
+        "pointer_mapping_uses_current_lines_after_invalidation",
+        "update_uses_the_current_content_length",
+        "bottom_track_click_and_thumb_drag_reach_the_end",
+        "offscreen_caret_emits_no_cursor_while_visible_caret_does",
+        "append_extends_the_wrapped_index_without_rebuilding_its_prefix",
+        "ensure_work_is_cold_zero_warm_suffix_on_append_and_full_on_reflow",
+        "work_probe_is_isolated_resettable_and_reports_cold_warm_work",
+        "work_probes_are_parallel_caller_owned",
+        "wrapped_prefix_matches_bruteforce",
+        "generation_saturation_never_reuses_stale_layout",
+        "same_length_offscreen_rewrap_after_invalidate_updates_total_end_thumb_and_mapping",
+        "copy_command_carries_the_selected_text_in_the_exact_action",
+        "first_end_emits_follow_changed",
+        "repeated_end_repaints_without_emitting_follow_changed",
+        "parts_match_the_exact_styling_surface",
+        "a_reference_viewport_makes_its_nested_scroll_region_inert",
+        "nested_scrollbar_resolves_through_the_viewport_family",
+        "retention_fixes_up_selection_and_caret",
+        "wrapped_rows_partition_the_line",
+        "copy_joins_lines_and_trims_each",
+        "a_double_click_selects_a_path_like_word",
+        "the_text_width_does_not_depend_on_whether_the_bar_is_painted",
+        "the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted",
+        "mono_selection_paints_the_resolved_inverse_underlined_style",
+        "a_rebuilt_layout_paints_what_the_warm_one_did",
+        "tabs_expand_to_a_fixed_width_everywhere",
+        "every_declared_part_is_one_a_drawn_viewport_styles",
+        "the_slot_addressable_parts_are_exactly_the_documented_ones"
+      ]
+    },
+    {
+      "module": "wizard",
+      "path": "crates/tui/src/components/wizard.rs",
+      "public_types": [
+        "WizardStep",
+        "WizardAction",
+        "WizardCmd",
+        "WizardState",
+        "Wizard"
+      ],
+      "parts": [
+        "CONTAINER",
+        "MARKER",
+        "LABEL"
+      ],
+      "borrowed_slice": true,
+      "row_builder": false,
+      "slot_builder": true,
+      "tests": [
+        "rewind_retains_per_step_state",
+        "enabled_steps_register_root_owned_keyed_label_parts",
+        "disabled_step_registers_no_activation_part"
+      ]
+    }
+  ],
+  "reference_modules": [
+    "brand.rs",
+    "button.rs",
+    "chips.rs",
+    "choice.rs",
+    "code.rs",
+    "completion.rs",
+    "dialog.rs",
+    "diff.rs",
+    "empty.rs",
+    "field_common.rs",
+    "grid.rs",
+    "hintbar.rs",
+    "input.rs",
+    "keyhint.rs",
+    "list.rs",
+    "menu.rs",
+    "mod.rs",
+    "panel.rs",
+    "picker.rs",
+    "progress.rs",
+    "props.rs",
+    "scrollbar.rs",
+    "segments.rs",
+    "select.rs",
+    "splitter.rs",
+    "statusbar.rs",
+    "steps.rs",
+    "table.rs",
+    "tabs.rs",
+    "textarea.rs",
+    "tree.rs",
+    "viewport.rs"
+  ]
+}

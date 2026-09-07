@@ -2028,3 +2028,66 @@ edit is included here.
   may remove the remaining `PARTS.first()` ordering convention, but it is not an unresolved gate.
 - No full workspace/Slice 4 completion claim follows. Capture provenance, visual blockers and
   baseline blessing status remain as recorded above.
+
+
+## Main-based Holla integration checkpoint — 2026-09-08
+
+Execution authority: `docs/plans/main-holla-integration-task.md`; resumable plan:
+`docs/plans/main-holla-integration.md`. Earlier claims/routing/scope are historical.
+Main is implementation base and Holla product reference; four applications are
+required. No main reset, tree replacement, baseline blessing or merge occurred.
+
+### Completed and measured
+
+- Pins unchanged after fetch: MAIN_BASE c12cad8728755cd2d03eefdd8e02891143fca86d;
+  HOLLA_REFERENCE 794b095c196562d38f1b6f7ce379c128af2a023d.
+- Original dirty checkout preserved. Candidate worktree/branch is isolated at
+  `../terminal-components-integration`, `codex/main-holla-integration`; reference
+  `../terminal-components-holla-reference` is detached, with external builds.
+- Full reachable two-document history reviewed: 484 commits, 68 parent-relative
+  changes, 64 snapshots; exact reconstruction and independent coverage audit.
+  Current contract and detailed reports copied to docs/audit/main-holla/history.
+  This is history evidence, not implementation completion.
+- Dialog compiler repair fa99577: recovered actual extracted chrome. Independently
+  reviewed at exact commit with 16/16 dialog tests passing. No blocker found.
+- Menu stderr side effect removed in 74073e2: 8/8 scoped tests; library Clippy passes.
+- Perf shell correction integrated as 245c810: explicit pipefail, binding shell
+  tests, advisory dependency on blocking job. Integrator independently ran all
+  three tests; 40 pipeline executions plus pipefail-removal mutation. Real
+  benchmarks still required; thresholds unchanged.
+- Panel badge compiler/API repair integrated as ec7c965: real styled/clipped
+  badge and public tests; worker 42 scoped cases pass, prior panel render
+  baselines unchanged. Integrator reviewed patch; full visual badge tone remains
+  theme work, not certified Holla parity.
+- Candidate ec7c965f5ddc0137878d09f75d66be8558c9da58: Rust 1.88 workspace
+  all-target/all-feature check passes with three existing TablePro lint-expectation
+  warnings. Stable all-target/all-feature enumeration finds 2,470 tests. Full
+  no-fail-fast run: 2,451 passed, 18 failed, 1 ignored; eight targets fail (app visual,
+  architecture, shared grid render, Showcase/TablePro perf, frozen parity archive).
+  Stable full Clippy fails on existing app violations. Logs/identities/results
+  remain external in initial/repaired-*; no failures suppressed.
+- Pinned Holla stable/MSRV tests: 269/269 pass. Stable build/fmt/Clippy and MSRV
+  check pass. Historical 499 recipes have TXT/ANSI/cursor, but all 499 HTML and PNG
+  are absent. Provenance ambiguity must be resolved before regeneration.
+- Holla initial 80x24 actual capture and image inspected, with source/binary/tool
+  hashes; separate independent tui-test run opens help/dismisses/resizes. An
+  initial NO_COLOR-contaminated capture remains explicitly invalid for truecolor.
+- Real 80x24 Showcase mouse (4,3) reproduction: pinned reference opens Buttons;
+  candidate stays Overview. Recorded both binary hashes/screens/cursor/commands
+  in external showcase/click-4-3-reference and click-4-3-candidate.
+
+### Current, next and remaining
+
+- Sidebar worker owns only NavList, Showcase shell and dedicated tests in
+  `codex/showcase-sidebar-repair` worktree; failing reference-derived tests,
+  compact shared geometry, removal of overpaint and EnterContent focus transfer.
+- Runtime audit proposes explicit monotonic time/lifecycle/presented geometry;
+  integrator retains sole shared runtime write ownership. No runtime replacement
+  yet. Foundation must precede dependent time/interaction migrations.
+- Holla exhaustive branch/prose/DESIGN review finishing externally. Source
+  findings include confirmation target/risk bypasses in reference simulations;
+  they need narrow reproduced, tested, independently reviewed corrections.
+- All app/component restoration, Holla migration, full tool qualification,
+  historical-artifact recovery, canonical production-view evidence, mutation/
+  terminal tests, performance proof, independent reviews and final PR/main
+  integration remain open. No full goal or parity completion claim.
