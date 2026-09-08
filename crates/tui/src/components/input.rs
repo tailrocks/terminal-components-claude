@@ -925,13 +925,15 @@ pub(crate) fn redacted_text(text: &str) -> String {
 /// ## Invariants
 /// `draw` never commits, cancels or validates (it takes `&TextInputState`);
 /// a secret draft is masked while editing and never reaches `Debug`; the
-/// hardware cursor is written only while editing and focused.
+/// hardware cursor belongs to focus by default; an explicit fallback policy
+/// may publish the active draft as cursor owner without moving focus.
 pub struct TextInput<'a> {
     id: Id,
     value: Option<&'a str>,
     placeholder: Option<&'a str>,
     validate: Option<&'a dyn Validate>,
     blur: BlurPolicy,
+    typing_policy: crate::TypingPolicy,
     secret: Option<SecretPolicy>,
     read_only: bool,
     disabled: bool,
@@ -946,6 +948,7 @@ impl fmt::Debug for TextInput<'_> {
             .field("value", &self.value.map(|_| "[redacted]"))
             .field("placeholder", &self.placeholder)
             .field("blur", &self.blur)
+            .field("typing_policy", &self.typing_policy)
             .field("secret", &self.secret)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
@@ -973,6 +976,7 @@ impl<'a> TextInput<'a> {
             placeholder: None,
             validate: None,
             blur: BlurPolicy::CommitAndValidate,
+            typing_policy: crate::TypingPolicy::Focused,
             secret: None,
             read_only: false,
             disabled: false,
@@ -1006,6 +1010,15 @@ impl<'a> TextInput<'a> {
     #[must_use]
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
+        self
+    }
+
+    /// Publish an alternate typing target without moving navigation focus.
+    /// Fallback routing requires an active editable draft and compatible
+    /// presented geometry. Commit and cancel remain primary-focus actions.
+    #[must_use]
+    pub const fn typing_policy(mut self, policy: crate::TypingPolicy) -> Self {
+        self.typing_policy = policy;
         self
     }
 
@@ -1073,6 +1086,7 @@ impl<'a> TextInput<'a> {
             placeholder: self.placeholder,
             validate: self.validate,
             blur: self.blur,
+            typing_policy: self.typing_policy,
             secret: self.secret,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
@@ -1329,6 +1343,20 @@ impl<'a> TextInput<'a> {
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         ui.register_editor(self.id, area, focusability, declared);
         ui.publish_bindings(self.id, live, BINDINGS);
+        if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
+            ui.publish_typing_target(
+                self.id,
+                BINDINGS,
+                |cmd| !matches!(cmd, TextCmd::Commit | TextCmd::Cancel),
+                cursor,
+            );
+        }
+        let owns_cursor = live.contains(StateFlags::FOCUSED)
+            || (editing
+                && matches!(
+                    self.typing_policy,
+                    crate::TypingPolicy::Fallback { cursor: true }
+                ));
         let ov = self.ov;
         let id = self.id;
         let style = |ui: &mut Ui<'_>, part: Part| {
@@ -1410,7 +1438,7 @@ impl<'a> TextInput<'a> {
                 let last = cell_at(inner, inner.right().saturating_sub(1));
                 ui.glyph(last, GlyphRole::Ellipsis, ts.style);
             }
-            if live.contains(StateFlags::FOCUSED) && self.editable() {
+            if owns_cursor && self.editable() {
                 let cursor_col = if editing {
                     cursor_col
                 } else {
@@ -1422,7 +1450,7 @@ impl<'a> TextInput<'a> {
                     .min(inner.right());
                 ui.set_cursor(self.id, Position::new(cx, inner.y));
             }
-        } else if live.contains(StateFlags::FOCUSED) && self.editable() {
+        } else if owns_cursor && self.editable() {
             ui.set_cursor(self.id, Position::new(inner.x, inner.y));
         }
         let readiness_cell = cell_at(area, area.right().saturating_sub(1));

@@ -1,7 +1,8 @@
 //! Cursor ownership (`COMPONENT_ARCHITECTURE.md` §8.4, §21 item 15).
 //!
 //! `ui.set_cursor(owner, pos)` records `(layer, owner, pos)`. The runtime
-//! keeps the write iff the layer is the top layer and the owner is focused;
+//! keeps a top-layer write from the resolved cursor owner (focused by default,
+//! or an explicitly published fallback typing editor);
 //! otherwise it drops it and records `CursorRejected` — except for a write
 //! from a suppressed (inert) layer, which is discarded silently.
 
@@ -19,10 +20,6 @@ pub(crate) struct CursorRequest {
     pub(crate) pos: Position,
     /// The layer was inert (below an `inert_below` layer) when written.
     pub(crate) inert: bool,
-    /// The owner carried `FOCUSED` when the write was made. `Ui::set_cursor`
-    /// keeps the best candidate by `(layer, focused)`, because §8.4 makes the
-    /// *runtime* the filter and two same-layer writers are legitimate.
-    pub(crate) focused: bool,
 }
 
 /// The outcome of resolving the frame's cursor requests.
@@ -33,7 +30,7 @@ pub(crate) enum CursorDecision {
     Silent,
 }
 
-/// Resolve one request against the top layer and the focused owner.
+/// Resolve one request against the top layer and the resolved cursor owner.
 pub(crate) fn resolve(req: CursorRequest, top: LayerId, focus: Option<Id>) -> CursorDecision {
     if req.inert {
         return CursorDecision::Silent;
@@ -48,6 +45,31 @@ pub(crate) fn resolve(req: CursorRequest, top: LayerId, focus: Option<Id>) -> Cu
     }
 }
 
+/// Resolve all requests after the complete frame determines cursor ownership.
+pub(crate) fn resolve_requests(
+    requests: &[CursorRequest],
+    top: LayerId,
+    owner: Option<Id>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<Position> {
+    let mut kept: Option<CursorRequest> = None;
+    for request in requests {
+        match resolve(*request, top, owner) {
+            CursorDecision::Keep(_) => {
+                if let Some(previous) = kept.replace(*request) {
+                    diagnostics.push(Diagnostic::CursorRejected {
+                        owner: previous.owner,
+                        layer: previous.layer,
+                    });
+                }
+            }
+            CursorDecision::Reject(diagnostic) => diagnostics.push(diagnostic),
+            CursorDecision::Silent => {}
+        }
+    }
+    kept.map(|request| request.pos)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -60,7 +82,6 @@ mod tests {
             owner: OWNER,
             pos: Position::new(4, 2),
             inert,
-            focused: true,
         }
     }
 
@@ -137,17 +158,23 @@ mod tests {
                 ui.set_cursor(FIRST, Position::new(1, 1));
                 ui.set_cursor(SECOND, Position::new(9, 2));
             }
-            let req = frame.cursor.expect("a cursor request survives the frame");
-            assert_eq!(req.owner, focused);
-            assert!(req.focused);
-            // and the runtime keeps it, because its owner is the focused one
+            let mut diagnostics = Vec::new();
+            let kept = resolve_requests(
+                &frame.cursors,
+                LayerId::PAGE,
+                Some(focused),
+                &mut diagnostics,
+            );
             assert_eq!(
-                resolve(req, LayerId::PAGE, Some(focused)),
-                CursorDecision::Keep(req.pos)
+                kept,
+                Some(if focused == FIRST {
+                    Position::new(1, 1)
+                } else {
+                    Position::new(9, 2)
+                })
             );
             // exactly one loser is diagnosed, and it is the other control
-            let rejected: Vec<Id> = frame
-                .diagnostics
+            let rejected: Vec<Id> = diagnostics
                 .iter()
                 .filter_map(|d| match d {
                     Diagnostic::CursorRejected { owner, .. } => Some(*owner),

@@ -33,6 +33,15 @@ pub enum Diagnostic {
         /// The layer it wrote from.
         layer: LayerId,
     },
+    /// More than one admissible fallback editor was declared on one layer.
+    TypingTargetConflict {
+        /// The first editor.
+        a: Id,
+        /// The other editor.
+        b: Id,
+        /// The active layer.
+        layer: LayerId,
+    },
     /// An owner with a `Control`/`Part` region drained nothing (§3.3 step 9).
     UndeliveredIntent {
         /// The owner.

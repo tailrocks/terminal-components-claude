@@ -9,7 +9,9 @@
 #[cfg(feature = "crossterm")]
 pub(crate) mod session;
 mod time;
+pub(crate) mod typing;
 pub use time::{ClockError, Moment};
+pub use typing::TypingPolicy;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -17,7 +19,7 @@ use ratatui_core::terminal::Frame;
 
 use crate::action::ActionKey;
 use crate::capture::Capture;
-use crate::cursor::{self, CursorDecision};
+use crate::cursor;
 use crate::diagnostics::Diagnostic;
 use crate::event::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 use crate::focus::{FocusRing, FocusState, ScopeId};
@@ -29,7 +31,9 @@ use crate::layer::{
     Backdrop, DismissReason, LayerEvent, LayerId, OpenLayer, backdrop_area, resolve_anchor,
 };
 use crate::measure::Size;
-use crate::response::{Invalidate, Response, StateFlags};
+#[cfg(any(test, feature = "testing"))]
+use crate::response::StateFlags;
+use crate::response::{Invalidate, Response};
 use crate::theme::Theme;
 use crate::ui::cx::{FrameServices, LastFrame};
 use crate::ui::{Cx, FrameState, Ui, UiCore};
@@ -224,6 +228,8 @@ impl<A: App> ProjectedFrame<'_, A> {
         core::mem::swap(&mut output.last.registry, &mut frame.registry);
         core::mem::swap(&mut output.last.ring, &mut frame.ring);
         core::mem::swap(&mut output.last.bindings, &mut frame.bindings);
+        core::mem::swap(&mut output.last.typing_bindings, &mut frame.typing_bindings);
+        output.last.typing = frame.typing_resolved;
         output.last.layout.clear();
         output.last.layout.append(&mut frame.layout);
         output.last.declared.clear();
@@ -406,6 +412,14 @@ impl<A: App> Runtime<A> {
     pub const fn app_mut(&mut self) -> &mut A {
         self.presented = false;
         &mut self.app
+    }
+
+    /// Effective typing owner from compatible, successfully presented geometry.
+    /// Returns `None` while initialization, settling or publication is required.
+    pub fn typing_owner(&self) -> Option<Id> {
+        (self.bootstrapped && self.presented && !self.needs_settle())
+            .then_some(self.last.typing.owner)
+            .flatten()
     }
 
     /// The theme.
@@ -683,12 +697,6 @@ impl<A: App> Runtime<A> {
             .is_some_and(|e| e.swallows_typing)
     }
 
-    fn focused_is_editing(&self) -> bool {
-        self.focus.current().is_some_and(|f| {
-            self.last.state(f).contains(StateFlags::EDITING) || self.swallows_typing()
-        })
-    }
-
     /// Step 1 for a resize.
     fn resize(&mut self, w: u16, h: u16) {
         self.screen = Rect {
@@ -715,6 +723,20 @@ impl<A: App> Runtime<A> {
         self.last.snapshot.focus_visible = true;
         self.last.snapshot.hover_suppressed = true;
         let current = self.focus.current();
+        if !matches!(k.code, KeyCode::Tab | KeyCode::BackTab)
+            && let Some(owner) = self.last.typing.fallback
+        {
+            if let Some((_, table)) = self.last.typing_bindings.get(owner)
+                && let Some((action, chord)) = self.core.keymap.component_binding(owner, table, &k)
+            {
+                self.intents.binding(owner, action, chord);
+                return;
+            }
+            if k.bare_char().is_some() {
+                self.intents.key(owner, k);
+                return;
+            }
+        }
         // An explicitly published Tab/BackTab command belongs to the focused
         // component. Only an unbound Tab reaches runtime focus traversal.
         if let Some(owner) = current
@@ -1287,8 +1309,15 @@ impl<A: App> Runtime<A> {
             }
             Input::Key(k) => {
                 // step 2: capture chords first
-                let swallows = self.swallows_typing();
-                if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Capture, k, swallows) {
+                let swallows = self.swallows_typing() || self.last.typing.fallback.is_some();
+                let scoped = self
+                    .last
+                    .typing
+                    .owner
+                    .and_then(|owner| self.core.keymap.before_typing(owner, k));
+                if let Some(cmd) =
+                    scoped.or_else(|| self.core.keymap.lookup(KeyPhase::Capture, k, swallows))
+                {
                     let r = self.run_update(Some(cmd), UpdateCause::Event);
                     drop(input);
                     return Ok(self.finish(r));
@@ -1298,9 +1327,7 @@ impl<A: App> Runtime<A> {
             }
             Input::Mouse(m) => self.enqueue_mouse(*m),
             Input::Paste(s) => {
-                if let Some(owner) = self.focus.current()
-                    && self.focused_is_editing()
-                {
+                if let Some(owner) = self.last.typing.owner {
                     self.intents.paste(owner, s.as_str());
                 }
             }
@@ -1433,21 +1460,15 @@ impl<A: App> Runtime<A> {
                 composite_layer(&mut ui, i, area);
             }
         }
-        self.painted_cursor = match self.frame.cursor {
-            None => None,
-            Some(req) => match cursor::resolve(
-                req,
-                self.frame.top,
-                snapshot.map_or_else(|| self.focus.current(), |value| value.last.snapshot.focus),
-            ) {
-                CursorDecision::Keep(p) => Some(p),
-                CursorDecision::Reject(d) => {
-                    self.frame.diagnostics.push(d);
-                    None
-                }
-                CursorDecision::Silent => None,
-            },
-        };
+        let focus =
+            snapshot.map_or_else(|| self.focus.current(), |value| value.last.snapshot.focus);
+        self.frame.typing_resolved = typing::resolve(&mut self.frame, focus);
+        self.painted_cursor = cursor::resolve_requests(
+            &self.frame.cursors,
+            self.frame.top,
+            self.frame.typing_resolved.cursor,
+            &mut self.frame.diagnostics,
+        );
     }
 
     fn commit_geometry(&mut self) {
@@ -1461,6 +1482,11 @@ impl<A: App> Runtime<A> {
         self.last.declared.clear();
         self.last.declared.append(&mut self.frame.declared);
         core::mem::swap(&mut self.last.bindings, &mut self.frame.bindings);
+        core::mem::swap(
+            &mut self.last.typing_bindings,
+            &mut self.frame.typing_bindings,
+        );
+        self.last.typing = self.frame.typing_resolved;
     }
 
     fn commit_frame(&mut self) {
@@ -1473,12 +1499,20 @@ impl<A: App> Runtime<A> {
         // an `initial_focus` (§16.2 case 17: a component stays focused under
         // a popover and its cursor write is rejected)
         let previous = self.focus.current();
+        let backwards = self
+            .services
+            .deferred_focus
+            .is_some_and(|request| request.backwards);
         let reconciled = if let Some(request) = self.services.deferred_focus.take() {
             if request
                 .anchor
                 .is_some_and(|id| self.frame.ring.contains(id))
             {
-                self.frame.ring.next(request.anchor)
+                if request.backwards {
+                    self.frame.ring.prev(request.anchor)
+                } else {
+                    self.frame.ring.next(request.anchor)
+                }
             } else {
                 self.frame.ring.reconcile(&self.last.ring, request.anchor)
             }
@@ -1497,12 +1531,22 @@ impl<A: App> Runtime<A> {
                 .iter()
                 .position(|entry| entry.id == id)
                 .map_or(0, |i| i.saturating_add(1));
-            entries
-                .iter()
-                .skip(after)
-                .chain(entries.iter().take(after))
-                .find(|entry| self.focus_target_admissible(entry.id))
-                .map(|entry| entry.id)
+            if backwards {
+                entries
+                    .iter()
+                    .take(after.saturating_sub(1))
+                    .rev()
+                    .chain(entries.iter().skip(after.saturating_sub(1)).rev())
+                    .find(|entry| self.focus_target_admissible(entry.id))
+                    .map(|entry| entry.id)
+            } else {
+                entries
+                    .iter()
+                    .skip(after)
+                    .chain(entries.iter().take(after))
+                    .find(|entry| self.focus_target_admissible(entry.id))
+                    .map(|entry| entry.id)
+            }
         });
         if reconciled != previous {
             let via = if self

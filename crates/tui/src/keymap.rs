@@ -17,7 +17,7 @@ use crate::response::StateFlags;
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum KeyPhase {
     /// Before dispatch; a bare `Char` chord is skipped while the focused
-    /// control swallows typing.
+    /// control or an admitted fallback editor swallows typing.
     Capture,
     /// After dispatch, for keys no component consumed.
     Bubble,
@@ -101,6 +101,13 @@ struct Entry {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TypingCapture {
+    owner: Id,
+    chord: Chord,
+    key: ActionKey,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ComponentEntry {
     owner: Id,
     action: ActionKey,
@@ -112,6 +119,7 @@ struct ComponentEntry {
 pub struct KeyMap {
     entries: Vec<Entry>,
     components: Vec<ComponentEntry>,
+    typing: Vec<TypingCapture>,
 }
 
 impl KeyMap {
@@ -119,6 +127,7 @@ impl KeyMap {
     pub const EMPTY: KeyMap = KeyMap {
         entries: Vec::new(),
         components: Vec::new(),
+        typing: Vec::new(),
     };
 
     /// A `'static` reference to the empty map, for `App::keymap` defaults.
@@ -142,6 +151,37 @@ impl KeyMap {
     /// Bind in place.
     pub fn add(&mut self, phase: KeyPhase, chord: Chord, key: ActionKey) {
         self.entries.push(Entry { phase, chord, key });
+    }
+
+    /// Bind a product command before an admitted editor receives typing.
+    /// This override applies only while `owner` is the effective typing owner;
+    /// it cannot bypass a modal barrier or an absent/disabled editor.
+    #[must_use]
+    pub fn bind_before_typing(mut self, owner: Id, chord: Chord, command: ActionKey) -> Self {
+        self.add_before_typing(owner, chord, command);
+        self
+    }
+
+    /// Add an owner-scoped before-typing command in place.
+    pub fn add_before_typing(&mut self, owner: Id, chord: Chord, command: ActionKey) {
+        self.typing.push(TypingCapture {
+            owner,
+            chord,
+            key: command,
+        });
+    }
+
+    /// Remove an owner-scoped command when its product context stops applying.
+    pub fn remove_before_typing(&mut self, owner: Id, chord: Chord) {
+        self.typing
+            .retain(|entry| entry.owner != owner || entry.chord != chord);
+    }
+
+    pub(crate) fn before_typing(&self, owner: Id, key: &Key) -> Option<ActionKey> {
+        self.typing
+            .iter()
+            .find(|entry| entry.owner == owner && entry.chord.matches(key))
+            .map(|entry| entry.key)
     }
 
     /// Remove every binding of `chord` in `phase`.
@@ -258,7 +298,7 @@ impl KeyMap {
 
     /// Whether the map has no bindings.
     pub fn is_empty(&self) -> bool {
-        self.entries.is_empty() && self.components.is_empty()
+        self.entries.is_empty() && self.components.is_empty() && self.typing.is_empty()
     }
 
     /// Two bindings of the same chord in the same phase.
@@ -276,6 +316,21 @@ impl KeyMap {
                     phase: a.phase,
                     a: KeyMap::OWNER,
                     b: KeyMap::OWNER,
+                });
+            }
+        }
+        for (index, entry) in self.typing.iter().enumerate() {
+            if self
+                .typing
+                .iter()
+                .skip(index.saturating_add(1))
+                .any(|other| other.owner == entry.owner && other.chord == entry.chord)
+            {
+                out.push(Diagnostic::BindingConflict {
+                    chord: entry.chord,
+                    phase: KeyPhase::Capture,
+                    a: entry.owner,
+                    b: entry.owner,
                 });
             }
         }
@@ -383,6 +438,43 @@ impl BindingRegistry {
             table: BindingTableId::of(table),
             start,
             len: table.len(),
+        });
+        None
+    }
+
+    pub(crate) fn publish_filtered<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        layer: crate::layer::LayerId,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+    ) -> Option<ActionKey> {
+        let start = self.descriptors.len();
+        for binding in table.iter().filter(|binding| include(binding.cmd)) {
+            if self
+                .descriptors
+                .get(start..)
+                .is_some_and(|prior| prior.iter().any(|item| item.action == binding.action))
+            {
+                self.descriptors.truncate(start);
+                return Some(binding.action);
+            }
+            self.descriptors.push(BindingDescriptor {
+                action: binding.action,
+                chord: binding.chord,
+                label: binding.label,
+                priority: binding.priority,
+                visible: binding.visible,
+            });
+        }
+        self.tables.push(PublishedBindings {
+            owner,
+            flags,
+            layer,
+            table: BindingTableId::of(table),
+            start,
+            len: self.descriptors.len().saturating_sub(start),
         });
         None
     }

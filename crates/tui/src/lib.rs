@@ -53,7 +53,7 @@ pub use id::{Id, ItemKey, Part, PartRef};
 pub use runtime::session::{DefaultTerminal, TerminalSession, chain_panic_hook, run};
 pub use runtime::{
     App, ClockError, Moment, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError,
-    Runtime, UpdateCause,
+    Runtime, TypingPolicy, UpdateCause,
 };
 #[cfg(feature = "testing")]
 pub use runtime::{ProjectedFrame, RenderModel};

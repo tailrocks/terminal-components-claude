@@ -70,7 +70,10 @@ pub(crate) struct FrameState {
     pub(crate) registry: Registry,
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
-    pub(crate) cursor: Option<CursorRequest>,
+    pub(crate) cursors: Vec<CursorRequest>,
+    pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
+    pub(crate) typing_bindings: BindingRegistry,
+    pub(crate) typing_resolved: crate::runtime::typing::TypingResolved,
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
@@ -186,7 +189,10 @@ impl FrameState {
         self.registry.reset(generation);
         self.ring.reset();
         self.layers.begin();
-        self.cursor = None;
+        self.cursors.clear();
+        self.typing.clear();
+        self.typing_bindings.reset();
+        self.typing_resolved = crate::runtime::typing::TypingResolved::default();
         self.layout.clear();
         self.declared.clear();
         self.bindings.reset();
@@ -837,6 +843,39 @@ impl<'f> Ui<'f> {
         }
     }
 
+    /// Declare a fallback typing editor and its existing editing bindings.
+    /// `include` runs synchronously; it is never retained as an extension point.
+    /// Eligibility is resolved only after complete frame geometry is available.
+    pub fn publish_typing_target<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+        cursor: bool,
+    ) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.frame
+            .typing
+            .push(crate::runtime::typing::TypingDeclaration {
+                owner,
+                layer: self.layer,
+                cursor,
+            });
+        if let Some(action) = self.frame.typing_bindings.publish_filtered(
+            owner,
+            StateFlags::EDITING,
+            self.layer,
+            table,
+            include,
+        ) {
+            self.frame
+                .diagnostics
+                .push(Diagnostic::DuplicateBindingAction { owner, action });
+        }
+    }
+
     pub(crate) fn publish_dynamic_bindings<I>(&mut self, owner: Id, flags: StateFlags, bindings: I)
     where
         I: Iterator<Item = (ActionKey, Option<crate::event::Chord>)> + Clone,
@@ -947,43 +986,18 @@ impl<'f> Ui<'f> {
         self.frame.layout.push((id, l));
     }
 
-    /// Request the hardware cursor; kept iff this is the top layer and
-    /// `owner` is focused (§8.4).
+    /// Request the hardware cursor. Complete frame typing/focus ownership and
+    /// layer admissibility select the winner after all painters finish.
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
         if self.reference.is_some() {
             return;
         }
-        let req = CursorRequest {
+        self.frame.cursors.push(CursorRequest {
             layer: self.layer,
             owner,
             pos,
             inert: self.inert,
-            focused: self.state(owner).contains(StateFlags::FOCUSED),
-        };
-        // §8.4 makes filtering the runtime's job, so components write
-        // unconditionally: keep the *best* candidate — higher layer first,
-        // then the focused owner, then the later write — never the first
-        // arrival, which would hand the frame's only cursor slot to whoever
-        // happened to draw first (BL-6).
-        let keep = match self.frame.cursor {
-            None => true,
-            Some(cur) => (req.layer, req.focused) >= (cur.layer, cur.focused),
-        };
-        let loser = if keep {
-            let prev = self.frame.cursor;
-            self.frame.cursor = Some(req);
-            prev
-        } else {
-            Some(req)
-        };
-        if let Some(l) = loser
-            && !l.inert
-        {
-            self.frame.diagnostics.push(Diagnostic::CursorRejected {
-                owner: l.owner,
-                layer: l.layer,
-            });
-        }
+        });
     }
 
     /// Draw layer `id`'s content. Resolves `id` to the `LayerId` assigned at
@@ -1487,7 +1501,7 @@ mod tests {
         assert!(frame.ring.entries().is_empty());
         assert!(frame.declared.is_empty());
         assert!(frame.layout.is_empty());
-        assert!(frame.cursor.is_none());
+        assert!(frame.cursors.is_empty());
         assert!(frame.bindings.get(OWNER).is_none());
         assert!(frame.diagnostics.is_empty());
         assert!(

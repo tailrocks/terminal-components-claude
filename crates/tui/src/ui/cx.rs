@@ -70,6 +70,8 @@ pub(crate) struct LastFrame {
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
+    pub(crate) typing_bindings: BindingRegistry,
+    pub(crate) typing: crate::runtime::typing::TypingResolved,
     pub(crate) snapshot: Snapshot,
 }
 
@@ -155,6 +157,7 @@ pub trait FrameRead {
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct DeferredFocus {
     pub(crate) anchor: Option<Id>,
+    pub(crate) backwards: bool,
 }
 
 /// Mutable services `Cx` exposes; owned by the runtime.
@@ -324,6 +327,18 @@ impl<'f> Cx<'f> {
         self.services.focus_request = None;
         self.services.deferred_focus = Some(DeferredFocus {
             anchor: self.last.snapshot.focus,
+            backwards: false,
+        });
+        self.services.repaint = true;
+    }
+
+    /// Focus the previous reachable control in the next presented frame.
+    /// Uses the same deferred admissible traversal and modal traps as `focus_next`.
+    pub fn focus_prev(&mut self) {
+        self.services.focus_request = None;
+        self.services.deferred_focus = Some(DeferredFocus {
+            anchor: self.last.snapshot.focus,
+            backwards: true,
         });
         self.services.repaint = true;
     }
