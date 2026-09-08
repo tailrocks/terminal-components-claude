@@ -38,6 +38,7 @@ const TOGGLE: ActionKey = ActionKey::application("holla.plan-toggle");
 const OPEN_MENU: ActionKey = ActionKey::application("holla.open-menu");
 const RESULTS: ActionKey = ActionKey::application("holla.results");
 const QUERY_ESCAPE: ActionKey = ActionKey::application("holla.query-escape");
+const PREVIOUS: ActionKey = ActionKey::application("holla.previous");
 const GLOBAL: &[Binding<ActionKey>] = &[
     Binding {
         action: HELP,
@@ -190,6 +191,7 @@ impl App {
         keymap = keymap
             .bind(KeyPhase::Capture, Chord::key(KeyCode::Char(' ')), TOGGLE)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), RESULTS)
+            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Up), PREVIOUS)
             .bind(KeyPhase::Capture, Chord::key(KeyCode::Char('0')), HOME);
         Self {
             world,
@@ -325,7 +327,8 @@ impl App {
                     self.set_status(message);
                 }
             }
-            RESULTS if self.route == Route::Home => cx.focus(home::ROWS),
+            RESULTS if self.route == Route::Home => self.home.focus_first(&self.world, cx),
+            PREVIOUS if self.route == Route::Home => cx.focus_prev(),
             QUERY_ESCAPE if self.route == Route::Home => {
                 if self.home.scope.take().is_some() {
                     self.set_status("Scope: all".into());
@@ -888,6 +891,53 @@ mod tests {
         assert_eq!(harness.app().home.query(), "");
         let _ = harness.type_str("docker");
         assert_eq!(harness.app().home.query(), "docker");
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
+    fn home_navigation_uses_shared_boundaries_and_reveals_selected_rows() {
+        let mut harness = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            20,
+        );
+        assert!(harness.tab_to(home::QUERY));
+        let count = harness.app().home.rows(&harness.app().world).len();
+        let _ = harness.key(KeyCode::Down);
+        assert_eq!(harness.focus(), Some(home::ROWS));
+        let first = harness
+            .app()
+            .home
+            .selected(&harness.app().world)
+            .unwrap()
+            .id;
+        let _ = harness.key(KeyCode::Up);
+        assert_eq!(harness.focus(), Some(home::QUERY));
+        let _ = harness.key(KeyCode::Down);
+        for _ in 1..count {
+            let _ = harness.key(KeyCode::Down);
+        }
+        assert_eq!(harness.focus(), Some(home::ROWS));
+        let last = harness.app().home.selected(&harness.app().world).unwrap();
+        assert_ne!(last.id, first);
+        assert!(harness.text().contains(&last.title), "{}", harness.text());
+        let _ = harness.key(KeyCode::Down);
+        assert_ne!(harness.focus(), Some(home::ROWS));
+        assert!(harness.tab_to(home::QUERY));
+        let _ = harness.key(KeyCode::Down);
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .unwrap()
+                .id,
+            first
+        );
         assert!(
             harness.diagnostics().is_empty(),
             "{:?}",

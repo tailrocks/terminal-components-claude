@@ -86,6 +86,15 @@ impl HomeState {
             .map(|row| row.action.clone())
     }
 
+    pub(crate) fn focus_first(&mut self, world: &World, cx: &mut Cx<'_>) {
+        if let Some(row) = self.rows(world).first() {
+            self.rows.set_cursor(0, row_key(row));
+            cx.focus(ROWS);
+        } else {
+            cx.focus_next();
+        }
+    }
+
     pub(crate) fn subject(&self, world: &World, cx: &Cx<'_>) -> Option<Action> {
         if cx.state(QUERY).contains(StateFlags::FOCUSED) {
             self.rows(world).into_iter().next().map(|row| row.action)
@@ -110,11 +119,21 @@ impl HomeState {
         }
         let rows = self.rows(world);
         let mut navigation = NavList::new(ROWS)
+            .scrollable(true)
+            .leave_at_boundary(true)
             .header_indent(2)
             .section(&section)
             .key(row_key)
             .update(cx, &mut self.rows, &rows);
         let chosen = match navigation.take_action() {
+            Some(NavListAction::LeaveBackward) => {
+                cx.focus_prev();
+                None
+            }
+            Some(NavListAction::LeaveForward) => {
+                cx.focus_next();
+                None
+            }
             Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) => rows
                 .into_iter()
                 .find(|row| row_key(row) == key)
@@ -174,6 +193,8 @@ impl HomeState {
             area.height.saturating_sub(2),
         );
         NavList::new(ROWS)
+            .scrollable(true)
+            .leave_at_boundary(true)
             .header_indent(2)
             .section(&section)
             .key(row_key)
