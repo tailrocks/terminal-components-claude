@@ -1032,10 +1032,6 @@ impl TableProApp {
                     let grid_response =
                         Self::update_grid_view(cx, table.key.control("data"), &mut table.result);
                     if let Some(action) = grid_response.action_ref() {
-                        if let GridAction::Sort(key, direction) = action {
-                            table.sort =
-                                Some((usize::from(key.raw().saturating_sub(1)), *direction));
-                        }
                         Self::handle_grid(&mut self.status, action);
                     }
                     response |= grid_response.erase();

@@ -135,8 +135,6 @@ pub struct TableTab {
     pub structure: Box<GridView>,
     /// Active local filters.
     pub filters: Vec<Filter>,
-    /// Last sort direction per column.
-    pub sort: Option<(usize, junie_tui::SortDir)>,
 }
 
 impl TableTab {
@@ -162,7 +160,6 @@ impl TableTab {
             result,
             structure: Box::new(GridView::empty()),
             filters: Vec::new(),
-            sort: None,
         };
         tab.structure = Box::new(GridView::from_result(&sql::ResultSet {
             columns: tab.structure_columns(),
@@ -207,7 +204,6 @@ impl TableTab {
             junie_tui::ColumnKey::num((column as u16).saturating_add(1)),
             direction,
         );
-        self.sort = Some((column, direction));
     }
     /// Structure rows as generic grid data.
     pub fn structure(&self) -> Vec<Vec<Value>> {

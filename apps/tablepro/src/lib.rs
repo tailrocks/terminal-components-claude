@@ -57,7 +57,9 @@ mod tablepro {
             vec![Value::Int(8), Value::Text("Grace".to_owned())],
         ]);
         assert!(pending.set(0, 1, Value::Text("Ada Lovelace".to_owned())));
-        let inserted = pending.insert_row(2);
+        let Some(inserted) = pending.insert_row(2) else {
+            unreachable!("available row key");
+        };
         assert!(pending.set(inserted, 0, Value::Int(9)));
         assert!(pending.set(inserted, 1, Value::Text("Lin".to_owned())));
         assert!(pending.delete_row(1));
@@ -78,7 +80,9 @@ mod tablepro {
         let original = vec![vec![Value::Int(7), Value::Text("pending".to_owned())]];
         let mut pending = PendingEdits::new(original.clone());
         assert!(pending.set(0, 1, Value::Text("changed".to_owned())));
-        let inserted = pending.insert_row(1);
+        let Some(inserted) = pending.insert_row(1) else {
+            unreachable!("available row key");
+        };
         assert!(pending.set(inserted, 0, Value::Int(99)));
 
         pending.clear();
