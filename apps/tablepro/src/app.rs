@@ -2061,7 +2061,13 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
     });
     if app.screen == Screen::Workbench {
         let prefix = "Connected to ";
-        let width = junie_tui::width(prefix).saturating_add(junie_tui::width(&app.connection.name));
+        // A leading combining mark or ZWJ can join the prefix's final space.
+        // Keep one text run for measurement and painting, with one allocation.
+        let mut right_text =
+            String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
+        right_text.push_str(prefix);
+        right_text.push_str(&app.connection.name);
+        let width = junie_tui::width(&right_text);
         let right = junie_tui::Rect {
             x: area.right().saturating_sub(width),
             width,
@@ -2069,10 +2075,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
         };
         ui.paint_spans(
             right,
-            &[
-                Span::new(prefix).role(Role::Fg(FgStep::Muted)),
-                Span::new(&app.connection.name).role(Role::Fg(FgStep::Muted)),
-            ],
+            &[Span::new(&right_text).role(Role::Fg(FgStep::Muted))],
             base,
         );
     }
