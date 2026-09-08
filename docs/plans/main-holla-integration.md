@@ -262,6 +262,24 @@ captions and full patch, integrated722dc60; all134 Holla tests now pass, includi
 all17 restored historical assertions. Searchable Actions and remaining full
 appearance/interaction obligations remain open; no visual baseline approval.
 
+Picker projectionb7352cd integrates reviewed4418020: default label predicate
+unchanged, caller-ranked projection and pure keyed reconciliation. Root755 library
+plus7 public tests and238 four-app library tests passed before later slices.
+Independent10-test review E/picker-projection-independent/REVIEW.md SHA8348dc2c…e860e98.
+Hint casing90553cd/f54bede restores Home Ctrl-letter captions while preserving
+physical chords and lowercase q; independent11 tests/112 rendering comparisons
+bound in E/hintcase-independent/REVIEW.md SHA03703e6c…a9e1230.
+TablePro completionc23d2fb/8949e68/c44c0f3 restores statement/alias/schema context,
+UTF-8 replacement ranges and explicit Identifier fuzzy boundary policy. Independent
+unchanged589 ASCII reference cases now have zero ranking/score/content deltas;
+486 previous-default fuzzy comparisons match. Review E/completion-independent/
+REPAIR_REVIEW.md SHAac170413…810701. Root combined756 library+17 component,
+74 TablePro and135 Holla tests pass. Completion popup reachability remains open;
+these are model/contract checks, not full UI acceptance. Root fixed four unnecessary
+test qualifications and formatting without assertion changes. Strict style timing
+remains unaccepted. Tree state-replacement cache alias and Grid pending reveal
+on unusable sticky geometry are newly reproduced, assigned structural repairs.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in

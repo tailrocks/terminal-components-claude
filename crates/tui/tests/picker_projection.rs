@@ -11,10 +11,7 @@ const ITEMS: &[Item<'static>; 2] = &[
     Item::new(ItemKey::num(20), "customers").detail("public.customers"),
 ];
 fn picker(policy: FilterPolicy) -> Picker<'static, Item<'static>> {
-    Picker::new(ID)
-        .width(64)
-        .filter(policy)
-        .scopes(SCOPES)
+    Picker::new(ID).width(64).filter(policy).scopes(SCOPES)
 }
 struct Page {
     state: PickerState,

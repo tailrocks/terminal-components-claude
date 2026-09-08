@@ -1116,7 +1116,7 @@ mod tests {
     }
     #[test]
     fn focused_hint_dedup_uses_physical_chord_independent_of_display_case() {
-        let chord = Chord::with(crate::KeyCode::Char('s'), crate::KeyModifiers::CONTROL);
+        let chord = Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL);
         for key in [
             HintKey::Chord(chord),
             HintKey::ChordWithCase {
@@ -1131,10 +1131,7 @@ mod tests {
                 priority: 1,
             });
             assert!(hints.contains_chord(chord));
-            assert!(!hints.contains_chord(Chord::with(
-                crate::KeyCode::Char('S'),
-                crate::KeyModifiers::CONTROL
-            )));
+            assert!(!hints.contains_chord(Chord::with(KeyCode::Char('S'), KeyModifiers::CONTROL)));
         }
         let mut hints = FocusedHints::default();
         hints.layer.hints.push(Hint {
