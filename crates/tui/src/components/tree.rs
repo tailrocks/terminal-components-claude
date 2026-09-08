@@ -654,6 +654,7 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
     row: R,
+    render_row: Option<TreeRowRenderer<'a, T>>,
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
     branch_activation: TreeBranchActivation,
     branch_click: TreeBranchClick,
@@ -671,6 +672,8 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     fwd_slot: Option<(Part, SlotFn<'a>)>,
     _t: PhantomData<fn(&T)>,
 }
+
+type TreeRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
 
 #[derive(Clone, Copy)]
 struct TreeQuery<'a, T> {
@@ -697,6 +700,7 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             id,
             key: ByIndex,
             row: DefaultRow,
+            render_row: None,
             node: None,
             branch_activation: TreeBranchActivation::Toggle,
             branch_click: TreeBranchClick::Toggle,
@@ -762,6 +766,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             id: self.id,
             key: k,
             row: self.row,
+            render_row: self.render_row,
             node: self.node,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
@@ -777,12 +782,30 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
     }
 
+    /// Replace the complete visible row's paint through a borrowed callback.
+    ///
+    /// Tree retains hierarchy, scrolling, input, row hits and disclosure hits.
+    /// The callback receives the authoritative row, final flags, stable key and
+    /// borrowed item. Writes are clipped to the row and ancestor clip; no default
+    /// row painter runs. Resolve semantic styles in the callback: instance parts
+    /// and slots customize only the default painter.
+    ///
+    /// Items need not implement `Display`. Later `key` and `row` builders retain
+    /// this renderer. Shared disclosure hits remain at Tree's prefix cells.
+    #[must_use]
+    pub fn render_row(self, renderer: TreeRowRenderer<'a, T>) -> Tree<'a, T, K, impl RowFn<T>> {
+        let mut tree = self.row(|_: &T, _: &mut RowUi<'_>| {});
+        tree.render_row = Some(renderer);
+        tree
+    }
+
     /// A row painter, called only for the visible rows.
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tree<'a, T, K, R2> {
         Tree {
             id: self.id,
             key: self.key,
             row: r,
+            render_row: self.render_row,
             node: self.node,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
@@ -1730,6 +1753,26 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
     }
 
     fn paint_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
+        if let Some(renderer) = self.render_row {
+            if !row.rect.intersection(ui.full()).is_empty() {
+                ui.with_area(row.rect, |ui| {
+                    renderer(ui, row.rect, row.flags, row.key, item);
+                });
+            }
+            let fold = cell_at(
+                row.rect,
+                row.rect
+                    .x
+                    .saturating_add(1)
+                    .saturating_add(row.depth.saturating_mul(indent)),
+            );
+            Self::register_row(ui, self.id, row, fold);
+            return;
+        }
+        self.paint_default_row(ui, row, indent, item);
+    }
+
+    fn paint_default_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
         let rs = self.ov.style(
             ui,
             self.id,
@@ -1815,11 +1858,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         if ui.is_inert() {
             return;
         }
-        ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.rect);
-        // the disclosure is registered last so it wins hit-testing over the
-        // row it sits inside
+        Self::register_row(ui, self.id, row, fold);
+    }
+
+    fn register_row(ui: &mut Ui<'_>, id: Id, row: Row, fold: Rect) {
+        ui.register_part(id, PartRef::item(Part::ROW, row.key), row.rect);
+        // Disclosure wins hit-testing over the row, including custom painters.
         if row.disclosure.is_some() {
-            ui.register_part(self.id, PartRef::item(Part::ICON, row.key), fold);
+            ui.register_part(id, PartRef::item(Part::ICON, row.key), fold);
         }
     }
 
