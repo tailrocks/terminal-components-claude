@@ -226,7 +226,7 @@ impl<'a> ScrollRegion<'a> {
                 Response::consumed()
             }
             Phase::Press => {
-                let track_pos = usize::from(local.y.saturating_sub(1));
+                let track_pos = usize::from(local.y);
                 st.scroll_to(st.offset_for_track_pos(track_pos, usize::from(track_len)));
                 moved(st.offset() != before)
             }
@@ -235,9 +235,7 @@ impl<'a> ScrollRegion<'a> {
                 let capture_area = cx.capture_area().unwrap_or_default();
                 let origin = cx.capture_origin().unwrap_or(pos);
                 let grab = origin.y.saturating_sub(capture_area.y);
-                let track_y = cx
-                    .area(self.id)
-                    .map_or(capture_area.y, |area| area.y.saturating_add(1));
+                let track_y = cx.area(self.id).map_or(capture_area.y, |area| area.y);
                 let centered = thumb_drag_position(pos.y, track_y, grab, thumb_len);
                 st.scroll_to(st.offset_for_track_pos(centered, usize::from(track_len)));
                 moved(st.offset() != before)
@@ -279,7 +277,7 @@ impl<'a> ScrollRegion<'a> {
             StateFlags::empty(),
         );
         ui.fill(area, container.style);
-        let track_height = area.height.saturating_sub(2);
+        let track_height = area.height;
         ui.report_layout(
             self.id,
             LayoutFacts::new(
@@ -309,11 +307,7 @@ impl<'a> ScrollRegion<'a> {
     }
 
     fn paint_bar(&self, ui: &mut Ui<'_>, bar: Rect, view: &ScrollState) {
-        let track_rect = Rect {
-            y: bar.y.saturating_add(1),
-            height: bar.height.saturating_sub(2),
-            ..bar
-        };
+        let track_rect = bar;
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
@@ -350,13 +344,13 @@ impl<'a> ScrollRegion<'a> {
             f(ui, bar);
         } else {
             match track.glyph {
-                Slot::Set(glyph) => {
+                Slot::Set(glyph) if glyph != GlyphRole::ScrollTrack => {
                     for row in bar.rows() {
                         ui.glyph(row, glyph, track.style);
                     }
                 }
                 Slot::Clear => ui.fill(bar, track.style),
-                Slot::Inherit => {
+                Slot::Inherit | Slot::Set(_) => {
                     for row in track_rect.rows() {
                         ui.glyph(row, GlyphRole::ScrollTrack, track.style);
                     }
@@ -434,11 +428,13 @@ mod tests {
     }
 
     #[test]
-    fn scrollbar_paints_typed_begin_and_end_caps() {
+    fn scrollbar_paints_typed_caps_outside_the_thumb() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         let area = Rect::new(0, 0, 5, 6);
-        let st = ScrollState::new(100);
+        let mut st = ScrollState::new(100);
+        st.set_viewport(6);
+        st.scroll_to(47);
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             ScrollRegion::new(ID).draw(ui, area, &st, 100);
         })

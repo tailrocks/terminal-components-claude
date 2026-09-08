@@ -1569,7 +1569,8 @@ mod tests {
         assert!(track_cell.modifier.contains(Modifier::UNDERLINED));
         assert!(track_cell.modifier.contains(Modifier::BOLD));
         assert_eq!(
-            buffer.cell(Position::new(19, 1)).map(BufferCell::symbol),
+            // Full-track geometry starts the thumb at the viewport endpoint.
+            buffer.cell(Position::new(19, 0)).map(BufferCell::symbol),
             Some("#"),
             "thumb slot is painted by embedded ScrollRegion"
         );
