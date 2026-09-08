@@ -392,3 +392,55 @@ fn rapid_repeated_gutter_clicks_each_toggle_the_source_row() {
         );
     }
 }
+
+#[test]
+fn detailed_gutter_pointer_flags_follow_only_the_addressed_row() {
+    let mut theme = Theme::junie();
+    theme.color.info = Color::Rgb(13, 17, 19);
+    theme.color.danger = Color::Rgb(23, 29, 31);
+    theme = theme.define_family(Family::GRID, |family| {
+        for part in [Part::GUTTER, Part::MARKER, Part::CHANGE, Part::ROW_NUMBER] {
+            family
+                .part(part)
+                .when(StateFlags::HOVERED, StylePatch::new().set_fg(Role::Info))
+                .when(
+                    StateFlags::HOVERED | StateFlags::PRESSED,
+                    StylePatch::new().set_fg(Role::Danger),
+                );
+        }
+    });
+    let mut h = Harness::new(Page::new(40), theme, 40, 6);
+    let _ = h.mouse(junie_tui::MouseKind::Move, 4, 2);
+    for x in [0, 1, 2, 4] {
+        assert_eq!(h.cell(x, 2).fg, Color::Rgb(13, 17, 19));
+        assert_ne!(h.cell(x, 3).fg, Color::Rgb(13, 17, 19));
+    }
+    let _ = h.mouse(junie_tui::MouseKind::Down, 4, 2);
+    for x in [0, 1, 2, 4] {
+        assert_eq!(h.cell(x, 2).fg, Color::Rgb(23, 29, 31));
+    }
+    let _ = h.mouse(junie_tui::MouseKind::Up, 4, 2);
+    let _ = h.mouse(junie_tui::MouseKind::Move, 7, 3);
+    for x in [0, 1, 2, 4] {
+        assert_eq!(h.cell(x, 3).fg, Color::Rgb(13, 17, 19));
+        assert_ne!(h.cell(x, 2).fg, Color::Rgb(13, 17, 19));
+    }
+}
+
+#[test]
+fn independent_detailed_number_receives_pointer_state_recipe() {
+    let theme = Theme::junie().define_family(Family::GRID, |family| {
+        family
+            .part(Part::ROW_NUMBER)
+            .when(StateFlags::HOVERED, StylePatch::new().set_fg(Role::Danger));
+    });
+    let expected = theme.color.danger;
+    let mut h = Harness::new(Page::new(40), theme, 40, 6);
+    let _ = h.mouse(junie_tui::MouseKind::Move, 4, 2);
+    assert_eq!(h.hover(), Some(ID));
+    assert_eq!(
+        h.cell(4, 2).fg,
+        expected,
+        "new number hit must supply its own hovered state"
+    );
+}

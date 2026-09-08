@@ -3250,6 +3250,16 @@ impl Grid<'_> {
         if !self.disabled && pressed == Some(PartRef::item(Part::ROW, key)) {
             rflags |= StateFlags::PRESSED;
         }
+        if !self.disabled && self.gutter != GridGutter::Compact {
+            let hovered = ui.hovered_part(self.id);
+            if matches!(hovered, Some(PartRef { part: Part::ROW_NUMBER | Part::CELL, item: Some(hovered_key) }) if hovered_key == key)
+            {
+                rflags |= StateFlags::HOVERED;
+            }
+            if pressed == Some(PartRef::item(Part::ROW_NUMBER, key)) {
+                rflags |= StateFlags::PRESSED;
+            }
+        }
         let band = Rect {
             x: content.x,
             y,
