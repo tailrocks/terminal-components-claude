@@ -323,6 +323,13 @@ impl<A: App> Drop for PaintedFrame<'_, A> {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct ConflictCacheKey {
+    focused: Option<(Id, BindingTableId)>,
+    typing_owner: Option<Id>,
+    revision: u64,
+}
+
 /// The runtime.
 pub struct Runtime<A: App> {
     app: A,
@@ -340,7 +347,8 @@ pub struct Runtime<A: App> {
     cursor: Option<Position>,
     last_invalidate: Invalidate,
     pending_focus: Option<(Option<Id>, Option<Id>, FocusVia)>,
-    keymap_conflict_key: Option<(Option<(Id, BindingTableId)>, u64)>,
+    keymap_conflict_key: Option<ConflictCacheKey>,
+    keymap_conflict_typing: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
     layer_events_pending: Vec<(Id, LayerEvent)>,
@@ -389,6 +397,7 @@ impl<A: App> Runtime<A> {
             last_invalidate: Invalidate::None,
             pending_focus: None,
             keymap_conflict_key: None,
+            keymap_conflict_typing: Vec::new(),
             keymap_conflicts: Vec::new(),
             staged_focus: None,
             layer_events_pending: Vec::new(),
@@ -558,17 +567,34 @@ impl<A: App> Runtime<A> {
                 .get(owner)
                 .map(|(published, table)| (owner, published.table, table))
         });
-        let key = (
-            component.map(|(owner, table, _)| (owner, table)),
-            self.core.keymap_revision,
-        );
-        if self.keymap_conflict_key == Some(key) {
+        let typing = self.last.typing.fallback.and_then(|owner| {
+            self.last
+                .typing_bindings
+                .get(owner)
+                .map(|(_, table)| (owner, table))
+        });
+        let typing_table = typing.map_or(&[][..], |(_, table)| table);
+        let key = ConflictCacheKey {
+            focused: component.map(|(owner, table, _)| (owner, table)),
+            typing_owner: typing.map(|(owner, _)| owner),
+            revision: self.core.keymap_revision,
+        };
+        // A captured filter can change the accepted subset without changing
+        // its static source table. Exact descriptors are the cache identity;
+        // comparing only BindingTableId would retain stale conflict results.
+        if self.keymap_conflict_key == Some(key) && self.keymap_conflict_typing == typing_table {
             return;
         }
         self.keymap_conflict_key = Some(key);
+        self.keymap_conflict_typing.clear();
+        self.keymap_conflict_typing.extend_from_slice(typing_table);
         self.keymap_conflicts.clear();
         self.keymap_conflicts.extend(self.core.keymap.conflicts());
         if let Some((owner, _, table)) = component {
+            self.keymap_conflicts
+                .extend(self.core.keymap.component_conflicts(owner, table));
+        }
+        if let Some((owner, table)) = typing {
             self.keymap_conflicts
                 .extend(self.core.keymap.component_conflicts(owner, table));
         }

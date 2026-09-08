@@ -566,3 +566,89 @@ fn idle_primary_editor_prevents_fallback_without_manufacturing_an_edit_lifecycle
     assert!(!rt.app().pasted);
     assert_eq!(rt.focus(), Some(OTHER));
 }
+
+#[test]
+fn fallback_conflicts_follow_filtered_descriptors_even_when_source_table_and_keymap_stay_equal() {
+    const ONE: ActionKey = ActionKey::custom("typing.collision.one");
+    const TWO: ActionKey = ActionKey::custom("typing.collision.two");
+    const TABLE: &[junie_tui::Binding<bool>] = &[
+        junie_tui::Binding {
+            action: ONE,
+            chord: Some(Chord::key(KeyCode::F(1))),
+            cmd: false,
+            label: "one",
+            priority: 0,
+            visible: true,
+        },
+        junie_tui::Binding {
+            action: TWO,
+            chord: Some(Chord::key(KeyCode::F(2))),
+            cmd: true,
+            label: "two",
+            priority: 0,
+            visible: true,
+        },
+    ];
+    struct Filtered {
+        map: KeyMap,
+        include_second: bool,
+    }
+    impl App for Filtered {
+        fn keymap(&self) -> &KeyMap {
+            &self.map
+        }
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(ROW);
+            }
+            for owner in [QUERY, ROW] {
+                for _ in cx.intents(owner) {}
+            }
+            Response::ignored()
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(ROW, Rect::new(0, 2, 10, 1), Focusability::Focusable);
+            ui.register_editor(
+                QUERY,
+                Rect::new(0, 0, 10, 1),
+                Focusability::Focusable,
+                junie_tui::StateFlags::EDITING,
+            );
+            ui.publish_bindings(QUERY, junie_tui::StateFlags::EDITING, TABLE);
+            ui.publish_typing_target(QUERY, TABLE, |second| !second || self.include_second, false);
+        }
+    }
+    let _lock = lock();
+    let map = KeyMap::new()
+        .bind_component(QUERY, ONE, chord(KeyCode::F(9)))
+        .bind_component(QUERY, TWO, chord(KeyCode::F(9)));
+    let mut rt = Runtime::new(
+        Filtered {
+            map,
+            include_second: false,
+        },
+        Theme::junie(),
+    );
+    let _ = rt.initialize();
+    for include_second in [false, true, false, true] {
+        rt.app_mut().include_second = include_second;
+        let _ = junie_tui_testing::deliver(&mut rt, AREA, key(KeyCode::F(9)));
+        let conflicts = rt
+            .diagnostics()
+            .iter()
+            .filter(|diagnostic| {
+                matches!(diagnostic,
+            junie_tui::Diagnostic::BindingConflict { a, b, chord: c, .. }
+                if *a == QUERY && *b == QUERY && *c == chord(KeyCode::F(9)))
+            })
+            .count();
+        assert_eq!(conflicts, usize::from(include_second));
+        assert_eq!(rt.focus(), Some(ROW));
+    }
+    let mut buffer = Buffer::empty(AREA);
+    let stats = bench(4, 100, &mut || {
+        rt.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = rt.handle(Input::Tick).expect("settled published fallback");
+    });
+    assert_eq!((stats.allocs, stats.bytes), (0, 0));
+}
