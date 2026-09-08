@@ -19,10 +19,9 @@ use crate::sim::world::{Discovery, Domain, World};
 /// Fixture home directory. Display paths use `~`; typed confirmation
 /// phrases (P3) expand through this, e.g. `~/work/scratch` →
 /// `/home/dev/work/scratch`.
-#[allow(dead_code)] // P3 typed-phrase targets
 pub(crate) const HOME: &str = "/home/dev";
 
-#[allow(dead_code)] // P3 typed-phrase targets
+#[cfg_attr(not(test), expect(dead_code, reason = "P3 typed-phrase targets"))]
 pub(crate) fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }

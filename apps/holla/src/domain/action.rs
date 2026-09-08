@@ -152,7 +152,10 @@ pub(crate) struct Action {
 }
 
 impl Action {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "fixture constructor mirrors the full scan record"
+    )]
     pub(crate) fn new(
         id: &str,
         title: &str,

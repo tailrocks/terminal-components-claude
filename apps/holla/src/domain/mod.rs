@@ -2,39 +2,39 @@
 //! tools, containers, activities. Plain data; nothing here spawns a process.
 
 // Fixture contract lands whole; P2+ renders into the parts P1 only seeds.
-#[allow(dead_code)]
 pub(crate) mod accounting;
 pub(crate) mod action;
-#[allow(dead_code)]
+#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod activity;
-#[allow(dead_code)]
 pub(crate) mod debian;
-#[allow(dead_code)]
 pub(crate) mod disk;
-#[allow(dead_code)]
+#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod docker;
 pub(crate) mod effect;
 pub(crate) mod fixtures;
-#[allow(dead_code)]
+#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod git;
-#[allow(dead_code)]
 pub(crate) mod github;
 pub(crate) mod host;
-#[allow(dead_code)]
+#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod mise;
-#[allow(dead_code)]
+#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod pg;
-#[allow(dead_code)]
+#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod plan;
-#[allow(dead_code)]
+// Ranked views are asserted by the fixture unit tests; no rendering reads
+// them yet.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")
+)]
 pub(crate) mod ranking;
-#[allow(dead_code)]
+#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod ssh;
 
 pub(crate) use host::Environment;
 
 /// Human byte size per the design-system number grammar: `8.4 GB`, `900 MB`.
-#[allow(dead_code)] // P2 renders sizes
 pub(crate) fn human_bytes(bytes: u64) -> String {
     const KB: u64 = 1_024;
     const MB: u64 = KB * 1_024;

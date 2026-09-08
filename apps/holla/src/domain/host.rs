@@ -10,7 +10,7 @@ pub(crate) enum Environment {
     /// Remote development host.
     Dev,
     /// Remote staging host.
-    #[allow(dead_code)] // P5 hard-cases host
+    #[expect(dead_code, reason = "P5 hard-cases host")]
     Staging,
     /// Remote production host: strongest confirmation treatment.
     Production,
@@ -36,7 +36,6 @@ impl Environment {
     }
 
     /// Whether destructive confirmation gets the strongest treatment.
-    #[allow(dead_code)] // P3 safety gates
     pub(crate) fn sensitive(self) -> bool {
         matches!(self, Environment::Staging | Environment::Production)
     }

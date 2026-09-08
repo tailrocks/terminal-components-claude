@@ -2428,9 +2428,19 @@ const RULES: &[Rule] = &[
     // (`st.fg = c` while building a `Style`) from *layering* (which R-9
     // forbids); the two occurrences in `ui/paint.rs` are construction and the
     // file is allow-listed by path for that reason.
+    //
+    // The bare `.add_modifier(` / `.remove_modifier(` / `.underline_color(`
+    // alternatives were dropped: a text scan cannot tell a raw `Style`
+    // receiver from the sanctioned `PaintStyle` carrier, which deliberately
+    // mirrors those method names (theme/resolve.rs) and is current API, not
+    // legacy usage. What the scan can still see is the raw *spelling*: a
+    // modifier call chained straight off a `Style` construction. R-8's "one
+    // spelling" therefore keeps its teeth exactly where the legacy pattern
+    // is visible; modifier layering away from a constructor is the deferred
+    // blind spot of every receiver-less alternative.
     Rule {
         n: 9,
-        re: r"Style::new\(\)\s*\.(fg|bg)\(|style\.(fg|bg)\(|\.add_modifier\(|\.remove_modifier\(|\.underline_color\(",
+        re: r"(Style::new\(\)|Style::default\(\))\s*\.(fg|bg|underline_color|add_modifier|remove_modifier)\(|style\.(fg|bg)\(",
         allowed: &[
             "crates/tui/src/theme/",
             "crates/tui/src/ui/paint.rs",
@@ -2575,7 +2585,11 @@ const RULES: &[Rule] = &[
     },
     Rule {
         n: 24,
-        re: r"Layout::|Constraint::|Flex::|Spacing::",
+        // `\b` so the alternatives match the ratatui types and not a longer
+        // crate-local identifier that merely ends in one of them (for
+        // example the picker's own `ItemRowLayout`, which is a component's
+        // item-presentation mode, not layout computation).
+        re: r"\bLayout::|\bConstraint::|\bFlex::|\bSpacing::",
         allowed: &[],
         why: "R-13",
         only_if: None,

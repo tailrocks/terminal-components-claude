@@ -29,7 +29,7 @@ pub(crate) enum Domain {
 }
 
 impl Domain {
-    #[allow(dead_code)] // P2 renders per-domain scanning notes
+    #[expect(dead_code, reason = "P2 renders per-domain scanning notes")]
     pub(crate) const ALL: [Domain; 7] = [
         Domain::Mise,
         Domain::Git,
@@ -40,7 +40,6 @@ impl Domain {
         Domain::Disk,
     ];
 
-    #[allow(dead_code)] // P2 renders per-domain scanning notes
     pub(crate) fn label(self) -> &'static str {
         match self {
             Domain::Mise => "mise",
@@ -157,12 +156,10 @@ impl World {
         self.discovery.iter().any(|d| !d.done && !d.failed)
     }
 
-    #[allow(dead_code)] // fixture tests + P2
     pub(crate) fn discovered(&self, domain: Domain) -> bool {
         self.discovery.iter().any(|d| d.domain == domain && d.done)
     }
 
-    #[allow(dead_code)] // fixture tests + P2
     pub(crate) fn discovery_failed(&self, domain: Domain) -> bool {
         self.discovery
             .iter()

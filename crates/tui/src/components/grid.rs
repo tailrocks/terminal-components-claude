@@ -1098,16 +1098,27 @@ impl Geometry {
             Part::ROW_NUMBER => (3, self.number_width),
             _ => (0, 0),
         };
-        Rect::new(self.body.x.saturating_add(offset), y, width, 1).intersection(Rect::new(
-            self.body.x,
+        Rect {
+            x: self.body.x.saturating_add(offset),
             y,
-            self.gutter_width,
-            1,
-        ))
+            width,
+            height: 1,
+        }
+        .intersection(Rect {
+            x: self.body.x,
+            y,
+            width: self.gutter_width,
+            height: 1,
+        })
     }
 
     fn gutter_row(&self, y: u16) -> Rect {
-        Rect::new(self.body.x, y, self.gutter_width, 1)
+        Rect {
+            x: self.body.x,
+            y,
+            width: self.gutter_width,
+            height: 1,
+        }
     }
 
     /// The column under `x`, if any.
@@ -3084,12 +3095,12 @@ impl Grid<'_> {
             Align::Center => spare / 2,
             Align::Right => spare,
         };
-        let group = Rect::new(
-            area.x.saturating_add(offset),
-            area.y,
-            group_width,
-            area.height,
-        );
+        let group = Rect {
+            x: area.x.saturating_add(offset),
+            y: area.y,
+            width: group_width,
+            height: area.height,
+        };
         let icon = Rect {
             width: group.width.min(1),
             ..group

@@ -258,7 +258,10 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
     v
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "fixture instance mirrors the full workspace record"
+)]
 fn instance(
     id: &str,
     ws: Option<u32>,

@@ -389,12 +389,12 @@ impl<'a> Panel<'a> {
             } else {
                 ui.fill(rect, style.over(ui.surface_style()));
                 ui.paint_str(
-                    Rect::new(
-                        rect.x.saturating_add(1),
-                        rect.y,
-                        rect.width.saturating_sub(2),
-                        1,
-                    ),
+                    Rect {
+                        x: rect.x.saturating_add(1),
+                        y: rect.y,
+                        width: rect.width.saturating_sub(2),
+                        height: 1,
+                    },
                     text,
                     style.style,
                 );
@@ -448,14 +448,14 @@ impl<'a> Panel<'a> {
         });
         self.draw_badge(
             ui,
-            Rect::new(
-                text_x
+            Rect {
+                x: text_x
                     .saturating_add(title_room)
                     .saturating_sub(badge_block),
-                head.y,
-                badge_block.saturating_sub(1),
-                1,
-            ),
+                y: head.y,
+                width: badge_block.saturating_sub(1),
+                height: 1,
+            },
             live,
         );
         let title_room = title_room.saturating_sub(badge_block);

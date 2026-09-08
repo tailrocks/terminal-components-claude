@@ -1188,7 +1188,16 @@ impl<'a> Props<'a> {
             let height =
                 PropsList::row_height(row, value_width).min(area.height.saturating_sub(painted));
             let y = area.y.saturating_add(painted);
-            ui.paint_str(Rect::new(area.x, y, label_width, 1), row.label, key_style);
+            ui.paint_str(
+                Rect {
+                    x: area.x,
+                    y,
+                    width: label_width,
+                    height: 1,
+                },
+                row.label,
+                key_style,
+            );
             let value_style = if let Some(tone) = row.tone {
                 let local = self.ov.part_patch(Part::LABEL);
                 let resolved = ui.style_defaults(
@@ -1225,12 +1234,12 @@ impl<'a> Props<'a> {
             let resolved_row = PropsRow { tone: None, ..*row };
             paint_value(
                 ui,
-                Rect::new(
-                    area.x.saturating_add(label_width).saturating_add(2),
+                Rect {
+                    x: area.x.saturating_add(label_width).saturating_add(2),
                     y,
-                    value_width,
+                    width: value_width,
                     height,
-                ),
+                },
                 &resolved_row,
                 value_style,
             );
