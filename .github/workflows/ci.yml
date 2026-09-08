@@ -111,6 +111,9 @@ jobs:
       - name: Clippy (§22.3, §26)
         run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 
+      - name: Required application targets (authoritative inventory)
+        run: cargo run --locked -p xtask -- app-inventory --json
+
       - name: Build (§26)
         run: cargo build --locked --workspace --all-targets --all-features
 

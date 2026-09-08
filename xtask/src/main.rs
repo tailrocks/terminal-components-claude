@@ -28,7 +28,10 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
+mod app_inventory;
 mod backend_free;
+use app_inventory::AppPackage;
+use std::sync::LazyLock;
 mod historical_additions;
 mod parity;
 
@@ -42,27 +45,20 @@ fn root() -> PathBuf {
 const CAPTURE_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (160, 50)];
 const CAPTURE_COLORS: [&str; 4] = ["truecolor", "256", "16", "mono"];
 const CAPTURE_THEMES: [&str; 2] = ["junie", "paper"];
-const NO_CAPTURE_ARGS: &[&str] = &[];
-const JACKIN_CAPTURE_ARGS: &[&str] = &["--motion", "paused", "--frame", "0"];
-const CAPTURE_APPS: [CaptureApp; 3] = [
-    CaptureApp {
-        name: "showcase",
-        binary: "showcase",
-        extra_args: NO_CAPTURE_ARGS,
-    },
-    CaptureApp {
-        name: "tablepro",
-        binary: "tablepro",
-        extra_args: NO_CAPTURE_ARGS,
-    },
-    CaptureApp {
-        name: "jackin-preview",
-        binary: "jackin-preview",
-        // A paused frame makes the capture deterministic and avoids waiting
-        // for the intro animation on every matrix cell.
-        extra_args: JACKIN_CAPTURE_ARGS,
-    },
-];
+static CAPTURE_APPS: LazyLock<Vec<CaptureApp>> = LazyLock::new(|| {
+    app_inventory::get()
+        .expect("validated application inventory")
+        .apps
+        .iter()
+        .map(|app| CaptureApp {
+            name: app.id,
+            binary: app.bin,
+            extra_args: &app.startup.args,
+            themes: &app.startup.themes,
+            theme_argument: app.startup.theme_argument,
+        })
+        .collect()
+});
 const CAPTURE_MANIFEST: &str = "shots/capture-matrix.tsv";
 const CAPTURE_PROVENANCE: &str = "shots/capture-provenance.json";
 
@@ -72,13 +68,15 @@ const CAPTURE_PROVENANCE: &str = "shots/capture-provenance.json";
 const EXPECTED_CAPTURE_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (160, 50)];
 const EXPECTED_CAPTURE_COLORS: [&str; 4] = ["truecolor", "256", "16", "mono"];
 const EXPECTED_CAPTURE_THEMES: [&str; 2] = ["junie", "paper"];
-const EXPECTED_CAPTURE_APPS: [&str; 3] = ["showcase", "tablepro", "jackin-preview"];
+const EXPECTED_CAPTURE_APPS: [&str; 4] = ["showcase", "tablepro", "jackin-preview", "holla"];
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct CaptureApp {
     name: &'static str,
     binary: &'static str,
     extra_args: &'static [&'static str],
+    themes: &'static [&'static str],
+    theme_argument: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -116,11 +114,12 @@ struct CaptureRecord {
 
 fn capture_matrix_cases() -> Vec<CaptureCase> {
     CAPTURE_APPS
-        .into_iter()
+        .iter()
+        .copied()
         .flat_map(|app| {
             CAPTURE_SIZES.into_iter().flat_map(move |(width, height)| {
                 CAPTURE_COLORS.into_iter().flat_map(move |color| {
-                    CAPTURE_THEMES.into_iter().map(move |theme| CaptureCase {
+                    app.themes.iter().copied().map(move |theme| CaptureCase {
                         app,
                         width,
                         height,
@@ -526,7 +525,7 @@ fn capture_matrix() -> Result<(), String> {
     }
 
     let mut binaries = BTreeMap::new();
-    for app in CAPTURE_APPS {
+    for app in CAPTURE_APPS.iter() {
         let owners = binary_owners(app.binary)?;
         let binary = capture_binary_path(app.binary);
         validate_capture_binary(app.binary, &binary, &owners)?;
@@ -721,7 +720,8 @@ fn run_capture_script(
         .unwrap_or(binary)
         .to_string_lossy()
         .into_owned();
-    let output = Command::new("/bin/bash")
+    let mut command = Command::new("/bin/bash");
+    command
         .arg(script)
         .args(args)
         .current_dir(root())
@@ -736,14 +736,16 @@ fn run_capture_script(
         .env("CAPTURE_STATE_DIR", root().join("shots/.capture-state"))
         .env_remove("ARGS")
         .env_remove("THEME")
-        .env_remove("PY")
-        .output()
-        .map_err(|error| {
-            format!(
-                "cannot run capture script for {}: {error}",
-                case_label(case)
-            )
-        })?;
+        .env_remove("PY");
+    if !case.app.theme_argument {
+        command.env("THEME", case.theme);
+    }
+    let output = command.output().map_err(|error| {
+        format!(
+            "cannot run capture script for {}: {error}",
+            case_label(case)
+        )
+    })?;
     if output.status.success() {
         return Ok(());
     }
@@ -781,9 +783,10 @@ fn capture_arguments(case: CaptureCase) -> Vec<String> {
         .iter()
         .map(|argument| (*argument).to_owned())
         .collect::<Vec<_>>();
+    if case.app.theme_argument {
+        arguments.extend(["--theme".to_owned(), case.theme.to_owned()]);
+    }
     arguments.extend([
-        "--theme".to_owned(),
-        case.theme.to_owned(),
         "--color".to_owned(),
         capture_color_arg(case.color).to_owned(),
     ]);
@@ -1666,7 +1669,7 @@ fn capture_axes_contract_hits() -> Vec<String> {
             "capture apps are {actual_apps:?}, expected {EXPECTED_CAPTURE_APPS:?}"
         ));
     }
-    let expected_cells = 4usize * 4 * 2 * 3;
+    let expected_cells = 96usize + 16;
     let actual_cells = capture_matrix_cases().len();
     if actual_cells != expected_cells {
         hits.push(format!(
@@ -1815,8 +1818,14 @@ fn capture_name_is_safe(name: &str) -> bool {
 }
 
 fn main() -> ExitCode {
+    if let Err(error) = app_inventory::get() {
+        eprintln!("{error}");
+        return ExitCode::FAILURE;
+    }
     let args: Vec<String> = std::env::args().skip(1).collect();
     let result = match args.first().map(String::as_str) {
+        Some("app-inventory") => inventory_command(&args[1..]),
+        Some("app-perf") => app_perf(),
         Some("doc-check") => doc_check(),
         Some("boundary") => {
             let only = args
@@ -1843,6 +1852,8 @@ fn main() -> ExitCode {
         }
         Some("parity-replay") => parity::replay(&root()),
         Some("list") => {
+            println!("app-inventory [--json | --plan]");
+            println!("app-perf");
             println!("capture-matrix");
             println!("parity");
             println!("parity-replay");
@@ -1865,6 +1876,53 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn inventory_command(args: &[String]) -> Result<(), String> {
+    if args.len() > 1
+        || args
+            .first()
+            .is_some_and(|a| !matches!(a.as_str(), "--json" | "--plan"))
+    {
+        return Err("usage: app-inventory [--json | --plan]".into());
+    }
+    let inventory = app_inventory::get()?;
+    let targets = inventory.validate_targets(&metadata()?);
+    if args.first().is_some_and(|a| a == "--plan") {
+        println!(
+            "{}",
+            serde_json::json!({"classification":"planned-not-captured", "inventory": inventory,
+            "target_blocker":targets.err(), "holla_reference":inventory.holla_cases(false),
+            "holla_ansi16":inventory.holla_cases(true)})
+        );
+        return Ok(());
+    }
+    targets?;
+    println!(
+        "{}",
+        serde_json::to_string(inventory).map_err(|e| e.to_string())?
+    );
+    Ok(())
+}
+
+fn app_perf() -> Result<(), String> {
+    let inventory = app_inventory::get()?;
+    inventory.validate_targets(&metadata()?)?;
+    for args in inventory.perf_commands() {
+        println!("application perf: cargo {}", args.join(" "));
+        let status = Command::new("cargo")
+            .args(&args)
+            .current_dir(root())
+            .status()
+            .map_err(|e| e.to_string())?;
+        if !status.success() {
+            return Err(format!(
+                "application perf failed: cargo {} ({status})",
+                args.join(" ")
+            ));
+        }
+    }
+    Ok(())
 }
 
 // ───────────────────────────── source scanning ─────────────────────────────
@@ -3642,6 +3700,7 @@ fn props_vacuity_hits(scanned: &[(&str, usize)], observed: usize) -> Vec<String>
 fn metadata() -> Result<cargo_metadata::Metadata, String> {
     cargo_metadata::MetadataCommand::new()
         .manifest_path(root().join("Cargo.toml"))
+        .other_options(vec!["--locked".to_owned()])
         .exec()
         .map_err(|e| e.to_string())
 }
@@ -3885,40 +3944,11 @@ fn library_has_no_application_dependency() -> Result<(), String> {
 /// The binary name doubles as the package name: Appendix B.3 item 7 gives each
 /// app a package with a `[lib]` (`showcase_app`, …) and a thin `[[bin]]` whose
 /// `main` calls `<app>::run()`.
-struct AppPackage {
-    bin: &'static str,
-    dir: &'static str,
-    lib: &'static str,
-    slice: &'static str,
-}
-
-/// The four required applications, including the forward-ported Holla product.
-const APPS: [AppPackage; 4] = [
-    AppPackage {
-        bin: "showcase",
-        dir: "apps/showcase",
-        lib: "showcase_app",
-        slice: "Slice 5",
-    },
-    AppPackage {
-        bin: "tablepro",
-        dir: "apps/tablepro",
-        lib: "tablepro_app",
-        slice: "Slice 6",
-    },
-    AppPackage {
-        bin: "jackin-preview",
-        dir: "apps/jackin-preview",
-        lib: "jackin_app",
-        slice: "Slice 7",
-    },
-    AppPackage {
-        bin: "holla",
-        dir: "apps/holla",
-        lib: "holla_app",
-        slice: "Holla forward migration",
-    },
-];
+static APPS: LazyLock<&'static [AppPackage<'static>]> = LazyLock::new(|| {
+    &app_inventory::get()
+        .expect("validated application inventory")
+        .apps
+});
 
 /// The workspace's tooling package. Its binary is the checker itself, not a
 /// shipped application, and is excluded from `binary_names_are_preserved` by
@@ -3958,7 +3988,7 @@ fn root_package_bins(md: &cargo_metadata::Metadata) -> BTreeSet<String> {
 /// adding the package fails here; one who adds the package without dropping
 /// the root binary fails here *and* in `binary_names_are_preserved`, which
 /// sees the duplicate.
-fn due_apps(md: &cargo_metadata::Metadata) -> Vec<&'static AppPackage> {
+fn due_apps(md: &cargo_metadata::Metadata) -> Vec<&'static AppPackage<'static>> {
     let root_bins = root_package_bins(md);
     APPS.iter().filter(|a| !root_bins.contains(a.bin)).collect()
 }
@@ -4009,7 +4039,7 @@ fn workspace_root_is_virtual() -> Result<(), String> {
 /// missing file because `git diff --exit-code` has no path to compare.
 fn app_baselines_exist() -> Result<(), String> {
     let mut missing = Vec::new();
-    for app in APPS {
+    for app in APPS.iter() {
         let visual_name = if app.bin == "jackin-preview" {
             "jackin.txt"
         } else {
@@ -4043,14 +4073,14 @@ fn app_baselines_exist() -> Result<(), String> {
     }
 }
 
-fn legacy_binary_source(app: &AppPackage) -> PathBuf {
+fn legacy_binary_source(app: &AppPackage<'_>) -> PathBuf {
     root()
         .join("src/bin")
         .join(app.bin.replace('-', "_"))
         .join("main.rs")
 }
 
-fn migrated_binary_source(app: &AppPackage) -> PathBuf {
+fn migrated_binary_source(app: &AppPackage<'_>) -> PathBuf {
     root().join(app.dir).join("src/main.rs")
 }
 
@@ -4061,7 +4091,7 @@ struct BinaryTarget {
 }
 
 fn binary_target_layout_hits(
-    app: &AppPackage,
+    app: &AppPackage<'_>,
     root_owned: bool,
     root_package: Option<&str>,
     actual_package: &str,
@@ -4097,7 +4127,7 @@ fn binary_target_layout_hits(
 
 /// Return the migration error for a missing `apps/` root. `None` is the one
 /// accepted pre-Slice-5 state: the root package still owns every app binary.
-fn missing_apps_for_due(due: &[&'static AppPackage]) -> Option<String> {
+fn missing_apps_for_due(due: &[&'static AppPackage<'static>]) -> Option<String> {
     if due.is_empty() {
         return None;
     }
@@ -4113,7 +4143,7 @@ fn missing_apps_for_due(due: &[&'static AppPackage]) -> Option<String> {
     ))
 }
 
-fn missing_application_manifest(app: &AppPackage) -> String {
+fn missing_application_manifest(app: &AppPackage<'_>) -> String {
     format!(
         "{} is missing for due application `{}` — the migrated app root must contain its \
          Cargo.toml manifest before boundary scanning can pass (§47.1/§47.5)",
@@ -5169,7 +5199,7 @@ fn binary_names_are_preserved() -> Result<(), String> {
              — the tooling exclusion covers that one binary and nothing else"
         ));
     }
-    for a in &APPS {
+    for a in APPS.iter() {
         match found.get(a.bin).map(Vec::as_slice) {
             None => errors.push(format!(
                 "`[[bin]] {}` is missing from the workspace (owner {}): the integration goal \
@@ -5256,7 +5286,7 @@ fn app_libs_are_not_published_and_are_not_depended_on_by_the_library() -> Result
     let members = md.workspace_packages();
     let mut errors = Vec::new();
     let mut present: Vec<&str> = Vec::new();
-    for a in &APPS {
+    for a in APPS.iter() {
         let due = !root_bins.contains(a.bin);
         let pkg = members.iter().find(|p| p.name.as_str() == a.bin);
         match (due, pkg) {
@@ -5363,7 +5393,7 @@ fn app_libs_are_not_published_and_are_not_depended_on_by_the_library() -> Result
             intruders.push(name.to_owned());
         }
     }
-    for a in &APPS {
+    for a in APPS.iter() {
         if closure.contains(a.lib) {
             intruders.push(a.lib.to_owned());
         }
@@ -10216,20 +10246,26 @@ captures / classification: `(pending — filled when the change lands)`
             CaptureApp {
                 name: "showcase",
                 binary: "showcase",
-                extra_args: NO_CAPTURE_ARGS,
+                extra_args: &[],
+                themes: &["junie", "paper"],
+                theme_argument: true,
             },
             CaptureApp {
                 name: "tablepro",
                 binary: "tablepro",
-                extra_args: NO_CAPTURE_ARGS,
+                extra_args: &[],
+                themes: &["junie", "paper"],
+                theme_argument: true,
             },
             CaptureApp {
                 name: "jackin-preview",
                 binary: "jackin-preview",
-                extra_args: JACKIN_CAPTURE_ARGS,
+                extra_args: &["--motion", "paused", "--frame", "0"],
+                themes: &["junie", "paper"],
+                theme_argument: true,
             },
         ];
-        let expected: BTreeSet<CaptureCase> = expected_sizes
+        let mut expected: BTreeSet<CaptureCase> = expected_sizes
             .into_iter()
             .flat_map(|(width, height)| {
                 expected_colors.into_iter().flat_map(move |color| {
@@ -10245,9 +10281,33 @@ captures / classification: `(pending — filled when the change lands)`
                 })
             })
             .collect();
+        for (width, height) in expected_sizes {
+            for color in expected_colors {
+                expected.insert(CaptureCase {
+                    app: CaptureApp {
+                        name: "holla",
+                        binary: "holla",
+                        extra_args: &[
+                            "--scenario",
+                            "first-use",
+                            "--motion",
+                            "paused",
+                            "--frame",
+                            "4000",
+                        ],
+                        themes: &["reference-default"],
+                        theme_argument: false,
+                    },
+                    width,
+                    height,
+                    color,
+                    theme: "reference-default",
+                });
+            }
+        }
         let actual: BTreeSet<CaptureCase> = capture_matrix_cases().into_iter().collect();
         assert_eq!(actual, expected);
-        assert_eq!(actual.len(), 3 * 4 * 4 * 2);
+        assert_eq!(actual.len(), 96 + 16);
     }
 
     #[test]
@@ -10351,7 +10411,7 @@ positional argv mode is unsupported
 
     #[test]
     fn capture_matrix_passes_theme_and_color_to_each_app() {
-        let [_, _, app] = CAPTURE_APPS;
+        let app = CAPTURE_APPS[2];
         let case = CaptureCase {
             app,
             width: 120,
@@ -10372,6 +10432,31 @@ positional argv mode is unsupported
                 "none".to_owned(),
             ]
         );
+    }
+
+    #[test]
+    fn holla_startup_has_fixed_theme_without_an_ignored_cli_option() {
+        let cases: Vec<_> = capture_matrix_cases()
+            .into_iter()
+            .filter(|c| c.app.name == "holla")
+            .collect();
+        assert_eq!(cases.len(), 16);
+        for case in cases {
+            assert_eq!(case.theme, "reference-default");
+            let args = capture_arguments(case);
+            assert!(!args.iter().any(|a| a == "--theme"));
+            assert_eq!(
+                &args[..6],
+                [
+                    "--scenario",
+                    "first-use",
+                    "--motion",
+                    "paused",
+                    "--frame",
+                    "4000"
+                ]
+            );
+        }
     }
 
     #[test]

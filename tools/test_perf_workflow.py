@@ -45,12 +45,18 @@ class PerfWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.source = WORKFLOW.read_text()
         cls.shell = shell_template(cls.source)
-        cls.pipelines = re.findall(r"^          (cargo test .+ \| tee .+)$", cls.source, re.MULTILINE)
+        cls.pipelines = re.findall(r"^          (cargo (?:test|run) .+ \| tee .+)$", cls.source, re.MULTILINE)
 
     def test_all_current_perf_targets_have_blocking_and_advisory_pipelines(self):
-        self.assertEqual(len(self.pipelines), 8)
-        for package in ("junie-tui", "showcase", "tablepro", "jackin-preview"):
-            self.assertEqual(sum(f"-p {package} " in line for line in self.pipelines), 2)
+        self.assertEqual(len(self.pipelines), 4)
+        self.assertEqual(sum("-p junie-tui " in line for line in self.pipelines), 2)
+        self.assertEqual(sum("-p xtask -- app-perf " in line for line in self.pipelines), 2)
+        self.assertTrue(all("--locked" in line for line in self.pipelines))
+        import json
+        inventory = json.loads((WORKFLOW.parents[2] / "tools/app-inventory.json").read_text())
+        self.assertEqual([app["id"] for app in inventory["apps"]],
+                         ["showcase", "tablepro", "jackin-preview", "holla"])
+        self.assertTrue(all(app["perf_targets"] == ["perf"] for app in inventory["apps"]))
         blocking, advisory = self.source.split("  perf-strict:\n")
         self.assertIsNone(re.search(r"^\s+continue-on-error:", blocking, re.MULTILINE))
         self.assertIn("    needs: perf\n", advisory)
