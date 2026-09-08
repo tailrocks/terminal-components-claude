@@ -10,10 +10,10 @@ use junie_tui::{
     ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
     DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
     HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
-    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Panel, Part,
-    PartRef, Phase, Picker, PickerAction, PickerState, Position, Rect, Response, SecretPolicy,
-    StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
-    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Panel, Part, PartRef,
+    Phase, Picker, PickerAction, PickerState, Position, Rect, Response, SecretPolicy, StatusBar,
+    StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport,
+    TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -203,57 +203,8 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
-// Explicit token bindings retain semantics across terminal color downgrades.
-struct HistoricalPalette {
-    canvas: PaintStyle,
-    surface: PaintStyle,
-    primary: PaintStyle,
-    secondary: PaintStyle,
-    muted: PaintStyle,
-    border: PaintStyle,
-    seam: PaintStyle,
-    accent: PaintStyle,
-    accent_tint: PaintStyle,
-    button: PaintStyle,
-    on_accent: PaintStyle,
-    elevated: PaintStyle,
-    warning: PaintStyle,
-    danger: PaintStyle,
-    field: PaintStyle,
-}
-
-impl HistoricalPalette {
-    fn new(ui: &Ui<'_>) -> Self {
-        use junie_tui::{FgStep, Role, StylePatch, Surface};
-        let bind = |role| ui.paint_patch(&StylePatch::new().set_fg(role).set_bg(role));
-        Self {
-            canvas: bind(Role::Surface(Surface::Canvas)),
-            surface: bind(Role::Surface(Surface::Surface)),
-            primary: bind(Role::Fg(FgStep::Primary)),
-            secondary: bind(Role::Fg(FgStep::Secondary)),
-            muted: bind(Role::Fg(FgStep::Muted)),
-            border: bind(Role::BorderStrong),
-            seam: bind(Role::BorderSubtle),
-            accent: bind(Role::Accent),
-            accent_tint: bind(Role::AccentTint),
-            button: bind(Role::Surface(Surface::Overlay)),
-            on_accent: bind(Role::OnAccent),
-            elevated: bind(Role::Surface(Surface::Elevated)),
-            warning: bind(Role::Warning),
-            danger: bind(Role::Danger),
-            field: bind(Role::Surface(Surface::Field)),
-        }
-    }
-}
-
-fn historical_style(fg: PaintStyle, bg: PaintStyle, bold: bool) -> PaintStyle {
-    let style = PaintStyle::new().with_fg_from(fg).with_bg_from(bg);
-    if bold {
-        style.add_modifier(Modifier::BOLD)
-    } else {
-        style.remove_modifier(Modifier::BOLD)
-    }
-}
+mod historical_paint;
+use historical_paint::HistoricalPalette;
 
 /// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -4062,27 +4013,24 @@ impl App {
     /// Historical capsule composition retained at the frozen 120×40 host size.
     fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
-        ui.fill(
-            area,
-            historical_style(palette.primary, palette.canvas, false),
-        );
-        let normal = historical_style(palette.primary, palette.canvas, false);
-        let brand = historical_style(palette.on_accent, palette.accent, true);
-        let secondary = historical_style(palette.secondary, palette.canvas, false);
-        let primary_bold = historical_style(palette.primary, palette.canvas, true);
-        let muted = historical_style(palette.muted, palette.canvas, false);
-        let primary_surface_bold = historical_style(palette.primary, palette.elevated, true);
-        let muted_surface = historical_style(palette.muted, palette.elevated, false);
-        let secondary_surface = historical_style(palette.secondary, palette.elevated, false);
-        let accent = historical_style(palette.accent, palette.canvas, false);
-        let seam = historical_style(palette.seam, palette.canvas, false);
-        let border = historical_style(palette.border, palette.canvas, false);
-        let warning = historical_style(palette.warning, palette.canvas, false);
-        let danger = historical_style(palette.danger, palette.canvas, false);
-        let primary_surface = historical_style(palette.primary, palette.elevated, false);
-        let warning_surface = historical_style(palette.warning, palette.elevated, false);
-        let border_surface = historical_style(palette.border, palette.elevated, false);
-        let seam_surface = historical_style(palette.seam, palette.elevated, false);
+        ui.fill(area, palette.primary_on_canvas);
+        let normal = palette.primary_on_canvas;
+        let brand = palette.on_accent_on_accent_bold;
+        let secondary = palette.secondary_on_canvas;
+        let primary_bold = palette.primary_on_canvas_bold;
+        let muted = palette.muted_on_canvas;
+        let primary_surface_bold = palette.primary_on_elevated_bold;
+        let muted_surface = palette.muted_on_elevated;
+        let secondary_surface = palette.secondary_on_elevated;
+        let accent = palette.accent_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let border = palette.border_on_canvas;
+        let warning = palette.warning_on_canvas;
+        let danger = palette.danger_on_canvas;
+        let primary_surface = palette.primary_on_elevated;
+        let warning_surface = palette.warning_on_elevated;
+        let border_surface = palette.border_on_elevated;
+        let seam_surface = palette.seam_on_elevated;
 
         let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
             if y < area.bottom() && x < area.right() {
@@ -5047,26 +4995,23 @@ impl App {
     /// this projection restores the old form geometry for the default frame.
     fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
-        ui.fill(
-            area,
-            historical_style(palette.primary, palette.canvas, false),
-        );
+        ui.fill(area, palette.primary_on_canvas);
         let _ = Brand::new(APP.sub("editor-brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
 
-        let normal = historical_style(palette.primary, palette.canvas, false);
-        let secondary = historical_style(palette.secondary, palette.canvas, false);
-        let muted = historical_style(palette.muted, palette.canvas, false);
-        let border = historical_style(palette.border, palette.canvas, false);
-        let seam = historical_style(palette.seam, palette.canvas, false);
-        let accent = historical_style(palette.accent, palette.canvas, false);
-        let active_tab = historical_style(palette.primary, palette.elevated, true);
-        let field = historical_style(palette.primary, palette.field, false);
-        let field_secondary = historical_style(palette.secondary, palette.field, false);
-        let field_glyph = historical_style(palette.field, palette.field, false);
-        let button = historical_style(palette.primary, palette.button, false);
-        let button_glyph = historical_style(palette.button, palette.button, false);
-        let check = historical_style(palette.accent, palette.canvas, false);
+        let normal = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let accent = palette.accent_on_canvas;
+        let active_tab = palette.primary_on_elevated_bold;
+        let field = palette.primary_on_field;
+        let field_secondary = palette.secondary_on_field;
+        let field_glyph = palette.field_on_field;
+        let button = palette.primary_on_button;
+        let button_glyph = palette.button_on_button;
+        let check = palette.accent_on_canvas;
 
         let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
             if y < area.bottom() && x < area.right() {
@@ -5129,7 +5074,7 @@ impl App {
             4,
             10,
             "Working directory *",
-            historical_style(palette.secondary, palette.canvas, true),
+            palette.secondary_on_canvas_bold,
         );
         put(
             ui,
@@ -5142,23 +5087,11 @@ impl App {
         put(ui, 66, 11, "Choose… ", button);
         put(ui, 4, 12, "Inside the Construct", border);
 
-        put(
-            ui,
-            4,
-            14,
-            "▎",
-            historical_style(palette.canvas, palette.canvas, false),
-        );
+        put(ui, 4, 14, "▎", palette.canvas_on_canvas);
         put(ui, 5, 14, "[✓]", check);
         put(ui, 8, 14, " Keep awake               ", normal);
         put(ui, 34, 14, "macOS only", border);
-        put(
-            ui,
-            4,
-            15,
-            "▎",
-            historical_style(palette.canvas, palette.canvas, false),
-        );
+        put(ui, 4, 15, "▎", palette.canvas_on_canvas);
         put(ui, 5, 15, "[✓]", check);
         put(
             ui,
@@ -5179,78 +5112,24 @@ impl App {
         put(ui, 50, 18, "▾", field_secondary);
         put(ui, 51, 18, " ", field);
 
-        put(
-            ui,
-            97,
-            37,
-            "▎",
-            historical_style(palette.canvas, palette.canvas, false),
-        );
+        put(ui, 97, 37, "▎", palette.canvas_on_canvas);
         put(ui, 98, 37, "Cancel ", secondary);
-        put(
-            ui,
-            108,
-            37,
-            "▎",
-            historical_style(palette.elevated, palette.elevated, false),
-        );
-        put(
-            ui,
-            109,
-            37,
-            "Save… ",
-            historical_style(palette.border, palette.elevated, false),
-        );
+        put(ui, 108, 37, "▎", palette.elevated_on_elevated);
+        put(ui, 109, 37, "Save… ", palette.border_on_elevated);
 
-        put(
-            ui,
-            25,
-            39,
-            "← →",
-            historical_style(palette.primary, palette.canvas, true),
-        );
+        put(ui, 25, 39, "← →", palette.primary_on_canvas_bold);
         put(ui, 29, 39, "Tab", muted);
-        put(
-            ui,
-            34,
-            39,
-            "1–5",
-            historical_style(palette.primary, palette.canvas, true),
-        );
+        put(ui, 34, 39, "1–5", palette.primary_on_canvas_bold);
         put(ui, 38, 39, "Jump", muted);
-        put(
-            ui,
-            44,
-            39,
-            "Enter",
-            historical_style(palette.primary, palette.canvas, true),
-        );
+        put(ui, 44, 39, "Enter", palette.primary_on_canvas_bold);
         put(ui, 50, 39, "Body", muted);
-        put(
-            ui,
-            56,
-            39,
-            "[ ]",
-            historical_style(palette.primary, palette.canvas, true),
-        );
+        put(ui, 56, 39, "[ ]", palette.primary_on_canvas_bold);
         put(ui, 60, 39, "Switch tab", muted);
-        put(
-            ui,
-            72,
-            39,
-            "Ctrl+S",
-            historical_style(palette.primary, palette.canvas, true),
-        );
+        put(ui, 72, 39, "Ctrl+S", palette.primary_on_canvas_bold);
         put(ui, 79, 39, "Save", muted);
-        put(
-            ui,
-            85,
-            39,
-            "Esc",
-            historical_style(palette.primary, palette.canvas, true),
-        );
+        put(ui, 85, 39, "Esc", palette.primary_on_canvas_bold);
         put(ui, 89, 39, "Back", muted);
-        let edge = historical_style(palette.primary, palette.canvas, false);
+        let edge = palette.primary_on_canvas;
         ui.paint_cell(
             Position::new(
                 area.right().saturating_sub(2),
@@ -5286,22 +5165,19 @@ impl App {
     /// this is only the old split geometry/chrome projection.
     fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
-        ui.fill(
-            area,
-            historical_style(palette.primary, palette.canvas, false),
-        );
+        ui.fill(area, palette.primary_on_canvas);
         let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
 
-        let chrome = historical_style(palette.primary, palette.canvas, false);
-        let secondary = historical_style(palette.secondary, palette.canvas, false);
-        let muted = historical_style(palette.muted, palette.canvas, false);
-        let border = historical_style(palette.border, palette.canvas, false);
-        let seam = historical_style(palette.seam, palette.canvas, false);
-        let card = historical_style(palette.primary, palette.surface, false);
-        let card_secondary = historical_style(palette.secondary, palette.surface, false);
-        let card_muted = historical_style(palette.muted, palette.surface, false);
-        let card_border = historical_style(palette.border, palette.surface, false);
+        let chrome = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette.muted_on_surface;
+        let card_border = palette.border_on_surface;
 
         let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
             if y < area.bottom() && x < area.right() {
@@ -5316,31 +5192,19 @@ impl App {
         put(ui, 12, area.y, " File ", secondary);
         put(ui, 19, area.y, " Go ", secondary);
         put(ui, 24, area.y, " Help ", secondary);
-        put(
-            ui,
-            76,
-            area.y,
-            "Workspaces",
-            historical_style(palette.secondary, palette.canvas, false),
-        );
+        put(ui, 76, area.y, "Workspaces", palette.secondary_on_canvas);
         put(
             ui,
             88,
             area.y,
             "inside the Construct",
-            historical_style(palette.secondary, palette.canvas, false),
+            palette.secondary_on_canvas,
         );
         put(ui, 110, area.y, "2 running", muted);
 
         ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
         put(ui, 1, 2, "╭─ Workspaces ────────── 2 running ─╮", border);
-        put(
-            ui,
-            3,
-            2,
-            " Workspaces ",
-            historical_style(palette.primary, palette.canvas, true),
-        );
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
         for y in 3..37 {
             put(ui, 1, y, "│", border);
             put(ui, 37, y, "│", border);
@@ -5350,23 +5214,14 @@ impl App {
         put(ui, 39, 2, "│", seam);
         put(ui, 39, 37, "│", seam);
 
-        ui.fill(
-            Rect::new(3, 3, 33, 1),
-            historical_style(palette.primary, palette.accent_tint, true),
-        );
-        put(
-            ui,
-            3,
-            3,
-            "▎",
-            historical_style(palette.accent, palette.accent_tint, true),
-        );
+        ui.fill(Rect::new(3, 3, 33, 1), palette.primary_on_accent_tint_bold);
+        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
         put(
             ui,
             7,
             3,
             "Current directory           ",
-            historical_style(palette.accent, palette.accent_tint, true),
+            palette.accent_on_accent_tint_bold,
         );
         for (y, label) in [
             (4, "payments-platform"),
@@ -5374,23 +5229,11 @@ impl App {
             (6, "release-automation"),
             (7, "customer-portal"),
         ] {
-            put(
-                ui,
-                3,
-                y,
-                "▎",
-                historical_style(palette.canvas, palette.canvas, false),
-            );
+            put(ui, 3, y, "▎", palette.canvas_on_canvas);
             put(ui, 5, y, "▸", secondary);
             put(ui, 7, y, label, chrome);
         }
-        put(
-            ui,
-            3,
-            8,
-            "▎",
-            historical_style(palette.canvas, palette.canvas, false),
-        );
+        put(ui, 3, 8, "▎", palette.canvas_on_canvas);
         put(ui, 7, 8, "+ New workspace             ", secondary);
 
         put(
@@ -5433,20 +5276,8 @@ impl App {
             "git pull enabled · keep awake on · dirty exit ask",
             card,
         );
-        put(
-            ui,
-            42,
-            13,
-            "Instances",
-            historical_style(palette.secondary, palette.surface, true),
-        );
-        put(
-            ui,
-            101,
-            13,
-            "daemon · 3 s ago",
-            historical_style(palette.border, palette.surface, false),
-        );
+        put(ui, 42, 13, "Instances", palette.secondary_on_surface_bold);
+        put(ui, 101, 13, "daemon · 3 s ago", palette.border_on_surface);
         put(
             ui,
             42,
@@ -5459,56 +5290,44 @@ impl App {
             42,
             15,
             "◌ c41e  reviewer · Codex · preserved · dirty",
-            historical_style(palette.secondary, palette.surface, false),
+            palette.secondary_on_surface,
         );
 
-        let button = historical_style(palette.primary, palette.button, false);
+        let button = palette.primary_on_button;
         ui.fill(Rect::new(41, 36, 8, 1), button);
         ui.fill(Rect::new(51, 36, 6, 1), button);
-        put(
-            ui,
-            41,
-            36,
-            "▎",
-            historical_style(palette.button, palette.button, false),
-        );
+        put(ui, 41, 36, "▎", palette.button_on_button);
         put(ui, 42, 36, "Launch", button);
-        put(
-            ui,
-            51,
-            36,
-            "▎",
-            historical_style(palette.button, palette.button, false),
-        );
+        put(ui, 51, 36, "▎", palette.button_on_button);
         put(ui, 52, 36, "Edit", button);
 
         ui.paint_style(
             Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
-            historical_style(palette.primary, palette.canvas, false),
+            palette.primary_on_canvas,
         );
 
         let footer = [
-            (14, "Enter", true, palette.primary),
-            (20, "Launch", false, palette.muted),
-            (28, "n", true, palette.primary),
-            (30, "New", false, palette.muted),
-            (35, "e", true, palette.primary),
-            (37, "Edit", false, palette.muted),
-            (43, "Tab", true, palette.primary),
-            (47, "Details", false, palette.muted),
-            (56, "c", true, palette.primary),
-            (58, "Accounts", false, palette.muted),
-            (68, "u", true, palette.primary),
-            (70, "Usage", false, palette.muted),
-            (77, "s", true, palette.primary),
-            (79, "Settings", false, palette.muted),
-            (89, "?", true, palette.primary),
-            (91, "Help", false, palette.muted),
-            (97, "q", true, palette.primary),
-            (99, "Quit", false, palette.muted),
+            (14, "Enter", palette.primary_on_canvas_bold),
+            (20, "Launch", palette.muted_on_canvas),
+            (28, "n", palette.primary_on_canvas_bold),
+            (30, "New", palette.muted_on_canvas),
+            (35, "e", palette.primary_on_canvas_bold),
+            (37, "Edit", palette.muted_on_canvas),
+            (43, "Tab", palette.primary_on_canvas_bold),
+            (47, "Details", palette.muted_on_canvas),
+            (56, "c", palette.primary_on_canvas_bold),
+            (58, "Accounts", palette.muted_on_canvas),
+            (68, "u", palette.primary_on_canvas_bold),
+            (70, "Usage", palette.muted_on_canvas),
+            (77, "s", palette.primary_on_canvas_bold),
+            (79, "Settings", palette.muted_on_canvas),
+            (89, "?", palette.primary_on_canvas_bold),
+            (91, "Help", palette.muted_on_canvas),
+            (97, "q", palette.primary_on_canvas_bold),
+            (99, "Quit", palette.muted_on_canvas),
         ];
-        for (x, text, bold, fg) in footer {
-            put(ui, x, 39, text, historical_style(fg, palette.canvas, bold));
+        for (x, text, style) in footer {
+            put(ui, x, 39, text, style);
         }
         if ui
             .state(MANAGER_LIST)
@@ -6994,46 +6813,25 @@ mod tests {
 #[cfg(test)]
 mod paint_contract_tests {
     use super::*;
-    use junie_tui::{Color, Family, Role, StateFlags, StylePatch, Surface, Theme};
-
-    fn collision_style(role: Role) -> PaintStyle {
-        let mut theme = Theme::junie();
-        theme.color.accent = Color::Rgb(100, 100, 100);
-        theme.color.danger = theme.color.accent;
-        let family = Family::custom("jackin.paint-contract");
-        theme
-            .define_family(family, |family| {
-                family
-                    .part(Part::LABEL)
-                    .base(StylePatch::new().set_fg(role).set_bg(role));
-            })
-            .resolve(
-                family,
-                Variant::DEFAULT,
-                Part::LABEL,
-                StateFlags::empty(),
-                Surface::Canvas,
-            )
-            .style
-    }
-
     #[test]
-    fn historical_channel_composition_preserves_colliding_roles() {
-        let accent = collision_style(Role::Accent);
-        let danger = collision_style(Role::Danger);
-        assert_eq!(accent.as_style(), danger.as_style());
-        let accent_on_danger = historical_style(accent, danger, true);
-        let danger_on_accent = historical_style(danger, accent, true);
-        assert_eq!(accent_on_danger.as_style(), danger_on_accent.as_style());
-        assert_ne!(
-            accent_on_danger, danger_on_accent,
-            "channel copies must retain both origins"
-        );
-        assert_eq!(accent_on_danger.add_modifier, Modifier::BOLD);
-        assert!(
-            historical_style(accent, danger, false)
-                .sub_modifier
-                .contains(Modifier::BOLD)
-        );
+    fn historical_failure_and_action_labels_remain_readable_in_mono() {
+        use junie_tui::{ColorLevel, Theme};
+        use junie_tui_testing::Harness;
+        for theme in [Theme::junie(), Theme::paper()] {
+            for (scenario, x, y, glyph) in [
+                (Scenario::CapsuleMulti, 103, 8, "F"),
+                (Scenario::CapsuleMulti, 2, 0, "j"),
+                (Scenario::Returning, 20, 39, "L"),
+            ] {
+                let app = App::for_scenario_at(scenario, Motion::Paused, 0);
+                let h = Harness::new(app, theme.clone(), 120, 40).with_color(ColorLevel::Mono);
+                let cell = h.cell(x, y);
+                assert_eq!(cell.symbol(), glyph);
+                assert_ne!(
+                    cell.fg, cell.bg,
+                    "critical custom text must remain readable"
+                );
+            }
+        }
     }
 }
