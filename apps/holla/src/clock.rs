@@ -1,6 +1,6 @@
 //! Fixture clock. The launcher never reads wall-clock time: every duration,
 //! timestamp, spinner frame and discovery step derives from virtual
-//! milliseconds that advance only with runtime ticks, so a given
+//! milliseconds that advance from explicit runtime elapsed time, so a given
 //! `--scenario … --frame N` renders the same picture every time.
 
 // Timestamp formatting (`ago`, `stamp`, …) serves the P1 fixture world.
@@ -25,7 +25,7 @@ impl Clock {
         }
     }
 
-    /// Advance by one runtime tick of `interval_ms`.
+    /// Advance by an explicitly measured elapsed interval of `interval_ms`.
     pub(crate) fn advance(&mut self, interval_ms: i64) {
         if self.running {
             self.now_ms = self.now_ms.saturating_add(interval_ms.max(0));

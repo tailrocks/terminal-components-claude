@@ -151,6 +151,8 @@ pub struct App {
     menu: MenuState,
     keymap: KeyMap,
     status: Option<String>,
+    status_until_ms: Option<i64>,
+    applied_elapsed_ms: u128,
     quit: bool,
 }
 impl App {
@@ -181,6 +183,8 @@ impl App {
             menu: MenuState::default(),
             keymap,
             status: None,
+            status_until_ms: None,
+            applied_elapsed_ms: 0,
             quit: false,
         }
     }
@@ -191,7 +195,7 @@ impl App {
     }
     fn destination(&mut self, destination: Destination, cx: &mut Cx<'_>) {
         match destination {
-            Destination::Notice(message) => self.status = Some(message),
+            Destination::Notice(message) => self.set_status(message),
             Destination::Preview(action) => self.open_dialog(dialogs::Intent::Preview(action), cx),
             Destination::Trust { action, file } => {
                 self.open_dialog(dialogs::Intent::Trust { action, file }, cx)
@@ -204,7 +208,7 @@ impl App {
             Destination::Activity(id, message) => {
                 self.activities.show(id);
                 self.route = Route::Activity;
-                self.status = Some(message);
+                self.set_status(message);
                 cx.focus(activity::output_id(id));
             }
             Destination::Database => match (
@@ -218,7 +222,7 @@ impl App {
                     },
                     cx,
                 ),
-                (Err(error), _) | (_, Err(error)) => self.status = Some(error.to_string()),
+                (Err(error), _) | (_, Err(error)) => self.set_status(error.to_string()),
             },
             Destination::Monitor => self.open_dialog(dialogs::Intent::Monitor, cx),
             Destination::Clone => {
@@ -265,7 +269,7 @@ impl App {
                     Some(Scope::Host) => Some(Scope::Personal),
                     Some(Scope::Personal) => None,
                 };
-                self.status = Some(format!(
+                self.set_status(format!(
                     "Scope: {}",
                     self.home.scope.map_or("all", Scope::label)
                 ));
@@ -296,7 +300,8 @@ impl App {
             }
             TOGGLE if self.route == Route::Plan => {
                 if let Some(plan) = &mut self.plan {
-                    self.status = Some(plan.toggle_selected());
+                    let message = plan.toggle_selected();
+                    self.set_status(message);
                 }
             }
             RESULTS if self.route == Route::Home => cx.focus(home::ROWS),
@@ -315,7 +320,7 @@ impl App {
                 self.destination(destination, cx);
             }
             Choice::Preview => self.open_dialog(dialogs::Intent::Preview(action), cx),
-            Choice::Copy => self.status = Some("Copied · simulated clipboard".into()),
+            Choice::Copy => self.set_status("Copied · simulated clipboard".into()),
             Choice::Alias => self.open_dialog(dialogs::Intent::Alias(action), cx),
             Choice::Pin => {
                 if self.world.memory.pin_at(&self.world.cwd, &action.command) {
@@ -323,13 +328,13 @@ impl App {
                         .memory
                         .pins
                         .retain(|pin| pin.path != self.world.cwd || pin.command != action.command);
-                    self.status = Some(format!("Unpinned {}", action.command));
+                    self.set_status(format!("Unpinned {}", action.command));
                 } else {
                     self.world.memory.pins.push(Pin {
                         path: self.world.cwd.clone(),
                         command: action.command.clone(),
                     });
-                    self.status = Some(format!("Pinned {} here", action.command));
+                    self.set_status(format!("Pinned {} here", action.command));
                 }
             }
             Choice::Hide => {
@@ -342,13 +347,13 @@ impl App {
                         .memory
                         .hides
                         .retain(|pin| pin.path != self.world.cwd || pin.command != action.command);
-                    self.status = Some(format!("Unhidden {} here", action.command));
+                    self.set_status(format!("Unhidden {} here", action.command));
                 } else {
                     self.world.memory.hides.push(Pin {
                         path: self.world.cwd.clone(),
                         command: action.command.clone(),
                     });
-                    self.status = Some(format!(
+                    self.set_status(format!(
                         "Hidden {} here · Reset ranking restores",
                         action.command
                     ));
@@ -356,7 +361,7 @@ impl App {
             }
             Choice::Reset => {
                 self.world.memory.reset_at(&self.world.cwd, &action.command);
-                self.status = Some(format!(
+                self.set_status(format!(
                     "Reset ranking for {} · pins, aliases, hides cleared",
                     action.command
                 ));
@@ -396,7 +401,7 @@ impl App {
                 if let Some(choice) = choice {
                     match picker.reviewed_action(&self.world) {
                         Ok(action) => self.action_choice(choice, action, cx),
-                        Err(reason) => self.status = Some(reason.into()),
+                        Err(reason) => self.set_status(reason.into()),
                     }
                 }
                 (response, done)
@@ -406,7 +411,7 @@ impl App {
                     let (response, result) = gate.update(cx, &mut plan.review, &mut self.world);
                     let done = result.is_some();
                     if let Some(message) = result {
-                        self.status = Some(message);
+                        self.set_status(message);
                     }
                     (response, done)
                 } else {
@@ -577,8 +582,12 @@ impl App {
         HintBar::derived(FOOTER).screen(&hints).draw(ui, footer);
     }
 }
-impl junie_tui::App for App {
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+impl App {
+    fn set_status(&mut self, message: String) {
+        self.status = Some(message);
+        self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
+    }
+    fn update_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         // Closed overlays remain scrubbed until their final focus callbacks run.
         let retired = self
             .retired_overlay
@@ -640,7 +649,7 @@ impl junie_tui::App for App {
                 }
             }
             Route::Plan => match plan_event {
-                Some(plan::Event::Notice(message)) => self.status = Some(message),
+                Some(plan::Event::Notice(message)) => self.set_status(message),
                 Some(plan::Event::Gate) => {
                     if let Some(plan) = &self.plan {
                         let gate = PlanGate::new(plan.plan());
@@ -653,6 +662,41 @@ impl junie_tui::App for App {
             Route::Activity => {}
         }
         controls | menu.erase() | brand.erase() | header.erase() | strip
+    }
+}
+impl junie_tui::App for App {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut clock_response = Response::ignored();
+        if self.motion != Motion::Paused {
+            let elapsed_ms = cx.now().as_duration().as_millis();
+            let delta = elapsed_ms.saturating_sub(self.applied_elapsed_ms);
+            self.applied_elapsed_ms = elapsed_ms;
+            if delta > 0 {
+                let interval = i64::try_from(delta).unwrap_or(i64::MAX);
+                let _ = self.world.tick(interval);
+                clock_response = Response::changed();
+            }
+            if self
+                .status_until_ms
+                .is_some_and(|until| self.world.now_ms() >= until)
+            {
+                self.status = None;
+                self.status_until_ms = None;
+                clock_response = Response::changed();
+            }
+        }
+        let response = self.update_controls(cx);
+        if self.motion != Motion::Paused {
+            let cadence = if self.world.discovering() { 80 } else { 200 };
+            let delay = self.status_until_ms.map_or(cadence, |until| {
+                cadence.min(u64::try_from(until.saturating_sub(self.world.now_ms())).unwrap_or(0))
+            });
+            cx.request_repaint_at(
+                cx.now()
+                    .saturating_add(std::time::Duration::from_millis(delay)),
+            );
+        }
+        clock_response | response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
         let area = ui.full();
@@ -1009,5 +1053,70 @@ mod tests {
             "{:?}",
             harness.diagnostics()
         );
+    }
+    #[test]
+    fn elapsed_time_advances_once_and_paused_frames_stay_exact() {
+        for motion in [Motion::Full, Motion::Reduced, Motion::Paused] {
+            let mut harness = Harness::new(
+                App::for_scenario(Scenario::FirstUse, motion, 0),
+                Theme::junie(),
+                120,
+                40,
+            );
+            harness.ticks(20);
+            assert_eq!(harness.app().world.now_ms(), 0);
+            let _ = harness.advance(std::time::Duration::from_millis(1_800));
+            let expected = if motion == Motion::Paused { 0 } else { 1_800 };
+            assert_eq!(harness.app().world.now_ms(), expected);
+            harness.ticks(20);
+            harness.draw();
+            assert_eq!(harness.app().world.now_ms(), expected);
+            assert!(
+                harness.diagnostics().is_empty(),
+                "{:?}",
+                harness.diagnostics()
+            );
+        }
+    }
+
+    #[test]
+    fn status_and_discovery_age_while_modal_owns_focus() {
+        let mut harness = Harness::new(
+            App::for_scenario(Scenario::FirstUse, Motion::Full, 0),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = harness.ctrl('s');
+        assert!(harness.app().status.is_some());
+        let _ = harness.key(KeyCode::F(1));
+        assert!(harness.app().overlay.is_some());
+        let _ = harness.advance(std::time::Duration::from_millis(4_999));
+        assert!(harness.app().status.is_some());
+        assert!(!harness.app().world.discovering());
+        let _ = harness.advance(std::time::Duration::from_millis(1));
+        assert_eq!(harness.app().world.now_ms(), 5_000);
+        assert!(harness.app().status.is_none());
+        assert!(harness.app().overlay.is_some());
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+
+    #[test]
+    fn fractional_elapsed_input_does_not_discard_clock_remainder() {
+        let mut harness = Harness::new(
+            App::for_scenario(Scenario::FirstUse, Motion::Full, 0),
+            Theme::junie(),
+            120,
+            40,
+        );
+        for _ in 0..10 {
+            let _ = harness.advance(std::time::Duration::from_micros(600));
+            let _ = harness.tick();
+        }
+        assert_eq!(harness.app().world.now_ms(), 6);
     }
 }
