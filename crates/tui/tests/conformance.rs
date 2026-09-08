@@ -572,7 +572,10 @@ impl Conformance for ListCase {
     fn action_key_of(a: &ListAction) -> Option<ItemKey> {
         match a {
             ListAction::Chose(k) | ListAction::Toggled(k) | ListAction::Activated(k) => Some(*k),
-            ListAction::Moved | ListAction::ToggledAll => None,
+            ListAction::Moved
+            | ListAction::ToggledAll
+            | ListAction::LeaveBackward
+            | ListAction::LeaveForward => None,
         }
     }
 

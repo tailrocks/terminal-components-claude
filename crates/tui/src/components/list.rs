@@ -36,6 +36,10 @@ pub enum ListAction {
     Activated(ItemKey),
     /// Every enabled item was checked or unchecked.
     ToggledAll,
+    /// Plain Up attempted to move before the first physical row (opt-in).
+    LeaveBackward,
+    /// Plain Down attempted to move after the last physical row (opt-in).
+    LeaveForward,
 }
 
 /// The const-constructible commands of the list keymap.
@@ -319,7 +323,8 @@ impl Reconcile for ListState {
 /// ## Actions
 /// `Moved`, `Chose(k)` (Space / click, `Single`), `Toggled(k)` (Space /
 /// click, `Multi`/`Range`), `Activated(k)` (Enter / double-click),
-/// `ToggledAll` (`a`, `Multi`/`Range`).
+/// `ToggledAll` (`a`, `Multi`/`Range`). Opt-in `LeaveBackward`/`LeaveForward`
+/// report plain Up/Down attempts beyond the physical row boundaries.
 ///
 /// ## Focus
 /// One `Focusable` stop for the whole list; does not swallow typing.
@@ -375,6 +380,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     render_row: Option<ListRowRenderer<'a, T>>,
     select_mode: SelectMode,
+    leave_at_boundary: bool,
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
@@ -412,6 +418,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             row: DefaultRow,
             render_row: None,
             select_mode: SelectMode::Single,
+            leave_at_boundary: false,
             empty: None,
             disabled_item: None,
             status: Status::Ready,
@@ -446,6 +453,18 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self.id
     }
 
+    /// Report plain Up/Down attempts beyond the physical first/last row.
+    ///
+    /// Defaults to `false` (clamp and consume). An exit does not move the
+    /// cursor or change selection. Disabled items remain navigable, as in
+    /// ordinary List movement; an empty or disabled control never exits.
+    /// Vim aliases, Home/End, page and range-extension commands are unchanged.
+    #[must_use]
+    pub const fn leave_at_boundary(mut self, leave: bool) -> Self {
+        self.leave_at_boundary = leave;
+        self
+    }
+
     /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> List<'a, T, K2, R> {
         List {
@@ -454,6 +473,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row: self.row,
             render_row: self.render_row,
             select_mode: self.select_mode,
+            leave_at_boundary: self.leave_at_boundary,
             empty: self.empty,
             disabled_item: self.disabled_item,
             status: self.status,
@@ -472,6 +492,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row: r,
             render_row: self.render_row,
             select_mode: self.select_mode,
+            leave_at_boundary: self.leave_at_boundary,
             empty: self.empty,
             disabled_item: self.disabled_item,
             status: self.status,
@@ -731,8 +752,26 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 Intent::Binding(action) => {
                     let cur = st.core.cursor_index();
                     match Binding::command(table, action) {
+                        Some(ListCmd::Up)
+                            if self.leave_at_boundary
+                                && action == crate::ActionKey::custom("list.up")
+                                && len > 0
+                                && cur == 0
+                                && !cx.state(self.id).contains(StateFlags::DISABLED) =>
+                        {
+                            acc.action(ListAction::LeaveBackward);
+                        }
                         Some(ListCmd::Up) => {
                             self.move_cursor(st, items, cur.saturating_sub(1), false, &mut acc);
+                        }
+                        Some(ListCmd::Down)
+                            if self.leave_at_boundary
+                                && action == crate::ActionKey::custom("list.down")
+                                && len > 0
+                                && cur == len.saturating_sub(1)
+                                && !cx.state(self.id).contains(StateFlags::DISABLED) =>
+                        {
+                            acc.action(ListAction::LeaveForward);
                         }
                         Some(ListCmd::Down) => {
                             self.move_cursor(st, items, cur.saturating_add(1), false, &mut acc);
