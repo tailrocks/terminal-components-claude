@@ -1373,6 +1373,22 @@ mod tests {
     }
 
     #[test]
+    fn network_storage_claims_refuse_display_and_review() {
+        let mut world = settled(Scenario::DockerCleanup);
+        let docker = world.docker.as_mut().unwrap();
+        docker.network_inventory[0].size_bytes = 123;
+        assert_eq!(
+            docker.total_bytes(),
+            Err(crate::domain::accounting::InventoryError::NetworkBytes)
+        );
+        assert_eq!(
+            docker.reclaimable_bytes(),
+            Err(crate::domain::accounting::InventoryError::NetworkBytes)
+        );
+        assert!(plan_for(&world, "docker.cleanup").is_none());
+    }
+
+    #[test]
     fn orphan_overflow_and_duplicate_resource_ids_refuse_review() {
         let mut world = settled(Scenario::UpgradePlan);
         world.debian.as_mut().unwrap().orphaned_packages[0].size_bytes = u64::MAX;

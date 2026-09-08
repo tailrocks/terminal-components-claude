@@ -4,6 +4,7 @@ pub(crate) enum InventoryError {
     Overflow,
     DuplicateIdentity,
     InvalidCapacity,
+    NetworkBytes,
     InvalidTarget,
     OverlappingTargets,
 }
@@ -12,6 +13,7 @@ impl std::fmt::Display for InventoryError {
         f.write_str(match self {
             Self::Overflow => "inventory byte total exceeds supported range",
             Self::DuplicateIdentity => "inventory target identities must be unique and nonempty",
+            Self::NetworkBytes => "network inventory must not claim unmodeled storage bytes",
             Self::InvalidCapacity => "inventory exceeds modeled capacity",
             Self::InvalidTarget => "invalid cleanup target",
             Self::OverlappingTargets => "cleanup targets overlap",

@@ -203,7 +203,20 @@ impl DockerState {
     pub(crate) fn build_cache_bytes(&self) -> u64 {
         self.cache_bytes
     }
+    // Docker system df models network counts, not network storage. Reject
+    // unsupported byte claims before either presentation or reviewed effects.
+    fn validate_network_bytes(&self) -> Result<(), super::accounting::InventoryError> {
+        if self
+            .network_inventory
+            .iter()
+            .any(|item| item.size_bytes != 0)
+        {
+            return Err(super::accounting::InventoryError::NetworkBytes);
+        }
+        Ok(())
+    }
     pub(crate) fn total_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        self.validate_network_bytes()?;
         super::accounting::bytes([
             self.image_bytes()?,
             self.container_bytes()?,
@@ -212,6 +225,7 @@ impl DockerState {
         ])
     }
     pub(crate) fn reclaimable_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        self.validate_network_bytes()?;
         super::accounting::bytes(
             std::iter::once(self.cache_bytes)
                 .chain(
