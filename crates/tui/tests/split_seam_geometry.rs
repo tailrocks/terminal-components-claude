@@ -23,6 +23,8 @@ struct Page {
     min_first: u16,
     min_second: u16,
     resizable: bool,
+    disabled: bool,
+    sentinel: bool,
     state: SplitPaneState,
     observed_part: Option<Rect>,
     observed_area: Option<Rect>,
@@ -38,6 +40,8 @@ impl Default for Page {
             min_first: 28,
             min_second: 40,
             resizable: true,
+            disabled: false,
+            sentinel: false,
             state: SplitPaneState::new(32),
             observed_part: None,
             observed_area: None,
@@ -50,7 +54,13 @@ impl Page {
             .gap(self.gap)
             .min_first(self.min_first)
             .min_second(self.min_second)
-            .resizable(self.resizable);
+            .resizable(self.resizable)
+            .disabled(self.disabled);
+        let pane = if self.sentinel {
+            pane.patch(&SENTINEL)
+        } else {
+            pane
+        };
         match self.seam {
             Seam::Full => pane,
             Seam::Start(n) => pane.seam_start(n),
@@ -294,4 +304,87 @@ fn clipped_cross_axis_still_uses_the_visible_capture_and_container_axis() {
     let _ = h.mouse(MouseKind::Drag, 61, 5);
     assert_eq!(h.app().state.percent(), 52);
     let _ = h.mouse(MouseKind::Up, 61, 5);
+}
+
+const SENTINEL: junie_tui::StylePatch = junie_tui::StylePatch {
+    fg: junie_tui::Slot::Set(junie_tui::Role::Custom(ratatui_core::style::Color::Rgb(
+        17, 83, 149,
+    ))),
+    bg: junie_tui::Slot::Set(junie_tui::Role::Custom(ratatui_core::style::Color::Rgb(
+        151, 37, 91,
+    ))),
+    glyph: junie_tui::Slot::Clear,
+    ..junie_tui::StylePatch::new()
+};
+#[test]
+fn disabled_blocks_resize_preserves_overrides_and_cancels_capture() {
+    let mut h = harness(Page {
+        sentinel: true,
+        ..Page::default()
+    });
+    let _ = h.mouse(MouseKind::Down, 39, 3);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    h.app_mut().disabled = true;
+    h.draw();
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert_eq!(
+        h.runtime().ring().entry(ID).map(|entry| entry.disabled),
+        Some(true)
+    );
+    let before = h.app().state.percent();
+    let _ = h.mouse(MouseKind::Drag, 70, 3);
+    let _ = h.mouse(MouseKind::Up, 70, 3);
+    let _ = h.mouse(MouseKind::Down, 39, 3);
+    let _ = h.mouse(MouseKind::Drag, 70, 3);
+    let _ = h.mouse(MouseKind::Up, 70, 3);
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(h.app().state.percent(), before);
+    assert_ne!(h.runtime().focus(), Some(ID));
+    assert_eq!(
+        h.cell(39, 3).fg,
+        ratatui_core::style::Color::Rgb(17, 83, 149)
+    );
+    assert_eq!(
+        h.cell(39, 3).bg,
+        ratatui_core::style::Color::Rgb(151, 37, 91)
+    );
+    assert_eq!(h.cell(39, 3).symbol(), " ");
+    h.app_mut().disabled = false;
+    h.draw();
+    let _ = h.mouse(MouseKind::Drag, 70, 3);
+    assert_eq!(
+        h.app().state.percent(),
+        before,
+        "reenabling must not revive old capture"
+    );
+    let _ = h.mouse(MouseKind::Down, 39, 3);
+    let _ = h.mouse(MouseKind::Drag, 61, 3);
+    assert_eq!(h.app().state.percent(), 52);
+    assert!(
+        h.runtime().diagnostics().is_empty(),
+        "{:?}",
+        h.runtime().diagnostics()
+    );
+}
+#[test]
+fn non_resizable_still_drags_until_explicitly_disabled() {
+    for seam in [Seam::Full, Seam::End(1)] {
+        let mut h = harness(Page {
+            resizable: false,
+            seam,
+            ..Page::default()
+        });
+        assert!(!h.runtime().ring().is_registered(ID));
+        let _ = h.mouse(MouseKind::Down, 39, 3);
+        assert_eq!(h.runtime().capture_owner(), Some(ID));
+        let _ = h.mouse(MouseKind::Drag, 61, 3);
+        assert_ne!(h.app().state.percent(), 32);
+        h.app_mut().disabled = true;
+        h.draw();
+        assert_eq!(h.runtime().capture_owner(), None);
+        let before = h.app().state.percent();
+        let _ = h.mouse(MouseKind::Drag, 80, 3);
+        let _ = h.mouse(MouseKind::Up, 80, 3);
+        assert_eq!(h.app().state.percent(), before);
+    }
 }

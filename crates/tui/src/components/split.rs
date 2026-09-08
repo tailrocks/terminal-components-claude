@@ -183,7 +183,8 @@ enum SeamAlign {
 ///
 /// ## Configuration
 /// `.gap(u16)` (`1`), `.min_first(u16)` (`1`), `.min_second(u16)` (`1`),
-/// `.resizable(bool)` (`false`), `.seam_start/center/end(width)` (full gap
+/// `.resizable(bool)` (`false`), `.disabled(bool)` (`false`),
+/// `.seam_start/center/end(width)` (full gap
 /// by default), `.patch`, `.patch_part`, `.slot`,
 /// reference fixtures use [`Ui::reference`](crate::Ui::reference).
 ///
@@ -192,8 +193,8 @@ enum SeamAlign {
 ///
 /// ## States
 /// The seam wears `HOVERED`, `FOCUSED` and `PRESSED` from the runtime; a
-/// live seam capture keeps `PRESSED` for the whole drag. No state is
-/// props-derived.
+/// live seam capture keeps `PRESSED` for the whole drag. `DISABLED` comes
+/// from the explicit disabled prop and revokes focus/input admission.
 ///
 /// ## Actions
 /// `SplitAction::Resized(u8)` — the seam moved, carrying the new percent.
@@ -205,20 +206,22 @@ enum SeamAlign {
 /// One `Focusable` stop over the whole container by default, or the visible
 /// seam when its width/alignment is configured, registered **only** when
 /// `.resizable(true)`, because a seam nobody can move with the keyboard has
-/// no business in the ring. It does not swallow typing, opens no scope and
-/// traps nothing.
+/// no business in the ring. Disabled instances register an unreachable stop
+/// for shared admission and capture cancellation. It does not swallow typing,
+/// opens no scope and traps nothing.
 ///
 /// ## Keyboard
-/// Only when `.resizable(true)`; the table is empty otherwise, so the hint
-/// bar advertises nothing that does not work. Horizontal: `←` narrower, `→`
+/// Only when `.resizable(true)` and enabled; the table is empty otherwise.
+/// The hint bar advertises nothing that does not work. Horizontal: `←` narrower, `→`
 /// wider, `Home` balance. Vertical: `↑` shorter, `↓` taller, `Home`
 /// balance.
 ///
 /// ## Mouse
 /// `PartRef::of(Part::SEAM)`: a press claims pointer capture, drags put the
 /// seam under the pointer (clamped by the minima), release ends the
-/// capture, and a double-click balances the panes. Nothing else in the
-/// container is a hit target of this component's.
+/// capture, and a double-click balances the panes. Disabled instances reject
+/// all of these actions. Nothing else in the container is a hit target of
+/// this component's.
 ///
 /// ## Layout
 /// [`SplitModel`] does the arithmetic: `gap` cells between the panes, the
@@ -261,6 +264,7 @@ pub struct SplitPane<'a> {
     min_first: u16,
     min_second: u16,
     resizable: bool,
+    disabled: bool,
     ov: PartStyle<'a>,
 }
 
@@ -274,6 +278,7 @@ impl fmt::Debug for SplitPane<'_> {
             .field("min_first", &self.min_first)
             .field("min_second", &self.min_second)
             .field("resizable", &self.resizable)
+            .field("disabled", &self.disabled)
             .field("overrides", &self.ov)
             .finish()
     }
@@ -293,6 +298,7 @@ impl<'a> SplitPane<'a> {
             min_first: 1,
             min_second: 1,
             resizable: false,
+            disabled: false,
             ov: PartStyle::new(),
         }
     }
@@ -353,6 +359,14 @@ impl<'a> SplitPane<'a> {
     #[must_use]
     pub const fn resizable(mut self, yes: bool) -> Self {
         self.resizable = yes;
+        self
+    }
+
+    /// Disable keyboard and pointer resizing, preserving layout and painting.
+    /// The next publication revokes any existing seam capture.
+    #[must_use]
+    pub const fn disabled(mut self, yes: bool) -> Self {
+        self.disabled = yes;
         self
     }
 
@@ -422,7 +436,7 @@ impl<'a> SplitPane<'a> {
     /// The binding table: empty unless the split is resizable, so the hint
     /// bar never advertises a chord `update` will not honour.
     const fn table(&self) -> &'static [Binding<SplitCmd>] {
-        if !self.resizable {
+        if self.disabled || !self.resizable {
             return &[];
         }
         match self.axis {
@@ -459,6 +473,9 @@ impl<'a> SplitPane<'a> {
         let table = self.table();
         let mut acc = Acc::<SplitAction>::new();
         for it in cx.intents(self.id) {
+            if self.disabled {
+                continue;
+            }
             match it {
                 Intent::Binding(action) => match Binding::command(table, action) {
                     Some(SplitCmd::Shrink) => {
@@ -563,12 +580,21 @@ impl<'a> SplitPane<'a> {
         } else {
             seam
         };
-        let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
-        if self.resizable {
+        let own = if self.disabled {
+            StateFlags::DISABLED
+        } else {
+            StateFlags::empty()
+        };
+        let live = PartStyle::flags(ui.state(self.id), own);
+        if self.resizable || self.disabled {
             ui.register_control(
                 self.id,
                 if self.seam.is_some() { seam } else { area },
-                Focusability::Focusable,
+                if self.disabled {
+                    Focusability::Disabled
+                } else {
+                    Focusability::Focusable
+                },
             );
         }
         ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
