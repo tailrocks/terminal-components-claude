@@ -114,6 +114,7 @@ struct Press {
 /// Runtime-owned interaction bookkeeping (§1.2(4), §8.6).
 #[derive(Clone, Copy, Debug, Default)]
 struct Interaction {
+    pointer_position: Option<Position>,
     hover: Option<(Id, PartRef)>,
     hover_suppressed: bool,
     press: Option<Press>,
@@ -893,6 +894,7 @@ impl<A: App> Runtime<A> {
 
     /// Steps 3–6 for a pointer event.
     fn enqueue_mouse(&mut self, m: Mouse) {
+        self.inter.pointer_position = Some(m.pos);
         self.inter.last_input_key = false;
         self.focus.set_visible(false);
         self.last.snapshot.focus_visible = false;
@@ -1681,16 +1683,35 @@ impl<A: App> Runtime<A> {
         self.staged_focus = None;
         self.last.snapshot.focus = self.focus.current();
         self.last.snapshot.focus_visible = self.focus.visible();
-        // Drop vanished hover owners. Re-hit-testing a stationary pointer
-        // against moved/reordered geometry remains a separate interaction slice.
-        if let Some((owner, _)) = self.inter.hover
-            && !self.last.registry.has_owner(owner)
-        {
-            self.inter.hover = None;
-            self.last.snapshot.hover = None;
-        }
+        self.reconcile_hover();
         // Cursor matches the actual output, painted before focus reconciliation.
         self.cursor = self.painted_cursor;
+    }
+
+    fn reconcile_hover(&mut self) {
+        // Only successful live publication can change hover from new geometry.
+        // Repaint uses these facts; no synthetic Move or application update runs.
+        let painted_hover = if self.last.snapshot.hover_suppressed {
+            None
+        } else {
+            self.last.snapshot.hover
+        };
+        let hover = if self.inter.hover_suppressed || self.services.capture.get().is_some() {
+            None
+        } else {
+            self.inter.pointer_position.and_then(|position| {
+                self.last
+                    .registry
+                    .hit_live(position, self.top())
+                    .map(|hit| (hit.owner, hit.part))
+            })
+        };
+        self.inter.hover = hover;
+        self.last.snapshot.hover = hover;
+        if hover != painted_hover {
+            self.presented = false;
+            self.services.repaint = true;
+        }
     }
 
     /// Capture frozen read facts without updating or initializing the application.

@@ -239,7 +239,7 @@ impl<A: App> Harness<A> {
                     frame.commit_presented();
                 }
             }
-            if !self.rt.needs_settle() {
+            if !self.rt.needs_settle() && !self.rt.needs_present() {
                 return;
             }
         }
