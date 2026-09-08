@@ -46,14 +46,17 @@ const ITEMS: &[Item<'static>] = &[
         .group("Actions"),
 ];
 const MENU_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(ActionKey::custom("showcase.menu.open"), "Open")
+    MenuItem::new(ActionKey::application("showcase.menu.open"), "Open")
         .chord(junie_tui::Chord::key(junie_tui::KeyCode::Char('o'))),
-    MenuItem::new(ActionKey::custom("showcase.menu.close"), "Close"),
+    MenuItem::new(ActionKey::application("showcase.menu.close"), "Close"),
 ];
 const MENUS: &[Menu<'static>] = &[Menu::new("Actions", MENU_ITEMS)];
 const CONTEXT_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(ActionKey::custom("showcase.context.inspect"), "Inspect"),
-    MenuItem::new(ActionKey::custom("showcase.context.copy"), "Copy path"),
+    MenuItem::new(
+        ActionKey::application("showcase.context.inspect"),
+        "Inspect",
+    ),
+    MenuItem::new(ActionKey::application("showcase.context.copy"), "Copy path"),
 ];
 const CHAIN_STAGES: &[PickerStage<'static>] = &[
     PickerStage::new(ItemKey::Num(301), "Scope"),
@@ -467,4 +470,9 @@ fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 7] {
         primary_gutter,
         secondary_gutter,
     ]
+}
+
+#[cfg(test)]
+pub(crate) fn action_keys() -> impl Iterator<Item = ActionKey> {
+    MENU_ITEMS.iter().chain(CONTEXT_ITEMS).map(MenuItem::action)
 }

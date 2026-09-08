@@ -10,7 +10,7 @@ use junie_tui::{
 use super::{Page, PageUpdate, frame};
 
 /// Application-level submit chord consumed by the shell and forwarded here.
-pub(crate) const SUBMIT: ActionKey = ActionKey::custom("showcase.form.submit");
+pub(crate) const SUBMIT: ActionKey = ActionKey::application("showcase.form.submit");
 
 const SUMMARY: Id = id!("forms.summary");
 const DETAILS: Id = id!("forms.details");

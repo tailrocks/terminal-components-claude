@@ -15,7 +15,7 @@ const RUN: Id = id!("taskrunner.run");
 const CANCEL: Id = id!("taskrunner.cancel");
 const STEPS: Id = id!("taskrunner.steps");
 const CANCEL_DIALOG: Id = id!("taskrunner.cancel.dialog");
-pub(crate) const RUN_COMMAND: ActionKey = ActionKey::custom("showcase.taskrunner.run");
+pub(crate) const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
 
 #[derive(Clone, Debug)]
 struct RunStep {

@@ -954,3 +954,22 @@ fn local_override_page_shows_three_distinct_buttons() {
     assert!(page_title.modifier.contains(Modifier::BOLD));
     assert!(panels.diagnostics().is_empty(), "Panels diagnostics");
 }
+
+#[test]
+fn application_navigation_help_and_inspector_commands_keep_their_routes() {
+    let mut h = harness(PageId::Overview);
+    press(&mut h, KeyCode::Char(']'));
+    assert_eq!(h.app().page(), PageId::Buttons);
+    press(&mut h, KeyCode::Char('['));
+    assert_eq!(h.app().page(), PageId::Overview);
+    press(&mut h, KeyCode::Char('?'));
+    assert!(h.text().contains("Keyboard & mouse"));
+    assert!(h.top_layer().index() > LayerId::PAGE.index());
+    press(&mut h, KeyCode::Esc);
+    assert_eq!(h.top_layer(), LayerId::PAGE);
+    press(&mut h, KeyCode::Char('i'));
+    assert!(h.text().contains("Inspector · on"));
+    press(&mut h, KeyCode::Char('i'));
+    assert!(!h.text().contains("Inspector · on"));
+    assert!(!h.app().quit());
+}

@@ -28,12 +28,12 @@ const TOO_SMALL: Id = id!("too-small");
 const HEADER_HELP: Id = id!("header.help");
 const HEADER_INSPECT: Id = id!("header.inspect");
 const INSPECTOR: Id = id!("inspector");
-const QUIT: ActionKey = ActionKey::custom("showcase.quit");
-const QUIT_CTRL: ActionKey = ActionKey::custom("showcase.quit.ctrl");
-const HELP_COMMAND: ActionKey = ActionKey::custom("showcase.help");
-const INSPECTOR_COMMAND: ActionKey = ActionKey::custom("showcase.inspector");
-const NEXT_PAGE: ActionKey = ActionKey::custom("showcase.page.next");
-const PREV_PAGE: ActionKey = ActionKey::custom("showcase.page.previous");
+const QUIT: ActionKey = ActionKey::application("showcase.quit");
+const QUIT_CTRL: ActionKey = ActionKey::application("showcase.quit.ctrl");
+const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
+const INSPECTOR_COMMAND: ActionKey = ActionKey::application("showcase.inspector");
+const NEXT_PAGE: ActionKey = ActionKey::application("showcase.page.next");
+const PREV_PAGE: ActionKey = ActionKey::application("showcase.page.previous");
 const HELP_TEXT: &str = "Tab / Shift+Tab   move keyboard focus\n\
 ↑ ↓ ← →           move inside the focused control\n\
 Enter / Space     activate · start editing\n\
@@ -1341,5 +1341,55 @@ mod paint_contract_tests {
         assert_eq!(accent.add_modifier, Modifier::BOLD);
         assert_eq!(accent.fg, Some(Color::Rgb(100, 100, 100)));
         assert_eq!(accent.as_style(), danger.as_style());
+    }
+}
+
+#[cfg(test)]
+mod action_namespace_tests {
+    use super::*;
+
+    #[test]
+    fn application_commands_are_distinct_from_library_custom_keys() {
+        let owned = [
+            QUIT,
+            QUIT_CTRL,
+            HELP_COMMAND,
+            INSPECTOR_COMMAND,
+            NEXT_PAGE,
+            PREV_PAGE,
+            FORM_SUBMIT,
+            RUN_COMMAND,
+        ]
+        .into_iter()
+        .chain(crate::pages::pickers::action_keys())
+        .collect::<Vec<_>>();
+        let names = [
+            "showcase.quit",
+            "showcase.quit.ctrl",
+            "showcase.help",
+            "showcase.inspector",
+            "showcase.page.next",
+            "showcase.page.previous",
+            "showcase.form.submit",
+            "showcase.taskrunner.run",
+            "showcase.menu.open",
+            "showcase.menu.close",
+            "showcase.context.inspect",
+            "showcase.context.copy",
+        ];
+        assert_eq!(owned.len(), names.len());
+        for (key, name) in owned.iter().zip(names) {
+            assert_eq!(
+                *key,
+                ActionKey::application(name),
+                "application owner: {name}"
+            );
+            assert_ne!(*key, ActionKey::custom(name), "library namespace: {name}");
+            assert_eq!(
+                owned.iter().filter(|other| *other == key).count(),
+                1,
+                "distinct command: {name}"
+            );
+        }
     }
 }
