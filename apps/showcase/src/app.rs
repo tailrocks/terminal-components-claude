@@ -1,5 +1,6 @@
 //! Application shell for the migrated showcase binary.
 
+use crate::render_number::RenderNumber;
 use junie_tui::author::PaintStyle;
 use junie_tui::{
     ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
@@ -777,13 +778,15 @@ fn paint_header_breadcrumb(
     else {
         return x;
     };
-    let crumb = format!("/ {} / {}", entry.section, entry.label);
-    ui.paint_str(
-        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-        &crumb,
-        muted,
-    );
-    x.saturating_add(width(&crumb))
+    for fragment in ["/ ", entry.section, " / ", entry.label] {
+        ui.paint_str(
+            Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+            fragment,
+            muted,
+        );
+        x = x.saturating_add(width(fragment));
+    }
+    x
 }
 
 fn paint_header_actions(
@@ -797,10 +800,14 @@ fn paint_header_actions(
     let (screen_width, screen_height) = screen;
     let (muted, faint) = styles;
     let capability = ui.theme().capability.color.label();
-    let dimensions = format!("{screen_width}×{screen_height}");
+    let width_text = RenderNumber::new(usize::from(screen_width));
+    let height_text = RenderNumber::new(usize::from(screen_height));
+    let dimensions_width = width(width_text.as_str())
+        .saturating_add(1)
+        .saturating_add(width(height_text.as_str()));
     let capability_width = width(capability)
         .saturating_add(3)
-        .saturating_add(width(&dimensions));
+        .saturating_add(dimensions_width);
     let help_text = " ? Help ";
     let inspector_text = if inspector {
         " i Inspector · on "
@@ -849,16 +856,12 @@ fn paint_header_actions(
             " · ",
             faint,
         );
-        ui.paint_str(
-            Rect::new(
-                cap_x.saturating_add(width(capability)).saturating_add(3),
-                area.y,
-                width(&dimensions),
-                1,
-            ),
-            &dimensions,
-            faint,
-        );
+        let mut dimension_x = cap_x.saturating_add(width(capability)).saturating_add(3);
+        for fragment in [width_text.as_str(), "×", height_text.as_str()] {
+            let columns = width(fragment);
+            ui.paint_str(Rect::new(dimension_x, area.y, columns, 1), fragment, faint);
+            dimension_x = dimension_x.saturating_add(columns);
+        }
     }
 }
 

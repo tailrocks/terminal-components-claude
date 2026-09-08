@@ -7,9 +7,39 @@ use junie_tui::{
 };
 
 use crate::data::LANGUAGES;
+use crate::render_number::RenderNumber;
 
 use super::{Page, PageUpdate, frame};
 
+fn list_columns(area: Rect) -> [Rect; 3] {
+    let mut widths = [0; 3];
+    layout::distribute_into(area.width, &[Track::Flex(1); 3], 2, &mut widths);
+    let mut x = area.x;
+    widths.map(|width| {
+        let start = x.min(area.right());
+        let width = width.min(area.right().saturating_sub(start));
+        x = start.saturating_add(width).saturating_add(2);
+        Rect {
+            x: start,
+            width,
+            ..area
+        }
+    })
+}
+
+fn paint_chosen(ui: &mut Ui<'_>, inner: Rect, chosen: &str, style: junie_tui::author::PaintStyle) {
+    let prefix = ui.paint_str(Rect { height: 1, ..inner }, "Chosen: ", style);
+    ui.paint_str(
+        Rect::new(
+            inner.x.saturating_add(prefix),
+            inner.y,
+            inner.width.saturating_sub(prefix),
+            1,
+        ),
+        chosen,
+        style,
+    );
+}
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
 const EMPTY: Id = id!("lists.empty");
@@ -265,8 +295,7 @@ impl Page for ListsPage {
             self.title(),
             "Single and multiple selection, disabled items, scrolling, empty state",
             |ui, body| {
-                let columns =
-                    layout::columns(body, &[Track::Flex(1), Track::Flex(1), Track::Flex(1)], 2);
+                let columns = list_columns(body);
                 let height = body.height.min(18);
                 let language_column = columns.first().copied().unwrap_or(body);
                 let language = Rect {
@@ -281,11 +310,7 @@ impl Page for ListsPage {
                     .title("Language")
                     .patch_part(PANEL_PARTS)
                     .draw(ui, language, |ui, inner| {
-                        let _ = ui.paint_str(
-                            Rect { height: 1, ..inner },
-                            &format!("Chosen: {chosen}"),
-                            detail,
-                        );
+                        paint_chosen(ui, inner, chosen, detail);
                         single_list().draw(
                             ui,
                             Rect {
@@ -363,7 +388,7 @@ impl ListsPage {
             height,
             ..files_column
         };
-        let selected = format!("{} selected", self.multi.checked().len_in(FILES.len()));
+        let selected = RenderNumber::selected(self.multi.checked().len_in(FILES.len()));
         let mut files_panel =
             Panel::new(id!("lists.files"))
                 .kind(PanelKind::Card)
@@ -373,7 +398,7 @@ impl ListsPage {
                     "Files to include"
                 });
         if body.width >= 130 {
-            files_panel = files_panel.meta(&selected);
+            files_panel = files_panel.meta(selected.as_str());
         }
         files_panel
             .patch_part(PANEL_PARTS)
@@ -415,13 +440,21 @@ impl ListsPage {
                     );
                 }
                 if self.last == "multi selection changed" {
-                    let _ = ui.paint_str(
-                        Rect {
-                            y: inner.bottom().saturating_sub(1),
-                            height: 1,
-                            ..inner
-                        },
-                        &format!("checked rows: {}", self.multi.checked().len_in(FILES.len())),
+                    let row = Rect {
+                        y: inner.bottom().saturating_sub(1),
+                        height: 1,
+                        ..inner
+                    };
+                    let count = RenderNumber::new(self.multi.checked().len_in(FILES.len()));
+                    let prefix = ui.paint_str(row, "checked rows: ", detail);
+                    ui.paint_str(
+                        Rect::new(
+                            row.x.saturating_add(prefix),
+                            row.y,
+                            row.width.saturating_sub(prefix),
+                            1,
+                        ),
+                        count.as_str(),
                         detail,
                     );
                 }

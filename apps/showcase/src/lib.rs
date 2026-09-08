@@ -7,6 +7,7 @@
 mod app;
 mod data;
 mod pages;
+mod render_number;
 
 pub use app::{App, NAV_ENTRIES, NavEntry, PageId};
 
