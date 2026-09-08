@@ -834,8 +834,8 @@ fn paint_header_actions(
         Rect::new(inspector_x, area.y, inspector_width, 1),
     );
     right = inspector_x.saturating_sub(1);
-    if right > left.saturating_add(capability_width) {
-        let cap_x = right.saturating_sub(capability_width);
+    if right > left.saturating_add(capability_width).saturating_add(2) {
+        let cap_x = right.saturating_sub(capability_width).saturating_sub(1);
         ui.paint_str(
             Rect::new(cap_x, area.y, width(capability), 1),
             capability,
