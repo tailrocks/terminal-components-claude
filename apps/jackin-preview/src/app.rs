@@ -3867,6 +3867,11 @@ impl App {
                         self.status = Some(format!("Account {account} refreshed"));
                     }
                 }
+                crate::sim::world::Msg::ManagerOperation { .. } => {
+                    // The captured Manager reducer owns and consumes operation
+                    // identities; no manager session is wired into the app yet,
+                    // so nothing can have scheduled one here.
+                }
             }
         }
 
