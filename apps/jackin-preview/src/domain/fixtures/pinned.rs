@@ -19,7 +19,7 @@ use crate::domain::workspace::{
 };
 use crate::scenario::Scenario;
 use crate::sim::pty::{Daemon, Span, SplitDir, TextViewport, Tone};
-use crate::sim::world::World;
+use crate::sim::world::{GithubRepo, World};
 
 fn op_ref(account: &str, vault: (&str, &str), item: (&str, &str), field: &str) -> OpReference {
     OpReference {
@@ -1248,4 +1248,46 @@ pub(crate) fn workspaces_for(scenario: Scenario) -> Vec<Workspace> {
     let mut result = workspaces(scenario == Scenario::HardCases);
     canonicalize_workspace_roles(&mut result);
     result
+}
+
+// Source794b095 fixtures649–691, copied as public metadata only.
+pub(crate) fn github() -> Vec<GithubRepo> {
+    let r = |n: &str, b: &str, extra: &[&str], upd: &str| GithubRepo {
+        full_name: n.into(),
+        default_branch: b.into(),
+        branches: std::iter::once(b.to_owned())
+            .chain(extra.iter().map(|s| (*s).to_owned()))
+            .collect(),
+        updated: upd.into(),
+        url: format!("https://github.com/{n}"),
+    };
+    vec![
+        r(
+            "chainargos/payments-platform",
+            "main",
+            &["feature/settlement-backoff", "release/2026.09"],
+            "1 h ago",
+        ),
+        r(
+            "chainargos/infra-control-plane",
+            "main",
+            &["sre/node-pools"],
+            "3 h ago",
+        ),
+        r(
+            "chainargos/release-automation",
+            "main",
+            &["node-22"],
+            "2 d ago",
+        ),
+        r(
+            "chainargos/customer-portal",
+            "develop",
+            &["main", "feature/skeletons"],
+            "5 h ago",
+        ),
+        r("chainargos/roles", "main", &[], "6 d ago"),
+        r("chainargos/docs", "main", &["gh-pages"], "3 d ago"),
+        r("acme-labs/roles-experimental", "next", &[], "2 mo ago"),
+    ]
 }

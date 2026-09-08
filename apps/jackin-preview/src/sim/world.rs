@@ -32,6 +32,21 @@ pub struct GlobalConfig {
     pub trust: Vec<TrustRow>,
 }
 
+/// Public repository metadata from the deterministic host discovery fixture.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GithubRepo {
+    /// Namespace and repository name.
+    pub full_name: String,
+    /// Default checkout branch.
+    pub default_branch: String,
+    /// Available branches, default first.
+    pub branches: Vec<String>,
+    /// Source-authored freshness display.
+    pub updated: String,
+    /// Public repository URL; simulation never launches a host process.
+    pub url: String,
+}
+
 /// Last observed discovery health, separate from injected refresh failures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DaemonHealth {
@@ -94,6 +109,8 @@ pub struct World {
     pub global: GlobalConfig,
     /// Durable workspace rows.
     pub workspaces: Vec<Workspace>,
+    /// Discovered public repository metadata.
+    pub github: Vec<GithubRepo>,
     /// Available role entries.
     pub roles: Vec<RoleEntry>,
     /// Persisted instance rows.
@@ -401,6 +418,7 @@ pub fn world_for(scenario: Scenario) -> World {
         daemon_health: DaemonHealth::Healthy,
         manager_operation_sequence: 0,
         manager_review_watermark: 0,
+        github: fixtures::pinned::github(),
         saved: false,
         last_refresh_secs: now - 3,
         clipboard: None,

@@ -12,7 +12,7 @@ use crate::domain::{
 };
 use crate::sim::{
     pty::Daemon,
-    world::{DaemonHealth, Msg, World},
+    world::{DaemonHealth, GithubRepo, Msg, World},
 };
 
 /// Stable object selected by a Manager command.
@@ -223,6 +223,13 @@ pub enum Effect {
         target: InstanceTarget,
         /// Validated explicit session choice.
         choice: SessionChoice,
+    },
+    /// A validated simulated repository open; no host browser is launched.
+    RepositoryOpened {
+        /// Captured source URL.
+        url: String,
+        /// Source operator feedback.
+        status: String,
     },
     /// Configuration removed; app reconciles selection.
     WorkspaceDeleted {
@@ -822,5 +829,80 @@ impl LaunchTarget {
                 Some(w) => world.workspace(w.id) == Some(w),
                 None => self.cwd.as_deref() == Some(world.cwd.as_str()),
             }
+    }
+}
+
+/// Why the selected context cannot resolve a discovered repository.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RepositoryError {
+    /// No saved workspace is selected or associated with CurrentDir.
+    NoWorkspace,
+    /// The selected workspace has no matching repository metadata.
+    NoRepository(String),
+}
+impl std::fmt::Display for RepositoryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoWorkspace => f.write_str("Select a saved workspace to open its repository"),
+            Self::NoRepository(name) => write!(f, "No GitHub source for {name}"),
+        }
+    }
+}
+impl std::error::Error for RepositoryError {}
+
+/// Repository context captured from a saved workspace or current-directory association.
+/// The immutable metadata is revalidated before emitting a simulated open.
+#[derive(Debug, Clone)]
+pub struct RepositoryTarget {
+    workspace: Workspace,
+    repository: GithubRepo,
+    cwd: Option<String>,
+}
+impl RepositoryTarget {
+    /// Capture the explicitly selected workspace; `None` means CurrentDir.
+    /// Source lookup uses the first catalogue name ending in the workspace name.
+    pub fn capture(world: &World, workspace: Option<WorkspaceId>) -> Result<Self, RepositoryError> {
+        let cwd = workspace.is_none().then(|| world.cwd.clone());
+        let workspace = match workspace {
+            Some(id) => world.workspace(id),
+            None => world.cwd_workspace(),
+        }
+        .ok_or(RepositoryError::NoWorkspace)?;
+        let repository = world
+            .github
+            .iter()
+            .find(|repo| repo.full_name.ends_with(&workspace.name))
+            .ok_or_else(|| RepositoryError::NoRepository(workspace.name.clone()))?;
+        Ok(Self {
+            workspace: workspace.clone(),
+            repository: repository.clone(),
+            cwd,
+        })
+    }
+
+    /// Read-only URL for a reviewed simulated destination.
+    pub fn url(&self) -> &str {
+        &self.repository.url
+    }
+
+    /// Revalidate saved configuration, CurrentDir association and exact catalogue entry.
+    /// Returns source feedback only after resolving real fixture metadata.
+    pub fn execute(self, world: &World) -> Effect {
+        let workspace_valid = world.workspace(self.workspace.id) == Some(&self.workspace);
+        let cwd_valid = self.cwd.as_ref().is_none_or(|cwd| {
+            cwd == &world.cwd && world.cwd_workspace().map(|w| w.id) == Some(self.workspace.id)
+        });
+        let repository_valid = world
+            .github
+            .iter()
+            .find(|repo| repo.full_name.ends_with(&self.workspace.name))
+            == Some(&self.repository);
+        if !workspace_valid || !cwd_valid || !repository_valid {
+            return stale();
+        }
+        Effect::RepositoryOpened {
+            status: format!("Opened {} on the host", self.repository.url),
+            url: self.repository.url,
+        }
     }
 }
