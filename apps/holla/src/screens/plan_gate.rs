@@ -1,6 +1,9 @@
 //! Gate two binds a shared exact-match acknowledgement to one reviewed plan.
-use crate::domain::plan::{Plan, StepState};
-use crate::sim::{plans::ReviewedPlan, world::World};
+use crate::domain::plan::StepState;
+use crate::sim::{
+    plans::{ReviewBinding, ReviewedPlan},
+    world::World,
+};
 use junie_tui::{
     Action, ActionKey, Cx, Dialog, DialogAction, DialogState, Id, Props, Rect, Response,
     TextViewport, Ui, ViewportLine, ViewportState,
@@ -15,23 +18,22 @@ const ACTIONS: &[Action<'static>] = &[
 
 pub(crate) struct PlanGate {
     title: String,
-    action: String,
+    binding: ReviewBinding,
     phrase: String,
     input_label: String,
-    states: Vec<(String, StepState)>,
     facts: Vec<(String, String)>,
     commands: Vec<String>,
     dialog: DialogState,
     output: ViewportState,
 }
 impl PlanGate {
-    pub(crate) fn new(plan: &Plan) -> Self {
+    pub(crate) fn new(review: &ReviewedPlan) -> Self {
+        let plan = review.plan();
         Self {
             title: format!("Confirm: {}", plan.title()),
-            action: plan.action_id().into(),
+            binding: review.binding(),
             phrase: plan.phrase().into(),
             input_label: format!("Type {} to confirm", plan.phrase()),
-            states: selection(plan),
             facts: vec![
                 (
                     "Will happen".into(),
@@ -127,12 +129,7 @@ impl PlanGate {
                 // Dialog's exact-match action is the acknowledgement proof. Its
                 // secret draft remains private; domain validation receives the
                 // immutable phrase whose matching armed this specific action.
-                let result = if self.action != review.plan().action_id()
-                    || self.phrase != review.plan().phrase()
-                    || self.states != selection(review.plan())
-                {
-                    "Plan selection changed · review it again".into()
-                } else {
+                let result = if review.matches_binding(&self.binding) {
                     match review
                         .approve(&self.phrase, world)
                         .and_then(|approval| approval.execute(world))
@@ -140,6 +137,8 @@ impl PlanGate {
                         Ok(_) => format!("Finished: {} · simulated", review.plan().summary()),
                         Err(error) => error.to_string(),
                     }
+                } else {
+                    "Plan selection changed · review it again".into()
                 };
                 self.dialog.zeroize();
                 cx.close_layer(GATE, Some(ActionKey::CONFIRM));
@@ -187,12 +186,6 @@ impl PlanGate {
         });
     }
 }
-fn selection(plan: &Plan) -> Vec<(String, StepState)> {
-    plan.steps()
-        .iter()
-        .map(|step| (step.id.clone(), step.state.clone()))
-        .collect()
-}
 
 #[cfg(test)]
 #[expect(
@@ -231,7 +224,7 @@ mod tests {
         let mut world = fixtures::world_for(Scenario::DockerCleanup);
         world.seek(4_000);
         let review = plans::plan_for(&world, "docker.cleanup").unwrap();
-        let gate = PlanGate::new(review.plan());
+        let gate = PlanGate::new(&review);
         Fixture {
             gate,
             review,
@@ -307,6 +300,37 @@ mod tests {
         assert!(!harness.app().review.plan().ran());
         assert_eq!(
             harness.app().result.as_deref(),
+            Some("Plan selection changed · review it again")
+        );
+    }
+    #[test]
+    fn independent_replaced_review_cannot_reuse_old_gate_acknowledgement() {
+        let mut h = Harness::new(fixture(), Theme::junie(), 120, 40);
+        let phrase = h.app().review.plan().phrase().to_owned();
+        let _ = h.type_str(&phrase);
+        let _ = h.key(KeyCode::Enter);
+        h.app_mut().world.docker.as_mut().unwrap().cache_bytes += 12345;
+        let replacement = plans::plan_for(&h.app().world, "docker.cleanup").unwrap();
+        h.app_mut().review = replacement;
+        let _ = h.click_id(Dialog::new(GATE).action_id(1));
+        assert_eq!(
+            h.app().world.effect_revision,
+            0,
+            "old gate authorized a replaced review"
+        );
+    }
+    #[test]
+    fn identical_regenerated_review_cannot_reuse_old_acknowledgement() {
+        let mut h = Harness::new(fixture(), Theme::junie(), 120, 40);
+        let phrase = h.app().review.plan().phrase().to_owned();
+        let _ = h.type_str(&phrase);
+        let _ = h.key(KeyCode::Enter);
+        h.app_mut().review = plans::plan_for(&h.app().world, "docker.cleanup").unwrap();
+        let _ = h.click_id(Dialog::new(GATE).action_id(1));
+        assert_eq!(h.app().world.effect_revision, 0);
+        assert!(!h.app().review.plan().ran());
+        assert_eq!(
+            h.app().result.as_deref(),
             Some("Plan selection changed · review it again")
         );
     }

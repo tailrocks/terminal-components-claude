@@ -789,7 +789,7 @@ impl App {
             plan::Event::Notice(message) => self.set_status(message),
             plan::Event::Gate => {
                 if let Some(plan) = &self.plan {
-                    let gate = PlanGate::new(plan.plan());
+                    let gate = PlanGate::new(&plan.review);
                     gate.open(cx);
                     self.overlay = Some(Overlay::Gate(gate));
                 }

@@ -10,22 +10,35 @@ use crate::domain::human_bytes;
 use crate::domain::mise::ToolState;
 use crate::domain::plan::{Plan, PlanEffect, PlanSpec, PlanStep, StepState};
 use crate::sim::world::World;
+use std::sync::Arc;
 
 /// A review bound to the exact simulated host and effect target facts.
 /// It cannot be cloned, reconstructed from UI fields, or executed twice.
 pub(crate) struct ReviewedPlan {
     plan: Plan,
-    target: TargetSnapshot,
+    target: Arc<TargetSnapshot>,
 }
 
 impl ReviewedPlan {
     fn new(plan: Plan, world: &World) -> Self {
-        let target = TargetSnapshot::capture(&plan, world);
+        let target = Arc::new(TargetSnapshot::capture(&plan, world));
         Self { plan, target }
     }
 
     pub(crate) fn plan(&self) -> &Plan {
         &self.plan
+    }
+
+    /// Bind a confirmation surface to this exact review and its complete plan.
+    pub(crate) fn binding(&self) -> ReviewBinding {
+        ReviewBinding {
+            target: Arc::clone(&self.target),
+            plan: self.plan.clone(),
+        }
+    }
+
+    pub(crate) fn matches_binding(&self, binding: &ReviewBinding) -> bool {
+        Arc::ptr_eq(&self.target, &binding.target) && self.plan == binding.plan
     }
 
     pub(crate) fn toggle(
@@ -56,11 +69,20 @@ impl ReviewedPlan {
         if self.plan.ran() {
             return Err(ApprovalError::AlreadyConsumed);
         }
-        if self.target != TargetSnapshot::capture(&self.plan, world) {
+        if self.target.as_ref() != &TargetSnapshot::capture(&self.plan, world) {
             return Err(ApprovalError::StaleTarget);
         }
         Ok(())
     }
+}
+
+/// Opaque, non-executable binding held by a confirmation surface.
+/// Regenerating even an identical plan creates a distinct identity. The complete
+/// plan snapshot also detects selection or effect changes within the same review.
+/// Target facts remain immutable and private; no address or token is exposed.
+pub(crate) struct ReviewBinding {
+    target: Arc<TargetSnapshot>,
+    plan: Plan,
 }
 
 /// Exclusive, one-use permission to apply this in-memory simulation.
@@ -1454,5 +1476,52 @@ mod tests {
         assert_eq!(world.docker, before);
         assert!(!review.plan().ran());
         assert_eq!(world.effect_revision, 0);
+    }
+    #[test]
+    fn every_plan_family_mints_distinct_review_identity() {
+        fn send_sync<T: Send + Sync>() {}
+        send_sync::<ReviewedPlan>();
+        send_sync::<ReviewBinding>();
+        for (scenario, action) in [
+            (Scenario::DockerCleanup, "docker.cleanup"),
+            (Scenario::DiskCleanup, "disk.reclaim"),
+            (Scenario::UpgradePlan, "debian.upgrade"),
+            (Scenario::MonorepoRoot, "git.sync"),
+            (Scenario::RemoteHost, "docker.restart:payments"),
+        ] {
+            let world = settled(scenario);
+            let review = plan_for(&world, action).unwrap();
+            let binding = review.binding();
+            assert!(review.matches_binding(&binding));
+            let replacement = plan_for(&world, action).unwrap();
+            assert_eq!(review.plan(), replacement.plan());
+            assert!(!replacement.matches_binding(&binding), "{action}");
+        }
+    }
+
+    #[test]
+    fn binding_compares_effect_content_even_when_review_identity_is_retained() {
+        let world = settled(Scenario::DockerCleanup);
+        let mut review = plan_for(&world, "docker.cleanup").unwrap();
+        let binding = review.binding();
+        let plan = review.plan();
+        let mut steps = plan.steps().to_vec();
+        let step = steps
+            .iter_mut()
+            .find(|step| !step.success_effects.is_empty())
+            .unwrap();
+        step.success_effects.clear();
+        review.plan = Plan::try_new(PlanSpec {
+            action_id: plan.action_id().into(),
+            title: plan.title().into(),
+            host: plan.host().into(),
+            phrase: plan.phrase().into(),
+            will_change: plan.will_change().into(),
+            steps,
+            effect: plan.effect().cloned(),
+        })
+        .unwrap();
+        assert!(Arc::ptr_eq(&review.target, &binding.target));
+        assert!(!review.matches_binding(&binding));
     }
 }
