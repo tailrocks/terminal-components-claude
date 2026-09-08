@@ -534,7 +534,10 @@ fn correct_phrase_runs_and_failure_propagates() {
     // honest world mutation: cache pruned, web/cron gone, payments-old kept
     let d = h.app().world.docker.as_ref();
     assert!(d.is_some(), "expected Docker fixture");
-    assert_eq!(d.map(|docker| docker.build_cache_bytes()), Some(0));
+    assert_eq!(
+        d.map(crate::domain::docker::DockerState::build_cache_bytes),
+        Some(0)
+    );
     assert!(!d.is_some_and(|docker| docker.containers.iter().any(|c| c.name == "web")));
     assert!(d.is_some_and(|docker| docker.containers.iter().any(|c| c.name == "payments-old")));
     // per-step output: focus the failed step, its lines show

@@ -17,6 +17,7 @@ pub(crate) struct PlanGate {
     title: String,
     action: String,
     phrase: String,
+    input_label: String,
     states: Vec<(String, StepState)>,
     facts: Vec<(String, String)>,
     commands: Vec<String>,
@@ -29,6 +30,7 @@ impl PlanGate {
             title: format!("Confirm: {}", plan.title()),
             action: plan.action_id().into(),
             phrase: plan.phrase().into(),
+            input_label: format!("Type {} to confirm", plan.phrase()),
             states: selection(plan),
             facts: vec![
                 (
@@ -67,6 +69,7 @@ impl PlanGate {
     }
     fn props(&self) -> Dialog<'_> {
         Dialog::acknowledge(GATE, &self.title, &self.phrase)
+            .input_label(&self.input_label)
             .actions(ACTIONS)
             .body_rows(
                 self.facts
@@ -90,6 +93,7 @@ impl PlanGate {
         let title = &self.title;
         let phrase = &self.phrase;
         let dialog = Dialog::acknowledge(GATE, title, phrase)
+            .input_label(&self.input_label)
             .actions(ACTIONS)
             .body_rows(
                 self.facts
@@ -277,7 +281,8 @@ mod tests {
         let phrase = harness.app().review.plan().phrase().to_owned();
         let _ = harness.type_str(&phrase);
         let _ = harness.key(KeyCode::Enter);
-        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.click_id(Dialog::new(GATE).input_id());
+        assert!(harness.app().gate.is_editing());
         let _ = harness.type_str("x");
         let _ = harness.click_id(Dialog::new(GATE).action_id(1));
         assert_eq!(harness.app().world.effect_revision, 0);
