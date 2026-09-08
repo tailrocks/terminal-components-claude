@@ -682,7 +682,7 @@ impl App {
         }
     }
     fn synchronize_feedback(&mut self, cx: &mut Cx<'_>, clock: crate::clock::Clock) -> bool {
-        let synchronized = u64::try_from(clock.now_ms).ok().is_some_and(|now| {
+        let synchronized = u64::try_from(clock.now_ms).is_ok_and(|now| {
             cx.sync_feedback_time(junie_tui::SimulationMoment::from_millis(now))
                 .is_ok()
         });
