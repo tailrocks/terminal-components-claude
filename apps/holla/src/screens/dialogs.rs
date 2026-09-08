@@ -64,7 +64,7 @@ impl ProductDialog {
             intent,
             context: Context::of(world),
             ssh: None,
-            width: 88,
+            width: 66,
             title: String::new(),
             description: String::new(),
             facts: Vec::new(),
@@ -103,6 +103,7 @@ impl ProductDialog {
                 ]);
             }
             Intent::Quit => {
+                view.width = 54;
                 view.title = if world.host.env.sensitive() {
                     format!("Quit holla on {}?", world.host.name)
                 } else {
@@ -144,8 +145,15 @@ impl ProductDialog {
                 ]);
                 view.commands.push(action.command.clone());
                 view.actions.push(
-                    UiAction::new(ActionKey::CONFIRM, "Run (simulated)")
-                        .enabled(matches!(action.availability, Availability::Ready)),
+                    UiAction::new(
+                        ActionKey::CONFIRM,
+                        if matches!(action.availability, Availability::Ready) {
+                            "Run (simulated)"
+                        } else {
+                            "Blocked"
+                        },
+                    )
+                    .enabled(matches!(action.availability, Availability::Ready)),
                 );
             }
             Intent::Trust { action, file } => {
@@ -228,6 +236,7 @@ impl ProductDialog {
                     .push(UiAction::new(ActionKey::CONFIRM, "Open btm (simulated)"));
             }
             Intent::Database { cancel, .. } => {
+                view.width = 88;
                 view.title = "Database lock tree".into();
                 if let Some(review) = cancel {
                     let root = review.target();
@@ -301,7 +310,8 @@ impl ProductDialog {
                     .push(UiAction::new(ActionKey::CONFIRM, "Clone (simulated)"));
             }
             Intent::Alias(action) => {
-                view.title = format!("Alias {}", action.command);
+                view.width = 54;
+                view.title = format!("Alias for “{}”", action.command);
                 view.actions
                     .push(UiAction::new(ActionKey::CONFIRM, "Save alias"));
             }
@@ -348,6 +358,9 @@ impl ProductDialog {
             ];
             view.ssh = Some(host.clone());
         }
+        if matches!(view.intent, Intent::About | Intent::Help) {
+            view.actions = vec![UiAction::new(ActionKey::CANCEL, "Close")];
+        }
         if matches!(view.intent, Intent::Monitor) {
             view.width = 84;
         }
@@ -355,7 +368,7 @@ impl ProductDialog {
     }
     fn props(&self) -> Dialog<'_> {
         let dialog = if matches!(self.intent, Intent::Alias(_)) {
-            Dialog::prompt(DIALOG, &self.title, "Alias")
+            Dialog::prompt(DIALOG, &self.title, "Short name (e.g. gs)")
         } else {
             Dialog::new(DIALOG).title(&self.title)
         };

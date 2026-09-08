@@ -75,7 +75,7 @@ impl PlanGate {
                     .saturating_add(self.commands.len().min(8))
                     .min(usize::from(u16::MAX)) as u16,
             )
-            .width(86)
+            .width(66)
     }
     pub(crate) fn is_editing(&self) -> bool {
         self.dialog.is_editing()
@@ -98,7 +98,7 @@ impl PlanGate {
                     .saturating_add(self.commands.len().min(8))
                     .min(usize::from(u16::MAX)) as u16,
             )
-            .width(86);
+            .width(66);
         let mut response = dialog.update(cx, &mut self.dialog);
         let lines: Vec<_> = self
             .commands
