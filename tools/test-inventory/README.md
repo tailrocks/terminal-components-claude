@@ -34,7 +34,10 @@ artifact features expose that result; this tool does not replace the isolated
 backend-free consumer gate.
 
 Cargo-owned testable library, binary, integration and example targets must
-produce artifacts. `test=false` targets are explicitly classified. Custom
+produce artifacts. `test=false` targets without test artifacts are explicitly
+classified. Cargo's `--all-targets` can emit runnable example test artifacts even
+when metadata defaults `test=false`; these actual artifacts are listed/executed,
+so that metadata default cannot discard example-local tests. Custom
 `harness=false` and benchmark targets block coverage pending an explicit adapter;
 their existence is never treated as zero tests. Inactive `required-features`
 targets are explicitly classified with required/active feature sets. Activation

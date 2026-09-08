@@ -141,6 +141,8 @@ def target_inventory(package, profile, messages, custom):
                     active.add(feature)
                     pending.append(feature)
         feature_source = "artifact-free local feature closure"
+    compiled_tests = {(m["target"]["kind"][0], m["target"]["name"]) for m in own
+                      if m.get("profile", {}).get("test") and m.get("executable")}
     expected, classifications, blockers = set(), [], []
     for target in package["targets"]:
         kind = target["kind"][0]
@@ -153,8 +155,11 @@ def target_inventory(package, profile, messages, custom):
             reason = "custom harness unsupported: explicit adapter required"
         elif kind == "bench":
             reason = "benchmark target requires separate benchmark coverage"
-        elif not target["test"]:
+        elif not target["test"] and key not in compiled_tests:
             reason = "Cargo test=false"
+        # --all-targets emits runnable example test harnesses even though Cargo
+        # metadata reports test=false by default. Actual compiler artifacts own
+        # execution; the metadata flag cannot erase those test identities.
         if reason is None:
             expected.add(key)
         elif reason in ("custom harness unsupported: explicit adapter required",

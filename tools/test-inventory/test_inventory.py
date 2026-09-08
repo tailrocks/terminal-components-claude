@@ -88,6 +88,7 @@ pub fn example() {}
 #[test] #[cfg(feature="extra")] fn gated() {}
 ''',
             "src/main.rs": 'fn main() {}\n#[test] fn binary_local() {}\n',
+            "examples/demo.rs": 'fn main() {}\n#[test] fn example_local() {}\n',
             "tests/contract.rs": '#[test] fn integration() {}\n#[test] #[ignore="subprocess helper"] fn helper() {}\n',
             ".gitignore": "target/\n",
         }
@@ -119,13 +120,14 @@ pub fn example() {}
 
     def test_real_binary_integration_feature_and_docs_are_executed(self):
         gate.verify(self.capture, self.required, self.catalog)
-        self.assertEqual({r["kind"] for r in self.capture["targets"]}, {"lib", "bin", "test", "doc"})
+        self.assertEqual({r["kind"] for r in self.capture["targets"]}, {"lib", "bin", "test", "example", "doc"})
         names = [n for r in self.capture["targets"] for n in r["listed"]]
         self.assertIn("gated", names)
-        self.assertEqual(len(names), 7)
+        self.assertIn("example_local", names)
+        self.assertEqual(len(names), 8)
 
     def test_required_missing_feature_doc_or_target_fails(self):
-        for kind in ("lib", "bin", "test", "doc"):
+        for kind in ("lib", "bin", "test", "example", "doc"):
             cap = copy.deepcopy(self.capture)
             cap["targets"] = [r for r in cap["targets"] if r["kind"] != kind]
             with self.assertRaises(gate.Invalid):
