@@ -739,10 +739,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 ui.set_cursor(
                     self.id,
                     Position::new(
-                        query
-                            .x
-                            .saturating_add(2)
-                            .saturating_add(width(st.query())),
+                        query.x.saturating_add(2).saturating_add(width(st.query())),
                         query.y,
                     ),
                 );

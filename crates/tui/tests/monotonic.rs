@@ -393,3 +393,18 @@ fn idle_terminal_driver_fixture() {
 fn immediate_rearm_terminal_input_fairness_fixture() {
     driver_probe(true);
 }
+
+#[test]
+fn independent_moment_saturates_without_precision_loss() {
+    let m = Moment::from_duration(Duration::new(u64::MAX, 999_999_999));
+    assert_eq!(m.saturating_add(Duration::from_nanos(1)), m);
+    assert_eq!(
+        Moment::from_duration(Duration::from_nanos(7)).as_duration(),
+        Duration::from_nanos(7)
+    );
+    assert_eq!(Moment::ZERO.saturating_duration_since(m), Duration::ZERO);
+    let mut rt = Runtime::new(Timed::delayed(10), Theme::junie());
+    rt.advance_to(m).unwrap();
+    let _ = rt.initialize();
+    assert_eq!(rt.next_deadline(), Some(m));
+}
