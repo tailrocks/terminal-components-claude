@@ -27,6 +27,18 @@ fn plain_q_quits_the_connection_screen() {
 }
 
 #[test]
+fn ctrl_c_requests_quit_even_when_the_result_grid_owns_focus() {
+    let mut app = TableProApp::default();
+    app.set_surface(Surface::TableGrid);
+    let mut h = Harness::new(app, Theme::junie(), 120, 40);
+    let grid = Id::root("tablepro.results");
+    let _ = h.click_id(grid);
+    assert_eq!(h.focus(), Some(grid));
+    let _ = h.ctrl('c');
+    assert!(h.app().should_quit());
+}
+
+#[test]
 fn empty_query_is_clean_and_execution_does_not_save_edits() {
     let mut query = QueryTab::new(1, "");
     assert!(!query.dirty());
@@ -43,7 +55,7 @@ fn dirty_query_from_keyboard_prompts_and_escape_preserves_it() {
     begin_query_edit(&mut h);
     let _ = h.key(KeyCode::Char('q'));
     assert!(!h.app().should_quit());
-    let _ = h.ctrl('q');
+    let _ = h.ctrl('c');
     assert!(!h.app().should_quit());
     assert!(h.find("Quit TablePro?").is_some());
     assert!(h.find("1 unsaved query will be lost.").is_some());

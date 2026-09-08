@@ -210,7 +210,7 @@ fn quit_keymap() -> KeyMap {
             QUIT,
         )
         .bind(
-            KeyPhase::Bubble,
+            KeyPhase::Capture,
             Chord::with(KeyCode::Char('c'), KeyModifiers::CONTROL),
             CANCEL_OR_QUIT,
         )
