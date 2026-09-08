@@ -11,10 +11,10 @@
 use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
-use unicode_segmentation::UnicodeSegmentation;
 
 use super::Ui;
 use crate::text::Span;
+use crate::text::measure::graphemes;
 use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
 
 impl Ui<'_> {
@@ -40,8 +40,8 @@ impl Ui<'_> {
         let s = s.into();
         let mut x = area.x;
         let mut remaining = area.width;
-        for symbol in text
-            .graphemes(true)
+        for symbol in graphemes(text)
+            .map(|(_, symbol)| symbol)
             .filter(|symbol| !symbol.contains(char::is_control))
         {
             let width = symbol.cell_width();
