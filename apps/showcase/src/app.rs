@@ -1160,7 +1160,9 @@ impl TuiApp for App {
                         cx.focus_next();
                     }
                 }
-                NavListAction::Moved(_) => {}
+                NavListAction::Moved(_)
+                | NavListAction::LeaveBackward
+                | NavListAction::LeaveForward => {}
             });
         // The reference global help dialog suspends page ticks, not status
         // expiry. Hidden pages likewise keep domain deadlines without

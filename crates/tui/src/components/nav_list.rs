@@ -59,6 +59,10 @@ pub enum NavListAction {
     Chose(ItemKey),
     /// A destination was chosen and its content pane should receive focus.
     EnterContent(ItemKey),
+    /// Moving before the first enabled row requested leaving an opted-in list.
+    LeaveBackward,
+    /// Moving after the last enabled row requested leaving an opted-in list.
+    LeaveForward,
 }
 
 /// The const-constructible commands of the nav keymap.
@@ -379,6 +383,7 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     disabled: bool,
     scrollable: bool,
+    leave_at_boundary: bool,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
@@ -412,6 +417,7 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             disabled_item: None,
             disabled: false,
             scrollable: false,
+            leave_at_boundary: false,
             ov: PartStyle::new(),
             _t: PhantomData,
         }
@@ -419,6 +425,15 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> NavList<'a, T, K, R> {
+    /// Report directional exits beyond enabled rows instead of consuming them.
+    ///
+    /// Defaults to false. The caller decides where focus moves. Cursor and
+    /// current destination remain unchanged; empty lists and Home/End never exit.
+    #[must_use]
+    pub const fn leave_at_boundary(mut self, leave: bool) -> Self {
+        self.leave_at_boundary = leave;
+        self
+    }
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -556,6 +571,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             disabled_item: self.disabled_item,
             disabled: self.disabled,
             scrollable: self.scrollable,
+            leave_at_boundary: self.leave_at_boundary,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -577,6 +593,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             disabled_item: self.disabled_item,
             disabled: self.disabled,
             scrollable: self.scrollable,
+            leave_at_boundary: self.leave_at_boundary,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -694,6 +711,40 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc.action(NavListAction::Chose(key));
     }
 
+    fn step_cursor(
+        &self,
+        st: &mut NavListState,
+        items: &[T],
+        forward: bool,
+        acc: &mut Acc<NavListAction>,
+    ) {
+        let current = st.core.cursor_index();
+        let next = if forward {
+            self.seek(items, current.saturating_add(1), true)
+        } else {
+            current
+                .checked_sub(1)
+                .and_then(|from| self.seek(items, from, false))
+        };
+        if let Some(index) = next {
+            let key = self.key_at(items, index);
+            if st.core.cursor() == Some(key) {
+                acc.consumed();
+            } else {
+                st.core.set_cursor(index, key);
+                acc.action(NavListAction::Moved(key));
+            }
+        } else if self.leave_at_boundary && self.enabled_at(items, current) {
+            acc.action(if forward {
+                NavListAction::LeaveForward
+            } else {
+                NavListAction::LeaveBackward
+            });
+        } else {
+            acc.consumed();
+        }
+    }
+
     fn enter_content(
         &self,
         st: &mut NavListState,
@@ -783,14 +834,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                     let cur = st.core.cursor_index();
                     match Binding::command(table, action) {
                         Some(NavListCmd::Up) => {
-                            if cur == 0 {
-                                acc.consumed();
-                            } else {
-                                self.move_cursor(st, items, cur.saturating_sub(1), false, &mut acc);
-                            }
+                            self.step_cursor(st, items, false, &mut acc);
                         }
                         Some(NavListCmd::Down) => {
-                            self.move_cursor(st, items, cur.saturating_add(1), true, &mut acc);
+                            self.step_cursor(st, items, true, &mut acc);
                         }
                         Some(NavListCmd::Home) => self.move_cursor(st, items, 0, true, &mut acc),
                         Some(NavListCmd::End) => {
