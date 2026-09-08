@@ -250,6 +250,18 @@ Native capture owner reports all288 production captures completed and joined
 Fixed16-run strict style measurement still fails on parent and candidate;
 recorded background OS CPU activity prevents causal attribution. No waiver.
 
+Showcase namespace1acf54a integrates independently accepted3ab83e9: all12
+application declarations isolated from component custom keys; root5 library and32
+real-app journey tests pass. Inert picker menu declarations remain identity-only
+coverage. Review E/showcase-action-namespace/independent-review/REVIEW.md SHA
+3865b1e6…a8780. Picker explicit width090798d and Holla caller3ad886b restore
+source64-column Actions sizing; root3 public width/resize/selection tests pass.
+Three unchanged pinned memory journeys96095d2 initially exposed missing dialog
+caption prerequisite a3dec78 at alias-title assertion. Root reviewed source widths,
+captions and full patch, integrated722dc60; all134 Holla tests now pass, including
+all17 restored historical assertions. Searchable Actions and remaining full
+appearance/interaction obligations remain open; no visual baseline approval.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
