@@ -13,6 +13,7 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use std::collections::HashMap;
+use std::sync::{Arc, Weak};
 
 use ratatui_core::layout::Rect;
 
@@ -369,6 +370,8 @@ const TABLE_FOLDABLE: [Binding<TreeCmd>; 18] = [
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TreeState {
     core: CollectionCore,
+    source_lineage: Option<Arc<()>>,
+    expansion_lineage: Option<Arc<()>>,
     expanded: KeySet,
     chosen: Option<ItemKey>,
     // Selection transaction only; pointer feedback remains runtime-owned.
@@ -393,6 +396,8 @@ impl TreeState {
     pub const fn new() -> Self {
         TreeState {
             core: CollectionCore::new(),
+            source_lineage: None,
+            expansion_lineage: None,
             expanded: KeySet::new(),
             chosen: None,
             click_cursor: None,
@@ -436,6 +441,7 @@ impl TreeState {
     /// Open `key`.
     pub fn expand(&mut self, key: ItemKey) {
         if !self.expanded.contains(key) {
+            Self::prepare_lineage(&mut self.expansion_lineage);
             self.expanded.insert(key);
             self.record_expansion(key, true);
         }
@@ -444,6 +450,7 @@ impl TreeState {
     /// Close `key`.
     pub fn collapse(&mut self, key: ItemKey) {
         if self.expanded.contains(key) {
+            Self::prepare_lineage(&mut self.expansion_lineage);
             self.expanded.remove(key);
             self.record_expansion(key, false);
         }
@@ -451,15 +458,18 @@ impl TreeState {
 
     /// Toggle `key`; returns whether it is open afterwards.
     pub fn toggle(&mut self, key: ItemKey) -> bool {
+        Self::prepare_lineage(&mut self.expansion_lineage);
         self.expanded.toggle(key);
         let expanded = self.expanded.contains(key);
         self.record_expansion(key, expanded);
         expanded
     }
 
-    /// Open every node, without naming one (`KeySet::AllExcept(∅)`, so this
-    /// allocates nothing however large the tree is).
+    /// Open every node without materialising its keys (`KeySet::AllExcept(∅)`).
+    /// The first structural mutation establishes one constant-size lineage;
+    /// subsequent mutations allocate no lineage unless a clone diverges.
     pub fn expand_all(&mut self) {
+        Self::prepare_lineage(&mut self.expansion_lineage);
         self.expanded.all();
         self.bump_expand_generation();
         self.last_expansion = None;
@@ -468,6 +478,7 @@ impl TreeState {
     /// Close every node.
     pub fn collapse_all(&mut self) {
         if !self.expanded.is_empty() {
+            Self::prepare_lineage(&mut self.expansion_lineage);
             self.expanded.none();
             self.bump_expand_generation();
             self.last_expansion = None;
@@ -492,6 +503,7 @@ impl TreeState {
     /// edits, reorderings and replacements of an equal-length slice require
     /// this explicit invalidation before the next phase.
     pub fn invalidate(&mut self) {
+        Self::prepare_lineage(&mut self.source_lineage);
         if let Some(next) = self.source_generation.checked_add(1) {
             self.source_generation = next;
         } else {
@@ -519,6 +531,18 @@ impl TreeState {
             // Preserve correctness after saturation: every later phase must
             // rebuild instead of treating equal revisions as unchanged.
             self.expand_generation_saturated = true;
+        }
+    }
+
+    // Generations identify mutations only within one state lineage. Clones
+    // share unchanged structure, then split before either branch mutates.
+    // The index holds only a Weak, so ordinary toggles never split or allocate.
+    fn prepare_lineage(lineage: &mut Option<Arc<()>>) {
+        if lineage
+            .as_ref()
+            .is_none_or(|token| Arc::strong_count(token) > 1)
+        {
+            *lineage = Some(Arc::new(()));
         }
     }
 
@@ -981,6 +1005,8 @@ struct FlatRef {
 #[derive(Default)]
 struct TreeIndex {
     initialized: bool,
+    source_lineage: Option<Weak<()>>,
+    expansion_lineage: Option<Weak<()>>,
     source_generation: u64,
     expand_generation: u64,
     query_revision: Option<u64>,
@@ -1001,6 +1027,14 @@ struct TreeIndex {
 }
 
 impl TreeIndex {
+    fn same_lineage(cached: Option<&Weak<()>>, current: Option<&Arc<()>>) -> bool {
+        match (cached, current) {
+            (None, None) => true,
+            (Some(cached), Some(current)) => core::ptr::eq(cached.as_ptr(), Arc::as_ptr(current)),
+            _ => false,
+        }
+    }
+
     fn sync<T, K: KeyFn<T>, R>(
         &mut self,
         tree: &Tree<'_, T, K, R>,
@@ -1009,12 +1043,23 @@ impl TreeIndex {
     ) {
         let query_revision = tree.query.as_ref().map(|query| query.revision);
         let source_changed = !self.initialized
+            || !Self::same_lineage(self.source_lineage.as_ref(), state.source_lineage.as_ref())
             || self.source_generation != state.source_generation
             || state.source_generation_saturated
             || self.source_len != items.len();
         if source_changed {
             self.rebuild_source(tree, state, items, query_revision);
             return;
+        }
+        let same_expansion = Self::same_lineage(
+            self.expansion_lineage.as_ref(),
+            state.expansion_lineage.as_ref(),
+        );
+        // A never-mutated cached expansion is the known empty set. Its first
+        // change can still use the existing single-subtree splice.
+        let from_empty = self.expansion_lineage.is_none() && self.expand_generation == 0;
+        if !same_expansion {
+            self.expansion_lineage = state.expansion_lineage.as_ref().map(Arc::downgrade);
         }
         if self.query_revision != query_revision {
             self.apply_query(tree, items);
@@ -1033,14 +1078,15 @@ impl TreeIndex {
             self.expand_generation = state.expand_generation;
             return;
         }
-        if self.expand_generation == state.expand_generation {
+        if same_expansion && self.expand_generation == state.expand_generation {
             return;
         }
         if self.query_active {
             self.expand_generation = state.expand_generation;
             return;
         }
-        let incremental = self.expand_generation.saturating_add(1) == state.expand_generation
+        let incremental = (same_expansion || from_empty)
+            && self.expand_generation.saturating_add(1) == state.expand_generation
             && state
                 .last_expansion
                 .is_some_and(|change| change.generation == state.expand_generation);
@@ -1083,6 +1129,10 @@ impl TreeIndex {
         self.apply_query(tree, items);
         self.rebuild_visible(&state.expanded);
         self.initialized = true;
+        // Retaining the weak allocation prevents address reuse (ABA) while
+        // this cache still refers to the previous state's lineage.
+        self.source_lineage = state.source_lineage.as_ref().map(Arc::downgrade);
+        self.expansion_lineage = state.expansion_lineage.as_ref().map(Arc::downgrade);
         self.source_generation = state.source_generation;
         self.expand_generation = state.expand_generation;
         self.query_revision = query_revision;
@@ -2646,6 +2696,58 @@ mod tests {
         assert_eq!(accesses.get(), FOREST.len());
         assert!(state.is_expanded(ItemKey::text("alpha")));
         assert_eq!(state.chosen(), Some(ItemKey::text("a1")));
+    }
+
+    #[test]
+    fn equal_source_generations_from_replaced_and_cloned_states_rebuild() {
+        let tree = tree();
+        let original = [N("alpha", 0, false), N("beta", 0, false)];
+        let reordered = [original[1], original[0]];
+        let mut first = TreeState::new();
+        first.invalidate();
+        let mut second = TreeState::new();
+        second.invalidate();
+        let mut index = TreeIndex::default();
+        index.sync(&tree, &first, &original);
+        index.sync(&tree, &second, &reordered);
+        assert_eq!(index.row(0).map(|row| row.key), Some(ItemKey::text("beta")));
+        let mut sibling = second.clone();
+        second.invalidate();
+        sibling.invalidate();
+        index.sync(&tree, &second, &reordered);
+        index.sync(&tree, &sibling, &original);
+        assert_eq!(
+            index.row(0).map(|row| row.key),
+            Some(ItemKey::text("alpha"))
+        );
+        assert_eq!(index.source_rebuilds, 4);
+        index.sync(&tree, &sibling, &original);
+        assert_eq!(index.source_rebuilds, 4);
+    }
+
+    #[test]
+    fn cached_weak_identity_prevents_replacement_address_reuse() {
+        let tree = tree();
+        let mut state = TreeState::new();
+        state.expand(ItemKey::text("alpha"));
+        let mut index = TreeIndex::default();
+        index.sync(&tree, &state, &FOREST);
+        let weak = index.expansion_lineage.as_ref().unwrap();
+        let old_address = weak.as_ptr();
+        drop(state);
+        assert!(weak.upgrade().is_none());
+        let mut replacement = TreeState::new();
+        replacement.expand(ItemKey::text("beta"));
+        assert_ne!(
+            old_address,
+            std::sync::Arc::as_ptr(replacement.expansion_lineage.as_ref().unwrap())
+        );
+        index.sync(&tree, &replacement, &FOREST);
+        assert_eq!(
+            index.source_rebuilds, 1,
+            "expansion replacement must not rescan source"
+        );
+        assert_eq!(index.visible_rebuilds, 2);
     }
 
     #[test]
