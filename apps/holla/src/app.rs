@@ -704,9 +704,10 @@ impl App {
                     .contains(junie_tui::StateFlags::FOCUSED),
             )
         });
+        let actions_hints = matches!(self.overlay, Some(Overlay::Actions(_))).then(Actions::hints);
         let mut bar = HintBar::derived(FOOTER).screen(&hints);
-        if let Some(home_hints) = home_hints.as_ref() {
-            bar = bar.mode(home_hints);
+        if let Some(mode_hints) = actions_hints.as_ref().or(home_hints.as_ref()) {
+            bar = bar.mode(mode_hints);
         }
         bar.status_text(self.status.as_deref())
             .badge(editing.then_some("EDIT"))
@@ -1154,6 +1155,34 @@ mod tests {
                 .contains("c discovering…")
         );
         assert!(early.diagnostics().is_empty(), "{:?}", early.diagnostics());
+    }
+    #[test]
+    fn actions_picker_preserves_source_footer_height_and_query_isolation() {
+        let mut h = app(Scenario::RustDirty);
+        let _ = h.type_str("cargo build");
+        let _ = h.ctrl('o');
+        assert_eq!(
+            h.layer_area(crate::screens::actions::PICKER)
+                .map(|area| area.height),
+            Some(12)
+        );
+        assert_eq!(h.cursor(), None);
+        let text = h.text();
+        let footer = text.lines().last().unwrap();
+        assert!(
+            footer.contains("↑↓ Move")
+                && footer.contains("Enter Choose")
+                && footer.contains("Esc Cancel")
+        );
+        assert!(!footer.contains("EDIT"));
+        let _ = h.type_str("ignored");
+        let _ = h.paste("ignored paste");
+        assert_eq!(h.app().home.query(), "cargo build");
+        assert!(h.text().contains("Set alias…"));
+        let _ = h.key(KeyCode::Esc);
+        assert!(h.app().overlay.is_none());
+        assert_eq!(h.app().home.query(), "cargo build");
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
     #[test]
     fn home_hint_casing_preserves_lowercase_physical_shortcuts() {

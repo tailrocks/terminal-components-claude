@@ -1,8 +1,11 @@
 //! Structured alternatives for one retained action identity.
 use super::context::Context;
 use crate::{domain::action::Action, sim::world::World};
-use junie_tui::{Cx, Id, Item, ItemKey, Picker, PickerAction, PickerState, Response, Ui};
-const PICKER: Id = Id::root("action.picker");
+use junie_tui::{
+    Chord, Cx, Hint, HintKey, HintLayer, Id, Item, ItemKey, KeyCode, Picker, PickerAction,
+    PickerState, Response, Ui,
+};
+pub(crate) const PICKER: Id = Id::root("action.picker");
 #[derive(Clone, Copy)]
 pub(crate) enum Choice {
     Run,
@@ -87,8 +90,33 @@ impl Actions {
             })
             .collect()
     }
+    pub(crate) fn hints() -> HintLayer {
+        HintLayer {
+            hints: vec![
+                Hint {
+                    key: HintKey::Label("↑↓"),
+                    label: "Move",
+                    priority: 50,
+                },
+                Hint {
+                    key: HintKey::Chord(Chord::key(KeyCode::Enter)),
+                    label: "Choose",
+                    priority: 50,
+                },
+                Hint {
+                    key: HintKey::Chord(Chord::key(KeyCode::Esc)),
+                    label: "Cancel",
+                    priority: 50,
+                },
+            ],
+            ..HintLayer::empty()
+        }
+    }
     fn picker(&self) -> Picker<'_, Item<'_>> {
-        Picker::new(PICKER).title(&self.action.title).width(64)
+        Picker::new(PICKER)
+            .title(&self.action.title)
+            .width(64)
+            .searchable(false)
     }
     pub(crate) fn open(&self, cx: &mut Cx<'_>) {
         cx.open_layer(PICKER, self.picker().layer(cx, &self.items()));
