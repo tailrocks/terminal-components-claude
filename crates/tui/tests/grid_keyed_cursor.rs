@@ -198,3 +198,44 @@ fn retained_edit_refuses_move_until_explicit_cancel_without_commit() {
     h.draw();
     assert!((0..7).any(|y| h.row(y).contains("r39c7")));
 }
+
+#[test]
+fn movement_before_first_layout_is_revealed_when_published() {
+    let mut page = Page::new();
+    assert_eq!(page.move_to(39, 7), Ok(()));
+    let h = Harness::new(page, Theme::junie(), 36, 9);
+    assert!((0..7).any(|y| h.row(y).contains("r39c7")));
+    assert_eq!(
+        h.app().state.cursor(),
+        Some((ItemKey::num(39), ColumnKey::num(7)))
+    );
+    assert!(h.diagnostics().is_empty());
+}
+
+#[test]
+fn pending_keyed_reveal_tracks_reorder_before_first_publication() {
+    let mut page = Page::new();
+    assert_eq!(page.move_to(39, 7), Ok(()));
+    page.model.rows.swap(39, 20);
+    page.columns.swap(7, 1);
+    let h = Harness::new(page, Theme::junie(), 36, 9);
+    assert_eq!(
+        h.app().state.cursor(),
+        Some((ItemKey::num(39), ColumnKey::num(7)))
+    );
+    assert!((0..7).any(|y| h.row(y).contains("r39c1")));
+}
+
+#[test]
+fn pending_key_removal_reveals_surviving_neighbor_before_first_publication() {
+    let mut page = Page::new();
+    assert_eq!(page.move_to(39, 7), Ok(()));
+    page.model.rows.pop();
+    page.columns.pop();
+    let h = Harness::new(page, Theme::junie(), 36, 9);
+    assert_eq!(
+        h.app().state.cursor(),
+        Some((ItemKey::num(38), ColumnKey::num(6)))
+    );
+    assert!((0..7).any(|y| h.row(y).contains("r38c6")));
+}

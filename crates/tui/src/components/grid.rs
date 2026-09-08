@@ -1772,6 +1772,7 @@ impl Grid<'_> {
         if st.core.cursor().is_none() && len > 0 {
             st.core.set_cursor(0, model.row_key(0));
         }
+        let previous_col = st.col;
         if column_count == 0 {
             st.col = None;
             st.col_index = 0;
@@ -1786,6 +1787,17 @@ impl Grid<'_> {
             st.col = self.col_key(st.col_index);
             st.anchor = None;
             st.cancel_editor();
+        }
+        // A request can precede the first published layout. Reconciliation
+        // may move its stable cell before geometry can consume the reveal.
+        if st.core.scroll().pending_reveal().is_some() {
+            let row = st.core.cursor_index();
+            st.core.scroll_mut().ensure_visible_on_next_layout(row);
+            let col = self.cursor_col(st);
+            if col != st.col_index || (previous_col.is_some() && previous_col != st.col) {
+                st.col_index = col;
+                self.reveal_column(st, col);
+            }
         }
         let mut pending = Pending::default();
         let total = len.saturating_add(usize::from(model.has_more()));
