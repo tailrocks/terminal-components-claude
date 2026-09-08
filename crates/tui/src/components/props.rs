@@ -18,7 +18,7 @@ use crate::secret::{Secret, SecretPolicy};
 use crate::text::measure::graphemes;
 use crate::text::width;
 use crate::theme::PaintStyle;
-use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Role, Slot, StyleDefaults, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use ratatui_core::layout::Rect;
 
@@ -999,7 +999,8 @@ fn paint_piece(
 /// beside them.
 ///
 /// ## Construction
-/// `Props::new(rows)` over `&[(&str, &str)]`.
+/// `Props::new(rows)` over `&[(&str, &str)]`, or [`Props::rich`] over
+/// borrowed [`PropsRow`] values with wrapping, semantic tone and secret masking.
 ///
 /// ## Ownership
 /// Stateless; the rows are borrowed.
@@ -1027,7 +1028,9 @@ fn paint_piece(
 ///
 /// ## Layout
 /// One row per pair; `measure` is `(widest label + 2 + widest value,
-/// rows)`; `draw` returns the rows painted, clipped to `area`.
+/// rows)`. Rich rows share the [`PropsList`] wrapping engine and measure their
+/// wrapped height at the constrained width. `draw` returns the rows painted,
+/// clipped to `area`.
 ///
 /// ## Parts
 /// `META` (the label column), `LABEL` (the value column).
@@ -1045,8 +1048,23 @@ fn paint_piece(
 /// ## Invariants
 /// Never writes outside `area`; never allocates.
 pub struct Props<'a> {
-    rows: &'a [(&'a str, &'a str)],
+    rows: PropsRows<'a>,
     ov: PartStyle<'a>,
+}
+
+#[derive(Clone, Copy)]
+enum PropsRows<'a> {
+    Pairs(&'a [(&'a str, &'a str)]),
+    Rich(&'a [PropsRow<'a>]),
+}
+
+impl PropsRows<'_> {
+    fn len(self) -> usize {
+        match self {
+            Self::Pairs(rows) => rows.len(),
+            Self::Rich(rows) => rows.len(),
+        }
+    }
 }
 
 impl fmt::Debug for Props<'_> {
@@ -1064,7 +1082,19 @@ impl<'a> Props<'a> {
     /// Rows of `(label, value)`.
     pub const fn new(rows: &'a [(&'a str, &'a str)]) -> Self {
         Props {
-            rows,
+            rows: PropsRows::Pairs(rows),
+            ov: PartStyle::new(),
+        }
+    }
+
+    /// Decorative rich rows with borrowed text or masked secrets.
+    ///
+    /// Wrapping and explicit newlines use the same engine as [`PropsList`].
+    /// Row tones are author defaults below theme, scope and instance overrides.
+    /// Keys and copyability do not create controls, bindings or copy actions.
+    pub const fn rich(rows: &'a [PropsRow<'a>]) -> Self {
+        Props {
+            rows: PropsRows::Rich(rows),
             ov: PartStyle::new(),
         }
     }
@@ -1077,11 +1107,18 @@ impl<'a> Props<'a> {
     }
 
     fn label_width(&self) -> u16 {
-        self.rows.iter().map(|(k, _)| width(k)).max().unwrap_or(0)
+        match self.rows {
+            PropsRows::Pairs(rows) => rows.iter().map(|(k, _)| width(k)).max().unwrap_or(0),
+            PropsRows::Rich(rows) => PropsList::label_width(rows),
+        }
     }
 
     /// The draw phase.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
+        let rows = match self.rows {
+            PropsRows::Pairs(rows) => rows,
+            PropsRows::Rich(rows) => return self.draw_rich(ui, area, rows),
+        };
         if area.is_empty() {
             return area;
         }
@@ -1109,7 +1146,7 @@ impl<'a> Props<'a> {
             )
             .style;
         let mut painted = 0u16;
-        for (row, (k, v)) in area.rows().zip(self.rows.iter()) {
+        for (row, (k, v)) in area.rows().zip(rows.iter()) {
             ui.paint_str(row, k, key_style);
             let value = Rect {
                 x: row.x.saturating_add(lw).saturating_add(2),
@@ -1125,12 +1162,133 @@ impl<'a> Props<'a> {
         }
     }
 
-    /// The natural size.
-    pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
-        let vw = self.rows.iter().map(|(_, v)| width(v)).max().unwrap_or(0);
-        let w = self.label_width().saturating_add(2).saturating_add(vw);
-        let h = self.rows.len().min(usize::from(u16::MAX)) as u16;
-        Size::exact(w, h).fit(c)
+    fn draw_rich(&self, ui: &mut Ui<'_>, area: Rect, rows: &[PropsRow<'_>]) -> Rect {
+        if area.is_empty() || rows.is_empty() {
+            return Rect { height: 0, ..area };
+        }
+        let owner = Id::root("tui.props");
+        let label_width = PropsList::label_width(rows).min(area.width);
+        let value_width = PropsList::value_width(rows, area.width);
+        let key_style = self
+            .ov
+            .style(
+                ui,
+                owner,
+                Family::PROPS,
+                Variant::DEFAULT,
+                Part::META,
+                StateFlags::empty(),
+            )
+            .style;
+        let mut painted = 0u16;
+        for row in rows {
+            if painted >= area.height {
+                break;
+            }
+            let height =
+                PropsList::row_height(row, value_width).min(area.height.saturating_sub(painted));
+            let y = area.y.saturating_add(painted);
+            ui.paint_str(Rect::new(area.x, y, label_width, 1), row.label, key_style);
+            let value_style = if let Some(tone) = row.tone {
+                let local = self.ov.part_patch(Part::LABEL);
+                let resolved = ui.style_defaults(
+                    Family::PROPS,
+                    Variant::DEFAULT,
+                    Part::LABEL,
+                    StateFlags::empty(),
+                    StyleDefaults::new(StylePatch::new().set_fg(tone)),
+                    local.as_ref(),
+                );
+                self.ov.note(
+                    ui,
+                    owner,
+                    Family::PROPS,
+                    Variant::DEFAULT,
+                    Part::LABEL,
+                    resolved,
+                );
+                resolved.style
+            } else {
+                self.ov
+                    .style(
+                        ui,
+                        owner,
+                        Family::PROPS,
+                        Variant::DEFAULT,
+                        Part::LABEL,
+                        StateFlags::empty(),
+                    )
+                    .style
+            };
+            // The tone has already entered normal resolution as an author default.
+            // Do not reapply it after explicit theme/scope/instance customization.
+            let resolved_row = PropsRow { tone: None, ..*row };
+            paint_value(
+                ui,
+                Rect::new(
+                    area.x.saturating_add(label_width).saturating_add(2),
+                    y,
+                    value_width,
+                    height,
+                ),
+                &resolved_row,
+                value_style,
+            );
+            painted = painted.saturating_add(height);
+        }
+        Rect {
+            height: painted,
+            ..area
+        }
+    }
+
+    /// The natural size; rich wrapping uses the chosen constrained width.
+    pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
+        match self.rows {
+            PropsRows::Pairs(rows) => {
+                let vw = rows.iter().map(|(_, v)| width(v)).max().unwrap_or(0);
+                let w = self.label_width().saturating_add(2).saturating_add(vw);
+                let h = rows.len().min(usize::from(u16::MAX)) as u16;
+                Size::exact(w, h).fit(c)
+            }
+            PropsRows::Rich(rows) => {
+                if rows.is_empty() || c.max.0 == 0 {
+                    return Size::exact(0, 0).fit(c);
+                }
+                let value_width = rows
+                    .iter()
+                    .map(|row| match row.value {
+                        PropsValue::Text(value) if row.wrap => {
+                            value.split('\n').map(width).max().unwrap_or(0)
+                        }
+                        PropsValue::Text(value) => width(value),
+                        PropsValue::Secret(secret) => {
+                            let policy = SecretPolicy::default();
+                            let glyph_width = width(ui.design().glyphs.get(policy.mask));
+                            let masks = secret.len().min(usize::from(u16::MAX)) as u16;
+                            let tail = if secret.is_empty() {
+                                0
+                            } else {
+                                policy.synthetic_tail.min(8) as u16
+                            };
+                            masks.saturating_mul(glyph_width).saturating_add(tail)
+                        }
+                    })
+                    .max()
+                    .unwrap_or(0);
+                let natural = self
+                    .label_width()
+                    .saturating_add(2)
+                    .saturating_add(value_width);
+                let chosen = if c.tight_w {
+                    c.max.0
+                } else {
+                    natural.min(c.max.0)
+                };
+                let height = PropsList::content_len(rows, chosen).min(usize::from(u16::MAX)) as u16;
+                Size::exact(chosen, height).fit(c)
+            }
+        }
     }
 }
 
