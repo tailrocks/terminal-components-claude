@@ -3794,7 +3794,7 @@ fn dependency_graph_is_exactly_the_declared_set() -> Result<(), String> {
     }
     // (3) apps: check the expected set, not only packages that happen to be
     // present. A missing app must fail this named check by itself (§47.5).
-    for expected in ["showcase", "tablepro", "jackin-preview"] {
+    for expected in APPS.iter().map(|app| app.bin) {
         let Some(p) = md.packages.iter().find(|p| p.name == expected) else {
             errors.push(format!("missing expected application package `{expected}`"));
             continue;
@@ -3868,7 +3868,7 @@ fn library_has_no_application_dependency() -> Result<(), String> {
         .dependencies
         .iter()
         .filter(|d| {
-            ["showcase", "tablepro", "jackin-preview", "junie-tui"].contains(&d.name.as_str())
+            APPS.iter().any(|app| app.bin == d.name) || d.name == "junie-tui"
         })
         .map(|d| d.name.clone())
         .collect();
@@ -3894,8 +3894,8 @@ struct AppPackage {
     slice: &'static str,
 }
 
-/// The three applications, in the order §47.1 migrates them.
-const APPS: [AppPackage; 3] = [
+/// The four required applications, including the forward-ported Holla product.
+const APPS: [AppPackage; 4] = [
     AppPackage {
         bin: "showcase",
         dir: "apps/showcase",
@@ -3913,6 +3913,12 @@ const APPS: [AppPackage; 3] = [
         dir: "apps/jackin-preview",
         lib: "jackin_app",
         slice: "Slice 7",
+    },
+    AppPackage {
+        bin: "holla",
+        dir: "apps/holla",
+        lib: "holla_app",
+        slice: "Holla forward migration",
     },
 ];
 
@@ -8767,6 +8773,21 @@ mod tests {
         let error = missing_application_manifest(&APPS[0]);
         assert!(error.contains("apps/showcase/Cargo.toml"), "{error}");
         assert!(error.contains("due application `showcase`"), "{error}");
+    }
+
+    #[test]
+    fn application_inventory_requires_holla_and_rejects_its_missing_manifest() {
+        let expected = ["holla", "jackin-preview", "showcase", "tablepro"];
+        let actual: BTreeSet<_> = APPS.iter().map(|app| app.bin).collect();
+        assert_eq!(actual, expected.into_iter().collect());
+        let holla = APPS
+            .iter()
+            .find(|app| app.bin == "holla")
+            .expect("Holla required");
+        let error = missing_application_manifest(holla);
+        assert!(error.contains("apps/holla/Cargo.toml"), "{error}");
+        let error = missing_apps_for_due(&[holla]).expect("Holla cannot disappear");
+        assert!(error.contains("apps/holla/src"), "{error}");
     }
 
     #[test]
