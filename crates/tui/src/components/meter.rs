@@ -19,7 +19,8 @@ use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{
-    Family, GlyphRole, MeterRole, MeterThresholds, Role, Slot, StylePatch, Variant,
+    Family, FgStep, GlyphRole, MeterRole, MeterThresholds, Role, Slot, StyleDefaults, StylePatch,
+    Variant,
 };
 use crate::ui::{FrameRead, Ui};
 
@@ -108,7 +109,7 @@ pub enum MeterVisual {
 /// used when a ratio is set), `.tone(MeterTone)` (none — derived with
 /// [`MeterTone::from_ratio`] against `design.meter`), `.visual(MeterVisual)`
 /// (`Line`), `.status(Status)` (`Ready`), `.frame(usize)` (`0`), `.patch`,
-/// `.patch_part`, `.slot`.
+/// `.patch_part`, `.part_defaults`, `.slot`.
 ///
 /// ## Variants
 /// `Family::METER`; `DEFAULT` only.
@@ -142,6 +143,8 @@ pub enum MeterVisual {
 /// value text), `ICON` (the trailing readiness glyph).
 ///
 /// ## Overrides
+/// `.part_defaults` supplies borrowed role-level defaults after intrinsic
+/// tone defaults and before recipe/state, Mono policy and explicit overrides.
 /// `.patch` and `.patch_part` on any part. `.slot` on exactly `TRACK`,
 /// `LABEL` and `ICON`. `THUMB` is **not** slot-addressable: a slot on
 /// `TRACK` replaces the whole run, used share included, because the split
@@ -170,14 +173,9 @@ pub enum MeterVisual {
 /// `tone_follows_the_design_thresholds_not_a_hard_coded_match` and
 /// `every_tone_names_a_meter_role`.
 ///
-/// Exercised by no test, recorded as a gap rather than covered with a
-/// neighbouring citation: nothing draws `MeterVisual::Block`, nothing calls
-/// `.tone(…)`, and nothing draws a meter without a `.ratio`, so the
-/// `Stale`, `Unknown` and `Series` runs, the block mode's `OnAccent`
-/// overlay and the value-only path have no coverage at all. The recipe's own
-/// `.when(ERROR)` rule on `Part::ICON` **does** fire, and
-/// status-derived `ERROR` sends the glyph through the recipe with
-/// `Role::Danger`.
+/// `tests/meter_defaults.rs` covers both visual modes and every tone, authored
+/// part defaults, theme/subtree/instance precedence, and unchanged default
+/// cells across both themes and all four color capabilities.
 ///
 /// ## Invariants
 /// The tone is a function of the ratio and `design.meter`, never of a
@@ -187,6 +185,7 @@ pub struct Meter<'a> {
     id: Id,
     ratio: Option<f64>,
     value: &'a str,
+    part_defaults: &'a [(Part, StylePatch)],
     tone: Option<MeterTone>,
     visual: MeterVisual,
     variant: Variant,
@@ -221,6 +220,7 @@ impl<'a> Meter<'a> {
             id,
             ratio: None,
             value: "",
+            part_defaults: &[],
             tone: None,
             visual: MeterVisual::Line,
             variant: Variant::DEFAULT,
@@ -283,6 +283,14 @@ impl<'a> Meter<'a> {
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
         self.frame = f;
+        self
+    }
+
+    /// Borrowed author defaults layered over intrinsic tone defaults, before
+    /// recipe/state, Mono policy, theme/scope and instance overrides.
+    #[must_use]
+    pub const fn part_defaults(mut self, defaults: &'a [(Part, StylePatch)]) -> Self {
+        self.part_defaults = defaults;
         self
     }
 
@@ -384,25 +392,31 @@ impl<'a> Meter<'a> {
         }
     }
 
-    /// The run tone layered over `base`, with the caller's instance patch on
-    /// top (the `CellUi::tone` shape: a role delta, never a colour).
-    ///
-    /// Every input is a parameter — the tone the caller wants is already
-    /// resolved by [`Self::resolved_tone`] — so this is an associated
-    /// function, not a method.
-    fn toned(ui: &Ui<'_>, base: PaintStyle, fg: Option<Role>, bg: Option<Role>) -> PaintStyle {
-        let mut delta = StylePatch::new();
-        if let Some(r) = fg {
-            delta = delta.set_fg(r);
+    fn part_style(
+        &self,
+        ui: &mut Ui<'_>,
+        part: Part,
+        live: StateFlags,
+        base: StylePatch,
+    ) -> crate::theme::Resolved {
+        let mut defaults = base;
+        for (named, patch) in self.part_defaults {
+            if *named == part {
+                defaults = defaults.merge(*patch);
+            }
         }
-        if let Some(r) = bg {
-            delta = delta.set_bg(r);
-        }
-        if delta.is_empty() {
-            return base;
-        }
-        let top = crate::theme::resolve::bind(ui.theme_ref(), delta, None, ui.surface()).style;
-        base.patch(top)
+        let local = self.ov.part_patch(part);
+        let resolved = ui.style_defaults(
+            Family::METER,
+            self.variant,
+            part,
+            live,
+            StyleDefaults::new(defaults),
+            local.as_ref(),
+        );
+        self.ov
+            .note(ui, self.id, Family::METER, self.variant, part, resolved);
+        resolved
     }
 
     /// The draw phase; returns the rect painted.
@@ -419,14 +433,19 @@ impl<'a> Meter<'a> {
         // derived: the readiness the caller's `.status` declares
         let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
-        let id = self.id;
         let tone = self.resolved_tone(ui);
         let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);
         let value = self.value_text(&pct);
         let vw = width(value);
 
-        let label = ov.style(ui, id, Family::METER, self.variant, Part::LABEL, live);
-        let icon_style = ov.style(ui, id, Family::METER, self.variant, Part::ICON, live);
+        let label = self.part_style(
+            ui,
+            Part::LABEL,
+            live,
+            StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+        );
+        let icon_style =
+            self.part_style(ui, Part::ICON, live, StylePatch::new().set_fg(Role::Accent));
         let glyph = self.icon(ui, icon_style.glyph, live);
         let icon_w = glyph.map_or(0, |g| width(g).saturating_add(1));
 
@@ -463,9 +482,20 @@ impl<'a> Meter<'a> {
                 if let Some(f) = ov.slot_for(Part::TRACK) {
                     f(ui, track);
                 } else {
-                    let rest = ov.style(ui, id, Family::METER, self.variant, Part::TRACK, live);
-                    let thumb = ov.style(ui, id, Family::METER, self.variant, Part::THUMB, live);
-                    let fill = Self::toned(ui, thumb.style, Some(Role::Meter(tone.role())), None);
+                    let rest = self.part_style(
+                        ui,
+                        Part::TRACK,
+                        live,
+                        StylePatch::new().set_fg(Role::Meter(MeterRole::Track)),
+                    );
+                    let fill = self
+                        .part_style(
+                            ui,
+                            Part::THUMB,
+                            live,
+                            StylePatch::new().set_fg(Role::Meter(tone.role())),
+                        )
+                        .style;
                     super::progress::run_of(ui, track, GlyphRole::RuleQuiet, rest.style);
                     let filled = Rect {
                         width: (f64::from(track_w) * ratio).round() as u16,
@@ -505,10 +535,16 @@ impl<'a> Meter<'a> {
                 if let Some(f) = ov.slot_for(Part::TRACK) {
                     f(ui, bar);
                 } else {
-                    let rest = ov.style(ui, id, Family::METER, self.variant, Part::TRACK, live);
-                    let thumb = ov.style(ui, id, Family::METER, self.variant, Part::THUMB, live);
-                    let rest_bg =
-                        Self::toned(ui, rest.style, None, Some(Role::Meter(MeterRole::FillRest)));
+                    let rest_bg = self
+                        .part_style(
+                            ui,
+                            Part::TRACK,
+                            live,
+                            StylePatch::new()
+                                .set_fg(Role::Meter(MeterRole::Track))
+                                .set_bg(Role::Meter(MeterRole::FillRest)),
+                        )
+                        .style;
                     ui.fill(bar, rest_bg);
                     // the value sits inside the bar; the used share is
                     // restyled over it, so one string keeps two planes
@@ -523,12 +559,16 @@ impl<'a> Meter<'a> {
                         ..bar
                     };
                     if !filled.is_empty() {
-                        let on_fill = Self::toned(
-                            ui,
-                            thumb.style,
-                            Some(Role::OnAccent),
-                            Some(Role::Meter(tone.role())),
-                        );
+                        let on_fill = self
+                            .part_style(
+                                ui,
+                                Part::THUMB,
+                                live,
+                                StylePatch::new()
+                                    .set_fg(Role::OnAccent)
+                                    .set_bg(Role::Meter(tone.role())),
+                            )
+                            .style;
                         ui.paint_style(filled, on_fill);
                     }
                 }
