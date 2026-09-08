@@ -183,6 +183,12 @@ strict stable shared all-target Clippy pass;215 MSRV app library smoke tests pas
 Shared row clipping, keyed navigation,
 disclosure geometry and zero warm allocation preserved. Jackin Manager caller
 and source fixture restoration remain owner work; this does not approve app parity.
+Meter typed policy and ordered reference lift integrated d52ee38/29ed8e5.
+Independent final review at E/meter-lift-final-review accepts exact alias order,
+source-plane dimming, explicit colors and Paper preservation;56frames checked.
+Root18 MSRV semantic/capability tests pass. Existing seven Meter default digest
+differences remain unapproved; no baseline changed. Grid sampling272f737 remains
+held: independent live-action-reserve regression confirmed, owner repairing.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
