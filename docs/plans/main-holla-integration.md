@@ -41,7 +41,7 @@ independent view/behavior proof → review → integration → exact final verif
 | T03 Baselines/tools | 4,8–9 | Historical499 recipes:1497 original text/ANSI/cursor artifacts preserved;998 missing HTML/PNG reproducibly regenerated from exact historical sources | Current pinned-Holla full reference/candidate image review; keep historical and Holla namespaces distinct |
 | T04 Compiler/chrome | 5 | Real shared chrome repair integrated and scoped verified | Include in final full matrix |
 | T05 Runtime/time/identity | 5 | Publication, immutable Scene binding, typing, feedback clock, activation origin, focus restoration, hover/capture and terminal cleanup repairs integrated | Full product consumers/live timing; strict style measurement; final adversarial matrix |
-| T06 Theme/components | 6 | Rich Props, keyed Tree lineage, Grid previews/gutters, logical Split, matched paint and List activation policies integrated | Columns clipping repair review; multiline List; Grid header/fetch; every family/customization layer; seven Meter digest differences unapproved |
+| T06 Theme/components | 6 | Rich Props, keyed Tree lineage, Grid previews/gutters, logical Split, matched paint and List activation policies integrated | Columns clipping repair review; multiline List; Grid fetch; every family/customization layer; seven Meter digest differences unapproved |
 | T07 Showcase | 7 | Shell/sidebar/namespace, elapsed Buttons and Progress, allocation repairs integrated | Actual Grid adapter, all22 pages, responsive geometry, independent images/live flows; no full-app acceptance |
 | T08 TablePro | 7 | Stable tabs/rows, guarded destructive routes, SQL Unicode/completion model, row actions and real Ctrl+O typed destinations integrated | Switcher Columns visual migration, completion popup reachability, explorer cadence, remaining editor/history/filter/structure/save routes and exact presentation |
 | T09 Jackin | 7 | CLI/lifecycle/tick admission, exact cwd association and eight-scenario fixture graph integrated | Real Manager replacing historical paint; captured actions/repository/editor saves; multiline roster; all other source routes/scenarios/CLI/visual proof |
@@ -65,6 +65,7 @@ in the immutable checkpoint archives and E reports.
 | Tree/Props/List | 87c1664,a88c81e/2317e34,043c117/cb59b80 | E/props-rich-independent,tree-lineage-independent,jackin-manager-production/INDEPENDENT-LIST-REVIEW.md; root759 library+46 Props/Tree and22 List tests pass; replacement/ABA and executed mutation proofs |
 | Grid preview/keyboard editor | adeecef/02ef49f/e164c60/66011f8/dbf9f94 | E/grid-column-geometry/INDEPENDENT-TRAIN-REVIEW.md; root759 library+50 public tests and two unchanged release collection gates |
 | Detailed Grid gutter | aacb7cb/57e9545/e9fb460/d86fd35 | E/grid-gutter-independent/FINAL_REVIEW.md SHAe573569d…93d16:829 independent tests and rebuilt128 cases/83,968 compact cells; root759+50 pass; repeat-click/hover original reds retained |
+| Grid header prefixes | 3092410 | E/grid-column-geometry/INDEPENDENT-PREFIX-REVIEW.md SHAafb616fa…7221ec;20 independent MSRV tests, root33 Grid tests; keyed two-cell reservation and explicit ICON override precedence; PrimaryKey additive, PrimaryMark preserved; workspace MSRV Clippy and stable fmt pass |
 | Logical Split geometry | c562ee5/ec2ef74/03e7cf9 | E/split-axis-independent/REVIEW.md SHA6e461305…cfbc46:783 independent tests; root14 Split+10 publication; original clipped-axis32→52; logical math never grants unclipped input |
 | Borrowed text painters | 55bcc19,34007dd | E/middle-paint-independent and E/paint-matched/INDEPENDENT-REVIEW.md; root8 matched/middle tests pass; Unicode/provenance/zero allocation; retained4160 plain-paint cases exact |
 | Jackin source fixtures | 2bb6d1f/7695e7d | E/jackin-fixture-independent/REVIEW.md SHA3d1594dd…49a8d75; root110 tests:67 lib,27 actual app,6 identity,3 cwd,7 fixtures; not full Manager or editor acceptance |
@@ -75,9 +76,10 @@ in the immutable checkpoint archives and E reports.
 
 1. **Shared presentation:** tablepro_cli_review owns Columns ca20fdb and clipping
    repair e3c18a1; clipping is independently repaired, but root holds integration
-   pending explicit color/modifier override probes after finding post-resolution
-   tone application. Showcase owner owns Grid header prefixes, neutral Grid ICON
-   recipe, additive PrimaryKey glyph and borrowed fetch/Spinner presentation.
+   after nine independently executed theme/scope/instance color and modifier
+   override failures caused by post-resolution defaults. Owner repairs at the
+   shared style boundary; original failures stay retained. Grid header prefixes, neutral ICON recipe and additive PrimaryKey are
+   integrated3092410. Showcase owner continues borrowed fetch/Spinner presentation.
    Runtime owner implements List row_height/row_gap from exact Manager roster.
 2. **Actual apps:** baseline_gates owns Jackin app.rs and Manager composition,
    consuming reviewed shared primitives. holla_disposition owns captured Manager
