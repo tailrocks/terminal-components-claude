@@ -38,12 +38,49 @@ impl Ui<'_> {
             return 0;
         }
         let s = s.into();
+        self.paint_graphemes(area, graphemes(text).map(|(_, symbol)| (symbol, s)))
+    }
+
+    /// Paint text with bold emphasis at original-label grapheme ordinals.
+    ///
+    /// Out-of-range and repeated indices are harmless. Control graphemes keep
+    /// their original ordinals but are not painted. Clipping, wide continuations,
+    /// and semantic channel provenance use the same writer as `paint_str`.
+    pub fn paint_matched(
+        &mut self,
+        area: Rect,
+        text: &str,
+        matched: &[usize],
+        base: impl Into<PaintStyle>,
+    ) -> u16 {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return 0;
+        }
+        let base = base.into();
+        self.paint_graphemes(
+            area,
+            graphemes(text).enumerate().map(|(index, (_, symbol))| {
+                let style = if matched.contains(&index) {
+                    base.add_modifier(Modifier::BOLD)
+                } else {
+                    base
+                };
+                (symbol, style)
+            }),
+        )
+    }
+
+    // Both callers supply their already-clipped row. Keeping the write walk
+    // here makes continuation clearing and provenance identical for all text.
+    fn paint_graphemes<'s>(
+        &mut self,
+        area: Rect,
+        symbols: impl Iterator<Item = (&'s str, PaintStyle)>,
+    ) -> u16 {
         let mut x = area.x;
         let mut remaining = area.width;
-        for symbol in graphemes(text)
-            .map(|(_, symbol)| symbol)
-            .filter(|symbol| !symbol.contains(char::is_control))
-        {
+        for (symbol, s) in symbols.filter(|(symbol, _)| !symbol.contains(char::is_control)) {
             let width = symbol.cell_width();
             if width == 0 {
                 continue;
