@@ -15,7 +15,7 @@ use crate::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use crate::domain::ResultGrid;
-use crate::tabs::{ExplorerItem, GridView, Tab};
+use crate::tabs::{ExplorerItem, GridView, Tab, TabKey};
 use crate::workbench::Workbench;
 
 /// Minimum terminal width.
@@ -37,6 +37,33 @@ const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
     Action::danger(ActionKey::CONFIRM, "Quit"),
 ];
+const CLOSE_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Close anyway"),
+];
+
+#[derive(Debug)]
+enum DestructiveIntent {
+    Quit(String),
+    CloseTab(TabKey),
+}
+
+impl DestructiveIntent {
+    fn dialog(&self) -> Dialog<'_> {
+        match self {
+            Self::Quit(question) => {
+                Dialog::destructive(QUIT_DIALOG, "Quit TablePro?", question).actions(&QUIT_ACTIONS)
+            }
+            Self::CloseTab(_) => Dialog::destructive(
+                QUIT_DIALOG,
+                "Close tab with unsaved work?",
+                "Pending row edits and unsaved query text in this tab will be lost.",
+            )
+            .actions(&CLOSE_ACTIONS),
+        }
+    }
+}
+
 const OPEN: ActionKey = ActionKey::custom("tablepro.open");
 const NEW_QUERY: ActionKey = ActionKey::custom("tablepro.new-query");
 const HISTORY: ActionKey = ActionKey::custom("tablepro.history");
@@ -340,7 +367,7 @@ pub struct TableProApp {
     empty_result: ResultGrid,
     status: String,
     quit: bool,
-    quit_question: Option<String>,
+    destructive_intent: Option<DestructiveIntent>,
     quit_state: DialogState,
     /// Current product screen.
     pub screen: Screen,
@@ -381,7 +408,7 @@ impl core::fmt::Debug for TableProApp {
             .field("grid_state", &"<grid state>")
             .field("status", &self.status)
             .field("quit", &self.quit)
-            .field("quit_question", &self.quit_question)
+            .field("destructive_intent", &self.destructive_intent)
             .field("quit_state", &self.quit_state)
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
@@ -433,7 +460,7 @@ impl TableProApp {
             empty_result: ResultGrid::empty(),
             status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
             quit: false,
-            quit_question: None,
+            destructive_intent: None,
             quit_state: DialogState::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
@@ -955,10 +982,6 @@ impl TableProApp {
         }
     }
 
-    fn quit_dialog(question: &str) -> Dialog<'_> {
-        Dialog::destructive(QUIT_DIALOG, "Quit TablePro?", question).actions(&QUIT_ACTIONS)
-    }
-
     fn request_quit(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.quit || cx.top_layer() != LayerId::PAGE {
             return Response::consumed();
@@ -998,24 +1021,57 @@ impl TableProApp {
             ));
         }
         let question = format!("{} will be lost.", parts.join(" and "));
-        cx.open_layer(QUIT_DIALOG, Self::quit_dialog(&question).layer(cx));
-        self.quit_question = Some(question);
+        self.open_destructive(cx, DestructiveIntent::Quit(question));
         Response::changed()
     }
 
-    fn update_quit_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let question = self.quit_question.as_deref().unwrap_or("");
-        let response = Self::quit_dialog(question).update(cx, &mut self.quit_state);
+    fn open_destructive(&mut self, cx: &mut Cx<'_>, intent: DestructiveIntent) {
+        cx.open_layer(QUIT_DIALOG, intent.dialog().layer(cx));
+        self.destructive_intent = Some(intent);
+    }
+
+    fn request_close_tab(&mut self, cx: &mut Cx<'_>, key: TabKey) {
+        let Some(tab) = self.workbench.tabs.iter().find(|tab| tab.key() == key) else {
+            return;
+        };
+        if tab.dirty() {
+            self.open_destructive(cx, DestructiveIntent::CloseTab(key));
+        } else {
+            let _ = self.workbench.close_tab_confirmed(key);
+            self.sync_active_tab();
+        }
+    }
+
+    fn update_destructive_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        // Keep the same control identity alive for late focus lifecycle events.
+        let fallback = DestructiveIntent::Quit(String::new());
+        let intent = self.destructive_intent.as_ref().unwrap_or(&fallback);
+        let response = intent.dialog().update(cx, &mut self.quit_state);
         if let Some(action) = response.action_ref() {
-            if matches!(action, DialogAction::Action(ActionKey::CONFIRM))
-                && cx.is_open(QUIT_DIALOG)
-                && !self.quit
-            {
-                self.quit = true;
-                cx.quit();
-            }
+            let confirmed = matches!(action, DialogAction::Action(ActionKey::CONFIRM))
+                && cx.is_open(QUIT_DIALOG);
             cx.close_layer(QUIT_DIALOG, None);
-            self.quit_question = None;
+            if let Some(intent) = self.destructive_intent.take()
+                && confirmed
+            {
+                match intent {
+                    DestructiveIntent::Quit(_) if !self.quit => {
+                        self.quit = true;
+                        cx.quit();
+                    }
+                    DestructiveIntent::CloseTab(key) => {
+                        if self.workbench.close_tab_confirmed(key) {
+                            self.sync_active_tab();
+                            let focus = self
+                                .query_id()
+                                .or_else(|| self.result_id())
+                                .unwrap_or(EXPLORER);
+                            cx.focus(focus);
+                        }
+                    }
+                    DestructiveIntent::Quit(_) => {}
+                }
+            }
         }
         response.erase()
     }
@@ -2317,8 +2373,8 @@ impl App for TableProApp {
         reason = "update keeps public component routing and product command arbitration in one phase"
     )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let modal_was_open = self.quit_question.is_some();
-        let mut response = self.update_quit_dialog(cx);
+        let modal_was_open = self.destructive_intent.is_some();
+        let mut response = self.update_destructive_dialog(cx);
         response |= self.update_tab_controls(cx);
         if self.form_open || self.screen != Screen::Connections {
             response |= connection_tree()
@@ -2513,14 +2569,8 @@ impl App for TableProApp {
                     }
                 }
                 TabsAction::Close(key) => {
-                    if let Some(index) = self
-                        .workbench
-                        .tabs
-                        .iter()
-                        .position(|tab| tab_key(tab) == key)
-                    {
-                        let _ = self.workbench.close_tab(index);
-                        self.sync_active_tab();
+                    if let Some(tab) = self.workbench.tabs.iter().find(|tab| tab_key(tab) == key) {
+                        self.request_close_tab(cx, tab.key());
                     }
                 }
                 TabsAction::New => self.new_query(""),
@@ -2575,9 +2625,9 @@ impl App for TableProApp {
             }
         }
         draw_footer(ui, rows[2], self);
-        if let Some(question) = self.quit_question.as_deref() {
+        if let Some(intent) = self.destructive_intent.as_ref() {
             ui.layer(QUIT_DIALOG, |ui, area| {
-                Self::quit_dialog(question).draw(ui, area, &self.quit_state, |_, _| {});
+                intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});
             });
         }
     }

@@ -122,11 +122,22 @@ impl Workbench {
         self.active = Some(key);
         self.tabs.len().saturating_sub(1)
     }
-    /// Close one tab.
+    /// Close a clean tab; dirty tabs require explicit confirmation.
     pub fn close_tab(&mut self, index: usize) -> bool {
-        if index >= self.tabs.len() {
+        let Some(tab) = self.tabs.get(index) else {
+            return false;
+        };
+        if tab.dirty() {
             return false;
         }
+        self.close_tab_confirmed(tab.key())
+    }
+
+    /// Apply an already confirmed close to the captured logical tab only.
+    pub(crate) fn close_tab_confirmed(&mut self, key: TabKey) -> bool {
+        let Some(index) = self.tabs.iter().position(|tab| tab.key() == key) else {
+            return false;
+        };
         let removed = self.tabs.remove(index);
         if self.active == Some(removed.key()) {
             self.active = self
