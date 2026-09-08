@@ -43,6 +43,27 @@ pub(crate) struct CellRoles {
     pub(crate) bg: Option<Role>,
 }
 
+impl CellRoles {
+    /// Apply exactly the same channel inheritance as the painted attributes.
+    fn patch(self, style: Option<crate::theme::PaintStyle>) -> Self {
+        match style {
+            Some(style) => Self {
+                fg: if style.fg.is_none() {
+                    self.fg
+                } else {
+                    style.fg_role.map(|(role, surface)| role.painted(surface))
+                },
+                bg: if style.bg.is_none() {
+                    self.bg
+                } else {
+                    style.bg_role.map(|(role, surface)| role.painted(surface))
+                },
+            },
+            None => Self::default(),
+        }
+    }
+}
+
 /// Per-frame output the runtime consumes after `app.draw` (§3.3 steps 12–15).
 #[derive(Debug, Default)]
 pub(crate) struct FrameState {
@@ -1026,17 +1047,33 @@ impl<'f> Ui<'f> {
         if !self.clip.contains(src) || !self.clip.contains(dst) {
             return;
         }
-        let roles = self.roles_at(src);
+        let roles = match self.target {
+            Target::Page => self.roles_at(src),
+            Target::Layer(i) => self
+                .frame
+                .layers
+                .active()
+                .get(i)
+                .map_or_else(CellRoles::default, |d| d.roles_at(src)),
+        };
         if let Some(cell) = self.buffer().cell(src).cloned() {
             if let Some(target) = self.buffer().cell_mut(dst) {
                 *target = cell;
             }
             self.mark(dst, None);
-            if matches!(self.target, Target::Page)
-                && let Some(i) = self.frame.role_index(dst)
-                && let Some(target) = self.frame.roles.get_mut(i)
-            {
-                *target = roles;
+            match self.target {
+                Target::Page => {
+                    if let Some(i) = self.frame.role_index(dst)
+                        && let Some(target) = self.frame.roles.get_mut(i)
+                    {
+                        *target = roles;
+                    }
+                }
+                Target::Layer(i) => {
+                    if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
+                        d.set_roles(dst, roles);
+                    }
+                }
             }
             if let Some(cell) = self.buffer().cell_mut(src) {
                 cell.reset();
@@ -1053,31 +1090,12 @@ impl<'f> Ui<'f> {
                 if let Some(i) = self.frame.role_index(pos)
                     && let Some(r) = self.frame.roles.get_mut(i)
                 {
-                    *r = match style {
-                        Some(style) => CellRoles {
-                            fg: if style.fg.is_none() {
-                                r.fg
-                            } else {
-                                style.fg_role.map(|(role, surface)| role.painted(surface))
-                            },
-                            // Ratatui patches absent backgrounds. Keep exactly
-                            // that cell's source role rather than erasing it
-                            // when a foreground-only label paints over a fill.
-                            bg: if style.bg.is_none() {
-                                r.bg
-                            } else {
-                                style.bg_role.map(|(role, surface)| role.painted(surface))
-                            },
-                        },
-                        // A raw writer may replace any cell; prior semantic
-                        // provenance cannot describe its arbitrary result.
-                        None => CellRoles::default(),
-                    };
+                    *r = r.patch(style);
                 }
             }
             Target::Layer(i) => {
                 if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
-                    d.mark(pos);
+                    d.mark(pos, style);
                 }
             }
         }
@@ -1093,7 +1111,7 @@ impl<'f> Ui<'f> {
             }
             Target::Layer(i) => {
                 if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
-                    d.mark_area(area);
+                    d.mark_area(area, style);
                 }
             }
         }
@@ -1132,7 +1150,7 @@ impl<'f> Ui<'f> {
     /// Copy layer `i`'s written cells onto the page.
     pub(crate) fn composite(&mut self, i: usize) {
         if let Some(d) = self.frame.layers.active().get(i) {
-            d.composite_onto(self.page);
+            d.composite_onto(self.page, &mut self.frame.roles);
         }
     }
 }
@@ -1923,5 +1941,44 @@ mod tests {
             theme.bg(Surface::Canvas),
             "painting after the panic reaches the page outside the layer's area"
         );
+    }
+    #[test]
+    fn independent_carrier_layer_composite_keeps_origin() {
+        const LAYER: Id = Id::root("review.layer");
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            let page = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Canvas)),
+            );
+            ui.fill(SCREEN, page);
+            ui.frame
+                .layers
+                .push(LAYER, LayerId(1), LayerSpec::modal(LAYER), SCREEN, SCREEN);
+            ui.layer(LAYER, |ui, _| {
+                let st = ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Ghost))
+                        .set_bg(Role::Surface(Surface::Overlay)),
+                );
+                ui.paint_str(Rect::new(1, 0, 1, 1), "X", st);
+            });
+            ui.composite(0);
+            assert_eq!(
+                ui.roles_at(Position::new(1, 0)),
+                CellRoles {
+                    fg: Some(Role::Fg(FgStep::Ghost)),
+                    bg: Some(Role::Surface(Surface::Overlay))
+                },
+                "composited cells must carry layer origins, not page origins"
+            );
+            ui.dim_layer(SCREEN, 1);
+            assert_eq!(
+                ui.page.cell((1, 0)).unwrap().symbol(),
+                " ",
+                "Ghost on lower layer must erase under next modal"
+            );
+        });
     }
 }

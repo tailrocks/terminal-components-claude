@@ -701,3 +701,106 @@ fn shared_grapheme_writer_matches_ratatui_at_clip_and_width_boundaries() {
         }
     }
 }
+
+struct NestedPaintOrigins {
+    reverse: bool,
+    raw: bool,
+}
+impl App for NestedPaintOrigins {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        use junie_tui::{Backdrop, LayerSpec};
+        for (id, backdrop) in [
+            (Id::root("origins.lower"), Backdrop::None),
+            (
+                Id::root("origins.upper"),
+                Backdrop::Dim {
+                    exclude_footer: false,
+                },
+            ),
+        ] {
+            if !cx.is_open(id) {
+                cx.open_layer(id, LayerSpec::modal(id).backdrop(backdrop));
+            }
+        }
+        Response::ignored()
+    }
+    fn draw(&self, ui: &mut Ui<'_>) {
+        use junie_tui::{FgStep, Role, StylePatch};
+        use ratatui_core::style::Style;
+        let page = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Canvas)),
+        );
+        ui.fill(ui.full(), page);
+        ui.paint_str(AREA, "PPPPPPPPPPPPPPPP", page);
+        let lower = |ui: &mut Ui<'_>, _: Rect| {
+            let origin = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Ghost))
+                    .set_bg(Role::Surface(Surface::Overlay)),
+            );
+            ui.paint_str(Rect::new(1, 0, 1, 1), "X", origin);
+            {
+                use junie_tui::{Align, Track};
+                let mut row = RowUi::new(
+                    ui,
+                    OWNER,
+                    Family::LIST,
+                    Variant::DEFAULT,
+                    StateFlags::HOVERED,
+                    ItemKey::index(0),
+                    Rect::new(3, 0, 8, 1),
+                );
+                let mut columns = row.columns(&[Track::Flex(1)]);
+                columns.cell(0).text("a界").align(Align::Right);
+            }
+            if self.raw {
+                // Explicit raw overwrite matches the exact previously painted
+                // colors, but must replace its semantic origins.
+                ui.paint_str(
+                    Rect::new(1, 0, 1, 1),
+                    "R",
+                    Style::new()
+                        .fg(origin.fg.unwrap_or(Color::Reset))
+                        .bg(origin.bg.unwrap_or(Color::Reset)),
+                );
+            }
+        };
+        let upper = |ui: &mut Ui<'_>, _: Rect| {
+            let origin = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary)));
+            ui.paint_str(Rect::new(15, 0, 1, 1), "U", origin);
+        };
+        if self.reverse {
+            ui.layer(Id::root("origins.upper"), upper);
+            ui.layer(Id::root("origins.lower"), lower);
+        } else {
+            ui.layer(Id::root("origins.lower"), lower);
+            ui.layer(Id::root("origins.upper"), upper);
+        }
+    }
+}
+
+#[test]
+fn nested_public_layers_dim_the_composited_origin_and_preserve_unwritten_cells() {
+    for reverse in [false, true] {
+        for raw in [false, true] {
+            let h = Harness::new(NestedPaintOrigins { reverse, raw }, Theme::junie(), 16, 2);
+            assert_eq!(h.cell(1, 0).symbol(), if raw { "R" } else { " " });
+            assert_eq!(
+                h.cell(1, 0).bg,
+                if raw {
+                    Color::Rgb(0, 0, 0)
+                } else {
+                    Color::Rgb(39, 39, 42)
+                }
+            );
+            assert_eq!(
+                h.cell(0, 0).symbol(),
+                "P",
+                "unwritten layer cell keeps page"
+            );
+            assert_eq!(h.cell(15, 0).symbol(), "U", "top layer remains undimmed");
+        }
+    }
+}
