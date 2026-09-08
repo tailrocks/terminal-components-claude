@@ -1,10 +1,11 @@
 //! Terminal-style output with a scrollable viewport and a seven-step rail.
 
 use core::fmt;
+use junie_tui::author::PaintStyle;
 
 use junie_tui::{
     Button, Cx, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status, StepState,
-    Steps, StepsState, Style, Surface, TextArea, TextAreaState, Ui, Variant, id, layout, width,
+    Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, id, layout, width,
 };
 
 use crate::data::log_lines;
@@ -90,7 +91,7 @@ fn terminal_style(
     variant: Variant,
     part: Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
 }
 

@@ -1,10 +1,11 @@
 //! Searchable semantic picker with query and scope state.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     ActionKey, Button, ContextMenu, Cx, FilterList, FilterListState, Id, Item, ItemKey, Menu,
     MenuBar, MenuItem, MenuState, Modifier, Picker, PickerAction, PickerChain, PickerChainState,
-    PickerStage, PickerState, Position, Rect, Response, StateFlags, Style, Surface, Ui, Variant,
-    id, width,
+    PickerStage, PickerState, Position, Rect, Response, StateFlags, Surface, Ui, Variant, id,
+    width,
 };
 
 use super::{Page, frame};
@@ -89,7 +90,7 @@ fn context_menu() -> ContextMenu<'static> {
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -99,7 +100,7 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     ui.fill(
         Rect {
@@ -152,11 +153,18 @@ fn style(
     variant: Variant,
     part: junie_tui::Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
 }
 
-fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str, style: Style) {
+fn paint_segment(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    row: u16,
+    prefix: &str,
+    text: &str,
+    style: PaintStyle,
+) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
         Rect {

@@ -1,14 +1,15 @@
 //! Card and framed panel composition, including caller-owned overrides.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
-    id, layout, wrap, Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListState,
-    Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, Style, StylePatch,
-    TextViewport, Ui, Variant, ViewportLine, ViewportState,
+    Cx, Family, FgStep, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part, Rect,
+    Response, Role, RowUi, SelectMode, StateFlags, StylePatch, TextViewport, Ui, Variant,
+    ViewportLine, ViewportState, id, layout, wrap,
 };
 
-use crate::data::{log_lines, PROSE};
+use crate::data::{PROSE, log_lines};
 
-use super::{frame, Page};
+use super::{Page, frame};
 
 const TITLED_CARD: Id = id!("panels.titled_card");
 const UNTITLED_CARD: Id = id!("panels.untitled_card");
@@ -65,8 +66,8 @@ fn target_disabled(target: &Target) -> bool {
     target.disabled
 }
 
-fn nested_list(
-) -> List<'static, Target, impl Fn(&Target) -> ItemKey, impl Fn(&Target, &mut RowUi<'_>)> {
+fn nested_list()
+-> List<'static, Target, impl Fn(&Target) -> ItemKey, impl Fn(&Target, &mut RowUi<'_>)> {
     List::new(NESTED_LIST)
         .key(target_key)
         .row(target_row)
@@ -144,11 +145,12 @@ fn fixed_rows(area: Rect, heights: &[u16]) -> Vec<Rect> {
     rows
 }
 
-fn panel_style(ui: &Ui<'_>, step: FgStep) -> Style {
-    ui.surface_style().fg(ui.theme().color.fg[step.index()])
+fn panel_style(ui: &Ui<'_>, step: FgStep) -> PaintStyle {
+    ui.surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(step))))
 }
 
-fn wrapped_with_style(ui: &mut Ui<'_>, area: Rect, text: &str, style: Style) {
+fn wrapped_with_style(ui: &mut Ui<'_>, area: Rect, text: &str, style: PaintStyle) {
     if area.is_empty() {
         return;
     }
@@ -201,7 +203,7 @@ fn paint_legacy_scrollbar(
     text: Rect,
     state: &ViewportState,
     content_len: usize,
-    style: Style,
+    style: PaintStyle,
     gap: u16,
 ) {
     if text.is_empty() || content_len <= usize::from(text.height) {
@@ -270,9 +272,9 @@ fn paint_legacy_log(ui: &mut Ui<'_>, area: Rect, state: &ViewportState, lines: &
             break;
         };
         let style = if line.contains(" error ") {
-            base.fg(ui.theme().color.danger)
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)))
         } else if line.contains(" warn ") {
-            base.fg(ui.theme().color.warning)
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)))
         } else {
             base
         };

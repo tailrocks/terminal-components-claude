@@ -1,10 +1,11 @@
 //! Application shell for the migrated showcase binary.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
     FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, NavList, NavListAction,
     NavListState, Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags,
-    Status, StatusBar, StatusItem, Style, Theme, TooSmall, Ui, Variant, id, width,
+    Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
 };
 
 use crate::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -650,12 +651,12 @@ fn shell_part_style(
     family: junie_tui::Family,
     part: Part,
     flags: StateFlags,
-) -> Style {
-    let background = ui.bg();
+) -> PaintStyle {
+    let background = ui.surface_style();
     shell_compat_style(
         ui.style(family, Variant::DEFAULT, part, flags)
             .style
-            .bg(background),
+            .with_bg_from(background),
     )
 }
 
@@ -665,7 +666,7 @@ fn shell_part_style(
 /// otherwise retained by a later shell style that only changes colours. The
 /// historical shell starts from plain cells and adds bold only where its old
 /// renderer did.
-fn shell_compat_style(style: Style) -> Style {
+fn shell_compat_style(style: PaintStyle) -> PaintStyle {
     let bold = style.add_modifier.contains(junie_tui::Modifier::BOLD);
     let style = style.remove_modifier(junie_tui::Modifier::all());
     if bold {
@@ -675,7 +676,7 @@ fn shell_compat_style(style: Style) -> Style {
     }
 }
 
-fn shell_row_style(style: Style, flags: StateFlags) -> Style {
+fn shell_row_style(style: PaintStyle, flags: StateFlags) -> PaintStyle {
     let style = shell_compat_style(style);
     if flags.contains(StateFlags::FOCUSED) {
         style.add_modifier(junie_tui::Modifier::BOLD)
@@ -684,8 +685,11 @@ fn shell_row_style(style: Style, flags: StateFlags) -> Style {
     }
 }
 
-fn shell_text_style(ui: &Ui<'_>, step: usize) -> Style {
-    shell_compat_style(ui.surface_style().fg(ui.theme().color.fg[step]))
+fn shell_text_style(ui: &Ui<'_>, step: junie_tui::FgStep) -> PaintStyle {
+    shell_compat_style(
+        ui.surface_style()
+            .patch(ui.paint_patch(&junie_tui::StylePatch::new().set_fg(junie_tui::Role::Fg(step)))),
+    )
 }
 
 fn paint_header(
@@ -714,7 +718,7 @@ fn paint_header(
     );
 }
 
-fn header_styles(ui: &mut Ui<'_>) -> (Style, Style, Style, Style, Style) {
+fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintStyle, PaintStyle) {
     let title = shell_part_style(
         ui,
         junie_tui::Family::PANEL,
@@ -728,7 +732,7 @@ fn header_styles(ui: &mut Ui<'_>) -> (Style, Style, Style, Style, Style) {
         StateFlags::empty(),
     );
     let muted = shell_part_style(ui, junie_tui::Family::LIST, Part::META, StateFlags::empty());
-    let faint = shell_text_style(ui, 3);
+    let faint = shell_text_style(ui, junie_tui::FgStep::Faint);
     let marker = shell_part_style(
         ui,
         junie_tui::Family::LIST,
@@ -742,10 +746,10 @@ fn paint_header_breadcrumb(
     ui: &mut Ui<'_>,
     area: Rect,
     page: PageId,
-    title: Style,
-    secondary: Style,
-    muted: Style,
-    marker: Style,
+    title: PaintStyle,
+    secondary: PaintStyle,
+    muted: PaintStyle,
+    marker: PaintStyle,
 ) -> u16 {
     let mut x = area.x.saturating_add(1);
     ui.paint_str(Rect::new(x, area.y, 1, 1), "▪", marker);
@@ -784,7 +788,7 @@ fn paint_header_actions(
     area: Rect,
     screen: (u16, u16),
     left: u16,
-    styles: (Style, Style),
+    styles: (PaintStyle, PaintStyle),
     inspector: bool,
 ) {
     let (screen_width, screen_height) = screen;
@@ -855,7 +859,7 @@ fn paint_header_actions(
     }
 }
 
-fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: Style) -> Style {
+fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle {
     if ui.state(id).contains(StateFlags::HOVERED) {
         shell_part_style(
             ui,
@@ -883,7 +887,7 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
         )
         .style,
     );
-    let row_background = container.bg.unwrap_or(ui.bg());
+    let row_background = ui.surface_style().patch(container);
     ui.fill(row, container);
     let gutter = ui
         .style(
@@ -893,11 +897,11 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
             flags,
         )
         .style
-        .bg(row_background);
+        .with_bg_from(row_background);
     let gutter = if flags.contains(StateFlags::FOCUSED) {
         gutter
     } else {
-        gutter.fg(row_background)
+        gutter.with_fg_from_bg(row_background)
     };
     let marker = ui
         .style(
@@ -911,7 +915,7 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
             },
         )
         .style
-        .bg(row_background);
+        .with_bg_from(row_background);
     let label = ui
         .style(
             junie_tui::Family::LIST,
@@ -920,9 +924,9 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
             flags,
         )
         .style
-        .bg(row_background);
-    let secondary =
-        shell_part_style(ui, junie_tui::Family::PANEL, Part::DETAIL, flags).bg(row_background);
+        .with_bg_from(row_background);
+    let secondary = shell_part_style(ui, junie_tui::Family::PANEL, Part::DETAIL, flags)
+        .with_bg_from(row_background);
     let gutter = shell_row_style(gutter, flags);
     let marker = shell_row_style(marker, flags);
     let label = shell_row_style(label, flags);
@@ -1239,4 +1243,44 @@ pub(crate) fn run() -> std::io::Result<()> {
         }
     }
     junie_tui::run(App::with_page(page), theme)
+}
+
+#[cfg(test)]
+mod paint_contract_tests {
+    use super::*;
+    use junie_tui::{Color, Family, Modifier, Role, StylePatch, Surface};
+
+    fn collision_style(role: Role) -> PaintStyle {
+        let mut theme = Theme::junie();
+        theme.color.accent = Color::Rgb(100, 100, 100);
+        theme.color.danger = theme.color.accent;
+        let family = Family::custom("showcase.paint-contract");
+        theme
+            .define_family(family, |family| {
+                family
+                    .part(Part::LABEL)
+                    .base(StylePatch::new().set_fg(role));
+            })
+            .resolve(
+                family,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::empty(),
+                Surface::Canvas,
+            )
+            .style
+    }
+
+    #[test]
+    fn shell_modifier_cleanup_preserves_colliding_semantic_roles() {
+        let accent = collision_style(Role::Accent).add_modifier(Modifier::BOLD | Modifier::ITALIC);
+        let danger = collision_style(Role::Danger).add_modifier(Modifier::BOLD | Modifier::ITALIC);
+        assert_eq!(accent.as_style(), danger.as_style());
+        let accent = shell_compat_style(accent);
+        let danger = shell_compat_style(danger);
+        assert_ne!(accent, danger, "equal RGB must not erase semantic identity");
+        assert_eq!(accent.add_modifier, Modifier::BOLD);
+        assert_eq!(accent.fg, Some(Color::Rgb(100, 100, 100)));
+        assert_eq!(accent.as_style(), danger.as_style());
+    }
 }

@@ -68,9 +68,9 @@ fn legacy_gutter(
     }
     let container = ui.style(family, variant, part, flags);
     let mut gutter = ui.style(family, variant, Part::GUTTER, flags).style;
-    gutter.bg = container.style.bg;
+    gutter = gutter.with_bg_from(container.style);
     if !flags.contains(StateFlags::FOCUSED) {
-        gutter.fg = container.style.bg;
+        gutter = gutter.with_fg_from_bg(container.style);
     }
     for offset in 0..area.height {
         let _ = ui.paint_str(

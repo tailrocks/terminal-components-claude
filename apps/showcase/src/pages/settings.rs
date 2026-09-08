@@ -1,9 +1,10 @@
 //! Settings screen with tabs, member selection and destructive confirmation.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, List, ListAction, ListState,
-    Modifier, Part, Rect, Response, RowUi, StateFlags, Style, Surface, Tabs, TabsAction, TabsState,
-    Ui, Variant, id, width,
+    Modifier, Part, Rect, Response, RowUi, StateFlags, Surface, Tabs, TabsAction, TabsState, Ui,
+    Variant, id, width,
 };
 
 use super::{Page, frame};
@@ -87,7 +88,7 @@ fn remove_dialog() -> Dialog<'static> {
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -97,7 +98,7 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     ui.fill(
         Rect {
@@ -149,13 +150,20 @@ fn style(
     family: junie_tui::Family,
     part: Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| {
         ui.style(family, Variant::DEFAULT, part, flags).style
     })
 }
 
-fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str, style: Style) {
+fn paint_segment(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    row: u16,
+    prefix: &str,
+    text: &str,
+    style: PaintStyle,
+) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
         Rect {
@@ -205,8 +213,12 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
         Part::FIELD,
         StateFlags::empty(),
     );
-    let field_marker = ui.with_surface(Surface::Field, |ui| ui.surface_style().fg(ui.bg()));
-    let rail = ui.with_surface(Surface::Surface, |ui| ui.surface_style().fg(ui.bg()));
+    let field_marker = ui.with_surface(Surface::Field, |ui| {
+        ui.surface_style().with_fg_from_bg(ui.surface_style())
+    });
+    let rail = ui.with_surface(Surface::Surface, |ui| {
+        ui.surface_style().with_fg_from_bg(ui.surface_style())
+    });
     let selected = ui.with_surface(Surface::Elevated, |ui| {
         let mut selected = ui
             .style(
@@ -216,7 +228,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
                 StateFlags::ACTIVE,
             )
             .style;
-        selected.bg = Some(ui.bg());
+        selected = selected.with_bg_from(ui.surface_style());
         selected
     });
     let tab = ui.with_surface(Surface::Canvas, |ui| {
@@ -228,7 +240,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
                 StateFlags::empty(),
             )
             .style;
-        tab.bg = Some(ui.bg());
+        tab = tab.with_bg_from(ui.surface_style());
         tab
     });
     let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
@@ -247,9 +259,9 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
         StateFlags::ACTIVE,
     );
     let mut rule = rule;
-    rule.bg = Some(canvas.bg.unwrap_or_default());
+    rule = rule.with_bg_from(canvas);
     let mut active_rule = active_rule;
-    active_rule.bg = Some(canvas.bg.unwrap_or_default());
+    active_rule = active_rule.with_bg_from(canvas);
     let radio_on = style(
         ui,
         Surface::Field,

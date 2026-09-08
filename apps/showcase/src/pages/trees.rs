@@ -1,14 +1,14 @@
 //! Keyed tree navigation with stable branch expansion.
 
 use junie_tui::{
-    id, layout, Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, Panel, PanelKind, Part,
-    Rect, Response, Role, RowUi, StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode,
-    TreeState, Ui, Variant,
+    Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Response, Role,
+    RowUi, StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
+    layout,
 };
 
 use crate::data::{TREE, TREE_LABELS};
 
-use super::{frame, Page};
+use super::{Page, frame};
 
 const PROJECT: Id = id!("trees.project");
 const TREE_GUTTER: &[(Part, StylePatch)] = &[(
@@ -70,8 +70,8 @@ fn node_row(node: &TreeNode, row: &mut RowUi<'_>) {
     }
 }
 
-fn project_tree(
-) -> Tree<'static, TreeNode, impl Fn(&TreeNode) -> ItemKey, impl Fn(&TreeNode, &mut RowUi<'_>)> {
+fn project_tree()
+-> Tree<'static, TreeNode, impl Fn(&TreeNode) -> ItemKey, impl Fn(&TreeNode, &mut RowUi<'_>)> {
     Tree::new(PROJECT)
         .key(node_key)
         .node(&node_copy)
@@ -263,12 +263,12 @@ impl Page for TreesPage {
                                 StateFlags::empty(),
                             )
                             .style;
-                        let primary = ui
-                            .surface_style()
-                            .fg(ui.theme().color.fg[FgStep::Primary.index()]);
-                        let faint = ui
-                            .surface_style()
-                            .fg(ui.theme().color.fg[FgStep::Faint.index()]);
+                        let primary = ui.surface_style().patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+                        );
+                        let faint = ui.surface_style().patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
+                        );
                         for (offset, (text, style)) in [
                             (selection, primary),
                             (hint, faint),
@@ -299,7 +299,7 @@ impl Page for TreesPage {
                         StateFlags::empty(),
                     )
                     .style
-                    .fg(ui.theme().color.fg[FgStep::Faint.index()]);
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
                 let _ = ui.paint_str(
                     Rect {
                         x: selection.x.saturating_add(2),

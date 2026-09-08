@@ -1,14 +1,14 @@
 //! Read-only keyed data grid with model-owned sorting.
 
 use junie_tui::{
-    id, layout, Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid,
-    GridAction, GridModel, GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Response,
-    Role, RowDecor, RowTotal, SortDir, StateFlags, StylePatch, Track, Ui, Variant,
+    Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid, GridAction, GridModel,
+    GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Response, Role, RowDecor,
+    RowTotal, SortDir, StateFlags, StylePatch, Track, Ui, Variant, id, layout,
 };
 
-use crate::data::{TaskRow, TaskStatus, TASKS};
+use crate::data::{TASKS, TaskRow, TaskStatus};
 
-use super::{frame, Page};
+use super::{Page, frame};
 
 const TABLE: Id = id!("tables.tasks");
 const CHECKS: Id = id!("tables.checks");
@@ -282,8 +282,8 @@ fn legacy_table(
     model: &TableModel,
     state: &GridState,
     sort: Option<(ColumnKey, SortDir)>,
-    header_style: junie_tui::Style,
-    row_style: junie_tui::Style,
+    header_style: junie_tui::author::PaintStyle,
+    row_style: junie_tui::author::PaintStyle,
 ) {
     if area.is_empty() {
         return;

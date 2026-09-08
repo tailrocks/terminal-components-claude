@@ -102,9 +102,9 @@ fn legacy_field_gutter(ui: &mut Ui<'_>, area: Rect, flags: StateFlags) {
     let mut gutter = ui
         .style(Family::FIELD, Variant::DEFAULT, Part::GUTTER, flags)
         .style;
-    gutter.bg = field.style.bg;
+    gutter = gutter.with_bg_from(field.style);
     if !flags.contains(StateFlags::FOCUSED) {
-        gutter.fg = field.style.bg;
+        gutter = gutter.with_fg_from_bg(field.style);
     }
     let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
 }

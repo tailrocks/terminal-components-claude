@@ -154,7 +154,7 @@ fn metrics() -> Grid<'static> {
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -164,7 +164,7 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     let panel_area = Rect {
         x: body.x.saturating_add(2),
@@ -239,7 +239,7 @@ fn paint_invisible(ui: &mut Ui<'_>, body: Rect, row: u16, x: u16, text: &str) {
         height: 1,
     };
     ui.with_surface(Surface::Surface, |ui| {
-        let style = ui.surface_style().fg(ui.bg());
+        let style = ui.surface_style().with_fg_from_bg(ui.surface_style());
         ui.paint_str(area, text, style);
     });
 }

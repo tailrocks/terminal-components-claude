@@ -1,8 +1,9 @@
 //! Application chrome: brand lockup, status strip and inline meters.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     Brand, Cx, Id, Modifier, Part, Response, Role, StateFlags, Status, StatusBar, StatusItem,
-    Style, Surface, Ui, Variant, id, width,
+    Surface, Ui, Variant, id, width,
 };
 
 use super::{Page, frame};
@@ -36,7 +37,7 @@ fn status_bar<'a>(center: &'a [StatusItem<'a>], frame: usize) -> StatusBar<'a> {
 
 fn paint_body(ui: &mut Ui<'_>, body: junie_tui::Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -46,7 +47,7 @@ fn paint_body(ui: &mut Ui<'_>, body: junie_tui::Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     ui.fill(
         junie_tui::Rect {
@@ -98,7 +99,7 @@ fn style(
     family: junie_tui::Family,
     part: Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| {
         ui.style(family, Variant::DEFAULT, part, flags).style
     })
@@ -110,7 +111,7 @@ fn paint_segment(
     row: u16,
     prefix: &str,
     text: &str,
-    style: Style,
+    style: PaintStyle,
 ) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
@@ -184,7 +185,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
                 StateFlags::empty(),
             )
             .style;
-        active.bg = Some(ui.bg());
+        active = active.with_bg_from(ui.surface_style());
         active
     });
     let active_detail = ui.with_surface(Surface::Elevated, |ui| {
@@ -196,7 +197,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
                 StateFlags::empty(),
             )
             .style;
-        active_detail.bg = Some(ui.bg());
+        active_detail = active_detail.with_bg_from(ui.surface_style());
         active_detail
     });
     let last_style = style(
@@ -261,7 +262,9 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
         "right-click or m for the tab menu",
         faint,
     );
-    let rail = ui.with_surface(Surface::Surface, |ui| ui.surface_style().fg(ui.bg()));
+    let rail = ui.with_surface(Surface::Surface, |ui| {
+        ui.surface_style().with_fg_from_bg(ui.surface_style())
+    });
     paint_segment(ui, body, 4, "  ", "▎", rail);
     paint_segment(ui, body, 4, "  ▎", "  1 Claude Code (Work)", panel);
     paint_segment(

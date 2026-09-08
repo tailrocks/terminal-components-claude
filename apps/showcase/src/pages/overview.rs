@@ -1,10 +1,11 @@
 //! Overview screen: the public-facade contract and its stable sample data.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
-    Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, FrameRead, HelpOverlay,
-    HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Panel,
-    PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Response, Role, StateFlags,
-    Style, StylePatch, Surface, TooSmall, Ui, Variant, id, layout, width, wrap,
+    Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, HelpOverlay, HelpOverlayState,
+    HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Panel, PanelKind, Part,
+    Props, PropsList, PropsRow, PropsState, Rect, Response, Role, StateFlags, StylePatch, Surface,
+    TooSmall, Ui, Variant, id, layout, width, wrap,
 };
 
 use super::{Page, author::AuthorBadge, frame};
@@ -246,10 +247,10 @@ impl Page for OverviewPage {
     }
 }
 
-fn overview_style(ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> Style {
+fn overview_style(ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> PaintStyle {
     ui.style(Family::PANEL, Variant::DEFAULT, part, flags)
         .style
-        .bg(ui.bg())
+        .with_bg_from(ui.surface_style())
 }
 
 fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
@@ -269,28 +270,32 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
         ..area
     };
     tokens_panel().draw(ui, area, |ui, inner| {
-        let primary = ui.surface_style().fg(ui.theme().color.fg[FgStep::Primary.index()]);
-        let muted = ui.surface_style().fg(ui.theme().color.fg[FgStep::Faint.index()]);
+        let primary = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        let muted = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
         let colors = [
-            ui.theme().bg(Surface::Canvas),
-            ui.theme().bg(Surface::Surface),
-            ui.theme().bg(Surface::Elevated),
-            ui.theme().bg(Surface::Overlay),
-            ui.theme().bg(Surface::Field),
-            ui.theme().bg(Surface::Popover),
-            ui.theme().color.border_subtle,
-            ui.theme().color.border_strong,
-            ui.theme().color.fg[0],
-            ui.theme().color.fg[1],
-            ui.theme().color.fg[2],
-            ui.theme().color.fg[3],
-            ui.theme().color.accent,
-            ui.theme().color.accent_hover,
-            ui.theme().color.accent_pressed,
-            ui.theme().color.accent_tint,
-            ui.theme().color.danger,
-            ui.theme().color.warning,
-            ui.theme().color.info,
+            Role::Surface(Surface::Canvas),
+            Role::Surface(Surface::Surface),
+            Role::Surface(Surface::Elevated),
+            Role::Surface(Surface::Overlay),
+            Role::Surface(Surface::Field),
+            Role::Surface(Surface::Popover),
+            Role::BorderSubtle,
+            Role::BorderStrong,
+            Role::Fg(FgStep::Primary),
+            Role::Fg(FgStep::Secondary),
+            Role::Fg(FgStep::Muted),
+            Role::Fg(FgStep::Faint),
+            Role::Accent,
+            Role::AccentHover,
+            Role::AccentPressed,
+            Role::AccentTint,
+            Role::Danger,
+            Role::Warning,
+            Role::Info,
         ];
         let two_columns = inner.height < token_count && inner.width >= 40;
         let per_column = if two_columns {
@@ -323,7 +328,7 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
                 }
                 let x = inner.x.saturating_add(column.saturating_mul(column_width));
                 let mut swatch = ui.surface_style();
-                swatch.bg = Some(*color);
+                swatch = swatch.patch(ui.paint_patch(&StylePatch::new().set_bg(*color)));
                 ui.fill(Rect::new(x, y, 4, 1), swatch);
                 ui.paint_str(Rect::new(x.saturating_add(4), y, 1, 1), "▏", muted);
                 ui.paint_str(
@@ -447,16 +452,17 @@ fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
                 break;
             }
             let marker_color = match index {
-                0 | 2 | 3 => ui.theme().color.accent,
-                1 => ui.theme().color.fg[FgStep::Secondary.index()],
-                4 => ui.theme().color.danger,
-                5 => ui.theme().color.fg[FgStep::Primary.index()],
-                _ => ui.theme().color.fg[FgStep::Faint.index()],
+                0 | 2 | 3 => Role::Accent,
+                1 => Role::Fg(FgStep::Secondary),
+                4 => Role::Danger,
+                5 => Role::Fg(FgStep::Primary),
+                _ => Role::Fg(FgStep::Faint),
             };
             ui.paint_str(
                 Rect::new(inner.x, y, 1, 1),
                 glyph,
-                ui.surface_style().fg(marker_color),
+                ui.surface_style()
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(marker_color))),
             );
             ui.paint_str(
                 Rect::new(
@@ -467,7 +473,7 @@ fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
                 ),
                 label,
                 ui.surface_style()
-                    .fg(ui.theme().color.fg[FgStep::Secondary.index()]),
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
             );
         }
     });

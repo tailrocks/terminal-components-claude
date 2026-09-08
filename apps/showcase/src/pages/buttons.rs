@@ -100,9 +100,9 @@ fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlag
     // The old showcase painted a gutter glyph for every button. The modern
     // Button only binds that glyph to focus, so preserve the old picture at
     // this page seam without changing the shared component contract.
-    gutter.bg = container.style.bg;
+    gutter = gutter.with_bg_from(container.style);
     if !flags.contains(StateFlags::FOCUSED) {
-        gutter.fg = container.style.bg;
+        gutter = gutter.with_fg_from_bg(container.style);
     }
     let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
 }

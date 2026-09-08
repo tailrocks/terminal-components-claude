@@ -1,8 +1,9 @@
 //! Chip toggles and a keyed select field.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     ChipBar, ChipBarAction, ChipBarState, Cx, Id, ItemKey, Modifier, Part, Rect, Response, RowUi,
-    Select, SelectAction, SelectState, StateFlags, Style, Surface, Ui, Variant, id, layout, width,
+    Select, SelectAction, SelectState, StateFlags, Surface, Ui, Variant, id, layout, width,
 };
 
 use crate::data::LANGUAGES;
@@ -47,7 +48,7 @@ fn select() -> Select<'static, &'static str> {
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -57,7 +58,7 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     ui.fill(
         Rect {
@@ -109,13 +110,20 @@ fn style(
     family: junie_tui::Family,
     part: Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| {
         ui.style(family, Variant::DEFAULT, part, flags).style
     })
 }
 
-fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str, style: Style) {
+fn paint_segment(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    row: u16,
+    prefix: &str,
+    text: &str,
+    style: PaintStyle,
+) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
         Rect {

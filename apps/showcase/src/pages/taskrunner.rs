@@ -1,11 +1,12 @@
 //! A cancellable task runner using the public lifecycle rail.
 
+use junie_tui::author::PaintStyle;
 use std::{cmp::Ordering, time::Duration};
 
 use junie_tui::{
     ActionKey, Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, Modifier, Rect,
-    Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Style, Surface, Track,
-    Ui, Variant, id, layout, width,
+    Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Surface, Track, Ui,
+    Variant, id, layout, width,
 };
 
 use super::{Page, frame};
@@ -70,7 +71,7 @@ fn cancel_dialog() -> Dialog<'static> {
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -80,7 +81,7 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     ui.fill(
         Rect {
@@ -133,11 +134,18 @@ fn style(
     variant: Variant,
     part: junie_tui::Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
 }
 
-fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str, style: Style) {
+fn paint_segment(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    row: u16,
+    prefix: &str,
+    text: &str,
+    style: PaintStyle,
+) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
         Rect {
@@ -206,7 +214,9 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
         StateFlags::empty(),
     );
     let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
-    let rail = ui.with_surface(Surface::Surface, |ui| ui.surface_style().fg(ui.bg()));
+    let rail = ui.with_surface(Surface::Surface, |ui| {
+        ui.surface_style().with_fg_from_bg(ui.surface_style())
+    });
 
     paint_segment(ui, body, 0, "  ", "Targets", title);
     paint_segment(
