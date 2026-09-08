@@ -3,5 +3,6 @@
 //! deterministic fixtures that evolve only on virtual-clock ticks.
 
 pub(crate) mod catalogue;
+pub(crate) mod pg;
 pub(crate) mod plans;
 pub(crate) mod world;
