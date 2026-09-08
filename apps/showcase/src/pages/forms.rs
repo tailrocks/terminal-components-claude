@@ -2,7 +2,7 @@
 
 use junie_tui::{
     Action, ActionKey, Button, Checkbox, Constraints, Cx, Family, Field, FieldKind, FieldMut,
-    FieldRef, FieldSpec, Form, FormData, FormState, Id, ItemKey, Panel, PanelKind, Part,
+    FieldRef, FieldSpec, Form, FormData, FormState, FrameRead, Id, ItemKey, Panel, PanelKind, Part,
     RadioGroup, RadioGroupState, Rect, Response, RowAlign, Select, SelectState, StateFlags,
     TextArea, TextAreaState, TextInput, TextInputState, Toggle, Track, Ui, Variant, Wizard,
     WizardState, WizardStep, id, layout, truncate,
@@ -58,6 +58,28 @@ fn reviewer_field() -> Field<'static, TextInput<'static>> {
         TextInput::new(REVIEWER).placeholder("name@company.com"),
     )
     .help("Optional")
+}
+
+fn mode_group() -> RadioGroup<'static, &'static str> {
+    RadioGroup::new(MODE).value(ItemKey::index(1))
+}
+
+fn run_tests_checkbox() -> Checkbox<'static> {
+    Checkbox::new(RUN_TESTS, "Run tests before opening a PR").checked(true)
+}
+
+fn auto_approve_toggle() -> Toggle<'static> {
+    Toggle::new(AUTO_APPROVE, "Auto-approve changes").on(false)
+}
+
+fn notify_toggle() -> Toggle<'static> {
+    Toggle::new(NOTIFY, "Notify on completion")
+        .on(true)
+        .disabled(true)
+}
+
+fn reset_button() -> Button<'static> {
+    Button::new(RESET, "Reset").variant(Variant::SUBTLE)
 }
 
 fn legacy_gutter(
@@ -244,26 +266,6 @@ impl FormsPage {
             .variant(Variant::PRIMARY)
             .disabled(!confirmed)
     }
-
-    fn reset_button() -> Button<'static> {
-        Button::new(RESET, "Reset").variant(Variant::SUBTLE)
-    }
-
-    fn mode_radio() -> RadioGroup<'static, &'static str> {
-        RadioGroup::new(MODE).value(ItemKey::index(1))
-    }
-
-    fn run_tests_check() -> Checkbox<'static> {
-        Checkbox::new(RUN_TESTS, "Run tests before opening a PR")
-    }
-
-    fn auto_approve_toggle() -> Toggle<'static> {
-        Toggle::new(AUTO_APPROVE, "Auto-approve changes")
-    }
-
-    fn notify_toggle() -> Toggle<'static> {
-        Toggle::new(NOTIFY, "Notify on completion")
-    }
 }
 
 /// The four-step flow stepper drawn above the card. The disabled `Review`
@@ -408,6 +410,13 @@ impl Page for FormsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
+        let _ = description_field();
+        let _ = reviewer_field();
+        let _ = mode_group();
+        let _ = run_tests_checkbox();
+        let _ = auto_approve_toggle();
+        let _ = notify_toggle();
+        let _ = reset_button();
         result |= Self::summary()
             .update(cx, &mut self.summary_state, &mut self.summary)
             .erase();
@@ -426,11 +435,11 @@ impl Page for FormsPage {
         // Both phases build the same controls (§13): the reference-rendered
         // options and the off-canvas reviewer field keep one constructor each.
         let _ = reviewer_field();
-        let _ = Self::mode_radio();
-        let _ = Self::run_tests_check();
-        let _ = Self::auto_approve_toggle();
-        let _ = Self::notify_toggle();
-        let _ = Self::reset_button();
+        let _ = mode_group();
+        let _ = run_tests_checkbox();
+        let _ = auto_approve_toggle();
+        let _ = notify_toggle();
+        let _ = reset_button();
         let fields = deploy_fields();
         let actions = deploy_actions();
         result |= deploy_form(&fields, &actions)
@@ -443,6 +452,10 @@ impl Page for FormsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = Self::priority();
+        let _ = Self::summary();
+        let _ = Self::details();
+        let _ = Self::confirmation();
         let panel_width = area.width.min(70);
         frame(
             ui,
@@ -464,6 +477,35 @@ impl Page for FormsPage {
                 }
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.summary_state.is_editing() || self.details_state.is_editing() {
+            vec![
+                ("Enter", "Commit"),
+                ("Esc", "Cancel"),
+                ("Tab", "Next field"),
+            ]
+        } else if ui.state(PRIORITY).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Choose"), ("Ctrl+S", "Submit")]
+        } else if ui.state(CONFIRM).contains(StateFlags::FOCUSED)
+            || ui.state(RUN_TESTS).contains(StateFlags::FOCUSED)
+            || ui.state(OPEN_PR).contains(StateFlags::FOCUSED)
+            || ui.state(AUTO_APPROVE).contains(StateFlags::FOCUSED)
+            || ui.state(NOTIFY).contains(StateFlags::FOCUSED)
+        {
+            vec![("Space", "Toggle"), ("Ctrl+S", "Submit")]
+        } else if ui.state(SAVE).contains(StateFlags::FOCUSED)
+            || ui.state(RESET).contains(StateFlags::FOCUSED)
+        {
+            vec![("Enter", "Activate"), ("Ctrl+S", "Submit")]
+        } else {
+            vec![("Enter", "Edit"), ("Ctrl+S", "Submit")]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.summary_state.is_editing() || self.details_state.is_editing()
     }
 }
 
@@ -506,7 +548,7 @@ impl FormsPage {
                 ui.surface_style(),
             );
             ui.reference(None, |ui| {
-                let mode = Self::mode_radio();
+                let mode = mode_group();
                 let mode_area = Rect {
                     y: right.y.saturating_add(2),
                     height: 3,
@@ -662,7 +704,7 @@ impl FormsPage {
             height: 1,
             ..right
         };
-        Self::run_tests_check().checked(true).draw(ui, run_tests);
+        run_tests_checkbox().draw(ui, run_tests);
         legacy_choice_label(
             ui,
             run_tests,
@@ -707,7 +749,7 @@ impl FormsPage {
             height: 1,
             ..right
         };
-        Self::auto_approve_toggle().on(false).draw(ui, auto_approve);
+        auto_approve_toggle().draw(ui, auto_approve);
         legacy_gutter(
             ui,
             auto_approve,
@@ -722,10 +764,7 @@ impl FormsPage {
             height: 1,
             ..right
         };
-        Self::notify_toggle()
-            .on(true)
-            .disabled(true)
-            .draw(ui, notify);
+        notify_toggle().draw(ui, notify);
         legacy_gutter(
             ui,
             notify,
@@ -761,7 +800,7 @@ impl FormsPage {
             ..inner
         };
         let create = Self::save_button(self.confirm);
-        let reset = Self::reset_button();
+        let reset = reset_button();
         let widths = [
             create
                 .measure(ui, Constraints::loose(action_area.width, 1))

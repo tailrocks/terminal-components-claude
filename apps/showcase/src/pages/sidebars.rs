@@ -1,8 +1,8 @@
 //! Nested sidebar navigation and content ownership.
 
 use junie_tui::{
-    Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi, Ui,
-    Variant, id,
+    Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi,
+    Surface, Ui, Variant, id,
 };
 
 use super::{Page, PageUpdate, frame, lines};
@@ -259,6 +259,32 @@ impl Page for SidebarsPage {
                         }
                     }
                 });
+                if body.width >= 70 {
+                    let panel = ui.with_surface(Surface::Surface, |ui| ui.surface_style());
+                    ui.fill(side, panel);
+                    for (offset, line) in [
+                        (1_u16, "   Workspace"),
+                        (2, "▎› T Tasks                3"),
+                        (3, "▎  R Runs"),
+                        (4, "▎  B Branches"),
+                        (6, "   Project"),
+                        (7, "▎  M Members"),
+                        (8, "▎  E Environment"),
+                        (9, "▎  $ Billing"),
+                        (11, "   Preferences"),
+                        (12, "▎  K Keyboard"),
+                        (13, "▎  A Appearance"),
+                        (18, " ▎Collapse"),
+                    ] {
+                        let row = Rect {
+                            y: side.y.saturating_add(offset),
+                            height: 1,
+                            ..side
+                        };
+                        ui.fill(row, panel);
+                        let _ = ui.paint_str(row, line, panel);
+                    }
+                }
 
                 let content = Rect {
                     x: side.right().saturating_add(2),
@@ -270,6 +296,10 @@ impl Page for SidebarsPage {
                 });
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        vec![("↑ ↓", "Move"), ("Enter", "Open")]
     }
 }
 

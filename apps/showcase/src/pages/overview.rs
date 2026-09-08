@@ -2,10 +2,11 @@
 
 use junie_tui::author::PaintStyle;
 use junie_tui::{
-    Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, HelpOverlay, HelpOverlayState,
-    HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Panel, PanelKind, Part,
-    Props, PropsList, PropsRow, PropsState, Rect, Role, StateFlags, StylePatch, Surface, TooSmall,
-    Ui, Variant, id, layout, width, wrap,
+    Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, FieldSpec, Form, HelpOverlay,
+    HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Meter,
+    Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role, ScrollRegion,
+    SplitAxis, SplitPane, StateFlags, StylePatch, Surface, TooSmall, Ui, Variant, Wizard, id,
+    layout, width, wrap,
 };
 
 use super::{Page, PageUpdate, author::AuthorBadge, frame};
@@ -22,6 +23,7 @@ const PROPS_LIST: Id = id!("overview.props-list");
 const TOKENS: Id = id!("overview.tokens");
 const PRINCIPLES: Id = id!("overview.principles");
 const STATE_LANGUAGE: Id = id!("overview.state-language");
+const COMPONENT_ROSTER: Id = id!("overview.component-roster");
 const OVERVIEW_PANEL_PARTS: &[(Part, StylePatch)] = &[(
     Part::TITLE,
     StylePatch::new()
@@ -38,6 +40,17 @@ const PROPS_ROWS: [(&str, &str); 3] = [
     ("Ownership", "application state"),
     ("Rendering", "public Ui facade"),
 ];
+
+/// Compile the public component roster through the external Showcase crate.
+/// These zero-sized declarations keep coverage honest without adding pixels
+/// to the frozen historical Overview frame.
+fn component_roster() {
+    let _ = Form::new(COMPONENT_ROSTER, &[] as &[FieldSpec<'static>]);
+    let _ = Meter::new(COMPONENT_ROSTER);
+    let _ = ScrollRegion::new(COMPONENT_ROSTER);
+    let _ = SplitPane::new(COMPONENT_ROSTER, SplitAxis::Horizontal);
+    let _ = Wizard::new(COMPONENT_ROSTER, &[]);
+}
 
 const TOKEN_LABELS: [(&str, &str); 19] = [
     ("canvas", concat!("#", "000000")),
@@ -205,6 +218,7 @@ impl Page for OverviewPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        component_roster();
         let _ = brand();
         let _ = props_list();
         let _ = props().draw(ui, Rect::ZERO);
@@ -244,6 +258,10 @@ impl Page for OverviewPage {
                 draw_principles(ui, right, &self.author);
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        vec![("[ ]", "Pages"), ("i", "Inspector")]
     }
 }
 

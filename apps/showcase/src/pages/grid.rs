@@ -349,6 +349,25 @@ impl Page for GridPage {
             },
         );
     }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.state.is_editing() {
+            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+        } else {
+            vec![
+                ("↑↓←→", "Cell"),
+                ("Enter", "Edit"),
+                ("s", "Sort"),
+                ("Space", "Select row"),
+                ("+ -", "Insert / delete"),
+                ("u", "Undo"),
+            ]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
+    }
 }
 
 fn paint_rows(ui: &mut Ui<'_>, body: Rect) {

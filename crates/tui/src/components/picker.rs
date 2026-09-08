@@ -6,14 +6,14 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use super::filter_list::{FilterList, FilterListAction, FilterListState, FilterPolicy};
-use super::{Acc, PartStyle, SlotFn};
+use super::{Acc, PartStyle, SlotFn, overlay_chrome};
 use crate::collection::{EmptyState, RowFn, RowUi};
 use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
 use crate::layout::Track;
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, StylePatch, Variant};
+use crate::theme::{Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// Borrowed semantic data shared by picker and completion rows.
@@ -326,7 +326,8 @@ impl PickerState {
 /// Caller owns items and [`PickerState`]; runtime owns the modal layer and focus trap.
 ///
 /// ## Configuration
-/// `.title`, `.placeholder`, `.scopes`, `.align`, `.empty`, `.row`, `.patch`, `.patch_part`, `.slot`.
+/// `.title`, `.width`, `.size`, `.searchable`, `.filter`, `.item_layout`,
+/// `.placeholder`, `.scopes`, `.align`, `.empty`, `.row`, `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::PICKER`, `DEFAULT`.
@@ -371,6 +372,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     filter: FilterPolicy,
     placeholder: &'a str,
     scopes: &'a [ScopeKey],
+    requested_size: Option<LayerSize>,
     align: Option<ScreenAlign>,
     empty: Option<EmptyState<'a>>,
     row: R,
@@ -387,6 +389,9 @@ impl<T, R> core::fmt::Debug for Picker<'_, T, R> {
             .field("id", &self.id)
             .field("title", &self.title)
             .field("scopes", &self.scopes)
+            .field("searchable", &self.searchable)
+            .field("requested_size", &self.requested_size)
+            .field("align", &self.align)
             .finish_non_exhaustive()
     }
 }
@@ -402,6 +407,7 @@ impl<T> Picker<'_, T, ItemRow> {
             filter: FilterPolicy::Label,
             placeholder: "Type to search…",
             scopes: &[],
+            requested_size: None,
             align: None,
             empty: None,
             row: ItemRow,
@@ -482,6 +488,13 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.scopes = scopes;
         self
     }
+    /// Request an explicit modal size. The layer resolver still clamps to the
+    /// viewport; omit this option to retain semantic sizing.
+    #[must_use]
+    pub const fn size(mut self, size: LayerSize) -> Self {
+        self.requested_size = Some(size);
+        self
+    }
     /// Choose the screen placement for this modal.
     #[must_use]
     pub const fn align(mut self, align: ScreenAlign) -> Self {
@@ -504,6 +517,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             filter: self.filter,
             placeholder: self.placeholder,
             scopes: self.scopes,
+            requested_size: self.requested_size,
             align: self.align,
             empty: self.empty,
             row,
@@ -555,6 +569,9 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
 
     /// Requested modal size, pure in props, semantic labels, and design tokens.
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
+        if let Some(size) = self.requested_size {
+            return size;
+        }
         let d = cx.design();
         let width = self.width.unwrap_or_else(|| {
             FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items)
@@ -673,87 +690,101 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
 
     /// Draw into the resolved modal area supplied by the owner's layer closure.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &PickerState, items: &[T]) -> Rect {
-        ui.with_surface(crate::theme::Surface::Overlay, |ui| {
-            let mut live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
-            live.remove(StateFlags::PRESSED);
-            let base = self.ov.style(
-                ui,
-                self.id,
-                Family::PICKER,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                live,
-            );
-            ui.fill(area, base.style);
-            let border = self.ov.style(
-                ui,
-                self.id,
-                Family::PICKER,
-                Variant::DEFAULT,
-                Part::BORDER,
-                live,
-            );
-            let inner = ui.frame(area, border.style);
-            if inner.is_empty() {
-                return area;
-            }
-            let title = Rect { height: 1, ..inner };
-            let title_style = self.ov.style(
-                ui,
-                self.id,
-                Family::PICKER,
-                Variant::DEFAULT,
-                Part::TITLE,
-                live,
-            );
-            ui.paint_str(title, self.title, title_style.style);
-            if self.searchable {
-                let query = Rect {
-                    y: inner.y.saturating_add(1),
-                    height: 1,
-                    ..inner
+        let mut live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
+        live.remove(StateFlags::PRESSED);
+        overlay_chrome(
+            ui,
+            self.id,
+            area,
+            Family::PICKER,
+            Surface::Overlay,
+            self.ov,
+            live,
+            live,
+            |ui, inner| {
+                if inner.is_empty() {
+                    return area;
+                }
+                // An explicitly requested size insets the content lane inside
+                // the frame instead of letting the list touch the border.
+                let content = if self.requested_size.is_some() {
+                    Rect {
+                        x: inner.x.saturating_add(1),
+                        width: inner.width.saturating_sub(2),
+                        ..inner
+                    }
+                } else {
+                    inner
                 };
-                let query_style = self.ov.style(
+                if content.is_empty() {
+                    return area;
+                }
+                let title = Rect {
+                    height: 1,
+                    ..content
+                };
+                let title_style = self.ov.style(
                     ui,
                     self.id,
                     Family::PICKER,
                     Variant::DEFAULT,
-                    Part::QUERY,
-                    live | StateFlags::EDITING,
+                    Part::TITLE,
+                    live,
                 );
-                ui.fill(query, query_style.style);
-                let text = if st.query().is_empty() {
-                    self.placeholder
-                } else {
-                    st.query()
+                ui.paint_str(title, self.title, title_style.style);
+                if self.searchable {
+                    let query = Rect {
+                        y: content.y.saturating_add(1),
+                        height: 1,
+                        ..content
+                    };
+                    let query_style = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::PICKER,
+                        Variant::DEFAULT,
+                        Part::QUERY,
+                        live | StateFlags::EDITING,
+                    );
+                    ui.fill(query, query_style.style);
+                    let text = if st.query().is_empty() {
+                        self.placeholder
+                    } else {
+                        st.query()
+                    };
+                    ui.paint_str(
+                        Rect {
+                            x: query.x.saturating_add(2),
+                            width: query.width.saturating_sub(2),
+                            ..query
+                        },
+                        text,
+                        query_style.style,
+                    );
+                    ui.set_cursor(
+                        self.id,
+                        Position::new(
+                            query.x.saturating_add(2).saturating_add(width(st.query())),
+                            query.y,
+                        ),
+                    );
+                }
+                // Searchable pickers reserve title, query and spacing before
+                // the list; nonsearchable pickers retain the bottom breathing
+                // room so the drawn rows match the requested outer height.
+                let list = Rect {
+                    y: content
+                        .y
+                        .saturating_add(if self.searchable { 3 } else { 1 }),
+                    height: content
+                        .height
+                        .saturating_sub(if self.searchable { 3 } else { 2 }),
+                    ..content
                 };
-                ui.paint_str(
-                    Rect {
-                        x: query.x.saturating_add(2),
-                        width: query.width.saturating_sub(2),
-                        ..query
-                    },
-                    text,
-                    query_style.style,
-                );
-                ui.set_cursor(
-                    self.id,
-                    Position::new(
-                        query.x.saturating_add(2).saturating_add(width(st.query())),
-                        query.y,
-                    ),
-                );
-            }
-            let list = Rect {
-                y: inner.y.saturating_add(if self.searchable { 3 } else { 1 }),
-                height: inner
-                    .height
-                    .saturating_sub(if self.searchable { 3 } else { 2 }),
-                ..inner
-            };
-            self.list().draw(ui, list, &st.list, items);
-            area
-        })
+                self.list().draw(ui, list, &st.list, items);
+                area
+            },
+        )
     }
 }
 

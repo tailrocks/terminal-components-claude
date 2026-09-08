@@ -15,7 +15,7 @@ const PLAYGROUND: Id = id!("textareas.playground");
 const STATES: Id = id!("textareas.states");
 
 fn body_area() -> TextArea<'static> {
-    TextArea::new(BODY, 8)
+    TextArea::new(BODY, 8).placeholder("Write a checklist")
 }
 
 fn checklist() -> String {
@@ -301,6 +301,23 @@ impl Page for TextAreasPage {
                 });
             }
         });
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.state.is_editing() {
+            vec![
+                ("Enter", "Newline"),
+                ("Esc", "Done"),
+                ("Shift+↑↓", "Select"),
+                ("Tab", "Next"),
+            ]
+        } else {
+            vec![("Enter", "Edit"), ("↑ ↓", "Scroll")]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
     }
 }
 

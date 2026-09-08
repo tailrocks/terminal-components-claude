@@ -100,7 +100,10 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
             {
                 end = end.saturating_add(1);
             }
-            let word = &src[i..end];
+            let Some(word) = src.get(i..end) else {
+                i = end;
+                continue;
+            };
             let next = bytes.get(end).copied();
             let role = if KEYWORDS.contains(&word) {
                 SyntaxRole::Keyword
@@ -316,6 +319,29 @@ impl Page for EditorPage {
                 });
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.completion_state.is_open() {
+            vec![("↑ ↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
+        } else if self.state.is_editing() {
+            vec![
+                ("Ctrl+Space", "Complete"),
+                ("Ctrl+R", "Run block"),
+                ("Esc", "Done"),
+            ]
+        } else {
+            vec![
+                ("i", "Edit"),
+                ("Ctrl+R", "Run block"),
+                ("{ }", "Blocks"),
+                ("/", "Find"),
+            ]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
     }
 }
 

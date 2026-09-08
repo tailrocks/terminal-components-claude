@@ -14,7 +14,7 @@ use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
-/// A vertical scroll region: wheel routing, a scrollbar with track
+/// A vertical scroll region: wheel routing, a scrollbar with full-height track
 /// arithmetic, thumb drag through pointer capture and `ensure_visible`.
 ///
 /// ## Construction
@@ -253,6 +253,9 @@ impl<'a> ScrollRegion<'a> {
                 Response::consumed()
             }
             Phase::Press => {
+                // The historical scrollbar uses every row, including the two
+                // end rows, as track positions. Keep hit math on the same
+                // geometry the painter registers.
                 let track_pos = usize::from(local.y);
                 st.scroll_to(st.offset_for_track_pos(track_pos, usize::from(track_len)));
                 moved(st.offset() != before)
@@ -304,13 +307,12 @@ impl<'a> ScrollRegion<'a> {
             StateFlags::empty(),
         );
         ui.fill(area, container.style);
-        let track_height = area.height;
         ui.report_layout(
             self.id,
             LayoutFacts::new(
                 usize::from(area.height),
                 content_len,
-                track_height,
+                area.height,
                 area.width,
             ),
         );
@@ -334,6 +336,9 @@ impl<'a> ScrollRegion<'a> {
     }
 
     fn paint_bar(&self, ui: &mut Ui<'_>, bar: Rect, view: &ScrollState) {
+        // The track spans every bar row — no reserved cap rows — so hit math
+        // and `ScrollState`'s inverse mapping stay on one length. Typed
+        // begin/end glyphs still mark the ends outside the thumb.
         let track_rect = bar;
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);

@@ -226,7 +226,8 @@ impl Page for ProgressPage {
                         latency_meter(self.frame).draw(
                             ui,
                             Rect {
-                                y: inner.y.saturating_add(4),
+                                width: inner.width.min(70),
+                                y: inner.y.saturating_add(3),
                                 ..inner
                             },
                         );
@@ -267,6 +268,10 @@ impl Page for ProgressPage {
                 }
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        vec![("Enter", "Activate")]
     }
 }
 

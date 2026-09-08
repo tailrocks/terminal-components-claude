@@ -298,6 +298,30 @@ impl Page for InputsPage {
             }
         });
     }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        let editing = if ui.state(NAME).contains(StateFlags::FOCUSED) {
+            self.name_state.is_editing()
+        } else if ui.state(BRANCH).contains(StateFlags::FOCUSED) {
+            self.branch_state.is_editing()
+        } else {
+            false
+        };
+        if editing {
+            vec![
+                ("Enter", "Commit"),
+                ("Esc", "Cancel"),
+                ("Shift+← →", "Select"),
+                ("Ctrl+U", "Clear"),
+            ]
+        } else {
+            vec![("Enter", "Edit")]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.name_state.is_editing() || self.branch_state.is_editing()
+    }
 }
 
 impl InputsPage {

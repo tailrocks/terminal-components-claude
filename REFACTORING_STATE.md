@@ -15,7 +15,7 @@
 
 ## !! SESSION 2 INTERRUPTION (token limit) — READ THIS FIRST !!
 
-Three subagents were killed mid-work. Their partial output is committed as WIP and **does not compile**:
+Three agents were killed mid-work. Their partial output is committed as WIP and **does not compile**:
 `cargo build -p junie-tui --all-targets` fails with one `E0502` (borrow conflict) in the `junie-tui` lib-test target.
 
 Last fully green commit: **`0f66160`** (`cargo test --all-targets` exit 0, 797 passed). Everything after it is WIP.
@@ -38,9 +38,9 @@ Interrupted packages and what each had produced:
 
 ## Assignments (agent definitions in .claude/agents/)
 
-- Coordinator: `refactor-coordinator` (**claude-opus-5**, high). Implementation: `fable-builder` (**claude-opus-5**, high). Research/review: `opus-analyst` (claude-opus-5, high, read-only).
-- **MODEL DEVIATION, USER-AUTHORIZED 2026-09-04.** The goal mandates `claude-fable-5-1` for the coordinator and every implementation worker and says to treat model substitution as a blocker. Fable 5.1 credits were exhausted mid-session (HTTP 429 killed three builders). The user directed: "Continue using only Opus 5. We run out of tokens for Fable." `.claude/agents/{refactor-coordinator,fable-builder}.md` and `.claude/settings.json` were repointed to `claude-opus-5`, effort high. Agent definitions still own routing (no per-invocation overrides). The separation of duties is unchanged: `opus-analyst` stays read-only for all research and review, `fable-builder` remains the only implementer, the coordinator only spawns/records/commits. Revert the three files to `claude-fable-5-1` if Fable capacity returns and the mandate is to be honoured literally.
-- USER DIRECTIVES: (a) all audits and implementations in subagents — coordinator only spawns, records, commits; (b) use latest dependency versions and latest APIs/modern practices (Adjudication L); (c) commit and push `origin/main` frequently — after every recorded result.
+- Coordinator: `coordinator` (**claude-opus-5**, high). Implementation: `builder` (**claude-opus-5**, high). Research/review: `read-only analyst` (claude-opus-5, high, read-only).
+- **MODEL DEVIATION, USER-AUTHORIZED 2026-09-04.** The goal mandates `claude-fable-5-1` for the coordinator and every implementation worker and says to treat model substitution as a blocker. Fable 5.1 credits were exhausted mid-session (HTTP 429 killed three builders). The user directed: "Continue using only Opus 5. We run out of tokens for Fable." `.claude/agents/{coordinator,builder}.md` and `.claude/settings.json` were repointed to `claude-opus-5`, effort high. Agent definitions still own routing (no per-invocation overrides). The separation of duties is unchanged: `read-only analyst` stays read-only for all research and review, `builder` remains the only implementer, the coordinator only spawns/records/commits. Revert the three files to `claude-fable-5-1` if Fable capacity returns and the mandate is to be honoured literally.
+- USER DIRECTIVES: (a) all audits and implementations in agents — coordinator only spawns, records, commits; (b) use latest dependency versions and latest APIs/modern practices (Adjudication L); (c) commit and push `origin/main` frequently — after every recorded result.
 - `SendMessage` tool is unavailable in this environment: continuation of an agent = spawn a fresh one with the file paths as context.
 
 ## Accepted decisions (all recorded in COMPONENT_ARCHITECTURE.md; reviews under docs/reviews/, audits under docs/audit/)
@@ -58,7 +58,7 @@ Interrupted packages and what each had produced:
 ### Slice 4 wave 1 (running)
 
 - `digest-race-fix`: `crates/tui-testing/src/{digest.rs,harness.rs}`. Structural fix for the bless read-modify-write race. Must not move a baseline.
-- `opus-analyst` Q1–Q3 (read-only): `Tabs` mono `PRESSED` mechanism (bracket idiom vs a `(Part::TAB, PRESSED)` rule vs teaching `RowUi::label` to honour the glyph slot — and whether `RowUi` ignoring it is itself a §12.2 defect); `Fixture::state_override` still public; an acceptance grep that can never pass.
+- `read-only analyst` Q1–Q3 (read-only): `Tabs` mono `PRESSED` mechanism (bracket idiom vs a `(Part::TAB, PRESSED)` rule vs teaching `RowUi::label` to honour the glyph slot — and whether `RowUi` ignoring it is itself a §12.2 defect); `Fixture::state_override` still public; an acceptance grep that can never pass.
 - `4B` fields/inputs: `components/{field,input,textarea,select,choice,chip,secret,validate}.rs`, `examples/06`, own test/digest additions.
 - `4G` status/hints/progress/meters: `components/{status,hintbar,progress,meter,empty,brand,keyhint}.rs`, own test/digest additions. `StatusBar` merges the legacy `statusbar` + `segments`.
 - **Contended-file protocol** (`components/mod.rs`, `lib.rs`, `author.rs`, `xtask/named_tests_allow.txt`): minimal single-line insertions in alphabetical position, re-read immediately before each edit, retry on failure. The `Edit` tool fails on a stale match rather than clobbering, so a race surfaces as an error, not as lost work.
@@ -103,7 +103,7 @@ Interrupted packages and what each had produced:
 - `every_named_test_exists` currently scans sources for `#[test] fn name` rather than shelling out to `cargo test -- --list` (a nested release build per run is not viable); 319 documented names, 238 present, 81 deferred with owners.
 - `PERF_STRICT=1` fails on the ns column for ~9 benchmarks on this machine under concurrent load; the allocation and byte columns — the hard assertions — all pass. `PERF_STRICT` is opt-in and not in the required gate list.
 
-- Three names declared by the `arch-amend` builder because the accepted decisions plus the §17 self-check forced them, but which neither review spelled out — flag to the next fresh `opus-analyst` for confirmation: `Picker::measured_size(&self, cx, items) -> LayerSize` and the same on `Select` (§26 N1 mandates the popover `.size(...)` but names no method); `Props::measure(&self, ui, c) -> Size` (the review's example-9 rewrite calls it); the `Dialog::body_rows` values used in examples 9 and 10 (derived arithmetic, not from the review).
+- Three names declared by the `arch-amend` builder because the accepted decisions plus the §17 self-check forced them, but which neither review spelled out — flag to the next fresh `read-only analyst` for confirmation: `Picker::measured_size(&self, cx, items) -> LayerSize` and the same on `Select` (§26 N1 mandates the popover `.size(...)` but names no method); `Props::measure(&self, ui, c) -> Size` (the review's example-9 rewrite calls it); the `Dialog::body_rows` values used in examples 9 and 10 (derived arithmetic, not from the review).
 - `docs/visual-changes.md` needs an entry for §20.10 item 17 (`Anchor::Point` flip) before any tooltip or context-menu baseline is blessed.
 - §25.3's ΔE figures are carried through as the review marked them — hand arithmetic, to be re-derived before blessing.
 - Open, not decided: rustdoc-json upgrades for `every_foreign_type_in_the_public_surface_is_re_exported` and `xtask doc-check`, both deferred to Slice 8.
@@ -118,17 +118,17 @@ Interrupted packages and what each had produced:
 1. **Finish Slice 4 wave 1.** Re-run or complete `digest-race-fix`, `4B`, `4G` (scopes in the ownership section). Gate each: fmt, clippy `-D warnings`, `cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features`, doc tests, `RUSTDOCFLAGS="-D warnings" cargo doc`, examples build, `--test render --test render_components`, `xtask doc-check`, `xtask boundary`, and `cargo test --all-targets` with the legacy root package still at 247.
 2. **Apply Adjudication Q** (`docs/reviews/adjudication-q-residuals.md`): Q1 the shared bracket helper taking two reserved cells (and fix `Button`'s in-run bracket, which can truncate a full-width label); Q2 make `Fixture::{state_override,status}` private with accessors; Q3 add `Conformance::mono_narrowing_reason()` and its case-9 check, then write the ~8 missing reasons. Record as §29 in `COMPONENT_ARCHITECTURE.md` with the nine listed amendments. **Confirm Q's R1 first** by disabling the `Tabs` bracket block and checking case 9 is still red.
 3. **Fix the live `RowUi` glyph defect** (`Resolved.glyph: Option<GlyphRole>` → `Slot<GlyphRole>`; `marker()`/`part()` must honour it; `label*()` deliberately out of scope). Two callers already exist in `examples/{07,08}`, so Adjudication Q's A4 gate fails as written and must be re-stated.
-4. **Slice 4 remaining packages**: `4A` buttons/choices/brand-chrome, `4C` lists/trees/props/steps/nav, `4E` containers/scrolling (wave 1); then wave 2 `4D` tabs, `4F` overlays, `4H` code/diff, `4I` grid. A fresh `opus-analyst` reviews API consistency after each package.
+4. **Slice 4 remaining packages**: `4A` buttons/choices/brand-chrome, `4C` lists/trees/props/steps/nav, `4E` containers/scrolling (wave 1); then wave 2 `4D` tabs, `4F` overlays, `4H` code/diff, `4I` grid. A fresh `read-only analyst` reviews API consistency after each package.
 5. **Slice 5** showcase migration — including the scripted `junie-tui`/`junie_tui` → `junie-tui`/`junie_tui` rename, removal of the root `src/` and its three `[[bin]]`s, `tools/capture.sh`'s `BIN` default, and P1's obligation to merge the two halves of the Buttons page into `apps/showcase` and strike §18.3 #4's deviation paragraph.
 6. **Slices 6 and 7** (TablePro, Jackin — parallel, disjoint app trees), then **Slice 8** cleanup with a fresh Opus architecture review, a separate fresh Opus visual review, and the §30 final report.
 
 ### Superseded resume steps (session 1)
 
 1. `git status`; `cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features` and `cargo run -p xtask -- boundary` to learn the WIP state. Do NOT run the legacy digest blessing.
-2. Spawn fable-builder "arch-amend": redo §25/§26 + inline amendments per docs/reviews/slice3-foundations-review.md (§2, §3, §4(f)) and docs/reviews/adjudication-n-layer-measure.md ("Document amendments" table); owns COMPONENT_ARCHITECTURE.md only. Commit + push.
-3. Spawn fable-builder "foundations-fix": apply F1–F26 + N1/N2 code changes to crates/tui/src (non-components), crates/tui-testing, xtask; re-bless crates/tui/tests/perf_baseline.txt with note; run the review §6 gate command set. Serial with step 4 (shared crate).
-4. Spawn fable-builder "components-finish": bring components/examples/tests to the slice2 review §9(c) acceptance (conformance 20×7, render digests junie/paper × truecolor/mono, overrides tests, overlay tests, showcase_buttons example + 3 retained tests, component perf benches), adapting to the F-fixes (paint_spans signature, LayerSize, Ui::resolve, Resolved::over).
-5. Spawn fresh opus-analyst: review of the prototype's real API (slice2 review §9(c) item 14) + verify every §6 gate; record; correction pass if needed.
+2. Spawn builder "arch-amend": redo §25/§26 + inline amendments per docs/reviews/slice3-foundations-review.md (§2, §3, §4(f)) and docs/reviews/adjudication-n-layer-measure.md ("Document amendments" table); owns COMPONENT_ARCHITECTURE.md only. Commit + push.
+3. Spawn builder "foundations-fix": apply F1–F26 + N1/N2 code changes to crates/tui/src (non-components), crates/tui-testing, xtask; re-bless crates/tui/tests/perf_baseline.txt with note; run the review §6 gate command set. Serial with step 4 (shared crate).
+4. Spawn builder "components-finish": bring components/examples/tests to the slice2 review §9(c) acceptance (conformance 20×7, render digests junie/paper × truecolor/mono, overrides tests, overlay tests, showcase_buttons example + 3 retained tests, component perf benches), adapting to the F-fixes (paint_spans signature, LayerSize, Ui::resolve, Resolved::over).
+5. Spawn fresh read-only analyst: review of the prototype's real API (slice2 review §9(c) item 14) + verify every §6 gate; record; correction pass if needed.
 6. Slice 3 gate green → Slice 4 wave 1 (4A,4B,4C,4E,4G) parallel per Appendix A with disjoint files; each followed by fresh Opus API-consistency review; wave 2 (4D,4F,4H,4I); Slice 5 (rename junie-tui→junie-tui + showcase); Slices 6/7 parallel; Slice 8 cleanup + two fresh Opus reviews + final report (§30).
 
 ## Session 2 addendum — 4B landed after the stop order
@@ -141,7 +141,7 @@ Interrupted packages and what each had produced:
 - `4B` self-persisted a checkpoint at `<scratchpad>/4B_PROGRESS.md` (next steps, planned `Caps` per case, allow-list lines to delete). Delivered: `textarea.rs`, `choice.rs` (RadioGroup cursor/value split), `chip.rs`, `select.rs` (Popover layer sized by `measured_size`, D1 re-asserted); `input.rs` gained `TextCmd::{Newline,PageUp,PageDown}` and the nine §16.1 test names. `Secret`/`Validate` were already complete and untouched.
 - NOT done by 4B: conformance cases, render matrix + bless, allow-list deletions, full gate.
 - Build state after 4B: `cargo test -p junie-tui --lib` 257 passed. The remaining clippy failure is `crates/tui/src/components/progress.rs:56` (indexing trips `-D clippy::indexing_slicing`) — 4G in-flight, not 4B. The earlier E0502 is resolved.
-- THREE QUESTIONS for `opus-analyst` on resume:
+- THREE QUESTIONS for `read-only analyst` on resume:
   1. **RESOLVED in Adjudication Q:** `Caps::OVERLAY` means "opens a layer"; `Caps::TRAPS_FOCUS` separately opts into case 14 and implies `OVERLAY`. Modal cases declare both. A `Popover` remains pointer-only, so `Select` declares `OVERLAY` only and does not trap focus.
   2. `FieldControl` has no item channel. §15 says implement it for `Select`/`RadioGroup`, but §24 M3 moved items to the per-phase channel and `draw(&self, ui, area, st)` cannot carry `&[T]`. Implemented for `TextArea`/`Checkbox`/`Toggle` only; 4F's `Form` must drive the three choice controls directly.
   3. `RadioGroup` needed a `.value(ItemKey)` draw-phase controlled prop that §17.0 A7 does not declare, and the `ChipBar` add affordance emits `Activated(k)` with a caller-stated key because `ChipBarAction` has no `Added` variant. Both reported rather than silently deviated.
@@ -162,7 +162,7 @@ g.choose(&mut st, &items, st.cursor_index(), &mut acc);   // E0502: st borrowed 
 
 Fix by hoisting: `let i = st.cursor_index(); g.choose(&mut st, &items, i, &mut acc);`. The library target builds; only the test target is blocked. `cargo build -p junie-tui` is green. (Earlier ledger lines describing an unresolved E0502 elsewhere are superseded by this one.)
 
-### Research request for `opus-analyst` (4G)
+### Research request for `read-only analyst` (4G)
 
 A stateless `StatusBar` cannot paint per-item hover, which the legacy `src/widgets/statusbar.rs::render` did. `Runtime` keeps `hover: Option<(Id, PartRef)>` (`crates/tui/src/runtime.rs:83`), but the frame snapshot carries only `hover: Option<Id>` (`crates/tui/src/ui/cx.rs:53`), `FrameRead` exposes only `state(id) -> StateFlags` (`cx.rs:108`), and `Phase` (`crates/tui/src/intent.rs:71`) has no `Move`, so `update` cannot track it either. Missing primitive: `FrameRead::hovered_part(&self, owner: Id) -> Option<PartRef>` in the Slice-3-owned `crates/tui/src/ui/cx.rs`. Recorded as a documented `StatusBar` limitation rather than a stop — but it is a visual regression against the legacy widget until it is closed.
 
@@ -174,7 +174,7 @@ A stateless `StatusBar` cannot paint per-item hover, which the legacy `src/widge
 - No `unsafe`; std only; MSRV 1.88 respected — deliberately avoided `File::lock` (stable only in 1.89).
 - **Proof the tests catch the defect**: with `bless` reverted to the old read-modify-write, `concurrent_bless_keeps_every_entry` fails `left: 3, right: 48`; restored implementation passes. Tests spawn the test binary itself twice with `BLESS=1`, 4 threads x 6 scenes released by a `Barrier`.
 - **Two-way bless proof**: 1-thread and default-thread runs both produce 387 lines, `diff` identical, sha256 `c46b10bc…01bf6a`, `git diff --stat` empty after both, no `.tmp.*` residue.
-- Residual, recorded not hidden: a lost update remains theoretically possible if two processes bless the same baseline in the sub-millisecond window between one's read and the other's rename. Unreachable today because `cargo test` runs test binaries sequentially; closing it needs file locking, i.e. MSRV >= 1.89 — an `opus-analyst` decision only if baselines are ever run under `cargo nextest`.
+- Residual, recorded not hidden: a lost update remains theoretically possible if two processes bless the same baseline in the sub-millisecond window between one's read and the other's rename. Unreachable today because `cargo test` runs test binaries sequentially; closing it needs file locking, i.e. MSRV >= 1.89 — an `read-only analyst` decision only if baselines are ever run under `cargo nextest`.
 
 ### Build state on resume — MEASURE, do not trust either prior note
 
@@ -329,7 +329,7 @@ Two builders reported different pictures minutes apart: 4G saw a single `E0502` 
 - The exact nine §29 architecture amendments are applied: §11.4 pressed ownership; §12.2 `Slot`; Fixture privacy/accessors; case-9 reason checking; the §28.6 grep correction; §28.8 gate corrections; §20.10 button mono coverage; §16.1 test names; and this mirrored §29 record.
 - No unowned path was changed for this closeout; concurrent conformance failures remain outside this slice.
 
-## Session 3 checkpoint — Fable-builder fresh results (2026-09-04)
+## Session 3 checkpoint — Builder fresh results (2026-09-04)
 
 - Jason changed only the conformance fixture wiring for this result: removed `TextArea`'s forced `BUSY` state, added the required narrowing-reason string, and preserved the prior `RadioGroup` label-only rows, non-empty `TextArea` value, and focus-settle changes.
 - Focused `TextArea` conformance: `21 passed; 446 filtered out`; exit code `0`.
@@ -410,7 +410,7 @@ Builders, disjoint single-file ownership, running in parallel:
   Told that the "overlay contract unresolved" reason is stale: §29 settles it as
   `Caps::OVERLAY` without `Caps::TRAPS_FOCUS`, so case 14 must not run for `Select`.
 
-Fresh read-only `opus-analyst` agents, running in parallel:
+Fresh read-only `read-only analyst` agents, running in parallel:
 - F1 mono-fallback adjudication: does `Recipes::apply_mono_fallbacks` really give a
   `Family::custom(...)` zero rules at `ColorLevel::Mono`, and is that the same root cause
   as `define_family`-with-empty-edit discarding neutral styling.
@@ -475,7 +475,7 @@ uncommitted tree in `crates/tui-testing/src/conformance/{driver.rs,mod.rs}`.
 This **directly contradicts recorded §29**, which states that `Select` remains `OVERLAY`-only
 and non-trapping, and it contradicts the instruction I gave my own `select-conformance` builder.
 `COMPONENT_ARCHITECTURE.md` change control requires a fresh adjudication to overturn §29, so a
-fresh read-only `opus-analyst` is adjudicating it now, with the explicit instruction to reject
+fresh read-only `read-only analyst` is adjudicating it now, with the explicit instruction to reject
 the case-14 split if it turns out to exist only to let `Select` pass — that would be a
 permanently loosened gate. Until that verdict lands, no §31 is written and the `SelectCase`
 registration is provisional.
@@ -488,7 +488,7 @@ it first, as happened here, produces exactly this kind of split-brain.
 
 ### §31 — mono fallbacks must reach the neutral recipe (F1). ACCEPTED, recorded, code in flight.
 
-A fresh read-only `opus-analyst` confirmed F1 and found its cause narrower and its blast
+A fresh read-only `read-only analyst` confirmed F1 and found its cause narrower and its blast
 radius wider than the finding stated. `Recipes` has three fields; resolution reads `neutral`
 via `get_or_neutral` whenever `by_family` misses, so the resolvable set is
 `by_family ∪ {neutral}` — but `apply_mono_fallbacks` iterated `by_family` only, leaving the
@@ -527,7 +527,7 @@ Builder in flight owns `crates/tui/src/theme/{downgrade.rs,recipe.rs}` and owes
 
 ### §32 — independent audit of Adjudications Q and P. ACCEPTED, recorded.
 
-A fresh `opus-analyst` with none of the context of the work it checked audited §29 and §30.
+A fresh `read-only analyst` with none of the context of the work it checked audited §29 and §30.
 Most of Q is genuinely applied — Q2's `Fixture` privacy is structurally correct, Q1's shared
 bracket helper is used by `Button`, `Tabs` and `ChipBar` with geometry preserved, A4 is
 properly re-stated as a live-caller gate, and the §28.6 defect it was created to fix (four of
@@ -1518,7 +1518,7 @@ implementation worker, because no implementation package is dispatched while the
 1. Consume the six audit reports as they return.
 2. Adjudicate every architectural, public-API, security, performance, or visual-design finding and
    record the accepted decisions.
-3. Dispatch disjoint `fable-builder` implementation packages against the adjudicated scope, with
+3. Dispatch disjoint `builder` implementation packages against the adjudicated scope, with
    non-overlapping file ownership.
 
 ### Blocker
@@ -1547,7 +1547,7 @@ historical evidence; where they conflict with this checkpoint, this checkpoint g
 
 ### Independent visual review — FAIL
 
-- A fresh read-only `opus-analyst` visual reviewer, not the builder who generated the baselines,
+- A fresh read-only `read-only analyst` visual reviewer, not the builder who generated the baselines,
   reviewed the **640** Slice-4 review frames at this HEAD and returned **FAIL**.
 - This **supersedes the PASS** recorded against `a1759b2` in the preceding checkpoint. That PASS
   line stays where it is as historical evidence and is not edited.
@@ -1591,7 +1591,7 @@ Recorded in `COMPONENT_ARCHITECTURE.md`, per the rule that every accepted decisi
     and requested under `Mono < Ansi16 < Ansi256 < TrueColor` — it may lower and never raise, an
     over-request is clamped silently rather than erroring, `CLICOLOR_FORCE` stays the only way to
     raise colour, and the ceiling is applied in `run` (§34), not in three hand-rolled parsers.
-    **One sub-question is deliberately left open for `opus-analyst`**: whether the required total
+    **One sub-question is deliberately left open for `read-only analyst`**: whether the required total
     order over `ColorLevel` becomes public (`PartialOrd`/`Ord` on a `#[non_exhaustive]` public
     enum) or stays a crate-private rank. Nothing else in D1 depends on it.
   - **D2, capture-matrix obligation.** `xtask capture-matrix` is asserted in the present
@@ -2028,6 +2028,113 @@ edit is included here.
   may remove the remaining `PARTS.first()` ordering convention, but it is not an unresolved gate.
 - No full workspace/Slice 4 completion claim follows. Capture provenance, visual blockers and
   baseline blessing status remain as recorded above.
+
+## Porting-analysis session — local working tree vs codex/main-holla-integration (2026-09-08)
+
+Goal: analyze all local changes, verify what still needs porting to `codex/main-holla-integration`,
+port only what makes sense.
+
+Verified topology:
+- merge-base(main, codex/main-holla-integration) == c12cad8 == main HEAD; integration is
+  275 ahead / 0 behind. All committed local work already in integration.
+- Only candidate content: uncommitted working-tree delta, 49 real files, +4345/−1647 vs c12cad8.
+- Integration worktree ~/Projects/terminal-components-integration clean at be6fd42.
+- No untracked source files (only parity artifacts and .codex-target scratch dirs).
+
+Cluster diffs staged at /tmp/porting/: A-core.diff, A-baseline.txt (crates/tui),
+B-showcase.diff (apps/showcase), C-apps.diff (tablepro+jackin-preview), D-tools.diff (xtask+tools),
+D-docs.diff (docs/visual-changes.md).
+
+Agents: 4 read-only analyst (read-only), disjoint scopes: crates/tui core+baseline;
+apps/showcase; tablepro+jackin-preview; xtask/tools/docs. Awaiting verdicts
+(ALREADY-PRESENT / SUPERSEDED / PORT / SKIP per file). Port implementation reserved for
+builder against the integration worktree. Coordinator commits.
+
+Status: ANALYSIS IN FLIGHT — no ports applied yet.
+
+### Adjudicated port list (accepted from 4 analyst reports, 2026-09-08)
+
+PORT (to integration worktree ~/Projects/terminal-components-integration @ be6fd42):
+1. crates/tui/src/components/viewport.rs:1455 — `LayoutFacts` rows report `area.height.saturating_sub(2)` → `area.height` (stale rows overwrite ScrollRegion full-height report; last-report-wins in `layout_of`).
+2. crates/tui/src/runtime.rs `apply_staged_focus` — add `self.services.repaint = true;` after snapshot focus write; port focus-repaint test adapted to staged `handle` API.
+3. crates/tui/src/components/tree.rs `paint_default_row` — leaf disclosure placeholder inherits row style when no ICON patch (`Slot::Inherit` + `row.disclosure.is_none()` + no ICON patch → `rs.style`); port test `leaf_disclosure_placeholder_inherits_row_style_but_branch_keeps_icon_style`; regenerate tree digests in components.txt on integration (never copy local hashes); classify movement in docs/visual-changes.md.
+4. crates/tui/src/theme/builtin/mod.rs — BADGE recipe (OnAccent fg / Accent bg / BOLD) into `container_like` (integration Panel::badge currently resolves recipe-less part).
+5. crates/tui/src/ui/mod.rs `Ui::layer` — structural layer-parent lookup (`idx.checked_sub(1)`) replacing numeric-adjacency `index()+1` coupling; port test `layer_scope_parent_follows_active_order_after_id_gap`.
+6. crates/tui/src/components/filter_list.rs `FilterListState::set_cursor` + picker.rs `PickerState::set_cursor`, `align(ScreenAlign)` builder (default UpperThird), query caret in searchable draw arm (needs `Position` import). Rejected: `size()` coupling, 1-col inset, non-searchable height −1.
+7. apps/tablepro/src/app.rs:2243 — tree gutter `Color::Rgb(0,0,0)` → `Role::OnSurfaceInverse` patch (integration idiom); drop unused `Color` import; classify movement.
+8. apps/showcase/src/app.rs `on_esc` — historical focus-only semantics (never quit / never change page); fallback to unconditional `cx.focus(NAV); Response::changed()` if `Cx::state` absent; port test `escape_returns_focus_to_navigation_without_changing_page`.
+9. tools/parity_replay.py — `PARITY_REPLAY_WORKERS` (default 1, validate ≥1), 3-attempt retry on RuntimeError, per-attempt capture state dirs, anchor step matches `previous_text`, primary_error preservation (integration lines 460-466 carry the both-branches-raise bug verbatim).
+10. xtask/src/main.rs — `mask_rust_literals`/`has_raw_prefix`/`raw_string_start` + scan-on-masked-text in `no_deprecated_or_legacy_api_usage` + `boundary_literal_mask_preserves_real_code_and_hides_examples` test.
+
+REJECTED/SKIP (superseded on integration — do not port): scroll_region cap removal (integration keeps caps + test), panel meta padding restyle, overlay_chrome variant, monotonic LayerId, glyph.rs doc rewrite, components.txt local hashes, render_components.rs no-caps fixture rewrite, xtask git_path_exists (integration `historical_additions::reviewed_additions` strictly stronger), xtask/parity.rs formatting churn, docs 7a digest refresh/19b/33b (local-only bookkeeping), jackin-preview historical_style_from_surface (superseded by app/historical_paint.rs), tablepro lib.rs crate-level expect, showcase full-width frozen frames, footer page-hints trait, pickers three-picker rework, theme_fg helper (Role patches instead), meta-string unification (already present), progress "Pause" label (integration "Resume" is superset).
+
+Integration docs needs fresh 7b-equivalent entry only for tree digest movement (panel padding not ported).
+
+Status: PORTS ACCEPTED — builder dispatched, single owner, integration worktree.
+
+### Builder execution + verification (2026-09-08, continued)
+
+Builder applied all 10 ports in the integration worktree (14 files, +511/−93 pre-follow-up).
+Gates: fmt clean; clippy (junie-tui, showcase, tablepro, xtask, all-targets) clean; junie-tui lib
+762 passed; remaining failures verified pre-existing on clean HEAD (256 stale render baselines,
+7 architecture, misc fixtures; showcase visual baseline; tablepro undo_contract; xtask
+grid_model surface gate). One required adaptation: tree.rs kept an explicit branch arm painting
+`row.disclosure` with icon style — integration's retained `default_prefix_and_opt_in_gap...`
+test asserts the branch glyph; local collapsed arm would have blanked it. Tree digests
+regenerated via repo flow `BLESS=1 cargo test -p junie-tui --test render_components tree -- --test-threads=1`;
+7b classification entry added to docs/visual-changes.md.
+
+Independent verification (read-only analyst): items 1,2,4,5,6,7 PASS; 3 code PASS incl. necessary
+branch adaptation; 8,9,10 PASS with concerns. One blocker raised (6 tree::empty baseline moves)
+— RESOLVED empirically: `tree::empty` passes against the new baseline even with tui sources
+reverted to HEAD (and under each single-file revert), proving the 6 empty cells were already
+stale at the integration base revision and were synced by the BLESS run, not moved by the ports.
+Follow-up dispatched: split 7b entry into 44 fix-driven pairs + provenance note for the 6
+pre-stale empty cells; restore fail-fast in parity_replay.py (`shutdown(wait=False,
+cancel_futures=True)` on first failure — submitted-up-front pool otherwise drains 499 recipes).
+
+Ledger corrections:
+- Earlier note "Cx::state absent on integration" is FALSE: `Cx` implements `FrameRead::state`
+  (crates/tui/src/ui/cx.rs:604-607). The accepted unconditional-focus `on_esc` form was kept
+  anyway (behavior difference only: Esc always returns `changed()`/repaint when NAV already
+  focused).
+- Accepted follow-ups (not blockers): xtask `mask_rust_literals` desyncs on quote-bearing char
+  literals (e.g. `b'"'`) — identical in the local reference, hardening deferred; tmux session
+  can leak when a recipe fails and its `stop` also fails (bounded by process exit).
+
+Status: FOLLOW-UPS IN FLIGHT — commits pending on doc-check.
+
+### Porting session CLOSED (2026-09-08)
+
+10 commits landed on codex/main-holla-integration (worktree ~/Projects/terminal-components-integration):
+675fd58 viewport rows, 5eb277c staged-focus repaint, 0d676b1 tree leaf disclosure (+baseline 7b/7c
+classification), 42d3a68 container BADGE recipe, 2b4a4ff structural layer parent, f2e06ac
+picker cursor/align/caret, b30c5ad tablepro inverse gutter, f8282d7 showcase focus-only Esc,
+7bd8831 parity_replay parallel+retry+fail-fast, da92e48 xtask literal masking. All signed -s.
+Working tree clean; bless-guard green (50 moved, 0 added); doc-check failure (`Theme::lift`,
+1 unresolved reference) pre-existing on the branch, left as-is.
+
+Everything else in the local uncommitted delta was adjudicated ALREADY-PRESENT, SUPERSEDED or
+SKIP (see rejected list above). Local working tree untouched (source files); only this ledger
+was modified locally.
+
+Session complete. Deviation note: executed on Opus 5 per recorded routing deviation (Fable 5.1
+capacity exhausted); routing ownership stayed inside agent definitions.
+
+## Migration verification and local cleanup (2026-09-08)
+
+PR #1 (`codex/main-holla-integration` → main, OPEN) verified against local main `d4715f8e`:
+- origin/main == local main == `d4715f8e`; origin integration == local integration HEAD ==
+  `da92e485` == PR head; integration worktree clean.
+- All 10 ported changes confirmed present on the integration branch (marker check across
+  viewport/runtime/tree/theme/ui/layer, picker/filter_list APIs, tablepro role gutter, showcase
+  focus-only Esc, parity_replay fail-fast, xtask literal masking, ledger 7b/7c).
+- Hunk-level coverage of the entire 51-file local campaign delta was previously classified
+  hunk-by-hunk by four independent read-only reviews plus one independent post-port audit
+  ("every hunk maps 1:1 to an accepted item"); no uncovered change exists.
+Conclusion: migration complete; nothing further to port. Local scratch (`.codex-target-*`,
+`.mbx-target-*`, untracked parity artifacts) removed; patterns gitignored. Temporary verifier
+agent definition removed after use.
 
 
 ## Main-based Holla integration checkpoint — 2026-09-08

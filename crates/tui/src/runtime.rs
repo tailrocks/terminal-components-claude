@@ -715,8 +715,10 @@ impl<A: App> Runtime<A> {
         }
         self.focus.set(to);
         self.last.snapshot.focus = to;
-        // Focus transitions change the visible focus paint; every other
-        // visible-state change site already requests a repaint.
+        // Focus is visible state. Terminal sessions redraw only when the
+        // response asks for paint; without this request a rapid Tab+Enter
+        // sequence can deliver Enter against the previous frame's binding
+        // table, so the newly focused control never sees its activation.
         self.services.repaint = true;
 
         // Detaching a closed owner is not navigation out of surviving layers.
@@ -3229,6 +3231,17 @@ mod tests {
         let _ = step(&mut rt, &mut buf, key(KeyCode::Down));
         let suppressed_out = step(&mut rt, &mut buf, mouse(MouseKind::Move, 32, 10));
         assert_eq!(suppressed_out.invalidate(), Invalidate::None);
+    }
+
+    #[test]
+    fn focus_transition_requests_paint_for_terminal_sessions() {
+        let (mut rt, mut buf) = runtime(three());
+
+        let response = deliver(&mut rt, key(KeyCode::Tab));
+
+        assert_eq!(rt.focus(), Some(B));
+        assert_eq!(response.invalidate(), Invalidate::Paint);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
     }
 
     #[test]

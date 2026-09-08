@@ -4,8 +4,8 @@ use core::fmt;
 use junie_tui::author::PaintStyle;
 
 use junie_tui::{
-    Button, Cx, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status, StepState,
-    Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, id, layout, width,
+    Button, Cx, FrameRead, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status,
+    StepState, Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, id, layout, width,
 };
 
 use crate::data::log_lines;
@@ -344,6 +344,23 @@ impl Page for TerminalPage {
                 }
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(OUTPUT).contains(StateFlags::FOCUSED) {
+            vec![
+                ("↑ ↓", "Scroll"),
+                ("Home End", "Oldest / live"),
+                ("f", "Follow"),
+                ("drag", "Select"),
+                ("y", "Copy"),
+                ("Esc", "Clear"),
+            ]
+        } else if ui.state(RAIL).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Move"), ("wheel", "Scroll")]
+        } else {
+            vec![("Enter", "Activate"), ("drag ┃", "Resize")]
+        }
     }
 }
 

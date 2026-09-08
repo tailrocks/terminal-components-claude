@@ -2,8 +2,9 @@
 
 use junie_tui::author::PaintStyle;
 use junie_tui::{
-    ChipBar, ChipBarAction, ChipBarState, Cx, Id, ItemKey, Modifier, Part, Rect, Response, RowUi,
-    Select, SelectAction, SelectState, StateFlags, Surface, Ui, Variant, id, layout, width,
+    ChipBar, ChipBarAction, ChipBarState, Cx, FrameRead, Id, ItemKey, Modifier, Part, Rect,
+    Response, RowUi, Select, SelectAction, SelectState, StateFlags, Surface, Ui, Variant, id,
+    layout, width,
 };
 
 use crate::data::LANGUAGES;
@@ -334,6 +335,22 @@ impl Page for ChipsPage {
                 );
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(CHIPS).contains(StateFlags::FOCUSED) {
+            vec![
+                ("← →", "Move"),
+                ("Space", "Toggle"),
+                ("Enter", "Edit / add"),
+                ("x", "Remove"),
+                ("X", "Clear all"),
+            ]
+        } else if ui.state(SELECT).contains(StateFlags::FOCUSED) {
+            vec![("Enter", "Open"), ("↑ ↓", "Choose"), ("Esc", "Close")]
+        } else {
+            Vec::new()
+        }
     }
 }
 

@@ -382,7 +382,7 @@ cargo run -p xtask -- doc-check
 cargo test -p tablepro --test perf --release -- --test-threads=1
 ```
 
-**Slice close gate** additionally: all 23 `app_tests` green; `grid_500x12_load < 8 000 allocs` and `frame_tablepro_grid_500x12_120x40 < 100 allocs/frame` (§16.6); the two added benchmarks `frame_tablepro_connection_form_120x40 < 40` and `frame_tablepro_query_editor_2k_lines < 40`; `apps/tablepro/tests/baselines/tablepro.txt` regenerated **once**, in the order **change → capture → classify → bless** (§16.3), every one of the 42 lines classified in `docs/visual-changes.md`; captures of the connection, editor, grid, tabs, dialog, picker and results surfaces reviewed by a fresh read-only `opus-analyst`.
+**Slice close gate** additionally: all 23 `app_tests` green; `grid_500x12_load < 8 000 allocs` and `frame_tablepro_grid_500x12_120x40 < 100 allocs/frame` (§16.6); the two added benchmarks `frame_tablepro_connection_form_120x40 < 40` and `frame_tablepro_query_editor_2k_lines < 40`; `apps/tablepro/tests/baselines/tablepro.txt` regenerated **once**, in the order **change → capture → classify → bless** (§16.3), every one of the 42 lines classified in `docs/visual-changes.md`; captures of the connection, editor, grid, tabs, dialog, picker and results surfaces reviewed by a fresh read-only `read-only analyst`.
 
 ---
 

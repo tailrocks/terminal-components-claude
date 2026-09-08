@@ -42,6 +42,14 @@ pub(crate) trait Page: Send {
     }
     /// Draw this screen into the shell's content rectangle.
     fn draw(&self, ui: &mut Ui<'_>, area: Rect);
+    /// Contextual footer hints for the focused page or layer.
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        Vec::new()
+    }
+    /// Whether the focused page control is in edit mode.
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        false
+    }
 }
 
 /// Draw a screen frame and hand its inset body to the page.

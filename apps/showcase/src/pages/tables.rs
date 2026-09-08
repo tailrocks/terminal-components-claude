@@ -567,6 +567,23 @@ impl Page for TablesPage {
             }
         });
     }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.state.is_editing() {
+            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+        } else {
+            vec![
+                ("↑ ↓", "Move"),
+                ("← →", "Columns"),
+                ("s", "Sort column"),
+                ("Enter", "Select"),
+            ]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
+    }
 }
 
 impl TablesPage {

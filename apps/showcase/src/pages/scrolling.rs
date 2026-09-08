@@ -1,8 +1,8 @@
 //! Three independent scroll surfaces: prose, a long list, and a following log.
 
 use junie_tui::{
-    Cx, Id, Panel, Rect, Response, ScrollRegion, ScrollState, TextViewport, Track, Ui,
-    ViewportAction, ViewportLine, ViewportState, id, layout,
+    Cx, FrameRead, Id, Panel, Rect, Response, ScrollRegion, ScrollState, StateFlags, TextViewport,
+    Track, Ui, ViewportAction, ViewportLine, ViewportState, id, layout,
 };
 
 use crate::data::{PROSE, SCROLL_ROWS, log_lines};
@@ -194,6 +194,9 @@ impl Page for ScrollingPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
+        let _ = prose_panel("");
+        let _ = list_panel("");
+        let _ = log_panel("");
         let prose = prose_view().update(cx, &mut self.prose_state, &self.prose);
         self.note(prose.action_ref());
         response |= prose.erase();
@@ -312,6 +315,16 @@ impl Page for ScrollingPage {
                 }
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(LOG_VIEW).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Scroll"), ("f", "Follow"), ("G", "End")]
+        } else if ui.state(LIST_VIEW).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+        } else {
+            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+        }
     }
 }
 

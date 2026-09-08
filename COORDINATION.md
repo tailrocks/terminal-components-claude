@@ -46,7 +46,7 @@ Blocked-on-Lane-A items (raise in `docs/status/laneB.md`, do NOT implement in
 `crates/**` yourself): Slice 6 Q1 (does the library `Grid` own a sort permutation
 and on what comparison), Q2 (what `GridState` exposes; eleven TablePro chords and
 three migrated tests need the cursor), Q3 (may a control register a zero-area focus
-entry). Research and adjudicate them read-only with a fresh `opus-analyst` and post
+entry). Research and adjudicate them read-only with a fresh `read-only analyst` and post
 the adjudication as `docs/reviews/laneB-grid-contract.md`; Lane A records it in the
 architecture document and implements the library half.
 

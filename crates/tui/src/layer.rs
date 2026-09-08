@@ -11,7 +11,7 @@ use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 
-/// A stack position; `0` is the page.
+/// An open-order layer number; `0` is the page.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct LayerId(pub(crate) u16);
 
@@ -450,11 +450,23 @@ impl OpenLayer {
 }
 
 /// The runtime's layer stack.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub(crate) struct LayerStack {
     open: Vec<OpenLayer>,
     /// Events staged for delivery on the next `handle`.
     pending: Vec<(Id, LayerEvent)>,
+    /// The next monotonic layer number. It is not reduced when layers close.
+    next: u32,
+}
+
+impl Default for LayerStack {
+    fn default() -> Self {
+        Self {
+            open: Vec::new(),
+            pending: Vec::new(),
+            next: 1,
+        }
+    }
 }
 
 impl LayerStack {
@@ -499,8 +511,8 @@ impl LayerStack {
             .map_or(LayerId::PAGE, |l| l.layer)
     }
 
-    /// Open a layer; the `LayerId` is its stack position. Re-opening an open
-    /// id is a no-op.
+    /// Open a layer; its `LayerId` is assigned monotonically. Re-opening an
+    /// open id is a no-op.
     pub(crate) fn open(
         &mut self,
         id: Id,
@@ -510,7 +522,8 @@ impl LayerStack {
         if self.is_open(id) {
             return None;
         }
-        let layer = LayerId((self.open.len() as u16).saturating_add(1));
+        let layer = LayerId(u16::try_from(self.next).ok()?);
+        self.next = self.next.saturating_add(1);
         self.open.push(OpenLayer {
             id,
             layer,
@@ -580,6 +593,14 @@ mod tests {
         let ev = s.take_pending();
         assert!(ev.contains(&(DLG, LayerEvent::Dismissed(DismissReason::Esc))));
         assert!(ev.contains(&(PICK, LayerEvent::Dismissed(DismissReason::Programmatic))));
+    }
+
+    #[test]
+    fn reopened_layers_keep_monotonic_ids() {
+        let mut s = LayerStack::default();
+        assert_eq!(s.open(DLG, LayerSpec::modal(DLG), None), Some(LayerId(1)));
+        assert_eq!(s.close(DLG, LayerEvent::Closed(ActionKey::CANCEL)).len(), 1);
+        assert_eq!(s.open(PICK, LayerSpec::modal(PICK), None), Some(LayerId(2)));
     }
 
     #[test]

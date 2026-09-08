@@ -2,8 +2,8 @@
 
 use junie_tui::author::PaintStyle;
 use junie_tui::{
-    Brand, Cx, Id, Modifier, Part, Role, StateFlags, Status, StatusBar, StatusItem, Surface, Ui,
-    Variant, id, width,
+    Brand, Cx, FrameRead, Id, Modifier, Part, Role, StateFlags, Status, StatusBar, StatusItem,
+    Surface, Ui, Variant, id, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -162,64 +162,139 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
             panel,
         );
     }
-    let segments: [(u16, &str, &str, PaintStyle); 6] = [
-        (0, " ", " app❯ ", brand),
-        (0, "  app❯   ", " File ", muted),
-        (0, "  app❯    File  ", " View ", muted),
-        (0, "  app❯    File   View  ", " Help ", muted),
-        (2, "  ", "Sessions", title),
-        (
-            2,
-            "  Sessions              ",
-            "right-click or m for the tab menu",
-            faint,
-        ),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
-    paint_sessions(ui, body, [panel, status, meta]);
-    ui.fill(
-        junie_tui::Rect {
-            x: body.x.saturating_add(1),
-            y: body.y.saturating_add(15),
-            width: width("payments-platform   PR #482 · settlement backoff"),
-            height: 1,
-        },
-        active,
+    paint_segment(ui, body, 0, " ", " app❯ ", brand);
+    paint_segment(ui, body, 0, "  app❯   ", " File ", muted);
+    paint_segment(ui, body, 0, "  app❯    File  ", " View ", muted);
+    paint_segment(ui, body, 0, "  app❯    File   View  ", " Help ", muted);
+    paint_segment(ui, body, 2, "  ", "Sessions", title);
+    paint_segment(
+        ui,
+        body,
+        2,
+        "  Sessions                                                 ",
+        "right-click or m for the tab menu",
+        faint,
     );
-    let segments: [(u16, &str, &str, PaintStyle); 2] = [
-        (15, " ", "payments-platform", active),
-        (
-            15,
-            " payments-platform   ",
-            "PR #482 · settlement backoff",
-            active_detail,
-        ),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
+    let rail = ui.with_surface(Surface::Surface, |ui| ui.surface_style().fg(ui.bg()));
+    paint_segment(ui, body, 4, "  ", "▎", rail);
+    paint_segment(ui, body, 4, "  ▎", "  1 Claude Code (Work)", panel);
+    paint_segment(
+        ui,
+        body,
+        4,
+        "  ▎  1 Claude Code (Work)                 ",
+        "working",
+        status,
+    );
+    paint_segment(
+        ui,
+        body,
+        4,
+        "  ▎  1 Claude Code (Work)                 working     ",
+        "The status bar below sits on its own …",
+        meta,
+    );
+    paint_segment(ui, body, 5, "  ", "▎", rail);
+    paint_segment(ui, body, 5, "  ▎", "  2 Codex (Primary)", panel);
+    paint_segment(
+        ui,
+        body,
+        5,
+        "  ▎  2 Codex (Primary)                       ",
+        "idle",
+        status,
+    );
+    paint_segment(
+        ui,
+        body,
+        5,
+        "  ▎  2 Codex (Primary)                       idle     ",
+        "separator glyphs, and items leave by …",
+        meta,
+    );
+    paint_segment(ui, body, 6, "  ", "▎", rail);
+    paint_segment(ui, body, 6, "  ▎", "  3 Shell", panel);
+    paint_segment(
+        ui,
+        body,
+        6,
+        "  ▎  3 Shell                                          ",
+        "narrow — resize the terminal to watch…",
+        meta,
+    );
+    paint_segment(ui, body, 7, "  ", "▎", rail);
+    paint_segment(ui, body, 7, "  ▎", "  4 docs", panel);
+    paint_segment(
+        ui,
+        body,
+        7,
+        "  ▎  4 docs                               ",
+        "blocked",
+        status,
+    );
+    paint_segment(
+        ui,
+        body,
+        8,
+        "                                                      ",
+        "Brand: one lockup, accent-filled, the…",
+        meta,
+    );
     ui.fill(
         junie_tui::Rect {
-            y: body.y.saturating_add(16),
-            height: 2,
+            y: body.y.saturating_add(15),
+            height: 3,
             ..body
         },
         canvas,
     );
-    let segments: [(u16, &str, &str, PaintStyle); 6] = [
-        (16, " ", "hint bar · topmost layer wins:", faint_canvas),
-        (17, " ", "↑↓", key),
-        (17, " ↑↓ ", "Move", action),
-        (17, " ↑↓ Move  ", "m", key),
-        (17, " ↑↓ Move  m ", "Context menu", action),
-        (17, " ↑↓ Move  m Context menu  ", "…", faint_canvas),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
-    paint_activation_status(ui, body, brand_clicks, last_style);
+    // The historical strip sits above the shell footer, whose hint rows own
+    // the bottom cells of the frame.
+    let status_y = body.y.saturating_add(15);
+    ui.paint_str(
+        junie_tui::Rect {
+            y: status_y,
+            height: 1,
+            ..body
+        },
+        " payments-platform   PR #482 · settlement backoff                                 Weekly 59%",
+        active,
+    );
+    ui.paint_str(
+        junie_tui::Rect {
+            y: status_y.saturating_add(1),
+            height: 1,
+            ..body
+        },
+        " hint bar · topmost layer wins:",
+        faint_canvas,
+    );
+    let last = if brand_clicks == 0 {
+        "last: nothing yet".to_owned()
+    } else {
+        format!("brand activations: {brand_clicks}")
+    };
+    // The historical line right-aligns the activation readout inside the
+    // visible body; the shell sidebar leaves this page narrower than the
+    // 120-column historical terminal.
+    let prefix = " ↑↓ Move  m Context menu  right-click Context menu  Tab Next";
+    let filler = body
+        .width
+        .saturating_sub(width(prefix))
+        .saturating_sub(width(&last))
+        .saturating_sub(1)
+        .max(1);
+    let hint_line = format!("{prefix}{}{last}", " ".repeat(filler as usize));
+    ui.paint_str(
+        junie_tui::Rect {
+            y: status_y.saturating_add(2),
+            height: 1,
+            ..body
+        },
+        &hint_line,
+        faint_canvas,
+    );
+    let _ = (active_detail, key, action, last_style);
 }
 
 /// Chrome keeps a clickable brand and a deterministic status strip in state.
@@ -266,7 +341,7 @@ impl Page for ChromePage {
                     &[
                         "  app❯    File   View   Help",
                         "",
-                        "  Sessions              right-click or m for the tab menu",
+                        "  Sessions                                                 right-click or m for the tab menu",
                         "",
                         "  ▎  1 Claude Code (Work)                 working     Th…",
                         "  ▎  2 Codex (Primary)                       idle     se…",
@@ -287,6 +362,18 @@ impl Page for ChromePage {
                 paint_historical(ui, body, self.brand_clicks);
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(BAR).contains(StateFlags::FOCUSED) {
+            vec![("← →", "Menu"), ("Enter", "Open")]
+        } else {
+            vec![
+                ("↑↓", "Move"),
+                ("m", "Context menu"),
+                ("right-click", "Context menu"),
+            ]
+        }
     }
 }
 
@@ -365,86 +452,4 @@ impl HistoricalPalette {
             action,
         }
     }
-}
-
-fn paint_sessions(ui: &mut Ui<'_>, body: junie_tui::Rect, [panel, status, meta]: [PaintStyle; 3]) {
-    let rail = ui.with_surface(Surface::Surface, |ui| {
-        ui.surface_style().with_fg_from_bg(ui.surface_style())
-    });
-    let segments: [(u16, &str, &str, PaintStyle); 15] = [
-        (4, "  ", "▎", rail),
-        (4, "  ▎", "  1 Claude Code (Work)", panel),
-        (
-            4,
-            "  ▎  1 Claude Code (Work)                 ",
-            "working",
-            status,
-        ),
-        (
-            4,
-            "  ▎  1 Claude Code (Work)                 working     ",
-            "Th…",
-            meta,
-        ),
-        (5, "  ", "▎", rail),
-        (5, "  ▎", "  2 Codex (Primary)", panel),
-        (
-            5,
-            "  ▎  2 Codex (Primary)                       ",
-            "idle",
-            status,
-        ),
-        (
-            5,
-            "  ▎  2 Codex (Primary)                       idle     ",
-            "se…",
-            meta,
-        ),
-        (6, "  ", "▎", rail),
-        (6, "  ▎", "  3 Shell", panel),
-        (
-            6,
-            "  ▎  3 Shell                                          ",
-            "na…",
-            meta,
-        ),
-        (7, "  ", "▎", rail),
-        (7, "  ▎", "  4 docs", panel),
-        (
-            7,
-            "  ▎  4 docs                               ",
-            "blocked",
-            status,
-        ),
-        (
-            8,
-            "                                                      ",
-            "Br…",
-            meta,
-        ),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
-}
-
-fn paint_activation_status(
-    ui: &mut Ui<'_>,
-    body: junie_tui::Rect,
-    brand_clicks: u32,
-    last_style: PaintStyle,
-) {
-    let last = if brand_clicks == 0 {
-        "last: nothing yet".to_owned()
-    } else {
-        format!("brand activations: {brand_clicks}")
-    };
-    paint_segment(
-        ui,
-        body,
-        17,
-        " ↑↓ Move  m Context menu  …              ",
-        &last,
-        last_style,
-    );
 }

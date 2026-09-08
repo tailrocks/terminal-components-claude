@@ -63,38 +63,38 @@ Chips & selects 80 24 paper 16 855f17074aa8d489
 Chips & selects 80 24 paper 256 be1e74d56351ada7
 Chips & selects 80 24 paper mono d051ecb474251045
 Chips & selects 80 24 paper truecolor a9610e66eb23a19c
-Chrome 100 30 junie 16 5577805cd81ddbaf
-Chrome 100 30 junie 256 f9cfbd9ee61571f5
-Chrome 100 30 junie mono abc53cc5588a2d4e
-Chrome 100 30 junie truecolor a74463068b778612
-Chrome 100 30 paper 16 7d4b36399318033a
-Chrome 100 30 paper 256 2f5355b29b93c471
-Chrome 100 30 paper mono 06ffc34385972646
-Chrome 100 30 paper truecolor 2837cb75e0e6a410
-Chrome 120 40 junie 16 2470de2546f2fdc1
-Chrome 120 40 junie 256 986887ac6f1b12a4
-Chrome 120 40 junie mono 976339f5b1402d86
-Chrome 120 40 junie truecolor fbc86c3414ad9686
-Chrome 120 40 paper 16 254b9b4128ca69ce
-Chrome 120 40 paper 256 0aae12c6c98b1974
-Chrome 120 40 paper mono 9847a275a9eca73e
-Chrome 120 40 paper truecolor 61430e5416e8c834
-Chrome 160 50 junie 16 c932daa666ad4c48
-Chrome 160 50 junie 256 070ba4487dd9e99f
-Chrome 160 50 junie mono d1a1e97ee134f2e5
-Chrome 160 50 junie truecolor 0b325eb481eef857
-Chrome 160 50 paper 16 d51c626b3c799935
-Chrome 160 50 paper 256 d3e72a871240ca05
-Chrome 160 50 paper mono 58f45119df0c7ca9
-Chrome 160 50 paper truecolor 63d5120f64258b3b
-Chrome 80 24 junie 16 dd8ab74a967c9662
-Chrome 80 24 junie 256 c6cbc00219bae359
-Chrome 80 24 junie mono 403624c10ecccc92
-Chrome 80 24 junie truecolor b34a7661f9eb2335
-Chrome 80 24 paper 16 959e4c12e10fc427
-Chrome 80 24 paper 256 3be0472361ecca7b
-Chrome 80 24 paper mono 61b1d8ceb043c93e
-Chrome 80 24 paper truecolor b04b1548fe870279
+Chrome 100 30 junie 16 65046f5af326600f
+Chrome 100 30 junie 256 9d151cca4fdc6fbe
+Chrome 100 30 junie mono f8f5a397db1b92c6
+Chrome 100 30 junie truecolor 565ae37bbefe6bb2
+Chrome 100 30 paper 16 a7a8ebbc48ec4f0a
+Chrome 100 30 paper 256 9c9efa1a4a6072c1
+Chrome 100 30 paper mono dda65a456b8db200
+Chrome 100 30 paper truecolor 05d9acdb8b172786
+Chrome 120 40 junie 16 4abc09dfe6259629
+Chrome 120 40 junie 256 8acf8962bb7ad1ac
+Chrome 120 40 junie mono 7d52b7e5644516de
+Chrome 120 40 junie truecolor 6d612f4203525b71
+Chrome 120 40 paper 16 2574c8e90858a726
+Chrome 120 40 paper 256 b816be99390e9f6f
+Chrome 120 40 paper mono 705bd8f0d1542adc
+Chrome 120 40 paper truecolor 175c4054765de10a
+Chrome 160 50 junie 16 635233b221bc92dc
+Chrome 160 50 junie 256 5d9c6f756c26869f
+Chrome 160 50 junie mono 53d581ecdabe298d
+Chrome 160 50 junie truecolor 077103fedb58eb66
+Chrome 160 50 paper 16 c88806cebbb96ee1
+Chrome 160 50 paper 256 330c18c0f4447f82
+Chrome 160 50 paper mono f026e1aac5666b6b
+Chrome 160 50 paper truecolor d192c9a85642ab17
+Chrome 80 24 junie 16 fe667144d6e1bd36
+Chrome 80 24 junie 256 aa36f36847638ce7
+Chrome 80 24 junie mono 1d55783410ec76a6
+Chrome 80 24 junie truecolor 01f8fde914c9aa1d
+Chrome 80 24 paper 16 06c2a8083c90aea7
+Chrome 80 24 paper 256 6beae275d49cb302
+Chrome 80 24 paper mono 1651e4acb291f274
+Chrome 80 24 paper truecolor 2e534d53a8831a62
 Code editor 100 30 junie 16 206912361b2f7aef
 Code editor 100 30 junie 256 fc68e71d65f26d89
 Code editor 100 30 junie mono 394e74006b53f410
@@ -159,30 +159,30 @@ Data grid 80 24 paper 16 aee1def9846a84fe
 Data grid 80 24 paper 256 ea417c9eb4eff695
 Data grid 80 24 paper mono b03a5d3cd2102c1d
 Data grid 80 24 paper truecolor 5cb900d7f35441b9
-Dialogs 100 30 junie 16 a172cd6753fb90f5
-Dialogs 100 30 junie 256 f6808294163402c6
-Dialogs 100 30 junie mono e038b9f35df9b6e2
-Dialogs 100 30 junie truecolor d245c398634be8d2
-Dialogs 100 30 paper 16 4857654a20f26ed5
-Dialogs 100 30 paper 256 00b0b78499b4b8ce
-Dialogs 100 30 paper mono 8b1147fd239c0242
-Dialogs 100 30 paper truecolor e21cf57ef2b772e3
-Dialogs 120 40 junie 16 6a8a4b1cb05155da
-Dialogs 120 40 junie 256 0febf184b3813eec
-Dialogs 120 40 junie mono d90b1c689a9745df
-Dialogs 120 40 junie truecolor fd1b0cc8d004b784
-Dialogs 120 40 paper 16 a42316c6fe372b1e
-Dialogs 120 40 paper 256 992d6308b03c3e89
-Dialogs 120 40 paper mono 4660ec765b572a17
-Dialogs 120 40 paper truecolor ae772cef6f73eb63
-Dialogs 160 50 junie 16 c6a1715d7589a8fd
-Dialogs 160 50 junie 256 1c19f33abac579e9
-Dialogs 160 50 junie mono b10c707146f82734
-Dialogs 160 50 junie truecolor ced7f074591db31f
-Dialogs 160 50 paper 16 592fcbd60fd9102b
-Dialogs 160 50 paper 256 0b699c8dec22272c
-Dialogs 160 50 paper mono 4d7e134978b1ec80
-Dialogs 160 50 paper truecolor 174c3085f93503cc
+Dialogs 100 30 junie 16 72c9fe4a82959497
+Dialogs 100 30 junie 256 1512aac2c7ee1e81
+Dialogs 100 30 junie mono 86e016a505f839ce
+Dialogs 100 30 junie truecolor bc9b983a9922ff15
+Dialogs 100 30 paper 16 98ac5efb031f1aaa
+Dialogs 100 30 paper 256 ea5e22be3007a6c2
+Dialogs 100 30 paper mono 36195730ea39b816
+Dialogs 100 30 paper truecolor 8813522e136e1c38
+Dialogs 120 40 junie 16 c79043ef927423ac
+Dialogs 120 40 junie 256 3b4e65d186dc22c3
+Dialogs 120 40 junie mono 3a3c0f9faf637e73
+Dialogs 120 40 junie truecolor 6d0c54ef112abcc5
+Dialogs 120 40 paper 16 f34ccde8aee3ec11
+Dialogs 120 40 paper 256 e782030c44ad2eb5
+Dialogs 120 40 paper mono f4efb3cc05e206d3
+Dialogs 120 40 paper truecolor 2097c094530fb154
+Dialogs 160 50 junie 16 2911684b38e46255
+Dialogs 160 50 junie 256 d243f3dfbb423510
+Dialogs 160 50 junie mono 7ef1cb7bc01208c8
+Dialogs 160 50 junie truecolor 11d77c3032b422a6
+Dialogs 160 50 paper 16 c32fd7a632e03ffc
+Dialogs 160 50 paper 256 92dc79ccd7db058a
+Dialogs 160 50 paper mono fb3661e8c2585ebc
+Dialogs 160 50 paper truecolor a6837a578a4592af
 Dialogs 80 24 junie 16 14134c1142f94553
 Dialogs 80 24 junie 256 7198eec9dcdd7ca7
 Dialogs 80 24 junie mono a0b959eb3345ac93
@@ -415,62 +415,62 @@ Panels 80 24 paper 16 386409c29062481e
 Panels 80 24 paper 256 5c70bf18e4ce4fa3
 Panels 80 24 paper mono beb321d57b76ae53
 Panels 80 24 paper truecolor 2113b9190833e390
-Pickers 100 30 junie 16 c1668a4c1e468d9d
-Pickers 100 30 junie 256 996cd8bcfa590523
-Pickers 100 30 junie mono 175d72edfbebfacc
-Pickers 100 30 junie truecolor 16cd6755ad06fd24
-Pickers 100 30 paper 16 7f621d81f16f84d7
-Pickers 100 30 paper 256 5ae1c54e6e5f2625
-Pickers 100 30 paper mono c0cbb3c26278f190
-Pickers 100 30 paper truecolor d03b452cb11d7a25
-Pickers 120 40 junie 16 e7a68cc616579f10
-Pickers 120 40 junie 256 3d309817d19d0df7
-Pickers 120 40 junie mono f2b44bedde6ca707
-Pickers 120 40 junie truecolor 5258522798a5eb8c
-Pickers 120 40 paper 16 21cee2a12e456292
-Pickers 120 40 paper 256 f5175e981862d498
-Pickers 120 40 paper mono 72bb034f66badab1
-Pickers 120 40 paper truecolor b6e9f30e057de9d9
-Pickers 160 50 junie 16 45e5ddedecd5dd57
-Pickers 160 50 junie 256 c2529be457dd0926
-Pickers 160 50 junie mono e2518bdaa80cee38
-Pickers 160 50 junie truecolor 15621abf6e09863f
-Pickers 160 50 paper 16 b14382dfb9ebf9ab
-Pickers 160 50 paper 256 ec68419f688282d5
-Pickers 160 50 paper mono 350e4af1cbb19372
-Pickers 160 50 paper truecolor e0a8effc600c18f4
-Pickers 80 24 junie 16 7bb44a5ca5378be3
-Pickers 80 24 junie 256 786e449fc4a44f06
-Pickers 80 24 junie mono 21d137087d265209
-Pickers 80 24 junie truecolor 4f7586576a4c35ae
-Pickers 80 24 paper 16 ef70184ccc3b4945
-Pickers 80 24 paper 256 0e71027de5581790
-Pickers 80 24 paper mono c2ae69bc0781dad5
-Pickers 80 24 paper truecolor e55b3faf4e23983b
-Progress 100 30 junie 16 04629d71b5fc5332
-Progress 100 30 junie 256 5b1a1b002e9f4ce2
-Progress 100 30 junie mono f974b0bee649ab47
-Progress 100 30 junie truecolor 176a3a518d76ebcc
-Progress 100 30 paper 16 5ac42bd93ff76068
-Progress 100 30 paper 256 daf972ab4de38797
-Progress 100 30 paper mono 8993f408eab0df9b
-Progress 100 30 paper truecolor 7bff7a0b32ad0bd9
-Progress 120 40 junie 16 4bbcdf55d7b1649d
-Progress 120 40 junie 256 403f46858070d3a5
-Progress 120 40 junie mono 91ebdf0289461b8d
-Progress 120 40 junie truecolor 14dcfd44c8cb967c
-Progress 120 40 paper 16 2b985bf2a84cc3d4
-Progress 120 40 paper 256 9ac0adb650843edc
-Progress 120 40 paper mono 4441c84dbc121559
-Progress 120 40 paper truecolor 82ceed8042ade272
-Progress 160 50 junie 16 84bef64328dd91f5
-Progress 160 50 junie 256 0acc820c98649739
-Progress 160 50 junie mono 2841bf280b215727
-Progress 160 50 junie truecolor 3d509a21a2cdf04c
-Progress 160 50 paper 16 6560da093108f582
-Progress 160 50 paper 256 2e32c39334f0c592
-Progress 160 50 paper mono 2f301892690ecfc7
-Progress 160 50 paper truecolor 74c71c19d4e2f4c4
+Pickers 100 30 junie 16 f3fb259f2bf7bfe7
+Pickers 100 30 junie 256 9c7f040ff62b2c10
+Pickers 100 30 junie mono 42a1e41211ea75cc
+Pickers 100 30 junie truecolor 47f61dbb7f9e17b2
+Pickers 100 30 paper 16 b0fa72aeaa652f0b
+Pickers 100 30 paper 256 a12d64b2172865a4
+Pickers 100 30 paper mono dcb1360207db5cfe
+Pickers 100 30 paper truecolor 77a3752785ed964a
+Pickers 120 40 junie 16 d79882a986c0f5e1
+Pickers 120 40 junie 256 8e0b63ad61b3b1cb
+Pickers 120 40 junie mono f55a29bb359b2c8a
+Pickers 120 40 junie truecolor 62fca270ca0ae0a4
+Pickers 120 40 paper 16 70a7c50331e34b57
+Pickers 120 40 paper 256 ebcadf611eae5bd1
+Pickers 120 40 paper mono 08317b5b81d17268
+Pickers 120 40 paper truecolor 668159e9d644e414
+Pickers 160 50 junie 16 a77599b52dad3500
+Pickers 160 50 junie 256 41f929e54cf2e452
+Pickers 160 50 junie mono c02f6a3dc54c3a0b
+Pickers 160 50 junie truecolor a7d8d516a587c225
+Pickers 160 50 paper 16 b5e7238c7eb3893c
+Pickers 160 50 paper 256 5cc36dbcbc60346c
+Pickers 160 50 paper mono 53c69bb0ebd7c43f
+Pickers 160 50 paper truecolor 8d604ecf5817dc59
+Pickers 80 24 junie 16 ad21dd1b946bc89b
+Pickers 80 24 junie 256 e0e49966088ef65d
+Pickers 80 24 junie mono 8fc293a9d65efe67
+Pickers 80 24 junie truecolor 7576363b2a6d48aa
+Pickers 80 24 paper 16 08a364caa67e53ef
+Pickers 80 24 paper 256 37aae298df2d3011
+Pickers 80 24 paper mono b011a7b75a609f6b
+Pickers 80 24 paper truecolor da79e2e95ac12284
+Progress 100 30 junie 16 fc5582ef049dabbf
+Progress 100 30 junie 256 aefd92476cabae89
+Progress 100 30 junie mono 04be809a01748a6e
+Progress 100 30 junie truecolor 32d227d77e5475e8
+Progress 100 30 paper 16 8b185d9399c7259b
+Progress 100 30 paper 256 bb9798676dec9802
+Progress 100 30 paper mono b9a354919fc7d46c
+Progress 100 30 paper truecolor 20abee474a67b6d8
+Progress 120 40 junie 16 1aed0e7c2c18945a
+Progress 120 40 junie 256 9f6fbf24f47569d4
+Progress 120 40 junie mono 549f09927a321876
+Progress 120 40 junie truecolor bd2dba5d18ea4eea
+Progress 120 40 paper 16 7b5805eab33b6527
+Progress 120 40 paper 256 831d6eaa05ec0e62
+Progress 120 40 paper mono c122ff7ed1214cc4
+Progress 120 40 paper truecolor cbbb60f5c8ed3070
+Progress 160 50 junie 16 926fa0b441887786
+Progress 160 50 junie 256 a9ec5fa7c209c314
+Progress 160 50 junie mono 9d20cd6c7d30f7d5
+Progress 160 50 junie truecolor 6579623c825d117b
+Progress 160 50 paper 16 9dad85c0ff9d9c24
+Progress 160 50 paper 256 6122d0e2fc675665
+Progress 160 50 paper mono 98f94aeed5688609
+Progress 160 50 paper truecolor d06649e3d77409de
 Progress 80 24 junie 16 21b395830503f81f
 Progress 80 24 junie 256 6629a63ac81475e2
 Progress 80 24 junie mono c1572494f7d1960b
@@ -543,30 +543,30 @@ Settings 80 24 paper 16 5b0f5b3084210884
 Settings 80 24 paper 256 9979bd2c31c6f6a3
 Settings 80 24 paper mono 120daf25f38caed5
 Settings 80 24 paper truecolor 3ff520540fe79c70
-Sidebars 100 30 junie 16 0029edd824862b09
-Sidebars 100 30 junie 256 c271eee4ca1c6b96
-Sidebars 100 30 junie mono 6427bfdfd9293d2c
-Sidebars 100 30 junie truecolor 52e85972e0661bf7
-Sidebars 100 30 paper 16 e8b6cd338ba2d8da
-Sidebars 100 30 paper 256 c29f95d987ef286b
-Sidebars 100 30 paper mono b21f142e6b8c8d02
-Sidebars 100 30 paper truecolor 28c659f921ea6235
-Sidebars 120 40 junie 16 6efa86bda8b482d1
-Sidebars 120 40 junie 256 7594131076c7da97
-Sidebars 120 40 junie mono ea043361b52f4bd0
-Sidebars 120 40 junie truecolor 2f5b889ecae31d7d
-Sidebars 120 40 paper 16 8c927ef0efa2e36c
-Sidebars 120 40 paper 256 07fd7f20a98beec2
-Sidebars 120 40 paper mono 8de9236f59e59844
-Sidebars 120 40 paper truecolor 4c01a7d864aea805
-Sidebars 160 50 junie 16 0b35cbcb1a3cfe74
-Sidebars 160 50 junie 256 3e87a5ab2224a6bc
-Sidebars 160 50 junie mono 4eb16891b2b8e415
-Sidebars 160 50 junie truecolor 29bd4440e09e8d98
-Sidebars 160 50 paper 16 bc24a720ab1a0a83
-Sidebars 160 50 paper 256 a47922abee0e0b55
-Sidebars 160 50 paper mono 31a4c45044acbd2b
-Sidebars 160 50 paper truecolor ccdeaaca7b2eaf22
+Sidebars 100 30 junie 16 62bc4a02e438cc7a
+Sidebars 100 30 junie 256 06b6ae357e16c17d
+Sidebars 100 30 junie mono e85dcc897334d25b
+Sidebars 100 30 junie truecolor 499ff63f225b0d0e
+Sidebars 100 30 paper 16 563f392825c4937d
+Sidebars 100 30 paper 256 8acab28047796584
+Sidebars 100 30 paper mono 5060e8bb29201485
+Sidebars 100 30 paper truecolor 4be17d8cff952e36
+Sidebars 120 40 junie 16 8d9bef135198caca
+Sidebars 120 40 junie 256 6cf13dc5ac25e654
+Sidebars 120 40 junie mono 9d3974500dccba9b
+Sidebars 120 40 junie truecolor fca4ec6a3c5a40b2
+Sidebars 120 40 paper 16 ad2fcbb246180975
+Sidebars 120 40 paper 256 a57eb0256513f885
+Sidebars 120 40 paper mono 37f51057c2b379db
+Sidebars 120 40 paper truecolor 924484145f33fd44
+Sidebars 160 50 junie 16 b3b3cac9722bc9b3
+Sidebars 160 50 junie 256 a393a9a9f9d910d3
+Sidebars 160 50 junie mono 24d30ce442e4eeaa
+Sidebars 160 50 junie truecolor 1228610e05aba909
+Sidebars 160 50 paper 16 d23c10a12e48a610
+Sidebars 160 50 paper 256 4ae6751af82ea83a
+Sidebars 160 50 paper mono bb461e03f554e978
+Sidebars 160 50 paper truecolor fb20760b2523d0d9
 Sidebars 80 24 junie 16 fddb88f2ff04aa8e
 Sidebars 80 24 junie 256 4b6659cc8332c0d4
 Sidebars 80 24 junie mono 1d7206308e2a78a4
@@ -607,38 +607,38 @@ Tables 80 24 paper 16 486e4d393476f8ed
 Tables 80 24 paper 256 014626f7b5f6dadf
 Tables 80 24 paper mono 4c0792356014923f
 Tables 80 24 paper truecolor 268df38b118ce7b6
-Task runner 100 30 junie 16 e5e972058148f4fe
-Task runner 100 30 junie 256 694fd0d6edeab232
-Task runner 100 30 junie mono c987b98c113024fb
-Task runner 100 30 junie truecolor b88305814782c884
-Task runner 100 30 paper 16 6f76c05102fdb6be
-Task runner 100 30 paper 256 f7543e0885b5fcb9
-Task runner 100 30 paper mono 065fa0d124e08e91
-Task runner 100 30 paper truecolor 2264a51b20f9a152
-Task runner 120 40 junie 16 ed09d924a2b9b96d
-Task runner 120 40 junie 256 ce08bfd905aea308
-Task runner 120 40 junie mono f1c259c994b02c5a
-Task runner 120 40 junie truecolor 795ed5241c276878
-Task runner 120 40 paper 16 d8be25b259b0b33b
-Task runner 120 40 paper 256 aff04adc49bcfc16
-Task runner 120 40 paper mono e0d97cd5c630cb02
-Task runner 120 40 paper truecolor c932ee0b2ddcc76e
-Task runner 160 50 junie 16 815ee7af77df923e
-Task runner 160 50 junie 256 81846ab129d657c1
-Task runner 160 50 junie mono f5dc98d6ddf647ad
-Task runner 160 50 junie truecolor 0ffda7655532a7e9
-Task runner 160 50 paper 16 ccf765284481c946
-Task runner 160 50 paper 256 74f62b219b29e94f
-Task runner 160 50 paper mono a47103e0d2579791
-Task runner 160 50 paper truecolor 931f5b7a62a2c41b
-Task runner 80 24 junie 16 7c70186c5f3789dc
-Task runner 80 24 junie 256 b88e7f8e76f1903b
-Task runner 80 24 junie mono b7192be20cb4be28
-Task runner 80 24 junie truecolor e60b01f1f732f84f
-Task runner 80 24 paper 16 2476b1050ce07d0a
-Task runner 80 24 paper 256 c04ce253836fa4ed
-Task runner 80 24 paper mono d82fb2072f65638c
-Task runner 80 24 paper truecolor add29248ac37e1f8
+Task runner 100 30 junie 16 5aabf7d8f89d71be
+Task runner 100 30 junie 256 2d893b2480cc19bd
+Task runner 100 30 junie mono 10c535564a5cc4cb
+Task runner 100 30 junie truecolor 9f393e4d5ce9030b
+Task runner 100 30 paper 16 8cfcd745866c5b7f
+Task runner 100 30 paper 256 19076548d356e9eb
+Task runner 100 30 paper mono a5f94b81b42796ad
+Task runner 100 30 paper truecolor d77e83fe65f09325
+Task runner 120 40 junie 16 558df6eca395be50
+Task runner 120 40 junie 256 dbb85c4f35657a00
+Task runner 120 40 junie mono 1621fee37e2fdf35
+Task runner 120 40 junie truecolor 64dd5fc84105ac64
+Task runner 120 40 paper 16 1e1d8a509ef113ef
+Task runner 120 40 paper 256 de0460a86161c2ed
+Task runner 120 40 paper mono f2ca85dd47db9571
+Task runner 120 40 paper truecolor 8f6b4854a1534082
+Task runner 160 50 junie 16 6705d4449b9a6d51
+Task runner 160 50 junie 256 a7ed21f19e4902cf
+Task runner 160 50 junie mono 568310c8988a109c
+Task runner 160 50 junie truecolor 999cf69c4ba9a8bb
+Task runner 160 50 paper 16 7f1a4070b94ddb8a
+Task runner 160 50 paper 256 4b8bdeaebaeca392
+Task runner 160 50 paper mono 58efd1fef33aa6ba
+Task runner 160 50 paper truecolor 8671ffbcdee4c9fb
+Task runner 80 24 junie 16 68e4c58a5da54d8d
+Task runner 80 24 junie 256 24151e50d57cf1af
+Task runner 80 24 junie mono 01a3e25cee975331
+Task runner 80 24 junie truecolor b210f09ee4bcc2af
+Task runner 80 24 paper 16 44d86759277ffd0a
+Task runner 80 24 paper 256 eb7132dbfc0eaf62
+Task runner 80 24 paper mono 638edf81e3e82595
+Task runner 80 24 paper truecolor d0df8a5d02af7886
 Terminal 100 30 junie 16 a93d5bd7873eaa3d
 Terminal 100 30 junie 256 279b4f37502bcaee
 Terminal 100 30 junie mono 950f404e57dee5b6

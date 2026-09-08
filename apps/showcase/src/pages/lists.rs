@@ -1,9 +1,9 @@
 //! Keyed collection rows, single selection and multi-selection.
 
 use junie_tui::{
-    Cx, EmptyState, Family, FgStep, GlyphRole, Id, ItemKey, List, ListAction, ListState, Panel,
-    PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StylePatch, Track, Ui, Variant, id,
-    layout,
+    Cx, EmptyState, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListAction, ListState,
+    Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, StylePatch, Track,
+    Ui, Variant, id, layout,
 };
 
 use crate::data::LANGUAGES;
@@ -290,7 +290,7 @@ impl Page for ListsPage {
                 Family::LIST,
                 Variant::DEFAULT,
                 Part::META,
-                junie_tui::StateFlags::empty(),
+                StateFlags::empty(),
             )
             .style;
         frame(
@@ -366,6 +366,19 @@ impl Page for ListsPage {
                     });
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(MULTI).contains(StateFlags::FOCUSED) {
+            vec![
+                ("↑ ↓", "Move"),
+                ("Space", "Toggle"),
+                ("a", "All / none"),
+                ("Shift+↓", "Range"),
+            ]
+        } else {
+            vec![("↑ ↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
+        }
     }
 }
 

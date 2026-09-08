@@ -216,9 +216,10 @@ impl GlyphSet {
     /// Replace the typed scrollbar set.
     ///
     /// [`GlyphRole::ScrollTrack`] and [`GlyphRole::ScrollThumb`] read `track`
-    /// and `thumb` from it; `begin` and `end` — the caps a scroll region
-    /// paints — are named by no [`GlyphRole`] and are reachable **only** here
-    /// (§11.2, Adjudication O2).
+    /// and `thumb` from it. `begin` and `end` remain available to consumers
+    /// that need cap glyphs; the shared `ScrollRegion` uses its historical
+    /// full-height track and deliberately does not paint cap rows (§11.2,
+    /// Adjudication O2).
     pub const fn set_scrollbar(&mut self, s: scrollbar::Set<'static>) {
         self.scroll = s;
     }

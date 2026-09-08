@@ -121,12 +121,18 @@ pub(crate) use crate::author::PartStyle;
 /// state; the closure paints the part's rect.
 pub(crate) type SlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect);
 
-/// Paint overlay chrome without taking ownership of placement or modality.
-/// The content runs exactly once, including under an empty clip when there
-/// is no drawable area. Surface and clipping scopes cannot escape the call.
+/// Paint the shared chrome of a layer-backed surface and run its content.
+///
+/// Placement, z-order, pointer barriers and focus trapping remain owned by
+/// [`Ui::layer`](crate::Ui::layer). This helper owns only the repeated
+/// container fill, typed frame, decorative registrations and surface scope;
+/// it never invents a barrier or a second placement algorithm. The content
+/// runs exactly once, clipped to the frame interior — an empty clip when
+/// there is no drawable area — and surface or clipping scopes cannot escape
+/// the call.
 #[expect(
     clippy::too_many_arguments,
-    reason = "chrome keeps the component's surface and two authored state channels explicit"
+    reason = "the shared chrome contract keeps each authored style and state channel explicit"
 )]
 pub(crate) fn overlay_chrome<R>(
     ui: &mut Ui<'_>,
@@ -145,18 +151,29 @@ pub(crate) fn overlay_chrome<R>(
         }
         let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
         ui.fill(area, container.style);
-        let border = ov.style(
-            ui,
-            id,
-            family,
-            Variant::DEFAULT,
-            Part::BORDER,
-            live | border_live,
-        );
-        let inner = ui.frame(area, border.style);
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
+
+        let border = ov.style(ui, id, family, Variant::DEFAULT, Part::BORDER, border_live);
+        let inner = ui.frame(area, border.style);
+        if let Some(slot) = ov.slot_for(Part::BORDER) {
+            slot(ui, area);
+        }
         ui.register_decor(id, PartRef::of(Part::BORDER), area);
-        ui.with_area(inner, |ui| body(ui, inner))
+
+        // The body keeps the frame interior as its clip even when the frame
+        // could not draw (`Ui::frame` returns `Rect::ZERO`), so a degenerate
+        // body area stays anchored inside `area` instead of the origin.
+        let body_area = if inner.is_empty() {
+            Rect {
+                x: area.x,
+                y: area.y,
+                width: 0,
+                height: 0,
+            }
+        } else {
+            inner
+        };
+        ui.with_area(body_area, |ui| body(ui, body_area))
     })
 }
 

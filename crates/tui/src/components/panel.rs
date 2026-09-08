@@ -43,8 +43,9 @@ pub enum PanelKind {
 ///
 /// ## Configuration
 /// `.kind(PanelKind)` (`Card`), `.title(&str)` (none), `.meta(&str)`
-/// (none), `.badge(&str)` (none), `.focused(bool)` (`false`), `.patch`, `.patch_part`, `.slot`,
-/// reference fixtures use [`Ui::reference`](crate::Ui::reference).
+/// (none), `.badge(&str)` (none), `.focused(bool)` (`false`), `.patch`,
+/// `.patch_part`, `.slot`, reference fixtures use
+/// [`Ui::reference`](crate::Ui::reference).
 ///
 /// ## Variants
 /// `Family::PANEL`, `Variant::DEFAULT` only; `Recipe.default_variant` is
@@ -89,12 +90,13 @@ pub enum PanelKind {
 ///
 /// ## Parts
 /// `CONTAINER` (the fill), `GUTTER` (the container focus bar), `TITLE`,
-/// `DETAIL` (the right-aligned meta), `BADGE` (padded, before meta),
-/// `BORDER` (framed only).
+/// `DETAIL` (the right-aligned meta), `BADGE` (padded, before meta), `BORDER`
+/// (framed only).
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach every part. `.slot` is honoured for
-/// `Part::GUTTER`, `Part::TITLE`, `Part::DETAIL`, `Part::BADGE` and `Part::BORDER`.
+/// `Part::GUTTER`, `Part::TITLE`, `Part::DETAIL`, `Part::BADGE` and
+/// `Part::BORDER`.
 /// `Part::CONTAINER` is **not** slot-addressable: it is the plane the
 /// panel pushes and the body inherits, so replacing it would leave the
 /// content painted against a surface nothing filled.
@@ -186,6 +188,8 @@ impl<'a> Panel<'a> {
 
     /// A padded badge before the right-aligned metadata, styled by `Part::BADGE`.
     ///
+    /// The `PANEL/BADGE` recipe owns its colors and emphasis; callers supply
+    /// only the label, so capability downgrade and theme mapping stay shared.
     /// Empty badges are absent. A badge is hidden when its complete text,
     /// padding and gaps cannot fit alongside the title and metadata.
     #[must_use]
@@ -287,6 +291,30 @@ impl<'a> Panel<'a> {
         r
     }
 
+    /// The head-row width the badge lane needs to sit beside the title and
+    /// the metadata, or `None` without a badge. The single source of truth
+    /// shared by `measure` (which reports it as the preferred width) and
+    /// `head` (which falls back to the no-badge layout below it), so the two
+    /// can never disagree about when the badge fits.
+    fn badge_lane_width(&self) -> Option<u16> {
+        let title_w = self.title.map_or(0, crate::text::width);
+        let meta_w = self.meta.map_or(0, crate::text::width);
+        let badge_w = self.badge.map(|b| crate::text::width(b))? as u16;
+        // Head starts two cells in and ends before the corner. Each framed
+        // text run reserves its existing border padding.
+        Some(
+            title_w
+                .saturating_add(meta_w)
+                .saturating_add(badge_w)
+                .saturating_add(7)
+                .saturating_add(if self.kind == PanelKind::Framed {
+                    1u16.saturating_add(2u16.saturating_mul(u16::from(self.meta.is_some())))
+                } else {
+                    0
+                }),
+        )
+    }
+
     /// The natural size: the chrome plus one content cell.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let side = match self.kind {
@@ -301,19 +329,9 @@ impl<'a> Panel<'a> {
             .saturating_add(meta_w)
             .saturating_add(u16::from(meta_w != 0))
             .saturating_add(2);
-        let head = self.badge.map_or(head, |badge| {
-            // Head starts two cells in and ends before the corner. Each
-            // framed text run reserves its existing border padding.
-            title_w
-                .saturating_add(meta_w)
-                .saturating_add(crate::text::width(badge))
-                .saturating_add(7)
-                .saturating_add(if self.kind == PanelKind::Framed {
-                    1u16.saturating_add(2u16.saturating_mul(u16::from(self.meta.is_some())))
-                } else {
-                    0
-                })
-        });
+        let head = self
+            .badge_lane_width()
+            .map_or(head, |lane| lane.max(head));
         Size {
             min: (chrome_w.saturating_add(1), chrome_h.saturating_add(1)),
             preferred: (
@@ -371,6 +389,9 @@ impl<'a> Panel<'a> {
         self.head(ui, area, live, container.style);
     }
 
+    /// Paint the badge into `rect`: the slot replacement when one is
+    /// configured, otherwise the padded label composited over the panel's
+    /// surface (§22 R‑9) so the badge never resets the plane it sits on.
     fn draw_badge(&self, ui: &mut Ui<'_>, rect: Rect, live: StateFlags) {
         let Some(text) = self.badge.filter(|_| !rect.is_empty()) else {
             return;
@@ -402,7 +423,7 @@ impl<'a> Panel<'a> {
         });
     }
 
-    /// The head row: focus gutter, title, right-aligned meta.
+    /// The head row: focus gutter, title, badge and right-aligned meta.
     fn head(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, fill: crate::theme::PaintStyle) {
         let head = first_row(area);
         if head.is_empty() || area.width < 3 {
@@ -430,35 +451,101 @@ impl<'a> Panel<'a> {
             }
         }
         let text_x = area.x.saturating_add(2);
-        // the head span never touches the corner columns
+        // The head span never touches the gutter or either frame corner.
         let span_w = area.width.saturating_sub(3);
+
+        // Preserve the established title/meta geometry whenever the badge
+        // lane is absent or does not fit: the lane appears only at the width
+        // `measure` promises it, and below that the additive lane must not
+        // perturb the protected panel layout used by existing callers and
+        // fixtures.
+        if self
+            .badge_lane_width()
+            .is_none_or(|needed| area.width < needed)
+        {
+            self.head_without_badge(ui, area, live, fill);
+            return;
+        }
+
+        let span_right = text_x.saturating_add(span_w);
+        let mut right = span_right;
+
+        let meta_block = self.meta.and_then(|m| {
+            let width = crate::text::width(m).saturating_add(pad.saturating_mul(2));
+            (width < span_w).then_some(width)
+        });
+        let meta_rect = meta_block.map(|width| {
+            right = right.saturating_sub(width);
+            Rect {
+                x: right,
+                y: head.y,
+                width,
+                height: 1,
+            }
+        });
+
+        let badge_block = self.badge.and_then(|b| {
+            let width = crate::text::width(b).saturating_add(2);
+            let gap = u16::from(meta_rect.is_some());
+            (width.saturating_add(gap) <= right.saturating_sub(text_x)).then_some((width, gap))
+        });
+        let badge_rect = badge_block.map(|(width, gap)| {
+            right = right.saturating_sub(gap).saturating_sub(width);
+            Rect {
+                x: right,
+                y: head.y,
+                width,
+                height: 1,
+            }
+        });
+
+        if let Some(t) = self.title {
+            let rect = Rect {
+                x: text_x,
+                y: head.y,
+                width: right.saturating_sub(text_x),
+                height: 1,
+            };
+            if let Some(f) = ov.slot_for(Part::TITLE) {
+                f(ui, rect);
+            } else {
+                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::TITLE, live);
+                paint_label(ui, rect, t, pad, s.style);
+            }
+        }
+
+        if let Some(rect) = badge_rect {
+            self.draw_badge(ui, rect, live);
+        }
+
+        if let (Some(m), Some(rect)) = (self.meta, meta_rect) {
+            if let Some(f) = ov.slot_for(Part::DETAIL) {
+                f(ui, rect);
+            } else {
+                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                paint_label(ui, rect, m, pad, s.style);
+            }
+        }
+    }
+
+    fn head_without_badge(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        live: StateFlags,
+        fill: crate::theme::PaintStyle,
+    ) {
+        let head = first_row(area);
+        let text_x = area.x.saturating_add(2);
+        let span_w = area.width.saturating_sub(3);
+        let pad = u16::from(self.kind == PanelKind::Framed);
+        let ov = self.ov;
+        let id = self.id;
         let meta_block = self.meta.map_or(0, |m| {
             let want = crate::text::width(m).saturating_add(pad.saturating_mul(2));
             if want < span_w { want } else { 0 }
         });
         let title_room = span_w.saturating_sub(meta_block);
-        let badge_block = self.badge.map_or(0, |badge| {
-            let block = crate::text::width(badge).saturating_add(3);
-            let title = self.title.map_or(0, crate::text::width).saturating_add(pad);
-            if title.saturating_add(block).saturating_add(1) <= title_room {
-                block
-            } else {
-                0
-            }
-        });
-        self.draw_badge(
-            ui,
-            Rect {
-                x: text_x
-                    .saturating_add(title_room)
-                    .saturating_sub(badge_block),
-                y: head.y,
-                width: badge_block.saturating_sub(1),
-                height: 1,
-            },
-            live,
-        );
-        let title_room = title_room.saturating_sub(badge_block);
         if let Some(t) = self.title {
             let avail = title_room.saturating_sub(pad);
             let rect = Rect {
@@ -479,31 +566,60 @@ impl<'a> Panel<'a> {
             }
         }
         if let (Some(m), true) = (self.meta, meta_block > 0) {
-            let x = text_x
-                .saturating_add(title_room)
-                .saturating_add(badge_block)
-                .saturating_add(pad);
+            let x = text_x.saturating_add(title_room).saturating_add(pad);
             let rect = Rect {
                 x,
                 y: head.y,
                 width: meta_block.saturating_sub(pad.saturating_mul(2)),
                 height: 1,
             };
-            if pad == 1 {
-                ui.fill(cell_at(head, x.saturating_sub(1)), fill);
-            }
             let used = if let Some(f) = ov.slot_for(Part::DETAIL) {
                 f(ui, rect);
                 rect.width
             } else {
                 let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                // Framed metadata sits on the border rule. Keeping its
+                // padding in the detail style preserves the historical ANSI
+                // span; container-style padding inserts a visible reset.
+                if pad == 1 {
+                    ui.fill(cell_at(head, x.saturating_sub(1)), s.style);
+                }
                 ui.paint_str(rect, m, s.style)
             };
             if pad == 1 && used > 0 {
-                ui.fill(cell_at(head, x.saturating_add(used)), fill);
+                let style = ov
+                    .style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live)
+                    .style;
+                ui.fill(cell_at(head, x.saturating_add(used)), style);
             }
         }
     }
+}
+
+/// Paint a title/meta label, adding the legacy frame padding without an
+/// allocation. Only the label's cells are touched; unused head-row space
+/// keeps the frame rule underneath it.
+fn paint_label(
+    ui: &mut Ui<'_>,
+    block: Rect,
+    text: &str,
+    pad: u16,
+    style: crate::theme::PaintStyle,
+) {
+    let inner = Rect {
+        x: block.x.saturating_add(pad),
+        width: block.width.saturating_sub(pad.saturating_mul(2)),
+        ..block
+    };
+    let text_width = crate::text::width(text).min(inner.width);
+    let label = Rect {
+        width: text_width.saturating_add(pad.saturating_mul(2)),
+        ..block
+    };
+    if pad > 0 {
+        ui.fill(label, style);
+    }
+    ui.paint_str(inner, text, style);
 }
 
 #[cfg(test)]

@@ -582,4 +582,21 @@ impl Page for EditablePage {
             }
         });
     }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.state.is_editing() {
+            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+        } else {
+            vec![
+                ("↑ ↓ ← →", "Cell"),
+                ("Enter", "Edit"),
+                ("s", "Sort"),
+                ("click twice", "Edit"),
+            ]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
+    }
 }

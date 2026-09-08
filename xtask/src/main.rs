@@ -8793,6 +8793,11 @@ fn git_show(rev: &str, path: &str) -> String {
     }
 }
 
+/// Whether a path existed in a committed revision, including empty files.
+fn git_path_exists(rev: &str, path: &str) -> bool {
+    git(&["cat-file", "-e", &format!("{rev}:{path}")]).is_ok_and(|out| out.status.success())
+}
+
 fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
     let out = git(&[
         "rev-parse",
@@ -8899,8 +8904,9 @@ fn discover_baselines() -> BTreeSet<String> {
 /// §16.3 as amended by §36, §20.10, §36.5 and §75: every moved or added baseline key
 /// is accounted for by a `docs/visual-changes.md` entry citing a numbered
 /// §20.10 item, existing frozen evidence is immutable, a moved `truecolor` key needs
-/// an item explicitly scoped for truecolor, and a first-generation item cannot
-/// account for a moved key.
+/// an item explicitly scoped for truecolor, a first-generation item cannot
+/// account for a moved key, and frozen additions are admitted only as the exact
+/// reviewed recovery of the historical archive.
 fn baseline_moves_are_classified() -> Result<(), String> {
     let base = bless_guard_base()?;
     let reviewed_additions = historical_additions::reviewed_additions(&root(), &base)?;
@@ -8915,8 +8921,14 @@ fn baseline_moves_are_classified() -> Result<(), String> {
     let mut files: Vec<(String, String, String)> = Vec::new();
     for path in &paths {
         if classify_baseline(path) == Some(BaselineKind::Frozen) {
-            if (touched.contains(path) || untracked.contains(path))
-                && !reviewed_additions.contains(path)
+            // A migration may introduce the immutable archive after the
+            // historical base revision. That is an addition, not a mutation
+            // of evidence, and the exact reviewed recovery is the only
+            // addition the guard admits. Existing committed evidence and
+            // every untracked frozen path remain hard failures.
+            if untracked.contains(path)
+                || (touched.contains(path)
+                    && (git_path_exists(&base, path) || !reviewed_additions.contains(path)))
             {
                 frozen_changed.push(path.clone());
             }

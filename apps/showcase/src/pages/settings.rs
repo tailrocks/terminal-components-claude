@@ -2,9 +2,9 @@
 
 use junie_tui::author::PaintStyle;
 use junie_tui::{
-    Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, List, ListAction, ListState,
-    Modifier, Part, Rect, Response, RowUi, StateFlags, Surface, Tabs, TabsAction, TabsState, Ui,
-    Variant, id, width,
+    Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, List, ListAction,
+    ListState, Modifier, Part, Rect, Response, RowUi, StateFlags, Surface, Tabs, TabsAction,
+    TabsState, Ui, Variant, id, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -438,6 +438,16 @@ impl Page for SettingsPage {
                 );
             });
         });
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(TAB).contains(StateFlags::FOCUSED) {
+            vec![("← →", "Switch tab"), ("1 2 3", "Jump")]
+        } else if ui.state(MEMBERS).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓ ← →", "Cell"), ("Enter", "Edit"), ("s", "Sort")]
+        } else {
+            vec![("Enter", "Edit / activate"), ("Ctrl+S", "Save")]
+        }
     }
 }
 

@@ -112,6 +112,8 @@ impl Page for DialogsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
+        let _ = open_panel();
+        let _ = results_panel();
         let confirm_button = confirm_button().update(cx);
         if confirm_button.activated() && !cx.is_open(CONFIRM) {
             self.open = OpenDialog::Confirm;
@@ -217,8 +219,11 @@ impl Page for DialogsPage {
                         .collect();
                     let row = Rect { height: 1, ..inner };
                     let rects = layout::action_row(row, &widths, 2, junie_tui::RowAlign::Start);
-                    for (button, rect) in buttons.iter().zip(rects) {
+                    for (button, rect) in buttons.iter().zip(rects.iter().copied()) {
                         button.draw(ui, rect);
+                    }
+                    for rect in rects {
+                        let _ = ui.paint_str(Rect { width: 1, ..rect }, "▎", ui.surface_style());
                     }
                     lines(
                         ui,
@@ -274,5 +279,9 @@ impl Page for DialogsPage {
                 let _ = ui.paint_str(body, "Type a name, then Enter", ui.surface_style());
             });
         });
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        vec![("Enter", "Open")]
     }
 }

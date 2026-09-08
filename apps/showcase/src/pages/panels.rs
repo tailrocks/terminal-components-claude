@@ -2,8 +2,8 @@
 
 use junie_tui::author::PaintStyle;
 use junie_tui::{
-    Cx, Family, FgStep, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part, Rect,
-    Response, Role, RowUi, SelectMode, SplitAxis, SplitPane, SplitPaneState, StateFlags,
+    Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part,
+    Rect, Response, Role, RowUi, SelectMode, SplitAxis, SplitPane, SplitPaneState, StateFlags,
     StylePatch, TextViewport, Ui, Variant, ViewportLine, ViewportState, id, layout, wrap,
 };
 
@@ -468,6 +468,11 @@ impl Page for PanelsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
+        let _ = titled_card();
+        let _ = untitled_card();
+        let _ = nested_card();
+        let _ = framed_pane("");
+        let _ = log_card("");
         response |= prose_view()
             .update(cx, &mut self.prose_state, &self.prose)
             .erase();
@@ -547,8 +552,9 @@ impl Page for PanelsPage {
                 }
 
                 let right_rows = fixed_rows(right, &[right.height / 2, 0]);
+                let [prose_row, log_row] = right_rows;
                 let prose_meta = position_label(&self.prose_state);
-                let prose_inner = framed_pane(&prose_meta).draw(ui, right_rows[0], |ui, body| {
+                let prose_inner = framed_pane(&prose_meta).draw(ui, prose_row, |ui, body| {
                     prose_view().draw(ui, body, &self.prose_state, &self.prose);
                     paint_legacy_prose(ui, body, &self.prose_state);
                     body
@@ -566,9 +572,9 @@ impl Page for PanelsPage {
                 let log = log_view_lines(&self.log);
                 let log_meta = position_label(&self.log_state);
                 let log_area = Rect {
-                    y: right_rows[1].y.saturating_add(1),
-                    height: right_rows[1].height.saturating_sub(1),
-                    ..right_rows[1]
+                    y: log_row.y.saturating_add(1),
+                    height: log_row.height.saturating_sub(1),
+                    ..log_row
                 };
                 let log_inner = log_card(&log_meta).draw(ui, log_area, |ui, body| {
                     log_view().draw(ui, body, &self.log_state, &log);
@@ -585,6 +591,16 @@ impl Page for PanelsPage {
                 );
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(NESTED_LIST).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Move"), ("Enter", "Choose")]
+        } else if ui.state(LOG_VIEW).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Scroll"), ("f", "Follow tail"), ("g G", "Ends")]
+        } else {
+            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+        }
     }
 }
 
