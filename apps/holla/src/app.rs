@@ -152,7 +152,7 @@ pub struct App {
     keymap: KeyMap,
     status: Option<String>,
     status_until_ms: Option<i64>,
-    applied_elapsed_ms: u128,
+    next_due: Option<junie_tui::Moment>,
     quit: bool,
 }
 impl App {
@@ -184,7 +184,7 @@ impl App {
             keymap,
             status: None,
             status_until_ms: None,
-            applied_elapsed_ms: 0,
+            next_due: None,
             quit: false,
         }
     }
@@ -668,33 +668,35 @@ impl junie_tui::App for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut clock_response = Response::ignored();
         if self.motion != Motion::Paused {
-            let elapsed_ms = cx.now().as_duration().as_millis();
-            let delta = elapsed_ms.saturating_sub(self.applied_elapsed_ms);
-            self.applied_elapsed_ms = elapsed_ms;
-            if delta > 0 {
-                let interval = i64::try_from(delta).unwrap_or(i64::MAX);
-                let _ = self.world.tick(interval);
-                clock_response = Response::changed();
-            }
-            if self
-                .status_until_ms
-                .is_some_and(|until| self.world.now_ms() >= until)
-            {
-                self.status = None;
-                self.status_until_ms = None;
+            let cadence = if self.world.discovering() { 80 } else { 200 };
+            let next_due = *self.next_due.get_or_insert_with(|| {
+                cx.now()
+                    .saturating_add(std::time::Duration::from_millis(cadence))
+            });
+            if cx.update_cause() == junie_tui::UpdateCause::Tick && cx.now() >= next_due {
+                // Pinned Holla coalesces a delayed wake into one fixed step.
+                // Absolute time admits the step; it never becomes fixture time.
+                let _ = self.world.tick(cadence as i64);
+                let next_cadence = if self.world.discovering() { 80 } else { 200 };
+                self.next_due = Some(
+                    cx.now()
+                        .saturating_add(std::time::Duration::from_millis(next_cadence)),
+                );
+                if self
+                    .status_until_ms
+                    .is_some_and(|until| self.world.now_ms() >= until)
+                {
+                    self.status = None;
+                    self.status_until_ms = None;
+                }
                 clock_response = Response::changed();
             }
         }
         let response = self.update_controls(cx);
         if self.motion != Motion::Paused {
-            let cadence = if self.world.discovering() { 80 } else { 200 };
-            let delay = self.status_until_ms.map_or(cadence, |until| {
-                cadence.min(u64::try_from(until.saturating_sub(self.world.now_ms())).unwrap_or(0))
-            });
-            cx.request_repaint_at(
-                cx.now()
-                    .saturating_add(std::time::Duration::from_millis(delay)),
-            );
+            if let Some(next_due) = self.next_due {
+                cx.request_repaint_at(next_due);
+            }
         }
         clock_response | response
     }
@@ -1054,8 +1056,9 @@ mod tests {
             harness.diagnostics()
         );
     }
+
     #[test]
-    fn elapsed_time_advances_once_and_paused_frames_stay_exact() {
+    fn coalesced_deadlines_preserve_fixed_steps_and_pause() {
         for motion in [Motion::Full, Motion::Reduced, Motion::Paused] {
             let mut harness = Harness::new(
                 App::for_scenario(Scenario::FirstUse, motion, 0),
@@ -1066,11 +1069,13 @@ mod tests {
             harness.ticks(20);
             assert_eq!(harness.app().world.now_ms(), 0);
             let _ = harness.advance(std::time::Duration::from_millis(1_800));
-            let expected = if motion == Motion::Paused { 0 } else { 1_800 };
-            assert_eq!(harness.app().world.now_ms(), expected);
+            let step = if motion == Motion::Paused { 0 } else { 80 };
+            assert_eq!(harness.app().world.now_ms(), step);
             harness.ticks(20);
             harness.draw();
-            assert_eq!(harness.app().world.now_ms(), expected);
+            assert_eq!(harness.app().world.now_ms(), step);
+            let _ = harness.advance(std::time::Duration::from_millis(80));
+            assert_eq!(harness.app().world.now_ms(), step * 2);
             assert!(
                 harness.diagnostics().is_empty(),
                 "{:?}",
@@ -1080,22 +1085,21 @@ mod tests {
     }
 
     #[test]
-    fn status_and_discovery_age_while_modal_owns_focus() {
+    fn modal_status_ages_only_with_admitted_virtual_steps() {
         let mut harness = Harness::new(
-            App::for_scenario(Scenario::FirstUse, Motion::Full, 0),
+            App::for_scenario(Scenario::FirstUse, Motion::Full, 4_000),
             Theme::junie(),
             120,
             40,
         );
         let _ = harness.ctrl('s');
-        assert!(harness.app().status.is_some());
         let _ = harness.key(KeyCode::F(1));
-        assert!(harness.app().overlay.is_some());
-        let _ = harness.advance(std::time::Duration::from_millis(4_999));
-        assert!(harness.app().status.is_some());
-        assert!(!harness.app().world.discovering());
-        let _ = harness.advance(std::time::Duration::from_millis(1));
-        assert_eq!(harness.app().world.now_ms(), 5_000);
+        for _ in 0..24 {
+            let _ = harness.advance(std::time::Duration::from_millis(200));
+            assert!(harness.app().status.is_some());
+        }
+        let _ = harness.advance(std::time::Duration::from_millis(200));
+        assert_eq!(harness.app().world.now_ms(), 9_000);
         assert!(harness.app().status.is_none());
         assert!(harness.app().overlay.is_some());
         assert!(
@@ -1106,7 +1110,7 @@ mod tests {
     }
 
     #[test]
-    fn fractional_elapsed_input_does_not_discard_clock_remainder() {
+    fn early_input_and_unrelated_ticks_cannot_admit_simulation_time() {
         let mut harness = Harness::new(
             App::for_scenario(Scenario::FirstUse, Motion::Full, 0),
             Theme::junie(),
@@ -1117,6 +1121,9 @@ mod tests {
             let _ = harness.advance(std::time::Duration::from_micros(600));
             let _ = harness.tick();
         }
-        assert_eq!(harness.app().world.now_ms(), 6);
+        let _ = harness.key(KeyCode::F(1));
+        assert_eq!(harness.app().world.now_ms(), 0);
+        let _ = harness.advance(std::time::Duration::from_millis(74));
+        assert_eq!(harness.app().world.now_ms(), 80);
     }
 }

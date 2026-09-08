@@ -1,6 +1,6 @@
 //! Fixture clock. The launcher never reads wall-clock time: every duration,
 //! timestamp, spinner frame and discovery step derives from virtual
-//! milliseconds that advance from explicit runtime elapsed time, so a given
+//! milliseconds that advance in fixed steps at admitted runtime deadlines, so a given
 //! `--scenario … --frame N` renders the same picture every time.
 
 // Timestamp formatting (`ago`, `stamp`, …) serves the P1 fixture world.
