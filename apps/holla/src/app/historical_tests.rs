@@ -288,3 +288,12 @@ fn hide_removes_row_exact_query_resurfaces_and_reset_restores() {
     );
     assert!(!h.app().world.memory.hidden_at("~/work/pave", "cargo build"));
 }
+
+#[test]
+fn actions_picker_omits_search_query_as_pinned() {
+    // Reference home.rs actions_menu passes searchable=false to PickerModal.
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("cargo build");
+    let _ = h.ctrl('o');
+    assert!(!h.text().contains("Type to search…"), "{}", h.text());
+}
