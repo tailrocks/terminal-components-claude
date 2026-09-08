@@ -371,11 +371,7 @@ impl Workbench {
     }
     /// Build the quick-switcher index.
     pub fn switcher(&self) -> SwitcherIndex {
-        SwitcherIndex::from_catalog(
-            &self.catalog,
-            &self.history,
-            std::slice::from_ref(&self.connection),
-        )
+        SwitcherIndex::from_workbench(&self.catalog, &self.history, &self.connection, &self.tabs)
     }
     /// Return tables only, useful to draw a structure/data explorer.
     pub fn table_count(&self) -> usize {
