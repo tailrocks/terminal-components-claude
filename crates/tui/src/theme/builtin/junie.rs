@@ -134,7 +134,8 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         // array (Adjudication O2). They are kept empty so the array keeps one
         // entry per `GlyphRole` and nobody edits them expecting an effect.
         "", "", "", "", //
-        "✓", "∥", "+", "[", "]", "•", "▾", "▴",
+        // Canonical pause mark; Paper/from_tokens inherit this design too.
+        "✓", "‖", "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
         track: "│",
