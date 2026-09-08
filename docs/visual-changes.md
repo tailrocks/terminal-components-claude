@@ -334,6 +334,122 @@ edited by this ledger entry.
              it does not authorize a baseline bless.
 ```
 
+### 7b — Tree leaf disclosure placeholder inherits the row style (2026-09-08)
+
+A leaf row has no disclosure glyph, but the reserved fold cell was painted with the ICON
+recipe instead of the row recipe, fabricating a colour affordance on blank cells. The
+placeholder now inherits the row style; a real disclosure glyph and an explicit ICON patch
+keep the ICON recipe. The 44 disclosure-driven baseline movements are classified here in
+full; the 6 `tree::empty` cells the same BLESS run captured are not caused by this fix and
+are accounted for by the control note at 7c.
+
+```
+- surface:   junie-tui/Tree @ {120x40, 40x10} / {junie, paper} / {truecolor, mono}
+- captures:  none under shots/ — these are headless Scene matrix cells; tools/capture.sh
+             cannot address a Scene. Named evidence: the no-BLESS Scene::assert_against
+             failure output from
+             cargo test -p junie-tui --test render_components -- tree --test-threads=1,
+             plus the unit test
+             components::tree::tests::leaf_disclosure_placeholder_inherits_row_style_but_branch_keeps_icon_style
+             and the retained tree_presentation test
+             default_prefix_and_opt_in_gap_move_paint_and_hits_together asserting the branch
+             disclosure glyph stays and the leaf fold cell keeps the row foreground. The
+             exact regenerated baseline diff is crates/tui/tests/baselines/components.txt.
+- moved:     44 keys, every one a leaf fold cell the placeholder restyle moved (the 6
+             `tree::empty` cells the same BLESS run captured are not caused by this fix
+             and are accounted for at 7c):
+  render::components::tree::default 120 40 junie mono baf575f7ba6f2151 → e4958a185b19b77d
+  render::components::tree::default 120 40 junie truecolor 166c4078d8671dfc → 94e7ce70bb65b804
+  render::components::tree::default 120 40 paper truecolor 3a2c6b7f8f1e5356 → b1092f71d75fb128
+  render::components::tree::default 40 10 junie mono 9f3018afbf450231 → d9e4cafcc2a6f5dd
+  render::components::tree::default 40 10 junie truecolor f152f9641779aefc → c5df854de7f82804
+  render::components::tree::default 40 10 paper truecolor a577044e5105f946 → 2c1861b28dfe1218
+  render::components::tree::disabled 120 40 junie mono bd05daea19b3fc27 → b47c8c607dc66da5
+  render::components::tree::disabled 120 40 junie truecolor 0207a0bbda2f5cca → 66f0f5e22836fe6c
+  render::components::tree::disabled 120 40 paper truecolor 5fc785752ef66ca7 → bd7bac2b04bf1601
+  render::components::tree::disabled 40 10 junie mono 36029e0f0b6f6327 → 24215f18b6f71925
+  render::components::tree::disabled 40 10 junie truecolor 4937025f8f9c210a → c001164f315332ac
+  render::components::tree::disabled 40 10 paper truecolor 5dbd9a08b872cbe7 → 28bbd39eca633101
+  render::components::tree::editing 120 40 junie mono baf575f7ba6f2151 → e4958a185b19b77d
+  render::components::tree::editing 120 40 junie truecolor 166c4078d8671dfc → 94e7ce70bb65b804
+  render::components::tree::editing 120 40 paper truecolor 3a2c6b7f8f1e5356 → b1092f71d75fb128
+  render::components::tree::editing 40 10 junie mono 9f3018afbf450231 → d9e4cafcc2a6f5dd
+  render::components::tree::editing 40 10 junie truecolor f152f9641779aefc → c5df854de7f82804
+  render::components::tree::editing 40 10 paper truecolor a577044e5105f946 → 2c1861b28dfe1218
+  render::components::tree::focused 120 40 junie mono baf575f7ba6f2151 → e4958a185b19b77d
+  render::components::tree::focused 120 40 junie truecolor 166c4078d8671dfc → 94e7ce70bb65b804
+  render::components::tree::focused 120 40 paper truecolor 3a2c6b7f8f1e5356 → b1092f71d75fb128
+  render::components::tree::focused 40 10 junie mono 9f3018afbf450231 → d9e4cafcc2a6f5dd
+  render::components::tree::focused 40 10 junie truecolor f152f9641779aefc → c5df854de7f82804
+  render::components::tree::focused 40 10 paper truecolor a577044e5105f946 → 2c1861b28dfe1218
+  render::components::tree::hovered 120 40 junie mono baf575f7ba6f2151 → e4958a185b19b77d
+  render::components::tree::hovered 120 40 junie truecolor 2c9996197318787c → ae587d7429f2d2d4
+  render::components::tree::hovered 120 40 paper truecolor 44193ce583b63156 → 6366223c93c0ddac
+  render::components::tree::hovered 40 10 junie mono 9f3018afbf450231 → d9e4cafcc2a6f5dd
+  render::components::tree::hovered 40 10 junie truecolor 11c09f0fa3a145fc → a381318908fe5c54
+  render::components::tree::hovered 40 10 paper truecolor 4e83c9c7940d69c6 → 376e0191ded54e9c
+  render::components::tree::pressed 120 40 junie mono baf575f7ba6f2151 → 2a4e808ba871c1b9
+  render::components::tree::pressed 120 40 junie truecolor 166c4078d8671dfc → 069f49f3f3febc88
+  render::components::tree::pressed 120 40 paper mono b309aa954616d2e7 → ebc06c233268e8e1
+  render::components::tree::pressed 120 40 paper truecolor 3a2c6b7f8f1e5356 → c94f18e732664b43
+  render::components::tree::pressed 40 10 junie mono 9f3018afbf450231 → 48f68635c4f8d9d9
+  render::components::tree::pressed 40 10 junie truecolor f152f9641779aefc → 3bb041ba8aaadd08
+  render::components::tree::pressed 40 10 paper mono 10dbf2bf094ddac7 → 35000ca780235701
+  render::components::tree::pressed 40 10 paper truecolor a577044e5105f946 → 62fb872559518823
+  render::components::tree::selected 120 40 junie mono 8ffd5883ee29faa1 → 9e1c40991a3ede69
+  render::components::tree::selected 120 40 junie truecolor e8c2263c51da702b → 1e04d0ca77ba5c6f
+  render::components::tree::selected 120 40 paper truecolor cafb2f518f190c2e → fe2391d8faa6c80a
+  render::components::tree::selected 40 10 junie mono beca1537ca829301 → 05ac5faae8a77a49
+  render::components::tree::selected 40 10 junie truecolor e86e2f3debf6dd6b → cb796be352b2fbaf
+  render::components::tree::selected 40 10 paper truecolor 430e2e4177a249de → 5e325a89c362e5fa
+- added:     none
+- class:     fix
+- reason:    §20.10 item 7 (container/geometry defect fixes). Tree leaves inherit the row
+             style without a fabricated disclosure marker; a real disclosure glyph or an
+             explicit ICON patch keeps the ICON recipe. An empty tree paints no rows, so no
+             `tree::empty` cell can move from this fix; the 6 such cells the same BLESS run
+             captured were already stale at the base revision and are recorded at 7c.
+```
+
+### 7c — control note: the 6 `tree::empty` cells the same BLESS run captured were already stale at the base revision (2026-09-08)
+
+The 7b fix cannot move an empty-state cell: an empty tree paints no rows, so no leaf fold
+cell exists to restyle. The `BLESS=1` run that regenerated 7b's 44 cells also captured the
+6 `tree::empty` cells below, and §36.5 makes the moved/added partition checkable, so those
+6 are classified here rather than folded into 7b's list. They are the same pre-existing
+staleness class as this branch's other render baselines: their digests were already stale
+at the base revision, and this BLESS run synced them. The control that proves the movement
+pre-dates the 7b fix: with the worktree's tui sources reverted to the base revision,
+`cargo test -p junie-tui --test render_components -- tree --test-threads=1` still fails
+`render::components::tree::empty` against the NEW baseline values — the base sources
+already disagreed with the base baselines, so neither the 7b change nor its revert
+reproduces the old digests.
+
+```
+- surface:   junie-tui/Tree empty state @ {120x40, 40x10} / {junie, paper} / {truecolor,
+             mono} — control note for 7b, not a separate visual change
+- captures:  none under shots/ — headless Scene matrix cells; the named evidence is the
+             HEAD-source control above: at the base revision's sources the
+             render::components::tree::empty test already failed against the base
+             baselines, so the staleness is a pre-existing defect in the recorded
+             baseline, not in this tree's output
+- moved:     6 keys, all `tree::empty`, captured by the same BLESS=1 run as 7b:
+  render::components::tree::empty 120 40 junie mono d43c8daeaf982a7a → 449dd86eee94479e
+  render::components::tree::empty 120 40 junie truecolor 121b6cb8fded49a2 → 031f18534b558a72
+  render::components::tree::empty 120 40 paper truecolor ddbd052dff13465a → 6aa320d4b4a79de2
+  render::components::tree::empty 40 10 junie mono aeb7ad6bd94d0a1a → de62a211f1cd715e
+  render::components::tree::empty 40 10 junie truecolor ffa7ea144c4cbd62 → 4bc1ebbfb6005ef2
+  render::components::tree::empty 40 10 paper truecolor 065d1b5055061c8a → be7ba0c4623a2cca
+- added:     none
+- class:     fix
+- reason:    §20.10 item 7 (container/geometry defect fixes). No output defect is claimed
+             for these 6 cells and the 7b placeholder restyle does not touch them: the
+             HEAD-source control shows the digests were already stale at the base
+             revision, and the BLESS run synced the recorded baseline to the real output
+             (the same pre-existing staleness class as this branch's other render
+             baselines).
+```
+
 ## Item 8 — The backdrop excludes the footer row uniformly
 
 captures / classification: `(pending — filled when the change lands)`
