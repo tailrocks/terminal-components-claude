@@ -193,7 +193,7 @@ samples with live action constraints. Original reviewer negative passes unchange
 Root7 sampling +42 Grid MSRV tests and shared all-target strictClippy pass.
 Complete-fit/editor-pointer and gutter restoration remain separate open slices.
 TablePro ac4ce44 restores source history filters and selective revert assertions;
-root compared pinned model.rs959–1010 directly. a50ff14 fixes UTF8 tokenizer
+root compared pinned model.rs:959–1010 directly. a50ff14 fixes UTF8 tokenizer
 byte/character confusion at its owner (original café panic); root68 MSRV
 model and real app journey tests pass. Completion restoration remains pending.
 Dialog navigation integrated5eec5b6: extend Button bindings with shared Left/Right

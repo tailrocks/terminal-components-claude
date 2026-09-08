@@ -1,4 +1,4 @@
-//! Pinned794b095 actual-App assertions restored through the shared production runtime.
+//! Pinned 794b095 actual-App assertions restored through the shared production runtime.
 //! Fixture selection, frames, dimensions and product assertions remain source-derived.
 use super::{App, Motion, Route, Scenario};
 use junie_tui::{FeedbackClock, KeyCode, SimulationMoment, Theme};

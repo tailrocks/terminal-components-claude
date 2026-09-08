@@ -83,7 +83,7 @@ fn wrapped_rows_share_measurement_and_following_row_positions() {
 #[test]
 fn pinned_manager_mounts_keep_newlines_and_accounts_wrap() {
     use junie_tui::{ItemKey, PropsRow};
-    // 794b095 screens/manager.rs1082–1170 uses newline mounts and wrapped accounts.
+    // 794b095 screens/manager.rs:1082–1170 uses newline mounts and wrapped accounts.
     let rows = [
         PropsRow::new(
             ItemKey::num(1),

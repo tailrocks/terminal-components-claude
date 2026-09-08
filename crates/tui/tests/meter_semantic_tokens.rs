@@ -265,7 +265,7 @@ fn quantized_aliases_follow_pinned_ordered_lift() {
     }
 }
 
-// Direct transcription of immutable Holla theme.rs362–371 for custom palettes.
+// Direct transcription of immutable Holla theme.rs:362–371 for custom palettes.
 fn pinned_lift(theme: &Theme, surface: Surface) -> Color {
     let bg = theme.bg(surface);
     if bg == theme.bg(Surface::Canvas) {

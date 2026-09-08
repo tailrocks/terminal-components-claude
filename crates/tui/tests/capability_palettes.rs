@@ -3,7 +3,7 @@ use junie_tui::theme::downgrade_color;
 use junie_tui::{CapabilityPalettes, ColorLevel, Theme};
 use ratatui_core::style::Color;
 
-// Independent immutable Holla 794b095 src/theme.rs587-600 formula.
+// Independent immutable Holla 794b095 src/theme.rs:587-600 formula.
 #[expect(
     clippy::arithmetic_side_effects,
     reason = "exact pinned reference formula over bounded u8 channels"

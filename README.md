@@ -1,6 +1,6 @@
 # Junie TUI — a Ratatui design system and its first real application
 
-Three binaries share one library:
+Four binaries share one library:
 
 - **`showcase`** — the approved design-system laboratory: every component in
   every interaction state, two composed screens, and the visual baseline that
@@ -19,6 +19,16 @@ Three binaries share one library:
   scenario is a fixture world with a virtual clock, so any frame can be
   reproduced. It never touches the real Jackin CLI, containers, 1Password or
   provider APIs.
+- **`holla`** — a context-adaptive action launcher ("this folder, this host,
+  right now"): an always-armed query over a ranked priority stack (Suggested
+  here / Recent here / Explore), context rings Here→Project→Workspace→Host→
+  Personal with an explicit scope and a reason on every row, previews that
+  answer *what will happen* before anything runs, compound intents as
+  reviewable DAG plans behind two gates (review, then a typed phrase bound to
+  the target host), destructive actions as first-class citizens, and named
+  activities with retained output for long-running work. Everything is a
+  deterministic in-memory fixture — mise, git, gh, docker, btm, pg_activity,
+  ssh and the filesystem are simulated; the real commands never execute.
 
 The application is the specification: *if the
 [Junie](https://junie.jetbrains.com) website had been designed for a terminal
@@ -41,6 +51,14 @@ cargo run -p jackin-preview --release -- --scenario accounts-mixed   # first-use
 cargo run -p jackin-preview --release -- --scenario launch-running --motion reduced   # full | reduced | paused
 cargo run -p jackin-preview --release -- --scenario first-use --motion paused --frame 282    # freeze one frame
 JACKIN_NO_MOTION=1 cargo run -p jackin-preview --release   # same as --motion reduced
+
+cargo run -p holla --release                        # the launcher, first-use scenario
+cargo run -p holla --release -- --scenario remote-host   # first-use | rust-dirty | monorepo-root |
+                                                    # monorepo-child | docker-cleanup | disk-cleanup |
+                                                    # upgrade-plan | activities-multi | remote-host |
+                                                    # launch-failure | hard-cases
+cargo run -p holla --release -- --scenario hard-cases --color 256   # truecolor | 256 | 16 | none
+cargo run -p holla --release -- --motion paused --frame 4000        # freeze one frame
 ```
 
 Every screen's first row is the application menu bar (`F10`, or click a

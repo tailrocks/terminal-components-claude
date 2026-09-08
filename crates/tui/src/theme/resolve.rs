@@ -430,7 +430,7 @@ pub(crate) fn bind_inherited(
     result
 }
 
-/// Pinned Holla theme.rs362: compare resolved colors in this exact order.
+/// Pinned Holla theme.rs:362: compare resolved colors in this exact order.
 /// This authored policy deliberately retains quantized alias behavior; it does
 /// not identify a semantic role from an arbitrary painted RGB value.
 fn reference_lift(theme: &Theme, surface: Surface) -> Color {

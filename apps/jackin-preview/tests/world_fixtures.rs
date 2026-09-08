@@ -1,4 +1,4 @@
-//! Source-bound fixture graph: pinned 794b095 domain/fixtures.rs302–448,1298–1680.
+//! Source-bound fixture graph: pinned 794b095 domain/fixtures.rs:302–448, 1298–1680.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,

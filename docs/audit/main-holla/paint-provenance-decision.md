@@ -29,7 +29,7 @@ paint-carrier-candidate-sites.tsv is a textual candidate inventory (.style/.over
 
 ## Wide rendering decision
 
-Ratatui-core0.1.2 buffer.rs336–379 uses grapheme walk: filter controls/zero-width, refuse grapheme wider than remaining area, paint lead cell then reset continuation cells. set_span delegates to that path. Current paint_str/paint_spans subsequently mark entire written width with lead Style, resurrecting provenance on reset continuation cells;73a5ee9 paint_cell instead cleared continuation provenance, correctly reflecting reset bytes but creating disagreement. Shared writer must report lead and reset spans or perform one identical grapheme loop with metadata writes; no second inconsistent width parser, no partial grapheme at right clip. Preserve clipping, zero-width/control handling, text-width counts, written-cell bitset, allocation/performance contracts.
+Ratatui-core 0.1.2 buffer.rs:336–379 uses grapheme walk: filter controls/zero-width, refuse grapheme wider than remaining area, paint lead cell then reset continuation cells. set_span delegates to that path. Current paint_str/paint_spans subsequently mark entire written width with lead Style, resurrecting provenance on reset continuation cells;73a5ee9 paint_cell instead cleared continuation provenance, correctly reflecting reset bytes but creating disagreement. Shared writer must report lead and reset spans or perform one identical grapheme loop with metadata writes; no second inconsistent width parser, no partial grapheme at right clip. Preserve clipping, zero-width/control handling, text-width counts, written-cell bitset, allocation/performance contracts.
 
 ## Acceptance
 
