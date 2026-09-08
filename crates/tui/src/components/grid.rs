@@ -38,7 +38,9 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Align, Family, GlyphRole, Modifier, Role, StylePatch, Variant};
+use crate::theme::{
+    Align, Family, FgStep, GlyphRole, Modifier, Role, StyleDefaults, StylePatch, Variant,
+};
 use crate::ui::{Cx, FrameRead, Ui};
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
@@ -323,6 +325,11 @@ pub trait GridModel {
     /// rectangular navigation, but has no decoration, actions or editor
     /// hooks.
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;
+
+    /// One-based display number. Override with source order when the view is sorted.
+    fn row_number(&self, row: usize) -> usize {
+        row.saturating_add(1)
+    }
 
     /// Owner-supplied row decoration.
     fn row_decor(&self, _row: usize) -> RowDecor<'_> {
@@ -730,6 +737,35 @@ struct SampledWidth {
     natural: u16,
 }
 
+/// Leading row metadata layout. Compact preserves the original two-cell gutter.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum GridGutter {
+    /// Focus plus the shared selection/decoration marker.
+    #[default]
+    Compact,
+    /// Separate focus, check, change and optional source row number.
+    Detailed {
+        /// Include row numbers and a trailing separator cell.
+        row_numbers: bool,
+        /// Minimum number width; loaded-row count can increase it.
+        min_digits: u16,
+    },
+}
+impl GridGutter {
+    fn widths(self, rows: usize) -> (u16, u16) {
+        match self {
+            Self::Compact => (2, 0),
+            Self::Detailed {
+                row_numbers: false, ..
+            } => (3, 0),
+            Self::Detailed { min_digits, .. } => {
+                let digits = width(Num::new(rows.max(1)).as_str()).max(min_digits);
+                (digits.saturating_add(4), digits)
+            }
+        }
+    }
+}
+
 /// Horizontal viewport fitting policy.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum GridColumnFit {
@@ -982,6 +1018,17 @@ struct Geometry {
     body: Rect,
     /// The first column of cell content, past the gutter and marker.
     content_x: u16,
+    gutter_width: u16,
+    number_width: u16,
+    columns_area: Rect,
+}
+
+#[derive(Clone, Copy)]
+struct GutterRow<'a> {
+    data: Option<(ItemKey, usize)>,
+    decor: RowDecor<'a>,
+    flags: StateFlags,
+    style: PaintStyle,
 }
 
 struct RowPaint<'a, M: ?Sized> {
@@ -1007,6 +1054,9 @@ impl Geometry {
             hidden_right: 0,
             body,
             content_x: body.x,
+            gutter_width: 0,
+            number_width: 0,
+            columns_area: body,
         }
     }
 
@@ -1024,7 +1074,7 @@ impl Geometry {
         .intersection(Rect {
             y,
             height: 1,
-            ..self.body
+            ..self.columns_area
         })
     }
 
@@ -1042,6 +1092,26 @@ impl Geometry {
         } else {
             ui.register_decor(owner, part, area);
         }
+    }
+
+    fn gutter_part(&self, part: Part, y: u16) -> Rect {
+        let (offset, width) = match part {
+            Part::GUTTER => (0, 1),
+            Part::MARKER => (1, 1),
+            Part::CHANGE => (2, 1),
+            Part::ROW_NUMBER => (3, self.number_width),
+            _ => (0, 0),
+        };
+        Rect::new(self.body.x.saturating_add(offset), y, width, 1).intersection(Rect::new(
+            self.body.x,
+            y,
+            self.gutter_width,
+            1,
+        ))
+    }
+
+    fn gutter_row(&self, y: u16) -> Rect {
+        Rect::new(self.body.x, y, self.gutter_width, 1)
     }
 
     /// The column under `x`, if any.
@@ -1071,6 +1141,8 @@ impl Geometry {
 ///
 /// ## Configuration
 /// `.nav(NavUnit)` (`Cell`), `.select_mode(SelectMode)` (`Single`),
+/// `.gutter(GridGutter)` (`Compact`), `.right_reserve(u16)` (`0`),
+/// `.part_defaults(&[(Part, StylePatch)])` (detailed-gutter role defaults),
 /// `.empty(EmptyState)` (a default "Nothing here yet"), `.actions_slot(&dyn
 /// Fn(&mut Ui, Rect))`, `.patch`, `.patch_part`, `.slot`,
 /// There is **no** `.editable(bool)` (§23 K2, G4).
@@ -1160,6 +1232,9 @@ pub struct Grid<'a> {
     columns: &'a [Column<'a>],
     nav: NavUnit,
     column_gap: u16,
+    gutter: GridGutter,
+    right_reserve: u16,
+    part_defaults: &'a [(Part, StylePatch)],
     column_fit: GridColumnFit,
     header_sizing: GridHeaderSizing,
     sort_indicator: GridSortIndicator,
@@ -1198,6 +1273,10 @@ impl<'a> Grid<'a> {
         Part::OVERFLOW,
         Part::EMPTY,
         Part::ACTIONS,
+        Part::GUTTER,
+        Part::MARKER,
+        Part::CHANGE,
+        Part::ROW_NUMBER,
     ];
 
     /// A grid over `columns`.
@@ -1207,6 +1286,9 @@ impl<'a> Grid<'a> {
             columns,
             nav: NavUnit::Cell,
             column_gap: 1,
+            gutter: GridGutter::Compact,
+            right_reserve: 0,
+            part_defaults: &[],
             column_fit: GridColumnFit::Whole,
             header_sizing: GridHeaderSizing::Content,
             sort_indicator: GridSortIndicator::Always,
@@ -1302,6 +1384,27 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn fetch_on_activate(mut self, enabled: bool) -> Self {
         self.fetch_on_activate = enabled;
+        self
+    }
+
+    /// Borrowed role-level defaults for detailed gutter parts, below theme and instance patches.
+    #[must_use]
+    pub const fn part_defaults(mut self, defaults: &'a [(Part, StylePatch)]) -> Self {
+        self.part_defaults = defaults;
+        self
+    }
+
+    /// Select the leading row metadata layout. Defaults to compact.
+    #[must_use]
+    pub const fn gutter(mut self, gutter: GridGutter) -> Self {
+        self.gutter = gutter;
+        self
+    }
+
+    /// Reserve trailing cells independently of the scrollbar and column gap.
+    #[must_use]
+    pub const fn right_reserve(mut self, cells: u16) -> Self {
+        self.right_reserve = cells;
         self
     }
 
@@ -1562,7 +1665,11 @@ impl<'a> Grid<'a> {
         let total = model
             .row_count()
             .saturating_add(usize::from(model.has_more()));
-        if self.column_fit != GridColumnFit::Whole && total > usize::from(body.height) {
+        if (self.column_fit != GridColumnFit::Whole
+            || self.gutter != GridGutter::Compact
+            || self.right_reserve > 0)
+            && total > usize::from(body.height)
+        {
             body.width = body.width.saturating_sub(1);
         }
         body
@@ -1581,11 +1688,18 @@ impl<'a> Grid<'a> {
         if body.is_empty() {
             return Geometry::empty(body);
         }
-        if body.width <= 2 {
-            return self.place_columns(body, [0; GRID_MAX_COLUMNS], st.col_offset);
+        let (gutter_width, number_width) = self.gutter.widths(model.row_count());
+        if body.width <= gutter_width.saturating_add(self.right_reserve) {
+            return self.place_columns(
+                body,
+                [0; GRID_MAX_COLUMNS],
+                st.col_offset,
+                gutter_width,
+                number_width,
+            );
         }
         let widths = self.column_widths(st, model, rows);
-        let mut g = self.place_columns(body, widths, st.col_offset);
+        let mut g = self.place_columns(body, widths, st.col_offset, gutter_width, number_width);
         if self.column_fit == GridColumnFit::Whole {
             return g;
         }
@@ -1630,7 +1744,7 @@ impl<'a> Grid<'a> {
             g.offset
         };
         if offset != g.offset {
-            g = self.place_columns(body, widths, offset);
+            g = self.place_columns(body, widths, offset, gutter_width, number_width);
         }
 
         g
@@ -1660,15 +1774,27 @@ impl<'a> Grid<'a> {
         body: Rect,
         widths: [u16; GRID_MAX_COLUMNS],
         offset: usize,
+        gutter_width: u16,
+        number_width: u16,
     ) -> Geometry {
         let mut g = Geometry::empty(body);
         g.offset = offset;
         g.n = self.column_count();
-        g.content_x = body.x.saturating_add(2);
+        g.gutter_width = gutter_width.min(body.width);
+        g.number_width = number_width;
+        g.content_x = body.x.saturating_add(g.gutter_width);
+        g.columns_area = Rect {
+            x: g.content_x,
+            width: body
+                .width
+                .saturating_sub(gutter_width)
+                .saturating_sub(self.right_reserve),
+            ..body
+        };
         if g.n == 0 || body.is_empty() {
             return g;
         }
-        let avail = body.width.saturating_sub(2);
+        let avail = g.columns_area.width;
         if avail == 0 {
             g.hidden_right = g.n;
             return g;
@@ -2493,6 +2619,22 @@ impl Grid<'_> {
                     }
                 }
                 Intent::Pointer {
+                    phase: Phase::Click,
+                    part:
+                        PartRef {
+                            part: Part::ROW_NUMBER,
+                            item: Some(key),
+                        },
+                    ..
+                } => {
+                    if let Some(row) = Self::row_index(model, key, st.core.cursor_index()) {
+                        self.move_to(st, model, row, self.cursor_col(st), false, acc);
+                        self.toggle_row(st, model, row, acc);
+                    } else {
+                        acc.consumed();
+                    }
+                }
+                Intent::Pointer {
                     phase,
                     part:
                         PartRef {
@@ -2948,6 +3090,127 @@ impl Grid<'_> {
         self.draw_header_overflow(ui, head, g, live);
     }
 
+    fn gutter_style(
+        &self,
+        ui: &mut Ui<'_>,
+        part: Part,
+        flags: StateFlags,
+        mut base: StylePatch,
+    ) -> crate::theme::Resolved {
+        for (named, patch) in self.part_defaults {
+            if *named == part {
+                base = base.merge(*patch);
+            }
+        }
+        let local = self.ov.part_patch(part);
+        let resolved = ui.style_defaults(
+            Family::GRID,
+            Variant::DEFAULT,
+            part,
+            flags,
+            StyleDefaults::new(base),
+            local.as_ref(),
+        );
+        self.ov
+            .note(ui, self.id, Family::GRID, Variant::DEFAULT, part, resolved);
+        resolved
+    }
+
+    fn draw_detailed_gutter(
+        &self,
+        ui: &mut Ui<'_>,
+        geometry: &Geometry,
+        y: u16,
+        row: GutterRow<'_>,
+    ) {
+        let GutterRow {
+            data,
+            decor,
+            flags,
+            style: inherited,
+        } = row;
+        let inherited = ui.surface_style().patch(inherited);
+        let focused = flags.contains(StateFlags::FOCUSED);
+        let checked = flags.contains(StateFlags::CHECKED);
+        let mut focus = StylePatch::new().set_glyph(GlyphRole::FocusBar);
+        if focused {
+            focus = focus.set_fg(Role::Focus);
+        }
+        let mut check = StylePatch::new()
+            .set_fg(if focused {
+                Role::Accent
+            } else {
+                Role::Fg(FgStep::Secondary)
+            })
+            .remove(Modifier::CROSSED_OUT);
+        if checked {
+            check = check.set_glyph(GlyphRole::Checked);
+        }
+        let mut change = StylePatch::new()
+            .set_fg(decor.tone.unwrap_or(Role::Fg(FgStep::Secondary)))
+            .remove(Modifier::CROSSED_OUT);
+        if let Some(glyph) = decor.marker {
+            change = change.set_glyph(glyph);
+        }
+        let number_defaults = StylePatch::new()
+            .set_fg(Role::Fg(if focused {
+                FgStep::Secondary
+            } else {
+                FgStep::Faint
+            }))
+            .remove(Modifier::BOLD | Modifier::CROSSED_OUT);
+        let value = data.map(|(_, number)| Num::new(number));
+        for (part, defaults) in [
+            (Part::GUTTER, focus),
+            (Part::MARKER, check),
+            (Part::CHANGE, change),
+            (Part::ROW_NUMBER, number_defaults),
+        ] {
+            if data.is_none() && part != Part::GUTTER {
+                continue;
+            }
+            let area = geometry.gutter_part(part, y);
+            if area.is_empty() {
+                continue;
+            }
+            let resolved = self.gutter_style(ui, part, flags, defaults);
+            // An unfocused focus-bar stays present, using the row background
+            // as its foreground without losing the background role metadata.
+            let base = if part == Part::GUTTER && !focused {
+                inherited.with_fg_from_bg(inherited)
+            } else {
+                inherited
+            };
+            let style = resolved.over(base);
+            ui.fill(area, style);
+            if let Some(slot) = self.ov.slot_for(part) {
+                ui.with_area(area, |ui| slot(ui, area));
+            } else if let Some(glyph) = resolved.glyph.get() {
+                ui.glyph(area, glyph, style);
+            } else if part == Part::ROW_NUMBER
+                && let Some(value) = &value
+            {
+                paint_aligned(
+                    ui,
+                    area,
+                    value.as_str(),
+                    resolved.align.unwrap_or(Align::Right),
+                    style,
+                );
+            }
+        }
+        if geometry.number_width > 0
+            && !ui.is_inert()
+            && let Some((key, _)) = data
+        {
+            ui.register_part(
+                self.id,
+                PartRef::item(Part::ROW_NUMBER, key),
+                geometry.gutter_row(y),
+            );
+        }
+    }
+
     /// Paint one body row and register its cell parts.
     #[expect(
         clippy::too_many_lines,
@@ -3010,17 +3273,31 @@ impl Grid<'_> {
         }
         let row_style = apply_style_delta(ui, rs.style, row_delta);
         ui.fill(band, row_style);
-        // The focus gutter and the selection marker are painted from the ROW
-        // resolution: `PARTS` is exactly what `draw` resolves (§33), and
-        // §17.0 A7's list has no GUTTER or MARKER.
-        if is_cursor && live.contains(StateFlags::FOCUSED) {
-            ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);
-        }
-        let marker_cell = super::cell_at(band, band.x.saturating_add(1));
-        if checked {
-            ui.glyph(marker_cell, GlyphRole::Checked, row_style);
-        } else if let Some(m) = decor.marker {
-            ui.glyph(marker_cell, m, row_style);
+        if self.gutter == GridGutter::Compact {
+            // The focus gutter and the selection marker are painted from the ROW
+            // resolution. Dedicated gutter parts are opt-in; Compact preserves
+            // the historical ROW-based slot and style behavior.
+            if is_cursor && live.contains(StateFlags::FOCUSED) {
+                ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);
+            }
+            let marker_cell = super::cell_at(band, band.x.saturating_add(1));
+            if checked {
+                ui.glyph(marker_cell, GlyphRole::Checked, row_style);
+            } else if let Some(m) = decor.marker {
+                ui.glyph(marker_cell, m, row_style);
+            }
+        } else {
+            self.draw_detailed_gutter(
+                ui,
+                geometry,
+                y,
+                GutterRow {
+                    data: Some((key, model.row_number(row))),
+                    decor,
+                    flags: rflags,
+                    style: row_style,
+                },
+            );
         }
         let inert = ui.is_inert();
         for i in 0..geometry.n {
@@ -3370,10 +3647,23 @@ impl Grid<'_> {
                     flags,
                 );
                 ui.fill(more, ms.style);
+                if self.gutter != GridGutter::Compact {
+                    self.draw_detailed_gutter(
+                        ui,
+                        &g,
+                        y,
+                        GutterRow {
+                            data: None,
+                            decor: RowDecor::default(),
+                            flags,
+                            style: ms.style,
+                        },
+                    );
+                }
                 let used = ui.glyph(
                     Rect {
-                        x: more.x.saturating_add(2),
-                        width: more.width.saturating_sub(2),
+                        x: g.content_x,
+                        width: more.right().saturating_sub(g.content_x),
                         ..more
                     },
                     GlyphRole::MoreRows,
@@ -3381,8 +3671,12 @@ impl Grid<'_> {
                 );
                 ui.paint_str(
                     Rect {
-                        x: more.x.saturating_add(3).saturating_add(used),
-                        width: more.width.saturating_sub(3).saturating_sub(used),
+                        x: g.content_x.saturating_add(1).saturating_add(used),
+                        width: more
+                            .right()
+                            .saturating_sub(g.content_x)
+                            .saturating_sub(1)
+                            .saturating_sub(used),
                         ..more
                     },
                     "more",
@@ -3420,7 +3714,7 @@ impl Grid<'_> {
     /// The natural size: the sampled column total, and whatever height is
     /// offered.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
-        let mut w: u16 = 2;
+        let mut w = self.gutter.widths(0).0.saturating_add(self.right_reserve);
         for col in self.columns.iter().take(self.column_count()) {
             w = w
                 .saturating_add(col.min_width.max(width(col.title)))
@@ -4013,6 +4307,10 @@ mod tests {
                 Part::OVERFLOW,
                 Part::EMPTY,
                 Part::ACTIONS,
+                Part::GUTTER,
+                Part::MARKER,
+                Part::CHANGE,
+                Part::ROW_NUMBER,
             ]
         );
         let addressable = [
@@ -4030,7 +4328,7 @@ mod tests {
         let columns = columns();
         let debug = format!("{:?}", Grid::new(ID, &columns));
         assert!(!debug.contains("status"));
-        assert_eq!(Grid::PARTS.len(), 9);
+        assert_eq!(Grid::PARTS.len(), 13);
         assert!(!Grid::PARTS.contains(&Part::ICON));
     }
 

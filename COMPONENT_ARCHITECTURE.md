@@ -2810,7 +2810,16 @@ impl<'a, T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'a, T, K, R> {
 }
 impl<'a> Grid<'a> {                                                   // no `M` on the props (§21 item 1, B15)
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::HEADER, Part::ROW, Part::CELL,
-                                         Part::TRACK, Part::THUMB, Part::OVERFLOW, Part::EMPTY, Part::ACTIONS];
+                                         Part::TRACK, Part::THUMB, Part::OVERFLOW, Part::EMPTY, Part::ACTIONS,
+                                         Part::GUTTER, Part::MARKER, Part::CHANGE, Part::ROW_NUMBER];
+    // Detailed gutter amendment: the final four are real optional surfaces.
+    // Compact (default) retains its ROW-based two-cell paint and existing slots.
+    // Detailed separates focus/check/change/source-number cells in the shared
+    // Grid geometry; these four slots replace only their clipped cell content.
+    // CHANGE and ROW_NUMBER are builtin parts 34 and 35; no whole-grid Status.
+    pub fn gutter(self, layout: GridGutter) -> Self;
+    pub fn right_reserve(self, cells: u16) -> Self;
+    pub fn part_defaults(self, defaults: &'a [(Part, StylePatch)]) -> Self;
     pub fn new(id: Id, columns: &'a [Column<'a>]) -> Self;
     pub fn nav(self, u: NavUnit) -> Self;        pub fn select_mode(self, m: SelectMode) -> Self;
     pub fn empty(self, e: EmptyState<'a>) -> Self;
