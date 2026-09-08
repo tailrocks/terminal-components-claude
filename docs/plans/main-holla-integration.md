@@ -296,6 +296,18 @@ found swallowed Cancel/Back/Scope during query-clear; author940b3aa repairs this
 independent review pending before integration. Linux task VM remains provisioning;
 no Linux Rust/bwrap execution or capture acceptance is claimed.
 
+Nonsearch Picker6c3bd9f/418291b and Holla625f086 now integrated with source
+regressiondb9e5c8. Root reviewed initial and corrected source; only stale row
+activation is suppressed during query reset, Cancel dismisses and Back/Scope
+retain precedence with the empty query. Independent18-test acceptance is bound
+in E/picker-nonsearch-independent/REVIEW.md SHAcc539c56…901c4a4; original three
+navigation reds retained. Root14 Picker tests and137 Holla tests pass; full
+workspace MSRV Clippy and stable formatting pass. Actual Actions uses source
+nonsearch geometry/footer, no caret/EDIT, and blocks background query edits.
+Full application visual fidelity remains unapproved. Tree lineage76e561f and
+scratch reuse1abcb47 await independent/root review; removed-opener restoration
+is assigned a distinct publication-validated path, not generic unknown-ID focus.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
