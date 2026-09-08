@@ -176,3 +176,60 @@ fn switcher_query_is_absent_from_app_debug() {
     assert!(h.text().contains("picker_secret_19"));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
+
+#[test]
+fn actual_ctrl_o_renders_semantic_columns_and_matched_label_cells() {
+    use junie_tui::{ColorLevel, ItemKey, Modifier, Part, PartRef};
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let mut app = TableProApp::new();
+        assert!(app.connect(0));
+        let index = app.workbench.switcher();
+        let Some(first) = index.items.iter().find(|item| item.label == "change_log") else {
+            unreachable!("catalog relation")
+        };
+        let first_key = ItemKey::text(&first.key);
+        let Some(customers) = index.items.iter().find(|item| item.label == "customers") else {
+            unreachable!("catalog relation")
+        };
+        let customers_key = ItemKey::text(&customers.key);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40).with_color(level);
+        let _ = h.ctrl('o');
+        let Some(area) = h.area_of_part(PICKER, PartRef::item(Part::ROW, first_key)) else {
+            unreachable!("visible first row")
+        };
+        assert_eq!(h.cell(area.x.saturating_add(1), area.y).symbol(), "T");
+        assert_eq!(h.cell(area.x.saturating_add(3), area.y).symbol(), "c");
+        assert!(h.row(area.y).contains("Tables"));
+        let Some(next) = h.area_of_part(PICKER, PartRef::item(Part::ROW, customers_key)) else {
+            unreachable!("visible next relation")
+        };
+        let next_text: String = (next.x..next.right())
+            .map(|x| h.cell(x, next.y).symbol())
+            .collect();
+        assert!(!next_text.contains("Tables"));
+        let _ = h.type_str("cust");
+        let _ = h.key(KeyCode::Down);
+        let Some(area) = h.area_of_part(PICKER, PartRef::item(Part::ROW, customers_key)) else {
+            unreachable!("filtered relation")
+        };
+        for offset in 3..7 {
+            assert!(
+                h.cell(area.x.saturating_add(offset), area.y)
+                    .modifier
+                    .contains(Modifier::BOLD)
+            );
+        }
+        assert!(
+            !h.cell(area.x.saturating_add(7), area.y)
+                .modifier
+                .contains(Modifier::BOLD)
+        );
+        assert!(h.row(area.y).contains("Tables"));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+}

@@ -1,7 +1,9 @@
 //! Application-owned switcher projection over the shared Picker.
 use crate::model::{SwitchItem, SwitchTarget, SwitcherIndex};
 use crate::workbench::Workbench;
-use junie_tui::{AsItem, FilterPolicy, Id, Item, ItemKey, Picker, PickerState, ScopeKey};
+use junie_tui::{
+    AsItem, FilterPolicy, Id, Item, ItemKey, ItemRowLayout, Picker, PickerState, ScopeKey,
+};
 
 pub(crate) const ID: Id = Id::root("tablepro.quick-switcher");
 const SCOPES: &[ScopeKey] = &[
@@ -68,6 +70,7 @@ impl QuickSwitcher {
             .width(88)
             .scopes(SCOPES)
             .filter(FilterPolicy::Caller)
+            .item_layout(ItemRowLayout::Columns)
     }
     pub(crate) fn refresh(&mut self) {
         let scope = self.state.scope(SCOPES).map_or(0, ScopeKey::get);
