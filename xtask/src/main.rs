@@ -2028,6 +2028,139 @@ fn code_line(line: &str) -> &str {
     }
 }
 
+/// Replace Rust literal contents with spaces while preserving line breaks.
+///
+/// Boundary scans operate on source text, but string examples are still
+/// source text rather than production API calls. Masking literals keeps the
+/// scan structural enough to catch real calls inside multiline files without
+/// rejecting a showcased code sample such as `build().unwrap()`.
+fn mask_rust_literals(text: &str) -> String {
+    #[derive(Clone, Copy)]
+    enum Mode {
+        Normal,
+        LineComment,
+        BlockComment,
+        String { escaped: bool },
+        Raw { hashes: usize },
+    }
+
+    let chars: Vec<char> = text.chars().collect();
+    let mut masked = String::with_capacity(text.len());
+    let mut mode = Mode::Normal;
+    let mut index = 0usize;
+    while let Some(&current) = chars.get(index) {
+        match mode {
+            Mode::Normal => {
+                if current == '/' && chars.get(index + 1) == Some(&'/') {
+                    masked.push('/');
+                    masked.push('/');
+                    index = index.saturating_add(2);
+                    mode = Mode::LineComment;
+                } else if current == '/' && chars.get(index + 1) == Some(&'*') {
+                    masked.push('/');
+                    masked.push('*');
+                    index = index.saturating_add(2);
+                    mode = Mode::BlockComment;
+                } else if let Some((prefix_len, hashes)) = raw_string_start(&chars, index) {
+                    for _ in 0..prefix_len.saturating_add(hashes).saturating_add(1) {
+                        masked.push(' ');
+                    }
+                    index = index
+                        .saturating_add(prefix_len)
+                        .saturating_add(hashes)
+                        .saturating_add(1);
+                    mode = Mode::Raw { hashes };
+                } else if current == '"' {
+                    masked.push(' ');
+                    index = index.saturating_add(1);
+                    mode = Mode::String { escaped: false };
+                } else {
+                    masked.push(current);
+                    index = index.saturating_add(1);
+                }
+            }
+            Mode::LineComment => {
+                masked.push(current);
+                index = index.saturating_add(1);
+                if current == '\n' {
+                    mode = Mode::Normal;
+                }
+            }
+            Mode::BlockComment => {
+                if current == '*' && chars.get(index + 1) == Some(&'/') {
+                    masked.push('*');
+                    masked.push('/');
+                    index = index.saturating_add(2);
+                    mode = Mode::Normal;
+                } else {
+                    masked.push(if current == '\n' { '\n' } else { ' ' });
+                    index = index.saturating_add(1);
+                }
+            }
+            Mode::String { escaped } => {
+                if current == '\n' {
+                    masked.push('\n');
+                    index = index.saturating_add(1);
+                    mode = Mode::String { escaped: false };
+                } else if escaped {
+                    masked.push(' ');
+                    index = index.saturating_add(1);
+                    mode = Mode::String { escaped: false };
+                } else if current == '\\' {
+                    masked.push(' ');
+                    index = index.saturating_add(1);
+                    mode = Mode::String { escaped: true };
+                } else if current == '"' {
+                    masked.push(' ');
+                    index = index.saturating_add(1);
+                    mode = Mode::Normal;
+                } else {
+                    masked.push(' ');
+                    index = index.saturating_add(1);
+                }
+            }
+            Mode::Raw { hashes } => {
+                if current == '"'
+                    && chars
+                        .get(index + 1..index + hashes + 1)
+                        .is_some_and(|tail| tail.iter().all(|character| *character == '#'))
+                {
+                    masked.push(' ');
+                    for _ in 0..hashes {
+                        masked.push(' ');
+                    }
+                    index = index.saturating_add(hashes.saturating_add(1));
+                    mode = Mode::Normal;
+                } else {
+                    masked.push(if current == '\n' { '\n' } else { ' ' });
+                    index = index.saturating_add(1);
+                }
+            }
+        }
+    }
+    masked
+}
+
+fn has_raw_prefix(chars: &[char], index: usize, prefix: usize) -> Option<usize> {
+    let mut cursor = index.saturating_add(prefix);
+    let mut hashes = 0usize;
+    while chars.get(cursor) == Some(&'#') {
+        hashes = hashes.saturating_add(1);
+        cursor = cursor.saturating_add(1);
+    }
+    (chars.get(cursor) == Some(&'"')).then_some(hashes)
+}
+
+fn raw_string_start(chars: &[char], index: usize) -> Option<(usize, usize)> {
+    if chars.get(index) == Some(&'r') {
+        has_raw_prefix(chars, index, 1).map(|hashes| (1, hashes))
+    } else if chars.get(index) == Some(&'b') && chars.get(index + 1) == Some(&'r') {
+        has_raw_prefix(chars, index, 2).map(|hashes| (2, hashes))
+    } else {
+        None
+    }
+}
+
 // ───────────────────────────── boundary checks ─────────────────────────────
 
 type Check = (&'static str, fn() -> Result<(), String>);
@@ -2564,7 +2697,8 @@ fn no_deprecated_or_legacy_api_usage() -> Result<(), String> {
                     continue;
                 }
                 let text = read(&file);
-                for (ln, line) in non_test_lines(&text) {
+                let scan_text = mask_rust_literals(&text);
+                for (ln, line) in non_test_lines(&scan_text) {
                     let code = code_line(line);
                     if !re.is_match(code) {
                         continue;
@@ -9397,6 +9531,23 @@ mod tests {
         assert_eq!(kept, vec!["a();", "b();", "c();"]);
         let lines: Vec<usize> = non_test_lines(src).into_iter().map(|(n, _)| n).collect();
         assert_eq!(lines, vec![1, 7, 10]);
+    }
+
+    #[test]
+    fn boundary_literal_mask_preserves_real_code_and_hides_examples() {
+        let source = r#"const SAMPLE: &str = "\
+fn fake() { build().unwrap(); }
+Masked while typing
+";
+fn real() { build().unwrap(); }
+fn legacy() { Masked::new(); }
+"#;
+        let masked = mask_rust_literals(source);
+        assert!(!masked.contains("fake()"));
+        assert!(!masked.contains("Masked while typing"));
+        assert!(masked.contains("fn real() { build().unwrap(); }"));
+        assert!(masked.contains("Masked::new()"));
+        assert_eq!(masked.lines().count(), source.lines().count());
     }
 
     #[test]
