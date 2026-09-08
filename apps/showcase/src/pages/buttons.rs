@@ -5,9 +5,9 @@
 //! props used by the live controls, so captures cannot drift from behavior.
 
 use junie_tui::{
-    Button, Constraints, Cx, Family, FrameRead, Id, ItemKey, Panel, PanelKind, Part, PartRef,
-    RadioGroup, RadioGroupState, Rect, ReferenceState, ReferenceTarget, Response, RowAlign,
-    StateFlags, Status, Toggle, Ui, Variant, id, layout,
+    Button, Constraints, Cx, Family, FrameRead, Id, Panel, PanelKind, Part, PartRef, Rect,
+    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, id,
+    layout,
 };
 
 use super::{Page, frame};
@@ -16,9 +16,6 @@ const BUTTONS: Id = id!("buttons");
 const PLAYGROUND_PANEL: Id = id!("buttons.playground");
 const MATRIX: Id = id!("buttons.matrix");
 const MATRIX_PANEL: Id = id!("buttons.matrix.panel");
-const TOGGLE: Id = id!("buttons.toggle");
-const RADIO: Id = id!("buttons.radio");
-const RADIO_OPTIONS: &[&str] = &["Primary", "Secondary", "Danger"];
 
 fn playground_panel() -> Panel<'static> {
     Panel::new(PLAYGROUND_PANEL)
@@ -32,16 +29,6 @@ fn matrix_panel() -> Panel<'static> {
         .kind(PanelKind::Card)
         .title("State matrix")
         .meta("reference rendering ")
-}
-
-fn api_toggle() -> Toggle<'static> {
-    Toggle::new(TOGGLE, "API toggle").on(true).disabled(true)
-}
-
-fn api_radio() -> RadioGroup<'static, &'static str> {
-    RadioGroup::new(RADIO)
-        .value(ItemKey::index(0))
-        .disabled(true)
 }
 
 /// The nine playground buttons, in the legacy declaration order.
@@ -131,7 +118,6 @@ pub(crate) struct ButtonsPage {
     clicks: u32,
     last: Option<String>,
     busy_frames: u32,
-    radio_state: RadioGroupState,
 }
 
 impl ButtonsPage {
@@ -141,7 +127,6 @@ impl ButtonsPage {
             clicks: 0,
             last: None,
             busy_frames: 0,
-            radio_state: RadioGroupState::default(),
         };
         for (slot, (_, _, _, checked)) in page.checked.iter_mut().zip(SPECS) {
             *slot = checked;
@@ -215,8 +200,6 @@ impl Page for ButtonsPage {
                 response = Response::changed();
             }
         }
-        let _ = api_toggle().update(cx, &mut false);
-        let _ = api_radio().update(cx, &mut self.radio_state, RADIO_OPTIONS);
         response
     }
 

@@ -588,6 +588,25 @@ fn editable_table_commit_cancel_and_validation() {
 }
 
 #[test]
+fn button_toggle_variants_remain_live_without_hidden_choice_controls() {
+    let mut h = harness(PageId::Buttons);
+    let root = Id::root("showcase_app::pages::buttons::buttons");
+    let auto = root.index(4);
+    let verbose = root.index(5);
+    let auto_area = require(h.area_of(auto), "Auto-approve button");
+    let verbose_area = require(h.area_of(verbose), "Verbose button");
+    assert!(area_text(&h, auto_area).contains("○ Auto-approve"));
+    assert!(area_text(&h, verbose_area).contains("● Verbose"));
+    click(&mut h, auto_area.x + 2, auto_area.y);
+    assert!(area_text(&h, auto_area).contains("● Auto-approve"));
+    assert!(h.text().contains("Auto-approve on"));
+    click(&mut h, verbose_area.x + 2, verbose_area.y);
+    assert!(area_text(&h, verbose_area).contains("○ Verbose"));
+    assert!(h.text().contains("Verbose off"));
+    assert!(h.diagnostics().is_empty());
+}
+
+#[test]
 fn input_defaults_match_the_reference_project_and_empty_branch() {
     let h = harness(PageId::Inputs);
     let project = Id::root("showcase_app::pages::inputs::inputs.name");
