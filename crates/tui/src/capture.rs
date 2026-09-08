@@ -163,7 +163,7 @@ mod tests {
         reg.register_control(
             Id::root("thumb"),
             Rect::new(0, 0, 1, 1),
-            crate::layer::LayerId::PAGE,
+            LayerId::PAGE,
         );
         s.release_if_stale(&reg);
         assert!(s.get().is_none());

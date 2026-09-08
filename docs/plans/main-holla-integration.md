@@ -197,8 +197,12 @@ Dialog navigation integrated5eec5b6: extend Button bindings with shared Left/Rig
 without replacing Enter/Space. Root7 MSRV navigation/acknowledgement and115Holla
 tests pass. Owner unchanged historical monitor handoff passes; root historical
 monitor execution awaits its dependency train. Runtime c8cc1a5 repaired hover/capture
-chain now independently accepted (27MSRV tests and immutable PTY proof); integration
-review remains pending, not a waiver for earlier033e175 starvation.
+chain independently accepted (27MSRV tests and immutable PTY proof), now integrated
+cdbcb05/715ee07/f5c3763 after complete root production/test review. Root750shared+
+17pointer MSRV and218app MSRV tests pass; strict whole-workspace Clippy passes.
+One PTY fixture ignored by ordinary run is separately executed by independent
+reviewer. Capture test qualification corrected without suppressions. Earlier033
+starvation is repaired by bounded diagnosed suppression, not waived.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
