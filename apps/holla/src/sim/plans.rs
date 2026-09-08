@@ -28,7 +28,10 @@ impl ReviewedPlan {
         &self.plan
     }
 
-    pub(crate) fn toggle(&mut self, index: usize) -> Result<String, crate::domain::plan::PlanError> {
+    pub(crate) fn toggle(
+        &mut self,
+        index: usize,
+    ) -> Result<String, crate::domain::plan::PlanError> {
         self.plan.toggle(index)
     }
 
@@ -479,6 +482,23 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
 /// in use today are policy-skipped and shown, never removed.
 fn disk_reclaim(w: &World) -> Option<Plan> {
     let disk = w.disk.as_ref()?;
+    let inspected_bytes = disk.candidates.iter().try_fold(0_u64, |bytes, candidate| {
+        bytes.checked_add(candidate.size_bytes)
+    })?;
+    if inspected_bytes > disk.used_bytes || disk.used_bytes > disk.total_bytes {
+        return None;
+    }
+    for (index, candidate) in disk.candidates.iter().enumerate() {
+        let path = std::path::Path::new(&candidate.path);
+        if candidate.path.is_empty()
+            || disk.candidates.iter().take(index).any(|prior| {
+                let prior = std::path::Path::new(&prior.path);
+                prior.starts_with(path) || path.starts_with(prior)
+            })
+        {
+            return None;
+        }
+    }
     let host = w.host.name.clone();
     let mut steps = vec![
         PlanStep::new(
@@ -567,6 +587,13 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
         .as_ref()
         .map(|mise| mise.tools.as_slice())
         .unwrap_or(&[]);
+    let mut tool_ids = std::collections::BTreeSet::new();
+    if tools
+        .iter()
+        .any(|tool| tool.name.is_empty() || !tool_ids.insert(tool.name.as_str()))
+    {
+        return None;
+    }
     let tool_effects: Vec<Mutation> = tools
         .iter()
         .filter_map(|tool| match &tool.state {
@@ -1261,5 +1288,26 @@ mod tests {
                 .any(|line| line == "installed tools current · 1 optional tools missing")
         );
         assert_eq!(world.debian.as_ref().unwrap().pending, 1);
+    }
+    #[test]
+    fn duplicate_tool_identity_refuses_review_before_any_upgrade() {
+        let mut world = settled(Scenario::UpgradePlan);
+        let tools = &mut world.mise.as_mut().unwrap().tools;
+        let mut duplicate = tools[0].clone();
+        duplicate.version = "different-before".into();
+        tools.push(duplicate);
+        let before = world.mise.clone();
+        assert!(plan_for(&world, "debian.upgrade").is_none());
+        assert_eq!(world.mise, before);
+        assert_eq!(world.effect_revision, 0);
+    }
+
+    #[test]
+    fn inconsistent_disk_capacity_refuses_reclaim_claims() {
+        let mut world = settled(Scenario::DiskCleanup);
+        world.disk.as_mut().unwrap().used_bytes = 1;
+        assert!(plan_for(&world, "disk.reclaim").is_none());
+        world.disk.as_mut().unwrap().used_bytes = u64::MAX;
+        assert!(plan_for(&world, "disk.reclaim").is_none());
     }
 }
