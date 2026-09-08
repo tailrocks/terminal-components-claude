@@ -39,14 +39,14 @@ impl Clock {
 
     /// `HH:MM` for a fixture instant, local to the fixture zone (UTC+7).
     pub(crate) fn hhmm(secs: i64) -> String {
-        let local = secs + 7 * 3600;
+        let local = i128::from(secs) + 7 * 3600;
         let day = local.rem_euclid(86_400);
         format!("{:02}:{:02}", day / 3600, (day % 3600) / 60)
     }
 
     /// `2026-09-06 09:14` for a fixture instant.
     pub(crate) fn stamp(secs: i64) -> String {
-        let local = secs + 7 * 3600;
+        let local = i128::from(secs) + 7 * 3600;
         let days = local.div_euclid(86_400);
         let (y, m, d) = civil_from_days(days);
         format!("{y:04}-{m:02}-{d:02} {}", Self::hhmm(secs))
@@ -54,7 +54,7 @@ impl Clock {
 
     /// `9 s ago`, `3 min ago`, `2 h ago`, `yesterday`, `3 d ago`.
     pub(crate) fn ago(&self, then_secs: i64) -> String {
-        let delta = (self.now_secs() - then_secs).max(0) as u64;
+        let delta = (i128::from(self.now_secs()) - i128::from(then_secs)).max(0);
         match delta {
             0..=59 => format!("{delta} s ago"),
             60..=3_599 => format!("{} min ago", delta / 60),
@@ -72,7 +72,7 @@ impl Default for Clock {
 }
 
 /// Howard Hinnant's days-to-civil algorithm.
-fn civil_from_days(z: i64) -> (i64, u32, u32) {
+fn civil_from_days(z: i128) -> (i128, u32, u32) {
     let z = z + 719_468;
     let era = z.div_euclid(146_097);
     let doe = z.rem_euclid(146_097);
@@ -152,5 +152,17 @@ mod tests {
         assert_eq!(clock.now_ms, 33);
         clock.advance(i64::MAX);
         assert_eq!(clock.now_ms, i64::MAX);
+    }
+    #[test]
+    fn extreme_timestamp_views_do_not_overflow() {
+        assert_eq!(Clock::hhmm(i64::MAX), "22:30");
+        assert_eq!(Clock::hhmm(i64::MIN), "15:29");
+        assert!(!Clock::stamp(i64::MAX).is_empty());
+        assert!(!Clock::stamp(i64::MIN).is_empty());
+        let clock = Clock {
+            now_ms: i64::MAX,
+            running: false,
+        };
+        assert!(clock.ago(i64::MIN).ends_with(" d ago"));
     }
 }

@@ -31,7 +31,7 @@ pub(crate) struct GitRepo {
 
 impl GitRepo {
     pub(crate) fn dirty(&self) -> bool {
-        self.modified + self.staged + self.untracked > 0
+        self.modified != 0 || self.staged != 0 || self.untracked != 0
     }
 
     pub(crate) fn detached(&self) -> bool {
@@ -130,5 +130,12 @@ mod tests {
         assert_eq!(r.summary()[0], "detached at 9f3a21c");
 
         assert_eq!(repo().summary()[0], "working tree clean");
+    }
+    #[test]
+    fn dirty_classification_does_not_sum_unbounded_counts() {
+        let mut repo = repo();
+        repo.modified = u32::MAX;
+        repo.staged = 1;
+        assert!(repo.dirty());
     }
 }
