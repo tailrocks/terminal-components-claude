@@ -655,6 +655,29 @@ const BINDINGS: [Binding<GridCmd>; 25] = [
 /// design error, not a runtime one.
 pub const GRID_MAX_COLUMNS: usize = 64;
 
+/// Why a keyed [`Grid::move_cursor_to`] request was refused.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GridCursorError {
+    /// The row is not present in the current model.
+    UnknownRow(ItemKey),
+    /// The column is absent from the grid's addressable schema.
+    UnknownColumn(ColumnKey),
+    /// A retained inline draft must be explicitly committed or cancelled first.
+    Editing,
+}
+
+impl fmt::Display for GridCursorError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::UnknownRow(_) => "grid row key is absent",
+            Self::UnknownColumn(_) => "grid column key is absent",
+            Self::Editing => "grid inline edit is active",
+        })
+    }
+}
+
+impl core::error::Error for GridCursorError {}
+
 /// Durable state of a [`Grid`].
 ///
 /// Holds the cursor cell, the rectangular range anchor, the row selection,
@@ -733,6 +756,19 @@ impl GridState {
     /// The typed error retained by the inline editor.
     pub const fn edit_error(&self) -> Option<&crate::validate::FieldError> {
         self.editor.error()
+    }
+
+    /// Explicitly discard the retained inline draft and its cell-local error.
+    ///
+    /// Returns whether an edit or error was cleared. Never commits to a model,
+    /// moves focus or changes the cursor, selection or scroll window. The
+    /// application owns repaint and any subsequent domain discard operation.
+    pub fn cancel_edit(&mut self) -> bool {
+        let changed = self.edit.is_some() || self.editor.error().is_some();
+        if changed {
+            self.cancel_editor();
+        }
+        changed
     }
 
     /// Number of non-sticky columns hidden on the left.
@@ -1580,6 +1616,38 @@ impl Grid<'_> {
             row_to(&mut out, cursor.0.min(last_row), cursor.1, cursor.1);
         }
         out
+    }
+
+    /// Move to a current logical cell and reveal it on both axes.
+    ///
+    /// Resolves stable keys against `model` and this grid's columns, never
+    /// against cached positions. Like ordinary unextended cursor movement,
+    /// clears the rectangular range anchor while preserving selected rows.
+    /// Does not move focus, edit or mutate the model; the application owns
+    /// repaint. Read-only cells remain valid navigation destinations.
+    ///
+    /// # Errors
+    /// Returns [`GridCursorError`] without changing any state if either key
+    /// is absent, the column is outside [`GRID_MAX_COLUMNS`], or an inline
+    /// edit is active. Explicitly commit or call [`GridState::cancel_edit`]
+    /// before moving away from a retained draft.
+    pub fn move_cursor_to<M: GridModel + ?Sized>(
+        &self,
+        st: &mut GridState,
+        model: &M,
+        row: ItemKey,
+        col: ColumnKey,
+    ) -> Result<(), GridCursorError> {
+        let row_index = Self::row_index(model, row, st.core.cursor_index())
+            .ok_or(GridCursorError::UnknownRow(row))?;
+        let col_index = self
+            .col_index(col)
+            .ok_or(GridCursorError::UnknownColumn(col))?;
+        if st.is_editing() {
+            return Err(GridCursorError::Editing);
+        }
+        self.move_to(st, model, row_index, col_index, false, &mut Acc::new());
+        Ok(())
     }
 
     /// Move the cursor to `(row, col)`, extending the range when asked.
@@ -2825,6 +2893,49 @@ mod tests {
                 ..Model::default()
             }
         }
+    }
+
+    #[test]
+    fn keyed_cursor_errors_preserve_complete_state_and_typed_reason() {
+        let columns = columns();
+        let grid = Grid::new(ID, &columns);
+        let model = Model::two();
+        let mut state = GridState::default();
+        state.edit = Some((ItemKey::num(10), ColumnKey::num(1)));
+        state.editor.begin("retained draft");
+        let before = state.clone();
+        for (row, col, expected) in [
+            (99, 1, GridCursorError::UnknownRow(ItemKey::num(99))),
+            (10, 99, GridCursorError::UnknownColumn(ColumnKey::num(99))),
+            (20, 2, GridCursorError::Editing),
+        ] {
+            assert_eq!(
+                grid.move_cursor_to(&mut state, &model, ItemKey::num(row), ColumnKey::num(col)),
+                Err(expected)
+            );
+            assert_eq!(state, before);
+        }
+    }
+
+    #[test]
+    fn keyed_cursor_clears_range_but_preserves_checked_rows_and_sticky_window() {
+        let mut columns = columns().to_vec();
+        columns[0].sticky = true;
+        columns.push(Column::new(ColumnKey::num(3), "last"));
+        let grid = Grid::new(ID, &columns);
+        let model = Model::two();
+        let mut state = GridState::default();
+        state.anchor = Some((ItemKey::num(20), ColumnKey::num(2)));
+        state.core.checked_mut().insert(ItemKey::num(20));
+        state.col_offset = 1;
+        assert_eq!(
+            grid.move_cursor_to(&mut state, &model, ItemKey::num(10), ColumnKey::num(1)),
+            Ok(())
+        );
+        assert_eq!(state.anchor, None);
+        assert!(state.core.checked().contains(ItemKey::num(20)));
+        assert_eq!(state.col_offset, 1);
+        assert_eq!(state.core.scroll().pending_reveal(), Some(0));
     }
 
     impl GridModel for Model {
