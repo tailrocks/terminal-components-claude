@@ -1046,7 +1046,10 @@ must now provide this field (`None` for generic themes). This is an intentional
 experimental public construction change, not an inferred theme identity.
 
 On downgrade, each semantic slot compares its current value with that *same
-slot's* declared value at the current capability. Matching eligible slots use
+slot's* actual last-projected value at the current capability (or the declared
+initial capability value before the first projection). This includes exact
+outputs of conversions through levels without authored tables; recomputing
+them from the TrueColor source loses the actual conversion path. Matching eligible slots use
 the authored target; changed slots use generic conversion. No color searches
 identify roles. A changed slot loses authored eligibility in the resulting
 theme, so a later quantization collision cannot reattach it during chained
@@ -1054,7 +1057,7 @@ downgrades. Copy-on-write carrier metadata isolates clones. Missing target
 tables use generic conversion; repeated same-level downgrade remains a no-op;
 `for_level` still never widens. Builder seed changes and their derived dependants
 obey the same source guards. Installing a fresh carrier explicitly resets its
-eligibility. Theme equality and the testing fingerprint include actual table
+eligibility and projection history. Theme equality and the testing fingerprint include actual table
 contents and eligibility, never just an allocation address. Runtime theme
 replacement continues to invalidate all derived caches.
 

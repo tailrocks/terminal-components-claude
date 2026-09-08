@@ -5,10 +5,14 @@ use ratatui_core::style::Color;
 /// Semantic token palettes authored for particular terminal capabilities.
 ///
 /// `source` is the `TrueColor` token set these tables describe. Each target
-/// field is guarded against the same source field at the current capability:
+/// field is guarded against the same field's actual prior projected value (or
+/// its declared initial capability value before the first projection):
 /// direct token mutations and builder-derived replacements therefore retain
 /// generic RGB conversion. Equal colors in different roles never identify or
 /// borrow each other's palette entries.
+/// Conversions through a level with no authored table retain their exact
+/// projected values, so later narrowing cannot mistake quantization for a
+/// caller's token mutation.
 ///
 /// ```
 /// use junie_tui::{CapabilityPalettes, ColorLevel, Theme};
@@ -37,6 +41,8 @@ pub struct CapabilityPalettes {
     pub mono: Option<ColorTokens>,
     /// Once detached, a token cannot accidentally reattach after quantization.
     pub(crate) eligible: Vec<bool>,
+    /// Exact prior projection, including conversions through an unauthored level.
+    pub(crate) projected: Option<(ColorLevel, ColorTokens)>,
 }
 
 impl CapabilityPalettes {
@@ -53,6 +59,7 @@ impl CapabilityPalettes {
             ansi16: None,
             mono: None,
             eligible: vec![true; count],
+            projected: None,
         }
     }
 

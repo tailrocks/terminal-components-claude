@@ -90,6 +90,67 @@ fn repeated_and_chained_downgrade_keep_authored_tokens() {
 }
 
 #[test]
+fn every_four_step_capability_path_preserves_all_authored_mono_slots() {
+    const LEVELS: [ColorLevel; 4] = [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ];
+    let source = Theme::junie();
+    let expected = source.for_level(ColorLevel::Mono).color;
+    for a in LEVELS {
+        for b in LEVELS {
+            for c in LEVELS {
+                for d in LEVELS {
+                    for narrow_only in [false, true] {
+                        let mut theme = source.clone();
+                        for level in [a, b, c, d] {
+                            theme = if narrow_only {
+                                theme.for_level(level)
+                            } else {
+                                theme.downgrade(level)
+                            };
+                            assert_eq!(theme, theme.downgrade(theme.capability.color));
+                        }
+                        assert_eq!(
+                            theme.for_level(ColorLevel::Mono).color,
+                            expected,
+                            "path {a:?}/{b:?}/{c:?}/{d:?}, narrow_only={narrow_only}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn mutations_at_each_intermediate_level_never_reattach_or_detach_other_slots() {
+    for (prefix, changed) in [
+        (0, Color::Rgb(95, 215, 135)),
+        (1, Color::Indexed(77)),
+        (2, Color::LightBlue),
+    ] {
+        let source = Theme::junie();
+        let mut theme = source.clone();
+        let path = [ColorLevel::Ansi256, ColorLevel::Ansi16, ColorLevel::Mono];
+        for level in path.iter().take(prefix) {
+            theme = theme.for_level(*level);
+        }
+        theme.color.accent = changed;
+        let mut expected_accent = changed;
+        for level in path.iter().skip(prefix) {
+            expected_accent = downgrade_color(expected_accent, *level);
+            theme = theme.for_level(*level);
+        }
+        let mut expected = source.for_level(ColorLevel::Mono).color;
+        expected.accent = expected_accent;
+        assert_eq!(theme.color, expected, "mutation after {prefix} projections");
+    }
+}
+
+#[test]
 fn direct_token_mutation_and_quantization_collision_never_reattach() {
     let original = Theme::junie();
     let mut custom = original.clone();

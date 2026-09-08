@@ -282,20 +282,24 @@ impl Theme {
             repair_ansi16_light_foreground(&self.color, &mut out.color);
         }
         if let Some(palettes) = &self.capability_palettes {
-            let expected = palettes.get(self.capability.color).unwrap_or_else(|| {
-                let mut expected = palettes
-                    .source
-                    .map_colors(&mut |c| downgrade_color(c, self.capability.color));
-                if self.capability.color == ColorLevel::Ansi16 {
-                    repair_ansi16_light_foreground(&palettes.source, &mut expected);
-                }
-                expected
-            });
+            let expected = palettes
+                .projected
+                .filter(|(level, _)| *level == self.capability.color)
+                .map(|(_, tokens)| tokens)
+                .or_else(|| palettes.get(self.capability.color))
+                .unwrap_or_else(|| {
+                    let mut expected = palettes
+                        .source
+                        .map_colors(&mut |c| downgrade_color(c, self.capability.color));
+                    if self.capability.color == ColorLevel::Ansi16 {
+                        repair_ansi16_light_foreground(&palettes.source, &mut expected);
+                    }
+                    expected
+                });
             let source = expected.colors();
             let target = palettes.get(level).unwrap_or(out.color).colors();
             let generic = out.color.colors();
             let mut eligibility = palettes.eligible.clone();
-            let mut changed = false;
             let mut values = source
                 .iter()
                 .zip(&target)
@@ -306,7 +310,6 @@ impl Theme {
                     Some((((expected, authored), generic), eligible)) => {
                         if current != *expected && *eligible {
                             *eligible = false;
-                            changed = true;
                         }
                         if *eligible { *authored } else { *generic }
                     }
@@ -314,8 +317,10 @@ impl Theme {
                     None => downgrade_color(current, level),
                 }
             });
-            if changed && let Some(palettes) = &mut out.capability_palettes {
-                std::sync::Arc::make_mut(palettes).eligible = eligibility;
+            if let Some(palettes) = &mut out.capability_palettes {
+                let palettes = std::sync::Arc::make_mut(palettes);
+                palettes.eligible = eligibility;
+                palettes.projected = Some((level, out.color));
             }
         }
         out

@@ -61,6 +61,7 @@ impl ThemeBuilder {
     #[must_use]
     pub fn capability_palettes(mut self, mut palettes: super::CapabilityPalettes) -> Self {
         palettes.eligible.fill(true);
+        palettes.projected = None;
         self.theme.capability_palettes = Some(std::sync::Arc::new(palettes));
         self
     }
