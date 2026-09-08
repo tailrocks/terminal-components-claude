@@ -160,10 +160,16 @@ pass; independent re-review pending. Strict workspace Clippy passes this train.
 Still open: Meter quantized-surface lift aliases now have a source-compatible
 typed ReferenceLift correction assigned. Runtime stationary hover and invalid
 held-pointer/capture cases have five independent reds; structural repair active.
+List physical exits and Plan caller integratedd2d9ef4; root6 List tests pass.
+Tree branch activation/click policies integrated0e0b8f8; root4 tests pass.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
-review/tests running. Linux, production capture and complete fidelity unaccepted.
+review reproduced Cargo-launch deadlock: parent test holds shared package cache
+while nested vendor requires exclusive lock. Root stopped only its vendor child;
+109 tests passed, one failed after245s. Native slice held for isolated vendor-cache
+repair and real Cargo-launched proof. Linux, production capture and complete
+fidelity unaccepted. All task integration remains in PR1 branch; no alternate PR.
 
 Known exceptions are scoped evidence, not acceptance waivers: reference trimmed
 acknowledgement is tightened to exact visible text; performance operation timing
