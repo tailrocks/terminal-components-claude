@@ -131,7 +131,12 @@ fn hint_bar_stays_on_the_last_row_across_layers() {
     let help = last_row(&h);
     assert!(help.contains("Esc") && help.contains("Close"), "{help}");
     h.key(KeyCode::Esc);
-    h.key(KeyCode::Down);
+    // The pinned Returning registry gives every workspace a reconnectable
+    // child, so Enter on a workspace row re-attaches to that Capsule instead of
+    // launching. The Current directory row owns no instance, so it is the list
+    // path into the picker layer.
+    h.key(KeyCode::Home);
+    h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     let picker = last_row(&h);
     assert!(picker.contains("Choose"), "{picker}");
