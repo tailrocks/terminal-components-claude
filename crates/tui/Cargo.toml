@@ -36,3 +36,29 @@ junie-tui-testing.workspace = true
 # (`response::must_use_is_enforced`, `response::bitor_is_defined_only_for_unit`,
 # `secret::is_not_clone_not_eq`) — §16.1, MA-12.
 trybuild.workspace = true
+
+# These examples start the live terminal driver; the other examples remain backend-free.
+
+[[example]]
+name = "01_button"
+required-features = ["crossterm"]
+
+[[example]]
+name = "02_custom_theme"
+required-features = ["crossterm"]
+
+[[example]]
+name = "03_partial_theme"
+required-features = ["crossterm"]
+
+[[example]]
+name = "04_family_recipe"
+required-features = ["crossterm"]
+
+[[example]]
+name = "11_small_app"
+required-features = ["crossterm"]
+
+[[example]]
+name = "showcase_buttons"
+required-features = ["crossterm"]
