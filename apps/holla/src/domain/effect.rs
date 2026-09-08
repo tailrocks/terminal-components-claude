@@ -38,20 +38,25 @@ pub(crate) enum Mutation {
 }
 
 impl Mutation {
-    pub(crate) fn reclaimed_bytes(&self) -> u64 {
+    pub(crate) fn reclaimed_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        use super::accounting::bytes;
         match self {
-            Self::RemoveContainers(items) => items.iter().map(|item| item.size_bytes).sum(),
+            Self::RemoveContainers(items) => bytes(items.iter().map(|item| item.size_bytes)),
             Self::RemoveImages(items)
             | Self::RemoveVolumes(items)
-            | Self::RemoveNetworks(items) => items.iter().map(|item| item.size_bytes).sum(),
-            Self::PruneCache(bytes) => *bytes,
-            Self::RemoveDisk(item) => item.size_bytes,
-            Self::RemoveOrphanPackages(items) => items.iter().map(|item| item.size_bytes).sum(),
-            _ => 0,
+            | Self::RemoveNetworks(items) => bytes(items.iter().map(|item| item.size_bytes)),
+            Self::PruneCache(bytes) => Ok(*bytes),
+            Self::RemoveDisk(item) => Ok(item.size_bytes),
+            Self::RemoveOrphanPackages(items) => bytes(items.iter().map(|item| item.size_bytes)),
+            _ => Ok(0),
         }
     }
 
     pub(crate) fn lines(&self, partial: bool) -> Vec<String> {
+        let amount = match self.reclaimed_bytes() {
+            Ok(bytes) => human_bytes(bytes),
+            Err(error) => return vec![error.to_string()],
+        };
         match self {
             Self::RemoveContainers(containers) => {
                 if partial {
@@ -69,26 +74,17 @@ impl Mutation {
                                 .collect::<Vec<_>>()
                                 .join(", ")
                         ),
-                        format!(
-                            "Total reclaimed: {}",
-                            human_bytes(containers.iter().map(|c| c.size_bytes).sum())
-                        ),
+                        format!("Total reclaimed: {}", amount.clone()),
                     ]
                 }
             }
             Self::RemoveImages(resources) => vec![
                 format!("Deleted {} images", resources.len()),
-                format!(
-                    "Total reclaimed: {}",
-                    human_bytes(resources.iter().map(|r| r.size_bytes).sum())
-                ),
+                format!("Total reclaimed: {}", amount.clone()),
             ],
             Self::RemoveVolumes(resources) => vec![
                 format!("Deleted {} volumes", resources.len()),
-                format!(
-                    "Total reclaimed: {}",
-                    human_bytes(resources.iter().map(|r| r.size_bytes).sum())
-                ),
+                format!("Total reclaimed: {}", amount.clone()),
             ],
             Self::RemoveNetworks(resources) => {
                 vec![format!("Removed {} unused networks", resources.len())]
@@ -112,10 +108,7 @@ impl Mutation {
             }
             Self::RemoveOrphanPackages(packages) => vec![
                 format!("Removing {} orphaned packages", packages.len()),
-                format!(
-                    "Freed {}",
-                    human_bytes(packages.iter().map(|p| p.size_bytes).sum())
-                ),
+                format!("Freed {}", amount.clone()),
             ],
             Self::UpgradeDebian {
                 upgraded,

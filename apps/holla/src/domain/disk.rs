@@ -63,6 +63,24 @@ pub(crate) struct DiskState {
 }
 
 impl DiskState {
+    pub(crate) fn validate(&self, cwd: &str) -> Result<(), super::accounting::InventoryError> {
+        use super::accounting::InventoryError;
+        if self.inspected_bytes()? > self.used_bytes || self.used_bytes > self.total_bytes {
+            return Err(InventoryError::InvalidCapacity);
+        }
+        let mut paths = Vec::new();
+        for candidate in &self.candidates {
+            let path = cleanup_path(cwd, &candidate.path).ok_or(InventoryError::InvalidTarget)?;
+            if paths.iter().any(|prior: &std::path::PathBuf| {
+                prior.starts_with(&path) || path.starts_with(prior)
+            }) {
+                return Err(InventoryError::OverlappingTargets);
+            }
+            paths.push(path);
+        }
+        Ok(())
+    }
+
     pub(crate) fn used_percent(&self) -> u32 {
         if self.total_bytes == 0 {
             return 0;
@@ -75,17 +93,18 @@ impl DiskState {
     }
 
     /// All inspected generated artifacts, including policy-protected active data.
-    pub(crate) fn inspected_bytes(&self) -> u64 {
-        self.candidates.iter().map(|c| c.size_bytes).sum()
+    pub(crate) fn inspected_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        super::accounting::bytes(self.candidates.iter().map(|c| c.size_bytes))
     }
 
     /// Bytes eligible for the cleanup policy shown by the plan.
-    pub(crate) fn reclaimable_bytes(&self) -> u64 {
-        self.candidates
-            .iter()
-            .filter(|c| c.freshness != Freshness::ActiveToday)
-            .map(|c| c.size_bytes)
-            .sum()
+    pub(crate) fn reclaimable_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        super::accounting::bytes(
+            self.candidates
+                .iter()
+                .filter(|candidate| candidate.freshness != Freshness::ActiveToday)
+                .map(|candidate| candidate.size_bytes),
+        )
     }
 }
 
@@ -146,5 +165,33 @@ mod tests {
         );
         assert_eq!(cleanup_path("/work", "/"), None);
         assert_eq!(cleanup_path("/work", "/../../outside"), None);
+    }
+    #[test]
+    fn malformed_pre_review_byte_totals_are_explicit_errors() {
+        let candidate = Candidate {
+            path: "/a".into(),
+            family: Family::Temp,
+            size_bytes: u64::MAX,
+            freshness: Freshness::Unknown,
+        };
+        let disk = DiskState {
+            total_bytes: u64::MAX,
+            used_bytes: u64::MAX,
+            candidates: vec![
+                candidate.clone(),
+                Candidate {
+                    path: "/b".into(),
+                    ..candidate
+                },
+            ],
+        };
+        assert_eq!(
+            disk.inspected_bytes(),
+            Err(super::super::accounting::InventoryError::Overflow)
+        );
+        assert_eq!(
+            disk.reclaimable_bytes(),
+            Err(super::super::accounting::InventoryError::Overflow)
+        );
     }
 }

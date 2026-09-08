@@ -124,11 +124,11 @@ impl PlanStep {
     }
     pub(crate) fn fails_with(mut self, reason: &str, lines: &[&str]) -> Self {
         self.fails = Some(reason.into());
-        self.fail_lines = lines.iter().map(|s| s.to_string()).collect();
+        self.fail_lines = lines.iter().map(std::string::ToString::to_string).collect();
         self
     }
     pub(crate) fn lines(mut self, lines: &[&str]) -> Self {
-        self.ok_lines = lines.iter().map(|s| s.to_string()).collect();
+        self.ok_lines = lines.iter().map(std::string::ToString::to_string).collect();
         self
     }
     pub(crate) fn policy_skipped(mut self, reason: &str) -> Self {
@@ -186,6 +186,7 @@ pub(crate) struct Plan {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PlanError {
     DuplicateId,
+    InvalidInventory,
     InvalidDependency,
     InvalidInitialState,
     MissingStep,
@@ -196,6 +197,7 @@ pub(crate) enum PlanError {
 impl std::fmt::Display for PlanError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::InvalidInventory => f.write_str("plan mutation inventory is invalid"),
             Self::DuplicateId => f.write_str("plan step IDs must be unique and nonempty"),
             Self::InvalidDependency => f.write_str("plan dependencies must name earlier steps"),
             Self::InvalidInitialState => f.write_str("plan contains an invalid initial step state"),
@@ -216,6 +218,15 @@ impl Plan {
     pub(crate) fn try_new(spec: PlanSpec) -> Result<Self, PlanError> {
         let mut ids = std::collections::BTreeSet::new();
         for (index, step) in spec.steps.iter().enumerate() {
+            for effects in [&step.success_effects, &step.failure_effects] {
+                let amounts: Result<Vec<_>, _> = effects
+                    .iter()
+                    .map(super::effect::Mutation::reclaimed_bytes)
+                    .collect();
+                let amounts = amounts.map_err(|_| PlanError::InvalidInventory)?;
+                super::accounting::bytes(amounts).map_err(|_| PlanError::InvalidInventory)?;
+            }
+
             if step.id.is_empty() || !ids.insert(&step.id) {
                 return Err(PlanError::DuplicateId);
             }
@@ -388,6 +399,11 @@ impl Plan {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::indexing_slicing,
+    clippy::unwrap_used,
+    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
+)]
 mod tests {
     use super::*;
 

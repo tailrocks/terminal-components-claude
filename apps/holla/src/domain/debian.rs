@@ -11,6 +11,28 @@ pub(crate) struct DebianState {
 }
 
 impl DebianState {
+    pub(crate) fn validate(&self) -> Result<(), super::accounting::InventoryError> {
+        use super::accounting::{InventoryError, bytes, identities};
+        identities(
+            self.orphaned_packages
+                .iter()
+                .map(|package| package.id.as_str()),
+        )?;
+        bytes(
+            self.orphaned_packages
+                .iter()
+                .map(|package| package.size_bytes),
+        )?;
+        let available = self
+            .pending
+            .checked_sub(self.held)
+            .ok_or(InventoryError::InvalidCapacity)?;
+        if self.security > available {
+            return Err(InventoryError::InvalidCapacity);
+        }
+        Ok(())
+    }
+
     pub(crate) fn summary(&self) -> String {
         let mut s = format!(
             "{} upgrades pending · {} security",

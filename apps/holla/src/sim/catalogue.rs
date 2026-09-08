@@ -127,8 +127,7 @@ fn mise_actions(w: &World, out: &mut Vec<Action>) {
         let workdir = t
             .defined_in
             .rsplit_once('/')
-            .map(|(d, _)| d.to_owned())
-            .unwrap_or_else(|| w.cwd.clone());
+            .map_or_else(|| w.cwd.clone(), |(d, _)| d.to_owned());
         // Ring: file in cwd subtree → Here; namespaced child → Project;
         // parent ecosystem visible from a child cwd → Workspace.
         let scope = if std::path::Path::new(&t.defined_in).starts_with(&w.cwd) && !t.namespaced() {
@@ -148,9 +147,9 @@ fn mise_actions(w: &World, out: &mut Vec<Action>) {
             &workdir,
             &format!("mise run {}", t.id),
         );
-        a.workdir = workdir.clone();
+        a.workdir.clone_from(&workdir);
         a.scope_label = scope_place(&w.cwd, &workdir);
-        a.keywords = t.command.clone();
+        a.keywords.clone_from(&t.command);
         if t.trust == Trust::Untrusted {
             a.availability = Availability::NeedsTrust(t.defined_in.clone());
         }
@@ -216,7 +215,7 @@ fn git_actions(w: &World, out: &mut Vec<Action>) {
             &git.root,
             "git pull --ff-only",
         );
-        a.workdir = git.root.clone();
+        a.workdir.clone_from(&git.root);
         out.push(a);
     }
     if git.detached() {
@@ -291,7 +290,7 @@ fn git_actions(w: &World, out: &mut Vec<Action>) {
         &git.root,
         "git status",
     );
-    status.workdir = git.root.clone();
+    status.workdir.clone_from(&git.root);
     out.push(status);
 }
 
@@ -316,6 +315,16 @@ fn docker_actions(w: &World, out: &mut Vec<Action>) {
         return;
     }
     let Some(d) = &w.docker else { return };
+    if let Err(error) = d.validate() {
+        out.push(inventory_note(
+            w,
+            "docker.invalid",
+            "Docker inventory unavailable",
+            error,
+        ));
+        return;
+    }
+
     for c in d.unhealthy() {
         // restarting a service on a production host is broad: two gates
         let risk = match w.host.env {
@@ -332,10 +341,21 @@ fn docker_actions(w: &World, out: &mut Vec<Action>) {
             &c.name,
             &format!("docker restart {}", c.name),
         );
-        a.scope_label = w.host.name.clone();
+        a.scope_label.clone_from(&w.host.name);
         out.push(a);
     }
-    let reclaim = d.reclaimable_bytes();
+    let reclaim = match d.reclaimable_bytes() {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            out.push(inventory_note(
+                w,
+                "docker.invalid",
+                "Docker inventory unavailable",
+                error,
+            ));
+            return;
+        }
+    };
     if reclaim >= GB {
         let mut a = Action::new(
             "docker.cleanup",
@@ -351,7 +371,7 @@ fn docker_actions(w: &World, out: &mut Vec<Action>) {
             &w.host.name,
             "docker system prune -a --volumes",
         );
-        a.scope_label = w.host.name.clone();
+        a.scope_label.clone_from(&w.host.name);
         out.push(a);
     }
     let mut status = Action::new(
@@ -368,7 +388,7 @@ fn docker_actions(w: &World, out: &mut Vec<Action>) {
         &w.host.name,
         "docker ps -a",
     );
-    status.scope_label = w.host.name.clone();
+    status.scope_label.clone_from(&w.host.name);
     out.push(status);
     if d.containers.len() > 1 {
         let mut logs = Action::new(
@@ -381,7 +401,7 @@ fn docker_actions(w: &World, out: &mut Vec<Action>) {
             &w.host.name,
             "docker compose logs -f",
         );
-        logs.scope_label = w.host.name.clone();
+        logs.scope_label.clone_from(&w.host.name);
         logs.long_running = true;
         out.push(logs);
     }
@@ -393,8 +413,28 @@ fn disk_actions(w: &World, out: &mut Vec<Action>) {
         return;
     }
     let Some(disk) = &w.disk else { return };
+    if let Err(error) = disk.validate(&w.cwd) {
+        out.push(inventory_note(
+            w,
+            "disk.invalid",
+            "Disk inventory unavailable",
+            error,
+        ));
+        return;
+    }
     let pct = disk.used_percent();
-    let reclaim = disk.reclaimable_bytes();
+    let reclaim = match disk.reclaimable_bytes() {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            out.push(inventory_note(
+                w,
+                "disk.invalid",
+                "Disk inventory unavailable",
+                error,
+            ));
+            return;
+        }
+    };
     if pct >= 85 && reclaim > 0 {
         out.push(Action::new(
             "disk.reclaim",
@@ -461,7 +501,7 @@ fn pg_actions(w: &World, out: &mut Vec<Action>) {
         &w.host.name,
         "pg_activity",
     );
-    a.scope_label = w.host.name.clone();
+    a.scope_label.clone_from(&w.host.name);
     out.push(a);
 }
 
@@ -509,6 +549,15 @@ fn github_actions(w: &World, out: &mut Vec<Action>) {
 
 fn debian_actions(w: &World, out: &mut Vec<Action>) {
     let Some(deb) = &w.debian else { return };
+    if let Err(error) = deb.validate() {
+        out.push(inventory_note(
+            w,
+            "debian.invalid",
+            "Package inventory unavailable",
+            error,
+        ));
+        return;
+    }
     out.push(Action::new(
         "debian.upgrade",
         "Upgrade everything on this host",
@@ -519,6 +568,27 @@ fn debian_actions(w: &World, out: &mut Vec<Action>) {
         &w.host.name,
         "apt update && apt upgrade",
     ));
+}
+
+fn inventory_note(
+    w: &World,
+    id: &str,
+    title: &str,
+    error: crate::domain::accounting::InventoryError,
+) -> Action {
+    let reason = error.to_string();
+    let mut action = Action::new(
+        id,
+        title,
+        ActionKind::System,
+        Scope::Host,
+        &reason,
+        Risk::ReadOnly,
+        &w.host.name,
+        "",
+    );
+    action.availability = Availability::Blocked(reason);
+    action
 }
 
 /// Host flows that exist regardless of folder content (Explore never
@@ -534,7 +604,7 @@ fn flow_actions(w: &World, out: &mut Vec<Action>) {
         &w.host.name,
         "btm",
     );
-    btm.scope_label = w.host.name.clone();
+    btm.scope_label.clone_from(&w.host.name);
     out.push(btm);
     if w.disk.is_none() && w.discovered(Domain::Disk) {
         out.push(Action::new(
@@ -722,6 +792,11 @@ pub(crate) fn visible(
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::indexing_slicing,
+    clippy::unwrap_used,
+    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
+)]
 mod tests {
     use super::*;
     use crate::domain::{

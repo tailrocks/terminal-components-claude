@@ -856,6 +856,7 @@ pub(crate) fn memory_command(
 }
 
 #[cfg(test)]
+#[expect(clippy::indexing_slicing, clippy::unwrap_used, reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test")]
 mod tests {
     use super::*;
     use crate::domain::pg;
@@ -906,9 +907,9 @@ mod tests {
         let d = w.docker.as_ref().unwrap();
         assert_eq!(d.unhealthy().len(), 1);
         assert!(
-            d.reclaimable_bytes() >= 12 * GB,
+            d.reclaimable_bytes().unwrap() >= 12 * GB,
             "{}",
-            d.reclaimable_bytes()
+            d.reclaimable_bytes().unwrap()
         );
         assert_eq!(d.running(), 3);
     }

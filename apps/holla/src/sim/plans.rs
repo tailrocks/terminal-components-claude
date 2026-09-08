@@ -81,44 +81,62 @@ impl Approval<'_> {
             .effect_revision
             .checked_add(1)
             .ok_or(ApprovalError::RevisionExhausted)?;
-        self.review
-            .plan
+        // Simulate completion on a private candidate first. Invalid accounting
+        // never consumes the review or mutates the world.
+        let mut completed = self.review.plan.clone();
+        completed
             .run()
             .map_err(|_| ApprovalError::AlreadyConsumed)?;
-        apply_effect(&self.review.plan, world);
-        world.effect_revision = next_revision;
-        let steps = self.review.plan.steps();
-        let applied_steps: Vec<AppliedStep> = steps
-            .iter()
-            .filter_map(|step| {
-                let effects = match step.state {
-                    StepState::Succeeded => &step.success_effects,
-                    StepState::Failed(_) => &step.failure_effects,
-                    _ => return None,
-                };
-                (!effects.is_empty()).then(|| AppliedStep {
-                    id: step.id.clone(),
-                    operations: effects.len(),
-                    reclaimed_bytes: effects.iter().map(Mutation::reclaimed_bytes).sum(),
-                })
-            })
-            .collect();
-        Ok(EffectReport {
-            reclaimed_bytes: applied_steps.iter().map(|step| step.reclaimed_bytes).sum(),
+        let steps = completed.steps();
+        let mut applied_steps = Vec::new();
+        for step in steps {
+            let effects = match step.state {
+                StepState::Succeeded => &step.success_effects,
+                StepState::Failed(_) => &step.failure_effects,
+                _ => continue,
+            };
+            if effects.is_empty() {
+                continue;
+            }
+            let amounts: Result<Vec<_>, _> =
+                effects.iter().map(Mutation::reclaimed_bytes).collect();
+            let amounts = amounts.map_err(|_| ApprovalError::InvalidInventory)?;
+            let reclaimed_bytes = crate::domain::accounting::bytes(amounts)
+                .map_err(|_| ApprovalError::InvalidInventory)?;
+            applied_steps.push(AppliedStep {
+                id: step.id.clone(),
+                operations: effects.len(),
+                reclaimed_bytes,
+            });
+        }
+        let reclaimed_bytes =
+            crate::domain::accounting::bytes(applied_steps.iter().map(|step| step.reclaimed_bytes))
+                .map_err(|_| ApprovalError::InvalidInventory)?;
+        let report = EffectReport {
+            reclaimed_bytes,
             applied_steps,
             succeeded: steps
                 .iter()
-                .filter(|s| s.state == StepState::Succeeded)
+                .filter(|step| step.state == StepState::Succeeded)
                 .count(),
             failed: steps
                 .iter()
-                .filter(|s| matches!(s.state, StepState::Failed(_)))
+                .filter(|step| matches!(step.state, StepState::Failed(_)))
                 .count(),
             skipped: steps
                 .iter()
-                .filter(|s| matches!(s.state, StepState::Skipped(_) | StepState::PolicySkipped(_)))
+                .filter(|step| {
+                    matches!(
+                        step.state,
+                        StepState::Skipped(_) | StepState::PolicySkipped(_)
+                    )
+                })
                 .count(),
-        })
+        };
+        apply_effect(&completed, world);
+        world.effect_revision = next_revision;
+        self.review.plan = completed;
+        Ok(report)
     }
 }
 
@@ -146,6 +164,7 @@ pub(crate) enum ApprovalError {
     StaleTarget,
     AlreadyConsumed,
     RevisionExhausted,
+    InvalidInventory,
 }
 
 impl std::fmt::Display for ApprovalError {
@@ -155,6 +174,7 @@ impl std::fmt::Display for ApprovalError {
             Self::StaleTarget => "target changed · review a new plan",
             Self::AlreadyConsumed => "plan already ran",
             Self::RevisionExhausted => "simulation revision exhausted",
+            Self::InvalidInventory => "plan inventory is invalid",
         })
     }
 }
@@ -329,6 +349,7 @@ fn apply_effect(plan: &Plan, world: &mut World) {
 /// chain, builder cache and networks as parallel branches, verification.
 fn docker_cleanup(w: &World) -> Option<Plan> {
     let d = w.docker.as_ref()?;
+    d.validate().ok()?;
     let host = w.host.name.clone();
     let exited: Vec<&str> = d
         .containers
@@ -382,17 +403,17 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
             &format!(
                 "Images              {:<7} {}",
                 d.images(),
-                human_bytes(d.image_bytes())
+                human_bytes(d.image_bytes().ok()?)
             ),
             &format!(
                 "Containers          {:<7} {}",
                 d.containers.len(),
-                human_bytes(d.container_bytes())
+                human_bytes(d.container_bytes().ok()?)
             ),
             &format!(
                 "Local Volumes       {:<7} {}",
                 d.volumes(),
-                human_bytes(d.volume_bytes())
+                human_bytes(d.volume_bytes().ok()?)
             ),
             &format!(
                 "Build Cache                 {}",
@@ -469,7 +490,7 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
         phrase: format!("REMOVE ALL DOCKER DATA ON {host}"),
         will_change: format!(
             "frees up to {} across containers, images, volumes and builder cache",
-            human_bytes(d.reclaimable_bytes())
+            human_bytes(d.reclaimable_bytes().ok()?)
         ),
         host,
         steps,
@@ -482,23 +503,7 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
 /// in use today are policy-skipped and shown, never removed.
 fn disk_reclaim(w: &World) -> Option<Plan> {
     let disk = w.disk.as_ref()?;
-    let inspected_bytes = disk.candidates.iter().try_fold(0_u64, |bytes, candidate| {
-        bytes.checked_add(candidate.size_bytes)
-    })?;
-    if inspected_bytes > disk.used_bytes || disk.used_bytes > disk.total_bytes {
-        return None;
-    }
-    let mut paths = Vec::new();
-    for candidate in &disk.candidates {
-        let path = crate::domain::disk::cleanup_path(&w.cwd, &candidate.path)?;
-        if paths
-            .iter()
-            .any(|prior: &std::path::PathBuf| prior.starts_with(&path) || path.starts_with(prior))
-        {
-            return None;
-        }
-        paths.push(path);
-    }
+    disk.validate(&w.cwd).ok()?;
     let host = w.host.name.clone();
     let mut steps = vec![
         PlanStep::new(
@@ -563,6 +568,7 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
 /// parallel, optional cleanup, final verification (CONCEPT §8.16).
 fn debian_upgrade(w: &World) -> Option<Plan> {
     let deb = w.debian.as_ref()?;
+    deb.validate().ok()?;
     let host = w.host.name.clone();
     let outdated: Vec<String> = w
         .mise
@@ -892,6 +898,7 @@ fn git_sync(w: &World) -> Option<Plan> {
 /// production host this is Broad: two gates, typed phrase.
 fn restart_service(w: &World, name: &str) -> Option<Plan> {
     let d = w.docker.as_ref()?;
+    d.validate().ok()?;
     let c = d.containers.iter().find(|c| c.name == name)?;
     let host = w.host.name.clone();
     let steps = vec![
@@ -1151,9 +1158,15 @@ mod tests {
         let mut review = plan_for(&world, "docker.cleanup").unwrap();
         let report = execute_review(&mut review, &mut world);
         let docker = world.docker.as_ref().unwrap();
-        assert_eq!(docker.container_bytes(), 340 * MIB);
-        assert_eq!((docker.images(), docker.image_bytes()), (9, 6_200 * MIB));
-        assert_eq!((docker.volumes(), docker.volume_bytes()), (5, 3_400 * MIB));
+        assert_eq!(docker.container_bytes().unwrap(), 340 * MIB);
+        assert_eq!(
+            (docker.images(), docker.image_bytes().unwrap()),
+            (9, 6_200 * MIB)
+        );
+        assert_eq!(
+            (docker.volumes(), docker.volume_bytes().unwrap()),
+            (5, 3_400 * MIB)
+        );
         assert_eq!(docker.networks(), 4);
         assert_eq!(report.reclaimed_bytes, 12_780 * MIB);
         assert_eq!(
@@ -1183,15 +1196,21 @@ mod tests {
             .unwrap()
             .containers
             .retain(|c| c.name != "payments-old");
-        let before = world.docker.as_ref().unwrap().total_bytes();
+        let before = world.docker.as_ref().unwrap().total_bytes().unwrap();
         let mut review = plan_for(&world, "docker.cleanup").unwrap();
         let report = execute_review(&mut review, &mut world);
         let docker = world.docker.as_ref().unwrap();
-        assert_eq!((docker.images(), docker.image_bytes()), (5, 3_100 * MIB));
-        assert_eq!((docker.volumes(), docker.volume_bytes()), (0, 0));
-        assert_eq!(docker.container_bytes(), 300 * MIB);
+        assert_eq!(
+            (docker.images(), docker.image_bytes().unwrap()),
+            (5, 3_100 * MIB)
+        );
+        assert_eq!((docker.volumes(), docker.volume_bytes().unwrap()), (0, 0));
+        assert_eq!(docker.container_bytes().unwrap(), 300 * MIB);
         assert_eq!(docker.networks(), 4);
-        assert_eq!(before - docker.total_bytes(), report.reclaimed_bytes);
+        assert_eq!(
+            before - docker.total_bytes().unwrap(),
+            report.reclaimed_bytes
+        );
         assert_eq!(
             review.plan().steps()[2].lines,
             ["Deleted 4 images", "Total reclaimed: 3.0 GB"]
@@ -1201,12 +1220,15 @@ mod tests {
     #[test]
     fn excluded_cleanup_steps_have_no_hidden_effects() {
         let mut world = settled(Scenario::DockerCleanup);
-        let before = world.docker.as_ref().unwrap().total_bytes();
+        let before = world.docker.as_ref().unwrap().total_bytes().unwrap();
         let mut review = plan_for(&world, "docker.cleanup").unwrap();
         review.toggle(1).unwrap();
         review.toggle(4).unwrap();
         let report = execute_review(&mut review, &mut world);
-        assert_eq!(world.docker.as_ref().unwrap().total_bytes(), before);
+        assert_eq!(
+            world.docker.as_ref().unwrap().total_bytes().unwrap(),
+            before
+        );
         assert_eq!(report.reclaimed_bytes, 0);
         assert_eq!(world.docker.as_ref().unwrap().containers.len(), 7);
     }
@@ -1215,8 +1237,8 @@ mod tests {
     fn disk_claims_only_policy_removable_bytes_and_accounts_exactly() {
         let mut world = settled(Scenario::DiskCleanup);
         let disk = world.disk.as_ref().unwrap();
-        assert_eq!(disk.inspected_bytes(), 26_040 * MIB);
-        assert_eq!(disk.reclaimable_bytes(), 22_940 * MIB);
+        assert_eq!(disk.inspected_bytes().unwrap(), 26_040 * MIB);
+        assert_eq!(disk.reclaimable_bytes().unwrap(), 22_940 * MIB);
         let before = disk.used_bytes;
         let mut review = plan_for(&world, "disk.reclaim").unwrap();
         let report = execute_review(&mut review, &mut world);
@@ -1330,5 +1352,78 @@ mod tests {
         disk.total_bytes = u64::MAX;
         disk.used_bytes = u64::MAX;
         assert!(plan_for(&world, "disk.reclaim").is_some());
+    }
+    #[test]
+    fn malformed_docker_getters_and_catalogue_report_errors_without_panics() {
+        use crate::domain::accounting::InventoryError;
+        let mut world = settled(Scenario::DockerCleanup);
+        world.docker.as_mut().unwrap().containers[0].size_bytes = u64::MAX;
+        let docker = world.docker.as_ref().unwrap();
+        assert_eq!(docker.container_bytes(), Err(InventoryError::Overflow));
+        assert_eq!(docker.total_bytes(), Err(InventoryError::Overflow));
+        assert!(plan_for(&world, "docker.cleanup").is_none());
+        let note = crate::sim::catalogue::catalogue(&world)
+            .into_iter()
+            .find(|row| row.id == "docker.invalid")
+            .unwrap();
+        assert!(matches!(
+            note.availability,
+            crate::domain::action::Availability::Blocked(_)
+        ));
+    }
+
+    #[test]
+    fn orphan_overflow_and_duplicate_resource_ids_refuse_review() {
+        let mut world = settled(Scenario::UpgradePlan);
+        world.debian.as_mut().unwrap().orphaned_packages[0].size_bytes = u64::MAX;
+        assert!(plan_for(&world, "debian.upgrade").is_none());
+        let note = crate::sim::catalogue::catalogue(&world)
+            .into_iter()
+            .find(|row| row.id == "debian.invalid")
+            .unwrap();
+        assert!(matches!(
+            note.availability,
+            crate::domain::action::Availability::Blocked(_)
+        ));
+        let mut world = settled(Scenario::UpgradePlan);
+        let packages = &mut world.debian.as_mut().unwrap().orphaned_packages;
+        packages[1].id = packages[0].id.clone();
+        assert!(plan_for(&world, "debian.upgrade").is_none());
+        let mut world = settled(Scenario::DockerCleanup);
+        let images = &mut world.docker.as_mut().unwrap().image_inventory;
+        images[1].id = images[0].id.clone();
+        assert!(plan_for(&world, "docker.cleanup").is_none());
+    }
+
+    #[test]
+    fn invalid_combined_effect_report_never_consumes_review_or_world() {
+        let mut world = settled(Scenario::DockerCleanup);
+        let plan = Plan::try_new(PlanSpec {
+            action_id: "test".into(),
+            title: "test".into(),
+            host: world.host.name.clone(),
+            phrase: "CONFIRM".into(),
+            will_change: "test".into(),
+            effect: None,
+            steps: vec![
+                PlanStep::new("a", "A", "fixture", "a", &[])
+                    .succeeds_with(vec![Mutation::PruneCache(u64::MAX)]),
+                PlanStep::new("b", "B", "fixture", "b", &[])
+                    .succeeds_with(vec![Mutation::PruneCache(u64::MAX)]),
+            ],
+        })
+        .unwrap();
+        let mut review = ReviewedPlan::new(plan, &world);
+        let before = world.docker.clone();
+        assert_eq!(
+            review
+                .approve("CONFIRM", &world)
+                .unwrap()
+                .execute(&mut world),
+            Err(ApprovalError::InvalidInventory)
+        );
+        assert_eq!(world.docker, before);
+        assert!(!review.plan().ran());
+        assert_eq!(world.effect_revision, 0);
     }
 }

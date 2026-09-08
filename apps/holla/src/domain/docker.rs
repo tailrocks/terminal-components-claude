@@ -179,35 +179,54 @@ impl DockerState {
     pub(crate) fn networks(&self) -> usize {
         self.network_inventory.len()
     }
-    pub(crate) fn image_bytes(&self) -> u64 {
-        self.image_inventory.iter().map(|r| r.size_bytes).sum()
+    pub(crate) fn validate(&self) -> Result<(), super::accounting::InventoryError> {
+        use super::accounting::identities;
+        identities(self.containers.iter().map(|item| item.name.as_str()))?;
+        for inventory in [
+            &self.image_inventory,
+            &self.volume_inventory,
+            &self.network_inventory,
+        ] {
+            identities(inventory.iter().map(|item| item.id.as_str()))?;
+        }
+        self.total_bytes().map(|_| ())
     }
-    pub(crate) fn container_bytes(&self) -> u64 {
-        self.containers.iter().map(|r| r.size_bytes).sum()
+    pub(crate) fn image_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        super::accounting::bytes(self.image_inventory.iter().map(|item| item.size_bytes))
     }
-    pub(crate) fn volume_bytes(&self) -> u64 {
-        self.volume_inventory.iter().map(|r| r.size_bytes).sum()
+    pub(crate) fn container_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        super::accounting::bytes(self.containers.iter().map(|item| item.size_bytes))
+    }
+    pub(crate) fn volume_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        super::accounting::bytes(self.volume_inventory.iter().map(|item| item.size_bytes))
     }
     pub(crate) fn build_cache_bytes(&self) -> u64 {
         self.cache_bytes
     }
-    pub(crate) fn total_bytes(&self) -> u64 {
-        self.image_bytes() + self.container_bytes() + self.volume_bytes() + self.cache_bytes
+    pub(crate) fn total_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        super::accounting::bytes([
+            self.image_bytes()?,
+            self.container_bytes()?,
+            self.volume_bytes()?,
+            self.cache_bytes,
+        ])
     }
-    pub(crate) fn reclaimable_bytes(&self) -> u64 {
-        self.cache_bytes
-            + self
-                .containers
-                .iter()
-                .filter(|c| c.state == ContainerState::Exited)
-                .map(|c| c.size_bytes)
-                .sum::<u64>()
-            + self
-                .image_inventory
-                .iter()
-                .chain(&self.volume_inventory)
-                .filter(|r| r.unused)
-                .map(|r| r.size_bytes)
-                .sum::<u64>()
+    pub(crate) fn reclaimable_bytes(&self) -> Result<u64, super::accounting::InventoryError> {
+        super::accounting::bytes(
+            std::iter::once(self.cache_bytes)
+                .chain(
+                    self.containers
+                        .iter()
+                        .filter(|item| item.state == ContainerState::Exited)
+                        .map(|item| item.size_bytes),
+                )
+                .chain(
+                    self.image_inventory
+                        .iter()
+                        .chain(&self.volume_inventory)
+                        .filter(|item| item.unused)
+                        .map(|item| item.size_bytes),
+                ),
+        )
     }
 }

@@ -3,6 +3,7 @@
 
 // Fixture contract lands whole; P2+ renders into the parts P1 only seeds.
 #[allow(dead_code)]
+pub(crate) mod accounting;
 pub(crate) mod action;
 #[allow(dead_code)]
 pub(crate) mod activity;
