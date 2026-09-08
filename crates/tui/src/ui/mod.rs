@@ -730,7 +730,14 @@ impl<'f> Ui<'f> {
         f(&mut nested)
     }
 
-    fn register_entry(&mut self, id: Id, area: Rect, f: Focusability, swallows_typing: bool) {
+    fn register_entry(
+        &mut self,
+        id: Id,
+        area: Rect,
+        f: Focusability,
+        swallows_typing: bool,
+        pointer_enabled: bool,
+    ) {
         if self.registrations_suppressed() || area.is_empty() {
             return;
         }
@@ -738,7 +745,14 @@ impl<'f> Ui<'f> {
         if area.is_empty() {
             return;
         }
-        if let Some(d) = self.frame.registry.register_control(id, area, self.layer) {
+        let diagnostic = if pointer_enabled {
+            self.frame.registry.register_control(id, area, self.layer)
+        } else {
+            self.frame
+                .registry
+                .register_keyboard_control(id, area, self.layer)
+        };
+        if let Some(d) = diagnostic {
             self.frame.diagnostics.push(d);
         }
         self.register_focus_entry(id, area, f, swallows_typing);
@@ -766,7 +780,7 @@ impl<'f> Ui<'f> {
 
     /// Register a `Control` region and its ring entry.
     pub fn register_control(&mut self, id: Id, area: Rect, f: Focusability) {
-        self.register_entry(id, area, f, false);
+        self.register_entry(id, area, f, false, true);
     }
 
     /// Register a hidden keyboard focus stop without creating a hit region.
@@ -787,7 +801,22 @@ impl<'f> Ui<'f> {
     /// and declares `flags` (`EDITING` while an edit is in flight), so
     /// paste and bare-`Char` capture chords are routed correctly.
     pub fn register_editor(&mut self, id: Id, area: Rect, f: Focusability, flags: StateFlags) {
-        self.register_entry(id, area, f, true);
+        self.register_entry(id, area, f, true, true);
+        self.declare_state(id, flags);
+    }
+
+    /// Register an editor with real geometry and ordinary keyboard ownership,
+    /// excluding its control, parts, decoration and scroll regions from pointer
+    /// hit testing and capture. Exclusion applies regardless of registration
+    /// order for this owner in the frame; it does not disable keyboard editing.
+    pub fn register_keyboard_editor(
+        &mut self,
+        id: Id,
+        area: Rect,
+        f: Focusability,
+        flags: StateFlags,
+    ) {
+        self.register_entry(id, area, f, true, false);
         self.declare_state(id, flags);
     }
 

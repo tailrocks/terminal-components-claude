@@ -938,6 +938,7 @@ pub struct TextInput<'a> {
     secret: Option<SecretPolicy>,
     read_only: bool,
     disabled: bool,
+    pointer_enabled: bool,
     status: Status,
     ov: PartStyle<'a>,
 }
@@ -953,6 +954,7 @@ impl fmt::Debug for TextInput<'_> {
             .field("secret", &self.secret)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
+            .field("pointer_enabled", &self.pointer_enabled)
             .field("status", &self.status)
             .finish_non_exhaustive()
     }
@@ -982,6 +984,7 @@ impl<'a> TextInput<'a> {
             secret: None,
             read_only: false,
             disabled: false,
+            pointer_enabled: true,
             status: Status::Ready,
             ov: PartStyle::new(),
         }
@@ -1057,6 +1060,14 @@ impl<'a> TextInput<'a> {
         self
     }
 
+    /// Allow pointer activation and caret positioning (enabled by default).
+    /// Disabling pointer input preserves keyboard editing, focus and geometry.
+    #[must_use]
+    pub const fn pointer_enabled(mut self, enabled: bool) -> Self {
+        self.pointer_enabled = enabled;
+        self
+    }
+
     /// Data readiness.
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
@@ -1101,6 +1112,7 @@ impl<'a> TextInput<'a> {
             secret: self.secret,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
+            pointer_enabled: self.pointer_enabled,
             status: self.status,
             ov: self.ov,
         }
@@ -1207,7 +1219,7 @@ impl<'a> TextInput<'a> {
                     phase: Phase::Press | Phase::Click,
                     local,
                     ..
-                } if editable => {
+                } if editable && self.pointer_enabled => {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
@@ -1216,7 +1228,7 @@ impl<'a> TextInput<'a> {
                     st.draft.set_cursor_line_col(0, col);
                     acc.changed();
                 }
-                Intent::Pointer { .. } => acc.consumed(),
+                Intent::Pointer { .. } if self.pointer_enabled => acc.consumed(),
                 Intent::Cancel if st.is_editing() => {
                     st.cancel();
                     acc.action(TextAction::Cancelled);
@@ -1352,7 +1364,11 @@ impl<'a> TextInput<'a> {
             height: 1,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
-        ui.register_editor(self.id, area, focusability, declared);
+        if self.pointer_enabled {
+            ui.register_editor(self.id, area, focusability, declared);
+        } else {
+            ui.register_keyboard_editor(self.id, area, focusability, declared);
+        }
         ui.publish_bindings(self.id, live, BINDINGS);
         if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
             ui.publish_typing_target(

@@ -36,6 +36,7 @@ pub(crate) fn target_area(
 ) -> Option<Rect> {
     registry.regions().iter().rev().find_map(|region| {
         (region.owner == owner
+            && region.pointer_enabled()
             && region.part == part
             && !region.area.is_empty()
             && target_eligible(ring, top, owner, region.layer, region.kind))
