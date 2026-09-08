@@ -584,6 +584,7 @@ fn percent(r: f64) -> u16 {
 pub struct Spinner<'a> {
     id: Id,
     label: &'a str,
+    gap: Option<u16>,
     variant: Variant,
     frame: usize,
     ov: PartStyle<'a>,
@@ -608,6 +609,7 @@ impl<'a> Spinner<'a> {
         Spinner {
             id,
             label: "",
+            gap: None,
             variant: Variant::DEFAULT,
             frame: 0,
             ov: PartStyle::new(),
@@ -631,6 +633,18 @@ impl<'a> Spinner<'a> {
     pub const fn label(mut self, s: &'a str) -> Self {
         self.label = s;
         self
+    }
+
+    /// Space between the frame and a nonempty label. Omission uses the
+    /// design gap (at least one cell); an explicit value may be zero.
+    #[must_use]
+    pub const fn gap(mut self, cells: u16) -> Self {
+        self.gap = Some(cells);
+        self
+    }
+
+    fn label_gap(&self, ui: &Ui<'_>) -> u16 {
+        self.gap.unwrap_or_else(|| ui.design().space.gap.max(1))
     }
 
     /// The animation frame.
@@ -675,7 +689,7 @@ impl<'a> Spinner<'a> {
         if self.label.is_empty() {
             return g;
         }
-        g.saturating_add(ui.design().space.gap.max(1))
+        g.saturating_add(self.label_gap(ui))
             .saturating_add(width(self.label))
     }
 
@@ -710,7 +724,7 @@ impl<'a> Spinner<'a> {
             ui.paint_str(icon, frame, s.style);
         }
         if !self.label.is_empty() {
-            let gap = ui.design().space.gap.max(1);
+            let gap = self.label_gap(ui);
             let rest = shift(area, icon.width.saturating_add(gap));
             if !rest.is_empty() {
                 if let Some(f) = ov.slot_for(Part::LABEL) {
