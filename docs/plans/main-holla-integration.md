@@ -91,6 +91,12 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | Meter readout/clipping | 0685893, ee175d5 | b241 alone rejected; c761 repairs gap after zero painted cells. Unchanged external failing probe now passes (3 root consumer tests), plus11MSRV ordering/readout tests; intentional measurement corrections documented |
 | Simulation feedback | 934c92d | Root31MSRV feedback/monotonic/publication tests pass (3 PTY fixtures skipped by this command); independent actual paused PTY preserves140ms after350ms idle. Strict style timing remains red; no threshold waiver |
 | Grid keyed cursor/reveal | 2c4e133, 83b1f45 plus facade export | Independent original8 probes pass after first-layout/reorder repair; root13MSRV keyed/blur/model tests pass; two unit initializers corrected,2MSRV unit tests and strict stable core Clippy pass |
+| TablePro immutable tab records | a2880a5, a0f23b7 | Duplicate-key close bypass removed; root57MSRV tests and11release perf tests pass; independent356frames unchanged and private-record mutation probes accepted |
+| Showcase allocation repair | 464079a | Root35MSRV app/lib tests and8release perf gates pass; independent352default+4interaction frames exact; Lists0alloc/0bytes under unchanged1/60 budget |
+| Authoritative update viewport | d36a75b | Root22MSRV viewport/publication/Scene tests pass; current dimensions and previous presented control geometry keep distinct lifetimes |
+
+At d36a75b, `cargo +stable clippy --locked --workspace --all-targets --all-features -- -D warnings`
+passes. This does not discharge the complete feature/test/performance/capture matrix.
 
 Detailed reports and immutable hashes remain in the external evidence folders:
 publication, theme-contract, scene-final-independent, monotonic-independent,
@@ -126,7 +132,11 @@ Current application repros: Holla F10 opens then prematurely dismisses its menu
 while runtime focus checks the previous scope; shared reparenting repair assigned.
 Jackin manager uses positional List identity despite durable domain keys: swapping
 workspace rows changes selected Workspace1 to Workspace2. Root actual-runtime red
-test retained on codex/jackin-manager-row-identity; keyed record repair assigned.
+test retained on codex/jackin-manager-row-identity; repair92b91e4 awaits independent
+review, with selected-workspace Right semantics a separate source-backed followup.
+TablePro replacement guard4586555 is rejected: a later payload under the same tab
+key can be discarded by an older confirmation. Payload-generation binding repair
+is assigned; close/identity acceptance does not authorize this replacement slice.
 
 Known exceptions are scoped evidence, not acceptance waivers: reference trimmed
 acknowledgement is tightened to exact visible text; performance operation timing
