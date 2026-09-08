@@ -44,7 +44,7 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | T02 History/obligations | 3 | history audit/integrator | Exhaustive history review complete; normative consolidation and final obligation mapping remain |
 | T03 Baselines/tools | 4, 8–9 | verifiers | Historical 998 missing artifacts reproducibly restored; qualified capture tools acquired; current full product evidence incomplete |
 | T04 Compiler/chrome repair | 5 | integrator | Integrated and independently scoped verified |
-| T05 Runtime/time/identity | 5 | runtime owner | Publication, model-bound Scene, Moment and repaired typing/cursor integrated; simulation feedback, stationary hover and terminal error cleanup remain |
+| T05 Runtime/time/identity | 5 | runtime owner | Publication, Scene, Moment, typing/cursor and simulation feedback integrated; product adapters, strict timing, focus reparenting, stationary hover and terminal error cleanup remain |
 | T06 Theme/components | 6 | component owner | Authored capability palettes and HintBar metadata integrated; scrollbar/NavList/typing consumers in progress; full customization/family proof incomplete |
 | T07 Showcase | 7 | Showcase owner | CLI/shell/sidebar slices integrated; 22-page fidelity, elapsed timing, real builders and remaining geometry in progress |
 | T08 TablePro | 7 | TablePro owner | Stable row records/undo and Unicode-safe allocation repair integrated; close/reconnect guards, query cancellation and full fidelity remain |
@@ -87,7 +87,10 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | Holla resolved footer | b44de49 | Root99MSRV tests pass; status/EDIT/centering applied after focused hint selection; complete visual fidelity remains pending |
 | NavList scrolling | 5b64ce0 | Independent128 default frames unchanged; root747lib+12MSRV nav/scroll tests pass; actual Home caller migration pending |
 | Jackin tick admission | ef54503 | Independent exact6ec2d76 review and root28MSRV timing/preview/CLI tests pass; delayed wakes coalesce, unchanged-time events do not age world; feedback and missing reducers remain |
-| Spinner/pause/Meter defaults | fa0fe76, 97577b4, d4d0a51 | Root747lib+8MSRV public tests pass; independent override/default-cell review accepted three slices; b241f23 readout held after confirmed one-cell error marker loss; no baseline approval |
+| Spinner/pause/Meter defaults | fa0fe76, 97577b4, d4d0a51 | Root747lib+8MSRV public tests pass; independent override/default-cell review accepted three slices; no baseline approval |
+| Meter readout/clipping | 0685893, ee175d5 | b241 alone rejected; c761 repairs gap after zero painted cells. Unchanged external failing probe now passes (3 root consumer tests), plus11MSRV ordering/readout tests; intentional measurement corrections documented |
+| Simulation feedback | 934c92d | Root31MSRV feedback/monotonic/publication tests pass (3 PTY fixtures skipped by this command); independent actual paused PTY preserves140ms after350ms idle. Strict style timing remains red; no threshold waiver |
+| Grid keyed cursor/reveal | 2c4e133, 83b1f45 plus facade export | Independent original8 probes pass after first-layout/reorder repair; root13MSRV keyed/blur/model tests pass; two unit initializers corrected,2MSRV unit tests and strict stable core Clippy pass |
 
 Detailed reports and immutable hashes remain in the external evidence folders:
 publication, theme-contract, scene-final-independent, monotonic-independent,
@@ -96,7 +99,7 @@ showcase-fidelity, historical-regeneration and test-inventory.
 
 ## Immediate work and unresolved acceptance
 
-1. Implement independently reviewed simulation-feedback clock policy, preserving
+1. Migrate independently reviewed simulation-feedback clock policy, preserving
    exact coalesced and paused behavior with one runtime-owned record; no elapsed
    expiry exception. Migrate Jackin feedback and actual fallback-query callers.
 2. Finish shared typing/cursor, full-track scrollbar and NavList scrolling;
@@ -112,11 +115,18 @@ showcase-fidelity, historical-regeneration and test-inventory.
    Phase2 candidate7e8a36c rejected: root actual-compiler probe changed an ignored
    include_str input without invalidating provenance. Structural input attestation
    repair12fb562 awaits independent review; no production capture acceptance rests
-   on the rejected candidate. Grid cursor5ed0ea6 also awaits repair: pending reveal
-   is consumed before first layout and stale indices survive pre-publication reorder.
+   on the rejected candidate. Repair12fb562 still accepts an undeclared build-script
+   read from an excluded shots input after mutation; fresh uncached Cargo proves
+   changed output. Exact-input review rejects it pending structural boundary repair.
 6. Complete exact test identities/relocations, mutation cases, full feature/MSRV
    matrix, all boundary/doc/perf/parity/capture gates, independent images/live
    journeys, coherent normative docs, PR and exact merged-source proof.
+
+Current application repros: Holla F10 opens then prematurely dismisses its menu
+while runtime focus checks the previous scope; shared reparenting repair assigned.
+Jackin manager uses positional List identity despite durable domain keys: swapping
+workspace rows changes selected Workspace1 to Workspace2. Root actual-runtime red
+test retained on codex/jackin-manager-row-identity; keyed record repair assigned.
 
 Known exceptions are scoped evidence, not acceptance waivers: reference trimmed
 acknowledgement is tightened to exact visible text; performance operation timing

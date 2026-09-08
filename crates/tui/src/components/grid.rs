@@ -2912,8 +2912,10 @@ mod tests {
         let columns = columns();
         let grid = Grid::new(ID, &columns);
         let model = Model::two();
-        let mut state = GridState::default();
-        state.edit = Some((ItemKey::num(10), ColumnKey::num(1)));
+        let mut state = GridState {
+            edit: Some((ItemKey::num(10), ColumnKey::num(1))),
+            ..GridState::default()
+        };
         state.editor.begin("retained draft");
         let before = state.clone();
         for (row, col, expected) in [
@@ -2936,10 +2938,12 @@ mod tests {
         columns.push(Column::new(ColumnKey::num(3), "last"));
         let grid = Grid::new(ID, &columns);
         let model = Model::two();
-        let mut state = GridState::default();
-        state.anchor = Some((ItemKey::num(20), ColumnKey::num(2)));
+        let mut state = GridState {
+            anchor: Some((ItemKey::num(20), ColumnKey::num(2))),
+            col_offset: 1,
+            ..GridState::default()
+        };
         state.core.checked_mut().insert(ItemKey::num(20));
-        state.col_offset = 1;
         assert_eq!(
             grid.move_cursor_to(&mut state, &model, ItemKey::num(10), ColumnKey::num(1)),
             Ok(())
