@@ -45,3 +45,6 @@ Root validation: all 499 recipes reproduced all 998 expected output hashes;
 eight mutations failed without publishing partial output or changing existing
 sentinel files. The initial external manifest SHA-256 is
 `24e492a6aee8b1719b16e10d72ee72ccf2c14a81bb702917e941d5f5a3959608`.
+An independent clean detached checkout at `c051c8f` also downloaded the font
+archive and reproduced all 998 hashes with no source changes. This root-operated
+clean-checkout check is separate from the pending independent reviewer approval.

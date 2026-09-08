@@ -174,8 +174,9 @@ The exact tool commit will be pinned only after that review and final qualificat
 
 Integrated/pushed `01908b3` TablePro guarded quit: independent 10 MSRV tests and
 six production PTY journeys; root 10 quit + 3 CLI tests pass. Followup `dbb3c66`
-corrects Ctrl+C precedence when focused Grid consumes Copy; review/integration
-pending. Canonical tab-owned editor/results state is being implemented separately
+is independently accepted and integrated/pushed as `9378db8`, correcting Ctrl+C
+precedence when focused Grid consumes Copy; root all 11 quit tests pass.
+Canonical tab-owned editor/results state is being implemented separately
 to remove reproduced cross-tab edit loss. Guard acceptance does not prove that gap closed.
 
 `040a272` resolves historical source ambiguity through identical source/build
@@ -183,7 +184,9 @@ Git objects. `tools/historical-render` now regenerates all 499 HTML/PNG pairs fr
 immutable archived ANSI/cursor inputs and exact historical renderer source.
 Pinned release fonts match installed fonts byte for byte; all 998 output hashes
 reproduce, eight corruption/stale-output mutations reject. Original captures are
-untouched. Independent review, clean-checkout proof and baseline installation remain.
+untouched. Tooling committed/pushed as `c051c8f`; clean detached checkout at that
+commit downloaded the pinned font archive and reproduced all 998 exact hashes,
+leaving its source clean. Independent review and baseline installation remain.
 
 Qualified capture tool `e45d3fa` completed 49 full-feature and 39 backend-free tests,
 both 24-fixture visual matrices, docs/build/fmt/Clippy and independent review.
@@ -195,7 +198,10 @@ caller migration now owns released component test sections.
 
 Holla accounting `53ba057` review found duplicate tool target and inconsistent
 disk-capacity effects; `15bd595` corrections close initial repros, expanded tests
-found relative-root overlap and percentage overflow, still under correction.
+found relative-root overlap and percentage overflow. Final `e7942b5` closes those
+findings with 64 independent MSRV tests; root followup is checking equivalent
+Docker/Debian aggregate/identity invariants and pre-validation display sums before
+integration. Domain owner has the question; no broader accounting acceptance assumed.
 Holla owner now also owns apps/holla manifest/lib/CLI/app/screens for real public-API
 migration. No Holla executable acceptance is claimed. Monotonic scheduling remains
 a shared dependency, not replaced with event counts.
