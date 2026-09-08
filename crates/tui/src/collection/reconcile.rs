@@ -147,12 +147,23 @@ impl CollectionCore {
         key: impl Fn(usize) -> ItemKey,
         enabled: impl Fn(usize) -> bool,
     ) -> Reconciliation {
+        self.reconcile_with_extent(len, len, key, enabled)
+    }
+
+    /// Reconcile keyed entries whose visual extent includes non-item rows.
+    pub(crate) fn reconcile_with_extent(
+        &mut self,
+        len: usize,
+        extent: usize,
+        key: impl Fn(usize) -> ItemKey,
+        enabled: impl Fn(usize) -> bool,
+    ) -> Reconciliation {
         let stamp = Self::stamp_of(len, &key);
         if self.stamp == Some(stamp) {
             return Reconciliation::Unchanged;
         }
         self.stamp = Some(stamp);
-        self.scroll.set_content(len);
+        self.scroll.set_content(extent);
         // checked keys: keep those present; one pass over the items
         let dropped = if self.checked.keys().is_empty() {
             0

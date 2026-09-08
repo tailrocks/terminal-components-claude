@@ -125,6 +125,11 @@ impl<'a> ScrollRegion<'a> {
         self
     }
 
+    pub(crate) const fn with_overrides(mut self, ov: PartStyle<'a>) -> Self {
+        self.ov = ov;
+        self
+    }
+
     /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {

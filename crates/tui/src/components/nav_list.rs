@@ -16,6 +16,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
+use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
@@ -27,6 +28,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
+use crate::scroll::ScrollState;
 use crate::text::width;
 use crate::theme::{Family, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
@@ -210,6 +212,12 @@ impl NavListState {
         self.core.cursor()
     }
 
+    /// The shared visual-row scroll state, read-only.
+    #[must_use]
+    pub const fn scroll(&self) -> &ScrollState {
+        self.core.scroll()
+    }
+
     /// The current destination.
     #[must_use]
     pub const fn current(&self) -> Option<ItemKey> {
@@ -317,8 +325,10 @@ impl Reconcile for NavListState {
 /// then paints a nonempty heading; collapsed mode paints no heading. Every
 /// entry gets gutter, current-marker and icon cells; full mode also invokes
 /// the renderer with the badge budget already reserved on the right. Rows
-/// are laid out from the top and clipped at the bottom — a nav list does
-/// **not** scroll. `measure` is `(6…, entries)` collapsed and
+/// are laid out from the top and clipped at the bottom by default.
+/// `.scrollable(true)` enables shared vertical scrolling; headings and
+/// separators count toward the visual extent. Cursor motion reveals the
+/// keyed row; wheel scrolling keeps the cursor unchanged. `measure` is `(6…, entries)` collapsed and
 /// `(12…, entries)` full; `draw` returns `area`. `0×0` registers nothing
 /// (R5).
 ///
@@ -327,7 +337,8 @@ impl Reconcile for NavListState {
 /// focus column), `MARKER` (the current-destination affordance), `ICON` (the
 /// icon column), `HEADER` (a section heading), `BADGE` (an entry's badge),
 /// `LABEL` (resolved through [`RowUi`] by the row renderer, `NavMode::Full`
-/// only). `Part::ROW` is a hit region only and is deliberately not styled.
+/// only). `TRACK` and `THUMB` style the opt-in scrollbar. `Part::ROW` is a
+/// hit region only and is deliberately not styled.
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach every member of [`Self::PARTS`]. The
@@ -367,6 +378,7 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     badge: Option<BadgeFn<'a, T>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     disabled: bool,
+    scrollable: bool,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
@@ -399,6 +411,7 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             badge: None,
             disabled_item: None,
             disabled: false,
+            scrollable: false,
             ov: PartStyle::new(),
             _t: PhantomData,
         }
@@ -415,6 +428,8 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         Part::LABEL,
         Part::HEADER,
         Part::BADGE,
+        Part::TRACK,
+        Part::THUMB,
     ];
 
     /// The width a full sidebar prefers.
@@ -436,6 +451,13 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             NavMode::Full => Self::PREFERRED_WIDTH,
             NavMode::Collapsed => Self::COLLAPSED_WIDTH,
         }
+    }
+
+    /// Enable shared vertical scrolling and cursor reveal. Default: false.
+    #[must_use]
+    pub const fn scrollable(mut self, yes: bool) -> Self {
+        self.scrollable = yes;
+        self
     }
 
     /// Full or collapsed.
@@ -533,6 +555,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             badge: self.badge,
             disabled_item: self.disabled_item,
             disabled: self.disabled,
+            scrollable: self.scrollable,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -553,6 +576,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             badge: self.badge,
             disabled_item: self.disabled_item,
             disabled: self.disabled,
+            scrollable: self.scrollable,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -688,6 +712,55 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc.action(NavListAction::EnterContent(key));
     }
 
+    fn prepare_state(&self, cx: &Cx<'_>, st: &mut NavListState, items: &[T]) -> usize {
+        let len = items.len();
+        let area = cx.area(self.id).unwrap_or_default();
+        let compact = self.is_compact(area, items);
+        let before_cursor = (st.core.cursor(), st.core.cursor_index());
+        let extent = if self.scrollable {
+            self.extent(items, compact)
+        } else {
+            len
+        };
+        let _ = st.core.reconcile_with_extent(
+            len,
+            extent,
+            |i| self.key_at(items, i),
+            |i| self.enabled_at(items, i),
+        );
+        st.reconcile_current(len, &|i| self.key_at(items, i));
+        if st.core.cursor().is_none()
+            && let Some(i) = self.seek(items, 0, true)
+        {
+            st.core.set_cursor(i, self.key_at(items, i));
+        }
+        if self.scrollable
+            && st.core.cursor().is_some()
+            && !self.enabled_at(items, st.core.cursor_index())
+        {
+            if let Some(i) = self
+                .seek(items, st.core.cursor_index(), true)
+                .or_else(|| self.seek(items, st.core.cursor_index(), false))
+            {
+                st.core.set_cursor(i, self.key_at(items, i));
+            } else {
+                st.core.clear_cursor();
+            }
+        }
+        if self.scrollable
+            && before_cursor != (st.core.cursor(), st.core.cursor_index())
+            && st.core.cursor().is_some()
+        {
+            let index = st.core.cursor_index();
+            st.core.scroll_mut().ensure_visible_on_next_layout(index);
+        }
+        if self.scrollable {
+            let view = self.scroll_view(st, items, area, compact);
+            *st.core.scroll_mut() = view;
+        }
+        extent
+    }
+
     /// The update phase: reconcile, then drain keys and the pointer.
     pub fn update(
         &self,
@@ -698,19 +771,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         if self.disabled {
             return Response::ignored();
         }
-        let len = items.len();
-        let _ = st.core.reconcile_with(
-            len,
-            |i| self.key_at(items, i),
-            |i| self.enabled_at(items, i),
-        );
-        st.reconcile_current(len, &|i| self.key_at(items, i));
-        if st.core.cursor().is_none()
-            && let Some(i) = self.seek(items, 0, true)
-        {
-            st.core.set_cursor(i, self.key_at(items, i));
-        }
+        let extent = self.prepare_state(cx, st, items);
         let mut acc = Acc::<NavListAction>::new();
+        if self.scrollable {
+            acc.fold(&self.scrollbar().update(cx, st.core.scroll_mut(), extent));
+        }
         let table = self.table();
         for it in cx.intents(self.id) {
             match it {
@@ -771,34 +836,74 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    fn is_compact(&self, area: Rect, items: &[T]) -> bool {
-        if let Some(compact) = self.compact {
-            return compact;
-        }
-        let available = usize::from(area.height);
-        let mut rows = items.len();
+    // One traversal owns headings, separators and item visual positions.
+    fn rows<'b>(
+        &'b self,
+        items: &'b [T],
+        compact: bool,
+    ) -> impl Iterator<Item = (usize, usize, Option<(usize, &'b str)>)> + 'b {
+        let mut next = 0_usize;
         let mut previous = None;
-        for item in items {
-            if rows > available {
-                return true;
-            }
+        items.iter().enumerate().map(move |(i, item)| {
             let section = self.section_of(item);
-            if previous != Some(section) {
-                rows = rows.saturating_add(usize::from(previous.is_some()));
-                rows = rows.saturating_add(usize::from(
-                    self.mode == NavMode::Full && !section.is_empty(),
-                ));
-                previous = Some(section);
+            let mut header = None;
+            if !compact && previous != Some(section) {
+                next = next.saturating_add(usize::from(previous.is_some()));
+                if self.mode == NavMode::Full && !section.is_empty() {
+                    header = Some((next, section));
+                    next = next.saturating_add(1);
+                }
             }
-        }
-        rows > available
+            previous = Some(section);
+            let row = next;
+            next = next.saturating_add(1);
+            (i, row, header)
+        })
     }
 
-    /// The draw phase.
-    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &NavListState, items: &[T]) -> Rect {
-        if area.is_empty() {
-            return area;
+    fn extent(&self, items: &[T], compact: bool) -> usize {
+        self.rows(items, compact)
+            .last()
+            .map_or(0, |(_, row, _)| row.saturating_add(1))
+    }
+
+    fn visual_row(&self, items: &[T], compact: bool, index: usize) -> Option<usize> {
+        self.rows(items, compact)
+            .find_map(|(i, row, _)| (i == index).then_some(row))
+    }
+
+    fn scroll_view(
+        &self,
+        st: &NavListState,
+        items: &[T],
+        area: Rect,
+        compact: bool,
+    ) -> ScrollState {
+        let mut scroll = *st.core.scroll();
+        if (scroll.pending_reveal().is_some() || scroll.viewport_len() != usize::from(area.height))
+            && let Some(row) = st
+                .core
+                .cursor()
+                .and_then(|_| self.visual_row(items, compact, st.core.cursor_index()))
+        {
+            scroll.ensure_visible_on_next_layout(row);
         }
+        scroll.apply_layout(usize::from(area.height), self.extent(items, compact));
+        scroll
+    }
+
+    fn scrollbar(&self) -> ScrollRegion<'_> {
+        ScrollRegion::new(self.id)
+            .inherit_family(Family::LIST)
+            .with_overrides(self.ov)
+    }
+
+    fn is_compact(&self, area: Rect, items: &[T]) -> bool {
+        self.compact
+            .unwrap_or_else(|| self.extent(items, false) > usize::from(area.height))
+    }
+
+    fn register(&self, ui: &mut Ui<'_>, area: Rect) -> StateFlags {
         if !ui.is_inert() {
             ui.register_control(
                 self.id,
@@ -814,6 +919,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }
+        live
+    }
+
+    /// The draw phase.
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &NavListState, items: &[T]) -> Rect {
+        if area.is_empty() {
+            return area;
+        }
+        let live = self.register(ui, area);
         let container = self.ov.style(
             ui,
             self.id,
@@ -827,34 +941,48 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                     | StateFlags::HOVERED,
             ),
         );
-        ui.fill(area, container.style);
-        let mut y = area.y;
+        let compact = self.is_compact(area, items);
+        let view = if self.scrollable {
+            self.scroll_view(st, items, area, compact)
+        } else {
+            *st.core.scroll()
+        };
+        let content = if self.scrollable {
+            self.scrollbar().draw(ui, area, &view, view.content_len())
+        } else {
+            area
+        };
+        ui.fill(content, container.style);
+        let offset = if self.scrollable { view.offset() } else { 0 };
+        let limit = offset.saturating_add(usize::from(content.height));
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
-        let compact = self.is_compact(area, items);
-        let mut section: Option<&str> = None;
-        for (i, item) in items.iter().enumerate() {
-            if y >= area.bottom() {
+        for (i, visual_row, header) in self.rows(items, compact) {
+            if let Some((row, text)) = header
+                && (offset..limit).contains(&row)
+            {
+                self.paint_header(
+                    ui,
+                    row_at(
+                        content,
+                        content.y.saturating_add(row.saturating_sub(offset) as u16),
+                    ),
+                    text,
+                    live,
+                );
+            }
+            if visual_row >= limit {
                 break;
             }
-            let s = self.section_of(item);
-            let new_group = section != Some(s);
-            if new_group && !compact {
-                if section.is_some() {
-                    y = y.saturating_add(1);
-                }
-                if y >= area.bottom() {
-                    break;
-                }
-                if self.mode == NavMode::Full && !s.is_empty() {
-                    self.paint_header(ui, row_at(area, y), s, live);
-                    y = y.saturating_add(1);
-                }
-                section = Some(s);
-                if y >= area.bottom() {
-                    break;
-                }
+            if visual_row < offset {
+                continue;
             }
+            let y = content
+                .y
+                .saturating_add(visual_row.saturating_sub(offset) as u16);
+            let Some(item) = items.get(i) else {
+                continue;
+            };
             let key = self.key_at(items, i);
             let mut flags = StateFlags::empty();
             let is_cursor = st.core.cursor() == Some(key);
@@ -877,7 +1005,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 flags |= StateFlags::DISABLED;
                 flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
             }
-            let rect = row_at(area, y);
+            let rect = row_at(content, y);
             if let Some(renderer) = self.render_row {
                 ui.with_area(rect, |ui| renderer(ui, rect, flags, key, item));
             } else {
@@ -886,7 +1014,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             if !ui.is_inert() && !self.is_disabled(item) {
                 ui.register_part(self.id, PartRef::item(Part::ROW, key), rect);
             }
-            y = y.saturating_add(1);
         }
         area
     }
