@@ -16,6 +16,4 @@ crates/tui/wip/
 .mbx-target-*/
 
 # untracked parity capture artifacts
-parity/*.lock
-parity/buttons-*/
-parity/component-render-*.txt
+parity/
