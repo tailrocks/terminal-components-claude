@@ -234,6 +234,9 @@ pub struct ListState {
     anchor: Option<ItemKey>,
     // Selection transaction; runtime still owns focus and feedback.
     click_cursor: Option<ItemKey>,
+    // Last update configuration keeps explicit reconciliation in scroll units.
+    row_stride: usize,
+    row_gap: u16,
 }
 
 impl ListState {
@@ -257,7 +260,8 @@ impl ListState {
         self.core.checked_mut()
     }
 
-    /// The scroll state.
+    /// The scroll state in terminal lines. Multiline rows align offsets to
+    /// their stride; bounded trailing padding permits the final aligned view.
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
@@ -275,7 +279,10 @@ impl ListState {
 
 impl Reconcile for ListState {
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
-        let r = self.core.reconcile(len, &key);
+        let stride = self.row_stride.max(1);
+        let extent =
+            row_scroll_extent(len, stride, self.row_gap, self.core.scroll().viewport_len());
+        let r = self.core.reconcile_with_extent(len, extent, &key, |_| true);
         if let Some(c) = self.chosen
             && !(0..len).any(|i| key(i) == c)
         {
@@ -381,6 +388,9 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     render_row: Option<ListRowRenderer<'a, T>>,
+    row_height: u16,
+    row_gap: u16,
+    whole_rows: bool,
     select_mode: SelectMode,
     leave_at_boundary: bool,
     activate_focused_on_click: bool,
@@ -398,6 +408,21 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
+}
+
+fn row_scroll_extent(len: usize, stride: usize, gap: u16, viewport: usize) -> usize {
+    let extent =
+        len.saturating_mul(stride)
+            .saturating_sub(if len == 0 { 0 } else { usize::from(gap) });
+    let excess = extent.saturating_sub(viewport);
+    if excess == 0 {
+        extent
+    } else {
+        excess
+            .div_ceil(stride)
+            .saturating_mul(stride)
+            .saturating_add(viewport)
+    }
 }
 
 type ListRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
@@ -421,6 +446,9 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             render_row: None,
+            row_height: 1,
+            row_gap: 0,
+            whole_rows: false,
             select_mode: SelectMode::Single,
             leave_at_boundary: false,
             activate_focused_on_click: false,
@@ -485,6 +513,88 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
+    /// Painted lines per item; zero is normalized to one. Defaults to one.
+    /// Rows scroll at item boundaries, preserving their logical rect. Wheel
+    /// deltas already normalized by the runtime count items; thumb movement
+    /// snaps in its movement direction. The scrollbar includes only enough
+    /// trailing blank space to reach the last aligned viewport. A shorter
+    /// viewport clips a row unless [`Self::whole_rows`] is enabled.
+    #[must_use]
+    pub const fn row_height(mut self, height: u16) -> Self {
+        self.row_height = if height == 0 { 1 } else { height };
+        self
+    }
+
+    /// Blank, non-item lines between rows. Defaults to zero; no trailing gap.
+    #[must_use]
+    pub const fn row_gap(mut self, gap: u16) -> Self {
+        self.row_gap = gap;
+        self
+    }
+
+    /// Omit rows that do not fit the logical viewport completely.
+    /// Defaults to false (bottom rows may be clipped). If the viewport is
+    /// shorter than a row, true paints no items until it grows; selection and
+    /// scrolling remain available. Ancestor clipping never shifts row content.
+    #[must_use]
+    pub const fn whole_rows(mut self, enabled: bool) -> Self {
+        self.whole_rows = enabled;
+        self
+    }
+
+    fn stride(&self) -> usize {
+        usize::from(self.row_height).saturating_add(usize::from(self.row_gap))
+    }
+
+    fn item_at_line(&self, line: usize) -> usize {
+        line.checked_div(self.stride()).unwrap_or(0)
+    }
+
+    fn extent(&self, len: usize) -> usize {
+        len.saturating_mul(self.stride())
+            .saturating_sub(if len == 0 {
+                0
+            } else {
+                usize::from(self.row_gap)
+            })
+    }
+
+    // Pad only enough to represent the final row-aligned viewport. Padding
+    // never becomes an item or a painted row.
+    fn scroll_extent(&self, len: usize, viewport: usize) -> usize {
+        row_scroll_extent(len, self.stride(), self.row_gap, viewport)
+    }
+
+    fn scroll_view(&self, st: &ListState, len: usize, viewport: usize) -> ScrollState {
+        let mut scroll = *st.core.scroll();
+        if viewport == 0 {
+            scroll.set_content(self.extent(len));
+            return scroll;
+        }
+        let reveal = scroll.pending_reveal().or_else(|| {
+            (self.stride() > 1 && scroll.viewport_len() != viewport && st.core.cursor().is_some())
+                .then_some(st.core.cursor_index())
+        });
+        let start = reveal.map(|i| i.saturating_mul(self.stride()));
+        if let Some(start) = start {
+            scroll.ensure_visible_on_next_layout(
+                start.saturating_add(usize::from(self.row_height).min(viewport).saturating_sub(1)),
+            );
+        }
+        scroll.apply_layout(viewport, self.scroll_extent(len, viewport));
+        if let Some(start) = start {
+            scroll.ensure_visible(start);
+        }
+        let offset = scroll.offset();
+        let aligned = if start.is_some_and(|start| start >= offset) {
+            offset.div_ceil(self.stride()).saturating_mul(self.stride())
+        } else {
+            self.item_at_line(offset).saturating_mul(self.stride())
+        };
+        scroll.scroll_to(aligned);
+        scroll
+    }
+
     /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> List<'a, T, K2, R> {
         List {
@@ -492,6 +602,9 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             key: k,
             row: self.row,
             render_row: self.render_row,
+            row_height: self.row_height,
+            row_gap: self.row_gap,
+            whole_rows: self.whole_rows,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
@@ -513,6 +626,9 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             key: self.key,
             row: r,
             render_row: self.render_row,
+            row_height: self.row_height,
+            row_gap: self.row_gap,
+            whole_rows: self.whole_rows,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
@@ -753,6 +869,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         reason = "the keymap dispatch and the pointer phases in one drain loop"
     )]
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut ListState, items: &[T]) -> Response<ListAction> {
+        st.row_stride = self.stride();
+        st.row_gap = self.row_gap;
+        let prior_index = st.core.cursor_index();
         let prior_cursor = st.core.cursor();
         let prior_focus = self.activate_focused_on_click
             && cx.state(self.id).contains(StateFlags::FOCUSED)
@@ -760,8 +879,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 .intents(self.id)
                 .any(|intent| matches!(intent, Intent::FocusIn { .. }));
         let len = items.len();
-        let _ = st.core.reconcile_with(
+        let _ = st.core.reconcile_with_extent(
             len,
+            self.scroll_extent(len, st.core.scroll().viewport_len()),
             |i| self.key_at(items, i),
             |i| self.enabled_at(items, i),
         );
@@ -785,10 +905,47 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             let key = self.key_at(items, i);
             st.core.set_cursor(i, key);
         }
+        if self.stride() > 1 && prior_index != st.core.cursor_index() && st.core.cursor().is_some()
+        {
+            let index = st.core.cursor_index();
+            st.core.scroll_mut().ensure_visible_on_next_layout(index);
+        }
         let mut acc = Acc::<ListAction>::new();
-        let bar = ScrollRegion::new(self.id).update(cx, st.core.scroll_mut(), len);
+        let viewport = cx
+            .layout(self.id)
+            .map_or(st.core.scroll().viewport_len(), |l| l.viewport_len);
+        *st.core.scroll_mut() = self.scroll_view(st, len, viewport);
+        let extent = self.scroll_extent(len, viewport);
+        let before_scroll = st.core.scroll().offset();
+        let region = ScrollRegion::new(self.id);
+        let track_len = region.prepare(cx, st.core.scroll_mut(), extent);
+        let mut bar = Response::ignored();
+        for intent in cx.intents(self.id) {
+            if let Intent::Wheel { delta, .. } = intent {
+                let scroll = st.core.scroll_mut();
+                let before = scroll.offset();
+                scroll.scroll_by(isize::from(delta).saturating_mul(self.stride() as isize));
+                bar |= if scroll.offset() == before {
+                    Response::consumed()
+                } else {
+                    Response::changed()
+                };
+            } else {
+                bar |= region.handle_intent(cx, st.core.scroll_mut(), track_len, intent);
+            }
+        }
+        if self.stride() > 1 {
+            let scroll = st.core.scroll_mut();
+            let offset = scroll.offset();
+            let aligned = if offset > before_scroll {
+                offset.div_ceil(self.stride()).saturating_mul(self.stride())
+            } else {
+                self.item_at_line(offset).saturating_mul(self.stride())
+            };
+            scroll.scroll_to(aligned);
+        }
         acc.fold(&bar);
-        let viewport = st.core.scroll().viewport_len().max(1);
+        let viewport = self.item_at_line(st.core.scroll().viewport_len()).max(1);
         let table = self.table();
         let mut released = false;
         for it in cx.intents(self.id) {
@@ -878,9 +1035,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     }
                     // the row index from the pointer row and last frame's view
                     let hint = cx.area(self.id).map(|a| {
-                        let view = ScrollRegion::view(st.core.scroll(), a, len);
-                        view.offset()
-                            .saturating_add(usize::from(pos.y.saturating_sub(a.y)))
+                        let view = self.scroll_view(st, len, usize::from(a.height));
+                        self.item_at_line(
+                            view.offset()
+                                .saturating_add(usize::from(pos.y.saturating_sub(a.y))),
+                        )
                     });
                     let Some(i) = self.index_of(items, k, hint) else {
                         st.click_cursor = None;
@@ -975,7 +1134,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
         );
         ui.fill(area, container.style);
-        let surface = self.scrollbar().draw(ui, area, st.core.scroll(), len);
+        let view = self.scroll_view(st, len, usize::from(area.height));
+        let surface = self.scrollbar().draw(ui, area, &view, view.content_len());
         let has_readiness = !matches!(self.status, Status::Ready);
         let content = if has_readiness {
             shift(surface, 2)
@@ -1027,7 +1187,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             }
             return area;
         }
-        let view = ScrollRegion::view(st.core.scroll(), content, len);
         let cursor = st.core.cursor();
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
@@ -1037,7 +1196,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         // colour is removed (§11.4, §16.2 case 9).
         let status = live
             & (StateFlags::ERROR | StateFlags::WARNING | StateFlags::BUSY | StateFlags::LOADING);
-        for (row_i, i) in view.visible_range().enumerate() {
+        for i in self.item_at_line(view.offset())..len {
+            let row_i = i
+                .saturating_mul(self.stride())
+                .saturating_sub(view.offset());
+            if row_i >= usize::from(content.height)
+                || (self.whole_rows
+                    && row_i.saturating_add(usize::from(self.row_height))
+                        > usize::from(content.height))
+            {
+                break;
+            }
             let Some(item) = items.get(i) else { break };
             let key = self.key.key(item, i);
             let is_cursor = cursor == Some(key);
@@ -1071,11 +1240,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     .y
                     .saturating_add(row_i.min(usize::from(u16::MAX)) as u16),
                 width: content.width,
-                height: 1,
+                height: self.row_height,
             };
             if let Some(renderer) = self.render_row {
                 if !row.intersection(ui.full()).is_empty() {
-                    ui.with_area(row, |ui| renderer(ui, row, flags, key, item));
+                    ui.with_area(content, |ui| {
+                        ui.with_area(row, |ui| renderer(ui, row, flags, key, item));
+                    });
                 }
                 if !ui.is_inert() {
                     let part = if pointer_eligible {
@@ -1083,67 +1254,70 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     } else {
                         PartRef::of(Part::BODY)
                     };
-                    ui.register_part(self.id, part, row);
+                    ui.register_part(self.id, part, row.intersection(content));
                 }
                 continue;
             }
-            let rs = ov.style(
-                ui,
-                id,
-                Family::LIST,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                flags,
-            );
-            ui.fill(row, rs.style);
-            // gutter
-            let gutter_cell = cell_at(row, row.x);
-            if let Some(f) = ov.slot_for(Part::GUTTER) {
-                f(ui, gutter_cell);
-            } else {
-                let g = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::GUTTER, flags);
-                match g.glyph {
-                    Slot::Set(glyph) => {
-                        ui.glyph(gutter_cell, glyph, g.style);
+            ui.with_area(content, |ui| {
+                let rs = ov.style(
+                    ui,
+                    id,
+                    Family::LIST,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    flags,
+                );
+                ui.fill(row, rs.style);
+                // gutter
+                let gutter_cell = cell_at(row, row.x);
+                if let Some(f) = ov.slot_for(Part::GUTTER) {
+                    f(ui, gutter_cell);
+                } else {
+                    let g = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::GUTTER, flags);
+                    match g.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(gutter_cell, glyph, g.style);
+                        }
+                        Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                     }
-                    Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                 }
-            }
-            // marker
-            let marker_cell = cell_at(row, row.x.saturating_add(1));
-            if let Some(f) = ov.slot_for(Part::MARKER) {
-                f(ui, marker_cell);
-            } else {
-                let m = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::MARKER, flags);
-                match m.glyph {
-                    Slot::Set(glyph) => {
-                        ui.glyph(marker_cell, glyph, m.style);
+                // marker
+                let marker_cell = cell_at(row, row.x.saturating_add(1));
+                if let Some(f) = ov.slot_for(Part::MARKER) {
+                    f(ui, marker_cell);
+                } else {
+                    let m = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::MARKER, flags);
+                    match m.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(marker_cell, glyph, m.style);
+                        }
+                        Slot::Inherit | Slot::Clear => ui.fill(marker_cell, m.style),
                     }
-                    Slot::Inherit | Slot::Clear => ui.fill(marker_cell, m.style),
                 }
-            }
-            let rest = Rect {
-                x: row.x.saturating_add(3),
-                width: row.width.saturating_sub(3),
-                ..row
-            };
-            if !rest.is_empty() {
-                let mut r = RowUi::new(ui, id, Family::LIST, Variant::DEFAULT, flags, key, rest);
-                self.row.row(item, &mut r);
-            }
+                let rest = Rect {
+                    x: row.x.saturating_add(3),
+                    width: row.width.saturating_sub(3),
+                    ..row
+                };
+                if !rest.is_empty() {
+                    let mut r =
+                        RowUi::new(ui, id, Family::LIST, Variant::DEFAULT, flags, key, rest);
+                    self.row.row(item, &mut r);
+                }
+            });
             if !ui.is_inert() {
                 let part = if pointer_eligible {
                     PartRef::item(Part::ROW, key)
                 } else {
                     PartRef::of(Part::BODY)
                 };
-                ui.register_part(self.id, part, row);
+                ui.register_part(self.id, part, row.intersection(content));
             }
         }
         area
     }
 
-    /// The natural size: 24 columns, one row per item.
+    /// The natural size: 24 columns, using the offered viewport height.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
@@ -1153,8 +1327,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
     }
 
     /// The layer size this list wants as popover content (§26 N1): its
-    /// natural width clamped into the design's popup band, and one row per
-    /// item up to `popup_max_rows`.
+    /// natural width clamped into the design's popup band, and the configured
+    /// visual row extent up to `popup_max_rows` terminal lines.
     ///
     /// The list does not own the layer — whoever opened it does — so the
     /// opener passes this to `LayerSpec::size` and, if the item slice can
@@ -1163,8 +1337,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         let d = cx.design();
         let w = Self::PREFERRED_WIDTH.clamp(d.size.popup_min_width, d.size.popup_max_width);
-        let h = items
-            .len()
+        let h = self
+            .extent(items.len())
             .min(usize::from(d.size.popup_max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
