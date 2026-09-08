@@ -2,7 +2,7 @@
 
 use junie_tui::author::{PaintStyle, StyleDefaults};
 use junie_tui::{
-    Action, ActionKey, App, Chord, Color, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
+    Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
     Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel,
     Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
     Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis,
@@ -2240,7 +2240,9 @@ fn paint_legacy_tree_gutters<T>(
     let mut visible_row = 0usize;
     let first_visible = state.scroll().offset();
     let cursor = state.cursor();
-    let gutter_style = ui.surface_style().fg(Color::Rgb(0, 0, 0));
+    let gutter_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::OnSurfaceInverse)));
 
     for item in nodes {
         let descriptor = node(item);
