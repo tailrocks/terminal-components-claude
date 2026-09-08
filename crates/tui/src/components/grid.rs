@@ -697,7 +697,7 @@ pub struct GridState {
     col: Option<ColumnKey>,
     col_index: usize,
     /// The rectangular range anchor, keyed on both axes.
-    anchor: Option<(ItemKey, ColumnKey)>,
+    anchor: Option<RangeAnchor>,
     /// First non-sticky column shown.
     col_offset: usize,
     /// The cell being edited, keyed.
@@ -707,6 +707,12 @@ pub struct GridState {
     /// Last requested sort, used only to alternate the header affordance.
     /// The adapter remains the sole owner of the actual row permutation.
     sort: Option<(ColumnKey, SortDir)>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum RangeAnchor {
+    Cell(ItemKey, ColumnKey),
+    Fetch(usize, ColumnKey),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -816,7 +822,7 @@ impl GridState {
 impl Reconcile for GridState {
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
         let r = self.core.reconcile(len, &key);
-        if let Some((a, _)) = self.anchor
+        if let Some(RangeAnchor::Cell(a, _)) = self.anchor
             && !(0..len).any(|i| key(i) == a)
         {
             self.anchor = None;
@@ -1602,17 +1608,19 @@ impl Grid<'_> {
     /// is set or the anchor's row or column has gone.
     ///
     /// Resolved from the stored **keys** every phase — this is the whole
-    /// reason the anchor is `(ItemKey, ColumnKey)` and not a pair of indices:
-    /// a model that reorders itself between frames keeps the same logical
-    /// rectangle rather than a rectangle at the same coordinates (§33).
+    /// Real-cell anchors retain stable row/column keys across reorder (§33).
+    /// A fetch anchor names only the synthetic loaded boundary; on append it
+    /// becomes the first appended key. Copy clips that endpoint to real data.
     fn range<M: GridModel + ?Sized>(
         &self,
         st: &GridState,
         model: &M,
         cursor: (usize, usize),
     ) -> Option<((usize, usize), (usize, usize))> {
-        let (ak, ac) = st.anchor?;
-        let ar = Self::row_index(model, ak, cursor.0)?;
+        let (ar, ac) = match st.anchor? {
+            RangeAnchor::Cell(key, col) => (Self::row_index(model, key, cursor.0)?, col),
+            RangeAnchor::Fetch(boundary, col) => (boundary, col),
+        };
         let (r0, r1) = (ar.min(cursor.0), ar.max(cursor.0));
         let (c0, c1) = match self.nav {
             NavUnit::Row => (0, self.column_count().saturating_sub(1)),
@@ -1700,6 +1708,22 @@ impl Grid<'_> {
         Ok(())
     }
 
+    fn cursor_anchor<M: GridModel + ?Sized>(
+        &self,
+        st: &GridState,
+        model: &M,
+    ) -> Option<RangeAnchor> {
+        let col = self.col_key(self.cursor_col(st))?;
+        if let Some(fetch) = st.fetch_row {
+            return Some(RangeAnchor::Fetch(fetch.boundary, col));
+        }
+        let row = st
+            .core
+            .cursor_index()
+            .min(model.row_count().saturating_sub(1));
+        (row < model.row_count()).then(|| RangeAnchor::Cell(model.row_key(row), col))
+    }
+
     /// Move the cursor to `(row, col)`, extending the range when asked.
     fn move_to<M: GridModel + ?Sized>(
         &self,
@@ -1719,11 +1743,8 @@ impl Grid<'_> {
             }
             if !extend {
                 st.anchor = None;
-            } else if st.anchor.is_none() && len > 0 {
-                let previous = st.core.cursor_index().min(len.saturating_sub(1));
-                if let Some(column) = st.col {
-                    st.anchor = Some((model.row_key(previous), column));
-                }
+            } else if st.anchor.is_none() {
+                st.anchor = self.cursor_anchor(st, model);
             }
             st.fetch_row = Some(FetchRow { boundary: len });
             st.col_index = col.min(column_count.saturating_sub(1));
@@ -1745,11 +1766,7 @@ impl Grid<'_> {
         }
         if extend {
             if st.anchor.is_none() {
-                let cur = self.cursor_col(st);
-                let cur_row = st.core.cursor_index().min(len.saturating_sub(1));
-                if let Some(cur_key) = self.col_key(cur) {
-                    st.anchor = Some((model.row_key(cur_row), cur_key));
-                }
+                st.anchor = self.cursor_anchor(st, model);
             }
         } else {
             st.anchor = None;
@@ -1817,6 +1834,17 @@ impl Grid<'_> {
     ) -> Pending {
         let len = model.row_count();
         let column_count = self.column_count();
+        if let Some(RangeAnchor::Fetch(boundary, col)) = st.anchor {
+            st.anchor = if boundary < len {
+                Some(RangeAnchor::Cell(model.row_key(boundary), col))
+            } else if model.has_more() {
+                Some(RangeAnchor::Fetch(boundary.min(len), col))
+            } else if len > 0 {
+                Some(RangeAnchor::Cell(model.row_key(len.saturating_sub(1)), col))
+            } else {
+                None
+            };
+        }
         // A same-length reorder with unchanged end keys is invisible to the
         // collection stamp. Probe the cached cursor so keyed identity still
         // forces reconciliation without scanning an unchanged model.
@@ -1828,7 +1856,7 @@ impl Grid<'_> {
         // G7: reconcile before anything can be emitted
         let outcome = st.core.reconcile_with(len, |i| model.row_key(i), |_| true);
         if outcome != Reconciliation::Unchanged {
-            if let Some((a, _)) = st.anchor
+            if let Some(RangeAnchor::Cell(a, _)) = st.anchor
                 && Self::row_index(model, a, st.core.cursor_index()).is_none()
             {
                 st.anchor = None;
@@ -3111,7 +3139,7 @@ mod tests {
         let grid = Grid::new(ID, &columns);
         let model = Model::two();
         let mut state = GridState {
-            anchor: Some((ItemKey::num(20), ColumnKey::num(2))),
+            anchor: Some(RangeAnchor::Cell(ItemKey::num(20), ColumnKey::num(2))),
             col_offset: 1,
             ..GridState::default()
         };
@@ -4290,7 +4318,7 @@ mod tests {
 
         let mut state = GridState::default();
         state.set_cursor(4, ItemKey::index(4), 3, ColumnKey::num(3));
-        state.anchor = Some((ItemKey::index(0), ColumnKey::num(0)));
+        state.anchor = Some(RangeAnchor::Cell(ItemKey::index(0), ColumnKey::num(0)));
         assert_eq!(
             grid.copy_tsv(&state, &model, (4, 3)),
             "\t\t\t\na\t\t\t\nb\tc\t\t\nd\te\tf\t\ng\th\ti\tj\n"
@@ -4305,7 +4333,7 @@ mod tests {
         let mut state = GridState::default();
         state.set_cursor(1, ItemKey::num(20), 0, ColumnKey::num(1));
         state.core.checked_mut().insert(ItemKey::num(10));
-        state.anchor = Some((ItemKey::num(10), ColumnKey::num(1)));
+        state.anchor = Some(RangeAnchor::Cell(ItemKey::num(10), ColumnKey::num(1)));
         state.edit = Some((ItemKey::num(20), ColumnKey::num(1)));
         let _ = state.reconcile(model.row_count(), |i| model.row_key(i));
 
@@ -4332,7 +4360,7 @@ mod tests {
         let model = Model::two();
         let mut state = GridState::default();
         state.set_cursor(1, ItemKey::num(20), 1, ColumnKey::num(2));
-        state.anchor = Some((ItemKey::num(10), ColumnKey::num(1)));
+        state.anchor = Some(RangeAnchor::Cell(ItemKey::num(10), ColumnKey::num(1)));
         assert_eq!(grid.copy_tsv(&state, &model, (1, 1)), "alpha\t1\nbeta\t2\n");
     }
 

@@ -310,3 +310,44 @@ fn shrinking_loaded_rows_retargets_sentinel_without_model_key_fabrication() {
     );
     assert_eq!(h.app().fetches, 0);
 }
+
+#[test]
+fn extending_from_sentinel_anchors_at_synthetic_boundary() {
+    let mut h = Harness::new(Page::new(true, 3), Theme::junie(), 30, 8);
+    let _ = h.key(KeyCode::Char('G'));
+    let _ = h.key_mod(KeyCode::Up, junie_tui::KeyModifiers::SHIFT);
+    let _ = h.key_mod(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL);
+    assert_eq!(h.app().copies, ["data\n"]);
+    let _ = h.key_mod(KeyCode::Down, junie_tui::KeyModifiers::SHIFT);
+    let _ = h.key_mod(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL);
+    assert_eq!(h.app().copies, ["data\n", ""]);
+}
+
+#[test]
+fn synthetic_anchor_materializes_on_append_and_clips_when_more_disappears() {
+    for append in [false, true] {
+        let mut h = Harness::new(Page::new(true, 3), Theme::junie(), 30, 8);
+        let _ = h.key(KeyCode::Char('G'));
+        let _ = h.key_mod(KeyCode::Up, junie_tui::KeyModifiers::SHIFT);
+        if append {
+            h.app_mut().model.len = 5;
+        }
+        h.app_mut().model.more = false;
+        let _ = h.key_mod(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL);
+        assert_eq!(
+            h.app().copies,
+            [if append { "data\ndata\n" } else { "data\n" }]
+        );
+        assert_eq!(h.app().fetches, 0);
+    }
+}
+#[test]
+fn horizontal_extension_at_sentinel_copies_no_real_row() {
+    for direction in [KeyCode::Left, KeyCode::Right] {
+        let mut h = Harness::new(Page::new(true, 3), Theme::junie(), 30, 8);
+        let _ = h.key(KeyCode::Char('G'));
+        let _ = h.key_mod(direction, junie_tui::KeyModifiers::SHIFT);
+        let _ = h.key_mod(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL);
+        assert_eq!(h.app().copies, [""]);
+    }
+}
