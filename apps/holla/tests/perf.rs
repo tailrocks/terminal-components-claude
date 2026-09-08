@@ -130,3 +130,18 @@ fn production_workload_measurements() {
     query_edits();
     plan_navigation();
 }
+
+#[test]
+fn perf_holla_baseline() {
+    let _guard = lock();
+    let mut harness = fixture(Scenario::FirstUse).with_auto_draw(false);
+    let stats = junie_tui_testing::perf::bench(2, junie_tui_testing::perf::iters(100), &mut || {
+        harness.draw();
+        std::hint::black_box(harness.focus());
+    });
+    junie_tui_testing::perf::report_to(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt"),
+        "frame_holla_first_use_120x40",
+        &stats,
+    );
+}
