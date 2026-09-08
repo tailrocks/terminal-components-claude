@@ -323,6 +323,7 @@ impl HomeState {
 fn query_input() -> TextInput<'static> {
     TextInput::new(QUERY)
         .placeholder("Type to filter · actions, files, hosts")
+        .placeholder_while_editing(true)
         .blur(BlurPolicy::Keep)
         .typing_policy(TypingPolicy::Fallback { cursor: true })
 }
