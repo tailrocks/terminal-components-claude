@@ -931,6 +931,7 @@ pub struct TextInput<'a> {
     id: Id,
     value: Option<&'a str>,
     placeholder: Option<&'a str>,
+    placeholder_while_editing: bool,
     validate: Option<&'a dyn Validate>,
     blur: BlurPolicy,
     typing_policy: crate::TypingPolicy,
@@ -974,6 +975,7 @@ impl<'a> TextInput<'a> {
             id,
             value: None,
             placeholder: None,
+            placeholder_while_editing: false,
             validate: None,
             blur: BlurPolicy::CommitAndValidate,
             typing_policy: crate::TypingPolicy::Focused,
@@ -996,6 +998,14 @@ impl<'a> TextInput<'a> {
     #[must_use]
     pub const fn placeholder(mut self, s: &'a str) -> Self {
         self.placeholder = Some(s);
+        self
+    }
+
+    /// Also show the placeholder for an empty active draft, preserving its cursor.
+    /// Disabled by default; this changes painting only, not editing ownership.
+    #[must_use]
+    pub const fn placeholder_while_editing(mut self, enabled: bool) -> Self {
+        self.placeholder_while_editing = enabled;
         self
     }
 
@@ -1084,6 +1094,7 @@ impl<'a> TextInput<'a> {
             id: self.id,
             value: self.value,
             placeholder: self.placeholder,
+            placeholder_while_editing: self.placeholder_while_editing,
             validate: self.validate,
             blur: self.blur,
             typing_policy: self.typing_policy,
@@ -1381,90 +1392,96 @@ impl<'a> TextInput<'a> {
         } else {
             self.value.unwrap_or("")
         };
-        if shown.is_empty() && !editing {
-            if let Some(p) = self.placeholder {
-                let ps = style(ui, Part::PLACEHOLDER);
-                match ov.slot_for(Part::PLACEHOLDER) {
-                    Some(f) => f(ui, inner),
-                    None => {
-                        ui.paint_str(inner, p, ps.style);
+        if !shown.is_empty() || editing {
+            if inner.width > 0 {
+                let ts = style(ui, Part::TEXT);
+                let cursor_col = if editing {
+                    st.draft.cursor_pos().col
+                } else {
+                    0
+                };
+                let hs = if editing {
+                    let w = usize::from(inner.width);
+                    let hs = usize::from(st.draft.hscroll());
+                    if cursor_col < hs {
+                        cursor_col
+                    } else if cursor_col >= hs.saturating_add(w) {
+                        cursor_col.saturating_add(1).saturating_sub(w)
+                    } else {
+                        hs
+                    }
+                } else {
+                    0
+                };
+                let secret_policy = self
+                    .secret
+                    .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
+                let total = match secret_policy {
+                    Some(_) => graphemes(shown).count(),
+                    None => usize::from(width(shown)),
+                };
+                let mut run = inner;
+                if hs > 0 {
+                    let used = ui.glyph(run, GlyphRole::Ellipsis, ts.style);
+                    run = shift(run, used);
+                }
+                let skip = if hs > 0 { hs.saturating_add(1) } else { 0 };
+                let overflow_right = total > hs.saturating_add(usize::from(inner.width));
+                if overflow_right {
+                    run.width = run.width.saturating_sub(1);
+                }
+                if let Some(policy) = secret_policy {
+                    paint_masked(ui, run, shown, skip, editing, policy, ts.style);
+                } else {
+                    let start = byte_at_col(shown, skip);
+                    ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
+                }
+                if overflow_right {
+                    let last = cell_at(inner, inner.right().saturating_sub(1));
+                    ui.glyph(last, GlyphRole::Ellipsis, ts.style);
+                }
+                if owns_cursor && self.editable() {
+                    let cursor_col = if editing {
+                        cursor_col
+                    } else {
+                        usize::from(width(shown))
+                    };
+                    let cx = inner
+                        .x
+                        .saturating_add(
+                            cursor_col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16
+                        )
+                        .min(inner.right());
+                    if matches!(
+                        self.typing_policy,
+                        crate::TypingPolicy::Fallback { cursor: true }
+                    ) {
+                        ui.offer_typing_cursor(self.id, Position::new(cx, inner.y));
+                    } else {
+                        ui.set_cursor(self.id, Position::new(cx, inner.y));
                     }
                 }
-            }
-        } else if inner.width > 0 {
-            let ts = style(ui, Part::TEXT);
-            let cursor_col = if editing {
-                st.draft.cursor_pos().col
-            } else {
-                0
-            };
-            let hs = if editing {
-                let w = usize::from(inner.width);
-                let hs = usize::from(st.draft.hscroll());
-                if cursor_col < hs {
-                    cursor_col
-                } else if cursor_col >= hs.saturating_add(w) {
-                    cursor_col.saturating_add(1).saturating_sub(w)
-                } else {
-                    hs
-                }
-            } else {
-                0
-            };
-            let secret_policy = self
-                .secret
-                .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
-            let total = match secret_policy {
-                Some(_) => graphemes(shown).count(),
-                None => usize::from(width(shown)),
-            };
-            let mut run = inner;
-            if hs > 0 {
-                let used = ui.glyph(run, GlyphRole::Ellipsis, ts.style);
-                run = shift(run, used);
-            }
-            let skip = if hs > 0 { hs.saturating_add(1) } else { 0 };
-            let overflow_right = total > hs.saturating_add(usize::from(inner.width));
-            if overflow_right {
-                run.width = run.width.saturating_sub(1);
-            }
-            if let Some(policy) = secret_policy {
-                paint_masked(ui, run, shown, skip, editing, policy, ts.style);
-            } else {
-                let start = byte_at_col(shown, skip);
-                ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
-            }
-            if overflow_right {
-                let last = cell_at(inner, inner.right().saturating_sub(1));
-                ui.glyph(last, GlyphRole::Ellipsis, ts.style);
-            }
-            if owns_cursor && self.editable() {
-                let cursor_col = if editing {
-                    cursor_col
-                } else {
-                    usize::from(width(shown))
-                };
-                let cx = inner
-                    .x
-                    .saturating_add(cursor_col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16)
-                    .min(inner.right());
+            } else if owns_cursor && self.editable() {
                 if matches!(
                     self.typing_policy,
                     crate::TypingPolicy::Fallback { cursor: true }
                 ) {
-                    ui.offer_typing_cursor(self.id, Position::new(cx, inner.y));
+                    ui.offer_typing_cursor(self.id, Position::new(inner.x, inner.y));
                 } else {
-                    ui.set_cursor(self.id, Position::new(cx, inner.y));
+                    ui.set_cursor(self.id, Position::new(inner.x, inner.y));
                 }
             }
-        } else if owns_cursor && self.editable() {
-            if matches!(
-                self.typing_policy,
-                crate::TypingPolicy::Fallback { cursor: true }
-            ) {
-                ui.offer_typing_cursor(self.id, Position::new(inner.x, inner.y));
-            } else {
-                ui.set_cursor(self.id, Position::new(inner.x, inner.y));
+        }
+        if let Some(p) = self
+            .placeholder
+            .filter(|_| shown.is_empty() && (!editing || self.placeholder_while_editing))
+        {
+            let ps = style(ui, Part::PLACEHOLDER);
+            match ov.slot_for(Part::PLACEHOLDER) {
+                Some(f) => f(ui, inner),
+                None => {
+                    ui.paint_str(inner, p, ps.style);
+                }
             }
         }
         let readiness_cell = cell_at(area, area.right().saturating_sub(1));
