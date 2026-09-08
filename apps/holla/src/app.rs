@@ -37,6 +37,7 @@ const ACTIONS: ActionKey = ActionKey::application("holla.actions");
 const TOGGLE: ActionKey = ActionKey::application("holla.plan-toggle");
 const OPEN_MENU: ActionKey = ActionKey::application("holla.open-menu");
 const RESULTS: ActionKey = ActionKey::application("holla.results");
+const QUERY_ESCAPE: ActionKey = ActionKey::application("holla.query-escape");
 const GLOBAL: &[Binding<ActionKey>] = &[
     Binding {
         action: HELP,
@@ -325,6 +326,13 @@ impl App {
                 }
             }
             RESULTS if self.route == Route::Home => cx.focus(home::ROWS),
+            QUERY_ESCAPE if self.route == Route::Home => {
+                if self.home.scope.take().is_some() {
+                    self.set_status("Scope: all".into());
+                } else {
+                    self.home.clear_query();
+                }
+            }
             _ => {}
         }
     }
@@ -611,6 +619,24 @@ impl App {
     }
 }
 impl App {
+    fn refresh_query_bindings(&mut self) {
+        for (character, command) in [('q', QUIT), ('?', HELP)] {
+            let chord = Chord::key(KeyCode::Char(character));
+            self.keymap.remove_before_typing(home::QUERY, chord);
+            if self.home.query().is_empty() {
+                self.keymap.add_before_typing(home::QUERY, chord, command);
+            }
+        }
+        let escape = Chord::key(KeyCode::Esc);
+        self.keymap.remove(KeyPhase::Capture, escape);
+        if self.route == Route::Home
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+            && (self.home.scope.is_some() || !self.home.query().is_empty())
+        {
+            self.keymap.add(KeyPhase::Capture, escape, QUERY_ESCAPE);
+        }
+    }
     fn set_status(&mut self, message: String) {
         self.status = Some(message);
         self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
@@ -721,6 +747,7 @@ impl junie_tui::App for App {
             }
         }
         let response = self.update_controls(cx);
+        self.refresh_query_bindings();
         if self.motion != Motion::Paused
             && let Some(next_due) = self.next_due
         {
@@ -804,6 +831,68 @@ mod tests {
             120,
             40,
         )
+    }
+    #[test]
+    fn home_query_stays_armed_under_action_focus_with_shared_caret_and_paste() {
+        let mut harness = app(Scenario::HardCases);
+        assert!(harness.tab_to(home::ROWS));
+        let _ = harness.type_str("git");
+        assert_eq!(harness.focus(), Some(home::ROWS));
+        assert_eq!(harness.app().home.query(), "git");
+        assert!(harness.cursor().is_some());
+        let _ = harness.paste(" q?0 ");
+        assert_eq!(harness.app().home.query(), "git q?0 ");
+        assert!(harness.app().overlay.is_none());
+        let _ = harness.key(KeyCode::Backspace);
+        assert_eq!(harness.app().home.query(), "git q?0");
+        assert_eq!(harness.focus(), Some(home::ROWS));
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
+    fn empty_query_chrome_exceptions_and_modal_typing_do_not_leak() {
+        for (character, title) in [('?', "Key reference"), ('q', "Quit holla?")] {
+            let mut harness = app(Scenario::HardCases);
+            assert!(harness.tab_to(home::ROWS));
+            let _ = harness.key(KeyCode::Char(character));
+            assert!(harness.text().contains(title));
+            assert_eq!(harness.app().home.query(), "");
+            let _ = harness.type_str("q?0 text");
+            assert_eq!(harness.app().home.query(), "");
+            let _ = harness.key(KeyCode::Esc);
+            assert!(harness.app().overlay.is_none());
+            let _ = harness.paste("q?");
+            assert_eq!(harness.app().home.query(), "q?");
+            assert!(harness.app().overlay.is_none());
+            assert!(
+                harness.diagnostics().is_empty(),
+                "{:?}",
+                harness.diagnostics()
+            );
+        }
+    }
+    #[test]
+    fn home_escape_clears_scope_before_canonical_query() {
+        let mut harness = app(Scenario::HardCases);
+        assert!(harness.tab_to(home::ROWS));
+        let _ = harness.type_str("git");
+        let _ = harness.ctrl('s');
+        assert!(harness.app().home.scope.is_some());
+        let _ = harness.key(KeyCode::Esc);
+        assert!(harness.app().home.scope.is_none());
+        assert_eq!(harness.app().home.query(), "git");
+        let _ = harness.key(KeyCode::Esc);
+        assert_eq!(harness.app().home.query(), "");
+        let _ = harness.type_str("docker");
+        assert_eq!(harness.app().home.query(), "docker");
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
     }
     #[test]
     fn every_real_app_scenario_renders_purely_with_persistent_identity() {

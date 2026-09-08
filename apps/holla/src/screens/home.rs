@@ -1,8 +1,8 @@
 //! Ranked action surface. Shared controls own text editing and row interaction.
 use junie_tui::{
     BlurPolicy, Cx, Family, FgStep, FrameRead, Id, ItemKey, NavList, NavListAction, NavListState,
-    Part, Rect, Response, Role, StateFlags, StylePatch, TextAction, TextInput, TextInputState, Ui,
-    Variant,
+    Part, Rect, Response, Role, StateFlags, StylePatch, TextAction, TextInput, TextInputState,
+    TypingPolicy, Ui, Variant,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -11,12 +11,24 @@ use crate::sim::{catalogue, world::World};
 pub(crate) const QUERY: Id = Id::root("home.query");
 pub(crate) const ROWS: Id = Id::root("home.rows");
 
-#[derive(Default)]
 pub(crate) struct HomeState {
     value: String,
     editor: TextInputState,
     rows: NavListState,
     pub(crate) scope: Option<Scope>,
+}
+
+impl Default for HomeState {
+    fn default() -> Self {
+        let mut editor = TextInputState::default();
+        editor.begin("");
+        Self {
+            value: String::new(),
+            editor,
+            rows: NavListState::default(),
+            scope: None,
+        }
+    }
 }
 
 pub(crate) struct HomeRow {
@@ -37,6 +49,7 @@ impl HomeState {
 
     pub(crate) fn clear_query(&mut self) {
         self.value.clear();
+        self.editor.cancel();
         self.editor.begin("");
     }
 
@@ -90,6 +103,11 @@ impl HomeState {
     ) -> (Response<()>, Option<Action>) {
         let mut text = query_input().update(cx, &mut self.editor, &mut self.value);
         let submit = matches!(text.take_action(), Some(TextAction::Committed));
+        // The launcher query stays armed after submission or an empty cancel.
+        // The shared editor remains the sole owner of its draft and cursor.
+        if !self.editor.is_editing() {
+            self.editor.begin(&self.value);
+        }
         let rows = self.rows(world);
         let mut navigation = NavList::new(ROWS)
             .header_indent(2)
@@ -221,6 +239,7 @@ fn query_input() -> TextInput<'static> {
     TextInput::new(QUERY)
         .placeholder("Type to filter · actions, files, hosts")
         .blur(BlurPolicy::Keep)
+        .typing_policy(TypingPolicy::Fallback { cursor: true })
 }
 fn section(row: &HomeRow) -> &str {
     row.section
