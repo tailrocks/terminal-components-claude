@@ -95,7 +95,9 @@ pub use steps::{StepState, Steps, StepsAction, StepsCmd, StepsState};
 pub use tabs::{Tabs, TabsAction, TabsCmd, TabsState};
 pub use textarea::{TextArea, TextAreaState};
 pub use too_small::TooSmall;
-pub use tree::{NodeKind, Tree, TreeAction, TreeCmd, TreeNode, TreeState};
+pub use tree::{
+    NodeKind, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode, TreeState,
+};
 pub use viewport::{
     CellPos, TextViewport, ViewportAction, ViewportCmd, ViewportLine, ViewportState,
 };

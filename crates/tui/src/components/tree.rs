@@ -48,6 +48,33 @@ pub enum NodeKind {
     Lazy,
 }
 
+/// What Enter and double-click do on a branch. Disclosure and Space are separate.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TreeBranchActivation {
+    /// Open or close the branch (the default).
+    #[default]
+    Toggle,
+    /// Emit `TreeAction::Activated` for the branch's stable key.
+    Activate,
+}
+
+/// What a row click does on a branch. Clicking its disclosure still toggles it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TreeBranchClick {
+    /// Open or close the branch (the default).
+    #[default]
+    Toggle,
+    /// Choose the branch and emit `TreeAction::Chose`.
+    Choose,
+}
+
+#[derive(Clone, Copy)]
+enum Engagement {
+    Activate,
+    Choose,
+    Click,
+}
+
 /// What the tree needs to know about one item: its depth, whether it opens,
 /// and optionally its stable key.
 ///
@@ -379,13 +406,13 @@ impl TreeState {
         self.core.cursor()
     }
 
-    /// The chosen leaf.
+    /// The chosen row (branches can be chosen with the opt-in click policy).
     #[must_use]
     pub const fn chosen(&self) -> Option<ItemKey> {
         self.chosen
     }
 
-    /// Choose a leaf, or clear the choice.
+    /// Choose a row, or clear the choice.
     pub const fn choose(&mut self, key: Option<ItemKey>) {
         self.chosen = key;
     }
@@ -563,14 +590,16 @@ impl Reconcile for TreeState {
 /// `↑`/`k`, `↓`/`j`, `PgUp`, `PgDn`, `Home`/`g`, `End`/`G`; `→`/`l` opens a
 /// closed branch or descends into an open one; `←`/`h` closes an open branch
 /// or moves to its parent; `Enter` toggles a branch and activates a leaf;
-/// `Space` chooses a leaf. When at least one node in the slice can open,
+/// `Space` chooses a leaf or toggles a branch. Opt-in `branch_activation`
+/// lets Enter activate branches without changing Space. When at least one node in the slice can open,
 /// `*` and `-` open and close everything.
 ///
 /// ## Mouse
 /// `PartRef::item(Part::ROW, k)`: press moves the cursor, click toggles a
-/// branch or chooses a leaf, double-click activates a leaf.
-/// `PartRef::item(Part::ICON, k)` is the disclosure cell: press or click
-/// toggles that node without choosing it. `TRACK`/`THUMB` and the wheel go
+/// branch or chooses a leaf, double-click activates a leaf. `branch_click`
+/// can choose branches instead; `branch_activation` also applies to double-click.
+/// `PartRef::item(Part::ICON, k)` is the disclosure cell: press moves the
+/// cursor and click toggles that node without choosing it. `TRACK`/`THUMB` and the wheel go
 /// to the embedded [`ScrollRegion`].
 ///
 /// ## Layout
@@ -626,6 +655,8 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
+    branch_activation: TreeBranchActivation,
+    branch_click: TreeBranchClick,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     query: Option<TreeQuery<'a, T>>,
     disabled: bool,
@@ -667,6 +698,8 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             node: None,
+            branch_activation: TreeBranchActivation::Toggle,
+            branch_click: TreeBranchClick::Toggle,
             disabled_item: None,
             query: None,
             disabled: false,
@@ -709,6 +742,20 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
+    /// Configure branch Enter/double-click without changing Space or disclosure toggles.
+    #[must_use]
+    pub const fn branch_activation(mut self, policy: TreeBranchActivation) -> Self {
+        self.branch_activation = policy;
+        self
+    }
+
+    /// Configure branch row-click without changing disclosure clicks.
+    #[must_use]
+    pub const fn branch_click(mut self, policy: TreeBranchClick) -> Self {
+        self.branch_click = policy;
+        self
+    }
+
     /// A stable key accessor. [`TreeNode::keyed`] overrides it per node.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Tree<'a, T, K2, R> {
         Tree {
@@ -716,6 +763,8 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             key: k,
             row: self.row,
             node: self.node,
+            branch_activation: self.branch_activation,
+            branch_click: self.branch_click,
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
@@ -735,6 +784,8 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             key: self.key,
             row: r,
             node: self.node,
+            branch_activation: self.branch_activation,
+            branch_click: self.branch_click,
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
@@ -1213,7 +1264,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         index: &mut TreeIndex,
         items: &[T],
         d: usize,
-        activate: bool,
+        engagement: Engagement,
         acc: &mut Acc<TreeAction>,
     ) {
         let Some(row) = index.row(d) else {
@@ -1228,13 +1279,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        if self.node_of(it).has_children() {
+        let toggles_branch = match engagement {
+            Engagement::Activate => self.branch_activation == TreeBranchActivation::Toggle,
+            Engagement::Choose => true,
+            Engagement::Click => self.branch_click == TreeBranchClick::Toggle,
+        };
+        if self.node_of(it).has_children() && toggles_branch {
             let _ = self.toggle_at(st, index, items, d, acc);
             return;
         }
         let key = row.key;
         st.chosen = Some(key);
-        acc.action(if activate {
+        acc.action(if matches!(engagement, Engagement::Activate) {
             TreeAction::Activated(key)
         } else {
             TreeAction::Chose(key)
@@ -1382,10 +1438,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                             self.collapse_or_parent(st, index, items, cur, &mut acc);
                         }
                         Some(TreeCmd::Activate) => {
-                            self.engage(st, index, items, cur, true, &mut acc);
+                            self.engage(st, index, items, cur, Engagement::Activate, &mut acc);
                         }
                         Some(TreeCmd::Choose) => {
-                            self.engage(st, index, items, cur, false, &mut acc);
+                            self.engage(st, index, items, cur, Engagement::Choose, &mut acc);
                         }
                         Some(TreeCmd::ExpandAll) => {
                             if index.query_active {
@@ -1489,7 +1545,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         };
         if part.part == Part::ICON {
             match phase {
-                Phase::Press | Phase::Click => {
+                Phase::Press => {
+                    st.core.set_cursor(d, key);
+                    acc.changed();
+                }
+                Phase::Click => {
                     st.core.set_cursor(d, key);
                     if !self.toggle_at(st, index, items, d, acc) {
                         acc.changed();
@@ -1508,8 +1568,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 st.core.set_cursor(d, key);
                 acc.changed();
             }
-            Phase::Click => self.engage(st, index, items, d, false, acc),
-            Phase::DoubleClick => self.engage(st, index, items, d, true, acc),
+            Phase::Click => self.engage(st, index, items, d, Engagement::Click, acc),
+            Phase::DoubleClick => self.engage(st, index, items, d, Engagement::Activate, acc),
             _ => acc.consumed(),
         }
     }
@@ -2559,7 +2619,14 @@ mod tests {
         index.sync(&tree, &state, &reordered);
         let mut acc = Acc::<TreeAction>::new();
 
-        tree.engage(&mut state, &mut index, &reordered, 0, false, &mut acc);
+        tree.engage(
+            &mut state,
+            &mut index,
+            &reordered,
+            0,
+            super::Engagement::Choose,
+            &mut acc,
+        );
 
         assert_eq!(
             acc.finish(TREE).action_ref(),
