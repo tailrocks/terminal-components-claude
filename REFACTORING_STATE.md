@@ -2120,3 +2120,18 @@ was modified locally.
 
 Session complete. Deviation note: executed on Opus 5 per recorded routing deviation (Fable 5.1
 capacity exhausted); routing ownership stayed inside agent definitions.
+
+## Migration verification and local cleanup (2026-09-08)
+
+PR #1 (`codex/main-holla-integration` → main, OPEN) verified against local main `d4715f8e`:
+- origin/main == local main == `d4715f8e`; origin integration == local integration HEAD ==
+  `da92e485` == PR head; integration worktree clean.
+- All 10 ported changes confirmed present on the integration branch (marker check across
+  viewport/runtime/tree/theme/ui/layer, picker/filter_list APIs, tablepro role gutter, showcase
+  focus-only Esc, parity_replay fail-fast, xtask literal masking, ledger 7b/7c).
+- Hunk-level coverage of the entire 51-file local campaign delta was previously classified
+  hunk-by-hunk by four independent read-only reviews plus one independent post-port audit
+  ("every hunk maps 1:1 to an accepted item"); no uncovered change exists.
+Conclusion: migration complete; nothing further to port. Local scratch (`.codex-target-*`,
+`.mbx-target-*`, untracked parity artifacts) removed; patterns gitignored. Temporary verifier
+agent definition removed after use.

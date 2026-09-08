@@ -10,3 +10,12 @@ shots/.capture-matrix.lock*
 
 # trybuild writes candidate .stderr files here when a case has none yet
 crates/tui/wip/
+
+# local capture/analysis scratch trees
+.codex-target-*/
+.mbx-target-*/
+
+# untracked parity capture artifacts
+parity/*.lock
+parity/buttons-*/
+parity/component-render-*.txt
