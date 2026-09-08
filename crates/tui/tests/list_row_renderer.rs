@@ -156,8 +156,20 @@ fn ancestor_clip_preserves_logical_alignment_and_skips_invisible_callbacks() {
         seen.borrow().as_slice(),
         &[(Rect::new(1, 2, 19, 1), Rect::new(3, 2, 5, 1))]
     );
-    assert_eq!(scene.buffer().cell((1, 2)).map(junie_tui::Cell::symbol), Some(" "));
-    assert_eq!(scene.buffer().cell((3, 2)).map(junie_tui::Cell::symbol), Some("!"));
-    assert_eq!(scene.buffer().cell((5, 2)).map(junie_tui::Cell::symbol), Some("t"));
-    assert_eq!(scene.buffer().cell((8, 2)).map(junie_tui::Cell::symbol), Some(" "));
+    assert_eq!(
+        scene.buffer().cell((1, 2)).map(junie_tui::Cell::symbol),
+        Some(" ")
+    );
+    assert_eq!(
+        scene.buffer().cell((3, 2)).map(junie_tui::Cell::symbol),
+        Some("!")
+    );
+    assert_eq!(
+        scene.buffer().cell((5, 2)).map(junie_tui::Cell::symbol),
+        Some("t")
+    );
+    assert_eq!(
+        scene.buffer().cell((8, 2)).map(junie_tui::Cell::symbol),
+        Some(" ")
+    );
 }

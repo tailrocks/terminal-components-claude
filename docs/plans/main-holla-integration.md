@@ -139,7 +139,12 @@ destructive intents bind payload generation plus immutable Workbench ownership.
 Independent original negatives and397 evidence hashes verified; root58 MSRV tests
 pass. This supersedes prior same-key replacement-close acceptance. Six live
 terminal examples now declare crossterm requirements in0bf4aa9; backend-free
-examples remain enabled. Full acceptance remains incomplete.
+examples remain enabled; root stable no-default all-target check passes.
+Inventory Cargo-context/example repairs integrated704bc89; root13 actual-fixture
+tests pass. Independently reviewed Grid disabled support integrated1979fc2; root17
+MSRV Grid tests pass. Strict stable workspace all-target/all-feature Clippy passes
+at1979fc2. Formatter found three files; formatting-only correction and full
+workspace fmt check pass. Full acceptance remains incomplete.
 
 Current review findings: Grid fetch sentinel ShiftUp range anchors stale real-row
 state; owner repair assigned, fetch slice held. Meter default Canvas source oracle

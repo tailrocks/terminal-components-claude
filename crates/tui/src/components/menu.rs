@@ -364,7 +364,6 @@ const BAR_CONTEXT_BINDINGS: &[Binding<MenuCmd>] = &[
         MenuCmd::NextMenu,
         false,
     ),
-
 ];
 
 /// Anchored popup content. The runtime owns placement, dismissal and z-order.
