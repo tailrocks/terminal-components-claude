@@ -1709,6 +1709,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 row.flags
                     .set(StateFlags::SELECTED, st.core.cursor() == Some(row.key));
             }
+            self.project_pointer_flags(ui, st, live, &mut row);
             self.paint_row(ui, row, indent, item);
         }
         area
@@ -1791,6 +1792,25 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 None
             },
         }
+    }
+
+    fn project_pointer_flags(&self, ui: &Ui<'_>, st: &TreeState, live: StateFlags, row: &mut Row) {
+        let matches_row = |part: PartRef| {
+            part.item == Some(row.key) && matches!(part.part, Part::ROW | Part::ICON)
+        };
+        let pressed = ui.pressed_part(self.id);
+        row.flags.set(
+            StateFlags::HOVERED,
+            ui.hovered_part(self.id).is_some_and(matches_row),
+        );
+        row.flags.set(
+            StateFlags::PRESSED,
+            !row.flags.contains(StateFlags::DISABLED)
+                && (pressed.is_some_and(matches_row)
+                    || (pressed.is_none()
+                        && st.core.cursor() == Some(row.key)
+                        && live.contains(StateFlags::PRESSED))),
+        );
     }
 
     fn paint_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
