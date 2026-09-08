@@ -505,7 +505,12 @@ pub(crate) fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<C
                 MeterRole::Medium => t.medium,
                 MeterRole::High => t.high,
                 MeterRole::Track => t.track,
-                MeterRole::FillRest => t.fill_rest,
+                MeterRole::FillRest => match t.fill_rest {
+                    super::MeterFillRest::Color(color) => color,
+                    super::MeterFillRest::RaisedSurface => {
+                        bind_role(theme, Role::HoverSurface, surface).unwrap_or(Color::Reset)
+                    }
+                },
                 MeterRole::Stale => t.stale,
                 MeterRole::Unknown => t.unknown,
                 MeterRole::Series(n) => t
@@ -550,10 +555,25 @@ pub(crate) fn bind(
     style.sub_modifier = acc.remove;
     let m = metrics_of(&acc);
     Resolved {
-        style: PaintStyle::bound(style, acc.fg.get(), acc.bg.get(), surface),
+        style: PaintStyle::bound(
+            style,
+            acc.fg.get().map(|role| canonical_role(theme, role)),
+            acc.bg.get().map(|role| canonical_role(theme, role)),
+            surface,
+        ),
         glyph: acc.glyph,
         size: m.size,
         align: m.align,
+    }
+}
+
+fn canonical_role(theme: &Theme, role: Role) -> Role {
+    if role == Role::Meter(MeterRole::FillRest)
+        && theme.color.meter.fill_rest == super::MeterFillRest::RaisedSurface
+    {
+        Role::HoverSurface
+    } else {
+        role
     }
 }
 

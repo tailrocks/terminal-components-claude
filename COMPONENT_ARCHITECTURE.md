@@ -8730,3 +8730,34 @@ image bytes**. The retained historical renderer's limitations and the unknown
 original executable hash remain explicit. Font license and generation provenance
 live outside the frozen artifact directory. This amendment does not authorize
 baseline key blessing, candidate snapshot approval, or pinned-Holla acceptance.
+
+
+## Meter semantic rest policy amendment
+
+`MeterTokens::fill_rest` is now `MeterFillRest`, either `Color(Color)` or
+`RaisedSurface`. This is an explicit experimental API migration: existing custom
+struct literals and assignments must wrap their color in `MeterFillRest::Color`.
+The symbolic policy binds the current surface through `Role::HoverSurface`, the
+pinned Holla `Theme::lift` policy, not the separate generic `Theme::raise` ladder:
+Canvas maps to Elevated; Surface and Elevated to Overlay; Field to FieldHover;
+the remaining surfaces to Popover. The typed paint carrier retains that source
+surface when painting is delayed. No RGB comparison identifies semantic roles.
+
+Junie defaults recover the pinned Meter roles: Low uses secondary text, Stale
+uses faint text, and Block rest lifts its inherited surface. Paper retains its
+concrete rest color and existing low/stale defaults. Explicit custom rest colors
+and low/stale tokens remain authoritative; component part defaults and theme,
+subtree, instance and part overrides retain the established resolver precedence.
+Quota lifecycle remains application-owned.
+
+Capability projection traverses all 73 typed semantic slots. `ColorTokens::colors`
+returns only concrete colors (72 for symbolic Junie); callers needing stable slot
+positions must use `semantic_colors`. Generic downgrade transforms concrete colors
+only. Authored capability palettes may change a slot between concrete and symbolic
+policy; actual prior projection and sticky per-slot eligibility protect direct
+mutations across missing palettes and repeated conversion chains. No palette
+position is inferred from color equality or a variable-length color list.
+
+This source correction does not approve changed digests or baseline files. The
+existing 16-frame Meter preservation assertion remains unchanged pending independent
+review of canonical before/after cells and pinned-source role derivation.

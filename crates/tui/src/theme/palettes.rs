@@ -48,11 +48,7 @@ pub struct CapabilityPalettes {
 impl CapabilityPalettes {
     /// A token family with generic conversion at every limited capability.
     pub fn new(source: ColorTokens) -> Self {
-        let mut count = 0usize;
-        let _ = source.map_colors(&mut |color| {
-            count = count.saturating_add(1);
-            color
-        });
+        let count = source.semantic_colors().len();
         Self {
             source,
             ansi256: None,
@@ -163,12 +159,12 @@ const fn junie_256() -> ColorTokens {
             diagnostic_info: Color::Indexed(147),
         },
         meter: MeterTokens {
-            low: Color::Indexed(78),
+            low: Color::Indexed(249),
             medium: Color::Indexed(214),
             high: Color::Indexed(167),
             track: Color::Indexed(235),
-            fill_rest: Color::Indexed(238),
-            stale: Color::Indexed(244),
+            fill_rest: crate::theme::MeterFillRest::RaisedSurface,
+            stale: Color::Indexed(238),
             unknown: Color::Indexed(238),
             series: [
                 Color::Indexed(78),
@@ -257,8 +253,8 @@ const fn junie_mono() -> ColorTokens {
             medium: Color::Gray,
             high: Color::Gray,
             track: Color::Black,
-            fill_rest: Color::DarkGray,
-            stale: Color::Gray,
+            fill_rest: crate::theme::MeterFillRest::RaisedSurface,
+            stale: Color::DarkGray,
             unknown: Color::DarkGray,
             series: [
                 Color::Gray,

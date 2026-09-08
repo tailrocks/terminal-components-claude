@@ -585,7 +585,9 @@ pub(crate) fn derive_unset(c: &mut ColorTokens) {
     fill(&mut me.medium, || c.warning);
     fill(&mut me.high, || c.danger);
     fill(&mut me.track, || c.border_subtle);
-    fill(&mut me.fill_rest, || c.fg[3]);
+    if let super::MeterFillRest::Color(color) = &mut me.fill_rest {
+        fill(color, || c.fg[3]);
+    }
     fill(&mut me.stale, || c.fg[2]);
     fill(&mut me.unknown, || c.fg[3]);
     let series_default = [me.low, me.medium, me.high, c.info, c.accent, c.fg[1]];

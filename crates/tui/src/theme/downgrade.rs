@@ -261,6 +261,53 @@ fn repair_ansi16_light_foreground(source: &ColorTokens, mapped: &mut ColorTokens
     }
 }
 
+struct PaletteProjection<'a> {
+    source: &'a [super::MeterFillRest],
+    target: &'a [super::MeterFillRest],
+    generic: &'a [super::MeterFillRest],
+    eligible: &'a mut [bool],
+    index: usize,
+    level: ColorLevel,
+}
+impl PaletteProjection<'_> {
+    fn project(&mut self, current: super::MeterFillRest) -> super::MeterFillRest {
+        let i = self.index;
+        self.index = self.index.saturating_add(1);
+        if let Some((((expected, authored), generic), eligible)) = self
+            .source
+            .get(i)
+            .zip(self.target.get(i))
+            .zip(self.generic.get(i))
+            .zip(self.eligible.get_mut(i))
+        {
+            if current != *expected {
+                *eligible = false;
+            }
+            if *eligible { *authored } else { *generic }
+        } else {
+            match current {
+                super::MeterFillRest::Color(color) => {
+                    super::MeterFillRest::Color(downgrade_color(color, self.level))
+                }
+                super::MeterFillRest::RaisedSurface => current,
+            }
+        }
+    }
+}
+impl super::tokens::TokenMapper for PaletteProjection<'_> {
+    fn color(&mut self, current: Color) -> Color {
+        // Ordinary fields are Color in every typed source/target. A symbolic
+        // target cannot be authored at one of these positions.
+        match self.project(super::MeterFillRest::Color(current)) {
+            super::MeterFillRest::Color(color) => color,
+            super::MeterFillRest::RaisedSurface => downgrade_color(current, self.level),
+        }
+    }
+    fn meter_rest(&mut self, current: super::MeterFillRest) -> super::MeterFillRest {
+        self.project(current)
+    }
+}
+
 impl Theme {
     /// Every token mapped through [`downgrade_color`]; at `Mono` the mono
     /// fallback rules are applied by resolution (§11.4). Works for any theme.
@@ -296,26 +343,17 @@ impl Theme {
                     }
                     expected
                 });
-            let source = expected.colors();
-            let target = palettes.get(level).unwrap_or(out.color).colors();
-            let generic = out.color.colors();
+            let source = expected.semantic_colors();
+            let target = palettes.get(level).unwrap_or(out.color).semantic_colors();
+            let generic = out.color.semantic_colors();
             let mut eligibility = palettes.eligible.clone();
-            let mut values = source
-                .iter()
-                .zip(&target)
-                .zip(&generic)
-                .zip(&mut eligibility);
-            out.color = self.color.map_colors(&mut |current| {
-                match values.next() {
-                    Some((((expected, authored), generic), eligible)) => {
-                        if current != *expected && *eligible {
-                            *eligible = false;
-                        }
-                        if *eligible { *authored } else { *generic }
-                    }
-                    // All iterators use the same exhaustive ColorTokens walk.
-                    None => downgrade_color(current, level),
-                }
+            out.color = self.color.map_with(&mut PaletteProjection {
+                source: &source,
+                target: &target,
+                generic: &generic,
+                eligible: &mut eligibility,
+                index: 0,
+                level,
             });
             if let Some(palettes) = &mut out.capability_palettes {
                 let palettes = std::sync::Arc::make_mut(palettes);

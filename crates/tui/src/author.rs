@@ -168,9 +168,9 @@ pub use crate::scroll::ScrollState;
 pub use crate::theme::border;
 pub use crate::theme::{
     Align, CapabilityPalettes, ColorLevel, Density, DesignTokens, FG_STEPS, Family, FgStep,
-    GlyphRole, MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay,
-    OverlayRule, PaintStyle, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StateRule,
-    StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, Variant,
+    GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest, MeterRole, MeterThresholds, Modifier,
+    MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot,
+    StateRule, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, Variant,
 };
 // layout and measurement
 pub use crate::layout::{self, Insets, RowAlign, SplitModel, Track};

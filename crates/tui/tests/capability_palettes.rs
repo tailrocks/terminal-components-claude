@@ -44,7 +44,7 @@ fn reference_mono(r: u8, g: u8, b: u8) -> Color {
 #[test]
 fn all_73_junie_slots_match_reference_capability_output() {
     let original = Theme::junie();
-    assert_eq!(original.color.colors().len(), 73);
+    assert_eq!(original.color.semantic_colors().len(), 73);
     for level in [
         ColorLevel::TrueColor,
         ColorLevel::Ansi256,
