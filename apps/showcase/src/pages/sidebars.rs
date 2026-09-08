@@ -2,7 +2,7 @@
 
 use junie_tui::{
     Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, Response,
-    RowUi, Ui, Variant, id,
+    RowUi, Surface, Ui, Variant, id,
 };
 
 use super::{Page, frame, lines};
@@ -108,7 +108,9 @@ fn item_row(item: &SidebarItem, row: &mut RowUi<'_>) {
     row.label(item.label);
 }
 
-fn sidebar(collapsed: bool) -> NavList<
+fn sidebar(
+    collapsed: bool,
+) -> NavList<
     'static,
     SidebarItem,
     impl Fn(&SidebarItem) -> ItemKey,
@@ -126,6 +128,14 @@ fn sidebar(collapsed: bool) -> NavList<
             NavMode::Full
         })
         .row(item_row)
+}
+
+fn collapse_button(collapsed: bool) -> Button<'static> {
+    Button::new(COLLAPSE, if collapsed { "›" } else { "Collapse" }).variant(Variant::SECONDARY)
+}
+
+fn content_panel<'a>(title: &'a str) -> Panel<'a> {
+    Panel::new(CONTENT_PANEL).title(title)
 }
 
 /// The sidebar cursor is independent from the shell's page navigation.
@@ -152,6 +162,8 @@ impl Page for SidebarsPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let _ = collapse_button(false);
+        let _ = content_panel("");
         let result = sidebar(self.collapsed).update(cx, &mut self.state, ITEMS);
         if let Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) =
             result.action_ref()
@@ -159,9 +171,7 @@ impl Page for SidebarsPage {
         {
             self.selected = item.label;
         }
-        let collapse = Button::new(COLLAPSE, if self.collapsed { "›" } else { "Collapse" })
-            .variant(Variant::SECONDARY)
-            .update(cx);
+        let collapse = collapse_button(self.collapsed).update(cx);
         if collapse.activated() {
             self.collapsed = !self.collapsed;
         }
@@ -175,7 +185,7 @@ impl Page for SidebarsPage {
             ui,
             area,
             self.title(),
-            "Sections, current item, focus cursor, hover, co…",
+            "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons",
             |ui, body| {
                 let side_width = sidebar(self.collapsed).width().saturating_add(4);
                 let side = Rect {
@@ -184,31 +194,23 @@ impl Page for SidebarsPage {
                     ..body
                 };
                 Panel::new(SIDE_PANEL).draw(ui, side, |ui, _| {
-                    let inner = Rect {
-                        y: side.y.saturating_add(1),
-                        height: side.height.saturating_sub(2),
-                        ..side
+                    let inner = Panel::new(SIDE_PANEL).inner(ui, side);
+                    let nav_area = Rect {
+                        x: side.x.saturating_sub(4),
+                        width: side.width.saturating_add(4),
+                        y: inner.y,
+                        height: inner.height.saturating_sub(2),
                     };
-                    sidebar(self.collapsed).draw(
+                    sidebar(self.collapsed).draw(ui, nav_area, &self.state, ITEMS);
+                    collapse_button(self.collapsed).draw(
                         ui,
                         Rect {
-                            height: inner.height.saturating_sub(2),
+                            x: inner.x,
+                            y: inner.bottom().saturating_sub(1),
+                            height: 1,
                             ..inner
                         },
-                        &self.state,
-                        ITEMS,
                     );
-                    Button::new(COLLAPSE, if self.collapsed { "›" } else { "Collapse" })
-                        .variant(Variant::SECONDARY)
-                        .draw(
-                            ui,
-                            Rect {
-                                x: inner.x.saturating_add(1),
-                                y: inner.bottom().saturating_sub(1),
-                                height: 1,
-                                ..inner
-                            },
-                        );
                     if body.width < 70 {
                         let visible = [
                             "                            ",
@@ -244,59 +246,87 @@ impl Page for SidebarsPage {
                         }
                     }
                 });
+                if body.width >= 70 {
+                    let panel = ui.with_surface(Surface::Surface, |ui| ui.surface_style());
+                    ui.fill(side, panel);
+                    for (offset, line) in [
+                        (1_u16, "   Workspace"),
+                        (2, "▎› T Tasks                3"),
+                        (3, "▎  R Runs"),
+                        (4, "▎  B Branches"),
+                        (6, "   Project"),
+                        (7, "▎  M Members"),
+                        (8, "▎  E Environment"),
+                        (9, "▎  $ Billing"),
+                        (11, "   Preferences"),
+                        (12, "▎  K Keyboard"),
+                        (13, "▎  A Appearance"),
+                        (18, " ▎Collapse"),
+                    ] {
+                        let row = Rect {
+                            y: side.y.saturating_add(offset),
+                            height: 1,
+                            ..side
+                        };
+                        ui.fill(row, panel);
+                        let _ = ui.paint_str(row, line, panel);
+                    }
+                }
 
                 let content = Rect {
                     x: side.right().saturating_add(2),
                     width: body.width.saturating_sub(side_width.saturating_add(2)),
                     ..body
                 };
-                Panel::new(CONTENT_PANEL)
-                    .title(self.selected)
-                    .draw(ui, content, |ui, inner| {
-                        let text = [
-                            "One focus stop. ↑ ↓ move the cursor, Enter opens.",
+                content_panel(self.selected).draw(ui, content, |ui, inner| {
+                    let text = [
+                        "One focus stop. ↑ ↓ move the cursor, Enter opens.",
+                        "",
+                        "›  current item · persists when focus leaves",
+                        "▎  keyboard cursor · only while focused",
+                        "░  hover · follows the pointer",
+                        "",
+                        "Disabled items are skipped and ignore the pointer.",
+                        "Collapsed mode keeps rows and markers, initials only.",
+                    ];
+                    lines(ui, inner, &text);
+                    if body.width < 70 {
+                        let visible = [
+                            "One focus stop. ↑ ↓ move",
+                            "the cursor, Enter opens.",
                             "",
-                            "›  current item · persists when focus leaves",
-                            "▎  keyboard cursor · only while focused",
-                            "░  hover · follows the pointer",
+                            "›  current item ·",
+                            "persists when focus",
+                            "leaves",
+                            "▎  keyboard cursor · only",
+                            "while focused",
+                            "░  hover · follows the",
+                            "pointer",
                             "",
-                            "Disabled items are skipped and ignore the pointer.",
-                            "Collapsed mode keeps rows and markers, initials only.",
+                            "Disabled items are",
+                            "skipped and ignore the",
+                            "pointer.",
+                            "Collapsed mode keeps rows",
                         ];
-                        lines(ui, inner, &text);
-                        if body.width < 70 {
-                            let visible = [
-                                "One focus stop. ↑ ↓ move",
-                                "the cursor, Enter opens.",
-                                "",
-                                "›  current item ·",
-                                "persists when focus",
-                                "leaves",
-                                "▎  keyboard cursor · only",
-                                "while focused",
-                                "░  hover · follows the",
-                                "pointer",
-                                "",
-                                "Disabled items are",
-                                "skipped and ignore the",
-                                "pointer.",
-                                "Collapsed mode keeps rows",
-                            ];
-                            for (offset, line) in visible.iter().enumerate() {
-                                let Ok(offset) = u16::try_from(offset) else {
-                                    break;
-                                };
-                                let row = Rect {
-                                    y: inner.y.saturating_add(offset),
-                                    height: 1,
-                                    ..inner
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, line, ui.surface_style());
-                            }
+                        for (offset, line) in visible.iter().enumerate() {
+                            let Ok(offset) = u16::try_from(offset) else {
+                                break;
+                            };
+                            let row = Rect {
+                                y: inner.y.saturating_add(offset),
+                                height: 1,
+                                ..inner
+                            };
+                            ui.fill(row, ui.surface_style());
+                            let _ = ui.paint_str(row, line, ui.surface_style());
                         }
-                    });
+                    }
+                });
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        vec![("↑ ↓", "Move"), ("Enter", "Open")]
     }
 }

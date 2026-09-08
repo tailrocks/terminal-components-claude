@@ -5,7 +5,10 @@
 //! application package a consumer of the public `junie-tui` facade rather than
 //! a second component implementation.
 
-use junie_tui::{Family, Part, Rect, Response, StateFlags, Ui, Variant, truncate, width};
+use junie_tui::{
+    Color, Family, FgStep, FrameRead, Part, Rect, Response, StateFlags, Ui, Variant, truncate,
+    width,
+};
 
 /// A stateful screen in the showcase.
 pub(crate) trait Page: Send {
@@ -23,6 +26,26 @@ pub(crate) trait Page: Send {
     }
     /// Draw this screen into the shell's content rectangle.
     fn draw(&self, ui: &mut Ui<'_>, area: Rect);
+    /// Contextual footer hints for the focused page or layer.
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        Vec::new()
+    }
+    /// Whether the focused page control is in edit mode.
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        false
+    }
+}
+
+/// Read a configured foreground without exposing an unchecked array access to
+/// application code. `FgStep` is closed today, but this remains safe if the
+/// token table or enum grows independently.
+pub(crate) fn theme_fg(ui: &Ui<'_>, step: FgStep) -> Color {
+    ui.theme()
+        .color
+        .fg
+        .get(step.index())
+        .copied()
+        .unwrap_or_default()
 }
 
 /// Draw a screen frame and hand its inset body to the page.

@@ -3,6 +3,10 @@
 //! Database semantics stay in application-owned adapters; terminal behavior
 //! is reached only through the public `junie-tui` facade.
 #![forbid(unsafe_code)]
+#![expect(
+    clippy::too_many_lines,
+    reason = "historical compatibility renderer keeps each fixed surface in one paint pass"
+)]
 mod connections;
 mod db;
 mod domain;

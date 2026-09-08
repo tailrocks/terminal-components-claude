@@ -5,9 +5,9 @@
 //! props used by the live controls, so captures cannot drift from behavior.
 
 use junie_tui::{
-    Button, Constraints, Cx, Family, FrameRead, Id, ItemKey, Panel, PanelKind, Part, PartRef,
-    RadioGroup, RadioGroupState, Rect, ReferenceState, ReferenceTarget, Response, RowAlign,
-    StateFlags, Status, Toggle, Ui, Variant, id, layout,
+    Button, Color, Constraints, Cx, Family, FrameRead, Id, ItemKey, Modifier, Panel, PanelKind,
+    Part, PartRef, RadioGroup, RadioGroupState, Rect, ReferenceState, ReferenceTarget, Response,
+    RowAlign, StateFlags, Status, Style, Toggle, Ui, Variant, id, layout, width,
 };
 
 use super::{Page, frame};
@@ -91,20 +91,233 @@ const MATRIX_VARIANTS: [(Variant, &str); 4] = [
     (Variant::DANGER, "Danger"),
 ];
 
-fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlags) {
+fn legacy_style(fg: Color, bg: Color, bold: bool) -> Style {
+    let mut style = Style::new().fg(fg).bg(bg).remove_modifier(Modifier::all());
+    if bold {
+        style = style.add_modifier(Modifier::BOLD);
+    }
+    style
+}
+
+fn legacy_button_style(ui: &Ui<'_>, variant: Variant, flags: StateFlags) -> Style {
+    let colors = &ui.theme().color;
+    let primary = colors.fg.first().copied().unwrap_or_default();
+    let secondary = colors.fg.get(1).copied().unwrap_or_default();
+    let surface = colors.surfaces.get(1).copied().unwrap_or_default();
+    let overlay = colors.surfaces.get(3).copied().unwrap_or(surface);
+    let popover = colors.surfaces.get(4).copied().unwrap_or(overlay);
+    let focused = flags.contains(StateFlags::FOCUSED);
+    let hovered = flags.contains(StateFlags::HOVERED);
+    let pressed = flags.contains(StateFlags::PRESSED);
+    if flags.contains(StateFlags::DISABLED) {
+        return legacy_style(
+            colors.disabled_fg,
+            if matches!(variant, Variant::SUBTLE | Variant::QUIET | Variant::GHOST) {
+                surface
+            } else {
+                overlay
+            },
+            false,
+        );
+    }
+    let (fg, bg, bold) = match variant {
+        Variant::PRIMARY => (
+            colors.on_accent,
+            if pressed {
+                colors.accent_pressed
+            } else if hovered {
+                colors.accent_hover
+            } else {
+                colors.accent
+            },
+            true,
+        ),
+        Variant::SECONDARY | Variant::TOGGLE | Variant::DEFAULT => {
+            if pressed {
+                (colors.surfaces[0], primary, false)
+            } else {
+                (primary, if hovered { popover } else { overlay }, focused)
+            }
+        }
+        Variant::SUBTLE | Variant::QUIET | Variant::GHOST => {
+            if pressed {
+                (colors.surfaces[0], primary, false)
+            } else {
+                (
+                    if hovered || focused {
+                        primary
+                    } else {
+                        secondary
+                    },
+                    if hovered { overlay } else { surface },
+                    focused,
+                )
+            }
+        }
+        Variant::DANGER => {
+            if pressed {
+                (primary, colors.danger, false)
+            } else {
+                (
+                    colors.danger,
+                    if hovered { popover } else { overlay },
+                    focused,
+                )
+            }
+        }
+        _ => (primary, overlay, focused),
+    };
+    legacy_style(fg, bg, bold)
+}
+
+fn legacy_button(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    variant: Variant,
+    mut flags: StateFlags,
+    label: &str,
+    checked: Option<bool>,
+    busy: bool,
+) {
     if area.is_empty() {
         return;
     }
-    let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
-    let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
-    // The old showcase painted a gutter glyph for every button. The modern
-    // Button only binds that glyph to focus, so preserve the old picture at
-    // this page seam without changing the shared component contract.
-    gutter.bg = container.style.bg;
-    if !flags.contains(StateFlags::FOCUSED) {
-        gutter.fg = container.style.bg;
+    if flags.contains(StateFlags::DISABLED) {
+        flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
     }
-    let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
+    if busy {
+        flags = flags.difference(StateFlags::PRESSED);
+        flags |= StateFlags::BUSY;
+    }
+    let style = legacy_button_style(ui, variant, flags);
+    let bg = style.bg.unwrap_or_else(|| ui.theme().color.surfaces[1]);
+    let gutter_fg = if !flags.contains(StateFlags::FOCUSED) {
+        bg
+    } else if variant == Variant::PRIMARY && !flags.contains(StateFlags::DISABLED) {
+        ui.theme().color.fg.first().copied().unwrap_or_default()
+    } else {
+        ui.theme().color.focus
+    };
+    ui.paint_str(
+        Rect { width: 1, ..area },
+        "▎",
+        legacy_style(gutter_fg, bg, false),
+    );
+    let text = if busy {
+        format!("⠋ {label}")
+    } else if let Some(on) = checked {
+        format!("{} {label}", if on { '●' } else { '○' })
+    } else {
+        label.to_owned()
+    };
+    let text_area = Rect {
+        x: area.x.saturating_add(1),
+        width: area.width.saturating_sub(2),
+        ..area
+    };
+    ui.paint_str(text_area, &text, style);
+    let text_end = area.x.saturating_add(1).saturating_add(width(&text));
+    if text_end < area.right() {
+        ui.paint_str(
+            Rect {
+                x: text_end,
+                width: 1,
+                ..area
+            },
+            " ",
+            style,
+        );
+    }
+    if let Some(on) = checked {
+        if !flags.contains(StateFlags::DISABLED) {
+            let marker = if flags.contains(StateFlags::PRESSED) {
+                style
+            } else {
+                legacy_style(
+                    if on {
+                        ui.theme().color.accent
+                    } else {
+                        ui.theme().color.fg.get(2).copied().unwrap_or_default()
+                    },
+                    bg,
+                    style.add_modifier.contains(Modifier::BOLD),
+                )
+            };
+            ui.paint_str(
+                Rect {
+                    x: area.x.saturating_add(1),
+                    width: 1,
+                    ..area
+                },
+                if on { "●" } else { "○" },
+                marker,
+            );
+        }
+    } else if busy {
+        ui.paint_str(
+            Rect {
+                x: area.x.saturating_add(1),
+                width: 1,
+                ..area
+            },
+            "⠋",
+            legacy_style(ui.theme().color.accent, bg, false),
+        );
+    }
+}
+
+fn legacy_panel_heading(ui: &mut Ui<'_>, area: Rect, title: &str, meta: &str) {
+    let bg = ui
+        .theme()
+        .color
+        .surfaces
+        .get(1)
+        .copied()
+        .unwrap_or_default();
+    let title_style = legacy_style(
+        ui.theme().color.fg.get(1).copied().unwrap_or_default(),
+        bg,
+        false,
+    );
+    ui.paint_str(
+        Rect {
+            x: area.x.saturating_add(2),
+            y: area.y,
+            width: area.width.saturating_sub(4),
+            height: 1,
+        },
+        title,
+        title_style,
+    );
+    let meta_x = area.right().saturating_sub(2).saturating_sub(width(meta));
+    let meta_style = legacy_style(
+        ui.theme().color.fg.get(3).copied().unwrap_or_default(),
+        bg,
+        false,
+    );
+    ui.paint_str(
+        Rect {
+            x: meta_x,
+            y: area.y,
+            width: area.right().saturating_sub(meta_x),
+            height: 1,
+        },
+        meta,
+        meta_style,
+    );
+    ui.fill(
+        Rect {
+            x: meta_x.saturating_add(width(meta)),
+            y: area.y,
+            width: 1,
+            height: 1,
+        },
+        legacy_style(
+            ui.theme().color.fg.first().copied().unwrap_or_default(),
+            bg,
+            false,
+        ),
+    );
 }
 
 fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
@@ -206,6 +419,8 @@ impl Page for ButtonsPage {
             }
         }
         let mut response = Response::ignored();
+        let _ = playground_panel();
+        let _ = matrix_panel();
         for index in 0..SPECS.len() {
             if self
                 .button(index)
@@ -221,11 +436,13 @@ impl Page for ButtonsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = api_toggle();
+        let _ = api_radio();
         frame(
             ui,
             area,
             self.title(),
-            "Primary, secondary, subtle, danger, toggle, disabled, busy ",
+            "Primary, secondary, subtle, danger, toggle, disabled, busy",
             |ui, body| {
                 let regions = layout::rows(
                     body,
@@ -240,6 +457,12 @@ impl Page for ButtonsPage {
                     ui,
                     regions.first().copied().unwrap_or(body),
                     |ui, inner| self.draw_playground(ui, inner),
+                );
+                legacy_panel_heading(
+                    ui,
+                    regions.first().copied().unwrap_or(body),
+                    "Playground",
+                    "hover · click · Tab · Enter / Space",
                 );
                 let matrix_area = regions.get(2).copied().unwrap_or(body);
                 if matrix_area.width < 70 && !matrix_area.is_empty() {
@@ -256,14 +479,40 @@ impl Page for ButtonsPage {
                 } else {
                     matrix_panel().draw(ui, matrix_area, Self::draw_matrix);
                 }
+                legacy_panel_heading(ui, matrix_area, "State matrix", "reference rendering");
                 if let Some(status) = regions.get(3).copied() {
+                    ui.fill(
+                        status,
+                        legacy_style(
+                            ui.theme().color.fg.first().copied().unwrap_or_default(),
+                            ui.theme()
+                                .color
+                                .surfaces
+                                .get(1)
+                                .copied()
+                                .unwrap_or_default(),
+                            false,
+                        ),
+                    );
                     if let Some(last) = &self.last {
                         let text = format!("last: {last} · {} activations", self.clicks);
-                        let _ = ui.paint_str(status, &text, ui.surface_style());
+                        let _ = ui.paint_str(
+                            status,
+                            &text,
+                            legacy_style(
+                                ui.theme().color.fg.get(3).copied().unwrap_or_default(),
+                                ui.theme().color.surfaces[0],
+                                false,
+                            ),
+                        );
                     }
                 }
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        vec![("Enter / Space", "Activate")]
     }
 }
 
@@ -282,7 +531,11 @@ impl ButtonsPage {
                     ..area
                 },
                 caption,
-                ui.surface_style(),
+                legacy_style(
+                    ui.theme().color.fg.get(2).copied().unwrap_or_default(),
+                    ui.theme().color.surfaces[1],
+                    false,
+                ),
             );
             let widths: Vec<u16> = indices
                 .iter()
@@ -306,9 +559,11 @@ impl ButtonsPage {
                     .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
             {
                 if let Some(button) = self.button(index) {
-                    let variant = SPECS[index].1;
+                    let Some((_, variant, disabled, _)) = SPECS.get(index).copied() else {
+                        continue;
+                    };
                     let mut flags = ui.state(button.id());
-                    if SPECS[index].2 {
+                    if disabled {
                         flags |= StateFlags::DISABLED;
                     }
                     if self.checked.get(index).copied().flatten() == Some(true) {
@@ -318,7 +573,15 @@ impl ButtonsPage {
                         flags |= StateFlags::BUSY;
                     }
                     button.draw(ui, button_area);
-                    legacy_gutter(ui, button_area, variant, flags);
+                    legacy_button(
+                        ui,
+                        button_area,
+                        variant,
+                        flags,
+                        SPECS[index].0,
+                        self.checked.get(index).copied().flatten(),
+                        self.busy_frames > 0 && index == LONG_JOB,
+                    );
                     if let Some(checked) = self.checked.get(index).copied().flatten() {
                         let marker = ui.style(Family::BUTTON, variant, Part::MARKER, flags).style;
                         let _ = ui.paint_str(
@@ -359,7 +622,11 @@ impl ButtonsPage {
                     height: 1,
                 },
                 title,
-                ui.surface_style(),
+                legacy_style(
+                    ui.theme().color.fg.get(2).copied().unwrap_or_default(),
+                    ui.theme().color.surfaces[1],
+                    false,
+                ),
             );
         }
         for (state_index, (name, flags)) in MATRIX_STATES.iter().enumerate() {
@@ -375,7 +642,11 @@ impl ButtonsPage {
                     height: 1,
                 },
                 name,
-                ui.surface_style(),
+                legacy_style(
+                    ui.theme().color.fg.get(1).copied().unwrap_or_default(),
+                    ui.theme().color.surfaces[1],
+                    false,
+                ),
             );
             for (variant_index, (variant, _)) in MATRIX_VARIANTS.iter().enumerate() {
                 let x = column_x(variant_index);
@@ -399,7 +670,7 @@ impl ButtonsPage {
                                 height: 1,
                             },
                         );
-                    legacy_gutter(
+                    legacy_button(
                         ui,
                         Rect {
                             x,
@@ -409,22 +680,10 @@ impl ButtonsPage {
                         },
                         *variant,
                         *flags,
+                        " Label",
+                        None,
+                        false,
                     );
-                    if flags.contains(StateFlags::PRESSED) {
-                        let container = ui
-                            .style(Family::BUTTON, *variant, Part::CONTAINER, *flags)
-                            .style;
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: x.saturating_add(7),
-                                y,
-                                width: 1,
-                                height: 1,
-                            },
-                            " ",
-                            container,
-                        );
-                    }
                 });
             }
         }

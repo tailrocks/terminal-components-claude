@@ -21,7 +21,8 @@ const VISUAL_REVIEW_FILE: &str = "parity/visual_review.tsv";
 const EXPECTED_RECIPE_COUNT: usize = 499;
 const MAPPING_HEADER: &str = "recipe_id\tapp\tsurface\tviewport\tcolor\ttheme\tinitial_state\thistorical_command\tsteps\tcurrent_argv\texpected_txt\texpected_ansi\texpected_cursor\texpected_html\texpected_png\tcurrent_artifact_dir\tprovenance_path\ttrace_path\towner\treplay_policy";
 const EVIDENCE_HEADER: &str = "recipe_id\treplay_status\tcurrent_revision\tsource_fingerprint\tdirty\tartifact_dir\tprovenance_path\ttrace_path\tvisual_review\treviewer";
-const VISUAL_REVIEW_HEADER: &str = "recipe_id\tpng_path\tpng_sha256\thtml_path\thtml_sha256\treviewer\tdecision";
+const VISUAL_REVIEW_HEADER: &str =
+    "recipe_id\tpng_path\tpng_sha256\thtml_path\thtml_sha256\treviewer\tdecision";
 const ARTIFACTS: [(&str, &str); 5] = [
     ("txt", "txt"),
     ("ansi", "ansi"),
@@ -115,7 +116,6 @@ impl Recipe {
             "truecolor"
         }
     }
-
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -690,7 +690,10 @@ fn load_evidence(
             errors.push(format!("{}:{}: invalid revision", EVIDENCE_FILE, row));
         }
         if !is_sha256(source_fingerprint) {
-            errors.push(format!("{}:{}: invalid source fingerprint", EVIDENCE_FILE, row));
+            errors.push(format!(
+                "{}:{}: invalid source fingerprint",
+                EVIDENCE_FILE, row
+            ));
         }
         let dirty = match *dirty {
             "true" => true,
@@ -954,13 +957,15 @@ fn validate_provenance(
     let parity = object
         .get("parity")
         .and_then(Value::as_object)
-        .ok_or_else(|| format!("{}: parity provenance binding is missing", mapping.recipe.id))?;
+        .ok_or_else(|| {
+            format!(
+                "{}: parity provenance binding is missing",
+                mapping.recipe.id
+            )
+        })?;
     if parity.get("recipe_id").and_then(Value::as_str) != Some(mapping.recipe.id.as_str())
         || parity.get("revision").and_then(Value::as_str) != Some(revision)
-        || parity
-            .get("source_fingerprint")
-            .and_then(Value::as_str)
-            != Some(source_fingerprint)
+        || parity.get("source_fingerprint").and_then(Value::as_str) != Some(source_fingerprint)
         || parity.get("trace_path").and_then(Value::as_str) != Some(evidence.trace_path.as_str())
     {
         return Err(format!(
@@ -1020,10 +1025,7 @@ fn validate_provenance(
     let trace_bytes = read_bytes(root, &evidence.trace_path, "replay trace")?;
     let (_, trace_hash) = digest(&trace_bytes);
     if parity.get("trace_sha256").and_then(Value::as_str) != Some(trace_hash.as_str()) {
-        return Err(format!(
-            "{}: parity trace hash is stale",
-            mapping.recipe.id
-        ));
+        return Err(format!("{}: parity trace hash is stale", mapping.recipe.id));
     }
     let stderr = object
         .get("stderr")
@@ -1069,9 +1071,10 @@ fn validate_trace(
             expected
         ));
     }
-    let initial = steps.first().and_then(Value::as_object).ok_or_else(|| {
-        format!("{}: trace initial state is missing", mapping.recipe.id)
-    })?;
+    let initial = steps
+        .first()
+        .and_then(Value::as_object)
+        .ok_or_else(|| format!("{}: trace initial state is missing", mapping.recipe.id))?;
     if initial.get("index").and_then(Value::as_u64) != Some(0)
         || initial.get("event").and_then(Value::as_str) != Some("initial")
         || !initial
@@ -1178,8 +1181,15 @@ fn validate_visual_review(
             ));
             continue;
         }
-        let [recipe_id, png_path, png_sha256, html_path, html_sha256, reviewer, decision] =
-            fields.as_slice()
+        let [
+            recipe_id,
+            png_path,
+            png_sha256,
+            html_path,
+            html_sha256,
+            reviewer,
+            decision,
+        ] = fields.as_slice()
         else {
             unreachable!("field count checked above");
         };
@@ -1915,9 +1925,8 @@ fn safe_name(value: &str) -> bool {
 fn safe_reviewer(value: &str) -> bool {
     let mut characters = value.chars();
     matches!(characters.next(), Some(first) if first.is_ascii_alphanumeric())
-        && characters.all(|character| {
-            character.is_ascii_alphanumeric() || matches!(character, '_' | '-')
-        })
+        && characters
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-'))
 }
 
 #[cfg(test)]

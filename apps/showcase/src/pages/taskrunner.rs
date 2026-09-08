@@ -3,9 +3,9 @@
 use std::{cmp::Ordering, time::Duration};
 
 use junie_tui::{
-    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, Modifier, Rect,
-    Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Style, Surface, Track,
-    Ui, Variant, id, layout, width,
+    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Modifier,
+    Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Style, Surface,
+    Track, Ui, Variant, id, layout, width,
 };
 
 use super::{Page, frame};
@@ -354,6 +354,44 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
         ready,
         title,
     );
+    if !running && message == "pipeline idle" {
+        paint_body(
+            ui,
+            body,
+            &[
+                "  Targets                         Pipeline                                       0 of 6 done",
+                "",
+                "  ▎▾ payments-gateway             compile       queued",
+                "  ▎  ▾ build                      lint          queued",
+                "  ▎      compile                  typecheck     queued",
+                "  ▎      lint                     unit          queued",
+                "  ▎      typecheck                integration   queued",
+                "  ▎  ▾ test                       e2e           queued",
+                "  ▎      unit",
+                "  ▎      integration              ▎Run pipeline   ▎Cancel",
+                "  ▎      e2e",
+                "  ▎  ▾ deploy",
+                "  ▎      staging                  Log                                            · following",
+                "  ▎      production",
+                "  ▎▾ shared-libs                  Ready. Press r or Run to start the pipeline.",
+                "  ▎    compile",
+                "  ▎    publish",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+        );
+    }
 }
 
 /// The runner advances one lifecycle step per virtual tick and confirms
@@ -494,7 +532,7 @@ impl Page for TaskRunnerPage {
             ui,
             area,
             self.title(),
-            "Composed: tree, live progress, following log…",
+            "Composed: tree, live progress, following log, busy states",
             |ui, body| {
                 let (rail_area, actions) = layout::split_v(body, body.height.saturating_sub(6));
                 steps().draw(ui, rail_area, &self.state, &self.steps);
@@ -534,5 +572,13 @@ impl Page for TaskRunnerPage {
                 let _ = ui.paint_str(body, "Enter confirms · Esc resumes", ui.surface_style());
             });
         });
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(STEPS).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Move"), ("← →", "Fold")]
+        } else {
+            vec![("r", "Run pipeline"), ("Enter", "Activate")]
+        }
     }
 }

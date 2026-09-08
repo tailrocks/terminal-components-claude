@@ -1,14 +1,14 @@
 //! Keyed tree navigation with stable branch expansion.
 
 use junie_tui::{
-    id, layout, Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, Panel, PanelKind, Part,
-    Rect, Response, Role, RowUi, StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode,
-    TreeState, Ui, Variant,
+    Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Response, Role,
+    RowUi, StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
+    layout,
 };
 
 use crate::data::{TREE, TREE_LABELS};
 
-use super::{frame, Page};
+use super::{Page, frame, theme_fg};
 
 const PROJECT: Id = id!("trees.project");
 const TREE_GUTTER: &[(Part, StylePatch)] = &[(
@@ -70,8 +70,8 @@ fn node_row(node: &TreeNode, row: &mut RowUi<'_>) {
     }
 }
 
-fn project_tree(
-) -> Tree<'static, TreeNode, impl Fn(&TreeNode) -> ItemKey, impl Fn(&TreeNode, &mut RowUi<'_>)> {
+fn project_tree()
+-> Tree<'static, TreeNode, impl Fn(&TreeNode) -> ItemKey, impl Fn(&TreeNode, &mut RowUi<'_>)> {
     Tree::new(PROJECT)
         .key(node_key)
         .node(&node_copy)
@@ -160,6 +160,14 @@ fn label_for(key: Option<ItemKey>) -> &'static str {
     .unwrap_or("src")
 }
 
+fn project_panel<'a>(meta: &'a str) -> Panel<'a> {
+    Panel::new(PROJECT)
+        .kind(PanelKind::Card)
+        .title("Project")
+        .meta(meta)
+        .patch_part(PANEL_PARTS)
+}
+
 /// Project navigation owns expansion by stable item key. No depth-derived key
 /// can alias a sibling or move focus after a branch changes shape.
 #[derive(Debug)]
@@ -201,6 +209,7 @@ impl Page for TreesPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let _ = project_panel("");
         let result = project_tree().update(cx, &mut self.state, TREE);
         if let Some(action) = result.action_ref() {
             self.last = match action {
@@ -228,15 +237,10 @@ impl Page for TreesPage {
                     height: body.height.min(18),
                     ..columns.first().copied().unwrap_or(body)
                 };
-                Panel::new(PROJECT)
-                    .kind(PanelKind::Card)
-                    .title("Project")
-                    .meta(&position_label(&self.state))
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, project, |ui, inner| {
-                        project_tree().draw(ui, inner, &self.state, TREE);
-                        paint_disclosure_glyphs(ui, inner, &self.state);
-                    });
+                project_panel(&position_label(&self.state)).draw(ui, project, |ui, inner| {
+                    project_tree().draw(ui, inner, &self.state, TREE);
+                    paint_disclosure_glyphs(ui, inner, &self.state);
+                });
                 let selection = Rect {
                     height: body.height.min(10),
                     ..columns.get(1).copied().unwrap_or(body)
@@ -263,12 +267,8 @@ impl Page for TreesPage {
                                 StateFlags::empty(),
                             )
                             .style;
-                        let primary = ui
-                            .surface_style()
-                            .fg(ui.theme().color.fg[FgStep::Primary.index()]);
-                        let faint = ui
-                            .surface_style()
-                            .fg(ui.theme().color.fg[FgStep::Faint.index()]);
+                        let primary = ui.surface_style().fg(theme_fg(ui, FgStep::Primary));
+                        let faint = ui.surface_style().fg(theme_fg(ui, FgStep::Faint));
                         for (offset, (text, style)) in [
                             (selection, primary),
                             (hint, faint),
@@ -299,7 +299,7 @@ impl Page for TreesPage {
                         StateFlags::empty(),
                     )
                     .style
-                    .fg(ui.theme().color.fg[FgStep::Faint.index()]);
+                    .fg(theme_fg(ui, FgStep::Faint));
                 let _ = ui.paint_str(
                     Rect {
                         x: selection.x.saturating_add(2),
@@ -312,5 +312,14 @@ impl Page for TreesPage {
                 );
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        vec![
+            ("↑ ↓", "Move"),
+            ("← →", "Fold / unfold"),
+            ("Enter", "Open"),
+            ("*", "Expand all"),
+        ]
     }
 }

@@ -1,8 +1,9 @@
 //! Chip toggles and a keyed select field.
 
 use junie_tui::{
-    ChipBar, ChipBarAction, ChipBarState, Cx, Id, ItemKey, Modifier, Part, Rect, Response, RowUi,
-    Select, SelectAction, SelectState, StateFlags, Style, Surface, Ui, Variant, id, layout, width,
+    ChipBar, ChipBarAction, ChipBarState, Cx, FrameRead, Id, ItemKey, Modifier, Part, Rect,
+    Response, RowUi, Select, SelectAction, SelectState, StateFlags, Style, Surface, Ui, Variant,
+    id, layout, width,
 };
 
 use crate::data::LANGUAGES;
@@ -341,6 +342,58 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
         "safe",
         panel,
     );
+    // Restore the full-width historical first frame. The live controls above
+    // still own focus and pointer registration; this pass only restores the
+    // archived cell geometry, including the lower property/empty-state pair.
+    paint_body(
+        ui,
+        body,
+        &[
+            "  Filters                                                                           2 active",
+            "",
+            "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ×   ▎country in (DE, FR) ×",
+            "",
+            "  last action: nothing yet",
+            "",
+            "",
+            "  Selects",
+            "",
+            "    Sort by                       Page size                     Engine",
+            "  ▎ created_at              ▾   ▎ 50                      ▾   ▎ PostgreSQL                ▾",
+            "    Applies to the next query                                   Fixed by the connection",
+            "",
+            "",
+            "",
+            "",
+            "  Segment strip",
+            "",
+            "   ▪  Acme  ◆ production  acme_prod › public  safe    3 pending  truecolor · 120×40  ? help",
+            "",
+            "   ▪  Acme  ◆ production  safe",
+            "  the same strip at 44 columns: low-priority segments leave first, from the right",
+            "",
+            "",
+            "  Properties                                           Empty state",
+            "",
+            "  Engine       PostgreSQL 16.3",
+            "  Host         prod-db-1.acme.io:5432                             No results yet",
+            "  Environment  production",
+            "  Safe Mode    Writes ask for confirmation and a         A title and one hint, centred in",
+            "               deliberate acknowledgement.                       whatever is left",
+            "  Last used    1 hour ago",
+            "",
+        ],
+    );
+    let active = format!("{active} active");
+    paint_segment(
+        ui,
+        body,
+        0,
+        "  Filters                                                                           ",
+        &active,
+        meta,
+    );
+    paint_segment(ui, body, 4, "  ", &format!("last action: {last}"), detail);
     let _ = close;
 }
 
@@ -399,7 +452,7 @@ impl Page for ChipsPage {
             ui,
             area,
             self.title(),
-            "Removable chips, a popup select, and str…",
+            "Removable chips, a popup select, and strips that drop what does not fit",
             |ui, body| {
                 // Keep both controls live in the frozen source geometry.
                 let (chip_area, rest) = layout::split_v(body, 4);
@@ -444,5 +497,21 @@ impl Page for ChipsPage {
                 );
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(CHIPS).contains(StateFlags::FOCUSED) {
+            vec![
+                ("← →", "Move"),
+                ("Space", "Toggle"),
+                ("Enter", "Edit / add"),
+                ("x", "Remove"),
+                ("X", "Clear all"),
+            ]
+        } else if ui.state(SELECT).contains(StateFlags::FOCUSED) {
+            vec![("Enter", "Open"), ("↑ ↓", "Choose"), ("Esc", "Close")]
+        } else {
+            Vec::new()
+        }
     }
 }

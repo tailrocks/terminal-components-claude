@@ -1,12 +1,12 @@
 //! `TablePro` application shell built only on the public `junie-tui` facade.
 
 use junie_tui::{
-    Action, ActionKey, App, Chord, Color, ColorLevel, Cx, FgStep, Field, Form, FormAction,
-    FormState, FrameRead, Focusability, Grid, GridAction, GridEditor, GridState, Id, Intent,
-    ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, Modifier, NodeKind, Panel, PanelKind, Part,
-    Phase, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch,
-    Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction, TreeNode,
-    TreeState, Ui, UpdateCause, wrap,
+    Action, ActionKey, App, Chord, Color, ColorLevel, Cx, FgStep, Field, Focusability, Form,
+    FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridState, Id, Intent, ItemKey,
+    KeyCode, KeyMap, KeyModifiers, KeyPhase, Modifier, NodeKind, Panel, PanelKind, Part, Phase,
+    Response, Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs,
+    TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState,
+    Ui, UpdateCause, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -1082,7 +1082,14 @@ impl TableProApp {
             );
         });
         let mut blank = ui.surface_style();
-        blank.fg = Some(ui.theme().color.fg[FgStep::Secondary.index()]);
+        blank.fg = Some(
+            ui.theme()
+                .color
+                .fg
+                .get(FgStep::Secondary.index())
+                .copied()
+                .unwrap_or_default(),
+        );
         ui.fill(
             junie_tui::Rect {
                 x: body.x.saturating_add(2),
@@ -1113,7 +1120,11 @@ impl TableProApp {
                     width: 1,
                     height: 1,
                 },
-                ui.surface_style().add_modifier(Modifier::BOLD),
+                {
+                    let mut style = ui.surface_style();
+                    style.add_modifier |= Modifier::BOLD;
+                    style
+                },
             );
         }
         if area.width >= 80 {
@@ -1595,7 +1606,7 @@ fn paint_legacy_tree_gutters<T>(
     let first_visible = state.scroll().offset();
     let cursor = state.cursor();
     let mut gutter_style = ui.surface_style();
-    gutter_style.fg = Some(Color::Rgb(0, 0, 0));
+    gutter_style.fg = Some(ui.theme().color.on_surface_inverse);
 
     for item in nodes {
         let descriptor = node(item);
@@ -1704,7 +1715,14 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: junie_tui::Rect, text: &str) {
 
     if area.width > 2 {
         let mut label = field;
-        label.fg = Some(ui.theme().color.fg[FgStep::Muted.index()]);
+        label.fg = Some(
+            ui.theme()
+                .color
+                .fg
+                .get(FgStep::Muted.index())
+                .copied()
+                .unwrap_or_default(),
+        );
         ui.paint_str(
             junie_tui::Rect {
                 x: area.x.saturating_add(2),
@@ -1998,7 +2016,14 @@ fn draw_connection_properties(
     let value_x = area.x.saturating_add(13);
     let value_width = area.width.saturating_sub(18).max(1);
     let mut label_style = ui.surface_style();
-    label_style.fg = Some(ui.theme().color.fg[FgStep::Muted.index()]);
+    label_style.fg = Some(
+        ui.theme()
+            .color
+            .fg
+            .get(FgStep::Muted.index())
+            .copied()
+            .unwrap_or_default(),
+    );
     let mut y = area.y;
     for (label, value) in properties {
         let value_step = match *label {
@@ -2008,7 +2033,14 @@ fn draw_connection_properties(
             _ => FgStep::Primary,
         };
         let mut value_style = ui.surface_style();
-        value_style.fg = Some(ui.theme().color.fg[value_step.index()]);
+        value_style.fg = Some(
+            ui.theme()
+                .color
+                .fg
+                .get(value_step.index())
+                .copied()
+                .unwrap_or_default(),
+        );
         let lines = if *label == "Safe Mode" {
             wrap(value, value_width)
         } else {
@@ -2061,7 +2093,12 @@ fn draw_connection_properties(
         y,
         "Edit",
         ui.theme().color.surfaces[3],
-        ui.theme().color.fg[FgStep::Primary.index()],
+        ui.theme()
+            .color
+            .fg
+            .get(FgStep::Primary.index())
+            .copied()
+            .unwrap_or_default(),
         false,
     );
     x = x.saturating_add(8);
@@ -2071,7 +2108,12 @@ fn draw_connection_properties(
         y,
         "Duplicate",
         ui.theme().color.surfaces[1],
-        ui.theme().color.fg[FgStep::Secondary.index()],
+        ui.theme()
+            .color
+            .fg
+            .get(FgStep::Secondary.index())
+            .copied()
+            .unwrap_or_default(),
         false,
     );
     x = x.saturating_add(13);
@@ -2100,7 +2142,7 @@ fn paint_action_button(
     button.bg = Some(background);
     button.fg = Some(foreground);
     if bold {
-        button = button.add_modifier(Modifier::BOLD);
+        button.add_modifier |= Modifier::BOLD;
     }
     ui.fill(
         junie_tui::Rect {
@@ -2111,7 +2153,8 @@ fn paint_action_button(
         },
         button,
     );
-    let mut gutter = button.remove_modifier(Modifier::BOLD);
+    let mut gutter = button;
+    gutter.add_modifier.remove(Modifier::BOLD);
     gutter.fg = Some(background);
     ui.paint_str(
         junie_tui::Rect {

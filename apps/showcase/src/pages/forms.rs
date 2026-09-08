@@ -1,10 +1,10 @@
 //! Form-like composition with required-field validation.
 
 use junie_tui::{
-    ActionKey, Button, Checkbox, Constraints, Cx, Family, Field, Id, ItemKey, Panel, PanelKind,
-    Part, RadioGroup, RadioGroupState, Rect, Response, RowAlign, Select, SelectState, StateFlags,
-    TextArea, TextAreaState, TextInput, TextInputState, Toggle, Track, Ui, Variant, id, layout,
-    truncate,
+    ActionKey, Button, Checkbox, Constraints, Cx, Family, Field, FrameRead, Id, ItemKey, Panel,
+    PanelKind, Part, RadioGroup, RadioGroupState, Rect, Response, RowAlign, Select, SelectState,
+    StateFlags, TextArea, TextAreaState, TextInput, TextInputState, Toggle, Track, Ui, Variant, id,
+    layout, truncate,
 };
 
 use super::{Page, frame};
@@ -27,21 +27,15 @@ const RESET: Id = id!("forms.reset");
 const MODES: &[&str] = &["Fast", "Balanced", "Thorough"];
 
 fn task_name_field<'a>(value: &'a str, error: Option<&'a str>) -> Field<'a, TextInput<'a>> {
-    Field::new(
-        "Task name",
-        TextInput::new(SUMMARY)
-            .value(value)
-            .placeholder("Short imperative summary"),
-    )
-    .error(error)
-    .required(true)
+    Field::new("Task name", FormsPage::summary().value(value))
+        .error(error)
+        .required(true)
 }
 
 fn description_field() -> Field<'static, TextArea<'static>> {
     Field::new(
         "Description",
-        TextArea::new(DETAILS, 4)
-            .placeholder("What should Junie do, and what does done look like?"),
+        FormsPage::details().placeholder("What should Junie do, and what does done look like?"),
     )
     .optional_suffix(false)
     .help("Optional · Markdown")
@@ -53,6 +47,28 @@ fn reviewer_field() -> Field<'static, TextInput<'static>> {
         TextInput::new(REVIEWER).placeholder("name@company.com"),
     )
     .help("Optional")
+}
+
+fn mode_group() -> RadioGroup<'static, &'static str> {
+    RadioGroup::new(MODE).value(ItemKey::index(1))
+}
+
+fn run_tests_checkbox() -> Checkbox<'static> {
+    Checkbox::new(RUN_TESTS, "Run tests before opening a PR").checked(true)
+}
+
+fn auto_approve_toggle() -> Toggle<'static> {
+    Toggle::new(AUTO_APPROVE, "Auto-approve changes").on(false)
+}
+
+fn notify_toggle() -> Toggle<'static> {
+    Toggle::new(NOTIFY, "Notify on completion")
+        .on(true)
+        .disabled(true)
+}
+
+fn reset_button() -> Button<'static> {
+    Button::new(RESET, "Reset").variant(Variant::SUBTLE)
 }
 
 fn legacy_gutter(
@@ -217,7 +233,7 @@ impl FormsPage {
     }
 
     fn details() -> TextArea<'static> {
-        TextArea::new(DETAILS, 4).placeholder("Details")
+        TextArea::new(DETAILS, 4)
     }
 
     fn priority() -> Select<'static, &'static str> {
@@ -272,6 +288,13 @@ impl Page for FormsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+        let _ = description_field();
+        let _ = reviewer_field();
+        let _ = mode_group();
+        let _ = run_tests_checkbox();
+        let _ = auto_approve_toggle();
+        let _ = notify_toggle();
+        let _ = reset_button();
         result |= Self::summary()
             .update(cx, &mut self.summary_state, &mut self.summary)
             .erase();
@@ -291,6 +314,10 @@ impl Page for FormsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = Self::priority();
+        let _ = Self::summary();
+        let _ = Self::details();
+        let _ = Self::confirmation();
         let panel_width = area.width.min(70);
         frame(
             ui,
@@ -416,7 +443,7 @@ impl Page for FormsPage {
                         ui.surface_style(),
                     );
                     ui.reference(None, |ui| {
-                        let mode = RadioGroup::new(MODE).value(ItemKey::index(1));
+                        let mode = mode_group();
                         let mode_area = Rect {
                             y: right.y.saturating_add(2),
                             height: 3,
@@ -446,9 +473,7 @@ impl Page for FormsPage {
                             height: 1,
                             ..right
                         };
-                        Checkbox::new(RUN_TESTS, "Run tests before opening a PR")
-                            .checked(true)
-                            .draw(ui, run_tests);
+                        run_tests_checkbox().draw(ui, run_tests);
                         legacy_choice_label(
                             ui,
                             run_tests,
@@ -488,9 +513,7 @@ impl Page for FormsPage {
                             height: 1,
                             ..right
                         };
-                        Toggle::new(AUTO_APPROVE, "Auto-approve changes")
-                            .on(false)
-                            .draw(ui, auto_approve);
+                        auto_approve_toggle().draw(ui, auto_approve);
                         legacy_gutter(
                             ui,
                             auto_approve,
@@ -505,10 +528,7 @@ impl Page for FormsPage {
                             height: 1,
                             ..right
                         };
-                        Toggle::new(NOTIFY, "Notify on completion")
-                            .on(true)
-                            .disabled(true)
-                            .draw(ui, notify);
+                        notify_toggle().draw(ui, notify);
                         legacy_gutter(
                             ui,
                             notify,
@@ -540,8 +560,8 @@ impl Page for FormsPage {
                         height: 1,
                         ..inner
                     };
-                    let create = Button::new(SAVE, "Create task").variant(Variant::PRIMARY);
-                    let reset = Button::new(RESET, "Reset").variant(Variant::SUBTLE);
+                    let create = Self::save_button(true);
+                    let reset = reset_button();
                     let widths = [
                         create
                             .measure(ui, Constraints::loose(action_area.width, 1))
@@ -616,5 +636,34 @@ impl Page for FormsPage {
                 }
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.summary_state.is_editing() || self.details_state.is_editing() {
+            vec![
+                ("Enter", "Commit"),
+                ("Esc", "Cancel"),
+                ("Tab", "Next field"),
+            ]
+        } else if ui.state(PRIORITY).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Choose"), ("Ctrl+S", "Submit")]
+        } else if ui.state(CONFIRM).contains(StateFlags::FOCUSED)
+            || ui.state(RUN_TESTS).contains(StateFlags::FOCUSED)
+            || ui.state(OPEN_PR).contains(StateFlags::FOCUSED)
+            || ui.state(AUTO_APPROVE).contains(StateFlags::FOCUSED)
+            || ui.state(NOTIFY).contains(StateFlags::FOCUSED)
+        {
+            vec![("Space", "Toggle"), ("Ctrl+S", "Submit")]
+        } else if ui.state(SAVE).contains(StateFlags::FOCUSED)
+            || ui.state(RESET).contains(StateFlags::FOCUSED)
+        {
+            vec![("Enter", "Activate"), ("Ctrl+S", "Submit")]
+        } else {
+            vec![("Enter", "Edit"), ("Ctrl+S", "Submit")]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.summary_state.is_editing() || self.details_state.is_editing()
     }
 }

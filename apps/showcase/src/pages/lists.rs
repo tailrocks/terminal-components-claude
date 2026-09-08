@@ -1,14 +1,14 @@
 //! Keyed collection rows, single selection and multi-selection.
 
 use junie_tui::{
-    id, layout, Cx, EmptyState, Family, FgStep, GlyphRole, Id, ItemKey, List, ListAction,
-    ListState, Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StylePatch, Track,
-    Ui, Variant,
+    Cx, EmptyState, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListAction, ListState,
+    Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, StylePatch, Track,
+    Ui, Variant, id, layout,
 };
 
 use crate::data::LANGUAGES;
 
-use super::{frame, Page};
+use super::{Page, frame};
 
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
@@ -159,8 +159,8 @@ fn single_list() -> List<
         .patch_part(LIST_GUTTER)
 }
 
-fn multi_list(
-) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+fn multi_list()
+-> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
     List::new(MULTI)
         .key(file_key)
         .row(file_row)
@@ -169,14 +169,23 @@ fn multi_list(
         .disabled_item(&file_disabled)
 }
 
-fn compact_multi_list(
-) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
-    List::new(MULTI)
-        .key(file_key)
-        .row(compact_file_row)
-        .select_mode(SelectMode::Multi)
-        .patch_part(LIST_GUTTER)
-        .disabled_item(&file_disabled)
+fn compact_multi_list()
+-> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+    multi_list().row(compact_file_row)
+}
+
+fn empty_list(
+    title: &'static str,
+) -> List<
+    'static,
+    &'static str,
+    impl Fn(&&'static str) -> ItemKey,
+    impl Fn(&&'static str, &mut RowUi<'_>),
+> {
+    List::new(EMPTY)
+        .key(language_key)
+        .row(language_row)
+        .empty(EmptyState::Empty { title, hint: None })
 }
 
 /// Two independent keyed list states; selecting a row never relies on its
@@ -200,12 +209,14 @@ impl ListsPage {
         if let Some(file) = FILES.get(1) {
             multi.checked_mut().insert(file_key(file));
         }
-        single.choose(Some(language_key(&LANGUAGES[0])));
+        let first_language = LANGUAGES.first().copied().unwrap_or("");
+        let first_key = language_key(&first_language);
+        single.choose(Some(first_key));
         Self {
             single,
             multi,
             empty: ListState::default(),
-            chosen: Some(language_key(&LANGUAGES[0])),
+            chosen: Some(first_key),
             last: "choose a language",
         }
     }
@@ -234,12 +245,7 @@ impl Page for ListsPage {
             self.last = "multi selection changed";
         }
         response |= many.erase();
-        let empty = List::new(EMPTY)
-            .empty(EmptyState::Empty {
-                title: "No matches",
-                hint: None,
-            })
-            .update(cx, &mut self.empty, &[] as &[&str]);
+        let empty = empty_list("No matches").update(cx, &mut self.empty, &[] as &[&str]);
         response |= empty.erase();
         response
     }
@@ -255,18 +261,14 @@ impl Page for ListsPage {
                 Family::LIST,
                 Variant::DEFAULT,
                 Part::META,
-                junie_tui::StateFlags::empty(),
+                StateFlags::empty(),
             )
             .style;
         frame(
             ui,
             area,
             self.title(),
-            if area.width < 70 {
-                "Single and multiple selection, disabled items, scr…"
-            } else {
-                "Single and multiple selection, disabled items, scrolling, empty state"
-            },
+            "Single and multiple selection, disabled items, scrolling, empty state",
             |ui, body| {
                 let columns =
                     layout::columns(body, &[Track::Flex(1), Track::Flex(1), Track::Flex(1)], 2);
@@ -393,18 +395,14 @@ impl Page for ListsPage {
                     .title("Search results")
                     .patch_part(PANEL_PARTS)
                     .draw(ui, search, |ui, inner| {
-                        List::new(EMPTY)
-                            .empty(EmptyState::Empty {
-                                title: if body.width < 70 {
-                                    "No results for…"
-                                } else if body.width < 90 {
-                                    "No results for “retr…"
-                                } else {
-                                    "No results for “retry”"
-                                },
-                                hint: None,
-                            })
-                            .draw(ui, inner, &self.empty, &[] as &[&str]);
+                        empty_list(if body.width < 70 {
+                            "No results for…"
+                        } else if body.width < 90 {
+                            "No results for “retr…"
+                        } else {
+                            "No results for “retry”"
+                        })
+                        .draw(ui, inner, &self.empty, &[] as &[&str]);
                         if body.width < 70 {
                             let _ = ui.paint_str(
                                 Rect {
@@ -420,5 +418,18 @@ impl Page for ListsPage {
                     });
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(MULTI).contains(StateFlags::FOCUSED) {
+            vec![
+                ("↑ ↓", "Move"),
+                ("Space", "Toggle"),
+                ("a", "All / none"),
+                ("Shift+↓", "Range"),
+            ]
+        } else {
+            vec![("↑ ↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
+        }
     }
 }

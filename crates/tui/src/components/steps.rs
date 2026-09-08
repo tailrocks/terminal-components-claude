@@ -1558,8 +1558,13 @@ mod tests {
         let track_cell = buffer.cell(Position::new(19, 3)).expect("track cell");
         assert!(track_cell.modifier.contains(Modifier::UNDERLINED));
         assert!(track_cell.modifier.contains(Modifier::BOLD));
+        let thumb = runtime
+            .area_of_part(RAIL, PartRef::of(Part::THUMB))
+            .expect("thumb part");
         assert_eq!(
-            buffer.cell(Position::new(19, 1)).map(BufferCell::symbol),
+            buffer
+                .cell(Position::new(thumb.x, thumb.y))
+                .map(BufferCell::symbol),
             Some("#"),
             "thumb slot is painted by embedded ScrollRegion"
         );

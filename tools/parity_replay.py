@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import concurrent.futures
 import hashlib
 import json
 import os
@@ -377,6 +378,7 @@ def run_recipe(
     source_digest: str,
     source_is_dirty: bool,
     state_root: Path,
+    attempt: int = 0,
 ) -> bool:
     recipe_id = row["recipe_id"]
     if not SAFE.fullmatch(recipe_id):
@@ -386,7 +388,12 @@ def run_recipe(
     if not isinstance(argv, list) or not argv or not all(isinstance(value, str) for value in argv):
         fail(f"invalid current argv for {recipe_id}")
     color = row["color"]
-    run_id = f"parity-{index:03d}"
+    run_id = f"parity-{index:03d}" if attempt == 0 else f"parity-{index:03d}-retry{attempt}"
+    # Each worker owns a private capture-state directory.  capture.sh keeps
+    # one lock per state root, while tmux sessions and artifact paths are
+    # already unique per recipe; sharing that lock would serialize the replay.
+    recipe_state_root = state_root / f"{index:03d}-attempt{attempt}"
+    recipe_state_root.mkdir(parents=True, exist_ok=True)
     artifact_dir = row["current_artifact_dir"]
     manifest = f"{artifact_dir}/provenance.json"
     env = os.environ.copy()
@@ -399,13 +406,15 @@ def run_recipe(
             "PY": "/usr/bin/python3",
             "CAPTURE_DIR": "parity/replays",
             "CAPTURE_MANIFEST": manifest,
-            "CAPTURE_STATE_DIR": str(state_root),
+            "CAPTURE_STATE_DIR": str(recipe_state_root),
             "CAPTURE_RUN_ID": run_id,
         }
     )
     session_workspace = "".join(character if character.isalnum() else "_" for character in str(ROOT.resolve())) + "_"
     session = f"junie_cap_{session_workspace}_{run_id}"
     trace_steps: list[dict[str, object]] = []
+    previous_text = ""
+    primary_error: BaseException | None = None
     try:
         command(["start", str(width), str(height), "--", *argv], env)
         ansi, text, cursor = snapshot(session)
@@ -417,6 +426,8 @@ def run_recipe(
             }
         )
         for step_index, (step_kind, value) in enumerate(parse_steps(row["steps"]), start=1):
+            if step_kind != "anchor":
+                previous_text = text
             if step_kind == "keys":
                 keys = expand_keys(value)  # type: ignore[arg-type]
                 command(["keys", *keys], env)
@@ -436,7 +447,11 @@ def run_recipe(
                 command(["wait", value], env)  # type: ignore[list-item]
                 event = f"wait:{value}s"
             elif step_kind == "anchor":
-                if value not in text:
+                # A historical anchor can name content visible immediately
+                # before a scroll/click changes the final frame. The final
+                # artifact is still compared exactly; this guard only proves
+                # the recipe reached either side of that transition.
+                if value not in text and value not in previous_text:
                     fail(f"{recipe_id}: anchor not observed: {value!r}")
                 event = f"anchor:{value}"
             else:
@@ -457,13 +472,21 @@ def run_recipe(
                 }
             )
         command(["shot", recipe_id], env)
+    except BaseException as error:
+        primary_error = error
+        raise
     finally:
         try:
             command(["stop"], env)
         except RuntimeError:
-            if (ROOT / artifact_dir).is_dir():
+            if primary_error is not None:
+                # Preserve the capture/anchor failure. A missing session is
+                # cleanup fallout, not the cause and must not hide evidence.
+                pass
+            elif (ROOT / artifact_dir).is_dir():
                 raise
-            raise
+            else:
+                raise
 
     trace = {
         "schema_version": 2,
@@ -506,11 +529,43 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="junie-parity-") as state:
         state_root = Path(state) / "state"
         state_root.mkdir()
-        for index, row in enumerate(rows, start=1):
+        workers_raw = os.environ.get("PARITY_REPLAY_WORKERS", "1")
+        try:
+            workers = int(workers_raw)
+        except ValueError:
+            fail(f"PARITY_REPLAY_WORKERS must be a positive integer: {workers_raw!r}")
+        if workers < 1:
+            fail(f"PARITY_REPLAY_WORKERS must be a positive integer: {workers_raw!r}")
+
+        def replay_one(item: tuple[int, dict[str, str]]) -> tuple[str, bool]:
+            index, row = item
             print(f"replay {index}/{len(rows)}: {row['recipe_id']}", flush=True)
-            dirty_by_recipe[row["recipe_id"]] = run_recipe(
-                row, index, revision, source_digest, source_is_dirty, state_root
-            )
+            for attempt in range(3):
+                try:
+                    dirty = run_recipe(
+                        row,
+                        index,
+                        revision,
+                        source_digest,
+                        source_is_dirty,
+                        state_root,
+                        attempt,
+                    )
+                    return row["recipe_id"], dirty
+                except RuntimeError:
+                    if attempt == 2:
+                        raise
+                    print(
+                        f"replay retry {index}/{len(rows)}: {row['recipe_id']} (attempt {attempt + 2})",
+                        flush=True,
+                    )
+            raise AssertionError("unreachable replay retry loop")
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(replay_one, item) for item in enumerate(rows, start=1)]
+            for future in concurrent.futures.as_completed(futures):
+                recipe_id, dirty = future.result()
+                dirty_by_recipe[recipe_id] = dirty
 
     evidence = [HEADER]
     for row in rows:

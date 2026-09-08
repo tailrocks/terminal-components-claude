@@ -696,7 +696,10 @@ fn shell_row_style(style: Style, flags: StateFlags) -> Style {
 }
 
 fn shell_text_style(ui: &Ui<'_>, step: usize) -> Style {
-    shell_compat_style(ui.surface_style().fg(ui.theme().color.fg[step]))
+    shell_compat_style(
+        ui.surface_style()
+            .fg(ui.theme().color.fg.get(step).copied().unwrap_or_default()),
+    )
 }
 
 fn paint_header(
@@ -842,7 +845,9 @@ fn paint_header_actions(
     );
     right = inspector_x.saturating_sub(1);
     if right > left.saturating_add(capability_width) {
-        let cap_x = right.saturating_sub(capability_width);
+        // The old shell leaves one cell between the capability cluster and
+        // the inspector action.
+        let cap_x = right.saturating_sub(capability_width.saturating_add(1));
         ui.paint_str(
             Rect::new(cap_x, area.y, width(capability), 1),
             capability,
@@ -1084,7 +1089,13 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
-fn paint_footer(ui: &mut Ui<'_>, area: Rect, nav_focused: bool) {
+fn paint_footer(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    nav_focused: bool,
+    page_hints: &[(&str, &str)],
+    page_editing: bool,
+) {
     if area.is_empty() {
         return;
     }
@@ -1102,7 +1113,7 @@ fn paint_footer(ui: &mut Ui<'_>, area: Rect, nav_focused: bool) {
         Part::ACTION,
         StateFlags::empty(),
     );
-    let hints: &[(&str, &str)] = if nav_focused {
+    let nav_hints: &[(&str, &str)] = if nav_focused {
         &[
             ("↑ ↓", "Move"),
             ("Enter", "Open"),
@@ -1110,7 +1121,16 @@ fn paint_footer(ui: &mut Ui<'_>, area: Rect, nav_focused: bool) {
             ("q", "Quit"),
         ]
     } else {
-        &[("Tab", "Next"), ("Esc", "Navigation"), ("q", "Quit")]
+        &[]
+    };
+    let hints: Vec<(&str, &str)> = if nav_focused {
+        nav_hints.to_vec()
+    } else {
+        let mut hints = page_hints.to_vec();
+        if !page_editing {
+            hints.push(("Tab", "Next"));
+        }
+        hints
     };
     let mut x = area.x.saturating_add(1);
     for (key, action) in hints {
@@ -1246,10 +1266,16 @@ impl TuiApp for App {
         if let Some(inspector) = shell.inspector {
             paint_inspector(ui, inspector, self);
         }
+        let (page_hints, page_editing) = self
+            .active()
+            .map(|page| (page.hints(ui), page.editing(ui)))
+            .unwrap_or_default();
         paint_footer(
             ui,
             shell.footer,
             ui.state(NAV).contains(StateFlags::FOCUSED),
+            &page_hints,
+            page_editing,
         );
         ui.layer(HELP, |ui, area| {
             Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
@@ -1273,12 +1299,13 @@ impl TuiApp for App {
         }
     }
 
-    fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-        if self.page == PageId::Overview {
-            self.quit = true;
-            Response::changed()
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        // Historical top-level Esc only returns focus to the shell navigation;
+        // it never changes the selected page or exits the application.
+        if cx.state(NAV).contains(StateFlags::FOCUSED) {
+            Response::consumed()
         } else {
-            self.goto(PageId::Overview);
+            cx.focus(NAV);
             Response::changed()
         }
     }

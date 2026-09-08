@@ -1,14 +1,14 @@
 //! Read-only keyed data grid with model-owned sorting.
 
 use junie_tui::{
-    id, layout, Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid,
-    GridAction, GridModel, GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Response,
-    Role, RowDecor, RowTotal, SortDir, StateFlags, StylePatch, Track, Ui, Variant,
+    Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid, GridAction, GridModel,
+    GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Response, Role, RowDecor,
+    RowTotal, SortDir, StateFlags, StylePatch, Track, Ui, Variant, id, layout,
 };
 
-use crate::data::{TaskRow, TaskStatus, TASKS};
+use crate::data::{TASKS, TaskRow, TaskStatus};
 
-use super::{frame, Page};
+use super::{Page, frame};
 
 const TABLE: Id = id!("tables.tasks");
 const CHECKS: Id = id!("tables.checks");
@@ -430,9 +430,14 @@ fn table() -> Grid<'static> {
 }
 
 fn table_view() -> Grid<'static> {
-    Grid::new(TABLE, &COLUMNS)
-        .nav(NavUnit::Row)
-        .patch_part(PART_PATCH)
+    table()
+}
+
+fn checks_panel() -> Panel<'static> {
+    Panel::new(CHECKS)
+        .kind(PanelKind::Card)
+        .title("Checks")
+        .patch_part(PANEL_PARTS)
 }
 
 /// The grid owns only cursor state; the adapter owns row order and domain
@@ -468,6 +473,7 @@ impl Page for TablesPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let _ = checks_panel();
         let action = table().update(cx, &mut self.state, &self.model);
         if let Some(GridAction::Sort(key, direction)) = action.action_ref() {
             self.model.sort(*key, *direction);
@@ -495,11 +501,7 @@ impl Page for TablesPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let meta = if area.width < 70 {
-            "Sort by header, hover rows, select with Enter, ov…"
-        } else {
-            "Sort by header, hover rows, select with Enter, overflow scrolls"
-        };
+        let meta = "Sort by header, hover rows, select with Enter, overflow scrolls";
         frame(ui, area, self.title(), meta, |ui, body| {
             let regions = layout::rows(
                 body,
@@ -557,46 +559,59 @@ impl Page for TablesPage {
                 });
             paint_card_meta(ui, tasks, &task_meta);
             if let Some(checks) = regions.get(2).copied() {
-                Panel::new(CHECKS)
-                    .kind(PanelKind::Card)
-                    .title("Checks")
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, checks, |ui, inner| {
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: inner.x.saturating_add(3),
-                                width: inner.width.saturating_sub(3),
-                                height: 1,
-                                ..inner
-                            },
-                            "Check",
-                            ui.surface_style(),
-                        );
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: checks.right().saturating_sub(12),
-                                width: 6,
-                                height: 1,
-                                ..inner
-                            },
-                            "Result",
-                            ui.surface_style(),
-                        );
-                        EmptyState::Empty {
-                            title: "No checks have run yet",
-                            hint: None,
-                        }
-                        .draw(
-                            ui,
-                            Rect {
-                                y: inner.y.saturating_add(3),
-                                height: inner.height.saturating_sub(3),
-                                ..inner
-                            },
-                            0,
-                        );
-                    });
+                checks_panel().draw(ui, checks, |ui, inner| {
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: inner.x.saturating_add(3),
+                            width: inner.width.saturating_sub(3),
+                            height: 1,
+                            ..inner
+                        },
+                        "Check",
+                        ui.surface_style(),
+                    );
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: checks.right().saturating_sub(12),
+                            width: 6,
+                            height: 1,
+                            ..inner
+                        },
+                        "Result",
+                        ui.surface_style(),
+                    );
+                    EmptyState::Empty {
+                        title: "No checks have run yet",
+                        hint: None,
+                    }
+                    .draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(3),
+                            height: inner.height.saturating_sub(3),
+                            ..inner
+                        },
+                        0,
+                    );
+                });
             }
         });
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.state.is_editing() {
+            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+        } else {
+            vec![
+                ("↑ ↓", "Move"),
+                ("← →", "Columns"),
+                ("s", "Sort column"),
+                ("Enter", "Select"),
+            ]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
     }
 }

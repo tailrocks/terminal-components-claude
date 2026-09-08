@@ -33,12 +33,8 @@ fn name_input<'a>() -> TextInput<'a> {
 
 fn branch_input<'a>() -> TextInput<'a> {
     TextInput::new(BRANCH)
-        .placeholder("Branch name")
+        .placeholder("feat/…")
         .blur(BlurPolicy::Commit)
-}
-
-fn fields_panel() -> Panel<'static> {
-    Panel::new(CARD).kind(PanelKind::Card).title("Edit fields")
 }
 
 fn playground_panel() -> Panel<'static> {
@@ -46,6 +42,13 @@ fn playground_panel() -> Panel<'static> {
         .kind(PanelKind::Card)
         .title("Playground")
         .meta("Enter Edit · Esc Cancel · Tab Commit + next ")
+}
+
+fn state_reference_panel() -> Panel<'static> {
+    Panel::new(STATE_REFERENCE)
+        .kind(PanelKind::Card)
+        .title("State reference")
+        .meta("static ")
 }
 
 fn project_field<'a>(value: &'a str) -> Field<'a, TextInput<'a>> {
@@ -162,8 +165,8 @@ pub(crate) struct InputsPage {
 impl InputsPage {
     pub(crate) fn new() -> Self {
         Self {
-            name: String::from("operator"),
-            branch: String::from("payments-gateway"),
+            name: String::from("payments-gateway"),
+            branch: String::new(),
             name_state: TextInputState::default(),
             branch_state: TextInputState::default(),
             last: "ready",
@@ -184,7 +187,12 @@ impl Page for InputsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
-        let _ = fields_panel();
+        let _ = playground_panel();
+        let _ = state_reference_panel();
+        let _ = owner_field();
+        let _ = token_field();
+        let _ = search_field();
+        let _ = api_key_field();
         let name = name_input().update(cx, &mut self.name_state, &mut self.name);
         if let Some(action) = name.action_ref() {
             self.last = match action {
@@ -209,11 +217,7 @@ impl Page for InputsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let meta = if area.width < 70 {
-            "Focus is a bar; editing is a cursor. Enter to edi…"
-        } else {
-            "Focus is a bar; editing is a cursor. Enter to edit, Esc to revert."
-        };
+        let meta = "Focus is a bar; editing is a cursor. Enter to edit, Esc to revert.";
         frame(ui, area, self.title(), meta, |ui, body| {
             let regions = layout::rows(body, &[Track::Fixed(17), Track::Fixed(1), Track::Flex(1)]);
             let fields = regions.first().copied().unwrap_or(body);
@@ -355,56 +359,76 @@ impl Page for InputsPage {
                 });
             });
             if let Some(reference_area) = regions.get(2).copied() {
-                Panel::new(STATE_REFERENCE)
-                    .kind(PanelKind::Card)
-                    .title("State reference")
-                    .meta("static ")
-                    .draw(ui, reference_area, |ui, inner| {
-                        let states = [
-                            ("default", "payments-gateway", Status::Ready),
-                            ("placeholder", "(feat/…)", Status::Ready),
-                            ("hover", "payments-gateway", Status::Ready),
-                            ("focused", "payments-gateway", Status::Ready),
-                            ("editing", "payments-gateway", Status::Ready),
-                            ("error", "mira@example", Status::Error),
-                            ("error + focus", "mira@example", Status::Error),
-                            ("disabled", "jb_live_••••", Status::Ready),
-                        ];
-                        for (index, (label, value, status)) in states.iter().enumerate() {
-                            let Ok(offset) = u16::try_from(index) else {
-                                break;
-                            };
-                            if offset >= inner.height {
-                                break;
-                            }
-                            let row = Rect {
-                                y: inner.y.saturating_add(offset),
-                                height: 1,
-                                ..inner
-                            };
-                            let _ = ui.paint_str(row, label, ui.surface_style());
-                            let field_area = Rect {
-                                x: row.x.saturating_add(16),
-                                width: row.width.saturating_sub(16).min(33),
-                                ..row
-                            };
-                            let mut flags = StateFlags::empty();
-                            if matches!(*status, Status::Error) {
-                                flags |= StateFlags::ERROR;
-                            }
-                            if matches!(index, 3 | 4 | 6) {
-                                flags |= StateFlags::FOCUSED;
-                            }
-                            ui.reference(None, |ui| {
-                                TextInput::new(STATE_REFERENCE.index(index))
-                                    .value(value)
-                                    .status(*status)
-                                    .draw(ui, field_area, &TextInputState::default());
-                                legacy_field_gutter(ui, field_area, flags);
-                            });
+                state_reference_panel().draw(ui, reference_area, |ui, inner| {
+                    let states = [
+                        ("default", "payments-gateway", Status::Ready),
+                        ("placeholder", "(feat/…)", Status::Ready),
+                        ("hover", "payments-gateway", Status::Ready),
+                        ("focused", "payments-gateway", Status::Ready),
+                        ("editing", "payments-gateway", Status::Ready),
+                        ("error", "mira@example", Status::Error),
+                        ("error + focus", "mira@example", Status::Error),
+                        ("disabled", "jb_live_••••", Status::Ready),
+                    ];
+                    for (index, (label, value, status)) in states.iter().enumerate() {
+                        let Ok(offset) = u16::try_from(index) else {
+                            break;
+                        };
+                        if offset >= inner.height {
+                            break;
                         }
-                    });
+                        let row = Rect {
+                            y: inner.y.saturating_add(offset),
+                            height: 1,
+                            ..inner
+                        };
+                        let _ = ui.paint_str(row, label, ui.surface_style());
+                        let field_area = Rect {
+                            x: row.x.saturating_add(16),
+                            width: row.width.saturating_sub(16).min(33),
+                            ..row
+                        };
+                        let mut flags = StateFlags::empty();
+                        if matches!(*status, Status::Error) {
+                            flags |= StateFlags::ERROR;
+                        }
+                        if matches!(index, 3 | 4 | 6) {
+                            flags |= StateFlags::FOCUSED;
+                        }
+                        ui.reference(None, |ui| {
+                            TextInput::new(STATE_REFERENCE.index(index))
+                                .value(value)
+                                .status(*status)
+                                .draw(ui, field_area, &TextInputState::default());
+                            legacy_field_gutter(ui, field_area, flags);
+                        });
+                    }
+                });
             }
         });
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        let editing = if ui.state(NAME).contains(StateFlags::FOCUSED) {
+            self.name_state.is_editing()
+        } else if ui.state(BRANCH).contains(StateFlags::FOCUSED) {
+            self.branch_state.is_editing()
+        } else {
+            false
+        };
+        if editing {
+            vec![
+                ("Enter", "Commit"),
+                ("Esc", "Cancel"),
+                ("Shift+← →", "Select"),
+                ("Ctrl+U", "Clear"),
+            ]
+        } else {
+            vec![("Enter", "Edit")]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.name_state.is_editing() || self.branch_state.is_editing()
     }
 }

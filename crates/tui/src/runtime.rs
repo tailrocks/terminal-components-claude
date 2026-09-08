@@ -381,6 +381,11 @@ impl<A: App> Runtime<A> {
         }
         self.focus.set(to);
         self.last.snapshot.focus = to;
+        // Focus is visible state. Terminal sessions redraw only when the
+        // response asks for paint; without this request a rapid Tab+Enter
+        // sequence can deliver Enter against the previous frame's binding
+        // table, so the newly focused control never sees its activation.
+        self.services.repaint = true;
         self.dismiss_on_focus_out(to);
         true
     }
@@ -2444,6 +2449,17 @@ mod tests {
         let _ = step(&mut rt, &mut buf, key(KeyCode::Down));
         let suppressed_out = step(&mut rt, &mut buf, mouse(MouseKind::Move, 32, 10));
         assert_eq!(suppressed_out.invalidate(), Invalidate::None);
+    }
+
+    #[test]
+    fn focus_transition_requests_paint_for_terminal_sessions() {
+        let (mut rt, mut buf) = runtime(three());
+
+        let response = rt.handle(key(KeyCode::Tab));
+
+        assert_eq!(rt.focus(), Some(B));
+        assert_eq!(response.invalidate(), Invalidate::Paint);
+        rt.draw_buffer(SCREEN, &mut buf);
     }
 
     #[test]

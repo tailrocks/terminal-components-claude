@@ -1448,12 +1448,7 @@ impl<'a> TextViewport<'a> {
         };
         ui.report_layout(
             id,
-            LayoutFacts::new(
-                usize::from(area.height),
-                total,
-                area.height.saturating_sub(2),
-                text_w,
-            ),
+            LayoutFacts::new(usize::from(area.height), total, area.height, text_w),
         );
         if text.is_empty() {
             return text;
@@ -1797,7 +1792,7 @@ mod tests {
     }
 
     #[test]
-    fn track_registration_includes_the_cap_cells() {
+    fn track_registration_uses_the_full_bar_geometry() {
         let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer);
@@ -2143,8 +2138,7 @@ mod tests {
         assert_eq!(state.scroll.offset(), state.scroll.max_offset());
 
         state.scroll.scroll_to(0);
-        let bottom_bar_local = track.saturating_add(1);
-        let track_pos = bottom_bar_local.saturating_sub(1);
+        let track_pos = track.saturating_sub(1);
         state
             .scroll
             .scroll_to(state.scroll.offset_for_track_pos(track_pos, track));

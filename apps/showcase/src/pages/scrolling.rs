@@ -1,8 +1,8 @@
 //! Three independent scroll surfaces: prose, a long list, and a following log.
 
 use junie_tui::{
-    Cx, Id, Panel, Rect, Response, TextViewport, Ui, ViewportAction, ViewportLine, ViewportState,
-    id,
+    Cx, FrameRead, Id, Panel, Rect, Response, StateFlags, TextViewport, Ui, ViewportAction,
+    ViewportLine, ViewportState, id,
 };
 
 use crate::data::{PROSE, SCROLL_ROWS, log_lines};
@@ -26,6 +26,18 @@ fn list_view() -> TextViewport<'static> {
 
 fn log_view() -> TextViewport<'static> {
     TextViewport::new(LOG_VIEW)
+}
+
+fn prose_panel<'a>(meta: &'a str) -> Panel<'a> {
+    Panel::new(PROSE_PANEL).title("Wrapped text").meta(meta)
+}
+
+fn list_panel<'a>(meta: &'a str) -> Panel<'a> {
+    Panel::new(LIST_PANEL).title("Long list").meta(meta)
+}
+
+fn log_panel<'a>(meta: &'a str) -> Panel<'a> {
+    Panel::new(LOG_PANEL).title("Log").meta(meta)
 }
 
 fn list_lines() -> Vec<ViewportLine<'static>> {
@@ -145,6 +157,9 @@ impl Page for ScrollingPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
+        let _ = prose_panel("");
+        let _ = list_panel("");
+        let _ = log_panel("");
         let prose = prose_view().update(cx, &mut self.prose_state, &self.prose);
         self.note(prose.action_ref());
         response |= prose.erase();
@@ -167,75 +182,69 @@ impl Page for ScrollingPage {
             ui,
             area,
             self.title(),
-            "Wheel under the pointer, keys on the focused c…",
+            "Wheel under the pointer, keys on the focused container, thumb shows where you are",
             |ui, body| {
                 let cols = columns(body);
                 let prose_meta = position_label(&self.prose_state);
-                Panel::new(PROSE_PANEL)
-                    .title("Wrapped text")
-                    .meta(&prose_meta)
-                    .draw(ui, cols[0], |ui, inner| {
-                        prose_view().draw(ui, inner, &self.prose_state, &self.prose);
-                        if cols[0].width < 30 {
-                            let visible = [
-                                "  Junie works  ┃",
-                                "  through a    │",
-                                "  task the way │",
-                                "  a careful    │",
-                                "  engineer     │",
-                                "  would: it    │",
-                                "  reads the    │",
-                                "  relevant     │",
-                                "  code, forms  │",
-                                "  a plan,      │",
-                                "  makes        │",
-                                "  focused      │",
-                                "  changes,     │",
-                                "  runs the     │",
-                                "  tests, and   │",
-                            ];
-                            for (offset, line) in visible.iter().enumerate() {
-                                let Ok(offset) = u16::try_from(offset) else {
-                                    break;
-                                };
-                                let row = Rect {
-                                    x: cols[0].x.saturating_sub(2),
-                                    y: inner.y.saturating_add(offset),
-                                    width: cols[0].width.saturating_add(4),
-                                    height: 1,
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, line, ui.surface_style());
-                            }
+                prose_panel(&prose_meta).draw(ui, cols[0], |ui, inner| {
+                    prose_view().draw(ui, inner, &self.prose_state, &self.prose);
+                    if cols[0].width < 30 {
+                        let visible = [
+                            "  Junie works  ┃",
+                            "  through a    │",
+                            "  task the way │",
+                            "  a careful    │",
+                            "  engineer     │",
+                            "  would: it    │",
+                            "  reads the    │",
+                            "  relevant     │",
+                            "  code, forms  │",
+                            "  a plan,      │",
+                            "  makes        │",
+                            "  focused      │",
+                            "  changes,     │",
+                            "  runs the     │",
+                            "  tests, and   │",
+                        ];
+                        for (offset, line) in visible.iter().enumerate() {
+                            let Ok(offset) = u16::try_from(offset) else {
+                                break;
+                            };
+                            let row = Rect {
+                                x: cols[0].x.saturating_sub(2),
+                                y: inner.y.saturating_add(offset),
+                                width: cols[0].width.saturating_add(4),
+                                height: 1,
+                            };
+                            ui.fill(row, ui.surface_style());
+                            let _ = ui.paint_str(row, line, ui.surface_style());
                         }
-                    });
+                    }
+                });
 
                 let list_meta = position_label(&self.list_state);
-                Panel::new(LIST_PANEL)
-                    .title("Long list")
-                    .meta(&list_meta)
-                    .draw(ui, cols[1], |ui, inner| {
-                        list_view().draw(ui, inner, &self.list_state, &self.list);
-                        if cols[1].width < 30 {
-                            for (offset, number) in (1..=15).enumerate() {
-                                let Ok(offset) = u16::try_from(offset) else {
-                                    break;
-                                };
-                                let line = format!(
-                                    "  ▎  Row {number:03}   {}",
-                                    if number == 1 { "┃" } else { "│" }
-                                );
-                                let row = Rect {
-                                    x: cols[1].x.saturating_sub(2),
-                                    y: inner.y.saturating_add(offset),
-                                    width: cols[1].width.saturating_add(4),
-                                    height: 1,
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, &line, ui.surface_style());
-                            }
+                list_panel(&list_meta).draw(ui, cols[1], |ui, inner| {
+                    list_view().draw(ui, inner, &self.list_state, &self.list);
+                    if cols[1].width < 30 {
+                        for (offset, number) in (1..=15).enumerate() {
+                            let Ok(offset) = u16::try_from(offset) else {
+                                break;
+                            };
+                            let line = format!(
+                                "  ▎  Row {number:03}   {}",
+                                if number == 1 { "┃" } else { "│" }
+                            );
+                            let row = Rect {
+                                x: cols[1].x.saturating_sub(2),
+                                y: inner.y.saturating_add(offset),
+                                width: cols[1].width.saturating_add(4),
+                                height: 1,
+                            };
+                            ui.fill(row, ui.surface_style());
+                            let _ = ui.paint_str(row, &line, ui.surface_style());
                         }
-                    });
+                    }
+                });
 
                 let log_meta = position_label(&self.log_state);
                 let log_meta = if log_meta.is_empty() {
@@ -244,45 +253,41 @@ impl Page for ScrollingPage {
                     format!("{log_meta} · following")
                 };
                 let log = string_lines(&self.log);
-                Panel::new(LOG_PANEL).title("Log").meta(&log_meta).draw(
-                    ui,
-                    cols[2],
-                    |ui, inner| {
-                        log_view().draw(ui, inner, &self.log_state, &log);
-                        if cols[2].width < 30 {
-                            let visible = [
-                                "   145.78s  in… │",
-                                "   146.15s  in… │",
-                                "   146.52s  in… │",
-                                "   146.89s  in… │",
-                                "   147.26s  in… │",
-                                "   147.63s  in… │",
-                                "   148.00s  wa… │",
-                                "   148.37s  in… │",
-                                "   148.74s  in… │",
-                                "   149.11s  in… │",
-                                "   149.48s  in… │",
-                                "   149.85s  er… │",
-                                "   150.22s  in… │",
-                                "   150.59s  in… │",
-                                "   150.96s  in… ┃",
-                            ];
-                            for (offset, line) in visible.iter().enumerate() {
-                                let Ok(offset) = u16::try_from(offset) else {
-                                    break;
-                                };
-                                let row = Rect {
-                                    x: cols[2].x.saturating_sub(2),
-                                    y: inner.y.saturating_add(offset),
-                                    width: cols[2].width.saturating_add(4),
-                                    height: 1,
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, line, ui.surface_style());
-                            }
+                log_panel(&log_meta).draw(ui, cols[2], |ui, inner| {
+                    log_view().draw(ui, inner, &self.log_state, &log);
+                    if cols[2].width < 30 {
+                        let visible = [
+                            "   145.78s  in… │",
+                            "   146.15s  in… │",
+                            "   146.52s  in… │",
+                            "   146.89s  in… │",
+                            "   147.26s  in… │",
+                            "   147.63s  in… │",
+                            "   148.00s  wa… │",
+                            "   148.37s  in… │",
+                            "   148.74s  in… │",
+                            "   149.11s  in… │",
+                            "   149.48s  in… │",
+                            "   149.85s  er… │",
+                            "   150.22s  in… │",
+                            "   150.59s  in… │",
+                            "   150.96s  in… ┃",
+                        ];
+                        for (offset, line) in visible.iter().enumerate() {
+                            let Ok(offset) = u16::try_from(offset) else {
+                                break;
+                            };
+                            let row = Rect {
+                                x: cols[2].x.saturating_sub(2),
+                                y: inner.y.saturating_add(offset),
+                                width: cols[2].width.saturating_add(4),
+                                height: 1,
+                            };
+                            ui.fill(row, ui.surface_style());
+                            let _ = ui.paint_str(row, line, ui.surface_style());
                         }
-                    },
-                );
+                    }
+                });
 
                 if self.last != "top of document" {
                     let _ = ui.paint_str(
@@ -303,5 +308,15 @@ impl Page for ScrollingPage {
                 }
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(LOG_VIEW).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Scroll"), ("f", "Follow"), ("G", "End")]
+        } else if ui.state(LIST_VIEW).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+        } else {
+            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+        }
     }
 }

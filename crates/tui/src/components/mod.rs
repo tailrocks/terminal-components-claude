@@ -106,8 +106,9 @@ pub use wizard::{Wizard, WizardAction, WizardCmd, WizardState, WizardStep};
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Style;
 
-use crate::id::Id;
-use crate::theme::GlyphRole;
+use crate::id::{Id, Part, PartRef};
+use crate::response::StateFlags;
+use crate::theme::{Family, GlyphRole, Surface, Variant};
 use crate::ui::Ui;
 
 pub(crate) use crate::author::PartStyle;
@@ -115,6 +116,57 @@ pub(crate) use crate::author::PartStyle;
 /// A replaced part: the component keeps layout, hit registration, focus and
 /// state; the closure paints the part's rect.
 pub(crate) type SlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect);
+
+/// Paint the shared chrome of a layer-backed surface and run its content.
+///
+/// Placement, z-order, pointer barriers and focus trapping remain owned by
+/// [`Ui::layer`](crate::Ui::layer). This helper owns only the repeated
+/// container fill, typed frame, decorative registrations and surface scope;
+/// it never invents a barrier or a second placement algorithm.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the shared chrome contract keeps each authored style and state channel explicit"
+)]
+pub(crate) fn overlay_chrome<R>(
+    ui: &mut Ui<'_>,
+    id: Id,
+    area: Rect,
+    family: Family,
+    surface: Surface,
+    ov: PartStyle<'_>,
+    live: StateFlags,
+    border_live: StateFlags,
+    body: impl FnOnce(&mut Ui<'_>, Rect) -> R,
+) -> R {
+    ui.with_surface(surface, |ui| {
+        if area.is_empty() {
+            return ui.with_area(area, |ui| body(ui, area));
+        }
+
+        let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
+        ui.fill(area, container.style);
+        ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
+
+        let border = ov.style(ui, id, family, Variant::DEFAULT, Part::BORDER, border_live);
+        let inner = ui.frame(area, border.style);
+        if let Some(slot) = ov.slot_for(Part::BORDER) {
+            slot(ui, area);
+        }
+        ui.register_decor(id, PartRef::of(Part::BORDER), area);
+
+        let body_area = if inner.is_empty() {
+            Rect {
+                x: area.x,
+                y: area.y,
+                width: 0,
+                height: 0,
+            }
+        } else {
+            inner
+        };
+        body(ui, body_area)
+    })
+}
 
 /// The first row of `area`, or an empty rect.
 pub(crate) const fn first_row(area: Rect) -> Rect {

@@ -1,8 +1,8 @@
 //! Application chrome: brand lockup, status strip and inline meters.
 
 use junie_tui::{
-    Brand, Cx, Id, Modifier, Part, Response, Role, StateFlags, Status, StatusBar, StatusItem,
-    Style, Surface, Ui, Variant, id, width,
+    Brand, Cx, FrameRead, Id, Modifier, Part, Response, Role, StateFlags, Status, StatusBar,
+    StatusItem, Style, Surface, Ui, Variant, id, width,
 };
 
 use super::{Page, frame};
@@ -257,7 +257,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
         ui,
         body,
         2,
-        "  Sessions              ",
+        "  Sessions                                                 ",
         "right-click or m for the tab menu",
         faint,
     );
@@ -277,7 +277,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
         body,
         4,
         "  ▎  1 Claude Code (Work)                 working     ",
-        "Th…",
+        "The status bar below sits on its own …",
         meta,
     );
     paint_segment(ui, body, 5, "  ", "▎", rail);
@@ -295,7 +295,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
         body,
         5,
         "  ▎  2 Codex (Primary)                       idle     ",
-        "se…",
+        "separator glyphs, and items leave by …",
         meta,
     );
     paint_segment(ui, body, 6, "  ", "▎", rail);
@@ -305,7 +305,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
         body,
         6,
         "  ▎  3 Shell                                          ",
-        "na…",
+        "narrow — resize the terminal to watch…",
         meta,
     );
     paint_segment(ui, body, 7, "  ", "▎", rail);
@@ -323,53 +323,42 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
         body,
         8,
         "                                                      ",
-        "Br…",
+        "Brand: one lockup, accent-filled, the…",
         meta,
     );
     ui.fill(
         junie_tui::Rect {
-            x: body.x.saturating_add(1),
             y: body.y.saturating_add(15),
-            width: width("payments-platform   PR #482 · settlement backoff"),
-            height: 1,
-        },
-        active,
-    );
-    paint_segment(ui, body, 15, " ", "payments-platform", active);
-    paint_segment(
-        ui,
-        body,
-        15,
-        " payments-platform   ",
-        "PR #482 · settlement backoff",
-        active_detail,
-    );
-    ui.fill(
-        junie_tui::Rect {
-            y: body.y.saturating_add(16),
-            height: 2,
+            height: 3,
             ..body
         },
         canvas,
     );
-    paint_segment(
-        ui,
-        body,
-        16,
-        " ",
-        "hint bar · topmost layer wins:",
-        faint_canvas,
+    let status_y = body.bottom().saturating_sub(3);
+    ui.fill(
+        junie_tui::Rect {
+            y: status_y,
+            height: 3,
+            ..body
+        },
+        canvas,
     );
-    paint_segment(ui, body, 17, " ", "↑↓", key);
-    paint_segment(ui, body, 17, " ↑↓ ", "Move", action);
-    paint_segment(ui, body, 17, " ↑↓ Move  ", "m", key);
-    paint_segment(ui, body, 17, " ↑↓ Move  m ", "Context menu", action);
-    paint_segment(
-        ui,
-        body,
-        17,
-        " ↑↓ Move  m Context menu  ",
-        "…",
+    ui.paint_str(
+        junie_tui::Rect {
+            y: status_y,
+            height: 1,
+            ..body
+        },
+        " payments-platform   PR #482 · settlement backoff                                 Weekly 59%",
+        active,
+    );
+    ui.paint_str(
+        junie_tui::Rect {
+            y: status_y.saturating_add(1),
+            height: 1,
+            ..body
+        },
+        " hint bar · topmost layer wins:",
         faint_canvas,
     );
     let last = if brand_clicks == 0 {
@@ -377,14 +366,19 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
     } else {
         format!("brand activations: {brand_clicks}")
     };
-    paint_segment(
-        ui,
-        body,
-        17,
-        " ↑↓ Move  m Context menu  …              ",
-        &last,
-        last_style,
+    let hint_line = format!(
+        " ↑↓ Move  m Context menu  right-click Context menu  Tab Next                {last}"
     );
+    ui.paint_str(
+        junie_tui::Rect {
+            y: status_y.saturating_add(2),
+            height: 1,
+            ..body
+        },
+        &hint_line,
+        faint_canvas,
+    );
+    let _ = (active_detail, key, action, last_style);
 }
 
 /// Chrome keeps a clickable brand and a deterministic status strip in state.
@@ -419,7 +413,7 @@ impl Page for ChromePage {
             ui,
             area,
             self.title(),
-            "Brand lockup · menu bar with anchored menus · sta…",
+            "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers",
             |ui, body| {
                 // Keep the component projection live so it owns hit testing;
                 // the frozen paint below restores the historical cells.
@@ -431,7 +425,7 @@ impl Page for ChromePage {
                     &[
                         "  app❯    File   View   Help",
                         "",
-                        "  Sessions              right-click or m for the tab menu",
+                        "  Sessions                                                 right-click or m for the tab menu",
                         "",
                         "  ▎  1 Claude Code (Work)                 working     Th…",
                         "  ▎  2 Codex (Primary)                       idle     se…",
@@ -452,5 +446,17 @@ impl Page for ChromePage {
                 paint_historical(ui, body, self.brand_clicks);
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(BAR).contains(StateFlags::FOCUSED) {
+            vec![("← →", "Menu"), ("Enter", "Open")]
+        } else {
+            vec![
+                ("↑↓", "Move"),
+                ("m", "Context menu"),
+                ("right-click", "Context menu"),
+            ]
+        }
     }
 }

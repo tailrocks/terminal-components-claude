@@ -61,28 +61,35 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
     let mut i = 0;
     while i < bytes.len() {
         if !src.is_char_boundary(i) {
-            i += 1;
+            i = i.saturating_add(1);
             continue;
         }
-        let byte = bytes[i];
-        if byte == b'/' && bytes.get(i + 1) == Some(&b'/') {
+        let Some(&byte) = bytes.get(i) else {
+            break;
+        };
+        if byte == b'/' && bytes.get(i.saturating_add(1)) == Some(&b'/') {
             let end = src[i..].find('\n').map_or(bytes.len(), |n| i + n);
             spans.push((i..end, SyntaxRole::Comment));
             i = end;
             continue;
         }
         if byte == b'"' {
-            let end = src[i + 1..].find('"').map_or(bytes.len(), |n| i + n + 2);
+            let end = src
+                .get(i.saturating_add(1)..)
+                .and_then(|rest| rest.find('"'))
+                .map_or(bytes.len(), |n| i.saturating_add(n).saturating_add(2));
             spans.push((i..end, SyntaxRole::Str));
             i = end;
             continue;
         }
         if byte.is_ascii_digit() {
             let mut end = i;
-            while end < bytes.len()
-                && (bytes[end].is_ascii_digit() || bytes[end] == b'_' || bytes[end] == b'.')
-            {
-                end += 1;
+            while let Some(&next) = bytes.get(end) {
+                if next.is_ascii_digit() || next == b'_' || next == b'.' {
+                    end = end.saturating_add(1);
+                } else {
+                    break;
+                }
             }
             spans.push((i..end, SyntaxRole::Number));
             i = end;
@@ -90,10 +97,17 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
         }
         if byte.is_ascii_alphabetic() || byte == b'_' {
             let mut end = i;
-            while end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_') {
-                end += 1;
+            while let Some(&next) = bytes.get(end) {
+                if next.is_ascii_alphanumeric() || next == b'_' {
+                    end = end.saturating_add(1);
+                } else {
+                    break;
+                }
             }
-            let word = &src[i..end];
+            let Some(word) = src.get(i..end) else {
+                i = end;
+                continue;
+            };
             let next = bytes.get(end).copied();
             let role = if KEYWORDS.contains(&word) {
                 SyntaxRole::Keyword
@@ -113,12 +127,12 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
             b'=' | b'+' | b'-' | b'*' | b'/' | b'<' | b'>' | b'!' | b'&' | b'|' | b':' | b'?'
             | b'.' => SyntaxRole::Operator,
             _ => {
-                i += 1;
+                i = i.saturating_add(1);
                 continue;
             }
         };
-        spans.push((i..i + 1, role));
-        i += 1;
+        spans.push((i..i.saturating_add(1), role));
+        i = i.saturating_add(1);
     }
     spans
 }
@@ -157,6 +171,14 @@ fn editor() -> CodeEditor<'static> {
 
 fn completion() -> Completion<'static, Item<'static>> {
     Completion::new(COMPLETION).max_rows(3)
+}
+
+fn editor_panel<'a>(meta: &'a str) -> Panel<'a> {
+    Panel::new(EDITOR_PANEL).title("retry.rs").meta(meta)
+}
+
+fn state_panel() -> Panel<'static> {
+    Panel::new(STATE_PANEL).title("State")
 }
 
 fn diff() -> DiffView<'static> {
@@ -198,6 +220,8 @@ impl Page for EditorPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let _ = editor_panel("");
+        let _ = state_panel();
         let editor_response = editor().update(cx, &mut self.state);
         if let Some(action) = editor_response.action_ref() {
             self.last = match action {
@@ -216,6 +240,7 @@ impl Page for EditorPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = completion();
         // The historical narrow layout shortens the page heading so the
         // route title remains visible beside the shell's compact header.
         let heading = if area.width < 80 {
@@ -227,7 +252,7 @@ impl Page for EditorPage {
             ui,
             area,
             heading,
-            "Blocks, tones, diagnostics and completion; t…",
+            "Blocks, tones, diagnostics and completion; the gutter says where you are",
             |ui, body| {
                 let left_width = (body.width.saturating_mul(62) / 100).max(40);
                 let (code_area, state_area) = if body.width < left_width.saturating_add(22) {
@@ -249,69 +274,67 @@ impl Page for EditorPage {
                 } else {
                     format!("{blocks} blocks")
                 };
-                Panel::new(EDITOR_PANEL)
-                    .title("retry.rs")
-                    .meta(&format!("{blocks_meta} "))
-                    .draw(ui, code_area, |ui, inner| {
-                        editor().draw(ui, inner, &self.state);
-                        let gutter = ui.with_surface(Surface::Surface, |ui| {
-                            ui.style(
-                                junie_tui::Family::CODE,
-                                Variant::DEFAULT,
-                                Part::GUTTER,
-                                StateFlags::FOCUSED,
-                            )
-                            .style
-                        });
-                        let marker = ui.with_surface(Surface::Surface, |ui| {
-                            ui.style(
-                                junie_tui::Family::CODE,
-                                Variant::DEFAULT,
-                                Part::MARKER,
-                                StateFlags::ACTIVE,
-                            )
-                            .style
-                        });
-                        ui.paint_str(
-                            Rect {
-                                x: inner.x,
-                                y: inner.y,
-                                width: 1,
-                                height: 1,
-                            },
-                            "▎",
-                            gutter,
-                        );
-                        ui.paint_str(
-                            Rect {
-                                x: inner.x.saturating_add(1),
-                                y: inner.y,
-                                width: 1,
-                                height: 1,
-                            },
-                            "›",
-                            marker,
-                        );
-                        let footer = ui.with_surface(Surface::Surface, |ui| {
-                            ui.style(
-                                junie_tui::Family::CODE,
-                                Variant::DEFAULT,
-                                Part::META,
-                                StateFlags::empty(),
-                            )
-                            .style
-                        });
-                        ui.paint_str(
-                            Rect {
-                                x: inner.right().saturating_sub(10),
-                                y: inner.y.saturating_add(5),
-                                width: 10,
-                                height: 1,
-                            },
-                            "1–5 of 26",
-                            footer,
-                        );
+                let editor_meta = format!("{blocks_meta} ");
+                editor_panel(&editor_meta).draw(ui, code_area, |ui, inner| {
+                    editor().draw(ui, inner, &self.state);
+                    let gutter = ui.with_surface(Surface::Surface, |ui| {
+                        ui.style(
+                            junie_tui::Family::CODE,
+                            Variant::DEFAULT,
+                            Part::GUTTER,
+                            StateFlags::FOCUSED,
+                        )
+                        .style
                     });
+                    let marker = ui.with_surface(Surface::Surface, |ui| {
+                        ui.style(
+                            junie_tui::Family::CODE,
+                            Variant::DEFAULT,
+                            Part::MARKER,
+                            StateFlags::ACTIVE,
+                        )
+                        .style
+                    });
+                    ui.paint_str(
+                        Rect {
+                            x: inner.x,
+                            y: inner.y,
+                            width: 1,
+                            height: 1,
+                        },
+                        "▎",
+                        gutter,
+                    );
+                    ui.paint_str(
+                        Rect {
+                            x: inner.x.saturating_add(1),
+                            y: inner.y,
+                            width: 1,
+                            height: 1,
+                        },
+                        "›",
+                        marker,
+                    );
+                    let footer = ui.with_surface(Surface::Surface, |ui| {
+                        ui.style(
+                            junie_tui::Family::CODE,
+                            Variant::DEFAULT,
+                            Part::META,
+                            StateFlags::empty(),
+                        )
+                        .style
+                    });
+                    ui.paint_str(
+                        Rect {
+                            x: inner.right().saturating_sub(10),
+                            y: inner.y.saturating_add(5),
+                            width: 10,
+                            height: 1,
+                        },
+                        "1–5 of 26",
+                        footer,
+                    );
+                });
 
                 let block = editor()
                     .current_block(&self.state)
@@ -355,12 +378,33 @@ impl Page for EditorPage {
                         },
                     ),
                 ];
-                Panel::new(STATE_PANEL)
-                    .title("State")
-                    .draw(ui, state_area, |ui, inner| {
-                        Props::new(&rows).draw(ui, inner);
-                    });
+                state_panel().draw(ui, state_area, |ui, inner| {
+                    Props::new(&rows).draw(ui, inner);
+                });
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.completion_state.is_open() {
+            vec![("↑ ↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
+        } else if self.state.is_editing() {
+            vec![
+                ("Ctrl+Space", "Complete"),
+                ("Ctrl+R", "Run block"),
+                ("Esc", "Done"),
+            ]
+        } else {
+            vec![
+                ("i", "Edit"),
+                ("Ctrl+R", "Run block"),
+                ("{ }", "Blocks"),
+                ("/", "Find"),
+            ]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
     }
 }

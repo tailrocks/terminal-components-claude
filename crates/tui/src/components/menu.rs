@@ -1104,10 +1104,6 @@ impl<'a> MenuBar<'a> {
                 return response;
             };
             let response = dropdown.update(cx, st);
-            eprintln!(
-                "menu dropdown open={open} cursor={} response={response:?}",
-                st.cursor
-            );
             match response.action_ref().copied() {
                 Some(MenuAction::Opened(index)) => {
                     let _ = self.open(cx, st, index);

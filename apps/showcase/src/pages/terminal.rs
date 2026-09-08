@@ -3,8 +3,9 @@
 use core::fmt;
 
 use junie_tui::{
-    Button, Cx, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status, StepState,
-    Steps, StepsState, Style, Surface, TextArea, TextAreaState, Ui, Variant, id, layout, width,
+    Button, Cx, FrameRead, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status,
+    StepState, Steps, StepsState, Style, Surface, TextArea, TextAreaState, Ui, Variant, id, layout,
+    width,
 };
 
 use crate::data::log_lines;
@@ -53,6 +54,20 @@ fn output() -> TextArea<'static> {
     TextArea::new(OUTPUT, 12)
         .read_only(true)
         .status(Status::Ready)
+}
+
+fn output_panel() -> Panel<'static> {
+    Panel::new(OUTPUT_PANEL)
+        .kind(PanelKind::Framed)
+        .title("Viewport")
+}
+
+fn rail_panel(meta: &'static str) -> Panel<'static> {
+    Panel::new(RAIL_PANEL).title("Step rail").meta(meta)
+}
+
+fn step_spinner(frame: usize) -> Spinner<'static> {
+    Spinner::new(STEP_SPINNER).frame(frame)
 }
 
 fn run_button() -> Button<'static> {
@@ -176,13 +191,15 @@ fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
         ui.fill(area, panel);
         ui.paint_str(area, line, panel);
     }
-    for row in 0..7 {
-        let line = visible[row];
+    for (row, line) in visible.iter().enumerate().take(7) {
+        let Ok(row) = u16::try_from(row) else {
+            break;
+        };
         let number_end = line.find(|c: char| c.is_ascii_digit()).unwrap_or(2);
         ui.paint_str(
             Rect {
                 x: inner.x,
-                y: inner.y.saturating_add(row as u16),
+                y: inner.y.saturating_add(row),
                 width: inner.width,
                 height: 1,
             },
@@ -327,6 +344,9 @@ impl Page for TerminalPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
+        let _ = output_panel();
+        let _ = rail_panel("");
+        let _ = step_spinner(0);
         let output = output().update(cx, &mut self.output_state, &mut self.output);
         response |= output.erase();
         response |= step_rail()
@@ -351,19 +371,16 @@ impl Page for TerminalPage {
             ui,
             area,
             self.title(),
-            "Viewport with scrollback, selection and copy · …",
+            "Viewport with scrollback, selection and copy · drag the seam · step rail reports a job",
             |ui, body| {
                 let (left, right) = panes(body);
                 let wide = left.is_some();
                 if let Some(left) = left {
-                    Panel::new(OUTPUT_PANEL)
-                        .kind(PanelKind::Framed)
-                        .title("Viewport")
-                        .draw(ui, left, |ui, inner| {
-                            output()
-                                .value(&self.output)
-                                .draw(ui, inner, &self.output_state);
-                        });
+                    output_panel().draw(ui, left, |ui, inner| {
+                        output()
+                            .value(&self.output)
+                            .draw(ui, inner, &self.output_state);
+                    });
                 }
 
                 let meta = if self.running {
@@ -371,64 +388,60 @@ impl Page for TerminalPage {
                 } else {
                     "0 of 7 "
                 };
-                Panel::new(RAIL_PANEL).title("Step rail").meta(meta).draw(
-                    ui,
-                    right,
-                    |ui, inner| {
-                        let rail_area = Rect {
-                            height: inner.height.saturating_sub(3),
-                            ..inner
-                        };
-                        step_rail().draw(ui, rail_area, &self.steps_state, &self.steps);
-                        // The historical rail reports elapsed time for the
-                        // active first step instead of the generic lifecycle word.
-                        let _ = Spinner::new(STEP_SPINNER).frame(0).draw(
-                            ui,
-                            Rect {
-                                x: inner.x.saturating_add(1),
-                                y: inner.y,
-                                width: 1,
-                                height: 1,
-                            },
-                        );
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: inner.right().saturating_sub(5),
-                                y: inner.y,
-                                width: 5,
-                                height: 1,
-                            },
-                            "0.7 s",
-                            ui.surface_style(),
-                        );
-
-                        let run = run_button();
-                        let fail = failure_button();
-                        let widths = [
-                            run.measure(ui, junie_tui::Constraints::loose(inner.width, 1))
-                                .preferred
-                                .0,
-                            fail.measure(ui, junie_tui::Constraints::loose(inner.width, 1))
-                                .preferred
-                                .0,
-                        ];
-                        let row = Rect {
-                            y: inner.bottom().saturating_sub(1),
+                rail_panel(meta).draw(ui, right, |ui, inner| {
+                    let rail_area = Rect {
+                        height: inner.height.saturating_sub(3),
+                        ..inner
+                    };
+                    step_rail().draw(ui, rail_area, &self.steps_state, &self.steps);
+                    // The historical rail reports elapsed time for the
+                    // active first step instead of the generic lifecycle word.
+                    let _ = step_spinner(0).draw(
+                        ui,
+                        Rect {
+                            x: inner.x.saturating_add(1),
+                            y: inner.y,
+                            width: 1,
                             height: 1,
-                            ..inner
-                        };
-                        let rects = layout::action_row(row, &widths, 2, junie_tui::RowAlign::Start);
-                        if let Some(rect) = rects.first().copied() {
-                            run.draw(ui, rect);
-                        }
-                        if let Some(rect) = rects.get(1).copied() {
-                            fail.draw(ui, rect);
-                        }
-                        if inner.width < 60 {
-                            paint_narrow_rail(ui, inner);
-                        }
-                    },
-                );
+                        },
+                    );
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: inner.right().saturating_sub(5),
+                            y: inner.y,
+                            width: 5,
+                            height: 1,
+                        },
+                        "0.7 s",
+                        ui.surface_style(),
+                    );
+
+                    let run = run_button();
+                    let fail = failure_button();
+                    let widths = [
+                        run.measure(ui, junie_tui::Constraints::loose(inner.width, 1))
+                            .preferred
+                            .0,
+                        fail.measure(ui, junie_tui::Constraints::loose(inner.width, 1))
+                            .preferred
+                            .0,
+                    ];
+                    let row = Rect {
+                        y: inner.bottom().saturating_sub(1),
+                        height: 1,
+                        ..inner
+                    };
+                    let rects = layout::action_row(row, &widths, 2, junie_tui::RowAlign::Start);
+                    if let Some(rect) = rects.first().copied() {
+                        run.draw(ui, rect);
+                    }
+                    if let Some(rect) = rects.get(1).copied() {
+                        fail.draw(ui, rect);
+                    }
+                    if inner.width < 60 {
+                        paint_narrow_rail(ui, inner);
+                    }
+                });
 
                 if wide {
                     lines(
@@ -446,5 +459,22 @@ impl Page for TerminalPage {
                 }
             },
         );
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(OUTPUT).contains(StateFlags::FOCUSED) {
+            vec![
+                ("↑ ↓", "Scroll"),
+                ("Home End", "Oldest / live"),
+                ("f", "Follow"),
+                ("drag", "Select"),
+                ("y", "Copy"),
+                ("Esc", "Clear"),
+            ]
+        } else if ui.state(RAIL).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓", "Move"), ("wheel", "Scroll")]
+        } else {
+            vec![("Enter", "Activate"), ("drag ┃", "Resize")]
+        }
     }
 }

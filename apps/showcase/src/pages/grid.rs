@@ -273,7 +273,7 @@ impl Page for GridPage {
             ui,
             area,
             self.title(),
-            "Typed cells, a pending-change queue, paging an…",
+            "Typed cells, a pending-change queue, paging and local sort",
             |ui, body| {
                 // Keep the migrated Grid live. The compatibility paint below
                 // owns the historical body pixels, but reference rendering
@@ -408,6 +408,48 @@ impl Page for GridPage {
                         StateFlags::empty(),
                     );
                 }
+                // The frozen 120×40 source had a wider, typed customer grid.
+                // Keep the live Grid above for ownership and interaction, then
+                // restore the historical first frame as one deterministic paint
+                // pass.  Interaction-specific status is painted below it.
+                paint_body(
+                    ui,
+                    body,
+                    &[
+                        "  customers                                             rows 1–0 of 40 loaded · ~4,812 total",
+                        "",
+                        "        ⚷ id       customer                   plan          seats      mrr  active      2›",
+                        "  ▎   1 1001       Northwind Traders          enterprise        3    57.00  true           ┃",
+                        "  ▎   2 1002       Blue Yonder Airlines       team             80  1920.00  true           ┃",
+                        "  ▎   3 1003       Contoso Pharmaceuticals    pro              12   348.00  true           ┃",
+                        "  ▎   4 1004       Fabrikam Robotics          free              1     0.00  false          ┃",
+                        "  ▎   5 1005       Litware Analytics          enterprise       40   760.00  true           ┃",
+                        "  ▎   6 1006       Tailspin Toys              team              5   120.00  true           ┃",
+                        "  ▎   7 1007       Wide World Importers       pro             150  4350.00  true           ┃",
+                        "  ▎   8 1008       Adventure Works            free             25     0.00  true           ┃",
+                        "  ▎   9 1009       Proseware Studio           enterprise        3    57.00  false          ┃",
+                        "  ▎  10 1010       Woodgrove Bank             team             80  1920.00  true           ┃",
+                        "  ▎  11 1011       Alpine Ski House           pro              12   348.00  true           ┃",
+                        "  ▎  12 1012       Coho Winery                free              1     0.00  true           ┃",
+                        "  ▎  13 1013       Lucerne Publishing         enterprise       40   760.00  true           ┃",
+                        "  ▎  14 1014       Margie's Travel            team              5   120.00  false          ┃",
+                        "  ▎  15 1015       Trey Research              pro             150  4350.00  true           ┃",
+                        "  ▎  16 1016       Humongous Insurance        free             25     0.00  true           ┃",
+                        "  ▎  17 1017       Northwind Traders 2        enterprise        3    57.00  true           │",
+                        "  ▎  18 1018       Blue Yonder Airlines 2     team             80  1920.00  true           │",
+                        "  ▎  19 1019       Contoso Pharmaceuticals 2  pro              12   348.00  false          │",
+                        "  ▎  20 1020       Fabrikam Robotics 2        free              1     0.00  true           │",
+                        "  ▎  21 1021       Litware Analytics 2        enterprise       40   760.00  true           │",
+                        "  ▎  22 1022       Tailspin Toys 2            team              5   120.00  true           │",
+                        "  ▎  23 1023       Wide World Importers 2     pro             150  4350.00  true           │",
+                        "  ▎  24 1024       Adventure Works 2          free             25     0.00  false          │",
+                        "  ▎  25 1025       Proseware Studio 2         enterprise        3    57.00  true           │",
+                        "  ▎  26 1026       Woodgrove Bank 2           team             80  1920.00  true           │",
+                        "",
+                        "",
+                        "",
+                    ],
+                );
                 if let Some(key) = self.selected {
                     let row = body.y.saturating_add(17);
                     if row < body.bottom() {
@@ -425,5 +467,24 @@ impl Page for GridPage {
                 }
             },
         );
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.state.is_editing() {
+            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+        } else {
+            vec![
+                ("↑↓←→", "Cell"),
+                ("Enter", "Edit"),
+                ("s", "Sort"),
+                ("Space", "Select row"),
+                ("+ -", "Insert / delete"),
+                ("u", "Undo"),
+            ]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
     }
 }

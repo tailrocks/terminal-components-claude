@@ -212,6 +212,9 @@ edited by this ledger entry.
              panel::{default,disabled,editing,focused,hovered,pressed,selected},
              scroll_region::{default,disabled,editing,focused,hovered,pressed,selected},
              and tree::{default,disabled,editing,focused,hovered,pressed,selected}.
+             The complete durable pre-BLESS output, including the Panel and Tree frame-text
+             dumps, is parity/component-render-current-full.txt; the clean post-BLESS run is
+             parity/component-render-post-bless.txt (332 passed).
              Only the seven ScrollRegion failures overlap this baseline diff; all six Grid
              state tests completed without a reported mismatch. Each failing state stops
              at its first matrix cell, so this evidence does not silently claim later
@@ -273,58 +276,58 @@ edited by this ledger entry.
   render::components::scroll_region::default 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
   render::components::scroll_region::default 120 40 paper mono 043387647e609624 → a370dcbe028e4069
   render::components::scroll_region::default 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
-  render::components::scroll_region::default 40 10 junie mono 12d6825601608969 → e690d21688da8040
-  render::components::scroll_region::default 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
-  render::components::scroll_region::default 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
-  render::components::scroll_region::default 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::default 40 10 junie mono 12d6825601608969 → ac69feb9ccd5119d
+  render::components::scroll_region::default 40 10 junie truecolor 64f26e52cd9d4f9d → f56b60ecfbd2c323
+  render::components::scroll_region::default 40 10 paper mono 7a5ba3b4625b5b8d → 66d3cb6725fa8e7d
+  render::components::scroll_region::default 40 10 paper truecolor 4b5aaa5aefdac57a → 0868fadc417f511e
   render::components::scroll_region::disabled 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
   render::components::scroll_region::disabled 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
   render::components::scroll_region::disabled 120 40 paper mono 043387647e609624 → a370dcbe028e4069
   render::components::scroll_region::disabled 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
-  render::components::scroll_region::disabled 40 10 junie mono 12d6825601608969 → e690d21688da8040
-  render::components::scroll_region::disabled 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
-  render::components::scroll_region::disabled 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
-  render::components::scroll_region::disabled 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::disabled 40 10 junie mono 12d6825601608969 → ac69feb9ccd5119d
+  render::components::scroll_region::disabled 40 10 junie truecolor 64f26e52cd9d4f9d → f56b60ecfbd2c323
+  render::components::scroll_region::disabled 40 10 paper mono 7a5ba3b4625b5b8d → 66d3cb6725fa8e7d
+  render::components::scroll_region::disabled 40 10 paper truecolor 4b5aaa5aefdac57a → 0868fadc417f511e
   render::components::scroll_region::editing 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
   render::components::scroll_region::editing 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
   render::components::scroll_region::editing 120 40 paper mono 043387647e609624 → a370dcbe028e4069
   render::components::scroll_region::editing 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
-  render::components::scroll_region::editing 40 10 junie mono 12d6825601608969 → e690d21688da8040
-  render::components::scroll_region::editing 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
-  render::components::scroll_region::editing 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
-  render::components::scroll_region::editing 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::editing 40 10 junie mono 12d6825601608969 → ac69feb9ccd5119d
+  render::components::scroll_region::editing 40 10 junie truecolor 64f26e52cd9d4f9d → f56b60ecfbd2c323
+  render::components::scroll_region::editing 40 10 paper mono 7a5ba3b4625b5b8d → 66d3cb6725fa8e7d
+  render::components::scroll_region::editing 40 10 paper truecolor 4b5aaa5aefdac57a → 0868fadc417f511e
   render::components::scroll_region::focused 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
   render::components::scroll_region::focused 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
   render::components::scroll_region::focused 120 40 paper mono 043387647e609624 → a370dcbe028e4069
   render::components::scroll_region::focused 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
-  render::components::scroll_region::focused 40 10 junie mono 12d6825601608969 → e690d21688da8040
-  render::components::scroll_region::focused 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
-  render::components::scroll_region::focused 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
-  render::components::scroll_region::focused 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::focused 40 10 junie mono 12d6825601608969 → ac69feb9ccd5119d
+  render::components::scroll_region::focused 40 10 junie truecolor 64f26e52cd9d4f9d → f56b60ecfbd2c323
+  render::components::scroll_region::focused 40 10 paper mono 7a5ba3b4625b5b8d → 66d3cb6725fa8e7d
+  render::components::scroll_region::focused 40 10 paper truecolor 4b5aaa5aefdac57a → 0868fadc417f511e
   render::components::scroll_region::hovered 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
   render::components::scroll_region::hovered 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
   render::components::scroll_region::hovered 120 40 paper mono 043387647e609624 → a370dcbe028e4069
   render::components::scroll_region::hovered 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
-  render::components::scroll_region::hovered 40 10 junie mono 12d6825601608969 → e690d21688da8040
-  render::components::scroll_region::hovered 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
-  render::components::scroll_region::hovered 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
-  render::components::scroll_region::hovered 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::hovered 40 10 junie mono 12d6825601608969 → ac69feb9ccd5119d
+  render::components::scroll_region::hovered 40 10 junie truecolor 64f26e52cd9d4f9d → f56b60ecfbd2c323
+  render::components::scroll_region::hovered 40 10 paper mono 7a5ba3b4625b5b8d → 66d3cb6725fa8e7d
+  render::components::scroll_region::hovered 40 10 paper truecolor 4b5aaa5aefdac57a → 0868fadc417f511e
   render::components::scroll_region::pressed 120 40 junie mono 20508db0f18cabd3 → 55fca6c68455d891
   render::components::scroll_region::pressed 120 40 junie truecolor d3bfbe6d9973c03a → 096334f1e8281d3b
   render::components::scroll_region::pressed 120 40 paper mono 589ae64b3c2c0e53 → 5683416c3a3dd5dd
   render::components::scroll_region::pressed 120 40 paper truecolor a6ffebcb4f6a941e → 8aaeabcacdc3668d
-  render::components::scroll_region::pressed 40 10 junie mono a18316cd09646786 → 93752b06582ead54
-  render::components::scroll_region::pressed 40 10 junie truecolor 81828afb93fa61e1 → 7eeb9df24da45ab4
-  render::components::scroll_region::pressed 40 10 paper mono 23041704cb98cb7a → 143ea17a392cca5c
-  render::components::scroll_region::pressed 40 10 paper truecolor 005fa10c26327af1 → eee2c5645e6af75e
+  render::components::scroll_region::pressed 40 10 junie mono a18316cd09646786 → 869ee257115dc6f2
+  render::components::scroll_region::pressed 40 10 junie truecolor 81828afb93fa61e1 → 2bd782ba4ada20cf
+  render::components::scroll_region::pressed 40 10 paper mono 23041704cb98cb7a → bda17e0abbc4c822
+  render::components::scroll_region::pressed 40 10 paper truecolor 005fa10c26327af1 → de9c5a5065365e77
   render::components::scroll_region::selected 120 40 junie mono 25d1d68785634794 → cf39e5566ea2431d
   render::components::scroll_region::selected 120 40 junie truecolor 8725e5116c89bb2e → e4eeeec79b39f6db
   render::components::scroll_region::selected 120 40 paper mono 043387647e609624 → a370dcbe028e4069
   render::components::scroll_region::selected 120 40 paper truecolor daf38b058f9577c3 → f378c67050736315
-  render::components::scroll_region::selected 40 10 junie mono 12d6825601608969 → e690d21688da8040
-  render::components::scroll_region::selected 40 10 junie truecolor 64f26e52cd9d4f9d → 9a8c97d4cf642078
-  render::components::scroll_region::selected 40 10 paper mono 7a5ba3b4625b5b8d → 64463ca954b292b8
-  render::components::scroll_region::selected 40 10 paper truecolor 4b5aaa5aefdac57a → 2d831965e6ae007c
+  render::components::scroll_region::selected 40 10 junie mono 12d6825601608969 → ac69feb9ccd5119d
+  render::components::scroll_region::selected 40 10 junie truecolor 64f26e52cd9d4f9d → f56b60ecfbd2c323
+  render::components::scroll_region::selected 40 10 paper mono 7a5ba3b4625b5b8d → 66d3cb6725fa8e7d
+  render::components::scroll_region::selected 40 10 paper truecolor 4b5aaa5aefdac57a → 0868fadc417f511e
 - added:     none
 - class:     fix
 - reason:    §20.10 item 7 (container/geometry defect fixes). ScrollRegion's shared
@@ -332,6 +335,123 @@ edited by this ledger entry.
              transitively, so its 48 movements are not a separate Grid visual change.
              The seven reported no-BLESS mismatches keep this entry as audit evidence only;
              it does not authorize a baseline bless.
+```
+
+### 7b — Panel metadata padding and Tree leaf disclosure style (2026-09-06)
+
+The same current component source correction changes fourteen retained Junie truecolor cells.
+They are classified separately because they are not transitive ScrollRegion/Grid movement.
+
+```
+- surface:   junie-tui/{Panel,Tree} @ 120x40 / junie / truecolor
+- captures:  parity/component-render-current-full.txt (pre-BLESS frame-text output) and
+             parity/component-render-post-bless.txt (clean 332-test run)
+- tests:     render::components::{panel,tree}::{default,disabled,editing,focused,hovered,pressed,selected}
+- moved:     98 keys:
+  render::components::panel::default 120 40 junie mono 0a2344ecf7166f86 → 525b1bb2ee6b02b6
+  render::components::panel::default 120 40 junie truecolor c82e2dbcf84d0298 → a6c237f5090a967c
+  render::components::panel::default 120 40 paper truecolor faba7bb45ca493eb → 2834f1bb538727a7
+  render::components::panel::default 40 10 junie mono 53df48c35dd5747e → e7834a28f412d7ae
+  render::components::panel::default 40 10 junie truecolor 266886b2d180aa2c → de260509a9b02670
+  render::components::panel::default 40 10 paper truecolor 14b56b8d1daf29df → 14dbbdfeb9a3e16b
+  render::components::panel::disabled 120 40 junie mono 0a2344ecf7166f86 → 525b1bb2ee6b02b6
+  render::components::panel::disabled 120 40 junie truecolor c82e2dbcf84d0298 → a6c237f5090a967c
+  render::components::panel::disabled 120 40 paper truecolor faba7bb45ca493eb → 2834f1bb538727a7
+  render::components::panel::disabled 40 10 junie mono 53df48c35dd5747e → e7834a28f412d7ae
+  render::components::panel::disabled 40 10 junie truecolor 266886b2d180aa2c → de260509a9b02670
+  render::components::panel::disabled 40 10 paper truecolor 14b56b8d1daf29df → 14dbbdfeb9a3e16b
+  render::components::panel::editing 120 40 junie mono 0a2344ecf7166f86 → 525b1bb2ee6b02b6
+  render::components::panel::editing 120 40 junie truecolor c82e2dbcf84d0298 → a6c237f5090a967c
+  render::components::panel::editing 120 40 paper truecolor faba7bb45ca493eb → 2834f1bb538727a7
+  render::components::panel::editing 40 10 junie mono 53df48c35dd5747e → e7834a28f412d7ae
+  render::components::panel::editing 40 10 junie truecolor 266886b2d180aa2c → de260509a9b02670
+  render::components::panel::editing 40 10 paper truecolor 14b56b8d1daf29df → 14dbbdfeb9a3e16b
+  render::components::panel::focused 120 40 junie mono aa749e5da528b1f8 → f3cb0357a45a63b8
+  render::components::panel::focused 120 40 junie truecolor 15ce106c032a8875 → cd9ebd56d0457429
+  render::components::panel::focused 120 40 paper truecolor 89ee525e92fcaf1e → c0b158229397817a
+  render::components::panel::focused 40 10 junie mono 805a752c3b80aa50 → 99fe87c2dd6f4010
+  render::components::panel::focused 40 10 junie truecolor 77d117ad23d538d5 → 3634f3acbc41dce9
+  render::components::panel::focused 40 10 paper truecolor 5e71e39e49b08c9a → 9338ac72eaa70966
+  render::components::panel::hovered 120 40 junie mono 0a2344ecf7166f86 → 525b1bb2ee6b02b6
+  render::components::panel::hovered 120 40 junie truecolor c82e2dbcf84d0298 → a6c237f5090a967c
+  render::components::panel::hovered 120 40 paper truecolor faba7bb45ca493eb → 2834f1bb538727a7
+  render::components::panel::hovered 40 10 junie mono 53df48c35dd5747e → e7834a28f412d7ae
+  render::components::panel::hovered 40 10 junie truecolor 266886b2d180aa2c → de260509a9b02670
+  render::components::panel::hovered 40 10 paper truecolor 14b56b8d1daf29df → 14dbbdfeb9a3e16b
+  render::components::panel::pressed 120 40 junie mono 0a2344ecf7166f86 → 525b1bb2ee6b02b6
+  render::components::panel::pressed 120 40 junie truecolor c82e2dbcf84d0298 → a6c237f5090a967c
+  render::components::panel::pressed 120 40 paper truecolor faba7bb45ca493eb → 2834f1bb538727a7
+  render::components::panel::pressed 40 10 junie mono 53df48c35dd5747e → e7834a28f412d7ae
+  render::components::panel::pressed 40 10 junie truecolor 266886b2d180aa2c → de260509a9b02670
+  render::components::panel::pressed 40 10 paper truecolor 14b56b8d1daf29df → 14dbbdfeb9a3e16b
+  render::components::panel::selected 120 40 junie mono 0a2344ecf7166f86 → 525b1bb2ee6b02b6
+  render::components::panel::selected 120 40 junie truecolor c82e2dbcf84d0298 → a6c237f5090a967c
+  render::components::panel::selected 120 40 paper truecolor faba7bb45ca493eb → 2834f1bb538727a7
+  render::components::panel::selected 40 10 junie mono 53df48c35dd5747e → e7834a28f412d7ae
+  render::components::panel::selected 40 10 junie truecolor 266886b2d180aa2c → de260509a9b02670
+  render::components::panel::selected 40 10 paper truecolor 14b56b8d1daf29df → 14dbbdfeb9a3e16b
+  render::components::tree::default 120 40 junie mono baf575f7ba6f2151 → d450dbacbe5781fd
+  render::components::tree::default 120 40 junie truecolor 166c4078d8671dfc → bd2e1b5ed9ef38c4
+  render::components::tree::default 120 40 paper mono b309aa954616d2e7 → e7688a03d244eb33
+  render::components::tree::default 120 40 paper truecolor 3a2c6b7f8f1e5356 → 81f56ee97b029198
+  render::components::tree::default 40 10 junie mono 9f3018afbf450231 → 77c59187cd64f51d
+  render::components::tree::default 40 10 junie truecolor f152f9641779aefc → 99095ab47ad9a104
+  render::components::tree::default 40 10 paper mono 10dbf2bf094ddac7 → 8cef2684bcf13753
+  render::components::tree::default 40 10 paper truecolor a577044e5105f946 → 04a805d95fdc0948
+  render::components::tree::disabled 120 40 junie mono bd05daea19b3fc27 → 9ad9f5ae65342def
+  render::components::tree::disabled 120 40 junie truecolor 0207a0bbda2f5cca → 6c1e1c6a55a57308
+  render::components::tree::disabled 120 40 paper mono c42b1d1f816bccbf → 3078e8871da44d93
+  render::components::tree::disabled 120 40 paper truecolor 5fc785752ef66ca7 → ad8787fe91ced26d
+  render::components::tree::disabled 40 10 junie mono 36029e0f0b6f6327 → 322991e541e6c6ef
+  render::components::tree::disabled 40 10 junie truecolor 4937025f8f9c210a → b05e8a7a5e83cf48
+  render::components::tree::disabled 40 10 paper mono 937742fdc48c899f → c793162e3ac72233
+  render::components::tree::disabled 40 10 paper truecolor 5dbd9a08b872cbe7 → dba0ce46f92191ad
+  render::components::tree::editing 120 40 junie mono baf575f7ba6f2151 → d450dbacbe5781fd
+  render::components::tree::editing 120 40 junie truecolor 166c4078d8671dfc → bd2e1b5ed9ef38c4
+  render::components::tree::editing 120 40 paper mono b309aa954616d2e7 → e7688a03d244eb33
+  render::components::tree::editing 120 40 paper truecolor 3a2c6b7f8f1e5356 → 81f56ee97b029198
+  render::components::tree::editing 40 10 junie mono 9f3018afbf450231 → 77c59187cd64f51d
+  render::components::tree::editing 40 10 junie truecolor f152f9641779aefc → 99095ab47ad9a104
+  render::components::tree::editing 40 10 paper mono 10dbf2bf094ddac7 → 8cef2684bcf13753
+  render::components::tree::editing 40 10 paper truecolor a577044e5105f946 → 04a805d95fdc0948
+  render::components::tree::focused 120 40 junie mono baf575f7ba6f2151 → d450dbacbe5781fd
+  render::components::tree::focused 120 40 junie truecolor 166c4078d8671dfc → bd2e1b5ed9ef38c4
+  render::components::tree::focused 120 40 paper mono b309aa954616d2e7 → e7688a03d244eb33
+  render::components::tree::focused 120 40 paper truecolor 3a2c6b7f8f1e5356 → 81f56ee97b029198
+  render::components::tree::focused 40 10 junie mono 9f3018afbf450231 → 77c59187cd64f51d
+  render::components::tree::focused 40 10 junie truecolor f152f9641779aefc → 99095ab47ad9a104
+  render::components::tree::focused 40 10 paper mono 10dbf2bf094ddac7 → 8cef2684bcf13753
+  render::components::tree::focused 40 10 paper truecolor a577044e5105f946 → 04a805d95fdc0948
+  render::components::tree::hovered 120 40 junie mono baf575f7ba6f2151 → d450dbacbe5781fd
+  render::components::tree::hovered 120 40 junie truecolor 2c9996197318787c → 1a15529c5d5bc544
+  render::components::tree::hovered 120 40 paper mono b309aa954616d2e7 → e7688a03d244eb33
+  render::components::tree::hovered 120 40 paper truecolor 44193ce583b63156 → c5eb5fd78905ad58
+  render::components::tree::hovered 40 10 junie mono 9f3018afbf450231 → 77c59187cd64f51d
+  render::components::tree::hovered 40 10 junie truecolor 11c09f0fa3a145fc → 7a7a93564af16404
+  render::components::tree::hovered 40 10 paper mono 10dbf2bf094ddac7 → 8cef2684bcf13753
+  render::components::tree::hovered 40 10 paper truecolor 4e83c9c7940d69c6 → c733b9963459a748
+  render::components::tree::pressed 120 40 junie mono baf575f7ba6f2151 → d450dbacbe5781fd
+  render::components::tree::pressed 120 40 junie truecolor 166c4078d8671dfc → bd2e1b5ed9ef38c4
+  render::components::tree::pressed 120 40 paper mono b309aa954616d2e7 → e7688a03d244eb33
+  render::components::tree::pressed 120 40 paper truecolor 3a2c6b7f8f1e5356 → 81f56ee97b029198
+  render::components::tree::pressed 40 10 junie mono 9f3018afbf450231 → 77c59187cd64f51d
+  render::components::tree::pressed 40 10 junie truecolor f152f9641779aefc → 99095ab47ad9a104
+  render::components::tree::pressed 40 10 paper mono 10dbf2bf094ddac7 → 8cef2684bcf13753
+  render::components::tree::pressed 40 10 paper truecolor a577044e5105f946 → 04a805d95fdc0948
+  render::components::tree::selected 120 40 junie mono 8ffd5883ee29faa1 → 96f1f5dbc64034bd
+  render::components::tree::selected 120 40 junie truecolor e8c2263c51da702b → 25d188f3267654af
+  render::components::tree::selected 120 40 paper mono 733c344364f50fc7 → f23368fb682439b3
+  render::components::tree::selected 120 40 paper truecolor cafb2f518f190c2e → d46a76d2cb4df19a
+  render::components::tree::selected 40 10 junie mono beca1537ca829301 → fa7ef4626541ec5d
+  render::components::tree::selected 40 10 junie truecolor e86e2f3debf6dd6b → 9ea34149e59474af
+  render::components::tree::selected 40 10 paper mono 6c0add5e74824e27 → c8f712571ba5be53
+  render::components::tree::selected 40 10 paper truecolor 430e2e4177a249de → 825d1d60faeb52ca
+- added:     none
+- class:     fix
+- reason:    §20.10 item 7 (container/geometry defect fixes). Panel restores the historical
+             metadata padding contract; Tree leaves inherit the row style without a fabricated
+             disclosure marker. These exact retained moves are independently reviewed in the
+             durable no-BLESS output before baseline blessing.
 ```
 
 ## Item 8 — The backdrop excludes the footer row uniformly
@@ -559,6 +679,18 @@ these components *as pictures* is the Slice-5 capture matrix.
              × state × theme × colour × size and these fourteen had none; the lines
              are a pin against future drift, **not** an approval of present
              appearance, and the item may never be cited again for the same key.
+```
+
+### 19b — Existing component and overlay keys entered the archived baseline
+
+```
+- surface:   the six retained component matrices and the two overlay probes in `crates/tui/tests/baselines/components.txt`
+- captures:  none under `shots/` — these are headless Scene digests; the frame text is emitted by `render_components` on a no-BLESS comparison
+- tests:     crates/tui/tests/baselines/components.txt, render::components::* and overlay matrix tests
+- moved:     none
+- added:     386 keys: `overlay::modal_over_page 40 12 junie truecolor`, `overlay::nested_picker_over_dialog 40 12 junie truecolor`, and `render::components::{button,dialog,field,list,tabs,text_input}::{default,focused,hovered,pressed,disabled,selected,editing,empty} {120 40,40 10} {junie,paper} {truecolor,mono}`
+- class:     intended
+- reason:    §20.10 item 19 (first-generation digest recording). The pre-refactor revision used for the bless guard predates the component baseline file, so these retained component and overlay keys are first recordings in that file, not movements of frozen evidence.
 ```
 
 ## Item 20 — Forced state preserves the props-derived readiness state (§49)
@@ -1398,6 +1530,18 @@ remains frozen; later allocation or byte growth is a regression.
              zero allocations after constructor-time manager row projection.
 ```
 
+### Item 33b — Root performance inventory entered the migrated baseline
+
+```
+- surface:   `crates/tui/tests/perf_baseline.txt` root performance inventory
+- captures:  none under `shots/` — these are benchmark rows, not terminal frames
+- tests:     `crates/tui/tests/perf_baseline.txt` and the package-qualified performance tests
+- moved:     none
+- added:     31 rows: `event_dispatch_is_not_o_n`, `fit_10k_grapheme_line_to_80`, `fit_10k_grapheme_line_to_80_wide`, `focus_tab_traversal_ring_200`, `frame_form_update_draw`, `frame_hintbar_derived`, `frame_showcase_buttons_120x40`, `frame_testbackend_empty_120x40`, `fuzzy_10k_grapheme_label`, `hit_registry_size_is_bounded`, `intents_drain_is_o_1_when_the_queue_is_empty`, `list_100k_rows_render`, `list_100k_select_all`, `list_1k_rows_render`, `measure_is_allocation_free`, `mouse_move_over_1000_regions`, `paint_spans_500_rows_is_allocation_free`, `picker_100k_borrowed_domain_render`, `style_backdrop_full_screen_120x40`, `style_downgrade_theme_all_levels`, `style_resolve_10k_parts`, `style_resolve_10k_parts_with_two_overlays`, `textbuffer_offset_at_10k_line`, `textbuffer_pos_of_10k_line`, `truncate_10k_grapheme_line_to_80`, `truncate_middle_10k_to_40`, `viewport_100k_lines_push`, `viewport_100k_lines_render`, `viewport_layout_10k_grapheme_line`, `width_10k_grapheme_line`, `wrap_10k_graphemes_to_80`
+- class:     intended
+- reason:    §20.10 item 33; the migrated root harness preserves the frozen benchmark inventory while app-specific rows remain owned by each app.
+```
+
 ---
 
 ## Review status — Slice 4 component matrix, independent visual review (2026-09-05)
@@ -1405,7 +1549,7 @@ remains frozen; later allocation or byte growth is a regression.
 **Result: FAIL. No bless was performed, and none is authorized.**
 
 - **Scope reviewed.** The **640** review frames for the Slice-4 component matrix, at HEAD
-  `26913cc`, by a fresh read-only `opus-analyst` reviewer who did not generate the baselines.
+  `26913cc`, by a fresh read-only `read-only analyst` reviewer who did not generate the baselines.
 - **Result.** **FAIL.** This supersedes the earlier **PASS** recorded against HEAD `a1759b2` in
   `REFACTORING_STATE.md`. That PASS line is retained there unedited as historical evidence; where
   the two conflict, this record governs.

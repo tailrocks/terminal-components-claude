@@ -1704,6 +1704,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         if let Some(f) = self.ov.slot_for(Part::ICON) {
             f(ui, fold);
         } else {
+            let has_icon_patch = self.ov.part_patch(Part::ICON).is_some();
             let icon = self.ov.style(
                 ui,
                 self.id,
@@ -1712,16 +1713,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 Part::ICON,
                 row.flags,
             );
-            let glyph = match icon.glyph {
-                Slot::Set(g) => Some(g),
-                Slot::Inherit => row.disclosure,
-                Slot::Clear => None,
-            };
-            match glyph {
-                Some(g) => {
+            match icon.glyph {
+                Slot::Set(g) => {
                     ui.glyph(fold, g, icon.style);
                 }
-                None => ui.fill(fold, icon.style),
+                // A leaf has no disclosure glyph. Its reserved blank cell
+                // inherits the row, while an explicit ICON patch keeps the
+                // part independently styleable.
+                Slot::Inherit if row.disclosure.is_none() && !has_icon_patch => {
+                    ui.fill(fold, rs.style);
+                }
+                Slot::Inherit | Slot::Clear => ui.fill(fold, icon.style),
             }
         }
         let marker = cell_at(row.rect, fold_x.saturating_add(1));
@@ -2437,6 +2439,34 @@ mod tests {
                 Part::THUMB,
                 Part::EMPTY,
             ]
+        );
+    }
+
+    #[test]
+    fn leaf_disclosure_placeholder_inherits_row_style_but_branch_keeps_icon_style() {
+        let leaf = [N("item", 0, false)];
+        let leaf_theme = Theme::junie();
+        let primary = leaf_theme.color.fg[0];
+        let leaf_buffer = render(leaf_theme, &tree(), &TreeState::new(), &leaf);
+        assert_eq!(
+            leaf_buffer.cell(Position::new(1, 0)).map(|cell| cell.fg),
+            Some(primary),
+            "a leaf's blank disclosure cell must inherit the row foreground"
+        );
+        assert_eq!(
+            leaf_buffer.cell(Position::new(2, 0)).map(|cell| cell.fg),
+            Some(primary),
+            "the reserved blank marker cell must keep the row foreground"
+        );
+
+        let branch = [N("folder", 0, true)];
+        let branch_theme = Theme::junie();
+        let secondary = branch_theme.color.fg[1];
+        let branch_buffer = render(branch_theme, &tree(), &TreeState::new(), &branch);
+        assert_eq!(
+            branch_buffer.cell(Position::new(1, 0)).map(|cell| cell.fg),
+            Some(secondary),
+            "a real disclosure glyph must retain the ICON recipe"
         );
     }
 

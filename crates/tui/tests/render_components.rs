@@ -1858,18 +1858,21 @@ fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
                     .expect("matrix position is inside the scene")
                     .symbol()
             };
-            assert_eq!(symbol_at(0), glyphs.begin, "{st:?} at {width}x{height}");
-            assert_eq!(
-                symbol_at(height.saturating_sub(1)),
-                glyphs.end,
-                "{st:?} at {width}x{height}"
+            assert!(
+                symbol_at(0) == glyphs.track || symbol_at(0) == glyphs.thumb,
+                "{st:?} at {width}x{height} has no full-height track"
             );
             assert!(
-                (1..height.saturating_sub(1)).any(|y| symbol_at(y) == glyphs.track),
+                symbol_at(height.saturating_sub(1)) == glyphs.track
+                    || symbol_at(height.saturating_sub(1)) == glyphs.thumb,
+                "{st:?} at {width}x{height} has no full-height track"
+            );
+            assert!(
+                (0..height).any(|y| symbol_at(y) == glyphs.track),
                 "{st:?} at {width}x{height} has no visible track"
             );
             assert!(
-                (1..height.saturating_sub(1)).any(|y| symbol_at(y) == glyphs.thumb),
+                (0..height).any(|y| symbol_at(y) == glyphs.thumb),
                 "{st:?} at {width}x{height} has no visible thumb"
             );
             let bold: Vec<Position> = scene
@@ -1883,12 +1886,10 @@ fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
                 })
                 .collect();
             let expected: Vec<Position> = if st == St::Pressed {
-                let thumb_end = match (width, height) {
-                    (120, 40) => 20,
-                    (40, 10) => 2,
-                    _ => unreachable!("SIZES contains only the two matrix sizes"),
-                };
-                (1..thumb_end).map(|y| Position::new(x, y)).collect()
+                let mut expected_state = ScrollState::new(SCROLL_FIXTURE_ROWS);
+                expected_state.set_viewport(usize::from(height));
+                let (_, thumb_len) = expected_state.thumb(usize::from(height));
+                (0..thumb_len).map(|y| Position::new(x, y as u16)).collect()
             } else {
                 Vec::new()
             };

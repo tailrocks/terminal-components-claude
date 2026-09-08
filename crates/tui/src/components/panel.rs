@@ -43,8 +43,9 @@ pub enum PanelKind {
 ///
 /// ## Configuration
 /// `.kind(PanelKind)` (`Card`), `.title(&str)` (none), `.meta(&str)`
-/// (none), `.focused(bool)` (`false`), `.patch`, `.patch_part`, `.slot`,
-/// reference fixtures use [`Ui::reference`](crate::Ui::reference).
+/// (none), `.badge(&str)` (none), `.focused(bool)` (`false`), `.patch`,
+/// `.patch_part`, `.slot`, reference fixtures use
+/// [`Ui::reference`](crate::Ui::reference).
 ///
 /// ## Variants
 /// `Family::PANEL`, `Variant::DEFAULT` only; `Recipe.default_variant` is
@@ -89,11 +90,13 @@ pub enum PanelKind {
 ///
 /// ## Parts
 /// `CONTAINER` (the fill), `GUTTER` (the container focus bar), `TITLE`,
-/// `DETAIL` (the right-aligned meta), `BORDER` (framed only).
+/// `DETAIL` (the right-aligned meta), `BADGE` (the semantic label), `BORDER`
+/// (framed only).
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach every part. `.slot` is honoured for
-/// `Part::GUTTER`, `Part::TITLE`, `Part::DETAIL` and `Part::BORDER`.
+/// `Part::GUTTER`, `Part::TITLE`, `Part::DETAIL`, `Part::BADGE` and
+/// `Part::BORDER`.
 /// `Part::CONTAINER` is **not** slot-addressable: it is the plane the
 /// panel pushes and the body inherits, so replacing it would leave the
 /// content painted against a surface nothing filled.
@@ -114,6 +117,7 @@ pub struct Panel<'a> {
     kind: PanelKind,
     title: Option<&'a str>,
     meta: Option<&'a str>,
+    badge: Option<&'a str>,
     focused: bool,
     ov: PartStyle<'a>,
 }
@@ -125,6 +129,7 @@ impl fmt::Debug for Panel<'_> {
             .field("kind", &self.kind)
             .field("title", &self.title)
             .field("meta", &self.meta)
+            .field("badge", &self.badge)
             .field("focused", &self.focused)
             .field("overrides", &self.ov)
             .finish()
@@ -138,6 +143,7 @@ impl<'a> Panel<'a> {
         Part::GUTTER,
         Part::TITLE,
         Part::DETAIL,
+        Part::BADGE,
         Part::BORDER,
     ];
 
@@ -148,6 +154,7 @@ impl<'a> Panel<'a> {
             kind: PanelKind::Card,
             title: None,
             meta: None,
+            badge: None,
             focused: false,
             ov: PartStyle::new(),
         }
@@ -176,6 +183,16 @@ impl<'a> Panel<'a> {
     #[must_use]
     pub const fn meta(mut self, m: &'a str) -> Self {
         self.meta = Some(m);
+        self
+    }
+
+    /// A short semantic label painted between the title and meta text.
+    ///
+    /// The `PANEL/BADGE` recipe owns its colors and emphasis; callers supply
+    /// only the label, so capability downgrade and theme mapping stay shared.
+    #[must_use]
+    pub const fn badge(mut self, b: &'a str) -> Self {
+        self.badge = Some(b);
         self
     }
 
@@ -282,9 +299,13 @@ impl<'a> Panel<'a> {
         let chrome_h = self.top_inset().saturating_add(1);
         let title_w = self.title.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
+        let badge_w = self
+            .badge
+            .map_or(0, |b| crate::text::width(b).saturating_add(2));
         let head = title_w
+            .saturating_add(badge_w)
             .saturating_add(meta_w)
-            .saturating_add(u16::from(meta_w != 0))
+            .saturating_add(u16::from(badge_w != 0 || meta_w != 0))
             .saturating_add(2);
         Size {
             min: (chrome_w.saturating_add(1), chrome_h.saturating_add(1)),
@@ -343,7 +364,7 @@ impl<'a> Panel<'a> {
         self.head(ui, area, live, container.style);
     }
 
-    /// The head row: focus gutter, title, right-aligned meta.
+    /// The head row: focus gutter, title, badge and right-aligned meta.
     fn head(
         &self,
         ui: &mut Ui<'_>,
@@ -377,8 +398,105 @@ impl<'a> Panel<'a> {
             }
         }
         let text_x = area.x.saturating_add(2);
-        // the head span never touches the corner columns
+        // The head span never touches the gutter or either frame corner.
         let span_w = area.width.saturating_sub(3);
+
+        // Preserve the established title/meta geometry when no badge is
+        // present. The badge lane below is additive; it must not perturb the
+        // protected panel layout used by existing callers and fixtures.
+        if self.badge.is_none() {
+            self.head_without_badge(ui, area, live, fill);
+            return;
+        }
+
+        let span_right = text_x.saturating_add(span_w);
+        let mut right = span_right;
+
+        let meta_block = self.meta.and_then(|m| {
+            let width = crate::text::width(m).saturating_add(pad.saturating_mul(2));
+            (width < span_w).then_some(width)
+        });
+        let meta_rect = meta_block.map(|width| {
+            right = right.saturating_sub(width);
+            Rect {
+                x: right,
+                y: head.y,
+                width,
+                height: 1,
+            }
+        });
+
+        let badge_block = self.badge.and_then(|b| {
+            let width = crate::text::width(b).saturating_add(2);
+            let gap = u16::from(meta_rect.is_some());
+            (width.saturating_add(gap) <= right.saturating_sub(text_x)).then_some((width, gap))
+        });
+        let badge_rect = badge_block.map(|(width, gap)| {
+            right = right.saturating_sub(gap).saturating_sub(width);
+            Rect {
+                x: right,
+                y: head.y,
+                width,
+                height: 1,
+            }
+        });
+
+        if let Some(t) = self.title {
+            let rect = Rect {
+                x: text_x,
+                y: head.y,
+                width: right.saturating_sub(text_x),
+                height: 1,
+            };
+            if let Some(f) = ov.slot_for(Part::TITLE) {
+                f(ui, rect);
+            } else {
+                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::TITLE, live);
+                paint_label(ui, rect, t, pad, s.style);
+            }
+        }
+
+        if let (Some(b), Some(rect)) = (self.badge, badge_rect) {
+            if let Some(f) = ov.slot_for(Part::BADGE) {
+                f(ui, rect);
+            } else {
+                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::BADGE, live);
+                ui.fill(rect, s.style);
+                ui.paint_str(
+                    Rect {
+                        x: rect.x.saturating_add(1),
+                        width: rect.width.saturating_sub(2),
+                        ..rect
+                    },
+                    b,
+                    s.style,
+                );
+            }
+        }
+
+        if let (Some(m), Some(rect)) = (self.meta, meta_rect) {
+            if let Some(f) = ov.slot_for(Part::DETAIL) {
+                f(ui, rect);
+            } else {
+                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                paint_label(ui, rect, m, pad, s.style);
+            }
+        }
+    }
+
+    fn head_without_badge(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        live: StateFlags,
+        fill: ratatui_core::style::Style,
+    ) {
+        let head = first_row(area);
+        let text_x = area.x.saturating_add(2);
+        let span_w = area.width.saturating_sub(3);
+        let pad = u16::from(self.kind == PanelKind::Framed);
+        let ov = self.ov;
+        let id = self.id;
         let meta_block = self.meta.map_or(0, |m| {
             let want = crate::text::width(m).saturating_add(pad.saturating_mul(2));
             if want < span_w { want } else { 0 }
@@ -411,21 +529,53 @@ impl<'a> Panel<'a> {
                 width: meta_block.saturating_sub(pad.saturating_mul(2)),
                 height: 1,
             };
-            if pad == 1 {
-                ui.fill(cell_at(head, x.saturating_sub(1)), fill);
-            }
             let used = if let Some(f) = ov.slot_for(Part::DETAIL) {
                 f(ui, rect);
                 rect.width
             } else {
                 let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
+                // Framed metadata sits on the border rule. Keeping its
+                // padding in the detail style preserves the historical ANSI
+                // span; container-style padding inserts a visible reset.
+                if pad == 1 {
+                    ui.fill(cell_at(head, x.saturating_sub(1)), s.style);
+                }
                 ui.paint_str(rect, m, s.style)
             };
             if pad == 1 && used > 0 {
-                ui.fill(cell_at(head, x.saturating_add(used)), fill);
+                let style = ov
+                    .style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live)
+                    .style;
+                ui.fill(cell_at(head, x.saturating_add(used)), style);
             }
         }
     }
+}
+
+/// Paint a title/meta label, adding the legacy frame padding without an
+/// allocation. Only the label's cells are touched; unused head-row space
+/// keeps the frame rule underneath it.
+fn paint_label(
+    ui: &mut Ui<'_>,
+    block: Rect,
+    text: &str,
+    pad: u16,
+    style: ratatui_core::style::Style,
+) {
+    let inner = Rect {
+        x: block.x.saturating_add(pad),
+        width: block.width.saturating_sub(pad.saturating_mul(2)),
+        ..block
+    };
+    let text_width = crate::text::width(text).min(inner.width);
+    let label = Rect {
+        width: text_width.saturating_add(pad.saturating_mul(2)),
+        ..block
+    };
+    if pad > 0 {
+        ui.fill(label, style);
+    }
+    ui.paint_str(inner, text, style);
 }
 
 #[cfg(test)]
@@ -651,6 +801,7 @@ mod tests {
                     .kind(PanelKind::Framed)
                     .title("Files")
                     .meta("12")
+                    .badge("EDIT")
                     .focused(true);
                 if patched.is_some() {
                     p = p.patch_part(&ps);
@@ -694,6 +845,7 @@ mod tests {
                     .kind(PanelKind::Framed)
                     .title("Files")
                     .meta("12")
+                    .badge("EDIT")
                     .focused(true);
                 if let Some(part) = slot {
                     p = p.slot(part, &marker);
@@ -704,7 +856,13 @@ mod tests {
         };
         let plain = render(None);
         // documented as slot-addressable
-        for part in [Part::GUTTER, Part::TITLE, Part::DETAIL, Part::BORDER] {
+        for part in [
+            Part::GUTTER,
+            Part::TITLE,
+            Part::DETAIL,
+            Part::BADGE,
+            Part::BORDER,
+        ] {
             assert_ne!(
                 render(Some(part)),
                 plain,

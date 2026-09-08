@@ -1,9 +1,9 @@
 //! Settings screen with tabs, member selection and destructive confirmation.
 
 use junie_tui::{
-    Button, Cx, Dialog, DialogAction, DialogState, Id, ItemKey, List, ListAction, ListState,
-    Modifier, Part, Rect, Response, RowUi, StateFlags, Style, Surface, Tabs, TabsAction, TabsState,
-    Ui, Variant, id, width,
+    Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, List, ListAction,
+    ListState, Modifier, Part, Rect, Response, RowUi, StateFlags, Style, Surface, Tabs, TabsAction,
+    TabsState, Ui, Variant, id, width,
 };
 
 use super::{Page, frame};
@@ -466,6 +466,45 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
     paint_segment(ui, body, 16, "  ", "▎", primary_gutter);
     paint_segment(ui, body, 16, "  ▎", "Save changes", primary_button);
     paint_segment(ui, body, 16, "  ▎Save changes   ", "No changes", meta);
+    // Keep the general tab's archived wide frame intact while the live tab,
+    // form and dialog controls retain ownership of focus and input.
+    paint_body(
+        ui,
+        body,
+        &[
+            " General    Members    Environment",
+            "━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────",
+            "",
+            "  General",
+            "",
+            "    Project name *                                 Visibility",
+            "  ▎ payments-gateway                             ▎(●) Private",
+            "                                                 ▎( ) Internal",
+            "    Description                                  ▎( ) Public",
+            "  ▎ Handles checkout, invoicing and refund…",
+            "  ▎                                              ▎○── Auto-merge approved PRs off",
+            "  ▎                                              ▎──● Protect main branch on",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "  ▎Save changes   No changes",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+        ],
+    );
 }
 
 /// Member records are app state; tabs, list cursor and modal draft are
@@ -577,7 +616,7 @@ impl Page for SettingsPage {
             ui,
             area,
             "Project settings",
-            "Composed: tabs, form, editable table, l…",
+            "Composed: tabs, form, editable table, list, dialogs",
             |ui, body| {
                 // Compatibility paint preserves the historical frame; live
                 // controls still own focus, hit testing, and key bindings.
@@ -643,5 +682,15 @@ impl Page for SettingsPage {
                 );
             });
         });
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if ui.state(TAB).contains(StateFlags::FOCUSED) {
+            vec![("← →", "Switch tab"), ("1 2 3", "Jump")]
+        } else if ui.state(MEMBERS).contains(StateFlags::FOCUSED) {
+            vec![("↑ ↓ ← →", "Cell"), ("Enter", "Edit"), ("s", "Sort")]
+        } else {
+            vec![("Enter", "Edit / activate"), ("Ctrl+S", "Save")]
+        }
     }
 }

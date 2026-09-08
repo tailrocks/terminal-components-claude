@@ -950,12 +950,9 @@ impl<'f> Ui<'f> {
             LayerKind::Modal => ScopeMode::Trap,
             LayerKind::Popover | LayerKind::Tooltip => ScopeMode::Normal,
         };
-        let parent = self
-            .frame
-            .layers
-            .active()
-            .iter()
-            .find(|candidate| candidate.layer.index().saturating_add(1) == layer.index())
+        let parent = idx
+            .checked_sub(1)
+            .and_then(|parent| self.frame.layers.active().get(parent))
             .map(|candidate| ScopeId::new(candidate.id));
         self.frame
             .ring
@@ -1878,6 +1875,46 @@ mod tests {
             page.cell(Position::new(20, 2)).expect("cell").bg,
             theme.bg(Surface::Canvas),
             "painting after the panic reaches the page outside the layer's area"
+        );
+    }
+
+    #[test]
+    fn layer_scope_parent_follows_active_order_after_id_gap() {
+        const OUTER: Id = Id::root("ui.layer.outer");
+        const INNER: Id = Id::root("ui.layer.inner");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame
+            .layers
+            .push(OUTER, LayerId(1), LayerSpec::modal(OUTER), SCREEN, SCREEN);
+        // LayerId(2) was closed before this layer was opened. Parentage is
+        // structural stack order, not numeric adjacency.
+        frame
+            .layers
+            .push(INNER, LayerId(3), LayerSpec::modal(INNER), SCREEN, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            assert!(
+                ui.layer(OUTER, |ui, _| {
+                    ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+                })
+                .is_some()
+            );
+            assert!(
+                ui.layer(INNER, |ui, _| {
+                    ui.register_control(OTHER, SCREEN, Focusability::Focusable);
+                })
+                .is_some()
+            );
+        }
+        let outer = frame.ring.entry(OWNER).map(|entry| entry.scope);
+        let inner = frame.ring.entry(OTHER).map(|entry| entry.scope);
+        assert!(
+            matches!((outer, inner), (Some(outer), Some(inner)) if frame.ring.within(inner, outer))
         );
     }
 }

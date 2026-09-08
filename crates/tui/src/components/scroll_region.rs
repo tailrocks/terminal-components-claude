@@ -14,7 +14,7 @@ use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
-/// A vertical scroll region: wheel routing, a scrollbar with track
+/// A vertical scroll region: wheel routing, a scrollbar with full-height track
 /// arithmetic, thumb drag through pointer capture and `ensure_visible`.
 ///
 /// ## Construction
@@ -226,7 +226,10 @@ impl<'a> ScrollRegion<'a> {
                 Response::consumed()
             }
             Phase::Press => {
-                let track_pos = usize::from(local.y.saturating_sub(1));
+                // The historical scrollbar uses every row, including the two
+                // end rows, as track positions. Keep hit math on the same
+                // geometry the painter registers.
+                let track_pos = usize::from(local.y);
                 st.scroll_to(st.offset_for_track_pos(track_pos, usize::from(track_len)));
                 moved(st.offset() != before)
             }
@@ -235,9 +238,7 @@ impl<'a> ScrollRegion<'a> {
                 let capture_area = cx.capture_area().unwrap_or_default();
                 let origin = cx.capture_origin().unwrap_or(pos);
                 let grab = origin.y.saturating_sub(capture_area.y);
-                let track_y = cx
-                    .area(self.id)
-                    .map_or(capture_area.y, |area| area.y.saturating_add(1));
+                let track_y = cx.area(self.id).map_or(capture_area.y, |area| area.y);
                 let centered = thumb_drag_position(pos.y, track_y, grab, thumb_len);
                 st.scroll_to(st.offset_for_track_pos(centered, usize::from(track_len)));
                 moved(st.offset() != before)
@@ -279,13 +280,12 @@ impl<'a> ScrollRegion<'a> {
             StateFlags::empty(),
         );
         ui.fill(area, container.style);
-        let track_height = area.height.saturating_sub(2);
         ui.report_layout(
             self.id,
             LayoutFacts::new(
                 usize::from(area.height),
                 content_len,
-                track_height,
+                area.height,
                 area.width,
             ),
         );
@@ -309,11 +309,10 @@ impl<'a> ScrollRegion<'a> {
     }
 
     fn paint_bar(&self, ui: &mut Ui<'_>, bar: Rect, view: &ScrollState) {
-        let track_rect = Rect {
-            y: bar.y.saturating_add(1),
-            height: bar.height.saturating_sub(2),
-            ..bar
-        };
+        // Do not reserve cap rows. The old renderer's scrollbar geometry is a
+        // single full-height track, and ScrollState's inverse mapping expects
+        // the same length.
+        let track_rect = bar;
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
@@ -359,15 +358,6 @@ impl<'a> ScrollRegion<'a> {
                 Slot::Inherit => {
                     for row in track_rect.rows() {
                         ui.glyph(row, GlyphRole::ScrollTrack, track.style);
-                    }
-                    let set = ui.design().glyphs.scrollbar();
-                    ui.paint_cell(Position::new(bar.x, bar.y), set.begin, track.style);
-                    if bar.height > 1 {
-                        ui.paint_cell(
-                            Position::new(bar.x, bar.bottom().saturating_sub(1)),
-                            set.end,
-                            track.style,
-                        );
                     }
                 }
             }
@@ -434,7 +424,7 @@ mod tests {
     }
 
     #[test]
-    fn scrollbar_paints_typed_begin_and_end_caps() {
+    fn scrollbar_paints_a_full_track_without_cap_rows() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         let area = Rect::new(0, 0, 5, 6);
@@ -442,16 +432,17 @@ mod tests {
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             ScrollRegion::new(ID).draw(ui, area, &st, 100);
         });
-        let set = Theme::junie().design.glyphs.scrollbar();
+        let track = Theme::junie().design.glyphs.get(GlyphRole::ScrollTrack);
+        let thumb = Theme::junie().design.glyphs.get(GlyphRole::ScrollThumb);
         assert_eq!(
             buf.cell(Position::new(4, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some(set.begin)
+            Some(thumb)
         );
         assert_eq!(
             buf.cell(Position::new(4, 5))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some(set.end)
+            Some(track)
         );
     }
 

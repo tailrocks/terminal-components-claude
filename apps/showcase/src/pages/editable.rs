@@ -1,14 +1,14 @@
 //! Editable task rows: keyed selection, commit/cancel and field validation.
 
 use junie_tui::{
-    id, Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
+    Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
     GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Response, Role,
-    RowDecor, RowTotal, StylePatch, Ui,
+    RowDecor, RowTotal, StylePatch, Ui, id,
 };
 
-use crate::data::{TaskRow, TaskStatus, TASKS};
+use crate::data::{TASKS, TaskRow, TaskStatus};
 
-use super::{frame, Page};
+use super::{Page, frame};
 
 const TABLE: Id = id!("editable.table");
 const TASKS_PANEL: Id = id!("editable.tasks.panel");
@@ -338,11 +338,7 @@ fn legacy_table(ui: &mut Ui<'_>, area: Rect, width: u16, model: &EditableModel) 
         .max(1);
     for (offset, row) in model.rows.iter().take(visible).enumerate() {
         let track = if width < 70 {
-            if offset < thumb {
-                "┃"
-            } else {
-                "│"
-            }
+            if offset < thumb { "┃" } else { "│" }
         } else {
             ""
         };
@@ -454,6 +450,13 @@ fn table() -> Grid<'static> {
     Grid::new(TABLE, &COLUMNS).nav(NavUnit::Cell)
 }
 
+fn tasks_panel<'a>(meta: &'a str) -> Panel<'a> {
+    Panel::new(TASKS_PANEL)
+        .title("Tasks")
+        .meta(meta)
+        .patch_part(PANEL_PARTS)
+}
+
 /// The grid owns cursor and editor state; the model owns the editable task
 /// records and their validation rules.
 #[derive(Debug)]
@@ -485,6 +488,7 @@ impl Page for EditablePage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let _ = tasks_panel("");
         let was_editing = self.state.is_editing();
         let action = table().update_editable(cx, &mut self.state, &mut self.model);
         if was_editing && !self.state.is_editing() {
@@ -507,23 +511,19 @@ impl Page for EditablePage {
                 || format!("{} edits", self.edits),
                 |error| error.to_string(),
             );
-            Panel::new(TASKS_PANEL)
-                .title("Tasks")
-                .meta(&task_meta)
-                .patch_part(PANEL_PARTS)
-                .draw(
-                    ui,
-                    Rect {
-                        height: card_height,
-                        ..body
-                    },
-                    |ui, inner| {
-                        table().draw(ui, inner, &self.state, &self.model);
-                        if !self.state.is_editing() && self.edits == 0 {
-                            legacy_table(ui, inner, body.width, &self.model);
-                        }
-                    },
-                );
+            tasks_panel(&task_meta).draw(
+                ui,
+                Rect {
+                    height: card_height,
+                    ..body
+                },
+                |ui, inner| {
+                    table().draw(ui, inner, &self.state, &self.model);
+                    if !self.state.is_editing() && self.edits == 0 {
+                        legacy_table(ui, inner, body.width, &self.model);
+                    }
+                },
+            );
             paint_card_meta(
                 ui,
                 Rect {
@@ -582,5 +582,22 @@ impl Page for EditablePage {
                 );
             }
         });
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+        if self.state.is_editing() {
+            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+        } else {
+            vec![
+                ("↑ ↓ ← →", "Cell"),
+                ("Enter", "Edit"),
+                ("s", "Sort"),
+                ("click twice", "Edit"),
+            ]
+        }
+    }
+
+    fn editing(&self, _ui: &Ui<'_>) -> bool {
+        self.state.is_editing()
     }
 }

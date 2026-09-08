@@ -9,7 +9,7 @@ use junie_tui::{
     Rect, StateFlags, Theme,
 };
 use junie_tui_testing::Harness;
-use showcase_app::{App, PageId, NAV_ENTRIES};
+use showcase_app::{App, NAV_ENTRIES, PageId};
 
 const FORM_SUMMARY: Id = Id::root("showcase_app::pages::forms::forms.summary");
 const SCROLL_LIST: Id = Id::root("showcase_app::pages::scrolling::scrolling.list");
@@ -293,10 +293,10 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
         PageId::Pickers => {
             let (x, y) = require(h.find("Open a picker"), "picker launcher");
             click(h, x, y);
-            assert!(h.text().contains("Command palette"));
+            assert!(h.text().contains("Open quickly"));
             press(h, KeyCode::Down);
             press(h, KeyCode::Enter);
-            assert!(h.text().contains("last result: Open pull request"));
+            assert!(h.text().contains("Chosen          README.md"));
         }
         PageId::Chrome => {
             let brand = require(h.area_of(CHROME_BRAND), "chrome brand");
@@ -454,6 +454,27 @@ fn mouse_click_activates_and_keyboard_enter_activates() {
     assert!(h.text().contains("2 activations"));
     press(&mut h, KeyCode::Char(' '));
     assert!(h.text().contains("3 activations"));
+}
+
+#[test]
+fn picker_launcher_is_reachable_after_navigation_focus() {
+    let mut h = harness(PageId::Pickers);
+    assert_eq!(h.focus(), Some(APP_NAV));
+    press(&mut h, KeyCode::Tab);
+    let focused = require(h.focus(), "picker launcher focus");
+    assert_ne!(focused, APP_NAV, "Tab stayed on the shell navigation");
+    press(&mut h, KeyCode::Enter);
+    assert!(h.text().contains("Open quickly"), "{focused:?}");
+}
+
+#[test]
+fn escape_returns_focus_to_navigation_without_changing_page() {
+    let mut h = harness(PageId::Pickers);
+    press(&mut h, KeyCode::Tab);
+    press(&mut h, KeyCode::Esc);
+
+    assert_eq!(h.app().page(), PageId::Pickers);
+    assert_eq!(h.focus(), Some(APP_NAV));
 }
 
 #[test]
@@ -877,4 +898,16 @@ fn panels_page_keeps_historical_card_composition() {
     assert!(panels.text().contains("Titled card"));
     assert!(panels.text().contains("Card · scrollable"));
     assert!(panels.diagnostics().is_empty(), "Panels diagnostics");
+}
+
+#[test]
+fn local_override_page_shows_three_distinct_buttons() {
+    let buttons = harness(PageId::Buttons);
+    let primary = cell_style(&buttons, "Run task");
+    let secondary = cell_style(&buttons, "Preview");
+    let danger = cell_style(&buttons, "Delete branch");
+
+    assert_ne!(primary, secondary, "primary and secondary overrides merged");
+    assert_ne!(primary, danger, "primary and danger overrides merged");
+    assert_ne!(secondary, danger, "secondary and danger overrides merged");
 }
