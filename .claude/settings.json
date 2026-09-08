@@ -1,9 +1,0 @@
-{
-  "agent": "refactor-coordinator",
-  "model": "claude-opus-5",
-  "effortLevel": "high",
-  "env": {
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-opus-5",
-    "CLAUDE_CODE_EFFORT_LEVEL": "high"
-  }
-}
