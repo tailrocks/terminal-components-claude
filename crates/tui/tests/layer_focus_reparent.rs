@@ -174,3 +174,19 @@ fn closed_layer_provenance_does_not_authorize_reopened_layer() {
     present(&mut rt);
     assert_eq!(rt.focus(), Some(OTHER));
 }
+
+#[test]
+fn open_menu_publishes_only_its_active_dropdown_bindings() {
+    let mut rt = runtime();
+    request(&mut rt, Request::Open);
+    present(&mut rt);
+    let _ = rt
+        .handle(Input::Key(junie_tui::Key {
+            code: junie_tui::KeyCode::Down,
+            mods: junie_tui::KeyModifiers::NONE,
+        }))
+        .unwrap();
+    assert!(rt.diagnostics().is_empty(), "{:?}", rt.diagnostics());
+    assert!(rt.is_open(OWNER));
+    assert_eq!(rt.app().state.open_menu(), Some(0));
+}

@@ -364,24 +364,7 @@ const BAR_CONTEXT_BINDINGS: &[Binding<MenuCmd>] = &[
         MenuCmd::NextMenu,
         false,
     ),
-    binding(
-        ActionKey::custom("menu.bar.activate.down"),
-        Chord::key(KeyCode::Down),
-        MenuCmd::Activate,
-        true,
-    ),
-    binding(
-        ActionKey::custom("menu.bar.activate.enter"),
-        Chord::key(KeyCode::Enter),
-        MenuCmd::Activate,
-        false,
-    ),
-    binding(
-        ActionKey::custom("menu.bar.activate.space"),
-        Chord::key(KeyCode::Char(' ')),
-        MenuCmd::Activate,
-        false,
-    ),
+
 ];
 
 /// Anchored popup content. The runtime owns placement, dismissal and z-order.
@@ -1190,8 +1173,8 @@ impl<'a> MenuBar<'a> {
         ui.fill(row, container.style);
         if st.open.is_none() {
             ui.register_control(self.id, row, Focusability::Focusable);
+            ui.publish_bindings(self.id, live, BAR_BINDINGS);
         }
-        ui.publish_bindings(self.id, live, BAR_BINDINGS);
         let mut x = row.x.saturating_add(1);
         for (index, menu) in self.menus.iter().enumerate() {
             let w = width(menu.label).saturating_add(2);
