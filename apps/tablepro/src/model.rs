@@ -1,6 +1,6 @@
 //! Query-history, completion and quick-switcher models.
 
-use junie_tui::fuzzy;
+use junie_tui::{FuzzyBoundary, fuzzy_with_boundary};
 
 use crate::db::{Catalog, ColType, Table};
 use crate::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
@@ -284,7 +284,7 @@ pub struct Completion {
     pub kind: CompletionKind,
     /// Rank; lower values sort first.
     pub score: u32,
-    /// Matched byte offsets in the label.
+    /// Matched grapheme ordinals in the original label.
     pub matched: Vec<usize>,
 }
 impl core::fmt::Debug for Completion {
@@ -432,7 +432,9 @@ impl CompletionPool<'_> {
         insert: Option<String>,
         boost: i32,
     ) {
-        if let Some((penalty, matched)) = fuzzy(label, self.word) {
+        if let Some((penalty, matched)) =
+            fuzzy_with_boundary(label, self.word, FuzzyBoundary::Identifier)
+        {
             let base = kind.priority().saturating_add(penalty);
             let score = if boost < 0 {
                 base.saturating_sub(boost.unsigned_abs())
@@ -770,11 +772,13 @@ impl SwitcherIndex {
             .items
             .iter()
             .filter_map(|item| {
-                fuzzy(&item.label, query).map(|(score, _)| {
-                    let mut copy = item.clone();
-                    copy.score = score;
-                    copy
-                })
+                fuzzy_with_boundary(&item.label, query, FuzzyBoundary::Identifier).map(
+                    |(score, _)| {
+                        let mut copy = item.clone();
+                        copy.score = score;
+                        copy
+                    },
+                )
             })
             .collect::<Vec<_>>();
         out.sort_by_key(|item| {

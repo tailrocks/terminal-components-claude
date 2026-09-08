@@ -90,3 +90,51 @@ fn completion_debug_does_not_publish_sql_alias_content() {
     );
     assert!(!format!("{batch:?}").contains("secret_alias"));
 }
+
+#[test]
+fn pinned_boundary_policy_preserves_keyword_ranking_at_partial_cursor() {
+    let catalog = Catalog::acme_prod();
+    for (source, cursor, expected) in [
+        ("INSERT INTO ord", 10, "INTO"),
+        ("INSERT INTO ord", 11, "INTO"),
+        ("DELETE FROM ord", 8, "FROM"),
+        ("DELETE FROM ord", 9, "FROM"),
+        ("DELETE FROM ord", 10, "FROM"),
+        ("DELETE FROM ord", 11, "FROM"),
+    ] {
+        let batch = completion_batch(source, cursor, &catalog);
+        assert_eq!(
+            batch.items.first().map(|item| item.label.as_str()),
+            Some(expected),
+            "{source} at {cursor}"
+        );
+    }
+    let batch = completion_batch("SELECT * FROM orders ORDER BY cre", 28, &catalog);
+    for label in ["GROUP BY", "ORDER BY"] {
+        assert_eq!(
+            batch
+                .items
+                .iter()
+                .find(|item| item.label == label)
+                .map(|item| item.score),
+            Some(430)
+        );
+    }
+}
+
+#[test]
+fn alias_matches_keep_original_grapheme_ordinals() {
+    let catalog = Catalog::acme_prod();
+    let source = "SELECT él FROM orders élève";
+    let cursor = "SELECT él".len();
+    let batch = completion_batch(source, cursor, &catalog);
+    assert!(
+        batch
+            .items
+            .iter()
+            .any(|item| item.kind == CompletionKind::Alias
+                && item.label == "élève"
+                && item.matched == vec![0, 1])
+    );
+    assert_eq!(source.get(batch.replace), Some("él"));
+}
