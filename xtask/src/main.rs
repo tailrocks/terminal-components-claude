@@ -9918,8 +9918,14 @@ captures / classification: `(pending — filled when the change lands)`
         let run = lines
             .iter()
             .position(|l| {
-                !l.trim_start().starts_with('#')
-                    && l.contains("run: cargo run -p xtask -- bless-guard")
+                l.trim_start()
+                    .strip_prefix("run: cargo run ")
+                    .is_some_and(|args| {
+                        args.split_whitespace()
+                            .collect::<Vec<_>>()
+                            .windows(4)
+                            .any(|words| words == ["-p", "xtask", "--", "bless-guard"])
+                    })
             })
             .expect("ci.yml has a step that runs the bless guard");
         let start = run.saturating_sub(8);
