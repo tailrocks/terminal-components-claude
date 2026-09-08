@@ -1297,6 +1297,14 @@ impl FrameRead for Ui<'_> {
         }
     }
 
+    fn area_of_part(&self, owner: Id, part: PartRef) -> Option<Rect> {
+        if self.reference.is_some() {
+            None
+        } else {
+            self.last.registry.area_of_part(owner, part)
+        }
+    }
+
     fn layout(&self, id: Id) -> Option<LayoutFacts> {
         if self.reference.is_some() {
             None

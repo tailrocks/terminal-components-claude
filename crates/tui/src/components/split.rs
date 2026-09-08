@@ -162,6 +162,13 @@ impl SplitPaneState {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+enum SeamAlign {
+    Start,
+    Center,
+    End,
+}
+
 /// Two panes with a draggable seam between them.
 ///
 /// ## Construction
@@ -176,7 +183,8 @@ impl SplitPaneState {
 ///
 /// ## Configuration
 /// `.gap(u16)` (`1`), `.min_first(u16)` (`1`), `.min_second(u16)` (`1`),
-/// `.resizable(bool)` (`false`), `.patch`, `.patch_part`, `.slot`,
+/// `.resizable(bool)` (`false`), `.seam_start/center/end(width)` (full gap
+/// by default), `.patch`, `.patch_part`, `.slot`,
 /// reference fixtures use [`Ui::reference`](crate::Ui::reference).
 ///
 /// ## Variants
@@ -194,7 +202,8 @@ impl SplitPaneState {
 /// [`SplitPaneState::toggle_max`] and already knows.
 ///
 /// ## Focus
-/// One `Focusable` stop over the whole container, registered **only** when
+/// One `Focusable` stop over the whole container by default, or the visible
+/// seam when its width/alignment is configured, registered **only** when
 /// `.resizable(true)`, because a seam nobody can move with the keyboard has
 /// no business in the ring. It does not swallow typing, opens no scope and
 /// traps nothing.
@@ -222,7 +231,8 @@ impl SplitPaneState {
 /// and passes two origin-anchored empty rects to the body (R5).
 ///
 /// ## Parts
-/// `SEAM` — the gap strip, and the only part this component paints. The
+/// `SEAM` — the configured strip within the gap (the full gap by default),
+/// and the only part this component paints. The
 /// panes are the caller's.
 ///
 /// ## Overrides
@@ -242,11 +252,12 @@ impl SplitPaneState {
 /// three states differ by a symbol and survive `ColorLevel::Mono` — the
 /// recipe's own `SEAM` rules are colour-only, and R-8 forbids a component
 /// assembling a `Style` of its own. The container rect `update` reads back
-/// through `Cx::area` is the one `draw` registered, so no caller stores it.
+/// through published `CONTAINER` geometry is the one `draw` registered.
 pub struct SplitPane<'a> {
     id: Id,
     axis: SplitAxis,
     gap: u16,
+    seam: Option<(u16, SeamAlign)>,
     min_first: u16,
     min_second: u16,
     resizable: bool,
@@ -259,6 +270,7 @@ impl fmt::Debug for SplitPane<'_> {
             .field("id", &self.id)
             .field("axis", &self.axis)
             .field("gap", &self.gap)
+            .field("seam", &self.seam)
             .field("min_first", &self.min_first)
             .field("min_second", &self.min_second)
             .field("resizable", &self.resizable)
@@ -277,6 +289,7 @@ impl<'a> SplitPane<'a> {
             id,
             axis,
             gap: 1,
+            seam: None,
             min_first: 1,
             min_second: 1,
             resizable: false,
@@ -294,6 +307,30 @@ impl<'a> SplitPane<'a> {
     #[must_use]
     pub const fn gap(mut self, g: u16) -> Self {
         self.gap = g;
+        self
+    }
+
+    /// Paint and drag only `width` cells at the start of the gap.
+    /// Width is clamped to the gap; zero leaves spacing but removes the seam.
+    #[must_use]
+    pub const fn seam_start(mut self, width: u16) -> Self {
+        self.seam = Some((width, SeamAlign::Start));
+        self
+    }
+
+    /// Paint and drag only `width` cells centred in the gap.
+    /// An odd spare cell stays at the end. Pane layout is unchanged.
+    #[must_use]
+    pub const fn seam_center(mut self, width: u16) -> Self {
+        self.seam = Some((width, SeamAlign::Center));
+        self
+    }
+
+    /// Paint and drag only `width` cells at the end of the gap.
+    /// For example, `.gap(2).seam_end(1)` leaves the leading gap cell blank.
+    #[must_use]
+    pub const fn seam_end(mut self, width: u16) -> Self {
+        self.seam = Some((width, SeamAlign::End));
         self
     }
 
@@ -355,7 +392,31 @@ impl<'a> SplitPane<'a> {
     /// The seam strip for `area`; empty when a pane is maximised, when the
     /// split collapsed, or when `gap` is `0`.
     pub(crate) fn seam(&self, st: SplitPaneState, area: Rect) -> Rect {
-        self.model(st).handle(area, self.gap)
+        let mut seam = self.model(st).handle(area, self.gap);
+        if let Some((width, align)) = self.seam {
+            let extent = match self.axis {
+                SplitAxis::Horizontal => seam.width,
+                SplitAxis::Vertical => seam.height,
+            };
+            let width = width.min(extent);
+            let spare = extent.saturating_sub(width);
+            let offset = match align {
+                SeamAlign::Start => 0,
+                SeamAlign::Center => spare / 2,
+                SeamAlign::End => spare,
+            };
+            match self.axis {
+                SplitAxis::Horizontal => {
+                    seam.x = seam.x.saturating_add(offset);
+                    seam.width = width;
+                }
+                SplitAxis::Vertical => {
+                    seam.y = seam.y.saturating_add(offset);
+                    seam.height = width;
+                }
+            }
+        }
+        seam
     }
 
     /// The binding table: empty unless the split is resizable, so the hint
@@ -391,7 +452,9 @@ impl<'a> SplitPane<'a> {
 
     /// The update phase: keyboard resize (when resizable) and the seam drag.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut SplitPaneState) -> Response<SplitAction> {
-        let area = cx.area(self.id).unwrap_or(Rect::ZERO);
+        let area = cx
+            .area_of_part(self.id, PartRef::of(Part::CONTAINER))
+            .unwrap_or(Rect::ZERO);
         let gap = self.gap;
         let table = self.table();
         let mut acc = Acc::<SplitAction>::new();
@@ -495,9 +558,18 @@ impl<'a> SplitPane<'a> {
         }
         let (first, second) = self.panes(*st, area);
         let seam = self.seam(*st, area);
+        let seam = if self.seam.is_some() {
+            seam.intersection(ui.full())
+        } else {
+            seam
+        };
         let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         if self.resizable {
-            ui.register_control(self.id, area, Focusability::Focusable);
+            ui.register_control(
+                self.id,
+                if self.seam.is_some() { seam } else { area },
+                Focusability::Focusable,
+            );
         }
         ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
         ui.publish_bindings(self.id, live, self.table());

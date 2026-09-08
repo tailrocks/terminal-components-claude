@@ -149,6 +149,11 @@ pub trait FrameRead {
     fn design(&self) -> &DesignTokens;
     /// LAST frame's geometry; `None` on frame 1 or when `id` did not draw.
     fn area(&self, id: Id) -> Option<Rect>;
+    /// LAST successfully published rectangle tagged with `part` for `owner`.
+    /// Includes decorative parts; reference projections suppress live geometry.
+    fn area_of_part(&self, _owner: Id, _part: PartRef) -> Option<Rect> {
+        None
+    }
     /// LAST frame's layout facts for `id`.
     fn layout(&self, id: Id) -> Option<LayoutFacts>;
 }
@@ -607,6 +612,10 @@ impl FrameRead for Cx<'_> {
 
     fn area(&self, id: Id) -> Option<Rect> {
         self.last.registry.area_of(id)
+    }
+
+    fn area_of_part(&self, owner: Id, part: PartRef) -> Option<Rect> {
+        self.last.registry.area_of_part(owner, part)
     }
 
     fn layout(&self, id: Id) -> Option<LayoutFacts> {
