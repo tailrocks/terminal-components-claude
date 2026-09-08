@@ -25,7 +25,7 @@ impl Clock {
         }
     }
 
-    /// Advance by an explicitly measured elapsed interval of `interval_ms`.
+    /// Advance by one admitted, fixed simulation interval of `interval_ms`.
     pub(crate) fn advance(&mut self, interval_ms: i64) {
         if self.running {
             self.now_ms = self.now_ms.saturating_add(interval_ms.max(0));

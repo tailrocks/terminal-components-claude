@@ -166,7 +166,7 @@ pub struct App {
     keymap: KeyMap,
     status: Option<String>,
     status_until_ms: Option<i64>,
-    next_due: Option<junie_tui::Moment>,
+    last_step_at: Option<junie_tui::Moment>,
     quit: bool,
 }
 impl std::fmt::Debug for App {
@@ -222,7 +222,7 @@ impl App {
             keymap,
             status: None,
             status_until_ms: None,
-            next_due: None,
+            last_step_at: None,
             quit: false,
         }
     }
@@ -657,6 +657,27 @@ impl App {
     }
 }
 impl App {
+    fn cadence(&self, cx: &Cx<'_>) -> u64 {
+        if self.world.discovering() || cx.activation_feedback().is_some() {
+            80
+        } else {
+            200
+        }
+    }
+    fn synchronize_feedback(&mut self, cx: &mut Cx<'_>, clock: crate::clock::Clock) -> bool {
+        let synchronized = u64::try_from(clock.now_ms).ok().is_some_and(|now| {
+            cx.sync_feedback_time(junie_tui::SimulationMoment::from_millis(now))
+                .is_ok()
+        });
+        if !synchronized {
+            self.motion = Motion::Paused;
+            self.world.clock.running = false;
+            self.last_step_at = None;
+            self.status = Some("Simulation animation paused: feedback clock mismatch.".into());
+            self.status_until_ms = None;
+        }
+        synchronized
+    }
     fn refresh_query_bindings(&mut self) {
         for (character, command) in std::iter::once(&('0', HOME)).chain(ACTIVITY_SHORTCUTS) {
             let chord = Chord::key(KeyCode::Char(*character));
@@ -773,27 +794,28 @@ impl App {
 impl junie_tui::App for App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut clock_response = Response::ignored();
-        if self.motion != Motion::Paused {
-            let cadence = if self.world.discovering() { 80 } else { 200 };
-            let next_due = *self.next_due.get_or_insert_with(|| {
-                cx.now()
-                    .saturating_add(std::time::Duration::from_millis(cadence))
-            });
-            if cx.update_cause() == junie_tui::UpdateCause::Tick && cx.now() >= next_due {
-                // Pinned Holla coalesces a delayed wake into one fixed step.
-                // Absolute time admits the step; it never becomes fixture time.
-                let _ = self.world.tick(cadence as i64);
-                let next_cadence = if self.world.discovering() { 80 } else { 200 };
-                self.next_due = Some(
-                    cx.now()
-                        .saturating_add(std::time::Duration::from_millis(next_cadence)),
-                );
-                if self
-                    .status_until_ms
-                    .is_some_and(|until| self.world.now_ms() >= until)
-                {
-                    self.status = None;
-                    self.status_until_ms = None;
+        let synchronized = self.synchronize_feedback(cx, self.world.clock);
+        if !synchronized {
+            clock_response = Response::changed();
+        }
+        if synchronized && self.motion != Motion::Paused {
+            let cadence = self.cadence(cx);
+            let anchor = *self.last_step_at.get_or_insert(cx.now());
+            let due = anchor.saturating_add(std::time::Duration::from_millis(cadence));
+            if cx.update_cause() == junie_tui::UpdateCause::Tick && cx.now() >= due {
+                // Validate the exact next clock before advancing any discovery state.
+                let mut next_clock = self.world.clock;
+                next_clock.advance(cadence as i64);
+                if self.synchronize_feedback(cx, next_clock) {
+                    let _ = self.world.tick(cadence as i64);
+                    self.last_step_at = Some(cx.now());
+                    if self
+                        .status_until_ms
+                        .is_some_and(|until| self.world.now_ms() >= until)
+                    {
+                        self.status = None;
+                        self.status_until_ms = None;
+                    }
                 }
                 clock_response = Response::changed();
             }
@@ -801,9 +823,11 @@ impl junie_tui::App for App {
         let response = self.update_controls(cx);
         self.refresh_query_bindings();
         if self.motion != Motion::Paused
-            && let Some(next_due) = self.next_due
+            && let Some(anchor) = self.last_step_at
         {
-            cx.request_repaint_at(next_due);
+            cx.request_repaint_at(
+                anchor.saturating_add(std::time::Duration::from_millis(self.cadence(cx))),
+            );
         }
         clock_response | response
     }
@@ -876,8 +900,19 @@ mod tests {
     use crate::sim::catalogue;
     use junie_tui::{Dialog, Theme};
     use junie_tui_testing::Harness;
+    fn harness(app: App, theme: Theme, width: u16, height: u16) -> Harness<App> {
+        let initial =
+            junie_tui::SimulationMoment::from_millis(u64::try_from(app.fixture_time_ms()).unwrap());
+        Harness::new_with_feedback_clock(
+            app,
+            theme,
+            width,
+            height,
+            junie_tui::FeedbackClock::Simulation { initial },
+        )
+    }
     fn app(scenario: Scenario) -> Harness<App> {
-        Harness::new(
+        harness(
             App::for_scenario(scenario, Motion::Paused, 4_000),
             Theme::junie(),
             120,
@@ -948,7 +983,7 @@ mod tests {
     }
     #[test]
     fn home_navigation_uses_shared_boundaries_and_reveals_selected_rows() {
-        let mut harness = Harness::new(
+        let mut harness = harness(
             App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
             Theme::junie(),
             120,
@@ -1347,7 +1382,7 @@ mod tests {
     #[test]
     fn coalesced_deadlines_preserve_fixed_steps_and_pause() {
         for motion in [Motion::Full, Motion::Reduced, Motion::Paused] {
-            let mut harness = Harness::new(
+            let mut harness = harness(
                 App::for_scenario(Scenario::FirstUse, motion, 0),
                 Theme::junie(),
                 120,
@@ -1370,10 +1405,110 @@ mod tests {
             );
         }
     }
+    #[test]
+    fn pointer_feedback_changes_cadence_from_last_wake_and_expires_in_fixture_time() {
+        for input_at in [5_u64, 100] {
+            let mut harness = harness(
+                App::for_scenario(Scenario::HardCases, Motion::Full, 4_000),
+                Theme::junie(),
+                120,
+                40,
+            );
+            let _ = harness.advance(std::time::Duration::from_millis(input_at));
+            let _ = harness.click_id(BRAND);
+            assert_eq!(harness.app().fixture_time_ms(), 4_000);
+            let _ = harness.advance(std::time::Duration::from_millis(
+                80_u64.saturating_sub(input_at),
+            ));
+            assert_eq!(harness.app().fixture_time_ms(), 4_080);
+            assert_eq!(
+                harness.activation_feedback().unwrap().remaining,
+                std::time::Duration::from_millis(60)
+            );
+            harness.ticks(5);
+            let _ = harness.resize(121, 40);
+            assert_eq!(harness.app().fixture_time_ms(), 4_080);
+            let _ = harness.advance(std::time::Duration::from_millis(80));
+            assert_eq!(harness.app().fixture_time_ms(), 4_160);
+            assert!(harness.activation_feedback().is_none());
+            let _ = harness.advance(std::time::Duration::from_millis(199));
+            assert_eq!(harness.app().fixture_time_ms(), 4_160);
+            let _ = harness.advance(std::time::Duration::from_millis(1));
+            assert_eq!(harness.app().fixture_time_ms(), 4_360);
+            assert!(
+                harness.diagnostics().is_empty(),
+                "{:?}",
+                harness.diagnostics()
+            );
+        }
+    }
+    #[test]
+    fn delayed_pointer_feedback_coalesces_and_paused_feedback_keeps_fixture_epoch() {
+        for motion in [Motion::Full, Motion::Paused] {
+            let mut harness = harness(
+                App::for_scenario(Scenario::HardCases, motion, 4_000),
+                Theme::junie(),
+                120,
+                40,
+            );
+            let _ = harness.advance(std::time::Duration::from_millis(5));
+            let _ = harness.click_id(BRAND);
+            let _ = harness.advance(std::time::Duration::from_millis(1_800));
+            let step = if motion == Motion::Paused { 0 } else { 80 };
+            assert_eq!(harness.app().fixture_time_ms(), 4_000 + step);
+            assert_eq!(
+                harness.activation_feedback().unwrap().remaining,
+                std::time::Duration::from_millis(if motion == Motion::Paused { 140 } else { 60 })
+            );
+            harness.ticks(10);
+            assert_eq!(harness.app().fixture_time_ms(), 4_000 + step);
+            assert!(
+                harness.diagnostics().is_empty(),
+                "{:?}",
+                harness.diagnostics()
+            );
+        }
+    }
+    #[test]
+    fn feedback_clock_mismatch_and_backwards_epoch_refuse_all_fixture_progress() {
+        let snapshot = |app: &App| {
+            (
+                app.fixture_time_ms(),
+                app.effect_revision(),
+                app.world
+                    .discovery
+                    .iter()
+                    .map(|mark| (mark.domain, mark.at_ms, mark.fails, mark.done, mark.failed))
+                    .collect::<Vec<_>>(),
+                catalogue::catalogue(&app.world),
+            )
+        };
+        for clock in [
+            junie_tui::FeedbackClock::Elapsed,
+            junie_tui::FeedbackClock::Simulation {
+                initial: junie_tui::SimulationMoment::from_millis(5_000),
+            },
+        ] {
+            let app = App::for_scenario(Scenario::HardCases, Motion::Full, 4_000);
+            let expected = snapshot(&app);
+            let mut harness = Harness::new_with_feedback_clock(app, Theme::junie(), 120, 40, clock);
+            assert_eq!(snapshot(harness.app()), expected);
+            assert!(!harness.app().world.clock.running);
+            assert_eq!(harness.app().motion, Motion::Paused);
+            assert!(harness.text().contains("feedback clock mismatch"));
+            let _ = harness.advance(std::time::Duration::from_millis(1_800));
+            assert_eq!(snapshot(harness.app()), expected);
+            assert!(
+                harness.diagnostics().is_empty(),
+                "{:?}",
+                harness.diagnostics()
+            );
+        }
+    }
 
     #[test]
     fn modal_status_ages_only_with_admitted_virtual_steps() {
-        let mut harness = Harness::new(
+        let mut harness = harness(
             App::for_scenario(Scenario::FirstUse, Motion::Full, 4_000),
             Theme::junie(),
             120,
@@ -1398,7 +1533,7 @@ mod tests {
 
     #[test]
     fn early_input_and_unrelated_ticks_cannot_admit_simulation_time() {
-        let mut harness = Harness::new(
+        let mut harness = harness(
             App::for_scenario(Scenario::FirstUse, Motion::Full, 0),
             Theme::junie(),
             120,

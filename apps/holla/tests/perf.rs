@@ -20,11 +20,14 @@ const QUERY: Id = Id::root("home.query");
 const STEPS: Id = Id::root("plan.steps");
 
 fn fixture(scenario: Scenario) -> Harness<App> {
-    Harness::new(
+    Harness::new_with_feedback_clock(
         App::for_scenario(scenario, Motion::Paused, 4_000),
         Theme::junie(),
         WIDTH,
         HEIGHT,
+        junie_tui::FeedbackClock::Simulation {
+            initial: junie_tui::SimulationMoment::from_millis(4_000),
+        },
     )
 }
 fn invariant(harness: &Harness<App>) -> (u64, i64) {

@@ -54,7 +54,18 @@ pub fn run() -> std::process::ExitCode {
             cli::ColorChoice::Mono => junie_tui::ColorLevel::Mono,
         });
     let app = App::for_scenario(options.scenario, options.motion, options.frame);
-    match junie_tui::run(app, junie_tui::Theme::junie().downgrade(color)) {
+    let Ok(frame) = u64::try_from(app.fixture_time_ms()) else {
+        eprintln!("holla: fixture clock precedes its simulation epoch");
+        return std::process::ExitCode::FAILURE;
+    };
+    let feedback = junie_tui::FeedbackClock::Simulation {
+        initial: junie_tui::SimulationMoment::from_millis(frame),
+    };
+    match junie_tui::run_with_feedback_clock(
+        app,
+        junie_tui::Theme::junie().downgrade(color),
+        feedback,
+    ) {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("holla: {error}");
