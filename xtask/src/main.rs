@@ -3867,9 +3867,7 @@ fn library_has_no_application_dependency() -> Result<(), String> {
     let bad: Vec<String> = lib
         .dependencies
         .iter()
-        .filter(|d| {
-            APPS.iter().any(|app| app.bin == d.name) || d.name == "junie-tui"
-        })
+        .filter(|d| APPS.iter().any(|app| app.bin == d.name) || d.name == "junie-tui")
         .map(|d| d.name.clone())
         .collect();
     if bad.is_empty() {
@@ -7264,21 +7262,69 @@ fn rustdoc_json_id(value: &Value) -> Option<String> {
     }
 }
 
+struct RustdocTarget(PathBuf);
+
+impl RustdocTarget {
+    fn new() -> Result<Self, String> {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|error| error.to_string())?
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "terminal-components-rustdoc-{}-{nonce}",
+            std::process::id()
+        ));
+        // Never adopt or delete an existing target: wrappers may own its
+        // build-script executables, and simultaneous checks need isolation.
+        fs::create_dir(&path).map_err(|error| {
+            format!(
+                "cannot create isolated rustdoc target {}: {error}",
+                path.display()
+            )
+        })?;
+        Ok(Self(path))
+    }
+}
+
+impl Drop for RustdocTarget {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
 fn rustdoc_json() -> Result<Value, String> {
-    let target_dir = root().join("target/xtask-rustdoc");
-    let output = Command::new("cargo")
-        .args(["+nightly", "rustdoc", "-p", LIB, "--lib", "--target-dir"])
-        .arg(&target_dir)
+    let target = RustdocTarget::new()?;
+    let target_dir = &target.0;
+    // Resolve Cargo through rustup rather than a PATH wrapper that may not
+    // support rustdoc. The lockfile remains immutable during inspection.
+    let resolved = Command::new("rustup")
+        .args(["which", "--toolchain", "nightly", "cargo"])
+        .output()
+        .map_err(|error| format!("cannot resolve nightly Cargo: {error}"))?;
+    if !resolved.status.success() {
+        return Err(format!(
+            "cannot resolve nightly Cargo: {}",
+            String::from_utf8_lossy(&resolved.stderr)
+        ));
+    }
+    let cargo = String::from_utf8(resolved.stdout)
+        .map_err(|error| format!("nightly Cargo path is not UTF-8: {error}"))?;
+    let output = Command::new("rustup")
+        .args(["run", "nightly", cargo.trim()])
+        .args(["rustdoc", "--locked", "-p", LIB, "--lib", "--target-dir"])
+        .arg(target_dir)
         .args(["--", "-Z", "unstable-options", "--output-format", "json"])
         .current_dir(root())
         .output()
         .map_err(|error| format!("rustdoc-json could not start `cargo +nightly`: {error}"))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let detail = stderr.lines().rev().take(12).collect::<Vec<_>>();
+        let detail = stderr.lines().take(24).collect::<Vec<_>>();
         return Err(format!(
-            "rustdoc-json requires a working nightly toolchain (`cargo +nightly rustdoc`):\n{}",
-            detail.into_iter().rev().collect::<Vec<_>>().join("\n")
+            "rustdoc-json failed using nightly Cargo {} in {}:\n{}",
+            cargo.trim(),
+            root().display(),
+            detail.join("\n")
         ));
     }
 
