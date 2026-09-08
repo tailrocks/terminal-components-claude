@@ -25,7 +25,7 @@ use crate::cursor;
 use crate::diagnostics::Diagnostic;
 use crate::event::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 use crate::focus::{FocusRing, FocusState, ScopeId};
-use crate::hit::{Hit, RegionKind};
+use crate::hit::Hit;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
@@ -774,6 +774,7 @@ impl<A: App> Runtime<A> {
             height: h,
         };
         self.services.capture.release();
+        self.services.press_pos = None;
         self.inter.press = None;
         self.inter.hover = None;
         self.last.snapshot.pressed = None;
@@ -868,9 +869,7 @@ impl<A: App> Runtime<A> {
     ///
     /// The refusal is silent, like the focus refusal it now matches.
     fn deliverable(&self, hit: Hit) -> bool {
-        hit.layer == self.top()
-            && hit.kind != RegionKind::Decorative
-            && !self.ring_proves_disabled(hit.owner)
+        crate::capture::target_eligible(&self.last.ring, self.top(), hit.owner, hit.layer, hit.kind)
     }
 
     fn local_in(area: Rect, pos: Position) -> Position {
@@ -895,6 +894,9 @@ impl<A: App> Runtime<A> {
     /// Steps 3–6 for a pointer event.
     fn enqueue_mouse(&mut self, m: Mouse) {
         self.inter.pointer_position = Some(m.pos);
+        if m.kind == MouseKind::Up {
+            self.services.press_pos = None;
+        }
         self.inter.last_input_key = false;
         self.focus.set_visible(false);
         self.last.snapshot.focus_visible = false;
@@ -1463,14 +1465,7 @@ impl<A: App> Runtime<A> {
 
     /// Step 9.
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
-        // Visible pressed facts are derived from the two authorities, never
-        // a second feedback lifecycle. Resize may cancel a held press, but
-        // cannot erase an activation record that has not expired.
-        self.last.snapshot.pressed = self
-            .inter
-            .press
-            .map(|press| (press.owner, press.part))
-            .or_else(|| self.services.feedback.pressed());
+        self.reconcile_held_pointer();
         if self.services.repaint {
             r = r.repaint();
         }
@@ -1569,7 +1564,7 @@ impl<A: App> Runtime<A> {
 
     fn commit_geometry(&mut self) {
         self.services.viewport = self.frame.screen;
-        // step 13: registry swap, stale captures released
+        // Step 13: registry swap; held targets reconcile after the ring swap.
         let mut diags = core::mem::take(&mut self.frame.diagnostics);
         self.services.diagnostics.extend(diags.drain(..));
         core::mem::swap(&mut self.last.registry, &mut self.frame.registry);
@@ -1594,8 +1589,6 @@ impl<A: App> Runtime<A> {
         self.services.initial_focus_layer = None;
         self.commit_geometry();
         self.presented = true;
-        self.services.capture.release_if_stale(&self.last.registry);
-        self.last.snapshot.capture = self.services.capture.get().map(|c| c.owner);
         // step 14: focus reconcile. A modal's trap moves focus into it by
         // rule (c); a popover leaves focus where it is unless the spec named
         // an `initial_focus` (§16.2 case 17: a component stays focused under
@@ -1683,9 +1676,52 @@ impl<A: App> Runtime<A> {
         self.staged_focus = None;
         self.last.snapshot.focus = self.focus.current();
         self.last.snapshot.focus_visible = self.focus.visible();
+        self.reconcile_held_pointer();
         self.reconcile_hover();
         // Cursor matches the actual output, painted before focus reconciliation.
         self.cursor = self.painted_cursor;
+    }
+
+    fn reconcile_held_pointer(&mut self) {
+        let capture = self.services.capture.get();
+        self.services.capture.release_if_stale(&self.last.registry);
+        let eligible = |owner, part| {
+            crate::capture::target_area(
+                &self.last.registry,
+                &self.last.ring,
+                self.top(),
+                owner,
+                part,
+            )
+            .is_some()
+        };
+        let capture_invalid = capture.is_some_and(|capture| {
+            self.services.capture.get().is_none() || !eligible(capture.owner, capture.part)
+        });
+        let press_invalid = self
+            .inter
+            .press
+            .is_some_and(|press| !eligible(press.owner, press.part));
+        if capture_invalid {
+            self.services.capture.release();
+        }
+        if capture_invalid || press_invalid {
+            self.inter.press = None;
+            self.services.press_pos = None;
+        }
+        // Gesture cancellation never erases independently timed feedback.
+        let pressed = self
+            .inter
+            .press
+            .map(|press| (press.owner, press.part))
+            .or_else(|| self.services.feedback.pressed());
+        let capture = self.services.capture.get().map(|capture| capture.owner);
+        if self.last.snapshot.capture != capture || self.last.snapshot.pressed != pressed {
+            self.presented = false;
+            self.services.repaint = true;
+        }
+        self.last.snapshot.capture = capture;
+        self.last.snapshot.pressed = pressed;
     }
 
     fn reconcile_hover(&mut self) {

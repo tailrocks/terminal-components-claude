@@ -445,21 +445,25 @@ impl<'f> Cx<'f> {
         self.request_repaint_at(self.now().saturating_add(d));
     }
 
-    /// Claim pointer capture; `false` if another capture is live.
+    /// Claim an eligible published part during a live pointer gesture.
+    /// Returns `false` for an absent, disabled, or blocked target, no live
+    /// press origin, or an existing capture.
     pub fn capture(&mut self, owner: Id, part: PartRef) -> bool {
-        let area = self
-            .last
-            .registry
-            .area_of_part(owner, part)
-            .or_else(|| self.last.registry.area_of(owner))
-            .unwrap_or_default();
+        let Some(area) = crate::capture::target_area(
+            &self.last.registry,
+            &self.last.ring,
+            self.top_layer(),
+            owner,
+            part,
+        ) else {
+            return false;
+        };
         // §8.2: the origin is where the pointer *was*, so a splitter or a
         // scrollbar thumb computes `pos - origin` without the press offset
         // inside the thumb leaking into the delta (MA-5).
-        let origin = self
-            .services
-            .press_pos
-            .unwrap_or_else(|| Position::new(area.x, area.y));
+        let Some(origin) = self.services.press_pos else {
+            return false;
+        };
         self.services.capture.claim(Capture {
             owner,
             part,

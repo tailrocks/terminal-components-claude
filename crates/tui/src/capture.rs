@@ -4,13 +4,44 @@
 //! owner with `local` computed against the captured area, hit-testing for
 //! other widgets is suppressed, `PRESSED` stays set regardless of hover, and
 //! release activates iff the pointer is inside the captured area. Captures
-//! are released on resize, on owner disappearance and on generation
-//! mismatch; nested captures are rejected, never stacked.
+//! are released on resize, generation mismatch, or when the actual part is
+//! absent, disabled, or blocked by the live top layer. Nested captures are
+//! rejected, never stacked.
 
 use ratatui_core::layout::{Position, Rect};
 
-use crate::hit::Registry;
+use crate::focus::FocusRing;
+use crate::hit::{RegionKind, Registry};
 use crate::id::{Id, PartRef};
+use crate::layer::LayerId;
+
+pub(crate) fn target_eligible(
+    ring: &FocusRing,
+    top: LayerId,
+    owner: Id,
+    layer: LayerId,
+    kind: RegionKind,
+) -> bool {
+    layer == top
+        && matches!(kind, RegionKind::Control | RegionKind::Part)
+        && !ring.entry(owner).is_some_and(|entry| entry.disabled)
+}
+
+pub(crate) fn target_area(
+    registry: &Registry,
+    ring: &FocusRing,
+    top: LayerId,
+    owner: Id,
+    part: PartRef,
+) -> Option<Rect> {
+    registry.regions().iter().rev().find_map(|region| {
+        (region.owner == owner
+            && region.part == part
+            && !region.area.is_empty()
+            && target_eligible(ring, top, owner, region.layer, region.kind))
+        .then_some(region.area)
+    })
+}
 
 /// A live pointer capture.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -66,8 +97,9 @@ impl CaptureSlot {
         self.live.take()
     }
 
-    /// Release when the owner or its area vanished from `reg`, or the
-    /// generation moved on without the owner (§3.3 step 13).
+    /// Release when the owner vanished or the generation moved backwards.
+    /// Runtime additionally checks the actual part against the published ring
+    /// and live layer using `target_area` (§3.3 step 13).
     pub(crate) fn release_if_stale(&mut self, reg: &Registry) {
         if let Some(c) = self.live
             && (!reg.has_owner(c.owner) || reg.generation() < c.generation)
