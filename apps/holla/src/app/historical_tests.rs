@@ -546,3 +546,78 @@ fn correct_phrase_runs_and_failure_propagates() {
     assert!(t.contains("Output — Remove stopped containers"), "{t}");
     assert!(t.contains("Removed web"), "{t}");
 }
+
+#[test]
+fn debian_plan_parallel_branches_and_i_understand_phrase() {
+    let mut h = fixture(Scenario::UpgradePlan, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("upgrade everything");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().route == Route::Plan, "{}", h.text());
+    let t = h.text();
+    assert!(t.contains("· apt"), "{t}");
+    assert!(t.contains("· mise"), "{t}");
+    // exclude Apply upgrades: autoremove and verify recalculate, mise free
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Char(' '));
+    let t = h.text();
+    assert!(t.contains("needs Apply upgrades"), "{t}");
+    try_confirm(&mut h, "I UNDERSTAND: UPGRADE EVERYTHING ON devbox-deb");
+    let t = h.text();
+    assert!(t.contains("Finished:"), "{t}");
+    assert!(t.contains("skipped"), "{t}");
+    // apt never applied; the mise branch still ran
+    assert_eq!(
+        h.app().world.debian.as_ref().map(|debian| debian.pending),
+        Some(47)
+    );
+    let mise = h.app().world.mise.as_ref();
+    assert!(mise.is_some(), "expected mise fixture");
+    assert!(mise.is_some_and(|mise| {
+        mise.tools
+            .iter()
+            .all(|t| !matches!(t.state, crate::domain::mise::ToolState::Outdated { .. }))
+    }));
+}
+
+#[test]
+fn production_restart_goes_through_two_gates() {
+    let mut h = fixture(Scenario::RemoteHost, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("restart");
+    let _ = h.key(KeyCode::Enter);
+    // broad on production: the review surface, not a one-shot confirm
+    assert!(h.app().route == Route::Plan, "{}", h.text());
+    let t = h.text();
+    assert!(t.contains("Restart payments"), "{t}");
+    try_confirm(&mut h, "RESTART PAYMENTS ON prod-eu-1");
+    assert!(h.text().contains("Finished:"), "{}", h.text());
+    let c = h.app().world.docker.as_ref().and_then(|docker| {
+        docker
+            .containers
+            .iter()
+            .find(|container| container.name == "payments")
+    });
+    assert_eq!(
+        c.map(|container| container.state),
+        Some(crate::domain::docker::ContainerState::Running)
+    );
+    assert_eq!(
+        c.and_then(|container| container.health),
+        Some(crate::domain::docker::Health::Healthy)
+    );
+    // back home, the urgency row is gone — the fixture kept its word
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.text().contains("service is unhealthy"), "{}", h.text());
+}
+
+#[test]
+fn disk_plan_policy_skips_active_today() {
+    let mut h = fixture(Scenario::DiskCleanup, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("reclaim disk");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().route == Route::Plan, "{}", h.text());
+    let t = h.text();
+    assert!(t.contains("Remove node_modules"), "{t}");
+    assert!(t.contains("active today · never removed"), "{t}");
+    assert!(t.contains("Remove .gradle"), "{t}");
+}
