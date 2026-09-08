@@ -193,6 +193,12 @@ TablePro ac4ce44 restores source history filters and selective revert assertions
 root compared pinned model.rs959–1010 directly. a50ff14 fixes UTF8 tokenizer
 byte/character confusion at its owner (original café panic); root68 MSRV
 model and real app journey tests pass. Completion restoration remains pending.
+Dialog navigation integrated5eec5b6: extend Button bindings with shared Left/Right
+without replacing Enter/Space. Root7 MSRV navigation/acknowledgement and115Holla
+tests pass. Owner unchanged historical monitor handoff passes; root historical
+monitor execution awaits its dependency train. Runtime c8cc1a5 repaired hover/capture
+chain now independently accepted (27MSRV tests and immutable PTY proof); integration
+review remains pending, not a waiver for earlier033e175 starvation.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
