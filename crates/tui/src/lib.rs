@@ -82,8 +82,8 @@ pub use layer::{
 pub use theme::{
     Align, BorderSet, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS, Family, FgStep,
     GlyphRole, MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay,
-    OverlayRule, PaintStyle, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StylePatch,
-    Surface, SyntaxRole, Theme, ThemeBuilder, Variant,
+    OverlayRule, PaintStyle, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StyleDefaults,
+    StylePatch, Surface, SyntaxRole, Theme, ThemeBuilder, Variant,
 };
 // layout and measurement
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
