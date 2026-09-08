@@ -264,6 +264,7 @@ impl PickerState {
 pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
+    width: Option<u16>,
     placeholder: &'a str,
     scopes: &'a [ScopeKey],
     empty: Option<EmptyState<'a>>,
@@ -290,6 +291,7 @@ impl<T> Picker<'_, T, ItemRow> {
         Self {
             id,
             title: "Choose",
+            width: None,
             placeholder: "Type to search…",
             scopes: &[],
             empty: None,
@@ -328,6 +330,13 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.title = title;
         self
     }
+    /// Override the requested width; the layer resolver still clamps to the viewport.
+    /// Omit this option to retain semantic sizing within the theme's popup bounds.
+    #[must_use]
+    pub const fn width(mut self, width: u16) -> Self {
+        self.width = Some(width);
+        self
+    }
     /// Query placeholder.
     #[must_use]
     pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
@@ -351,6 +360,7 @@ impl<'a, T, R> Picker<'a, T, R> {
         Picker {
             id: self.id,
             title: self.title,
+            width: self.width,
             placeholder: self.placeholder,
             scopes: self.scopes,
             empty: self.empty,
@@ -399,8 +409,10 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     /// Requested modal size, pure in props, semantic labels, and design tokens.
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         let d = cx.design();
-        let natural = FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items);
-        let width = natural.clamp(d.size.popup_min_width, d.size.popup_max_width);
+        let width = self.width.unwrap_or_else(|| {
+            FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items)
+                .clamp(d.size.popup_min_width, d.size.popup_max_width)
+        });
         let rows = items
             .len()
             .min(usize::from(d.size.popup_max_rows))
