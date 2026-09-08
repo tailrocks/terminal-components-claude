@@ -4,12 +4,12 @@ use junie_tui::{
     Ui,
 };
 use junie_tui_testing::Harness;
-use tablepro_app::{
-    Catalog, ColType, QueryTab, ResultGrid, ResultSet, Surface, Tab, TableProApp, Value,
-};
+use tablepro_app::{Catalog, ColType, QueryTab, ResultSet, Surface, Tab, TableProApp, Value};
 
 fn begin_query_edit(h: &mut Harness<TableProApp>) {
-    let query = Id::root("tablepro.query");
+    let Some(query) = h.app().query_id() else {
+        unreachable!("query fixture");
+    };
     for _ in 0..20 {
         if h.focus() == Some(query) {
             break;
@@ -31,7 +31,9 @@ fn ctrl_c_requests_quit_even_when_the_result_grid_owns_focus() {
     let mut app = TableProApp::default();
     app.set_surface(Surface::TableGrid);
     let mut h = Harness::new(app, Theme::junie(), 120, 40);
-    let grid = Id::root("tablepro.results");
+    let Some(grid) = h.app().result_id() else {
+        unreachable!("grid fixture");
+    };
     let _ = h.click_id(grid);
     assert_eq!(h.focus(), Some(grid));
     let _ = h.ctrl('c');
@@ -161,7 +163,7 @@ fn query_debug_does_not_expose_saved_or_current_sql() {
     let mut query = QueryTab::new(1, "synthetic-saved-secret");
     query.query = "synthetic-current-secret".to_owned();
     query.error = Some("synthetic-error-secret".to_owned());
-    query.result = Some(ResultGrid::from_result(&ResultSet {
+    query.result = Some(tablepro_app::GridView::from_result(&ResultSet {
         columns: vec![("value".to_owned(), ColType::Text)],
         rows: vec![vec![Value::Text("synthetic-result-secret".to_owned())]],
         total: 1,

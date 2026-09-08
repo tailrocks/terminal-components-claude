@@ -6,6 +6,7 @@ use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry};
 use crate::sql::{self, PlanNode};
+use junie_tui::{GridState, Id, ItemKey, TextInputState};
 
 /// Stable identity for an open workbench tab.
 ///
@@ -28,6 +29,62 @@ impl TabKey {
     pub const fn get(self) -> u64 {
         self.0
     }
+
+    /// Namespace a control by this logical tab, independent of display position.
+    pub fn control(self, name: &'static str) -> Id {
+        Id::root("tablepro.tab")
+            .item(ItemKey::num(self.0))
+            .sub(name)
+    }
+}
+
+/// One tab's grid, with borrowed column props independent of mutable row data.
+#[derive(Clone)]
+pub struct GridView {
+    /// Column metadata published with this result.
+    pub columns: Vec<(String, ColType)>,
+    /// Sole owner of row values, pending edits and undo state.
+    pub model: ResultGrid,
+    /// Durable selection, scrolling and editor state for this grid.
+    pub state: GridState,
+}
+
+impl GridView {
+    /// Publish a complete result and its matching headers together.
+    pub fn from_result(result: &sql::ResultSet) -> Self {
+        Self {
+            columns: result.columns.clone(),
+            model: ResultGrid::from_result(result),
+            state: GridState::default(),
+        }
+    }
+
+    fn empty() -> Self {
+        Self {
+            columns: Vec::new(),
+            model: ResultGrid::empty(),
+            state: GridState::default(),
+        }
+    }
+}
+
+impl core::fmt::Debug for GridView {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("GridView")
+            .field("columns", &self.columns.len())
+            .field("rows", &self.model.row_count())
+            .field("pending", &self.model.pending_total())
+            .field("state", &self.state)
+            .finish()
+    }
+}
+
+impl core::ops::Deref for GridView {
+    type Target = ResultGrid;
+
+    fn deref(&self) -> &Self::Target {
+        &self.model
+    }
 }
 
 /// Table tab body.
@@ -49,7 +106,9 @@ pub struct TableTab {
     /// Current mode.
     pub(crate) mode: TableMode,
     /// Data result adapter.
-    pub result: ResultGrid,
+    pub result: GridView,
+    /// Independent, read-only schema grid; switching modes never replaces data.
+    pub structure: Box<GridView>,
     /// Active local filters.
     pub filters: Vec<Filter>,
     /// Last sort direction per column.
@@ -71,15 +130,25 @@ impl TableTab {
                 sql::Statement::Select(select) => sql::run_select(catalog, &select).ok(),
                 _ => None,
             })
-            .map_or_else(ResultGrid::empty, |result| ResultGrid::from_result(&result));
-        Self {
+            .map_or_else(GridView::empty, |result| GridView::from_result(&result));
+        let mut tab = Self {
             key,
             table,
             mode: TableMode::Data,
             result,
+            structure: Box::new(GridView::empty()),
             filters: Vec::new(),
             sort: None,
-        }
+        };
+        tab.structure = Box::new(GridView::from_result(&sql::ResultSet {
+            columns: tab.structure_columns(),
+            rows: tab.structure(),
+            total: tab.table.columns.len(),
+            source: None,
+            duration_ms: 0,
+            editable: false,
+        }));
+        tab
     }
     /// Toggle Data/Structure.
     pub const fn toggle_structure(&mut self) {
@@ -110,7 +179,7 @@ impl TableTab {
     }
     /// Apply a local sort while preserving adapter row identity.
     pub fn sort(&mut self, column: usize, direction: junie_tui::SortDir) {
-        self.result.sort(
+        self.result.model.sort(
             junie_tui::ColumnKey::num((column as u16).saturating_add(1)),
             direction,
         );
@@ -167,10 +236,12 @@ pub struct QueryTab {
     pub name: String,
     /// SQL text.
     pub query: String,
+    /// Caller-owned editor draft, cursor and selection for this query.
+    pub editor_state: TextInputState,
     /// Last saved editor text; executing a query does not save it.
     pub saved_text: String,
     /// Last result, when successful.
-    pub result: Option<ResultGrid>,
+    pub result: Option<GridView>,
     /// Last execution error.
     pub error: Option<String>,
     /// Last explain plan.
@@ -186,6 +257,7 @@ impl core::fmt::Debug for QueryTab {
             .field("id", &self.id)
             .field("name", &self.name)
             .field("query", &"[redacted]")
+            .field("editor_state", &"<input state>")
             .field("saved_text", &"[redacted]")
             .field("has_result", &self.result.is_some())
             .field("has_error", &self.error.is_some())
@@ -210,6 +282,7 @@ impl QueryTab {
             name: format!("Query {id}"),
             saved_text: query.clone(),
             query,
+            editor_state: TextInputState::default(),
             result: None,
             error: None,
             plan: None,
@@ -229,7 +302,7 @@ impl QueryTab {
         };
         let result = sql::run_select(catalog, &select).map_err(|error| error.message)?;
         let rows = result.rows.len();
-        self.result = Some(ResultGrid::from_result(&result));
+        self.result = Some(GridView::from_result(&result));
         self.error = None;
         Ok(rows)
     }
@@ -249,7 +322,7 @@ impl QueryTab {
     }
     /// Whether the editor has changed text since its last saved copy.
     pub fn dirty(&self) -> bool {
-        self.query != self.saved_text
+        self.editor_state.draft_text().unwrap_or(&self.query) != self.saved_text
     }
 }
 
@@ -317,6 +390,38 @@ impl Tab {
             Self::Table(tab) => tab.key,
             Self::Query(tab) => tab.key,
             Self::History(tab) => tab.key,
+        }
+    }
+
+    /// Current grid and its stable control identity.
+    pub fn grid(&self) -> Option<(Id, &GridView)> {
+        match self {
+            Self::Table(tab) if tab.is_structure() => {
+                Some((tab.key.control("structure"), &tab.structure))
+            }
+            Self::Table(tab) => Some((tab.key.control("data"), &tab.result)),
+            Self::Query(tab) => tab
+                .result
+                .as_ref()
+                .map(|grid| (tab.key.control("results"), grid)),
+            Self::History(_) => None,
+        }
+    }
+    /// Current grid mutably, with no mirrored model or interaction state.
+    pub fn grid_mut(&mut self) -> Option<(Id, &mut GridView)> {
+        match self {
+            Self::Table(tab) => {
+                if tab.is_structure() {
+                    Some((tab.key.control("structure"), &mut tab.structure))
+                } else {
+                    Some((tab.key.control("data"), &mut tab.result))
+                }
+            }
+            Self::Query(tab) => tab
+                .result
+                .as_mut()
+                .map(|grid| (tab.key.control("results"), grid)),
+            Self::History(_) => None,
         }
     }
 

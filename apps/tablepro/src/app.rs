@@ -3,9 +3,9 @@
 use junie_tui::author::{PaintStyle, StyleDefaults};
 use junie_tui::{
     Action, ActionKey, App, Chord, Color, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
-    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridState,
-    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
-    Panel, PanelKind, Part, Phase, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane,
+    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, Id, Intent,
+    ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind, Panel,
+    PanelKind, Part, Phase, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane,
     SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme,
     Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
 };
@@ -15,15 +15,13 @@ use crate::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use crate::domain::ResultGrid;
-use crate::tabs::{ExplorerItem, Tab, TableTab};
+use crate::tabs::{ExplorerItem, GridView, Tab};
 use crate::workbench::Workbench;
 
 /// Minimum terminal width.
 pub const MIN_WIDTH: u16 = 72;
 /// Minimum terminal height.
 pub const MIN_HEIGHT: u16 = 20;
-const QUERY: Id = Id::root("tablepro.query");
-const RESULTS: Id = Id::root("tablepro.results");
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
 const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
@@ -336,11 +334,7 @@ pub struct TableProApp {
     connection: Connection,
     keymap: KeyMap,
     safe_mode: SafeMode,
-    query: String,
-    query_state: TextInputState,
-    columns: Vec<(String, ColType)>,
-    result: ResultGrid,
-    grid_state: GridState,
+    empty_result: ResultGrid,
     status: String,
     quit: bool,
     quit_question: Option<String>,
@@ -379,8 +373,8 @@ impl core::fmt::Debug for TableProApp {
             .field("safe_mode", &self.safe_mode)
             .field("query", &"[redacted]")
             .field("query_state", &"<input state>")
-            .field("columns", &self.columns.len())
-            .field("result", &self.result)
+            .field("result", &self.result())
+            .field("empty_result", &self.empty_result)
             .field("grid_state", &"<grid state>")
             .field("status", &self.status)
             .field("quit", &self.quit)
@@ -433,13 +427,7 @@ impl TableProApp {
             connections: connections.clone(),
             connection: connection.clone(),
             keymap: keymap(),
-            query:
-                "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20"
-                    .to_owned(),
-            query_state: TextInputState::default(),
-            columns: Vec::new(),
-            result: ResultGrid::empty(),
-            grid_state: GridState::default(),
+            empty_result: ResultGrid::empty(),
             status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
             quit: false,
             quit_question: None,
@@ -461,6 +449,9 @@ impl TableProApp {
             form_actions: Box::from(connections::form_actions()),
             form_open: false,
         };
+        app.workbench.new_query(
+            "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
+        );
         let _ = app.execute_query();
         app
     }
@@ -470,11 +461,31 @@ impl TableProApp {
     }
     /// Current SQL text.
     pub fn query(&self) -> &str {
-        &self.query
+        match self.workbench.active() {
+            Some(Tab::Query(tab)) => &tab.query,
+            _ => "",
+        }
     }
     /// Current result adapter.
-    pub const fn result(&self) -> &ResultGrid {
-        &self.result
+    pub fn result(&self) -> &ResultGrid {
+        self.workbench
+            .active()
+            .and_then(Tab::grid)
+            .map_or(&self.empty_result, |(_, grid)| &grid.model)
+    }
+    /// Stable identity of the active SQL editor.
+    pub fn query_id(&self) -> Option<Id> {
+        match self.workbench.active() {
+            Some(Tab::Query(tab)) => Some(tab.key.control("query")),
+            _ => None,
+        }
+    }
+    /// Stable identity of the active result or structure grid.
+    pub fn result_id(&self) -> Option<Id> {
+        self.workbench
+            .active()
+            .and_then(Tab::grid)
+            .map(|(id, _)| id)
     }
     /// Latest status text.
     pub fn status(&self) -> &str {
@@ -599,7 +610,7 @@ impl TableProApp {
         self.sync_tabs_state();
         if surface == Surface::GridCellEditing || surface == Surface::PendingChangeBar {
             if let Some(tab) = self.workbench.active_table_mut() {
-                let _ = tab.result.commit_cell(0, 6, "EUR");
+                let _ = tab.result.model.commit_cell(0, 6, "EUR");
             }
             self.sync_active_table();
         }
@@ -688,9 +699,10 @@ impl TableProApp {
     }
 
     fn set_visual_query(&mut self, query: &str) {
-        query.clone_into(&mut self.query);
-        self.query_state = TextInputState::default();
-        self.sync_query_tab();
+        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
+            query.clone_into(&mut tab.query);
+            tab.editor_state = TextInputState::default();
+        }
     }
     /// Borrow the connected workbench.
     pub const fn workbench(&self) -> &Workbench {
@@ -702,7 +714,11 @@ impl TableProApp {
     }
     /// Borrow the draft without exposing a password string.
     pub const fn connection_draft(&self) -> Option<&ConnectionDraft> {
-        self.draft.as_ref()
+        if self.form_open {
+            self.draft.as_ref()
+        } else {
+            None
+        }
     }
     /// Close the form (kept small so deterministic tests can model Esc).
     pub fn form_open_for_test(&mut self, open: bool) {
@@ -717,6 +733,12 @@ impl TableProApp {
         self.form_state = FormState::default();
         self.form_open = true;
         self.surface = Surface::Connections;
+    }
+    fn close_connection_form(&mut self) {
+        self.form_open = false;
+        self.form_state.zeroize();
+        // Retain a scrubbed owner until late focus transitions are drained.
+        self.draft = Some(ConnectionDraft::from_connection(&self.connection));
     }
     /// Select a connection and open its workbench.
     pub fn connect(&mut self, index: usize) -> bool {
@@ -734,17 +756,13 @@ impl TableProApp {
         self.connection = connection.clone();
         self.connections_screen.selected = index;
         self.connections_screen.error = None;
-        self.workbench = Workbench::new(connection.clone(), self.catalog.clone());
+        self.workbench
+            .reconnect(connection.clone(), self.catalog.clone());
         self.workbench.new_query("");
         self.explorer_tree_state = initial_explorer_tree_state(&self.explorer_nodes);
         self.tabs_state = TabsState::default();
         self.split_state = SplitPaneState::default();
         self.sync_tabs_state();
-        self.query.clear();
-        self.query_state = TextInputState::default();
-        self.columns.clear();
-        self.result = ResultGrid::empty();
-        self.grid_state = GridState::default();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
         self.status = format!("Connected to {}", connection.name);
@@ -752,32 +770,13 @@ impl TableProApp {
     }
 
     fn sync_active_table(&mut self) {
-        let Some(Tab::Table(tab)) = self.workbench.active() else {
-            self.columns.clear();
-            self.result = ResultGrid::empty();
-            self.grid_state = GridState::default();
-            return;
-        };
-        self.columns = if tab.is_structure() {
-            tab.structure_columns()
-        } else {
-            tab.table
-                .columns
-                .iter()
-                .map(|column| (column.name.clone(), column.ty))
-                .collect()
-        };
-        self.result = if tab.is_structure() {
-            structure_grid(tab)
-        } else {
-            tab.result.clone()
-        };
-        self.grid_state = GridState::default();
+        self.sync_active_tab();
     }
 
     fn sync_tabs_state(&mut self) {
-        let active = self.workbench.active;
-        if let Some(key) = self.workbench.tabs.get(active).map(tab_key) {
+        if let Some(active) = self.workbench.active_index()
+            && let Some(key) = self.workbench.tabs.get(active).map(tab_key)
+        {
             self.tabs_state.set_active(active, key);
         } else {
             self.tabs_state = TabsState::default();
@@ -797,69 +796,25 @@ impl TableProApp {
     fn new_query(&mut self, query: impl Into<String>) {
         self.workbench.new_query(query);
         self.sync_tabs_state();
-        self.query.clear();
-        self.query_state = TextInputState::default();
-        self.columns.clear();
-        self.result = ResultGrid::empty();
-        self.grid_state = GridState::default();
         self.surface = Surface::QueryEditing;
     }
 
-    fn sync_query_tab(&mut self) {
-        let query = self.query.clone();
-        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
-            tab.query = query;
-        }
-    }
-
     fn commit_query_edit(&mut self) {
-        let _ = self
-            .query_state
-            .commit(&mut self.query, &junie_tui::NoValidate);
-        self.sync_query_tab();
+        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
+            let _ = tab
+                .editor_state
+                .commit(&mut tab.query, &junie_tui::NoValidate);
+        }
     }
 
     fn sync_active_tab(&mut self) {
-        match self.workbench.active() {
-            Some(Tab::Table(tab)) => {
-                self.columns = if tab.is_structure() {
-                    tab.structure_columns()
-                } else {
-                    tab.table
-                        .columns
-                        .iter()
-                        .map(|column| (column.name.clone(), column.ty))
-                        .collect()
-                };
-                self.result = if tab.is_structure() {
-                    structure_grid(tab)
-                } else {
-                    tab.result.clone()
-                };
-                self.surface = if tab.is_structure() {
-                    Surface::StructureView
-                } else {
-                    Surface::TableGrid
-                };
-            }
-            Some(Tab::Query(tab)) => {
-                self.query.clone_from(&tab.query);
-                self.query_state = TextInputState::default();
-                self.columns.clear();
-                self.result = tab.result.clone().unwrap_or_else(ResultGrid::empty);
-                self.surface = Surface::QueryEditing;
-            }
-            Some(Tab::History(_)) => {
-                self.columns.clear();
-                self.result = ResultGrid::empty();
-                self.surface = Surface::HistoryTab;
-            }
-            None => {
-                self.columns.clear();
-                self.result = ResultGrid::empty();
-            }
-        }
-        self.grid_state = GridState::default();
+        self.surface = match self.workbench.active() {
+            Some(Tab::Table(tab)) if tab.is_structure() => Surface::StructureView,
+            Some(Tab::Table(_)) => Surface::TableGrid,
+            Some(Tab::Query(_)) => Surface::QueryEditing,
+            Some(Tab::History(_)) => Surface::HistoryTab,
+            None => self.surface,
+        };
         self.sync_tabs_state();
     }
     /// Change the active safe-mode policy.
@@ -871,14 +826,16 @@ impl TableProApp {
     }
     /// Run a query through the same parser, gate and executor as Ctrl+R.
     pub fn run_query(&mut self, query: impl Into<String>) -> QueryOutcome {
-        self.query = query.into();
-        self.query_state = TextInputState::default();
-        self.sync_query_tab();
+        let query = query.into();
+        if !matches!(self.workbench.active(), Some(Tab::Query(_))) {
+            self.new_query("");
+        }
+        self.set_visual_query(&query);
         self.execute_query()
     }
     /// Parse, gate and execute the current query.
     pub fn execute_query(&mut self) -> QueryOutcome {
-        let statement = match crate::sql::parse(self.query.trim()) {
+        let statement = match crate::sql::parse(self.query().trim()) {
             Ok(statement) => statement,
             Err(error) => {
                 let out = QueryOutcome::Rejected {
@@ -920,12 +877,9 @@ impl TableProApp {
                                 rows: result.rows.len(),
                                 editable: result.editable,
                             };
-                            self.columns.clone_from(&result.columns);
-                            self.result = ResultGrid::from_result(&result);
                             if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
-                                tab.result = Some(self.result.clone());
+                                tab.result = Some(GridView::from_result(&result));
                             }
-                            self.grid_state = GridState::default();
                             self.status = outcome_message(&out);
                             out
                         }
@@ -976,24 +930,23 @@ impl TableProApp {
             .actions(actions)
             .submit(connections::SAVE_CONNECT)
     }
-    fn handle_grid(&mut self, action: &GridAction) {
+    fn handle_grid(status: &mut String, action: &GridAction) {
         match action {
-            GridAction::Sort(key, direction) => {
-                self.result.sort(*key, *direction);
-                self.status = format!("Sorted column {}", key.raw());
+            GridAction::Sort(key, _) => {
+                *status = format!("Sorted column {}", key.raw());
             }
             GridAction::Copy(text) => {
-                self.status = format!("Copied {} cells", text.lines().count());
+                *status = format!("Copied {} cells", text.lines().count());
             }
-            GridAction::Activated(key) => self.status = format!("Activated row {key:?}"),
+            GridAction::Activated(key) => *status = format!("Activated row {key:?}"),
             GridAction::EditRequested(key, column) => {
-                self.status = format!("Edit requested for {key:?}, column {column:?}");
+                *status = format!("Edit requested for {key:?}, column {column:?}");
             }
             GridAction::CellAction(key, column, action) => {
-                self.status = format!("Cell action {action:?} on {key:?}/{column:?}");
+                *status = format!("Cell action {action:?} on {key:?}/{column:?}");
             }
             GridAction::FetchMore => {
-                "All deterministic demo rows are loaded".clone_into(&mut self.status);
+                "All deterministic demo rows are loaded".clone_into(status);
             }
             GridAction::Moved | GridAction::LeaveForward | GridAction::LeaveBackward => {}
         }
@@ -1010,25 +963,14 @@ impl TableProApp {
         let mut pending: usize = 0;
         let mut dirty_queries: usize = 0;
         if self.screen == Screen::Workbench {
-            for (index, tab) in self.workbench.tabs.iter().enumerate() {
+            for tab in &self.workbench.tabs {
                 match tab {
-                    Tab::Table(tab) => {
-                        // The active editor currently owns a separate adapter. Count
-                        // its live draft without committing it merely to ask for exit.
-                        let changes = if index == self.workbench.active && !tab.is_structure() {
-                            self.result.pending_total()
-                        } else {
-                            tab.result.pending_total()
-                        };
-                        pending = pending.saturating_add(changes);
-                    }
+                    Tab::Table(tab) => pending = pending.saturating_add(tab.result.pending_total()),
                     Tab::Query(tab) => {
-                        let dirty = if index == self.workbench.active {
-                            self.query_state.draft_text().unwrap_or(&self.query) != tab.saved_text
-                        } else {
-                            tab.dirty()
-                        };
-                        dirty_queries = dirty_queries.saturating_add(usize::from(dirty));
+                        dirty_queries = dirty_queries.saturating_add(usize::from(tab.dirty()));
+                        if let Some(grid) = &tab.result {
+                            pending = pending.saturating_add(grid.pending_total());
+                        }
                     }
                     Tab::History(_) => {}
                 }
@@ -1058,8 +1000,8 @@ impl TableProApp {
         Response::changed()
     }
 
-    fn update_quit_dialog(&mut self, cx: &mut Cx<'_>) -> Option<Response<()>> {
-        let question = self.quit_question.as_deref()?;
+    fn update_quit_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let question = self.quit_question.as_deref().unwrap_or("");
         let response = Self::quit_dialog(question).update(cx, &mut self.quit_state);
         if let Some(action) = response.action_ref() {
             if matches!(action, DialogAction::Action(ActionKey::CONFIRM))
@@ -1072,13 +1014,79 @@ impl TableProApp {
             cx.close_layer(QUIT_DIALOG, None);
             self.quit_question = None;
         }
-        Some(response.erase())
+        response.erase()
+    }
+
+    fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = Response::ignored();
+        for tab in &mut self.workbench.tabs {
+            if let Tab::Query(query) = tab {
+                response |= query_input(query.key.control("query"), None)
+                    .update(cx, &mut query.editor_state, &mut query.query)
+                    .erase();
+            }
+            match tab {
+                Tab::Table(table) => {
+                    let grid_response =
+                        Self::update_grid_view(cx, table.key.control("data"), &mut table.result);
+                    if let Some(action) = grid_response.action_ref() {
+                        if let GridAction::Sort(key, direction) = action {
+                            table.sort =
+                                Some((usize::from(key.raw().saturating_sub(1)), *direction));
+                        }
+                        Self::handle_grid(&mut self.status, action);
+                    }
+                    response |= grid_response.erase();
+                    let grid_response = Self::update_grid_view(
+                        cx,
+                        table.key.control("structure"),
+                        &mut table.structure,
+                    );
+                    if let Some(action) = grid_response.action_ref() {
+                        Self::handle_grid(&mut self.status, action);
+                    }
+                    response |= grid_response.erase();
+                }
+                Tab::Query(query) => {
+                    if let Some(grid) = &mut query.result {
+                        let grid_response =
+                            Self::update_grid_view(cx, query.key.control("results"), grid);
+                        if let Some(action) = grid_response.action_ref() {
+                            Self::handle_grid(&mut self.status, action);
+                        }
+                        response |= grid_response.erase();
+                    }
+                }
+                Tab::History(_) => {}
+            }
+        }
+        response
+    }
+
+    fn update_grid_view(cx: &mut Cx<'_>, id: Id, view: &mut GridView) -> Response<GridAction> {
+        let (columns, count) = Self::column_specs(&view.columns, view.model.is_editable());
+        let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
+        let response = if view.model.is_editable() {
+            grid.update_editable(cx, &mut view.state, &mut view.model)
+        } else {
+            grid.update(cx, &mut view.state, &view.model)
+        };
+        if let Some(GridAction::Sort(key, direction)) = response.action_ref() {
+            view.model.sort(*key, *direction);
+        }
+        response
     }
 
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
-        let (columns, column_count) = Self::column_specs(&self.columns, self.result.is_editable());
-        let visible_columns = columns.get(..column_count).unwrap_or(&[]);
-        result_grid(visible_columns).draw(ui, area, &self.grid_state, &self.result);
+        if let Some((id, grid)) = self.workbench.active().and_then(Tab::grid) {
+            let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
+            result_grid(id, columns.get(..count).unwrap_or(&[])).draw(
+                ui,
+                area,
+                &grid.state,
+                &grid.model,
+            );
+        }
     }
 
     fn draw_connection_details(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
@@ -1286,9 +1294,12 @@ impl TableProApp {
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
             Some(Tab::Query(query)) => {
                 let rows = fixed_flex_pair(inner, 3);
-                Field::new("SQL query", query_input(Some(&self.query)))
-                    .plain(true)
-                    .draw(ui, rows[0], &self.query_state);
+                Field::new(
+                    "SQL query",
+                    query_input(query.key.control("query"), Some(&query.query)),
+                )
+                .plain(true)
+                .draw(ui, rows[0], &query.editor_state);
                 if query.plan.is_some() {
                     ui.paint_str(rows[1], "Explain plan ready", ui.surface_style());
                 } else if query.error.is_some() {
@@ -1388,9 +1399,10 @@ fn outcome_message(outcome: &QueryOutcome) -> String {
     }
 }
 
-fn query_input(value: Option<&str>) -> TextInput<'_> {
-    let input =
-        TextInput::new(QUERY).placeholder("Type SQL. Ctrl+R runs the statement under the cursor.");
+fn query_input(id: Id, value: Option<&str>) -> TextInput<'_> {
+    let input = TextInput::new(id)
+        .blur(junie_tui::BlurPolicy::Keep)
+        .placeholder("Type SQL. Ctrl+R runs the statement under the cursor.");
     match value {
         Some(text) => input.value(text),
         None => input,
@@ -1413,19 +1425,6 @@ fn fixed_flex_pair(area: junie_tui::Rect, first_height: u16) -> [junie_tui::Rect
             height: area.height.saturating_sub(first),
         },
     ]
-}
-
-fn structure_grid(tab: &TableTab) -> ResultGrid {
-    let rows = tab.structure();
-    let result = crate::sql::ResultSet {
-        columns: tab.structure_columns(),
-        total: rows.len(),
-        rows,
-        source: Some(tab.table.qualified()),
-        duration_ms: 0,
-        editable: false,
-    };
-    ResultGrid::from_result(&result)
 }
 
 fn stable_key(parts: &[&str]) -> ItemKey {
@@ -1753,8 +1752,8 @@ fn workbench_split() -> SplitPane<'static> {
         .min_first(28)
         .min_second(20)
 }
-fn result_grid<'a>(columns: &'a [junie_tui::Column<'a>]) -> Grid<'a> {
-    Grid::new(RESULTS, columns)
+fn result_grid<'a>(id: Id, columns: &'a [junie_tui::Column<'a>]) -> Grid<'a> {
+    Grid::new(id, columns)
         .nav(junie_tui::NavUnit::Cell)
         .select_mode(junie_tui::SelectMode::Multi)
 }
@@ -2307,10 +2306,24 @@ impl App for TableProApp {
         reason = "update keeps public component routing and product command arbitration in one phase"
     )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if let Some(response) = self.update_quit_dialog(cx) {
-            return response;
+        let modal_was_open = self.quit_question.is_some();
+        let mut response = self.update_quit_dialog(cx);
+        response |= self.update_tab_controls(cx);
+        if self.form_open || self.screen != Screen::Connections {
+            response |= connection_tree()
+                .update(cx, &mut self.connection_tree_state, &self.connection_nodes)
+                .erase();
+            for _ in cx.intents(CONNECTION_DETAILS) {}
         }
-        let mut response = Response::ignored();
+        if self.form_open || self.screen != Screen::Workbench {
+            response |= workbench_split().update(cx, &mut self.split_state).erase();
+            response |= explorer_tree()
+                .update(cx, &mut self.explorer_tree_state, &self.explorer_nodes)
+                .erase();
+            response |= tab_strip()
+                .update(cx, &mut self.tabs_state, &self.workbench.tabs)
+                .erase();
+        }
         // Stateless props have no update method, but their factories remain
         // the single source of configuration for both runtime phases.
         let _ = Self::connections_panel("", None);
@@ -2320,7 +2333,9 @@ impl App for TableProApp {
         if matches!(
             cx.update_cause(),
             UpdateCause::Bootstrap | UpdateCause::Event
-        ) && let Some(command) = cx.command()
+        ) && !modal_was_open
+            && cx.top_layer() == LayerId::PAGE
+            && let Some(command) = cx.command()
         {
             match command {
                 c if c == QUIT => {
@@ -2373,17 +2388,17 @@ impl App for TableProApp {
                 _ => {}
             }
         }
-        if self.form_open {
+        let form_was_open = self.form_open;
+        if self.draft.is_some() {
             let fields = &self.form_fields;
             let actions = &self.form_actions;
             if let Some(draft) = self.draft.as_mut() {
                 let form = Self::connection_form(fields, actions);
                 let form_response = form.update(cx, &mut self.form_state, draft);
-                if let Some(action) = form_response.action_ref() {
+                if form_was_open && let Some(action) = form_response.action_ref() {
                     match action {
                         FormAction::Action(ActionKey::CANCEL) => {
-                            self.form_open = false;
-                            self.draft = None;
+                            self.close_connection_form();
                         }
                         FormAction::Action(ActionKey::SAVE | connections::SAVE_CONNECT) => {
                             if draft.validate_all().is_ok()
@@ -2395,7 +2410,7 @@ impl App for TableProApp {
                                 self.rebuild_connection_nodes();
                                 if action == &FormAction::Action(connections::SAVE_CONNECT) {
                                     let _ = self.connect(self.connections.len().saturating_sub(1));
-                                    self.form_open = false;
+                                    self.close_connection_form();
                                 }
                             }
                         }
@@ -2404,6 +2419,8 @@ impl App for TableProApp {
                 }
                 response |= form_response.erase();
             }
+        }
+        if form_was_open {
             return response;
         }
         if self.screen == Screen::Connections {
@@ -2468,7 +2485,10 @@ impl App for TableProApp {
                         .iter()
                         .position(|tab| tab_key(tab) == key)
                     {
-                        self.workbench.active = index;
+                        if let Some(tab) = self.workbench.tabs.get(index) {
+                            let key = tab.key();
+                            let _ = self.workbench.activate(key);
+                        }
                         self.sync_active_tab();
                     }
                 }
@@ -2488,29 +2508,6 @@ impl App for TableProApp {
         }
         response |= tabs_response.erase();
 
-        if matches!(self.workbench.active(), Some(Tab::Query(_))) {
-            response |= query_input(None)
-                .update(cx, &mut self.query_state, &mut self.query)
-                .erase();
-            self.sync_query_tab();
-        }
-        let grid_route = matches!(self.workbench.active(), Some(Tab::Table(_)))
-            || matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.result.is_some());
-        if grid_route {
-            let editable = self.result.is_editable();
-            let (columns, column_count) = Self::column_specs(&self.columns, editable);
-            let visible_columns = columns.get(..column_count).unwrap_or(&[]);
-            let grid = result_grid(visible_columns);
-            let grid_response = if self.result.is_editable() {
-                grid.update_editable(cx, &mut self.grid_state, &mut self.result)
-            } else {
-                grid.update(cx, &mut self.grid_state, &self.result)
-            };
-            if let Some(action) = grid_response.action_ref() {
-                self.handle_grid(action);
-            }
-            response |= grid_response.erase();
-        }
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
@@ -2574,16 +2571,6 @@ impl App for TableProApp {
         Size {
             min: (MIN_WIDTH, MIN_HEIGHT),
             preferred: (120, 36),
-        }
-    }
-    fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-        if self.form_open {
-            self.form_open = false;
-            self.draft = None;
-            self.surface = Surface::Connections;
-            Response::changed()
-        } else {
-            Response::ignored()
         }
     }
 }

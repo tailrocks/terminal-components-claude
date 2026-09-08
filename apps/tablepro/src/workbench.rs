@@ -20,8 +20,8 @@ pub struct Workbench {
     pub explorer_selected: usize,
     /// Open tabs.
     pub tabs: Vec<Tab>,
-    /// Active tab index.
-    pub active: usize,
+    /// Stable active tab identity.
+    active: Option<TabKey>,
     /// Next query number.
     pub query_counter: usize,
     /// Next monotonic tab identity.
@@ -42,7 +42,7 @@ impl Workbench {
             explorer_filter: String::new(),
             explorer_selected: 0,
             tabs: Vec::new(),
-            active: 0,
+            active: None,
             query_counter: 0,
             next_tab_key: 1,
             history: History::seeded(),
@@ -82,7 +82,7 @@ impl Workbench {
         let key = self.allocate_tab_key();
         self.tabs
             .push(Tab::Table(TableTab::with_key(key, table, &self.catalog)));
-        self.active = self.tabs.len().saturating_sub(1);
+        self.active = Some(key);
         true
     }
 
@@ -111,25 +111,54 @@ impl Workbench {
             self.query_counter,
             query,
         )));
-        self.active = self.tabs.len().saturating_sub(1);
-        self.active
+        self.active = Some(key);
+        self.tabs.len().saturating_sub(1)
     }
     /// Open history.
     pub fn open_history(&mut self) -> usize {
         let key = self.allocate_tab_key();
         self.tabs
             .push(Tab::History(HistoryTab::with_key(key, &self.history)));
-        self.active = self.tabs.len().saturating_sub(1);
-        self.active
+        self.active = Some(key);
+        self.tabs.len().saturating_sub(1)
     }
     /// Close one tab.
     pub fn close_tab(&mut self, index: usize) -> bool {
         if index >= self.tabs.len() {
             return false;
         }
-        self.tabs.remove(index);
-        self.active = self.active.min(self.tabs.len().saturating_sub(1));
+        let removed = self.tabs.remove(index);
+        if self.active == Some(removed.key()) {
+            self.active = self
+                .tabs
+                .get(index.min(self.tabs.len().saturating_sub(1)))
+                .map(Tab::key);
+        }
         true
+    }
+
+    /// Current tab identity, if still present.
+    pub fn active_key(&self) -> Option<TabKey> {
+        self.active().map(Tab::key)
+    }
+    /// Current positional index, derived only for a view boundary.
+    pub fn active_index(&self) -> Option<usize> {
+        let key = self.active?;
+        self.tabs.iter().position(|tab| tab.key() == key)
+    }
+    /// Activate an existing logical tab.
+    pub fn activate(&mut self, key: TabKey) -> bool {
+        if !self.tabs.iter().any(|tab| tab.key() == key) {
+            return false;
+        }
+        self.active = Some(key);
+        true
+    }
+    /// Start another connection without reusing prior control identities.
+    pub fn reconnect(&mut self, connection: Connection, catalog: Catalog) {
+        let next_tab_key = self.next_tab_key;
+        *self = Self::new(connection, catalog);
+        self.next_tab_key = next_tab_key;
     }
 
     fn allocate_tab_key(&mut self) -> TabKey {
@@ -139,11 +168,12 @@ impl Workbench {
     }
     /// Active tab.
     pub fn active(&self) -> Option<&Tab> {
-        self.tabs.get(self.active)
+        self.tabs.get(self.active_index()?)
     }
     /// Active tab mutably.
     pub fn active_mut(&mut self) -> Option<&mut Tab> {
-        self.tabs.get_mut(self.active)
+        let index = self.active_index()?;
+        self.tabs.get_mut(index)
     }
     /// Active table tab.
     pub fn active_table(&self) -> Option<&TableTab> {
