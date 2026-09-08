@@ -185,6 +185,10 @@ impl std::fmt::Debug for App {
             .finish_non_exhaustive()
     }
 }
+fn menu_bar() -> MenuBar<'static> {
+    MenuBar::new(MENU, MENUS).chord_case(junie_tui::ChordCase::UppercaseAscii)
+}
+
 impl App {
     /// Revision of applied in-memory simulation effects; never a real-host revision.
     pub fn effect_revision(&self) -> u64 {
@@ -307,7 +311,7 @@ impl App {
                 cx.focus(home::QUERY);
             }
             OPEN_MENU => {
-                let _ = MenuBar::new(MENU, MENUS).open_menu(cx, &mut self.menu, 0);
+                let _ = menu_bar().open_menu(cx, &mut self.menu, 0);
             }
             NEXT_ACTIVITY => self.next_activity(cx),
             SCOPE if self.route == Route::Home => {
@@ -582,7 +586,7 @@ impl App {
             .preferred
             .0;
         brand.draw(ui, Rect::new(header.x, header.y, brand_width, 1));
-        let menu = MenuBar::new(MENU, MENUS);
+        let menu = menu_bar();
         let menu_width = menu
             .measure(
                 ui,
@@ -810,7 +814,7 @@ impl App {
             .as_mut()
             .map_or_else(|| (Response::ignored(), None), |plan| plan.update(cx));
         let activity_response = self.activities.update(&self.world, cx);
-        let mut menu = MenuBar::new(MENU, MENUS).update(cx, &mut self.menu);
+        let mut menu = menu_bar().update(cx, &mut self.menu);
         let brand = Brand::new(BRAND, "holla❯").clickable(true).update(cx);
         let items = [StatusItem::new("? help").key(ItemKey::text("help"))];
         let header = StatusBar::new(HEADER).right(&items).update(cx);
