@@ -191,7 +191,8 @@ def capture(root, profiles, output, execute, toolchain):
     commands = []
     cargo = ["cargo"] + (["+" + toolchain] if toolchain else [])
 
-    def run(args, cwd=root):
+    def run(args):
+        cwd = root
         result = subprocess.run(args, cwd=cwd, env=env, capture_output=True, text=True, timeout=1200)
         commands.append({"argv": args, "cwd": str(cwd.resolve()), "exit": result.returncode,
                          "stdout_sha256": digest(result.stdout.encode()),
@@ -250,7 +251,7 @@ def capture(root, profiles, output, execute, toolchain):
                 sha = digest(exe.read_bytes())
                 selector = ["--lib"] if key[0] == "lib" else ["--" + key[0], key[1]]
                 execution_command = cargo + ["test", "--locked"] + flags + selector
-                listing = run(execution_command + ["--", "--list", "--format", "pretty"], package_cwd)
+                listing = run(execution_command + ["--", "--list", "--format", "pretty"])
                 require(listing.returncode == 0, "libtest listing failed")
                 names = listed(listing.stdout)
                 statuses = None
@@ -261,7 +262,7 @@ def capture(root, profiles, output, execute, toolchain):
                     status_path = Path(scratch) / f"statuses-{index}-{len(records)}.txt"
                     require(not status_path.exists(), "refuse existing libtest status log")
                     result = run(execution_command + ["--", "--format", "pretty", "--test-threads=1",
-                                                      "--logfile", str(status_path)], package_cwd)
+                                                      "--logfile", str(status_path)])
                     require(status_path.is_file() and not status_path.is_symlink(),
                             "missing/unsafe libtest status log")
                     status_bytes = status_path.read_bytes()
@@ -272,26 +273,26 @@ def capture(root, profiles, output, execute, toolchain):
                 require(digest(exe.read_bytes()) == sha, "executable changed during execution")
                 records.append({"profile": profile["id"], "package": package["name"],
                                 "kind": key[0], "target": key[1], "features": artifact["features"],
-                                "executable_sha256": sha, "cwd": str(package_cwd),
+                                "executable_sha256": sha, "cwd": str(root.resolve()), "runtime_cwd": str(package_cwd),
                                 "status_log_sha256": status_sha256,
                                 "listed": names, "executed": statuses})
             for target in package["targets"]:
                 if not target["doctest"]:
                     continue
                 require(target["kind"] == ["lib"], "unsupported rustdoc target kind")
-                listing = run(cargo + ["test", "--locked", "--doc"] + flags + ["--", "--list"], package_cwd)
+                listing = run(cargo + ["test", "--locked", "--doc"] + flags + ["--", "--list"])
                 if listing.returncode:
                     blocked.append({"profile": profile["id"], "reason": "rustdoc listing failed"})
                     continue
                 names = listed(listing.stdout)
                 statuses = None
                 if execute:
-                    result = run(cargo + ["test", "--locked", "--doc"] + flags + ["--", "--test-threads=1"], package_cwd)
+                    result = run(cargo + ["test", "--locked", "--doc"] + flags + ["--", "--test-threads=1"])
                     statuses = executed(result.stdout, names)
                     require((result.returncode == 0) == all(v != "FAILED" for v in statuses.values()),
                             "rustdoc exit status inconsistent")
                 records.append({"profile": profile["id"], "package": package["name"],
-                                "kind": "doc", "target": target["name"], "cwd": str(package_cwd), "listed": names,
+                                "kind": "doc", "target": target["name"], "cwd": str(root.resolve()), "runtime_cwd": str(package_cwd), "listed": names,
                                 "executed": statuses})
     require(source_fingerprint(root, env) == source, "source changed during capture")
     require(digest((root / "Cargo.lock").read_bytes()) == lock, "lock changed during capture")
@@ -322,7 +323,9 @@ def verify(captured, required, catalog):
     for target in required["targets"]:
         row = actual[key(target)]
         require(isinstance(row.get("cwd"), str) and Path(row["cwd"]).is_absolute(),
-                "missing package execution cwd")
+                "missing Cargo invocation cwd")
+        require(isinstance(row.get("runtime_cwd"), str) and Path(row["runtime_cwd"]).is_absolute(),
+                "missing Cargo test runtime cwd")
         if row["kind"] != "doc":
             require(re.fullmatch(r"[0-9a-f]{64}", row.get("status_log_sha256") or "") is not None,
                     "missing dedicated libtest status attestation")

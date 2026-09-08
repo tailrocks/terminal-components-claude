@@ -122,3 +122,5 @@ relative input data and runtime Cargo package variables, compares genuine Cargo
 execution, and reproduces child stdout interleaving. Missing/duplicate/unknown
 status-file identities remain failures; using a dedicated status file does not
 permit filtered or empty execution to satisfy required names.
+
+Cargo metadata, build, listing, and execution all use the same workspace invocation directory, so nested package Cargo configuration cannot substitute another executable. Each command and target records this `cwd`; target `runtime_cwd` records the package directory supplied by Cargo to the test process. Legacy captures without this distinction are rejected.

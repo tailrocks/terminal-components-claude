@@ -149,7 +149,7 @@ pub fn example() {}
             gate.verify(cap, self.required, self.catalog)
 
     def test_legacy_execution_without_package_context_or_status_attestation_fails(self):
-        for field in ("cwd", "status_log_sha256"):
+        for field in ("cwd", "runtime_cwd", "status_log_sha256"):
             cap = copy.deepcopy(self.capture)
             row = next(r for r in cap["targets"] if r["kind"] == "lib")
             row.pop(field)
@@ -221,7 +221,12 @@ class ExecutionContext(unittest.TestCase):
             (root / "Cargo.toml").write_text('[workspace]\nresolver="2"\nmembers=["nested/member"]\n')
             (package / "Cargo.toml").write_text('[package]\nname="context-fixture"\nversion="0.0.0"\nedition="2021"\n')
             (package / "data.txt").write_text("package-relative fixture")
-            (package / "src/lib.rs").write_text(r'''#[test] fn package_relative_data() {
+            (package / ".cargo").mkdir()
+            (package / ".cargo/config.toml").write_text('[build]\nrustflags=["--cfg", "nested_execution"]\n')
+            (package / "src/lib.rs").write_text(r'''#[test] fn invocation_configuration_matches_build() {
+    assert!(!cfg!(nested_execution), "package Cargo configuration must not replace workspace configuration");
+}
+#[test] fn package_relative_data() {
     assert_eq!(std::env::current_dir().unwrap(), std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")));
     assert_eq!(std::fs::read_to_string("data.txt").unwrap(), "package-relative fixture");
     assert_eq!(std::env::var("CARGO_MANIFEST_DIR").unwrap(), env!("CARGO_MANIFEST_DIR"));
@@ -238,7 +243,7 @@ class ExecutionContext(unittest.TestCase):
             reference = subprocess.run(cargo + ["test", "--locked", "-p", "context-fixture", "--", "--test-threads=1"],
                                        cwd=root, capture_output=True, text=True)
             self.assertEqual(reference.returncode, 0, reference.stderr)
-            # Cargo itself runs in the package directory, but child stdout
+            # Cargo launches tests in the package directory, but child stdout
             # splits pretty result lines even on a passing test suite.
             with self.assertRaises(gate.Invalid):
                 gate.executed(reference.stdout, ["package_relative_data", "child_stdout_interleaves_pretty_result"])
@@ -246,12 +251,13 @@ class ExecutionContext(unittest.TestCase):
             cap = gate.capture(root, [profile], base / "capture.json", True, TOOLCHAIN)
             self.assertEqual(cap["blocked"], [])
             row = next(t for t in cap["targets"] if t["kind"] == "lib")
-            self.assertEqual(row["executed"], {"package_relative_data": "ok", "child_stdout_interleaves_pretty_result": "ok"})
-            self.assertEqual(row["cwd"], str(package.resolve()))
+            self.assertEqual(row["executed"], {"package_relative_data": "ok", "child_stdout_interleaves_pretty_result": "ok", "invocation_configuration_matches_build": "ok"})
+            self.assertEqual(row["cwd"], str(root.resolve()))
+            self.assertEqual(row["runtime_cwd"], str(package.resolve()))
             self.assertEqual(len(row["status_log_sha256"]), 64)
             direct = [c for c in cap["commands"] if "--logfile" in c["argv"]]
             self.assertEqual(len(direct), 1)
-            self.assertEqual(direct[0]["cwd"], str(package.resolve()))
+            self.assertTrue(all(c["cwd"] == str(root.resolve()) for c in cap["commands"]))
 
 
 if __name__ == "__main__":
