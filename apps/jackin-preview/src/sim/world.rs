@@ -9,10 +9,7 @@ use crate::arbiter::Arbiter;
 use crate::clock::{Clock, EPOCH_SECS};
 use crate::domain::account::{AccountId, AccountRegistry};
 use crate::domain::agent::{Agent, AuthMode, Provider};
-use crate::domain::fixtures::{
-    self, HOME, fixture_accounts, fixture_hard_accounts, fixture_instance, fixture_roles_for,
-    fixture_workspaces_for,
-};
+use crate::domain::fixtures::{self, HOME};
 use crate::domain::instance::{Instance, InstanceStatus};
 use crate::domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
 use crate::scenario::Scenario;
@@ -333,112 +330,62 @@ pub fn world_for(scenario: Scenario) -> World {
     let clock = Clock::new();
     let now = EPOCH_SECS;
     let op = SimOnePassword::fixture(now);
-    let populated = scenario != Scenario::FirstUse;
-    let workspaces = if populated {
-        fixture_workspaces_for(scenario)
-    } else {
-        Vec::new()
-    };
-    let accounts = if populated {
-        if scenario == Scenario::HardCases {
-            fixture_hard_accounts(&op, now)
-        } else {
-            fixture_accounts(&op, now)
-        }
-    } else {
-        AccountRegistry::default()
-    };
-    let roles = fixture_roles_for(scenario);
-    let mut instances = Vec::new();
-    if populated && !matches!(scenario, Scenario::LaunchRunning | Scenario::LaunchFailure) {
-        instances.push(fixture_instance(
-            InstanceStatus::Running,
-            crate::domain::instance::RunId::new(0x9c41_e2f0),
-            now,
-            fixtures::live_capsule(),
-        ));
-    }
-    if matches!(scenario, Scenario::AccountsMixed | Scenario::HardCases) {
-        instances.push(fixture_instance(
-            InstanceStatus::Crashed,
-            crate::domain::instance::RunId::new(0x0011_2233),
-            now,
-            crate::domain::instance::DaemonSnapshot::Unavailable,
-        ));
-    }
-    if scenario == Scenario::CapsuleMulti {
-        let mut secondary = fixture_instance(
-            InstanceStatus::Running,
-            crate::domain::instance::RunId::new(0x0a0b_0c0d),
-            now,
-            fixtures::live_capsule(),
-        );
-        secondary.id = "jk-ops".into();
-        secondary.container = "jackin-ops-platform".into();
-        secondary.role = "chainargos/reviewer".into();
-        instances.push(secondary);
-    }
-    if scenario == Scenario::LaunchFailure {
-        // A failed launch leaves an already-running session attachable.  The
-        // manager must remain useful instead of presenting an empty shell.
-        instances.push(fixture_instance(
-            InstanceStatus::Running,
-            crate::domain::instance::RunId::new(0x0e0f_1011),
-            now,
-            fixtures::live_capsule(),
-        ));
-    }
-    if scenario == Scenario::HardCases {
-        instances.push(fixture_instance(
-            InstanceStatus::PreservedDirty,
-            crate::domain::instance::RunId::new(0x0044_5566),
-            now,
-            crate::domain::instance::DaemonSnapshot::NoTabs,
-        ));
-        instances.push(fixture_instance(
-            InstanceStatus::PreservedUnpushed,
-            crate::domain::instance::RunId::new(0x0077_8899),
-            now,
-            crate::domain::instance::DaemonSnapshot::Unavailable,
-        ));
-    }
-    let running = instances
-        .iter()
-        .filter(|instance| instance.status == InstanceStatus::Running)
-        .count();
-    let mut daemons = BTreeMap::new();
-    for instance in &instances {
-        if let crate::domain::instance::DaemonSnapshot::Tabs(_) = &instance.daemon {
-            daemons.insert(
-                instance.id.clone(),
-                Daemon::from_snapshot(&instance.daemon, &instance.container, now),
-            );
-        }
-    }
-    World {
+    let mut world = World {
         scenario,
         clock,
-        arbiter: Arbiter::new(running),
+        arbiter: Arbiter::new(0),
         home: HOME.into(),
         cwd: fixtures::PAYMENTS_WORKDIR.into(),
         global: GlobalConfig {
-            trust: vec![TrustRow {
-                source: "chainargos/the-architect".into(),
-                trusted: false,
-            }],
+            trust: vec![
+                TrustRow {
+                    source: "github.com/chainargos/roles".into(),
+                    trusted: true,
+                },
+                TrustRow {
+                    source: "github.com/acme-labs/roles-experimental".into(),
+                    trusted: false,
+                },
+                TrustRow {
+                    source: "~/roles".into(),
+                    trusted: true,
+                },
+                TrustRow {
+                    source: "git@corp:infra/roles".into(),
+                    trusted: true,
+                },
+            ],
         },
-        workspaces,
-        roles,
-        instances,
-        daemons,
-        accounts,
+        workspaces: Vec::new(),
+        roles: fixtures::fixture_roles_for(scenario),
+        instances: Vec::new(),
+        daemons: BTreeMap::new(),
+        accounts: AccountRegistry::default(),
         op,
         jobs: Vec::new(),
         refresh_fails: scenario == Scenario::HardCases,
         saved: false,
-        last_refresh_secs: now,
+        last_refresh_secs: now - 3,
         clipboard: None,
+    };
+    if scenario != Scenario::FirstUse {
+        fixtures::pinned::populate(&mut world, scenario == Scenario::HardCases);
     }
+    if scenario == Scenario::OutroLast {
+        if let Some(instance) = world.instance_mut("jk-9b02") {
+            instance.status = InstanceStatus::CleanExited;
+        }
+        world.daemons.remove("jk-9b02");
+        fixtures::pinned::refresh_snapshots(&mut world);
+        world.sync_arbiter();
+        world.arbiter.entered_at_ms = Some(-8_040_000);
+    }
+    if scenario == Scenario::HardCases {
+        world.op.session = crate::sim::onepassword::OpSession::Locked;
+        world.arbiter.discovery = Err(crate::arbiter::DiscoveryError::IndexUnreadable);
+        world.arbiter.entered_at_ms = None;
+    }
+    world
 }
 
 /// What a new session knows about one agent's account choices.
@@ -479,12 +426,15 @@ mod tests {
             vec![
                 "payments-platform",
                 "infra-control-plane",
+                "release-automation",
                 "customer-portal",
-                "data-pipeline",
             ]
         );
-        assert_eq!(returning.running_count(), 1);
-        assert_eq!(returning.instances[0].run_id.value(), 0x9c41_e2f0);
+        assert_eq!(returning.running_count(), 2);
+        assert_eq!(
+            returning.instances[0].run_id,
+            crate::domain::instance::RunId::from_label("run-7f3a")
+        );
     }
 
     #[test]

@@ -461,6 +461,19 @@ pub struct App {
 }
 
 impl App {
+    // Role identity stays qualified; display comes from the matching catalog entry.
+    fn role_label<'a>(&'a self, key: &'a str) -> &'a str {
+        self.world
+            .roles
+            .iter()
+            .find(|role| {
+                key.strip_prefix(role.namespace.as_str())
+                    .and_then(|rest| rest.strip_prefix('/'))
+                    == Some(role.name.as_str())
+            })
+            .map_or(key, |role| role.name.as_str())
+    }
+
     /// Build one deterministic app scenario.
     pub fn for_scenario(scenario: Scenario, motion: Motion) -> Self {
         Self::for_scenario_at(scenario, motion, 0)
@@ -1964,16 +1977,15 @@ impl App {
             })
         {
             if self.editor_role_picker {
-                let role = self.roles.get(index).map_or_else(String::new, |role| {
-                    role.key
-                        .rsplit_once('/')
-                        .map_or_else(|| role.key.clone(), |(_, name)| name.to_owned())
-                });
+                let role = self
+                    .roles
+                    .get(index)
+                    .map_or_else(String::new, |role| role.key.clone());
                 self.editor_role_picker = false;
                 self.editor_env_role = Some(role.clone());
                 self.editor.open_env_form();
                 cx.focus(crate::screens::editor::ENV_KEY);
-                self.status = Some(format!("Add role override · {role}"));
+                self.status = Some(format!("Add role override · {}", self.role_label(&role)));
             } else {
                 self.selected_role = index;
             }
@@ -4698,7 +4710,7 @@ impl App {
         if self.editor.env_form_open {
             let heading = self.editor_env_role.as_deref().map_or_else(
                 || "New workspace environment key".to_owned(),
-                |role| format!("New {role} environment key"),
+                |role| format!("New {} environment key", self.role_label(role)),
             );
             paint_lines(ui, area, &[heading, "Key · source · value".to_owned()]);
             Self::editor_env_key_input()
@@ -4752,7 +4764,7 @@ impl App {
                 if envs.is_empty() {
                     continue;
                 }
-                lines.push(format!("Role: {role}"));
+                lines.push(format!("Role: {}", self.role_label(role)));
                 for env in envs {
                     let (value, source): (String, &str) = match &env.value {
                         EnvValue::Plain(value) => (mask(value), "plain"),
@@ -6856,13 +6868,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn role_labels_require_an_exact_current_catalog_identity() {
+        let mut app = App::default();
+        assert_eq!(app.role_label("chainargos/backend"), "backend");
+        assert_eq!(app.role_label("other/backend"), "other/backend");
+        assert_eq!(app.role_label("chainargosx/backend"), "chainargosx/backend");
+        assert_eq!(app.role_label("chainargos/missing"), "chainargos/missing");
+        if let Some(role) = app
+            .world
+            .roles
+            .iter_mut()
+            .find(|role| role.name == "backend")
+        {
+            role.name = "renamed".into();
+        }
+        assert_eq!(app.role_label("chainargos/backend"), "chainargos/backend");
+        assert_eq!(app.role_label("chainargos/renamed"), "renamed");
+    }
+
+    #[test]
     fn default_starts_in_returning_manager() {
         let app = App::default();
         assert_eq!(app.route(), Route::Manager);
-        assert_eq!(app.world.running_count(), 1);
+        assert_eq!(app.world.running_count(), 2);
         assert_eq!(
             app.world.instances[0].run_id,
-            crate::RunId::new(0x9c41_e2f0)
+            crate::RunId::from_label("run-7f3a")
         );
     }
 

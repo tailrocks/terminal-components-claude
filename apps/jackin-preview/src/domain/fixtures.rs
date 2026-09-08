@@ -5,6 +5,8 @@
 //! `sim::onepassword` and are exposed to provider code through its
 //! secret-free closure.
 
+pub(crate) mod pinned;
+
 use std::collections::BTreeSet;
 
 use crate::domain::account::{
@@ -20,8 +22,8 @@ use crate::domain::instance::{
 use crate::domain::onepassword::OpReference;
 use crate::domain::usage::{AccountUsage, FreshnessInfo};
 use crate::domain::workspace::{
-    AllowedRoles, DirtyExitPolicy, EnvVar, Mount, MountScope, RoleEntry, RolePolicy, RoleSource,
-    Workspace, WorkspaceId,
+    AllowedRoles, DirtyExitPolicy, EnvVar, Mount, MountScope, RoleEntry, RolePolicy, Workspace,
+    WorkspaceId,
 };
 use crate::sim::onepassword::SimOnePassword;
 use crate::sim::provider;
@@ -169,7 +171,8 @@ fn validated(
     account
 }
 
-/// Accounts shared by the populated scenarios.
+/// Compact accounts for isolated provider and precedence tests.
+/// Production scenario registries come from the source-bound `pinned` graph.
 pub fn fixture_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     let mut registry = AccountRegistry::default();
 
@@ -528,109 +531,21 @@ fn handle(subject: &str) -> AccountIdentity {
 
 /// Roles visible in the role picker.
 pub fn fixture_roles() -> Vec<RoleEntry> {
-    vec![
-        RoleEntry {
-            namespace: "chainargos".into(),
-            name: "the-architect".into(),
-            source: RoleSource::Git {
-                url: "https://github.com/chainargos/roles".into(),
-                branch: "main".into(),
-            },
-            trusted: true,
-            in_registry: true,
-            description: "Plan and review repository-scale changes".into(),
-            load_error: None,
-        },
-        RoleEntry {
-            namespace: "chainargos".into(),
-            name: "reviewer".into(),
-            source: RoleSource::Git {
-                url: "https://github.com/chainargos/roles".into(),
-                branch: "main".into(),
-            },
-            trusted: true,
-            in_registry: true,
-            description: "Review diffs and preserve invariants".into(),
-            load_error: None,
-        },
-        RoleEntry {
-            namespace: "chainargos".into(),
-            name: "incident".into(),
-            source: RoleSource::Local {
-                path: "~/.jackin/roles/incident".into(),
-            },
-            trusted: false,
-            in_registry: false,
-            description: "Triage a production incident with restricted mounts".into(),
-            load_error: None,
-        },
-    ]
+    pinned::roles()
 }
 
-/// Scenario-specific Role registry.  Hard-case fixtures intentionally carry
-/// a large registry so keyed pickers and scoped configuration do not regress
-/// to positional selection when more than one screenful is present.
+/// The scenario's authoritative role catalog, shared with `world_for`.
 pub fn fixture_roles_for(scenario: crate::scenario::Scenario) -> Vec<RoleEntry> {
-    let mut roles = fixture_roles();
-    if scenario == crate::scenario::Scenario::HardCases {
-        roles.extend((1..=128).map(|index| RoleEntry {
-            namespace: "chainargos".into(),
-            name: format!("svc-{index:03}"),
-            source: RoleSource::Git {
-                url: "https://github.com/chainargos/roles".into(),
-                branch: "main".into(),
-            },
-            trusted: true,
-            in_registry: true,
-            description: format!("Generated service role #{index}"),
-            load_error: None,
-        }));
-    }
-    roles
+    pinned::roles_for(scenario)
 }
 
-/// Scenario-specific Workspace registry.  The extra records are durable
-/// fixture data; they are not inferred from live daemon snapshots.
+/// The scenario's authoritative saved workspaces, shared with `world_for`.
 pub fn fixture_workspaces_for(scenario: crate::scenario::Scenario) -> Vec<Workspace> {
-    let mut workspaces = vec![fixture_workspace()];
-    if scenario != crate::scenario::Scenario::FirstUse {
-        for (id, name) in [
-            (2, "infra-control-plane"),
-            (3, "customer-portal"),
-            (4, "data-pipeline"),
-        ] {
-            let mut workspace = Workspace::new(id, name, &format!("/workspace/{name}"));
-            workspace.roles = RolePolicy {
-                allowed: AllowedRoles::All,
-                default: Some("chainargos/the-architect".into()),
-                last: Some("chainargos/the-architect".into()),
-            };
-            workspaces.push(workspace);
-        }
-    }
-    if scenario == crate::scenario::Scenario::HardCases {
-        for (id, name) in [
-            (5, "release-automation"),
-            (6, "docs-site"),
-            (7, "shared-libraries"),
-            (8, "mobile-shell"),
-            (9, "observability"),
-            (10, "sandbox"),
-        ] {
-            let mut workspace = Workspace::new(id, name, &format!("/workspace/{name}"));
-            workspace.roles = RolePolicy {
-                allowed: AllowedRoles::All,
-                default: Some("chainargos/the-architect".into()),
-                last: Some("chainargos/the-architect".into()),
-            };
-            workspaces.push(workspace);
-        }
-    }
-    workspaces
+    pinned::workspaces_for(scenario)
 }
 
-/// Hard-case account registry with the revoked xAI record added to the
-/// complete mixed-provider fixture.
+/// Compact provider test registry with a revoked xAI record.
+/// Production HardCases uses the source-bound registry in `world_for`.
 pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     let mut registry = fixture_accounts(op, now);
     let mut revoked = account_with_source(
@@ -658,7 +573,8 @@ pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     registry
 }
 
-/// The saved Workspace used by the manager and launch fixtures.
+/// Compact workspace for isolated domain tests.
+/// Production saved workspaces come from [`fixture_workspaces_for`].
 pub fn fixture_workspace() -> Workspace {
     let mut workspace = Workspace::new(
         PAYMENTS_WORKSPACE,
