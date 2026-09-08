@@ -63,6 +63,35 @@ pub struct ResolvedAccount {
     pub reason: String,
 }
 
+impl PrecedenceLevel {
+    /// Source-compatible display label for the existing resolution decision.
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Session => "session choice",
+            Self::Role => "Role choice",
+            Self::Workspace => "Workspace choice",
+            Self::Global => "provider default",
+            Self::Discovered => "discovered on host",
+        }
+    }
+}
+
+impl ResolvedAccount {
+    /// Public account title, retaining unknown identifiers without inventing metadata.
+    pub fn label(&self, registry: &AccountRegistry) -> String {
+        match &self.account {
+            Some(id) => registry
+                .get(id)
+                .map_or_else(|| id.clone(), |account| account.title()),
+            None => "no account".into(),
+        }
+    }
+    /// Source label with the typed absent decision represented explicitly.
+    pub fn level_label(&self) -> &'static str {
+        self.level.map_or("no account", PrecedenceLevel::label)
+    }
+}
+
 /// Build an id-only 1Password reference. It names metadata; it never embeds
 /// or derives a credential value.
 pub fn op_reference(

@@ -32,9 +32,23 @@ pub struct GlobalConfig {
     pub trust: Vec<TrustRow>,
 }
 
+/// Last observed discovery health, separate from injected refresh failures.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DaemonHealth {
+    /// Discovery has not observed a failed refresh.
+    Healthy,
+    /// A refresh failed; last-good records remain visible.
+    Stale,
+}
+
 /// Typed results of deterministic asynchronous work.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
+    /// One captured Manager operation reached its virtual deadline.
+    ManagerOperation {
+        /// Opaque identity owned and consumed by the Manager reducer.
+        operation: u64,
+    },
     /// A workspace save completed.
     WorkspaceSaved {
         /// Workspace identifier that was saved.
@@ -94,6 +108,10 @@ pub struct World {
     pub jobs: Vec<Job>,
     /// Whether the next refresh should fail.
     pub refresh_fails: bool,
+    /// Last observed refresh health.
+    pub daemon_health: DaemonHealth,
+    manager_operation_sequence: u64,
+    manager_review_watermark: u64,
     /// Whether a workspace was saved during this run.
     pub saved: bool,
     /// Last successful refresh time in fixture seconds.
@@ -111,6 +129,22 @@ impl World {
     /// Current fixture time in milliseconds.
     pub fn now_ms(&self) -> i64 {
         self.clock.now_ms
+    }
+
+    /// Allocate a world-lifetime operation token, independent of screen replacement.
+    pub(crate) fn next_manager_operation(&mut self) -> Option<u64> {
+        let next = self.manager_operation_sequence.checked_add(1)?;
+        self.manager_operation_sequence = next;
+        Some(next)
+    }
+
+    /// Consume a review once, invalidating older UI contexts without shared clone state.
+    pub(crate) fn consume_manager_review(&mut self, review: u64) -> bool {
+        if review <= self.manager_review_watermark || review > self.manager_operation_sequence {
+            return false;
+        }
+        self.manager_review_watermark = review;
+        true
     }
 
     /// Queue a message after a non-negative virtual delay.
@@ -364,6 +398,9 @@ pub fn world_for(scenario: Scenario) -> World {
         op,
         jobs: Vec::new(),
         refresh_fails: scenario == Scenario::HardCases,
+        daemon_health: DaemonHealth::Healthy,
+        manager_operation_sequence: 0,
+        manager_review_watermark: 0,
         saved: false,
         last_refresh_secs: now - 3,
         clipboard: None,
