@@ -74,7 +74,7 @@ pub use grid::{
 pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
 pub use hintbar::{DerivedHintBar, HintBar};
 pub use input::{BlurPolicy, EditPhase, TextAction, TextCmd, TextInput, TextInputState};
-pub use keyhint::KeyHint;
+pub use keyhint::{ChordCase, KeyHint};
 pub use list::{List, ListAction, ListCmd, ListState};
 pub use menu::{ContextMenu, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState};
 pub use meter::{Meter, MeterTone, MeterVisual};

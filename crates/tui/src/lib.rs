@@ -124,8 +124,8 @@ pub use components::{
 };
 // components — work package 4G (status, hints, progress and chrome)
 pub use components::{
-    Brand, DerivedHintBar, Emphasis, Empty, Group, HintBar, KeyHint, MAX_ITEMS, Meter, MeterTone,
-    MeterVisual, ProgressBar, Spinner, StatusAction, StatusBar, StatusItem,
+    Brand, ChordCase, DerivedHintBar, Emphasis, Empty, Group, HintBar, KeyHint, MAX_ITEMS, Meter,
+    MeterTone, MeterVisual, ProgressBar, Spinner, StatusAction, StatusBar, StatusItem,
 };
 // components — work packages 4C/4E (tree and containers)
 pub use components::{

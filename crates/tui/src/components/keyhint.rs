@@ -15,6 +15,16 @@ use crate::text::width;
 use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::Ui;
 
+/// Display casing for a shortcut's character, independent of its routing identity.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ChordCase {
+    /// Preserve the character supplied by the effective binding.
+    #[default]
+    Preserve,
+    /// Capitalize ASCII letters for display; leave other characters unchanged.
+    UppercaseAscii,
+}
+
 /// Bytes reserved for a rendered chord label. The longest chord the
 /// [`Chord`] `Display` can produce is `Ctrl+Alt+Shift+Backspace` (24 bytes);
 /// the arrow keys are three bytes each and far shorter.
@@ -36,6 +46,13 @@ pub(crate) struct ChordText {
 impl ChordText {
     /// Render `c`.
     pub(crate) fn of(c: Chord) -> Self {
+        Self::with_case(c, ChordCase::Preserve)
+    }
+
+    pub(crate) fn with_case(mut c: Chord, case: ChordCase) -> Self {
+        if let (ChordCase::UppercaseAscii, crate::KeyCode::Char(character)) = (case, &mut c.code) {
+            *character = character.to_ascii_uppercase();
+        }
         let mut t = ChordText {
             buf: [0; CHORD_CAP],
             len: 0,

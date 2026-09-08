@@ -5,7 +5,7 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::keyhint::ChordText;
+use super::keyhint::{ChordCase, ChordText};
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
 use crate::event::{Chord, KeyCode};
@@ -429,6 +429,7 @@ pub struct ContextMenu<'a> {
     anchor: Anchor,
     title: Option<&'a str>,
     ov: PartStyle<'a>,
+    chord_case: ChordCase,
     bar_navigation: Option<(usize, usize)>,
 }
 
@@ -465,6 +466,7 @@ impl<'a> ContextMenu<'a> {
             anchor,
             title: None,
             ov: PartStyle::new(),
+            chord_case: ChordCase::Preserve,
             bar_navigation: None,
         }
     }
@@ -478,6 +480,13 @@ impl<'a> ContextMenu<'a> {
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
         self.title = Some(title);
+        self
+    }
+
+    /// Display casing for shortcut characters; routing chords remain unchanged.
+    #[must_use]
+    pub const fn chord_case(mut self, case: ChordCase) -> Self {
+        self.chord_case = case;
         self
     }
 
@@ -523,7 +532,7 @@ impl<'a> ContextMenu<'a> {
         let title = self.title.map_or(0, width);
         let rows = self.items.iter().map(|item| {
             let shortcut = effective(item.action, item.chord).map_or(0, |chord| {
-                width(ChordText::of(chord).as_str()).saturating_add(2)
+                width(ChordText::with_case(chord, self.chord_case).as_str()).saturating_add(2)
             });
             width(item.label)
                 .saturating_add(shortcut)
@@ -850,7 +859,9 @@ impl<'a> ContextMenu<'a> {
         }
         let label = shift(row, 2);
         let effective_chord = ui.effective_chord(self.id, item.action, item.chord);
-        let key_width = effective_chord.map_or(0, |chord| width(ChordText::of(chord).as_str()));
+        let key_width = effective_chord.map_or(0, |chord| {
+            width(ChordText::with_case(chord, self.chord_case).as_str())
+        });
         let label = Rect {
             width: label.width.saturating_sub(key_width.saturating_add(2)),
             ..label
@@ -867,7 +878,7 @@ impl<'a> ContextMenu<'a> {
             label_style.style,
         );
         if let Some(chord) = effective_chord {
-            let text = ChordText::of(chord);
+            let text = ChordText::with_case(chord, self.chord_case);
             let key = Rect {
                 x: row.right().saturating_sub(key_width.saturating_add(1)),
                 width: key_width.min(row.width),
@@ -956,6 +967,7 @@ pub struct MenuBar<'a> {
     id: Id,
     menus: &'a [Menu<'a>],
     ov: PartStyle<'a>,
+    chord_case: ChordCase,
 }
 
 impl fmt::Debug for MenuBar<'_> {
@@ -977,7 +989,15 @@ impl<'a> MenuBar<'a> {
             id,
             menus,
             ov: PartStyle::new(),
+            chord_case: ChordCase::Preserve,
         }
+    }
+
+    /// Display casing for shortcut characters; routing chords remain unchanged.
+    #[must_use]
+    pub const fn chord_case(mut self, case: ChordCase) -> Self {
+        self.chord_case = case;
+        self
     }
 
     /// Instance patch.
@@ -1024,6 +1044,7 @@ impl<'a> MenuBar<'a> {
             anchor: self.anchor(cx, index),
             title: None,
             ov: self.ov,
+            chord_case: self.chord_case,
             bar_navigation: Some((index, self.menus.len())),
         })
     }
@@ -1246,6 +1267,7 @@ impl<'a> MenuBar<'a> {
                 anchor: Anchor::Screen(crate::layer::ScreenAlign::UpperThird),
                 title: None,
                 ov: self.ov,
+                chord_case: self.chord_case,
                 bar_navigation: Some((open, self.menus.len())),
             };
             let _ = ui.layer(self.id, |ui, layer| dropdown.draw(ui, layer, st));
