@@ -45,7 +45,7 @@ independent view/behavior proof → review → integration → exact final verif
 | T07 Showcase | 7 | Shell/sidebar/namespace, elapsed Buttons and Progress, allocation repairs integrated | Actual Grid adapter, all22 pages, responsive geometry, independent images/live flows; no full-app acceptance |
 | T08 TablePro | 7 | Stable tabs/rows, guarded destructive routes, SQL Unicode/completion model, row actions and real Ctrl+O typed destinations integrated | Switcher Columns visual migration, completion popup reachability, explorer cadence, remaining editor/history/filter/structure/save routes and exact presentation |
 | T09 Jackin | 7 | CLI/lifecycle/tick admission, exact cwd association and eight-scenario fixture graph integrated | Real Manager replacing historical paint; captured actions/repository/editor saves; multiline roster; all other source routes/scenarios/CLI/visual proof |
-| T10 Holla | 7 | Real App/binary,11 scenarios, query/feedback, exact Plan binding, source footer/menus and historical journeys through28ebbbe integrated | Final Git/disk identity review; full52 semantic mapping;132-case/color/Paper/image/live acceptance |
+| T10 Holla | 7 | Real App/binary,11 scenarios, query/feedback, exact Plan binding, source footer/menus and historical journeys through28ebbbe integrated | Full52 semantic closure across prior reviews;132-case/color/Paper/image/live acceptance |
 | T11 Verification layers | 8 | Actual production pure-view, runtime and PTY slices exist | Complete four-app reference/candidate/cell/cursor/image and real-input matrices; no fixture-only reachability claims |
 | T12 Gates/inventory/performance | 9 | Pipefail, four-binary inventory, actual Cargo-context and test tools integrated; scoped MSRV/Clippy/perf runs pass | Required3211 historical obligations/700 semantic deltas and final required manifest; exact full matrix; strict style/Picker gates; capture tool integration/Linux proof |
 | T13 Independent review | 2,8,10 | Continuous committed slice review; original reds retained | Review every remaining candidate and all changed surfaces; no blanket acceptance |
@@ -90,9 +90,12 @@ in the immutable checkpoint archives and E reports.
    review including real-UI stale-target probes; root166 Holla tests pass.
    E/holla-pg-focus-independent/REVIEW.md SHAcfd53c72…320ee7 binds proof;
    scoped MSRV Clippy and workspace stable formatting pass.
-   history_audit reviews d80e215 Git/disk assertions. Owner map claims all52 identities, including
-   frame_seek outside historical module; identity mapping alone is not semantic
-   acceptance. Git policy-skip differs explicitly from unsafe reference behavior.
+   Git/disk tests are integrated9d3ccf3; root169 Holla MSRV tests pass after independent review
+   E/holla-d80-independent/REVIEW.md SHA00c95fa6…18dce99. All52 source identities
+   map distinctly to executed tests; frame_seek outside the historical module
+   also passes an independent exact-default-theme probe. Prior semantic reviews
+   govern other49 rows. Original Git failed-glyph witness remains red under the
+   explicitly retained H-S15 untouched-diverged-child policy; no raw parity claim.
 4. **Native capture:** unintegrated chain47ac27d→7e8a36c→12fb562→55c7dc0→fd62e3a
    →cf080ff→4aa6766 awaits root full review. Earlier ignored-input/build-script
    provenance defects and vendor-cache deadlock remain retained failures.
