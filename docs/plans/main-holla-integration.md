@@ -167,6 +167,11 @@ Root115 Holla tests pass after Plan exits. CI MSRV-only Clippy failures repaired
 tests and full MSRV workspace all-target/all-feature strict Clippy pass. Inventory
 a06efc4 independent original nested-config probe now passes with correct binary
 hash; tool accepted within scope, mapping remains unapproved.
+TablePro row actions integrated6dba27b: typed DEFAULT/NULL insertion, deletion
+toggle and generation/owner-bound discard. Root48 MSRV model/runtime/guard
+tests pass; all413 evidence hashes and356 full-cell preservation pairs verified.
+Prior wrong NULL-omission SQL expectation corrected explicitly; full editor/save
+and application restoration remain open.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
