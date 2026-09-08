@@ -36,8 +36,14 @@ backend-free consumer gate.
 Cargo-owned testable library, binary, integration and example targets must
 produce artifacts. `test=false` targets are explicitly classified. Custom
 `harness=false` and benchmark targets block coverage pending an explicit adapter;
-their existence is never treated as zero tests. Targets gated by unavailable
-required features also block that profile rather than being silently omitted.
+their existence is never treated as zero tests. Inactive `required-features`
+targets are explicitly classified with required/active feature sets. Activation
+comes from same-package artifacts in that exact isolated Cargo invocation;
+conflicting artifact feature sets fail closed. A package producing no artifacts
+uses its declared local feature closure (default, aliases and transitive local
+features); unsupported qualified selectors fail. An enabled target without its
+expected artifact remains a blocker. Workspace-wide metadata feature unions and
+manual target skip lists never decide activation.
 Library rustdoc targets are listed and run separately, including compile-fail
 and should-panic modes. Documentation identities retain their actual source
 line: moves require a reviewed mapping, not fuzzy matching.
@@ -93,3 +99,6 @@ checks cover missing names/targets/features/docs, duplicate identities/targets,
 zero-filter results, listing without execution, unresolved/deleted historical
 mappings, unreviewed ignored tests, duplicate profile commands, custom harnesses
 and stale output publication.
+The feature matrix regression covers a real gated integration target both
+disabled and enabled, actual-artifact feature authority, transitive default
+activation without artifacts, duplicate artifacts, and missing enabled targets.

@@ -35,6 +35,29 @@ class Parsers(unittest.TestCase):
         with self.assertRaises(gate.Invalid):
             gate.validate_profiles([PROFILE, duplicate])
 
+    def test_feature_activation_and_missing_enabled_artifact(self):
+        library = {"kind": ["lib"], "name": "fixture", "test": True}
+        gated = {"kind": ["test"], "name": "gated", "test": True, "required-features": ["extra"]}
+        package = {"id": "fixture", "features": {"default": ["alias"], "alias": ["extra"], "extra": []},
+                   "targets": [library, gated]}
+        profile = dict(PROFILE, all_features=False, default_features=False)
+        message = {"reason": "compiler-artifact", "package_id": "fixture", "target": library,
+                   "profile": {"test": True}, "executable": "/fixture", "features": []}
+        _, classes, blockers = gate.target_inventory(package, profile, [message], set())
+        self.assertEqual(blockers, [])
+        self.assertEqual(classes[1]["classification"], "inactive required-features")
+        message["features"] = ["extra"]  # actual Cargo activation, even if absent from CLI
+        _, _, blockers = gate.target_inventory(package, profile, [message], set())
+        self.assertEqual(blockers[0]["target"], ["test", "gated"])
+        with self.assertRaises(gate.Invalid):
+            gate.target_inventory(package, profile, [message, message], set())
+        package["targets"] = [gated]
+        _, classes, blockers = gate.target_inventory(package, profile, [], {("test", "gated")})
+        self.assertEqual(blockers, [])
+        self.assertEqual(classes[0]["feature_source"], "artifact-free local feature closure")
+        _, _, blockers = gate.target_inventory(package, dict(profile, default_features=True), [], set())
+        self.assertEqual(blockers[0]["target"], ["test", "gated"])
+
 
 class CargoContract(unittest.TestCase):
     @classmethod
@@ -148,6 +171,26 @@ pub fn example() {}
         finally:
             manifest.write_text(original)
             (self.root / "tests/custom.rs").unlink()
+
+    def test_required_features_inactive_is_not_missing_enabled_target(self):
+        manifest = self.root / "Cargo.toml"
+        original = manifest.read_text()
+        try:
+            manifest.write_text(original + '\n[[test]]\nname="extra_contract"\nrequired-features=["extra"]\n')
+            (self.root / "tests/extra_contract.rs").write_text('#[test] fn extra_contract() {}\n')
+            disabled = dict(PROFILE, id="fixture-default", all_features=False)
+            cap = gate.capture(self.root, [disabled], self.base / "inactive.json", False, TOOLCHAIN)
+            self.assertEqual(cap["blocked"], [])
+            self.assertTrue(any(c["target"] == ["test", "extra_contract"] and
+                                c["classification"] == "inactive required-features"
+                                for c in cap["classifications"]))
+            enabled = gate.capture(self.root, [PROFILE], self.base / "enabled.json", True, TOOLCHAIN)
+            self.assertEqual(enabled["blocked"], [])
+            row = next(r for r in enabled["targets"] if r["target"] == "extra_contract")
+            self.assertEqual(row["executed"], {"extra_contract": "ok"})
+        finally:
+            manifest.write_text(original)
+            (self.root / "tests/extra_contract.rs").unlink()
 
 
 if __name__ == "__main__":

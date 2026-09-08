@@ -108,6 +108,68 @@ def validate_profiles(profiles):
         unique(p["features"], "feature")
 
 
+def target_inventory(package, profile, messages, custom):
+    own = [m for m in messages if m.get("reason") == "compiler-artifact" and
+           m.get("package_id") == package["id"] and m["target"]["kind"] != ["custom-build"]]
+    feature_sets = {tuple(sorted(m["features"])) for m in own}
+    require(len(feature_sets) <= 1, "ambiguous package feature sets in one invocation")
+    if feature_sets:
+        active = set(next(iter(feature_sets)))
+        feature_source = "compiler-artifact"
+    else:
+        # An entirely gated package can emit no artifacts. There are then no
+        # compiled dev-dependencies to unify features back into this package.
+        # Resolve only its declared local feature closure; unsupported qualified
+        # selectors fail rather than inventing a workspace-wide resolution.
+        declared = package["features"]
+        active = set(declared) if profile["all_features"] else set(profile["features"])
+        if profile["default_features"] and "default" in declared:
+            active.add("default")
+        require(active <= declared.keys(), "cannot resolve artifact-free qualified feature selector")
+        pending = list(active)
+        while pending:
+            for feature in declared[pending.pop()]:
+                if feature in declared and feature not in active:
+                    active.add(feature)
+                    pending.append(feature)
+        feature_source = "artifact-free local feature closure"
+    expected, classifications, blockers = set(), [], []
+    for target in package["targets"]:
+        kind = target["kind"][0]
+        key = (kind, target["name"])
+        required = set(target.get("required-features", []))
+        reason = None
+        if not required <= active:
+            reason = "inactive required-features"
+        elif key in custom:
+            reason = "custom harness unsupported: explicit adapter required"
+        elif kind == "bench":
+            reason = "benchmark target requires separate benchmark coverage"
+        elif not target["test"]:
+            reason = "Cargo test=false"
+        if reason is None:
+            expected.add(key)
+        elif reason in ("custom harness unsupported: explicit adapter required",
+                        "benchmark target requires separate benchmark coverage"):
+            blockers.append({"profile": profile["id"], "target": list(key), "reason": reason})
+        classifications.append({"profile": profile["id"], "target": list(key),
+                                "classification": reason or "libtest required",
+                                "required_features": sorted(required), "active_features": sorted(active),
+                                "feature_source": feature_source})
+    artifacts = {}
+    for message in own:
+        if not message.get("profile", {}).get("test") or not message.get("executable"):
+            continue
+        key = (message["target"]["kind"][0], message["target"]["name"])
+        if key in expected:
+            require(key not in artifacts, "duplicate Cargo test target artifact")
+            artifacts[key] = message
+    for key in sorted(expected - artifacts.keys()):
+        blockers.append({"profile": profile["id"], "target": list(key),
+                         "reason": "required target absent from this feature build"})
+    return artifacts, classifications, blockers
+
+
 def capture(root, profiles, output, execute, toolchain):
     require(not output.exists(), "refuse existing output")
     require(not output.resolve().is_relative_to(root.resolve()), "evidence must be outside source tree")
@@ -159,48 +221,15 @@ def capture(root, profiles, output, execute, toolchain):
                 for entry in entries:
                     if entry.get("harness") is False:
                         custom.add((kind, entry.get("name", package["name"].replace("-", "_"))))
-            expected = set()
-            for target in package["targets"]:
-                kind = target["kind"][0]
-                key = (kind, target["name"])
-                reason = None
-                if key in custom:
-                    reason = "custom harness unsupported: explicit adapter required"
-                    blocked.append({"profile": profile["id"], "target": list(key), "reason": reason})
-                elif kind == "bench":
-                    reason = "benchmark target requires separate benchmark coverage"
-                    blocked.append({"profile": profile["id"], "target": list(key), "reason": reason})
-                elif not target["test"]:
-                    reason = "Cargo test=false"
-                elif target.get("required-features") and not profile["all_features"]:
-                    # Cargo is authoritative about activation; record the target
-                    # here and require its presence below, never infer transitive features.
-                    reason = None
-                if reason is None:
-                    expected.add(key)
-                classifications.append({"profile": profile["id"], "target": list(key),
-                                        "classification": reason or "libtest required"})
             built = run(cargo + ["test", "--locked", "--no-run", "--all-targets",
                                  "--message-format=json"] + flags)
             if built.returncode:
                 blocked.append({"profile": profile["id"], "reason": "Cargo test compilation failed"})
                 continue
-            artifacts = {}
-            for line in built.stdout.splitlines():
-                message = json.loads(line)
-                if (message.get("reason") != "compiler-artifact" or
-                        message.get("package_id") != package["id"] or
-                        not message.get("profile", {}).get("test") or not message.get("executable")):
-                    continue
-                target = message["target"]
-                key = (target["kind"][0], target["name"])
-                if key not in expected:
-                    continue
-                require(key not in artifacts, "duplicate Cargo test target artifact")
-                artifacts[key] = message
-            for key in sorted(expected - artifacts.keys()):
-                blocked.append({"profile": profile["id"], "target": list(key),
-                                "reason": "required target absent from this feature build"})
+            artifacts, target_classes, target_blockers = target_inventory(
+                package, profile, [json.loads(line) for line in built.stdout.splitlines()], custom)
+            classifications.extend(target_classes)
+            blocked.extend(target_blockers)
             for key, artifact in sorted(artifacts.items()):
                 exe = Path(artifact["executable"])
                 require(exe.resolve().is_relative_to(Path(scratch).resolve()), "artifact outside isolated build")
