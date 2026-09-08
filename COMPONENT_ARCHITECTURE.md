@@ -8658,3 +8658,26 @@ item 19 itself was created to avoid.
 **Acceptance.** `bless-guard` recognises items 32 and 33 and the per-app baseline paths;
 `xtask::frozen_baselines_are_never_touched` continues to refuse the root paths; and the item 19
 citation for application baselines is rejected rather than silently accepted.
+
+
+## 75. Reviewed recovery of absent historical renderings
+
+The user-authorized main-based integration task and independent review recorded
+in [the historical regeneration approval](docs/historical-regeneration-approval.md)
+authorize one narrow exception to the blanket frozen-addition refusal in §16.3,
+§36 and §49. Exactly 499 HTML and 499 PNG renderings may be added only where the
+comparison base has no blob and the installed bytes match the immutable reviewed
+manifest from generator commit c051c8fa61c2fd67eb06e122dd91fd2553c8c810. The
+manifest SHA-256 is e2dcdb2952e5cbd283b841ce055962c4d961dfa967d43c879bdbc49a5abdb6cb.
+
+Every existing original artifact remains immutable. Existing blobs, including
+empty blobs, never qualify for this exception; edits, replacements, renames and
+deletions remain refused. Missing or altered manifest, review, original input or
+expected output, an unrelated comparison base, and unreviewed HTML/PNG additions
+fail closed. The full 998-file installation is required, including ignored files.
+
+These artifacts are **regenerated historical renderings, not recovered original
+image bytes**. The retained historical renderer's limitations and the unknown
+original executable hash remain explicit. Font license and generation provenance
+live outside the frozen artifact directory. This amendment does not authorize
+baseline key blessing, candidate snapshot approval, or pinned-Holla acceptance.

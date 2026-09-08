@@ -1,0 +1,16 @@
+{
+  "capture_archive_revision": "c12cad8728755cd2d03eefdd8e02891143fca86d",
+  "classification": "regenerated-historical-renderings-not-originals",
+  "limitations": [
+    "Original executable hash and original image bytes unavailable.",
+    "Historical renderer Unicode/modifier limitations retained.",
+    "HTML font resolution depends on browser environment.",
+    "This is not pinned-Holla acceptance evidence."
+  ],
+  "pillow": "11.3.0",
+  "pins_sha256": "e2dcdb2952e5cbd283b841ce055962c4d961dfa967d43c879bdbc49a5abdb6cb",
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "renderer_source": "d5e7075f436f0e437c7d12cf3d1e638e763b26f6",
+  "verified_recipes": 499,
+  "verified_renderings": 998
+}

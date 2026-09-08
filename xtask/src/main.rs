@@ -29,6 +29,7 @@ use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
 mod backend_free;
+mod historical_additions;
 mod parity;
 
 fn root() -> PathBuf {
@@ -7694,9 +7695,9 @@ enum BaselineKind {
     Perf,
     /// Frozen pre-refactor evidence (`baseline/before/**`, `tests/baselines/**`,
     /// `tests/showcase_baseline.txt`, the root `tests/perf_baseline.txt`). Never
-    /// parsed into keys: any change fails, and the remedy is `git checkout --`,
-    /// not a ledger entry. Much of it is binary, so change is read from git's
-    /// name-status rather than from a text comparison.
+    /// parsed into keys: existing artifacts cannot change. §75 permits only
+    /// hash-verified reviewed HTML/PNG additions absent from the base tree.
+    /// Much of it is binary, so changes use Git name-status, not text comparison.
     Frozen,
 }
 
@@ -8638,13 +8639,14 @@ fn discover_baselines() -> BTreeSet<String> {
         .collect()
 }
 
-/// §16.3 as amended by §36, §20.10 and §36.5: every moved or added baseline key
+/// §16.3 as amended by §36, §20.10, §36.5 and §75: every moved or added baseline key
 /// is accounted for by a `docs/visual-changes.md` entry citing a numbered
-/// §20.10 item, frozen evidence is never touched, a moved `truecolor` key needs
+/// §20.10 item, existing frozen evidence is immutable, a moved `truecolor` key needs
 /// an item explicitly scoped for truecolor, and a first-generation item cannot
 /// account for a moved key.
 fn baseline_moves_are_classified() -> Result<(), String> {
     let base = bless_guard_base()?;
+    let reviewed_additions = historical_additions::reviewed_additions(&root(), &base)?;
     let (renames, touched) = diff_name_status(&base)?;
     let untracked = untracked_files()?;
     let mut paths = discover_baselines();
@@ -8656,7 +8658,9 @@ fn baseline_moves_are_classified() -> Result<(), String> {
     let mut files: Vec<(String, String, String)> = Vec::new();
     for path in &paths {
         if classify_baseline(path) == Some(BaselineKind::Frozen) {
-            if touched.contains(path) || untracked.contains(path) {
+            if (touched.contains(path) || untracked.contains(path))
+                && !reviewed_additions.contains(path)
+            {
                 frozen_changed.push(path.clone());
             }
             continue;
