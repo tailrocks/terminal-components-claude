@@ -6,7 +6,7 @@ use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry};
 use crate::sql::{self, PlanNode};
-use junie_tui::{GridState, Id, ItemKey, TextInputState};
+use junie_tui::{GridModel, GridState, Id, ItemKey, TextInputState};
 
 /// Stable identity for an open workbench tab.
 ///
@@ -59,6 +59,30 @@ impl GridView {
         }
     }
 
+    /// Pending row operations, including an uncommitted changed inline draft.
+    /// An existing row update or inserted row already accounts for that draft.
+    pub fn pending_total(&self) -> usize {
+        let pending = self.model.pending_total();
+        let (Some((key, column)), Some(draft)) = (self.state.edit_cell(), self.state.edit_draft())
+        else {
+            return pending;
+        };
+        let Some(row) = (0..self.model.row_count()).find(|row| self.model.row_key(*row) == key)
+        else {
+            return pending;
+        };
+        let Some(column) = column.raw().checked_sub(1).map(usize::from) else {
+            return pending;
+        };
+        let changed = self
+            .model
+            .cell(row, column)
+            .is_some_and(|cell| cell.text != draft);
+        let already_counted = self.model.pending().is_inserted(row)
+            || (0..self.columns.len()).any(|column| self.model.pending().is_dirty(row, column));
+        pending.saturating_add(usize::from(changed && !already_counted))
+    }
+
     fn empty() -> Self {
         Self {
             columns: Vec::new(),
@@ -73,7 +97,7 @@ impl core::fmt::Debug for GridView {
         f.debug_struct("GridView")
             .field("columns", &self.columns.len())
             .field("rows", &self.model.row_count())
-            .field("pending", &self.model.pending_total())
+            .field("pending", &self.pending_total())
             .field("state", &self.state)
             .finish()
     }
@@ -436,7 +460,7 @@ impl Tab {
     /// Whether this tab owns pending changes.
     pub fn dirty(&self) -> bool {
         matches!(self, Self::Table(tab) if tab.result.pending_total() > 0)
-            || matches!(self, Self::Query(tab) if tab.dirty())
+            || matches!(self, Self::Query(tab) if tab.dirty() || tab.result.as_ref().is_some_and(|grid| grid.pending_total() > 0))
     }
 }
 

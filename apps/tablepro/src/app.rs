@@ -1754,6 +1754,7 @@ fn workbench_split() -> SplitPane<'static> {
 }
 fn result_grid<'a>(id: Id, columns: &'a [junie_tui::Column<'a>]) -> Grid<'a> {
     Grid::new(id, columns)
+        .blur(junie_tui::BlurPolicy::Keep)
         .nav(junie_tui::NavUnit::Cell)
         .select_mode(junie_tui::SelectMode::Multi)
 }
