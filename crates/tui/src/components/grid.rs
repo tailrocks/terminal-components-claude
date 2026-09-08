@@ -689,6 +689,8 @@ impl core::error::Error for GridCursorError {}
 /// for application guards, never model indices or derived viewport geometry.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GridState {
+    /// Synthetic row position, never a model key.
+    fetch_row: Option<FetchRow>,
     /// Row cursor key, row selection, vertical scroll and the stamp.
     core: CollectionCore,
     /// Cursor column, keyed; the index is a cache re-derived every phase.
@@ -707,11 +709,17 @@ pub struct GridState {
     sort: Option<(ColumnKey, SortDir)>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct FetchRow {
+    boundary: usize,
+}
+
 impl Default for GridState {
     fn default() -> Self {
         let mut editor = TextInputState::default();
         editor.set_sensitive(false);
         Self {
+            fetch_row: None,
             core: CollectionCore::default(),
             col: None,
             col_index: 0,
@@ -725,8 +733,16 @@ impl Default for GridState {
 }
 
 impl GridState {
-    /// The keyed cursor cell.
+    /// Whether the cursor targets the fetch sentinel rather than model data.
+    pub const fn on_fetch_row(&self) -> bool {
+        self.fetch_row.is_some()
+    }
+
+    /// The keyed cursor cell; absent while the fetch row is selected.
     pub const fn cursor(&self) -> Option<(ItemKey, ColumnKey)> {
+        if self.on_fetch_row() {
+            return None;
+        }
         match (self.core.cursor(), self.col) {
             (Some(row), Some(col)) => Some((row, col)),
             _ => None,
@@ -778,6 +794,7 @@ impl GridState {
 
     /// Point the cursor at `(row, key)` in `col`, and reveal it.
     fn set_cursor(&mut self, row: usize, key: ItemKey, col_index: usize, col: ColumnKey) {
+        self.fetch_row = None;
         self.core.set_cursor(row, key);
         self.col_index = col_index;
         self.col = Some(col);
@@ -992,6 +1009,7 @@ pub struct Grid<'a> {
     columns: &'a [Column<'a>],
     nav: NavUnit,
     disabled: bool,
+    fetch_on_activate: bool,
     select_mode: SelectMode,
     empty: Option<EmptyState<'a>>,
     actions: Option<SlotFn<'a>>,
@@ -1034,6 +1052,7 @@ impl<'a> Grid<'a> {
             columns,
             nav: NavUnit::Cell,
             disabled: false,
+            fetch_on_activate: false,
             select_mode: SelectMode::Single,
             empty: None,
             actions: None,
@@ -1064,6 +1083,17 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
+        self
+    }
+
+    /// Select the fetch row through navigation and fetch only on activation.
+    ///
+    /// Defaults to false: moving down past the last loaded row requests data.
+    /// When enabled, Enter, F2, Space or a click requests data. Appending rows
+    /// selects the first appended row at the previous sentinel position.
+    #[must_use]
+    pub const fn fetch_on_activate(mut self, enabled: bool) -> Self {
+        self.fetch_on_activate = enabled;
         self
     }
 
@@ -1477,8 +1507,19 @@ enum Begin {
 impl Grid<'_> {
     /// The row window `draw` paints, derived from the same scroll state so
     /// both phases agree (§12.2).
+    fn scroll_for_view(st: &GridState, viewport: usize) -> crate::scroll::ScrollState {
+        let mut scroll = *st.core.scroll();
+        if viewport != scroll.viewport_len()
+            && let Some(fetch) = st.fetch_row
+        {
+            scroll.ensure_visible_on_next_layout(fetch.boundary);
+        }
+        scroll
+    }
+
     fn window(st: &GridState, content: Rect, len: usize) -> core::ops::Range<usize> {
-        let view = ScrollRegion::view(st.core.scroll(), content, len);
+        let scroll = Self::scroll_for_view(st, usize::from(content.height));
+        let view = ScrollRegion::view(&scroll, content, len);
         let r = view.visible_range();
         r.start.min(len)..r.end.min(len)
     }
@@ -1621,7 +1662,7 @@ impl Grid<'_> {
                     row_to(&mut out, r, 0, last_col);
                 }
             }
-        } else {
+        } else if !st.on_fetch_row() {
             row_to(&mut out, cursor.0.min(last_row), cursor.1, cursor.1);
         }
         out
@@ -1671,6 +1712,27 @@ impl Grid<'_> {
     ) {
         let len = model.row_count();
         let column_count = self.column_count();
+        if self.fetch_on_activate && model.has_more() && row >= len {
+            if st.is_editing() {
+                acc.consumed();
+                return;
+            }
+            if !extend {
+                st.anchor = None;
+            } else if st.anchor.is_none() && len > 0 {
+                let previous = st.core.cursor_index().min(len.saturating_sub(1));
+                if let Some(column) = st.col {
+                    st.anchor = Some((model.row_key(previous), column));
+                }
+            }
+            st.fetch_row = Some(FetchRow { boundary: len });
+            st.col_index = col.min(column_count.saturating_sub(1));
+            st.col = self.col_key(st.col_index);
+            st.core.scroll_mut().ensure_visible_on_next_layout(len);
+            self.reveal_column(st, st.col_index);
+            acc.action(GridAction::Moved);
+            return;
+        }
         if len == 0 || column_count == 0 {
             return;
         }
@@ -1781,6 +1843,19 @@ impl Grid<'_> {
         if st.core.cursor().is_none() && len > 0 {
             st.core.set_cursor(0, model.row_key(0));
         }
+        if let Some(fetch) = st.fetch_row {
+            if len > fetch.boundary || !model.has_more() || !self.fetch_on_activate {
+                st.fetch_row = None;
+                if len > 0 {
+                    let row = fetch.boundary.min(len.saturating_sub(1));
+                    st.core.set_cursor(row, model.row_key(row));
+                }
+            } else {
+                st.fetch_row = Some(FetchRow { boundary: len });
+            }
+        } else if self.fetch_on_activate && len == 0 && model.has_more() {
+            st.fetch_row = Some(FetchRow { boundary: 0 });
+        }
         let previous_col = st.col;
         if column_count == 0 {
             st.col = None;
@@ -1800,7 +1875,7 @@ impl Grid<'_> {
         // A request can precede the first published layout. Reconciliation
         // may move its stable cell before geometry can consume the reveal.
         if st.core.scroll().pending_reveal().is_some() {
-            let row = st.core.cursor_index();
+            let row = st.fetch_row.map_or(st.core.cursor_index(), |f| f.boundary);
             st.core.scroll_mut().ensure_visible_on_next_layout(row);
             let col = self.cursor_col(st);
             if col != st.col_index || (previous_col.is_some() && previous_col != st.col) {
@@ -1810,6 +1885,10 @@ impl Grid<'_> {
         }
         let mut pending = Pending::default();
         let total = len.saturating_add(usize::from(model.has_more()));
+        if let Some(layout) = cx.layout(self.id) {
+            let scroll = Self::scroll_for_view(st, layout.viewport_len);
+            *st.core.scroll_mut() = scroll;
+        }
         let bar = self.bar().update(cx, st.core.scroll_mut(), total);
         acc.fold(&bar);
         let viewport = st.core.scroll().viewport_len().max(1);
@@ -1822,18 +1901,30 @@ impl Grid<'_> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Binding(action) => {
-                    let row = st.core.cursor_index().min(len.saturating_sub(1));
+                    let row = st.fetch_row.map_or_else(
+                        || st.core.cursor_index().min(len.saturating_sub(1)),
+                        |f| f.boundary,
+                    );
                     let col = self.cursor_col(st);
                     match Binding::command(&BINDINGS, action) {
                         Some(GridCmd::Up) => {
                             self.move_to(st, model, row.saturating_sub(1), col, false, acc);
                         }
                         Some(GridCmd::Down) => {
-                            if row.saturating_add(1) >= len && model.has_more() {
+                            if row.saturating_add(1) >= len
+                                && model.has_more()
+                                && !self.fetch_on_activate
+                            {
                                 acc.action(GridAction::FetchMore);
                             } else {
                                 self.move_to(st, model, row.saturating_add(1), col, false, acc);
                             }
+                        }
+                        Some(GridCmd::Left) if st.on_fetch_row() => {
+                            self.move_to(st, model, row, col.saturating_sub(1), false, acc);
+                        }
+                        Some(GridCmd::Right) if st.on_fetch_row() => {
+                            self.move_to(st, model, row, col.saturating_add(1), false, acc);
                         }
                         Some(GridCmd::Left) => match self.nav {
                             NavUnit::Row => acc.consumed(),
@@ -1879,7 +1970,16 @@ impl Grid<'_> {
                         }
                         Some(GridCmd::First) => self.move_to(st, model, 0, col, false, acc),
                         Some(GridCmd::Last) => {
-                            self.move_to(st, model, len.saturating_sub(1), col, false, acc);
+                            self.move_to(
+                                st,
+                                model,
+                                len.saturating_sub(1).saturating_add(usize::from(
+                                    self.fetch_on_activate && model.has_more(),
+                                )),
+                                col,
+                                false,
+                                acc,
+                            );
                         }
                         Some(GridCmd::ExtendUp) => {
                             self.move_to(st, model, row.saturating_sub(1), col, true, acc);
@@ -1892,6 +1992,11 @@ impl Grid<'_> {
                         }
                         Some(GridCmd::ExtendRight) => {
                             self.move_to(st, model, row, col.saturating_add(1), true, acc);
+                        }
+                        Some(GridCmd::ToggleRow | GridCmd::Activate | GridCmd::BeginEdit)
+                            if st.on_fetch_row() =>
+                        {
+                            acc.action(GridAction::FetchMore);
                         }
                         Some(GridCmd::ToggleRow) => self.toggle_row(st, model, row, acc),
                         Some(GridCmd::ToggleAll) => {
@@ -2050,7 +2155,16 @@ impl Grid<'_> {
                             item: None,
                         },
                     ..
-                } => acc.action(GridAction::FetchMore),
+                } => {
+                    if self.fetch_on_activate {
+                        if st.is_editing() || !model.has_more() {
+                            acc.consumed();
+                            continue;
+                        }
+                        self.move_to(st, model, len, self.cursor_col(st), false, acc);
+                    }
+                    acc.action(GridAction::FetchMore);
+                }
                 Intent::Pointer { .. } => acc.consumed(),
                 _ => {}
             }
@@ -2420,7 +2534,7 @@ impl Grid<'_> {
         let key = model.row_key(row);
         let decor = model.row_decor(row);
         let checked = state.core.checked().contains(key);
-        let is_cursor = row == cursor.0;
+        let is_cursor = !state.on_fetch_row() && row == cursor.0;
         let pressed = ui.pressed_part(self.id);
         let mut rflags = decor.flags();
         if is_cursor {
@@ -2689,7 +2803,8 @@ impl Grid<'_> {
         );
         ui.fill(area, container.style);
         let (header, note, body, bar) = self.chrome(area, reason);
-        let content = self.bar().draw(ui, body, st.core.scroll(), total);
+        let scroll = Self::scroll_for_view(st, usize::from(body.height));
+        let content = self.bar().draw(ui, body, &scroll, total);
         let rows = Self::window(st, content, total);
         let g = self.geometry(content, st, model, rows.clone());
         let head = Rect {
@@ -2722,7 +2837,7 @@ impl Grid<'_> {
                 ns.style,
             );
         }
-        if len == 0 {
+        if len == 0 && !(self.fetch_on_activate && model.has_more()) {
             let empty = self.empty.unwrap_or(EmptyState::Empty {
                 title: "Nothing here yet",
                 hint: None,
@@ -2752,7 +2867,10 @@ impl Grid<'_> {
             return area;
         }
         let cursor = (
-            st.core.cursor_index().min(len.saturating_sub(1)),
+            st.fetch_row.map_or_else(
+                || st.core.cursor_index().min(len.saturating_sub(1)),
+                |f| f.boundary,
+            ),
             self.cursor_col(st),
         );
         let range = self.range(st, model, cursor);
@@ -2780,9 +2898,26 @@ impl Grid<'_> {
                     width: content.width,
                     height: 1,
                 };
-                let ms =
-                    self.ov
-                        .style(ui, self.id, Family::GRID, Variant::DEFAULT, Part::ROW, live);
+                let mut flags = live;
+                if self.fetch_on_activate {
+                    if !st.on_fetch_row() {
+                        flags.remove(StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+                    }
+                    if ui.hovered_part(self.id) != Some(PartRef::of(Part::ROW)) {
+                        flags.remove(StateFlags::HOVERED);
+                    }
+                    if ui.pressed_part(self.id) != Some(PartRef::of(Part::ROW)) {
+                        flags.remove(StateFlags::PRESSED);
+                    }
+                }
+                let ms = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::GRID,
+                    Variant::DEFAULT,
+                    Part::ROW,
+                    flags,
+                );
                 ui.fill(more, ms.style);
                 let used = ui.glyph(
                     Rect {
