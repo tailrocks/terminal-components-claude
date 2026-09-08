@@ -153,7 +153,7 @@ fn resolve_10k(ui: &mut Ui<'_>) -> u64 {
     acc
 }
 
-fn fingerprint(s: junie_tui::Style) -> u64 {
+fn fingerprint(s: junie_tui::theme::PaintStyle) -> u64 {
     let f = s.fg.map(color_bits).unwrap_or(0);
     let b = s.bg.map(color_bits).unwrap_or(0);
     f ^ (b << 8) ^ ((s.add_modifier.bits() as u64) << 16)
@@ -256,7 +256,7 @@ fn style_resolve_per_frame() {
     ];
     const LABEL: &str = "a list row with a reasonable amount of label text";
 
-    let paint_row = |ui: &mut Ui<'_>, row: Rect, st: &[junie_tui::Style; 5]| {
+    let paint_row = |ui: &mut Ui<'_>, row: Rect, st: &[junie_tui::theme::PaintStyle; 5]| {
         ui.fill(row, st[0]);
         let gutter = Rect::new(row.x, row.y, 1, 1);
         ui.glyph(gutter, junie_tui::GlyphRole::FocusBar, st[1]);
@@ -272,7 +272,7 @@ fn style_resolve_per_frame() {
     let resolved_per_row = |ui: &mut Ui<'_>, area: Rect| {
         for (i, row) in area.rows().enumerate() {
             let flags = STATES[i % STATES.len()];
-            let mut st = [junie_tui::Style::new(); 5];
+            let mut st = [junie_tui::theme::PaintStyle::new(); 5];
             for (slot, p) in st.iter_mut().zip(PARTS) {
                 *slot = ui.style(Family::LIST, Variant::DEFAULT, p, flags).style;
             }
@@ -281,7 +281,7 @@ fn style_resolve_per_frame() {
     };
     // B: the identical painting with the styles hoisted out of the loop
     let hoisted = |ui: &mut Ui<'_>, area: Rect| {
-        let mut by_state = [[junie_tui::Style::new(); 5]; STATES.len()];
+        let mut by_state = [[junie_tui::theme::PaintStyle::new(); 5]; STATES.len()];
         for (slot, flags) in by_state.iter_mut().zip(STATES) {
             for (s, p) in slot.iter_mut().zip(PARTS) {
                 *s = ui.style(Family::LIST, Variant::DEFAULT, p, flags).style;

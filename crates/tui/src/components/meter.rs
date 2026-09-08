@@ -8,8 +8,8 @@
 
 use core::fmt;
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Style;
 
 use super::progress::{PCT_COLUMNS, Pct};
 use super::{PartStyle, SlotFn, first_row};
@@ -350,7 +350,7 @@ impl<'a> Meter<'a> {
 
     /// Paint the value readout into `cell`, or hand the cell to the
     /// `Part::LABEL` slot. Returns the columns used.
-    fn paint_value(&self, ui: &mut Ui<'_>, cell: Rect, value: &str, style: Style) -> u16 {
+    fn paint_value(&self, ui: &mut Ui<'_>, cell: Rect, value: &str, style: PaintStyle) -> u16 {
         if let Some(f) = self.ov.slot_for(Part::LABEL) {
             f(ui, cell);
             return width(value).min(cell.width);
@@ -364,7 +364,7 @@ impl<'a> Meter<'a> {
     /// The slot is consulted **before** `design.motion.spinner_frames`
     /// (§45.4): a slot is substitution, not suppression, so one `Part` keeps
     /// one answer whether the glyph came from the recipe or from the spinner.
-    fn paint_icon(&self, ui: &mut Ui<'_>, cell: Rect, glyph: &str, style: Style) {
+    fn paint_icon(&self, ui: &mut Ui<'_>, cell: Rect, glyph: &str, style: PaintStyle) {
         if let Some(f) = self.ov.slot_for(Part::ICON) {
             f(ui, cell);
             return;
@@ -390,7 +390,7 @@ impl<'a> Meter<'a> {
     /// Every input is a parameter — the tone the caller wants is already
     /// resolved by [`Self::resolved_tone`] — so this is an associated
     /// function, not a method.
-    fn toned(ui: &Ui<'_>, base: Style, fg: Option<Role>, bg: Option<Role>) -> Style {
+    fn toned(ui: &Ui<'_>, base: PaintStyle, fg: Option<Role>, bg: Option<Role>) -> PaintStyle {
         let mut delta = StylePatch::new();
         if let Some(r) = fg {
             delta = delta.set_fg(r);

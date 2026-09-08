@@ -18,8 +18,9 @@ use core::ops::{ControlFlow, Range};
 #[cfg(feature = "testing")]
 use std::cell::Cell;
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::{Modifier, Style};
+use ratatui_core::style::Modifier;
 
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
@@ -1495,7 +1496,7 @@ impl<'a> TextViewport<'a> {
         lines: LineSet<'_>,
         from: (usize, usize),
         sel: Option<(CellPos, CellPos)>,
-        styles: (Style, Style),
+        styles: (PaintStyle, PaintStyle),
     ) {
         let (mut li, mut row) = from;
         let text_w = text.width;
@@ -1639,7 +1640,7 @@ fn paint_row(
     line_ix: usize,
     cols: (usize, usize),
     sel: Option<(CellPos, CellPos)>,
-    styles: (Style, Style),
+    styles: (PaintStyle, PaintStyle),
 ) {
     let (from, to) = cols;
     let right = rect.right();

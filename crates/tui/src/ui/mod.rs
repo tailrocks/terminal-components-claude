@@ -301,7 +301,6 @@ pub struct Ui<'f> {
     layer: LayerId,
     inert: bool,
     reference: Option<ReferenceScope>,
-    roles: CellRoles,
 }
 
 impl core::fmt::Debug for Ui<'_> {
@@ -338,7 +337,6 @@ impl<'f> Ui<'f> {
             layer: LayerId::PAGE,
             inert,
             reference: None,
-            roles: CellRoles::default(),
         }
     }
 
@@ -356,7 +354,6 @@ impl<'f> Ui<'f> {
             layer: self.layer,
             inert: self.inert,
             reference: self.reference,
-            roles: self.roles,
         }
     }
 
@@ -454,12 +451,12 @@ impl<'f> Ui<'f> {
             &self.core.overlays,
             self.core.stack_hash,
         );
-        let r = crate::theme::resolve::bind(self.theme, acc, None, self.surface);
-        self.roles = CellRoles {
-            fg: acc.fg.get(),
-            bg: acc.bg.get(),
-        };
-        r
+        crate::theme::resolve::bind(self.theme, acc, None, self.surface)
+    }
+
+    /// Bind a semantic patch directly against the current surface.
+    pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
+        crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
     }
 
     /// Resolve with a per-instance patch (precedence 6).
@@ -480,11 +477,6 @@ impl<'f> Ui<'f> {
             &self.core.overlays,
             self.core.stack_hash,
         );
-        let merged = acc.merge(*patch);
-        self.roles = CellRoles {
-            fg: merged.fg.get(),
-            bg: merged.bg.get(),
-        };
         crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
     }
 
@@ -565,7 +557,7 @@ impl<'f> Ui<'f> {
     /// `theme.bg(ui.surface())`, `fg` is `Role::Fg(FgStep::Primary)` bound on
     /// that surface, no modifiers. The **left** operand of §11.3's final
     /// layering — write it as `resolved.over(ui.surface_style())`.
-    pub fn surface_style(&self) -> ratatui_core::style::Style {
+    pub fn surface_style(&self) -> crate::theme::PaintStyle {
         let mut st = ratatui_core::style::Style::new();
         st.bg = Some(self.theme.bg(self.surface));
         st.fg = crate::theme::resolve::bind_role(
@@ -573,7 +565,12 @@ impl<'f> Ui<'f> {
             Role::Fg(crate::theme::FgStep::Primary),
             self.surface,
         );
-        st
+        crate::theme::PaintStyle::bound(
+            st,
+            Some(Role::Fg(crate::theme::FgStep::Primary)),
+            Some(Role::Surface(self.surface)),
+            self.surface,
+        )
     }
 
     /// Resolve `part` once and paint with it: equivalent to binding
@@ -1018,7 +1015,39 @@ impl<'f> Ui<'f> {
         }
     }
 
-    pub(crate) fn mark(&mut self, pos: Position, style: Option<ratatui_core::style::Style>) {
+    /// Move an internal painted cell together with its origin, then reset the
+    /// source. Unlike `raw`, this operation knows exactly which cells change.
+    pub(crate) fn move_cell(
+        &mut self,
+        src: Position,
+        dst: Position,
+        reset: crate::theme::PaintStyle,
+    ) {
+        if !self.clip.contains(src) || !self.clip.contains(dst) {
+            return;
+        }
+        let roles = self.roles_at(src);
+        if let Some(cell) = self.buffer().cell(src).cloned() {
+            if let Some(target) = self.buffer().cell_mut(dst) {
+                *target = cell;
+            }
+            self.mark(dst, None);
+            if matches!(self.target, Target::Page)
+                && let Some(i) = self.frame.role_index(dst)
+                && let Some(target) = self.frame.roles.get_mut(i)
+            {
+                *target = roles;
+            }
+            if let Some(cell) = self.buffer().cell_mut(src) {
+                cell.reset();
+                cell.set_style(reset.into_style());
+            }
+            self.mark(src, None);
+            self.mark(src, Some(reset));
+        }
+    }
+
+    pub(crate) fn mark(&mut self, pos: Position, style: Option<crate::theme::PaintStyle>) {
         match self.target {
             Target::Page => {
                 if let Some(i) = self.frame.role_index(pos)
@@ -1026,14 +1055,18 @@ impl<'f> Ui<'f> {
                 {
                     *r = match style {
                         Some(style) => CellRoles {
-                            fg: self.roles.fg.map(|role| role.painted(self.surface)),
+                            fg: if style.fg.is_none() {
+                                r.fg
+                            } else {
+                                style.fg_role.map(|(role, surface)| role.painted(surface))
+                            },
                             // Ratatui patches absent backgrounds. Keep exactly
                             // that cell's source role rather than erasing it
                             // when a foreground-only label paints over a fill.
                             bg: if style.bg.is_none() {
                                 r.bg
                             } else {
-                                self.roles.bg.map(|role| role.painted(self.surface))
+                                style.bg_role.map(|(role, surface)| role.painted(surface))
                             },
                         },
                         // A raw writer may replace any cell; prior semantic
@@ -1050,7 +1083,7 @@ impl<'f> Ui<'f> {
         }
     }
 
-    pub(crate) fn mark_area(&mut self, area: Rect, style: Option<ratatui_core::style::Style>) {
+    pub(crate) fn mark_area(&mut self, area: Rect, style: Option<crate::theme::PaintStyle>) {
         let area = area.intersection(self.clip);
         match self.target {
             Target::Page => {
@@ -1068,10 +1101,6 @@ impl<'f> Ui<'f> {
 
     pub(crate) const fn theme_ref(&self) -> &'f Theme {
         self.theme
-    }
-
-    pub(crate) fn set_roles(&mut self, roles: CellRoles) {
-        self.roles = roles;
     }
 
     pub(crate) fn roles_at(&self, pos: Position) -> CellRoles {

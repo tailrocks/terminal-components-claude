@@ -131,7 +131,7 @@ impl FlagRow<'_> {
         ui: &mut Ui<'_>,
         area: Rect,
         live: StateFlags,
-        marker: &dyn Fn(&mut Ui<'_>, Rect, ratatui_core::style::Style),
+        marker: &dyn Fn(&mut Ui<'_>, Rect, crate::theme::PaintStyle),
     ) -> Rect {
         let (id, ov, label, marker_w, trailing) =
             (self.id, self.ov, self.label, self.marker_w, self.trailing);

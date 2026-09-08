@@ -10,8 +10,9 @@
 
 use core::fmt;
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::{Modifier, Style};
+use ratatui_core::style::Modifier;
 
 use super::meter::{Meter, MeterTone};
 use super::progress::PCT_COLUMNS;
@@ -649,7 +650,7 @@ impl<'a> StatusBar<'a> {
     /// The style an item paints with: the `LABEL` recipe plus the item's own
     /// hover, emphasis and tone, layered as a role delta (the `CellUi::tone`
     /// shape, never a colour).
-    fn item_style(&self, ui: &mut Ui<'_>, it: &StatusItem<'_>, live: StateFlags) -> Style {
+    fn item_style(&self, ui: &mut Ui<'_>, it: &StatusItem<'_>, live: StateFlags) -> PaintStyle {
         let hovered = it.key.is_some_and(|key| {
             FrameRead::hovered_part(ui, self.id) == Some(PartRef::item(Part::LABEL, key))
         });

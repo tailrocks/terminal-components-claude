@@ -17,10 +17,10 @@ use crate::scroll::ScrollState;
 use crate::secret::{Secret, SecretPolicy};
 use crate::text::measure::graphemes;
 use crate::text::width;
+use crate::theme::PaintStyle;
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Style;
 
 /// A borrowed value displayed by an interactive property row.
 ///
@@ -932,7 +932,7 @@ fn wrapped_rows(s: &str, width: u16) -> u16 {
     rows
 }
 
-fn paint_value(ui: &mut Ui<'_>, area: Rect, row: &PropsRow<'_>, style: Style) {
+fn paint_value(ui: &mut Ui<'_>, area: Rect, row: &PropsRow<'_>, style: PaintStyle) {
     match row.value {
         PropsValue::Text(value) if row.wrap => {
             let mut x = area.x;
@@ -967,7 +967,7 @@ fn paint_piece(
     x: &mut u16,
     y: u16,
     text: &str,
-    style: Style,
+    style: PaintStyle,
     tone: Option<Role>,
 ) {
     if y >= area.bottom() || *x >= area.right() || text.is_empty() {

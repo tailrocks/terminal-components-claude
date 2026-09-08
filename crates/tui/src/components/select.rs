@@ -5,8 +5,8 @@
 use core::fmt;
 use core::marker::PhantomData;
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Style;
 
 use super::form::InheritedFormState;
 use super::scroll_region::ScrollRegion;
@@ -874,7 +874,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         st: &SelectState,
         items: &[T],
         live: StateFlags,
-        field: Style,
+        field: PaintStyle,
     ) {
         if cell.is_empty() {
             return;

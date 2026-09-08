@@ -1498,7 +1498,7 @@ fn paint_masked(
     skip: usize,
     editing: bool,
     policy: SecretPolicy,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     let total = graphemes(shown).count().saturating_sub(skip);
     let tail = if editing {

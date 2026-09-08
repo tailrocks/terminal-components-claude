@@ -103,8 +103,8 @@ pub use viewport::{
 pub use viewport::{ViewportWorkProbe, ViewportWorkSnapshot};
 pub use wizard::{Wizard, WizardAction, WizardCmd, WizardState, WizardStep};
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Style;
 
 use crate::id::{Id, Part, PartRef};
 use crate::response::StateFlags;
@@ -189,7 +189,7 @@ pub(crate) const fn cell_at(area: Rect, x: u16) -> Rect {
 }
 
 /// Paint the mono pressed bracket into two cells reserved by the component.
-pub(crate) fn paint_pressed_bracket(ui: &mut Ui<'_>, left: Rect, right: Rect, style: Style) {
+pub(crate) fn paint_pressed_bracket(ui: &mut Ui<'_>, left: Rect, right: Rect, style: PaintStyle) {
     ui.glyph(left, GlyphRole::PressLeft, style);
     ui.glyph(right, GlyphRole::PressRight, style);
 }

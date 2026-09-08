@@ -1294,7 +1294,7 @@ fn paint_or_slot(
     part: Part,
     area: Rect,
     text: &str,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     if let Some(slot) = overrides.slot_for(part) {
         slot(ui, area);

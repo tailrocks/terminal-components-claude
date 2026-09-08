@@ -382,3 +382,322 @@ fn production_list_pointer_hover_does_not_move_keyboard_cursor() {
     let _ = h.key(KeyCode::Char('x'));
     assert_eq!(h.cell(5, 1).bg, Color::Rgb(0, 0, 0));
 }
+
+#[test]
+fn raw_background_immediately_after_resolution_has_no_semantic_provenance() {
+    use junie_tui::Part;
+    use ratatui_core::style::Style;
+    for background in [Color::Red, Color::Rgb(24, 24, 27)] {
+        let mut scene = Scene::new(
+            "raw_after_hover",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            16,
+            1,
+        );
+        scene.draw(|ui, _| {
+            let _ = ui.style(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                StateFlags::HOVERED,
+            );
+            ui.fill(AREA, Style::new().bg(background));
+            ui.dim_layer(AREA, 1);
+        });
+        assert_eq!(
+            bg(&scene),
+            Color::Rgb(0, 0, 0),
+            "raw background {background:?}"
+        );
+    }
+}
+
+#[test]
+fn delayed_resolved_style_keeps_its_own_surface_after_another_query() {
+    use junie_tui::{Part, Role, StylePatch};
+    let source = Family::custom("saved.surface");
+    let theme = Theme::junie().define_family(source, |r| {
+        r.part(Part::CONTAINER)
+            .base(StylePatch::new().set_bg(Role::Surface(Surface::Overlay)));
+    });
+    let mut scene = Scene::new("delayed_style", theme, ColorLevel::TrueColor, 16, 1);
+    scene.draw(|ui, _| {
+        let saved = ui
+            .style(
+                source,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                StateFlags::empty(),
+            )
+            .style;
+        let _ = ui.style(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        );
+        ui.fill(AREA, saved);
+        ui.dim_layer(AREA, 1);
+    });
+    assert_eq!(bg(&scene), Color::Rgb(39, 39, 42));
+}
+
+#[test]
+fn wide_cell_string_and_span_reset_the_same_continuation_provenance() {
+    use junie_tui::{Part, Span};
+    use ratatui_core::layout::Position;
+    let mut buffers = Vec::new();
+    for painter in 0..3 {
+        let mut scene = Scene::new(
+            "wide_provenance",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            16,
+            1,
+        );
+        scene.draw(|ui, _| {
+            let hover = ui
+                .style(
+                    Family::LIST,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    StateFlags::HOVERED,
+                )
+                .style;
+            ui.fill(AREA, hover);
+            match painter {
+                0 => ui.paint_cell(Position::new(0, 0), "界", hover),
+                1 => {
+                    ui.paint_str(AREA, "界", hover);
+                }
+                _ => {
+                    ui.paint_spans(AREA, &[Span::new("界")], hover);
+                }
+            }
+            ui.dim_layer(AREA, 1);
+        });
+        buffers.push(scene.buffer().clone());
+    }
+    assert!(buffers.windows(2).all(|pair| pair.first() == pair.get(1)));
+}
+
+#[test]
+fn wide_grapheme_does_not_partially_paint_at_the_right_clip_boundary() {
+    use ratatui_core::{layout::Position, style::Style};
+    let mut buffers = Vec::new();
+    for cell in [true, false] {
+        let mut scene = Scene::new("wide_clip", Theme::junie(), ColorLevel::TrueColor, 16, 1);
+        scene.draw(|ui, _| {
+            ui.with_area(Rect::new(15, 0, 1, 1), |ui| {
+                if cell {
+                    ui.paint_cell(Position::new(15, 0), "界", Style::new());
+                } else {
+                    ui.paint_str(AREA, "界", Style::new());
+                }
+            });
+        });
+        buffers.push(scene.buffer().clone());
+    }
+    assert!(buffers.windows(2).all(|pair| pair.first() == pair.get(1)));
+}
+
+#[test]
+fn equal_palette_colors_never_confuse_raw_and_saved_semantic_channels() {
+    use junie_tui::theme::PaintStyle;
+    use junie_tui::{FgStep, Role, StylePatch};
+    use ratatui_core::style::Style;
+    for (level, neutral) in [
+        (ColorLevel::TrueColor, Color::Rgb(255, 255, 255)),
+        (ColorLevel::Ansi256, Color::Indexed(231)),
+        (ColorLevel::Ansi16, Color::White),
+        (ColorLevel::Mono, Color::White),
+    ] {
+        // Elevated and overlay collide with each other and with raw white.
+        // Canvas remains distinct so wrong raw provenance cannot pass by color.
+        let theme = Theme::junie()
+            .builder()
+            .surfaces([
+                Color::Rgb(0, 0, 0),
+                Color::Rgb(0, 0, 0),
+                Color::Rgb(255, 255, 255),
+                Color::Rgb(255, 255, 255),
+                Color::Rgb(255, 255, 255),
+            ])
+            .build();
+        let mut scene = Scene::new("carrier_collision", theme, level, 16, 1);
+        scene.draw(|ui, _| {
+            let saved = ui.with_surface(Surface::Surface, |ui| {
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_bg(Role::HoverSurface)
+                        .set_fg(Role::Fg(FgStep::Primary)),
+                )
+            });
+            let _ = ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Canvas)));
+            // Delayed semantic value, raw color identity, raw patch, semantic
+            // channel copy, and modifiers must remain distinguishable.
+            let styles = [
+                saved,
+                PaintStyle::from(Style::new().bg(neutral)),
+                saved.bg(neutral),
+                saved.patch(Style::new().bg(neutral)),
+                PaintStyle::new().with_bg_from(saved),
+                saved
+                    .add_modifier(Modifier::BOLD)
+                    .remove_modifier(Modifier::ITALIC),
+                saved.fg(Color::Red),
+                saved.patch(Style::new().fg(Color::Red)),
+            ];
+            for (x, style) in styles.into_iter().enumerate() {
+                ui.fill(Rect::new(x as u16, 0, 1, 1), style);
+            }
+            ui.dim_layer(AREA, 1);
+        });
+        for x in [0, 4, 5, 6, 7] {
+            assert_eq!(
+                scene.buffer().cell((x, 0)).map(|c| c.bg),
+                Some(neutral),
+                "semantic {level:?} {x}"
+            );
+        }
+        let canvas = match level {
+            ColorLevel::TrueColor => Color::Rgb(0, 0, 0),
+            ColorLevel::Ansi256 => Color::Indexed(16),
+            _ => Color::Black,
+        };
+        for x in [1, 2, 3] {
+            assert_eq!(
+                scene.buffer().cell((x, 0)).map(|c| c.bg),
+                Some(canvas),
+                "raw {level:?} {x}"
+            );
+        }
+    }
+}
+
+#[test]
+fn background_only_and_modifier_only_paint_preserve_the_foreground_origin() {
+    use junie_tui::{FgStep, Role, StylePatch};
+    use ratatui_core::style::Style;
+    let mut scene = Scene::new(
+        "fg_inheritance",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        16,
+        1,
+    );
+    scene.draw(|ui, _| {
+        let ghost = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Ghost)));
+        ui.paint_str(AREA, "abc", ghost);
+        ui.paint_style(Rect::new(0, 0, 1, 1), Style::new().bg(Color::Red));
+        ui.paint_style(
+            Rect::new(1, 0, 1, 1),
+            Style::new().add_modifier(Modifier::ITALIC),
+        );
+        // Same color is still an explicit raw foreground, so it must not erase
+        // through the semantic Ghost ladder when dimmed.
+        ui.paint_style(
+            Rect::new(2, 0, 1, 1),
+            Style::new().fg(ghost.fg.unwrap_or(Color::Reset)),
+        );
+        ui.dim_layer(AREA, 1);
+    });
+    assert_eq!(
+        scene
+            .buffer()
+            .cell((0, 0))
+            .map(ratatui_core::buffer::Cell::symbol),
+        Some(" ")
+    );
+    assert_eq!(
+        scene
+            .buffer()
+            .cell((1, 0))
+            .map(ratatui_core::buffer::Cell::symbol),
+        Some(" ")
+    );
+    assert_eq!(
+        scene
+            .buffer()
+            .cell((2, 0))
+            .map(ratatui_core::buffer::Cell::symbol),
+        Some("c")
+    );
+}
+
+#[test]
+fn aligned_production_cells_move_their_semantic_origin_with_the_glyphs() {
+    use junie_tui::{Align, FgStep, Role, StylePatch, Track};
+    let mut scene = Scene::new(
+        "aligned_origin",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        16,
+        1,
+    );
+    scene.draw(|ui, _| {
+        {
+            let mut row = RowUi::new(
+                ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::HOVERED,
+                ItemKey::index(0),
+                AREA,
+            );
+            let mut columns = row.columns(&[Track::Flex(1)]);
+            columns
+                .cell(0)
+                .text("a界")
+                .align(Align::Right)
+                .patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Ghost)));
+        }
+        ui.dim_layer(AREA, 1);
+    });
+    for x in [13, 14] {
+        let cell = scene.buffer().cell((x, 0));
+        assert_eq!(
+            cell.map(ratatui_core::buffer::Cell::symbol),
+            Some(" "),
+            "shifted Ghost must erase at {x}"
+        );
+        assert_eq!(
+            cell.map(|c| c.bg),
+            Some(Color::Rgb(24, 24, 27)),
+            "lead background moved at {x}"
+        );
+    }
+    assert_eq!(
+        scene.buffer().cell((15, 0)).map(|c| c.bg),
+        Some(Color::Rgb(0, 0, 0)),
+        "wide reset has no inherited plane"
+    );
+}
+
+#[test]
+fn shared_grapheme_writer_matches_ratatui_at_clip_and_width_boundaries() {
+    use ratatui_core::{buffer::Buffer, style::Style};
+    for text in ["界x", "👩‍💻x", "a\u{301}z", "\u{200b}x", "\n\tx", "ab界", "x"] {
+        for width in 0..6 {
+            let area = Rect::new(2, 0, width, 1);
+            let mut scene = Scene::new(
+                "grapheme_reference",
+                Theme::junie(),
+                ColorLevel::TrueColor,
+                16,
+                1,
+            );
+            let raw = Style::new().fg(Color::Red).bg(Color::Blue);
+            let mut before = Buffer::empty(AREA);
+            scene.draw(|ui, _| {
+                ui.fill(AREA, Style::new().bg(Color::Green));
+                before = ui.raw().0.clone();
+                ui.paint_str(area, text, raw);
+            });
+            before.set_stringn(area.x, area.y, text, usize::from(width), raw);
+            assert_eq!(scene.buffer(), &before, "{text:?} width {width}");
+        }
+    }
+}

@@ -84,7 +84,7 @@ pub(crate) fn run_of(
     ui: &mut Ui<'_>,
     run: Rect,
     glyph: GlyphRole,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     let sym = ui.glyph_str(glyph);
     for col in run.columns() {

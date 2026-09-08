@@ -19,8 +19,8 @@
 
 use core::fmt;
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Style;
 
 use super::input::{TextAction, TextInput, TextInputState};
 use super::scroll_region::ScrollRegion;
@@ -1223,7 +1223,7 @@ impl<'a> Grid<'a> {
 
 /// Paint `text` into `area` under `align`, ending with the ellipsis glyph
 /// when it does not fit. Allocation-free, and never writes outside `area`.
-fn paint_aligned(ui: &mut Ui<'_>, area: Rect, text: &str, align: Align, style: Style) {
+fn paint_aligned(ui: &mut Ui<'_>, area: Rect, text: &str, align: Align, style: PaintStyle) {
     if area.is_empty() || text.is_empty() {
         return;
     }
@@ -1256,7 +1256,7 @@ fn paint_aligned(ui: &mut Ui<'_>, area: Rect, text: &str, align: Align, style: S
     ui.paint_str(at, text, style);
 }
 
-fn apply_style_delta(ui: &Ui<'_>, base: Style, delta: StylePatch) -> Style {
+fn apply_style_delta(ui: &Ui<'_>, base: PaintStyle, delta: StylePatch) -> PaintStyle {
     if delta.is_empty() {
         return base;
     }

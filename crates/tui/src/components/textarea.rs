@@ -1325,7 +1325,7 @@ fn paint_masked_line(
     line: &str,
     skip: usize,
     policy: SecretPolicy,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     let total = graphemes(line).count().saturating_sub(skip);
     let mut cells = CellUi::new(ui.reborrow(), run, style);

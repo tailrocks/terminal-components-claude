@@ -1481,7 +1481,8 @@ impl<'a> CodeEditor<'a> {
                     if let Some(role) = syntax
                         && !live.contains(StateFlags::DISABLED)
                     {
-                        painted.fg = Some(syntax_color(ui, role));
+                        painted = painted
+                            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Syntax(role))));
                     }
                     if selection
                         .as_ref()
@@ -1501,8 +1502,10 @@ impl<'a> CodeEditor<'a> {
                             diagnostic.range.start <= offset && offset < diagnostic.range.end
                         })
                     {
-                        painted.add_modifier = painted.add_modifier.union(Modifier::UNDERLINED);
-                        painted.underline_color = Some(role_color(ui, diagnostic.severity.role()));
+                        painted = painted.add_modifier(Modifier::UNDERLINED);
+                        painted = painted.patch(ui.paint_patch(
+                            &StylePatch::new().set_underline(diagnostic.severity.role()),
+                        ));
                     }
                     if let Some(find) = find {
                         while find
@@ -1524,7 +1527,8 @@ impl<'a> CodeEditor<'a> {
                         } else {
                             SyntaxRole::MatchBg
                         };
-                        painted.bg = Some(syntax_color(ui, role));
+                        painted = painted
+                            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Syntax(role))));
                     }
                     ui.paint_str(
                         Rect {
@@ -1656,38 +1660,6 @@ fn line_col(text: &str, offset: usize) -> (usize, usize) {
     let line = prefix.bytes().filter(|b| *b == b'\n').count();
     let tail = prefix.rsplit_once('\n').map_or(prefix, |(_, tail)| tail);
     (line, usize::from(width(tail)))
-}
-
-fn role_color(ui: &Ui<'_>, role: Role) -> ratatui_core::style::Color {
-    match role {
-        Role::Syntax(role) => syntax_color(ui, role),
-        _ => ui.theme().color.fg[0],
-    }
-}
-
-fn syntax_color(ui: &Ui<'_>, role: SyntaxRole) -> ratatui_core::style::Color {
-    let syntax = ui.theme().color.syntax;
-    match role {
-        SyntaxRole::Keyword => syntax.keyword,
-        SyntaxRole::Ident => syntax.ident,
-        SyntaxRole::Str => syntax.string,
-        SyntaxRole::Number => syntax.number,
-        SyntaxRole::Operator => syntax.operator,
-        SyntaxRole::Punct => syntax.punct,
-        SyntaxRole::Comment => syntax.comment,
-        SyntaxRole::Plain => syntax.plain,
-        SyntaxRole::TypeName => syntax.type_name,
-        SyntaxRole::Function => syntax.function,
-        SyntaxRole::Constant => syntax.constant,
-        SyntaxRole::Invalid => syntax.invalid,
-        SyntaxRole::Deprecated => syntax.deprecated,
-        SyntaxRole::MatchBg => syntax.match_bg,
-        SyntaxRole::MatchCurrentBg => syntax.match_current_bg,
-        SyntaxRole::BracketMatch => syntax.bracket_match,
-        SyntaxRole::DiagError => syntax.diagnostic_error,
-        SyntaxRole::DiagWarning => syntax.diagnostic_warning,
-        SyntaxRole::DiagInfo => syntax.diagnostic_info,
-    }
 }
 
 fn usize_text(mut number: usize, buf: &mut [u8; 20]) -> &str {

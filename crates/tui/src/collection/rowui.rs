@@ -6,9 +6,10 @@
 
 use core::fmt::{self, Write as _};
 
+use crate::theme::PaintStyle;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::{Modifier, Style};
+use ratatui_core::style::Modifier;
 
 use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
@@ -137,7 +138,7 @@ impl<'u> RowUi<'u> {
         }
     }
 
-    fn style_of(&mut self, part: Part) -> Style {
+    fn style_of(&mut self, part: Part) -> PaintStyle {
         let r = match (part, self.label_patch) {
             (Part::LABEL, Some(patch)) => {
                 self.ui
@@ -224,7 +225,7 @@ impl<'u> RowUi<'u> {
         self.label_in(s, st);
     }
 
-    fn label_in(&mut self, s: &str, st: Style) {
+    fn label_in(&mut self, s: &str, st: PaintStyle) {
         let area = self.remaining();
         let used = if width(s) <= area.width {
             self.ui.paint_str(area, s, st)
@@ -366,7 +367,7 @@ struct CellWriter<'a, 'u> {
     ui: &'a mut Ui<'u>,
     area: Rect,
     x: u16,
-    style: Style,
+    style: PaintStyle,
 }
 
 impl fmt::Write for CellWriter<'_, '_> {
@@ -391,7 +392,7 @@ impl fmt::Write for CellWriter<'_, '_> {
 pub struct CellUi<'u> {
     ui: Ui<'u>,
     area: Rect,
-    style: Style,
+    style: PaintStyle,
     /// Columns painted so far, from `area.x`.
     used: u16,
     align: Align,
@@ -412,14 +413,14 @@ impl fmt::Debug for CellUi<'_> {
 }
 
 impl<'u> CellUi<'u> {
-    pub(crate) fn new(ui: Ui<'u>, area: Rect, style: Style) -> Self {
+    pub(crate) fn new(ui: Ui<'u>, area: Rect, style: PaintStyle) -> Self {
         Self::with_resolved_glyph(ui, area, style, Slot::Inherit)
     }
 
     fn with_resolved_glyph(
         ui: Ui<'u>,
         area: Rect,
-        style: Style,
+        style: PaintStyle,
         resolved_glyph: Slot<GlyphRole>,
     ) -> Self {
         CellUi {
@@ -585,21 +586,12 @@ impl Drop for CellUi<'_> {
         };
         let y = self.area.y;
         if shift > 0 {
-            let (buf, _) = self.ui.buffer_in(self.area);
             let mut x = self.area.x.saturating_add(used);
             while x > self.area.x {
                 x = x.saturating_sub(1);
                 let src = Position::new(x, y);
                 let dst = Position::new(x.saturating_add(shift), y);
-                if let Some(c) = buf.cell(src).cloned()
-                    && let Some(d) = buf.cell_mut(dst)
-                {
-                    *d = c;
-                }
-                if let Some(c) = buf.cell_mut(src) {
-                    c.reset();
-                    c.set_style(self.style);
-                }
+                self.ui.move_cell(src, dst, self.style);
             }
         }
         // final style over the painted range
@@ -616,7 +608,7 @@ impl Drop for CellUi<'_> {
             delta = delta.set_fg(r);
         }
         let st = crate::theme::resolve::bind(theme, delta, self.patch.as_ref(), surface).style;
-        if st != Style::new() {
+        if st != PaintStyle::new() {
             self.ui.paint_style(painted, st);
         }
     }
@@ -629,7 +621,7 @@ pub struct ColumnsUi<'u> {
     sizes: [u16; MAX_COLUMNS],
     n: usize,
     gap: u16,
-    style: Style,
+    style: PaintStyle,
 }
 
 impl fmt::Debug for ColumnsUi<'_> {

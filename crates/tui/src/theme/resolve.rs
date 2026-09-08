@@ -18,12 +18,170 @@ use super::role::{Align, MeterRole, Role, Surface, SyntaxRole};
 use crate::id::{Part, fnv1a};
 use crate::response::StateFlags;
 
+/// Bound paint attributes together with their semantic origin.
+///
+/// Raw colours deliberately carry no role. A copy retains its origin even
+/// when painted after another query or outside its original surface scope.
+/// Direct mutation cannot leave semantic metadata describing an old colour:
+///
+/// ```compile_fail
+/// use junie_tui::theme::PaintStyle;
+/// use ratatui_core::style::Color;
+/// let mut style = PaintStyle::new();
+/// style.bg = Some(Color::Red);
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct PaintStyle {
+    style: Style,
+    pub(crate) fg_role: Option<(Role, Surface)>,
+    pub(crate) bg_role: Option<(Role, Surface)>,
+}
+
+impl PaintStyle {
+    /// An inheriting style with no explicit attributes.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            style: Style::new(),
+            fg_role: None,
+            bg_role: None,
+        }
+    }
+
+    pub(crate) fn bound(
+        style: Style,
+        fg: Option<Role>,
+        bg: Option<Role>,
+        surface: Surface,
+    ) -> Self {
+        Self {
+            style,
+            fg_role: fg.filter(|_| style.fg.is_some()).map(|r| (r, surface)),
+            bg_role: bg.filter(|_| style.bg.is_some()).map(|r| (r, surface)),
+        }
+    }
+
+    /// Borrow the raw attributes for a foreign renderer. This erases semantics
+    /// at that boundary; Junie painters should receive the carrier itself.
+    #[must_use]
+    pub const fn as_style(&self) -> &Style {
+        &self.style
+    }
+
+    /// Explicitly discard semantic provenance at a foreign renderer boundary.
+    #[must_use]
+    pub const fn into_style(self) -> Style {
+        self.style
+    }
+
+    /// Set a raw foreground, discarding only its semantic provenance.
+    #[must_use]
+    pub fn fg(mut self, color: Color) -> Self {
+        self.style = self.style.fg(color);
+        self.fg_role = None;
+        self
+    }
+
+    /// Set a raw background, discarding only its semantic provenance.
+    #[must_use]
+    pub fn bg(mut self, color: Color) -> Self {
+        self.style = self.style.bg(color);
+        self.bg_role = None;
+        self
+    }
+
+    /// Copy the fg channel and its semantic origin into the fg channel.
+    #[must_use]
+    pub fn with_fg_from(mut self, other: Self) -> Self {
+        self.style.fg = other.style.fg;
+        self.fg_role = other.fg_role;
+        self
+    }
+
+    /// Copy the bg channel and its semantic origin into the bg channel.
+    #[must_use]
+    pub fn with_bg_from(mut self, other: Self) -> Self {
+        self.style.bg = other.style.bg;
+        self.bg_role = other.bg_role;
+        self
+    }
+
+    /// Copy the bg channel and its semantic origin into the fg channel.
+    #[must_use]
+    pub fn with_fg_from_bg(mut self, other: Self) -> Self {
+        self.style.fg = other.style.bg;
+        self.fg_role = other.bg_role;
+        self
+    }
+
+    /// Copy the fg channel and its semantic origin into the bg channel.
+    #[must_use]
+    pub fn with_bg_from_fg(mut self, other: Self) -> Self {
+        self.style.bg = other.style.fg;
+        self.bg_role = other.fg_role;
+        self
+    }
+
+    /// Set the underline colour; foreground/background origins are unchanged.
+    #[must_use]
+    pub fn underline_color(mut self, color: Color) -> Self {
+        self.style = self.style.underline_color(color);
+        self
+    }
+
+    /// Add modifiers without changing colour origins.
+    #[must_use]
+    pub fn add_modifier(mut self, modifier: ratatui_core::style::Modifier) -> Self {
+        self.style = self.style.add_modifier(modifier);
+        self
+    }
+
+    /// Remove modifiers without changing colour origins.
+    #[must_use]
+    pub fn remove_modifier(mut self, modifier: ratatui_core::style::Modifier) -> Self {
+        self.style = self.style.remove_modifier(modifier);
+        self
+    }
+
+    /// Layer explicit channels from `other`, preserving inherited origins.
+    #[must_use]
+    pub fn patch(mut self, other: impl Into<Self>) -> Self {
+        let other = other.into();
+        if other.style.fg.is_some() {
+            self.fg_role = other.fg_role;
+        }
+        if other.style.bg.is_some() {
+            self.bg_role = other.bg_role;
+        }
+        self.style = self.style.patch(other.style);
+        self
+    }
+}
+
+impl From<Style> for PaintStyle {
+    fn from(style: Style) -> Self {
+        Self {
+            style,
+            fg_role: None,
+            bg_role: None,
+        }
+    }
+}
+
+// Read-only attribute inspection cannot detach or mutate the carried origins.
+impl std::ops::Deref for PaintStyle {
+    type Target = Style;
+    fn deref(&self) -> &Style {
+        &self.style
+    }
+}
+
 /// The result of a style query.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Resolved {
     /// The style, with colours bound; apply over the inherited surface
-    /// style with `inherited.patch(resolved.style)` (§22 R‑9).
-    pub style: Style,
+    /// carrier with `resolved.over(inherited)` (§22 R‑9).
+    pub style: PaintStyle,
     /// The glyph binding for the part. `Set` paints that glyph, `Inherit`
     /// leaves the caller's fallback in control, and `Clear` suppresses it
     /// (§5 R9).
@@ -41,8 +199,8 @@ impl Resolved {
     /// Write `ui.fill(area, r.over(ui.surface_style()))`: the inherited style
     /// is the **left** operand, this part's style the right.
     #[must_use]
-    pub fn over(self, inherited: Style) -> Style {
-        inherited.patch(self.style)
+    pub fn over(self, inherited: impl Into<PaintStyle>) -> PaintStyle {
+        inherited.into().patch(self.style)
     }
 
     /// The surface-independent half: glyph, size and alignment.
@@ -270,7 +428,7 @@ pub(crate) fn bind(
     style.sub_modifier = acc.remove;
     let m = metrics_of(&acc);
     Resolved {
-        style,
+        style: PaintStyle::bound(style, acc.fg.get(), acc.bg.get(), surface),
         glyph: acc.glyph,
         size: m.size,
         align: m.align,
@@ -698,7 +856,7 @@ mod tests {
             Some(&inst),
         );
         let inherited = Style::new().add_modifier(Modifier::BOLD | Modifier::DIM);
-        let out = inherited.patch(r.style);
+        let out = r.over(inherited);
         assert_eq!(out.add_modifier, Modifier::ITALIC | Modifier::DIM);
         assert_eq!(out.sub_modifier, Modifier::BOLD);
         // the role-level merge law and Style::patch agree on the modifier set

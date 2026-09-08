@@ -403,13 +403,7 @@ impl<'a> Panel<'a> {
     }
 
     /// The head row: focus gutter, title, right-aligned meta.
-    fn head(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        live: StateFlags,
-        fill: ratatui_core::style::Style,
-    ) {
+    fn head(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, fill: crate::theme::PaintStyle) {
         let head = first_row(area);
         if head.is_empty() || area.width < 3 {
             return;
