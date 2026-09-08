@@ -1858,18 +1858,31 @@ fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
                     .expect("matrix position is inside the scene")
                     .symbol()
             };
-            assert_eq!(symbol_at(0), glyphs.begin, "{st:?} at {width}x{height}");
-            assert_eq!(
+            // Full-track geometry (pinned by scrollbar_full_track) lets the
+            // thumb cover the cap rows at the extremes, so a cap row shows the
+            // begin/end glyph unless the thumb rests on it.
+            let cap = |symbol: &str, expected: &str, label: String| {
+                assert!(
+                    symbol == expected || symbol == glyphs.thumb,
+                    "{label}: expected {expected} or the thumb, got {symbol}"
+                );
+            };
+            cap(
+                symbol_at(0),
+                glyphs.begin,
+                format!("{st:?} at {width}x{height}"),
+            );
+            cap(
                 symbol_at(height.saturating_sub(1)),
                 glyphs.end,
-                "{st:?} at {width}x{height}"
+                format!("{st:?} at {width}x{height}"),
             );
             assert!(
-                (1..height.saturating_sub(1)).any(|y| symbol_at(y) == glyphs.track),
+                (0..height).any(|y| symbol_at(y) == glyphs.track),
                 "{st:?} at {width}x{height} has no visible track"
             );
             assert!(
-                (1..height.saturating_sub(1)).any(|y| symbol_at(y) == glyphs.thumb),
+                (0..height).any(|y| symbol_at(y) == glyphs.thumb),
                 "{st:?} at {width}x{height} has no visible thumb"
             );
             let bold: Vec<Position> = scene
@@ -1885,10 +1898,10 @@ fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
             let expected: Vec<Position> = if st == St::Pressed {
                 let thumb_end = match (width, height) {
                     (120, 40) => 20,
-                    (40, 10) => 2,
+                    (40, 10) => 1,
                     _ => unreachable!("SIZES contains only the two matrix sizes"),
                 };
-                (1..thumb_end).map(|y| Position::new(x, y)).collect()
+                (0..thumb_end).map(|y| Position::new(x, y)).collect()
             } else {
                 Vec::new()
             };
