@@ -351,6 +351,23 @@ frames change. Shared row glyph/group/match appearance and lazy explorer loading
 remain open. Remaining three app library suites, full-workspace MSRV Clippy
 and stable formatting pass. No full-app visual acceptance or final merge claim.
 
+List043c117/cb59b80 integrates borrowed pointer eligibility and prior-focus
+repeat activation. Root759 library+22 List public tests pass; independent
+E/jackin-manager-production/INDEPENDENT-LIST-REVIEW.md SHAb1ab92dc…b924a
+binds both executed mutations and restored passes. Manager composition remains
+open. Holla818c49a/784ce51/4026d32/872f39c/3d3063f integrates seven source
+Plan journeys, display-only Dialog input labels, acknowledgement Enter-to-actions,
+and exact immutable review binding. Root read all seven pinned assertion bodies.
+Independent E/plan-binding-independent/REVIEW.md SHA71d426f9…ebaca verifies
+the unchanged original replacement probe now passes; prior98c5210 rejection is
+retained. Arc identity plus full Plan equality rejects regenerated or altered
+reviews before existing fresh-world, one-use approval. Root154 Holla tests pass
+in the combined shared/four-app library and Dialog/List public run; full-workspace
+MSRV Clippy and stable formatting pass. Initial misspelled dialog_extra_navigation
+target refused before execution; corrected dialog_navigation target executed.
+No full Holla visual acceptance. Grid gutter749 remains held until ab68190
+repeat-click repair and full independent review pass.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
