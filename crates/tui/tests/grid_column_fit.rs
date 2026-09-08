@@ -264,3 +264,31 @@ fn pending_reveal_survives_tiny_unpublished_columns_and_removed_key() {
         assert_eq!(h.cell(16, 1).symbol(), "c");
     }
 }
+
+#[test]
+fn sticky_only_tiny_viewport_does_not_consume_pending_nonsticky_reveal() {
+    let mut page = Page::new();
+    page.columns[0].sticky = true;
+    page.columns[0].min_width = 40;
+    page.columns[0].max_width = 40;
+    page.area.width = 10;
+    let mut h = Harness::new(page, Theme::junie(), 64, 5);
+    let page = h.app_mut();
+    assert!(
+        Grid::new(ID, &page.columns)
+            .column_gap(2)
+            .column_fit(GridColumnFit::CompleteWithPreview { min_width: 6 })
+            .move_cursor_to(
+                &mut page.state,
+                &page.model,
+                ItemKey::num(0),
+                ColumnKey::num(2)
+            )
+            .is_ok()
+    );
+    let _ = h.key(KeyCode::Null);
+    h.app_mut().area.width = 64;
+    let _ = h.resize(64, 5);
+    assert_eq!(h.app().state.col_offset(), 1);
+    assert_eq!(h.cell(44, 1).symbol(), "c");
+}

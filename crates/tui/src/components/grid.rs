@@ -1642,7 +1642,15 @@ impl<'a> Grid<'a> {
         }
         st.col_offset = g.offset;
         st.col_index = self.cursor_col(st);
-        if g.complete.iter().any(|complete| *complete) {
+        let target_complete = st
+            .pending_column
+            .and_then(|key| self.col_index(key))
+            .is_some_and(|column| g.complete.get(column).copied().unwrap_or(false));
+        let movable_viewport =
+            self.columns.iter().enumerate().any(|(column, spec)| {
+                !spec.sticky && g.complete.get(column).copied().unwrap_or(false)
+            });
+        if target_complete || movable_viewport {
             st.pending_column = None;
         }
     }
