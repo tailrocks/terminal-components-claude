@@ -590,6 +590,13 @@ pub struct Spinner<'a> {
     ov: PartStyle<'a>,
 }
 
+/// Canonical frame selection for composed and standalone spinners.
+pub(super) fn spinner_glyph(frames: &'static [&'static str], frame: usize) -> Option<&'static str> {
+    frames
+        .get(frame.checked_rem(frames.len()).unwrap_or(0))
+        .copied()
+}
+
 impl fmt::Debug for Spinner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Spinner")
@@ -677,11 +684,7 @@ impl<'a> Spinner<'a> {
 
     /// The frame this spinner shows.
     fn glyph(ui: &Ui<'_>, frame: usize) -> &'static str {
-        let frames = ui.design().motion.spinner_frames;
-        frames
-            .get(frame.checked_rem(frames.len()).unwrap_or(0))
-            .copied()
-            .unwrap_or("")
+        spinner_glyph(ui.design().motion.spinner_frames, frame).unwrap_or("")
     }
 
     fn natural_width(&self, ui: &Ui<'_>) -> u16 {
