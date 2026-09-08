@@ -77,6 +77,10 @@ impl PlanGate {
             )
             .width(86)
     }
+    pub(crate) fn is_editing(&self) -> bool {
+        self.dialog.is_editing()
+    }
+
     pub(crate) fn open(&self, cx: &mut Cx<'_>) {
         let dialog = self.props();
         cx.open_layer(GATE, dialog.layer(cx));

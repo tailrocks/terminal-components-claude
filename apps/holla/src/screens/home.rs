@@ -60,6 +60,10 @@ impl HomeState {
             .collect()
     }
 
+    pub(crate) fn is_editing(&self) -> bool {
+        self.editor.is_editing()
+    }
+
     pub(crate) fn selected(&self, world: &World) -> Option<Action> {
         let rows = self.rows(world);
         self.rows

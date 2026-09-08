@@ -585,9 +585,19 @@ impl App {
             Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
         );
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
-        let mut hints = HintLayer::from_bindings(GLOBAL);
-        hints.status = self.status.clone().map(Into::into);
-        HintBar::derived(FOOTER).screen(&hints).draw(ui, footer);
+        let hints = HintLayer::from_bindings(GLOBAL);
+        let editing = match &self.overlay {
+            Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
+            Some(Overlay::Gate(gate)) => gate.is_editing(),
+            Some(Overlay::Clone(_) | Overlay::Actions(_)) => false,
+            None => self.route == Route::Home && self.home.is_editing(),
+        };
+        HintBar::derived(FOOTER)
+            .screen(&hints)
+            .status_text(self.status.as_deref())
+            .badge(editing.then_some("EDIT"))
+            .centered(true)
+            .draw(ui, footer);
     }
 }
 impl App {
@@ -1134,5 +1144,40 @@ mod tests {
         assert_eq!(harness.app().world.now_ms(), 0);
         let _ = harness.advance(std::time::Duration::from_millis(74));
         assert_eq!(harness.app().world.now_ms(), 80);
+    }
+    #[test]
+    fn footer_status_survives_focused_hints_and_edit_badge_uses_top_context() {
+        let mut harness = app(Scenario::DockerCleanup);
+        assert!(harness.tab_to(home::QUERY));
+        let _ = harness.type_str("docker system prune");
+        let _ = harness.ctrl('s');
+        assert!(harness.row(39).contains("EDIT"));
+        assert!(harness.row(39).contains("Scope: here"));
+        let _ = harness.key(KeyCode::F(1));
+        assert!(!harness.row(39).contains("EDIT"));
+        assert!(harness.row(39).contains("Scope: here"));
+        let _ = harness.key(KeyCode::Esc);
+        assert!(harness.row(39).contains("EDIT"));
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+
+        let mut harness = app(Scenario::DockerCleanup);
+        assert!(harness.tab_to(home::QUERY));
+        let _ = harness.type_str("docker system prune");
+        let _ = harness.key(KeyCode::Enter);
+        assert!(harness.tab_to(plan::STEPS));
+        let _ = harness.key(KeyCode::Enter);
+        assert!(harness.row(39).contains("EDIT"));
+        let _ = harness.key(KeyCode::Enter);
+        assert!(!harness.row(39).contains("EDIT"));
+        assert_eq!(harness.app().world.effect_revision, 0);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
     }
 }

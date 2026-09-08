@@ -376,6 +376,10 @@ impl ProductDialog {
             )
             .width(self.width)
     }
+    pub(crate) fn is_editing(&self) -> bool {
+        self.dialog.is_editing()
+    }
+
     pub(crate) fn open(&self, cx: &mut Cx<'_>) {
         let props = self.props();
         cx.open_layer(DIALOG, props.layer(cx));
