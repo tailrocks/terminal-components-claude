@@ -131,25 +131,34 @@ impl Drop for TerminalSession {
 /// the crate's front-page doc example all call it, so an environment read there
 /// would make every render digest a function of the CI runner's `TERM`.
 ///
-/// Narrowing means a caller who hands `run` a theme already at a chosen level
-/// keeps it; forcing colour *up* is `CLICOLOR_FORCE`'s job inside
-/// [`ColorLevel::detect`](crate::theme::ColorLevel::detect), which is why there
-/// is no `run_with`.
+/// [`run_with_feedback_clock`] selects simulation feedback explicitly while
+/// retaining the same terminal capability narrowing.
+///
+/// # Errors
+/// Terminal I/O errors.
+pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
+    run_with_feedback_clock(app, theme, super::FeedbackClock::Elapsed)
+}
+
+/// Run with a feedback clock selected before initialization or first activation.
+/// Domain adapters pass their already-seeked simulation epoch and synchronize
+/// absolute simulation time through `Cx`; the driver still owns elapsed time.
+/// Simulation feedback never adds a wall-clock expiry wake or a polling loop.
 ///
 /// # Errors
 /// Terminal I/O errors.
 #[expect(
     clippy::needless_pass_by_value,
-    reason = "`theme: Theme` is the published signature (§17.0 A1) and §34 fixes \
-              it in place; `for_terminal` borrows, so the value is not consumed, \
-              but narrowing to `&Theme` is a public API change out of this scope \
-              and would make every caller keep a theme alive beside the narrowed \
-              copy the runtime already owns"
+    reason = "session owns the supplied theme API and narrows capability once before runtime construction"
 )]
-pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
+pub fn run_with_feedback_clock<A: App>(
+    app: A,
+    theme: Theme,
+    clock: super::FeedbackClock,
+) -> io::Result<()> {
     let mut session = TerminalSession::enter()?;
     let origin = Instant::now();
-    let mut rt = Runtime::new(app, theme.for_terminal());
+    let mut rt = Runtime::new_with_feedback_clock(app, theme.for_terminal(), clock);
     let _ = rt.initialize();
     let mut pending = None;
     loop {

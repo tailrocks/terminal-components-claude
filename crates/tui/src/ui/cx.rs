@@ -169,6 +169,7 @@ pub(crate) struct FrameServices {
     pub(crate) focus_request: Option<Id>,
     pub(crate) deferred_focus: Option<DeferredFocus>,
     pub(crate) repaint: bool,
+    pub(crate) feedback: crate::runtime::feedback::FeedbackState,
     pub(crate) now: crate::runtime::Moment,
     pub(crate) repaint_at: Option<crate::runtime::Moment>,
     pub(crate) quit: bool,
@@ -329,6 +330,45 @@ impl<'f> Cx<'f> {
             anchor: self.last.snapshot.focus,
             backwards: false,
         });
+        self.services.repaint = true;
+    }
+
+    /// Read the sole runtime activation-feedback record in its selected clock.
+    pub fn activation_feedback(&self) -> Option<crate::runtime::ActivationFeedback> {
+        self.services.feedback.active(self.services.now)
+    }
+
+    /// Synchronize absolute domain time after an admitted simulation step.
+    /// Equal time is idempotent; input count and drawing never age feedback.
+    /// The observer reflects an expiry immediately within this update.
+    ///
+    /// # Errors
+    /// Rejects elapsed-clock policy or backwards simulation time atomically.
+    pub fn sync_feedback_time(
+        &mut self,
+        now: crate::runtime::SimulationMoment,
+    ) -> Result<(), crate::runtime::FeedbackClockError> {
+        if self.services.feedback.sync(now)? {
+            self.services.repaint = true;
+        }
+        Ok(())
+    }
+
+    /// Request activation feedback for a semantic product action.
+    /// The owner may belong to the next route; this grants no focus or input authority.
+    pub fn flash_activation(&mut self, owner: Id) {
+        self.flash_activation_part(owner, PartRef::of(crate::id::Part::CONTAINER));
+    }
+
+    /// Request feedback for a stable sub-region, such as a collection item.
+    /// Feedback survives owner disappearance until selected-clock expiry.
+    pub fn flash_activation_part(&mut self, owner: Id, part: PartRef) {
+        self.services.feedback.activate(
+            owner,
+            part,
+            self.services.now,
+            Duration::from_millis(self.theme.design.motion.press_flash_ms),
+        );
         self.services.repaint = true;
     }
 

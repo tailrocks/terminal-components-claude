@@ -6,9 +6,11 @@
 //! only `PaintedFrame::commit_presented` publishes its routing geometry after
 //! successful output. Painting and publication never call application updates.
 
+pub(crate) mod feedback;
 #[cfg(feature = "crossterm")]
 pub(crate) mod session;
 mod time;
+pub use feedback::{ActivationFeedback, FeedbackClock, FeedbackClockError, SimulationMoment};
 pub(crate) mod typing;
 pub use time::{ClockError, Moment};
 pub use typing::TypingPolicy;
@@ -106,7 +108,6 @@ struct Interaction {
     hover: Option<(Id, PartRef)>,
     hover_suppressed: bool,
     press: Option<Press>,
-    flash: Option<(Id, Moment)>,
     last_click: Option<(Id, PartRef, Moment)>,
     last_input_key: bool,
 }
@@ -378,6 +379,12 @@ impl<A: App> core::fmt::Debug for Runtime<A> {
 impl<A: App> Runtime<A> {
     /// A runtime for `app` under `theme`.
     pub fn new(app: A, theme: Theme) -> Self {
+        Self::new_with_feedback_clock(app, theme, FeedbackClock::Elapsed)
+    }
+
+    /// Construct with an immutable feedback clock, before bootstrap or activation.
+    /// Simulation origins must match the already-seeked domain fixture.
+    pub fn new_with_feedback_clock(app: A, theme: Theme, clock: FeedbackClock) -> Self {
         let mut core = UiCore::default();
         core.keymap.clone_from(app.keymap());
         Runtime {
@@ -386,7 +393,10 @@ impl<A: App> Runtime<A> {
             screen: Rect::ZERO,
             last: LastFrame::default(),
             focus: FocusState::default(),
-            services: FrameServices::default(),
+            services: FrameServices {
+                feedback: feedback::FeedbackState::new(clock),
+                ..FrameServices::default()
+            },
             intents: IntentQueue::new(),
             inter: Interaction::default(),
             pending_tick: false,
@@ -481,11 +491,7 @@ impl<A: App> Runtime<A> {
     /// Whether immediate repaint or timed work is pending.
     /// Drivers schedule `next_deadline`; this does not imply a tick cadence.
     pub fn wants_tick(&self) -> bool {
-        self.pending_tick
-            || self.services.repaint
-            || self.services.repaint_at.is_some()
-            || self.inter.flash.is_some()
-            || self.last_invalidate >= Invalidate::Paint
+        self.needs_present() || self.needs_settle() || self.next_deadline().is_some()
     }
 
     /// Earliest absolute application or runtime-feedback deadline.
@@ -493,10 +499,18 @@ impl<A: App> Runtime<A> {
         if self.pending_tick {
             return Some(self.now());
         }
-        match (self.services.repaint_at, self.inter.flash.map(|(_, at)| at)) {
+        match (
+            self.services.repaint_at,
+            self.services.feedback.elapsed_deadline(),
+        ) {
             (Some(a), Some(b)) => Some(a.min(b)),
             (a, b) => a.or(b),
         }
+    }
+
+    /// The one current activation-feedback record, independent of held press/capture.
+    pub fn activation_feedback(&self) -> Option<ActivationFeedback> {
+        self.services.feedback.active(self.now())
     }
 
     /// Explicit monotonic elapsed time, independent of input count.
@@ -523,8 +537,7 @@ impl<A: App> Runtime<A> {
             self.pending_tick = true;
             self.services.repaint_at = None;
         }
-        if self.inter.flash.is_some_and(|(_, until)| now >= until) {
-            self.inter.flash = None;
+        if self.services.feedback.expire_elapsed(now) {
             if self.inter.press.is_none() {
                 self.last.snapshot.pressed = None;
             }
@@ -1028,12 +1041,13 @@ impl<A: App> Runtime<A> {
         self.intents
             .pointer(p.owner, phase, p.part, m.pos, local, m.mods);
         let flash = self.theme.design.motion.press_flash_ms;
-        self.inter.flash = Some((
+        self.services.feedback.activate(
             p.owner,
-            self.now()
-                .saturating_add(core::time::Duration::from_millis(flash)),
-        ));
-        self.last.snapshot.pressed = Some((p.owner, p.part));
+            p.part,
+            self.now(),
+            core::time::Duration::from_millis(flash),
+        );
+        self.last.snapshot.pressed = self.services.feedback.pressed();
     }
 
     fn pointer_captured(&mut self, cap: Capture, m: Mouse) {
@@ -1402,6 +1416,14 @@ impl<A: App> Runtime<A> {
 
     /// Step 9.
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
+        // Visible pressed facts are derived from the two authorities, never
+        // a second feedback lifecycle. Resize may cancel a held press, but
+        // cannot erase an activation record that has not expired.
+        self.last.snapshot.pressed = self
+            .inter
+            .press
+            .map(|press| (press.owner, press.part))
+            .or_else(|| self.services.feedback.pressed());
         if self.services.repaint {
             r = r.repaint();
         }

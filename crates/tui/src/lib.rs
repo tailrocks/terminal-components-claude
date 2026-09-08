@@ -50,10 +50,13 @@ pub mod author;
 pub use id::{Id, ItemKey, Part, PartRef};
 // runtime
 #[cfg(feature = "crossterm")]
-pub use runtime::session::{DefaultTerminal, TerminalSession, chain_panic_hook, run};
+pub use runtime::session::{
+    DefaultTerminal, TerminalSession, chain_panic_hook, run, run_with_feedback_clock,
+};
 pub use runtime::{
-    App, ClockError, Moment, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError,
-    Runtime, TypingPolicy, UpdateCause,
+    ActivationFeedback, App, ClockError, FeedbackClock, FeedbackClockError, Moment, PaintedFrame,
+    PendingInput, RenderSnapshot, RenderSnapshotError, Runtime, SimulationMoment, TypingPolicy,
+    UpdateCause,
 };
 #[cfg(feature = "testing")]
 pub use runtime::{ProjectedFrame, RenderModel};

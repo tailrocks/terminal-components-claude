@@ -47,9 +47,20 @@ fn theme_label(theme: &Theme) -> &'static str {
 impl<A: App> Harness<A> {
     /// Initialize the application, then publish its first frame and settle discovered focus.
     pub fn new(app: A, theme: Theme, w: u16, h: u16) -> Self {
+        Self::new_with_feedback_clock(app, theme, w, h, junie_tui::FeedbackClock::Elapsed)
+    }
+
+    /// Initialize with an explicit feedback clock and already-seeked simulation epoch.
+    pub fn new_with_feedback_clock(
+        app: A,
+        theme: Theme,
+        w: u16,
+        h: u16,
+        clock: junie_tui::FeedbackClock,
+    ) -> Self {
         let theme_name = theme_label(&theme);
         let mut h = Harness {
-            rt: Runtime::new(app, theme),
+            rt: Runtime::new_with_feedback_clock(app, theme, clock),
             term: Terminal::new(TestBackend::new(w, h)).expect("test terminal"),
             auto_draw: true,
             theme_name,
@@ -58,6 +69,11 @@ impl<A: App> Harness<A> {
         let _ = h.rt.initialize();
         h.draw();
         h
+    }
+
+    /// Current authoritative feedback; a simulation duration is not a wall deadline.
+    pub fn activation_feedback(&self) -> Option<junie_tui::ActivationFeedback> {
+        self.rt.activation_feedback()
     }
 
     /// Downgrade the theme to `level` and redraw.
