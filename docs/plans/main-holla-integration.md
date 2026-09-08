@@ -263,3 +263,37 @@ is accepted until the committed Mono corrections pass review. Test inventory
 tool `8b97760` is committed/pushed for root review; all 3,211 historical source
 obligations retain explicit pending mappings, with many-to-one relocation
 allowed and current identities independent of compiler executable hashes.
+
+## Checkpoint: reviewed shared style and publication integration
+
+Integrated through `a3f157f`: hover planes, typed paint provenance, layer
+composition, owning EMPTY inheritance, author StyleDefaults, Showcase/Jackin
+and TablePro painter migrations, all reviewed Mono corrections, Showcase lint
+cleanup and explicit successful-output publication. The root facade now exports
+StyleDefaults. Independent final app reviews accepted Jackin `b436003` and
+TablePro `979bee4`; these supersede their earlier Mono rejections. No candidate
+baseline was blessed. All commits retain signoff and Codex attribution.
+
+Root stable verification: 746 library tests pass; focused author defaults 6,
+EMPTY inheritance 8, publication 10 and theme states 16 pass. Evidence is
+`shared-integration-focused.log` in the external evidence directory. Full
+architecture integration reports 37 pass and 8 failures, retained as open work:
+four checks reject the undeclared fourth application root; named-test coverage
+lacks `local_override_page_shows_three_distinct_buttons`; constructor scanner
+and legacy scanner report app/shared violations needing source adjudication;
+rustdoc-json nightly invocation fails through the Cargo wrapper. These are not
+waived. Full application smoke stops at two Jackin preview failures:
+`first_use_flow_enters_the_manager` leaves an enter-control UndeliveredIntent;
+`every_named_scenario_renders_a_deterministic_frame` fails for launch-running.
+The external `shared-integration-apps.log` preserves results. Independent owner
+is investigating lifecycle/timing causes; later packages were not run by this
+fail-fast command, so no all-application pass is claimed.
+
+Scene snapshot `d19ff3d`, Grid cell renderer `079b910`, and test inventory feature
+correction `8ceb281` are independently under review in parallel. Runtime owner
+is repairing benchmark measurement boundaries without weakening thresholds;
+component owner is implementing an authoritative List full-row hook. Holla
+production composition and TablePro canonical tab ownership remain active.
+Pinned Showcase production comparisons now cover 352 cases per side and expose
+remaining product differences; matching main-derived captures is not fidelity
+acceptance. Main is unmerged and completion gates remain open.
