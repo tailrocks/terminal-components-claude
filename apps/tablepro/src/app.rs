@@ -29,6 +29,7 @@ const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const RUN: ActionKey = ActionKey::custom("tablepro.run");
+const UNDO: ActionKey = ActionKey::custom("tablepro.undo");
 const QUIT: ActionKey = ActionKey::custom("tablepro.quit");
 const CANCEL_OR_QUIT: ActionKey = ActionKey::custom("tablepro.cancel-or-quit");
 const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
@@ -222,6 +223,7 @@ fn quit_keymap() -> KeyMap {
 
 fn keymap() -> KeyMap {
     quit_keymap()
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
@@ -2354,6 +2356,15 @@ impl App for TableProApp {
                         return Response::changed();
                     }
                     return self.request_quit(cx);
+                }
+                c if c == UNDO => {
+                    if let Some((id, grid)) = self.workbench.active_mut().and_then(Tab::grid_mut)
+                        && cx.state(id).contains(junie_tui::StateFlags::FOCUSED)
+                        && !grid.state.is_editing()
+                    {
+                        let _ = grid.model.undo();
+                        response |= Response::changed();
+                    }
                 }
                 c if c == RUN => {
                     self.commit_query_edit();
