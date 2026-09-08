@@ -690,9 +690,21 @@ impl App {
             Some(Overlay::Clone(_) | Overlay::Actions(_)) => false,
             None => self.route == Route::Home && self.home.is_editing(),
         };
-        HintBar::derived(FOOTER)
-            .screen(&hints)
-            .status_text(self.status.as_deref())
+        let home_hints = (self.route == Route::Home
+            && self.overlay.is_none()
+            && !self.menu.is_open())
+        .then(|| {
+            HomeState::hints(
+                &self.world,
+                ui.state(home::ROWS)
+                    .contains(junie_tui::StateFlags::FOCUSED),
+            )
+        });
+        let mut bar = HintBar::derived(FOOTER).screen(&hints);
+        if let Some(home_hints) = home_hints.as_ref() {
+            bar = bar.mode(home_hints);
+        }
+        bar.status_text(self.status.as_deref())
             .badge(editing.then_some("EDIT"))
             .centered(true)
             .draw(ui, footer);
@@ -1138,6 +1150,22 @@ mod tests {
                 .contains("c discovering…")
         );
         assert!(early.diagnostics().is_empty(), "{:?}", early.diagnostics());
+    }
+    #[test]
+    fn home_product_hints_follow_query_rows_and_yield_to_modal_context() {
+        let mut h = app(Scenario::RustDirty);
+        assert!(h.text().lines().last().unwrap().contains("Run top match"));
+        assert!(h.tab_to(home::ROWS));
+        let footer = h.text().lines().last().unwrap().to_owned();
+        assert!(footer.contains("Run") && footer.contains("Preview"));
+        assert!(!footer.contains("Run top match"));
+        let _ = h.key(KeyCode::F(1));
+        assert!(!h.text().lines().last().unwrap().contains("Run top match"));
+        assert!(!h.text().lines().last().unwrap().contains("Filter"));
+        let _ = h.key(KeyCode::Esc);
+        assert!(h.tab_to(home::QUERY));
+        assert!(h.text().lines().last().unwrap().contains("Type Filter"));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
     #[test]
     fn home_scope_is_projected_into_header_and_clears_with_escape() {

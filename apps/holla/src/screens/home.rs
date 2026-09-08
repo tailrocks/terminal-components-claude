@@ -1,8 +1,8 @@
 //! Ranked action surface. Shared controls own text editing and row interaction.
 use junie_tui::{
-    BlurPolicy, Cx, Family, FgStep, FrameRead, Id, ItemKey, NavList, NavListAction, NavListState,
-    Part, Rect, Response, Role, StateFlags, StylePatch, TextAction, TextInput, TextInputState,
-    TypingPolicy, Ui, Variant,
+    BlurPolicy, Chord, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
+    KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
+    StateFlags, StylePatch, TextAction, TextInput, TextInputState, TypingPolicy, Ui, Variant,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -71,6 +71,48 @@ impl HomeState {
                 })
             })
             .collect()
+    }
+
+    pub(crate) fn hints(world: &World, rows_focused: bool) -> HintLayer {
+        let key = |code| HintKey::Chord(Chord::key(code));
+        let ctrl = |character| {
+            HintKey::Chord(Chord::with(KeyCode::Char(character), KeyModifiers::CONTROL))
+        };
+        let entries: &[(HintKey, &str)] = if rows_focused {
+            &[
+                (key(KeyCode::Enter), "Run"),
+                (ctrl('p'), "Preview"),
+                (ctrl('o'), "Actions"),
+                (key(KeyCode::Up), "Query"),
+                (key(KeyCode::Esc), "Clear"),
+            ]
+        } else {
+            &[
+                (HintKey::Label("Type"), "Filter"),
+                (key(KeyCode::Down), "Results"),
+                (key(KeyCode::Enter), "Run top match"),
+                (ctrl('s'), "Scope"),
+                (key(KeyCode::F(10)), "Menu"),
+                (key(KeyCode::Char('q')), "Quit"),
+            ]
+        };
+        let mut hints = Vec::with_capacity(entries.len().saturating_add(1));
+        hints.extend(entries.iter().map(|&(key, label)| Hint {
+            key,
+            label,
+            priority: 50,
+        }));
+        if !world.activities.is_empty() {
+            hints.push(Hint {
+                key: ctrl('a'),
+                label: "Activities",
+                priority: 50,
+            });
+        }
+        HintLayer {
+            hints,
+            ..HintLayer::empty()
+        }
     }
 
     pub(crate) fn is_editing(&self) -> bool {
