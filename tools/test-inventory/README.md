@@ -54,8 +54,8 @@ line: moves require a reviewed mapping, not fuzzy matching.
 Each compiled target is listed and executed through Cargo with its exact
 `--lib`, `--bin NAME`, `--test NAME`, or `--example NAME` selector and the same
 isolated target directory/feature flags. This preserves Cargo's package runtime
-environment as well as package working directory; both command and target record
-the canonical package cwd. Artifact bytes are checked again after execution.
+environment as well as package working directory. Commands and targets record
+the workspace invocation cwd; targets separately record the package runtime cwd. Artifact bytes are checked again after execution.
 Listing uses `--list --format pretty` (terse omits the count summary on Rust1.88).
 Execution uses `--format pretty --test-threads=1` with no filter, plus a fresh
 external `--logfile` for exact libtest statuses. This stable-but-deprecated option

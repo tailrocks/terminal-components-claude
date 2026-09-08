@@ -2756,6 +2756,7 @@ impl Conformance for NavListCase {
             NavListAction::Moved(key)
             | NavListAction::Chose(key)
             | NavListAction::EnterContent(key) => Some(*key),
+            NavListAction::LeaveBackward | NavListAction::LeaveForward => None,
         }
     }
 
