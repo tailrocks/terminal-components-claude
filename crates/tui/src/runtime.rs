@@ -120,6 +120,42 @@ pub struct RenderSnapshot {
     keymap: KeyMap,
 }
 
+/// An immutable model and painter bound to one projection cache epoch.
+/// Ordinary model mutation is excluded for the binding's lifetime. Derived
+/// caches may therefore be reused across captures of this same binding.
+#[cfg(feature = "testing")]
+pub struct RenderModel<'a, M: ?Sized, F> {
+    model: &'a M,
+    paint: F,
+    snapshot: RenderSnapshot,
+}
+
+#[cfg(feature = "testing")]
+impl<M: ?Sized, F> core::fmt::Debug for RenderModel<'_, M, F> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("RenderModel").finish_non_exhaustive()
+    }
+}
+
+#[cfg(feature = "testing")]
+impl RenderSnapshot {
+    /// Bind an immutable model and painter to a fresh derived-cache epoch.
+    /// Rebinding, including a replacement at the same address, always isolates
+    /// model caches. Interior mutation must obey the same view contract as App.
+    pub fn bind_model<'a, M: ?Sized, F>(&self, model: &'a M, paint: F) -> RenderModel<'a, M, F>
+    where
+        F: Fn(&M, &mut Ui<'_>, Rect),
+    {
+        let mut snapshot = self.clone();
+        snapshot.cache_identity = std::sync::Arc::new(());
+        RenderModel {
+            model,
+            paint,
+            snapshot,
+        }
+    }
+}
+
 impl core::fmt::Debug for RenderSnapshot {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("RenderSnapshot")
@@ -1607,8 +1643,9 @@ impl<A: App> Runtime<A> {
         self.projection.as_ref().and_then(|output| output.cursor)
     }
 
-    /// Project a fixed snapshot without reconciling focus or running callbacks.
-    /// The supplied read facts, rather than previous captures, determine state.
+    /// Project a one-shot painter without reconciling focus or running callbacks.
+    /// Its derived model caches are fresh: an arbitrary closure carries no
+    /// persistent model identity. Use `draw_bound_projection` for warmed captures.
     pub fn draw_projection(
         &mut self,
         area: Rect,
@@ -1616,10 +1653,30 @@ impl<A: App> Runtime<A> {
         snapshot: &RenderSnapshot,
         paint: impl FnOnce(&mut Ui<'_>, Rect),
     ) -> ProjectedFrame<'_, A> {
+        self.cache_snapshot = None;
         self.draw_with_buffer(area, buf, Some(snapshot), |_, ui| paint(ui, area));
         ProjectedFrame {
             runtime: self,
             snapshot: snapshot.last.snapshot,
+        }
+    }
+
+    /// Project a scoped immutable model, reusing only this binding's caches.
+    pub fn draw_bound_projection<M: ?Sized, F>(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        binding: &RenderModel<'_, M, F>,
+    ) -> ProjectedFrame<'_, A>
+    where
+        F: Fn(&M, &mut Ui<'_>, Rect),
+    {
+        self.draw_with_buffer(area, buf, Some(&binding.snapshot), |_, ui| {
+            (binding.paint)(binding.model, ui, area);
+        });
+        ProjectedFrame {
+            runtime: self,
+            snapshot: binding.snapshot.last.snapshot,
         }
     }
 

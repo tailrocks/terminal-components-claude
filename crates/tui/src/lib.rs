@@ -49,13 +49,13 @@ pub mod author;
 // identity
 pub use id::{Id, ItemKey, Part, PartRef};
 // runtime
-#[cfg(feature = "testing")]
-pub use runtime::ProjectedFrame;
 #[cfg(feature = "crossterm")]
 pub use runtime::session::{DefaultTerminal, TerminalSession, chain_panic_hook, run};
 pub use runtime::{
     App, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime, UpdateCause,
 };
+#[cfg(feature = "testing")]
+pub use runtime::{ProjectedFrame, RenderModel};
 // phases
 #[cfg(feature = "testing")]
 pub use ui::StyledQuery;

@@ -28,7 +28,7 @@ pub mod harness;
 pub mod perf;
 
 pub use conformance::{Caps, Conformance, Fixture, FixtureRow};
-pub use digest::{Baseline, NoApp, Scene};
+pub use digest::{Baseline, NoApp, Scene, SceneProjection};
 pub use harness::Harness;
 
 /// Publish actual application geometry and settle focus before delivering one event.

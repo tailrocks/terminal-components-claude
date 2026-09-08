@@ -44,6 +44,36 @@ pub struct Scene {
     snapshot: junie_tui::RenderSnapshot,
 }
 
+/// Repeated captures bound to one immutably borrowed model and snapshot.
+/// Drop the binding before replacing or mutating the model or scene snapshot.
+pub struct SceneProjection<'a, M: ?Sized, F> {
+    scene: &'a mut Scene,
+    binding: junie_tui::RenderModel<'a, M, F>,
+}
+
+impl<M: ?Sized, F> core::fmt::Debug for SceneProjection<'_, M, F> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("SceneProjection").finish_non_exhaustive()
+    }
+}
+
+impl<M: ?Sized, F: Fn(&M, &mut Ui<'_>, Rect)> SceneProjection<'_, M, F> {
+    /// Capture the bound model without initialization, effects or cache rebinding.
+    pub fn draw(&mut self) {
+        let Some(rt) = self.scene.rt.as_mut() else {
+            return;
+        };
+        self.scene.buf.reset();
+        rt.draw_bound_projection(self.scene.area, &mut self.scene.buf, &self.binding)
+            .commit_inspected();
+    }
+
+    /// Inspect the most recent acknowledged capture.
+    pub const fn scene(&self) -> &Scene {
+        self.scene
+    }
+}
+
 impl core::fmt::Debug for Scene {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Scene")
@@ -137,14 +167,56 @@ impl Scene {
         self.snapshot = snapshot;
     }
 
+    /// Bind immutable model data and its painter for repeated warmed captures.
+    /// The painter's captures must obey the same immutable-view contract as App.
+    pub fn bind_model<'a, M: ?Sized, F>(
+        &'a mut self,
+        model: &'a M,
+        paint: F,
+    ) -> SceneProjection<'a, M, F>
+    where
+        F: Fn(&M, &mut Ui<'_>, Rect),
+    {
+        let binding = self.snapshot.bind_model(model, paint);
+        SceneProjection {
+            scene: self,
+            binding,
+        }
+    }
+
+    /// Bind a production app for repeated warmed captures. The app cannot be
+    /// ordinarily mutated while the binding remains usable.
+    /// ```compile_fail,E0506
+    /// use junie_tui::{App, Cx, Response, Ui, Theme, ColorLevel};
+    /// use junie_tui_testing::Scene;
+    /// struct Model(u8);
+    /// impl App for Model {
+    ///     fn update(&mut self, _: &mut Cx<'_>) -> Response<()> { Response::ignored() }
+    ///     fn draw(&self, _: &mut Ui<'_>) {}
+    /// }
+    /// let mut model = Model(0);
+    /// let mut scene = Scene::new("bound", Theme::junie(), ColorLevel::TrueColor, 8, 2);
+    /// let mut bound = scene.bind_app(&model);
+    /// model.0 = 1;
+    /// bound.draw();
+    /// ```
+    pub fn bind_app<'a, A: App>(
+        &'a mut self,
+        app: &'a A,
+    ) -> SceneProjection<'a, A, impl Fn(&A, &mut Ui<'_>, Rect)> {
+        self.bind_model(app, |app, ui, _| app.draw(ui))
+    }
+
     /// Project an application's supplied model under the explicit snapshot.
-    /// This never calls `App::update` or initializes the application.
+    /// This one-shot capture uses fresh model caches and never calls `App::update`.
+    /// Use `bind_app` for repeated captures with zero warm allocations.
     pub fn draw_app<A: App>(&mut self, app: &A) {
         self.draw(|ui, _| app.draw(ui));
     }
 
     /// Run the whole draw phase with `f` as the page painter.
-    /// Every capture reads the same explicit snapshot; previous captures cannot
+    /// Every one-shot capture starts fresh derived model caches and reads the
+    /// same explicit snapshot; previous captures cannot
     /// change its focus, hover, layers or read facts. No initialization/update runs.
     pub fn draw(&mut self, f: impl FnOnce(&mut Ui<'_>, Rect)) {
         let area = self.area;

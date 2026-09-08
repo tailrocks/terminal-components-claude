@@ -244,7 +244,8 @@ fn warmed_modal_snapshot_projection_performs_zero_allocations() {
     });
     let mut capture = scene();
     capture.set_snapshot(rt.render_snapshot().unwrap());
-    let stats = bench(4, 100, &mut || capture.draw_app(rt.app()));
+    let mut bound = capture.bind_app(rt.app());
+    let stats = bench(4, 100, &mut || bound.draw());
     assert_eq!(
         stats.allocs, 0,
         "snapshot copies or projection metadata allocated per capture"
@@ -295,4 +296,98 @@ fn immutable_snapshot_identity_isolates_derived_caches_from_other_snapshots_and_
     buffer.reset();
     first.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(buffer.cell(Position::new(0, 0)).unwrap().symbol(), "F");
+}
+
+#[test]
+fn one_shot_models_and_same_address_replacements_never_share_derived_cache() {
+    let mut capture = scene();
+    let first = CachedModel("FIRST");
+    let second = CachedModel("OTHER");
+    capture.draw_app(&first);
+    capture.draw_app(&second);
+    assert!(capture.text().contains("OTHER"));
+    let mut replaced = CachedModel("FIRST");
+    capture.bind_app(&replaced).draw();
+    replaced.0 = "OTHER";
+    capture.bind_app(&replaced).draw();
+    assert!(capture.text().contains("OTHER"));
+    capture.draw(|ui, _| first.draw(ui));
+    capture.draw(|ui, _| second.draw(ui));
+    assert!(capture.text().contains("OTHER"));
+}
+
+struct ViewportModel {
+    state: junie_tui::ViewportState,
+    text: &'static str,
+}
+impl App for ViewportModel {
+    fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+        panic!("pure viewport capture updated model")
+    }
+    fn draw(&self, ui: &mut Ui<'_>) {
+        junie_tui::TextViewport::new(EDITOR).wrap(true).draw(
+            ui,
+            Rect::new(0, 0, 8, 2),
+            &self.state,
+            &[
+                junie_tui::ViewportLine::Plain(self.text),
+                junie_tui::ViewportLine::Plain("TAIL"),
+            ],
+        );
+    }
+}
+
+#[test]
+fn real_viewport_models_with_equal_generation_have_independent_wrap_geometry() {
+    let _lock = lock();
+    let first = ViewportModel {
+        state: junie_tui::ViewportState::default(),
+        text: "A",
+    };
+    let second = ViewportModel {
+        state: junie_tui::ViewportState::default(),
+        text: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    };
+    let mut capture = scene();
+    let mut fresh = scene();
+    capture.draw_app(&first);
+    capture.draw_app(&second);
+    fresh.draw_app(&second);
+    assert_eq!(capture.buffer(), fresh.buffer());
+    capture.bind_app(&first).draw();
+    let mut bound = capture.bind_app(&second);
+    let expected = fresh.buffer().clone();
+    for _ in 0..100 {
+        bound.draw();
+        assert_eq!(bound.scene().buffer(), &expected);
+    }
+    let stats = bench(4, 100, &mut || bound.draw());
+    assert_eq!((stats.allocs, stats.bytes), (0, 0));
+}
+
+#[test]
+fn raw_runtime_projection_is_one_shot_and_bound_models_reuse_only_own_caches() {
+    let first = CachedModel("FIRST");
+    let second = CachedModel("OTHER");
+    let mut rt = Runtime::new(junie_tui_testing::NoApp, Theme::junie());
+    let snapshot = RenderSnapshot::default();
+    let mut buffer = Buffer::empty(AREA);
+    rt.draw_projection(AREA, &mut buffer, &snapshot, |ui, _| first.draw(ui))
+        .commit_inspected();
+    buffer.reset();
+    rt.draw_projection(AREA, &mut buffer, &snapshot, |ui, _| second.draw(ui))
+        .commit_inspected();
+    assert_eq!(buffer.cell(Position::new(0, 0)).unwrap().symbol(), "O");
+    let first = snapshot.bind_model(&first, |app, ui, _| app.draw(ui));
+    let second = snapshot.bind_model(&second, |app, ui, _| app.draw(ui));
+    for _ in 0..4 {
+        buffer.reset();
+        rt.draw_bound_projection(AREA, &mut buffer, &first)
+            .commit_inspected();
+        assert_eq!(buffer.cell(Position::new(0, 0)).unwrap().symbol(), "F");
+        buffer.reset();
+        rt.draw_bound_projection(AREA, &mut buffer, &second)
+            .commit_inspected();
+        assert_eq!(buffer.cell(Position::new(0, 0)).unwrap().symbol(), "O");
+    }
 }

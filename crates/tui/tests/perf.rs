@@ -992,15 +992,13 @@ fn bench_list_render(rows: &[u32], checked: usize) -> (Stats, usize) {
         st.checked_mut()
             .insert(junie_tui::ItemKey::num(u64::from(*r)));
     }
-    scene.draw(|ui, area| {
-        perf_list().draw(ui, area, &st, rows);
+    let model = (&st, rows);
+    let mut bound = scene.bind_model(&model, |(state, rows), ui, area| {
+        black_box(perf_list().draw(ui, area, state, rows));
     });
-    let s = bench(2, iters(50), &mut || {
-        scene.draw(|ui, area| {
-            black_box(perf_list().draw(ui, area, &st, rows));
-        });
-    });
-    let regions = scene.registry().map_or(0, Registry::len);
+    bound.draw();
+    let s = bench(2, iters(50), &mut || bound.draw());
+    let regions = bound.scene().registry().map_or(0, Registry::len);
     (s, regions)
 }
 
@@ -1069,14 +1067,12 @@ fn no_full_collection_clone_per_frame() {
         80,
         40,
     );
-    scene.draw(|ui, area| {
-        viewport.draw(ui, area, &state, &lines);
+    let model = (&viewport, &state, &lines);
+    let mut bound = scene.bind_model(&model, |(viewport, state, lines), ui, area| {
+        black_box(viewport.draw(ui, area, state, lines));
     });
-    let viewport_stats = bench(1, iters(2), &mut || {
-        scene.draw(|ui, area| {
-            black_box(viewport.draw(ui, area, &state, &lines));
-        });
-    });
+    bound.draw();
+    let viewport_stats = bench(1, iters(2), &mut || bound.draw());
     println!(
         "PERF no_full_collection_clone_per_frame list={{ns:{} allocs:{} bytes:{} regions:{}}} viewport={{ns:{} allocs:{} bytes:{}}}",
         list_stats.ns,
