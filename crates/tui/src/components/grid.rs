@@ -991,6 +991,7 @@ pub struct Grid<'a> {
     id: Id,
     columns: &'a [Column<'a>],
     nav: NavUnit,
+    disabled: bool,
     select_mode: SelectMode,
     empty: Option<EmptyState<'a>>,
     actions: Option<SlotFn<'a>>,
@@ -1032,6 +1033,7 @@ impl<'a> Grid<'a> {
             id,
             columns,
             nav: NavUnit::Cell,
+            disabled: false,
             select_mode: SelectMode::Single,
             empty: None,
             actions: None,
@@ -1055,6 +1057,13 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn nav(mut self, u: NavUnit) -> Self {
         self.nav = u;
+        self
+    }
+
+    /// Disable interaction while preserving cursor, selection and inline draft.
+    #[must_use]
+    pub const fn disabled(mut self, disabled: bool) -> Self {
+        self.disabled = disabled;
         self
     }
 
@@ -2060,6 +2069,11 @@ impl Grid<'_> {
         model: &M,
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
+        if self.disabled {
+            for _ in cx.intents(self.id) {}
+            for _ in cx.intents(self.editor_id()) {}
+            return Response::ignored();
+        }
         let mut acc = Acc::<GridAction>::new();
         let pending = self.navigate(cx, st, model, &mut acc);
         // a read-only grid has one meaning for `Enter` on a cell
@@ -2086,6 +2100,11 @@ impl Grid<'_> {
         model: &mut M,
     ) -> Response<GridAction> {
         self.assert_distinct_column_keys();
+        if self.disabled {
+            for _ in cx.intents(self.id) {}
+            for _ in cx.intents(self.editor_id()) {}
+            return Response::ignored();
+        }
         let mut acc = Acc::<GridAction>::new();
         // A successful commit clears `st.edit` and restores focus to the grid.
         // Runtime focus settlement can deliver the editor's FocusOut on the
@@ -2413,7 +2432,7 @@ impl Grid<'_> {
         if live.contains(StateFlags::DISABLED) {
             rflags |= StateFlags::DISABLED;
         }
-        if pressed == Some(PartRef::item(Part::ROW, key)) {
+        if !self.disabled && pressed == Some(PartRef::item(Part::ROW, key)) {
             rflags |= StateFlags::PRESSED;
         }
         let band = Rect {
@@ -2483,7 +2502,7 @@ impl Grid<'_> {
             if refused_error.is_some() {
                 cflags |= StateFlags::ERROR;
             }
-            if pressed == Some(PartRef::item(Part::CELL, key)) {
+            if !self.disabled && pressed == Some(PartRef::item(Part::CELL, key)) {
                 cflags |= StateFlags::PRESSED;
             }
             let Some(cell) = cell else {
@@ -2581,7 +2600,7 @@ impl Grid<'_> {
                     f(ui, affordance);
                 } else {
                     let mut action_flags = cflags.difference(StateFlags::PRESSED);
-                    if pressed == Some(PartRef::item(Part::ACTIONS, key)) {
+                    if !self.disabled && pressed == Some(PartRef::item(Part::ACTIONS, key)) {
                         action_flags |= StateFlags::PRESSED;
                     }
                     let as_ = self.ov.style(
@@ -2604,6 +2623,7 @@ impl Grid<'_> {
                 // the cell's Part region, so a click inside it goes to the
                 // editor and not to the grid
                 TextInput::new(self.id.part(Part::TEXT))
+                    .disabled(self.disabled)
                     .value(cell.text)
                     .draw(ui, rect, &state.editor);
             }
@@ -2630,7 +2650,15 @@ impl Grid<'_> {
         let total = len.saturating_add(usize::from(model.has_more()));
         let inert = ui.is_inert();
         if !inert {
-            ui.register_control(self.id, area, Focusability::Focusable);
+            ui.register_control(
+                self.id,
+                area,
+                if self.disabled {
+                    Focusability::Disabled
+                } else {
+                    Focusability::Focusable
+                },
+            );
         }
         let reason = model.read_only_reason();
         let derived = if reason.is_some() {
@@ -2638,7 +2666,16 @@ impl Grid<'_> {
         } else {
             StateFlags::empty()
         };
-        let live = PartStyle::flags(ui.state(self.id), derived);
+        let mut live = PartStyle::flags(ui.state(self.id), derived);
+        if self.disabled {
+            live |= StateFlags::DISABLED;
+            live.remove(
+                StateFlags::HOVERED
+                    | StateFlags::PRESSED
+                    | StateFlags::FOCUSED
+                    | StateFlags::FOCUS_VISIBLE,
+            );
+        }
         if !inert {
             ui.publish_bindings(self.id, live, &BINDINGS);
         }
