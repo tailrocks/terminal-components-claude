@@ -2153,9 +2153,20 @@ fn draw_connection_properties(
             y = y.saturating_add(1);
         }
     }
+    draw_connection_actions(ui, area);
+}
+
+fn draw_connection_actions(ui: &mut Ui<'_>, area: junie_tui::Rect) {
     let y = area.bottom().saturating_sub(1);
     let mut x = area.x;
-    paint_action_button(ui, x, y, "Connect", connect_action_paint(ui), true);
+    paint_action_button(
+        ui,
+        x,
+        y,
+        "Connect",
+        action_paint(ui, CONNECT_LABEL, Role::Accent, Role::OnAccent),
+        true,
+    );
     x = x.saturating_add(11);
     paint_action_button(
         ui,
@@ -2164,6 +2175,7 @@ fn draw_connection_properties(
         "Edit",
         action_paint(
             ui,
+            EDIT_LABEL,
             Role::Surface(junie_tui::Surface::Overlay),
             Role::Fg(FgStep::Primary),
         ),
@@ -2177,6 +2189,7 @@ fn draw_connection_properties(
         "Duplicate",
         action_paint(
             ui,
+            DUPLICATE_LABEL,
             Role::Surface(junie_tui::Surface::Surface),
             Role::Fg(FgStep::Secondary),
         ),
@@ -2188,7 +2201,12 @@ fn draw_connection_properties(
         x,
         y,
         "Delete…",
-        action_paint(ui, Role::Surface(junie_tui::Surface::Overlay), Role::Danger),
+        action_paint(
+            ui,
+            DELETE_LABEL,
+            Role::Surface(junie_tui::Surface::Overlay),
+            Role::Danger,
+        ),
         false,
     );
 }
@@ -2196,34 +2214,45 @@ fn draw_connection_properties(
 const CONNECTION_ACTIONS: junie_tui::Family =
     junie_tui::Family::custom("tablepro.connection-actions");
 const CONNECT_LABEL: Part = Part::custom("connect.label");
-const CONNECT_MONO: &[junie_tui::MonoRule] = &[(
-    CONNECT_LABEL,
-    junie_tui::StateFlags::empty(),
-    StylePatch::new()
-        .set_fg(Role::Surface(junie_tui::Surface::Canvas))
-        .set_bg(Role::Fg(FgStep::Primary)),
-)];
+const EDIT_LABEL: Part = Part::custom("edit.label");
+const DUPLICATE_LABEL: Part = Part::custom("duplicate.label");
+const DELETE_LABEL: Part = Part::custom("delete.label");
+const ACTION_MONO: &[junie_tui::MonoRule] = &[
+    (
+        CONNECT_LABEL,
+        junie_tui::StateFlags::empty(),
+        StylePatch::new()
+            .set_fg(Role::Surface(junie_tui::Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary)),
+    ),
+    (
+        EDIT_LABEL,
+        junie_tui::StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+    ),
+    (
+        DUPLICATE_LABEL,
+        junie_tui::StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+    ),
+    (
+        DELETE_LABEL,
+        junie_tui::StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+    ),
+];
 
-fn connect_action_paint(ui: &Ui<'_>) -> PaintStyle {
+fn action_paint(ui: &Ui<'_>, part: Part, background: Role, foreground: Role) -> PaintStyle {
     ui.style_defaults(
         CONNECTION_ACTIONS,
         junie_tui::Variant::DEFAULT,
-        CONNECT_LABEL,
+        part,
         junie_tui::StateFlags::empty(),
-        StyleDefaults::new(
-            StylePatch::new()
-                .set_bg(Role::Accent)
-                .set_fg(Role::OnAccent),
-        )
-        .mono(CONNECT_MONO),
+        StyleDefaults::new(StylePatch::new().set_bg(background).set_fg(foreground))
+            .mono(ACTION_MONO),
         None,
     )
     .over(ui.surface_style())
-}
-
-fn action_paint(ui: &Ui<'_>, background: Role, foreground: Role) -> PaintStyle {
-    ui.surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_bg(background).set_fg(foreground)))
 }
 
 fn paint_action_button(
