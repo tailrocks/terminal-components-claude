@@ -632,6 +632,17 @@ impl App {
                     .tone(Role::Fg(FgStep::Secondary)),
             );
         }
+        let scope = (self.route == Route::Home)
+            .then_some(self.home.scope)
+            .flatten()
+            .map(|scope| format!("scope: {}", scope.label()));
+        if let Some(scope) = scope.as_deref() {
+            items.push(
+                StatusItem::new(scope)
+                    .priority(6)
+                    .tone(Role::Fg(FgStep::Secondary)),
+            );
+        }
         items.push(StatusItem::new(&identity).priority(9).tone(
             if self.world.host.env.sensitive() {
                 Role::Warning
@@ -658,6 +669,9 @@ impl App {
             Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
         );
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
+        self.footer_draw(ui, footer);
+    }
+    fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
         let hints = HintLayer::from_bindings(GLOBAL);
         let editing = match &self.overlay {
             Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
@@ -1078,6 +1092,21 @@ mod tests {
         let _ = harness.key(KeyCode::Down);
         assert_eq!(harness.focus(), Some(home::ROWS));
         assert_eq!(harness.app().effect_revision(), revision);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
+    fn home_scope_is_projected_into_header_and_clears_with_escape() {
+        let mut harness = app(Scenario::HardCases);
+        let _ = harness.ctrl('s');
+        let scope = harness.app().home.scope.unwrap();
+        let label = format!("scope: {}", scope.label());
+        assert!(harness.text().lines().next().unwrap().contains(&label));
+        let _ = harness.key(KeyCode::Esc);
+        assert!(!harness.text().lines().next().unwrap().contains("scope:"));
         assert!(
             harness.diagnostics().is_empty(),
             "{:?}",
