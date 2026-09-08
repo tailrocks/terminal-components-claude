@@ -15,6 +15,10 @@ path = "src/lib.rs"
 name = "holla"
 path = "src/main.rs"
 
+[[test]]
+name = "perf"
+path = "tests/perf.rs"
+
 [lints]
 workspace = true
 

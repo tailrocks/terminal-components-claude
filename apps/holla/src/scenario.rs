@@ -29,7 +29,8 @@ pub enum Scenario {
 }
 
 impl Scenario {
-    pub(crate) const ALL: [Scenario; 11] = [
+    /// Every supported deterministic simulation fixture in CLI inventory order.
+    pub const ALL: [Scenario; 11] = [
         Scenario::FirstUse,
         Scenario::RustDirty,
         Scenario::MonorepoRoot,
@@ -43,7 +44,8 @@ impl Scenario {
         Scenario::HardCases,
     ];
 
-    pub(crate) fn name(self) -> &'static str {
+    /// Stable CLI and capture-inventory name for this simulation fixture.
+    pub fn name(self) -> &'static str {
         match self {
             Scenario::FirstUse => "first-use",
             Scenario::RustDirty => "rust-dirty",

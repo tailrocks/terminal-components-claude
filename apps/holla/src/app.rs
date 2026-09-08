@@ -165,6 +165,16 @@ impl std::fmt::Debug for App {
     }
 }
 impl App {
+    /// Revision of applied in-memory simulation effects; never a real-host revision.
+    pub fn effect_revision(&self) -> u64 {
+        self.world.effect_revision
+    }
+
+    /// Virtual milliseconds in the deterministic fixture, independent of wall time.
+    pub fn fixture_time_ms(&self) -> i64 {
+        self.world.now_ms()
+    }
+
     /// Construct one named fixture at a virtual millisecond frame.
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         let mut world = fixtures::world_for(scenario);
