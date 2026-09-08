@@ -8,6 +8,7 @@ use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TabReco
 /// Workbench state for one active connection.
 #[derive(Debug)]
 pub struct Workbench {
+    owner: std::sync::Arc<()>,
     /// Active connection.
     pub connection: Connection,
     /// Database catalog.
@@ -36,6 +37,7 @@ impl Workbench {
     /// Build a workbench for a connection.
     pub fn new(connection: Connection, catalog: Catalog) -> Self {
         Self {
+            owner: std::sync::Arc::new(()),
             explorer: tabs::explorer_items(&catalog),
             connection,
             catalog,
@@ -130,6 +132,7 @@ impl Workbench {
     }
 
     /// Edit or replace a payload while preserving its enclosing identity.
+    /// Invalidates captured destructive authorization before borrowing, even if unchanged.
     pub fn tab_mut(&mut self, key: TabKey) -> Option<&mut Tab> {
         self.tabs
             .iter_mut()
@@ -140,8 +143,37 @@ impl Workbench {
     pub(crate) fn payloads_mut(&mut self) -> impl Iterator<Item = (TabKey, &mut Tab)> {
         self.tabs.iter_mut().map(|record| {
             let key = record.key();
-            (key, record.payload_mut())
+            (key, record.lifecycle_payload_mut())
         })
+    }
+
+    pub(crate) fn owner_token(&self) -> std::sync::Weak<()> {
+        std::sync::Arc::downgrade(&self.owner)
+    }
+
+    pub(crate) fn matches_owner(&self, token: &std::sync::Weak<()>) -> bool {
+        std::sync::Weak::ptr_eq(token, &self.owner_token())
+    }
+
+    pub(crate) fn generation(&self, key: TabKey) -> Option<u64> {
+        self.tabs
+            .iter()
+            .find(|record| record.key() == key)?
+            .generation()
+    }
+
+    pub(crate) fn destructive_scope(&self) -> Option<Vec<(TabKey, u64)>> {
+        self.tabs
+            .iter()
+            .map(|record| Some((record.key(), record.generation()?)))
+            .collect()
+    }
+
+    pub(crate) fn matches_scope(&self, scope: &[(TabKey, u64)]) -> bool {
+        self.tabs.len() == scope.len()
+            && scope
+                .iter()
+                .all(|(key, generation)| self.generation(*key) == Some(*generation))
     }
 
     /// Reorder complete records using an exact permutation of existing identities.
@@ -254,6 +286,7 @@ impl Workbench {
         self.tabs.get(self.active_index()?)?.grid()
     }
     /// Mutate the current grid without exposing its record identity.
+    /// Invalidates captured destructive authorization before borrowing, even if unchanged.
     pub fn active_grid_mut(&mut self) -> Option<(junie_tui::Id, &mut tabs::GridView)> {
         let index = self.active_index()?;
         let record = self.tabs.get_mut(index)?;
@@ -264,7 +297,7 @@ impl Workbench {
     pub fn active(&self) -> Option<&Tab> {
         self.tabs.get(self.active_index()?).map(TabRecord::payload)
     }
-    /// Active tab mutably.
+    /// Active tab mutably, invalidating any captured destructive authorization.
     pub fn active_mut(&mut self) -> Option<&mut Tab> {
         let index = self.active_index()?;
         self.tabs.get_mut(index).map(TabRecord::payload_mut)
@@ -276,7 +309,7 @@ impl Workbench {
             _ => None,
         }
     }
-    /// Active table tab mutably.
+    /// Active table tab mutably, invalidating any captured destructive authorization.
     pub fn active_table_mut(&mut self) -> Option<&mut TableTab> {
         match self.active_mut()? {
             Tab::Table(tab) => Some(tab),

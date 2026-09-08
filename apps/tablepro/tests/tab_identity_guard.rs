@@ -33,7 +33,7 @@ fn cloned_payload_receives_fresh_identity_and_clean_close_keeps_dirty_owner() {
     );
 }
 #[test]
-fn captured_close_survives_clone_insertion_reorder_and_payload_replacement() {
+fn captured_close_rejects_payload_replacement_after_clone_insertion_and_reorder() {
     let mut app = TableProApp::default();
     app.set_surface(Surface::PendingChangeBar);
     let Some(original) = app.workbench.active_key() else {
@@ -66,8 +66,9 @@ fn captured_close_survives_clone_insertion_reorder_and_payload_replacement() {
     h.draw();
     let _ = h.key(KeyCode::Tab);
     let _ = h.key(KeyCode::Enter);
-    assert_eq!(h.app().workbench.tabs().len(), count.saturating_sub(1));
-    assert!(h.app().workbench.tab(original).is_none());
+    assert_eq!(h.app().workbench.tabs().len(), count);
+    assert!(h.app().workbench.tab(original).is_some());
+    assert!(h.find("Work changed").is_some());
     assert!(
         matches!(h.app().workbench.tab(copy),Some(Tab::Table(table)) if table.result.pending_total()==1)
     );

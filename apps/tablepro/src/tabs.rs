@@ -451,13 +451,29 @@ impl Tab {
 pub struct TabRecord {
     key: TabKey,
     payload: Tab,
+    generation: Option<u64>,
 }
 
 impl TabRecord {
     pub(crate) fn new(key: TabKey, payload: Tab) -> Self {
-        Self { key, payload }
+        Self {
+            key,
+            payload,
+            generation: Some(0),
+        }
     }
     pub(crate) fn payload_mut(&mut self) -> &mut Tab {
+        self.generation = self
+            .generation
+            .and_then(|generation| generation.checked_add(1));
+        &mut self.payload
+    }
+    pub(crate) const fn generation(&self) -> Option<u64> {
+        self.generation
+    }
+    // Only Workbench's private component lifecycle iterator uses this borrow.
+    // Modal routing prevents user edits while a destructive scope is captured.
+    pub(crate) fn lifecycle_payload_mut(&mut self) -> &mut Tab {
         &mut self.payload
     }
 
@@ -489,6 +505,7 @@ impl core::fmt::Debug for TabRecord {
         f.debug_struct("TabRecord")
             .field("key", &self.key)
             .field("kind", &kind)
+            .field("generation", &self.generation)
             .field("dirty", &self.dirty())
             .finish_non_exhaustive()
     }
@@ -519,4 +536,23 @@ pub(crate) fn explorer_items(catalog: &Catalog) -> Vec<ExplorerItem> {
             rows: table.row_count,
         })
         .collect()
+}
+
+#[cfg(test)]
+mod generation_tests {
+    use super::*;
+    #[test]
+    fn mutable_payload_generation_never_reuses_an_exhausted_value() {
+        let mut record = TabRecord::new(TabKey::new(1), Tab::Query(QueryTab::new(1, "")));
+        assert_eq!(record.generation(), Some(0));
+        let _ = record.payload_mut();
+        assert_eq!(record.generation(), Some(1));
+        record.generation = Some(u64::MAX);
+        let _ = record.payload_mut();
+        assert_eq!(record.generation(), None);
+        let _ = record.payload_mut();
+        assert_eq!(record.generation(), None);
+        let _ = record.lifecycle_payload_mut();
+        assert_eq!(record.generation(), None);
+    }
 }

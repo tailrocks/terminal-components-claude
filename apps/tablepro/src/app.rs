@@ -51,17 +51,36 @@ const REPLACE_ACTIONS: [Action<'static>; 2] = [
     Action::danger(ActionKey::CONFIRM, "Run query"),
 ];
 
+#[derive(Debug)]
+struct DestructiveRequest {
+    intent: DestructiveIntent,
+    owner: std::sync::Weak<()>,
+}
+
+impl DestructiveRequest {
+    fn dialog(&self) -> Dialog<'_> {
+        self.intent.dialog()
+    }
+}
+
 enum DestructiveIntent {
-    Quit(String),
-    CloseTab(TabKey),
+    Quit {
+        question: String,
+        scope: Vec<(TabKey, u64)>,
+    },
+    CloseTab {
+        key: TabKey,
+        generation: u64,
+    },
     Reconnect {
         target: Box<Connection>,
         source: Box<Connection>,
-        keys: Vec<TabKey>,
+        scope: Vec<(TabKey, u64)>,
     },
     ReplaceResult {
         key: TabKey,
         query: String,
+        generation: u64,
         connection: Box<Connection>,
     },
 }
@@ -69,11 +88,11 @@ enum DestructiveIntent {
 impl core::fmt::Debug for DestructiveIntent {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Quit(_) => f.write_str("Quit"),
-            Self::CloseTab(key) => f.debug_tuple("CloseTab").field(key).finish(),
-            Self::Reconnect { keys, .. } => f
+            Self::Quit { .. } => f.write_str("Quit"),
+            Self::CloseTab { key, .. } => f.debug_tuple("CloseTab").field(key).finish(),
+            Self::Reconnect { scope, .. } => f
                 .debug_struct("Reconnect")
-                .field("tabs", &keys.len())
+                .field("tabs", &scope.len())
                 .finish_non_exhaustive(),
             Self::ReplaceResult { key, .. } => f
                 .debug_struct("ReplaceResult")
@@ -86,10 +105,10 @@ impl core::fmt::Debug for DestructiveIntent {
 impl DestructiveIntent {
     fn dialog(&self) -> Dialog<'_> {
         match self {
-            Self::Quit(question) => {
+            Self::Quit { question, .. } => {
                 Dialog::destructive(QUIT_DIALOG, "Quit TablePro?", question).actions(&QUIT_ACTIONS)
             }
-            Self::CloseTab(_) => Dialog::destructive(
+            Self::CloseTab { .. } => Dialog::destructive(
                 QUIT_DIALOG,
                 "Close tab with unsaved work?",
                 "Pending row edits and unsaved query text in this tab will be lost.",
@@ -414,7 +433,8 @@ pub struct TableProApp {
     empty_result: ResultGrid,
     status: String,
     quit: bool,
-    destructive_intent: Option<DestructiveIntent>,
+    destructive_intent: Option<DestructiveRequest>,
+    destructive_notice: Option<&'static str>,
     quit_state: DialogState,
     /// Current product screen.
     pub screen: Screen,
@@ -456,6 +476,7 @@ impl core::fmt::Debug for TableProApp {
             .field("status", &self.status)
             .field("quit", &self.quit)
             .field("destructive_intent", &self.destructive_intent)
+            .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
@@ -508,6 +529,7 @@ impl TableProApp {
             status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
             quit: false,
             destructive_intent: None,
+            destructive_notice: None,
             quit_state: DialogState::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
@@ -1080,18 +1102,16 @@ impl TableProApp {
         }
         let mut pending: usize = 0;
         let mut dirty_queries: usize = 0;
-        if self.screen == Screen::Workbench {
-            for record in self.workbench.tabs() {
-                match record.payload() {
-                    Tab::Table(tab) => pending = pending.saturating_add(tab.result.pending_total()),
-                    Tab::Query(tab) => {
-                        dirty_queries = dirty_queries.saturating_add(usize::from(tab.dirty()));
-                        if let Some(grid) = &tab.result {
-                            pending = pending.saturating_add(grid.pending_total());
-                        }
+        for record in self.workbench.tabs() {
+            match record.payload() {
+                Tab::Table(tab) => pending = pending.saturating_add(tab.result.pending_total()),
+                Tab::Query(tab) => {
+                    dirty_queries = dirty_queries.saturating_add(usize::from(tab.dirty()));
+                    if let Some(grid) = &tab.result {
+                        pending = pending.saturating_add(grid.pending_total());
                     }
-                    Tab::History(_) => {}
                 }
+                Tab::History(_) => {}
             }
         }
         if pending == 0 && dirty_queries == 0 {
@@ -1113,13 +1133,21 @@ impl TableProApp {
             ));
         }
         let question = format!("{} will be lost.", parts.join(" and "));
-        self.open_destructive(cx, DestructiveIntent::Quit(question));
+        let Some(scope) = self.workbench.destructive_scope() else {
+            self.stale_destructive();
+            return Response::changed();
+        };
+        self.open_destructive(cx, DestructiveIntent::Quit { question, scope });
         Response::changed()
     }
 
     fn open_destructive(&mut self, cx: &mut Cx<'_>, intent: DestructiveIntent) {
+        self.destructive_notice = None;
         cx.open_layer(QUIT_DIALOG, intent.dialog().layer(cx));
-        self.destructive_intent = Some(intent);
+        self.destructive_intent = Some(DestructiveRequest {
+            intent,
+            owner: self.workbench.owner_token(),
+        });
     }
 
     fn request_connect(&mut self, cx: &mut Cx<'_>, index: usize) {
@@ -1127,12 +1155,16 @@ impl TableProApp {
             return;
         };
         if self.workbench.has_unsaved_work() {
+            let Some(scope) = self.workbench.destructive_scope() else {
+                self.stale_destructive();
+                return;
+            };
             self.open_destructive(
                 cx,
                 DestructiveIntent::Reconnect {
                     target: Box::new(target),
                     source: Box::new(self.workbench.connection.clone()),
-                    keys: self.workbench.tabs().iter().map(TabRecord::key).collect(),
+                    scope,
                 },
             );
         } else {
@@ -1148,6 +1180,10 @@ impl TableProApp {
             return;
         };
         if tab.has_pending_result() {
+            let Some(generation) = self.workbench.generation(key) else {
+                self.stale_destructive();
+                return;
+            };
             let query = tab
                 .editor_state
                 .draft_text()
@@ -1158,6 +1194,7 @@ impl TableProApp {
                 DestructiveIntent::ReplaceResult {
                     key,
                     query,
+                    generation,
                     connection: Box::new(self.workbench.connection.clone()),
                 },
             );
@@ -1172,32 +1209,58 @@ impl TableProApp {
             return;
         };
         if tab.dirty() {
-            self.open_destructive(cx, DestructiveIntent::CloseTab(key));
+            let Some(generation) = self.workbench.generation(key) else {
+                self.stale_destructive();
+                return;
+            };
+            self.open_destructive(cx, DestructiveIntent::CloseTab { key, generation });
         } else {
             let _ = self.workbench.close_tab_confirmed(key);
             self.sync_active_tab();
         }
     }
 
+    fn stale_destructive(&mut self) {
+        self.destructive_notice = Some("Work changed; request again");
+    }
+
     fn update_destructive_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         // Keep the same control identity alive for late focus lifecycle events.
-        let fallback = DestructiveIntent::Quit(String::new());
-        let intent = self.destructive_intent.as_ref().unwrap_or(&fallback);
+        let fallback = DestructiveIntent::Quit {
+            question: String::new(),
+            scope: Vec::new(),
+        };
+        let intent = self
+            .destructive_intent
+            .as_ref()
+            .map_or(&fallback, |request| &request.intent);
         let response = intent.dialog().update(cx, &mut self.quit_state);
         if let Some(action) = response.action_ref() {
             let confirmed = matches!(action, DialogAction::Action(ActionKey::CONFIRM))
                 && cx.is_open(QUIT_DIALOG);
             cx.close_layer(QUIT_DIALOG, None);
-            if let Some(intent) = self.destructive_intent.take()
+            if let Some(request) = self.destructive_intent.take()
                 && confirmed
             {
-                match intent {
-                    DestructiveIntent::Quit(_) if !self.quit => {
-                        self.quit = true;
-                        cx.quit();
+                if !self.workbench.matches_owner(&request.owner) {
+                    self.stale_destructive();
+                    return response.erase();
+                }
+                match request.intent {
+                    DestructiveIntent::Quit { scope, .. } => {
+                        if self.workbench.matches_scope(&scope) {
+                            if !self.quit {
+                                self.quit = true;
+                                cx.quit();
+                            }
+                        } else {
+                            self.stale_destructive();
+                        }
                     }
-                    DestructiveIntent::CloseTab(key) => {
-                        if self.workbench.close_tab_confirmed(key) {
+                    DestructiveIntent::CloseTab { key, generation } => {
+                        if self.workbench.generation(key) != Some(generation) {
+                            self.stale_destructive();
+                        } else if self.workbench.close_tab_confirmed(key) {
                             self.sync_active_tab();
                             let focus = self
                                 .query_id()
@@ -1209,25 +1272,30 @@ impl TableProApp {
                     DestructiveIntent::Reconnect {
                         target,
                         source,
-                        keys,
+                        scope,
                     } => {
                         if self.workbench.connection == *source
-                            && self.workbench.tabs().len() == keys.len()
-                            && keys.iter().all(|key| self.workbench.tab(*key).is_some())
+                            && self.workbench.matches_scope(&scope)
                         {
                             let _ = self.connect_confirmed(&target);
+                        } else {
+                            self.stale_destructive();
                         }
                     }
                     DestructiveIntent::ReplaceResult {
                         key,
                         query,
+                        generation,
                         connection,
                     } => {
-                        if self.workbench.connection == *connection {
+                        if self.workbench.connection == *connection
+                            && self.workbench.generation(key) == Some(generation)
+                        {
                             let _ = self.execute_snapshot(key, &query);
+                        } else {
+                            self.stale_destructive();
                         }
                     }
-                    DestructiveIntent::Quit(_) => {}
                 }
             }
         }
@@ -2270,7 +2338,16 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
     with_footer_spans(app, |spans| {
         ui.paint_spans(area, spans, base);
     });
-    if app.screen == Screen::Workbench {
+    if let Some(notice) = app.destructive_notice {
+        let width = junie_tui::width(notice).min(area.width);
+        let right = junie_tui::Rect {
+            x: area.right().saturating_sub(width),
+            width,
+            ..area
+        };
+        ui.fill(right, base);
+        ui.paint_str(right, notice, base);
+    } else if app.screen == Screen::Workbench {
         let prefix = "Connected to ";
         // A leading combining mark or ZWJ can join the prefix's final space.
         // Keep one text run for measurement and painting, with one allocation.
@@ -2876,13 +2953,16 @@ mod replacement_tests {
     #[test]
     fn captured_connection_and_sql_debug_are_redacted_through_app() {
         let mut app = pending();
-        app.destructive_intent = Some(DestructiveIntent::Reconnect {
-            target: Box::new(Connection {
-                host: "secret-reconnect-host".to_owned(),
-                ..app.connection.clone()
-            }),
-            source: Box::new(app.connection.clone()),
-            keys: Vec::new(),
+        app.destructive_intent = Some(DestructiveRequest {
+            owner: app.workbench.owner_token(),
+            intent: DestructiveIntent::Reconnect {
+                target: Box::new(Connection {
+                    host: "secret-reconnect-host".to_owned(),
+                    ..app.connection.clone()
+                }),
+                source: Box::new(app.connection.clone()),
+                scope: Vec::new(),
+            },
         });
         assert!(!format!("{app:?}").contains("secret-reconnect-host"));
         let _ = app
@@ -2900,10 +2980,14 @@ mod replacement_tests {
         let Some(key) = app.workbench.active_key() else {
             unreachable!("key")
         };
-        app.destructive_intent = Some(DestructiveIntent::ReplaceResult {
-            key,
-            query: "secret-captured-sql".to_owned(),
-            connection: Box::new(app.connection.clone()),
+        app.destructive_intent = Some(DestructiveRequest {
+            owner: app.workbench.owner_token(),
+            intent: DestructiveIntent::ReplaceResult {
+                key,
+                query: "secret-captured-sql".to_owned(),
+                generation: 0,
+                connection: Box::new(app.connection.clone()),
+            },
         });
         let text = format!("{app:?}");
         assert!(!text.contains("secret-captured-sql"));

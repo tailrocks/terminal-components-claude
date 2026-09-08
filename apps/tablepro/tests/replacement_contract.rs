@@ -102,7 +102,7 @@ fn result_confirmation_cancel_preserves_inline_draft_and_confirm_targets_capture
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 #[test]
-fn result_confirmation_uses_captured_sql_and_vanished_target_is_noop() {
+fn result_confirmation_rejects_changed_sql_and_vanished_target_is_noop() {
     let app = pending_query();
     let Some(key) = app.workbench.active_key() else {
         unreachable!("key")
@@ -117,6 +117,8 @@ fn result_confirmation_uses_captured_sql_and_vanished_target_is_noop() {
     let _ = h.key(KeyCode::Tab);
     let _ = h.key(KeyCode::Enter);
     assert_eq!(h.app().result().row_count(), 1);
+    assert_eq!(h.app().result().pending_total(), 1);
+    assert!(h.find("Work changed").is_some());
     // A new pending intent cannot be redirected to a fresh record after removal.
     let Some(Tab::Query(tab)) = h.app_mut().workbench.tab_mut(key) else {
         unreachable!("query")
