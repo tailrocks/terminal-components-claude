@@ -276,6 +276,7 @@ pub struct Dialog<'a> {
     width: Option<u16>,
     body_rows: Option<u16>,
     prompt: Option<&'a str>,
+    input_label: Option<&'a str>,
     ack: Option<&'a str>,
     error: Option<&'a str>,
     ov: PartStyle<'a>,
@@ -322,6 +323,7 @@ impl<'a> Dialog<'a> {
             width: None,
             body_rows: None,
             prompt: None,
+            input_label: None,
             ack: None,
             error: None,
             ov: PartStyle::new(),
@@ -356,6 +358,14 @@ impl<'a> Dialog<'a> {
         d.prompt = Some(label);
         d.body_rows = Some(0);
         d
+    }
+
+    /// Override the visible prompt or acknowledgement label without changing validation.
+    /// Omitted labels retain the constructor's default. The private draft is never exposed.
+    #[must_use]
+    pub const fn input_label(mut self, label: &'a str) -> Self {
+        self.input_label = Some(label);
+        self
     }
 
     /// A typed acknowledgement: the confirming action is armed only while
@@ -576,6 +586,19 @@ impl<'a> Dialog<'a> {
                 {
                     acc.action(DialogAction::Action(a.key()));
                     action_fired = true;
+                }
+            } else if committed && is_ack {
+                // Acknowledgement Enter only arms and leaves the editor. Execution
+                // requires a later deliberate activation of an enabled action.
+                if let Some(id) =
+                    self.effective_actions()
+                        .iter()
+                        .enumerate()
+                        .find_map(|(i, action)| {
+                            self.enabled(i, action, st).then_some(self.action_id(i))
+                        })
+                {
+                    cx.focus(id);
                 }
             }
         }
@@ -827,7 +850,10 @@ impl<'a> Dialog<'a> {
                         &st.draft
                     };
                     let input = self.input_control().value(value);
-                    let label = self.prompt.unwrap_or("Type the token to confirm");
+                    let label = self
+                        .input_label
+                        .or(self.prompt)
+                        .unwrap_or("Type the token to confirm");
                     Field::new(label, input)
                         .plain(true)
                         .error(self.error)

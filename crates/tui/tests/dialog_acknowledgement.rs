@@ -100,7 +100,8 @@ fn changing_committed_acknowledgement_disarms_confirmation() {
     let _ = h.type_str(TOKEN);
     let _ = h.key(KeyCode::Enter);
     assert_eq!(h.app().confirmations, 0);
-    let _ = h.key(KeyCode::Enter); // Re-enter editing the committed value.
+    let _ = h.click_id(dialog().input_id()); // Re-enter the committed value after action focus.
+    assert!(h.app().state.is_editing());
     let _ = h.type_str("x");
     let _ = h.click_id(dialog().action_id(1));
     assert_eq!(h.app().confirmations, 0);
@@ -116,7 +117,7 @@ fn editing_observable_tracks_private_editor_lifecycle_without_text() {
     let _ = h.key(KeyCode::Enter);
     assert!(!h.app().state.is_editing());
     assert_eq!(h.app().confirmations, 0);
-    let _ = h.key(KeyCode::Enter);
+    let _ = h.click_id(dialog().input_id());
     assert!(h.app().state.is_editing());
     h.app_mut().state.zeroize();
     assert!(
