@@ -1193,19 +1193,21 @@ impl Geometry {
 /// ## Parts
 /// `CONTAINER` (the whole surface, filled on **every** non-degenerate frame,
 /// which is why it is `PARTS[0]`), `HEADER`, `ROW`, `CELL`, `TRACK`, `THUMB`,
-/// `OVERFLOW`, `EMPTY`, `ACTIONS` — exactly §17.0 A7's list. The focus gutter
-/// and the selection marker are painted from the `ROW` resolution rather than
-/// resolving `GUTTER` and `MARKER`, because `PARTS` is what `draw` resolves
-/// and nothing more (§33, Invariant P).
+/// `OVERFLOW`, `EMPTY`, `ACTIONS`, plus the optional detailed-gutter surfaces
+/// `GUTTER`, `MARKER`, `CHANGE` and `ROW_NUMBER` (§17.0 A7). Compact paints its
+/// focus and shared selection/change markers from `ROW`; Detailed resolves
+/// the four distinct parts in their clipped subcells. The fetch sentinel
+/// resolves only `GUTTER`, never a synthetic data-row number.
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach `Part::CONTAINER`, `Part::HEADER`,
 /// `Part::ROW`, `Part::CELL`, `Part::TRACK`, `Part::THUMB`, `Part::OVERFLOW`,
-/// `Part::EMPTY` and `Part::ACTIONS`. `.slot` replaces `Part::HEADER`,
-/// `Part::EMPTY`, `Part::ACTIONS`, `Part::TRACK` and `Part::THUMB`.
+/// `Part::EMPTY` and `Part::ACTIONS`, plus all four detailed-gutter parts when
+/// enabled. `.slot` replaces `Part::HEADER`, `Part::EMPTY`, `Part::ACTIONS`,
+/// `Part::TRACK`, `Part::THUMB`, and each enabled detailed-gutter subcell.
 /// `ACTIONS` reaches both configured action surfaces and cell affordances.
-/// The last two are forwarded into the embedded [`ScrollRegion`], as are
-/// `.patch` and `.patch_part`.
+/// `TRACK` and `THUMB` are forwarded into the embedded [`ScrollRegion`], as
+/// are `.patch` and `.patch_part`.
 ///
 /// ## Identity
 /// Rows are [`ItemKey`]s from `GridModel::row_key`, columns are
