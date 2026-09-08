@@ -29,6 +29,32 @@ fn first_use_flow_enters_the_manager() {
 }
 
 #[test]
+fn cockpit_header_receives_focus_lifecycle_without_advancing_launch() {
+    let mut harness = Harness::new(
+        App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 0),
+        Theme::junie(),
+        100,
+        30,
+    );
+    assert_eq!(harness.app().route(), Route::Cockpit);
+    assert!(harness.area_of(jackin_app::MANAGER).is_some());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+    let before = harness.app().frame();
+    let _ = harness.key(KeyCode::Tab);
+    assert_eq!(harness.app().route(), Route::Cockpit);
+    assert_eq!(harness.app().frame(), before);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn product_routes_and_account_picker_render_through_the_facade() {
     let mut harness = Harness::new(
         App::for_scenario(Scenario::Returning, Motion::Paused),
@@ -230,6 +256,11 @@ fn every_named_scenario_renders_a_deterministic_frame() {
             40,
         );
         assert_eq!(first.text(), second.text(), "{}", scenario.name());
-        assert!(first.diagnostics().is_empty(), "{}", scenario.name());
+        assert!(
+            first.diagnostics().is_empty(),
+            "{}: {:?}",
+            scenario.name(),
+            first.diagnostics()
+        );
     }
 }

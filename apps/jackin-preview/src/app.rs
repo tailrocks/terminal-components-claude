@@ -2058,8 +2058,9 @@ impl App {
         result
     }
 
-    fn update_navigation(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update_navigation(&self, cx: &mut Cx<'_>) -> (Response<()>, Option<Route>) {
         let mut result = Response::ignored();
+        let mut chosen_route = None;
         let nav = [
             (MANAGER, "Manager", Route::Manager),
             (ACCOUNTS, "Accounts", Route::Accounts),
@@ -2074,30 +2075,23 @@ impl App {
             let chosen = button.activated();
             result |= button.erase();
             if chosen {
-                self.route = route;
-                self.status = None;
+                chosen_route = Some(route);
             }
         }
-        result
+        (result, chosen_route)
     }
 
-    fn update_intro(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let button = Self::enter_button().update(cx);
-        let chosen = button.activated();
-        let result = button.erase();
-        if chosen {
+    fn enter_intro(&mut self) {
+        if self.intro.is_done() {
+            self.route = Route::Manager;
+            self.world.arbiter.complete_entry(self.world.now_ms());
+        } else {
+            self.intro.skip();
             if self.intro.is_done() {
                 self.route = Route::Manager;
                 self.world.arbiter.complete_entry(self.world.now_ms());
-            } else {
-                self.intro.skip();
-                if self.intro.is_done() {
-                    self.route = Route::Manager;
-                    self.world.arbiter.complete_entry(self.world.now_ms());
-                }
             }
         }
-        result
     }
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -3140,7 +3134,7 @@ impl App {
 
     fn update_route(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         match self.route {
-            Route::Intro => self.update_intro(cx),
+            Route::Intro => Response::ignored(),
             Route::Manager => self.update_manager(cx),
             Route::Prelude => self.update_prelude(cx),
             Route::Editor => self.update_editor(cx),
@@ -6158,16 +6152,33 @@ impl TuiApp for App {
         // shape below, so the app cannot drift between update and draw.
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx);
+        // Shell controls outlive route projections: focus can leave Intro after
+        // it disappears, or traverse the header on Cockpit/Editor. Poll their
+        // normal component updates on every pass, then apply activation only
+        // after command/overlay precedence and the active route's policy.
+        let entry = Self::enter_button().update(cx);
+        let enter_chosen = entry.activated();
+        if self.route == Route::Intro {
+            result |= entry.erase();
+        }
+        let (navigation, navigation_route) = self.update_navigation(cx);
+        let navigation_enabled = matches!(
+            self.route,
+            Route::Manager | Route::Accounts | Route::Usage | Route::Settings | Route::Capsule
+        );
+        if navigation_enabled {
+            result |= navigation;
+        }
         self.ensure_manager_header();
         if let Some(command) = cx.command()
-            && let Some(result) = self.update_command(cx, command)
+            && let Some(command_result) = self.update_command(cx, command)
         {
             if self.route == Route::Manager {
                 self.ensure_manager_rows();
             }
             self.ensure_manager_header();
             self.sync_workspace_keymap();
-            return result;
+            return result | command_result;
         }
         result |= self.update_overlays(cx);
         if cx.is_open(ROLE_PICKER)
@@ -6180,11 +6191,12 @@ impl TuiApp for App {
             self.sync_workspace_keymap();
             return result;
         }
-        if matches!(
-            self.route,
-            Route::Manager | Route::Accounts | Route::Usage | Route::Settings | Route::Capsule
-        ) {
-            result |= self.update_navigation(cx);
+        if navigation_enabled && let Some(route) = navigation_route {
+            self.route = route;
+            self.status = None;
+        }
+        if self.route == Route::Intro && enter_chosen {
+            self.enter_intro();
         }
         result |= self.update_route(cx);
         if self.route == Route::Manager {
