@@ -67,7 +67,11 @@ impl DiskState {
         if self.total_bytes == 0 {
             return 0;
         }
-        ((self.used_bytes * 100) / self.total_bytes) as u32
+        let percent = u128::from(self.used_bytes)
+            .saturating_mul(100)
+            .checked_div(u128::from(self.total_bytes))
+            .unwrap_or(0);
+        u32::try_from(percent).unwrap_or(u32::MAX)
     }
 
     /// All inspected generated artifacts, including policy-protected active data.
@@ -82,5 +86,65 @@ impl DiskState {
             .filter(|c| c.freshness != Freshness::ActiveToday)
             .map(|c| c.size_bytes)
             .sum()
+    }
+}
+
+/// Resolve fixture paths lexically without reading or mutating a filesystem.
+/// Relative paths belong to the simulated cwd; `.`/`..` cannot disguise an
+/// overlapping target. Root and traversal above root are not cleanup targets.
+pub(crate) fn cleanup_path(cwd: &str, path: &str) -> Option<std::path::PathBuf> {
+    use std::path::{Component, Path, PathBuf};
+    if path.is_empty() {
+        return None;
+    }
+    let expand = |value: &str| match value.strip_prefix("~/") {
+        Some(rest) => format!("{}/{rest}", super::fixtures::HOME),
+        None if value == "~" => super::fixtures::HOME.to_owned(),
+        None => value.to_owned(),
+    };
+    let expanded = expand(path);
+    let absolute = if Path::new(&expanded).is_absolute() {
+        PathBuf::from(expanded)
+    } else {
+        PathBuf::from(expand(cwd)).join(expanded)
+    };
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            Component::RootDir => normalized.push("/"),
+            Component::Normal(part) => normalized.push(part),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !normalized.pop() {
+                    return None;
+                }
+            }
+            Component::Prefix(_) => return None,
+        }
+    }
+    (normalized.is_absolute() && normalized != Path::new("/")).then_some(normalized)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn maximum_capacity_percentage_does_not_overflow() {
+        let disk = DiskState {
+            total_bytes: u64::MAX,
+            used_bytes: u64::MAX,
+            candidates: vec![],
+        };
+        assert_eq!(disk.used_percent(), 100);
+    }
+    #[test]
+    fn cleanup_paths_resolve_aliases_without_filesystem_access() {
+        assert_eq!(cleanup_path("/work", "."), cleanup_path("/work", "/work"));
+        assert_eq!(
+            cleanup_path("/work", "/a/x/../b"),
+            cleanup_path("/work", "/a/b")
+        );
+        assert_eq!(cleanup_path("/work", "/"), None);
+        assert_eq!(cleanup_path("/work", "/../../outside"), None);
     }
 }

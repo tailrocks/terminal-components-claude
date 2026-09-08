@@ -306,7 +306,7 @@ fn apply_effect(plan: &Plan, world: &mut World) {
                         .as_mut()
                         .and_then(|mise| mise.tools.iter_mut().find(|t| t.name == *name))
                     {
-                        tool.version = after.clone();
+                        tool.version.clone_from(after);
                         tool.state = ToolState::Active;
                     }
                 }
@@ -488,16 +488,16 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
     if inspected_bytes > disk.used_bytes || disk.used_bytes > disk.total_bytes {
         return None;
     }
-    for (index, candidate) in disk.candidates.iter().enumerate() {
-        let path = std::path::Path::new(&candidate.path);
-        if candidate.path.is_empty()
-            || disk.candidates.iter().take(index).any(|prior| {
-                let prior = std::path::Path::new(&prior.path);
-                prior.starts_with(path) || path.starts_with(prior)
-            })
+    let mut paths = Vec::new();
+    for candidate in &disk.candidates {
+        let path = crate::domain::disk::cleanup_path(&w.cwd, &candidate.path)?;
+        if paths
+            .iter()
+            .any(|prior: &std::path::PathBuf| prior.starts_with(&path) || path.starts_with(prior))
         {
             return None;
         }
+        paths.push(path);
     }
     let host = w.host.name.clone();
     let mut steps = vec![
@@ -947,6 +947,11 @@ fn basename(path: &str) -> &str {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::indexing_slicing,
+    clippy::unwrap_used,
+    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
+)]
 mod tests {
     use super::*;
     use crate::domain::fixtures;
@@ -1309,5 +1314,21 @@ mod tests {
         assert!(plan_for(&world, "disk.reclaim").is_none());
         world.disk.as_mut().unwrap().used_bytes = u64::MAX;
         assert!(plan_for(&world, "disk.reclaim").is_none());
+    }
+    #[test]
+    fn disk_relative_and_parent_aliases_cannot_double_count_targets() {
+        for (first, second) in [(".", "a"), ("/a/x/../b", "/a/b")] {
+            let mut world = settled(Scenario::DiskCleanup);
+            let disk = world.disk.as_mut().unwrap();
+            disk.candidates.truncate(2);
+            disk.candidates[0].path = first.into();
+            disk.candidates[1].path = second.into();
+            assert!(plan_for(&world, "disk.reclaim").is_none());
+        }
+        let mut world = settled(Scenario::DiskCleanup);
+        let disk = world.disk.as_mut().unwrap();
+        disk.total_bytes = u64::MAX;
+        disk.used_bytes = u64::MAX;
+        assert!(plan_for(&world, "disk.reclaim").is_some());
     }
 }
