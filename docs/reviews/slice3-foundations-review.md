@@ -1,4 +1,4 @@
-# Slice 3 foundations review — fresh read-only `opus-analyst`
+# Slice 3 foundations review — fresh read-only `read-only analyst`
 
 **Scope.** `crates/tui` (package `tui-next`, lib `tui_next`), `crates/tui-testing`, `xtask`, `crates/tui/tests/**`, `crates/tui/examples/12_author_component.rs`, `crates/tui/README.md`, at commit `18afddd`. Read against `COMPONENT_ARCHITECTURE.md` §3–§13, §16, §17.0, §21–§24, Appendix B, and `docs/audit/modern-api-audit.md` §1–§2.
 

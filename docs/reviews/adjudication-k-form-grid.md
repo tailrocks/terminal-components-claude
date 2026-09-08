@@ -1,6 +1,6 @@
 # Adjudication K — `Form` API and the `Grid::update` bound
 
-**Status:** proposed. Resolves the two items left open at `COMPONENT_ARCHITECTURE.md:3677-3681` ("Not applied — requires a fresh `opus-analyst` decision"). Nothing here reopens Adjudications A–J.
+**Status:** proposed. Resolves the two items left open at `COMPONENT_ARCHITECTURE.md:3677-3681` ("Not applied — requires a fresh `read-only analyst` decision"). Nothing here reopens Adjudications A–J.
 
 **Convention:** **[F]** = collected fact with a citation. Everything else is decision or inference.
 

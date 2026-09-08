@@ -9,11 +9,11 @@ This is an implementation goal. Do not stop after analysis, recommendations, an 
 
 Use only the configured agent types for this goal:
 
-- `refactor-coordinator` — `claude-fable-5-1`, effort `high`; owns sequencing, repository state, integration, durable records, completion evidence, and the final report.
-- `opus-analyst` — `claude-opus-5`, effort `high`, read-only; owns all research and judgment work.
-- `fable-builder` — `claude-fable-5-1`, effort `high`; owns implementation and execution work within an assigned scope.
+- `coordinator` — `claude-fable-5-1`, effort `high`; owns sequencing, repository state, integration, durable records, completion evidence, and the final report.
+- `read-only analyst` — `claude-opus-5`, effort `high`, read-only; owns all research and judgment work.
+- `builder` — `claude-fable-5-1`, effort `high`; owns implementation and execution work within an assigned scope.
 
-Use subagents aggressively where supported. Parallelize independent Opus research/review and disjoint Fable implementation work. The primary Fable coordinator owns execution and integrated repository state. Opus owns architectural synthesis and adjudication of conflicting research. The Fable coordinator resolves the recorded result against the authority order in this document and implements it.
+Use agents aggressively where supported. Parallelize independent Opus research/review and disjoint Fable implementation work. The primary Fable coordinator owns execution and integrated repository state. Opus owns architectural synthesis and adjudication of conflicting research. The Fable coordinator resolves the recorded result against the authority order in this document and implements it.
 
 Resolve ordinary decisions autonomously within these model boundaries. Opus compares and selects architectural and public-API alternatives. Fable selects local implementation details that do not change accepted architecture or public invariants. Do not ask the user to choose between routine Rust API alternatives.
 
@@ -21,7 +21,7 @@ Resolve ordinary decisions autonomously within these model boundaries. Opus comp
 
 Run the primary coordinator and every implementation worker with `claude-fable-5-1`, effort `high`.
 
-Use fresh `opus-analyst` agents for every exploratory repository audit, research question, architecture decision, alternative comparison, public-API critique, test-design review, domain-boundary decision, security or threat analysis, performance interpretation, visual judgment, architectural root-cause diagnosis, and independent review. Opus agents are read-only and return evidence-backed findings.
+Use fresh `read-only analyst` agents for every exploratory repository audit, research question, architecture decision, alternative comparison, public-API critique, test-design review, domain-boundary decision, security or threat analysis, performance interpretation, visual judgment, architectural root-cause diagnosis, and independent review. Opus agents are read-only and return evidence-backed findings.
 
 Fable may perform targeted reads needed to execute an accepted design. Fable owns all worktree mutations, production code, migrations, test and capture execution, benchmark collection, documentation updates, cleanup, corrections, integration, and final reporting. Fable records accepted Opus findings in `COMPONENT_ARCHITECTURE.md`, `REFACTORING_STATE.md`, and other repository documents.
 
@@ -1427,7 +1427,7 @@ Migrate a small showcase surface to the proposed API.
 
 Write representative downstream usage examples.
 
-Have a fresh, read-only `opus-analyst` API reviewer critique:
+Have a fresh, read-only `read-only analyst` API reviewer critique:
 
 * ceremony
 * naming
@@ -1476,7 +1476,7 @@ Migrate coherent families, continuously updating showcase pages and tests:
 * code editor and diff viewer
 * generic grid and TablePro database adapter
 
-After each family, have a fresh, read-only `opus-analyst` review API consistency. Fable applies verified corrections. Consolidate repeated concepts rather than reproducing inconsistencies in a new namespace.
+After each family, have a fresh, read-only `read-only analyst` review API consistency. Fable applies verified corrections. Consolidate repeated concepts rather than reproducing inconsistencies in a new namespace.
 
 ## Slice 5 — Showcase migration
 
@@ -1512,8 +1512,8 @@ After each family, have a fresh, read-only `opus-analyst` review API consistency
 * update documentation
 * regenerate only reviewed baselines
 * run full quality gates
-* run a fresh, read-only `opus-analyst` architecture review
-* run a separate fresh, read-only `opus-analyst` visual review
+* run a fresh, read-only `read-only analyst` architecture review
+* run a separate fresh, read-only `read-only analyst` visual review
 * use Fable to correct every material issue found
 
 At the end of every slice:
@@ -1528,9 +1528,9 @@ At the end of every slice:
 
 ---
 
-# 28. SUBAGENT RESPONSIBILITIES
+# 28. AGENT RESPONSIBILITIES
 
-Every responsibility in this section is mandatory `opus-analyst` work using `claude-opus-5` at effort `high`. Spawn fresh agents for independent reviews. Opus agents remain read-only; Fable records their findings and performs every repository mutation.
+Every responsibility in this section is mandatory `read-only analyst` work using `claude-opus-5` at effort `high`. Spawn fresh agents for independent reviews. Opus agents remain read-only; Fable records their findings and performs every repository mutation.
 
 At minimum delegate independent work for:
 

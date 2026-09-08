@@ -140,14 +140,14 @@ Continue the in-progress refactor in this repository. Do not restart, do not re-
 ## Read first, in this order
 
 1. `REFACTORING_STATE.md` — the durable ledger. Its "Session 2 addendum" blocks describe exactly where the previous session stopped.
-2. `COMPONENT_ARCHITECTURE.md` — the accepted architecture. Adjudications A–P are recorded in §21–§28. Change control is stated at line 3: any change to a Decision, invariant, exact type or precedence rule requires fresh `opus-analyst` adjudication recorded in the document and the ledger.
+2. `COMPONENT_ARCHITECTURE.md` — the accepted architecture. Adjudications A–P are recorded in §21–§28. Change control is stated at line 3: any change to a Decision, invariant, exact type or precedence rule requires fresh `read-only analyst` adjudication recorded in the document and the ledger.
 3. `docs/reviews/adjudication-q-residuals.md` — accepted, not yet applied.
 4. `docs/audit/modern-api-audit.md` §2 and §6 — the binding API rules R‑1…R‑20 and the forbidden-pattern table.
 
 ## Mandatory execution model
 
-- Every audit, research question, architecture decision, alternative comparison, root-cause diagnosis, public-API or test-design critique, domain-boundary decision, security analysis, performance interpretation, visual judgement and independent verification goes to a **fresh, read-only `opus-analyst`** subagent.
-- Every implementation, command run, capture, test and documentation edit goes to a **`fable-builder`** subagent.
+- Every audit, research question, architecture decision, alternative comparison, root-cause diagnosis, public-API or test-design critique, domain-boundary decision, security analysis, performance interpretation, visual judgement and independent verification goes to a **fresh, read-only `read-only analyst`** agent.
+- Every implementation, command run, capture, test and documentation edit goes to a **`builder`** agent.
 - You coordinate: spawn agents, record their results in `REFACTORING_STATE.md`, commit, push, report. Do not implement directly.
 - Never use generic, inheriting, built-in Explore or built-in Plan agents. Never pass a per-invocation model or effort override — the definitions in `.claude/agents/` own routing (all three are `claude-opus-5`, effort `high`; that is a recorded, user-authorised deviation from the goal's Fable mandate because Fable credits were exhausted).
 - Parallel builders must have explicit, disjoint file ownership. For the contended files `crates/tui/src/components/mod.rs`, `crates/tui/src/lib.rs`, `crates/tui/src/author.rs` and `xtask/named_tests_allow.txt`, instruct builders to make minimal single-line insertions in alphabetical position, re-reading immediately before each edit and retrying on failure.
@@ -160,7 +160,7 @@ Continue the in-progress refactor in this repository. Do not restart, do not re-
 3. **Apply Adjudication Q** (`docs/reviews/adjudication-q-residuals.md`): Q1 a shared bracket helper taking two reserved cells, and fix `Button`'s in-run bracket which can truncate a full-width label; Q2 make `Fixture::state_override` and `Fixture::status` private with `forced()`/`status()` accessors so `force` is the only writer; Q3 add `Conformance::mono_narrowing_reason()` with the case-9 check and write the roughly eight missing reasons. Record it as §29 in `COMPONENT_ARCHITECTURE.md` with the nine amendments its "Exact document amendments" section lists. **Confirm its R1 first**: disable the `Tabs` bracket block and check that conformance case 9 is still red — if it is green, `CONTAINER`'s `BOLD` already distinguished the states and the recorded reason is wrong.
 4. **Fix the live `RowUi` glyph defect.** `RowUi::marker` and `RowUi::part` discard `Resolved.glyph`, so every mono `MARKER` rule is inert. `Resolved.glyph` must become `Slot<GlyphRole>` — `Option` cannot distinguish `Slot::Clear` from unset — which is a §11.2 amendment. Note that Adjudication Q's acceptance condition A4 asserts no caller exists; that is false, `examples/07_borrowed_rows.rs:31` and `examples/08_dynamic_tabs.rs:30` already call it, so A4 must be re-stated.
 
-Three questions were returned by the builders and need a fresh `opus-analyst` before the affected work closes:
+Three questions were returned by the builders and need a fresh `read-only analyst` before the affected work closes:
 - `Caps::OVERLAY` conflates "opens a layer" with "traps focus": case 14 asserts the focus ring shrinks and Tab wraps inside, but §9.1 makes a `Popover` a pointer barrier with no focus scope and `Select` keeps focus while open, so `SelectCase` cannot declare `OVERLAY` without asserting a property the layer kind forbids.
 - `FieldControl` has no item channel: §15 says implement it for `Select` and `RadioGroup`, but §24 M3 moved items to the per-phase channel and `draw(&self, ui, area, st)` cannot carry `&[T]`.
 - `RadioGroup` needed a `.value(ItemKey)` draw-phase controlled prop that §17.0 A7 does not declare, and `ChipBar`'s add affordance emits `Activated(k)` because `ChipBarAction` has no `Added` variant.

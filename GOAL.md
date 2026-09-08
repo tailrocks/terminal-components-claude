@@ -120,7 +120,7 @@ used to excuse unrelated visual drift.
 
 ## Required execution model
 
-Use multiple subagents. Start with independent read-only scouts, then use
+Use multiple agents. Start with independent read-only scouts, then use
 builders with disjoint write ownership, then use an independent reviewer.
 
 Required roles:

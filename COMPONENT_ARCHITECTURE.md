@@ -1,6 +1,6 @@
 # COMPONENT_ARCHITECTURE.md
 
-**Status:** Accepted through §74, including the §73 disabled-pointer, shared-Props, and inert-registration adjudication. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `opus-analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
+**Status:** Accepted through §74, including the §73 disabled-pointer, shared-Props, and inert-registration adjudication. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `read-only analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
 
 Sections §40–§49 record subsequent gate, API, migration and baseline findings; §§50–§55 are
 accepted fresh adjudications for choice semantics, StatusBar hover, Grid ownership, incremental
@@ -4018,7 +4018,7 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 
 | # | Change | Why | How it is reviewed |
 |---|---|---|---|
-| 1 | **Mono legibility fallbacks** (§11.4). At `ColorLevel::Mono` every state gains a symbol or modifier: focus gutter bar + bold label, marker glyphs for selected/checked, explicit reverse + `BOLD` + `PressLeft`/`PressRight` brackets for pressed (never the terminal `REVERSE` attribute; §21 item 25), faint + no marker for disabled, trailing error glyph + underline, dirty glyph for warning, underline + hardware cursor for editing, spinner for busy, `ICON + LOADING → UNDERLINED`, active rule + bold for tabs. | **[F]** RES §1.2: mono currently collapses accent (mean 126) and error (mean 122) onto the same grey, so state is unreadable. `BUSY` and `LOADING` also share one spinner sequence; the loading underline prevents that structural collision without borrowing an unrelated state bit. goal §15 requires state meaning to survive without colour. | `conformance::<component>::mono_states_are_distinguishable` for every component; `theme::mono_parts_exactly_cover_every_reserved_rule_part` pins the 20-entry generic manifest and `ICON + LOADING`; `render::components::*_mono` digests; capture matrix `tools/capture.sh` with `NO_COLOR=1` at 120×40 for showcase, tablepro and jackin, reviewed side by side against the truecolor capture by a fresh `opus-analyst` visual reviewer |
+| 1 | **Mono legibility fallbacks** (§11.4). At `ColorLevel::Mono` every state gains a symbol or modifier: focus gutter bar + bold label, marker glyphs for selected/checked, explicit reverse + `BOLD` + `PressLeft`/`PressRight` brackets for pressed (never the terminal `REVERSE` attribute; §21 item 25), faint + no marker for disabled, trailing error glyph + underline, dirty glyph for warning, underline + hardware cursor for editing, spinner for busy, `ICON + LOADING → UNDERLINED`, active rule + bold for tabs. | **[F]** RES §1.2: mono currently collapses accent (mean 126) and error (mean 122) onto the same grey, so state is unreadable. `BUSY` and `LOADING` also share one spinner sequence; the loading underline prevents that structural collision without borrowing an unrelated state bit. goal §15 requires state meaning to survive without colour. | `conformance::<component>::mono_states_are_distinguishable` for every component; `theme::mono_parts_exactly_cover_every_reserved_rule_part` pins the 20-entry generic manifest and `ICON + LOADING`; `render::components::*_mono` digests; capture matrix `tools/capture.sh` with `NO_COLOR=1` at 120×40 for showcase, tablepro and jackin, reviewed side by side against the truecolor capture by a fresh `read-only analyst` visual reviewer |
 | 2 | **Layer compositing order** (§5 R7, §3.3 step 12). Layers paint into pooled buffers and are composited bottom-to-top after `app.draw` returns, so z-order is the *layer* order, not the call order. A popup no longer has to be "drawn last" by the caller (**[F]** `DESIGN.md:749`). | Removes the three different "draw the overlay last" conventions, the `ui/popup.rs` shared-id collision, and the six manual hit re-registration blocks. Fixes the case where two popups in one frame silently clobber each other's barrier. | `render::overlay::layer_composites_bottom_to_top_regardless_of_call_order`; `render::overlay::nested_picker_over_dialog` digest; jackin `hint_bar_stays_on_the_last_row_across_layers` (retained, must stay green); captures of `f_*` (filter editor over grid) and `j_*` (picker over dialog) before/after |
 | 3 | **`RadioGroup` separates cursor from value.** Arrow keys move a cursor; Space/Enter commits the value. Today arrows change the selection while moving (`choice.rs:121-130`). | The only collection in the library that fuses cursor and selection (DOM §6.1-2); inconsistent with `List`, `Tabs`, `Picker`, `Grid`, `Tree`. | `conformance::radio_group::keyboard_and_mouse_activation_are_equivalent`; unit `choice::radio_group_separates_cursor_from_value`; showcase `forms` page digest; the two affected app tests (`showcase::form_validation_blocks_submit_and_focuses_first_error`, jackin `ChoiceDialog` flows) are re-read to confirm the new keystroke sequence still expresses the same product intent |
 | 4 | **`Picker` secondary action gains a mouse equivalent.** `Delete` (secondary, e.g. close a tab from the tab list) becomes a secondary-click on the row and a visible trailing affordance, not a keyboard-only path. | goal §13: "keyboard and mouse activation of the same control should produce the same semantic component action"; `conformance::picker::keyboard_and_mouse_activation_are_equivalent` would otherwise fail by construction. | The conformance test itself; `render::components::picker::default` digest (a trailing affordance column appears when any item is secondary-able); tablepro `tab_strip_overflow_and_tab_list` capture |
@@ -4040,9 +4040,9 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 
 | 18 | **Mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background** <!-- amended by §28 (Adjudication P6) -->. At `ColorLevel::Mono` the `DISABLED` rules add `DIM` (and remove every other modifier) on `LABEL`, `MARKER`, `FIELD` and `TEXT`, and set `fg = Role::Fg(Primary)` instead of `Role::Fg(Faint)`. `MONO_RULES_PER_FAMILY` went 16 → 18 → 19 and is now **20** after item 1's `ICON + LOADING` rule; that 20th rule is not part of this item's disabled movement. `TextInput` additionally paints `design.motion.spinner_frames[0]` in its trailing marker cell for `BUSY`/`LOADING` and declares `Part::ICON`. | Two defects in one place. (a) No mono rule reached the parts a *text control* paints (`FIELD`, `TEXT`), so a disabled `TextInput` was indistinguishable from an enabled one and `TextInputCase` narrowed `DISABLED` away rather than fail. (b) Worse, `Fg(Faint) #262626` and `disabled_fg #4d4d4d` both have `Y < 0.35`, which `mono()` maps to `Black` on a `Black` canvas under `Theme::junie()` — a disabled control was **invisible**, not merely colourless, and goal §29 asks for *readable*. `Theme::paper()` escaped only by landing in the `Reset` band. | `theme::mono_disabled_is_dim_and_readable`; `theme::mono_resolver_applies_once_without_recipe_storage` (**== 20**); `conformance::{text_input,button,field,list,tabs}::mono_states_are_distinguishable` with the un-narrowed state lists; the **mono half only** of `render::components::{text_input,field,list,button,tabs}::disabled` in `crates/tui/tests/baselines/components.txt` re-blessed in the fixed order **change → capture → classify → bless**, with a `docs/visual-changes.md` entry under this item before the bless. Item 1, not item 18, owns any separately measured `ICON + LOADING` output. <!-- amended by §72 --> |
 
-| 19 | **First-generation `render::components::*` digests for the Slice-4 component matrix** <!-- added by §36 -->. Fourteen components record their first digest lines — `text_area`, `select`, `radio_group`, `checkbox`, `toggle`, `chip_bar`, `status_bar`, `hint_bar`, `key_hint`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — 8 states × {junie, paper} × {truecolor, mono} × {120×40, 40×10} = 64 lines each, 896 in total. **Nothing moves**: the component did not exist in the reviewed tree, so no cell has a before-image and no cell is a difference from anything. This item covers **first generation only**. The second time one of these lines changes it classifies under items 1–18 or it is a regression, and this item may not be cited again for the same key. `{scope: first-generation}` | §16.3 requires one digest line per component × state × theme × colour × size, and Appendix A's Slice-4 amendment makes that digest one of the proofs a family package must produce, precisely because Slice-4 owners touch no application. Ten of the fourteen appear in no other item at all; the four named elsewhere are named for a *difference* — item 9 for `StatusBar`'s adopted drop order, item 10 for hint text derived from bindings, item 3 for `RadioGroup`'s cursor/value split — whose review mechanisms are application captures and a showcase digest that do not exist before Slice 5. Filing 896 lines under an item that describes neither the change nor a runnable review destroys the item→change mapping the guard's citation check depends on, and would attach them to item 1, whose stated mechanism §34.4 proved has never executed. | **A first-generation digest cannot be reviewed as a digest, and this item does not pretend that it can.** The hash is not inspectable and there is no before-image to diff, so what is reviewed is the *frame*, and only its glyph half. (1) The generating run prints the frame text of every unrecorded cell — the `Missing` branch of `Scene::assert_against` prints `text()` exactly as the `Mismatch` branch already does — and the dump is attached to the `docs/visual-changes.md` entry; a review mechanism that cannot be executed is decoration (§34.4). (2) A **fresh read-only `opus-analyst` visual reviewer, never the builder who generated the lines**, reads the `junie truecolor` and `junie mono` frames at 120×40 for all eight states of each component, and **rejects** on any of: a cell painted outside the component's own rect; an empty frame where the fixture supplies content; content in the `empty` state, or the empty affordance in a state that is not `empty`; truncation or an ellipsis at 120×40; a state textually identical to another under `mono` where §11.4 prescribes a distinguishing symbol and conformance case 9 does not already cover that pair; a glyph occupying no `GlyphSet` slot; or a label that is not the one the fixture supplies. (3) **The style half of the digest — `fg`, `bg`, `modifier` — is reviewed by nobody, and this item says so rather than implying otherwise.** It is asserted instead by the 20-case conformance matrix already registered for each of these components and by the `theme::*` contrast and mono-legibility tests. A first-generation line is therefore a **pin against future drift, not an approval of present appearance**; the first review of these components *as pictures* is the Slice-5 capture matrix. (4) No `shots/` capture exists or can exist: the matrix is headless — `Scene` draws into a `TestBackend` buffer and `tools/capture.sh` drives a terminal session — so the ledger's `- captures:` field records that fact and names the frame-text dump in its place (§16.3 as amended by §36). |
+| 19 | **First-generation `render::components::*` digests for the Slice-4 component matrix** <!-- added by §36 -->. Fourteen components record their first digest lines — `text_area`, `select`, `radio_group`, `checkbox`, `toggle`, `chip_bar`, `status_bar`, `hint_bar`, `key_hint`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — 8 states × {junie, paper} × {truecolor, mono} × {120×40, 40×10} = 64 lines each, 896 in total. **Nothing moves**: the component did not exist in the reviewed tree, so no cell has a before-image and no cell is a difference from anything. This item covers **first generation only**. The second time one of these lines changes it classifies under items 1–18 or it is a regression, and this item may not be cited again for the same key. `{scope: first-generation}` | §16.3 requires one digest line per component × state × theme × colour × size, and Appendix A's Slice-4 amendment makes that digest one of the proofs a family package must produce, precisely because Slice-4 owners touch no application. Ten of the fourteen appear in no other item at all; the four named elsewhere are named for a *difference* — item 9 for `StatusBar`'s adopted drop order, item 10 for hint text derived from bindings, item 3 for `RadioGroup`'s cursor/value split — whose review mechanisms are application captures and a showcase digest that do not exist before Slice 5. Filing 896 lines under an item that describes neither the change nor a runnable review destroys the item→change mapping the guard's citation check depends on, and would attach them to item 1, whose stated mechanism §34.4 proved has never executed. | **A first-generation digest cannot be reviewed as a digest, and this item does not pretend that it can.** The hash is not inspectable and there is no before-image to diff, so what is reviewed is the *frame*, and only its glyph half. (1) The generating run prints the frame text of every unrecorded cell — the `Missing` branch of `Scene::assert_against` prints `text()` exactly as the `Mismatch` branch already does — and the dump is attached to the `docs/visual-changes.md` entry; a review mechanism that cannot be executed is decoration (§34.4). (2) A **fresh read-only `read-only analyst` visual reviewer, never the builder who generated the lines**, reads the `junie truecolor` and `junie mono` frames at 120×40 for all eight states of each component, and **rejects** on any of: a cell painted outside the component's own rect; an empty frame where the fixture supplies content; content in the `empty` state, or the empty affordance in a state that is not `empty`; truncation or an ellipsis at 120×40; a state textually identical to another under `mono` where §11.4 prescribes a distinguishing symbol and conformance case 9 does not already cover that pair; a glyph occupying no `GlyphSet` slot; or a label that is not the one the fixture supplies. (3) **The style half of the digest — `fg`, `bg`, `modifier` — is reviewed by nobody, and this item says so rather than implying otherwise.** It is asserted instead by the 20-case conformance matrix already registered for each of these components and by the `theme::*` contrast and mono-legibility tests. A first-generation line is therefore a **pin against future drift, not an approval of present appearance**; the first review of these components *as pictures* is the Slice-5 capture matrix. (4) No `shots/` capture exists or can exist: the matrix is headless — `Scene` draws into a `TestBackend` buffer and `tools/capture.sh` drives a terminal session — so the ledger's `- captures:` field records that fact and names the frame-text dump in its place (§16.3 as amended by §36). |
 
-| 20 | **The forced-state operator stops erasing the props-derived half, so a component in error paints its error affordance** <!-- added by §49 -->. Under §39.2's Invariant Q a forced state substitutes for the runtime half only, so `render::components::{progress_bar,meter,hint_bar}::disabled` — whose fixture supplies `Status::Error` while forcing `DISABLED` — now resolve `ERROR` as well as `DISABLED`. This item covers **truecolor and mono alike**, and it covers a **second** movement of keys first generated under item 19, which may not be cited for them again. `{scope: truecolor}` | **A demonstrated defect in the old output, measurable from the baseline file alone and without reference to §39.** At truecolor the blessed `progress_bar::disabled` and `hint_bar::disabled` digests were **byte-identical to their own `::default` cells**, although the fixture gives one `Status::Error` and the other `Status::Ready` — two states of one component, differing in a prop that component declares it reports, pinned as one picture. A component declaring `Caps::REPORTS_STATUS` reporting nothing. The `ERROR → GlyphRole::Error` recipe rules were declared and produced no output, which is item 1a's reason verbatim, and §38.2 had already cleared all three as KEEP STATE. `Meter`'s cell differed from its own `::default` only because `DISABLED` moves its own parts; its rule never matched either. | The frame-text dump printed by the no-`BLESS` runs, read by a **fresh read-only `opus-analyst` who did not generate the lines**, at `junie` 120×40 in truecolor **and** mono, rejecting on: no error affordance in the corrected frame; an affordance in a cell whose fixture supplies `Status::Ready`; any change to the label, the track arithmetic or the percentage column beyond the affordance and the columns it reserves; or a glyph occupying no `GlyphSet` slot. Machine half: `components::a_forced_component_resolves_its_props_derived_state` (§39) and `theme::readiness_states_are_digest_distinct` (§49.5), which fails on the pre-§39 values at truecolor. |
+| 20 | **The forced-state operator stops erasing the props-derived half, so a component in error paints its error affordance** <!-- added by §49 -->. Under §39.2's Invariant Q a forced state substitutes for the runtime half only, so `render::components::{progress_bar,meter,hint_bar}::disabled` — whose fixture supplies `Status::Error` while forcing `DISABLED` — now resolve `ERROR` as well as `DISABLED`. This item covers **truecolor and mono alike**, and it covers a **second** movement of keys first generated under item 19, which may not be cited for them again. `{scope: truecolor}` | **A demonstrated defect in the old output, measurable from the baseline file alone and without reference to §39.** At truecolor the blessed `progress_bar::disabled` and `hint_bar::disabled` digests were **byte-identical to their own `::default` cells**, although the fixture gives one `Status::Error` and the other `Status::Ready` — two states of one component, differing in a prop that component declares it reports, pinned as one picture. A component declaring `Caps::REPORTS_STATUS` reporting nothing. The `ERROR → GlyphRole::Error` recipe rules were declared and produced no output, which is item 1a's reason verbatim, and §38.2 had already cleared all three as KEEP STATE. `Meter`'s cell differed from its own `::default` only because `DISABLED` moves its own parts; its rule never matched either. | The frame-text dump printed by the no-`BLESS` runs, read by a **fresh read-only `read-only analyst` who did not generate the lines**, at `junie` 120×40 in truecolor **and** mono, rejecting on: no error affordance in the corrected frame; an affordance in a cell whose fixture supplies `Status::Ready`; any change to the label, the track arithmetic or the percentage column beyond the affordance and the columns it reserves; or a glyph occupying no `GlyphSet` slot. Machine half: `components::a_forced_component_resolves_its_props_derived_state` (§39) and `theme::readiness_states_are_digest_distinct` (§49.5), which fails on the pre-§39 values at truecolor. |
 
 | 21 | **A pressed scrollbar thumb has a non-colour mono affordance.** At `ColorLevel::Mono`, `SCROLLBAR/THUMB + PRESSED` retains the resolved thumb glyph and adds `BOLD`; track, begin/end caps, thumb length and geometry do not change. | A live captured drag reaches `PRESSED`. The old SCROLLBAR rule changed only Accent colour, which conformance case 9 excludes, and ScrollRegion narrowed `PRESSED` behind the false claim that no affordance existed. | `theme::mono_pressed_reaches_the_scrollbar_thumb`; `conformance::scroll_region::mono_states_are_distinguishable` with `PRESSED` retained; Junie 120×40 mono overflowing pressed frame compared with focused/default, requiring the same typed begin/end caps and thumb cells and `BOLD` only on the thumb. |
 
@@ -4077,9 +4077,9 @@ The TextViewport exact-layout adjudication changes no pixels: it corrects cache 
 
 ## Appendix A — Slice plan
 
-Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**, so `fable-builder` agents can run in parallel without integration conflict. A package's owner is the only agent that writes its files during that slice. Files not listed are owned by nobody and must not be touched.
+Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**, so `builder` agents can run in parallel without integration conflict. A package's owner is the only agent that writes its files during that slice. Files not listed are owned by nobody and must not be touched.
 
-**Amendment to goal §27 (recorded, with justification).** Goal §27 Slice 4 says "migrate coherent families, continuously updating showcase pages and tests". Continuous showcase updates would make every Slice-4 owner write into `apps/showcase/`, destroying disjointness. Instead: **Slice 4 owners do not touch any application.** Each family package proves itself with unit tests, a `Conformance` registration (which runs the full 20-case matrix), a `render::components::*` digest, and one `crates/tui/examples/` file. Showcase migration is entirely Slice 5. The review cadence goal §27 asks for is preserved: a fresh read-only `opus-analyst` reviews API consistency after **each** family package lands, before the next depends on it.
+**Amendment to goal §27 (recorded, with justification).** Goal §27 Slice 4 says "migrate coherent families, continuously updating showcase pages and tests". Continuous showcase updates would make every Slice-4 owner write into `apps/showcase/`, destroying disjointness. Instead: **Slice 4 owners do not touch any application.** Each family package proves itself with unit tests, a `Conformance` registration (which runs the full 20-case matrix), a `render::components::*` digest, and one `crates/tui/examples/` file. Showcase migration is entirely Slice 5. The review cadence goal §27 asks for is preserved: a fresh read-only `read-only analyst` reviews API consistency after **each** family package lands, before the next depends on it.
 
 ### WP‑0 — Performance and visual baseline (blocking prerequisite, before Slice 3) <!-- amended by §21 item 31 -->
 
@@ -4150,7 +4150,7 @@ Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**,
   cargo +1.88.0 check --workspace --all-targets --all-features   # §22: the MSRV is a fact, not a field
   cargo test --all-targets                          # the legacy root package: all 198 existing tests stay green (M30)
   ```
-  plus a fresh read-only `opus-analyst` API review of the foundation surface (goal §27 Slice 2's review, applied to the real implementation) before Slice 4 begins.
+  plus a fresh read-only `read-only analyst` API review of the foundation surface (goal §27 Slice 2's review, applied to the real implementation) before Slice 4 begins.
 
 ### Slice 4 — Component families (parallel; 9 owners)
 
@@ -4188,7 +4188,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
   cargo +1.88.0 check --workspace --all-targets --all-features   # §22
   cargo test --all-targets                          # the legacy root package stays green (M30)
   ```
-  Every component in the package must appear in `conformance_suite!` and pass all 20 applicable cases. After each package, a fresh read-only `opus-analyst` reviews API consistency against §13; the coordinator applies verified corrections before the next wave.
+  Every component in the package must appear in `conformance_suite!` and pass all 20 applicable cases. After each package, a fresh read-only `read-only analyst` reviews API consistency against §13; the coordinator applies verified corrections before the next wave.
 
 ### Slice 5 — Showcase (one owner)
 
@@ -4211,7 +4211,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
 ### Slice 8 — Cleanup and independent verification (one owner, then two reviewers)
 
 * **Files:** anything, but only for deletion, visibility tightening, documentation and reviewed baseline regeneration. No new behaviour.
-* Work: delete every remaining legacy path and dead module; tighten `pub` → `pub(crate)` everywhere `architecture::applications_depend_only_on_the_library_facade` allows; complete `README.md`, `DESIGN.md`, the theme-customisation guide, the component-override guide, the component-author guide and the old→new API map (goal §24); regenerate only reviewed baselines; run the full gate set; then a fresh read-only `opus-analyst` **architecture** review and a separate fresh read-only `opus-analyst` **visual** review, with the coordinator correcting every verified issue.
+* Work: delete every remaining legacy path and dead module; tighten `pub` → `pub(crate)` everywhere `architecture::applications_depend_only_on_the_library_facade` allows; complete `README.md`, `DESIGN.md`, the theme-customisation guide, the component-override guide, the component-author guide and the old→new API map (goal §24); regenerate only reviewed baselines; run the full gate set; then a fresh read-only `read-only analyst` **architecture** review and a separate fresh read-only `read-only analyst` **visual** review, with the coordinator correcting every verified issue.
 * **Gate (the goal §26 set, unscoped):**
   ```bash
   cargo fmt --all --check
@@ -4230,7 +4230,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
   tools/capture.sh   # the full matrix, reviewed
   ```
 
-**Dependency summary.** WP‑0 → Slice 3 → {4A,4B,4C,4E,4G} → {4D,4F,4H,4I} → Slice 5 → {Slice 6, Slice 7 — parallel, disjoint app trees} → Slice 8. Slices 6 and 7 may run concurrently because their file trees are disjoint and both depend only on the frozen library surface; if either needs a library change, the slice pauses, a fresh `opus-analyst` adjudicates, the decision is recorded in this document and `REFACTORING_STATE.md`, and the change lands as a small serial amendment before both resume.
+**Dependency summary.** WP‑0 → Slice 3 → {4A,4B,4C,4E,4G} → {4D,4F,4H,4I} → Slice 5 → {Slice 6, Slice 7 — parallel, disjoint app trees} → Slice 8. Slices 6 and 7 may run concurrently because their file trees are disjoint and both depend only on the frozen library surface; if either needs a library change, the slice pauses, a fresh `read-only analyst` adjudicates, the decision is recorded in this document and `REFACTORING_STATE.md`, and the change lands as a small serial amendment before both resume.
 
 ---
 
@@ -4572,7 +4572,7 @@ What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `
 
 ## 21. Adjudication J — Slice 2 review corrections
 
-**Status:** Accepted. Source: `docs/reviews/slice2-architecture-review.md` (fresh read-only `opus-analyst`, goal §27 Slice 2). The review's verdict — *not ready as written; ready after the ordered edits* — and every finding in it (B1–B16, M1–M31, F1–F10, P1–P8, A1–A17, the §3 recommendations and the §7 staging adjudication) are accepted as-is. This section is the numbered changelog the review's §9(a) asked for: each item names the finding(s), the section(s) it amends, and the resulting normative text. Where an earlier section is edited inline, the edit carries `<!-- amended by §21 item N -->`. Nothing here reopens Adjudications A–I or Appendix B's workspace decision; three items (1–3) are narrow amendments to the accepted model and are labelled as such.
+**Status:** Accepted. Source: `docs/reviews/slice2-architecture-review.md` (fresh read-only `read-only analyst`, goal §27 Slice 2). The review's verdict — *not ready as written; ready after the ordered edits* — and every finding in it (B1–B16, M1–M31, F1–F10, P1–P8, A1–A17, the §3 recommendations and the §7 staging adjudication) are accepted as-is. This section is the numbered changelog the review's §9(a) asked for: each item names the finding(s), the section(s) it amends, and the resulting normative text. Where an earlier section is edited inline, the edit carries `<!-- amended by §21 item N -->`. Nothing here reopens Adjudications A–I or Appendix B's workspace decision; three items (1–3) are narrow amendments to the accepted model and are labelled as such.
 
 **Ordering.** Items 1–10 are the hard gate: Slice 3 does not start until Groups 1–2 are recorded here and mirrored in `REFACTORING_STATE.md`. Groups 3–6 land before the Slice 3 owner reaches the corresponding subsystem, and all of them before Slice 4 begins.
 
@@ -4598,7 +4598,7 @@ impl<'a> Grid<'a> {
 
 Rationale. B3: a props temporary holding `&self.docs` lives to the end of the statement, so `.on_action(|a| self.docs.retain(…))` is `E0502` on the same field; edition-2021 disjoint capture does not help. Moving the data to the phase call ends the borrow when `update` returns. B15: `GridEditor: &mut self` was unreachable through `&self` props holding `&'a M`, so the Slice-6 commit path was unimplementable. Both are the same shape as §17.0 A3's controlled value. §13's table gains the row *collection data — passed per phase, never held in props*. Rejected fallback: mandatory `into_action()` + `match` with a "drop the props before mutating the source" warning in §12.1.
 
-Open for `opus-analyst` before Slice 4I (not decided here): whether `Grid::update` takes `M: GridEditor` with defaulted refusals on `GridEditor`, or two entry points (`update` / `update_editable`). Slice 3 does not depend on the answer. <!-- amended by §23: RESOLVED by Adjudication K2 — two entry points; the `update<M: GridModel>(…, &mut M)` line above is superseded by §12.3 -->
+Open for `read-only analyst` before Slice 4I (not decided here): whether `Grid::update` takes `M: GridEditor` with defaulted refusals on `GridEditor`, or two entry points (`update` / `update_editable`). Slice 3 does not depend on the answer. <!-- amended by §23: RESOLVED by Adjudication K2 — two entry points; the `update<M: GridModel>(…, &mut M)` line above is superseded by §12.3 -->
 
 **Item 2 — B5: `Ui::cache<T>(id)` and rendering rule R8.** *(adjudicated amendment)* Amends §5, §17.0 A2, §20.9-7/-8/-9, §16.5.
 
@@ -5066,7 +5066,7 @@ Pass condition for the two new architecture tests: `crates/tui/tests/allow/legac
 
 ## 23. Adjudication K — `Form` API and `Grid::update` bound
 
-**Status:** Accepted. Source: `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K). Resolves the two items §21 left open ("Not applied — requires a fresh `opus-analyst` decision"). Nothing here reopens Adjudications A–J or L. Each inline edit carries `<!-- amended by §23 -->`.
+**Status:** Accepted. Source: `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K). Resolves the two items §21 left open ("Not applied — requires a fresh `read-only analyst` decision"). Nothing here reopens Adjudications A–J or L. Each inline edit carries `<!-- amended by §23 -->`.
 
 **Facts the two decisions rest on** (ADJ‑K §0). **[F]** Three hand-built form engines exist: jackin `FormDialog` (`src/bin/jackin_preview/screens/modals.rs:787-1541` — data-declared fields, 5 kinds, one key router, one click router, scroll, action row), TablePro `ConnForm` (`connections.rs:62-87`, routers `:573-687`, `:793-861`, `:863-887`, layout `:1120-1256` — 17 controls + a `Tabs` strip + 4 buttons, three `if f == …` ladders, manual height arithmetic), TablePro `FilterEditor` (`app.rs:99-109`, `:1368-1433` — rebuilt wholesale on every open). **[F]** DOM §4.1 J2 records them as "three independent form engines" and names the required capabilities; §14.2 J2 already adjudicated "library component `Form` + `Field<C>`". **[F]** TablePro's password is a *plain* `TextInput` with a placeholder, not `.masked()` (`connections.rs:155-157`) — a live defect. **[F]** Scroll-to-focused-field mutates `ScrollState` from `render` (`modals.rs:1356-1371`); TablePro sets `disabled` and the tab error flag *inside render* (`connections.rs:1205-1206`, `:1134`); the engine→default-port effect rebuilds the `TextInput` (`:621-634`). Constraints honoured: props built once, never from `&self` (§13); data passed to phase calls, never held in props (§21 item 1); `FieldControl` is draw-time chrome only and `Field` has no `Id` (§21 item 7); one action per `Response`, `BitOr` only for `Response<()>` (§21 item 4); controlled `&mut` values (§4 rule 4, S4); `draw` is `&self` + `&XState` (§3.1, R2); containers register `Decorative` regions (§21 item 13); Esc reaches the focused editor before the layer (§21 item 3).
 
@@ -5402,7 +5402,7 @@ Pass condition: all commands succeed, the four `!`-prefixed greps return no matc
 
 ## 25. Slice 3 foundations review — accepted adjudications and deviations
 
-**Source.** `docs/reviews/slice3-foundations-review.md` — a fresh read-only `opus-analyst` review of `crates/tui` (package `junie-tui`, lib `junie_tui`), `crates/tui-testing`, `xtask`, `crates/tui/tests/**`, `crates/tui/examples/12_author_component.rs` and `crates/tui/README.md` at commit `18afddd`, read against §3–§13, §16, §17.0, §21–§24, Appendix B and `docs/audit/modern-api-audit.md` §1–§2. **Accepted as written.** This section records it; it does not re-decide it. Every earlier section it changes carries an inline `<!-- amended by §25 -->` marker.
+**Source.** `docs/reviews/slice3-foundations-review.md` — a fresh read-only `read-only analyst` review of `crates/tui` (package `junie-tui`, lib `junie_tui`), `crates/tui-testing`, `xtask`, `crates/tui/tests/**`, `crates/tui/examples/12_author_component.rs` and `crates/tui/README.md` at commit `18afddd`, read against §3–§13, §16, §17.0, §21–§24, Appendix B and `docs/audit/modern-api-audit.md` §1–§2. **Accepted as written.** This section records it; it does not re-decide it. Every earlier section it changes carries an inline `<!-- amended by §25 -->` marker.
 
 **Verdict recorded.** *Components may build on this surface: **no** as it stands; **yes** after the seven blockers and the eight adjudications are applied.* The intent queue, focus ring, capture, scroll, layout, reconcile core and the conformance driver are ready. Seven defects are load-bearing for Slice 4 and live in files Slice 3 owns, so a 4x owner cannot fix them; four document amendments are required so the gates stop asserting things that are false. Numeric colour claims the review marks *(estimate)* were hand arithmetic and must be re-derived before blessing.
 
@@ -6640,7 +6640,7 @@ must enforce `LayerSpec::dismisses_on_focus_out()`. See §29.8.
 
 ### §29.8 Amendment — a `Popover` does not trap; it dismisses on focus-out <!-- amended by §29.8 -->
 
-**Status: accepted.** A fresh read-only `opus-analyst` adjudicated a direct
+**Status: accepted.** A fresh read-only `read-only analyst` adjudicated a direct
 conflict between recorded §29.6 and a second lead's unrecorded adjudication that
 would have given `Select` `Caps::TRAPS_FOCUS`. **§29's decision is confirmed, not
 overturned**, which is why this is an in-place §29 amendment rather than a new
@@ -6788,7 +6788,7 @@ The `FieldControl` item channel remains unresolved. RadioGroup's controlled valu
 
 ## §31 Adjudication — mono fallbacks must reach the neutral recipe <!-- amended by §31 -->
 
-**Status: accepted.** Fresh read-only `opus-analyst` adjudication of finding F1, recorded separately because it corrects an **exact type** (§11.3) and widens the scope of a **Decision** (§11.4), both of which the change-control rule at line 3 binds.
+**Status: accepted.** Fresh read-only `read-only analyst` adjudication of finding F1, recorded separately because it corrects an **exact type** (§11.3) and widens the scope of a **Decision** (§11.4), both of which the change-control rule at line 3 binds.
 
 ### §31.1 The defect <!-- amended by §31 -->
 
@@ -6855,7 +6855,7 @@ Two secondary effects, neither test-visible: a *mono-downgraded* theme's `finger
 
 ## §32 Corrections — independent audit of Adjudications Q and P <!-- amended by §32 -->
 
-**Status: accepted.** A fresh read-only `opus-analyst`, given none of the context of the work it was checking, audited whether Adjudication Q (§29) and the `ChipBar` decision (§30) are completely and correctly applied. Most of Q is genuinely applied. Four things were wrong rather than merely incomplete, and are corrected here.
+**Status: accepted.** A fresh read-only `read-only analyst`, given none of the context of the work it was checking, audited whether Adjudication Q (§29) and the `ChipBar` decision (§30) are completely and correctly applied. Most of Q is genuinely applied. Four things were wrong rather than merely incomplete, and are corrected here.
 
 ### §32.1 §30 stated `ChipBar`'s parts contract incorrectly <!-- amended by §32 -->
 
@@ -6885,7 +6885,7 @@ Underneath sits a real contradiction with §11.4, which says "A component with n
 
 ## §33 Adjudication — `PARTS` is a styling contract, not an override surface <!-- amended by §33 -->
 
-**Status: accepted.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged: it corrects an invariant (§16.2's registry check), an exact type (`Conformance::PARTS`'s meaning), and strikes an overclaim in §26.2 N2.
+**Status: accepted.** Fresh read-only `read-only analyst` adjudication. Change control at line 3 is engaged: it corrects an invariant (§16.2's registry check), an exact type (`Conformance::PARTS`'s meaning), and strikes an overclaim in §26.2 N2.
 
 ### §33.1 The conflation <!-- amended by §33 -->
 
@@ -6945,7 +6945,7 @@ Closing it properly needs an owner scope on `Ui` (`ui.with_owner(id, …)`), whi
 
 ## §34 Adjudication — capability detection belongs to `run`, and the mono review has never executed <!-- amended by §34 -->
 
-**Status: accepted.** Fresh read-only `opus-analyst` adjudication of finding F6. Change control at line 3 is engaged: it changes the described behaviour of the named public function `run` (§17.0 A1) and adds a binding clause to §11.4.
+**Status: accepted.** Fresh read-only `read-only analyst` adjudication of finding F6. Change control at line 3 is engaged: it changes the described behaviour of the named public function `run` (§17.0 A1) and adds a binding clause to §11.4.
 
 ### §34.1 The defect <!-- amended by §34 -->
 
@@ -6989,7 +6989,7 @@ What changes is the runtime behaviour of the three binaries under `NO_COLOR`, `T
 
 ## §35 Adjudication — old Ui scroll convenience is struck, and the defect class behind it <!-- amended by §35 -->
 
-**Status: accepted.** Fresh read-only `opus-analyst` adjudication. §12.2, §25.11 and §26.3 are amended in place.
+**Status: accepted.** Fresh read-only `read-only analyst` adjudication. §12.2, §25.11 and §26.3 are amended in place.
 
 ### §35.1 Verdict <!-- amended by §35 -->
 
@@ -7037,7 +7037,7 @@ Two recorded behaviours the builder must **not** "correct": the glyph-set swap i
 
 ## §36 Adjudication — first-generation digests are a numbered change <!-- amended by §36 -->
 
-**Status: accepted.** Fresh read-only `opus-analyst` adjudication, blocking the Slice-4 wave-1 baseline bless. Change control at line 3 is engaged three times: it adds a numbered item to §20.10, it extends item 18's tail clause, and it corrects §16.3's statement of what `xtask bless-guard` requires and enforces.
+**Status: accepted.** Fresh read-only `read-only analyst` adjudication, blocking the Slice-4 wave-1 baseline bless. Change control at line 3 is engaged three times: it adds a numbered item to §20.10, it extends item 18's tail clause, and it corrects §16.3's statement of what `xtask bless-guard` requires and enforces.
 
 ### §36.1 The gap <!-- amended by §36 -->
 
@@ -7063,7 +7063,7 @@ Two consequences. The count "3" is wrong as a count of moved cells. And the ques
 
 ### §36.4 What "review" means, stated without laundering <!-- amended by §36 -->
 
-**A first-generation digest cannot be reviewed as a digest.** The hash is not inspectable and there is no before-image. What is reviewed is the frame, and only its **glyph half**: the frame text, read by a fresh read-only `opus-analyst` who did not generate the lines, at junie 120×40 in truecolor and mono, against six named rejection conditions. `paper` and 40×10 are derived axes already asserted by conformance cases 8 and 19.
+**A first-generation digest cannot be reviewed as a digest.** The hash is not inspectable and there is no before-image. What is reviewed is the frame, and only its **glyph half**: the frame text, read by a fresh read-only `read-only analyst` who did not generate the lines, at junie 120×40 in truecolor and mono, against six named rejection conditions. `paper` and 40×10 are derived axes already asserted by conformance cases 8 and 19.
 
 **The style half — foreground, background, modifier — is reviewed by nobody**, and item 19 says so rather than implying otherwise. It is asserted instead by the 20-case conformance matrix and the `theme::*` contrast tests. A first-generation line is a **pin against future drift, not an approval of present appearance**.
 
@@ -7112,7 +7112,7 @@ It was flagged rather than changed, and that judgement is endorsed: the false gr
 
 ## §38 Adjudication — readiness is a declared capability, not a sentence <!-- amended by §38 -->
 
-**Status: accepted.** Fresh read-only `opus-analyst` adjudication of the contradiction between §11.4's readiness rule and the `mono_narrowing_reason()` strings. Change control at line 3 is engaged twice: §11.4's `BUSY`/`LOADING` obligation is restated as a positive, machine-checked rule, and §29.3's enumerated table is replaced by a pointer.
+**Status: accepted.** Fresh read-only `read-only analyst` adjudication of the contradiction between §11.4's readiness rule and the `mono_narrowing_reason()` strings. Change control at line 3 is engaged twice: §11.4's `BUSY`/`LOADING` obligation is restated as a positive, machine-checked rule, and §29.3's enumerated table is replaced by a pointer.
 
 ### §38.1 The rule was right and its predicate was wrong <!-- amended by §38 -->
 
@@ -7156,7 +7156,7 @@ The root cause is that `mono_states()` **conflates two properties and only one i
 
 ## §39 Adjudication — forcing substitutes for the runtime, never for the props <!-- amended by §39 -->
 
-**Status: accepted and implemented. Unblocks the §36 first-generation correction — see §39.4 and §49.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged three times: it changes the exact type of `PartStyle::flags`, adds an invariant to §12.1's A11 clause, and changes the exact type of `Fixture::forced` in §16.2. <!-- implementation completed in Session 5: the two-half operator, `Option<StateFlags>` fixture contract, Empty forwarding, and Progress done-rule proof -->
+**Status: accepted and implemented. Unblocks the §36 first-generation correction — see §39.4 and §49.** Fresh read-only `read-only analyst` adjudication. Change control at line 3 is engaged three times: it changes the exact type of `PartStyle::flags`, adds an invariant to §12.1's A11 clause, and changes the exact type of `Fixture::forced` in §16.2. <!-- implementation completed in Session 5: the two-half operator, `Option<StateFlags>` fixture contract, Empty forwarding, and Progress done-rule proof -->
 
 ### §39.0 Corrections to the finding that prompted it <!-- amended by §39 -->
 
@@ -7211,7 +7211,7 @@ The union does **not** make the twenty-three guards removable. They are not abou
 
 ## §40 Record — the premise nobody checked, and the corrections it forced <!-- amended by §40 -->
 
-**Status: recorded.** A fresh read-only `opus-analyst`, given none of the session's context, was asked to find what was wrong with §29.8 and §31–§37. It found the premise underneath all of them.
+**Status: recorded.** A fresh read-only `read-only analyst`, given none of the session's context, was asked to find what was wrong with §29.8 and §31–§37. It found the premise underneath all of them.
 
 ### §40.1 Historical record — `xtask doc-check` did not scan the then-written sections <!-- amended by §40 -->
 
@@ -7433,7 +7433,7 @@ The four worth naming here:
 
 ## §45 Adjudication — the override surface was delegated to prose, and nothing read the prose <!-- amended by §45 -->
 
-**Status: accepted.** Fresh read-only `opus-analyst` adjudication. Change control at line 3 is engaged three times: it changes §13.2's `## Overrides` heading from documentation into a **contract**, adds a suite-level invariant to §16.2, and adds a binding clause to §11.4's `BUSY`/`LOADING` row.
+**Status: accepted.** Fresh read-only `read-only analyst` adjudication. Change control at line 3 is engaged three times: it changes §13.2's `## Overrides` heading from documentation into a **contract**, adds a suite-level invariant to §16.2, and adds a binding clause to §11.4's `BUSY`/`LOADING` row.
 
 ### §45.1 The measurement <!-- amended by §45 -->
 
@@ -8554,7 +8554,7 @@ explicit argv carries a `--color`, because the flag wins over the environment. U
 - `run::a_dumb_terminal_outranks_every_flag`
 - `run::redirected_output_stays_mono_under_a_colour_flag`
 
-**Open sub-question, for `opus-analyst` and not for the implementer.** The ceiling needs a total
+**Open sub-question, for `read-only analyst` and not for the implementer.** The ceiling needs a total
 order over `ColorLevel`. Whether that order becomes **public** (deriving `PartialOrd`/`Ord` on a
 `#[non_exhaustive]` public enum, which then permanently promises that ordering and invites callers
 to treat colour levels as a lattice) or stays a **crate-private rank function** is a public-API
@@ -8643,7 +8643,7 @@ item 19 itself was created to avoid.
   `apps/<app>/tests/baselines/<app>.txt` at the commit that creates it. **Nothing moves**: the app
   package did not exist in the reviewed tree, so no key has a before-image *in that file*. Review
   is by frames, not by hash: the D2 capture matrix produces the captures, and a fresh read-only
-  `opus-analyst` visual reviewer — never the builder who generated the keys — compares them against
+  `read-only analyst` visual reviewer — never the builder who generated the keys — compares them against
   the corresponding `baseline/before/**` capture for the same app, page, size and colour level.
   **Where a before capture exists, a difference is classified, not waved through as
   first-generation.** `{scope: first-generation}`; the second movement of one of these keys

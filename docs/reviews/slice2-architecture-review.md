@@ -1,6 +1,6 @@
 # Slice 2 architecture review — COMPONENT_ARCHITECTURE.md
 
-**Reviewer:** fresh read-only `opus-analyst` (goal §27 Slice 2, §28 "Independent verifier"). No prior work assumed correct.
+**Reviewer:** fresh read-only `read-only analyst` (goal §27 Slice 2, §28 "Independent verifier"). No prior work assumed correct.
 **Scope read:** `REFACTORING_GOAL.md` §5, §9–§23, §25, §27, §29; `COMPONENT_ARCHITECTURE.md` in full (2 768 lines); spot verification against `Cargo.toml`, `src/core/id.rs`, `src/bin/showcase/app_tests.rs`, `src/bin/jackin_preview/screens/mod.rs`.
 **Method:** §16–§20 and Appendices A/B were treated as a *consumer* of §3–§15 and every type, method, module path, test name, precedence rule and file path used downstream was resolved against §3–§15 or §17.0. Every §17 example was read as Rust that must compile under `architecture::all_examples_compile`.
 
@@ -803,7 +803,7 @@ Goal §27 Slice 2 requires a *representative prototype*, not the foundations. Th
 11. `RUSTDOCFLAGS="-D warnings" cargo doc -p <lib> --no-deps` green with `#![deny(missing_docs)]`, and `cargo test -p <lib> --doc` green for the condensed forms of examples 1, 5, 6, 7, 8.
 12. `xtask doc-check` green: every ```` ```rust ```` block and every `` `Type::method` `` reference in the corrected §3–§17 of `COMPONENT_ARCHITECTURE.md` resolves against the prototype's rustdoc-json, **or** is on an explicit "not yet built (Slice 3/4)" allow-list that the check prints. This is what prevents the §17.0-versus-§3–§15 drift from recurring.
 13. `[F]` The legacy tree is untouched and green: `cargo test --all-targets` at the repository root still passes all 198 existing tests (26 showcase, 21 tablepro, 22 jackin + in-module units), and `cargo run --bin showcase` still runs, proving the §7 staging plan.
-14. A fresh read-only `opus-analyst` reviews the prototype's **actual public API** — not the document — against §13's conventions and this review's findings, and reports zero unresolved BLOCKER or MAJOR items. Goal §27 Slice 2's "do not continue with an awkward API merely because code has already been written" is discharged here, and only here.
+14. A fresh read-only `read-only analyst` reviews the prototype's **actual public API** — not the document — against §13's conventions and this review's findings, and reports zero unresolved BLOCKER or MAJOR items. Goal §27 Slice 2's "do not continue with an awkward API merely because code has already been written" is discharged here, and only here.
 
 If any of 1, 4, 8, 12 or 13 fails, the correct action is to revise the architecture, not the test.
 
