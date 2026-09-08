@@ -380,3 +380,15 @@ fn detailed_reserve_and_scrollbar_share_preview_pointer_geometry() {
     let _ = h.click(4, 2);
     assert!(h.app().state.selected_rows().contains(ItemKey::index(1)));
 }
+
+#[test]
+fn rapid_repeated_gutter_clicks_each_toggle_the_source_row() {
+    let mut h = Harness::new(Page::new(40), Theme::junie(), 40, 6);
+    for selected in [true, false, true, false] {
+        let _ = h.click(4, 2);
+        assert_eq!(
+            h.app().state.selected_rows().contains(ItemKey::index(1)),
+            selected
+        );
+    }
+}

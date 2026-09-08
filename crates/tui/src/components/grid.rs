@@ -2619,7 +2619,7 @@ impl Grid<'_> {
                     }
                 }
                 Intent::Pointer {
-                    phase: Phase::Click,
+                    phase: Phase::Click | Phase::DoubleClick,
                     part:
                         PartRef {
                             part: Part::ROW_NUMBER,
