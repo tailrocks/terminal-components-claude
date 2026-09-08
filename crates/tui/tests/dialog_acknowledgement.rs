@@ -105,3 +105,24 @@ fn changing_committed_acknowledgement_disarms_confirmation() {
     let _ = h.click_id(dialog().action_id(1));
     assert_eq!(h.app().confirmations, 0);
 }
+
+#[test]
+fn editing_observable_tracks_private_editor_lifecycle_without_text() {
+    let mut h = Harness::new(Fixture::default(), Theme::junie(), 100, 30);
+    assert!(h.app().state.is_editing());
+    let _ = h.type_str(TOKEN);
+    assert!(h.app().state.is_editing());
+    assert!(h.app().state.draft().is_empty());
+    let _ = h.key(KeyCode::Enter);
+    assert!(!h.app().state.is_editing());
+    assert_eq!(h.app().confirmations, 0);
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().state.is_editing());
+    h.app_mut().state.zeroize();
+    assert!(
+        h.app().state.is_editing(),
+        "zeroize wipes text without changing editor mode"
+    );
+    assert!(h.app().state.draft().is_empty());
+    assert!(!format!("{:?}", h.app().state).contains(TOKEN));
+}

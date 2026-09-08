@@ -55,9 +55,8 @@ impl<'a> MetadataOverride<'a> {
 /// ## Configuration
 /// `.variant(Variant)` (default `Recipe.default_variant`), `.status(Status)`
 /// (`Ready`), `.frame(usize)` (`0`), `.patch`, `.patch_part`, `.slot`,
-/// Centring is a property of the layer
-/// (`HintLayer::centered`), not of the bar, because the layer is what a
-/// screen or an overlay contributes.
+/// Default centring comes from the selected layer (`HintLayer::centered`).
+/// [`DerivedHintBar::centered`] can override it after context selection.
 ///
 /// ## Variants
 /// `Family::HINTBAR`; `DEFAULT` only. The nested key hints resolve under
@@ -145,6 +144,7 @@ pub struct HintBar<'a> {
     layer: &'a HintLayer,
     badge_override: MetadataOverride<'a>,
     status_text_override: MetadataOverride<'a>,
+    centered_override: Option<bool>,
     variant: Variant,
     status: Status,
     frame: usize,
@@ -187,6 +187,7 @@ impl<'a> HintBar<'a> {
             layer,
             badge_override: MetadataOverride::Inherit,
             status_text_override: MetadataOverride::Inherit,
+            centered_override: None,
             variant: Variant::DEFAULT,
             status: Status::Ready,
             frame: 0,
@@ -206,6 +207,7 @@ impl<'a> HintBar<'a> {
             global: None,
             badge: MetadataOverride::Inherit,
             status_text: MetadataOverride::Inherit,
+            centered: None,
         }
     }
 
@@ -484,7 +486,7 @@ impl<'a> HintBar<'a> {
 
         let budget = right_limit.saturating_sub(x);
         let (drawn, used) = self.fitting(budget);
-        if self.layer.centered {
+        if self.centered_override.unwrap_or(self.layer.centered) {
             // the block sits mid-row, never past the badge and never under
             // the status
             let free = area.width.saturating_sub(used);
@@ -562,6 +564,7 @@ pub struct DerivedHintBar<'a> {
     global: Option<&'a HintLayer>,
     badge: MetadataOverride<'a>,
     status_text: MetadataOverride<'a>,
+    centered: Option<bool>,
 }
 
 impl<'a> DerivedHintBar<'a> {
@@ -610,15 +613,24 @@ impl<'a> DerivedHintBar<'a> {
         self
     }
 
+    /// Override centering after selecting the active hint context.
+    /// Omitting this builder preserves the selected layer's alignment.
+    #[must_use]
+    pub const fn centered(mut self, centered: bool) -> Self {
+        self.centered = Some(centered);
+        self
+    }
+
     fn draw_layer(&self, ui: &mut Ui<'_>, area: Rect, layer: &HintLayer) -> Rect {
         let mut bar = HintBar::new(self.id, layer);
         bar.badge_override = self.badge;
         bar.status_text_override = self.status_text;
+        bar.centered_override = self.centered;
         bar.draw(ui, area)
     }
 
     /// Draw the first nonempty layer in top, mode, focused, screen, global
-    /// precedence order, then apply explicit badge and status text overrides.
+    /// precedence order, then apply explicit badge, status text and alignment overrides.
     /// Nonempty explicit metadata also renders when no hint context exists.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if let Some(layer) = self.top.filter(|layer| !layer.is_empty()) {

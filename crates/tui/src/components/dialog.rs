@@ -142,6 +142,12 @@ impl fmt::Debug for DialogState {
 }
 
 impl DialogState {
+    /// Whether the prompt or acknowledgement editor is actively editing.
+    /// This exposes no draft text, acknowledgement token, or comparison result.
+    pub const fn is_editing(&self) -> bool {
+        self.input.is_editing()
+    }
+
     /// The committed prompt text. Acknowledgement drafts return an empty
     /// string; the token is only compared inside the dialog.
     pub fn draft(&self) -> &str {

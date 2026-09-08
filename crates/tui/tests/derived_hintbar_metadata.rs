@@ -33,6 +33,7 @@ struct Page {
     screen: HintLayer,
     status: String,
     badge: String,
+    centered: Option<bool>,
 }
 impl Default for Page {
     fn default() -> Self {
@@ -40,6 +41,7 @@ impl Default for Page {
             screen: layer("SCREEN"),
             status: "saved".into(),
             badge: "EDIT".into(),
+            centered: None,
         }
     }
 }
@@ -49,11 +51,12 @@ impl App for Page {
     }
     fn draw(&self, ui: &mut Ui<'_>) {
         Button::new(BUTTON, "Run").draw(ui, Rect::new(0, 0, 10, 1));
-        HintBar::derived(FOOTER)
+        let bar = HintBar::derived(FOOTER)
             .screen(&self.screen)
             .status_text(Some(&self.status))
-            .badge(Some(&self.badge))
-            .draw(ui, AREA);
+            .badge(Some(&self.badge));
+        let bar = self.centered.map_or(bar, |centered| bar.centered(centered));
+        bar.draw(ui, AREA);
         HintBar::derived(Id::root("footer.unmodified"))
             .screen(&self.screen)
             .draw(ui, Rect::new(0, 3, 60, 1));
@@ -181,4 +184,41 @@ fn metadata_without_a_hint_context_still_renders_and_redraw_allocates_nothing() 
     let before = junie_tui_testing::perf::allocs();
     h.draw();
     assert_eq!(junie_tui_testing::perf::allocs() - before, 0);
+}
+
+#[test]
+fn centered_override_follows_context_selection_without_mutating_cached_hints() {
+    let mut h = Harness::new(Page::default(), Theme::junie(), 60, 5);
+    let left = h.row(2);
+    let inherited = h.row(3);
+    let left_position = left.find("Activate");
+    h.app_mut().centered = Some(true);
+    h.draw();
+    assert!(h.row(2).find("Activate") > left_position);
+    assert_eq!(h.row(3), inherited);
+    h.app_mut().centered = Some(false);
+    h.draw();
+    assert_eq!(h.row(2), left);
+    assert_eq!(h.row(3), inherited);
+
+    let mut top = layer("TOP");
+    top.centered = true;
+    let mut scene = Scene::new(
+        "centering",
+        Theme::junie(),
+        junie_tui::ColorLevel::TrueColor,
+        60,
+        2,
+    );
+    scene.draw(|ui, _| {
+        HintBar::derived(FOOTER)
+            .top(&top)
+            .draw(ui, Rect::new(0, 0, 60, 1));
+        HintBar::derived(Id::root("left"))
+            .top(&top)
+            .centered(false)
+            .draw(ui, Rect::new(0, 1, 60, 1));
+    });
+    assert!(row(&scene, 0).find("TOP") > row(&scene, 1).find("TOP"));
+    assert!(top.centered);
 }
