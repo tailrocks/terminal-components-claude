@@ -280,6 +280,22 @@ test qualifications and formatting without assertion changes. Strict style timin
 remains unaccepted. Tree state-replacement cache alias and Grid pending reveal
 on unusable sticky geometry are newly reproduced, assigned structural repairs.
 
+Tree pointer projection00a7014 and repeat-selected clickc382567 restore keyed
+row/disclosure hover/press and opt-in semantic repeat activation. Disabled rows now
+refuse pointer selection as well as activation; enabled default click/double-click
+policy stays unchanged. Independent repeat review14 MSRV tests bound in
+E/tree-repeat-independent/REVIEW.md SHA8d0c96d3…487c206. Middle painter55bcc19
+shares borrowed decomposition with the preserved owned helper; independent20,000
+original-helper/cell comparisons, clipping/dimming and zero-allocation proof in
+E/middle-paint-independent/REVIEW.md SHA5998c0e2…9bc0e0. Root757 library+31
+public tests and239 four-app library tests pass; full workspace MSRV Clippy and
+stable formatting pass. Initial gate used nonexistent tree_custom_row target;
+corrected to actual tree_row_renderer before execution claims. Manager composition
+and Tree replacement lineage remain separate work. Nonsearch Picker root review
+found swallowed Cancel/Back/Scope during query-clear; author940b3aa repairs this,
+independent review pending before integration. Linux task VM remains provisioning;
+no Linux Rust/bwrap execution or capture acceptance is claimed.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
