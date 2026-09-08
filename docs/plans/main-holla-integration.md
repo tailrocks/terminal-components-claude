@@ -333,6 +333,24 @@ Holla Plan train remains held: independent replacement probe rejects98c5210,
 whose old acknowledgement can authorize a fresh same-shaped review. Owner is
 repairing immutable review binding; failed evidence remains E/plan-ack-independent.
 
+Grid adeecef/02ef49f/e164c60/66011f8/dbf9f94 now integrates keyboard-only
+editor geometry, header/gap policies, source complete-column previews and retained
+sticky-only reveal. Root reviewed full train;759 library+50 public MSRV tests
+pass, two unchanged release Grid collection gates pass. Independent train review
+E/grid-column-geometry/INDEPENDENT-TRAIN-REVIEW.md SHA90ef0ac5…17b6b binds
+source preview execution and compiled guard coverage. Defaults remain separate
+from the opt-in preview policy. Combined TextInput configuration has four
+independent booleans; a local strict lint expectation records their orthogonality,
+independently reviewed, without changing behavior or numeric performance limits.
+TablePro141fe72/2a41e3e restores typed switcher destinations, real Ctrl+O and
+validated schema context while preserving drafts and stable tabs. Root60 tests
+pass (33 lib,3 model,7 route,11 quit,6 row actions); all11 TablePro release gates
+pass. Independent E/tablepro-quick-switcher/INDEPENDENT-ROUTES.md
+SHA7897e3b2…3c2e binds786 hashes and340/356 unchanged frames;16 QuickSwitcher
+frames change. Shared row glyph/group/match appearance and lazy explorer loading
+remain open. Remaining three app library suites, full-workspace MSRV Clippy
+and stable formatting pass. No full-app visual acceptance or final merge claim.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in

@@ -927,6 +927,10 @@ pub(crate) fn redacted_text(text: &str) -> String {
 /// a secret draft is masked while editing and never reaches `Debug`; the
 /// hardware cursor belongs to focus by default; an explicit fallback policy
 /// may publish the active draft as cursor owner without moving focus.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "placeholder visibility, editability, availability and pointer admission are independent borrowed configuration"
+)]
 pub struct TextInput<'a> {
     id: Id,
     value: Option<&'a str>,
