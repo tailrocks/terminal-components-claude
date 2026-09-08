@@ -67,13 +67,27 @@ pub fn truncate(s: &str, max: u16) -> String {
 
 /// Truncate keeping both ends: `very_long_identifier_name` → `very_l…_name`.
 pub fn truncate_middle(s: &str, max: u16) -> String {
+    let parts = middle_parts(s, max);
+    let mut out = String::with_capacity(parts.iter().map(|part| part.len()).sum());
+    for part in parts {
+        out.push_str(part);
+    }
+    out
+}
+
+/// Borrowed decomposition shared by text helpers and the clipping painter.
+pub(crate) fn middle_parts(s: &str, max: u16) -> [&str; 3] {
     if width(s) <= max {
-        return s.to_owned();
+        return [s, "", ""];
     }
-    if max < 5 {
-        return truncate(s, max);
+    if max == 0 {
+        return ["", "", ""];
     }
-    let keep_end = max.saturating_sub(1) / 3;
+    let keep_end = if max < 5 {
+        0
+    } else {
+        max.saturating_sub(1) / 3
+    };
     let keep_start = max.saturating_sub(1).saturating_sub(keep_end);
     let mut head_end = 0usize;
     let mut w = 0u16;
@@ -87,25 +101,21 @@ pub fn truncate_middle(s: &str, max: u16) -> String {
     }
     let mut tail_start = s.len();
     let mut w = 0u16;
-    for (i, g) in s.grapheme_indices(true).rev() {
-        let gw = grapheme_width(g);
-        if w.saturating_add(gw) > keep_end {
-            break;
+    if keep_end > 0 {
+        for (i, g) in s.grapheme_indices(true).rev() {
+            let gw = grapheme_width(g);
+            if w.saturating_add(gw) > keep_end {
+                break;
+            }
+            tail_start = i;
+            w = w.saturating_add(gw);
         }
-        tail_start = i;
-        w = w.saturating_add(gw);
     }
-    let head = s.get(..head_end).unwrap_or("");
-    let tail = s.get(tail_start..).unwrap_or("");
-    let mut out = String::with_capacity(
-        head.len()
-            .saturating_add(tail.len())
-            .saturating_add('…'.len_utf8()),
-    );
-    out.push_str(head);
-    out.push('…');
-    out.push_str(tail);
-    out
+    [
+        s.get(..head_end).unwrap_or(""),
+        "…",
+        s.get(tail_start..).unwrap_or(""),
+    ]
 }
 
 /// One step of the wrap walk: text to append, a separating space, or a line

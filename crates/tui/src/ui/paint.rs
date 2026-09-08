@@ -71,6 +71,33 @@ impl Ui<'_> {
         x.saturating_sub(area.x)
     }
 
+    /// Paint middle-truncated text without allocating, preserving semantic style.
+    ///
+    /// The visible width after ancestor clipping is the truncation budget, as
+    /// with `paint_str`. Widths below five use end truncation. Returns columns
+    /// painted; wide continuations and control graphemes use the shared writer.
+    pub fn paint_middle(&mut self, area: Rect, text: &str, s: impl Into<PaintStyle>) -> u16 {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return 0;
+        }
+        let s = s.into();
+        let mut used = 0u16;
+        for part in crate::text::measure::middle_parts(text, area.width) {
+            used = used.saturating_add(self.paint_str(
+                Rect::new(
+                    area.x.saturating_add(used),
+                    area.y,
+                    area.width.saturating_sub(used),
+                    area.height,
+                ),
+                part,
+                s,
+            ));
+        }
+        used
+    }
+
     /// Paint semantic spans with no allocation, inheriting `base` independently
     /// for each span. Width and continuation handling share the string writer.
     pub fn paint_spans(
