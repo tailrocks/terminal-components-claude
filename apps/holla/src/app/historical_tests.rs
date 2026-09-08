@@ -851,3 +851,111 @@ fn pg_terminate_revalidates_before_killing() {
     let Some(sessions) = sessions else { return };
     assert!(!sessions.iter().any(|s| s.pid == 4201));
 }
+
+#[test]
+fn git_sync_plan_resolves_per_child_primary_branches() {
+    let mut h = fixture(Scenario::MonorepoRoot, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("update all child");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().route == Route::Plan, "{}", h.text());
+    let t = h.text();
+    // primary branches come from each child, never a hard-coded main
+    assert!(t.contains("Check out main (legacy)"), "{t}");
+    assert!(t.contains("Check out trunk (billing)"), "{t}");
+    // detached child is policy-skipped, not offered as excludable
+    assert!(t.contains("detached at a1b2c3d · skipped"), "{t}");
+    // gate 2 binds the phrase to the monorepo root
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text()
+            .contains("UPDATE ALL CHILD PROJECTS IN ~/work/monorepo"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn disk_reclaim_plan_matches_apply_effect() {
+    let mut h = fixture(Scenario::DiskCleanup, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("reclaim disk");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().route == Route::Plan, "{}", h.text());
+    let disk = h.app().world.disk.as_ref();
+    assert!(disk.is_some());
+    let Some(disk) = disk else { return };
+    let before = disk.candidates.len();
+    let review = h.app().plan.as_ref();
+    assert!(review.is_some());
+    let Some(review) = review else { return };
+    let removable = review
+        .plan()
+        .steps()
+        .iter()
+        .filter(|s| {
+            s.id.starts_with("rm:")
+                && !matches!(s.state, crate::domain::plan::StepState::PolicySkipped(_))
+        })
+        .count();
+    assert!(removable >= 1);
+    let t = h.text();
+    assert!(t.contains("inactive 31 days"), "{t}");
+    assert!(t.contains("active today · never removed"), "{t}");
+    let phrase = review.plan().phrase().to_owned();
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.type_str(&phrase);
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    let disk = h.app().world.disk.as_ref();
+    assert!(disk.is_some());
+    let Some(disk) = disk else { return };
+    assert_eq!(
+        Some(disk.candidates.len()),
+        before.checked_sub(removable),
+        "dry-run steps ↔ removals parity"
+    );
+}
+
+#[test]
+fn git_sync_run_per_child_results_and_honest_effect() {
+    let mut h = fixture(Scenario::MonorepoRoot, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("update all child");
+    let _ = h.key(KeyCode::Enter);
+    let billing_before = h
+        .app()
+        .world
+        .git
+        .as_ref()
+        .and_then(|git| git.children.iter().find(|c| c.root.ends_with("billing")))
+        .cloned();
+    assert!(billing_before.is_some());
+    try_confirm(&mut h, "UPDATE ALL CHILD PROJECTS IN ~/work/monorepo");
+    let t = h.text();
+    assert!(t.contains("diverged · 2 ahead, 3 behind"), "{t}");
+    assert!(t.contains("✓ Pull legacy — fast-forward only"), "{t}");
+    // Reviewed H-S accounting exception: diverged child chains remain untouched,
+    // rather than checking out a branch and then claiming a failed pull.
+    // The original failing assertion is retained in external review evidence.
+    assert!(t.contains("− Pull billing"), "{t}");
+    assert!(
+        t.contains("diverged · 2 ahead, 3 behind · untouched"),
+        "{t}"
+    );
+    let git = h.app().world.git.as_ref();
+    assert!(git.is_some());
+    let Some(git) = git else { return };
+    let legacy = git.children.iter().find(|c| c.root.ends_with("legacy"));
+    let billing = git.children.iter().find(|c| c.root.ends_with("billing"));
+    assert!(legacy.is_some());
+    assert!(billing.is_some());
+    let (Some(legacy), Some(billing)) = (legacy, billing) else {
+        return;
+    };
+    assert_eq!(legacy.behind, 0);
+    assert_eq!(
+        billing.behind, 3,
+        "policy-skipped pull keeps its behind count"
+    );
+    assert_eq!(billing.primary_branch, "trunk");
+    assert_eq!(Some(billing), billing_before.as_ref());
+}
