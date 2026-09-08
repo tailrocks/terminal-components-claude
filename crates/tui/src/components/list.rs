@@ -232,6 +232,8 @@ pub struct ListState {
     core: CollectionCore,
     chosen: Option<ItemKey>,
     anchor: Option<ItemKey>,
+    // Selection transaction; runtime still owns focus and feedback.
+    click_cursor: Option<ItemKey>,
 }
 
 impl ListState {
@@ -381,6 +383,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     render_row: Option<ListRowRenderer<'a, T>>,
     select_mode: SelectMode,
     leave_at_boundary: bool,
+    activate_focused_on_click: bool,
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     pointer_item: Option<&'a dyn Fn(&T) -> bool>,
@@ -420,6 +423,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             render_row: None,
             select_mode: SelectMode::Single,
             leave_at_boundary: false,
+            activate_focused_on_click: false,
             empty: None,
             disabled_item: None,
             pointer_item: None,
@@ -467,6 +471,20 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
+    /// Activate a clicked row only when it was already the cursor and this
+    /// list already owned focus before pointer press.
+    ///
+    /// Defaults to false. When enabled, single and double clicks follow this
+    /// semantic rule independently of the double-click deadline. A click that
+    /// acquires owner focus or selects another row follows the selection mode.
+    /// Disclosure-free body hits, dragging, focus loss and canceled presses
+    /// never activate a row. Keyboard activation remains unchanged.
+    #[must_use]
+    pub const fn activate_focused_on_click(mut self, enabled: bool) -> Self {
+        self.activate_focused_on_click = enabled;
+        self
+    }
+
     /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> List<'a, T, K2, R> {
         List {
@@ -476,6 +494,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             render_row: self.render_row,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
+            activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
@@ -496,6 +515,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             render_row: self.render_row,
             select_mode: self.select_mode,
             leave_at_boundary: self.leave_at_boundary,
+            activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
             disabled_item: self.disabled_item,
             pointer_item: self.pointer_item,
@@ -733,6 +753,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         reason = "the keymap dispatch and the pointer phases in one drain loop"
     )]
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut ListState, items: &[T]) -> Response<ListAction> {
+        let prior_cursor = st.core.cursor();
+        let prior_focus = self.activate_focused_on_click
+            && cx.state(self.id).contains(StateFlags::FOCUSED)
+            && !cx
+                .intents(self.id)
+                .any(|intent| matches!(intent, Intent::FocusIn { .. }));
         let len = items.len();
         let _ = st.core.reconcile_with(
             len,
@@ -764,9 +790,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         acc.fold(&bar);
         let viewport = st.core.scroll().viewport_len().max(1);
         let table = self.table();
+        let mut released = false;
         for it in cx.intents(self.id) {
             match it {
+                Intent::FocusOut { .. } | Intent::Cancel => {
+                    st.click_cursor = None;
+                }
                 Intent::Binding(action) => {
+                    st.click_cursor = None;
                     let cur = st.core.cursor_index();
                     match Binding::command(table, action) {
                         Some(ListCmd::Up)
@@ -841,6 +872,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     pos,
                     ..
                 } => {
+                    released |= phase == Phase::Release;
+                    if matches!(phase, Phase::DragStart | Phase::Drag | Phase::DragEnd) {
+                        st.click_cursor = None;
+                    }
                     // the row index from the pointer row and last frame's view
                     let hint = cx.area(self.id).map(|a| {
                         let view = ScrollRegion::view(st.core.scroll(), a, len);
@@ -848,6 +883,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                             .saturating_add(usize::from(pos.y.saturating_sub(a.y)))
                     });
                     let Some(i) = self.index_of(items, k, hint) else {
+                        st.click_cursor = None;
                         acc.consumed();
                         continue;
                     };
@@ -855,14 +891,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         .get(i)
                         .is_some_and(|item| self.pointer_item.is_none_or(|f| f(item)))
                     {
+                        st.click_cursor = None;
+                        acc.consumed();
+                        continue;
+                    }
+                    if self.activate_focused_on_click && !self.enabled_at(items, i) {
+                        st.click_cursor = None;
                         acc.consumed();
                         continue;
                     }
                     match phase {
                         Phase::Press => {
+                            st.click_cursor = prior_cursor.filter(|cursor| {
+                                self.activate_focused_on_click && prior_focus && *cursor == k
+                            });
                             st.anchor = None;
                             st.core.set_cursor(i, k);
                             acc.changed();
+                        }
+                        Phase::Click | Phase::DoubleClick if self.activate_focused_on_click => {
+                            if st.click_cursor.take() == Some(k) {
+                                acc.action(ListAction::Activated(k));
+                            } else {
+                                self.choose(st, items, i, &mut acc);
+                            }
                         }
                         Phase::Click => self.choose(st, items, i, &mut acc),
                         Phase::DoubleClick => {
@@ -873,9 +925,24 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         _ => acc.consumed(),
                     }
                 }
-                Intent::Pointer { .. } => acc.consumed(),
+                Intent::Pointer { phase, .. } => {
+                    if matches!(
+                        phase,
+                        Phase::Press
+                            | Phase::Release
+                            | Phase::DragStart
+                            | Phase::Drag
+                            | Phase::DragEnd
+                    ) {
+                        st.click_cursor = None;
+                    }
+                    acc.consumed();
+                }
                 _ => {}
             }
+        }
+        if released {
+            st.click_cursor = None;
         }
         acc.finish(self.id)
     }
