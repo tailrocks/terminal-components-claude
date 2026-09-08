@@ -1027,6 +1027,10 @@ mod tests {
         assert!(!harness.app().quit);
         let _ = harness.key(KeyCode::Esc);
         let _ = harness.key(KeyCode::F(10));
+        assert!(
+            harness.app().menu.is_open(),
+            "F10 must open the real menu before testing precedence"
+        );
         let _ = harness.ctrl('q');
         assert!(harness.text().contains("Quit holla?"));
         assert!(!harness.app().quit);
@@ -1034,6 +1038,25 @@ mod tests {
         let _ = harness.key(KeyCode::F(10));
         let _ = harness.ctrl('c');
         assert!(harness.app().quit);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
+    fn menu_opens_before_publication_and_survives_focus_settlement() {
+        let mut harness = app(Scenario::HardCases);
+        assert!(harness.tab_to(home::QUERY));
+        let _ = harness.type_str("git");
+        let mut harness = harness.with_auto_draw(false);
+        let _ = harness.key(KeyCode::F(10));
+        assert!(harness.app().menu.is_open(), "event must open menu");
+        harness.draw();
+        assert!(
+            harness.app().menu.is_open(),
+            "publication must preserve menu"
+        );
         assert!(
             harness.diagnostics().is_empty(),
             "{:?}",
