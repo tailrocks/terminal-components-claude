@@ -262,10 +262,12 @@ Runtime::draw(&mut self, frame: &mut Frame)
                         (d) else the first reachable entry in any scope (§25 MI-2),
                         (e) else None.
                       `focus_visible` is true iff the last input was a key.
-                      Focus restoration is staged at close_layer and applied here; until
-                      then FocusState::current is the restore target and key resolution
-                      uses it even though it is absent from the last ring — the one
-                      documented exception to "resolve against last frame" (§21 item 15).
+                      Focus restoration is staged at close_layer and validated here only
+                      after successful live publication. Closing owners receive FocusOut;
+                      historical openers receive no FocusIn until the new ring proves
+                      admissibility. Invalid openers use the reconciliation ladder above.
+                      Input remains retained until publication and settlement complete
+                      (publication amendment to historical §21 item 15).
  15. cursor           the single retained cursor write is kept iff
                       `layer == top_layer && FocusState::current() == owner`; otherwise
                       dropped (debug diagnostic). Then frame.set_cursor_position or hide.
@@ -4799,6 +4801,9 @@ pub enum RegionKind {
 **Item 15 — M29: cursor rejection under `inert_below`; focus-restore staging.** Amends §8.4, §3.3 step 14, §16.2 case 17, §16.1 `focus.rs`.
 
 (a) §8.4: *a `set_cursor` from a suppressed (inert) layer is discarded silently; `CursorRejected` is recorded only for a non-inert lower layer or an unfocused owner.* Case 17 is exercised with a `Popover` (pointer barrier only, no `inert_below`). (b) §3.3 step 14: *focus restoration is staged at `close_layer` and applied at the next draw's reconcile. Until then, `FocusState::current` is the restore target and key resolution uses it even though it is absent from the last ring; this is the one documented exception to "resolve against last frame".* New test `focus::restore_target_receives_keys_before_the_next_draw`.
+
+**Publication restoration amendment:** the historical immediate-opener exception above is superseded. Close lifecycle and the closing owner's `FocusOut` remain immediate, but restoration grants no focus or `FocusIn` until successful live publication validates the opener against the new ring and live layers. Removed, disabled or trapped-out openers use ordinary survivor reconciliation. Fresh programmatic focus remains distinct and may name a newly introduced owner. Dropped/aborted paints and Scene projection cannot acknowledge restoration. The retained obligation remains `focus::restore_target_receives_retained_key_after_the_next_publication`: the same original next key reaches the valid opener after publication and explicit settlement. `focus_restoration::escape_does_not_restore_removed_opener` covers the formerly phantom callback path; `layer::nested_layers_each_trap` retains its target/trap assertions and observes callbacks after explicit settlement.
+
 
 **Item 16 — M3, M5: `Ui::layer` arity; `Id::part` versus `PartRef`.** Amends §3.3 step 12, §7.1, §16.4 item 3, §17.0 A8.
 

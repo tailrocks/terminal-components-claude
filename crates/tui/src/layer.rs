@@ -1127,6 +1127,11 @@ mod runtime_tests {
             Some(OK),
             "focus restored to the dialog's control"
         );
+        assert!(
+            rt.needs_settle(),
+            "publication stages restoration callbacks"
+        );
+        let _ = rt.settle();
         assert!(rt.app().saw(OK, "FocusIn { via: Restore }"));
         let ids: Vec<Id> = rt.ring().reachable().map(|e| e.id).collect();
         assert_eq!(ids, vec![OK, INPUT]);

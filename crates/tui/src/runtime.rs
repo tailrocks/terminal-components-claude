@@ -342,6 +342,11 @@ struct ConflictCacheKey {
     revision: u64,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct FocusRestore {
+    target: Option<Id>,
+}
+
 /// The runtime.
 pub struct Runtime<A: App> {
     app: A,
@@ -358,6 +363,7 @@ pub struct Runtime<A: App> {
     cursor: Option<Position>,
     last_invalidate: Invalidate,
     pending_focus: Option<(Option<Id>, Option<Id>, FocusVia)>,
+    restore_after_publication: Option<FocusRestore>,
     keymap_conflict_key: Option<ConflictCacheKey>,
     keymap_conflict_typing: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflicts: Vec<Diagnostic>,
@@ -415,6 +421,7 @@ impl<A: App> Runtime<A> {
             cursor: None,
             last_invalidate: Invalidate::None,
             pending_focus: None,
+            restore_after_publication: None,
             keymap_conflict_key: None,
             keymap_conflict_typing: Vec::new(),
             keymap_conflicts: Vec::new(),
@@ -635,9 +642,9 @@ impl<A: App> Runtime<A> {
 
     /// Whether `to` may be staged as a focus target.
     ///
-    /// Every producer of a transition — `Tab` traversal, a press, a layer
-    /// restore, `Cx::focus` and `LayerSpec::initial_focus` — funnels through
-    /// [`Self::stage_focus`], so this is the one place a target is judged.
+    /// Immediate transition producers — `Tab` traversal, a press,
+    /// `Cx::focus` and `LayerSpec::initial_focus` — funnel through
+    /// [`Self::stage_focus`], which judges immediate focus admission.
     /// A newly opened layer's initial focus is provisional until its first
     /// publication: that owner may be moving from a prior scope. Otherwise a
     /// target is refused when the last frame proves it cannot hold focus:
@@ -655,9 +662,9 @@ impl<A: App> Runtime<A> {
     /// An id the last frame never saw is **unknown**, not proven bad, and is
     /// admitted. A layer's own controls are absent from the ring until they
     /// first draw, so `LayerSpec::initial_focus` names an unknown id by
-    /// construction, and so does the §21 item 15 restore to an opener a
-    /// modal had made inert. Step 14 reconciliation settles those against
-    /// the ring the next frame actually produces.
+    /// construction. Historical layer restoration is instead validated only
+    /// against successful publication. Step 14 reconciliation settles fresh
+    /// targets against the ring the next frame actually produces.
     ///
     /// A refusal is silent: `Diagnostic` has no variant for a rejected focus
     /// target and adding one is a §17.0 A9 amendment, not an implementation
@@ -685,6 +692,9 @@ impl<A: App> Runtime<A> {
         if to.is_some_and(|id| !self.focus_target_admissible(id)) {
             return;
         }
+        if via != FocusVia::Restore {
+            self.restore_after_publication = None;
+        }
         self.staged_focus = Some((to, via));
     }
 
@@ -705,7 +715,11 @@ impl<A: App> Runtime<A> {
         }
         self.focus.set(to);
         self.last.snapshot.focus = to;
-        self.dismiss_on_focus_out(to);
+        // Detaching a closed owner is not navigation out of surviving layers.
+        // The restoration target has no focus authority until publication.
+        if via != FocusVia::Restore || self.restore_after_publication.is_none() {
+            self.dismiss_on_focus_out(to);
+        }
         true
     }
 
@@ -1169,7 +1183,18 @@ impl<A: App> Runtime<A> {
             let target = first
                 .restore_to
                 .or_else(|| self.focus.take_restore(first.scope()));
-            self.stage_focus(target, FocusVia::Restore);
+            self.restore_after_publication = Some(FocusRestore { target });
+            // Deliver the existing owner's FocusOut during close settlement,
+            // but never send FocusIn to an unvalidated historical opener.
+            if self.focus.current().is_some_and(|owner| {
+                self.last
+                    .ring
+                    .entry(owner)
+                    .is_some_and(|entry| closed.iter().any(|layer| layer.layer == entry.layer))
+            }) {
+                self.stage_focus(None, FocusVia::Restore);
+            }
+            self.services.repaint = true;
         }
     }
 
@@ -1596,6 +1621,8 @@ impl<A: App> Runtime<A> {
         // an `initial_focus` (§16.2 case 17: a component stays focused under
         // a popover and its cursor write is rejected)
         let previous = self.focus.current();
+        let restoration = self.restore_after_publication.take();
+        let restoring = restoration.is_some() && self.services.deferred_focus.is_none();
         let backwards = self
             .services
             .deferred_focus
@@ -1613,6 +1640,10 @@ impl<A: App> Runtime<A> {
             } else {
                 self.frame.ring.reconcile(&self.last.ring, request.anchor)
             }
+        } else if let Some(restoration) = restoration {
+            self.frame
+                .ring
+                .reconcile(&self.last.ring, restoration.target)
         } else {
             self.frame.ring.reconcile(&self.last.ring, previous)
         };
@@ -1657,9 +1688,10 @@ impl<A: App> Runtime<A> {
             }
         });
         if reconciled != previous {
-            let via = if self
-                .staged_focus
-                .is_some_and(|(_, v)| v == FocusVia::Restore)
+            let via = if restoring
+                || self
+                    .staged_focus
+                    .is_some_and(|(_, v)| v == FocusVia::Restore)
             {
                 FocusVia::Restore
             } else {
