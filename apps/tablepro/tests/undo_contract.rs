@@ -1,7 +1,7 @@
 //! The pinned grid's plain-u undo remains scoped to a focused, nonediting grid.
 use junie_tui::{GridEditor, Id, KeyCode, Theme};
 use junie_tui_testing::Harness;
-use tablepro_app::{Surface, Tab, TableProApp, Value};
+use tablepro_app::{Surface, Tab, TableProApp, TableTab, Value};
 
 fn replace_currency(h: &mut Harness<TableProApp>, text: &str) {
     let Some(id) = h.app().result_id() else {
@@ -29,7 +29,27 @@ fn plain_u_after_keyboard_edit_new_tab_and_return_undoes_only_that_logical_table
         unreachable!("table")
     };
     assert!(neighbor.result.model.commit_cell(0, 6, "GBP").is_ok());
-    assert!(app.workbench.open_table("orders"));
+    // Reopening an already-open relation now activates the owned tab instead
+    // of duplicating it, so the second logical tab of the edited relation is
+    // built exactly the way `Workbench::open_table_in_schema` does when the
+    // relation is not open yet.
+    let Some(table) = app
+        .workbench
+        .catalog
+        .find(Some("public"), "orders")
+        .cloned()
+    else {
+        unreachable!("orders relation")
+    };
+    let index = app.workbench.tabs().len();
+    assert!(
+        app.workbench
+            .insert_tab(
+                index,
+                Tab::Table(TableTab::new(table, &app.workbench.catalog))
+            )
+            .is_some()
+    );
     let Some(active_key) = app.workbench.active_key() else {
         unreachable!("table")
     };
