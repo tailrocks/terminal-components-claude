@@ -643,6 +643,7 @@ impl App {
                     .tone(Role::Fg(FgStep::Secondary)),
             );
         }
+        items.extend(self.discovery_item());
         items.push(StatusItem::new(&identity).priority(9).tone(
             if self.world.host.env.sensitive() {
                 Role::Warning
@@ -670,6 +671,16 @@ impl App {
         );
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
+    }
+    fn discovery_item(&self) -> Option<StatusItem<'static>> {
+        self.world.discovering().then(|| {
+            // Discovery settles within the bounded fixture startup interval.
+            let frame = usize::try_from(self.world.now_ms().div_euclid(80)).unwrap_or_default();
+            StatusItem::new("discovering…")
+                .spinner(frame)
+                .priority(5)
+                .tone(Role::Fg(FgStep::Secondary))
+        })
     }
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
         let hints = HintLayer::from_bindings(GLOBAL);
@@ -1097,6 +1108,36 @@ mod tests {
             "{:?}",
             harness.diagnostics()
         );
+    }
+    #[test]
+    fn frame_seek_lands_on_discovered_state() {
+        let settled = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!settled.app().world.discovering());
+        assert!(!settled.text().contains("discovering…"));
+        let mut theme = Theme::junie();
+        theme.design.motion.spinner_frames = &["a", "b", "c"];
+        let early = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 100),
+            theme,
+            120,
+            40,
+        );
+        assert!(early.app().world.discovering());
+        // Reference seek rounds100ms to160ms: virtual spinner frame2.
+        assert!(
+            early
+                .text()
+                .lines()
+                .next()
+                .unwrap()
+                .contains("c discovering…")
+        );
+        assert!(early.diagnostics().is_empty(), "{:?}", early.diagnostics());
     }
     #[test]
     fn home_scope_is_projected_into_header_and_clears_with_escape() {
