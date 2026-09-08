@@ -4,6 +4,8 @@
 //! the 24-step greyscale and the 16 xterm defaults; `Theme::downgrade` maps
 //! every token through `ColorTokens::map_colors`, then protects the
 //! foreground ladder of light themes from ANSI16's bright grey entries.
+//! Explicit authored capability tables compose over that generic result by
+//! semantic slot and source provenance; they never change RGB conversion.
 
 use ratatui_core::style::{Color, Modifier};
 
@@ -278,6 +280,43 @@ impl Theme {
         out.color = self.color.map_colors(&mut |c| downgrade_color(c, level));
         if level == ColorLevel::Ansi16 {
             repair_ansi16_light_foreground(&self.color, &mut out.color);
+        }
+        if let Some(palettes) = &self.capability_palettes {
+            let expected = palettes.get(self.capability.color).unwrap_or_else(|| {
+                let mut expected = palettes
+                    .source
+                    .map_colors(&mut |c| downgrade_color(c, self.capability.color));
+                if self.capability.color == ColorLevel::Ansi16 {
+                    repair_ansi16_light_foreground(&palettes.source, &mut expected);
+                }
+                expected
+            });
+            let source = expected.colors();
+            let target = palettes.get(level).unwrap_or(out.color).colors();
+            let generic = out.color.colors();
+            let mut eligibility = palettes.eligible.clone();
+            let mut changed = false;
+            let mut values = source
+                .iter()
+                .zip(&target)
+                .zip(&generic)
+                .zip(&mut eligibility);
+            out.color = self.color.map_colors(&mut |current| {
+                match values.next() {
+                    Some((((expected, authored), generic), eligible)) => {
+                        if current != *expected && *eligible {
+                            *eligible = false;
+                            changed = true;
+                        }
+                        if *eligible { *authored } else { *generic }
+                    }
+                    // All iterators use the same exhaustive ColorTokens walk.
+                    None => downgrade_color(current, level),
+                }
+            });
+            if changed && let Some(palettes) = &mut out.capability_palettes {
+                std::sync::Arc::make_mut(palettes).eligible = eligibility;
+            }
         }
         out
     }
@@ -664,7 +703,7 @@ mod tests {
 
     #[test]
     fn downgrade_maps_every_token_exhaustively() {
-        let t = Theme::junie();
+        let t = Theme::from_tokens(Theme::junie().color);
         let d = t.downgrade(ColorLevel::Ansi256);
         for c in d.color.colors() {
             assert!(!matches!(c, Color::Rgb(..)), "{c:?} survived the downgrade");
@@ -829,7 +868,7 @@ mod tests {
     /// still be wrong if the colours moved.
     #[test]
     fn for_level_narrows_but_never_widens() {
-        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let mono = Theme::from_tokens(Theme::junie().color).downgrade(ColorLevel::Mono);
         let widened = mono.for_level(ColorLevel::TrueColor);
         assert_eq!(
             widened.capability.color,

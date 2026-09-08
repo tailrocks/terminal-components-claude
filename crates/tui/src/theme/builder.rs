@@ -56,6 +56,22 @@ impl ThemeBuilder {
         }
     }
 
+    /// Install authored semantic capability palettes. Source guards preserve
+    /// generic conversion for independently changed tokens and dependants.
+    #[must_use]
+    pub fn capability_palettes(mut self, mut palettes: super::CapabilityPalettes) -> Self {
+        palettes.eligible.fill(true);
+        self.theme.capability_palettes = Some(std::sync::Arc::new(palettes));
+        self
+    }
+
+    /// Use generic conversion for every semantic token at limited capability.
+    #[must_use]
+    pub fn clear_capability_palettes(mut self) -> Self {
+        self.theme.capability_palettes = None;
+        self
+    }
+
     /// Set the accent; re-derives its dependants unless set explicitly.
     #[must_use]
     pub fn accent(mut self, c: Color) -> Self {

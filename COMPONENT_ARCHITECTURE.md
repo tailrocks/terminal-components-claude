@@ -932,6 +932,7 @@ pub struct Theme {
     pub design: DesignTokens,
     pub recipes: Recipes,
     pub capability: Capability,   // { color: ColorLevel } — UnicodeLevel deleted (§21 item 19); exactly one field, pinned by `architecture::capability_has_no_unicode_field` (§24 M2)
+    pub capability_palettes: Option<std::sync::Arc<CapabilityPalettes>>, // authored semantic output; §11.4 integration amendment
 }
 impl Theme {
     pub fn junie() -> Theme;                      // the approved default, values unchanged
@@ -1025,6 +1026,43 @@ Then, and only then, roles bind to colours against `(theme.color, ui.surface(), 
 **Invariant:** overlays are borrowed and never mutate the `Theme`. `conformance::local_override_does_not_mutate_the_theme` asserts the theme is byte-identical before and after a scoped render.
 
 ### 11.4 Capability downgrade and the mono rule
+
+**Integration amendment — authored semantic capability palettes.** The exact
+`downgrade_color` algorithms below remain the generic RGB conversion contract
+introduced by `95ab652` (Adjudication J, item 29). They do not replace explicitly
+authored semantic output. Pinned Holla `794b095` uses approximate cube/gray
+selection and a four-level monochrome ladder; substituting generic nearest
+conversion changes the approved Junie picture. `Theme::junie()` therefore
+declares named token tables matching that reference at ANSI256 and Mono, covering
+all 73 current semantic slots. TrueColor and ANSI16 retain their existing values.
+`Theme::paper()` and `Theme::from_tokens()` declare no table and keep generic
+conversion, including the existing light-theme foreground repair.
+
+`Theme::capability_palettes` is an explicit optional `Arc<CapabilityPalettes>`;
+the carrier contains the source TrueColor tokens and optional target token
+tables. `ThemeBuilder::capability_palettes` installs one;
+`clear_capability_palettes` restores generic conversion. Direct `Theme` literals
+must now provide this field (`None` for generic themes). This is an intentional
+experimental public construction change, not an inferred theme identity.
+
+On downgrade, each semantic slot compares its current value with that *same
+slot's* declared value at the current capability. Matching eligible slots use
+the authored target; changed slots use generic conversion. No color searches
+identify roles. A changed slot loses authored eligibility in the resulting
+theme, so a later quantization collision cannot reattach it during chained
+downgrades. Copy-on-write carrier metadata isolates clones. Missing target
+tables use generic conversion; repeated same-level downgrade remains a no-op;
+`for_level` still never widens. Builder seed changes and their derived dependants
+obey the same source guards. Installing a fresh carrier explicitly resets its
+eligibility. Theme equality and the testing fingerprint include actual table
+contents and eligibility, never just an allocation address. Runtime theme
+replacement continues to invalidate all derived caches.
+
+The `Theme::downgrade` sketch below is the no-table path; authored guarded output
+is composed after generic mapping and light-theme repair. Generic conversion
+tests remain exact; separate tests pin all Junie authored slots and chained,
+mutated, custom and Paper behavior. Neither app-specific RGB branches nor
+blanket snapshot reacceptance are authorized by this amendment.
 
 ```rust
 impl ColorTokens {

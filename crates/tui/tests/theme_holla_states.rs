@@ -59,7 +59,7 @@ fn every_hover_plane_uses_reference_tokens_in_all_color_modes() {
         ),
         (
             ColorLevel::Ansi256,
-            [234, 235, 235, 238, 238, 235, 238].map(Color::Indexed),
+            [233, 235, 235, 237, 237, 234, 237].map(Color::Indexed),
         ),
         (
             ColorLevel::Ansi16,
@@ -73,7 +73,18 @@ fn every_hover_plane_uses_reference_tokens_in_all_color_modes() {
                 Color::DarkGray,
             ],
         ),
-        (ColorLevel::Mono, [Color::Black; 7]),
+        (
+            ColorLevel::Mono,
+            [
+                Color::Black,
+                Color::Black,
+                Color::Black,
+                Color::DarkGray,
+                Color::DarkGray,
+                Color::Black,
+                Color::DarkGray,
+            ],
+        ),
     ];
     for (level, expected) in cases {
         for (surface, expected) in surfaces.into_iter().zip(expected) {
@@ -107,8 +118,8 @@ fn selection_hover_and_press_have_reference_precedence() {
             ),
             ColorLevel::Ansi256 => (
                 Color::Indexed(16),
-                Color::Indexed(234),
-                Color::Indexed(234),
+                Color::Indexed(233),
+                Color::Indexed(233),
                 Color::Indexed(231),
             ),
             ColorLevel::Ansi16 => (Color::Black, Color::DarkGray, Color::Black, Color::White),

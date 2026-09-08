@@ -299,7 +299,7 @@ fn theme_mono_manifest_replaces_authored_whole_set_then_explicit_overrides_win()
             Theme::junie().builder().mono_rules(FAMILY, &[]).build(),
             false,
             None,
-            (Color::Reset, Color::Black),
+            (Color::Gray, Color::Black),
         ),
         (replaced, false, None, (Color::Black, Color::White)),
         (
@@ -480,7 +480,7 @@ fn generic_mono_and_state_targeted_defaults_keep_order_without_cache_aliasing() 
     for (x, pair) in [
         (0, (Color::White, Color::Black)),
         (1, (Color::Black, Color::White)),
-        (2, (Color::Reset, Color::Black)),
+        (2, (Color::Gray, Color::Black)),
     ] {
         assert_eq!(
             scene.buffer().cell((x, 0)).map(|c| (c.fg, c.bg)),
