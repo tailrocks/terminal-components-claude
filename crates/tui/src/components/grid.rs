@@ -730,6 +730,22 @@ struct SampledWidth {
     natural: u16,
 }
 
+/// Horizontal viewport fitting policy.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum GridColumnFit {
+    /// Existing whole-column placement and target-first reveal.
+    #[default]
+    Whole,
+    /// Complete columns form the viewport; paint the next clipped column as a preview.
+    /// Body pointers exclude the preview; headers and keyboard editing remain available.
+    /// Reveal uses the previous complete-column count, so a wider target can remain
+    /// partially visible after navigation. Resizing alone does not move the cursor window.
+    CompleteWithPreview {
+        /// Minimum remaining cells needed to paint the next column.
+        min_width: u16,
+    },
+}
+
 /// Header contribution to a column's width.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum GridHeaderSizing {
@@ -779,6 +795,7 @@ pub struct GridState {
     anchor: Option<RangeAnchor>,
     /// First non-sticky column shown.
     col_offset: usize,
+    pending_column: Option<ColumnKey>,
     /// The cell being edited, keyed.
     edit: Option<(ItemKey, ColumnKey)>,
     /// The inline editor's draft, phase and error.
@@ -812,6 +829,7 @@ impl Default for GridState {
             col_index: 0,
             anchor: None,
             col_offset: 0,
+            pending_column: None,
             edit: None,
             editor,
             sort: None,
@@ -953,6 +971,8 @@ struct Geometry {
     x: [u16; GRID_MAX_COLUMNS],
     /// Whether each column is painted this frame.
     shown: [bool; GRID_MAX_COLUMNS],
+    complete: [bool; GRID_MAX_COLUMNS],
+    offset: usize,
     /// Declared columns, capped at [`GRID_MAX_COLUMNS`].
     n: usize,
     /// Non-sticky columns hidden to the left and to the right.
@@ -980,6 +1000,8 @@ impl Geometry {
             width: [0; GRID_MAX_COLUMNS],
             x: [0; GRID_MAX_COLUMNS],
             shown: [false; GRID_MAX_COLUMNS],
+            complete: [false; GRID_MAX_COLUMNS],
+            offset: 0,
             n: 0,
             hidden_left: 0,
             hidden_right: 0,
@@ -1010,7 +1032,10 @@ impl Geometry {
     fn column_at(&self, x: u16) -> Option<usize> {
         (0..self.n).find(|&i| {
             let r = self.cell(i, self.body.y);
-            r.width > 0 && x >= r.x && x < r.x.saturating_add(r.width)
+            self.complete.get(i).copied().unwrap_or(false)
+                && r.width > 0
+                && x >= r.x
+                && x < r.x.saturating_add(r.width)
         })
     }
 }
@@ -1119,6 +1144,7 @@ pub struct Grid<'a> {
     columns: &'a [Column<'a>],
     nav: NavUnit,
     column_gap: u16,
+    column_fit: GridColumnFit,
     header_sizing: GridHeaderSizing,
     sort_indicator: GridSortIndicator,
     disabled: bool,
@@ -1165,6 +1191,7 @@ impl<'a> Grid<'a> {
             columns,
             nav: NavUnit::Cell,
             column_gap: 1,
+            column_fit: GridColumnFit::Whole,
             header_sizing: GridHeaderSizing::Content,
             sort_indicator: GridSortIndicator::Always,
             disabled: false,
@@ -1266,6 +1293,13 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn column_gap(mut self, gap: u16) -> Self {
         self.column_gap = gap;
+        self
+    }
+
+    /// Horizontal fitting and reveal policy; defaults preserve target-first reveal.
+    #[must_use]
+    pub const fn column_fit(mut self, policy: GridColumnFit) -> Self {
+        self.column_fit = policy;
         self
     }
 
@@ -1517,7 +1551,83 @@ impl<'a> Grid<'a> {
         model: &M,
         rows: core::ops::Range<usize>,
     ) -> Geometry {
+        if body.is_empty() {
+            return Geometry::empty(body);
+        }
+        if body.width <= 2 {
+            return self.place_columns(body, [0; GRID_MAX_COLUMNS], st.col_offset);
+        }
+        let widths = self.column_widths(st, model, rows);
+        let mut g = self.place_columns(body, widths, st.col_offset);
+        if self.column_fit == GridColumnFit::Whole {
+            return g;
+        }
+        let target = st
+            .pending_column
+            .or_else(|| {
+                (self.cursor_col(st) != st.col_index)
+                    .then_some(st.col)
+                    .flatten()
+            })
+            .and_then(|key| self.col_index(key));
+        let Some(target) = target else {
+            return g;
+        };
+        if self.columns.get(target).is_some_and(|c| c.sticky) {
+            return g;
+        }
+        let ordinal = self
+            .columns
+            .iter()
+            .take(target)
+            .filter(|c| !c.sticky)
+            .count();
+        let count = self
+            .columns
+            .iter()
+            .enumerate()
+            .take(g.n)
+            .filter(|(i, c)| !c.sticky && g.complete.get(*i).copied().unwrap_or(false))
+            .count();
+        if count == 0 {
+            return g;
+        }
+        // Reference navigation uses the current viewport's complete-column count.
+        // Wider columns can leave the new cursor in the painted preview; that
+        // preview remains keyboard editable but does not accept body clicks.
+        let offset = if ordinal < g.offset {
+            ordinal
+        } else if ordinal >= g.offset.saturating_add(count) {
+            ordinal.saturating_add(1).saturating_sub(count)
+        } else {
+            g.offset
+        };
+        if offset != g.offset {
+            g = self.place_columns(body, widths, offset);
+        }
+
+        g
+    }
+
+    fn apply_column_geometry(&self, st: &mut GridState, g: &Geometry) {
+        if self.column_fit == GridColumnFit::Whole || g.body.is_empty() {
+            return;
+        }
+        st.col_offset = g.offset;
+        st.col_index = self.cursor_col(st);
+        if g.complete.iter().any(|complete| *complete) {
+            st.pending_column = None;
+        }
+    }
+
+    fn place_columns(
+        &self,
+        body: Rect,
+        widths: [u16; GRID_MAX_COLUMNS],
+        offset: usize,
+    ) -> Geometry {
         let mut g = Geometry::empty(body);
+        g.offset = offset;
         g.n = self.column_count();
         g.content_x = body.x.saturating_add(2);
         if g.n == 0 || body.is_empty() {
@@ -1528,7 +1638,7 @@ impl<'a> Grid<'a> {
             g.hidden_right = g.n;
             return g;
         }
-        g.width = self.column_widths(st, model, rows);
+        g.width = widths;
         // sticky columns first, then a window over the rest
         let gap = self.column_gap;
         let mut x = g.content_x;
@@ -1546,12 +1656,16 @@ impl<'a> Grid<'a> {
                 *px = x;
                 *sh = true;
             }
+            if let Some(complete) = g.complete.get_mut(i) {
+                *complete = true;
+            }
             x = x.saturating_add(w).saturating_add(gap);
             used = used.saturating_add(w).saturating_add(gap);
         }
-        let first = st.col_offset;
+        let first = offset;
         let mut seen = 0usize;
         let mut last_shown = 0usize;
+        let mut window_closed = false;
         for i in 0..g.n {
             if self.columns.get(i).is_some_and(|c| c.sticky) {
                 continue;
@@ -1562,13 +1676,27 @@ impl<'a> Grid<'a> {
                 continue;
             }
             let w = g.width.get(i).copied().unwrap_or(0);
-            if used >= avail || (used.saturating_add(w) > avail && last_shown > 0) {
+            if window_closed || used >= avail || (used.saturating_add(w) > avail && last_shown > 0)
+            {
                 g.hidden_right = g.hidden_right.saturating_add(1);
+                if let GridColumnFit::CompleteWithPreview { min_width } = self.column_fit {
+                    if !window_closed
+                        && avail.saturating_sub(used) >= min_width.max(1)
+                        && let (Some(px), Some(sh)) = (g.x.get_mut(i), g.shown.get_mut(i))
+                    {
+                        *px = x;
+                        *sh = true;
+                    }
+                    window_closed = true;
+                }
                 continue;
             }
             if let (Some(px), Some(sh)) = (g.x.get_mut(i), g.shown.get_mut(i)) {
                 *px = x;
                 *sh = true;
+            }
+            if let Some(complete) = g.complete.get_mut(i) {
+                *complete = true;
             }
             last_shown = last_shown.saturating_add(1);
             x = x.saturating_add(w).saturating_add(gap);
@@ -1990,6 +2118,13 @@ impl Grid<'_> {
     /// always shown, so they never move the window.
     fn reveal_column(&self, st: &mut GridState, col: usize) {
         if self.columns.get(col).is_some_and(|c| c.sticky) {
+            if self.column_fit != GridColumnFit::Whole {
+                st.pending_column = None;
+            }
+            return;
+        }
+        if self.column_fit != GridColumnFit::Whole {
+            st.pending_column = self.col_key(col);
             return;
         }
         let scroll_index = self
@@ -2110,6 +2245,12 @@ impl Grid<'_> {
             st.anchor = None;
             st.cancel_editor();
         }
+        if st
+            .pending_column
+            .is_some_and(|key| self.col_index(key).is_none())
+        {
+            st.pending_column = self.col_key(self.cursor_col(st));
+        }
         // A request can precede the first published layout. Reconciliation
         // may move its stable cell before geometry can consume the reveal.
         if st.core.scroll().pending_reveal().is_some() {
@@ -2131,10 +2272,18 @@ impl Grid<'_> {
         acc.fold(&bar);
         let viewport = st.core.scroll().viewport_len().max(1);
         let area = cx.area(self.id);
-        let geometry = area.map(|a| {
-            let (_, _, body, _) = self.chrome(a, model.read_only_reason());
+        let content = area.map(|a| {
+            let (_, _, mut body, _) = self.chrome(a, model.read_only_reason());
+            if self.column_fit != GridColumnFit::Whole && total > usize::from(body.height) {
+                body.width = body.width.saturating_sub(1);
+            }
+            body
+        });
+        let geometry = content.map(|body| {
             let rows = Self::window(st, body, total);
-            self.geometry(body, st, model, rows)
+            let geometry = self.geometry(body, st, model, rows);
+            self.apply_column_geometry(st, &geometry);
+            geometry
         });
         for it in cx.intents(self.id) {
             match it {
@@ -2364,10 +2513,14 @@ impl Grid<'_> {
                         acc.consumed();
                         continue;
                     };
-                    let col = geometry
+                    let hit = geometry
                         .as_ref()
-                        .and_then(|geometry| geometry.column_at(pos.x))
-                        .unwrap_or_else(|| self.cursor_col(st));
+                        .and_then(|geometry| geometry.column_at(pos.x));
+                    if hit.is_none() && self.column_fit != GridColumnFit::Whole {
+                        acc.consumed();
+                        continue;
+                    }
+                    let col = hit.unwrap_or_else(|| self.cursor_col(st));
                     match phase {
                         Phase::Press => self.move_to(st, model, row, col, false, acc),
                         Phase::DoubleClick => {
@@ -2406,6 +2559,12 @@ impl Grid<'_> {
                 Intent::Pointer { .. } => acc.consumed(),
                 _ => {}
             }
+        }
+        if self.column_fit != GridColumnFit::Whole
+            && let Some(body) = content
+        {
+            let geometry = self.geometry(body, st, model, Self::window(st, body, total));
+            self.apply_column_geometry(st, &geometry);
         }
         pending
     }
