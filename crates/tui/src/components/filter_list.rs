@@ -849,6 +849,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 width: content.width,
                 height: 1,
             };
+            let visible = !row.intersection(ui.full()).is_empty();
             let mut row_ui = RowUi::new(
                 ui,
                 self.id,
@@ -865,7 +866,9 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                     !group.is_empty() && group != last_group,
                     &mut row_ui,
                 );
-                last_group = group;
+                if visible {
+                    last_group = group;
+                }
             } else {
                 self.row.row(item, &mut row_ui);
             }

@@ -337,3 +337,37 @@ fn measurement_uses_filtered_projection_not_hidden_source_items() {
     );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
+
+#[test]
+fn independent_ancestor_top_clip_repeats_first_visible_group() {
+    struct Clipped(Page);
+    impl App for Clipped {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.0.update(cx)
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.with_area(Rect::new(1, 2, 64, 2), |ui| self.0.draw(ui));
+        }
+    }
+    let h = Harness::new(
+        Clipped(Page {
+            state: FilterListState::default(),
+            items: ITEMS.to_vec(),
+            layout: ItemRowLayout::Columns,
+            width: 64,
+            height: 4,
+            chosen: vec![],
+            custom: false,
+            searchable: false,
+            policy: FilterPolicy::Caller,
+        }),
+        Theme::junie(),
+        84,
+        8,
+    );
+    assert!(
+        h.row(2).contains("Tables"),
+        "first actually visible group missing: {}",
+        h.row(2)
+    );
+}
