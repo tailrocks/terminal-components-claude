@@ -39,11 +39,10 @@ impl Activities {
             let services = service_labels(activity);
             let spans = output_spans(activity, &services);
             let lines: Vec<_> = spans.iter().map(|line| ViewportLine::Spans(line)).collect();
-            response = response
-                | TextViewport::new(output_id(*id))
-                    .wrap(false)
-                    .update(cx, state, &lines)
-                    .erase();
+            response |= TextViewport::new(output_id(*id))
+                .wrap(false)
+                .update(cx, state, &lines)
+                .erase();
         }
         response
     }

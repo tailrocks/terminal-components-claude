@@ -1,4 +1,4 @@
-//! Target-bound PostgreSQL fixture review. No query or process is executed.
+//! Target-bound `PostgreSQL` fixture review. No query or process is executed.
 use super::world::World;
 use crate::domain::{
     host::{Environment, HostKind},
@@ -206,7 +206,7 @@ mod tests {
                         .iter_mut()
                         .find(|session| session.pid == 10)
                         .unwrap()
-                        .query = "different query".into()
+                        .query = "different query".into();
                 }
                 1 => world.host.name = "different-host".into(),
                 2 => world.effect_revision = 1,

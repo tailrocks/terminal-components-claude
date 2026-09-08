@@ -517,7 +517,7 @@ impl ProductDialog {
                         &lines,
                     );
                 }
-            })
+            });
         });
     }
 }

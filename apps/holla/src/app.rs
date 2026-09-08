@@ -198,7 +198,7 @@ impl App {
             Destination::Notice(message) => self.set_status(message),
             Destination::Preview(action) => self.open_dialog(dialogs::Intent::Preview(action), cx),
             Destination::Trust { action, file } => {
-                self.open_dialog(dialogs::Intent::Trust { action, file }, cx)
+                self.open_dialog(dialogs::Intent::Trust { action, file }, cx);
             }
             Destination::Plan(review) => {
                 self.plan = Some(PlanState::new(*review));
@@ -381,7 +381,7 @@ impl App {
                         dialogs::Event::Close => {}
                         dialogs::Event::Quit => self.quit = true,
                         dialogs::Event::Destination(destination) => {
-                            self.destination(destination, cx)
+                            self.destination(destination, cx);
                         }
                     }
                 }
@@ -718,7 +718,7 @@ impl junie_tui::App for App {
             Route::Home => self.home.draw(&self.world, ui, body),
             Route::Plan => {
                 if let Some(plan) = &self.plan {
-                    plan.draw(ui, body)
+                    plan.draw(ui, body);
                 }
             }
             Route::Activity => self.activities.draw(&self.world, ui, body),

@@ -591,8 +591,7 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
     let tools = w
         .mise
         .as_ref()
-        .map(|mise| mise.tools.as_slice())
-        .unwrap_or(&[]);
+        .map_or_else(|| [].as_slice(), |mise| mise.tools.as_slice());
     let mut tool_ids = std::collections::BTreeSet::new();
     if tools
         .iter()

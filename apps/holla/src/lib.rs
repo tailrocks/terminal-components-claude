@@ -22,14 +22,11 @@ pub use scenario::{Motion, Scenario};
 pub fn run() -> std::process::ExitCode {
     let args = std::env::args_os()
         .skip(1)
-        .map(|argument| argument.into_string())
+        .map(std::ffi::OsString::into_string)
         .collect::<Result<Vec<_>, _>>();
-    let args = match args {
-        Ok(args) => args,
-        Err(_) => {
-            eprintln!("arguments must be valid Unicode");
-            return std::process::ExitCode::from(2);
-        }
+    let Ok(args) = args else {
+        eprintln!("arguments must be valid Unicode");
+        return std::process::ExitCode::from(2);
     };
     let no_motion = std::env::var_os("HOLLA_NO_MOTION");
     let options = match cli::parse(args, no_motion.as_deref()) {

@@ -124,11 +124,11 @@ impl PlanStep {
     }
     pub(crate) fn fails_with(mut self, reason: &str, lines: &[&str]) -> Self {
         self.fails = Some(reason.into());
-        self.fail_lines = lines.iter().map(std::string::ToString::to_string).collect();
+        self.fail_lines = lines.iter().map(ToString::to_string).collect();
         self
     }
     pub(crate) fn lines(mut self, lines: &[&str]) -> Self {
-        self.ok_lines = lines.iter().map(std::string::ToString::to_string).collect();
+        self.ok_lines = lines.iter().map(ToString::to_string).collect();
         self
     }
     pub(crate) fn policy_skipped(mut self, reason: &str) -> Self {
@@ -350,15 +350,12 @@ impl Plan {
                 continue;
             }
             let s = &mut self.steps[i];
-            match s.fails.take() {
-                Some(reason) => {
-                    s.lines = std::mem::take(&mut s.fail_lines);
-                    s.state = StepState::Failed(reason);
-                }
-                None => {
-                    s.lines = std::mem::take(&mut s.ok_lines);
-                    s.state = StepState::Succeeded;
-                }
+            if let Some(reason) = s.fails.take() {
+                s.lines = std::mem::take(&mut s.fail_lines);
+                s.state = StepState::Failed(reason);
+            } else {
+                s.lines = std::mem::take(&mut s.ok_lines);
+                s.state = StepState::Succeeded;
             }
         }
         Ok(())
