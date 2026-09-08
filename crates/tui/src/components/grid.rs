@@ -1028,6 +1028,22 @@ impl Geometry {
         })
     }
 
+    /// Preview parts remain visible to inspection but never focus or activate.
+    fn register_cell_part(
+        &self,
+        ui: &mut Ui<'_>,
+        owner: Id,
+        part: PartRef,
+        column: usize,
+        area: Rect,
+    ) {
+        if self.complete.get(column).copied().unwrap_or(false) {
+            ui.register_part(owner, part, area);
+        } else {
+            ui.register_decor(owner, part, area);
+        }
+    }
+
     /// The column under `x`, if any.
     fn column_at(&self, x: u16) -> Option<usize> {
         (0..self.n).find(|&i| {
@@ -1539,6 +1555,17 @@ impl<'a> Grid<'a> {
             }
         }
         widths
+    }
+
+    fn input_content<M: GridModel + ?Sized>(&self, area: Rect, model: &M) -> Rect {
+        let (_, _, mut body, _) = self.chrome(area, model.read_only_reason());
+        let total = model
+            .row_count()
+            .saturating_add(usize::from(model.has_more()));
+        if self.column_fit != GridColumnFit::Whole && total > usize::from(body.height) {
+            body.width = body.width.saturating_sub(1);
+        }
+        body
     }
 
     /// Sample column widths and place the window. Pure in
@@ -2272,13 +2299,7 @@ impl Grid<'_> {
         acc.fold(&bar);
         let viewport = st.core.scroll().viewport_len().max(1);
         let area = cx.area(self.id);
-        let content = area.map(|a| {
-            let (_, _, mut body, _) = self.chrome(a, model.read_only_reason());
-            if self.column_fit != GridColumnFit::Whole && total > usize::from(body.height) {
-                body.width = body.width.saturating_sub(1);
-            }
-            body
-        });
+        let content = area.map(|area| self.input_content(area, model));
         let geometry = content.map(|body| {
             let rows = Self::window(st, body, total);
             let geometry = self.geometry(body, st, model, rows);
@@ -2709,10 +2730,19 @@ impl Grid<'_> {
             return;
         };
         let mut value = cell.text.to_owned();
-        let mut r =
-            TextInput::new(self.editor_id())
-                .blur(self.blur)
-                .update(cx, &mut st.editor, &mut value);
+        let pointer_enabled = self.column_fit == GridColumnFit::Whole
+            || cx.area(self.id).is_some_and(|area| {
+                let body = self.input_content(area, model);
+                let total = model
+                    .row_count()
+                    .saturating_add(usize::from(model.has_more()));
+                let geometry = self.geometry(body, st, model, Self::window(st, body, total));
+                geometry.complete.get(col).copied().unwrap_or(false)
+            });
+        let mut r = TextInput::new(self.editor_id())
+            .blur(self.blur)
+            .pointer_enabled(pointer_enabled)
+            .update(cx, &mut st.editor, &mut value);
         let action = r.take_action();
         let erased = r.erase();
         acc.fold(&erased);
@@ -3030,7 +3060,13 @@ impl Grid<'_> {
                 );
                 ui.fill(rect, cs.style);
                 if !inert {
-                    ui.register_part(self.id, PartRef::item(Part::CELL, key), rect);
+                    geometry.register_cell_part(
+                        ui,
+                        self.id,
+                        PartRef::item(Part::CELL, key),
+                        i,
+                        rect,
+                    );
                 }
                 continue;
             };
@@ -3107,7 +3143,7 @@ impl Grid<'_> {
                 paint_aligned(ui, text_rect, text, align, style);
             }
             if !inert {
-                ui.register_part(self.id, PartRef::item(Part::CELL, key), rect);
+                geometry.register_cell_part(ui, self.id, PartRef::item(Part::CELL, key), i, rect);
             }
             if let Some(a) = actions.first() {
                 if let Some(f) = self.ov.slot_for(Part::ACTIONS) {
@@ -3129,7 +3165,13 @@ impl Grid<'_> {
                 }
                 if !inert {
                     // registered AFTER the cell, so it wins the click
-                    ui.register_part(self.id, PartRef::item(Part::ACTIONS, key), affordance);
+                    geometry.register_cell_part(
+                        ui,
+                        self.id,
+                        PartRef::item(Part::ACTIONS, key),
+                        i,
+                        affordance,
+                    );
                 }
             }
             if editing {
@@ -3137,6 +3179,7 @@ impl Grid<'_> {
                 // the cell's Part region, so a click inside it goes to the
                 // editor and not to the grid
                 TextInput::new(self.id.part(Part::TEXT))
+                    .pointer_enabled(geometry.complete.get(i).copied().unwrap_or(false))
                     .disabled(self.disabled)
                     .value(cell.text)
                     .draw(ui, rect, &state.editor);
