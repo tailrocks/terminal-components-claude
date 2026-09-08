@@ -205,3 +205,40 @@ integration. Domain owner has the question; no broader accounting acceptance ass
 Holla owner now also owns apps/holla manifest/lib/CLI/app/screens for real public-API
 migration. No Holla executable acceptance is claimed. Monotonic scheduling remains
 a shared dependency, not replaced with event counts.
+
+## Checkpoint: acquisition integration and checked simulation effects
+
+Integrated/pushed capture acquisition `16e4e7a` (worker `263be4f`): root source
+review, 43 payload hashes, two integrity tests/four corruptions, fresh dual-engine
+journey/oracle rerun pass. Root review is in capture-tool-acquisition-review.md.
+CI `1318e85` now requires locked Cargo resolution and explicit Bash pipeline
+failure handling; full locked metadata resolves seven workspace packages/120
+nodes. A matching-output producer failure still exits 42. `f9da03e` repairs the
+existing CI guard test's command matching for the added Cargo flag; focused test
+passes. Exact required test inventory and MSRV compile-fail coverage remain open.
+
+Integrated/pushed Holla accounting train `e77f754`, `f2eeda8`, `d99ebf9`,
+`75f966e`, `c79217f`, `7e054ee` (worker through `196b4d2`). Independent final
+network/accounting review passes 64 tests; root actual package MSRV run passes
+62. Checked getters reject invalid pre-plan presentation inventories; report
+accounting validates before effects/consumption, including count-only networks.
+Whole-app/lint acceptance is not inferred. App writer moved to fresh branch
+codex/holla-app-migration based on `7e054ee`, with reviewed shared prerequisites;
+pure CLI parser `d0e3b36` is not yet integrated and no executable exists yet.
+
+Shared publication `6b496f7` independently passes 22 MSRV tests/seven doctests;
+component production prefixes and prior identity mappings verify. Strict timing
+still has metric-work mismatch and genuine timing gates to resolve; Scene
+interaction snapshots, absolute monotonic scheduling, stationary-pointer rehit,
+terminal mode cleanup and always-armed query/cursor policy remain separate work.
+Layer carrier repair `db53dd5` and EMPTY inheritance `2d2ebc4` independently
+accepted; no baseline blessing. App carrier `f0f6e6a` review found invisible Mono
+Jackin text, blocking that slice until author default/Mono recipe resolution lands.
+Separate Showcase lint `283593d` passes strict app all-target checks and preserves
+240 complete frames; final combined app acceptance remains pending.
+
+Historical 998-file installation is independently approved, limited to exact
+regenerated hashes. Gate owner is implementing absent-only, hash-bound additions
+and the narrow normative amendment before installation integration. Original
+captured artifacts remain immutable. User again reinforced parallel subagents;
+all writer ownership stays disjoint and committed candidates receive review.
