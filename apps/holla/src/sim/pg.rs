@@ -177,7 +177,7 @@ mod tests {
     fn original_target_disappearance_never_selects_another_blocker() {
         for operation in [Operation::Cancel, Operation::Terminate] {
             let mut world = world();
-            let review = Review::new(&world, Operation::Cancel).unwrap();
+            let review = Review::new(&world, operation).unwrap();
             world
                 .pg
                 .as_mut()
