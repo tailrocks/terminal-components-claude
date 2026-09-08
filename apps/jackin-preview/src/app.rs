@@ -3431,10 +3431,24 @@ impl App {
                 Some(Response::changed())
             }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
-                if let Some(workspace) = self.world.workspaces.first() {
-                    self.manager.toggle(workspace.id);
-                    self.manager.set_detail_open(true);
-                    self.ensure_manager_rows();
+                if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
+                    if self.manager.is_expanded(workspace) {
+                        if let Some((index, row)) = self.manager_rows_cache.iter().enumerate().find(|(_, row)| {
+                            matches!(&row.domain, ManagerRowKey::Instance(id)
+                                if self.world.instance(id).is_some_and(|instance| instance.workspace == Some(workspace)))
+                        }) {
+                            self.manager.list.set_cursor(index, row.key);
+                            self.manager.select_row(row.domain.clone());
+                        }
+                    } else if self
+                        .world
+                        .instances
+                        .iter()
+                        .any(|instance| instance.workspace == Some(workspace))
+                    {
+                        self.manager.toggle(workspace);
+                        self.ensure_manager_rows();
+                    }
                 }
                 Some(Response::changed())
             }

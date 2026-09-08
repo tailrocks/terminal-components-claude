@@ -166,3 +166,72 @@ fn instance_identity_survives_expansion_and_reorder_above_it()
     assert_eq!(h.app().manager.selected_row(), &selected);
     Ok(())
 }
+
+#[test]
+fn right_expands_selected_workspace_then_enters_its_child() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut h = manager();
+    let first = h
+        .app()
+        .world
+        .workspaces
+        .first()
+        .ok_or("first workspace")?
+        .id;
+    let second = h
+        .app()
+        .world
+        .workspaces
+        .get(1)
+        .ok_or("second workspace")?
+        .id;
+    let instance = h.app_mut().world.instances.first_mut().ok_or("instance")?;
+    instance.workspace = Some(second);
+    let child = jackin_app::screens::manager::ManagerRowKey::Instance(instance.id.clone());
+    h.app_mut().manager.invalidate_rows();
+    let _ = h.tick();
+    let _ = h.key(KeyCode::Down);
+    assert_eq!(h.app().manager.selected(), Some(second));
+    let _ = h.key(KeyCode::Right);
+    assert!(h.app().manager.is_expanded(second));
+    assert!(!h.app().manager.is_expanded(first));
+    assert_eq!(h.app().manager.selected(), Some(second));
+    assert!(!h.app().manager.detail_open());
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(h.app().manager.selected_row(), &child);
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(h.app().manager.selected_row(), &child);
+    assert!(h.app().manager.is_expanded(second));
+    Ok(())
+}
+
+#[test]
+fn right_on_current_directory_and_empty_workspace_is_noop() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut h = manager();
+    h.app_mut().world.instances.clear();
+    h.app_mut().manager.invalidate_rows();
+    let _ = h.tick();
+    let selected = h.app().manager.selected_row().clone();
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(h.app().manager.selected_row(), &selected);
+    assert!(
+        !h.app()
+            .manager
+            .is_expanded(h.app().manager.selected().ok_or("workspace")?)
+    );
+    for _ in 0..h.app().world.workspaces.len() {
+        let _ = h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &jackin_app::screens::manager::ManagerRowKey::CurrentDirectory
+    );
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &jackin_app::screens::manager::ManagerRowKey::CurrentDirectory
+    );
+    assert!(!h.app().manager.detail_open());
+    Ok(())
+}

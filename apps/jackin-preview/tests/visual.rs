@@ -131,9 +131,11 @@ const SURFACES: &[(&str, u16, u16, Builder)] = &[
     // manager
     ("manager-expanded-detail", 120, 40, || {
         let mut h = manager(120, 40);
-        h.key(KeyCode::Down);
+        h.key(KeyCode::Home);
         h.key(KeyCode::Right);
         h.key(KeyCode::Down);
+        let (x, y) = h.find("7f3a").unwrap();
+        h.click(x, y);
         h.key(KeyCode::Tab);
         assert!(h.text().contains("Live topology"), "{}", h.text());
         h
