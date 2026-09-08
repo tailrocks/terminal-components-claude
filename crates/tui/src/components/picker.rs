@@ -2,7 +2,7 @@
 
 use core::marker::PhantomData;
 
-use ratatui_core::layout::Rect;
+use ratatui_core::layout::{Position, Rect};
 
 use super::filter_list::{FilterList, FilterListAction, FilterListState, FilterPolicy};
 use super::{Acc, PartStyle, SlotFn};
@@ -205,6 +205,10 @@ impl PickerState {
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.list.cursor()
     }
+    /// Set the initial cursor before the first draw.
+    pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
+        self.list.set_cursor(index, key);
+    }
     /// Current scope.
     pub fn scope(&self, scopes: &[ScopeKey]) -> Option<ScopeKey> {
         scopes.get(self.active_scope).copied()
@@ -224,7 +228,7 @@ impl PickerState {
 /// Caller owns items and [`PickerState`]; runtime owns the modal layer and focus trap.
 ///
 /// ## Configuration
-/// `.title`, `.placeholder`, `.scopes`, `.empty`, `.row`, `.patch`, `.patch_part`, `.slot`.
+/// `.title`, `.placeholder`, `.scopes`, `.align`, `.empty`, `.row`, `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::PICKER`, `DEFAULT`.
@@ -269,6 +273,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     filter: FilterPolicy,
     placeholder: &'a str,
     scopes: &'a [ScopeKey],
+    align: Option<ScreenAlign>,
     empty: Option<EmptyState<'a>>,
     row: R,
     patch: Option<&'a StylePatch>,
@@ -298,6 +303,7 @@ impl<T> Picker<'_, T, ItemRow> {
             filter: FilterPolicy::Label,
             placeholder: "Type to search…",
             scopes: &[],
+            align: None,
             empty: None,
             row: ItemRow,
             patch: None,
@@ -367,6 +373,12 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.scopes = scopes;
         self
     }
+    /// Choose the screen placement for this modal.
+    #[must_use]
+    pub const fn align(mut self, align: ScreenAlign) -> Self {
+        self.align = Some(align);
+        self
+    }
     /// Empty/loading/error presentation.
     #[must_use]
     pub const fn empty(mut self, empty: EmptyState<'a>) -> Self {
@@ -383,6 +395,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             filter: self.filter,
             placeholder: self.placeholder,
             scopes: self.scopes,
+            align: self.align,
             empty: self.empty,
             row,
             patch: self.patch,
@@ -450,7 +463,9 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     /// Layer specification supplied by this picker.
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
         LayerSpec::modal(self.id)
-            .anchor(Anchor::Screen(ScreenAlign::UpperThird))
+            .anchor(Anchor::Screen(
+                self.align.unwrap_or(ScreenAlign::UpperThird),
+            ))
             .initial_focus(self.id)
             .size(self.measured_size(cx, items))
     }
@@ -609,6 +624,16 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     },
                     text,
                     query_style.style,
+                );
+                ui.set_cursor(
+                    self.id,
+                    Position::new(
+                        query
+                            .x
+                            .saturating_add(2)
+                            .saturating_add(crate::text::width(st.query())),
+                        query.y,
+                    ),
                 );
             }
             let list = Rect {

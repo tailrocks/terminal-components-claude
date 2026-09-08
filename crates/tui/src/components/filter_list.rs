@@ -223,6 +223,10 @@ impl FilterListState {
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
+    /// Set the cursor before the first draw, preserving the semantic key.
+    pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
+        self.core.set_cursor(index, key);
+    }
     /// Scroll state.
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
