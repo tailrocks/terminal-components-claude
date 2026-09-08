@@ -856,7 +856,11 @@ pub(crate) fn memory_command(
 }
 
 #[cfg(test)]
-#[expect(clippy::indexing_slicing, clippy::unwrap_used, reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test")]
+#[expect(
+    clippy::indexing_slicing,
+    clippy::unwrap_used,
+    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
+)]
 mod tests {
     use super::*;
     use crate::domain::pg;

@@ -151,6 +151,10 @@ impl std::fmt::Display for AliasError {
 impl std::error::Error for AliasError {}
 
 #[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
+)]
 mod tests {
     use super::*;
     #[test]

@@ -27,10 +27,10 @@ pub(crate) struct SshHost {
     pub(crate) port: Option<u16>,
     /// Identity FILENAME (`id_ed25519_prod`); contents are never modeled.
     pub(crate) identity_file: Option<String>,
-    /// ProxyJump alias, when the host is reached through another.
+    /// `ProxyJump` alias, when the host is reached through another.
     pub(crate) jump: Option<String>,
     pub(crate) host_key_policy: HostKeyPolicy,
-    /// ControlMaster multiplexing currently active.
+    /// `ControlMaster` multiplexing currently active.
     pub(crate) multiplexed: bool,
 }
 

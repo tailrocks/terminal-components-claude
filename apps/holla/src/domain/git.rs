@@ -90,6 +90,10 @@ impl GitRepo {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::indexing_slicing,
+    reason = "Tests assert fixed fixture structure and bounded values; violations must fail the test"
+)]
 mod tests {
     use super::*;
 

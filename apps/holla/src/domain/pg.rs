@@ -1,4 +1,4 @@
-//! pg_activity: live session tree. Blockers form a tree via `blocked_by`;
+//! `pg_activity`: live session tree. Blockers form a tree via `blocked_by`;
 //! kill semantics (cancel before terminate, revalidate PID + query) are P3.
 
 #[derive(Debug, Clone, PartialEq, Eq)]
