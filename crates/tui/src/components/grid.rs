@@ -22,7 +22,7 @@ use core::fmt;
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
-use super::input::{TextAction, TextInput, TextInputState};
+use super::input::{BlurPolicy, TextAction, TextInput, TextInputState};
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
@@ -720,6 +720,16 @@ impl GridState {
         self.edit.is_some()
     }
 
+    /// The stable logical cell being edited, even when its editor is unfocused.
+    pub const fn edit_cell(&self) -> Option<(ItemKey, ColumnKey)> {
+        self.edit
+    }
+
+    /// The uncommitted inline draft, only while an edit is active.
+    pub fn edit_draft(&self) -> Option<&str> {
+        self.edit.and_then(|_| self.editor.draft_text())
+    }
+
     /// The typed error retained by the inline editor.
     pub const fn edit_error(&self) -> Option<&crate::validate::FieldError> {
         self.editor.error()
@@ -949,6 +959,7 @@ pub struct Grid<'a> {
     empty: Option<EmptyState<'a>>,
     actions: Option<SlotFn<'a>>,
     cell: Option<CellRenderer<'a>>,
+    blur: BlurPolicy,
     ov: PartStyle<'a>,
 }
 
@@ -989,6 +1000,7 @@ impl<'a> Grid<'a> {
             empty: None,
             actions: None,
             cell: None,
+            blur: BlurPolicy::CommitAndValidate,
             ov: PartStyle::new(),
         }
     }
@@ -1028,6 +1040,18 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn cell(mut self, render: &'a dyn Fn(GridCell<'_>, &mut CellUi<'_>)) -> Self {
         self.cell = Some(render);
+        self
+    }
+
+    /// What the inline editor does when focus leaves it.
+    ///
+    /// Defaults to [`BlurPolicy::CommitAndValidate`]. [`BlurPolicy::Keep`]
+    /// retains the keyed draft without calling the model's commit hook, so an
+    /// application can review navigation or modal changes before committing.
+    /// Explicit Enter still commits and validates; Escape cancels the draft.
+    #[must_use]
+    pub const fn blur(mut self, policy: BlurPolicy) -> Self {
+        self.blur = policy;
         self
     }
 
@@ -2075,7 +2099,10 @@ impl Grid<'_> {
             return;
         };
         let mut value = cell.text.to_owned();
-        let mut r = TextInput::new(self.editor_id()).update(cx, &mut st.editor, &mut value);
+        let mut r =
+            TextInput::new(self.editor_id())
+                .blur(self.blur)
+                .update(cx, &mut st.editor, &mut value);
         let action = r.take_action();
         let erased = r.erase();
         acc.fold(&erased);
