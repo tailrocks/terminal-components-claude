@@ -1045,13 +1045,24 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Home);
     h.key(KeyCode::Down);
     h.key(KeyCode::Right);
-    for _ in 0..4 {
-        if h.text().contains("instance · running") {
+    let running_id = h
+        .app()
+        .world
+        .instances
+        .iter()
+        .find(|instance| instance.status == jackin_app::domain::instance::InstanceStatus::Running)
+        .expect("one instance remains running")
+        .id
+        .clone();
+    let running_key = jackin_app::screens::manager::ManagerRowKey::Instance(running_id);
+    h.key(KeyCode::Home);
+    for _ in 0..=(h.app().world.instances.len() + h.app().world.workspaces.len()) {
+        if h.app().manager.selected_row() == &running_key {
             break;
         }
         h.key(KeyCode::Down);
     }
-    assert!(h.text().contains("instance · running"), "{}", h.text());
+    assert_eq!(h.app().manager.selected_row(), &running_key, "{}", h.text());
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Capsule, "{}", h.text());
     h.ctrl('q');

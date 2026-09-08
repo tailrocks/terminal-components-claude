@@ -11,9 +11,10 @@ use junie_tui::{
     DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
     HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
     ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Moment, Panel, Part,
-    PartRef, Phase, Picker, PickerAction, PickerState, Position, Rect, Response, SecretPolicy,
-    StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
-    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    PartRef, Phase, Picker, PickerAction, PickerState, Position, Reconcile, Rect, Response,
+    SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
+    ViewportState,
 };
 
 use crate::domain::account::{
@@ -42,6 +43,27 @@ use crate::sim::launch::{BUILD_LOG, LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::provider;
 use crate::sim::pty::{Daemon, PaneId, SplitDir};
 use crate::sim::world::{World, world_for};
+
+/// One cached projection binds domain identity, collection identity, and presentation.
+#[derive(Debug, Clone)]
+struct ManagerRow {
+    domain: ManagerRowKey,
+    key: ItemKey,
+    label: String,
+}
+
+impl ManagerRow {
+    fn new(domain: ManagerRowKey, label: String) -> Self {
+        let key = ItemKey::text(&domain.stable_key());
+        Self { domain, key, label }
+    }
+}
+
+impl std::fmt::Display for ManagerRow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.label)
+    }
+}
 
 /// Root id for the Jackin Preview component tree.
 pub const APP: Id = Id::root("jackin.preview");
@@ -374,7 +396,7 @@ pub struct App {
     /// Read-only instance inspection state.
     pub inspect: InspectState,
     /// Cached manager projection; rebuilt only when expansion or source data changes.
-    manager_rows_cache: Vec<String>,
+    manager_rows_cache: Vec<ManagerRow>,
     manager_rows_revision: u64,
     shell_meta: String,
     manager_header: String,
@@ -991,7 +1013,7 @@ impl App {
         self.status = Some("Container info".into());
     }
 
-    fn build_manager_rows(&self) -> Vec<String> {
+    fn build_manager_rows(&self) -> Vec<ManagerRow> {
         let mut rows = Vec::new();
         for workspace in &self.world.workspaces {
             let expanded = self.manager.is_expanded(workspace.id);
@@ -1004,38 +1026,50 @@ impl App {
                     instance.workspace == Some(workspace.id) && !instance.status.hidden()
                 })
                 .count();
-            rows.push(format!(
-                "{marker} {} · {count} instance{}",
-                workspace.name,
-                if count == 1 { "" } else { "s" }
+            rows.push(ManagerRow::new(
+                ManagerRowKey::Workspace(workspace.id),
+                format!(
+                    "{marker} {} · {count} instance{}",
+                    workspace.name,
+                    if count == 1 { "" } else { "s" }
+                ),
             ));
             if expanded {
                 for instance in self.world.instances.iter().filter(|instance| {
                     instance.workspace == Some(workspace.id) && !instance.status.hidden()
                 }) {
-                    rows.push(format!(
-                        "  {} · instance · {} · run {} · {}",
-                        instance.id,
-                        instance.status.label(),
-                        instance.run_id.short(),
-                        instance.dirty_summary()
+                    rows.push(ManagerRow::new(
+                        ManagerRowKey::Instance(instance.id.clone()),
+                        format!(
+                            "  {} · instance · {} · run {} · {}",
+                            instance.id,
+                            instance.status.label(),
+                            instance.run_id.short(),
+                            instance.dirty_summary()
+                        ),
                     ));
                 }
             }
         }
-        rows.push(format!("Current directory · {}", self.world.home));
+        rows.push(ManagerRow::new(
+            ManagerRowKey::CurrentDirectory,
+            format!("Current directory · {}", self.world.home),
+        ));
         rows.extend(
             self.world
                 .instances
                 .iter()
                 .filter(|instance| instance.workspace.is_none() && !instance.status.hidden())
                 .map(|instance| {
-                    format!(
-                        "{} · {} · run {} · {}",
-                        instance.id,
-                        instance.status.label(),
-                        instance.run_id.short(),
-                        instance.dirty_summary()
+                    ManagerRow::new(
+                        ManagerRowKey::Instance(instance.id.clone()),
+                        format!(
+                            "{} · {} · run {} · {}",
+                            instance.id,
+                            instance.status.label(),
+                            instance.run_id.short(),
+                            instance.dirty_summary()
+                        ),
                     )
                 }),
         );
@@ -1047,38 +1081,17 @@ impl App {
             || self.manager_rows_revision != self.manager.rows_revision()
         {
             self.manager_rows_cache = self.build_manager_rows();
+            self.manager.list.invalidate();
             self.manager_rows_revision = self.manager.rows_revision();
         }
     }
 
-    fn manager_row_at(&self, index: usize) -> Option<ManagerRowKey> {
-        let mut cursor = 0usize;
-        for workspace in &self.world.workspaces {
-            if cursor == index {
-                return Some(ManagerRowKey::Workspace(workspace.id));
-            }
-            cursor = cursor.saturating_add(1);
-            if self.manager.is_expanded(workspace.id) {
-                for instance in self.world.instances.iter().filter(|instance| {
-                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
-                }) {
-                    if cursor == index {
-                        return Some(ManagerRowKey::Instance(instance.id.clone()));
-                    }
-                    cursor = cursor.saturating_add(1);
-                }
-            }
+    fn reset_manager_cursor(&mut self) {
+        self.ensure_manager_rows();
+        if let Some(row) = self.manager_rows_cache.first() {
+            self.manager.list.set_cursor(0, row.key);
+            self.manager.select_row(row.domain.clone());
         }
-        if cursor == index {
-            return Some(ManagerRowKey::CurrentDirectory);
-        }
-        cursor = cursor.saturating_add(1);
-        self.world
-            .instances
-            .iter()
-            .filter(|instance| instance.workspace.is_none() && !instance.status.hidden())
-            .nth(index.saturating_sub(cursor))
-            .map(|instance| ManagerRowKey::Instance(instance.id.clone()))
     }
 
     fn ensure_manager_header(&mut self) {
@@ -2096,14 +2109,20 @@ impl App {
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
-        let list =
-            List::new(MANAGER_LIST).update(cx, &mut self.manager.list, &self.manager_rows_cache);
+        let list = List::new(MANAGER_LIST)
+            .key(|row: &ManagerRow| row.key)
+            .update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
-        if let Some(ItemKey::Index(index)) = self.manager.list.cursor()
-            && let Some(row) = self.manager_row_at(index)
+        let selected_key = match list_action {
+            Some(ListAction::Activated(key) | ListAction::Chose(key)) => Some(key),
+            _ => self.manager.list.cursor(),
+        };
+        if let Some(key) = selected_key
+            && let Some(row) = self.manager_rows_cache.iter().find(|row| row.key == key)
+            && self.manager.selected_row() != &row.domain
         {
-            self.manager.select_row(row);
+            self.manager.select_row(row.domain.clone());
         }
         match list_action {
             Some(ListAction::Activated(_)) => {
@@ -3436,7 +3455,7 @@ impl App {
                 self.pending_capsule_action = None;
                 self.status = Some("Detached from Capsule".into());
                 self.route = Route::Manager;
-                self.manager.list.set_cursor(0, ItemKey::index(0));
+                self.reset_manager_cursor();
                 cx.focus(MANAGER_LIST);
                 Some(Response::changed())
             }
@@ -3574,7 +3593,7 @@ impl App {
                     if self.world.running_count() > 0 {
                         self.route = Route::Manager;
                         self.active_instance = None;
-                        self.manager.list.set_cursor(0, ItemKey::index(0));
+                        self.reset_manager_cursor();
                         cx.focus(MANAGER_LIST);
                         self.status =
                             Some("Still inside the Construct · another instance is running".into());
@@ -4937,7 +4956,9 @@ impl App {
             Rect { height: 2, ..area },
             std::slice::from_ref(&self.manager_header),
         );
-        List::new(MANAGER_LIST).draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
+        List::new(MANAGER_LIST)
+            .key(|row: &ManagerRow| row.key)
+            .draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
         if self.manager.detail_open() {
             ui.paint_str(
                 Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
@@ -6356,15 +6377,9 @@ impl TuiApp for App {
             && self.active_instance.is_none()
             && !self.manager.detail_open()
             && self
-                .manager
-                .list
-                .cursor()
-                .is_none_or(|cursor| cursor == ItemKey::index(0))
-            && self
-                .manager
-                .list
-                .cursor()
-                .is_some_and(|key| key == ItemKey::Index(0))
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
             self.draw_historical_manager(ui, full);
         }
