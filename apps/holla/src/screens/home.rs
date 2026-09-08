@@ -192,14 +192,36 @@ impl HomeState {
             area.width,
             area.height.saturating_sub(2),
         );
-        NavList::new(ROWS)
-            .scrollable(true)
-            .leave_at_boundary(true)
-            .header_indent(2)
-            .section(&section)
-            .key(row_key)
-            .render_row(&paint_action)
-            .draw(ui, rows_area, &self.rows, &rows);
+        if rows.is_empty() {
+            let note = if self.query().trim().is_empty() {
+                self.scope.map_or_else(
+                    || "Nothing discovered here yet".to_owned(),
+                    |scope| format!("Nothing in scope {} here", scope.label()),
+                )
+            } else {
+                format!("Nothing matches “{}” here", self.query().trim())
+            };
+            let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+            ui.paint_str(
+                Rect::new(
+                    rows_area.x.saturating_add(2),
+                    rows_area.y,
+                    rows_area.width.saturating_sub(4),
+                    1,
+                ),
+                &note,
+                style,
+            );
+        } else {
+            NavList::new(ROWS)
+                .scrollable(true)
+                .leave_at_boundary(true)
+                .header_indent(2)
+                .section(&section)
+                .key(row_key)
+                .render_row(&paint_action)
+                .draw(ui, rows_area, &self.rows, &rows);
+        }
         let groups = rows
             .iter()
             .map(|row| row.section)

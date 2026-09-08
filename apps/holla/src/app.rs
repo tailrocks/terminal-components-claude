@@ -1021,7 +1021,9 @@ mod tests {
         assert!(harness.app().overlay.is_none());
         let _ = harness.key(KeyCode::Backspace);
         assert_eq!(harness.app().home.query(), "git q?0");
-        assert_eq!(harness.focus(), Some(home::ROWS));
+        assert!(harness.app().home.rows(&harness.app().world).is_empty());
+        assert_ne!(harness.focus(), Some(home::ROWS));
+        assert!(harness.cursor().is_some());
         assert!(
             harness.diagnostics().is_empty(),
             "{:?}",
@@ -1050,6 +1052,37 @@ mod tests {
                 harness.diagnostics()
             );
         }
+    }
+    #[test]
+    fn unmatched_home_query_has_source_notice_and_no_empty_row_focus_stop() {
+        let mut harness = app(Scenario::HardCases);
+        assert!(harness.tab_to(home::QUERY));
+        let _ = harness.paste("  impossible-no-fixture-match  ");
+        assert!(harness.app().home.rows(&harness.app().world).is_empty());
+        assert!(
+            harness
+                .text()
+                .contains("Nothing matches “impossible-no-fixture-match” here")
+        );
+        let revision = harness.app().effect_revision();
+        let _ = harness.key(KeyCode::Down);
+        assert_ne!(harness.focus(), Some(home::ROWS));
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+        assert!(harness.tab_to(home::QUERY));
+        let _ = harness.key(KeyCode::Esc);
+        assert!(harness.app().home.query().is_empty());
+        let _ = harness.key(KeyCode::Down);
+        assert_eq!(harness.focus(), Some(home::ROWS));
+        assert_eq!(harness.app().effect_revision(), revision);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
     }
     #[test]
     fn home_escape_clears_scope_before_canonical_query() {
