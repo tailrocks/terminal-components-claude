@@ -32,7 +32,11 @@ preserved. HTML browser font resolution is not pinned by its original CSS.
 PNG output verification fails on any platform/rasterizer drift; do not replace
 hashes to make another environment pass. Initial regeneration used Python 3.14
 and the macOS arm64 Pillow 11.3.0 wheel. No original executable hash is available.
-Independent review and installation into historical baseline paths remain pending.
+Independent review approved the exact 998 renderings. They are installed in
+`baseline/before` by integration commit `2ebe74c`, with the absent-only hash-bound
+guard specified in architecture §75. Existing ANSI/text/cursor files were not
+changed. Review, font license and provenance live under
+`docs/historical-regeneration`; this approval does not cover current-app parity.
 
 Fail-closed qualification (eight mutations: font, renderer, source, missing/duplicate
 recipe, input, output and stale output):
@@ -47,4 +51,4 @@ sentinel files. The initial external manifest SHA-256 is
 `24e492a6aee8b1719b16e10d72ee72ccf2c14a81bb702917e941d5f5a3959608`.
 An independent clean detached checkout at `c051c8f` also downloaded the font
 archive and reproduced all 998 hashes with no source changes. This root-operated
-clean-checkout check is separate from the pending independent reviewer approval.
+clean-checkout check is separate from the recorded independent reviewer approval.

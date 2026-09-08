@@ -242,3 +242,24 @@ regenerated hashes. Gate owner is implementing absent-only, hash-bound additions
 and the narrow normative amendment before installation integration. Original
 captured artifacts remain immutable. User again reinforced parallel subagents;
 all writer ownership stays disjoint and committed candidates receive review.
+
+## Checkpoint: historical archive restored
+
+Integrated `2ebe74c` (worker `2633fe4`): 998 reviewed regenerated HTML/PNG files,
+provenance/license outside the frozen archive, and §75 absent-only hash-bound
+addition guard. Root verified all 998 hashes and Git's exact 998 additions with
+zero original artifact modifications/deletions. Root full xtask 98/98 tests,
+bless guard against `7159ff6`, and parity dry-run all pass: 499 recipes and 7,014
+parsed input events. Current replay evidence remains required and unapproved.
+Nested Python bytecode caches are ignored by `588423d`, keeping tool execution
+from contaminating source provenance with generated caches.
+
+Shared author style defaults `fc745ee` is committed and independently under
+review. TablePro painter `00a243d` independently exposes the same Mono binding
+defect as Jackin: Connect text becomes black on black; owner is applying the
+shared recipe seam. Its other 14 changed modal frames affect only the dimmed
+page, not dialog cells, and locked captures verify. No affected app paint slice
+is accepted until the committed Mono corrections pass review. Test inventory
+tool `8b97760` is committed/pushed for root review; all 3,211 historical source
+obligations retain explicit pending mappings, with many-to-one relocation
+allowed and current identities independent of compiler executable hashes.
