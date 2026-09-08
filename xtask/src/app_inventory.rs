@@ -81,16 +81,16 @@ struct ViewRequirement<'a> {
 }
 #[derive(Debug, Serialize)]
 pub(crate) struct HollaCase<'a> {
-    namespace: &'static str,
-    recipe_id: String,
-    scenario: &'a str,
-    width: u16,
-    height: u16,
-    color: &'a str,
-    motion: &'a str,
-    frame: u64,
-    theme: &'a str,
-    reference_revision: Option<&'a str>,
+    pub(crate) namespace: &'static str,
+    pub(crate) recipe_id: String,
+    pub(crate) scenario: &'a str,
+    pub(crate) width: u16,
+    pub(crate) height: u16,
+    pub(crate) color: &'a str,
+    pub(crate) motion: &'a str,
+    pub(crate) frame: u64,
+    pub(crate) theme: &'a str,
+    pub(crate) reference_revision: Option<&'a str>,
 }
 
 fn require(ok: bool, message: &str) -> Result<(), String> {

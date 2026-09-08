@@ -30,6 +30,10 @@ use walkdir::WalkDir;
 
 mod app_inventory;
 mod backend_free;
+mod capture_build;
+mod capture_confinement;
+mod capture_contract;
+mod capture_wiring;
 use app_inventory::AppPackage;
 use std::sync::LazyLock;
 mod historical_additions;
@@ -45,7 +49,7 @@ fn root() -> PathBuf {
 const CAPTURE_SIZES: [(u16, u16); 4] = [(80, 24), (100, 30), (120, 40), (160, 50)];
 const CAPTURE_COLORS: [&str; 4] = ["truecolor", "256", "16", "mono"];
 const CAPTURE_THEMES: [&str; 2] = ["junie", "paper"];
-static CAPTURE_APPS: LazyLock<Vec<CaptureApp>> = LazyLock::new(|| {
+pub(crate) static CAPTURE_APPS: LazyLock<Vec<CaptureApp>> = LazyLock::new(|| {
     app_inventory::get()
         .expect("validated application inventory")
         .apps
@@ -80,12 +84,13 @@ struct CaptureApp {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct CaptureCase {
-    app: CaptureApp,
-    width: u16,
-    height: u16,
-    color: &'static str,
-    theme: &'static str,
+pub(crate) struct CaptureCase {
+    pub(crate) app: CaptureApp,
+    pub(crate) scenario: Option<&'static str>,
+    pub(crate) width: u16,
+    pub(crate) height: u16,
+    pub(crate) color: &'static str,
+    pub(crate) theme: &'static str,
 }
 
 impl CaptureCase {
@@ -94,6 +99,9 @@ impl CaptureCase {
     }
 
     fn shot_name(self) -> String {
+        if let Some(scenario) = self.scenario {
+            return format!("h_p6_{scenario}_{}_{}", self.size(), self.color);
+        }
         format!(
             "{}_{}_{}_{}",
             self.app.name,
@@ -112,7 +120,7 @@ struct CaptureRecord {
     sha256: String,
 }
 
-fn capture_matrix_cases() -> Vec<CaptureCase> {
+pub(crate) fn capture_matrix_cases() -> Vec<CaptureCase> {
     CAPTURE_APPS
         .iter()
         .copied()
@@ -120,6 +128,7 @@ fn capture_matrix_cases() -> Vec<CaptureCase> {
             CAPTURE_SIZES.into_iter().flat_map(move |(width, height)| {
                 CAPTURE_COLORS.into_iter().flat_map(move |color| {
                     app.themes.iter().copied().map(move |theme| CaptureCase {
+                        scenario: None,
                         app,
                         width,
                         height,
@@ -776,13 +785,16 @@ fn capture_color_arg(color: &str) -> &str {
     if color == "mono" { "none" } else { color }
 }
 
-fn capture_arguments(case: CaptureCase) -> Vec<String> {
+pub(crate) fn capture_arguments(case: CaptureCase) -> Vec<String> {
     let mut arguments = case
         .app
         .extra_args
         .iter()
         .map(|argument| (*argument).to_owned())
         .collect::<Vec<_>>();
+    if let Some(scenario) = case.scenario {
+        arguments[1] = scenario.to_owned();
+    }
     if case.app.theme_argument {
         arguments.extend(["--theme".to_owned(), case.theme.to_owned()]);
     }
@@ -1016,12 +1028,17 @@ fn capture_legacy_path_matches(info: &serde_json::Map<String, Value>, relative: 
     info.get("path").and_then(Value::as_str) == Some(relative)
 }
 
-fn capture_artifact_path(name: &str, extension: &str, legacy_flat: bool) -> String {
-    if legacy_flat {
-        format!("shots/{name}.{extension}")
+fn capture_artifact_path_in(
+    shots: &Path,
+    name: &str,
+    extension: &str,
+    legacy_flat: bool,
+) -> String {
+    rel(&if legacy_flat {
+        shots.join(format!("{name}.{extension}"))
     } else {
-        format!("shots/{name}/{extension}")
-    }
+        shots.join(name).join(extension)
+    })
 }
 
 fn validate_empty_capture_file(path: &Path) -> Result<(), String> {
@@ -1055,6 +1072,9 @@ fn validate_capture_provenance(
     path: &Path,
     expected_revision: Option<&str>,
 ) -> Result<(), String> {
+    let shots = path
+        .parent()
+        .ok_or("capture provenance directory missing")?;
     let text = fs::read_to_string(path)
         .map_err(|error| format!("cannot read capture provenance {}: {error}", rel(path)))?;
     let value: Value = serde_json::from_str(&text)
@@ -1179,7 +1199,7 @@ fn validate_capture_provenance(
                 errors.push(format!("{name}: provenance is missing the {kind} artifact"));
                 continue;
             };
-            let artifact_path = capture_artifact_path(name, extension, legacy_flat);
+            let artifact_path = capture_artifact_path_in(shots, name, extension, legacy_flat);
             let path_matches = if legacy_flat {
                 capture_legacy_path_matches(info, &artifact_path)
             } else {
@@ -1310,6 +1330,7 @@ fn validate_capture_provenance(
 }
 
 fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), String> {
+    let shots = path.parent().ok_or("capture matrix directory missing")?;
     let text = fs::read_to_string(path)
         .map_err(|error| format!("cannot read capture matrix {}: {error}", rel(path)))?;
     let mut lines = text.lines();
@@ -1326,11 +1347,11 @@ fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), Str
         .flat_map(|case| {
             [
                 (
-                    capture_artifact_path(&case.shot_name(), "png", false),
+                    capture_artifact_path_in(shots, &case.shot_name(), "png", false),
                     (case, false),
                 ),
                 (
-                    capture_artifact_path(&case.shot_name(), "png", true),
+                    capture_artifact_path_in(shots, &case.shot_name(), "png", true),
                     (case, true),
                 ),
             ]
@@ -1385,7 +1406,7 @@ fn validate_capture_tsv(expected: &[CaptureCase], path: &Path) -> Result<(), Str
     let legacy_flat = layout.unwrap_or(false);
     let missing: Vec<String> = expected
         .iter()
-        .map(|case| capture_artifact_path(&case.shot_name(), "png", legacy_flat))
+        .map(|case| capture_artifact_path_in(shots, &case.shot_name(), "png", legacy_flat))
         .filter(|path| !seen.contains(path))
         .collect();
     if !missing.is_empty() {
@@ -1838,6 +1859,9 @@ fn main() -> ExitCode {
         // `ok`/`FAIL` formatting, the `N check(s) failed` tail and `xtask list`.
         Some("bless-guard") => boundary(Some("baseline_moves_are_classified")),
         Some("capture-matrix") => capture_matrix(),
+        Some("capture-verify") => capture_wiring::verify_command(&args),
+        Some("capture-build") => capture_build::cli(&args),
+        Some("capture-schema") => capture_contract::schema_command(&args),
         Some("parity") => {
             if args.iter().any(|argument| argument == "--dry-run") {
                 parity::dry_run(&root())
@@ -1855,6 +1879,9 @@ fn main() -> ExitCode {
             println!("app-inventory [--json | --plan]");
             println!("app-perf");
             println!("capture-matrix");
+            println!("capture-build --output DIRECTORY | --verify FILE");
+            println!("capture-verify --build-manifest FILE --bundle DIRECTORY");
+            println!("capture-schema PLAN BUILD JOIN (schema only)");
             println!("parity");
             println!("parity-replay");
             for name in CHECKS.iter().map(|c| c.0) {
@@ -10422,6 +10449,7 @@ captures / classification: `(pending — filled when the change lands)`
                 expected_colors.into_iter().flat_map(move |color| {
                     expected_themes.into_iter().flat_map(move |theme| {
                         expected_apps.into_iter().map(move |app| CaptureCase {
+                            scenario: None,
                             app,
                             width,
                             height,
@@ -10435,6 +10463,7 @@ captures / classification: `(pending — filled when the change lands)`
         for (width, height) in expected_sizes {
             for color in expected_colors {
                 expected.insert(CaptureCase {
+                    scenario: None,
                     app: CaptureApp {
                         name: "holla",
                         binary: "holla",
@@ -10564,6 +10593,7 @@ positional argv mode is unsupported
     fn capture_matrix_passes_theme_and_color_to_each_app() {
         let app = CAPTURE_APPS[2];
         let case = CaptureCase {
+            scenario: None,
             app,
             width: 120,
             height: 40,
@@ -11302,6 +11332,7 @@ set -eu
         )
         .expect("write environment fixture");
         let case = CaptureCase {
+            scenario: None,
             app: CAPTURE_APPS[0],
             width: 80,
             height: 24,
