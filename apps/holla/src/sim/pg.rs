@@ -34,6 +34,7 @@ impl std::error::Error for ReviewError {}
 /// is display-only; PID, query, user and wait relationship identify the target.
 pub(crate) struct Review {
     target: PgSession,
+    operation: Operation,
     host: (String, HostKind, Environment),
     revision: u64,
 }
@@ -68,7 +69,7 @@ fn valid_sessions(sessions: &[PgSession]) -> bool {
 }
 
 impl Review {
-    pub(crate) fn new(world: &World) -> Result<Self, ReviewError> {
+    pub(crate) fn new(world: &World, operation: Operation) -> Result<Self, ReviewError> {
         let sessions = world.pg.as_ref().ok_or(ReviewError::NoBlocker)?;
         if !valid_sessions(sessions) {
             return Err(ReviewError::InvalidInventory);
@@ -80,19 +81,20 @@ impl Review {
             .clone();
         Ok(Self {
             target,
+            operation,
             host: (world.host.name.clone(), world.host.kind, world.host.env),
             revision: world.effect_revision,
         })
     }
+    pub(crate) fn operation(&self) -> Operation {
+        self.operation
+    }
+
     pub(crate) fn target(&self) -> &PgSession {
         &self.target
     }
 
-    pub(crate) fn execute(
-        self,
-        world: &mut World,
-        operation: Operation,
-    ) -> Result<Report, ReviewError> {
+    pub(crate) fn execute(self, world: &mut World) -> Result<Report, ReviewError> {
         if world.effect_revision != self.revision
             || self.host != (world.host.name.clone(), world.host.kind, world.host.env)
         {
@@ -138,7 +140,7 @@ impl Review {
         Ok(Report {
             pid: self.target.pid,
             resumed,
-            operation,
+            operation: self.operation,
         })
     }
 }
@@ -175,7 +177,7 @@ mod tests {
     fn original_target_disappearance_never_selects_another_blocker() {
         for operation in [Operation::Cancel, Operation::Terminate] {
             let mut world = world();
-            let review = Review::new(&world).unwrap();
+            let review = Review::new(&world, Operation::Cancel).unwrap();
             world
                 .pg
                 .as_mut()
@@ -183,7 +185,7 @@ mod tests {
                 .retain(|session| session.pid != 10);
             let before = world.pg.clone();
             assert!(matches!(
-                review.execute(&mut world, operation),
+                review.execute(&mut world),
                 Err(ReviewError::StaleTarget)
             ));
             assert_eq!(world.pg, before);
@@ -194,7 +196,7 @@ mod tests {
     fn target_query_host_and_revision_changes_refuse_without_effects() {
         for mutation in 0..4 {
             let mut world = world();
-            let review = Review::new(&world).unwrap();
+            let review = Review::new(&world, Operation::Cancel).unwrap();
             match mutation {
                 0 => {
                     world
@@ -212,7 +214,7 @@ mod tests {
             }
             let before = world.pg.clone();
             assert!(matches!(
-                review.execute(&mut world, Operation::Cancel),
+                review.execute(&mut world),
                 Err(ReviewError::StaleTarget)
             ));
             assert_eq!(world.pg, before);
@@ -222,9 +224,10 @@ mod tests {
     fn valid_cancel_and_terminate_preserve_exact_target_and_waiter_outputs() {
         for operation in [Operation::Cancel, Operation::Terminate] {
             let mut world = world();
-            let review = Review::new(&world).unwrap();
+            let review = Review::new(&world, operation).unwrap();
             assert_eq!(review.target().pid, 10);
-            let report = review.execute(&mut world, operation).unwrap();
+            assert_eq!(review.operation(), operation);
+            let report = review.execute(&mut world).unwrap();
             assert_eq!(report.pid, 10);
             assert_eq!(report.resumed, 1);
             assert_eq!(world.effect_revision, 1);
@@ -261,15 +264,15 @@ mod tests {
         let mut world = world();
         world.pg.as_mut().unwrap().push(session(10, None));
         assert!(matches!(
-            Review::new(&world),
+            Review::new(&world, Operation::Cancel),
             Err(ReviewError::InvalidInventory)
         ));
         world.pg.as_mut().unwrap().pop();
         world.effect_revision = u64::MAX;
-        let review = Review::new(&world).unwrap();
+        let review = Review::new(&world, Operation::Cancel).unwrap();
         let before = world.pg.clone();
         assert!(matches!(
-            review.execute(&mut world, Operation::Cancel),
+            review.execute(&mut world),
             Err(ReviewError::RevisionExhausted)
         ));
         assert_eq!(world.pg, before);
