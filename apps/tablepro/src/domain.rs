@@ -6,8 +6,8 @@
 //! about databases, while the app never reaches into runtime internals.
 
 use junie_tui::{
-    CellDecor, CellRef, ColumnKey, EditIntent, FieldError, GridEditor, GridModel, ItemKey,
-    RowDecor, RowTotal, SortDir, StateFlags,
+    CellDecor, CellRef, ColumnKey, EditIntent, FgStep, FieldError, GlyphRole, GridEditor,
+    GridModel, ItemKey, Role, RowDecor, RowTotal, SortDir, StateFlags,
 };
 
 use crate::db::{ColType, Table, Value};
@@ -102,11 +102,15 @@ impl PendingEdits {
 
     /// Add a NULL row, refusing without mutation if stable keys are exhausted.
     pub fn insert_row(&mut self, columns: usize) -> Option<usize> {
+        self.insert_values(vec![Value::Null; columns])
+    }
+
+    fn insert_values(&mut self, values: Vec<Value>) -> Option<usize> {
         let key = self.next_key?;
         let row = self.rows.len();
         self.rows.push(PendingRow {
             key: ItemKey::num(key),
-            current: vec![Value::Null; columns],
+            current: values,
             original: None,
             inserted: true,
             deleted: false,
@@ -128,6 +132,23 @@ impl PendingEdits {
             return false;
         }
         record.deleted = true;
+        true
+    }
+
+    fn toggle_delete(&mut self, row: usize) -> bool {
+        let Some(record) = self.rows.get_mut(row) else {
+            return false;
+        };
+        if record.inserted {
+            self.rows.remove(row);
+        } else {
+            if !record.deleted
+                && let Some(original) = record.original.take()
+            {
+                record.current = original;
+            }
+            record.deleted = !record.deleted;
+        }
         true
     }
 
@@ -217,6 +238,7 @@ impl PendingEdits {
 pub(crate) fn sql_literal(value: &Value) -> String {
     match value {
         Value::Null => "NULL".to_owned(),
+        Value::Default => "DEFAULT".to_owned(),
         Value::Text(text) => format!("'{}'", text.replace('\'', "''")),
         Value::Int(value) => value.to_string(),
         Value::Num(value) => format!("{value:.2}"),
@@ -295,7 +317,7 @@ pub(crate) fn preview_sql(
             let mut values = Vec::new();
             for (col, (name, _)) in columns.iter().enumerate() {
                 let value = pending.value(row, col).unwrap_or(&Value::Null);
-                if !matches!(value, Value::Null) {
+                if !matches!(value, Value::Default) {
                     names.push(name.clone());
                     values.push(sql_literal(value));
                 }
@@ -450,6 +472,42 @@ impl ResultGrid {
         self.undo.push(before);
         self.rebuild_display();
         Some(row)
+    }
+
+    /// Insert schema-derived DEFAULT/NULL values as one undoable operation.
+    pub(crate) fn insert_row_with_defaults(&mut self, defaults: &[bool]) -> Option<usize> {
+        if !self.editable || defaults.len() != self.types.len() {
+            return None;
+        }
+        let before = self.pending.clone();
+        let values = defaults
+            .iter()
+            .map(|default| {
+                if *default {
+                    Value::Default
+                } else {
+                    Value::Null
+                }
+            })
+            .collect();
+        let row = self.pending.insert_values(values)?;
+        self.undo.push(before);
+        self.rebuild_display();
+        Some(row)
+    }
+
+    /// Toggle a row deletion; marking deletion replaces existing cell updates.
+    pub fn toggle_delete(&mut self, row: usize) -> bool {
+        if !self.editable {
+            return false;
+        }
+        let before = self.pending.clone();
+        if !self.pending.toggle_delete(row) {
+            return false;
+        }
+        self.undo.push(before);
+        self.rebuild_display();
+        true
     }
 
     /// Mark a row deleted, preserving it for undo/save preview.
@@ -616,6 +674,18 @@ impl GridModel for ResultGrid {
 
     fn row_decor(&self, row: usize) -> RowDecor<'_> {
         RowDecor {
+            marker: if self.pending.is_deleted(row) {
+                Some(GlyphRole::Deleted)
+            } else if self.pending.is_inserted(row) {
+                Some(GlyphRole::Inserted)
+            } else {
+                None
+            },
+            strike: self.pending.is_deleted(row),
+            tone: self
+                .pending
+                .is_deleted(row)
+                .then_some(Role::Fg(FgStep::Faint)),
             flags: if self.pending.is_dirty_row(row) {
                 StateFlags::DIRTY
             } else {
@@ -732,7 +802,7 @@ mod tests {
             preview_sql(&CatalogTable::orders(), &columns(), &pending),
             vec![
                 "UPDATE public.orders SET id = 8 WHERE id = 7;",
-                "INSERT INTO public.orders (id) VALUES (1);",
+                "INSERT INTO public.orders (id, name) VALUES (1, NULL);",
                 "DELETE FROM public.orders WHERE id = 9;",
             ]
         );
@@ -740,6 +810,67 @@ mod tests {
         assert_eq!(pending.value(0, 0), Some(&Value::Int(9)));
         assert_eq!(pending.value(1, 0), Some(&Value::Int(7)));
         assert!(pending.dirty_rows().is_empty());
+    }
+
+    #[test]
+    fn inserted_default_is_distinct_from_explicit_null_in_preview() {
+        let mut grid = ResultGrid::from_result(&sql::ResultSet {
+            columns: columns(),
+            rows: Vec::new(),
+            total: 0,
+            source: Some("public.orders".to_owned()),
+            duration_ms: 0,
+            editable: true,
+        });
+        let before = grid.clone();
+        assert!(grid.insert_row_with_defaults(&[true]).is_none());
+        assert_eq!(grid, before);
+        let Some(row) = grid.insert_row_with_defaults(&[true, false]) else {
+            unreachable!("insert")
+        };
+        assert_eq!(grid.pending().value(row, 0), Some(&Value::Default));
+        assert_eq!(grid.pending().value(row, 1), Some(&Value::Null));
+        assert_eq!(
+            preview_sql(&CatalogTable::orders(), &columns(), grid.pending()),
+            vec!["INSERT INTO public.orders (name) VALUES (NULL);"]
+        );
+        assert!(grid.undo());
+        assert!(grid.insert_row_with_defaults(&[true, true]).is_some());
+        assert_eq!(
+            preview_sql(&CatalogTable::orders(), &columns(), grid.pending()),
+            vec!["INSERT INTO public.orders DEFAULT VALUES;"]
+        );
+    }
+
+    #[test]
+    fn delete_toggle_replaces_updates_and_undo_restores_full_row_snapshot() {
+        let mut grid = ResultGrid::from_result(&sql::ResultSet {
+            columns: columns(),
+            rows: vec![vec![Value::Int(7), Value::Text("old".to_owned())]],
+            total: 1,
+            source: Some("public.orders".to_owned()),
+            duration_ms: 0,
+            editable: true,
+        });
+        let key = grid.row_key(0);
+        assert!(grid.commit_cell(0, 1, "edited").is_ok());
+        assert!(grid.toggle_delete(0));
+        assert_eq!(grid.pending_total(), 1);
+        assert_eq!(
+            grid.pending().value(0, 1),
+            Some(&Value::Text("old".to_owned()))
+        );
+        assert!(grid.undo());
+        assert_eq!(grid.row_key(0), key);
+        assert_eq!(
+            grid.pending().value(0, 1),
+            Some(&Value::Text("edited".to_owned()))
+        );
+        assert!(!grid.pending().is_deleted(0));
+        assert!(grid.toggle_delete(0));
+        assert!(grid.toggle_delete(0));
+        assert_eq!(grid.pending_total(), 0);
+        assert_eq!(grid.row_key(0), key);
     }
 
     fn columns() -> Vec<(String, ColType)> {

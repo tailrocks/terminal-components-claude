@@ -3,9 +3,9 @@
 use junie_tui::author::{PaintStyle, StyleDefaults};
 use junie_tui::{
     Action, ActionKey, App, Chord, Color, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
-    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, Id, Intent,
-    ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind, Panel,
-    PanelKind, Part, Phase, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane,
+    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel,
+    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
+    Panel, PanelKind, Part, Phase, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane,
     SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme,
     Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
 };
@@ -30,6 +30,9 @@ const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const RUN: ActionKey = ActionKey::custom("tablepro.run");
 const UNDO: ActionKey = ActionKey::custom("tablepro.undo");
+const INSERT_ROW: ActionKey = ActionKey::custom("tablepro.insert-row");
+const DELETE_ROW: ActionKey = ActionKey::custom("tablepro.delete-row");
+const DISCARD_ROWS: ActionKey = ActionKey::custom("tablepro.discard-rows");
 const QUIT: ActionKey = ActionKey::custom("tablepro.quit");
 const CANCEL_OR_QUIT: ActionKey = ActionKey::custom("tablepro.cancel-or-quit");
 const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
@@ -45,6 +48,10 @@ const CLOSE_ACTIONS: [Action<'static>; 2] = [
 const RECONNECT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
     Action::danger(ActionKey::CONFIRM, "Reconnect"),
+];
+const DISCARD_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Discard"),
 ];
 const REPLACE_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
@@ -77,6 +84,11 @@ enum DestructiveIntent {
         source: Box<Connection>,
         scope: Vec<(TabKey, u64)>,
     },
+    DiscardRows {
+        key: TabKey,
+        generation: u64,
+        question: String,
+    },
     ReplaceResult {
         key: TabKey,
         query: String,
@@ -94,6 +106,7 @@ impl core::fmt::Debug for DestructiveIntent {
                 .debug_struct("Reconnect")
                 .field("tabs", &scope.len())
                 .finish_non_exhaustive(),
+            Self::DiscardRows { key, .. } => f.debug_tuple("DiscardRows").field(key).finish(),
             Self::ReplaceResult { key, .. } => f
                 .debug_struct("ReplaceResult")
                 .field("key", key)
@@ -120,6 +133,10 @@ impl DestructiveIntent {
                 "Pending row edits and unsaved query text in all tabs will be lost.",
             )
             .actions(&RECONNECT_ACTIONS),
+            Self::DiscardRows { question, .. } => {
+                Dialog::destructive(QUIT_DIALOG, "Discard unsaved changes?", question)
+                    .actions(&DISCARD_ACTIONS)
+            }
             Self::ReplaceResult { .. } => Dialog::destructive(
                 QUIT_DIALOG,
                 "Replace results with unsaved edits?",
@@ -318,6 +335,13 @@ fn quit_keymap() -> KeyMap {
 fn keymap() -> KeyMap {
     quit_keymap()
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('-')), DELETE_ROW)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('U')),
+            DISCARD_ROWS,
+        )
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
@@ -1220,6 +1244,101 @@ impl TableProApp {
         }
     }
 
+    fn active_row_action(&self, cx: &Cx<'_>) -> bool {
+        self.workbench.active_grid().is_some_and(|(id, grid)| {
+            cx.state(id).contains(junie_tui::StateFlags::FOCUSED)
+                && !grid.state.is_editing()
+                && grid.model.is_editable()
+        })
+    }
+
+    fn insert_defaults(&self) -> Option<Vec<bool>> {
+        let (_, grid) = self.workbench.active_grid()?;
+        let source = grid.model.source()?;
+        let (schema, name) = source.split_once('.')?;
+        let table = self.catalog.find(Some(schema), name)?;
+        grid.columns
+            .iter()
+            .map(|(name, _)| {
+                table
+                    .columns
+                    .iter()
+                    .find(|column| column.name == *name)
+                    .map(|column| column.primary || column.generated)
+            })
+            .collect()
+    }
+
+    fn insert_active_row(&mut self) {
+        let Some(defaults) = self.insert_defaults() else {
+            return;
+        };
+        let column = defaults.iter().position(|default| !default).unwrap_or(0);
+        let Some((id, grid)) = self.workbench.active_grid_mut() else {
+            return;
+        };
+        let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
+        let Some(target) = columns
+            .get(column)
+            .filter(|_| column < count)
+            .map(|column| column.key)
+        else {
+            return;
+        };
+        let Some(row) = grid.model.insert_row_with_defaults(&defaults) else {
+            return;
+        };
+        let key = grid.model.row_key(row);
+        if result_grid(id, columns.get(..count).unwrap_or(&[]))
+            .move_cursor_to(&mut grid.state, &grid.model, key, target)
+            .is_err()
+        {
+            let _ = grid.model.undo();
+        }
+    }
+
+    fn toggle_active_row(&mut self) {
+        let Some((_, grid)) = self.workbench.active_grid_mut() else {
+            return;
+        };
+        let Some((key, _)) = grid.state.cursor() else {
+            return;
+        };
+        let Some(row) = (0..grid.model.row_count()).find(|row| grid.model.row_key(*row) == key)
+        else {
+            return;
+        };
+        let _ = grid.model.toggle_delete(row);
+    }
+
+    fn request_discard_rows(&mut self, cx: &mut Cx<'_>) {
+        let Some(key) = self.workbench.active_key() else {
+            return;
+        };
+        let Some((_, grid)) = self.workbench.active_grid() else {
+            return;
+        };
+        let pending = grid.pending_total();
+        if pending == 0 {
+            return;
+        }
+        let Some(generation) = self.workbench.generation(key) else {
+            self.stale_destructive();
+            return;
+        };
+        let question = format!(
+            "{pending} pending change(s) will be dropped. The rows are reloaded from the server."
+        );
+        self.open_destructive(
+            cx,
+            DestructiveIntent::DiscardRows {
+                key,
+                generation,
+                question,
+            },
+        );
+    }
+
     fn stale_destructive(&mut self) {
         self.destructive_notice = Some("Work changed; request again");
     }
@@ -1280,6 +1399,18 @@ impl TableProApp {
                             let _ = self.connect_confirmed(&target);
                         } else {
                             self.stale_destructive();
+                        }
+                    }
+                    DestructiveIntent::DiscardRows {
+                        key, generation, ..
+                    } => {
+                        if self.workbench.generation(key) != Some(generation) {
+                            self.stale_destructive();
+                        } else if let Some(tab) = self.workbench.tab_mut(key)
+                            && let Some((_, grid)) = tab.grid_mut(key)
+                        {
+                            let _ = grid.state.cancel_edit();
+                            grid.model.discard();
                         }
                     }
                     DestructiveIntent::ReplaceResult {
@@ -2652,6 +2783,18 @@ impl App for TableProApp {
                         return Response::changed();
                     }
                     return self.request_quit(cx);
+                }
+                c if c == INSERT_ROW || c == DELETE_ROW || c == DISCARD_ROWS => {
+                    if self.active_row_action(cx) {
+                        if c == INSERT_ROW {
+                            self.insert_active_row();
+                        } else if c == DELETE_ROW {
+                            self.toggle_active_row();
+                        } else {
+                            self.request_discard_rows(cx);
+                        }
+                        response |= Response::changed();
+                    }
                 }
                 c if c == UNDO => {
                     if let Some((id, grid)) = self.workbench.active_grid_mut()
