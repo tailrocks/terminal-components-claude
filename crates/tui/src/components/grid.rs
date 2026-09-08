@@ -728,7 +728,6 @@ impl WidthSample {
 struct SampledWidth {
     key: ColumnKey,
     natural: u16,
-    has_actions: bool,
 }
 
 /// Durable state of a [`Grid`].
@@ -1172,10 +1171,8 @@ impl<'a> Grid<'a> {
             .zip(sampled.iter_mut())
             .enumerate()
         {
-            let mut has_actions = false;
             for (row, slot) in widths.iter_mut().take(len).enumerate() {
                 *slot = if let Some(cell) = model.cell(row, i) {
-                    has_actions |= !model.actions(row, i).is_empty();
                     width(cell.text)
                 } else {
                     0
@@ -1193,7 +1190,6 @@ impl<'a> Grid<'a> {
             *sampled_slot = Some(SampledWidth {
                 key: column.key,
                 natural,
-                has_actions,
             });
         }
         st.sampled_widths = sampled;
@@ -1432,18 +1428,20 @@ impl<'a> Grid<'a> {
             if let Some(s) = c.subtitle {
                 w = w.max(width(s));
             }
-            if let Some(sample) = st.sampled_width(c.key) {
+            let sample = st.sampled_width(c.key);
+            if let Some(sample) = sample {
                 w = w.max(sample.natural);
-                has_actions = sample.has_actions;
-            } else {
-                for r in rows.clone() {
-                    if r >= model.row_count() {
-                        break;
-                    }
-                    if let Some(cell) = model.cell(r, i) {
+            }
+            // Sampling freezes natural text width, never live interaction space.
+            for r in rows.clone() {
+                if r >= model.row_count() {
+                    break;
+                }
+                if let Some(cell) = model.cell(r, i) {
+                    if sample.is_none() {
                         w = w.max(width(cell.text));
-                        has_actions |= !model.actions(r, i).is_empty();
                     }
+                    has_actions |= !model.actions(r, i).is_empty();
                 }
             }
             if c.prefix_glyph.is_some() {
