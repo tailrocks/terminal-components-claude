@@ -119,3 +119,25 @@ fn state_remains_const_constructible_send_and_sync() {
     send_sync::<TreeState>();
     assert!(EMPTY.expanded().is_empty());
 }
+
+#[test]
+fn warmed_toggles_and_publication_allocate_nothing() {
+    let mut h = Harness::new(
+        Page {
+            state: state("public"),
+        },
+        Theme::junie(),
+        50,
+        12,
+    );
+    for _ in 0..4 {
+        h.app_mut().state.toggle(ItemKey::text("public"));
+        h.draw();
+    }
+    let before = junie_tui_testing::perf::allocs();
+    for _ in 0..100 {
+        h.app_mut().state.toggle(ItemKey::text("public"));
+        h.draw();
+    }
+    assert_eq!(junie_tui_testing::perf::allocs() - before, 0);
+}

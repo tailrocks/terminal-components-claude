@@ -1015,6 +1015,7 @@ struct TreeIndex {
     rows: Vec<FlatRef>,
     by_key: HashMap<ItemKey, usize>,
     visible: Vec<usize>,
+    splice_scratch: Vec<usize>,
     foldable: bool,
     #[cfg(test)]
     source_rebuilds: usize,
@@ -1217,7 +1218,7 @@ impl TreeIndex {
             return;
         };
         if change.expanded {
-            let mut inserted = Vec::new();
+            self.splice_scratch.clear();
             let mut collapsed_depth: Option<u16> = None;
             for index in source.saturating_add(1)..self.rows.len() {
                 let Some(row) = self.rows.get(index).copied() else {
@@ -1233,7 +1234,7 @@ impl TreeIndex {
                 if !row.included {
                     continue;
                 }
-                inserted.push(index);
+                self.splice_scratch.push(index);
                 if matches!(row.kind, NodeKind::Parent | NodeKind::Lazy)
                     && !expanded.contains(row.key)
                 {
@@ -1242,7 +1243,7 @@ impl TreeIndex {
             }
             self.visible.splice(
                 display.saturating_add(1)..display.saturating_add(1),
-                inserted,
+                self.splice_scratch.drain(..),
             );
         } else {
             let start = display.saturating_add(1);
