@@ -1,9 +1,124 @@
 //! Hover is a successfully presented geometry fact, never synthetic input.
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use junie_tui::{
-    App, ColorLevel, Cx, Focusability, FrameRead, Id, Input, Intent, Key, KeyCode, KeyModifiers,
-    LayerSpec, Mouse, MouseKind, Phase, Position, Rect, Response, Runtime, StateFlags, Theme, Ui,
+    App, ColorLevel, Cx, Diagnostic, Focusability, FrameRead, Id, Input, Intent, Key, KeyCode,
+    KeyModifiers, LayerSpec, Mouse, MouseKind, Phase, Position, Rect, Response, Runtime,
+    StateFlags, Theme, Ui,
 };
+
+#[derive(Default)]
+struct HoverLayout {
+    stable: bool,
+    updates: usize,
+    moves: usize,
+}
+impl App for HoverLayout {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.updates = self.updates.saturating_add(1);
+        for intent in cx.intents(A) {
+            if matches!(
+                intent,
+                Intent::Pointer {
+                    phase: Phase::Move,
+                    ..
+                }
+            ) {
+                self.moves = self.moves.saturating_add(1);
+            }
+            if matches!(
+                intent,
+                Intent::Key(Key {
+                    code: KeyCode::Char('q'),
+                    ..
+                })
+            ) {
+                assert_eq!(self.moves, 1, "quit must follow the admitted physical Move");
+                cx.quit();
+            }
+        }
+        Response::ignored()
+    }
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let x = if !self.stable && ui.state(A).contains(StateFlags::HOVERED) {
+            10
+        } else {
+            0
+        };
+        ui.register_control(A, Rect::new(x, 0, 8, 2), Focusability::Focusable);
+    }
+}
+
+fn present_hover(rt: &mut Runtime<HoverLayout>) -> usize {
+    for pass in 1..=8 {
+        if rt.needs_settle() {
+            let _ = rt.settle();
+        }
+        rt.draw_buffer(AREA, &mut Buffer::empty(AREA))
+            .commit_presented();
+        if !rt.needs_present() && !rt.needs_settle() {
+            return pass;
+        }
+    }
+    assert!(!rt.needs_present(), "hover publication did not converge");
+    8
+}
+
+#[test]
+fn hover_layout_cycle_is_diagnosed_suppressed_and_released_only_by_admitted_move() {
+    let mut rt = Runtime::new(HoverLayout::default(), Theme::junie());
+    let _ = rt.initialize();
+    present_hover(&mut rt);
+    let event = |kind| {
+        Input::Mouse(Mouse {
+            kind,
+            pos: Position::new(1, 1),
+            mods: KeyModifiers::NONE,
+        })
+    };
+    let _ = rt.handle(event(MouseKind::Move)).unwrap();
+    let updates = rt.app().updates;
+    assert!(present_hover(&mut rt) <= 5);
+    assert_eq!(rt.app().updates, updates);
+    assert!(
+        rt.diagnostics()
+            .contains(&Diagnostic::HoverLayoutDidNotSettle)
+    );
+    assert!(!rt.state_of(A).contains(StateFlags::HOVERED));
+    rt.app_mut().stable = true;
+    let pending = rt.handle(event(MouseKind::Move)).unwrap_err();
+    present_hover(&mut rt);
+    assert!(!rt.state_of(A).contains(StateFlags::HOVERED));
+    let _ = rt
+        .handle(event(MouseKind::Wheel(junie_tui::Axis::V, 1)))
+        .unwrap();
+    present_hover(&mut rt);
+    assert!(!rt.state_of(A).contains(StateFlags::HOVERED));
+    let _ = rt.handle(pending.into_input()).unwrap();
+    present_hover(&mut rt);
+    assert!(rt.state_of(A).contains(StateFlags::HOVERED));
+}
+
+/// External PTY sends Move and q together after the readiness marker.
+#[test]
+#[ignore = "real PTY fixture; external driver queues pointer move then quit"]
+#[cfg(feature = "crossterm")]
+#[expect(clippy::print_stdout, reason = "explicit PTY readiness marker")]
+fn hover_cycle_driver_queued_quit_fixture() {
+    struct Driver(HoverLayout);
+    impl App for Driver {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == junie_tui::UpdateCause::Bootstrap {
+                println!("HOVER_DRIVER_READY");
+            }
+            self.0.update(cx)
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.0.draw(ui);
+        }
+    }
+    junie_tui::run(Driver(HoverLayout::default()), Theme::junie()).unwrap();
+    println!("HOVER_DRIVER_QUIT_OK");
+}
 use junie_tui_testing::{
     Scene,
     perf::{Counting, bench, lock},

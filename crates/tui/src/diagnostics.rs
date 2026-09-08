@@ -17,6 +17,9 @@ use crate::layer::LayerId;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Diagnostic {
+    /// Hover-dependent geometry did not converge within four presentations.
+    /// Hover stays suppressed until the next admitted pointer move.
+    HoverLayoutDidNotSettle,
     /// Two `Control` regions registered the same id in one frame.
     DuplicateId {
         /// The id.

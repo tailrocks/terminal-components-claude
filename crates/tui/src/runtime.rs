@@ -117,6 +117,7 @@ struct Interaction {
     pointer_position: Option<Position>,
     hover: Option<(Id, PartRef)>,
     hover_suppressed: bool,
+    hover_passes: u8,
     press: Option<Press>,
     last_click: Option<(Id, PartRef, Moment)>,
     last_input_key: bool,
@@ -902,6 +903,7 @@ impl<A: App> Runtime<A> {
         self.last.snapshot.focus_visible = false;
         let hover_was_suppressed = self.inter.hover_suppressed;
         if m.kind == MouseKind::Move {
+            self.inter.hover_passes = 0;
             self.inter.hover_suppressed = false;
             self.last.snapshot.hover_suppressed = false;
         }
@@ -1732,7 +1734,7 @@ impl<A: App> Runtime<A> {
         } else {
             self.last.snapshot.hover
         };
-        let hover = if self.inter.hover_suppressed || self.services.capture.get().is_some() {
+        let mut hover = if self.inter.hover_suppressed || self.services.capture.get().is_some() {
             None
         } else {
             self.inter.pointer_position.and_then(|position| {
@@ -1742,6 +1744,24 @@ impl<A: App> Runtime<A> {
                     .map(|hit| (hit.owner, hit.part))
             })
         };
+        if hover == painted_hover {
+            self.inter.hover_passes = 0;
+        } else {
+            self.inter.hover_passes = self.inter.hover_passes.saturating_add(1);
+            if self.inter.hover_passes == 4 {
+                // An immutable view may move away whenever it is hovered, so
+                // no fixed point exists. Publish an explicitly suppressed
+                // hover state rather than starving retained input forever.
+                self.inter.hover_suppressed = true;
+                self.last.snapshot.hover_suppressed = true;
+                hover = None;
+                self.services
+                    .diagnostics
+                    .push(Diagnostic::HoverLayoutDidNotSettle);
+                self.presented = false;
+                self.services.repaint = true;
+            }
+        }
         self.inter.hover = hover;
         self.last.snapshot.hover = hover;
         if hover != painted_hover {
