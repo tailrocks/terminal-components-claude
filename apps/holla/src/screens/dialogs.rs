@@ -39,7 +39,7 @@ pub(crate) enum Intent {
 pub(crate) enum Event {
     Close,
     Quit,
-    Destination(Destination),
+    Destination(Box<Destination>),
 }
 pub(crate) struct ProductDialog {
     intent: Intent,
@@ -428,7 +428,9 @@ impl ProductDialog {
         }
         match &mut self.intent {
             Intent::Quit => Event::Quit,
-            Intent::Preview(action) => Event::Destination(dispatch::confirm_preview(world, action)),
+            Intent::Preview(action) => {
+                Event::Destination(Box::new(dispatch::confirm_preview(world, action)))
+            }
             Intent::Trust { action, file } => {
                 if catalogue::resolve_intent(world, action)
                     != Err(catalogue::IntentError::NeedsTrust)
@@ -454,10 +456,20 @@ impl ProductDialog {
                     cancel.take()
                 };
                 match review {
-                    Some(review) => match review.execute(world) {
-                        Ok(report) => notice(report.to_string()),
-                        Err(error) => notice(error.to_string()),
-                    },
+                    Some(review)
+                        if review.operation()
+                            == if key == TERMINATE {
+                                pg::Operation::Terminate
+                            } else {
+                                pg::Operation::Cancel
+                            } =>
+                    {
+                        match review.execute(world) {
+                            Ok(report) => notice(report.to_string()),
+                            Err(error) => notice(error.to_string()),
+                        }
+                    }
+                    Some(_) => notice("Session operation changed · review it again"),
                     None => notice("Session review already consumed"),
                 }
             }
@@ -527,5 +539,35 @@ fn facts(rows: &[(&str, String)]) -> Vec<(String, String)> {
         .collect()
 }
 fn notice(message: impl Into<String>) -> Event {
-    Event::Destination(Destination::Notice(message.into()))
+    Event::Destination(Box::new(Destination::Notice(message.into())))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{domain::fixtures, scenario::Scenario};
+
+    #[test]
+    fn database_button_cannot_substitute_a_different_reviewed_operation() {
+        let mut world = fixtures::world_for(Scenario::RemoteHost);
+        let Ok(cancel) = pg::Review::new(&world, pg::Operation::Cancel) else {
+            panic!("remote fixture has a blocker");
+        };
+        let sessions = world.pg.clone();
+        let mut dialog = ProductDialog::new(
+            Intent::Database {
+                cancel: None,
+                terminate: Some(cancel),
+            },
+            &world,
+        );
+        let Event::Destination(destination) = dialog.confirm(&mut world, TERMINATE) else {
+            panic!("mismatched operation produces a notice");
+        };
+        assert!(
+            matches!(*destination, Destination::Notice(ref message) if message.contains("operation changed"))
+        );
+        assert_eq!(world.pg, sessions);
+        assert_eq!(world.effect_revision, 0);
+    }
 }

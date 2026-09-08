@@ -2,8 +2,6 @@
 //! actions from discovered fixture truth; every suggestion carries its
 //! reason, scope and risk — capability ≠ action ≠ recommendation.
 
-use crate::domain::fixtures;
-
 /// Context ring an action belongs to (CONCEPT.md §5: Here → Project →
 /// Workspace → Host → Personal, cwd primary).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -244,11 +242,5 @@ impl Action {
             Risk::Bounded => format!("changes {} on this host", self.target),
             Risk::Broad => format!("irreversible across {}", self.target),
         }
-    }
-
-    /// Absolute display form of the target for confirmations (P3 phrases
-    /// expand `~` through the fixture home).
-    pub(crate) fn resolved_target(&self) -> String {
-        fixtures::expand_home(&self.target)
     }
 }

@@ -132,7 +132,7 @@ enum Route {
     Activity,
 }
 enum Overlay {
-    Dialog(ProductDialog),
+    Dialog(Box<ProductDialog>),
     Clone(ClonePicker),
     Actions(Actions),
     Gate(PlanGate),
@@ -154,6 +154,15 @@ pub struct App {
     status_until_ms: Option<i64>,
     next_due: Option<junie_tui::Moment>,
     quit: bool,
+}
+impl std::fmt::Debug for App {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("App")
+            .field("scenario", &self.world.scenario)
+            .field("motion", &self.motion)
+            .finish_non_exhaustive()
+    }
 }
 impl App {
     /// Construct one named fixture at a virtual millisecond frame.
@@ -191,7 +200,7 @@ impl App {
     fn open_dialog(&mut self, intent: dialogs::Intent, cx: &mut Cx<'_>) {
         let dialog = ProductDialog::new(intent, &self.world);
         dialog.open(cx);
-        self.overlay = Some(Overlay::Dialog(dialog));
+        self.overlay = Some(Overlay::Dialog(Box::new(dialog)));
     }
     fn destination(&mut self, destination: Destination, cx: &mut Cx<'_>) {
         match destination {
@@ -261,14 +270,15 @@ impl App {
                 }
             }
             SCOPE if self.route == Route::Home => {
-                self.home.scope = match self.home.scope {
-                    None => Some(Scope::Here),
-                    Some(Scope::Here) => Some(Scope::Project),
-                    Some(Scope::Project) => Some(Scope::Workspace),
-                    Some(Scope::Workspace) => Some(Scope::Host),
-                    Some(Scope::Host) => Some(Scope::Personal),
-                    Some(Scope::Personal) => None,
-                };
+                self.home.scope = self.home.scope.map_or_else(
+                    || Scope::ORDER.first().copied(),
+                    |scope| {
+                        Scope::ORDER
+                            .iter()
+                            .position(|current| *current == scope)
+                            .and_then(|index| Scope::ORDER.get(index.saturating_add(1)).copied())
+                    },
+                );
                 self.set_status(format!(
                     "Scope: {}",
                     self.home.scope.map_or("all", Scope::label)
@@ -381,7 +391,7 @@ impl App {
                         dialogs::Event::Close => {}
                         dialogs::Event::Quit => self.quit = true,
                         dialogs::Event::Destination(destination) => {
-                            self.destination(destination, cx);
+                            self.destination(*destination, cx);
                         }
                     }
                 }
