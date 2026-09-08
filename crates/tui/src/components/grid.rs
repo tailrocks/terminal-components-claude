@@ -2528,15 +2528,18 @@ impl Grid<'_> {
             if let Some(f) = self.ov.slot_for(Part::EMPTY) {
                 f(ui, mid);
             } else {
-                let _ = self.ov.style(
-                    ui,
-                    self.id,
-                    Family::GRID,
-                    Variant::DEFAULT,
-                    Part::EMPTY,
-                    live,
-                );
-                empty.draw(ui, mid, 0);
+                let inherited = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::GRID,
+                        Variant::DEFAULT,
+                        Part::EMPTY,
+                        live,
+                    )
+                    .style;
+                empty.draw_inherited(ui, mid, 0, inherited);
             }
             self.draw_actions(ui, bar, live);
             return area;

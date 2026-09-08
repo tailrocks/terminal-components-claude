@@ -784,15 +784,18 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             if let Some(slot) = self.ov.slot_for(Part::EMPTY) {
                 slot(ui, content);
             } else {
-                let _ = self.ov.style(
-                    ui,
-                    self.id,
-                    Family::PICKER,
-                    Variant::DEFAULT,
-                    Part::EMPTY,
-                    live,
-                );
-                empty.draw(ui, content, 0);
+                let inherited = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::PICKER,
+                        Variant::DEFAULT,
+                        Part::EMPTY,
+                        live,
+                    )
+                    .style;
+                empty.draw_inherited(ui, content, 0, inherited);
             }
             return area;
         }

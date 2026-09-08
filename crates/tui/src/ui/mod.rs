@@ -475,6 +475,25 @@ impl<'f> Ui<'f> {
         crate::theme::resolve::bind(self.theme, acc, None, self.surface)
     }
 
+    /// Shared child style: defaults, owning logical part, explicit child overrides.
+    pub(crate) fn style_inherited(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        inherited: crate::theme::PaintStyle,
+    ) -> Resolved {
+        crate::theme::resolve::bind_inherited(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            inherited,
+        )
+    }
+
     /// Bind a semantic patch directly against the current surface.
     pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
         crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style

@@ -1600,20 +1600,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             f(ui, mid);
             return;
         }
-        let _ = self.ov.style(
-            ui,
-            self.id,
-            Family::TREE,
-            Variant::DEFAULT,
-            Part::EMPTY,
-            live,
-        );
+        let inherited = self
+            .ov
+            .style(
+                ui,
+                self.id,
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::EMPTY,
+                live,
+            )
+            .style;
         self.empty
             .unwrap_or(EmptyState::Empty {
                 title: "Nothing here yet",
                 hint: None,
             })
-            .draw(ui, mid, 0);
+            .draw_inherited(ui, mid, 0, inherited);
     }
 
     /// Resolve one visible row's identity, flags and disclosure glyph.

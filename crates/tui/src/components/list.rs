@@ -861,8 +861,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             if let Some(f) = ov.slot_for(Part::EMPTY) {
                 f(ui, mid);
             } else {
-                let _ = ov.style(ui, id, Family::LIST, Variant::DEFAULT, Part::EMPTY, live);
-                empty.draw(ui, mid, 0);
+                let inherited = ov
+                    .style(ui, id, Family::LIST, Variant::DEFAULT, Part::EMPTY, live)
+                    .style;
+                empty.draw_inherited(ui, mid, 0, inherited);
             }
             return area;
         }

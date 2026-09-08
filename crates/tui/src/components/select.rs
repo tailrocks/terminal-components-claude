@@ -1034,15 +1034,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                     if let Some(f) = ov.slot_for(Part::EMPTY) {
                         f(ui, list);
                     } else {
-                        let _ = ov.style(
-                            ui,
-                            id,
-                            Family::SELECT,
-                            Variant::DEFAULT,
-                            Part::EMPTY,
-                            StateFlags::empty(),
-                        );
-                        e.draw(ui, list, 0);
+                        let inherited = ov
+                            .style(
+                                ui,
+                                id,
+                                Family::SELECT,
+                                Variant::DEFAULT,
+                                Part::EMPTY,
+                                StateFlags::empty(),
+                            )
+                            .style;
+                        e.draw_inherited(ui, list, 0, inherited);
                     }
                     return;
                 }

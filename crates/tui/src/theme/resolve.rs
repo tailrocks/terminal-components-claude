@@ -254,6 +254,17 @@ pub(crate) fn accumulate(
     live: StateFlags,
     overlays: &[Overlay],
 ) -> StylePatch {
+    let (defaults, variant) = accumulate_defaults(theme, f, v, p, live);
+    apply_explicit(theme, (f, variant, p), live, overlays, defaults)
+}
+
+fn accumulate_defaults(
+    theme: &Theme,
+    f: Family,
+    v: Variant,
+    p: Part,
+    live: StateFlags,
+) -> (StylePatch, Variant) {
     let mut acc = StylePatch::new();
     let recipes = &theme.recipes;
     // A family nobody declared resolves through the neutral recipe (§11.2).
@@ -286,6 +297,17 @@ pub(crate) fn accumulate(
     if theme.capability.color == super::ColorLevel::Mono {
         acc = super::downgrade::apply_mono_fallback(acc, recipes, f, p, live);
     }
+    (acc, variant)
+}
+
+fn apply_explicit(
+    theme: &Theme,
+    (f, variant, p): (Family, Variant, Part),
+    live: StateFlags,
+    overlays: &[Overlay],
+    mut acc: StylePatch,
+) -> StylePatch {
+    let recipes = &theme.recipes;
     // 4: theme-level global overrides — family-wide, then variant-specific
     for o in recipes.overrides() {
         if o.family != f {
@@ -306,6 +328,44 @@ pub(crate) fn accumulate(
         }
     }
     acc
+}
+
+/// Compose a logical owner's style above child defaults but below explicit
+/// child theme/scope overrides. This bounded path does not affect the normal
+/// cached resolver. It is used for shared collection empty-state titles.
+pub(crate) fn bind_inherited(
+    theme: &Theme,
+    (family, variant, part): (Family, Variant, Part),
+    flags: StateFlags,
+    overlays: &[Overlay],
+    surface: Surface,
+    inherited: PaintStyle,
+) -> Resolved {
+    let (defaults, variant) = accumulate_defaults(theme, family, variant, part, flags);
+    let explicit = apply_explicit(
+        theme,
+        (family, variant, part),
+        flags,
+        overlays,
+        StylePatch::new(),
+    );
+    let base = bind(theme, defaults, None, surface).style;
+    let top = bind(theme, explicit, None, surface).style;
+    let mut result = bind(theme, defaults.merge(explicit), None, surface);
+    let mut style = base.patch(inherited).patch(top);
+    // Clear (and a Reset token) removes the child's channel, exposing the
+    // owner, rather than resurrecting the built-in default underneath it.
+    if !matches!(explicit.fg, Slot::Inherit) {
+        style = style.with_fg_from(if top.fg.is_some() { top } else { inherited });
+    }
+    if !matches!(explicit.bg, Slot::Inherit) {
+        style = style.with_bg_from(if top.bg.is_some() { top } else { inherited });
+    }
+    if !matches!(explicit.underline, Slot::Inherit) {
+        style.style.underline_color = top.underline_color.or(inherited.underline_color);
+    }
+    result.style = style;
+    result
 }
 
 /// Bind a role to a colour. `Color::Reset` tokens mean "no colour".
