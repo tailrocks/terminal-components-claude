@@ -265,6 +265,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
     width: Option<u16>,
+    searchable: bool,
     filter: FilterPolicy,
     placeholder: &'a str,
     scopes: &'a [ScopeKey],
@@ -293,6 +294,7 @@ impl<T> Picker<'_, T, ItemRow> {
             id,
             title: "Choose",
             width: None,
+            searchable: true,
             filter: FilterPolicy::Label,
             placeholder: "Type to search…",
             scopes: &[],
@@ -345,6 +347,14 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.filter = policy;
         self
     }
+    /// Whether the picker displays and accepts query input. Enabled by default.
+    /// Disabling clears any existing query on update or reconciliation. Caller-filtered
+    /// owners must refresh their projection when that transition reports a query change.
+    #[must_use]
+    pub const fn searchable(mut self, searchable: bool) -> Self {
+        self.searchable = searchable;
+        self
+    }
     /// Query placeholder.
     #[must_use]
     pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
@@ -369,6 +379,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             id: self.id,
             title: self.title,
             width: self.width,
+            searchable: self.searchable,
             filter: self.filter,
             placeholder: self.placeholder,
             scopes: self.scopes,
@@ -405,6 +416,7 @@ impl<'a, T, R> Picker<'a, T, R> {
 impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     fn list(&self) -> FilterList<'_, T, BorrowedRow<'_, R>> {
         let mut list = FilterList::new(self.id)
+            .searchable(self.searchable)
             .filter(self.filter)
             .row(BorrowedRow(&self.row));
         if let Some(empty) = self.empty {
@@ -429,9 +441,9 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .min(usize::from(d.size.popup_max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
-        // The frame, title, query, and list each need their own rows.  The
-        // list starts three rows into the framed inner area, so reserving
-        // only `rows + 4` leaves a one-item picker with an empty viewport.
+        // Searchable pickers reserve title, query and spacing before the list.
+        // Nonsearchable pickers move the list above that query space and retain
+        // the bottom breathing room. Both request the same outer height.
         LayerSize::Fixed(width, rows.saturating_add(5))
     }
 
@@ -445,8 +457,21 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
 
     /// Reconcile a replaced projection without consuming another input update.
     /// Call after handling query or scope changes and before drawing new items.
-    pub fn reconcile(&self, st: &mut PickerState, items: &[T]) {
+    /// Returns whether disabling search cleared the query. When true, caller-filtered
+    /// owners must rebuild their items for the empty query and reconcile again.
+    pub fn reconcile(&self, st: &mut PickerState, items: &[T]) -> bool {
+        let changed = self.clear_hidden_query(st);
         self.list().reconcile(&mut st.list, items);
+        changed
+    }
+
+    fn clear_hidden_query(&self, st: &mut PickerState) -> bool {
+        if !self.searchable && !st.query().is_empty() {
+            st.set_query("");
+            true
+        } else {
+            false
+        }
     }
 
     /// Update the embedded filter and map its actions to picker semantics.
@@ -459,6 +484,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx, items));
         }
+        let query_changed = self.clear_hidden_query(st);
         let inner = self.list().update(cx, &mut st.list, items);
         let mut acc = Acc::new();
         if inner.is_consumed() {
@@ -467,7 +493,12 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         if inner.is_changed() {
             acc.repaint();
         }
-        if let Some(action) = inner.action_ref().copied() {
+        if query_changed {
+            // A caller-filtered projection still describes the old query until its
+            // owner handles this signal. Never activate a row from that projection.
+            acc.repaint();
+            acc.action(PickerAction::QueryChanged);
+        } else if let Some(action) = inner.action_ref().copied() {
             match action {
                 FilterListAction::QueryChanged => {
                     acc.action(PickerAction::QueryChanged);
@@ -542,37 +573,41 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 live,
             );
             ui.paint_str(title, self.title, title_style.style);
-            let query = Rect {
-                y: inner.y.saturating_add(1),
-                height: 1,
-                ..inner
-            };
-            let query_style = self.ov.style(
-                ui,
-                self.id,
-                Family::PICKER,
-                Variant::DEFAULT,
-                Part::QUERY,
-                live | StateFlags::EDITING,
-            );
-            ui.fill(query, query_style.style);
-            let text = if st.query().is_empty() {
-                self.placeholder
-            } else {
-                st.query()
-            };
-            ui.paint_str(
-                Rect {
-                    x: query.x.saturating_add(2),
-                    width: query.width.saturating_sub(2),
-                    ..query
-                },
-                text,
-                query_style.style,
-            );
+            if self.searchable {
+                let query = Rect {
+                    y: inner.y.saturating_add(1),
+                    height: 1,
+                    ..inner
+                };
+                let query_style = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::PICKER,
+                    Variant::DEFAULT,
+                    Part::QUERY,
+                    live | StateFlags::EDITING,
+                );
+                ui.fill(query, query_style.style);
+                let text = if st.query().is_empty() {
+                    self.placeholder
+                } else {
+                    st.query()
+                };
+                ui.paint_str(
+                    Rect {
+                        x: query.x.saturating_add(2),
+                        width: query.width.saturating_sub(2),
+                        ..query
+                    },
+                    text,
+                    query_style.style,
+                );
+            }
             let list = Rect {
-                y: inner.y.saturating_add(3),
-                height: inner.height.saturating_sub(3),
+                y: inner.y.saturating_add(if self.searchable { 3 } else { 1 }),
+                height: inner
+                    .height
+                    .saturating_sub(if self.searchable { 3 } else { 2 }),
                 ..inner
             };
             self.list().draw(ui, list, &st.list, items);
