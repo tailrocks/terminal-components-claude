@@ -516,7 +516,7 @@ impl App {
     fn strip_update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         for intent in cx.intents(STRIP) {
             if let Intent::Pointer {
-                phase: Phase::Click,
+                phase: Phase::Click | Phase::DoubleClick,
                 part: PartRef {
                     item: Some(key), ..
                 },

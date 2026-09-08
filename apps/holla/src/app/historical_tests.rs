@@ -1,6 +1,6 @@
 //! Pinned794b095 actual-App assertions restored through the shared production runtime.
 //! Fixture selection, frames, dimensions and product assertions remain source-derived.
-use super::{App, Motion, Scenario};
+use super::{App, Motion, Route, Scenario};
 use junie_tui::{FeedbackClock, KeyCode, SimulationMoment, Theme};
 use junie_tui_testing::Harness;
 fn fixture(
@@ -22,6 +22,12 @@ fn fixture(
         FeedbackClock::Simulation { initial },
     )
 }
+fn find(h: &Harness<App>, needle: &str) -> (u16, u16) {
+    let position = h.find(needle);
+    assert!(position.is_some(), "missing fixture text: {needle}");
+    position.unwrap_or_default()
+}
+
 #[test]
 fn paused_frames_are_byte_identical() {
     let a = fixture(Scenario::RustDirty, Motion::Paused, 0, 120, 40);
@@ -296,4 +302,127 @@ fn actions_picker_omits_search_query_as_pinned() {
     let _ = h.type_str("cargo build");
     let _ = h.ctrl('o');
     assert!(!h.text().contains("Type to search…"), "{}", h.text());
+}
+
+#[test]
+fn strip_lists_seeded_activities_with_states() {
+    let h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
+    let t = h.text();
+    // the strip docks under the menu bar on every route
+    let row1: String = t.lines().nth(1).unwrap_or_default().to_owned();
+    assert!(row1.contains("● 1 dev server"), "{row1}");
+    assert!(row1.contains("… 2 test watch"), "{row1}");
+    assert!(row1.contains("− 3 deploy logs"), "{row1}");
+    assert!(row1.contains("✗ 4 seed db"), "{row1}");
+    assert!(row1.contains("0 home"), "{row1}");
+}
+
+#[test]
+fn follow_logs_merges_services_with_identity() {
+    let mut h = fixture(Scenario::DockerCleanup, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("follow container logs");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().route == Route::Activity, "{}", h.text());
+    let t = h.text();
+    assert!(t.contains("Activity · container logs"), "{t}");
+    // one merged stream, service prefix per line, interleaved
+    assert!(t.contains("api"), "{t}");
+    assert!(t.contains("redis"), "{t}");
+    assert!(t.contains("worker"), "{t}");
+    assert!(t.contains("GET /health 200"), "{t}");
+    assert!(t.contains("background save done"), "{t}");
+    // the fixture's exited containers never speak in the stream
+    assert!(!t.contains("payments-old |"), "{t}");
+    // the strip grew the new activity; switching away and back keeps it
+    let _ = h.key(KeyCode::Char('0'));
+    assert!(h.app().route == Route::Home);
+    assert!(
+        h.app()
+            .world
+            .activities
+            .iter()
+            .any(|a| a.name == "container logs")
+    );
+}
+
+#[test]
+fn ctrl_a_cycles_activities_from_any_route() {
+    let mut h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
+    // keyboard never needs the mouse: Ctrl+A enters the strip from home
+    let _ = h.ctrl('a');
+    assert!(h.app().route == Route::Activity, "{}", h.text());
+    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+    // same chord advances to the next activity
+    let _ = h.ctrl('a');
+    assert!(h.text().contains("Activity · test watch"), "{}", h.text());
+    // wraps around
+    let _ = h.ctrl('a');
+    let _ = h.ctrl('a');
+    let _ = h.ctrl('a');
+    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+}
+
+#[test]
+fn digit_switches_to_activity_page() {
+    let mut h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
+    // home digits stay in the query — switching starts from a strip click
+    let _ = h.type_str("1");
+    assert!(h.app().route == Route::Home, "home digits filter the query");
+    let _ = h.key(KeyCode::Backspace);
+    // click the strip tab for "seed db"
+    let (x, _) = find(&h, "4 seed db");
+    let _ = h.click(x + 1, 1);
+    assert!(h.app().route == Route::Activity, "{}", h.text());
+    let t = h.text();
+    assert!(t.contains("Activity · seed db"), "{t}");
+    assert!(t.contains("failed"), "{t}");
+    assert!(t.contains("psql: connection to server"), "{t}");
+    // now digits switch between activities
+    let _ = h.key(KeyCode::Char('1'));
+    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+    assert!(h.text().contains("http://localhost:5199/"), "{}", h.text());
+    // 0 returns to the root without losing anything
+    let _ = h.key(KeyCode::Char('0'));
+    assert!(h.app().route == Route::Home);
+    assert_eq!(h.app().world.activities.len(), 4);
+}
+
+#[test]
+fn switching_away_and_back_preserves_output_and_scope() {
+    let mut h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
+    // open activity 1 via the strip, note the page
+    let (x, _) = find(&h, "1 dev server");
+    let _ = h.click(x + 1, 1);
+    assert!(h.app().route == Route::Activity);
+    let page = h.text();
+    assert!(page.contains("Scope"), "{page}");
+    assert!(page.contains("~/work/monorepo/apps/frontend"), "{page}");
+    assert!(page.contains("vite v5.4 ready in 412 ms"), "{page}");
+    // leave for another activity, then home
+    let _ = h.key(KeyCode::Char('4'));
+    assert!(h.text().contains("seed db"), "{}", h.text());
+    let _ = h.key(KeyCode::Char('0'));
+    assert!(h.app().route == Route::Home);
+    // back again: same output, same scope, nothing lost
+    let (x, _) = find(&h, "1 dev server");
+    let _ = h.click(x + 1, 1);
+    let back = h.text();
+    assert!(back.contains("~/work/monorepo/apps/frontend"), "{back}");
+    assert!(back.contains("vite v5.4 ready in 412 ms"), "{back}");
+    assert!(back.contains("running · 2h ago"), "{back}");
+}
+
+#[test]
+fn merged_logs_scroll_retained_per_activity() {
+    let mut h = fixture(Scenario::DockerCleanup, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("follow container logs");
+    let _ = h.key(KeyCode::Enter);
+    // stream is short at 120x40 body, scroll up then away and back
+    let _ = h.key(KeyCode::Up);
+    let _ = h.key(KeyCode::Up);
+    let _ = h.key(KeyCode::Char('0'));
+    let (x, _) = find(&h, "container logs");
+    let _ = h.click(x + 1, 1);
+    assert!(h.app().route == Route::Activity, "{}", h.text());
+    assert!(h.text().contains("container logs"), "{}", h.text());
 }
