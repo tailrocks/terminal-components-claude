@@ -168,6 +168,9 @@ pub(crate) struct FrameServices {
     pub(crate) capture: CaptureSlot,
     pub(crate) events: Vec<(Id, LayerEvent)>,
     pub(crate) focus_request: Option<Id>,
+    /// Provenance for only the newly opened top layer, until publication.
+    /// Its target is read from the live spec; explicit focus supersedes it.
+    pub(crate) initial_focus_layer: Option<LayerId>,
     pub(crate) deferred_focus: Option<DeferredFocus>,
     pub(crate) repaint: bool,
     pub(crate) feedback: crate::runtime::feedback::FeedbackState,
@@ -310,6 +313,7 @@ impl<'f> Cx<'f> {
 
     /// Stage a focus transition (applied after this pass, §3.3 step 7).
     pub fn focus(&mut self, id: Id) {
+        self.services.initial_focus_layer = None;
         self.services.deferred_focus = None;
         self.services.focus_request = Some(id);
     }
@@ -326,6 +330,7 @@ impl<'f> Cx<'f> {
     /// last call to `focus` or `focus_next` wins; focus notifications are delivered
     /// by the next update after drawing, never by the painter itself.
     pub fn focus_next(&mut self) {
+        self.services.initial_focus_layer = None;
         self.services.focus_request = None;
         self.services.deferred_focus = Some(DeferredFocus {
             anchor: self.last.snapshot.focus,
@@ -376,6 +381,7 @@ impl<'f> Cx<'f> {
     /// Focus the previous reachable control in the next presented frame.
     /// Uses the same deferred admissible traversal and modal traps as `focus_next`.
     pub fn focus_prev(&mut self) {
+        self.services.initial_focus_layer = None;
         self.services.focus_request = None;
         self.services.deferred_focus = Some(DeferredFocus {
             anchor: self.last.snapshot.focus,
@@ -469,10 +475,12 @@ impl<'f> Cx<'f> {
         } else {
             None
         };
-        if self.services.layers.open(id, spec, restore).is_some()
-            && let Some(f) = spec.initial_focus
-        {
-            self.focus(f);
+        if let Some(layer) = self.services.layers.open(id, spec, restore) {
+            self.services.initial_focus_layer = None;
+            if let Some(target) = spec.initial_focus {
+                self.focus(target);
+                self.services.initial_focus_layer = Some(layer);
+            }
         }
     }
 
@@ -512,6 +520,13 @@ impl<'f> Cx<'f> {
             None => LayerEvent::Dismissed(DismissReason::Programmatic),
         };
         let closed = self.services.layers.close(id, ev);
+        if self
+            .services
+            .initial_focus_layer
+            .is_some_and(|id| closed.iter().any(|layer| layer.layer == id))
+        {
+            self.services.initial_focus_layer = None;
+        }
         self.services.closed_layers.extend(closed);
     }
 

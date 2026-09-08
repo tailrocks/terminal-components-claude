@@ -611,13 +611,25 @@ impl<A: App> Runtime<A> {
         }
     }
 
+    /// A newly opened top layer can reparent an existing owner. Until its first
+    /// successful publication, the prior ring cannot prove that owner's scope.
+    fn provisional_focus_layer(&self, to: Id) -> Option<OpenLayer> {
+        let layer = self.services.initial_focus_layer?;
+        self.services
+            .layers
+            .top_layer()
+            .copied()
+            .filter(|top| top.spec.initial_focus == Some(to) && top.layer == layer)
+    }
+
     /// Whether `to` may be staged as a focus target.
     ///
     /// Every producer of a transition — `Tab` traversal, a press, a layer
     /// restore, `Cx::focus` and `LayerSpec::initial_focus` — funnels through
     /// [`Self::stage_focus`], so this is the one place a target is judged.
-    /// A target is refused only when the last frame *proves* it cannot hold
-    /// focus:
+    /// A newly opened layer's initial focus is provisional until its first
+    /// publication: that owner may be moving from a prior scope. Otherwise a
+    /// target is refused when the last frame proves it cannot hold focus:
     ///
     /// * the ring holds it as `Disabled`, so it is registered and never
     ///   reachable;
@@ -640,6 +652,9 @@ impl<A: App> Runtime<A> {
     /// target and adding one is a §17.0 A9 amendment, not an implementation
     /// choice.
     fn focus_target_admissible(&self, to: Id) -> bool {
+        if self.provisional_focus_layer(to).is_some() {
+            return true;
+        }
         if self.ring_proves_disabled(to) {
             return false;
         }
@@ -694,6 +709,12 @@ impl<A: App> Runtime<A> {
         let Some(id) = to else {
             return true;
         };
+        if self
+            .provisional_focus_layer(id)
+            .is_some_and(|layer| layer.scope() == scope)
+        {
+            return false;
+        }
         self.last
             .ring
             .entry(id)
@@ -1536,6 +1557,12 @@ impl<A: App> Runtime<A> {
     }
 
     fn commit_frame(&mut self) {
+        let initial = self.services.layers.top_layer().and_then(|layer| {
+            let target = layer.spec.initial_focus?;
+            self.provisional_focus_layer(target)
+                .map(|layer| (target, layer.scope()))
+        });
+        self.services.initial_focus_layer = None;
         self.commit_geometry();
         self.presented = true;
         self.services.capture.release_if_stale(&self.last.registry);
@@ -1566,8 +1593,19 @@ impl<A: App> Runtime<A> {
             self.frame.ring.reconcile(&self.last.ring, previous)
         };
         core::mem::swap(&mut self.last.ring, &mut self.frame.ring);
+        let admissible = |id| {
+            self.focus_target_admissible(id)
+                && initial.is_none_or(|(target, scope)| {
+                    id != target
+                        || self
+                            .last
+                            .ring
+                            .entry(id)
+                            .is_some_and(|entry| self.last.ring.within(entry.scope, scope))
+                })
+        };
         let reconciled = reconciled.and_then(|id| {
-            if self.focus_target_admissible(id) {
+            if admissible(id) {
                 return Some(id);
             }
             // An ambiguous duplicate ID can make the first reachable entry
@@ -1583,14 +1621,14 @@ impl<A: App> Runtime<A> {
                     .take(after.saturating_sub(1))
                     .rev()
                     .chain(entries.iter().skip(after.saturating_sub(1)).rev())
-                    .find(|entry| self.focus_target_admissible(entry.id))
+                    .find(|entry| admissible(entry.id))
                     .map(|entry| entry.id)
             } else {
                 entries
                     .iter()
                     .skip(after)
                     .chain(entries.iter().take(after))
-                    .find(|entry| self.focus_target_admissible(entry.id))
+                    .find(|entry| admissible(entry.id))
                     .map(|entry| entry.id)
             }
         });
