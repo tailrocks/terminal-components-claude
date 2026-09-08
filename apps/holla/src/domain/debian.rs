@@ -39,7 +39,9 @@ impl DebianState {
             self.pending, self.security
         );
         if self.held > 0 {
-            s.push_str(&format!(" · {} held back", self.held));
+            s.push_str(" · ");
+            s.push_str(&self.held.to_string());
+            s.push_str(" held back");
         }
         if self.reboot_required {
             s.push_str(" · reboot required");

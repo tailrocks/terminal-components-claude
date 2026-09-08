@@ -31,15 +31,13 @@ pub(crate) fn expand_home(path: &str) -> String {
 pub(crate) fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
         Scenario::FirstUse => "~/scratch/empty",
-        Scenario::RustDirty => "~/work/pave",
-        Scenario::MonorepoRoot => "~/work/monorepo",
+        Scenario::RustDirty | Scenario::LaunchFailure => "~/work/pave",
+        Scenario::MonorepoRoot | Scenario::ActivitiesMulti => "~/work/monorepo",
         Scenario::MonorepoChild => "~/work/monorepo/apps/frontend",
         Scenario::DockerCleanup => "~/work/scratch",
         Scenario::DiskCleanup => "~/work",
         Scenario::UpgradePlan => "~",
-        Scenario::ActivitiesMulti => "~/work/monorepo",
         Scenario::RemoteHost => "/srv/payments",
-        Scenario::LaunchFailure => "~/work/pave",
         Scenario::HardCases => "~/work/supercalifragilistic-expiadocious-monorepository-of-doom",
     }
 }

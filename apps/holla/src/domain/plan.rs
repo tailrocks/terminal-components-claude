@@ -38,11 +38,9 @@ impl StepState {
     pub(crate) fn glyph(&self) -> &'static str {
         match self {
             StepState::Pending => "·",
-            StepState::Excluded => "−",
-            StepState::PolicySkipped(_) => "−",
+            StepState::Excluded | StepState::PolicySkipped(_) | StepState::Skipped(_) => "−",
             StepState::Succeeded => "✓",
             StepState::Failed(_) => "✗",
-            StepState::Skipped(_) => "−",
         }
     }
 }
@@ -307,22 +305,21 @@ impl Plan {
 
     /// Space on a row: toggle exclusion of an optional, not-yet-run step.
     pub(crate) fn toggle(&mut self, i: usize) -> Result<String, PlanError> {
-        let s = self.steps.get(i).ok_or(PlanError::MissingStep)?;
+        let s = self.steps.get_mut(i).ok_or(PlanError::MissingStep)?;
         if self.ran {
             return Err(PlanError::AlreadyRan);
         }
         if !s.optional {
             return Err(PlanError::RequiredStep(s.title.clone()));
         }
-        let s = &mut self.steps[i];
         s.state = if matches!(s.state, StepState::Excluded) {
             StepState::Pending
         } else {
             StepState::Excluded
         };
-        Ok(match self.steps[i].state {
-            StepState::Excluded => format!("Excluded {}", self.steps[i].title),
-            _ => format!("Included {}", self.steps[i].title),
+        Ok(match s.state {
+            StepState::Excluded => format!("Excluded {}", s.title),
+            _ => format!("Included {}", s.title),
         })
     }
 

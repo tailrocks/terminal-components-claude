@@ -585,7 +585,8 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
                 .collect()
         })
         .unwrap_or_default();
-    if deb.held > deb.pending || deb.security > deb.pending - deb.held {
+    let upgraded = deb.pending.checked_sub(deb.held)?;
+    if deb.security > upgraded {
         return None;
     }
     let tools = w
@@ -713,7 +714,7 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
             &[1],
         )
         .succeeds_with(vec![Mutation::UpgradeDebian {
-            upgraded: deb.pending - deb.held,
+            upgraded: upgraded,
             security: deb.security,
             held: deb.held,
         }]),
@@ -745,7 +746,7 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
         phrase: format!("I UNDERSTAND: UPGRADE EVERYTHING ON {host}"),
         will_change: format!(
             "{} upgrades ({} security){}{}",
-            deb.pending - deb.held,
+            upgraded,
             deb.security,
             if outdated.is_empty() {
                 String::new()
@@ -820,6 +821,7 @@ fn git_sync(w: &World) -> Option<Plan> {
             )
             .lines(&[&format!("fetch origin · {name} up to date refs")]),
         );
+        let checkout_i = steps.len();
         steps.push(
             PlanStep::new(
                 &format!("checkout:{}", c.root),
@@ -839,10 +841,10 @@ fn git_sync(w: &World) -> Option<Plan> {
             &format!("Pull {name} — fast-forward only"),
             &format!("git -C {} pull --ff-only", c.root),
             name,
-            &[fetch_i + 1],
+            &[checkout_i],
         );
-        // fixture truth: a diverged child cannot fast-forward; the failure
-        // is per-child and never blocks sibling branches
+        // A diverged child cannot fast-forward. Its whole chain is policy
+        // skipped to preserve the untouched promise; siblings remain independent.
         let pull = if c.diverged() {
             pull.fails_with(
                 &format!(
@@ -863,7 +865,7 @@ fn git_sync(w: &World) -> Option<Plan> {
         };
         steps.push(pull);
         if c.diverged() {
-            for step in &mut steps[fetch_i..] {
+            for step in steps.iter_mut().skip(fetch_i) {
                 step.state = StepState::PolicySkipped(format!(
                     "diverged · {} ahead, {} behind · untouched",
                     c.ahead, c.behind
