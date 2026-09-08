@@ -41,6 +41,7 @@ pub struct Scene {
     area: Rect,
     buf: Buffer,
     rt: Option<Runtime<NoApp>>,
+    snapshot: junie_tui::RenderSnapshot,
 }
 
 impl core::fmt::Debug for Scene {
@@ -101,6 +102,7 @@ impl Scene {
             area,
             buf: Buffer::empty(area),
             rt: Some(Runtime::new(NoApp, theme)),
+            snapshot: junie_tui::RenderSnapshot::default(),
         }
     }
 
@@ -119,6 +121,7 @@ impl Scene {
             area,
             buf,
             rt: None,
+            snapshot: junie_tui::RenderSnapshot::default(),
         }
     }
 
@@ -129,15 +132,28 @@ impl Scene {
         self
     }
 
+    /// Replace the explicit interaction facts used by every subsequent capture.
+    pub fn set_snapshot(&mut self, snapshot: junie_tui::RenderSnapshot) {
+        self.snapshot = snapshot;
+    }
+
+    /// Project an application's supplied model under the explicit snapshot.
+    /// This never calls `App::update` or initializes the application.
+    pub fn draw_app<A: App>(&mut self, app: &A) {
+        self.draw(|ui, _| app.draw(ui));
+    }
+
     /// Run the whole draw phase with `f` as the page painter.
-    /// No application initialization or update runs on this path.
+    /// Every capture reads the same explicit snapshot; previous captures cannot
+    /// change its focus, hover, layers or read facts. No initialization/update runs.
     pub fn draw(&mut self, f: impl FnOnce(&mut Ui<'_>, Rect)) {
         let area = self.area;
         let Some(rt) = self.rt.as_mut() else {
             return;
         };
         self.buf.reset();
-        rt.draw_scene(area, &mut self.buf, f).commit_presented();
+        rt.draw_projection(area, &mut self.buf, &self.snapshot, f)
+            .commit_inspected();
     }
 
     /// Draw over a pre-filled buffer (sentinel tests).
@@ -152,7 +168,8 @@ impl Scene {
         };
         self.buf.reset();
         prefill(&mut self.buf);
-        rt.draw_scene(area, &mut self.buf, f).commit_presented();
+        rt.draw_projection(area, &mut self.buf, &self.snapshot, f)
+            .commit_inspected();
     }
 
     /// FNV-1a over `(symbol, fg, bg, modifier)` per cell.
@@ -193,24 +210,36 @@ impl Scene {
         self.area
     }
 
-    /// The headless runtime, when the scene owns one.
+    /// The underlying cache runtime, when this scene owns one.
+    /// Capture geometry belongs to `Scene::registry`, `Scene::ring` and
+    /// `Scene::cursor_position`; projection never changes live runtime geometry.
     pub const fn runtime(&self) -> Option<&Runtime<NoApp>> {
         self.rt.as_ref()
     }
 
-    /// The headless runtime, mutably.
+    /// The cache runtime, mutably. Interaction for captures is supplied explicitly
+    /// with `set_snapshot`; live runtime changes do not alter that snapshot.
     pub const fn runtime_mut(&mut self) -> Option<&mut Runtime<NoApp>> {
         self.rt.as_mut()
     }
 
     /// Last frame's registry.
     pub fn registry(&self) -> Option<&Registry> {
-        self.rt.as_ref().map(Runtime::registry)
+        self.rt
+            .as_ref()
+            .map(|rt| rt.projection_registry().unwrap_or_else(|| rt.registry()))
     }
 
     /// Last frame's ring.
     pub fn ring(&self) -> Option<&FocusRing> {
-        self.rt.as_ref().map(Runtime::ring)
+        self.rt
+            .as_ref()
+            .map(|rt| rt.projection_ring().unwrap_or_else(|| rt.ring()))
+    }
+
+    /// Cursor from the last acknowledged capture.
+    pub fn cursor_position(&self) -> Option<ratatui_core::layout::Position> {
+        self.rt.as_ref().and_then(Runtime::projection_cursor)
     }
 
     /// The baseline line key: `name w h theme color`.

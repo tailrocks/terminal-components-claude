@@ -916,10 +916,8 @@ fn hit_registry_size_is_bounded() {
             }
         });
     });
-    let (hits, ring) = scene
-        .runtime()
-        .map(|rt: &Runtime<NoApp>| (rt.region_count(), rt.ring().reachable().count()))
-        .unwrap_or((0, 0));
+    let hits = scene.registry().map_or(0, Registry::len);
+    let ring = scene.ring().map_or(0, |ring| ring.reachable().count());
     let s = s.with_regions(hits, ring);
     report("hit_registry_size_is_bounded", &s);
     assert_eq!(hits, 80);

@@ -108,6 +108,100 @@ struct Interaction {
 /// Passes of `app.update` before the runtime gives up settling focus.
 const MAX_FOCUS_PASSES: usize = 4;
 
+/// Immutable read facts for deterministic, effect-free production-view projection.
+/// The default is an explicitly empty interaction snapshot, suitable for fixtures.
+#[derive(Clone, Default)]
+pub struct RenderSnapshot {
+    cache_identity: std::sync::Arc<()>,
+    last: LastFrame,
+    layers: Vec<OpenLayer>,
+    inert_floor: LayerId,
+    top: LayerId,
+    keymap: KeyMap,
+}
+
+impl core::fmt::Debug for RenderSnapshot {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("RenderSnapshot")
+            .field("focus", &self.last.snapshot.focus)
+            .field("layers", &self.layers.len())
+            .finish_non_exhaustive()
+    }
+}
+
+/// Why a runtime cannot provide a compatible, settled render snapshot.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderSnapshotError {
+    /// Explicit initialization has not completed.
+    Uninitialized,
+    /// A committed focus transition still requires an update.
+    NeedsSettle,
+    /// Model, theme or interaction changes require successful presentation.
+    NeedsPresentation,
+}
+
+impl core::fmt::Display for RenderSnapshotError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(match self {
+            Self::Uninitialized => "runtime is not initialized",
+            Self::NeedsSettle => "runtime focus needs settling",
+            Self::NeedsPresentation => "runtime needs successful presentation",
+        })
+    }
+}
+impl core::error::Error for RenderSnapshotError {}
+
+#[cfg(feature = "testing")]
+#[derive(Default)]
+struct ProjectionFacts {
+    last: LastFrame,
+    cursor: Option<Position>,
+}
+
+/// A completed projection candidate. Its acknowledgment updates inspection
+/// outputs only; it never publishes live input compatibility or focus callbacks.
+#[cfg(feature = "testing")]
+#[must_use = "acknowledge the completed projection to inspect its geometry"]
+pub struct ProjectedFrame<'a, A: App> {
+    runtime: &'a mut Runtime<A>,
+    snapshot: crate::ui::cx::Snapshot,
+}
+
+#[cfg(feature = "testing")]
+impl<A: App> core::fmt::Debug for ProjectedFrame<'_, A> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ProjectedFrame").finish_non_exhaustive()
+    }
+}
+
+#[cfg(feature = "testing")]
+impl<A: App> ProjectedFrame<'_, A> {
+    /// Record a completed buffer's geometry and cursor for inspection.
+    pub fn commit_inspected(self) {
+        let output = self
+            .runtime
+            .projection
+            .get_or_insert_with(ProjectionFacts::default);
+        let frame = &mut self.runtime.frame;
+        core::mem::swap(&mut output.last.registry, &mut frame.registry);
+        core::mem::swap(&mut output.last.ring, &mut frame.ring);
+        core::mem::swap(&mut output.last.bindings, &mut frame.bindings);
+        output.last.layout.clear();
+        output.last.layout.append(&mut frame.layout);
+        output.last.declared.clear();
+        output.last.declared.append(&mut frame.declared);
+        output.last.snapshot = self.snapshot;
+        output.cursor = self.runtime.painted_cursor;
+    }
+}
+
+#[cfg(feature = "testing")]
+impl<A: App> Drop for ProjectedFrame<'_, A> {
+    fn drop(&mut self) {
+        self.runtime.presented = false;
+    }
+}
+
 /// An input retained until initialization, presentation and focus settling finish.
 /// Debug deliberately omits the event, including pasted text.
 pub struct PendingInput(Input);
@@ -213,6 +307,9 @@ pub struct Runtime<A: App> {
     bootstrapped: bool,
     presented: bool,
     painted_cursor: Option<Position>,
+    cache_snapshot: Option<std::sync::Arc<()>>,
+    #[cfg(feature = "testing")]
+    projection: Option<ProjectionFacts>,
 }
 
 impl<A: App> core::fmt::Debug for Runtime<A> {
@@ -256,6 +353,9 @@ impl<A: App> Runtime<A> {
             bootstrapped: false,
             presented: false,
             painted_cursor: None,
+            cache_snapshot: None,
+            #[cfg(feature = "testing")]
+            projection: None,
         }
     }
 
@@ -349,9 +449,10 @@ impl<A: App> Runtime<A> {
         self.services.layers.top()
     }
 
-    fn sync_keymap(&mut self) {
-        if &self.core.keymap != self.app.keymap() {
-            self.core.keymap.clone_from(self.app.keymap());
+    fn sync_keymap(&mut self, snapshot: Option<&KeyMap>) {
+        let keymap = snapshot.unwrap_or_else(|| self.app.keymap());
+        if &self.core.keymap != keymap {
+            self.core.keymap.clone_from(keymap);
             // Caches retain only the immediately previous equality key; wrapping
             // changes that key while explicit invalidation clears both consumers.
             self.core.keymap_revision = self.core.keymap_revision.wrapping_add(1);
@@ -1017,7 +1118,7 @@ impl<A: App> Runtime<A> {
             return Response::ignored();
         }
         self.bootstrapped = true;
-        self.sync_keymap();
+        self.sync_keymap(None);
         self.refresh_keymap_conflicts();
         self.services
             .diagnostics
@@ -1068,7 +1169,7 @@ impl<A: App> Runtime<A> {
             return Err(PendingInput(input));
         }
         self.services.diagnostics.clear();
-        self.sync_keymap();
+        self.sync_keymap(None);
         self.refresh_keymap_conflicts();
         self.services
             .diagnostics
@@ -1186,7 +1287,7 @@ impl<A: App> Runtime<A> {
     pub fn draw(&mut self, frame: &mut Frame<'_>) -> PaintedFrame<'_, A> {
         let area = frame.area();
         let buf = frame.buffer_mut();
-        self.draw_with_buffer(area, buf, A::draw);
+        self.draw_with_buffer(area, buf, None, A::draw);
         if let Some(cursor) = self.painted_cursor {
             frame.set_cursor_position(cursor);
         }
@@ -1200,23 +1301,43 @@ impl<A: App> Runtime<A> {
         &mut self,
         area: Rect,
         buf: &mut Buffer,
+        snapshot: Option<&RenderSnapshot>,
         paint: impl FnOnce(&A, &mut Ui<'_>),
     ) {
         self.presented = false;
-        self.sync_keymap();
-        // step 10: new frame state
-        if area != self.screen {
+        self.sync_keymap(snapshot.map(|value| &value.keymap));
+        // Cache storage follows the painted size and immutable snapshot identity,
+        // not live screen publication. A projection must neither clear every warm
+        // frame nor lend derived data to a different snapshot or live model.
+        let same_snapshot = match (&self.cache_snapshot, snapshot) {
+            (None, None) => true,
+            (Some(previous), Some(next)) => std::sync::Arc::ptr_eq(previous, &next.cache_identity),
+            _ => false,
+        };
+        if area != self.frame.screen || !same_snapshot {
             self.core.clear_caches();
         }
+        if !same_snapshot {
+            self.cache_snapshot =
+                snapshot.map(|value| std::sync::Arc::clone(&value.cache_identity));
+        }
+        // step 10: new frame state
         self.generation = self.generation.wrapping_add(1);
         self.core.begin_cache_frame(self.generation);
         self.core.style_cache.clear();
         self.frame.reset(self.generation, area);
-        self.frame.inert_floor = self.services.layers.inert_floor();
-        self.frame.top = self.services.layers.top();
+        self.frame.inert_floor = snapshot.map_or_else(
+            || self.services.layers.inert_floor(),
+            |value| value.inert_floor,
+        );
+        self.frame.top = snapshot.map_or_else(|| self.services.layers.top(), |value| value.top);
         // Prepare every open layer's draw target. Its focus scope is armed
         // only when `Ui::layer` performs a live draw.
-        for l in self.services.layers.layers() {
+        let layers = snapshot.map_or_else(
+            || self.services.layers.layers(),
+            |value| value.layers.as_slice(),
+        );
+        for l in layers {
             let rect = resolve_anchor(area, l.spec.anchor, l.spec.size);
             self.frame.layers.push(l.id, l.layer, l.spec, rect, area);
         }
@@ -1228,7 +1349,7 @@ impl<A: App> Runtime<A> {
                 buf,
                 &mut self.core,
                 &self.theme,
-                &self.last,
+                snapshot.map_or(&self.last, |value| &value.last),
             );
             paint(app, &mut ui);
             // step 12: composite bottom-to-top
@@ -1238,7 +1359,11 @@ impl<A: App> Runtime<A> {
         }
         self.painted_cursor = match self.frame.cursor {
             None => None,
-            Some(req) => match cursor::resolve(req, self.frame.top, self.focus.current()) {
+            Some(req) => match cursor::resolve(
+                req,
+                self.frame.top,
+                snapshot.map_or_else(|| self.focus.current(), |value| value.last.snapshot.focus),
+            ) {
                 CursorDecision::Keep(p) => Some(p),
                 CursorDecision::Reject(d) => {
                     self.frame.diagnostics.push(d);
@@ -1249,9 +1374,8 @@ impl<A: App> Runtime<A> {
         };
     }
 
-    fn commit_frame(&mut self) {
+    fn commit_geometry(&mut self) {
         self.screen = self.frame.screen;
-        self.presented = true;
         // step 13: registry swap, stale captures released
         let mut diags = core::mem::take(&mut self.frame.diagnostics);
         self.services.diagnostics.extend(diags.drain(..));
@@ -1261,6 +1385,11 @@ impl<A: App> Runtime<A> {
         self.last.declared.clear();
         self.last.declared.append(&mut self.frame.declared);
         core::mem::swap(&mut self.last.bindings, &mut self.frame.bindings);
+    }
+
+    fn commit_frame(&mut self) {
+        self.commit_geometry();
+        self.presented = true;
         self.services.capture.release_if_stale(&self.last.registry);
         self.last.snapshot.capture = self.services.capture.get().map(|c| c.owner);
         // step 14: focus reconcile. A modal's trap moves focus into it by
@@ -1331,6 +1460,31 @@ impl<A: App> Runtime<A> {
         }
         // Cursor matches the actual output, painted before focus reconciliation.
         self.cursor = self.painted_cursor;
+    }
+
+    /// Capture frozen read facts without updating or initializing the application.
+    ///
+    /// # Errors
+    /// Rejects uninitialized, unsettled or incompatible runtime state. An old
+    /// registry after `app_mut` is never presented as the current model's snapshot.
+    pub fn render_snapshot(&self) -> Result<RenderSnapshot, RenderSnapshotError> {
+        if !self.bootstrapped {
+            return Err(RenderSnapshotError::Uninitialized);
+        }
+        if self.needs_settle() {
+            return Err(RenderSnapshotError::NeedsSettle);
+        }
+        if self.needs_present() {
+            return Err(RenderSnapshotError::NeedsPresentation);
+        }
+        Ok(RenderSnapshot {
+            cache_identity: std::sync::Arc::new(()),
+            last: self.last.clone(),
+            layers: self.services.layers.layers().to_vec(),
+            inert_floor: self.services.layers.inert_floor(),
+            top: self.services.layers.top(),
+            keymap: self.core.keymap.clone(),
+        })
     }
 
     /// The cursor position kept by the last successful presentation.
@@ -1438,6 +1592,37 @@ impl<A: App> Runtime<A> {
         self.services.records.clear();
     }
 
+    /// Registry produced by the last acknowledged projection, separate from live geometry.
+    pub fn projection_registry(&self) -> Option<&crate::hit::Registry> {
+        self.projection.as_ref().map(|output| &output.last.registry)
+    }
+
+    /// Focus ring produced by the last acknowledged projection.
+    pub fn projection_ring(&self) -> Option<&FocusRing> {
+        self.projection.as_ref().map(|output| &output.last.ring)
+    }
+
+    /// Cursor produced by the last acknowledged projection.
+    pub fn projection_cursor(&self) -> Option<Position> {
+        self.projection.as_ref().and_then(|output| output.cursor)
+    }
+
+    /// Project a fixed snapshot without reconciling focus or running callbacks.
+    /// The supplied read facts, rather than previous captures, determine state.
+    pub fn draw_projection(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        snapshot: &RenderSnapshot,
+        paint: impl FnOnce(&mut Ui<'_>, Rect),
+    ) -> ProjectedFrame<'_, A> {
+        self.draw_with_buffer(area, buf, Some(snapshot), |_, ui| paint(ui, area));
+        ProjectedFrame {
+            runtime: self,
+            snapshot: snapshot.last.snapshot,
+        }
+    }
+
     /// The draw phase with a closure instead of `App::draw` (headless scenes).
     pub fn draw_scene(
         &mut self,
@@ -1445,7 +1630,7 @@ impl<A: App> Runtime<A> {
         buf: &mut Buffer,
         f: impl FnOnce(&mut Ui<'_>, Rect),
     ) -> PaintedFrame<'_, A> {
-        self.draw_with_buffer(area, buf, |_, ui| f(ui, area));
+        self.draw_with_buffer(area, buf, None, |_, ui| f(ui, area));
         PaintedFrame {
             runtime: self,
             committed: false,
@@ -1454,7 +1639,7 @@ impl<A: App> Runtime<A> {
 
     /// The draw phase into a bare buffer.
     pub fn draw_buffer(&mut self, area: Rect, buf: &mut Buffer) -> PaintedFrame<'_, A> {
-        self.draw_with_buffer(area, buf, A::draw);
+        self.draw_with_buffer(area, buf, None, A::draw);
         PaintedFrame {
             runtime: self,
             committed: false,
