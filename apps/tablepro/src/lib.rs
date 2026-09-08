@@ -25,7 +25,10 @@ pub use db::{Catalog, ColType, Connection, SafeMode, Table, Value};
 pub use domain::{PendingEdits, ResultGrid};
 pub use filter_editor::{Filter, FilterOp};
 pub use grid_model::{ResultGridModel, StructureModel, TableGridModel, preview_for};
-pub use model::{Completion, History, SwitchItem, SwitchTarget, SwitcherIndex, complete};
+pub use model::{
+    Completion, CompletionBatch, CompletionKind, History, SwitchItem, SwitchTarget, SwitcherIndex,
+    auto_trigger, complete, completion_batch,
+};
 pub use sql::{Decision, ParseError, ResultSet, gate, parse};
 pub use tabs::{ExplorerItem, GridView, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
 pub use workbench::Workbench;

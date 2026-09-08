@@ -230,7 +230,6 @@ pub(crate) fn tokenize(src: &str) -> Vec<Token> {
 }
 
 /// Byte ranges of the individual statements (split on `;` outside strings).
-#[cfg(test)]
 pub(crate) fn split_statements(src: &str) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut start = 0;
@@ -250,7 +249,6 @@ pub(crate) fn split_statements(src: &str) -> Vec<(usize, usize)> {
     out
 }
 
-#[cfg(test)]
 fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
     while a < b && src.as_bytes()[a].is_ascii_whitespace() {
         a += 1;
@@ -262,7 +260,6 @@ fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
 }
 
 /// The statement containing byte `cursor` (or the nearest one before it).
-#[cfg(test)]
 pub(crate) fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
     let stmts = split_statements(src);
     stmts
