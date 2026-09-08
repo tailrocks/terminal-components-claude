@@ -484,9 +484,11 @@ impl<'a, T, K, R> List<'a, T, K, R> {
 
     /// Replace the entire visible row's painting, including its chrome.
     ///
-    /// The borrowed callback receives the authoritative clipped row, final
+    /// The borrowed callback receives the authoritative logical row, final
     /// interaction flags, stable key and borrowed item. List retains scrolling,
-    /// reconciliation, input and hit registration. No default row painter runs
+    /// reconciliation, input and hit registration. Writes are clipped to the
+    /// row and ancestor clip without shifting logical content alignment. Rows
+    /// wholly outside that clip do not invoke the callback. No default painter runs
     /// first. Instance part patches and slots apply to the default painter;
     /// custom painters resolve their own semantic parts, as with `NavList`.
     ///
@@ -941,7 +943,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 height: 1,
             };
             if let Some(renderer) = self.render_row {
-                ui.with_area(row, |ui| renderer(ui, row, flags, key, item));
+                if !row.intersection(ui.full()).is_empty() {
+                    ui.with_area(row, |ui| renderer(ui, row, flags, key, item));
+                }
                 if !ui.is_inert() {
                     ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
                 }

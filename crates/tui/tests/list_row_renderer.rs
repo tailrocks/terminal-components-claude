@@ -126,3 +126,38 @@ fn full_row_renderer_allocates_nothing_after_warmup() {
     h.draw();
     assert_eq!(junie_tui_testing::perf::allocs() - before, 0);
 }
+
+#[test]
+fn ancestor_clip_preserves_logical_alignment_and_skips_invisible_callbacks() {
+    let page = Page::default();
+    let seen = RefCell::new(Vec::new());
+    let mut scene = junie_tui_testing::Scene::new(
+        "list_clip",
+        junie_tui::Theme::junie(),
+        junie_tui::ColorLevel::TrueColor,
+        44,
+        8,
+    );
+    scene.draw(|ui, _| {
+        ui.with_area(Rect::new(3, 2, 5, 1), |ui| {
+            let renderer = |ui: &mut Ui<'_>, row, flags, key, item: &Step| {
+                seen.borrow_mut().push((row, ui.full()));
+                paint(ui, row, flags, key, item);
+            };
+            List::new(ID).render_row(&renderer).key(key).draw(
+                ui,
+                Rect::new(1, 1, 20, 4),
+                &page.state,
+                &page.items,
+            );
+        });
+    });
+    assert_eq!(
+        seen.borrow().as_slice(),
+        &[(Rect::new(1, 2, 19, 1), Rect::new(3, 2, 5, 1))]
+    );
+    assert_eq!(scene.buffer().cell((1, 2)).map(junie_tui::Cell::symbol), Some(" "));
+    assert_eq!(scene.buffer().cell((3, 2)).map(junie_tui::Cell::symbol), Some("!"));
+    assert_eq!(scene.buffer().cell((5, 2)).map(junie_tui::Cell::symbol), Some("t"));
+    assert_eq!(scene.buffer().cell((8, 2)).map(junie_tui::Cell::symbol), Some(" "));
+}
