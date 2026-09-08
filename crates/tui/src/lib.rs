@@ -52,7 +52,8 @@ pub use id::{Id, ItemKey, Part, PartRef};
 #[cfg(feature = "crossterm")]
 pub use runtime::session::{DefaultTerminal, TerminalSession, chain_panic_hook, run};
 pub use runtime::{
-    App, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime, UpdateCause,
+    App, ClockError, Moment, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError,
+    Runtime, UpdateCause,
 };
 #[cfg(feature = "testing")]
 pub use runtime::{ProjectedFrame, RenderModel};

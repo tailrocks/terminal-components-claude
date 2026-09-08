@@ -21,7 +21,7 @@ pub enum Input {
     Resize(u16, u16),
     /// Bracketed paste text.
     Paste(String),
-    /// The runtime clock advanced by one `design.motion.tick_ms`.
+    /// Explicit update trigger at unchanged runtime time; elapsed time comes from `Runtime::advance_to`.
     Tick,
 }
 

@@ -85,7 +85,10 @@ fn explicit_initialize_runs_once_and_retains_deadline_without_advancing_time() {
     let response = runtime.initialize();
     assert!(response.is_changed());
     assert!(runtime.is_open(LAYER));
-    assert_eq!(runtime.next_deadline(), Some(Duration::from_millis(2_200)));
+    assert_eq!(
+        runtime.next_deadline(),
+        Some(junie_tui::Moment::from_millis(2_200))
+    );
     assert_eq!(runtime.clock_ms(), 0);
     assert_eq!(runtime.app().bootstraps, 1);
     assert!(!runtime.initialize().is_changed());

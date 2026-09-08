@@ -148,91 +148,60 @@ impl Drop for TerminalSession {
 )]
 pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
     let mut session = TerminalSession::enter()?;
+    let origin = Instant::now();
     let mut rt = Runtime::new(app, theme.for_terminal());
     let _ = rt.initialize();
-    let idle = Duration::from_millis(rt.theme().design.motion.idle_tick_ms);
-    // `Runtime::next_deadline` intentionally exposes a duration rather than
-    // wall-clock state so headless callers remain deterministic. Keep the
-    // corresponding absolute instant here, and only replace it when the
-    // runtime's requested duration changes. Thus unrelated input cannot
-    // postpone an already scheduled deadline.
-    let mut scheduled: Option<(Duration, Instant)> = None;
     let mut pending = None;
     loop {
-        if rt.needs_settle() {
-            let _ = rt.settle();
-        }
-        if rt.needs_present() {
-            let mut painted = None;
-            session.terminal().draw(|f| {
-                painted = Some(rt.draw(f));
-            })?;
-            if let Some(frame) = painted {
-                frame.commit_presented();
+        // Exactly one clock advance per scheduler turn. A callback rearming
+        // deadline <= now cannot recursively starve an already-read input.
+        rt.advance_to(super::Moment::from_duration(origin.elapsed()))
+            .map_err(io::Error::other)?;
+        loop {
+            if rt.needs_settle() {
+                let _ = rt.settle();
             }
-            continue;
+            if rt.needs_present() {
+                let mut painted = None;
+                session.terminal().draw(|f| {
+                    painted = Some(rt.draw(f));
+                })?;
+                if let Some(frame) = painted {
+                    frame.commit_presented();
+                }
+                continue;
+            }
+            if !rt.needs_settle() {
+                break;
+            }
         }
         if rt.app().should_quit() || rt.quit_requested() {
             break;
         }
-        sync_deadline(&rt, &mut scheduled, false);
-        let input = if let Some(input) = pending.take() {
-            input
-        } else {
-            let now = Instant::now();
-            let wait =
-                scheduled.map_or(idle, |(_, at)| at.saturating_duration_since(now).min(idle));
-            if poll(wait)? {
-                let Some(input) = Input::from_crossterm(read()?) else {
-                    continue;
-                };
-                input
-            } else if scheduled.is_some_and(|(_, at)| Instant::now() >= at) {
-                Input::Tick
-            } else {
-                continue;
+        if let Some(input) = pending.take() {
+            match rt.handle(input) {
+                Ok(_) => {}
+                Err(event) => pending = Some(event.into_input()),
             }
-        };
-        let is_tick = matches!(&input, Input::Tick);
-        match rt.handle(input) {
-            Ok(_) => sync_deadline(&rt, &mut scheduled, is_tick),
-            Err(event) => pending = Some(event.into_input()),
+            continue;
         }
+        let now = super::Moment::from_duration(origin.elapsed());
+        let ready = match rt.next_deadline() {
+            // Bound transport timeout representations even for Moment's
+            // saturated maximum. This never synthesizes an application update.
+            Some(at) => poll(
+                at.saturating_duration_since(now)
+                    .min(Duration::from_secs(60)),
+            )?,
+            None => true,
+        };
+        if ready {
+            pending = Input::from_crossterm(read()?);
+        }
+        // A real idle timeout advances elapsed time on the next turn. It never
+        // fabricates input ticks, and an immediate deadline still polls input.
     }
     session.leave()
-}
-
-fn sync_deadline<A: App>(
-    rt: &Runtime<A>,
-    scheduled: &mut Option<(Duration, Instant)>,
-    reset: bool,
-) {
-    let requested = rt.next_deadline();
-    if reset {
-        *scheduled = requested.map(|duration| {
-            let at = Instant::now()
-                .checked_add(duration)
-                .unwrap_or_else(Instant::now);
-            (duration, at)
-        });
-        return;
-    }
-    match (*scheduled, requested) {
-        (_, None) => *scheduled = None,
-        (None, Some(duration)) => {
-            let at = Instant::now()
-                .checked_add(duration)
-                .unwrap_or_else(Instant::now);
-            *scheduled = Some((duration, at));
-        }
-        (Some((previous, _)), Some(duration)) if previous != duration => {
-            let at = Instant::now()
-                .checked_add(duration)
-                .unwrap_or_else(Instant::now);
-            *scheduled = Some((duration, at));
-        }
-        (Some(_), Some(_)) => {}
-    }
 }
 
 #[cfg(test)]

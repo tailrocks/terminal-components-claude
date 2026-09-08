@@ -230,16 +230,45 @@ impl<A: App> Harness<A> {
         panic!("harness focus did not settle: {:?}", self.rt.diagnostics());
     }
 
-    /// Advance the virtual clock by `n` ticks.
+    /// Deliver `n` explicit update ticks at unchanged elapsed time.
     pub fn ticks(&mut self, n: usize) {
         for _ in 0..n {
             let _ = self.tick();
         }
     }
 
-    /// One tick.
+    /// One explicit update tick at unchanged elapsed time.
     pub fn tick(&mut self) -> Response<()> {
         self.handle(Input::Tick)
+    }
+
+    /// Advance explicit elapsed time and run one due scheduler turn.
+    pub fn advance(&mut self, elapsed: core::time::Duration) -> Response<()> {
+        self.advance_to(self.rt.now().saturating_add(elapsed))
+            .expect("saturating forward clock movement")
+    }
+
+    /// Run one scheduler turn at an absolute moment; equal time may deliver a
+    /// newly armed deadline. Immediate rearming waits for a subsequent call.
+    ///
+    /// # Errors
+    /// Backwards time is rejected without changing runtime state.
+    pub fn advance_to(
+        &mut self,
+        now: junie_tui::Moment,
+    ) -> Result<Response<()>, junie_tui::ClockError> {
+        self.rt.advance_to(now)?;
+        let mut response = Response::ignored();
+        for _ in 0..16 {
+            if !self.rt.needs_settle() {
+                break;
+            }
+            response |= self.rt.settle();
+        }
+        if self.auto_draw {
+            self.draw();
+        }
+        Ok(response)
     }
 
     /// Last frame's area of `id`.

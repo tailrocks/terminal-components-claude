@@ -166,7 +166,8 @@ pub(crate) struct FrameServices {
     pub(crate) focus_request: Option<Id>,
     pub(crate) deferred_focus: Option<DeferredFocus>,
     pub(crate) repaint: bool,
-    pub(crate) repaint_after: Option<Duration>,
+    pub(crate) now: crate::runtime::Moment,
+    pub(crate) repaint_at: Option<crate::runtime::Moment>,
     pub(crate) quit: bool,
     #[cfg_attr(
         not(feature = "testing"),
@@ -332,12 +333,23 @@ impl<'f> Cx<'f> {
         self.services.repaint = true;
     }
 
-    /// Ask for a repaint after `d`.
+    /// Current explicit monotonic time. Input count never advances it.
+    pub const fn now(&self) -> crate::runtime::Moment {
+        self.services.now
+    }
+
+    /// Request an absolute deadline; multiple outstanding requests keep the earliest.
+    pub fn request_repaint_at(&mut self, deadline: crate::runtime::Moment) {
+        self.services.repaint_at = Some(
+            self.services
+                .repaint_at
+                .map_or(deadline, |current| current.min(deadline)),
+        );
+    }
+
+    /// Ask for a repaint after `d`, resolved against this update's absolute time.
     pub fn request_repaint_after(&mut self, d: Duration) {
-        self.services.repaint_after = Some(match self.services.repaint_after {
-            Some(cur) => cur.min(d),
-            None => d,
-        });
+        self.request_repaint_at(self.now().saturating_add(d));
     }
 
     /// Claim pointer capture; `false` if another capture is live.

@@ -8,6 +8,8 @@
 
 #[cfg(feature = "crossterm")]
 pub(crate) mod session;
+mod time;
+pub use time::{ClockError, Moment};
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -100,8 +102,8 @@ struct Interaction {
     hover: Option<(Id, PartRef)>,
     hover_suppressed: bool,
     press: Option<Press>,
-    flash: Option<(Id, u64)>,
-    last_click: Option<(Id, PartRef, u64)>,
+    flash: Option<(Id, Moment)>,
+    last_click: Option<(Id, PartRef, Moment)>,
     last_input_key: bool,
 }
 
@@ -325,7 +327,7 @@ pub struct Runtime<A: App> {
     services: FrameServices,
     intents: IntentQueue,
     inter: Interaction,
-    clock_ms: u64,
+    pending_tick: bool,
     frame: FrameState,
     core: UiCore,
     generation: u32,
@@ -373,7 +375,7 @@ impl<A: App> Runtime<A> {
             services: FrameServices::default(),
             intents: IntentQueue::new(),
             inter: Interaction::default(),
-            clock_ms: 0,
+            pending_tick: false,
             frame: FrameState::default(),
             core,
             generation: 0,
@@ -453,27 +455,65 @@ impl<A: App> Runtime<A> {
         self.services.quit
     }
 
-    /// Whether a repaint (or a timed repaint) is pending: the loop should
-    /// wait at the tick cadence.
+    /// Whether immediate repaint or timed work is pending.
+    /// Drivers schedule `next_deadline`; this does not imply a tick cadence.
     pub fn wants_tick(&self) -> bool {
-        self.services.repaint
-            || self.services.repaint_after.is_some()
+        self.pending_tick
+            || self.services.repaint
+            || self.services.repaint_at.is_some()
             || self.inter.flash.is_some()
             || self.last_invalidate >= Invalidate::Paint
     }
 
-    /// The earliest outstanding repaint deadline requested by the app.
-    ///
-    /// The duration is relative to the update that established the deadline.
-    /// It persists across unrelated input and is consumed when the runtime
-    /// receives [`Input::Tick`]. Multiple requests keep the shortest duration.
-    pub const fn next_deadline(&self) -> Option<core::time::Duration> {
-        self.services.repaint_after
+    /// Earliest absolute application or runtime-feedback deadline.
+    pub fn next_deadline(&self) -> Option<Moment> {
+        if self.pending_tick {
+            return Some(self.now());
+        }
+        match (self.services.repaint_at, self.inter.flash.map(|(_, at)| at)) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        }
     }
 
-    /// The virtual clock, in milliseconds (advanced by `Input::Tick`).
-    pub const fn clock_ms(&self) -> u64 {
-        self.clock_ms
+    /// Explicit monotonic elapsed time, independent of input count.
+    pub const fn now(&self) -> Moment {
+        self.services.now
+    }
+
+    /// Advance explicit elapsed time and stage at most one due update.
+    /// This never calls `App::update`. Settle and publish before retrying input.
+    /// Equal time may stage work armed since the previous scheduler turn.
+    /// A due callback's immediate rearm waits for the next `advance_to` call.
+    ///
+    /// # Errors
+    /// Backwards time is rejected without changing any runtime state.
+    pub fn advance_to(&mut self, now: Moment) -> Result<(), ClockError> {
+        if now < self.now() {
+            return Err(ClockError {
+                current: self.now(),
+                requested: now,
+            });
+        }
+        self.services.now = now;
+        if !self.pending_tick && self.services.repaint_at.is_some_and(|at| at <= now) {
+            self.pending_tick = true;
+            self.services.repaint_at = None;
+        }
+        if self.inter.flash.is_some_and(|(_, until)| now >= until) {
+            self.inter.flash = None;
+            if self.inter.press.is_none() {
+                self.last.snapshot.pressed = None;
+            }
+            self.presented = false;
+            self.services.repaint = true;
+        }
+        Ok(())
+    }
+
+    /// Explicit elapsed milliseconds, truncated only for this legacy inspector.
+    pub fn clock_ms(&self) -> u64 {
+        u64::try_from(self.now().as_duration().as_millis()).unwrap_or(u64::MAX)
     }
 
     /// The terminal size as last resized or successfully presented.
@@ -922,7 +962,10 @@ impl<A: App> Runtime<A> {
         }
         let window = self.theme.design.motion.double_click_ms;
         let double = self.inter.last_click.is_some_and(|(o, part, at)| {
-            o == p.owner && part == p.part && self.clock_ms.saturating_sub(at) <= window
+            o == p.owner
+                && part == p.part
+                && self.now().saturating_duration_since(at)
+                    <= core::time::Duration::from_millis(window)
         });
         let phase = if double {
             Phase::DoubleClick
@@ -932,12 +975,16 @@ impl<A: App> Runtime<A> {
         self.inter.last_click = if double {
             None
         } else {
-            Some((p.owner, p.part, self.clock_ms))
+            Some((p.owner, p.part, self.now()))
         };
         self.intents
             .pointer(p.owner, phase, p.part, m.pos, local, m.mods);
         let flash = self.theme.design.motion.press_flash_ms;
-        self.inter.flash = Some((p.owner, self.clock_ms.saturating_add(flash)));
+        self.inter.flash = Some((
+            p.owner,
+            self.now()
+                .saturating_add(core::time::Duration::from_millis(flash)),
+        ));
         self.last.snapshot.pressed = Some((p.owner, p.part));
     }
 
@@ -1167,7 +1214,7 @@ impl<A: App> Runtime<A> {
 
     /// Whether an update must settle focus discovered by a committed frame.
     pub const fn needs_settle(&self) -> bool {
-        self.pending_focus.is_some()
+        self.pending_focus.is_some() || (self.bootstrapped && self.pending_tick)
     }
 
     /// Whether another successful presentation is required before input.
@@ -1181,7 +1228,13 @@ impl<A: App> Runtime<A> {
             return Response::ignored();
         }
         let Some((from, to, via)) = self.pending_focus.take() else {
-            return Response::ignored();
+            if !core::mem::take(&mut self.pending_tick) {
+                return Response::ignored();
+            }
+            self.intents.clear();
+            self.pump_layer_events();
+            let r = self.run_update(None, UpdateCause::Tick);
+            return self.finish(r);
         };
         self.intents.clear();
         if let Some(old) = from {
@@ -1229,21 +1282,8 @@ impl<A: App> Runtime<A> {
             }
             Input::Tick => {
                 update_cause = UpdateCause::Tick;
-                // A delivered tick consumes the deadline that woke it. Any
-                // replacement requested by the Tick update becomes the next
-                // deadline and therefore survives this handle.
-                self.services.repaint_after = None;
-                self.clock_ms = self
-                    .clock_ms
-                    .saturating_add(self.theme.design.motion.tick_ms);
-                if let Some((_, until)) = self.inter.flash
-                    && self.clock_ms >= until
-                {
-                    self.inter.flash = None;
-                    if self.inter.press.is_none() {
-                        self.last.snapshot.pressed = None;
-                    }
-                }
+                // Explicit ticks request an update at unchanged time. Only
+                // advance_to consumes an elapsed absolute deadline.
             }
             Input::Key(k) => {
                 // step 2: capture chords first
@@ -1713,14 +1753,19 @@ impl<A: App> Runtime<A> {
         &self.last.registry
     }
 
-    /// Advance the virtual clock by one tick without input handling.
+    /// Advance explicit elapsed milliseconds through the public clock contract.
     pub fn advance_clock(&mut self, ms: u64) {
-        self.clock_ms = self.clock_ms.saturating_add(ms);
+        let _ = self.advance_to(
+            self.now()
+                .saturating_add(core::time::Duration::from_millis(ms)),
+        );
     }
 
     /// Whether a timed repaint was requested.
-    pub const fn repaint_after(&self) -> Option<core::time::Duration> {
-        self.services.repaint_after
+    pub fn repaint_after(&self) -> Option<core::time::Duration> {
+        self.services
+            .repaint_at
+            .map(|at| at.saturating_duration_since(self.now()))
     }
 
     /// The live capture's owner.
@@ -2096,10 +2141,7 @@ mod tests {
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().causes, vec![UpdateCause::Bootstrap]);
         assert_eq!(rt.clock_ms(), 0);
-        assert_eq!(
-            rt.next_deadline(),
-            Some(core::time::Duration::from_millis(33))
-        );
+        assert_eq!(rt.next_deadline(), Some(Moment::from_millis(33)));
 
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().causes, vec![UpdateCause::Bootstrap]);
@@ -2179,10 +2221,7 @@ mod tests {
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
-        assert_eq!(
-            rt.next_deadline(),
-            Some(core::time::Duration::from_millis(40))
-        );
+        assert_eq!(rt.next_deadline(), Some(Moment::from_millis(40)));
 
         let _ = deliver(
             &mut rt,
@@ -2191,10 +2230,7 @@ mod tests {
                 mods: KeyModifiers::NONE,
             }),
         );
-        assert_eq!(
-            rt.next_deadline(),
-            Some(core::time::Duration::from_millis(40))
-        );
+        assert_eq!(rt.next_deadline(), Some(Moment::from_millis(40)));
 
         let _ = deliver(
             &mut rt,
@@ -2204,12 +2240,10 @@ mod tests {
                 mods: KeyModifiers::NONE,
             }),
         );
-        assert_eq!(
-            rt.next_deadline(),
-            Some(core::time::Duration::from_millis(10))
-        );
+        assert_eq!(rt.next_deadline(), Some(Moment::from_millis(10)));
 
-        let _ = deliver(&mut rt, Input::Tick);
+        rt.advance_to(Moment::from_millis(10)).unwrap();
+        let _ = rt.settle();
         assert_eq!(rt.next_deadline(), None);
     }
 
@@ -2224,7 +2258,7 @@ mod tests {
         let before = rt.clock_ms();
         let _ = deliver(&mut rt, Input::Tick);
         assert_eq!(rt.app().causes, vec![UpdateCause::Tick]);
-        assert_eq!(rt.clock_ms(), before + rt.theme().design.motion.tick_ms);
+        assert_eq!(rt.clock_ms(), before);
     }
 
     const REFERENCE_LAYER: Id = Id::root("runtime.reference-layer");
