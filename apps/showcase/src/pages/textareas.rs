@@ -30,7 +30,7 @@ fn checklist() -> String {
         .join("\n")
 }
 
-fn task_field<'a>(value: &'a str) -> Field<'a, TextArea<'a>> {
+fn task_field(value: &str) -> Field<'_, TextArea<'_>> {
     Field::new("Task description", TextArea::new(BODY, 8).value(value)).optional_suffix(false)
 }
 
@@ -284,55 +284,55 @@ impl Page for TextAreasPage {
                 Panel::new(STATES)
                     .kind(PanelKind::Card)
                     .title("Disabled and error")
-                    .draw(ui, states, |ui, inner| {
-                        let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
-                        let mut commit_state = TextAreaState::default();
-                        commit_state.set_error(Some(FieldError::new(
-                            "Use the imperative mood and explain why",
-                        )));
-                        ui.reference(None, |ui| {
-                            let transcript = {
-                                let area = columns.first().copied().unwrap_or(inner);
-                                Rect {
-                                    width: area.width.saturating_sub(1),
-                                    ..area
-                                }
-                            };
-                            transcript_field().draw(ui, transcript, &TextAreaState::default());
-                            legacy_field_gutter(
-                                ui,
-                                Rect {
-                                    y: transcript.y.saturating_add(1),
-                                    height: 4,
-                                    ..transcript
-                                },
-                                StateFlags::DISABLED,
-                            );
-                            let commit = {
-                                let area = columns.get(1).copied().unwrap_or(inner);
-                                Rect {
-                                    width: area.width.saturating_sub(1),
-                                    ..area
-                                }
-                            };
-                            commit_field().draw(ui, commit, &commit_state);
-                            legacy_field_error(
-                                ui,
-                                commit,
-                                "Use the imperative mood and explain why",
-                            );
-                            legacy_field_gutter(
-                                ui,
-                                Rect {
-                                    y: commit.y.saturating_add(1),
-                                    height: 4,
-                                    ..commit
-                                },
-                                StateFlags::ERROR,
-                            );
-                        });
-                    });
+                    .draw(ui, states, Self::draw_states);
             }
+        });
+    }
+}
+
+impl TextAreasPage {
+    fn draw_states(ui: &mut Ui<'_>, inner: Rect) {
+        let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
+        let mut commit_state = TextAreaState::default();
+        commit_state.set_error(Some(FieldError::new(
+            "Use the imperative mood and explain why",
+        )));
+        ui.reference(None, |ui| {
+            let transcript = {
+                let area = columns.first().copied().unwrap_or(inner);
+                Rect {
+                    width: area.width.saturating_sub(1),
+                    ..area
+                }
+            };
+            transcript_field().draw(ui, transcript, &TextAreaState::default());
+            legacy_field_gutter(
+                ui,
+                Rect {
+                    y: transcript.y.saturating_add(1),
+                    height: 4,
+                    ..transcript
+                },
+                StateFlags::DISABLED,
+            );
+            let commit = {
+                let area = columns.get(1).copied().unwrap_or(inner);
+                Rect {
+                    width: area.width.saturating_sub(1),
+                    ..area
+                }
+            };
+            commit_field().draw(ui, commit, &commit_state);
+            legacy_field_error(ui, commit, "Use the imperative mood and explain why");
+            legacy_field_gutter(
+                ui,
+                Rect {
+                    y: commit.y.saturating_add(1),
+                    height: 4,
+                    ..commit
+                },
+                StateFlags::ERROR,
+            );
         });
     }
 }

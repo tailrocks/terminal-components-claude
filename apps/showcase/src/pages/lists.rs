@@ -1,14 +1,14 @@
 //! Keyed collection rows, single selection and multi-selection.
 
 use junie_tui::{
-    id, layout, Cx, EmptyState, Family, FgStep, GlyphRole, Id, ItemKey, List, ListAction,
-    ListState, Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StylePatch, Track,
-    Ui, Variant,
+    Cx, EmptyState, Family, FgStep, GlyphRole, Id, ItemKey, List, ListAction, ListState, Panel,
+    PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StylePatch, Track, Ui, Variant, id,
+    layout,
 };
 
 use crate::data::LANGUAGES;
 
-use super::{frame, Page};
+use super::{Page, frame};
 
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
@@ -159,8 +159,8 @@ fn single_list() -> List<
         .patch_part(LIST_GUTTER)
 }
 
-fn multi_list(
-) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+fn multi_list()
+-> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
     List::new(MULTI)
         .key(file_key)
         .row(file_row)
@@ -169,8 +169,8 @@ fn multi_list(
         .disabled_item(&file_disabled)
 }
 
-fn compact_multi_list(
-) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+fn compact_multi_list()
+-> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
     List::new(MULTI)
         .key(file_key)
         .row(compact_file_row)
@@ -200,12 +200,13 @@ impl ListsPage {
         if let Some(file) = FILES.get(1) {
             multi.checked_mut().insert(file_key(file));
         }
-        single.choose(Some(language_key(&LANGUAGES[0])));
+        let chosen = LANGUAGES.first().map(language_key);
+        single.choose(chosen);
         Self {
             single,
             multi,
             empty: ListState::default(),
-            chosen: Some(language_key(&LANGUAGES[0])),
+            chosen,
             last: "choose a language",
         }
     }
@@ -273,11 +274,9 @@ impl Page for ListsPage {
                 let height = body.height.min(18);
                 let language_column = columns.first().copied().unwrap_or(body);
                 let language = Rect {
-                    width: language_column.width.saturating_sub(if body.width >= 90 {
-                        0
-                    } else {
-                        1
-                    }),
+                    width: language_column
+                        .width
+                        .saturating_sub(u16::from(body.width < 90)),
                     height,
                     ..language_column
                 };
@@ -302,81 +301,7 @@ impl Page for ListsPage {
                             LANGUAGES,
                         );
                     });
-                let files_column = columns.get(1).copied().unwrap_or(body);
-                let files = Rect {
-                    x: if body.width >= 90 {
-                        files_column.x
-                    } else {
-                        files_column.x.saturating_sub(1)
-                    },
-                    height,
-                    ..files_column
-                };
-                let selected = format!("{} selected", self.multi.checked().len_in(FILES.len()));
-                let mut files_panel = Panel::new(id!("lists.files")).kind(PanelKind::Card).title(
-                    if body.width < 70 {
-                        "Files to incl…"
-                    } else {
-                        "Files to include"
-                    },
-                );
-                if body.width >= 130 {
-                    files_panel = files_panel.meta(&selected);
-                }
-                files_panel
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, files, |ui, inner| {
-                        let _ = ui.paint_str(
-                            Rect { height: 1, ..inner },
-                            if body.width < 70 {
-                                "Space toggle …"
-                            } else if body.width < 90 {
-                                "Space toggle · a all…"
-                            } else if body.width < 130 {
-                                "Space toggle · a all · Sh…"
-                            } else {
-                                "Space toggle · a all · Shift+↓ range"
-                            },
-                            detail,
-                        );
-                        if body.width >= 90 && body.width < 130 {
-                            compact_multi_list().draw(
-                                ui,
-                                Rect {
-                                    y: inner.y.saturating_add(2),
-                                    height: inner.height.saturating_sub(2),
-                                    ..inner
-                                },
-                                &self.multi,
-                                FILES,
-                            );
-                        } else {
-                            multi_list().draw(
-                                ui,
-                                Rect {
-                                    y: inner.y.saturating_add(2),
-                                    height: inner.height.saturating_sub(2),
-                                    ..inner
-                                },
-                                &self.multi,
-                                FILES,
-                            );
-                        }
-                        if self.last == "multi selection changed" {
-                            let _ = ui.paint_str(
-                                Rect {
-                                    y: inner.bottom().saturating_sub(1),
-                                    height: 1,
-                                    ..inner
-                                },
-                                &format!(
-                                    "checked rows: {}",
-                                    self.multi.checked().len_in(FILES.len())
-                                ),
-                                detail,
-                            );
-                        }
-                    });
+                self.draw_files(ui, body, &columns, height, detail);
                 let search_column = columns.get(2).copied().unwrap_or(body);
                 let search = Rect {
                     x: if body.width >= 90 {
@@ -420,5 +345,90 @@ impl Page for ListsPage {
                     });
             },
         );
+    }
+}
+
+impl ListsPage {
+    fn draw_files(
+        &self,
+        ui: &mut Ui<'_>,
+        body: Rect,
+        columns: &[Rect],
+        height: u16,
+        detail: junie_tui::author::PaintStyle,
+    ) {
+        let files_column = columns.get(1).copied().unwrap_or(body);
+        let files = Rect {
+            x: if body.width >= 90 {
+                files_column.x
+            } else {
+                files_column.x.saturating_sub(1)
+            },
+            height,
+            ..files_column
+        };
+        let selected = format!("{} selected", self.multi.checked().len_in(FILES.len()));
+        let mut files_panel =
+            Panel::new(id!("lists.files"))
+                .kind(PanelKind::Card)
+                .title(if body.width < 70 {
+                    "Files to incl…"
+                } else {
+                    "Files to include"
+                });
+        if body.width >= 130 {
+            files_panel = files_panel.meta(&selected);
+        }
+        files_panel
+            .patch_part(PANEL_PARTS)
+            .draw(ui, files, |ui, inner| {
+                let _ = ui.paint_str(
+                    Rect { height: 1, ..inner },
+                    if body.width < 70 {
+                        "Space toggle …"
+                    } else if body.width < 90 {
+                        "Space toggle · a all…"
+                    } else if body.width < 130 {
+                        "Space toggle · a all · Sh…"
+                    } else {
+                        "Space toggle · a all · Shift+↓ range"
+                    },
+                    detail,
+                );
+                if body.width >= 90 && body.width < 130 {
+                    compact_multi_list().draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(2),
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &self.multi,
+                        FILES,
+                    );
+                } else {
+                    multi_list().draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(2),
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &self.multi,
+                        FILES,
+                    );
+                }
+                if self.last == "multi selection changed" {
+                    let _ = ui.paint_str(
+                        Rect {
+                            y: inner.bottom().saturating_sub(1),
+                            height: 1,
+                            ..inner
+                        },
+                        &format!("checked rows: {}", self.multi.checked().len_in(FILES.len())),
+                        detail,
+                    );
+                }
+            });
     }
 }

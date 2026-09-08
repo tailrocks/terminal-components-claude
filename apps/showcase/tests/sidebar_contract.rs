@@ -1,4 +1,4 @@
-//! Coordinates derived from pinned Holla app.rs draw_sidebar, not candidate regions.
+//! Coordinates derived from pinned Holla app.rs `draw_sidebar`, not candidate regions.
 use junie_tui::{Color, Id, ItemKey, KeyCode, Modifier, MouseKind, Part, PartRef, Rect, Theme};
 use junie_tui_testing::Harness;
 use showcase_app::{App, NAV_ENTRIES, PageId};

@@ -138,80 +138,30 @@ fn paint_segment(
 }
 
 fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
-    let panel = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let title = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let detail = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let meta = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::EMPTY,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let chip = style(
-        ui,
-        Surface::Overlay,
-        junie_tui::Family::CHIP,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let close = style(
-        ui,
-        Surface::Overlay,
-        junie_tui::Family::PANEL,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let chip_marker = style(
-        ui,
-        Surface::Overlay,
-        junie_tui::Family::CHIP,
-        Part::MARKER,
-        StateFlags::empty(),
-    );
-    let field = style(
-        ui,
-        Surface::Field,
-        junie_tui::Family::SELECT,
-        Part::FIELD,
-        StateFlags::empty(),
-    );
-    let accent = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PROGRESS,
-        Part::ICON,
-        StateFlags::empty(),
-    );
-
-    let filters = format!("{active} active");
-    paint_segment(ui, body, 0, "  ", "Filters", title);
-    paint_segment(
-        ui,
-        body,
-        0,
-        "  Filters                                        ",
-        &filters,
+    let [
+        panel,
+        title,
+        detail,
         meta,
-    );
+        chip,
+        close,
+        chip_marker,
+        field,
+        accent,
+    ] = historical_palette(ui);
+    let filters = format!("{active} active");
+    let segments: [(u16, &str, &str, PaintStyle); 2] = [
+        (0, "  ", "Filters", title),
+        (
+            0,
+            "  Filters                                        ",
+            &filters,
+            meta,
+        ),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
     ui.fill(
         Rect {
             x: body.x.saturating_add(width("  ")),
@@ -231,23 +181,14 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
         },
         chip,
     );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ",
-        "▎status = 'pending' ×",
-        chip,
-    );
-    paint_segment(ui, body, 2, "   match all ▾  ", "▎", chip_marker);
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ",
-        "×",
-        close,
-    );
+    let segments: [(u16, &str, &str, PaintStyle); 3] = [
+        (2, "   match all ▾  ", "▎status = 'pending' ×", chip),
+        (2, "   match all ▾  ", "▎", chip_marker),
+        (2, "   match all ▾  ▎status = 'pending' ", "×", close),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
     ui.fill(
         Rect {
             x: body
@@ -259,96 +200,37 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
         },
         chip,
     );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ×   ",
-        "▎total > 100 ×",
-        chip,
-    );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ×   ",
-        "▎",
-        chip_marker,
-    );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ",
-        "×",
-        close,
-    );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ×   ",
-        "…",
-        detail,
-    );
-    paint_segment(ui, body, 4, "  ", &format!("last action: {last}"), detail);
-    paint_segment(ui, body, 7, "  ", "Selects", title);
-    paint_segment(ui, body, 9, "    ", "Sort by", detail);
-    paint_segment(ui, body, 9, "    Sort by           ", "Page size", detail);
-    paint_segment(
-        ui,
-        body,
-        9,
-        "    Sort by           Page size         ",
-        "Engine",
-        detail,
-    );
-    paint_segment(ui, body, 10, "  ", "▎ created_at  ▾", field);
-    paint_segment(
-        ui,
-        body,
-        10,
-        "  ▎ created_at  ▾   ",
-        "▎ 50          ▾",
-        field,
-    );
-    paint_segment(
-        ui,
-        body,
-        10,
-        "  ▎ created_at  ▾   ▎ 50          ▾   ",
-        "▎ PostgreSQL     ▾",
-        field,
-    );
-    paint_segment(ui, body, 11, "    ", "Applies to th…", detail);
-    paint_segment(
-        ui,
-        body,
-        11,
-        "    Applies to th…                      ",
-        "Fixed by the con…",
-        detail,
-    );
-    paint_segment(ui, body, 16, "  ", "Segment strip", title);
-    paint_segment(ui, body, 18, "   ", "▪", accent);
-    paint_segment(ui, body, 18, "   ▪  ", "Acme", panel);
-    paint_segment(ui, body, 18, "   ▪  Acme  ", "◆ production", detail);
-    paint_segment(
-        ui,
-        body,
-        18,
-        "   ▪  Acme  ◆ production  ",
-        "acme_prod › public",
-        detail,
-    );
-    paint_segment(
-        ui,
-        body,
-        18,
-        "   ▪  Acme  ◆ production  acme_prod › public  ",
-        "safe",
-        panel,
-    );
+    let segments: [(u16, &str, &str, PaintStyle); 5] = [
+        (
+            2,
+            "   match all ▾  ▎status = 'pending' ×   ",
+            "▎total > 100 ×",
+            chip,
+        ),
+        (
+            2,
+            "   match all ▾  ▎status = 'pending' ×   ",
+            "▎",
+            chip_marker,
+        ),
+        (
+            2,
+            "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ",
+            "×",
+            close,
+        ),
+        (
+            2,
+            "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ×   ",
+            "…",
+            detail,
+        ),
+        (4, "  ", &format!("last action: {last}"), detail),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+    paint_selects_and_strip(ui, body, [title, detail, field, accent, panel]);
     let _ = close;
 }
 
@@ -453,4 +335,93 @@ impl Page for ChipsPage {
             },
         );
     }
+}
+
+fn paint_selects_and_strip(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    [title, detail, field, accent, panel]: [PaintStyle; 5],
+) {
+    let segments: [(u16, &str, &str, PaintStyle); 15] = [
+        (7, "  ", "Selects", title),
+        (9, "    ", "Sort by", detail),
+        (9, "    Sort by           ", "Page size", detail),
+        (
+            9,
+            "    Sort by           Page size         ",
+            "Engine",
+            detail,
+        ),
+        (10, "  ", "▎ created_at  ▾", field),
+        (10, "  ▎ created_at  ▾   ", "▎ 50          ▾", field),
+        (
+            10,
+            "  ▎ created_at  ▾   ▎ 50          ▾   ",
+            "▎ PostgreSQL     ▾",
+            field,
+        ),
+        (11, "    ", "Applies to th…", detail),
+        (
+            11,
+            "    Applies to th…                      ",
+            "Fixed by the con…",
+            detail,
+        ),
+        (16, "  ", "Segment strip", title),
+        (18, "   ", "▪", accent),
+        (18, "   ▪  ", "Acme", panel),
+        (18, "   ▪  Acme  ", "◆ production", detail),
+        (
+            18,
+            "   ▪  Acme  ◆ production  ",
+            "acme_prod › public",
+            detail,
+        ),
+        (
+            18,
+            "   ▪  Acme  ◆ production  acme_prod › public  ",
+            "safe",
+            panel,
+        ),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+}
+
+fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 9] {
+    let [
+        panel,
+        title,
+        detail,
+        meta,
+        chip,
+        close,
+        chip_marker,
+        field,
+        accent,
+    ] = [
+        (Surface::Surface, junie_tui::Family::PANEL, Part::CONTAINER),
+        (Surface::Surface, junie_tui::Family::PANEL, Part::DETAIL),
+        (Surface::Surface, junie_tui::Family::PANEL, Part::HELP),
+        (Surface::Surface, junie_tui::Family::EMPTY, Part::HELP),
+        (Surface::Overlay, junie_tui::Family::CHIP, Part::CONTAINER),
+        (Surface::Overlay, junie_tui::Family::PANEL, Part::HELP),
+        (Surface::Overlay, junie_tui::Family::CHIP, Part::MARKER),
+        (Surface::Field, junie_tui::Family::SELECT, Part::FIELD),
+        (Surface::Surface, junie_tui::Family::PROGRESS, Part::ICON),
+    ]
+    .map(|(surface, family, part)| style(ui, surface, family, part, StateFlags::empty()));
+
+    [
+        panel,
+        title,
+        detail,
+        meta,
+        chip,
+        close,
+        chip_marker,
+        field,
+        accent,
+    ]
 }

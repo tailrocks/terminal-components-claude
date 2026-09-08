@@ -214,10 +214,8 @@ fn paint_part(
     row: u16,
     x: u16,
     text: &str,
-    surface: Surface,
     family: junie_tui::Family,
     part: Part,
-    flags: StateFlags,
 ) {
     let area = Rect {
         x: body.x.saturating_add(x),
@@ -225,8 +223,10 @@ fn paint_part(
         width: body.width.saturating_sub(x),
         height: 1,
     };
-    ui.with_surface(surface, |ui| {
-        let style = ui.style(family, Variant::DEFAULT, part, flags).style;
+    ui.with_surface(Surface::Surface, |ui| {
+        let style = ui
+            .style(family, Variant::DEFAULT, part, StateFlags::empty())
+            .style;
         ui.paint_str(area, text, style);
     });
 }
@@ -309,10 +309,8 @@ impl Page for GridPage {
                     0,
                     2,
                     "customers",
-                    Surface::Surface,
                     junie_tui::Family::PANEL,
                     Part::DETAIL,
-                    StateFlags::empty(),
                 );
                 paint_part(
                     ui,
@@ -320,94 +318,19 @@ impl Page for GridPage {
                     0,
                     21,
                     "rows 1–0 of 40 loaded · ~4,812 total",
-                    Surface::Surface,
                     junie_tui::Family::EMPTY,
                     Part::HELP,
-                    StateFlags::empty(),
                 );
-                paint_part(
-                    ui,
-                    body,
-                    2,
-                    8,
-                    "⚷",
-                    Surface::Surface,
-                    junie_tui::Family::EMPTY,
-                    Part::HELP,
-                    StateFlags::empty(),
-                );
+                paint_part(ui, body, 2, 8, "⚷", junie_tui::Family::EMPTY, Part::HELP);
                 for (x, text) in [
                     (9, " id     "),
                     (19, "customer                 "),
                     (46, "plan  "),
                 ] {
-                    paint_part(
-                        ui,
-                        body,
-                        2,
-                        x,
-                        text,
-                        Surface::Surface,
-                        junie_tui::Family::LIST,
-                        Part::META,
-                        StateFlags::empty(),
-                    );
+                    paint_part(ui, body, 2, x, text, junie_tui::Family::LIST, Part::META);
                 }
-                paint_part(
-                    ui,
-                    body,
-                    2,
-                    53,
-                    "6›",
-                    Surface::Surface,
-                    junie_tui::Family::EMPTY,
-                    Part::HELP,
-                    StateFlags::empty(),
-                );
-                for row in 3..=16 {
-                    paint_invisible(ui, body, row, 2, "▎");
-                    paint_part(
-                        ui,
-                        body,
-                        row,
-                        5,
-                        &format!("{:>2}", row - 2),
-                        Surface::Surface,
-                        junie_tui::Family::VIEWPORT,
-                        Part::GUTTER,
-                        StateFlags::empty(),
-                    );
-                    paint_part(
-                        ui,
-                        body,
-                        row,
-                        8,
-                        &format!("{}     ", 1000 + row - 2),
-                        Surface::Surface,
-                        junie_tui::Family::PANEL,
-                        Part::DETAIL,
-                        StateFlags::empty(),
-                    );
-                    paint_part(
-                        ui,
-                        body,
-                        row,
-                        56,
-                        if row <= 6 { "┃" } else { "│" },
-                        Surface::Surface,
-                        if row <= 6 {
-                            junie_tui::Family::GRID
-                        } else {
-                            junie_tui::Family::PANEL
-                        },
-                        if row == 3 {
-                            Part::OVERFLOW
-                        } else {
-                            Part::BORDER
-                        },
-                        StateFlags::empty(),
-                    );
-                }
+                paint_part(ui, body, 2, 53, "6›", junie_tui::Family::EMPTY, Part::HELP);
+                paint_rows(ui, body);
                 if let Some(key) = self.selected {
                     let row = body.y.saturating_add(17);
                     if row < body.bottom() {
@@ -423,6 +346,47 @@ impl Page for GridPage {
                         );
                     }
                 }
+            },
+        );
+    }
+}
+
+fn paint_rows(ui: &mut Ui<'_>, body: Rect) {
+    for row in 3..=16 {
+        paint_invisible(ui, body, row, 2, "▎");
+        paint_part(
+            ui,
+            body,
+            row,
+            5,
+            &format!("{:>2}", row.saturating_sub(2)),
+            junie_tui::Family::VIEWPORT,
+            Part::GUTTER,
+        );
+        paint_part(
+            ui,
+            body,
+            row,
+            8,
+            &format!("{}     ", 1000_u16.saturating_add(row.saturating_sub(2))),
+            junie_tui::Family::PANEL,
+            Part::DETAIL,
+        );
+        paint_part(
+            ui,
+            body,
+            row,
+            56,
+            if row <= 6 { "┃" } else { "│" },
+            if row <= 6 {
+                junie_tui::Family::GRID
+            } else {
+                junie_tui::Family::PANEL
+            },
+            if row == 3 {
+                Part::OVERFLOW
+            } else {
+                Part::BORDER
             },
         );
     }

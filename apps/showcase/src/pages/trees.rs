@@ -87,7 +87,7 @@ fn position_label(state: &TreeState) -> String {
     let range = scroll.visible_range();
     format!(
         "{}–{} of {}",
-        range.start + 1,
+        range.start.saturating_add(1),
         range.end,
         scroll.content_len()
     )
@@ -126,7 +126,7 @@ fn paint_disclosure_glyphs(ui: &mut Ui<'_>, area: Rect, state: &TreeState) {
                     .saturating_add(node.depth().saturating_mul(2)),
                 y: area
                     .y
-                    .saturating_add((display_index - visible_start) as u16),
+                    .saturating_add((display_index.saturating_sub(visible_start)) as u16),
                 width: 1,
                 height: 1,
             };

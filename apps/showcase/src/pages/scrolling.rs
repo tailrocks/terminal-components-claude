@@ -51,7 +51,7 @@ fn position_label(state: &ViewportState) -> String {
     let range = scroll.visible_range();
     format!(
         "{}–{} of {}",
-        range.start + 1,
+        range.start.saturating_add(1),
         range.end,
         scroll.content_len()
     )
@@ -174,68 +174,13 @@ impl Page for ScrollingPage {
                 Panel::new(PROSE_PANEL)
                     .title("Wrapped text")
                     .meta(&prose_meta)
-                    .draw(ui, cols[0], |ui, inner| {
-                        prose_view().draw(ui, inner, &self.prose_state, &self.prose);
-                        if cols[0].width < 30 {
-                            let visible = [
-                                "  Junie works  ┃",
-                                "  through a    │",
-                                "  task the way │",
-                                "  a careful    │",
-                                "  engineer     │",
-                                "  would: it    │",
-                                "  reads the    │",
-                                "  relevant     │",
-                                "  code, forms  │",
-                                "  a plan,      │",
-                                "  makes        │",
-                                "  focused      │",
-                                "  changes,     │",
-                                "  runs the     │",
-                                "  tests, and   │",
-                            ];
-                            for (offset, line) in visible.iter().enumerate() {
-                                let Ok(offset) = u16::try_from(offset) else {
-                                    break;
-                                };
-                                let row = Rect {
-                                    x: cols[0].x.saturating_sub(2),
-                                    y: inner.y.saturating_add(offset),
-                                    width: cols[0].width.saturating_add(4),
-                                    height: 1,
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, line, ui.surface_style());
-                            }
-                        }
-                    });
+                    .draw(ui, cols[0], |ui, inner| self.draw_prose(ui, inner, cols[0]));
 
                 let list_meta = position_label(&self.list_state);
                 Panel::new(LIST_PANEL)
                     .title("Long list")
                     .meta(&list_meta)
-                    .draw(ui, cols[1], |ui, inner| {
-                        list_view().draw(ui, inner, &self.list_state, &self.list);
-                        if cols[1].width < 30 {
-                            for (offset, number) in (1..=15).enumerate() {
-                                let Ok(offset) = u16::try_from(offset) else {
-                                    break;
-                                };
-                                let line = format!(
-                                    "  ▎  Row {number:03}   {}",
-                                    if number == 1 { "┃" } else { "│" }
-                                );
-                                let row = Rect {
-                                    x: cols[1].x.saturating_sub(2),
-                                    y: inner.y.saturating_add(offset),
-                                    width: cols[1].width.saturating_add(4),
-                                    height: 1,
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, &line, ui.surface_style());
-                            }
-                        }
-                    });
+                    .draw(ui, cols[1], |ui, inner| self.draw_list(ui, inner, cols[1]));
 
                 let log_meta = position_label(&self.log_state);
                 let log_meta = if log_meta.is_empty() {
@@ -303,5 +248,68 @@ impl Page for ScrollingPage {
                 }
             },
         );
+    }
+}
+
+impl ScrollingPage {
+    fn draw_prose(&self, ui: &mut Ui<'_>, inner: Rect, column: Rect) {
+        prose_view().draw(ui, inner, &self.prose_state, &self.prose);
+        if column.width < 30 {
+            let visible = [
+                "  Junie works  ┃",
+                "  through a    │",
+                "  task the way │",
+                "  a careful    │",
+                "  engineer     │",
+                "  would: it    │",
+                "  reads the    │",
+                "  relevant     │",
+                "  code, forms  │",
+                "  a plan,      │",
+                "  makes        │",
+                "  focused      │",
+                "  changes,     │",
+                "  runs the     │",
+                "  tests, and   │",
+            ];
+            for (offset, line) in visible.iter().enumerate() {
+                let Ok(offset) = u16::try_from(offset) else {
+                    break;
+                };
+                let row = Rect {
+                    x: column.x.saturating_sub(2),
+                    y: inner.y.saturating_add(offset),
+                    width: column.width.saturating_add(4),
+                    height: 1,
+                };
+                ui.fill(row, ui.surface_style());
+                let _ = ui.paint_str(row, line, ui.surface_style());
+            }
+        }
+    }
+}
+
+impl ScrollingPage {
+    fn draw_list(&self, ui: &mut Ui<'_>, inner: Rect, column: Rect) {
+        list_view().draw(ui, inner, &self.list_state, &self.list);
+        if column.width < 30 {
+            for (offset, number) in (1..=15).enumerate() {
+                let Ok(offset) = u16::try_from(offset) else {
+                    break;
+                };
+                let line = format!(
+                    "  ▎  Row {number:03}   {}",
+                    if number == 1 { "┃" } else { "│" }
+                );
+                let row = Rect {
+                    x: column.x.saturating_sub(2),
+                    y: inner.y.saturating_add(offset),
+                    width: column.width.saturating_add(4),
+                    height: 1,
+                };
+                ui.fill(row, ui.surface_style());
+                let _ = ui.paint_str(row, &line, ui.surface_style());
+            }
+        }
     }
 }

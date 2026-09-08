@@ -282,9 +282,9 @@ fn legacy_table(
     model: &TableModel,
     state: &GridState,
     sort: Option<(ColumnKey, SortDir)>,
-    header_style: junie_tui::author::PaintStyle,
-    row_style: junie_tui::author::PaintStyle,
+    styles: (junie_tui::author::PaintStyle, junie_tui::author::PaintStyle),
 ) {
+    let (header_style, row_style) = styles;
     if area.is_empty() {
         return;
     }
@@ -526,34 +526,7 @@ impl Page for TablesPage {
                 .meta(&task_meta)
                 .patch_part(PANEL_PARTS)
                 .draw(ui, tasks, |ui, inner| {
-                    let grid_area = Rect {
-                        x: inner.x,
-                        width: inner.width,
-                        ..inner
-                    };
-                    table_view().draw(ui, grid_area, &self.state, &self.model);
-                    let header = ui.style(
-                        Family::GRID,
-                        Variant::DEFAULT,
-                        Part::HEADER,
-                        StateFlags::empty(),
-                    );
-                    let row_style = ui.style(
-                        Family::GRID,
-                        Variant::DEFAULT,
-                        Part::ROW,
-                        StateFlags::empty(),
-                    );
-                    legacy_table(
-                        ui,
-                        grid_area,
-                        body.width,
-                        &self.model,
-                        &self.state,
-                        self.sort,
-                        header.style,
-                        row_style.style,
-                    );
+                    self.draw_tasks(ui, inner, body.width);
                 });
             paint_card_meta(ui, tasks, &task_meta);
             if let Some(checks) = regions.get(2).copied() {
@@ -598,5 +571,37 @@ impl Page for TablesPage {
                     });
             }
         });
+    }
+}
+
+impl TablesPage {
+    fn draw_tasks(&self, ui: &mut Ui<'_>, inner: Rect, body_width: u16) {
+        let grid_area = Rect {
+            x: inner.x,
+            width: inner.width,
+            ..inner
+        };
+        table_view().draw(ui, grid_area, &self.state, &self.model);
+        let header = ui.style(
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::HEADER,
+            StateFlags::empty(),
+        );
+        let row_style = ui.style(
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::ROW,
+            StateFlags::empty(),
+        );
+        legacy_table(
+            ui,
+            grid_area,
+            body_width,
+            &self.model,
+            &self.state,
+            self.sort,
+            (header.style, row_style.style),
+        );
     }
 }

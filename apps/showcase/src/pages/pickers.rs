@@ -179,63 +179,15 @@ fn paint_segment(
 }
 
 fn paint_historical(ui: &mut Ui<'_>, body: Rect, result: &str, opened: bool) {
-    let panel = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let title = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let detail = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::HELP,
-        StateFlags::empty(),
-    );
-    let primary = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::PRIMARY,
-        junie_tui::Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let secondary = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::SECONDARY,
-        junie_tui::Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let primary_gutter = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::PRIMARY,
-        junie_tui::Part::GUTTER,
-        StateFlags::empty(),
-    );
-    let secondary_gutter = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::SECONDARY,
-        junie_tui::Part::GUTTER,
-        StateFlags::empty(),
-    );
-
+    let [
+        panel,
+        title,
+        detail,
+        primary,
+        secondary,
+        primary_gutter,
+        secondary_gutter,
+    ] = historical_palette(ui);
     paint_segment(ui, body, 0, "  ", "Open a picker", title);
     ui.fill(
         Rect {
@@ -266,70 +218,58 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, result: &str, opened: bool) {
         },
         secondary,
     );
-    paint_segment(ui, body, 2, "  ", "▎", primary_gutter);
-    paint_segment(ui, body, 2, "  ▎", "Open quickly", primary);
-    paint_segment(ui, body, 2, "  ▎Open quickly   ", "▎", secondary_gutter);
-    paint_segment(ui, body, 2, "  ▎Open quickly   ▎", "Switch tab", secondary);
-    paint_segment(
-        ui,
-        body,
-        2,
-        "  ▎Open quickly   ▎Switch tab   ",
-        "▎",
-        secondary_gutter,
-    );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "  ▎Open quickly   ▎Switch tab   ▎",
-        "Choose a level",
-        secondary,
-    );
-    paint_segment(
-        ui,
-        body,
-        4,
-        "  ",
-        "Quick: fuzzy over files and tasks, Tab cycles the scop…",
-        detail,
-    );
-    paint_segment(ui, body, 8, "  ", "Result", title);
-    paint_segment(ui, body, 10, "  ", "Chosen", detail);
-    paint_segment(
-        ui,
-        body,
-        10,
-        "  Chosen          ",
-        if result == "none" {
-            "nothing yet"
-        } else {
-            result
-        },
-        panel,
-    );
-    paint_segment(ui, body, 11, "  ", "Detail", detail);
-    paint_segment(ui, body, 11, "  Detail          ", "—", panel);
-    paint_segment(ui, body, 12, "  ", "Level", detail);
-    paint_segment(ui, body, 12, "  Level           ", "Safe Mode", panel);
-    paint_segment(ui, body, 13, "  ", "Open tabs", detail);
-    paint_segment(
-        ui,
-        body,
-        13,
-        "  Open tabs       ",
-        "Query 1 · orders · order_items · Histo…",
-        panel,
-    );
-    paint_segment(ui, body, 14, "  ", "Pickers opened", detail);
-    paint_segment(
-        ui,
-        body,
-        14,
-        "  Pickers opened  ",
-        if opened { "1" } else { "0" },
-        panel,
-    );
+    let segments: [(u16, &str, &str, PaintStyle); 18] = [
+        (2, "  ", "▎", primary_gutter),
+        (2, "  ▎", "Open quickly", primary),
+        (2, "  ▎Open quickly   ", "▎", secondary_gutter),
+        (2, "  ▎Open quickly   ▎", "Switch tab", secondary),
+        (2, "  ▎Open quickly   ▎Switch tab   ", "▎", secondary_gutter),
+        (
+            2,
+            "  ▎Open quickly   ▎Switch tab   ▎",
+            "Choose a level",
+            secondary,
+        ),
+        (
+            4,
+            "  ",
+            "Quick: fuzzy over files and tasks, Tab cycles the scop…",
+            detail,
+        ),
+        (8, "  ", "Result", title),
+        (10, "  ", "Chosen", detail),
+        (
+            10,
+            "  Chosen          ",
+            if result == "none" {
+                "nothing yet"
+            } else {
+                result
+            },
+            panel,
+        ),
+        (11, "  ", "Detail", detail),
+        (11, "  Detail          ", "—", panel),
+        (12, "  ", "Level", detail),
+        (12, "  Level           ", "Safe Mode", panel),
+        (13, "  ", "Open tabs", detail),
+        (
+            13,
+            "  Open tabs       ",
+            "Query 1 · orders · order_items · Histo…",
+            panel,
+        ),
+        (14, "  ", "Pickers opened", detail),
+        (
+            14,
+            "  Pickers opened  ",
+            if opened { "1" } else { "0" },
+            panel,
+        ),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
     if result != "none" {
         let result_line = format!("last result: {result}");
         paint_segment(ui, body, 15, "  ", &result_line, detail);
@@ -452,4 +392,79 @@ impl Page for PickersPage {
             picker().draw(ui, layer, &self.state, ITEMS);
         });
     }
+}
+
+fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 7] {
+    let [
+        panel,
+        title,
+        detail,
+        primary,
+        secondary,
+        primary_gutter,
+        secondary_gutter,
+    ] = [
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::DETAIL,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::HELP,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::PRIMARY,
+            junie_tui::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::SECONDARY,
+            junie_tui::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::PRIMARY,
+            junie_tui::Part::GUTTER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::SECONDARY,
+            junie_tui::Part::GUTTER,
+            StateFlags::empty(),
+        ),
+    ]
+    .map(|(surface, family, variant, part, flags)| {
+        style(ui, surface, family, variant, part, flags)
+    });
+
+    [
+        panel,
+        title,
+        detail,
+        primary,
+        secondary,
+        primary_gutter,
+        secondary_gutter,
+    ]
 }

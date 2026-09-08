@@ -29,9 +29,7 @@ fn build_bar(ratio: f64, frame: usize, _paused: bool) -> ProgressBar<'static> {
 }
 
 fn resolving_bar(frame: usize) -> ProgressBar<'static> {
-    ProgressBar::new(RESOLVING)
-        .label("Resolving")
-        .frame(frame)
+    ProgressBar::new(RESOLVING).label("Resolving").frame(frame)
 }
 
 fn waiting_spinner(frame: usize) -> Spinner<'static> {
@@ -76,13 +74,17 @@ impl Page for ProgressPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
-        let restart = Button::new(RESTART, "Restart").variant(Variant::SECONDARY).update(cx);
+        let restart = Button::new(RESTART, "Restart")
+            .variant(Variant::SECONDARY)
+            .update(cx);
         if restart.activated() {
             self.build = 0.0;
             self.paused = false;
         }
         response |= restart.erase();
-        let pause = Button::new(PAUSE, "Pause").variant(Variant::SECONDARY).update(cx);
+        let pause = Button::new(PAUSE, "Pause")
+            .variant(Variant::SECONDARY)
+            .update(cx);
         if pause.activated() {
             self.paused = !self.paused;
         }
@@ -112,79 +114,18 @@ impl Page for ProgressPage {
                 let compact_ratio = if body.width <= 60 { 0.05 } else { self.build };
                 let regions = layout::rows(
                     body,
-                    &[junie_tui::Track::Fixed(12), junie_tui::Track::Fixed(1), junie_tui::Track::Flex(1)],
+                    &[
+                        junie_tui::Track::Fixed(12),
+                        junie_tui::Track::Fixed(1),
+                        junie_tui::Track::Flex(1),
+                    ],
                 );
                 let live = regions.first().copied().unwrap_or(body);
                 Panel::new(LIVE_PANEL)
                     .title("Live")
                     .meta("ticks at 80 ms")
                     .draw(ui, live, |ui, inner| {
-                        build_bar(compact_ratio, self.frame, self.paused).draw(ui, inner);
-                        resolving_bar(self.frame).draw(
-                            ui,
-                            Rect {
-                                y: inner.y.saturating_add(2),
-                                ..inner
-                            },
-                        );
-                        waiting_spinner(self.frame).draw(
-                            ui,
-                            Rect {
-                                y: inner.y.saturating_add(4),
-                                ..inner
-                            },
-                        );
-                        files_spinner(self.frame).draw(
-                            ui,
-                            Rect {
-                                y: inner.y.saturating_add(5),
-                                ..inner
-                            },
-                        );
-                        let restart = Button::new(RESTART, "Restart").variant(Variant::SECONDARY);
-                        let pause = Button::new(PAUSE, "Pause").variant(Variant::SECONDARY);
-                        let widths = [
-                            restart.measure(ui, Constraints::loose(inner.width, 1)).preferred.0,
-                            pause.measure(ui, Constraints::loose(inner.width, 1)).preferred.0,
-                        ];
-                        let row = Rect {
-                            y: inner.y.saturating_add(7),
-                            height: 1,
-                            ..inner
-                        };
-                        let rects = layout::action_row(row, &widths, 2, junie_tui::RowAlign::Start);
-                        if let Some(rect) = rects.first().copied() {
-                            restart.draw(ui, rect);
-                        }
-                        if let Some(rect) = rects.get(1).copied() {
-                            pause.draw(ui, rect);
-                        }
-                        if inner.width < 70 {
-                            let meta = Rect {
-                                x: inner.right().saturating_sub(15),
-                                y: inner.y.saturating_sub(2),
-                                width: 15,
-                                height: 1,
-                            };
-                            ui.fill(meta, ui.surface_style());
-                            let _ = ui.paint_str(meta, "ticks at 80 ms", ui.surface_style());
-                            let visible = [
-                                (0, "Building    ━━──────────────────────────────────   5%"),
-                                (2, "Resolving   ─━━━━━━━━──────────────────────────────────"),
-                                (4, "⠏ Waiting for the test runner"),
-                                (5, "⠏ 3 of 12 files"),
-                                (7, "▎Restart   ▎Pause"),
-                            ];
-                            for (offset, line) in visible {
-                                let row = Rect {
-                                    y: inner.y.saturating_add(offset),
-                                    height: 1,
-                                    ..inner
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, line, ui.surface_style());
-                            }
-                        }
+                        self.draw_live(ui, inner, compact_ratio);
                     });
 
                 if let Some(states) = regions.get(2).copied() {
@@ -192,17 +133,17 @@ impl Page for ProgressPage {
                         .title("States")
                         .meta("static")
                         .draw(ui, states, |ui, inner| {
-                            ProgressBar::new(QUEUED).label("Queued").ratio(0.0).draw(ui, inner);
-                            ProgressBar::new(HALFWAY)
-                                .label("Halfway")
-                                .ratio(0.5)
-                                .draw(
-                                    ui,
-                                    Rect {
-                                        y: inner.y.saturating_add(1),
-                                        ..inner
-                                    },
-                                );
+                            ProgressBar::new(QUEUED)
+                                .label("Queued")
+                                .ratio(0.0)
+                                .draw(ui, inner);
+                            ProgressBar::new(HALFWAY).label("Halfway").ratio(0.5).draw(
+                                ui,
+                                Rect {
+                                    y: inner.y.saturating_add(1),
+                                    ..inner
+                                },
+                            );
                             if inner.width < 70 {
                                 let meta = Rect {
                                     x: inner.right().saturating_sub(7),
@@ -233,5 +174,82 @@ impl Page for ProgressPage {
                 }
             },
         );
+    }
+}
+
+impl ProgressPage {
+    fn draw_live(&self, ui: &mut Ui<'_>, inner: Rect, compact_ratio: f64) {
+        build_bar(compact_ratio, self.frame, self.paused).draw(ui, inner);
+        resolving_bar(self.frame).draw(
+            ui,
+            Rect {
+                y: inner.y.saturating_add(2),
+                ..inner
+            },
+        );
+        waiting_spinner(self.frame).draw(
+            ui,
+            Rect {
+                y: inner.y.saturating_add(4),
+                ..inner
+            },
+        );
+        files_spinner(self.frame).draw(
+            ui,
+            Rect {
+                y: inner.y.saturating_add(5),
+                ..inner
+            },
+        );
+        let restart = Button::new(RESTART, "Restart").variant(Variant::SECONDARY);
+        let pause = Button::new(PAUSE, "Pause").variant(Variant::SECONDARY);
+        let widths = [
+            restart
+                .measure(ui, Constraints::loose(inner.width, 1))
+                .preferred
+                .0,
+            pause
+                .measure(ui, Constraints::loose(inner.width, 1))
+                .preferred
+                .0,
+        ];
+        let row = Rect {
+            y: inner.y.saturating_add(7),
+            height: 1,
+            ..inner
+        };
+        let rects = layout::action_row(row, &widths, 2, junie_tui::RowAlign::Start);
+        if let Some(rect) = rects.first().copied() {
+            restart.draw(ui, rect);
+        }
+        if let Some(rect) = rects.get(1).copied() {
+            pause.draw(ui, rect);
+        }
+        if inner.width < 70 {
+            let meta = Rect {
+                x: inner.right().saturating_sub(15),
+                y: inner.y.saturating_sub(2),
+                width: 15,
+                height: 1,
+            };
+            ui.fill(meta, ui.surface_style());
+            let _ = ui.paint_str(meta, "ticks at 80 ms", ui.surface_style());
+            let visible = [
+                (0, "Building    ━━──────────────────────────────────   5%"),
+                (2, "Resolving   ─━━━━━━━━──────────────────────────────────"),
+                (4, "⠏ Waiting for the test runner"),
+                (5, "⠏ 3 of 12 files"),
+                (7, "▎Restart   ▎Pause"),
+            ];
+            for (offset, line) in visible {
+                let row = Rect {
+                    y: inner.y.saturating_add(offset),
+                    height: 1,
+                    ..inner
+                };
+                ui.fill(row, ui.surface_style());
+                let _ = ui.paint_str(row, line, ui.surface_style());
+            }
+        }
     }
 }

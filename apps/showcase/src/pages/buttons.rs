@@ -256,11 +256,11 @@ impl Page for ButtonsPage {
                 } else {
                     matrix_panel().draw(ui, matrix_area, Self::draw_matrix);
                 }
-                if let Some(status) = regions.get(3).copied() {
-                    if let Some(last) = &self.last {
-                        let text = format!("last: {last} · {} activations", self.clicks);
-                        let _ = ui.paint_str(status, &text, ui.surface_style());
-                    }
+                if let Some(status) = regions.get(3).copied()
+                    && let Some(last) = &self.last
+                {
+                    let text = format!("last: {last} · {} activations", self.clicks);
+                    let _ = ui.paint_str(status, &text, ui.surface_style());
                 }
             },
         );
@@ -305,10 +305,11 @@ impl ButtonsPage {
                     .iter()
                     .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
             {
-                if let Some(button) = self.button(index) {
-                    let variant = SPECS[index].1;
+                if let Some(button) = self.button(index)
+                    && let Some(&(_, variant, disabled, _)) = SPECS.get(index)
+                {
                     let mut flags = ui.state(button.id());
-                    if SPECS[index].2 {
+                    if disabled {
                         flags |= StateFlags::DISABLED;
                     }
                     if self.checked.get(index).copied().flatten() == Some(true) {

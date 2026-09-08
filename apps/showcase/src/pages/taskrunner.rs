@@ -165,111 +165,14 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
     } else {
         String::new()
     };
-    let panel = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let title = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let detail = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::HELP,
-        StateFlags::empty(),
-    );
-    let meta = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::EMPTY,
-        Variant::DEFAULT,
-        junie_tui::Part::HELP,
-        StateFlags::empty(),
-    );
-    let primary = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::PRIMARY,
-        junie_tui::Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let primary_gutter = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::PRIMARY,
-        junie_tui::Part::GUTTER,
-        StateFlags::empty(),
-    );
+    let [panel, title, detail, meta, primary, primary_gutter] = historical_palette(ui);
     let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
     let rail = ui.with_surface(Surface::Surface, |ui| {
         ui.surface_style().with_fg_from_bg(ui.surface_style())
     });
 
-    paint_segment(ui, body, 0, "  ", "Targets", title);
-    paint_segment(
-        ui,
-        body,
-        0,
-        "  Targets                         ",
-        "Pipeline",
-        title,
-    );
-    if running {
-        paint_segment(
-            ui,
-            body,
-            0,
-            "  Targets                         ",
-            "Pipeline · running",
-            detail,
-        );
-    } else {
-        paint_segment(
-            ui,
-            body,
-            0,
-            "  Targets                         Pipeline    ",
-            "0 of 6 done",
-            meta,
-        );
-    }
-    for (row, text) in [
-        (2, "▾ payments-gateway"),
-        (3, "  ▾ build"),
-        (4, "      compile"),
-        (5, "      lint"),
-        (6, "      typecheck"),
-        (7, "  ▾ test"),
-        (8, "      unit"),
-        (9, "      integration"),
-        (10, "      e2e"),
-        (11, "  ▾ deploy"),
-        (12, "      staging"),
-        (13, "      production"),
-        (14, "▾ shared-libs"),
-        (15, "    compile"),
-        (16, "    publish"),
-    ] {
-        paint_segment(ui, body, row, "  ", "▎", rail);
-        paint_segment(ui, body, row, "  ▎", text, panel);
-        if let Some(marker) = text.find('▾') {
-            let prefix = format!("  ▎{}", &text[..marker]);
-            paint_segment(ui, body, row, &prefix, "▾", title);
-        }
-    }
+    paint_pipeline_heading(ui, body, running, [title, detail, meta]);
+    paint_targets(ui, body, [rail, panel, title]);
     for (row, prefix, text) in [
         (2, "  ▎▾ payments-gateway             ", "compile"),
         (3, "  ▎  ▾ build                      ", "lint"),
@@ -303,7 +206,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
                 y: body.y.saturating_add(row),
                 width: 2,
                 height: 1,
-                ..body
             },
             canvas,
         );
@@ -319,38 +221,25 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
         },
         primary,
     );
-    paint_segment(
-        ui,
-        body,
-        9,
-        "  ▎      integration              ",
-        "▎Run pipeline",
-        primary,
-    );
-    paint_segment(
-        ui,
-        body,
-        9,
-        "  ▎      integration              ",
-        "▎",
-        primary_gutter,
-    );
-    paint_segment(
-        ui,
-        body,
-        12,
-        "  ▎      staging                  ",
-        "Log",
-        title,
-    );
-    paint_segment(
-        ui,
-        body,
-        12,
-        "  ▎      staging                  Log         ",
-        "· following",
-        meta,
-    );
+    let segments: [(u16, &str, &str, PaintStyle); 4] = [
+        (
+            9,
+            "  ▎      integration              ",
+            "▎Run pipeline",
+            primary,
+        ),
+        (9, "  ▎      integration              ", "▎", primary_gutter),
+        (12, "  ▎      staging                  ", "Log", title),
+        (
+            12,
+            "  ▎      staging                  Log         ",
+            "· following",
+            meta,
+        ),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
     let ready = if running || message != "pipeline idle" {
         message
     } else {
@@ -544,5 +433,120 @@ impl Page for TaskRunnerPage {
                 let _ = ui.paint_str(body, "Enter confirms · Esc resumes", ui.surface_style());
             });
         });
+    }
+}
+
+fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
+    let [panel, title, detail, meta, primary, primary_gutter] = [
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::DETAIL,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::HELP,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::EMPTY,
+            Variant::DEFAULT,
+            junie_tui::Part::HELP,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::PRIMARY,
+            junie_tui::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::PRIMARY,
+            junie_tui::Part::GUTTER,
+            StateFlags::empty(),
+        ),
+    ]
+    .map(|(surface, family, variant, part, flags)| {
+        style(ui, surface, family, variant, part, flags)
+    });
+    [panel, title, detail, meta, primary, primary_gutter]
+}
+
+fn paint_targets(ui: &mut Ui<'_>, body: Rect, [rail, panel, title]: [PaintStyle; 3]) {
+    for (row, text) in [
+        (2, "▾ payments-gateway"),
+        (3, "  ▾ build"),
+        (4, "      compile"),
+        (5, "      lint"),
+        (6, "      typecheck"),
+        (7, "  ▾ test"),
+        (8, "      unit"),
+        (9, "      integration"),
+        (10, "      e2e"),
+        (11, "  ▾ deploy"),
+        (12, "      staging"),
+        (13, "      production"),
+        (14, "▾ shared-libs"),
+        (15, "    compile"),
+        (16, "    publish"),
+    ] {
+        let segments: [(u16, &str, &str, PaintStyle); 2] =
+            [(row, "  ", "▎", rail), (row, "  ▎", text, panel)];
+        for (row, prefix, text, style) in segments {
+            paint_segment(ui, body, row, prefix, text, style);
+        }
+        if let Some(marker) = text.find('▾') {
+            let prefix = format!("  ▎{}", &text[..marker]);
+            paint_segment(ui, body, row, &prefix, "▾", title);
+        }
+    }
+}
+
+fn paint_pipeline_heading(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    running: bool,
+    [title, detail, meta]: [PaintStyle; 3],
+) {
+    let segments: [(u16, &str, &str, PaintStyle); 2] = [
+        (0, "  ", "Targets", title),
+        (0, "  Targets                         ", "Pipeline", title),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+    if running {
+        paint_segment(
+            ui,
+            body,
+            0,
+            "  Targets                         ",
+            "Pipeline · running",
+            detail,
+        );
+    } else {
+        paint_segment(
+            ui,
+            body,
+            0,
+            "  Targets                         Pipeline    ",
+            "0 of 6 done",
+            meta,
+        );
     }
 }

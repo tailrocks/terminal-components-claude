@@ -108,7 +108,9 @@ fn item_row(item: &SidebarItem, row: &mut RowUi<'_>) {
     row.label(item.label);
 }
 
-fn sidebar(collapsed: bool) -> NavList<
+fn sidebar(
+    collapsed: bool,
+) -> NavList<
     'static,
     SidebarItem,
     impl Fn(&SidebarItem) -> ItemKey,
@@ -253,50 +255,56 @@ impl Page for SidebarsPage {
                 Panel::new(CONTENT_PANEL)
                     .title(self.selected)
                     .draw(ui, content, |ui, inner| {
-                        let text = [
-                            "One focus stop. ↑ ↓ move the cursor, Enter opens.",
-                            "",
-                            "›  current item · persists when focus leaves",
-                            "▎  keyboard cursor · only while focused",
-                            "░  hover · follows the pointer",
-                            "",
-                            "Disabled items are skipped and ignore the pointer.",
-                            "Collapsed mode keeps rows and markers, initials only.",
-                        ];
-                        lines(ui, inner, &text);
-                        if body.width < 70 {
-                            let visible = [
-                                "One focus stop. ↑ ↓ move",
-                                "the cursor, Enter opens.",
-                                "",
-                                "›  current item ·",
-                                "persists when focus",
-                                "leaves",
-                                "▎  keyboard cursor · only",
-                                "while focused",
-                                "░  hover · follows the",
-                                "pointer",
-                                "",
-                                "Disabled items are",
-                                "skipped and ignore the",
-                                "pointer.",
-                                "Collapsed mode keeps rows",
-                            ];
-                            for (offset, line) in visible.iter().enumerate() {
-                                let Ok(offset) = u16::try_from(offset) else {
-                                    break;
-                                };
-                                let row = Rect {
-                                    y: inner.y.saturating_add(offset),
-                                    height: 1,
-                                    ..inner
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, line, ui.surface_style());
-                            }
-                        }
+                        Self::draw_content(ui, inner, body.width);
                     });
             },
         );
+    }
+}
+
+impl SidebarsPage {
+    fn draw_content(ui: &mut Ui<'_>, inner: Rect, body_width: u16) {
+        let text = [
+            "One focus stop. ↑ ↓ move the cursor, Enter opens.",
+            "",
+            "›  current item · persists when focus leaves",
+            "▎  keyboard cursor · only while focused",
+            "░  hover · follows the pointer",
+            "",
+            "Disabled items are skipped and ignore the pointer.",
+            "Collapsed mode keeps rows and markers, initials only.",
+        ];
+        lines(ui, inner, &text);
+        if body_width < 70 {
+            let visible = [
+                "One focus stop. ↑ ↓ move",
+                "the cursor, Enter opens.",
+                "",
+                "›  current item ·",
+                "persists when focus",
+                "leaves",
+                "▎  keyboard cursor · only",
+                "while focused",
+                "░  hover · follows the",
+                "pointer",
+                "",
+                "Disabled items are",
+                "skipped and ignore the",
+                "pointer.",
+                "Collapsed mode keeps rows",
+            ];
+            for (offset, line) in visible.iter().enumerate() {
+                let Ok(offset) = u16::try_from(offset) else {
+                    break;
+                };
+                let row = Rect {
+                    y: inner.y.saturating_add(offset),
+                    height: 1,
+                    ..inner
+                };
+                ui.fill(row, ui.surface_style());
+                let _ = ui.paint_str(row, line, ui.surface_style());
+            }
+        }
     }
 }

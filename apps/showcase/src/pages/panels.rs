@@ -101,7 +101,7 @@ fn position_label(state: &ViewportState) -> String {
     let range = scroll.visible_range();
     format!(
         "{}–{} of {}",
-        range.start + 1,
+        range.start.saturating_add(1),
         range.end,
         scroll.content_len()
     )
@@ -125,21 +125,21 @@ fn columns(area: Rect, left_width: u16, gap: u16) -> (Rect, Rect) {
     )
 }
 
-fn fixed_rows(area: Rect, heights: &[u16]) -> Vec<Rect> {
+fn fixed_rows<const N: usize>(area: Rect, heights: &[u16; N]) -> [Rect; N] {
     let mut y = area.y;
-    let mut rows = Vec::with_capacity(heights.len());
-    for (index, height) in heights.iter().copied().enumerate() {
-        let height = if index + 1 == heights.len() {
+    let mut rows = [Rect::default(); N];
+    for (index, (row, height)) in rows.iter_mut().zip(heights.iter().copied()).enumerate() {
+        let height = if index.saturating_add(1) == heights.len() {
             area.bottom().saturating_sub(y)
         } else {
             height.min(area.bottom().saturating_sub(y))
         };
-        rows.push(Rect {
+        *row = Rect {
             x: area.x,
             y,
             width: area.width,
             height,
-        });
+        };
         y = y.saturating_add(height);
     }
     rows
@@ -441,7 +441,7 @@ impl Page for PanelsPage {
                 "Cards group; a frame only where a pane needs an edge; nothing boxed twice"
             },
             |ui, body| {
-                let (left, right) = columns(body, body.width / 2 - 1, 2);
+                let (left, right) = columns(body, (body.width / 2).saturating_sub(1), 2);
                 let left_rows = fixed_rows(left, &[7, 1, 6, 1, 7, 0]);
 
                 Panel::new(TITLED_CARD)
@@ -472,35 +472,7 @@ impl Page for PanelsPage {
                 Panel::new(NESTED_CARD)
                     .title("Nested")
                     .patch_part(PANEL_PARTS)
-                    .draw(ui, left_rows[4], |ui, body| {
-                        let _ = ui.paint_str(
-                            Rect {
-                                height: 1,
-                                ..body
-                            },
-                            "Target",
-                            panel_style(ui, FgStep::Muted),
-                        );
-                        let group = Rect {
-                            y: body.y.saturating_add(1),
-                            width: body.width.min(30),
-                            height: body.height.saturating_sub(1).min(3),
-                            ..body
-                        };
-                        nested_list().draw(ui, group, &self.nested, TARGETS);
-                        let note_x = group.right().saturating_add(2);
-                        if note_x.saturating_add(20) < body.right() {
-                            wrapped_muted(
-                                ui,
-                                Rect {
-                                    x: note_x,
-                                    width: body.right().saturating_sub(note_x),
-                                    ..body
-                                },
-                                "A group inside a card is a muted label plus indent. The focus bar stays on the control.",
-                            );
-                        }
-                    });
+                    .draw(ui, left_rows[4], |ui, body| self.draw_nested(ui, body));
                 let _ = ui.paint_str(
                     Rect {
                         x: left_rows[4].x,
@@ -560,5 +532,34 @@ impl Page for PanelsPage {
                 );
             },
         );
+    }
+}
+
+impl PanelsPage {
+    fn draw_nested(&self, ui: &mut Ui<'_>, body: Rect) {
+        let _ = ui.paint_str(
+            Rect { height: 1, ..body },
+            "Target",
+            panel_style(ui, FgStep::Muted),
+        );
+        let group = Rect {
+            y: body.y.saturating_add(1),
+            width: body.width.min(30),
+            height: body.height.saturating_sub(1).min(3),
+            ..body
+        };
+        nested_list().draw(ui, group, &self.nested, TARGETS);
+        let note_x = group.right().saturating_add(2);
+        if note_x.saturating_add(20) < body.right() {
+            wrapped_muted(
+                ui,
+                Rect {
+                    x: note_x,
+                    width: body.right().saturating_sub(note_x),
+                    ..body
+                },
+                "A group inside a card is a muted label plus indent. The focus bar stays on the control.",
+            );
+        }
     }
 }

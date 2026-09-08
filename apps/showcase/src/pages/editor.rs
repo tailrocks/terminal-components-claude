@@ -59,30 +59,34 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
     let bytes = src.as_bytes();
     let mut spans = Vec::new();
     let mut i = 0;
-    while i < bytes.len() {
+    while let Some(&byte) = bytes.get(i) {
         if !src.is_char_boundary(i) {
-            i += 1;
+            i = i.saturating_add(1);
             continue;
         }
-        let byte = bytes[i];
-        if byte == b'/' && bytes.get(i + 1) == Some(&b'/') {
-            let end = src[i..].find('\n').map_or(bytes.len(), |n| i + n);
+        if byte == b'/' && bytes.get(i.saturating_add(1)) == Some(&b'/') {
+            let end = src[i..]
+                .find('\n')
+                .map_or(bytes.len(), |n| i.saturating_add(n));
             spans.push((i..end, SyntaxRole::Comment));
             i = end;
             continue;
         }
         if byte == b'"' {
-            let end = src[i + 1..].find('"').map_or(bytes.len(), |n| i + n + 2);
+            let end = src[i.saturating_add(1)..]
+                .find('"')
+                .map_or(bytes.len(), |n| i.saturating_add(n).saturating_add(2));
             spans.push((i..end, SyntaxRole::Str));
             i = end;
             continue;
         }
         if byte.is_ascii_digit() {
             let mut end = i;
-            while end < bytes.len()
-                && (bytes[end].is_ascii_digit() || bytes[end] == b'_' || bytes[end] == b'.')
+            while bytes
+                .get(end)
+                .is_some_and(|byte| byte.is_ascii_digit() || *byte == b'_' || *byte == b'.')
             {
-                end += 1;
+                end = end.saturating_add(1);
             }
             spans.push((i..end, SyntaxRole::Number));
             i = end;
@@ -90,8 +94,11 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
         }
         if byte.is_ascii_alphabetic() || byte == b'_' {
             let mut end = i;
-            while end < bytes.len() && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_') {
-                end += 1;
+            while bytes
+                .get(end)
+                .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+            {
+                end = end.saturating_add(1);
             }
             let word = &src[i..end];
             let next = bytes.get(end).copied();
@@ -113,12 +120,12 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
             b'=' | b'+' | b'-' | b'*' | b'/' | b'<' | b'>' | b'!' | b'&' | b'|' | b':' | b'?'
             | b'.' => SyntaxRole::Operator,
             _ => {
-                i += 1;
+                i = i.saturating_add(1);
                 continue;
             }
         };
-        spans.push((i..i + 1, role));
-        i += 1;
+        spans.push((i..i.saturating_add(1), role));
+        i = i.saturating_add(1);
     }
     spans
 }
@@ -127,7 +134,7 @@ fn blocks(src: &str) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     let mut start = None;
     let mut end = 0;
-    let mut offset = 0;
+    let mut offset = 0_usize;
     for line in src.split_inclusive('\n') {
         if line.trim().is_empty() {
             if let Some(start) = start.take() {
@@ -137,9 +144,9 @@ fn blocks(src: &str) -> Vec<Range<usize>> {
             if start.is_none() {
                 start = Some(offset);
             }
-            end = offset + line.trim_end_matches('\n').len();
+            end = offset.saturating_add(line.trim_end_matches('\n').len());
         }
-        offset += line.len();
+        offset = offset.saturating_add(line.len());
     }
     if let Some(start) = start {
         out.push(start..end);
@@ -252,66 +259,7 @@ impl Page for EditorPage {
                 Panel::new(EDITOR_PANEL)
                     .title("retry.rs")
                     .meta(&format!("{blocks_meta} "))
-                    .draw(ui, code_area, |ui, inner| {
-                        editor().draw(ui, inner, &self.state);
-                        let gutter = ui.with_surface(Surface::Surface, |ui| {
-                            ui.style(
-                                junie_tui::Family::CODE,
-                                Variant::DEFAULT,
-                                Part::GUTTER,
-                                StateFlags::FOCUSED,
-                            )
-                            .style
-                        });
-                        let marker = ui.with_surface(Surface::Surface, |ui| {
-                            ui.style(
-                                junie_tui::Family::CODE,
-                                Variant::DEFAULT,
-                                Part::MARKER,
-                                StateFlags::ACTIVE,
-                            )
-                            .style
-                        });
-                        ui.paint_str(
-                            Rect {
-                                x: inner.x,
-                                y: inner.y,
-                                width: 1,
-                                height: 1,
-                            },
-                            "▎",
-                            gutter,
-                        );
-                        ui.paint_str(
-                            Rect {
-                                x: inner.x.saturating_add(1),
-                                y: inner.y,
-                                width: 1,
-                                height: 1,
-                            },
-                            "›",
-                            marker,
-                        );
-                        let footer = ui.with_surface(Surface::Surface, |ui| {
-                            ui.style(
-                                junie_tui::Family::CODE,
-                                Variant::DEFAULT,
-                                Part::META,
-                                StateFlags::empty(),
-                            )
-                            .style
-                        });
-                        ui.paint_str(
-                            Rect {
-                                x: inner.right().saturating_sub(10),
-                                y: inner.y.saturating_add(5),
-                                width: 10,
-                                height: 1,
-                            },
-                            "1–5 of 26",
-                            footer,
-                        );
-                    });
+                    .draw(ui, code_area, |ui, inner| self.draw_code(ui, inner));
 
                 let block = editor()
                     .current_block(&self.state)
@@ -323,7 +271,7 @@ impl Page for EditorPage {
                     })
                     .map_or_else(
                         || "between blocks".to_owned(),
-                        |index| format!("{} of {blocks}", index + 1),
+                        |index| format!("{} of {blocks}", index.saturating_add(1)),
                     );
                 let rows = [
                     (
@@ -362,5 +310,90 @@ impl Page for EditorPage {
                     });
             },
         );
+    }
+}
+
+impl EditorPage {
+    fn draw_code(&self, ui: &mut Ui<'_>, inner: Rect) {
+        editor().draw(ui, inner, &self.state);
+        let gutter = ui.with_surface(Surface::Surface, |ui| {
+            ui.style(
+                junie_tui::Family::CODE,
+                Variant::DEFAULT,
+                Part::GUTTER,
+                StateFlags::FOCUSED,
+            )
+            .style
+        });
+        let marker = ui.with_surface(Surface::Surface, |ui| {
+            ui.style(
+                junie_tui::Family::CODE,
+                Variant::DEFAULT,
+                Part::MARKER,
+                StateFlags::ACTIVE,
+            )
+            .style
+        });
+        ui.paint_str(
+            Rect {
+                x: inner.x,
+                y: inner.y,
+                width: 1,
+                height: 1,
+            },
+            "▎",
+            gutter,
+        );
+        ui.paint_str(
+            Rect {
+                x: inner.x.saturating_add(1),
+                y: inner.y,
+                width: 1,
+                height: 1,
+            },
+            "›",
+            marker,
+        );
+        let footer = ui.with_surface(Surface::Surface, |ui| {
+            ui.style(
+                junie_tui::Family::CODE,
+                Variant::DEFAULT,
+                Part::META,
+                StateFlags::empty(),
+            )
+            .style
+        });
+        ui.paint_str(
+            Rect {
+                x: inner.right().saturating_sub(10),
+                y: inner.y.saturating_add(5),
+                width: 10,
+                height: 1,
+            },
+            "1–5 of 26",
+            footer,
+        );
+    }
+}
+
+#[cfg(test)]
+mod lexer_tests {
+    use super::*;
+
+    #[test]
+    fn highlight_keeps_utf8_boundaries_and_token_roles() {
+        let source = "é 12_000.5 λ \"hi💚\" // café\nlet retry()";
+        let spans = highlight(source);
+        let tokens: Vec<_> = spans
+            .iter()
+            .map(|(range, role)| (source.get(range.clone()), *role))
+            .collect();
+        assert!(tokens.iter().all(|(text, _)| text.is_some()));
+        assert!(tokens.contains(&(Some("12_000.5"), SyntaxRole::Number)));
+        assert!(tokens.contains(&(Some("\"hi💚\""), SyntaxRole::Str)));
+        assert!(tokens.contains(&(Some("// café"), SyntaxRole::Comment)));
+        assert!(tokens.contains(&(Some("let"), SyntaxRole::Keyword)));
+        assert!(tokens.contains(&(Some("retry"), SyntaxRole::Function)));
+        assert!(highlight("").is_empty());
     }
 }

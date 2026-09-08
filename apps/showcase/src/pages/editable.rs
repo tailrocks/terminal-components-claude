@@ -1,14 +1,14 @@
 //! Editable task rows: keyed selection, commit/cancel and field validation.
 
 use junie_tui::{
-    id, Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
+    Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
     GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Response, Role,
-    RowDecor, RowTotal, StylePatch, Ui,
+    RowDecor, RowTotal, StylePatch, Ui, id,
 };
 
-use crate::data::{TaskRow, TaskStatus, TASKS};
+use crate::data::{TASKS, TaskRow, TaskStatus};
 
-use super::{frame, Page};
+use super::{Page, frame};
 
 const TABLE: Id = id!("editable.table");
 const TASKS_PANEL: Id = id!("editable.tasks.panel");
@@ -338,11 +338,7 @@ fn legacy_table(ui: &mut Ui<'_>, area: Rect, width: u16, model: &EditableModel) 
         .max(1);
     for (offset, row) in model.rows.iter().take(visible).enumerate() {
         let track = if width < 70 {
-            if offset < thumb {
-                "┃"
-            } else {
-                "│"
-            }
+            if offset < thumb { "┃" } else { "│" }
         } else {
             ""
         };
@@ -432,14 +428,14 @@ impl GridEditor for EditableModel {
             5 if text.parse::<u32>().is_err() => {
                 return Err(FieldError::new("Changes must be a whole number"));
             }
-            0 => item.name = text.to_owned(),
-            2 => item.owner = text.to_owned(),
+            0 => text.clone_into(&mut item.name),
+            2 => text.clone_into(&mut item.owner),
             4 => {
-                item.branch = text.to_owned();
-                item.branch_display = text.to_owned();
+                text.clone_into(&mut item.branch);
+                text.clone_into(&mut item.branch_display);
                 item.branch_error = false;
             }
-            5 => item.changes = text.to_owned(),
+            5 => text.clone_into(&mut item.changes),
             _ => return Err(FieldError::new("Cell is read-only")),
         }
         Ok(())
@@ -502,11 +498,13 @@ impl Page for EditablePage {
             "Navigation is reversed cell; editing is a cursor. They never look alike."
         };
         frame(ui, area, self.title(), blurb, |ui, body| {
-            let card_height = (self.model.rows.len() as u16 + 4).min(body.height.saturating_sub(4));
-            let task_meta = self.state.edit_error().map_or_else(
-                || format!("{} edits", self.edits),
-                |error| error.to_string(),
-            );
+            let card_height = (self.model.rows.len() as u16)
+                .saturating_add(4)
+                .min(body.height.saturating_sub(4));
+            let task_meta = self
+                .state
+                .edit_error()
+                .map_or_else(|| format!("{} edits", self.edits), ToString::to_string);
             Panel::new(TASKS_PANEL)
                 .title("Tasks")
                 .meta(&task_meta)

@@ -320,88 +320,7 @@ impl Page for FormsPage {
                     let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
                     let left = columns.first().copied().unwrap_or(inner);
                     let right = columns.get(1).copied().unwrap_or(inner);
-                    let _ = ui.paint_str(Rect { height: 1, ..left }, "Task", ui.surface_style());
-                    let summary_error =
-                        (self.error == Some("Required: summary")).then_some("Required: summary");
-                    let task = Rect {
-                        y: left.y.saturating_add(1),
-                        height: if summary_error.is_some() { 3 } else { 2 },
-                        ..left
-                    };
-                    task_name_field(&self.summary, summary_error).draw(
-                        ui,
-                        task,
-                        &self.summary_state,
-                    );
-                    if self.summary.is_empty() {
-                        legacy_input_placeholder(ui, task, "Short imperative summary");
-                    }
-                    legacy_gutter(
-                        ui,
-                        Rect {
-                            y: task.y.saturating_add(1),
-                            height: 1,
-                            ..task
-                        },
-                        Family::FIELD,
-                        Variant::DEFAULT,
-                        Part::FIELD,
-                        StateFlags::empty(),
-                    );
-                    let description = Rect {
-                        y: left.y.saturating_add(4),
-                        height: 6,
-                        ..left
-                    };
-                    description_field().draw(ui, description, &self.details_state);
-                    legacy_placeholder(
-                        ui,
-                        description,
-                        "What should Junie do, and what does done look like?",
-                    );
-                    legacy_gutter(
-                        ui,
-                        Rect {
-                            y: description.y.saturating_add(1),
-                            height: 4,
-                            ..description
-                        },
-                        Family::FIELD,
-                        Variant::DEFAULT,
-                        Part::FIELD,
-                        StateFlags::empty(),
-                    );
-                    let review_y = left.y.saturating_add(11);
-                    let _ = ui.paint_str(
-                        Rect {
-                            y: review_y,
-                            height: 1,
-                            ..left
-                        },
-                        "Review",
-                        ui.surface_style(),
-                    );
-                    let reviewer = Rect {
-                        y: review_y.saturating_add(1),
-                        height: 3,
-                        ..left
-                    };
-                    ui.reference(None, |ui| {
-                        reviewer_field().draw(ui, reviewer, &TextInputState::default());
-                        legacy_gutter(
-                            ui,
-                            Rect {
-                                y: reviewer.y.saturating_add(1),
-                                height: 1,
-                                ..reviewer
-                            },
-                            Family::FIELD,
-                            Variant::DEFAULT,
-                            Part::FIELD,
-                            StateFlags::empty(),
-                        );
-                    });
-
+                    self.draw_task_fields(ui, left);
                     let _ =
                         ui.paint_str(Rect { height: 1, ..right }, "Options", ui.surface_style());
                     let _ = ui.paint_str(
@@ -410,7 +329,6 @@ impl Page for FormsPage {
                             width: right.width.saturating_sub(2),
                             y: right.y.saturating_add(1),
                             height: 1,
-                            ..right
                         },
                         "Mode",
                         ui.surface_style(),
@@ -429,8 +347,11 @@ impl Page for FormsPage {
                                 height: 1,
                                 ..mode_area
                             };
-                            let flags =
-                                selected.then_some(StateFlags::SELECTED).unwrap_or_default();
+                            let flags = if selected {
+                                StateFlags::SELECTED
+                            } else {
+                                StateFlags::default()
+                            };
                             legacy_gutter(
                                 ui,
                                 row,
@@ -441,160 +362,11 @@ impl Page for FormsPage {
                             );
                             legacy_marker(ui, row, flags, if selected { "(●)" } else { "( )" });
                         }
-                        let run_tests = Rect {
-                            y: right.y.saturating_add(6),
-                            height: 1,
-                            ..right
-                        };
-                        Checkbox::new(RUN_TESTS, "Run tests before opening a PR")
-                            .checked(true)
-                            .draw(ui, run_tests);
-                        legacy_choice_label(
-                            ui,
-                            run_tests,
-                            StateFlags::CHECKED | StateFlags::SELECTED,
-                            "Run tests before opening a PR",
-                        );
-                        legacy_gutter(
-                            ui,
-                            run_tests,
-                            Family::CHOICE,
-                            Variant::DEFAULT,
-                            Part::CONTAINER,
-                            StateFlags::CHECKED | StateFlags::SELECTED,
-                        );
-                        let open_pr = Rect {
-                            y: right.y.saturating_add(7),
-                            height: 1,
-                            ..right
-                        };
-                        Checkbox::new(OPEN_PR, "Open a pull request when done").draw(ui, open_pr);
-                        legacy_choice_label(
-                            ui,
-                            open_pr,
-                            StateFlags::empty(),
-                            "Open a pull request when done",
-                        );
-                        legacy_gutter(
-                            ui,
-                            open_pr,
-                            Family::CHOICE,
-                            Variant::DEFAULT,
-                            Part::CONTAINER,
-                            StateFlags::empty(),
-                        );
-                        let auto_approve = Rect {
-                            y: right.y.saturating_add(9),
-                            height: 1,
-                            ..right
-                        };
-                        Toggle::new(AUTO_APPROVE, "Auto-approve changes")
-                            .on(false)
-                            .draw(ui, auto_approve);
-                        legacy_gutter(
-                            ui,
-                            auto_approve,
-                            Family::CHOICE,
-                            Variant::DEFAULT,
-                            Part::CONTAINER,
-                            StateFlags::empty(),
-                        );
-                        legacy_marker(ui, auto_approve, StateFlags::empty(), "○──");
-                        let notify = Rect {
-                            y: right.y.saturating_add(10),
-                            height: 1,
-                            ..right
-                        };
-                        Toggle::new(NOTIFY, "Notify on completion")
-                            .on(true)
-                            .disabled(true)
-                            .draw(ui, notify);
-                        legacy_gutter(
-                            ui,
-                            notify,
-                            Family::CHOICE,
-                            Variant::DEFAULT,
-                            Part::CONTAINER,
-                            StateFlags::CHECKED | StateFlags::SELECTED | StateFlags::DISABLED,
-                        );
-                        legacy_marker(
-                            ui,
-                            notify,
-                            StateFlags::CHECKED | StateFlags::SELECTED | StateFlags::DISABLED,
-                            "──●",
-                        );
-                        let _ = ui.paint_str(
-                            Rect {
-                                y: right.y.saturating_add(11),
-                                height: 1,
-                                width: right.width.saturating_add(1),
-                                ..right
-                            },
-                            "  Managed by your organization",
-                            ui.surface_style(),
-                        );
+                        Self::draw_test_options(ui, right);
+                        Self::draw_notification_options(ui, right);
                     });
 
-                    let action_area = Rect {
-                        y: inner.bottom().saturating_sub(1),
-                        height: 1,
-                        ..inner
-                    };
-                    let create = Button::new(SAVE, "Create task").variant(Variant::PRIMARY);
-                    let reset = Button::new(RESET, "Reset").variant(Variant::SUBTLE);
-                    let widths = [
-                        create
-                            .measure(ui, Constraints::loose(action_area.width, 1))
-                            .preferred
-                            .0,
-                        reset
-                            .measure(ui, Constraints::loose(action_area.width, 1))
-                            .preferred
-                            .0,
-                    ];
-                    let rects = layout::action_row(action_area, &widths, 2, RowAlign::Start);
-                    let create_area = rects.first().copied().unwrap_or(action_area);
-                    create.draw(ui, create_area);
-                    legacy_gutter(
-                        ui,
-                        create_area,
-                        Family::BUTTON,
-                        Variant::PRIMARY,
-                        Part::CONTAINER,
-                        StateFlags::empty(),
-                    );
-                    let reset_area = rects.get(1).copied().unwrap_or(action_area);
-                    ui.reference(None, |ui| {
-                        reset.draw(ui, reset_area);
-                        legacy_gutter(
-                            ui,
-                            reset_area,
-                            Family::BUTTON,
-                            Variant::SUBTLE,
-                            Part::CONTAINER,
-                            StateFlags::empty(),
-                        );
-                    });
-                    let status = self
-                        .error
-                        .map(|_| "Fix the highlighted fields")
-                        .or(self.submitted.then_some("Creating task…"));
-                    if let Some(status) = status {
-                        let x = reset_area.right().saturating_add(3);
-                        let width = action_area.right().saturating_sub(x);
-                        if width > 0 {
-                            let _ = ui.paint_str(
-                                Rect {
-                                    x,
-                                    y: action_area.y,
-                                    width,
-                                    height: 1,
-                                },
-                                status,
-                                ui.surface_style(),
-                            );
-                        }
-                    }
+                    self.draw_actions(ui, inner);
                 });
                 if body.width < 70
                     && !panel_inner.is_empty()
@@ -616,5 +388,254 @@ impl Page for FormsPage {
                 }
             },
         );
+    }
+}
+
+impl FormsPage {
+    fn draw_task_fields(&self, ui: &mut Ui<'_>, left: Rect) {
+        let _ = ui.paint_str(Rect { height: 1, ..left }, "Task", ui.surface_style());
+        let summary_error =
+            (self.error == Some("Required: summary")).then_some("Required: summary");
+        let task = Rect {
+            y: left.y.saturating_add(1),
+            height: if summary_error.is_some() { 3 } else { 2 },
+            ..left
+        };
+        task_name_field(&self.summary, summary_error).draw(ui, task, &self.summary_state);
+        if self.summary.is_empty() {
+            legacy_input_placeholder(ui, task, "Short imperative summary");
+        }
+        legacy_gutter(
+            ui,
+            Rect {
+                y: task.y.saturating_add(1),
+                height: 1,
+                ..task
+            },
+            Family::FIELD,
+            Variant::DEFAULT,
+            Part::FIELD,
+            StateFlags::empty(),
+        );
+        let description = Rect {
+            y: left.y.saturating_add(4),
+            height: 6,
+            ..left
+        };
+        description_field().draw(ui, description, &self.details_state);
+        legacy_placeholder(
+            ui,
+            description,
+            "What should Junie do, and what does done look like?",
+        );
+        legacy_gutter(
+            ui,
+            Rect {
+                y: description.y.saturating_add(1),
+                height: 4,
+                ..description
+            },
+            Family::FIELD,
+            Variant::DEFAULT,
+            Part::FIELD,
+            StateFlags::empty(),
+        );
+        let review_y = left.y.saturating_add(11);
+        let _ = ui.paint_str(
+            Rect {
+                y: review_y,
+                height: 1,
+                ..left
+            },
+            "Review",
+            ui.surface_style(),
+        );
+        let reviewer = Rect {
+            y: review_y.saturating_add(1),
+            height: 3,
+            ..left
+        };
+        ui.reference(None, |ui| {
+            reviewer_field().draw(ui, reviewer, &TextInputState::default());
+            legacy_gutter(
+                ui,
+                Rect {
+                    y: reviewer.y.saturating_add(1),
+                    height: 1,
+                    ..reviewer
+                },
+                Family::FIELD,
+                Variant::DEFAULT,
+                Part::FIELD,
+                StateFlags::empty(),
+            );
+        });
+    }
+}
+
+impl FormsPage {
+    fn draw_test_options(ui: &mut Ui<'_>, right: Rect) {
+        let run_tests = Rect {
+            y: right.y.saturating_add(6),
+            height: 1,
+            ..right
+        };
+        Checkbox::new(RUN_TESTS, "Run tests before opening a PR")
+            .checked(true)
+            .draw(ui, run_tests);
+        legacy_choice_label(
+            ui,
+            run_tests,
+            StateFlags::CHECKED | StateFlags::SELECTED,
+            "Run tests before opening a PR",
+        );
+        legacy_gutter(
+            ui,
+            run_tests,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::CHECKED | StateFlags::SELECTED,
+        );
+        let open_pr = Rect {
+            y: right.y.saturating_add(7),
+            height: 1,
+            ..right
+        };
+        Checkbox::new(OPEN_PR, "Open a pull request when done").draw(ui, open_pr);
+        legacy_choice_label(
+            ui,
+            open_pr,
+            StateFlags::empty(),
+            "Open a pull request when done",
+        );
+        legacy_gutter(
+            ui,
+            open_pr,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        );
+    }
+}
+
+impl FormsPage {
+    fn draw_notification_options(ui: &mut Ui<'_>, right: Rect) {
+        let auto_approve = Rect {
+            y: right.y.saturating_add(9),
+            height: 1,
+            ..right
+        };
+        Toggle::new(AUTO_APPROVE, "Auto-approve changes")
+            .on(false)
+            .draw(ui, auto_approve);
+        legacy_gutter(
+            ui,
+            auto_approve,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        );
+        legacy_marker(ui, auto_approve, StateFlags::empty(), "○──");
+        let notify = Rect {
+            y: right.y.saturating_add(10),
+            height: 1,
+            ..right
+        };
+        Toggle::new(NOTIFY, "Notify on completion")
+            .on(true)
+            .disabled(true)
+            .draw(ui, notify);
+        legacy_gutter(
+            ui,
+            notify,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::CHECKED | StateFlags::SELECTED | StateFlags::DISABLED,
+        );
+        legacy_marker(
+            ui,
+            notify,
+            StateFlags::CHECKED | StateFlags::SELECTED | StateFlags::DISABLED,
+            "──●",
+        );
+        let _ = ui.paint_str(
+            Rect {
+                y: right.y.saturating_add(11),
+                height: 1,
+                width: right.width.saturating_add(1),
+                ..right
+            },
+            "  Managed by your organization",
+            ui.surface_style(),
+        );
+    }
+}
+
+impl FormsPage {
+    fn draw_actions(&self, ui: &mut Ui<'_>, inner: Rect) {
+        let action_area = Rect {
+            y: inner.bottom().saturating_sub(1),
+            height: 1,
+            ..inner
+        };
+        let create = Button::new(SAVE, "Create task").variant(Variant::PRIMARY);
+        let reset = Button::new(RESET, "Reset").variant(Variant::SUBTLE);
+        let widths = [
+            create
+                .measure(ui, Constraints::loose(action_area.width, 1))
+                .preferred
+                .0,
+            reset
+                .measure(ui, Constraints::loose(action_area.width, 1))
+                .preferred
+                .0,
+        ];
+        let rects = layout::action_row(action_area, &widths, 2, RowAlign::Start);
+        let create_area = rects.first().copied().unwrap_or(action_area);
+        create.draw(ui, create_area);
+        legacy_gutter(
+            ui,
+            create_area,
+            Family::BUTTON,
+            Variant::PRIMARY,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        );
+        let reset_area = rects.get(1).copied().unwrap_or(action_area);
+        ui.reference(None, |ui| {
+            reset.draw(ui, reset_area);
+            legacy_gutter(
+                ui,
+                reset_area,
+                Family::BUTTON,
+                Variant::SUBTLE,
+                Part::CONTAINER,
+                StateFlags::empty(),
+            );
+        });
+        let status = self
+            .error
+            .map(|_| "Fix the highlighted fields")
+            .or(self.submitted.then_some("Creating task…"));
+        if let Some(status) = status {
+            let x = reset_area.right().saturating_add(3);
+            let width = action_area.right().saturating_sub(x);
+            if width > 0 {
+                let _ = ui.paint_str(
+                    Rect {
+                        x,
+                        y: action_area.y,
+                        width,
+                        height: 1,
+                    },
+                    status,
+                    ui.surface_style(),
+                );
+            }
+        }
     }
 }

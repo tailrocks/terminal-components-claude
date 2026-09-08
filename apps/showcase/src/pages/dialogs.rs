@@ -74,7 +74,7 @@ impl DialogsPage {
         .patch_part(DIALOG_PARTS)
     }
 
-    fn prompt<'a>(error: Option<&'a str>) -> Dialog<'a> {
+    fn prompt(error: Option<&str>) -> Dialog<'_> {
         Dialog::prompt(PROMPT, "Rename task", "Task name")
             .error(error)
             .patch_part(DIALOG_PARTS)

@@ -178,121 +178,19 @@ fn paint_segment(
 }
 
 fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab: bool) {
-    let panel = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let title = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let detail = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let muted = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let field = style(
-        ui,
-        Surface::Field,
-        junie_tui::Family::FIELD,
-        Part::FIELD,
-        StateFlags::empty(),
-    );
-    let field_marker = ui.with_surface(Surface::Field, |ui| {
-        ui.surface_style().with_fg_from_bg(ui.surface_style())
-    });
-    let rail = ui.with_surface(Surface::Surface, |ui| {
-        ui.surface_style().with_fg_from_bg(ui.surface_style())
-    });
-    let selected = ui.with_surface(Surface::Elevated, |ui| {
-        let mut selected = ui
-            .style(
-                junie_tui::Family::TABS,
-                Variant::DEFAULT,
-                Part::TAB,
-                StateFlags::ACTIVE,
-            )
-            .style;
-        selected = selected.with_bg_from(ui.surface_style());
-        selected
-    });
-    let tab = ui.with_surface(Surface::Canvas, |ui| {
-        let mut tab = ui
-            .style(
-                junie_tui::Family::TABS,
-                Variant::DEFAULT,
-                Part::TAB,
-                StateFlags::empty(),
-            )
-            .style;
-        tab = tab.with_bg_from(ui.surface_style());
-        tab
-    });
-    let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
-    let rule = style(
-        ui,
-        Surface::Canvas,
-        junie_tui::Family::PANEL,
-        Part::RULE,
-        StateFlags::empty(),
-    );
-    let active_rule = style(
-        ui,
-        Surface::Canvas,
-        junie_tui::Family::TABS,
-        Part::RULE,
-        StateFlags::ACTIVE,
-    );
-    let mut rule = rule;
-    rule = rule.with_bg_from(canvas);
-    let mut active_rule = active_rule;
-    active_rule = active_rule.with_bg_from(canvas);
-    let radio_on = style(
-        ui,
-        Surface::Field,
-        junie_tui::Family::CHOICE,
-        Part::MARKER,
-        StateFlags::CHECKED | StateFlags::SELECTED,
-    );
-    let primary_button = ui.with_surface(Surface::Surface, |ui| {
-        ui.style(
-            junie_tui::Family::BUTTON,
-            Variant::PRIMARY,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        )
-        .style
-    });
-    let primary_gutter = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Part::GUTTER,
-        StateFlags::empty(),
-    );
-    let meta = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::EMPTY,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-
+    let palette = HistoricalPalette::new(ui);
+    let &HistoricalPalette {
+        panel,
+        title,
+        detail,
+        selected,
+        tab,
+        canvas,
+        primary_button,
+        primary_gutter,
+        meta,
+        ..
+    } = &palette;
     let tabs_row = Rect {
         y: body.y,
         height: 1,
@@ -315,9 +213,14 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
     );
 
     if member_tab {
-        paint_segment(ui, body, 0, " ", "General", tab);
-        paint_segment(ui, body, 0, " General    ", "Members", selected);
-        paint_segment(ui, body, 0, " General    Members    ", "Environment", tab);
+        let segments: [(u16, &str, &str, PaintStyle); 3] = [
+            (0, " ", "General", tab),
+            (0, " General    ", "Members", selected),
+            (0, " General    Members    ", "Environment", tab),
+        ];
+        for (row, prefix, text, style) in segments {
+            paint_segment(ui, body, row, prefix, text, style);
+        }
         let heading = format!(
             "Members                                      {} members",
             members.len()
@@ -328,144 +231,19 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
                 "  ▎{}                         {}",
                 member.name, member.email
             );
-            paint_segment(ui, body, 5 + row as u16, "", &text, panel);
+            paint_segment(ui, body, 5_u16.saturating_add(row as u16), "", &text, panel);
         }
-        paint_segment(ui, body, 16, "  ", "Invite member", primary_button);
-        paint_segment(ui, body, 16, "  ▎Invite member   ", "Remove member", detail);
+        let segments: [(u16, &str, &str, PaintStyle); 2] = [
+            (16, "  ", "Invite member", primary_button),
+            (16, "  ▎Invite member   ", "Remove member", detail),
+        ];
+        for (row, prefix, text, style) in segments {
+            paint_segment(ui, body, row, prefix, text, style);
+        }
         return;
     }
 
-    paint_segment(ui, body, 0, " ", "General", selected);
-    paint_segment(ui, body, 0, " General    ", "Members    Environment", tab);
-    paint_segment(ui, body, 1, "", "━━━━━━━━━━", active_rule);
-    paint_segment(
-        ui,
-        body,
-        1,
-        "━━━━━━━━━━",
-        "─────────────────────────────────────────────────",
-        rule,
-    );
-    paint_segment(ui, body, 3, "  ", "General", detail);
-    paint_segment(ui, body, 5, "    ", "Project name *", detail);
-    paint_segment(ui, body, 5, "    Project name ", "*", radio_on);
-    paint_segment(
-        ui,
-        body,
-        5,
-        "    Project name *               ",
-        "Visibility",
-        detail,
-    );
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(width("  ")),
-            y: body.y.saturating_add(6),
-            width: width("▎ payments-gateway       "),
-            height: 1,
-        },
-        field,
-    );
-    paint_segment(ui, body, 6, "  ", "▎", field_marker);
-    paint_segment(ui, body, 6, "  ▎", " payments-gateway", field);
-    paint_segment(
-        ui,
-        body,
-        6,
-        "  ▎ payments-gateway           ▎",
-        "(●)",
-        radio_on,
-    );
-    paint_segment(ui, body, 6, "                               ", "▎", rail);
-    paint_segment(
-        ui,
-        body,
-        6,
-        "  ▎ payments-gateway           ▎(●) ",
-        "Private",
-        panel,
-    );
-    paint_segment(
-        ui,
-        body,
-        7,
-        "                               ▎( ) ",
-        "Internal",
-        panel,
-    );
-    paint_segment(ui, body, 7, "                               ", "▎", rail);
-    paint_segment(
-        ui,
-        body,
-        7,
-        "                               ▎",
-        "( )",
-        muted,
-    );
-    paint_segment(ui, body, 8, "    ", "Description", detail);
-    paint_segment(
-        ui,
-        body,
-        8,
-        "    Description                ▎( ) ",
-        "Public",
-        panel,
-    );
-    paint_segment(ui, body, 8, "                               ", "▎", rail);
-    paint_segment(
-        ui,
-        body,
-        8,
-        "                               ▎",
-        "( )",
-        muted,
-    );
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(width("  ")),
-            y: body.y.saturating_add(9),
-            width: width("▎ Handles checkout, in…"),
-            height: 1,
-        },
-        field,
-    );
-    paint_segment(ui, body, 9, "  ", "▎", field_marker);
-    paint_segment(ui, body, 9, "  ▎", " Handles checkout, in…", field);
-    paint_segment(
-        ui,
-        body,
-        10,
-        "  ▎                            ▎",
-        "○──",
-        muted,
-    );
-    paint_segment(ui, body, 10, "  ", "▎", field_marker);
-    paint_segment(ui, body, 10, "                               ", "▎", rail);
-    paint_segment(
-        ui,
-        body,
-        10,
-        "  ▎                            ▎○── ",
-        "Auto-merge approved PRs",
-        panel,
-    );
-    paint_segment(
-        ui,
-        body,
-        11,
-        "  ▎                            ▎──● ",
-        "Protect main branch",
-        panel,
-    );
-    paint_segment(ui, body, 11, "                               ", "▎", rail);
-    paint_segment(
-        ui,
-        body,
-        11,
-        "                               ▎",
-        "──●",
-        radio_on,
-    );
+    paint_general_fields(ui, body, &palette);
     ui.fill(
         Rect {
             x: body.x.saturating_add(width("  ")),
@@ -475,9 +253,14 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
         },
         primary_button,
     );
-    paint_segment(ui, body, 16, "  ", "▎", primary_gutter);
-    paint_segment(ui, body, 16, "  ▎", "Save changes", primary_button);
-    paint_segment(ui, body, 16, "  ▎Save changes   ", "No changes", meta);
+    let segments: [(u16, &str, &str, PaintStyle); 3] = [
+        (16, "  ", "▎", primary_gutter),
+        (16, "  ▎", "Save changes", primary_button),
+        (16, "  ▎Save changes   ", "No changes", meta),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
 }
 
 /// Member records are app state; tabs, list cursor and modal draft are
@@ -656,4 +439,211 @@ impl Page for SettingsPage {
             });
         });
     }
+}
+
+struct HistoricalPalette {
+    panel: PaintStyle,
+    title: PaintStyle,
+    detail: PaintStyle,
+    muted: PaintStyle,
+    field: PaintStyle,
+    field_marker: PaintStyle,
+    rail: PaintStyle,
+    selected: PaintStyle,
+    tab: PaintStyle,
+    canvas: PaintStyle,
+    rule: PaintStyle,
+    active_rule: PaintStyle,
+    radio_on: PaintStyle,
+    primary_button: PaintStyle,
+    primary_gutter: PaintStyle,
+    meta: PaintStyle,
+}
+impl HistoricalPalette {
+    fn new(ui: &mut Ui<'_>) -> Self {
+        let [panel, title, detail, muted, field] = [
+            (Surface::Surface, junie_tui::Family::PANEL, Part::CONTAINER),
+            (Surface::Surface, junie_tui::Family::PANEL, Part::DETAIL),
+            (Surface::Surface, junie_tui::Family::PANEL, Part::DETAIL),
+            (Surface::Surface, junie_tui::Family::PANEL, Part::HELP),
+            (Surface::Field, junie_tui::Family::FIELD, Part::FIELD),
+        ]
+        .map(|(surface, family, part)| style(ui, surface, family, part, StateFlags::empty()));
+        let field_marker = ui.with_surface(Surface::Field, |ui| {
+            ui.surface_style().with_fg_from_bg(ui.surface_style())
+        });
+        let rail = ui.with_surface(Surface::Surface, |ui| {
+            ui.surface_style().with_fg_from_bg(ui.surface_style())
+        });
+        let selected = tab_style(ui, Surface::Elevated, StateFlags::ACTIVE);
+        let tab = tab_style(ui, Surface::Canvas, StateFlags::empty());
+        let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
+        let rule = style(
+            ui,
+            Surface::Canvas,
+            junie_tui::Family::PANEL,
+            Part::RULE,
+            StateFlags::empty(),
+        );
+        let active_rule = style(
+            ui,
+            Surface::Canvas,
+            junie_tui::Family::TABS,
+            Part::RULE,
+            StateFlags::ACTIVE,
+        );
+        let rule = rule.with_bg_from(canvas);
+        let active_rule = active_rule.with_bg_from(canvas);
+        let radio_on = style(
+            ui,
+            Surface::Field,
+            junie_tui::Family::CHOICE,
+            Part::MARKER,
+            StateFlags::CHECKED | StateFlags::SELECTED,
+        );
+        let primary_button = ui.with_surface(Surface::Surface, |ui| {
+            ui.style(
+                junie_tui::Family::BUTTON,
+                Variant::PRIMARY,
+                Part::CONTAINER,
+                StateFlags::empty(),
+            )
+            .style
+        });
+        let primary_gutter = style(
+            ui,
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Part::GUTTER,
+            StateFlags::empty(),
+        );
+        let meta = style(
+            ui,
+            Surface::Surface,
+            junie_tui::Family::EMPTY,
+            Part::HELP,
+            StateFlags::empty(),
+        );
+
+        Self {
+            panel,
+            title,
+            detail,
+            muted,
+            field,
+            field_marker,
+            rail,
+            selected,
+            tab,
+            canvas,
+            rule,
+            active_rule,
+            radio_on,
+            primary_button,
+            primary_gutter,
+            meta,
+        }
+    }
+}
+
+fn paint_general_fields(ui: &mut Ui<'_>, body: Rect, palette: &HistoricalPalette) {
+    let &HistoricalPalette {
+        selected,
+        tab,
+        active_rule,
+        rule,
+        detail,
+        radio_on,
+        field,
+        field_marker,
+        rail,
+        panel,
+        muted,
+        ..
+    } = palette;
+    let segments: [(u16, &str, &str, PaintStyle); 8] = [
+        (0, " ", "General", selected),
+        (0, " General    ", "Members    Environment", tab),
+        (1, "", "━━━━━━━━━━", active_rule),
+        (
+            1,
+            "━━━━━━━━━━",
+            "─────────────────────────────────────────────────",
+            rule,
+        ),
+        (3, "  ", "General", detail),
+        (5, "    ", "Project name *", detail),
+        (5, "    Project name ", "*", radio_on),
+        (5, "    Project name *               ", "Visibility", detail),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+    ui.fill(
+        Rect {
+            x: body.x.saturating_add(width("  ")),
+            y: body.y.saturating_add(6),
+            width: width("▎ payments-gateway       "),
+            height: 1,
+        },
+        field,
+    );
+    let segments: [(u16, &str, &str, PaintStyle); 12] = [
+        (6, "  ", "▎", field_marker),
+        (6, "  ▎", " payments-gateway", field),
+        (6, "  ▎ payments-gateway           ▎", "(●)", radio_on),
+        (6, "                               ", "▎", rail),
+        (6, "  ▎ payments-gateway           ▎(●) ", "Private", panel),
+        (7, "                               ▎( ) ", "Internal", panel),
+        (7, "                               ", "▎", rail),
+        (7, "                               ▎", "( )", muted),
+        (8, "    ", "Description", detail),
+        (8, "    Description                ▎( ) ", "Public", panel),
+        (8, "                               ", "▎", rail),
+        (8, "                               ▎", "( )", muted),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+    ui.fill(
+        Rect {
+            x: body.x.saturating_add(width("  ")),
+            y: body.y.saturating_add(9),
+            width: width("▎ Handles checkout, in…"),
+            height: 1,
+        },
+        field,
+    );
+    let segments: [(u16, &str, &str, PaintStyle); 9] = [
+        (9, "  ", "▎", field_marker),
+        (9, "  ▎", " Handles checkout, in…", field),
+        (10, "  ▎                            ▎", "○──", muted),
+        (10, "  ", "▎", field_marker),
+        (10, "                               ", "▎", rail),
+        (
+            10,
+            "  ▎                            ▎○── ",
+            "Auto-merge approved PRs",
+            panel,
+        ),
+        (
+            11,
+            "  ▎                            ▎──● ",
+            "Protect main branch",
+            panel,
+        ),
+        (11, "                               ", "▎", rail),
+        (11, "                               ▎", "──●", radio_on),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+}
+
+fn tab_style(ui: &mut Ui<'_>, surface: Surface, flags: StateFlags) -> PaintStyle {
+    ui.with_surface(surface, |ui| {
+        ui.style(junie_tui::Family::TABS, Variant::DEFAULT, Part::TAB, flags)
+            .style
+            .with_bg_from(ui.surface_style())
+    })
 }

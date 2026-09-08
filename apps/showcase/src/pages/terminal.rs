@@ -96,55 +96,7 @@ fn terminal_style(
 }
 
 fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
-    let panel = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let gutter = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let running = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::STEPS,
-        Variant::DEFAULT,
-        Part::LABEL,
-        StateFlags::BUSY | StateFlags::ACTIVE,
-    );
-    let queued = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::STEPS,
-        Variant::DEFAULT,
-        Part::META,
-        StateFlags::empty(),
-    );
-    let time = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let primary = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::SECONDARY,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-
+    let [panel, gutter, running, queued, time, primary] = historical_palette(ui);
     let visible = [
         "▎⠏ 01 Resolve workspace                          0.7 s",
         "▎  02 Pull base image                           queued",
@@ -177,8 +129,7 @@ fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
         ui.fill(area, panel);
         ui.paint_str(area, line, panel);
     }
-    for row in 0..7 {
-        let line = visible[row];
+    for (row, line) in visible.iter().copied().take(7).enumerate() {
         let number_end = line.find(|c: char| c.is_ascii_digit()).unwrap_or(2);
         ui.paint_str(
             Rect {
@@ -191,78 +142,7 @@ fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
             gutter,
         );
     }
-    let spinner = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::STEPS,
-        Variant::DEFAULT,
-        Part::ICON,
-        StateFlags::BUSY | StateFlags::ACTIVE,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(1),
-            y: inner.y,
-            width: 1,
-            height: 1,
-        },
-        "⠏",
-        spinner,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(width("▎⠏ ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "01 Resolve workspace",
-        running,
-    );
-    for (row, prefix) in [
-        "▎  02 Pull base image                           ",
-        "▎  03 Build container                           ",
-        "▎  04 Mount sources                             ",
-        "▎  05 Resolve credentials                       ",
-        "▎  06 Start agent                               ",
-        "▎  07 Ready                                     ",
-    ]
-    .iter()
-    .enumerate()
-    {
-        ui.paint_str(
-            Rect {
-                x: inner.x.saturating_add(width(prefix)),
-                y: inner.y.saturating_add(row as u16 + 1),
-                width: inner.width,
-                height: 1,
-            },
-            "queued",
-            queued,
-        );
-    }
-    ui.paint_str(
-        Rect {
-            x: inner
-                .x
-                .saturating_add(width("▎⠏ 01 Resolve workspace                          ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "0.7 s",
-        time,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x,
-            y: inner.y.saturating_add(14),
-            width: inner.width,
-            height: 1,
-        },
-        "▎Run   ▎Run with a failure",
-        primary,
-    );
+    paint_narrow_adornments(ui, inner, [running, queued, time, primary]);
 }
 
 /// The page keeps terminal text and lifecycle data in app state; public
@@ -448,4 +328,135 @@ impl Page for TerminalPage {
             },
         );
     }
+}
+
+fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
+    let [panel, gutter, running, queued, time, primary] = [
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            Part::DETAIL,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::STEPS,
+            Variant::DEFAULT,
+            Part::LABEL,
+            StateFlags::BUSY | StateFlags::ACTIVE,
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::STEPS,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            Part::DETAIL,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::SECONDARY,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+    ]
+    .map(|(surface, family, variant, part, flags)| {
+        terminal_style(ui, surface, family, variant, part, flags)
+    });
+
+    [panel, gutter, running, queued, time, primary]
+}
+
+fn paint_narrow_adornments(
+    ui: &mut Ui<'_>,
+    inner: Rect,
+    [running, queued, time, primary]: [PaintStyle; 4],
+) {
+    let spinner = terminal_style(
+        ui,
+        Surface::Surface,
+        junie_tui::Family::STEPS,
+        Variant::DEFAULT,
+        Part::ICON,
+        StateFlags::BUSY | StateFlags::ACTIVE,
+    );
+    ui.paint_str(
+        Rect {
+            x: inner.x.saturating_add(1),
+            y: inner.y,
+            width: 1,
+            height: 1,
+        },
+        "⠏",
+        spinner,
+    );
+    ui.paint_str(
+        Rect {
+            x: inner.x.saturating_add(width("▎⠏ ")),
+            y: inner.y,
+            width: inner.width,
+            height: 1,
+        },
+        "01 Resolve workspace",
+        running,
+    );
+    for (row, prefix) in [
+        "▎  02 Pull base image                           ",
+        "▎  03 Build container                           ",
+        "▎  04 Mount sources                             ",
+        "▎  05 Resolve credentials                       ",
+        "▎  06 Start agent                               ",
+        "▎  07 Ready                                     ",
+    ]
+    .iter()
+    .enumerate()
+    {
+        ui.paint_str(
+            Rect {
+                x: inner.x.saturating_add(width(prefix)),
+                y: inner.y.saturating_add((row as u16).saturating_add(1)),
+                width: inner.width,
+                height: 1,
+            },
+            "queued",
+            queued,
+        );
+    }
+    ui.paint_str(
+        Rect {
+            x: inner
+                .x
+                .saturating_add(width("▎⠏ 01 Resolve workspace                          ")),
+            y: inner.y,
+            width: inner.width,
+            height: 1,
+        },
+        "0.7 s",
+        time,
+    );
+    ui.paint_str(
+        Rect {
+            x: inner.x,
+            y: inner.y.saturating_add(14),
+            width: inner.width,
+            height: 1,
+        },
+        "▎Run   ▎Run with a failure",
+        primary,
+    );
 }
