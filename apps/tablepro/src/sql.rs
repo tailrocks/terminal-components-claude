@@ -1164,8 +1164,8 @@ pub(crate) fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecE
             editable: false,
         });
     }
-    let cap = sel.limit.unwrap_or(ROW_CAP).min(ROW_CAP);
-    all.truncate(cap);
+    let row_limit = sel.limit.unwrap_or(ROW_CAP).min(ROW_CAP);
+    all.truncate(row_limit);
     let rows: Vec<Vec<Value>> = all
         .into_iter()
         .map(|r| proj.iter().map(|&i| r[i].clone()).collect())

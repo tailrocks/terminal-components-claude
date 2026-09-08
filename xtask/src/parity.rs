@@ -43,15 +43,15 @@ impl Viewport {
     fn parse(raw: &str) -> Result<Self, String> {
         let (width, height) = raw
             .split_once('x')
-            .ok_or_else(|| format!("invalid viewport {}; expected WIDTHxHEIGHT", raw))?;
+            .ok_or_else(|| format!("invalid viewport {raw}; expected WIDTHxHEIGHT"))?;
         let width = width
             .parse()
-            .map_err(|_| format!("invalid viewport width {}", width))?;
+            .map_err(|_| format!("invalid viewport width {width}"))?;
         let height = height
             .parse()
-            .map_err(|_| format!("invalid viewport height {}", height))?;
+            .map_err(|_| format!("invalid viewport height {height}"))?;
         if width == 0 || height == 0 {
-            return Err(format!("viewport must be non-zero: {}", raw));
+            return Err(format!("viewport must be non-zero: {raw}"));
         }
         Ok(Self { width, height })
     }
@@ -195,10 +195,9 @@ pub(crate) fn dry_run(root: &Path) -> Result<(), String> {
         counts.get("tablepro").copied().unwrap_or_default(),
         counts.get("jackin").copied().unwrap_or_default()
     );
-    println!("parity dry-run: {} replay input events parsed", input_count);
+    println!("parity dry-run: {input_count} replay input events parsed");
     println!(
-        "parity dry-run: current replay evidence is required at {}; no output approved",
-        EVIDENCE_FILE
+        "parity dry-run: current replay evidence is required at {EVIDENCE_FILE}; no output approved"
     );
     Ok(())
 }
@@ -271,7 +270,7 @@ fn parse_manifest(text: &str) -> Result<Vec<Recipe>, String> {
     for (line_index, line) in text.lines().enumerate() {
         let row = line_index + 1;
         if line.is_empty() {
-            errors.push(format!("{}:{}: blank row", HISTORICAL_MANIFEST, row));
+            errors.push(format!("{HISTORICAL_MANIFEST}:{row}: blank row"));
             continue;
         }
         let fields = line.split('\t').collect::<Vec<_>>();
@@ -289,21 +288,19 @@ fn parse_manifest(text: &str) -> Result<Vec<Recipe>, String> {
         };
         if !safe_name(id) {
             errors.push(format!(
-                "{}:{}: unsafe recipe id {}",
-                HISTORICAL_MANIFEST, row, id
+                "{HISTORICAL_MANIFEST}:{row}: unsafe recipe id {id}"
             ));
             continue;
         }
         if !seen.insert((*id).to_owned()) {
             errors.push(format!(
-                "{}:{}: duplicate recipe {}",
-                HISTORICAL_MANIFEST, row, id
+                "{HISTORICAL_MANIFEST}:{row}: duplicate recipe {id}"
             ));
         }
         let viewport = match Viewport::parse(viewport) {
             Ok(viewport) => viewport,
             Err(error) => {
-                errors.push(format!("{}:{}: {}", HISTORICAL_MANIFEST, row, error));
+                errors.push(format!("{HISTORICAL_MANIFEST}:{row}: {error}"));
                 continue;
             }
         };
@@ -313,13 +310,12 @@ fn parse_manifest(text: &str) -> Result<Vec<Recipe>, String> {
             Some("jackin-preview") => "jackin",
             Some(other) => {
                 errors.push(format!(
-                    "{}:{}: unknown application {}",
-                    HISTORICAL_MANIFEST, row, other
+                    "{HISTORICAL_MANIFEST}:{row}: unknown application {other}"
                 ));
                 continue;
             }
             None => {
-                errors.push(format!("{}:{}: empty command", HISTORICAL_MANIFEST, row));
+                errors.push(format!("{HISTORICAL_MANIFEST}:{row}: empty command"));
                 continue;
             }
         };
@@ -328,14 +324,13 @@ fn parse_manifest(text: &str) -> Result<Vec<Recipe>, String> {
             || !safe_name(stderr.trim_end_matches(".log"))
         {
             errors.push(format!(
-                "{}:{}: unsafe stderr label {}",
-                HISTORICAL_MANIFEST, row, stderr
+                "{HISTORICAL_MANIFEST}:{row}: unsafe stderr label {stderr}"
             ));
         }
         let parsed_steps = match parse_steps(steps) {
             Ok(steps) => steps,
             Err(error) => {
-                errors.push(format!("{}:{}: {}", HISTORICAL_MANIFEST, row, error));
+                errors.push(format!("{HISTORICAL_MANIFEST}:{row}: {error}"));
                 Vec::new()
             }
         };
@@ -367,8 +362,7 @@ fn parse_mapping(text: &str, recipes: Vec<Recipe>) -> Result<Vec<Mapping>, Strin
     let mut lines = text.lines();
     if lines.next() != Some(MAPPING_HEADER) {
         return Err(format!(
-            "{} has an invalid header; expected {}",
-            MAPPING_FILE, MAPPING_HEADER
+            "{MAPPING_FILE} has an invalid header; expected {MAPPING_HEADER}"
         ));
     }
     let mut by_id = recipes
@@ -416,50 +410,47 @@ fn parse_mapping(text: &str, recipes: Vec<Recipe>) -> Result<Vec<Mapping>, Strin
         };
         let Some(recipe) = by_id.remove(*id) else {
             errors.push(format!(
-                "{}:{}: unknown or duplicate recipe {}",
-                MAPPING_FILE, row, id
+                "{MAPPING_FILE}:{row}: unknown or duplicate recipe {id}"
             ));
             continue;
         };
         if *app != recipe.app {
-            errors.push(format!("{}: mapping app differs from manifest", id));
+            errors.push(format!("{id}: mapping app differs from manifest"));
         }
         if *viewport != recipe.viewport.label() {
-            errors.push(format!("{}: mapping viewport differs from manifest", id));
+            errors.push(format!("{id}: mapping viewport differs from manifest"));
         }
         if *command != recipe.command {
-            errors.push(format!("{}: mapping command differs from manifest", id));
+            errors.push(format!("{id}: mapping command differs from manifest"));
         }
         if *steps != recipe.steps {
-            errors.push(format!("{}: mapping steps differ from manifest", id));
+            errors.push(format!("{id}: mapping steps differ from manifest"));
         }
         if *color != recipe.color() {
-            errors.push(format!("{}: mapping color differs from manifest", id));
+            errors.push(format!("{id}: mapping color differs from manifest"));
         }
         if *theme != "junie" {
-            errors.push(format!("{}: historical theme must be junie", id));
+            errors.push(format!("{id}: historical theme must be junie"));
         }
         if surface.is_empty() || surface.chars().any(char::is_whitespace) {
-            errors.push(format!("{}: surface is empty or contains whitespace", id));
+            errors.push(format!("{id}: surface is empty or contains whitespace"));
         }
         if initial_state.is_empty() || initial_state.chars().any(char::is_whitespace) {
             errors.push(format!(
-                "{}: initial state is empty or contains whitespace",
-                id
+                "{id}: initial state is empty or contains whitespace"
             ));
         }
         let argv = match parse_argv(current_argv) {
             Ok(argv) => argv,
             Err(error) => {
-                errors.push(format!("{}: invalid current argv: {}", id, error));
+                errors.push(format!("{id}: invalid current argv: {error}"));
                 Vec::new()
             }
         };
         let expected_binary = format!("target/debug/{}", recipe.binary());
         if argv.first().map(String::as_str) != Some(expected_binary.as_str()) {
             errors.push(format!(
-                "{}: current argv does not start with {}",
-                id, expected_binary
+                "{id}: current argv does not start with {expected_binary}"
             ));
         }
         let mut historical_paths = BTreeMap::new();
@@ -470,38 +461,35 @@ fn parse_mapping(text: &str, recipes: Vec<Recipe>) -> Result<Vec<Mapping>, Strin
             ("html", *expected_html),
             ("png", *expected_png),
         ] {
-            let expected = format!("baseline/before/{}.{}", id, extension);
+            let expected = format!("baseline/before/{id}.{extension}");
             if path != expected {
-                errors.push(format!("{}: {} path must be {}", id, extension, expected));
+                errors.push(format!("{id}: {extension} path must be {expected}"));
             }
             historical_paths.insert(extension.to_owned(), path.to_owned());
         }
-        let expected_dir = format!("parity/replays/{}", id);
+        let expected_dir = format!("parity/replays/{id}");
         if *current_artifact_dir != expected_dir {
             errors.push(format!(
-                "{}: current artifact directory must be {}",
-                id, expected_dir
+                "{id}: current artifact directory must be {expected_dir}"
             ));
         }
-        let expected_provenance = format!("{}/provenance.json", expected_dir);
+        let expected_provenance = format!("{expected_dir}/provenance.json");
         if *provenance_path != expected_provenance {
             errors.push(format!(
-                "{}: provenance path must be {}",
-                id, expected_provenance
+                "{id}: provenance path must be {expected_provenance}"
             ));
         }
-        let expected_trace = format!("{}/trace.json", expected_dir);
+        let expected_trace = format!("{expected_dir}/trace.json");
         if *trace_path != expected_trace {
-            errors.push(format!("{}: trace path must be {}", id, expected_trace));
+            errors.push(format!("{id}: trace path must be {expected_trace}"));
         }
         let expected_owner = format!("apps/{}", recipe.binary());
         if *owner != expected_owner {
-            errors.push(format!("{}: owner must be {}", id, expected_owner));
+            errors.push(format!("{id}: owner must be {expected_owner}"));
         }
         if *replay_policy != "required" && !replay_policy.starts_with("reviewed-exception:") {
             errors.push(format!(
-                "{}: replay policy is not required or reviewed-exception",
-                id
+                "{id}: replay policy is not required or reviewed-exception"
             ));
         }
         mappings.push(Mapping {
@@ -558,20 +546,19 @@ fn validate_frozen_inventory(root: &Path, recipes: &[Recipe]) -> Result<(), Stri
     ]);
     let mut actual = BTreeSet::new();
     for entry in WalkDir::new(&archive).follow_links(false) {
-        let entry = entry.map_err(|error| format!("cannot inspect frozen archive: {}", error))?;
+        let entry = entry.map_err(|error| format!("cannot inspect frozen archive: {error}"))?;
         if entry.path() == archive {
             continue;
         }
         let relative = entry
             .path()
             .strip_prefix(&archive)
-            .map_err(|error| format!("cannot relativize frozen archive: {}", error))?
+            .map_err(|error| format!("cannot relativize frozen archive: {error}"))?
             .to_string_lossy()
             .replace('\\', "/");
         if entry.file_type().is_symlink() {
             return Err(format!(
-                "frozen archive contains unsafe non-file entry baseline/before/{}",
-                relative
+                "frozen archive contains unsafe non-file entry baseline/before/{relative}"
             ));
         }
         if entry.file_type().is_dir() {
@@ -579,8 +566,7 @@ fn validate_frozen_inventory(root: &Path, recipes: &[Recipe]) -> Result<(), Stri
                 continue;
             }
             return Err(format!(
-                "frozen archive contains unexpected directory baseline/before/{}",
-                relative
+                "frozen archive contains unexpected directory baseline/before/{relative}"
             ));
         }
         let is_stderr_log = relative
@@ -591,8 +577,7 @@ fn validate_frozen_inventory(root: &Path, recipes: &[Recipe]) -> Result<(), Stri
             || (!allowed.contains(&relative) && !expected.contains(&relative) && !is_stderr_log)
         {
             return Err(format!(
-                "frozen archive contains unexpected file baseline/before/{}",
-                relative
+                "frozen archive contains unexpected file baseline/before/{relative}"
             ));
         }
         if expected.contains(&relative) {
@@ -611,15 +596,14 @@ fn validate_frozen_inventory(root: &Path, recipes: &[Recipe]) -> Result<(), Stri
             .cloned()
             .collect::<Vec<_>>();
         return Err(format!(
-            "frozen artifact inventory differs; missing={:?} extra={:?}",
-            missing, extra
+            "frozen artifact inventory differs; missing={missing:?} extra={extra:?}"
         ));
     }
     for recipe in recipes {
         for (_, extension) in ARTIFACTS {
             let relative = format!("baseline/before/{}.{}", recipe.id, extension);
             if read_bytes(root, &relative, "frozen artifact")?.is_empty() {
-                return Err(format!("frozen artifact is empty: {}", relative));
+                return Err(format!("frozen artifact is empty: {relative}"));
             }
         }
     }
@@ -635,8 +619,7 @@ fn load_evidence(
     let mut lines = text.lines();
     if lines.next() != Some(EVIDENCE_HEADER) {
         return Err(format!(
-            "{} has an invalid header; expected {}",
-            EVIDENCE_FILE, EVIDENCE_HEADER
+            "{EVIDENCE_FILE} has an invalid header; expected {EVIDENCE_HEADER}"
         ));
     }
     let expected = mappings
@@ -674,34 +657,26 @@ fn load_evidence(
             unreachable!("field count checked above");
         };
         if !expected.contains(recipe_id) {
-            errors.push(format!(
-                "{}:{}: unknown recipe {}",
-                EVIDENCE_FILE, row, recipe_id
-            ));
+            errors.push(format!("{EVIDENCE_FILE}:{row}: unknown recipe {recipe_id}"));
             continue;
         }
         if !seen.insert((*recipe_id).to_owned()) {
             errors.push(format!(
-                "{}:{}: duplicate recipe {}",
-                EVIDENCE_FILE, row, recipe_id
+                "{EVIDENCE_FILE}:{row}: duplicate recipe {recipe_id}"
             ));
         }
         if !is_revision(current_revision) {
-            errors.push(format!("{}:{}: invalid revision", EVIDENCE_FILE, row));
+            errors.push(format!("{EVIDENCE_FILE}:{row}: invalid revision"));
         }
         if !is_sha256(source_fingerprint) {
-            errors.push(format!(
-                "{}:{}: invalid source fingerprint",
-                EVIDENCE_FILE, row
-            ));
+            errors.push(format!("{EVIDENCE_FILE}:{row}: invalid source fingerprint"));
         }
         let dirty = match *dirty {
             "true" => true,
             "false" => false,
             _ => {
                 errors.push(format!(
-                    "{}:{}: dirty must be true or false",
-                    EVIDENCE_FILE, row
+                    "{EVIDENCE_FILE}:{row}: dirty must be true or false"
                 ));
                 false
             }
@@ -712,21 +687,17 @@ fn load_evidence(
             ("trace_path", *trace_path, "parity/"),
         ] {
             if let Err(error) = validate_relative_path(path, prefix) {
-                errors.push(format!("{}:{}: {}: {}", EVIDENCE_FILE, row, label, error));
+                errors.push(format!("{EVIDENCE_FILE}:{row}: {label}: {error}"));
             }
         }
         if *replay_status != "ok" {
-            errors.push(format!(
-                "{}:{}: replay status is not ok",
-                EVIDENCE_FILE, row
-            ));
+            errors.push(format!("{EVIDENCE_FILE}:{row}: replay status is not ok"));
         }
         if !matches!(*visual_review, "approved" | "pending")
             || (!allow_pending_review && *visual_review != "approved")
         {
             errors.push(format!(
-                "{}:{}: visual review state is invalid",
-                EVIDENCE_FILE, row
+                "{EVIDENCE_FILE}:{row}: visual review state is invalid"
             ));
         }
         if (*visual_review == "pending" && *reviewer != "pending")
@@ -734,8 +705,7 @@ fn load_evidence(
                 && (reviewer.is_empty() || reviewer.chars().any(char::is_whitespace)))
         {
             errors.push(format!(
-                "{}:{}: reviewer is missing or unsafe",
-                EVIDENCE_FILE, row
+                "{EVIDENCE_FILE}:{row}: reviewer is missing or unsafe"
             ));
         }
         evidence.push(Evidence {
@@ -787,16 +757,15 @@ fn validate_source_binding(
     current_source_dirty: bool,
 ) -> Result<(), String> {
     if !is_revision(captured_revision) {
-        return Err(format!("{}: evidence revision is invalid", recipe_id));
+        return Err(format!("{recipe_id}: evidence revision is invalid"));
     }
     if captured_source_fingerprint != current_source_fingerprint {
         return Err(format!(
-            "{}: evidence source fingerprint is not current",
-            recipe_id
+            "{recipe_id}: evidence source fingerprint is not current"
         ));
     }
     if captured_dirty != current_source_dirty {
-        return Err(format!("{}: evidence dirty binding is stale", recipe_id));
+        return Err(format!("{recipe_id}: evidence dirty binding is stale"));
     }
     Ok(())
 }
@@ -877,8 +846,7 @@ fn validate_evidence(
         match revision_exists(root, captured_revision) {
             Ok(true) => {}
             Ok(false) => errors.push(format!(
-                "evidence revision {} is not a commit in this repository",
-                captured_revision
+                "evidence revision {captured_revision} is not a commit in this repository"
             )),
             Err(error) => errors.push(error),
         }
@@ -1116,7 +1084,7 @@ fn validate_trace(
             || !step
                 .get("event")
                 .and_then(Value::as_str)
-                .is_some_and(|event| event.starts_with(&format!("{}:", expected_kind)))
+                .is_some_and(|event| event.starts_with(&format!("{expected_kind}:")))
             || !step
                 .get("state_sha256")
                 .and_then(Value::as_str)
@@ -1148,8 +1116,7 @@ fn validate_visual_review(
     let mut lines = text.lines();
     if lines.next() != Some(VISUAL_REVIEW_HEADER) {
         return Err(format!(
-            "{} has an invalid header; expected {}",
-            VISUAL_REVIEW_FILE, VISUAL_REVIEW_HEADER
+            "{VISUAL_REVIEW_FILE} has an invalid header; expected {VISUAL_REVIEW_HEADER}"
         ));
     }
     let mappings = loaded
@@ -1195,15 +1162,13 @@ fn validate_visual_review(
         };
         let Some(mapping) = mappings.get(recipe_id).copied() else {
             errors.push(format!(
-                "{}:{}: unknown recipe {}",
-                VISUAL_REVIEW_FILE, row, recipe_id
+                "{VISUAL_REVIEW_FILE}:{row}: unknown recipe {recipe_id}"
             ));
             continue;
         };
         if !seen.insert(*recipe_id) {
             errors.push(format!(
-                "{}:{}: duplicate review record for {}",
-                VISUAL_REVIEW_FILE, row, recipe_id
+                "{VISUAL_REVIEW_FILE}:{row}: duplicate review record for {recipe_id}"
             ));
         }
         for (artifact, path, sha256) in [
@@ -1213,42 +1178,36 @@ fn validate_visual_review(
             let expected_path = mapping.current_path(artifact);
             if path != expected_path {
                 errors.push(format!(
-                    "{}:{}: {} review path differs from mapping",
-                    VISUAL_REVIEW_FILE, row, artifact
+                    "{VISUAL_REVIEW_FILE}:{row}: {artifact} review path differs from mapping"
                 ));
             }
             if !is_sha256(sha256) {
                 errors.push(format!(
-                    "{}:{}: {} review hash is invalid",
-                    VISUAL_REVIEW_FILE, row, artifact
+                    "{VISUAL_REVIEW_FILE}:{row}: {artifact} review hash is invalid"
                 ));
             } else if let Ok(bytes) = read_bytes(root, path, "visual review artifact") {
                 let (_, actual) = digest(&bytes);
                 if actual != sha256 {
                     errors.push(format!(
-                        "{}:{}: {} visual review hash is stale",
-                        VISUAL_REVIEW_FILE, row, artifact
+                        "{VISUAL_REVIEW_FILE}:{row}: {artifact} visual review hash is stale"
                     ));
                 }
             } else {
                 errors.push(format!(
-                    "{}:{}: {} visual review artifact is missing",
-                    VISUAL_REVIEW_FILE, row, artifact
+                    "{VISUAL_REVIEW_FILE}:{row}: {artifact} visual review artifact is missing"
                 ));
             }
         }
         if *decision != "approved" || !safe_reviewer(reviewer) {
             errors.push(format!(
-                "{}:{}: visual review decision or reviewer is invalid",
-                VISUAL_REVIEW_FILE, row
+                "{VISUAL_REVIEW_FILE}:{row}: visual review decision or reviewer is invalid"
             ));
         }
         if let Some(approval_reviewer) = approval_reviewer
             && *reviewer == approval_reviewer
         {
             errors.push(format!(
-                "{}:{}: visual review must be independent of approval",
-                VISUAL_REVIEW_FILE, row
+                "{VISUAL_REVIEW_FILE}:{row}: visual review must be independent of approval"
             ));
         }
         if approval_reviewer.is_none()
@@ -1257,8 +1216,7 @@ fn validate_visual_review(
                 .is_some_and(|evidence| evidence.reviewer == *reviewer)
         {
             errors.push(format!(
-                "{}:{}: visual review must be independent of evidence approval",
-                VISUAL_REVIEW_FILE, row
+                "{VISUAL_REVIEW_FILE}:{row}: visual review must be independent of evidence approval"
             ));
         }
     }
@@ -1468,7 +1426,7 @@ fn cursor_position(bytes: &[u8]) -> (usize, usize) {
 }
 
 fn byte_value(byte: Option<u8>) -> String {
-    byte.map_or_else(|| "eof".to_owned(), |byte| format!("0x{:02x}", byte))
+    byte.map_or_else(|| "eof".to_owned(), |byte| format!("0x{byte:02x}"))
 }
 
 fn parse_steps(raw: &str) -> Result<Vec<ReplayStep>, String> {
@@ -1486,7 +1444,7 @@ fn parse_steps(raw: &str) -> Result<Vec<ReplayStep>, String> {
                 .map(str::to_owned)
                 .collect::<Vec<_>>();
             if keys.is_empty() {
-                return Err(format!("empty keys step {}", segment));
+                return Err(format!("empty keys step {segment}"));
             }
             steps.push(ReplayStep::Keys(keys));
         } else if let Some(inner) = segment
@@ -1501,25 +1459,25 @@ fn parse_steps(raw: &str) -> Result<Vec<ReplayStep>, String> {
             let mut fields = inner.split_whitespace();
             let kind = fields
                 .next()
-                .ok_or_else(|| format!("invalid mouse step {}", segment))?;
+                .ok_or_else(|| format!("invalid mouse step {segment}"))?;
             let coordinate = fields
                 .next()
-                .ok_or_else(|| format!("invalid mouse step {}", segment))?;
+                .ok_or_else(|| format!("invalid mouse step {segment}"))?;
             if fields.next().is_some()
                 || !matches!(
                     kind,
                     "move" | "click" | "rclick" | "down" | "up" | "drag" | "wheelup" | "wheeldown"
                 )
             {
-                return Err(format!("invalid mouse step {}", segment));
+                return Err(format!("invalid mouse step {segment}"));
             }
             let (x, y) = coordinate
                 .split_once(',')
-                .ok_or_else(|| format!("invalid mouse coordinate {}", coordinate))?;
-            let x = x.parse().map_err(|_| format!("invalid mouse x {}", x))?;
-            let y = y.parse().map_err(|_| format!("invalid mouse y {}", y))?;
+                .ok_or_else(|| format!("invalid mouse coordinate {coordinate}"))?;
+            let x = x.parse().map_err(|_| format!("invalid mouse x {x}"))?;
+            let y = y.parse().map_err(|_| format!("invalid mouse y {y}"))?;
             if x == 0 || y == 0 {
-                return Err(format!("mouse coordinates are 1-based {}", coordinate));
+                return Err(format!("mouse coordinates are 1-based {coordinate}"));
             }
             steps.push(ReplayStep::Mouse {
                 kind: kind.to_owned(),
@@ -1539,7 +1497,7 @@ fn parse_steps(raw: &str) -> Result<Vec<ReplayStep>, String> {
                 || inner.len() == 1
                 || inner[..inner.len() - 1].parse::<f64>().is_err()
             {
-                return Err(format!("invalid wait step {}", segment));
+                return Err(format!("invalid wait step {segment}"));
             }
             steps.push(ReplayStep::Wait(inner.to_owned()));
         } else if let Some(inner) = segment
@@ -1548,7 +1506,7 @@ fn parse_steps(raw: &str) -> Result<Vec<ReplayStep>, String> {
         {
             steps.push(ReplayStep::Anchor(unescape(inner)?));
         } else {
-            return Err(format!("unrecognized replay step {}", segment));
+            return Err(format!("unrecognized replay step {segment}"));
         }
     }
     Ok(steps)
@@ -1579,14 +1537,14 @@ fn split_steps(raw: &str) -> Result<Vec<String>, String> {
         match byte {
             b'"' => quoted = true,
             b'(' => depth += 1,
-            b')' if depth == 0 => return Err(format!("unbalanced steps {}", raw)),
+            b')' if depth == 0 => return Err(format!("unbalanced steps {raw}")),
             b')' => depth -= 1,
             _ => {}
         }
         if depth == 0 && bytes.get(index..index + separator.len()) == Some(separator) {
             let segment = raw[start..index].trim();
             if segment.is_empty() {
-                return Err(format!("empty step {}", raw));
+                return Err(format!("empty step {raw}"));
             }
             result.push(segment.to_owned());
             index += separator.len();
@@ -1596,11 +1554,11 @@ fn split_steps(raw: &str) -> Result<Vec<String>, String> {
         index += 1;
     }
     if quoted || depth != 0 {
-        return Err(format!("unbalanced steps {}", raw));
+        return Err(format!("unbalanced steps {raw}"));
     }
     let segment = raw[start..].trim();
     if segment.is_empty() {
-        return Err(format!("empty step {}", raw));
+        return Err(format!("empty step {raw}"));
     }
     result.push(segment.to_owned());
     Ok(result)
@@ -1616,7 +1574,7 @@ fn unescape(raw: &str) -> Result<String, String> {
                 'n' => output.push('\n'),
                 'r' => output.push('\r'),
                 't' => output.push('\t'),
-                other => return Err(format!("unsupported escape {}", other)),
+                other => return Err(format!("unsupported escape {other}")),
             }
             escaped = false;
         } else if character == '\\' {
@@ -1648,35 +1606,32 @@ fn parse_argv(raw: &str) -> Result<Vec<String>, String> {
 
 fn read_text(root: &Path, relative: &str, label: &str) -> Result<String, String> {
     String::from_utf8(read_bytes(root, relative, label)?)
-        .map_err(|error| format!("{} {} is not UTF-8: {}", label, relative, error))
+        .map_err(|error| format!("{label} {relative} is not UTF-8: {error}"))
 }
 
 fn read_json(root: &Path, relative: &str, label: &str) -> Result<Value, String> {
     let text = read_text(root, relative, label)?;
     serde_json::from_str(&text)
-        .map_err(|error| format!("{} {} is not valid JSON: {}", label, relative, error))
+        .map_err(|error| format!("{label} {relative} is not valid JSON: {error}"))
 }
 
 fn read_bytes(root: &Path, relative: &str, label: &str) -> Result<Vec<u8>, String> {
     let path = safe_join(root, relative)?;
     let metadata = fs::symlink_metadata(&path)
-        .map_err(|error| format!("cannot inspect {} {}: {}", label, relative, error))?;
+        .map_err(|error| format!("cannot inspect {label} {relative}: {error}"))?;
     if metadata.file_type().is_symlink() || !metadata.is_file() {
-        return Err(format!("{} is not a regular file: {}", label, relative));
+        return Err(format!("{label} is not a regular file: {relative}"));
     }
     let mut file = super::open_capture_artifact(&path)?;
     let opened = file
         .metadata()
-        .map_err(|error| format!("cannot inspect opened {} {}: {}", label, relative, error))?;
+        .map_err(|error| format!("cannot inspect opened {label} {relative}: {error}"))?;
     if !opened.is_file() {
-        return Err(format!(
-            "opened {} is not a regular file: {}",
-            label, relative
-        ));
+        return Err(format!("opened {label} is not a regular file: {relative}"));
     }
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes)
-        .map_err(|error| format!("cannot read {} {}: {}", label, relative, error))?;
+        .map_err(|error| format!("cannot read {label} {relative}: {error}"))?;
     Ok(bytes)
 }
 
@@ -1685,7 +1640,7 @@ fn safe_join(root: &Path, relative: &str) -> Result<PathBuf, String> {
     let mut path = root.to_owned();
     for component in Path::new(relative).components() {
         let Component::Normal(component) = component else {
-            return Err(format!("unsafe relative path {}", relative));
+            return Err(format!("unsafe relative path {relative}"));
         };
         path.push(component);
     }
@@ -1700,14 +1655,14 @@ fn validate_relative_path(path: &str, prefix: &str) -> Result<(), String> {
             .components()
             .any(|component| !matches!(component, Component::Normal(_)))
     {
-        return Err(format!("unsafe relative path {}", path));
+        return Err(format!("unsafe relative path {path}"));
     }
     Ok(())
 }
 
 fn validate_directory(path: &Path, label: &str) -> Result<(), String> {
-    let metadata = fs::symlink_metadata(path)
-        .map_err(|error| format!("cannot inspect {}: {}", label, error))?;
+    let metadata =
+        fs::symlink_metadata(path).map_err(|error| format!("cannot inspect {label}: {error}"))?;
     if metadata.file_type().is_symlink() || !metadata.is_dir() {
         return Err(format!(
             "{} is not a real directory {}",
@@ -1735,10 +1690,7 @@ fn provenance_record(value: &Value, recipe_id: &str) -> Result<Value, String> {
             }
             Ok(matches[0].clone())
         }
-        _ => Err(format!(
-            "{}: provenance is not an object or array",
-            recipe_id
-        )),
+        _ => Err(format!("{recipe_id}: provenance is not an object or array")),
     }
 }
 
@@ -1771,7 +1723,7 @@ fn source_fingerprint(root: &Path) -> Result<String, String> {
         .current_dir(root)
         .args(["ls-files", "-co", "--exclude-standard", "-z"])
         .output()
-        .map_err(|error| format!("cannot list source files: {}", error))?;
+        .map_err(|error| format!("cannot list source files: {error}"))?;
     if !output.status.success() {
         return Err(format!(
             "cannot list source files: {}",
@@ -1784,7 +1736,7 @@ fn source_fingerprint(root: &Path) -> Result<String, String> {
         .filter(|path| !path.is_empty())
         .map(|path| {
             String::from_utf8(path.to_vec())
-                .map_err(|error| format!("source path is not UTF-8: {}", error))
+                .map_err(|error| format!("source path is not UTF-8: {error}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
     paths.retain(|path| source_path_allowed(path));
@@ -1825,7 +1777,7 @@ fn source_dirty(root: &Path) -> Result<bool, String> {
         .current_dir(root)
         .args(["status", "--porcelain=v1", "--untracked-files=all", "-z"])
         .output()
-        .map_err(|error| format!("cannot inspect Git source dirtiness: {}", error))?;
+        .map_err(|error| format!("cannot inspect Git source dirtiness: {error}"))?;
     if !output.status.success() {
         return Err(format!(
             "cannot inspect Git source dirtiness: {}",
@@ -1853,7 +1805,7 @@ fn source_dirty_from_status(status: &[u8]) -> Result<bool, String> {
             return Err("Git status output contains an unknown status".to_owned());
         }
         let path = std::str::from_utf8(&record[3..])
-            .map_err(|error| format!("Git status path is not UTF-8: {}", error))?;
+            .map_err(|error| format!("Git status path is not UTF-8: {error}"))?;
         if source_path_allowed(path) {
             return Ok(true);
         }
@@ -1862,7 +1814,7 @@ fn source_dirty_from_status(status: &[u8]) -> Result<bool, String> {
                 .next()
                 .ok_or_else(|| "Git status rename record is incomplete".to_owned())?;
             let destination = std::str::from_utf8(destination)
-                .map_err(|error| format!("Git status path is not UTF-8: {}", error))?;
+                .map_err(|error| format!("Git status path is not UTF-8: {error}"))?;
             if source_path_allowed(destination) {
                 return Ok(true);
             }
@@ -1876,7 +1828,7 @@ fn head_revision(root: &Path) -> Result<String, String> {
         .current_dir(root)
         .args(["rev-parse", "--verify", "HEAD"])
         .output()
-        .map_err(|error| format!("cannot read current Git revision: {}", error))?;
+        .map_err(|error| format!("cannot read current Git revision: {error}"))?;
     if !output.status.success() {
         return Err(format!(
             "cannot read current Git revision: {}",
@@ -1884,11 +1836,11 @@ fn head_revision(root: &Path) -> Result<String, String> {
         ));
     }
     let revision = String::from_utf8(output.stdout)
-        .map_err(|error| format!("Git revision is not UTF-8: {}", error))?
+        .map_err(|error| format!("Git revision is not UTF-8: {error}"))?
         .trim()
         .to_owned();
     if !is_revision(&revision) {
-        return Err(format!("current Git revision is not full: {}", revision));
+        return Err(format!("current Git revision is not full: {revision}"));
     }
     Ok(revision)
 }
@@ -1897,12 +1849,12 @@ fn revision_exists(root: &Path, revision: &str) -> Result<bool, String> {
     if !is_revision(revision) {
         return Ok(false);
     }
-    let object = format!("{}^{{commit}}", revision);
+    let object = format!("{revision}^{{commit}}");
     let status = Command::new("git")
         .current_dir(root)
         .args(["rev-parse", "--verify", "--quiet", &object])
         .status()
-        .map_err(|error| format!("cannot validate evidence revision: {}", error))?;
+        .map_err(|error| format!("cannot validate evidence revision: {error}"))?;
     Ok(status.success())
 }
 

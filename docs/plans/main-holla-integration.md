@@ -162,6 +162,11 @@ typed ReferenceLift correction assigned. Runtime stationary hover and invalid
 held-pointer/capture cases have five independent reds; structural repair active.
 List physical exits and Plan caller integratedd2d9ef4; root6 List tests pass.
 Tree branch activation/click policies integrated0e0b8f8; root4 tests pass.
+Root115 Holla tests pass after Plan exits. CI MSRV-only Clippy failures repaired:
+105 format captures in parity plus three equivalent app expressions. Root10 parity
+tests and full MSRV workspace all-target/all-feature strict Clippy pass. Inventory
+a06efc4 independent original nested-config probe now passes with correct binary
+hash; tool accepted within scope, mapping remains unapproved.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent

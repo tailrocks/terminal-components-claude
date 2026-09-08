@@ -3192,18 +3192,16 @@ impl App {
             CMD_MANAGER => {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     return Some(self.capsule_prefix_key(cx, 'm'));
-                } else {
-                    if self.route == Route::Usage {
-                        self.accounts.selected_id = self.usage.manage_target().map(str::to_owned);
-                        self.route = Route::Accounts;
-                        if let Some(id) = self.accounts.selected_id.as_deref()
-                            && let Some(account) = self.world.accounts.get(id)
-                        {
-                            self.status = Some(format!("Accounts › {}", account.title()));
-                        }
-                    } else {
-                        self.route = Route::Manager;
+                } else if self.route == Route::Usage {
+                    self.accounts.selected_id = self.usage.manage_target().map(str::to_owned);
+                    self.route = Route::Accounts;
+                    if let Some(id) = self.accounts.selected_id.as_deref()
+                        && let Some(account) = self.world.accounts.get(id)
+                    {
+                        self.status = Some(format!("Accounts › {}", account.title()));
                     }
+                } else {
+                    self.route = Route::Manager;
                 }
                 Some(Response::changed())
             }

@@ -287,7 +287,7 @@ impl World {
             None
         };
         AgentOffer {
-            configured: !ready.is_empty() || !blocked.is_none(),
+            configured: !ready.is_empty() || blocked.is_some(),
             accounts: ready,
             preselected: selected,
             blocked,
