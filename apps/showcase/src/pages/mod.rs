@@ -7,12 +7,31 @@
 
 use junie_tui::{Family, Part, Rect, Response, StateFlags, Ui, Variant, truncate, width};
 
+/// Product intent returned to the shell, which owns its display lifetime.
+pub(crate) struct PageStatus(pub(crate) String);
+
+/// A page preserves the component response metadata while returning any
+/// status change from the same update; no later outbox drain is required.
+pub(crate) struct PageUpdate {
+    pub(crate) response: Response<()>,
+    pub(crate) status: Option<PageStatus>,
+}
+
+impl From<Response<()>> for PageUpdate {
+    fn from(response: Response<()>) -> Self {
+        Self {
+            response,
+            status: None,
+        }
+    }
+}
+
 /// A stateful screen in the showcase.
 pub(crate) trait Page: Send {
     /// Stable navigation title.
     fn title(&self) -> &'static str;
     /// Drain this screen's runtime intents.
-    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> Response<()>;
+    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> PageUpdate;
     /// Handle an application-level command before component intents run.
     fn command(
         &mut self,

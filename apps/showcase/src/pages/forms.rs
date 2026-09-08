@@ -7,7 +7,7 @@ use junie_tui::{
     truncate,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 /// Application-level submit chord consumed by the shell and forwarded here.
 pub(crate) const SUBMIT: ActionKey = ActionKey::custom("showcase.form.submit");
@@ -270,7 +270,7 @@ impl Page for FormsPage {
         }
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
         result |= Self::summary()
             .update(cx, &mut self.summary_state, &mut self.summary)
@@ -287,7 +287,7 @@ impl Page for FormsPage {
             result |= self.validate(cx);
         }
         result |= save.erase();
-        result
+        result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

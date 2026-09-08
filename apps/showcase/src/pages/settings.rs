@@ -7,7 +7,7 @@ use junie_tui::{
     Variant, id, width,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const TAB: Id = id!("settings.tabs");
 const MEMBERS: Id = id!("settings.members");
@@ -305,7 +305,7 @@ impl Page for SettingsPage {
         "Settings"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
         let tabs = Tabs::new(TAB).update(cx, &mut self.tabs, TABS);
         if let Some(TabsAction::Activated(key)) = tabs.action_ref() {
@@ -364,7 +364,7 @@ impl Page for SettingsPage {
             self.remove_open = false;
         }
         result |= dialog.erase();
-        result
+        result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

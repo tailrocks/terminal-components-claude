@@ -7,7 +7,7 @@ use junie_tui::{
 
 use crate::data::{PROSE, SCROLL_ROWS, log_lines};
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const PROSE_VIEW: Id = id!("scrolling.prose");
 const LIST_VIEW: Id = id!("scrolling.list");
@@ -143,7 +143,7 @@ impl Page for ScrollingPage {
         "Scrolling"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let prose = prose_view().update(cx, &mut self.prose_state, &self.prose);
         self.note(prose.action_ref());
@@ -159,7 +159,7 @@ impl Page for ScrollingPage {
         let log = log_view().update(cx, &mut self.log_state, &log_lines);
         self.note(log.action_ref());
         response |= log.erase();
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

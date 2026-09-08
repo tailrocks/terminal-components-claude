@@ -10,7 +10,7 @@ use junie_tui::{
 
 use crate::data::log_lines;
 
-use super::{Page, frame, lines};
+use super::{Page, PageUpdate, frame, lines};
 
 const OUTPUT: Id = id!("terminal.output");
 const OUTPUT_PANEL: Id = id!("terminal.output.panel");
@@ -206,7 +206,7 @@ impl Page for TerminalPage {
         "Terminal"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let output = output().update(cx, &mut self.output_state, &mut self.output);
         response |= output.erase();
@@ -224,7 +224,7 @@ impl Page for TerminalPage {
             self.reset(true);
         }
         response |= fail.erase();
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

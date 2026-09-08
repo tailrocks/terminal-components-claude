@@ -1,14 +1,13 @@
 //! Keyed tree navigation with stable branch expansion.
 
 use junie_tui::{
-    Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Response, Role,
-    RowUi, StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
-    layout,
+    Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Role, RowUi,
+    StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, layout,
 };
 
 use crate::data::{TREE, TREE_LABELS};
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const PROJECT: Id = id!("trees.project");
 const TREE_GUTTER: &[(Part, StylePatch)] = &[(
@@ -200,7 +199,7 @@ impl Page for TreesPage {
         "Trees"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let result = project_tree().update(cx, &mut self.state, TREE);
         if let Some(action) = result.action_ref() {
             self.last = match action {
@@ -213,7 +212,7 @@ impl Page for TreesPage {
                 self.chosen = Some(*key);
             }
         }
-        result.erase()
+        result.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

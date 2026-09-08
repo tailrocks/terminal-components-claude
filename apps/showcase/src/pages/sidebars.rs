@@ -1,11 +1,11 @@
 //! Nested sidebar navigation and content ownership.
 
 use junie_tui::{
-    Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, Response,
-    RowUi, Ui, Variant, id,
+    Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi, Ui,
+    Variant, id,
 };
 
-use super::{Page, frame, lines};
+use super::{Page, PageUpdate, frame, lines};
 
 const NAV: Id = id!("sidebars.nav");
 const SIDE_PANEL: Id = id!("sidebars.panel");
@@ -157,7 +157,7 @@ impl Page for SidebarsPage {
         "Sidebars"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let result = sidebar(self.collapsed).update(cx, &mut self.state, ITEMS);
         if let Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) =
             result.action_ref()
@@ -171,7 +171,7 @@ impl Page for SidebarsPage {
         }
         let mut response = result.erase();
         response |= collapse.erase();
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

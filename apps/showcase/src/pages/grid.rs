@@ -2,10 +2,10 @@
 
 use junie_tui::{
     Align, CellRef, Column, ColumnKey, Cx, Grid, GridAction, GridModel, GridState, Id, ItemKey,
-    Modifier, NavUnit, Part, Rect, Response, Role, RowDecor, StateFlags, Surface, Ui, Variant, id,
+    Modifier, NavUnit, Part, Rect, Role, RowDecor, StateFlags, Surface, Ui, Variant, id,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const METRICS: Id = id!("grid.metrics");
 const COLUMNS: [Column<'static>; 4] = [
@@ -261,12 +261,12 @@ impl Page for GridPage {
     fn title(&self) -> &'static str {
         "Data grid"
     }
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let action = metrics().update(cx, &mut self.state, &MetricModel);
         if let Some(GridAction::Activated(key)) = action.action_ref() {
             self.selected = Some(*key);
         }
-        action.erase()
+        action.erase().into()
     }
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(

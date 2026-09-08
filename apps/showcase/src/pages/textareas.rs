@@ -1,11 +1,11 @@
 //! Multiline editing and viewport scrolling.
 
 use junie_tui::{
-    Cx, Family, Field, FieldError, Id, Panel, PanelKind, Part, Rect, Response, StateFlags,
-    TextAction, TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate,
+    Cx, Family, Field, FieldError, Id, Panel, PanelKind, Part, Rect, StateFlags, TextAction,
+    TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const BODY: Id = id!("textareas.body");
 const NOTES: Id = id!("textareas.notes");
@@ -200,7 +200,7 @@ impl Page for TextAreasPage {
         "Text areas"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let edit = body_area().update(cx, &mut self.state, &mut self.value);
         if let Some(action) = edit.action_ref() {
             self.last = match action {
@@ -210,7 +210,7 @@ impl Page for TextAreasPage {
                 TextAction::MoveNext | TextAction::MovePrev => "focus moved",
             };
         }
-        edit.erase()
+        edit.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

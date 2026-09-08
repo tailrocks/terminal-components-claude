@@ -9,7 +9,7 @@ use junie_tui::{
     Variant, id, layout, width,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const RUN: Id = id!("taskrunner.run");
 const CANCEL: Id = id!("taskrunner.cancel");
@@ -340,7 +340,7 @@ impl Page for TaskRunnerPage {
         }
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
         let run = run_button(self.running).update(cx);
         if run.activated() {
@@ -385,7 +385,7 @@ impl Page for TaskRunnerPage {
             }
             result |= dialog.erase();
         }
-        result
+        result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

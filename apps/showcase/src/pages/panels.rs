@@ -9,7 +9,7 @@ use junie_tui::{
 
 use crate::data::{PROSE, log_lines};
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const TITLED_CARD: Id = id!("panels.titled_card");
 const UNTITLED_CARD: Id = id!("panels.untitled_card");
@@ -419,7 +419,7 @@ impl Page for PanelsPage {
         "Panels"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         response |= prose_view()
             .update(cx, &mut self.prose_state, &self.prose)
@@ -427,7 +427,7 @@ impl Page for PanelsPage {
         let log = log_view_lines(&self.log);
         response |= log_view().update(cx, &mut self.log_state, &log).erase();
         response |= nested_list().update(cx, &mut self.nested, TARGETS).erase();
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

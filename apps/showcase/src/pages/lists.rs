@@ -8,7 +8,7 @@ use junie_tui::{
 
 use crate::data::LANGUAGES;
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
@@ -217,7 +217,7 @@ impl Page for ListsPage {
         "Lists"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let one = single_list().update(cx, &mut self.single, LANGUAGES);
         if let Some(ListAction::Chose(key) | ListAction::Activated(key)) = one.action_ref() {
@@ -242,7 +242,7 @@ impl Page for ListsPage {
             })
             .update(cx, &mut self.empty, &[] as &[&str]);
         response |= empty.erase();
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

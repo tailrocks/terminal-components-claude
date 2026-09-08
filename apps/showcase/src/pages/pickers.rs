@@ -8,7 +8,7 @@ use junie_tui::{
     width,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const OPEN: Id = id!("pickers.open");
 const PICKER: Id = id!("pickers.layer");
@@ -307,7 +307,7 @@ impl Page for PickersPage {
         "Pickers"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
         if cx.is_open(PICKER) {
             self.open = true;
@@ -344,7 +344,7 @@ impl Page for PickersPage {
             }
         }
         result |= action.erase();
-        result
+        result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

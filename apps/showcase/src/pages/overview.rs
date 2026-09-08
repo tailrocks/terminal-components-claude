@@ -4,11 +4,11 @@ use junie_tui::author::PaintStyle;
 use junie_tui::{
     Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, HelpOverlay, HelpOverlayState,
     HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Panel, PanelKind, Part,
-    Props, PropsList, PropsRow, PropsState, Rect, Response, Role, StateFlags, StylePatch, Surface,
-    TooSmall, Ui, Variant, id, layout, width, wrap,
+    Props, PropsList, PropsRow, PropsState, Rect, Role, StateFlags, StylePatch, Surface, TooSmall,
+    Ui, Variant, id, layout, width, wrap,
 };
 
-use super::{Page, author::AuthorBadge, frame};
+use super::{Page, PageUpdate, author::AuthorBadge, frame};
 
 const BRAND: Id = id!("overview.brand");
 const AUTHOR: Id = id!("overview.author");
@@ -175,7 +175,7 @@ impl Page for OverviewPage {
         "Overview"
     }
 
-    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> PageUpdate {
         let mut response = brand().update(cx).erase();
         response |= self.author.update(cx);
         let hints = inventory_hints();
@@ -201,7 +201,7 @@ impl Page for OverviewPage {
         let _ = HintBar::new(HINT_BAR, &hints);
         let _ = derived_hint_bar();
         let _ = TooSmall::new(TOO_SMALL, "showcase");
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

@@ -4,13 +4,15 @@
 //! The matrix uses the public `Ui::reference` scope around the same Button
 //! props used by the live controls, so captures cannot drift from behavior.
 
+use std::time::Duration;
+
 use junie_tui::{
-    Button, Constraints, Cx, Family, FrameRead, Id, Panel, PanelKind, Part, PartRef, Rect,
+    Button, Constraints, Cx, Family, FrameRead, Id, Moment, Panel, PanelKind, Part, PartRef, Rect,
     ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, id,
     layout,
 };
 
-use super::{Page, frame};
+use super::{Page, PageStatus, PageUpdate, frame};
 
 const BUTTONS: Id = id!("buttons");
 const PLAYGROUND_PANEL: Id = id!("buttons.playground");
@@ -117,7 +119,7 @@ pub(crate) struct ButtonsPage {
     checked: [Option<bool>; 9],
     clicks: u32,
     last: Option<String>,
-    busy_frames: u32,
+    busy_until: Option<Moment>,
 }
 
 impl ButtonsPage {
@@ -126,7 +128,7 @@ impl ButtonsPage {
             checked: [None; 9],
             clicks: 0,
             last: None,
-            busy_frames: 0,
+            busy_until: None,
         };
         for (slot, (_, _, _, checked)) in page.checked.iter_mut().zip(SPECS) {
             *slot = checked;
@@ -146,17 +148,15 @@ impl ButtonsPage {
         if let Some(checked) = self.checked.get(index).copied().flatten() {
             button = button.checked(checked);
         }
-        if index == LONG_JOB && self.busy_frames > 0 {
+        if index == LONG_JOB && self.busy_until.is_some() {
             button = button.status(Status::Busy);
         }
         Some(button)
     }
 
-    fn activated(&mut self, index: usize) {
+    fn activated(&mut self, index: usize, now: Moment) -> Option<PageStatus> {
         self.clicks = self.clicks.saturating_add(1);
-        let Some((label, _, _, _)) = SPECS.get(index).copied() else {
-            return;
-        };
+        let (label, _, _, _) = SPECS.get(index).copied()?;
         if let Some(value) = self.checked.get(index).copied().flatten() {
             if let Some(slot) = self.checked.get_mut(index) {
                 *slot = Some(!value);
@@ -166,8 +166,10 @@ impl ButtonsPage {
             self.last = Some(format!("{label} ✓"));
         }
         if index == LONG_JOB {
-            self.busy_frames = 28;
-            self.last = Some("Working…".to_owned());
+            self.busy_until = Some(now.saturating_add(Duration::from_millis(2_200)));
+            Some(PageStatus("Working…".to_owned()))
+        } else {
+            self.last.clone().map(PageStatus)
         }
     }
 }
@@ -183,24 +185,31 @@ impl Page for ButtonsPage {
         "Buttons"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if self.busy_frames > 0 {
-            self.busy_frames = self.busy_frames.saturating_sub(1);
-            if self.busy_frames == 0 {
-                self.last = Some("Long job finished ✓".to_owned());
-            }
-        }
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
+        let mut status = None;
+        if cx.update_cause() == junie_tui::UpdateCause::Tick
+            && self.busy_until.is_some_and(|deadline| cx.now() >= deadline)
+        {
+            self.busy_until = None;
+            status = Some(PageStatus("Long job finished ✓".to_owned()));
+            response = Response::changed();
+        }
         for index in 0..SPECS.len() {
             if self
                 .button(index)
                 .is_some_and(|button| button.update(cx).activated())
             {
-                self.activated(index);
+                status = self.activated(index, cx.now());
                 response = Response::changed();
             }
         }
-        response
+        if cx.top_layer() == junie_tui::LayerId::PAGE
+            && let Some(deadline) = self.busy_until
+        {
+            cx.request_repaint_at(deadline);
+        }
+        PageUpdate { response, status }
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -298,7 +307,7 @@ impl ButtonsPage {
                     if self.checked.get(index).copied().flatten() == Some(true) {
                         flags |= StateFlags::CHECKED | StateFlags::SELECTED;
                     }
-                    if self.busy_frames > 0 && index == LONG_JOB {
+                    if self.busy_until.is_some() && index == LONG_JOB {
                         flags |= StateFlags::BUSY;
                     }
                     button.draw(ui, button_area);

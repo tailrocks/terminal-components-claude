@@ -8,7 +8,7 @@ use junie_tui::{
 
 use crate::data::LANGUAGES;
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const CHIPS: Id = id!("chips.filters");
 const SELECT: Id = id!("chips.language");
@@ -261,7 +261,7 @@ impl Page for ChipsPage {
         "Chips & selects"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
         let chips = chips().update(cx, &mut self.chip_state, FILTERS);
         if let Some(action) = chips.action_ref() {
@@ -281,7 +281,7 @@ impl Page for ChipsPage {
             self.last = "language selected";
         }
         result |= select.erase();
-        result
+        result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

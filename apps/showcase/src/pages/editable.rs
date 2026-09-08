@@ -2,13 +2,13 @@
 
 use junie_tui::{
     Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
-    GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Response, Role,
-    RowDecor, RowTotal, StylePatch, Ui, id,
+    GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role, RowDecor,
+    RowTotal, StylePatch, Ui, id,
 };
 
 use crate::data::{TASKS, TaskRow, TaskStatus};
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const TABLE: Id = id!("editable.table");
 const TASKS_PANEL: Id = id!("editable.tasks.panel");
@@ -480,13 +480,13 @@ impl Page for EditablePage {
         "Editable tables"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let was_editing = self.state.is_editing();
         let action = table().update_editable(cx, &mut self.state, &mut self.model);
         if was_editing && !self.state.is_editing() {
             self.edits = self.edits.saturating_add(1);
         }
-        action.erase()
+        action.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

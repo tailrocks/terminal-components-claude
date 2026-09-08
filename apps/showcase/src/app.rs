@@ -3,7 +3,7 @@
 use junie_tui::author::PaintStyle;
 use junie_tui::{
     ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
-    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, NavList, NavListAction,
+    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, NavList, NavListAction,
     NavListState, Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags,
     Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
 };
@@ -11,12 +11,12 @@ use junie_tui::{
 use crate::pages::forms::SUBMIT as FORM_SUBMIT;
 use crate::pages::taskrunner::RUN_COMMAND;
 use crate::pages::{
-    Page, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage, dialogs::DialogsPage,
-    editable::EditablePage, editor::EditorPage, forms::FormsPage, grid::GridPage,
-    inputs::InputsPage, lists::ListsPage, overview::OverviewPage, panels::PanelsPage,
-    pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage, settings::SettingsPage,
-    sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage, terminal::TerminalPage,
-    textareas::TextAreasPage, trees::TreesPage,
+    Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
+    dialogs::DialogsPage, editable::EditablePage, editor::EditorPage, forms::FormsPage,
+    grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
+    panels::PanelsPage, pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage,
+    settings::SettingsPage, sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage,
+    terminal::TerminalPage, textareas::TextAreasPage, trees::TreesPage,
 };
 
 const NAV: Id = id!("navigation");
@@ -481,6 +481,7 @@ pub struct App {
     keymap: KeyMap,
     inspector: bool,
     quit: bool,
+    status: Option<(PageStatus, Moment)>,
 }
 
 impl core::fmt::Debug for App {
@@ -494,6 +495,7 @@ impl core::fmt::Debug for App {
             .field("keymap", &self.keymap)
             .field("inspector", &self.inspector)
             .field("quit", &self.quit)
+            .field("status", &self.status.as_ref().map(|(_, since)| since))
             .finish()
     }
 }
@@ -519,6 +521,7 @@ impl App {
             keymap: keymap(),
             inspector: false,
             quit: false,
+            status: None,
         }
     }
 
@@ -997,7 +1000,7 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
-fn paint_footer(ui: &mut Ui<'_>, area: Rect, nav_focused: bool) {
+fn paint_footer(ui: &mut Ui<'_>, area: Rect, nav_focused: bool, status: Option<&str>) {
     if area.is_empty() {
         return;
     }
@@ -1026,15 +1029,41 @@ fn paint_footer(ui: &mut Ui<'_>, area: Rect, nav_focused: bool) {
         &[("Tab", "Next"), ("Esc", "Navigation"), ("q", "Quit")]
     };
     let mut x = area.x.saturating_add(1);
+    let reserved = status.map_or(14, |message| width(message).saturating_add(3));
     for (key, action) in hints {
         let key_width = width(key);
         let action_width = width(action);
+        let hint_width = key_width.saturating_add(action_width).saturating_add(3);
+        if x.saturating_add(hint_width).saturating_add(reserved) > area.right() {
+            break;
+        }
         ui.paint_str(Rect::new(x, area.y, key_width, 1), key, key_style);
         x = x.saturating_add(key_width.saturating_add(1));
         ui.paint_str(Rect::new(x, area.y, action_width, 1), action, action_style);
         x = x.saturating_add(action_width.saturating_add(2));
         if x >= area.right() {
             break;
+        }
+    }
+    if let Some(message) = status {
+        let message_width = width(message);
+        if area.right() > message_width.saturating_add(1) {
+            let style = canvas.patch(
+                ui.paint_patch(
+                    &junie_tui::StylePatch::new()
+                        .set_fg(junie_tui::Role::Fg(junie_tui::FgStep::Secondary)),
+                ),
+            );
+            ui.paint_str(
+                Rect::new(
+                    area.right().saturating_sub(message_width).saturating_sub(1),
+                    area.y,
+                    message_width,
+                    1,
+                ),
+                message,
+                style,
+            );
         }
     }
 }
@@ -1051,6 +1080,14 @@ impl TuiApp for App {
             cx.focus(NAV);
         }
         let mut response = Response::ignored();
+        if cx.update_cause() == junie_tui::UpdateCause::Tick
+            && self.status.as_ref().is_some_and(|(_, since)| {
+                cx.now().saturating_duration_since(*since) > std::time::Duration::from_secs(4)
+            })
+        {
+            self.status = None;
+            response = response.repaint();
+        }
         response |= shell_brand().update(cx).erase();
         response |= shell_status().update(cx).erase();
         // These stateless shell props have no update phase of their own, but
@@ -1122,10 +1159,26 @@ impl TuiApp for App {
                 }
                 NavListAction::Moved(_) => {}
             });
-        if let Some(active) = self.pages.get_mut(self.page.index()) {
-            response |= active.update(cx);
+        // The reference global help dialog suspends page ticks, not status
+        // expiry. Hidden pages likewise keep domain deadlines without
+        // publishing completion until a later eligible page tick.
+        if !(cx.update_cause() == junie_tui::UpdateCause::Tick && cx.is_open(HELP))
+            && let Some(active) = self.pages.get_mut(self.page.index())
+        {
+            let update = active.update(cx);
+            response |= update.response;
+            if let Some(status) = update.status {
+                self.status = Some((status, cx.now()));
+                response = response.repaint();
+            }
         }
         self.update_help(cx, &mut response);
+        if let Some((_, since)) = &self.status {
+            let deadline = since
+                .saturating_add(std::time::Duration::from_secs(4))
+                .saturating_add(std::time::Duration::from_nanos(1));
+            cx.request_repaint_at(deadline);
+        }
         response
     }
 
@@ -1168,6 +1221,7 @@ impl TuiApp for App {
             ui,
             shell.footer,
             ui.state(NAV).contains(StateFlags::FOCUSED),
+            self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );
         ui.layer(HELP, |ui, area| {
             Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {

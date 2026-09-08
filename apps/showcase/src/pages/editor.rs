@@ -4,11 +4,11 @@ use std::ops::Range;
 
 use junie_tui::{
     CodeAction, CodeEditor, CodeEditorState, Completion, CompletionState, Cx, DiffView,
-    DiffViewState, Id, Item, ItemKey, Panel, Part, Props, Rect, Response, StateFlags, Surface,
-    SyntaxRole, TabBehavior, Ui, Variant, id, layout,
+    DiffViewState, Id, Item, ItemKey, Panel, Part, Props, Rect, StateFlags, Surface, SyntaxRole,
+    TabBehavior, Ui, Variant, id, layout,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const EDITOR: Id = id!("editor.code");
 const EDITOR_PANEL: Id = id!("editor.code.panel");
@@ -202,7 +202,7 @@ impl Page for EditorPage {
         "Code editor"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let editor_response = editor().update(cx, &mut self.state);
         if let Some(action) = editor_response.action_ref() {
             self.last = match action {
@@ -217,7 +217,7 @@ impl Page for EditorPage {
             .update_for(EDITOR, cx, &mut self.completion_state, SUGGESTIONS)
             .erase();
         result |= diff().update(cx, &mut self.diff_state).erase();
-        result.erase()
+        result.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

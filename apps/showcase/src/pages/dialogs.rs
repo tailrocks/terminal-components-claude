@@ -5,7 +5,7 @@ use junie_tui::{
     Response, Ui, Variant, id, layout,
 };
 
-use super::{Page, frame, lines};
+use super::{Page, PageUpdate, frame, lines};
 
 const OPEN_CONFIRM: Id = id!("dialogs.confirm.open");
 const OPEN_PROMPT: Id = id!("dialogs.prompt.open");
@@ -102,7 +102,7 @@ impl Page for DialogsPage {
         "Dialogs"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let confirm_button = confirm_button().update(cx);
         if confirm_button.activated() && !cx.is_open(CONFIRM) {
@@ -169,7 +169,7 @@ impl Page for DialogsPage {
             }
         }
         response |= action.erase();
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

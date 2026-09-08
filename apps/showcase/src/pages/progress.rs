@@ -3,11 +3,11 @@
 use std::time::Duration;
 
 use junie_tui::{
-    Button, Constraints, Cx, Id, Panel, ProgressBar, Rect, Response, Spinner, Status, Ui, Variant,
-    id, layout,
+    Button, Constraints, Cx, Id, Moment, Panel, ProgressBar, Rect, Response, Spinner, Status, Ui,
+    Variant, id, layout,
 };
 
-use super::{Page, frame};
+use super::{Page, PageStatus, PageUpdate, frame};
 
 const LIVE_PANEL: Id = id!("progress.live.panel");
 const STATES_PANEL: Id = id!("progress.states.panel");
@@ -24,16 +24,22 @@ fn restart_button() -> Button<'static> {
     Button::new(RESTART, "Restart").variant(Variant::SECONDARY)
 }
 
-fn pause_button() -> Button<'static> {
-    Button::new(PAUSE, "Pause").variant(Variant::SECONDARY)
+fn pause_button(paused: bool) -> Button<'static> {
+    Button::new(PAUSE, if paused { "Resume" } else { "Pause" }).variant(Variant::SECONDARY)
 }
 
-fn build_bar(ratio: f64, frame: usize, _paused: bool) -> ProgressBar<'static> {
-    ProgressBar::new(BUILD)
+fn build_bar(ratio: f64, frame: usize, paused: bool) -> ProgressBar<'static> {
+    let bar = ProgressBar::new(BUILD)
         .label("Building")
         .ratio(ratio)
         .status(Status::Ready)
-        .frame(frame)
+        .done(ratio >= 1.0)
+        .frame(frame);
+    if paused && ratio < 1.0 {
+        bar.icon(junie_tui::GlyphRole::ProgressPaused)
+    } else {
+        bar
+    }
 }
 
 fn resolving_bar(frame: usize) -> ProgressBar<'static> {
@@ -57,14 +63,16 @@ pub(crate) struct ProgressPage {
     frame: usize,
     build: f64,
     paused: bool,
+    next_tick: Option<Moment>,
 }
 
 impl ProgressPage {
     pub(crate) fn new() -> Self {
         Self {
             frame: 0,
-            build: 0.05,
+            build: 0.0,
             paused: false,
+            next_tick: None,
         }
     }
 }
@@ -80,32 +88,44 @@ impl Page for ProgressPage {
         "Progress"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
+        let mut status = None;
         let restart = restart_button().update(cx);
         if restart.activated() {
             self.build = 0.0;
-            self.paused = false;
         }
         response |= restart.erase();
-        let pause = pause_button().update(cx);
+        let pause = pause_button(self.paused).update(cx);
         if pause.activated() {
             self.paused = !self.paused;
         }
         response |= pause.erase();
 
-        // The first frame is the historical 5% capture. Subsequent ticks keep
-        // the old interaction proof used by the showcase tests.
-        if self.frame > 0 && !self.paused {
-            self.build = if self.build < 0.72 {
-                0.72
-            } else {
-                (self.build + 0.006).min(1.0)
-            };
+        let now = cx.now();
+        let interval = Duration::from_millis(80);
+        let deadline = *self
+            .next_tick
+            .get_or_insert_with(|| now.saturating_add(interval));
+        if cx.update_cause() == junie_tui::UpdateCause::Tick && now >= deadline {
+            // Holla coalesces a delayed wake into one eligible tick. Hidden
+            // time never becomes a loop replaying missed progress steps.
+            if !self.paused && self.build < 1.0 {
+                self.build = (self.build + 0.006).min(1.0);
+                if self.build >= 1.0 {
+                    status = Some(PageStatus("Build finished ✓".to_owned()));
+                }
+            }
+            self.frame = self.frame.wrapping_add(1);
+            self.next_tick = Some(now.saturating_add(interval));
+            response = response.repaint();
         }
-        self.frame = self.frame.wrapping_add(1);
-        cx.request_repaint_after(Duration::from_millis(80));
-        response.repaint()
+        if cx.top_layer() == junie_tui::LayerId::PAGE
+            && let Some(deadline) = self.next_tick
+        {
+            cx.request_repaint_at(deadline);
+        }
+        PageUpdate { response, status }
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -115,7 +135,6 @@ impl Page for ProgressPage {
             self.title(),
             "Determinate, indeterminate, compact activity, terminal states",
             |ui, body| {
-                let compact_ratio = if body.width <= 60 { 0.05 } else { self.build };
                 let regions = layout::rows(
                     body,
                     &[
@@ -129,7 +148,7 @@ impl Page for ProgressPage {
                     .title("Live")
                     .meta("ticks at 80 ms")
                     .draw(ui, live, |ui, inner| {
-                        self.draw_live(ui, inner, compact_ratio);
+                        self.draw_live(ui, inner, self.build);
                     });
 
                 if let Some(states) = regions.get(2).copied() {
@@ -206,7 +225,7 @@ impl ProgressPage {
             },
         );
         let restart = restart_button();
-        let pause = pause_button();
+        let pause = pause_button(self.paused);
         let widths = [
             restart
                 .measure(ui, Constraints::loose(inner.width, 1))
@@ -228,32 +247,6 @@ impl ProgressPage {
         }
         if let Some(rect) = rects.get(1).copied() {
             pause.draw(ui, rect);
-        }
-        if inner.width < 70 {
-            let meta = Rect {
-                x: inner.right().saturating_sub(15),
-                y: inner.y.saturating_sub(2),
-                width: 15,
-                height: 1,
-            };
-            ui.fill(meta, ui.surface_style());
-            let _ = ui.paint_str(meta, "ticks at 80 ms", ui.surface_style());
-            let visible = [
-                (0, "Building    ━━──────────────────────────────────   5%"),
-                (2, "Resolving   ─━━━━━━━━──────────────────────────────────"),
-                (4, "⠏ Waiting for the test runner"),
-                (5, "⠏ 3 of 12 files"),
-                (7, "▎Restart   ▎Pause"),
-            ];
-            for (offset, line) in visible {
-                let row = Rect {
-                    y: inner.y.saturating_add(offset),
-                    height: 1,
-                    ..inner
-                };
-                ui.fill(row, ui.surface_style());
-                let _ = ui.paint_str(row, line, ui.surface_style());
-            }
         }
     }
 }

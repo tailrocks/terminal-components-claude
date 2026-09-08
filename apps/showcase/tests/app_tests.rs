@@ -244,13 +244,18 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
         }
         PageId::Progress => {
             let before = h.snapshot().digest();
-            h.ticks(1);
+            let _ = h.advance(std::time::Duration::from_millis(80));
             assert_ne!(
                 before,
                 h.snapshot().digest(),
-                "progress tick did not repaint"
+                "elapsed progress deadline did not repaint"
             );
-            assert!(h.text().contains("72%") || h.text().contains("73%"));
+            let text = h.text();
+            let building = require(
+                text.lines().find(|line| line.contains("Building")),
+                "live progress bar",
+            );
+            assert!(building.trim_end().ends_with(" 1%"));
         }
         PageId::Scrolling => {
             let (x, y) = require(h.find("Row 001"), "scroll list row");

@@ -6,7 +6,7 @@ use junie_tui::{
     layout, truncate,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const NAME: Id = id!("inputs.name");
 const BRANCH: Id = id!("inputs.branch");
@@ -180,7 +180,7 @@ impl Page for InputsPage {
         "Inputs"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let _ = fields_panel();
         let name = name_input().update(cx, &mut self.name_state, &mut self.name);
@@ -203,7 +203,7 @@ impl Page for InputsPage {
             };
         }
         response |= branch.erase();
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {

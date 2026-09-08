@@ -2,11 +2,11 @@
 
 use junie_tui::author::PaintStyle;
 use junie_tui::{
-    Brand, Cx, Id, Modifier, Part, Response, Role, StateFlags, Status, StatusBar, StatusItem,
-    Surface, Ui, Variant, id, width,
+    Brand, Cx, Id, Modifier, Part, Role, StateFlags, Status, StatusBar, StatusItem, Surface, Ui,
+    Variant, id, width,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const BRAND: Id = id!("chrome.brand");
 const BAR: Id = id!("chrome.status");
@@ -240,13 +240,13 @@ impl Page for ChromePage {
         "Chrome"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let brand = brand().update(cx);
         if brand.activated() {
             self.brand_clicks = self.brand_clicks.saturating_add(1);
         }
         let strip = status_bar(&CENTER, self.frame).update(cx);
-        brand.erase() | strip.erase()
+        (brand.erase() | strip.erase()).into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {

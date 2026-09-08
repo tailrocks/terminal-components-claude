@@ -2,13 +2,13 @@
 
 use junie_tui::{
     Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid, GridAction, GridModel,
-    GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Response, Role, RowDecor,
-    RowTotal, SortDir, StateFlags, StylePatch, Track, Ui, Variant, id, layout,
+    GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Role, RowDecor, RowTotal,
+    SortDir, StateFlags, StylePatch, Track, Ui, Variant, id, layout,
 };
 
 use crate::data::{TASKS, TaskRow, TaskStatus};
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const TABLE: Id = id!("tables.tasks");
 const CHECKS: Id = id!("tables.checks");
@@ -461,7 +461,7 @@ impl Page for TablesPage {
         "Tables"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let action = table().update(cx, &mut self.state, &self.model);
         if let Some(GridAction::Sort(key, direction)) = action.action_ref() {
             self.model.sort(*key, *direction);
@@ -485,7 +485,7 @@ impl Page for TablesPage {
             // The historical page only changes the sort label for a sort;
             // cursor motion leaves the current header status intact.
         }
-        action.erase()
+        action.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
