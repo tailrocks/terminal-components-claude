@@ -37,6 +37,7 @@ const SCOPE: ActionKey = ActionKey::application("holla.scope");
 const PREVIEW: ActionKey = ActionKey::application("holla.preview");
 const ACTIONS: ActionKey = ActionKey::application("holla.actions");
 const TOGGLE: ActionKey = ActionKey::application("holla.plan-toggle");
+const CONTINUE: ActionKey = ActionKey::application("holla.plan-continue");
 const OPEN_MENU: ActionKey = ActionKey::application("holla.open-menu");
 const RESULTS: ActionKey = ActionKey::application("holla.results");
 const QUERY_ESCAPE: ActionKey = ActionKey::application("holla.query-escape");
@@ -207,7 +208,6 @@ impl App {
             }
         }
         keymap = keymap
-            .bind(KeyPhase::Capture, Chord::key(KeyCode::Char(' ')), TOGGLE)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), RESULTS)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Up), PREVIOUS)
             .bind(
@@ -278,6 +278,24 @@ impl App {
             }
         }
     }
+    fn next_activity(&mut self, cx: &mut Cx<'_>) {
+        let ordered = activity::ordered(&self.world);
+        let next = (self.route == Route::Activity)
+            .then(|| {
+                ordered
+                    .iter()
+                    .position(|activity| Some(activity.id) == self.activities.current_id())
+            })
+            .flatten()
+            .and_then(|index| ordered.get(index.saturating_add(1)))
+            .or_else(|| ordered.first())
+            .map(|activity| activity.id);
+        if let Some(id) = next {
+            self.activities.show(id);
+            self.route = Route::Activity;
+            cx.focus(activity::output_id(id));
+        }
+    }
     fn command(&mut self, command: ActionKey, cx: &mut Cx<'_>) {
         match command {
             HELP => self.open_dialog(dialogs::Intent::Help, cx),
@@ -291,24 +309,7 @@ impl App {
             OPEN_MENU => {
                 let _ = MenuBar::new(MENU, MENUS).open_menu(cx, &mut self.menu, 0);
             }
-            NEXT_ACTIVITY => {
-                let ordered = activity::ordered(&self.world);
-                let next = (self.route == Route::Activity)
-                    .then(|| {
-                        ordered
-                            .iter()
-                            .position(|activity| Some(activity.id) == self.activities.current_id())
-                    })
-                    .flatten()
-                    .and_then(|index| ordered.get(index.saturating_add(1)))
-                    .or_else(|| ordered.first())
-                    .map(|activity| activity.id);
-                if let Some(id) = next {
-                    self.activities.show(id);
-                    self.route = Route::Activity;
-                    cx.focus(activity::output_id(id));
-                }
-            }
+            NEXT_ACTIVITY => self.next_activity(cx),
             SCOPE if self.route == Route::Home => {
                 self.home.scope = self.home.scope.map_or_else(
                     || Scope::ORDER.first().copied(),
@@ -348,10 +349,20 @@ impl App {
                     self.overlay = Some(Overlay::Actions(picker));
                 }
             }
-            TOGGLE if self.route == Route::Plan => {
+            TOGGLE
+                if self.route == Route::Plan
+                    && cx
+                        .state(plan::STEPS)
+                        .contains(junie_tui::StateFlags::FOCUSED) =>
+            {
                 if let Some(plan) = &mut self.plan {
                     let message = plan.toggle_selected();
                     self.set_status(message);
+                }
+            }
+            CONTINUE if self.route == Route::Plan => {
+                if let Some(plan) = &self.plan {
+                    self.plan_event(plan.continuation(), cx);
                 }
             }
             RESULTS if self.route == Route::Home => self.home.focus_first(&self.world, cx),
@@ -685,6 +696,19 @@ impl App {
         synchronized
     }
     fn refresh_query_bindings(&mut self, cx: &Cx<'_>) {
+        let enter = Chord::key(KeyCode::Enter);
+        let space = Chord::key(KeyCode::Char(' '));
+        self.keymap.remove(KeyPhase::Bubble, enter);
+        self.keymap.remove(KeyPhase::Capture, space);
+        if self.route == Route::Plan && self.overlay.is_none() && !self.menu.is_open() {
+            self.keymap.add(KeyPhase::Bubble, enter, CONTINUE);
+            if cx
+                .state(plan::STEPS)
+                .contains(junie_tui::StateFlags::FOCUSED)
+            {
+                self.keymap.add(KeyPhase::Capture, space, TOGGLE);
+            }
+        }
         let quit = Chord::key(KeyCode::Char('q'));
         self.keymap.remove(KeyPhase::Capture, quit);
         if too_small(cx.viewport()) {
@@ -717,6 +741,18 @@ impl App {
     fn set_status(&mut self, message: String) {
         self.status = Some(message);
         self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
+    }
+    fn plan_event(&mut self, event: plan::Event, cx: &mut Cx<'_>) {
+        match event {
+            plan::Event::Notice(message) => self.set_status(message),
+            plan::Event::Gate => {
+                if let Some(plan) = &self.plan {
+                    let gate = PlanGate::new(plan.plan());
+                    gate.open(cx);
+                    self.overlay = Some(Overlay::Gate(gate));
+                }
+            }
+        }
     }
     fn update_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         // Closed overlays remain scrubbed until their final focus callbacks run.
@@ -807,17 +843,11 @@ impl App {
                     self.destination(destination, cx);
                 }
             }
-            Route::Plan => match plan_event {
-                Some(plan::Event::Notice(message)) => self.set_status(message),
-                Some(plan::Event::Gate) => {
-                    if let Some(plan) = &self.plan {
-                        let gate = PlanGate::new(plan.plan());
-                        gate.open(cx);
-                        self.overlay = Some(Overlay::Gate(gate));
-                    }
+            Route::Plan => {
+                if let Some(event) = plan_event {
+                    self.plan_event(event, cx);
                 }
-                None => {}
-            },
+            }
             Route::Activity => {}
         }
         controls | menu.erase() | brand.erase() | header.erase() | strip
@@ -852,7 +882,30 @@ impl junie_tui::App for App {
                 clock_response = Response::changed();
             }
         }
+        let plan_key = self.route == Route::Plan
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+            && !too_small(cx.viewport())
+            && cx.activation_key().is_some();
         let response = self.update_controls(cx);
+        if plan_key && response.is_consumed() {
+            if matches!(self.overlay, Some(Overlay::Gate(_))) {
+                cx.flash_activation(
+                    junie_tui::Dialog::new(crate::screens::plan_gate::GATE).input_id(),
+                );
+            } else if self.overlay.is_none()
+                && !self.menu.is_open()
+                && cx
+                    .state(plan::STEPS)
+                    .contains(junie_tui::StateFlags::FOCUSED)
+                && let Some(step) = self.plan.as_ref().and_then(PlanState::selected)
+            {
+                cx.flash_activation_part(
+                    plan::STEPS,
+                    PartRef::item(Part::ROW, ItemKey::text(&step.id)),
+                );
+            }
+        }
         self.refresh_query_bindings(cx);
         if self.motion != Motion::Paused
             && let Some(anchor) = self.last_step_at
@@ -983,8 +1036,9 @@ mod tests {
             let _ = harness.key(KeyCode::Char(character));
             assert!(harness.text().contains(title));
             assert_eq!(harness.app().home.query(), "");
-            let _ = harness.type_str("q?0 text");
+            let _ = harness.type_str("q?0text");
             assert_eq!(harness.app().home.query(), "");
+            assert!(harness.app().overlay.is_some());
             let _ = harness.key(KeyCode::Esc);
             assert!(harness.app().overlay.is_none());
             let _ = harness.paste("q?");
@@ -1176,6 +1230,122 @@ mod tests {
                 harness.diagnostics()
             );
         }
+    }
+    #[test]
+    fn plan_space_is_focus_bound_and_preserves_chrome_activation() {
+        let mut harness = app(Scenario::DockerCleanup);
+        let _ = harness.type_str("docker system prune");
+        let _ = harness.key(KeyCode::Enter);
+        let index = harness
+            .app()
+            .plan
+            .as_ref()
+            .unwrap()
+            .plan()
+            .steps()
+            .iter()
+            .position(|step| step.optional)
+            .unwrap();
+        for _ in 0..index {
+            let _ = harness.key(KeyCode::Down);
+        }
+        let included = harness.app().plan.as_ref().unwrap().plan().included_count();
+        assert!(harness.tab_to(MENU));
+        let _ = harness.key(KeyCode::Char(' '));
+        assert!(harness.app().menu.is_open());
+        assert_eq!(
+            harness.app().plan.as_ref().unwrap().plan().included_count(),
+            included
+        );
+        let _ = harness.key(KeyCode::Esc);
+        assert!(harness.tab_to(MENU));
+        let _ = harness.key(KeyCode::Enter);
+        assert!(harness.app().menu.is_open());
+        let _ = harness.key(KeyCode::Esc);
+        assert!(harness.tab_to(plan::STEPS));
+        let _ = harness.key(KeyCode::Char(' '));
+        assert!(harness.app().plan.as_ref().unwrap().plan().included_count() < included);
+        assert!(harness.app().overlay.is_none());
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
+    fn plan_keyboard_feedback_uses_post_request_owner_and_double_click_cannot_open_gate() {
+        let mut harness = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Full, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = harness.type_str("docker system prune");
+        let _ = harness.key(KeyCode::Enter);
+        assert!(
+            harness.activation_feedback().is_none(),
+            "Home query submission does not flash"
+        );
+        let step = harness
+            .app()
+            .plan
+            .as_ref()
+            .unwrap()
+            .selected()
+            .unwrap()
+            .id
+            .clone();
+        let part = PartRef::item(Part::ROW, ItemKey::text(&step));
+        let _ = harness.click_part(plan::STEPS, part);
+        let _ = harness.click_part(plan::STEPS, part);
+        assert!(harness.app().overlay.is_none());
+        let _ = harness.advance(std::time::Duration::from_millis(80));
+        assert_eq!(
+            harness.activation_feedback().unwrap().remaining,
+            std::time::Duration::from_millis(60)
+        );
+        let _ = harness.key(KeyCode::Char(' '));
+        let feedback = harness.activation_feedback().unwrap();
+        assert_eq!((feedback.owner, feedback.part), (plan::STEPS, part));
+        assert_eq!(feedback.remaining, std::time::Duration::from_millis(140));
+        let _ = harness.key(KeyCode::Enter);
+        let gate = Dialog::new(crate::screens::plan_gate::GATE);
+        assert_eq!(
+            harness.activation_feedback().unwrap().owner,
+            gate.input_id()
+        );
+        assert_eq!(harness.focus(), Some(gate.input_id()));
+        let _ = harness.advance(std::time::Duration::from_millis(80));
+        let _ = harness.advance(std::time::Duration::from_millis(80));
+        assert!(harness.activation_feedback().is_none());
+        let phrase = harness
+            .app()
+            .plan
+            .as_ref()
+            .unwrap()
+            .plan()
+            .phrase()
+            .to_owned();
+        let _ = harness.type_str(&phrase);
+        let _ = harness.key(KeyCode::Enter);
+        assert_eq!(harness.app().effect_revision(), 0, "editor Enter only arms");
+        assert!(
+            harness.activation_feedback().is_none(),
+            "modal editing has no keyboard flash"
+        );
+        assert!(harness.tab_to(gate.action_id(1)));
+        let _ = harness.key(KeyCode::Char(' '));
+        assert_eq!(harness.app().effect_revision(), 1);
+        assert!(harness.app().plan.as_ref().unwrap().plan().ran());
+        assert!(
+            harness.activation_feedback().is_none(),
+            "modal confirmation preserves source feedback policy"
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
     }
     #[test]
     fn every_real_app_scenario_renders_purely_with_persistent_identity() {

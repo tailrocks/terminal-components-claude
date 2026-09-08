@@ -70,20 +70,25 @@ impl PlanState {
             .toggle(index)
             .unwrap_or_else(|error| error.to_string())
     }
+    pub(crate) fn continuation(&self) -> Event {
+        if self.plan().ran() {
+            Event::Notice("Plan already ran · Esc returns home".into())
+        } else if self.plan().included_count() == 0 {
+            Event::Notice("Nothing included · every step is excluded".into())
+        } else {
+            Event::Gate
+        }
+    }
     pub(crate) fn update(&mut self, cx: &mut Cx<'_>) -> (Response<()>, Option<Event>) {
         let rows = rows(self.review.plan());
         let mut response = List::new(STEPS)
             .key(key)
             .select_mode(SelectMode::None)
             .update(cx, &mut self.selection, &rows);
-        let event = if matches!(response.take_action(), Some(ListAction::Activated(_))) {
-            Some(if self.plan().ran() {
-                Event::Notice("Plan already ran · Esc returns home".into())
-            } else if self.plan().included_count() == 0 {
-                Event::Notice("Nothing included · every step is excluded".into())
-            } else {
-                Event::Gate
-            })
+        let event = if matches!(response.take_action(), Some(ListAction::Activated(_)))
+            && cx.activation_key() == Some(junie_tui::ActivationKey::Enter)
+        {
+            Some(self.continuation())
         } else {
             None
         };
