@@ -490,13 +490,7 @@ impl Page for EditablePage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let blurb = if area.width < 60 {
-            "Navigation is reversed cell; editing is …"
-        } else if area.width < 80 {
-            "Navigation is reversed cell; editing is a cursor. They never…"
-        } else {
-            "Navigation is reversed cell; editing is a cursor. They never look alike."
-        };
+        let blurb = "Navigation is reversed cell; editing is a cursor. They never look alike.";
         frame(ui, area, self.title(), blurb, |ui, body| {
             let card_height = (self.model.rows.len() as u16)
                 .saturating_add(4)

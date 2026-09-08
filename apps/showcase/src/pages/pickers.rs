@@ -352,7 +352,7 @@ impl Page for PickersPage {
             ui,
             area,
             self.title(),
-            "One modal list for files, tabs and levels: searc…",
+            "One modal list for files, tabs and levels: search, scope, tag, alternate action",
             |ui, body| {
                 open_button().draw(ui, body);
                 ui.reference(None, |ui| {

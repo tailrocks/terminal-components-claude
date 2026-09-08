@@ -177,7 +177,7 @@ impl Page for DialogsPage {
             ui,
             area,
             self.title(),
-            "Focus is trapped, the page dims, Esc always canc…",
+            "Focus is trapped, the page dims, Esc always cancels",
             |ui, body| {
                 let regions = layout::rows(
                     body,

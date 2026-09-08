@@ -199,9 +199,7 @@ impl Default for EditorPage {
 
 impl Page for EditorPage {
     fn title(&self) -> &'static str {
-        // The shell still uses the stable PageId title as its lookup key; the
-        // historical visible heading is painted by the frame below.
-        "Editor"
+        "Code editor"
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -223,18 +221,11 @@ impl Page for EditorPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        // The historical narrow layout shortens the page heading so the
-        // route title remains visible beside the shell's compact header.
-        let heading = if area.width < 80 {
-            "Editor"
-        } else {
-            "Code editor"
-        };
         frame(
             ui,
             area,
-            heading,
-            "Blocks, tones, diagnostics and completion; t…",
+            self.title(),
+            "Blocks, tones, diagnostics and completion; the gutter says where you are",
             |ui, body| {
                 let left_width = (body.width.saturating_mul(62) / 100).max(40);
                 let (code_area, state_area) = if body.width < left_width.saturating_add(22) {

@@ -177,7 +177,7 @@ impl Page for SidebarsPage {
             ui,
             area,
             self.title(),
-            "Sections, current item, focus cursor, hover, co…",
+            "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons",
             |ui, body| {
                 let side_width = sidebar(self.collapsed).width().saturating_add(4);
                 let side = Rect {

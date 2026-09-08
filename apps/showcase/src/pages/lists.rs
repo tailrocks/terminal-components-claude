@@ -263,11 +263,7 @@ impl Page for ListsPage {
             ui,
             area,
             self.title(),
-            if area.width < 70 {
-                "Single and multiple selection, disabled items, scr…"
-            } else {
-                "Single and multiple selection, disabled items, scrolling, empty state"
-            },
+            "Single and multiple selection, disabled items, scrolling, empty state",
             |ui, body| {
                 let columns =
                     layout::columns(body, &[Track::Flex(1), Track::Flex(1), Track::Flex(1)], 2);

@@ -26,8 +26,7 @@ fn email(value: &str) -> Result<(), FieldError> {
 }
 
 fn name_input<'a>() -> TextInput<'a> {
-    TextInput::new(NAME)
-        .blur(BlurPolicy::CommitAndValidate)
+    TextInput::new(NAME).blur(BlurPolicy::CommitAndValidate)
 }
 
 fn branch_input<'a>() -> TextInput<'a> {
@@ -208,11 +207,7 @@ impl Page for InputsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let meta = if area.width < 70 {
-            "Focus is a bar; editing is a cursor. Enter to edi…"
-        } else {
-            "Focus is a bar; editing is a cursor. Enter to edit, Esc to revert."
-        };
+        let meta = "Focus is a bar; editing is a cursor. Enter to edit, Esc to revert.";
         frame(ui, area, self.title(), meta, |ui, body| {
             let regions = layout::rows(body, &[Track::Fixed(17), Track::Fixed(1), Track::Flex(1)]);
             let fields = regions.first().copied().unwrap_or(body);

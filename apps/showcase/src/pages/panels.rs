@@ -435,11 +435,7 @@ impl Page for PanelsPage {
             ui,
             area,
             self.title(),
-            if area.width < 70 {
-                "Cards group; a frame only where a pane needs an e…"
-            } else {
-                "Cards group; a frame only where a pane needs an edge; nothing boxed twice"
-            },
+            "Cards group; a frame only where a pane needs an edge; nothing boxed twice",
             |ui, body| {
                 let (left, right) = columns(body, (body.width / 2).saturating_sub(1), 2);
                 let left_rows = fixed_rows(left, &[7, 1, 6, 1, 7, 0]);

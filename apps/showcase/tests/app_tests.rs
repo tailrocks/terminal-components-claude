@@ -9,7 +9,7 @@ use junie_tui::{
     Rect, StateFlags, Theme,
 };
 use junie_tui_testing::Harness;
-use showcase_app::{App, PageId, NAV_ENTRIES};
+use showcase_app::{App, NAV_ENTRIES, PageId};
 
 const FORM_SUMMARY: Id = Id::root("showcase_app::pages::forms::forms.summary");
 const SCROLL_LIST: Id = Id::root("showcase_app::pages::scrolling::scrolling.list");

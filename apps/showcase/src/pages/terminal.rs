@@ -232,7 +232,7 @@ impl Page for TerminalPage {
             ui,
             area,
             self.title(),
-            "Viewport with scrollback, selection and copy · …",
+            "Viewport with scrollback, selection and copy · drag the seam · step rail reports a job",
             |ui, body| {
                 let (left, right) = panes(body);
                 let wide = left.is_some();

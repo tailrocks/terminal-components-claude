@@ -495,11 +495,7 @@ impl Page for TablesPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let meta = if area.width < 70 {
-            "Sort by header, hover rows, select with Enter, ov…"
-        } else {
-            "Sort by header, hover rows, select with Enter, overflow scrolls"
-        };
+        let meta = "Sort by header, hover rows, select with Enter, overflow scrolls";
         frame(ui, area, self.title(), meta, |ui, body| {
             let regions = layout::rows(
                 body,

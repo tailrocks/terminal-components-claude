@@ -109,7 +109,7 @@ impl Page for ProgressPage {
             ui,
             area,
             self.title(),
-            "Determinate, indeterminate, compact activity, t…",
+            "Determinate, indeterminate, compact activity, terminal states",
             |ui, body| {
                 let compact_ratio = if body.width <= 60 { 0.05 } else { self.build };
                 let regions = layout::rows(

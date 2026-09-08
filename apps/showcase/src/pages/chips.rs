@@ -289,7 +289,7 @@ impl Page for ChipsPage {
             ui,
             area,
             self.title(),
-            "Removable chips, a popup select, and str…",
+            "Removable chips, a popup select, and strips that drop what does not fit",
             |ui, body| {
                 // Keep both controls live in the frozen source geometry.
                 let (chip_area, rest) = layout::split_v(body, 4);

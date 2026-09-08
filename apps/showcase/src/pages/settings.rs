@@ -372,7 +372,7 @@ impl Page for SettingsPage {
             ui,
             area,
             "Project settings",
-            "Composed: tabs, form, editable table, l…",
+            "Composed: tabs, form, editable table, list, dialogs",
             |ui, body| {
                 // Compatibility paint preserves the historical frame; live
                 // controls still own focus, hit testing, and key bindings.

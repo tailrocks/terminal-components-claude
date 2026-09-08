@@ -214,11 +214,7 @@ impl Page for TextAreasPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let meta = if area.width < 70 {
-            "Multi-line editing, wrapping cursor motion, s…"
-        } else {
-            "Multi-line editing, wrapping cursor motion, scroll position"
-        };
+        let meta = "Multi-line editing, wrapping cursor motion, scroll position";
         frame(ui, area, self.title(), meta, |ui, body| {
             let regions =
                 layout::rows(body, &[Track::Fixed(13), Track::Fixed(1), Track::Fixed(10)]);

@@ -225,7 +225,7 @@ impl Page for ButtonsPage {
             ui,
             area,
             self.title(),
-            "Primary, secondary, subtle, danger, toggle, disabled, busy ",
+            "Primary, secondary, subtle, danger, toggle, disabled, busy",
             |ui, body| {
                 let regions = layout::rows(
                     body,

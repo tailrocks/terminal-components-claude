@@ -60,10 +60,10 @@ pub(crate) fn frame(
     let title_area = Rect { height: 1, ..area };
     let title_width = width(title).min(area.width);
     ui.paint_str(title_area, title, title_style);
-    if !meta.is_empty() && area.width > title_width.saturating_add(2) {
+    if !meta.is_empty() && area.width > title_width.saturating_add(4) {
         let meta_area = Rect {
             x: area.x.saturating_add(title_width).saturating_add(2),
-            width: area.width.saturating_sub(title_width).saturating_sub(2),
+            width: area.width.saturating_sub(title_width).saturating_sub(3),
             height: 1,
             ..area
         };

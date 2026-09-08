@@ -393,7 +393,7 @@ impl Page for TaskRunnerPage {
             ui,
             area,
             self.title(),
-            "Composed: tree, live progress, following log…",
+            "Composed: tree, live progress, following log, busy states",
             |ui, body| {
                 let (rail_area, actions) = layout::split_v(body, body.height.saturating_sub(6));
                 steps().draw(ui, rail_area, &self.state, &self.steps);

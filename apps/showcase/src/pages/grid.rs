@@ -273,7 +273,7 @@ impl Page for GridPage {
             ui,
             area,
             self.title(),
-            "Typed cells, a pending-change queue, paging an…",
+            "Typed cells, a pending-change queue, paging and local sort",
             |ui, body| {
                 // Keep the migrated Grid live. The compatibility paint below
                 // owns the historical body pixels, but reference rendering

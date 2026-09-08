@@ -254,7 +254,7 @@ impl Page for ChromePage {
             ui,
             area,
             self.title(),
-            "Brand lockup · menu bar with anchored menus · sta…",
+            "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers",
             |ui, body| {
                 // Keep the component projection live so it owns hit testing;
                 // the frozen paint below restores the historical cells.

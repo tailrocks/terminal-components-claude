@@ -167,7 +167,7 @@ impl Page for ScrollingPage {
             ui,
             area,
             self.title(),
-            "Wheel under the pointer, keys on the focused c…",
+            "Wheel under the pointer, keys on the focused container, thumb shows where you are",
             |ui, body| {
                 let cols = columns(body);
                 let prose_meta = position_label(&self.prose_state);
