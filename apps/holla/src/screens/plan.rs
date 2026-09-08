@@ -82,15 +82,25 @@ impl PlanState {
     pub(crate) fn update(&mut self, cx: &mut Cx<'_>) -> (Response<()>, Option<Event>) {
         let rows = rows(self.review.plan());
         let mut response = List::new(STEPS)
+            .leave_at_boundary(true)
             .key(key)
             .select_mode(SelectMode::None)
             .update(cx, &mut self.selection, &rows);
-        let event = if matches!(response.take_action(), Some(ListAction::Activated(_)))
-            && cx.activation_key() == Some(junie_tui::ActivationKey::Enter)
-        {
-            Some(self.continuation())
-        } else {
-            None
+        let event = match response.take_action() {
+            Some(ListAction::LeaveBackward) => {
+                cx.focus_prev();
+                None
+            }
+            Some(ListAction::LeaveForward) => {
+                cx.focus_next();
+                None
+            }
+            Some(ListAction::Activated(_))
+                if cx.activation_key() == Some(junie_tui::ActivationKey::Enter) =>
+            {
+                Some(self.continuation())
+            }
+            _ => None,
         };
         (response.erase(), event)
     }
@@ -165,6 +175,7 @@ impl PlanState {
         );
         let rows = rows(plan);
         List::new(STEPS)
+            .leave_at_boundary(true)
             .key(key)
             .select_mode(SelectMode::None)
             .render_row(&paint_step)

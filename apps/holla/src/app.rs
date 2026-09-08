@@ -1294,6 +1294,35 @@ mod tests {
         }
     }
     #[test]
+    fn plan_physical_edges_leave_steps_without_changing_inclusion_or_effects() {
+        let mut harness = app(Scenario::DockerCleanup);
+        let _ = harness.type_str("docker system prune");
+        let _ = harness.key(KeyCode::Enter);
+        assert!(harness.app().route == Route::Plan);
+        assert!(harness.tab_to(plan::STEPS));
+        let _ = harness.key(KeyCode::Home);
+        let included = harness.app().plan.as_ref().unwrap().plan().included_count();
+        let revision = harness.app().effect_revision();
+        let _ = harness.key(KeyCode::Up);
+        assert_ne!(harness.focus(), Some(plan::STEPS));
+        assert!(harness.tab_to(plan::STEPS));
+        let _ = harness.key(KeyCode::End);
+        let _ = harness.key(KeyCode::Down);
+        assert_ne!(harness.focus(), Some(plan::STEPS));
+        assert_eq!(
+            harness.app().plan.as_ref().unwrap().plan().included_count(),
+            included
+        );
+        assert_eq!(harness.app().effect_revision(), revision);
+        assert!(harness.app().overlay.is_none());
+        assert!(harness.activation_feedback().is_none());
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
     fn plan_space_is_focus_bound_and_preserves_chrome_activation() {
         let mut harness = app(Scenario::DockerCleanup);
         let _ = harness.type_str("docker system prune");
