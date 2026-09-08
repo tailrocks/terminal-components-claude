@@ -1449,12 +1449,7 @@ impl<'a> TextViewport<'a> {
         };
         ui.report_layout(
             id,
-            LayoutFacts::new(
-                usize::from(area.height),
-                total,
-                area.height.saturating_sub(2),
-                text_w,
-            ),
+            LayoutFacts::new(usize::from(area.height), total, area.height, text_w),
         );
         if text.is_empty() {
             return text;
