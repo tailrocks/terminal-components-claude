@@ -77,6 +77,8 @@ pub struct World {
     pub arbiter: Arbiter,
     /// Fixture home directory.
     pub home: String,
+    /// Actual current host directory; it can be unsaved.
+    pub cwd: String,
     /// Mutable host configuration.
     pub global: GlobalConfig,
     /// Durable workspace rows.
@@ -158,6 +160,24 @@ impl World {
         self.workspaces
             .iter_mut()
             .find(|workspace| workspace.id == id)
+    }
+
+    /// Saved workspace whose mount source exactly matches the current directory.
+    ///
+    /// Uses the pinned source's literal or home-expanded mount spelling. No
+    /// prefix/descendant matching or fallback to the first workspace occurs.
+    /// Returns `None` for an unsaved directory. Reads current domain records,
+    /// so rename, removal and mount edits cannot leave a cached association.
+    pub fn cwd_workspace(&self) -> Option<&Workspace> {
+        self.workspaces.iter().find(|workspace| {
+            workspace.mounts.iter().any(|mount| {
+                let source = mount.source_label();
+                source == self.cwd
+                    || source
+                        .strip_prefix('~')
+                        .is_some_and(|rest| self.cwd.strip_prefix(self.home.as_str()) == Some(rest))
+            })
+        })
     }
 
     /// Find an instance by stable identifier.
@@ -400,6 +420,7 @@ pub fn world_for(scenario: Scenario) -> World {
         clock,
         arbiter: Arbiter::new(running),
         home: HOME.into(),
+        cwd: fixtures::PAYMENTS_WORKDIR.into(),
         global: GlobalConfig {
             trust: vec![TrustRow {
                 source: "chainargos/the-architect".into(),
