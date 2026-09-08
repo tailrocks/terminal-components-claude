@@ -369,6 +369,10 @@ impl Reconcile for NavListState {
 /// nothing per row; the cursor and the destination are independent, so
 /// arrowing through the sidebar never navigates; the row renderer runs only
 /// for visible full-mode item rows.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Disabled admission, scrolling, scrollbar presentation and boundary exit are independent opt-in policies, not exclusive runtime states"
+)]
 pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -383,6 +387,7 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     disabled: bool,
     scrollable: bool,
+    scrollbar_visible: bool,
     leave_at_boundary: bool,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
@@ -417,6 +422,7 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             disabled_item: None,
             disabled: false,
             scrollable: false,
+            scrollbar_visible: true,
             leave_at_boundary: false,
             ov: PartStyle::new(),
             _t: PhantomData,
@@ -472,6 +478,16 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
     #[must_use]
     pub const fn scrollable(mut self, yes: bool) -> Self {
         self.scrollable = yes;
+        self
+    }
+
+    /// Show and reserve the overflow scrollbar column when scrolling is enabled.
+    /// Default: true. False retains shared wheel routing and cursor reveal,
+    /// gives rows the full width, and registers no scrollbar pointer parts.
+    /// Use the same policy in update and draw.
+    #[must_use]
+    pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
+        self.scrollbar_visible = visible;
         self
     }
 
@@ -571,6 +587,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             disabled_item: self.disabled_item,
             disabled: self.disabled,
             scrollable: self.scrollable,
+            scrollbar_visible: self.scrollbar_visible,
             leave_at_boundary: self.leave_at_boundary,
             ov: self.ov,
             _t: PhantomData,
@@ -593,6 +610,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             disabled_item: self.disabled_item,
             disabled: self.disabled,
             scrollable: self.scrollable,
+            scrollbar_visible: self.scrollbar_visible,
             leave_at_boundary: self.leave_at_boundary,
             ov: self.ov,
             _t: PhantomData,
@@ -941,6 +959,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
 
     fn scrollbar(&self) -> ScrollRegion<'_> {
         ScrollRegion::new(self.id)
+            .scrollbar_visible(self.scrollbar_visible)
             .inherit_family(Family::LIST)
             .with_overrides(self.ov)
     }

@@ -56,9 +56,11 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 ///
 /// ## Layout
 /// `draw` returns the content rect: `area` minus one scrollbar column when
-/// the content overflows the viewport, else `area` unchanged. `measure`
+/// the content overflows the viewport and the scrollbar is visible, else
+/// `area` unchanged. `measure`
 /// takes whatever the container offers (minimum `2 × 1`: the bar column plus
-/// one content column). Degenerate rects register nothing (R5).
+/// one content column), or `1 × 1` with the scrollbar hidden. Degenerate rects
+/// register nothing (R5).
 /// `viewport_len` / `content_len` are reported through `LayoutFacts` and
 /// consumed by the next `update`.
 ///
@@ -84,6 +86,7 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
+    scrollbar_visible: bool,
     ov: PartStyle<'a>,
 }
 
@@ -101,6 +104,7 @@ impl fmt::Debug for ScrollRegion<'_> {
         f.debug_struct("ScrollRegion")
             .field("id", &self.id)
             .field("family", &self.family)
+            .field("scrollbar_visible", &self.scrollbar_visible)
             .field("overrides", &self.ov)
             .finish()
     }
@@ -115,8 +119,20 @@ impl<'a> ScrollRegion<'a> {
         ScrollRegion {
             id,
             family: Family::SCROLLBAR,
+            scrollbar_visible: true,
             ov: PartStyle::new(),
         }
+    }
+
+    /// Show and reserve the overflow scrollbar column. Default: true.
+    ///
+    /// When false, wheel routing and reveal remain active, the content keeps
+    /// the full width, and no track or thumb is painted or registered.
+    /// Use the same policy in update and draw.
+    #[must_use]
+    pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
+        self.scrollbar_visible = visible;
+        self
     }
 
     /// Resolve a composed scrollbar through its owning component's recipe.
@@ -224,6 +240,12 @@ impl<'a> ScrollRegion<'a> {
             local,
             track_len,
         } = pointer;
+        if !self.scrollbar_visible {
+            if cx.capture_owner() == Some(self.id) {
+                cx.release_capture();
+            }
+            return Response::consumed();
+        }
         let before = st.offset();
         match phase {
             Phase::Press if part == Part::THUMB => {
@@ -294,7 +316,7 @@ impl<'a> ScrollRegion<'a> {
         );
         ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
         ui.register_scroll(self.id, area, Axes::V, view.headroom_v());
-        if !view.overflows() {
+        if !self.scrollbar_visible || !view.overflows() {
             return area;
         }
         let bar = Rect {
@@ -395,7 +417,7 @@ impl<'a> ScrollRegion<'a> {
     /// the bar column plus one content column.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
-            min: (2, 1),
+            min: (if self.scrollbar_visible { 2 } else { 1 }, 1),
             preferred: c.max,
         }
         .fit(c)

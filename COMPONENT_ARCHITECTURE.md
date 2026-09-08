@@ -8782,3 +8782,16 @@ position is inferred from color equality or a variable-length color list.
 This source correction does not approve changed digests or baseline files. The
 existing 16-frame Meter preservation assertion remains unchanged pending independent
 review of canonical before/after cells and pinned-source role derivation.
+
+## ScrollRegion scrollbar visibility amendment
+
+`ScrollRegion` gains `scrollbar_visible(bool)` (default `true`); `NavList`
+forwards it as `NavList::scrollbar_visible`. When false, the shared wheel
+routing and cursor reveal stay active, `draw` returns the full `area` (no
+scrollbar column is reserved), no track or thumb is painted or registered, and
+`measure` shrinks its minimum to `1 × 1`. A pointer part targeting the bar of a
+region whose scrollbar is hidden is consumed without scrolling, and an active
+thumb capture is released when the scrollbar hides mid-drag. This amends the
+"Scrolling is shared" contract's content-rect clause: the returned rect is
+`area` minus one scrollbar column only when the content overflows **and** the
+scrollbar is visible.
