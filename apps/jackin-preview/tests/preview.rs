@@ -125,7 +125,9 @@ fn launch_simulation_is_deterministic_and_run_id_is_typed() {
     );
     let run_id = harness.app().launch().map(|run| run.run_id);
     assert_eq!(run_id, Some(RunId::new(0x9c41_e2f0)));
-    harness.ticks(320);
+    for _ in 0..320 {
+        let _ = harness.advance(std::time::Duration::from_millis(200));
+    }
     assert_eq!(harness.app().route(), Route::Capsule);
     assert!(harness.app().launch().is_some_and(|run| run.done));
 
@@ -222,7 +224,8 @@ fn paused_frames_freeze_the_virtual_clock() {
     let before = harness.app().world.now_ms();
     harness.ticks(20);
     assert_eq!(harness.app().world.now_ms(), before);
-    assert_eq!(harness.app().frame(), 12);
+    // Non-cinematic --frame does not seek the reference world clock.
+    assert_eq!(harness.app().frame(), 0);
 }
 
 #[test]

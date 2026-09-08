@@ -10,17 +10,18 @@ use junie_tui::{
     ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
     DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
     HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
-    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Panel, Part, PartRef,
-    Phase, Picker, PickerAction, PickerState, Position, Rect, Response, SecretPolicy, StatusBar,
-    StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport,
-    TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Moment, Panel, Part,
+    PartRef, Phase, Picker, PickerAction, PickerState, Position, Rect, Response, SecretPolicy,
+    StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
-    Account, CredentialSource, DetectedKind, DuplicateProbe, fingerprint, tail_of,
+    Account, CredentialSource, DetectedKind, DuplicateProbe, ValidationState, fingerprint, tail_of,
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
+use crate::domain::usage::Freshness;
 use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
 use crate::rain::{
     HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
@@ -253,11 +254,10 @@ impl Route {
         }
     }
 
-    /// Virtual time cadence for one application tick.
+    /// Virtual time advanced by one admitted product tick.
     ///
-    /// This is intentionally separate from runtime repaint scheduling.  The
-    /// fixture clock and every deterministic state machine advance by this
-    /// product-owned cadence only.
+    /// Idle routes may wake every 200 ms, but still advance only 80 virtual ms.
+    /// Delayed wakes coalesce to one step; repaint/input counts never age state.
     pub const fn tick_ms(self) -> u64 {
         match self {
             Self::Intro | Self::Outro | Self::Handoff | Self::Cockpit | Self::Launch => TICK_MS,
@@ -267,7 +267,7 @@ impl Route {
             | Self::Editor
             | Self::Accounts
             | Self::Usage
-            | Self::Settings => 200,
+            | Self::Settings => 80,
         }
     }
 }
@@ -381,6 +381,7 @@ pub struct App {
     manager_header_running: usize,
     route: Route,
     motion: Motion,
+    last_tick: Option<Moment>,
     quit: bool,
     keymap: KeyMap,
     capsule_menu_state: MenuState,
@@ -493,9 +494,7 @@ impl App {
             Scenario::Returning | Scenario::HardCases => Route::Manager,
         };
         world.clock.running = motion != Motion::Paused;
-        let frame_i64 = i64::try_from(frame).unwrap_or(i64::MAX);
-        let cadence_i64 = i64::try_from(route.tick_ms()).unwrap_or(i64::MAX);
-        world.clock.now_ms = frame_i64.saturating_mul(cadence_i64);
+        // Reference frame seeking advances cinematic/launch state, not the world clock.
         world.last_refresh_secs = world.now_secs();
         let mut launch = matches!(route, Route::Launch | Route::Cockpit).then(|| {
             LaunchRun::new(
@@ -538,6 +537,7 @@ impl App {
             manager_header_running,
             route,
             motion,
+            last_tick: None,
             quit: false,
             keymap: app_keymap(),
             capsule_menu_state: MenuState::default(),
@@ -2435,8 +2435,8 @@ impl App {
         account.issue = outcome.issue;
         account.validation = outcome
             .level
-            .map(crate::domain::account::ValidationState::Valid)
-            .unwrap_or(crate::domain::account::ValidationState::NeverValidated);
+            .map(ValidationState::Valid)
+            .unwrap_or(ValidationState::NeverValidated);
         if let Some(usage) = outcome.usage {
             account.usage = usage;
         }
@@ -2743,7 +2743,7 @@ impl App {
         result
     }
 
-    fn update_launch(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update_launch(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         let mut result = Response::ignored();
         let failed = self
             .launch
@@ -2766,22 +2766,12 @@ impl App {
                 return result;
             }
         }
-        if cx.update_cause() == UpdateCause::Tick
-            && self.motion != Motion::Paused
-            && let Some(launch) = &mut self.launch
-        {
+        if product_tick && let Some(launch) = &mut self.launch {
             let events = launch.advance();
             if !events.is_empty() {
                 self.handle_launch_events(events);
                 result |= Response::changed();
             }
-        }
-        if self
-            .launch
-            .as_ref()
-            .is_some_and(|launch| !launch.is_terminal())
-        {
-            cx.request_repaint_after(Duration::from_millis(TICK_MS));
         }
         result
     }
@@ -3132,7 +3122,7 @@ impl App {
         result | tabs_response.erase()
     }
 
-    fn update_route(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update_route(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         match self.route {
             Route::Intro => Response::ignored(),
             Route::Manager => self.update_manager(cx),
@@ -3141,7 +3131,7 @@ impl App {
             Route::Accounts => self.update_accounts(cx),
             Route::Usage => Response::ignored(),
             Route::Settings => self.update_settings(cx),
-            Route::Launch | Route::Cockpit => self.update_launch(cx),
+            Route::Launch | Route::Cockpit => self.update_launch(cx, product_tick),
             Route::Handoff | Route::Outro => Response::ignored(),
             Route::Capsule => self.update_capsule(cx),
         }
@@ -3771,18 +3761,15 @@ impl App {
         }
     }
 
-    fn advance_virtual_state(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if cx.update_cause() != UpdateCause::Tick || self.motion == Motion::Paused {
+    fn advance_virtual_state(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
+        if !product_tick {
             return Response::ignored();
         }
 
         let cadence = i64::try_from(self.route_tick_ms()).unwrap_or(i64::MAX);
         let messages = self.world.tick(cadence);
-        let mut result = if messages.is_empty() {
-            Response::ignored()
-        } else {
-            Response::changed()
-        };
+        // Time itself changes visible freshness, animation and pane projections.
+        let mut result = Response::changed();
         for message in messages {
             match message {
                 crate::sim::world::Msg::WorkspaceSaved { id, ok } => {
@@ -3848,7 +3835,6 @@ impl App {
                     self.world.arbiter.complete_entry(self.world.now_ms());
                     result |= Response::changed();
                 }
-                cx.request_repaint_after(Duration::from_millis(TICK_MS));
             }
             Route::Outro => {
                 if let Some(outro) = &mut self.outro
@@ -3858,7 +3844,6 @@ impl App {
                     self.quit = true;
                     result |= Response::changed();
                 }
-                cx.request_repaint_after(Duration::from_millis(TICK_MS));
             }
             Route::Handoff => {
                 let next = self.handoff_frame.unwrap_or(0).saturating_add(1);
@@ -3867,10 +3852,6 @@ impl App {
                     self.route = Route::Capsule;
                 }
                 result |= Response::changed();
-                cx.request_repaint_after(Duration::from_millis(TICK_MS));
-            }
-            Route::Cockpit | Route::Launch => {
-                cx.request_repaint_after(Duration::from_millis(TICK_MS));
             }
             _ => {}
         }
@@ -6145,13 +6126,44 @@ impl App {
     }
 }
 
-impl TuiApp for App {
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+impl App {
+    fn wake_ms(&self, cx: &Cx<'_>) -> u64 {
+        match self.route {
+            Route::Intro | Route::Outro | Route::Handoff | Route::Cockpit | Route::Launch => {
+                TICK_MS
+            }
+            Route::Capsule => 80,
+            _ if self.animating(cx) => 80,
+            _ => 200,
+        }
+    }
+
+    fn animating(&self, cx: &Cx<'_>) -> bool {
+        // Use the migrated state owners. Legacy busy/saving/browser reducers
+        // not yet represented by this app remain separate fidelity work.
+        // Shared activation feedback currently has no Cx observer; its cadence
+        // policy must be supplied by the runtime rather than a second flash clock.
+        !self.world.jobs.is_empty()
+            || self
+                .world
+                .daemons
+                .values()
+                .any(|daemon| !daemon.panes.is_empty())
+            || (self.picker_mode == Some(PickerMode::OnePassword) && cx.is_open(ACCOUNT_PICKER))
+            || (matches!(self.route, Route::Accounts | Route::Usage)
+                && self.world.accounts.accounts.iter().any(|account| {
+                    account.usage.freshness.phase == Freshness::Refreshing
+                        || (self.route == Route::Accounts
+                            && matches!(account.validation, ValidationState::Validating { .. }))
+                }))
+    }
+
+    fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         // Keep the shell's configured props owned by one constructor.  The
         // runtime only updates parts here; drawing consumes the same panel
         // shape below, so the app cannot drift between update and draw.
         let _shell = Self::shell_panel(&self.shell_meta);
-        let mut result = self.advance_virtual_state(cx);
+        let mut result = self.advance_virtual_state(cx, product_tick);
         // Shell controls outlive route projections: focus can leave Intro after
         // it disappears, or traverse the header on Cockpit/Editor. Poll their
         // normal component updates on every pass, then apply activation only
@@ -6198,12 +6210,41 @@ impl TuiApp for App {
         if self.route == Route::Intro && enter_chosen {
             self.enter_intro();
         }
-        result |= self.update_route(cx);
+        result |= self.update_route(cx, product_tick);
         if self.route == Route::Manager {
             self.ensure_manager_rows();
         }
         self.ensure_manager_header();
         self.sync_workspace_keymap();
+        result
+    }
+}
+
+impl TuiApp for App {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let now = cx.now();
+        let interval = Duration::from_millis(self.wake_ms(cx));
+        let last = *self.last_tick.get_or_insert(now);
+        let due = last.saturating_add(interval);
+        // One admission owns every simulation reducer. Even a raw Tick cannot
+        // age the app before its deadline or twice at the same Moment.
+        let product_tick = self.motion != Motion::Paused
+            && cx.update_cause() == UpdateCause::Tick
+            && now > last
+            && now >= due;
+        if product_tick {
+            self.last_tick = Some(now);
+        }
+        let result = self.update_parts(cx, product_tick);
+        if self.motion != Motion::Paused {
+            // Recompute after route/job changes, without postponing the anchor
+            // on unrelated inputs, drawing, or settlement passes.
+            let next = self
+                .last_tick
+                .unwrap_or(now)
+                .saturating_add(Duration::from_millis(self.wake_ms(cx)));
+            cx.request_repaint_at(next);
+        }
         result
     }
 
