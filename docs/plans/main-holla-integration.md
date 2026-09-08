@@ -48,7 +48,7 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | T06 Theme/components | 6 | component owner | Authored capability palettes and HintBar metadata integrated; scrollbar/NavList/typing consumers in progress; full customization/family proof incomplete |
 | T07 Showcase | 7 | Showcase owner | CLI/shell/sidebar slices integrated; 22-page fidelity, elapsed timing, real builders and remaining geometry in progress |
 | T08 TablePro | 7 | TablePro owner | Stable row records/undo and Unicode-safe allocation repair integrated; close/reconnect guards, query cancellation and full fidelity remain |
-| T09 Jackin | 7 | integrator/app reviewer | CLI, Mono and lifecycle integrated; timing, full reference journeys and visual inventory still incomplete |
+| T09 Jackin | 7 | integrator/app reviewer | CLI, Mono, lifecycle and monotonic tick admission integrated; feedback adapter, full reference journeys and visual inventory still incomplete |
 | T10 Holla | 7 | Holla owner | Actual App/binary, lifecycle, PG guards and coalesced domain cadence integrated; query/footer/scroll/feedback timing and complete fidelity incomplete |
 | T11 Three verification layers | 8 | all reviewers | Pure, behavior and PTY slices exist; full four-app production/reference coverage remains |
 | T12 Gates/inventory/performance | 9 | verifiers/integrator | Pipefail, locked CI, tool provenance and exact test tooling integrated; required 3211 obligation mappings pending; capture/CI four-app expansion and strict style gate unresolved |
@@ -86,6 +86,7 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | Typing/cursor publication | b1c8c44, 73bd01c | Independent fallback-conflict repro fixed; root747lib+935conformance+43focused tests pass, plus39Showcase and99Holla tests; no performance threshold waiver |
 | Holla resolved footer | b44de49 | Root99MSRV tests pass; status/EDIT/centering applied after focused hint selection; complete visual fidelity remains pending |
 | NavList scrolling | 5b64ce0 | Independent128 default frames unchanged; root747lib+12MSRV nav/scroll tests pass; actual Home caller migration pending |
+| Jackin tick admission | ef54503 | Independent exact6ec2d76 review and root28MSRV timing/preview/CLI tests pass; delayed wakes coalesce, unchanged-time events do not age world; feedback and missing reducers remain |
 
 Detailed reports and immutable hashes remain in the external evidence folders:
 publication, theme-contract, scene-final-independent, monotonic-independent,
@@ -96,7 +97,7 @@ showcase-fidelity, historical-regeneration and test-inventory.
 
 1. Implement independently reviewed simulation-feedback clock policy, preserving
    exact coalesced and paused behavior with one runtime-owned record; no elapsed
-   expiry exception. Review Jackin6ec2d76 and migrate actual fallback-query callers.
+   expiry exception. Migrate Jackin feedback and actual fallback-query callers.
 2. Finish shared typing/cursor, full-track scrollbar and NavList scrolling;
    preserve palette provenance and independently derived EMPTY expectations.
 3. Finish TablePro allocation repair, insert/delete/revert input routes,
@@ -107,6 +108,9 @@ showcase-fidelity, historical-regeneration and test-inventory.
 5. Expand capture/CI/build provenance from one authoritative current four-app
    inventory. Preserve pinned Holla132 and historical499 separately. Unsupported
    theme/motion/clock axes and missing targets must fail, never be ignored.
+   Phase2 candidate7e8a36c rejected: root actual-compiler probe changed an ignored
+   include_str input without invalidating provenance. Structural input attestation
+   repair is assigned; no production capture acceptance rests on that candidate.
 6. Complete exact test identities/relocations, mutation cases, full feature/MSRV
    matrix, all boundary/doc/perf/parity/capture gates, independent images/live
    journeys, coherent normative docs, PR and exact merged-source proof.

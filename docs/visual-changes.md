@@ -1398,6 +1398,30 @@ remains frozen; later allocation or byte growth is a regression.
              zero allocations after constructor-time manager row projection.
 ```
 
+### Item 33b — TablePro benchmark identity correction
+
+Commit `708a0722653b2185108a43e746f73f3887017f63` corrected the benchmark's
+name to its actual 500-row, 14-column query-result fixture. It retained every
+numeric field (`705234 7 990`); no measurement was blessed or threshold raised.
+The test now checks the active production grid, registered `id` header and first
+rendered result cell. The former name incorrectly claimed twelve columns.
+
+```
+- surface:   tablepro/query results frame benchmark / 120x40 / junie / release
+- captures:  none under shots/ — numeric performance contract, not a visual baseline;
+             reproducible with cargo +1.88.0 test --locked --release -p tablepro --test perf
+- tests:     apps/tablepro/tests/perf_baseline.txt; frame_tablepro_grid_500x14_120x40,
+             perf_tablepro_baseline
+- moved:     none
+- added:     `frame_tablepro_grid_500x14_120x40`
+- class:     fix
+- reason:    §20.10 item 33; replaces the inaccurate frame_tablepro_grid_500x12_120x40
+             name while retaining its 7-allocation/990-byte limit and advisory timing.
+             Frozen tests/perf_baseline.txt remains unchanged (1030 allocations,
+             46119 bytes for its historical 500x12 subject); distinct fixture identities
+             do not establish a timing comparison or visual parity.
+```
+
 ---
 
 ## Review status — Slice 4 component matrix, independent visual review (2026-09-05)
