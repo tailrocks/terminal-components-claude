@@ -119,7 +119,7 @@ impl ProductDialog {
                 };
                 view.actions = vec![
                     UiAction::quiet(ActionKey::CANCEL, "Cancel"),
-                    UiAction::new(ActionKey::CONFIRM, "Quit"),
+                    confirm_action("Quit"),
                 ];
             }
             Intent::Preview(action) => {
@@ -145,14 +145,11 @@ impl ProductDialog {
                 ]);
                 view.commands.push(action.command.clone());
                 view.actions.push(
-                    UiAction::new(
-                        ActionKey::CONFIRM,
-                        if matches!(action.availability, Availability::Ready) {
-                            "Run (simulated)"
-                        } else {
-                            "Blocked"
-                        },
-                    )
+                    confirm_action(if matches!(action.availability, Availability::Ready) {
+                        "Run (simulated)"
+                    } else {
+                        "Blocked"
+                    })
                     .enabled(matches!(action.availability, Availability::Ready)),
                 );
             }
@@ -176,8 +173,7 @@ impl ProductDialog {
                     ("Why asked", "mise refuses untrusted task files".into()),
                 ]);
                 view.commands.push(action.command.clone());
-                view.actions
-                    .push(UiAction::new(ActionKey::CONFIRM, "Trust file"));
+                view.actions.push(confirm_action("Trust file"));
             }
             Intent::Monitor => {
                 view.title = "System snapshot".into();
@@ -232,8 +228,7 @@ impl ProductDialog {
                     ),
                 ]);
                 view.commands.push("btm".into());
-                view.actions
-                    .push(UiAction::new(ActionKey::CONFIRM, "Open btm (simulated)"));
+                view.actions.push(confirm_action("Open btm (simulated)"));
             }
             Intent::Database { cancel, .. } => {
                 view.width = 88;
@@ -282,7 +277,7 @@ impl ProductDialog {
                     view.actions.push(if world.host.env.sensitive() {
                         UiAction::danger(ActionKey::CONFIRM, "Cancel blocker (pg_cancel_backend)")
                     } else {
-                        UiAction::new(ActionKey::CONFIRM, "Cancel blocker (pg_cancel_backend)")
+                        confirm_action("Cancel blocker (pg_cancel_backend)")
                     });
                     view.actions
                         .push(UiAction::new(TERMINATE, "Terminate (pg_terminate_backend)"));
@@ -306,14 +301,12 @@ impl ProductDialog {
                 ]);
                 view.commands
                     .push(format!("gh repo clone {slug} {destination}"));
-                view.actions
-                    .push(UiAction::new(ActionKey::CONFIRM, "Clone (simulated)"));
+                view.actions.push(confirm_action("Clone (simulated)"));
             }
             Intent::Alias(action) => {
                 view.width = 54;
                 view.title = format!("Alias for “{}”", action.command);
-                view.actions
-                    .push(UiAction::new(ActionKey::CONFIRM, "Save alias"));
+                view.actions.push(confirm_action("Save alias"));
             }
         }
         if let Intent::Preview(action) = &view.intent
@@ -354,7 +347,7 @@ impl ProductDialog {
             ]);
             view.actions = vec![
                 UiAction::quiet(ActionKey::CANCEL, "Close"),
-                UiAction::new(ActionKey::CONFIRM, "Connect (simulated)"),
+                confirm_action("Connect (simulated)"),
             ];
             view.ssh = Some(host.clone());
         }
@@ -421,9 +414,7 @@ impl ProductDialog {
             .iter()
             .map(|line| ViewportLine::Plain(line))
             .collect();
-        let output = TextViewport::new(CODE)
-            .wrap(false)
-            .update(cx, &mut self.output, &lines);
+        let output = code_viewport().update(cx, &mut self.output, &lines);
         let action = response.take_action();
         (response.erase() | output.erase(), action)
     }
@@ -444,6 +435,9 @@ impl ProductDialog {
             self.dialog.zeroize();
             cx.close_layer(DIALOG, Some(ActionKey::CLOSE));
         }
+        // The update pass builds every prop the draw pass will render, so each
+        // set of props keeps exactly one construction site (§13).
+        let _ = confirm_action("Confirm");
         (response, event)
     }
     fn confirm(&mut self, world: &mut World, key: ActionKey) -> Event {
@@ -529,6 +523,7 @@ impl ProductDialog {
         }
     }
     pub(crate) fn draw(&self, ui: &mut Ui<'_>) {
+        let _ = confirm_action("Confirm");
         ui.layer(DIALOG, |ui, area| {
             self.props().draw(ui, area, &self.dialog, |ui, body| {
                 let facts: Vec<_> = self
@@ -547,7 +542,7 @@ impl ProductDialog {
                         .iter()
                         .map(|line| ViewportLine::Plain(line))
                         .collect();
-                    TextViewport::new(CODE).wrap(false).draw(
+                    code_viewport().draw(
                         ui,
                         Rect::new(
                             body.x,
@@ -567,6 +562,14 @@ fn facts(rows: &[(&str, String)]) -> Vec<(String, String)> {
     rows.iter()
         .map(|(label, value)| ((*label).into(), value.clone()))
         .collect()
+}
+/// The dialog's sole confirming action; every intent routes its confirm row
+/// through this one construction site (§13).
+fn confirm_action(label: &'static str) -> UiAction<'static> {
+    UiAction::new(ActionKey::CONFIRM, label)
+}
+fn code_viewport() -> TextViewport<'static> {
+    TextViewport::new(CODE).wrap(false)
 }
 fn notice(message: impl Into<String>) -> Event {
     Event::Destination(Box::new(Destination::Notice(message.into())))

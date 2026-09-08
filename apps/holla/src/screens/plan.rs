@@ -39,6 +39,12 @@ fn rows(plan: &Plan) -> Vec<StepRow<'_>> {
         })
         .collect()
 }
+fn steps_list<'r>() -> List<'r, StepRow<'r>, impl Fn(&StepRow<'r>) -> ItemKey> {
+    List::new(STEPS)
+        .leave_at_boundary(true)
+        .key(key)
+        .select_mode(SelectMode::None)
+}
 impl PlanState {
     pub(crate) fn new(review: ReviewedPlan) -> Self {
         Self {
@@ -81,11 +87,7 @@ impl PlanState {
     }
     pub(crate) fn update(&mut self, cx: &mut Cx<'_>) -> (Response<()>, Option<Event>) {
         let rows = rows(self.review.plan());
-        let mut response = List::new(STEPS)
-            .leave_at_boundary(true)
-            .key(key)
-            .select_mode(SelectMode::None)
-            .update(cx, &mut self.selection, &rows);
+        let mut response = steps_list().update(cx, &mut self.selection, &rows);
         let event = match response.take_action() {
             Some(ListAction::LeaveBackward) => {
                 cx.focus_prev();
@@ -174,10 +176,7 @@ impl PlanState {
             faint,
         );
         let rows = rows(plan);
-        List::new(STEPS)
-            .leave_at_boundary(true)
-            .key(key)
-            .select_mode(SelectMode::None)
+        steps_list()
             .render_row(&paint_step)
             .draw(ui, steps_area, &self.selection, &rows);
         if output_height > 0

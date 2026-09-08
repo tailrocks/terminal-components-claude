@@ -823,6 +823,10 @@ impl App {
             .variant(Variant::PRIMARY)
     }
 
+    fn manager_list() -> List<'static, ManagerRow, impl Fn(&ManagerRow) -> ItemKey> {
+        List::new(MANAGER_LIST).key(|row: &ManagerRow| row.key)
+    }
+
     fn account_start_button() -> Button<'static> {
         Button::new(crate::screens::accounts::START, "New account").variant(Variant::PRIMARY)
     }
@@ -2125,9 +2129,8 @@ impl App {
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
-        let list = List::new(MANAGER_LIST)
-            .key(|row: &ManagerRow| row.key)
-            .update(cx, &mut self.manager.list, &self.manager_rows_cache);
+        let list =
+            Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
         let selected_key = match list_action {
@@ -4982,9 +4985,7 @@ impl App {
             Rect { height: 2, ..area },
             std::slice::from_ref(&self.manager_header),
         );
-        List::new(MANAGER_LIST)
-            .key(|row: &ManagerRow| row.key)
-            .draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
+        Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
         if self.manager.detail_open() {
             ui.paint_str(
                 Rect::new(area.x, area.y.saturating_add(1), area.width, 1),

@@ -111,9 +111,7 @@ impl PlanGate {
             .iter()
             .map(|command| ViewportLine::Plain(command))
             .collect();
-        let output = TextViewport::new(COMMANDS)
-            .wrap(false)
-            .update(cx, &mut self.output, &lines);
+        let output = commands_viewport().update(cx, &mut self.output, &lines);
         let action = response.take_action();
         (response.erase() | output.erase(), action)
     }
@@ -171,7 +169,7 @@ impl PlanGate {
                     .iter()
                     .map(|command| ViewportLine::Plain(command))
                     .collect();
-                TextViewport::new(COMMANDS).wrap(false).draw(
+                commands_viewport().draw(
                     ui,
                     Rect::new(
                         body.x,
@@ -185,6 +183,9 @@ impl PlanGate {
             });
         });
     }
+}
+fn commands_viewport() -> TextViewport<'static> {
+    TextViewport::new(COMMANDS).wrap(false)
 }
 
 #[cfg(test)]

@@ -2,6 +2,17 @@
 use crate::domain::github::{GhRepo, GhState};
 use junie_tui::{Cx, Id, Item, ItemKey, Picker, PickerAction, PickerState, Response, Ui};
 const PICKER: Id = Id::root("clone.picker");
+/// One private constructor keeps the picker's props identical across the open,
+/// update and draw passes; the layer pass never renders the query placeholder,
+/// so only the interactive passes arm it (§13).
+fn picker<'s>(filtering: bool) -> Picker<'s, Item<'s>> {
+    let picker = Picker::new(PICKER).title("Clone which repository?");
+    if filtering {
+        picker.placeholder("Filter repositories…")
+    } else {
+        picker
+    }
+}
 pub(crate) struct ClonePicker {
     login: String,
     repos: Vec<GhRepo>,
@@ -30,22 +41,14 @@ impl ClonePicker {
             .collect()
     }
     pub(crate) fn open(&self, cx: &mut Cx<'_>) {
-        cx.open_layer(
-            PICKER,
-            Picker::new(PICKER)
-                .title("Clone which repository?")
-                .layer(cx, &self.items()),
-        );
+        cx.open_layer(PICKER, picker(false).layer(cx, &self.items()));
     }
     pub(crate) fn update(
         &mut self,
         cx: &mut Cx<'_>,
     ) -> (Response<()>, Option<(GhRepo, String)>, bool) {
         let mut state = std::mem::take(&mut self.state);
-        let mut response = Picker::new(PICKER)
-            .title("Clone which repository?")
-            .placeholder("Filter repositories…")
-            .update(cx, &mut state, &self.items());
+        let mut response = picker(true).update(cx, &mut state, &self.items());
         self.state = state;
         let chosen = match response.take_action() {
             Some(PickerAction::Chosen(key)) => self
@@ -64,10 +67,7 @@ impl ClonePicker {
     }
     pub(crate) fn draw(&self, ui: &mut Ui<'_>) {
         ui.layer(PICKER, |ui, area| {
-            Picker::new(PICKER)
-                .title("Clone which repository?")
-                .placeholder("Filter repositories…")
-                .draw(ui, area, &self.state, &self.items())
+            picker(true).draw(ui, area, &self.state, &self.items())
         });
     }
 }

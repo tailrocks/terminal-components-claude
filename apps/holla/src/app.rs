@@ -15,10 +15,10 @@ use crate::{
     sim::{pg, world::World},
 };
 use junie_tui::{
-    ActionKey, Binding, Brand, Chord, Constraints, Cx, FgStep, Focusability, FrameRead, HintBar,
-    HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusAction, StatusBar, StatusItem,
-    StylePatch, Surface, TooSmall, Ui,
+    ActionKey, Binding, Brand, Chord, Constraints, Cx, Dialog, FgStep, Focusability, FrameRead,
+    HintBar, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Menu, MenuAction, MenuBar,
+    MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusAction, StatusBar,
+    StatusItem, StylePatch, Surface, TooSmall, Ui,
 };
 
 const BRAND: Id = Id::root("holla.brand");
@@ -127,21 +127,6 @@ const GLOBAL: &[Binding<ActionKey>] = &[
         visible: true,
     },
 ];
-const FILE: &[MenuItem<'static>] = &[MenuItem::new(QUIT, "Quit").chord(Chord::with(
-    KeyCode::Char('q'),
-    junie_tui::KeyModifiers::CONTROL,
-))];
-const GO: &[MenuItem<'static>] = &[MenuItem::new(HOME, "Home")];
-const HELP_MENU: &[MenuItem<'static>] = &[
-    MenuItem::new(HELP, "Key reference").chord(Chord::key(KeyCode::F(1))),
-    MenuItem::new(ABOUT, "About holla"),
-];
-const MENUS: &[Menu<'static>] = &[
-    Menu::new("File", FILE),
-    Menu::new("Go", GO),
-    Menu::new("Help", HELP_MENU),
-];
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Route {
     Home,
@@ -186,7 +171,35 @@ impl std::fmt::Debug for App {
     }
 }
 fn menu_bar() -> MenuBar<'static> {
+    // The static menu data lives here, inside the one constructor both phases
+    // call, so every configured row keeps exactly one construction site (§13).
+    const FILE: &[MenuItem<'static>] = &[MenuItem::new(QUIT, "Quit").chord(Chord::with(
+        KeyCode::Char('q'),
+        junie_tui::KeyModifiers::CONTROL,
+    ))];
+    const GO: &[MenuItem<'static>] = &[MenuItem::new(HOME, "Home")];
+    const HELP_MENU: &[MenuItem<'static>] = &[
+        MenuItem::new(HELP, "Key reference").chord(Chord::key(KeyCode::F(1))),
+        MenuItem::new(ABOUT, "About holla"),
+    ];
+    const MENUS: &[Menu<'static>] = &[
+        Menu::new("File", FILE),
+        Menu::new("Go", GO),
+        Menu::new("Help", HELP_MENU),
+    ];
     MenuBar::new(MENU, MENUS).chord_case(junie_tui::ChordCase::UppercaseAscii)
+}
+
+fn brand() -> Brand<'static> {
+    Brand::new(BRAND, "holla❯").clickable(true)
+}
+
+fn header_bar<'a>(items: &'a [StatusItem<'a>]) -> StatusBar<'a> {
+    StatusBar::new(HEADER).right(items)
+}
+
+fn gate_dialog() -> Dialog<'static> {
+    Dialog::new(crate::screens::plan_gate::GATE)
 }
 
 impl App {
@@ -580,7 +593,7 @@ impl App {
     }
     fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
         let header = Rect::new(area.x, area.y, area.width, 1);
-        let brand = Brand::new(BRAND, "holla❯").clickable(true);
+        let brand = brand();
         let brand_width = brand
             .measure(ui, Constraints::loose(header.width, 1))
             .preferred
@@ -665,7 +678,7 @@ impl App {
                 .priority(3)
                 .key(ItemKey::text("help")),
         );
-        StatusBar::new(HEADER).right(&items).draw(
+        header_bar(&items).draw(
             ui,
             Rect::new(area.x.saturating_add(used), area.y, available, 1),
         );
@@ -816,9 +829,9 @@ impl App {
             .map_or_else(|| (Response::ignored(), None), |plan| plan.update(cx));
         let activity_response = self.activities.update(&self.world, cx);
         let mut menu = menu_bar().update(cx, &mut self.menu);
-        let brand = Brand::new(BRAND, "holla❯").clickable(true).update(cx);
+        let brand = brand().update(cx);
         let items = [StatusItem::new("? help").key(ItemKey::text("help"))];
-        let header = StatusBar::new(HEADER).right(&items).update(cx);
+        let header = header_bar(&items).update(cx);
         let controls = retired | home_response | plan_response | activity_response;
         if too_small(cx.viewport()) {
             let overlay = self
@@ -932,9 +945,7 @@ impl junie_tui::App for App {
         let response = self.update_controls(cx);
         if plan_key && response.is_consumed() {
             if matches!(self.overlay, Some(Overlay::Gate(_))) {
-                cx.flash_activation(
-                    junie_tui::Dialog::new(crate::screens::plan_gate::GATE).input_id(),
-                );
+                cx.flash_activation(gate_dialog().input_id());
             } else if self.overlay.is_none()
                 && !self.menu.is_open()
                 && cx
@@ -992,6 +1003,9 @@ impl junie_tui::App for App {
                 Overlay::Gate(gate) => gate.draw(ui),
             }
         }
+        // The update pass builds every prop the draw pass will render, so each
+        // set of props keeps exactly one construction site (§13).
+        let _ = gate_dialog();
     }
     fn should_quit(&self) -> bool {
         self.quit

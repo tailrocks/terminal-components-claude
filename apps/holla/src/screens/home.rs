@@ -161,13 +161,7 @@ impl HomeState {
             self.editor.begin(&self.value);
         }
         let rows = self.rows(world);
-        let mut navigation = NavList::new(ROWS)
-            .scrollable(true)
-            .leave_at_boundary(true)
-            .header_indent(2)
-            .section(&section)
-            .key(row_key)
-            .update(cx, &mut self.rows, &rows);
+        let mut navigation = nav_list().update(cx, &mut self.rows, &rows);
         let chosen = match navigation.take_action() {
             Some(NavListAction::LeaveBackward) => {
                 cx.focus_prev();
@@ -256,12 +250,7 @@ impl HomeState {
                 style,
             );
         } else {
-            NavList::new(ROWS)
-                .scrollable(true)
-                .leave_at_boundary(true)
-                .header_indent(2)
-                .section(&section)
-                .key(row_key)
+            nav_list()
                 .render_row(&paint_action)
                 .draw(ui, rows_area, &self.rows, &rows);
         }
@@ -330,6 +319,14 @@ fn query_input() -> TextInput<'static> {
 }
 fn section(row: &HomeRow) -> &str {
     row.section
+}
+fn nav_list() -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey> {
+    NavList::new(ROWS)
+        .scrollable(true)
+        .leave_at_boundary(true)
+        .header_indent(2)
+        .section(&section)
+        .key(row_key)
 }
 fn row_key(row: &HomeRow) -> ItemKey {
     ItemKey::text(&row.action.id)
