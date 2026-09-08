@@ -21,15 +21,24 @@ fn junie_block_rest_matches_pinned_lift_on_every_surface_and_capability() {
         Color::Rgb(35, 35, 40),
         Color::Rgb(63, 63, 70),
     ];
-    let indexed = [233, 235, 235, 237, 237, 234, 237];
+    let indexed = [233, 235, 235, 237, 237, 234, 234];
+    let ansi16 = [
+        Color::Black,
+        Color::Black,
+        Color::Black,
+        Color::DarkGray,
+        Color::DarkGray,
+        Color::Black,
+        Color::DarkGray,
+    ];
     let mono = [
         Color::Black,
         Color::Black,
         Color::Black,
-        Color::DarkGray,
-        Color::DarkGray,
         Color::Black,
         Color::DarkGray,
+        Color::Black,
+        Color::Black,
     ];
     for (i, surface) in [
         Surface::Canvas,
@@ -47,7 +56,7 @@ fn junie_block_rest_matches_pinned_lift_on_every_surface_and_capability() {
             let expected = match level {
                 ColorLevel::TrueColor => rgb.get(i).copied(),
                 ColorLevel::Ansi256 => indexed.get(i).copied().map(Color::Indexed),
-                ColorLevel::Ansi16 => rgb.get(i).copied().map(|c| downgrade_color(c, level)),
+                ColorLevel::Ansi16 => ansi16.get(i).copied(),
                 ColorLevel::Mono => mono.get(i).copied(),
                 _ => None,
             };
@@ -145,7 +154,7 @@ fn authored_policy_transitions_use_typed_slot_guards() {
     let mut indexed = source
         .color
         .map_colors(&mut |c| downgrade_color(c, ColorLevel::Ansi256));
-    indexed.meter.fill_rest = MeterFillRest::RaisedSurface;
+    indexed.meter.fill_rest = MeterFillRest::ReferenceLift;
     let mut mono = source
         .color
         .map_colors(&mut |c| downgrade_color(c, ColorLevel::Mono));
@@ -157,7 +166,7 @@ fn authored_policy_transitions_use_typed_slot_guards() {
     let projected = source.downgrade(ColorLevel::Ansi256);
     assert_eq!(
         projected.color.meter.fill_rest,
-        MeterFillRest::RaisedSurface
+        MeterFillRest::ReferenceLift
     );
     assert_eq!(
         projected.downgrade(ColorLevel::Mono).color.meter.fill_rest,
@@ -224,5 +233,167 @@ fn delayed_fill_rest_keeps_source_surface_provenance_after_scope_exit() {
             Some(expected),
             "{level:?}"
         );
+    }
+}
+
+#[test]
+fn quantized_aliases_follow_pinned_ordered_lift() {
+    for (level, surface, expected) in [
+        (
+            ColorLevel::Ansi256,
+            Surface::FieldHover,
+            Color::Indexed(234),
+        ),
+        (ColorLevel::Mono, Surface::Overlay, Color::Black),
+        (ColorLevel::Mono, Surface::FieldHover, Color::Black),
+        (ColorLevel::Ansi16, Surface::Surface, Color::Black),
+    ] {
+        let mut scene = Scene::new("meter_alias", Theme::junie(), level, 4, 1);
+        scene.draw(|ui, area| {
+            ui.with_surface(surface, |ui| {
+                Meter::new(ID)
+                    .ratio(0.0)
+                    .visual(MeterVisual::Block)
+                    .draw(ui, area);
+            });
+        });
+        assert_eq!(
+            scene.buffer().cell((0, 0)).map(|c| c.bg),
+            Some(expected),
+            "{level:?}/{surface:?}"
+        );
+    }
+}
+
+// Direct transcription of immutable Holla theme.rs362–371 for custom palettes.
+fn pinned_lift(theme: &Theme, surface: Surface) -> Color {
+    let bg = theme.bg(surface);
+    if bg == theme.bg(Surface::Canvas) {
+        theme.bg(Surface::Elevated)
+    } else if bg == theme.bg(Surface::Surface) || bg == theme.bg(Surface::Elevated) {
+        theme.bg(Surface::Overlay)
+    } else if bg == theme.bg(Surface::Field) {
+        theme.bg(Surface::FieldHover)
+    } else {
+        theme.bg(Surface::Popover)
+    }
+}
+const SURFACES: [Surface; 7] = [
+    Surface::Canvas,
+    Surface::Surface,
+    Surface::Elevated,
+    Surface::Overlay,
+    Surface::Popover,
+    Surface::Field,
+    Surface::FieldHover,
+];
+#[test]
+fn custom_aliases_use_ordered_policy_and_explicit_rest_stays_literal() {
+    for colors in [
+        [
+            Color::Red,
+            Color::Red,
+            Color::Blue,
+            Color::Green,
+            Color::Yellow,
+            Color::Red,
+            Color::Magenta,
+        ],
+        [
+            Color::Black,
+            Color::Red,
+            Color::Blue,
+            Color::Green,
+            Color::Yellow,
+            Color::Red,
+            Color::Red,
+        ],
+        [
+            Color::Black,
+            Color::Red,
+            Color::Blue,
+            Color::Green,
+            Color::Yellow,
+            Color::Magenta,
+            Color::Magenta,
+        ],
+    ] {
+        let mut source = Theme::paper();
+        source.capability_palettes = None;
+        let [
+            canvas,
+            surface,
+            elevated,
+            overlay,
+            popover,
+            field,
+            field_hover,
+        ] = colors;
+        source.color.surfaces = [canvas, surface, elevated, overlay, popover];
+        source.color.field = field;
+        source.color.field_hover = field_hover;
+        source.color.meter.fill_rest = MeterFillRest::ReferenceLift;
+        for level in LEVELS {
+            for surface in SURFACES {
+                for explicit in [false, true] {
+                    let mut theme = source.for_level(level);
+                    let expected = if explicit {
+                        Color::Cyan
+                    } else {
+                        pinned_lift(&theme, surface)
+                    };
+                    if explicit {
+                        theme.color.meter.fill_rest = MeterFillRest::Color(expected);
+                    }
+                    let mut scene = Scene::new("meter_custom_alias", theme, level, 4, 1);
+                    scene.draw(|ui, area| {
+                        ui.with_surface(surface, |ui| {
+                            Meter::new(ID)
+                                .ratio(0.0)
+                                .visual(MeterVisual::Block)
+                                .draw(ui, area);
+                        });
+                    });
+                    assert!(
+                        scene
+                            .buffer()
+                            .content
+                            .iter()
+                            .all(|cell| cell.bg == expected),
+                        "{level:?}/{surface:?}/{explicit}"
+                    );
+                }
+            }
+        }
+    }
+}
+#[test]
+fn delayed_reference_lift_retains_both_channels_and_source_plane_under_dim() {
+    for level in LEVELS {
+        for surface in SURFACES {
+            for dim in 0..=3 {
+                let theme = Theme::junie().for_level(level);
+                let original = pinned_lift(&theme, surface);
+                let neutral = theme.bg(match surface {
+                    Surface::Canvas | Surface::Field => Surface::Elevated,
+                    _ => Surface::Overlay,
+                });
+                let mut scene = Scene::new("meter_alias_dim", theme, level, 4, 1);
+                scene.draw(|ui, area| {
+                    let role = junie_tui::Role::Meter(junie_tui::MeterRole::FillRest);
+                    let saved = ui.with_surface(surface, |ui| {
+                        ui.paint_patch(&junie_tui::StylePatch::new().set_fg(role).set_bg(role))
+                    });
+                    ui.with_surface(Surface::Popover, |ui| ui.paint_str(area, "XYZ", saved));
+                    ui.dim_layer(area, dim);
+                });
+                let cell = scene.buffer().cell((0, 0));
+                assert_eq!(
+                    cell.map(|c| (c.symbol(), c.fg, c.bg)),
+                    Some(("X", original, if dim == 0 { original } else { neutral })),
+                    "{level:?}/{surface:?}/{dim}"
+                );
+            }
+        }
     }
 }

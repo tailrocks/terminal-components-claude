@@ -112,7 +112,7 @@ pub(crate) const fn tokens() -> ColorTokens {
             medium: AMBER,
             high: RED,
             track: WHITE_15,
-            fill_rest: crate::theme::MeterFillRest::RaisedSurface,
+            fill_rest: crate::theme::MeterFillRest::ReferenceLift,
             stale: WHITE_30,
             unknown: WHITE_30,
             series: [GREEN, AMBER, RED, PURPLE, WHITE_70, WHITE_50],

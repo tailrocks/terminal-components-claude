@@ -430,6 +430,22 @@ pub(crate) fn bind_inherited(
     result
 }
 
+/// Pinned Holla theme.rs362: compare resolved colors in this exact order.
+/// This authored policy deliberately retains quantized alias behavior; it does
+/// not identify a semantic role from an arbitrary painted RGB value.
+fn reference_lift(theme: &Theme, surface: Surface) -> Color {
+    let bg = theme.bg(surface);
+    if bg == theme.bg(Surface::Canvas) {
+        theme.bg(Surface::Elevated)
+    } else if bg == theme.bg(Surface::Surface) || bg == theme.bg(Surface::Elevated) {
+        theme.bg(Surface::Overlay)
+    } else if bg == theme.bg(Surface::Field) {
+        theme.bg(Surface::FieldHover)
+    } else {
+        theme.bg(Surface::Popover)
+    }
+}
+
 /// Bind a role to a colour. `Color::Reset` tokens mean "no colour".
 pub(crate) fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
     let c = &theme.color;
@@ -507,9 +523,7 @@ pub(crate) fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<C
                 MeterRole::Track => t.track,
                 MeterRole::FillRest => match t.fill_rest {
                     super::MeterFillRest::Color(color) => color,
-                    super::MeterFillRest::RaisedSurface => {
-                        bind_role(theme, Role::HoverSurface, surface).unwrap_or(Color::Reset)
-                    }
+                    super::MeterFillRest::ReferenceLift => reference_lift(theme, surface),
                 },
                 MeterRole::Stale => t.stale,
                 MeterRole::Unknown => t.unknown,
@@ -569,7 +583,7 @@ pub(crate) fn bind(
 
 fn canonical_role(theme: &Theme, role: Role) -> Role {
     if role == Role::Meter(MeterRole::FillRest)
-        && theme.color.meter.fill_rest == super::MeterFillRest::RaisedSurface
+        && theme.color.meter.fill_rest == super::MeterFillRest::ReferenceLift
     {
         Role::HoverSurface
     } else {

@@ -8735,13 +8735,16 @@ baseline key blessing, candidate snapshot approval, or pinned-Holla acceptance.
 ## Meter semantic rest policy amendment
 
 `MeterTokens::fill_rest` is now `MeterFillRest`, either `Color(Color)` or
-`RaisedSurface`. This is an explicit experimental API migration: existing custom
+`ReferenceLift`. This is an explicit experimental API migration: existing custom
 struct literals and assignments must wrap their color in `MeterFillRest::Color`.
-The symbolic policy binds the current surface through `Role::HoverSurface`, the
-pinned Holla `Theme::lift` policy, not the separate generic `Theme::raise` ladder:
-Canvas maps to Elevated; Surface and Elevated to Overlay; Field to FieldHover;
-the remaining surfaces to Popover. The typed paint carrier retains that source
-surface when painting is delayed. No RGB comparison identifies semantic roles.
+The symbolic policy applies pinned Holla `Theme::lift` to the resolved current
+surface color: compare Canvas first (return Elevated), then Surface or Elevated
+(return Overlay), then Field (return FieldHover), else return Popover. Ordering
+is normative after capability conversion or custom token aliasing; comparing the
+semantic Surface enum instead changes reference output when colors coincide.
+This is an explicitly authored color policy, not RGB inference of painted roles.
+The typed carrier retains `Role::HoverSurface` and its original source surface
+for delayed dimming provenance; the generic `Theme::raise` ladder is separate.
 
 Junie defaults recover the pinned Meter roles: Low uses secondary text, Stale
 uses faint text, and Block rest lifts its inherited surface. Paper retains its

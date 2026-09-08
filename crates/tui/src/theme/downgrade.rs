@@ -289,7 +289,7 @@ impl PaletteProjection<'_> {
                 super::MeterFillRest::Color(color) => {
                     super::MeterFillRest::Color(downgrade_color(color, self.level))
                 }
-                super::MeterFillRest::RaisedSurface => current,
+                super::MeterFillRest::ReferenceLift => current,
             }
         }
     }
@@ -300,7 +300,7 @@ impl super::tokens::TokenMapper for PaletteProjection<'_> {
         // target cannot be authored at one of these positions.
         match self.project(super::MeterFillRest::Color(current)) {
             super::MeterFillRest::Color(color) => color,
-            super::MeterFillRest::RaisedSurface => downgrade_color(current, self.level),
+            super::MeterFillRest::ReferenceLift => downgrade_color(current, self.level),
         }
     }
     fn meter_rest(&mut self, current: super::MeterFillRest) -> super::MeterFillRest {

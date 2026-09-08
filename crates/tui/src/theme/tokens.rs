@@ -135,9 +135,9 @@ impl SyntaxTokens {
 pub enum MeterFillRest {
     /// An explicit theme color, narrowed with the other color tokens.
     Color(Color),
-    /// Lift the current semantic surface through the reference hover-plane
-    /// policy (`Role::HoverSurface`), distinct from the generic `Theme::raise` ladder.
-    RaisedSurface,
+    /// Apply pinned ordered color comparisons to the inherited surface.
+    /// Quantized aliases follow the same branch order as the reference theme.
+    ReferenceLift,
 }
 
 pub(crate) trait TokenMapper {
@@ -152,7 +152,7 @@ impl<F: FnMut(Color) -> Color> TokenMapper for ColorMapper<'_, F> {
     fn meter_rest(&mut self, rest: MeterFillRest) -> MeterFillRest {
         match rest {
             MeterFillRest::Color(color) => MeterFillRest::Color(self.color(color)),
-            MeterFillRest::RaisedSurface => rest,
+            MeterFillRest::ReferenceLift => rest,
         }
     }
 }
