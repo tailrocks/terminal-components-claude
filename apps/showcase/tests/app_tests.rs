@@ -889,7 +889,7 @@ fn custom_theme_injection_repaints_every_page() {
 }
 
 #[test]
-fn panels_page_keeps_historical_card_composition() {
+fn local_override_page_shows_three_distinct_buttons() {
     let buttons = harness(PageId::Buttons);
     let primary = cell_style(&buttons, "Run task");
     let secondary = cell_style(&buttons, "Preview");
@@ -901,5 +901,18 @@ fn panels_page_keeps_historical_card_composition() {
     let panels = harness(PageId::Panels);
     assert!(panels.text().contains("Titled card"));
     assert!(panels.text().contains("Card · scrollable"));
+    let patched_title = cell_style(&panels, "Titled card");
+    assert_eq!(
+        patched_title.0,
+        Theme::junie().color.fg[junie_tui::FgStep::Secondary.index()]
+    );
+    assert!(!patched_title.2.contains(Modifier::BOLD));
+    let page_title = panels.cell(26, 2);
+    assert_eq!(page_title.symbol(), "P");
+    assert_eq!(
+        page_title.fg,
+        Theme::junie().color.fg[junie_tui::FgStep::Primary.index()]
+    );
+    assert!(page_title.modifier.contains(Modifier::BOLD));
     assert!(panels.diagnostics().is_empty(), "Panels diagnostics");
 }
