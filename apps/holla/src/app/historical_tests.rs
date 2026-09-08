@@ -709,3 +709,91 @@ fn launch_failure_is_honest() {
     let Some(a) = activity else { return };
     assert_eq!(a.state, crate::domain::activity::ActivityState::Failed);
 }
+
+#[test]
+fn nothing_matches_state() {
+    let mut h = fixture(Scenario::FirstUse, Motion::Paused, 0, 120, 40);
+    let _ = h.type_str("zzz");
+    assert!(h.text().contains("Nothing matches"), "{}", h.text());
+}
+
+// ----------------------------------------------------- P2 root experience
+
+#[test]
+fn priority_stack_has_reasons_and_scope_tags() {
+    let h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let t = h.text();
+    assert!(t.contains("Suggested here"), "{t}");
+    assert!(t.contains("Recent here"), "{t}");
+    assert!(t.contains("Explore"), "{t}");
+    // a reason on every suggestion: memory, freshness, git truth
+    assert!(t.contains("pinned here"), "{t}");
+    assert!(t.contains("used 6 times in this project"), "{t}");
+    assert!(t.contains("branch is 3 commits behind"), "{t}");
+    // nonlocal rows carry explicit scope
+    assert!(t.contains("· host"), "{t}");
+}
+
+#[test]
+fn preview_answers_the_seven_questions() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let _ = h.ctrl('p');
+    let t = h.text();
+    for fact in [
+        "Will happen",
+        "Target",
+        "Why recommended",
+        "Will change",
+        "Freshness",
+        "Confirmation",
+    ] {
+        assert!(t.contains(fact), "missing {fact} in {t}");
+    }
+    assert!(t.contains("Run (simulated)"), "{t}");
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.text().contains("Will happen"));
+}
+
+#[test]
+fn ssh_resolution_previews_chain_and_identity_filename() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("prod-eu-1");
+    let _ = h.ctrl('p');
+    let t = h.text();
+    assert!(t.contains("Connect to prod-eu-1?"), "{t}");
+    assert!(t.contains("10.20.30.40"), "{t}");
+    assert!(t.contains("bastion → prod-eu-1"), "{t}");
+    // identity is a FILENAME only — contents never enter the UI
+    assert!(t.contains("id_ed25519_prod · filename only"), "{t}");
+    assert!(t.contains("Multiplexing"), "{t}");
+}
+
+#[test]
+fn monitor_snapshot_facts_and_btm_handoff() {
+    let mut h = fixture(Scenario::RemoteHost, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("monitor");
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("System snapshot"), "{t}");
+    assert!(t.contains("prod-eu-1"), "{t}");
+    assert!(t.contains("Load"), "{t}");
+    assert!(t.contains("3.10 2.80 2.50"), "{t}");
+    assert!(t.contains("14200 MB of 16384 MB"), "{t}");
+    assert!(t.contains("212 days"), "{t}");
+    assert!(t.contains("btm takes over the screen"), "{t}");
+    let _ = h.key(KeyCode::Right); // Close → Open btm (simulated)
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("simulated handoff"), "{}", h.text());
+}
+
+#[test]
+fn quit_confirm_on_production_names_the_remote_identity() {
+    let mut h = fixture(Scenario::RemoteHost, Motion::Paused, 4_000, 120, 40);
+    let _ = h.key(KeyCode::Char('q'));
+    let t = h.text();
+    assert!(t.contains("Quit holla on prod-eu-1?"), "{t}");
+    assert!(t.contains("◆ prod-eu-1"), "{t}");
+    // cancel is the default focus
+    let _ = h.key(KeyCode::Enter);
+    assert!(!h.app().quit);
+}
