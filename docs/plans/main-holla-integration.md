@@ -382,6 +382,36 @@ SHA2f1db881…ab3 verifies14 artifact hashes and4160 unchanged plain-paint cases
 it did not rebuild that observer. ItemRow layout and application visual approval
 remain separate. Stable formatting and full-workspace MSRV Clippy pass.
 
+Grid aacb7cb/57e9545/e9fb460/d86fd35 integrates the detailed gutter after
+repeat-click and keyed hover/press repairs. Root759 library+50 Grid public
+MSRV tests pass; initial mistyped grid_fetch target failed before execution,
+then corrected actual targets ran. Independent E/grid-gutter-independent/FINAL_REVIEW.md
+SHAe573569d…93d16 binds829 tests (includes independent probe) and rebuilt
+128-case/83,968-cell compact equality. Original repeat/hover failures remain.
+Header prefix/fetch presentation and actual Showcase migration remain separate.
+
+Split c562ee5/ec2ef74/03e7cf9 integrates aligned seams, explicit disabled
+admission, and publication-owned logical coordinates. Root14 Split+10 publication
+MSRV tests pass. Independent E/split-axis-independent/REVIEW.md SHA6e461305…cfbc46
+binds783 tests and resize/reference-only probes; exact clipped-axis failure32
+now reaches52. Logical facts supply model math; clipped hit regions still govern
+input. This explicitly repairs historical coordinate conflation, superseding
+prior bounded seam approval on same-axis clipping. Manager parity remains open.
+
+Holla8246d9e restores four exact trust/clone/activity/failure journeys and clone
+caption. Independent E/holla-journeys-independent/REVIEW.md SHA001e7869…18ab02
+verifies complete original assertion bodies and35 historical tests. Root all-four-app
+library run passes263 tests (Holla158, Jackin67, Showcase5, TablePro33). Stable
+formatting and full-workspace MSRV Clippy pass at03e7cf9.
+No full visual acceptance or merge claim; ItemRow Columns remains held on an
+independent clipped-first-group-row failure.
+
+Holla28ebbbe adds six further original preview/SSH/monitor/quit/query journeys,
+with no production edits. Root41 historical MSRV tests pass, including all six.
+Independent E/holla-a613-independent/REVIEW.md SHA3df75372…655167 binds exact
+normalized source bodies and independent41-test execution. PG/Git/disk remaining
+mapping and all visual obligations remain separate.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
