@@ -61,7 +61,7 @@ pub use dialog::{Dialog, DialogAction, DialogCmd, DialogState};
 pub use diff::{DiffLineKind, DiffMode, DiffRow, DiffSource, DiffView, DiffViewState};
 pub use empty::Empty;
 pub use field::Field;
-pub use filter_list::{FilterList, FilterListAction, FilterListCmd, FilterListState};
+pub use filter_list::{FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy};
 pub use form::{
     EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData,
     FormState, GroupKey,

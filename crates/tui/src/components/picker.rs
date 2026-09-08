@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-use super::filter_list::{FilterList, FilterListAction, FilterListState};
+use super::filter_list::{FilterList, FilterListAction, FilterListState, FilterPolicy};
 use super::{Acc, PartStyle, SlotFn};
 use crate::collection::{EmptyState, RowFn, RowUi};
 use crate::id::{Id, ItemKey, Part};
@@ -265,6 +265,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
     width: Option<u16>,
+    filter: FilterPolicy,
     placeholder: &'a str,
     scopes: &'a [ScopeKey],
     empty: Option<EmptyState<'a>>,
@@ -292,6 +293,7 @@ impl<T> Picker<'_, T, ItemRow> {
             id,
             title: "Choose",
             width: None,
+            filter: FilterPolicy::Label,
             placeholder: "Type to search…",
             scopes: &[],
             empty: None,
@@ -337,6 +339,12 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.width = Some(width);
         self
     }
+    /// Select caller-owned filtering while retaining query editing and navigation.
+    #[must_use]
+    pub const fn filter(mut self, policy: FilterPolicy) -> Self {
+        self.filter = policy;
+        self
+    }
     /// Query placeholder.
     #[must_use]
     pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
@@ -361,6 +369,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             id: self.id,
             title: self.title,
             width: self.width,
+            filter: self.filter,
             placeholder: self.placeholder,
             scopes: self.scopes,
             empty: self.empty,
@@ -395,7 +404,9 @@ impl<'a, T, R> Picker<'a, T, R> {
 
 impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     fn list(&self) -> FilterList<'_, T, BorrowedRow<'_, R>> {
-        let mut list = FilterList::new(self.id).row(BorrowedRow(&self.row));
+        let mut list = FilterList::new(self.id)
+            .filter(self.filter)
+            .row(BorrowedRow(&self.row));
         if let Some(empty) = self.empty {
             list = list.empty(empty);
         }
@@ -430,6 +441,12 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .anchor(Anchor::Screen(ScreenAlign::UpperThird))
             .initial_focus(self.id)
             .size(self.measured_size(cx, items))
+    }
+
+    /// Reconcile a replaced projection without consuming another input update.
+    /// Call after handling query or scope changes and before drawing new items.
+    pub fn reconcile(&self, st: &mut PickerState, items: &[T]) {
+        self.list().reconcile(&mut st.list, items);
     }
 
     /// Update the embedded filter and map its actions to picker semantics.

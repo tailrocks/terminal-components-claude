@@ -189,6 +189,17 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
     ),
 ];
 
+/// Ownership of the visible item projection.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum FilterPolicy {
+    /// Match the query against semantic labels, preserving source order.
+    #[default]
+    Label,
+    /// The caller supplies already filtered and ranked items.
+    /// Query editing and keyed navigation remain owned by the component.
+    Caller,
+}
+
 /// Durable query, cursor, filtered-index and scroll state.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct FilterListState {
@@ -290,6 +301,7 @@ pub struct FilterList<'a, T, R = super::picker::ItemRow> {
     status: Status,
     frame: usize,
     searchable: bool,
+    filter: FilterPolicy,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -316,6 +328,7 @@ impl<T> FilterList<'_, T, super::picker::ItemRow> {
             status: Status::Ready,
             frame: 0,
             searchable: true,
+            filter: FilterPolicy::Label,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -350,6 +363,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
             status: self.status,
             frame: self.frame,
             searchable: self.searchable,
+            filter: self.filter,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -372,6 +386,12 @@ impl<'a, T, R> FilterList<'a, T, R> {
     #[must_use]
     pub const fn frame(mut self, frame: usize) -> Self {
         self.frame = frame;
+        self
+    }
+    /// Select who filters the visible items; query editing is independent.
+    #[must_use]
+    pub const fn filter(mut self, policy: FilterPolicy) -> Self {
+        self.filter = policy;
         self
     }
     /// Whether printable input edits the query.
@@ -497,13 +517,18 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             .unwrap_or(12)
     }
 
-    fn rebuild(st: &mut FilterListState, items: &[T]) {
+    /// Reconcile selection and scroll against current semantic item keys.
+    ///
+    /// Call after replacing a caller-owned projection in response to query or
+    /// scope changes, before drawing. This consumes no input and emits no action.
+    pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
         st.matches.clear();
-        st.matches.extend(
-            items.iter().enumerate().filter_map(|(i, item)| {
-                contains_folded(item.as_item().label, &st.query).then_some(i)
-            }),
-        );
+        st.matches
+            .extend(items.iter().enumerate().filter_map(|(i, item)| {
+                (self.filter == FilterPolicy::Caller
+                    || contains_folded(item.as_item().label, &st.query))
+                .then_some(i)
+            }));
         st.initialized = true;
         let matches = &st.matches;
         let _ = st.core.reconcile_with(
@@ -677,7 +702,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         st: &mut FilterListState,
         items: &[T],
     ) -> Response<FilterListAction> {
-        Self::rebuild(st, items);
+        self.reconcile(st, items);
         let mut acc = Acc::new();
         let bar = self
             .scrollbar()
@@ -907,10 +932,10 @@ mod tests {
     fn filtering_borrowed_domain_items_reuses_one_index_buffer() {
         let items = [Domain("alpha"), Domain("beta"), Domain("gamma")];
         let mut state = FilterListState::default();
-        FilterList::<Domain, ItemRow>::rebuild(&mut state, &items);
+        FilterList::<Domain, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         let capacity = state.matches.capacity();
         state.set_query("a");
-        FilterList::<Domain, ItemRow>::rebuild(&mut state, &items);
+        FilterList::<Domain, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         assert_eq!(state.matches.capacity(), capacity);
     }
 
@@ -921,7 +946,7 @@ mod tests {
             Item::new(ItemKey::num(2), "two"),
         ];
         let mut state = FilterListState::default();
-        FilterList::<Item<'_>, ItemRow>::rebuild(&mut state, &items);
+        FilterList::<Item<'_>, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         state.core.set_cursor(1, ItemKey::num(2));
         state.core.scroll_mut().apply_layout(1, items.len());
         state.core.scroll_mut().scroll_to(0);
