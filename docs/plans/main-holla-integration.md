@@ -316,6 +316,23 @@ Clippy and stable formatting pass after the lint repair. The short-stream retain
 log test does not establish nonzero scroll-offset persistence or visual parity.
 All integration remains on PR #1 branch codex/main-holla-integration.
 
+Props87c1664, Tree lineagea88c81e/scratch2317e34, and focus restoration577bf53
+are integrated after root source review and independent bounded acceptance.
+Props review E/props-rich-independent/REVIEW.md SHA4e1b331d…40d37a binds
+legacy32-frame equality, semantic precedence, secrets and zero-allocation rich
+paint. Tree review E/tree-lineage-independent/REVIEW.md SHAbcf914ea…79206
+binds replacement/clone/ABA and unchanged100k proofs. Root759 library tests
+and46 Props/Tree public tests pass together, including selected-click behavior.
+Restoration review E/removed-opener-independent/REVIEW.md SHA0fda29ae…3f100
+binds21 independent cases; root759 library plus18 restoration/publication tests
+pass. Removed historical openers receive no FocusIn before successful live
+publication; retained keys, nested traps and temporary popover gaps remain tested.
+Four application library smoke suites, full-workspace MSRV Clippy and stable
+formatting pass. These are bounded component/lifecycle results, not full parity.
+Holla Plan train remains held: independent replacement probe rejects98c5210,
+whose old acknowledgement can authorize a fresh same-shaped review. Owner is
+repairing immutable review binding; failed evidence remains E/plan-ack-independent.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
