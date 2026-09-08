@@ -2811,12 +2811,15 @@ impl<'a, T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'a, T, K, R> {
 impl<'a> Grid<'a> {                                                   // no `M` on the props (§21 item 1, B15)
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::HEADER, Part::ROW, Part::CELL,
                                          Part::TRACK, Part::THUMB, Part::OVERFLOW, Part::EMPTY, Part::ACTIONS,
-                                         Part::GUTTER, Part::MARKER, Part::CHANGE, Part::ROW_NUMBER];
-    // Detailed gutter amendment: the final four are real optional surfaces.
+                                         Part::GUTTER, Part::MARKER, Part::CHANGE, Part::ROW_NUMBER, Part::ICON];
+    // Detailed gutter amendment: GUTTER/MARKER/CHANGE/ROW_NUMBER are optional surfaces.
     // Compact (default) retains its ROW-based two-cell paint and existing slots.
     // Detailed separates focus/check/change/source-number cells in the shared
     // Grid geometry; these four slots replace only their clipped cell content.
     // CHANGE and ROW_NUMBER are builtin parts 34 and 35; no whole-grid Status.
+    // ICON is a real optional per-column header-prefix surface, not Status.
+    // Prefix defaults resolve below explicit ICON overrides; HEADER slot replaces all.
+    pub fn header_prefixes(self, prefixes: &'a [(ColumnKey, GlyphRole, Role)]) -> Self;
     pub fn gutter(self, layout: GridGutter) -> Self;
     pub fn right_reserve(self, cells: u16) -> Self;
     pub fn part_defaults(self, defaults: &'a [(Part, StylePatch)]) -> Self;
@@ -8314,9 +8317,10 @@ buffer/region containment, and update/draw geometry agreement.
 ## §65 Adjudication — Grid readiness is local data, not a whole-grid status <!-- amended by §65 -->
 
 **Status: accepted.** Delete Grid's draft `.status(Status)` API, field, and global readiness
-propagation; do not add `Part::ICON`. §12.3's kept surface never included whole-grid status, no
-production caller uses it, and Grid's exact nine-part list remains
-`[CONTAINER,HEADER,ROW,CELL,TRACK,THUMB,OVERFLOW,EMPTY,ACTIONS]`.
+propagation. §12.3's kept surface never included whole-grid status and no production caller
+uses it. The original nine-part list is preserved by default rendering. A7 now explicitly
+adds real optional detailed-gutter surfaces and a per-column header-prefix `ICON`; that
+prefix is not a whole-grid readiness affordance and does not restore `.status(Status)`.
 
 The legacy behavior was local: an empty grid used `EmptyState::Loading/Error`, while a pending
 fetch row owned its spinner/text. It never broadcast BUSY or ERROR over loaded rows. Initial

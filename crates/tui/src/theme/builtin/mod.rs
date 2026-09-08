@@ -556,6 +556,8 @@ fn chip(m: &mut PartMap<PartRecipe>) {
 
 fn grid(m: &mut PartMap<PartRecipe>) {
     row_like(m);
+    // Optional header prefixes supply their semantic tone below explicit overrides.
+    m.entry(Part::ICON).base = p();
     part(m, Part::ROW, p());
     part(m, Part::CELL, p())
         .when(

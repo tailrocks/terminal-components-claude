@@ -1197,14 +1197,17 @@ impl Geometry {
 /// `GUTTER`, `MARKER`, `CHANGE` and `ROW_NUMBER` (§17.0 A7). Compact paints its
 /// focus and shared selection/change markers from `ROW`; Detailed resolves
 /// the four distinct parts in their clipped subcells. The fetch sentinel
-/// resolves only `GUTTER`, never a synthetic data-row number.
+/// resolves only `GUTTER`, never a synthetic data-row number. A configured
+/// keyed header prefix additionally resolves `ICON`; this is not a whole-grid
+/// status surface.
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach `Part::CONTAINER`, `Part::HEADER`,
 /// `Part::ROW`, `Part::CELL`, `Part::TRACK`, `Part::THUMB`, `Part::OVERFLOW`,
 /// `Part::EMPTY` and `Part::ACTIONS`, plus all four detailed-gutter parts when
-/// enabled. `.slot` replaces `Part::HEADER`, `Part::EMPTY`, `Part::ACTIONS`,
-/// `Part::TRACK`, `Part::THUMB`, and each enabled detailed-gutter subcell.
+/// enabled, and `ICON` for configured header prefixes. `.slot` replaces `Part::HEADER`, `Part::EMPTY`, `Part::ACTIONS`,
+/// `Part::TRACK`, `Part::THUMB`, each enabled detailed-gutter subcell, and
+/// each header-prefix `ICON`. `HEADER` replacement suppresses all header content.
 /// `ACTIONS` reaches both configured action surfaces and cell affordances.
 /// `TRACK` and `THUMB` are forwarded into the embedded [`ScrollRegion`], as
 /// are `.patch` and `.patch_part`.
@@ -1237,6 +1240,7 @@ pub struct Grid<'a> {
     gutter: GridGutter,
     right_reserve: u16,
     part_defaults: &'a [(Part, StylePatch)],
+    header_prefixes: &'a [(ColumnKey, GlyphRole, Role)],
     column_fit: GridColumnFit,
     header_sizing: GridHeaderSizing,
     sort_indicator: GridSortIndicator,
@@ -1279,6 +1283,7 @@ impl<'a> Grid<'a> {
         Part::MARKER,
         Part::CHANGE,
         Part::ROW_NUMBER,
+        Part::ICON,
     ];
 
     /// A grid over `columns`.
@@ -1291,6 +1296,7 @@ impl<'a> Grid<'a> {
             gutter: GridGutter::Compact,
             right_reserve: 0,
             part_defaults: &[],
+            header_prefixes: &[],
             column_fit: GridColumnFit::Whole,
             header_sizing: GridHeaderSizing::Content,
             sort_indicator: GridSortIndicator::Always,
@@ -1401,6 +1407,22 @@ impl<'a> Grid<'a> {
     pub const fn gutter(mut self, gutter: GridGutter) -> Self {
         self.gutter = gutter;
         self
+    }
+
+    /// Borrowed keyed header glyphs and semantic tones. Each reserves one glyph
+    /// cell plus one separator; wide theme glyphs remain clipped to that cell.
+    /// ICON defaults precede explicit theme/scope/instance ICON overrides.
+    #[must_use]
+    pub const fn header_prefixes(mut self, prefixes: &'a [(ColumnKey, GlyphRole, Role)]) -> Self {
+        self.header_prefixes = prefixes;
+        self
+    }
+
+    fn header_prefix(&self, key: ColumnKey) -> Option<(GlyphRole, Role)> {
+        self.header_prefixes
+            .iter()
+            .rev()
+            .find_map(|(column, glyph, tone)| (*column == key).then_some((*glyph, *tone)))
     }
 
     /// Reserve trailing cells independently of the scrollbar and column gap.
@@ -1613,7 +1635,11 @@ impl<'a> Grid<'a> {
     ) -> [u16; GRID_MAX_COLUMNS] {
         let mut widths = [0; GRID_MAX_COLUMNS];
         for (i, c) in self.columns.iter().enumerate().take(self.column_count()) {
-            let mut w = width(c.title);
+            let mut w = width(c.title).saturating_add(if self.header_prefix(c.key).is_some() {
+                2
+            } else {
+                0
+            });
             let mut has_actions = false;
             if let Some(b) = c.badge {
                 w = w.saturating_add(width(b)).saturating_add(1);
@@ -3008,6 +3034,65 @@ impl Grid<'_> {
         }
     }
 
+    fn paint_header_title(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        col: &Column<'_>,
+        flags: StateFlags,
+        style: PaintStyle,
+    ) {
+        let Some((glyph, tone)) = self.header_prefix(col.key) else {
+            paint_aligned(ui, area, col.title, col.align, style);
+            return;
+        };
+        let group_width = width(col.title).saturating_add(2).min(area.width);
+        let spare = area.width.saturating_sub(group_width);
+        let offset = match col.align {
+            Align::Left => 0,
+            Align::Center => spare / 2,
+            Align::Right => spare,
+        };
+        let group = Rect::new(
+            area.x.saturating_add(offset),
+            area.y,
+            group_width,
+            area.height,
+        );
+        let icon = Rect {
+            width: group.width.min(1),
+            ..group
+        };
+        let local = self.ov.part_patch(Part::ICON);
+        let resolved = ui.style_defaults(
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::ICON,
+            flags,
+            StyleDefaults::new(StylePatch::new().set_fg(tone).set_glyph(glyph)),
+            local.as_ref(),
+        );
+        self.ov.note(
+            ui,
+            self.id,
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::ICON,
+            resolved,
+        );
+        if let Some(slot) = self.ov.slot_for(Part::ICON) {
+            ui.with_area(icon, |ui| slot(ui, icon));
+        } else if let Some(glyph) = resolved.glyph.get() {
+            ui.glyph(icon, glyph, resolved.over(style));
+        }
+        let title = Rect {
+            x: group.x.saturating_add(2),
+            width: group.width.saturating_sub(2),
+            ..group
+        };
+        paint_aligned(ui, title, col.title, Align::Left, style);
+    }
+
     /// Paint the header row: titles, badges and the `‹N` / `N›` overflow
     /// indicators.
     fn draw_header(
@@ -3063,7 +3148,7 @@ impl Grid<'_> {
                     .saturating_sub(sort_width),
                 ..rect
             };
-            paint_aligned(ui, title, col.title, col.align, hs.style);
+            self.paint_header_title(ui, title, col, live, hs.style);
             if let Some(badge) = col.badge {
                 let bw = width(badge).min(rect.width);
                 let at = Rect {
@@ -4323,6 +4408,7 @@ mod tests {
                 Part::MARKER,
                 Part::CHANGE,
                 Part::ROW_NUMBER,
+                Part::ICON,
             ]
         );
         let addressable = [
@@ -4340,8 +4426,8 @@ mod tests {
         let columns = columns();
         let debug = format!("{:?}", Grid::new(ID, &columns));
         assert!(!debug.contains("status"));
-        assert_eq!(Grid::PARTS.len(), 13);
-        assert!(!Grid::PARTS.contains(&Part::ICON));
+        assert_eq!(Grid::PARTS.len(), 14);
+        assert!(Grid::new(ID, &columns).header_prefixes.is_empty());
     }
 
     #[test]
