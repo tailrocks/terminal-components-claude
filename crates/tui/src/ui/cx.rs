@@ -163,6 +163,7 @@ pub(crate) struct DeferredFocus {
 /// Mutable services `Cx` exposes; owned by the runtime.
 #[derive(Debug, Default)]
 pub(crate) struct FrameServices {
+    pub(crate) viewport: Rect,
     pub(crate) layers: LayerStack,
     pub(crate) capture: CaptureSlot,
     pub(crate) events: Vec<(Id, LayerEvent)>,
@@ -386,6 +387,15 @@ impl<'f> Cx<'f> {
     /// Ask for a repaint regardless of the returned `Response`.
     pub fn request_repaint(&mut self) {
         self.services.repaint = true;
+    }
+
+    /// Current authoritative viewport, updated before resize delivery.
+    ///
+    /// This is `Rect::ZERO` before the first resize or successful presentation.
+    /// Published control geometry can still describe the previous viewport while
+    /// a resize update runs; dropped and inspected frames do not change this area.
+    pub const fn viewport(&self) -> Rect {
+        self.services.viewport
     }
 
     /// Current explicit monotonic time. Input count never advances it.

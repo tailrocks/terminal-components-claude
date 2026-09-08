@@ -335,7 +335,6 @@ struct ConflictCacheKey {
 pub struct Runtime<A: App> {
     app: A,
     theme: Theme,
-    screen: Rect,
     last: LastFrame,
     focus: FocusState,
     services: FrameServices,
@@ -368,7 +367,7 @@ pub struct Runtime<A: App> {
 impl<A: App> core::fmt::Debug for Runtime<A> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Runtime")
-            .field("screen", &self.screen)
+            .field("screen", &self.services.viewport)
             .field("focus", &self.focus.current())
             .field("generation", &self.generation)
             .field("top_layer", &self.services.layers.top())
@@ -390,7 +389,6 @@ impl<A: App> Runtime<A> {
         Runtime {
             app,
             theme,
-            screen: Rect::ZERO,
             last: LastFrame::default(),
             focus: FocusState::default(),
             services: FrameServices {
@@ -554,7 +552,7 @@ impl<A: App> Runtime<A> {
 
     /// The terminal size as last resized or successfully presented.
     pub const fn screen(&self) -> Rect {
-        self.screen
+        self.services.viewport
     }
 
     fn top(&self) -> LayerId {
@@ -738,7 +736,7 @@ impl<A: App> Runtime<A> {
 
     /// Step 1 for a resize.
     fn resize(&mut self, w: u16, h: u16) {
-        self.screen = Rect {
+        self.services.viewport = Rect {
             x: 0,
             y: 0,
             width: w,
@@ -1520,7 +1518,7 @@ impl<A: App> Runtime<A> {
     }
 
     fn commit_geometry(&mut self) {
-        self.screen = self.frame.screen;
+        self.services.viewport = self.frame.screen;
         // step 13: registry swap, stale captures released
         let mut diags = core::mem::take(&mut self.frame.diagnostics);
         self.services.diagnostics.extend(diags.drain(..));
