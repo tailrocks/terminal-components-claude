@@ -621,3 +621,91 @@ fn disk_plan_policy_skips_active_today() {
     assert!(t.contains("active today · never removed"), "{t}");
     assert!(t.contains("Remove .gradle"), "{t}");
 }
+
+#[test]
+fn mise_trust_gate_then_child_task_runs() {
+    let mut h = fixture(Scenario::MonorepoRoot, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("reset-db");
+    let t = h.text();
+    assert!(t.contains("untrusted config"), "{t}");
+    assert!(t.contains("▲"), "{t}");
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Trust this task file?"), "{t}");
+    assert!(
+        t.contains("~/work/monorepo/projects/backend/mise.toml"),
+        "{t}"
+    );
+    assert!(t.contains("this exact file only"), "{t}");
+    // focus starts on Close; move right to Trust file, confirm
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Trusted mise.toml"), "{}", h.text());
+    // the task is now ready and runs simulated
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text()
+            .contains("Would run: mise run //projects/backend:reset-db"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn clone_flow_collects_argument_then_reviews() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("clone");
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Clone which repository?"), "{t}");
+    assert!(t.contains("pave-io/pave"), "{t}");
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    for fact in [
+        "Account",
+        "Owner",
+        "Protocol",
+        "Destination",
+        "Primary branch",
+        "Fork",
+    ] {
+        assert!(t.contains(fact), "missing {fact} in {t}");
+    }
+    assert!(t.contains("github.com/octocat"), "{t}");
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("Would clone pave-io/pave"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn long_running_task_starts_named_activity() {
+    let mut h = fixture(Scenario::MonorepoChild, Motion::Paused, 4_000, 120, 40);
+    let before = h.app().world.activities.len();
+    let _ = h.type_str("vite");
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Activity started: Run dev"), "{t}");
+    assert_eq!(Some(h.app().world.activities.len()), before.checked_add(1));
+    let activity = h.app().world.activities.last();
+    assert!(activity.is_some(), "started activity must exist");
+    let Some(a) = activity else { return };
+    assert_eq!(a.scope, "~/work/monorepo/apps/frontend");
+    assert_eq!(a.state, crate::domain::activity::ActivityState::Running);
+}
+
+#[test]
+fn launch_failure_is_honest() {
+    let mut h = fixture(Scenario::LaunchFailure, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("mise run test");
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("failed · exit code 1"), "{t}");
+    let activity = h.app().world.activities.last();
+    assert!(activity.is_some(), "started activity must exist");
+    let Some(a) = activity else { return };
+    assert_eq!(a.state, crate::domain::activity::ActivityState::Failed);
+}

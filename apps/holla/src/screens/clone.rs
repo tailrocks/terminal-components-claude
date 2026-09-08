@@ -33,7 +33,7 @@ impl ClonePicker {
         cx.open_layer(
             PICKER,
             Picker::new(PICKER)
-                .title("Clone repository")
+                .title("Clone which repository?")
                 .layer(cx, &self.items()),
         );
     }
@@ -43,7 +43,7 @@ impl ClonePicker {
     ) -> (Response<()>, Option<(GhRepo, String)>, bool) {
         let mut state = std::mem::take(&mut self.state);
         let mut response = Picker::new(PICKER)
-            .title("Clone repository")
+            .title("Clone which repository?")
             .placeholder("Filter repositories…")
             .update(cx, &mut state, &self.items());
         self.state = state;
@@ -65,7 +65,7 @@ impl ClonePicker {
     pub(crate) fn draw(&self, ui: &mut Ui<'_>) {
         ui.layer(PICKER, |ui, area| {
             Picker::new(PICKER)
-                .title("Clone repository")
+                .title("Clone which repository?")
                 .placeholder("Filter repositories…")
                 .draw(ui, area, &self.state, &self.items())
         });
