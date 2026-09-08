@@ -430,3 +430,116 @@ fn merged_logs_scroll_retained_per_activity() {
     assert!(h.app().route == Route::Activity, "{}", h.text());
     assert!(h.text().contains("container logs"), "{}", h.text());
 }
+
+fn open_docker_plan(h: &mut Harness<App>) {
+    let _ = h.type_str("clean up docker");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().route == Route::Plan, "{}", h.text());
+}
+
+fn try_confirm(h: &mut Harness<App>, phrase: &str) {
+    let _ = h.key(KeyCode::Enter); // open gate 2
+    let _ = h.type_str(phrase);
+    let _ = h.key(KeyCode::Enter); // leave the ack input
+    let _ = h.key(KeyCode::Right); // Cancel → Run plan (skipped while disabled)
+    let _ = h.key(KeyCode::Enter);
+}
+
+#[test]
+fn broad_action_opens_gate_one_review_surface() {
+    let mut h = fixture(Scenario::DockerCleanup, Motion::Paused, 4_000, 120, 40);
+    open_docker_plan(&mut h);
+    let t = h.text();
+    assert!(t.contains("Clean up Docker data"), "{t}");
+    assert!(t.contains("review · Space excludes"), "{t}");
+    assert!(t.contains("Remove stopped containers"), "{t}");
+    assert!(t.contains("Prune builder cache"), "{t}");
+    assert!(t.contains("docker system df"), "{t}");
+    assert!(t.contains("· builder"), "{t}");
+    assert!(t.contains("· required"), "{t}");
+    // no gate yet: the phrase never shows before gate 2
+    assert!(!t.contains("REMOVE ALL DOCKER DATA"), "{t}");
+}
+
+#[test]
+fn exclusion_recalculates_dependents_live() {
+    let mut h = fixture(Scenario::DockerCleanup, Motion::Paused, 4_000, 120, 40);
+    open_docker_plan(&mut h);
+    // step 0 is required and refuses exclusion
+    let _ = h.key(KeyCode::Char(' '));
+    assert!(
+        h.text().contains("required · cannot exclude"),
+        "{}",
+        h.text()
+    );
+    // exclude the container removal: images + volumes recalculate
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Char(' '));
+    let t = h.text();
+    assert!(t.contains("Excluded Remove stopped containers"), "{t}");
+    assert!(t.contains("needs Remove stopped containers"), "{t}");
+    // parallel branches stay free
+    assert!(!t.contains("needs Inspect Docker usage"), "{t}");
+    // restoring clears the block
+    let _ = h.key(KeyCode::Char(' '));
+    assert!(
+        !h.text().contains("needs Remove stopped containers"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn invalid_phrase_cannot_proceed() {
+    let mut h = fixture(Scenario::DockerCleanup, Motion::Paused, 4_000, 120, 40);
+    open_docker_plan(&mut h);
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(
+        t.contains("Type REMOVE ALL DOCKER DATA ON devbox to confirm"),
+        "{t}"
+    );
+    // wrong host bound: the phrase names devbox, not prod-eu-1
+    let _ = h.type_str("REMOVE ALL DOCKER DATA ON prod-eu-1");
+    let _ = h.key(KeyCode::Enter); // leave input → Cancel
+    let _ = h.key(KeyCode::Right); // Run stays disabled, focus cannot land on it
+    let _ = h.key(KeyCode::Enter); // the only reachable action is Cancel
+    let t = h.text();
+    assert!(!t.contains("Finished:"), "{t}");
+    assert!(!plan_ran(&h));
+}
+
+fn plan_ran(h: &Harness<App>) -> bool {
+    let plan = h.app().plan.as_ref();
+    assert!(plan.is_some(), "expected reviewed plan");
+    plan.is_some_and(|plan| plan.plan().ran())
+}
+
+#[test]
+fn correct_phrase_runs_and_failure_propagates() {
+    let mut h = fixture(Scenario::DockerCleanup, Motion::Paused, 4_000, 120, 40);
+    open_docker_plan(&mut h);
+    try_confirm(&mut h, "REMOVE ALL DOCKER DATA ON devbox");
+    let t = h.text();
+    assert!(
+        t.contains("Finished: 4 succeeded · 1 failed · 2 skipped"),
+        "{t}"
+    );
+    assert!(
+        t.contains("payments-old: bind mount still registered"),
+        "{t}"
+    );
+    assert!(t.contains("needs Remove stopped containers"), "{t}");
+    assert!(plan_ran(&h));
+    // honest world mutation: cache pruned, web/cron gone, payments-old kept
+    let d = h.app().world.docker.as_ref();
+    assert!(d.is_some(), "expected Docker fixture");
+    assert_eq!(d.map(|docker| docker.build_cache_bytes()), Some(0));
+    assert!(!d.is_some_and(|docker| docker.containers.iter().any(|c| c.name == "web")));
+    assert!(d.is_some_and(|docker| docker.containers.iter().any(|c| c.name == "payments-old")));
+    // per-step output: focus the failed step, its lines show
+    let _ = h.key(KeyCode::Down);
+    let t = h.text();
+    assert!(t.contains("Output — Remove stopped containers"), "{t}");
+    assert!(t.contains("Removed web"), "{t}");
+}
