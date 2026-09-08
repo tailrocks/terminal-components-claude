@@ -1,8 +1,9 @@
 //! Deterministic scenario contract: which fixture world the launcher starts
 //! in, how motion behaves, and which tick a paused capture shows.
 
+/// A deterministic launcher fixture available to the CLI and capture harness.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Scenario {
+pub enum Scenario {
     /// Empty directory on a local dev host: nothing discovered yet.
     FirstUse,
     /// A Rust project with a dirty worktree and a branch behind upstream.
@@ -63,8 +64,9 @@ impl Scenario {
     }
 }
 
+/// Animation and simulation time policy for the launcher.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum Motion {
+pub enum Motion {
     /// Tick-driven spinners and progressive discovery.
     #[default]
     Full,

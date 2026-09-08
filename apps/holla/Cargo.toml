@@ -11,5 +11,15 @@ publish = false
 name = "holla_app"
 path = "src/lib.rs"
 
+[[bin]]
+name = "holla"
+path = "src/main.rs"
+
 [lints]
 workspace = true
+
+[dependencies]
+junie-tui = { workspace = true, features = ["crossterm"] }
+
+[dev-dependencies]
+junie-tui-testing.workspace = true
