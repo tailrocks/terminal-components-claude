@@ -1156,6 +1156,25 @@ mod tests {
         assert!(early.diagnostics().is_empty(), "{:?}", early.diagnostics());
     }
     #[test]
+    fn home_hint_casing_preserves_lowercase_physical_shortcuts() {
+        let mut h = app(Scenario::RustDirty);
+        let text = h.text();
+        let footer = text.lines().last().unwrap();
+        assert!(footer.contains("Ctrl+S Scope"));
+        assert!(footer.contains("q Quit"));
+        let _ = h.ctrl('s');
+        assert!(h.text().contains("scope: here"));
+        assert!(h.tab_to(home::ROWS));
+        let text = h.text();
+        let footer = text.lines().last().unwrap();
+        assert!(footer.contains("Ctrl+P Preview"));
+        assert!(footer.contains("Ctrl+O Actions"));
+        assert!(h.tab_to(home::QUERY));
+        let _ = h.key(KeyCode::Char('q'));
+        assert!(h.text().contains("Quit holla?"));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+    #[test]
     fn home_product_hints_follow_query_rows_and_yield_to_modal_context() {
         let mut h = app(Scenario::RustDirty);
         assert!(h.text().lines().last().unwrap().contains("Run top match"));

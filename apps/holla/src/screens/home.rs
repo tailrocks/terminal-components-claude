@@ -75,8 +75,9 @@ impl HomeState {
 
     pub(crate) fn hints(world: &World, rows_focused: bool) -> HintLayer {
         let key = |code| HintKey::Chord(Chord::key(code));
-        let ctrl = |character| {
-            HintKey::Chord(Chord::with(KeyCode::Char(character), KeyModifiers::CONTROL))
+        let ctrl = |character| HintKey::ChordWithCase {
+            chord: Chord::with(KeyCode::Char(character), KeyModifiers::CONTROL),
+            case: junie_tui::ChordCase::UppercaseAscii,
         };
         let entries: &[(HintKey, &str)] = if rows_focused {
             &[
