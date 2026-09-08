@@ -23,6 +23,7 @@ use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
 use super::input::{BlurPolicy, TextAction, TextInput, TextInputState};
+use super::progress::Spinner;
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
@@ -1201,6 +1202,11 @@ impl Geometry {
 /// keyed header prefix additionally resolves `ICON`; this is not a whole-grid
 /// status surface.
 ///
+/// Fetch wording and activity are borrowed props. An activity frame composes
+/// canonical Spinner: its PROGRESS ICON/LABEL overrides belong to the child,
+/// while Grid ROW overrides retain the row fill and idle glyph. No loaded-row
+/// readiness is derived from this presentation option.
+///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach `Part::CONTAINER`, `Part::HEADER`,
 /// `Part::ROW`, `Part::CELL`, `Part::TRACK`, `Part::THUMB`, `Part::OVERFLOW`,
@@ -1246,6 +1252,9 @@ pub struct Grid<'a> {
     sort_indicator: GridSortIndicator,
     disabled: bool,
     fetch_on_activate: bool,
+    fetch_label: &'a str,
+    fetch_glyph: GlyphRole,
+    fetch_activity: Option<usize>,
     select_mode: SelectMode,
     empty: Option<EmptyState<'a>>,
     actions: Option<SlotFn<'a>>,
@@ -1302,6 +1311,9 @@ impl<'a> Grid<'a> {
             sort_indicator: GridSortIndicator::Always,
             disabled: false,
             fetch_on_activate: false,
+            fetch_label: "more",
+            fetch_glyph: GlyphRole::MoreRows,
+            fetch_activity: None,
             select_mode: SelectMode::Single,
             empty: None,
             actions: None,
@@ -1392,6 +1404,30 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn fetch_on_activate(mut self, enabled: bool) -> Self {
         self.fetch_on_activate = enabled;
+        self
+    }
+
+    /// Borrowed synthetic-row wording. Defaults to "more"; source counts and
+    /// loading text belong to the model adapter, never the generic grid.
+    #[must_use]
+    pub const fn fetch_label(mut self, label: &'a str) -> Self {
+        self.fetch_label = label;
+        self
+    }
+
+    /// Idle fetch-row glyph default, below explicit ROW glyph overrides.
+    #[must_use]
+    pub const fn fetch_glyph(mut self, glyph: GlyphRole) -> Self {
+        self.fetch_glyph = glyph;
+        self
+    }
+
+    /// Optional owner-supplied animation frame. Canonical Spinner owns its
+    /// PROGRESS ICON/LABEL styles; Grid retains ROW fill and fetch interaction.
+    /// This does not advance time, disable fetching, or mark loaded rows busy.
+    #[must_use]
+    pub const fn fetch_activity(mut self, frame: Option<usize>) -> Self {
+        self.fetch_activity = frame;
         self
     }
 
@@ -3757,28 +3793,35 @@ impl Grid<'_> {
                         },
                     );
                 }
-                let used = ui.glyph(
-                    Rect {
-                        x: g.content_x,
-                        width: more.right().saturating_sub(g.content_x),
-                        ..more
-                    },
-                    GlyphRole::MoreRows,
-                    ms.style,
-                );
-                ui.paint_str(
-                    Rect {
-                        x: g.content_x.saturating_add(1).saturating_add(used),
-                        width: more
-                            .right()
-                            .saturating_sub(g.content_x)
-                            .saturating_sub(1)
-                            .saturating_sub(used),
-                        ..more
-                    },
-                    "more",
-                    ms.style,
-                );
+                let content = Rect {
+                    x: g.content_x,
+                    width: more.right().saturating_sub(g.content_x),
+                    ..more
+                };
+                if let Some(frame) = self.fetch_activity {
+                    Spinner::new(self.id.sub("fetch_activity"))
+                        .frame(frame)
+                        .label(self.fetch_label)
+                        .gap(1)
+                        .draw(ui, content);
+                } else {
+                    let reserved = width(ui.glyph_str(self.fetch_glyph)).min(content.width);
+                    let glyph = match ms.glyph {
+                        crate::theme::Slot::Inherit => Some(self.fetch_glyph),
+                        crate::theme::Slot::Set(glyph) => Some(glyph),
+                        crate::theme::Slot::Clear => None,
+                    };
+                    let used = glyph.map_or(reserved, |glyph| ui.glyph(content, glyph, ms.style));
+                    ui.paint_str(
+                        Rect {
+                            x: content.x.saturating_add(used).saturating_add(1),
+                            width: content.width.saturating_sub(used).saturating_sub(1),
+                            ..content
+                        },
+                        self.fetch_label,
+                        ms.style,
+                    );
+                }
                 if !inert {
                     ui.register_part(self.id, PartRef::of(Part::ROW), more);
                 }
