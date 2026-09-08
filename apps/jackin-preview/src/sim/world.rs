@@ -12,6 +12,7 @@ use crate::domain::agent::{Agent, AuthMode, Provider};
 use crate::domain::fixtures::{self, HOME};
 use crate::domain::instance::{Instance, InstanceStatus};
 use crate::domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
+use crate::domain::workspace_save::{PendingWrite, SaveError, SaveResult, SaveTicket};
 use crate::scenario::Scenario;
 use crate::sim::onepassword::SimOnePassword;
 use crate::sim::pty::Daemon;
@@ -59,6 +60,11 @@ pub enum DaemonHealth {
 /// Typed results of deterministic asynchronous work.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
+    /// A captured editor write reached its virtual deadline.
+    EditorSaveCompleted {
+        /// Opaque World-owned write identity.
+        operation: u64,
+    },
     /// One captured Manager operation reached its virtual deadline.
     ManagerOperation {
         /// Opaque identity owned and consumed by the Manager reducer.
@@ -131,6 +137,12 @@ pub struct World {
     manager_review_watermark: u64,
     /// Whether a workspace was saved during this run.
     pub saved: bool,
+    /// Source allocator for newly saved configurations.
+    pub next_workspace_id: WorkspaceId,
+    /// Inject one simulated write failure, consumed only by an admitted save.
+    pub save_fails_once: bool,
+    editor_save_sequence: u64,
+    editor_writes: Vec<PendingWrite>,
     /// Last successful refresh time in fixture seconds.
     pub last_refresh_secs: i64,
     /// Last copied transcript selection, if any.
@@ -162,6 +174,109 @@ impl World {
         }
         self.manager_review_watermark = review;
         true
+    }
+
+    /// Admit a captured write; UI callbacks never supply its completion payload.
+    pub(crate) fn begin_editor_write(
+        &mut self,
+        expected: Option<&Workspace>,
+        mut proposed: Workspace,
+    ) -> Result<SaveTicket, SaveError> {
+        if let Some(original) = expected {
+            if self.workspace(original.id) != Some(original) {
+                return Err(SaveError::TargetChanged);
+            }
+            if self
+                .editor_writes
+                .iter()
+                .any(|write| write.ticket.workspace == original.id)
+            {
+                return Err(SaveError::Busy);
+            }
+        }
+        let operation = self
+            .editor_save_sequence
+            .checked_add(1)
+            .ok_or(SaveError::IdentityExhausted)?;
+        let id = match expected {
+            Some(original) => original.id,
+            None => {
+                let mut id = self.next_workspace_id;
+                while self.workspace(id).is_some()
+                    || self
+                        .editor_writes
+                        .iter()
+                        .any(|write| write.ticket.workspace == id)
+                {
+                    id = id.checked_add(1).ok_or(SaveError::IdentityExhausted)?;
+                }
+                // Keep a representable next source identifier after success.
+                id.checked_add(1).ok_or(SaveError::IdentityExhausted)?;
+                id
+            }
+        };
+        proposed.id = id;
+        let ticket = SaveTicket {
+            operation,
+            workspace: id,
+        };
+        let ok = !self.save_fails_once;
+        self.save_fails_once = false;
+        self.editor_save_sequence = operation;
+        self.editor_writes.push(PendingWrite {
+            ticket,
+            due_ms: self.now_ms().saturating_add(900),
+            expected: expected.cloned().map(Box::new),
+            proposed: Box::new(proposed),
+            ok,
+        });
+        self.schedule(900, Msg::EditorSaveCompleted { operation });
+        Ok(ticket)
+    }
+
+    /// Validate and consume exactly one due write, independently of the active screen.
+    pub fn complete_editor_save(&mut self, operation: u64) -> SaveResult {
+        let Some(index) = self
+            .editor_writes
+            .iter()
+            .position(|write| write.ticket.operation == operation)
+        else {
+            return SaveResult::Ignored;
+        };
+        if self
+            .editor_writes
+            .get(index)
+            .is_some_and(|write| self.now_ms() < write.due_ms)
+        {
+            return SaveResult::Ignored;
+        }
+        let write = self.editor_writes.remove(index);
+        let current = self.workspace(write.ticket.workspace);
+        if current != write.expected.as_deref() {
+            return SaveResult::Stale(write.ticket);
+        }
+        if !write.ok {
+            return SaveResult::Failed(write.ticket);
+        }
+        match write.expected {
+            Some(_) => {
+                let Some(workspace) = self.workspace_mut(write.ticket.workspace) else {
+                    return SaveResult::Stale(write.ticket);
+                };
+                *workspace = *write.proposed.clone();
+            }
+            None => {
+                self.next_workspace_id = self
+                    .next_workspace_id
+                    .max(write.ticket.workspace.saturating_add(1));
+                self.workspaces.push(*write.proposed.clone());
+            }
+        }
+        self.saved = true;
+        SaveResult::Saved {
+            ticket: write.ticket,
+            workspace: write.proposed,
+        }
     }
 
     /// Queue a message after a non-negative virtual delay.
@@ -420,6 +535,10 @@ pub fn world_for(scenario: Scenario) -> World {
         manager_review_watermark: 0,
         github: fixtures::pinned::github(),
         saved: false,
+        next_workspace_id: 100,
+        save_fails_once: scenario == Scenario::HardCases,
+        editor_save_sequence: 0,
+        editor_writes: Vec::new(),
         last_refresh_secs: now - 3,
         clipboard: None,
     };
