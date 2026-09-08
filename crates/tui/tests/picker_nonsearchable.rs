@@ -163,3 +163,94 @@ fn default_picker_still_accepts_query_and_paste() {
     assert_eq!(h.app().state.query(), "Stale");
     assert_eq!(h.app().state.cursor(), Some(STALE));
 }
+
+const SCOPES: &[junie_tui::ScopeKey] = &[junie_tui::ScopeKey::new(0), junie_tui::ScopeKey::new(1)];
+struct NavigationPage {
+    state: PickerState,
+    searchable: bool,
+    toggle: std::rc::Rc<std::cell::Cell<bool>>,
+    actions: Vec<(PickerAction, String)>,
+}
+impl NavigationPage {
+    fn picker(&self) -> Picker<'static, Item<'static>> {
+        Picker::new(ID).scopes(SCOPES).searchable(self.searchable)
+    }
+}
+impl App for NavigationPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() == UpdateCause::Bootstrap {
+            cx.open_layer(ID, self.picker().layer(cx, ITEMS));
+        }
+        if cx.update_cause() == UpdateCause::Event && self.toggle.replace(false) {
+            self.searchable = false;
+        }
+        let mut response = self.picker().update(cx, &mut self.state, ITEMS);
+        if let Some(action) = response.take_action() {
+            self.actions.push((action, self.state.query().to_owned()));
+        }
+        response.erase()
+    }
+    fn draw(&self, ui: &mut Ui<'_>) {
+        ui.layer(ID, |ui, area| {
+            self.picker().draw(ui, area, &self.state, ITEMS)
+        });
+    }
+}
+fn navigation() -> (Harness<NavigationPage>, std::rc::Rc<std::cell::Cell<bool>>) {
+    let toggle = std::rc::Rc::new(std::cell::Cell::new(false));
+    let mut state = PickerState::default();
+    state.set_query("Stale");
+    let h = Harness::new(
+        NavigationPage {
+            state,
+            searchable: true,
+            toggle: toggle.clone(),
+            actions: Vec::new(),
+        },
+        Theme::junie(),
+        80,
+        24,
+    );
+    (h, toggle)
+}
+#[test]
+fn same_escape_on_nonsearch_transition_dismisses_and_reports_clear() {
+    let (mut h, toggle) = navigation();
+    toggle.set(true);
+    let _ = h.key(KeyCode::Esc);
+    assert_eq!(h.layer_area(ID), None);
+    assert!(
+        h.app()
+            .actions
+            .contains(&(PickerAction::QueryChanged, String::new()))
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+#[test]
+fn same_back_on_nonsearch_transition_preserves_navigation_with_empty_query() {
+    let (mut h, toggle) = navigation();
+    toggle.set(true);
+    let _ = h.key(KeyCode::Backspace);
+    assert!(
+        h.app()
+            .actions
+            .contains(&(PickerAction::Back, String::new()))
+    );
+    assert!(h.layer_area(ID).is_some());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+#[test]
+fn same_scope_on_nonsearch_transition_advances_scope_with_empty_query() {
+    let (mut h, toggle) = navigation();
+    toggle.set(true);
+    let _ = h.key(KeyCode::Tab);
+    assert_eq!(
+        h.app().state.scope(SCOPES),
+        Some(junie_tui::ScopeKey::new(1))
+    );
+    assert!(h.app().actions.contains(&(
+        PickerAction::Scope(junie_tui::ScopeKey::new(1)),
+        String::new()
+    )));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}

@@ -475,6 +475,9 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     }
 
     /// Update the embedded filter and map its actions to picker semantics.
+    /// When disabling search clears a query, stale row activation is suppressed.
+    /// Back and scope navigation take precedence over `QueryChanged`; their owners
+    /// rebuild using the already-empty query. Cancellation still dismisses the layer.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -498,8 +501,13 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             // owner handles this signal. Never activate a row from that projection.
             acc.repaint();
             acc.action(PickerAction::QueryChanged);
-        } else if let Some(action) = inner.action_ref().copied() {
+        }
+        if let Some(action) = inner.action_ref().copied() {
             match action {
+                FilterListAction::Chose(_)
+                | FilterListAction::ChoseAlt(_)
+                | FilterListAction::Secondary(_)
+                    if query_changed => {}
                 FilterListAction::QueryChanged => {
                     acc.action(PickerAction::QueryChanged);
                 }
