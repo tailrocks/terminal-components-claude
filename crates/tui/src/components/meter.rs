@@ -11,7 +11,7 @@ use core::fmt;
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
-use super::progress::{PCT_COLUMNS, Pct};
+use super::progress::Pct;
 use super::{PartStyle, SlotFn, first_row};
 use crate::collection::Status;
 use crate::id::{Id, Part};
@@ -108,7 +108,8 @@ pub enum MeterVisual {
 /// (none; clamped to `0.0..=1.0`), `.value(&str)` (empty — the percentage is
 /// used when a ratio is set), `.tone(MeterTone)` (none — derived with
 /// [`MeterTone::from_ratio`] against `design.meter`), `.visual(MeterVisual)`
-/// (`Line`), `.status(Status)` (`Ready`), `.frame(usize)` (`0`), `.patch`,
+/// (`Line`), `.status(Status)` (`Ready`), `.frame(usize)` (`0`),
+/// `.suffix_width(u16)` (minimum zero), `.leading_activity(bool)` (false), `.patch`,
 /// `.patch_part`, `.part_defaults`, `.slot`.
 ///
 /// ## Variants
@@ -140,7 +141,7 @@ pub enum MeterVisual {
 ///
 /// ## Parts
 /// `TRACK` (the unfilled remainder), `THUMB` (the used share), `LABEL` (the
-/// value text), `ICON` (the trailing readiness glyph).
+/// value text), `ICON` (the readiness glyph, optionally leading activity).
 ///
 /// ## Overrides
 /// `.part_defaults` supplies borrowed role-level defaults after intrinsic
@@ -188,10 +189,21 @@ pub struct Meter<'a> {
     part_defaults: &'a [(Part, StylePatch)],
     tone: Option<MeterTone>,
     visual: MeterVisual,
+    suffix_width: u16,
+    leading_activity: bool,
     variant: Variant,
     status: Status,
     frame: usize,
     ov: PartStyle<'a>,
+}
+
+#[derive(Clone, Copy)]
+struct Readout {
+    icon: crate::theme::Resolved,
+    glyph: Option<&'static str>,
+    leading: bool,
+    width: u16,
+    suffix: u16,
 }
 
 impl fmt::Debug for Meter<'_> {
@@ -223,6 +235,8 @@ impl<'a> Meter<'a> {
             part_defaults: &[],
             tone: None,
             visual: MeterVisual::Line,
+            suffix_width: 0,
+            leading_activity: false,
             variant: Variant::DEFAULT,
             status: Status::Ready,
             frame: 0,
@@ -276,6 +290,22 @@ impl<'a> Meter<'a> {
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
+        self
+    }
+
+    /// Minimum trailing marker budget, including its leading gap. The
+    /// resolved glyph may enlarge it. Default zero retains dynamic width.
+    #[must_use]
+    pub const fn suffix_width(mut self, cells: u16) -> Self {
+        self.suffix_width = cells;
+        self
+    }
+
+    /// Put busy/loading activity before the value instead of after it.
+    /// Default false. The shared animation frames and ICON slot still apply.
+    #[must_use]
+    pub const fn leading_activity(mut self, yes: bool) -> Self {
+        self.leading_activity = yes;
         self
     }
 
@@ -392,9 +422,9 @@ impl<'a> Meter<'a> {
         }
     }
 
-    fn part_style(
+    fn resolve_part(
         &self,
-        ui: &mut Ui<'_>,
+        ui: &Ui<'_>,
         part: Part,
         live: StateFlags,
         base: StylePatch,
@@ -406,17 +436,65 @@ impl<'a> Meter<'a> {
             }
         }
         let local = self.ov.part_patch(part);
-        let resolved = ui.style_defaults(
+        ui.style_defaults(
             Family::METER,
             self.variant,
             part,
             live,
             StyleDefaults::new(defaults),
             local.as_ref(),
-        );
+        )
+    }
+
+    fn part_style(
+        &self,
+        ui: &mut Ui<'_>,
+        part: Part,
+        live: StateFlags,
+        base: StylePatch,
+    ) -> crate::theme::Resolved {
+        let resolved = self.resolve_part(ui, part, live, base);
         self.ov
             .note(ui, self.id, Family::METER, self.variant, part, resolved);
         resolved
+    }
+
+    fn readout(&self, ui: &Ui<'_>, value: &str, live: StateFlags) -> Readout {
+        let icon = self.resolve_part(ui, Part::ICON, live, StylePatch::new().set_fg(Role::Accent));
+        let glyph = self.icon(ui, icon.glyph, live);
+        let leading = self.leading_activity && self.busy();
+        let glyph_width = glyph.map_or(0, |g| width(g).saturating_add(1));
+        Readout {
+            icon,
+            glyph,
+            leading,
+            width: width(value).saturating_add(if leading { glyph_width } else { 0 }),
+            suffix: self.suffix_width.max(if leading { 0 } else { glyph_width }),
+        }
+    }
+
+    fn paint_readout(
+        &self,
+        ui: &mut Ui<'_>,
+        mut cell: Rect,
+        value: &str,
+        style: PaintStyle,
+        readout: Readout,
+    ) -> u16 {
+        let mut lead = 0;
+        if readout.leading
+            && let Some(glyph) = readout.glyph
+        {
+            let icon = Rect {
+                width: width(glyph).min(cell.width),
+                ..cell
+            };
+            self.paint_icon(ui, icon, glyph, readout.icon.style);
+            lead = width(glyph).saturating_add(1).min(cell.width);
+            cell.x = cell.x.saturating_add(lead);
+            cell.width = cell.width.saturating_sub(lead);
+        }
+        lead.saturating_add(self.paint_value(ui, cell, value, style))
     }
 
     /// The draw phase; returns the rect painted.
@@ -436,24 +514,35 @@ impl<'a> Meter<'a> {
         let tone = self.resolved_tone(ui);
         let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);
         let value = self.value_text(&pct);
-        let vw = width(value);
-
+        let readout = self.readout(ui, value, live);
+        let vw = readout.width;
         let label = self.part_style(
             ui,
             Part::LABEL,
             live,
             StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
         );
-        let icon_style =
-            self.part_style(ui, Part::ICON, live, StylePatch::new().set_fg(Role::Accent));
-        let glyph = self.icon(ui, icon_style.glyph, live);
-        let icon_w = glyph.map_or(0, |g| width(g).saturating_add(1));
+        let icon_style = readout.icon;
+        ov.note(
+            ui,
+            self.id,
+            Family::METER,
+            self.variant,
+            Part::ICON,
+            icon_style,
+        );
+        let glyph = if readout.leading { None } else { readout.glyph };
+        let icon_w = readout.suffix;
 
         let Some(ratio) = self.ratio else {
             // no run: the value and the marker only
             let mut x = area.x;
             if vw > 0 {
-                let used = self.paint_value(ui, area, value, label.style);
+                let text = Rect {
+                    width: area.width.saturating_sub(icon_w),
+                    ..area
+                };
+                let used = self.paint_readout(ui, text, value, label.style, readout);
                 x = x.saturating_add(used).saturating_add(1);
             }
             if let Some(g) = glyph {
@@ -472,7 +561,7 @@ impl<'a> Meter<'a> {
                 let tail = vw.saturating_add(1).saturating_add(icon_w);
                 let track_w = area.width.saturating_sub(tail);
                 if track_w < Self::MIN_TRACK {
-                    self.paint_value(ui, area, value, label.style);
+                    self.paint_readout(ui, area, value, label.style, readout);
                     return area;
                 }
                 let track = Rect {
@@ -511,7 +600,7 @@ impl<'a> Meter<'a> {
                     width: area.right().saturating_sub(x),
                     ..area
                 };
-                let used = self.paint_value(ui, cell, value, label.style);
+                let used = self.paint_readout(ui, cell, value, label.style, readout);
                 x = x.saturating_add(used).saturating_add(1);
                 if let Some(g) = glyph {
                     let cell = Rect {
@@ -525,7 +614,7 @@ impl<'a> Meter<'a> {
             MeterVisual::Block => {
                 let bar_w = area.width.saturating_sub(icon_w);
                 if bar_w < 4 {
-                    self.paint_value(ui, area, value, label.style);
+                    self.paint_readout(ui, area, value, label.style, readout);
                     return area;
                 }
                 let bar = Rect {
@@ -553,7 +642,7 @@ impl<'a> Meter<'a> {
                         width: bar.width.saturating_sub(1),
                         ..bar
                     };
-                    self.paint_value(ui, text, value, label.style);
+                    self.paint_readout(ui, text, value, label.style, readout);
                     let filled = Rect {
                         width: (f64::from(bar_w) * ratio).round() as u16,
                         ..bar
@@ -586,24 +675,39 @@ impl<'a> Meter<'a> {
         area
     }
 
-    /// The natural size: one row, the design's track plus the value.
+    /// One-row size from the same readout/suffix geometry used by draw.
+    /// Line mode adds the value beside the track; block mode holds it inside.
+    /// A value-only meter has no minimum track budget.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let vw = if self.value.is_empty() && self.ratio.is_some() {
-            PCT_COLUMNS
-        } else {
-            width(self.value)
-        };
-        let tail = vw.saturating_add(3);
-        Size {
-            min: (Self::MIN_TRACK.saturating_add(tail), 1),
-            preferred: (
-                ui.design()
-                    .size
-                    .meter_track
-                    .max(Self::MIN_TRACK)
-                    .saturating_add(tail),
-                1,
+        let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);
+        let value = self.value_text(&pct);
+        let readout = self.readout(ui, value, self.status.flags());
+        if self.ratio.is_none() {
+            return Size::exact(readout.width.saturating_add(readout.suffix), 1).fit(c);
+        }
+        let track = ui.design().size.meter_track;
+        let (minimum, preferred) = match self.visual {
+            MeterVisual::Line => {
+                let tail = readout
+                    .width
+                    .saturating_add(1)
+                    .saturating_add(readout.suffix);
+                (
+                    Self::MIN_TRACK.saturating_add(tail),
+                    track.max(Self::MIN_TRACK).saturating_add(tail),
+                )
+            }
+            MeterVisual::Block => (
+                4_u16.saturating_add(readout.suffix),
+                track
+                    .max(4)
+                    .max(readout.width.saturating_add(2))
+                    .saturating_add(readout.suffix),
             ),
+        };
+        Size {
+            min: (minimum, 1),
+            preferred: (preferred, 1),
         }
         .fit(c)
     }
