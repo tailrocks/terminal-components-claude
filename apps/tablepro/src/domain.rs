@@ -880,6 +880,43 @@ mod tests {
         ]
     }
 
+    // Restores 794b095 model::tests::preview_sql_orders_updates_inserts_deletes:
+    // reverting one update preserves the independent deletion and its SQL.
+    #[test]
+    fn preview_sql_orders_updates_inserts_deletes() -> Result<(), String> {
+        let catalog = crate::db::Catalog::acme_prod();
+        let table = catalog.find(None, "orders").ok_or("orders missing")?;
+        let columns = table
+            .columns
+            .iter()
+            .map(|column| (column.name.clone(), column.ty))
+            .collect::<Vec<_>>();
+        let mut pending = PendingEdits::new(crate::db::rows(table, 0, 3));
+        let status = columns
+            .iter()
+            .position(|(name, _)| name == "status")
+            .ok_or("status missing")?;
+        let original = pending
+            .value(1, status)
+            .cloned()
+            .ok_or("original status missing")?;
+        assert!(pending.set(1, status, Value::Text("shipped".to_owned())));
+        assert!(pending.delete_row(2));
+        let sql = preview_sql(table, &columns, &pending);
+        assert_eq!(sql.len(), 2);
+        assert!(sql.first().is_some_and(|statement| {
+            statement.starts_with("UPDATE public.orders SET status = 'shipped' WHERE id = '")
+        }));
+        assert!(sql.get(1).is_some_and(|statement| {
+            statement.starts_with("DELETE FROM public.orders WHERE id = '")
+        }));
+        assert!(pending.set(1, status, original));
+        let reverted = preview_sql(table, &columns, &pending);
+        assert_eq!(reverted.len(), 1);
+        assert_eq!(reverted.first(), sql.get(1));
+        Ok(())
+    }
+
     #[test]
     fn pending_update_uses_original_key_and_escapes_text() {
         let table = CatalogTable::orders();

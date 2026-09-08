@@ -505,6 +505,15 @@ mod tests {
     fn history_search_is_multi_term_and() {
         let history = History::seeded();
         assert_eq!(history.search("orders pending", None, false).len(), 1);
+        let development = history.search("", Some("Development"), false);
+        assert!(!development.is_empty());
+        assert!(
+            development
+                .iter()
+                .all(|entry| entry.connection == "Development")
+        );
+        let failed = history.search("", None, true);
+        assert!(!failed.is_empty() && failed.iter().all(|entry| !entry.ok()));
     }
     #[test]
     fn completion_is_context_aware() {
