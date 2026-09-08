@@ -53,7 +53,7 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | T11 Three verification layers | 8 | all reviewers | Pure, behavior and PTY slices exist; full four-app production/reference coverage remains |
 | T12 Gates/inventory/performance | 9 | verifiers/integrator | Pipefail, locked CI, tool provenance and exact test tooling integrated; required 3211 obligation mappings pending; capture/CI four-app expansion and strict style gate unresolved |
 | T13 Independent review | 2, 8, 10 | reviewers | Continuous committed slice review; no blanket baseline approval |
-| T14 PR/merge/exact proof | 10 | integrator | Not started; depends on every acceptance requirement |
+| T14 PR/merge/exact proof | 10 | integrator | Draft PR #1 open; merge and exact merged-source verification depend on every acceptance requirement |
 
 ## Integrated state and bounded proof
 
@@ -85,6 +85,7 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | Full-track scrollbar | 59a2a11 | Root747lib+4MSRV external tests pass; pinned source full-height geometry and pointer endpoints reviewed; typed cap customization retained |
 | Typing/cursor publication | b1c8c44, 73bd01c | Independent fallback-conflict repro fixed; root747lib+935conformance+43focused tests pass, plus39Showcase and99Holla tests; no performance threshold waiver |
 | Holla resolved footer | b44de49 | Root99MSRV tests pass; status/EDIT/centering applied after focused hint selection; complete visual fidelity remains pending |
+| NavList scrolling | 5b64ce0 | Independent128 default frames unchanged; root747lib+12MSRV nav/scroll tests pass; actual Home caller migration pending |
 
 Detailed reports and immutable hashes remain in the external evidence folders:
 publication, theme-contract, scene-final-independent, monotonic-independent,
@@ -123,4 +124,5 @@ The previous 352-line execution log is preserved byte-for-byte in
 Its SHA256 is b99d5700f77b77ae77eeaf774f0766b01ec6eb46623d48cdece588dbf1801855. It records earlier observations, including superseded
 failures and temporary owner assignments; this plan supplies current status.
 No obligation was removed: the complete archived task remains the final audit
-checklist. Main remains unmerged and the goal remains active.
+checklist. [Draft PR #1](https://github.com/donbeave/terminal-components-claude/pull/1)
+tracks integration. Main remains unmerged and the goal remains active.
