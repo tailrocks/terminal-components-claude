@@ -262,6 +262,13 @@ fn container_like(m: &mut PartMap<PartRecipe>) {
         p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
     );
     part(m, Part::DETAIL, p().set_fg(Role::Fg(FgStep::Secondary)));
+    part(
+        m,
+        Part::BADGE,
+        p().set_fg(Role::OnAccent)
+            .set_bg(Role::Accent)
+            .add(Modifier::BOLD),
+    );
     part(m, Part::BODY, p());
     part(m, Part::ACTIONS, p());
     part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Muted)));
