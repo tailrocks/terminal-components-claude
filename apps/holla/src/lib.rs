@@ -5,6 +5,7 @@
 //! the public executable are migrated separately onto the shared UI runtime.
 #![forbid(unsafe_code)]
 
+mod cli;
 mod clock;
 mod domain;
 mod scenario;
