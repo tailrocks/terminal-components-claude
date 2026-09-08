@@ -189,6 +189,10 @@ source-plane dimming, explicit colors and Paper preservation;56frames checked.
 Root18 MSRV semantic/capability tests pass. Existing seven Meter default digest
 differences remain unapproved; no baseline changed. Grid sampling272f737 remains
 held: independent live-action-reserve regression confirmed, owner repairing.
+TablePro ac4ce44 restores source history filters and selective revert assertions;
+root compared pinned model.rs959–1010 directly. a50ff14 fixes UTF8 tokenizer
+byte/character confusion at its owner (original café panic); root68 MSRV
+model and real app journey tests pass. Completion restoration remains pending.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
