@@ -27,13 +27,12 @@ fn email(value: &str) -> Result<(), FieldError> {
 
 fn name_input<'a>() -> TextInput<'a> {
     TextInput::new(NAME)
-        .placeholder("Your name")
         .blur(BlurPolicy::CommitAndValidate)
 }
 
 fn branch_input<'a>() -> TextInput<'a> {
     TextInput::new(BRANCH)
-        .placeholder("Branch name")
+        .placeholder("feat/…")
         .blur(BlurPolicy::Commit)
 }
 
@@ -162,8 +161,8 @@ pub(crate) struct InputsPage {
 impl InputsPage {
     pub(crate) fn new() -> Self {
         Self {
-            name: String::from("operator"),
-            branch: String::from("payments-gateway"),
+            name: String::from("payments-gateway"),
+            branch: String::new(),
             name_state: TextInputState::default(),
             branch_state: TextInputState::default(),
             last: "ready",

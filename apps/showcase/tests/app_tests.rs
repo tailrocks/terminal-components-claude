@@ -146,7 +146,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::End);
             type_text(h, "-visited");
             press(h, KeyCode::Enter);
-            assert!(h.text().contains("operator-visited"));
+            assert!(h.text().contains("payments-gateway-visited"));
             press(h, KeyCode::Enter);
             type_text(h, "discarded");
             press(h, KeyCode::Esc);
@@ -588,13 +588,28 @@ fn editable_table_commit_cancel_and_validation() {
 }
 
 #[test]
+fn input_defaults_match_the_reference_project_and_empty_branch() {
+    let h = harness(PageId::Inputs);
+    let project = Id::root("showcase_app::pages::inputs::inputs.name");
+    let branch = Id::root("showcase_app::pages::inputs::inputs.branch");
+    assert_eq!(
+        area_text(&h, require(h.area_of(project), "project input")).trim(),
+        "▎ payments-gateway"
+    );
+    assert_eq!(
+        area_text(&h, require(h.area_of(branch), "branch input")).trim(),
+        "▎ feat/…"
+    );
+}
+
+#[test]
 fn input_editing_commit_and_revert() {
     let mut h = harness(PageId::Inputs);
     press(&mut h, KeyCode::Tab);
     press(&mut h, KeyCode::End);
     type_text(&mut h, "-v2");
     press(&mut h, KeyCode::Enter);
-    assert!(h.text().contains("operator-v2"));
+    assert!(h.text().contains("payments-gateway-v2"));
     press(&mut h, KeyCode::Enter);
     type_text(&mut h, "XX");
     press(&mut h, KeyCode::Esc);
@@ -603,7 +618,11 @@ fn input_editing_commit_and_revert() {
     press(&mut h, KeyCode::End);
     type_text(&mut h, "-v2");
     press(&mut h, KeyCode::Tab);
-    assert!(h.text().contains("payments-gateway-v2"));
+    let branch = Id::root("showcase_app::pages::inputs::inputs.branch");
+    assert_eq!(
+        area_text(&h, require(h.area_of(branch), "branch input")).trim(),
+        "▎ -v2"
+    );
 }
 
 #[test]
@@ -781,7 +800,7 @@ fn quit_keys() {
     press(&mut h, KeyCode::Tab);
     type_text(&mut h, "q");
     assert!(!h.app().quit(), "printable q belongs to the active editor");
-    assert!(h.text().contains("operatorq"));
+    assert!(h.text().contains("payments-gatewayq"));
     press(&mut h, KeyCode::Esc);
     control(&mut h, 'c');
     assert!(h.app().quit());
