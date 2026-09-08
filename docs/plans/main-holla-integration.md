@@ -368,6 +368,20 @@ target refused before execution; corrected dialog_navigation target executed.
 No full Holla visual acceptance. Grid gutter749 remains held until ab68190
 repeat-click repair and full independent review pass.
 
+Jackin2bb6d1f/7695e7d integrates exact current-directory association and the
+reviewed eight-scenario fixture graph. Root110 MSRV tests pass:67 library,
+27 actual-app journeys,6 Manager identity,3 cwd and7 fixture tests. Independent
+E/jackin-fixture-independent/REVIEW.md SHA3d1594dd…49a8d75 binds source-token
+and complete fixture review. Manager composition and editor save ownership
+remain open; fixture acceptance does not establish full app parity.
+
+Shared painter34007dd integrates f478b3b after full root source/test review.
+Root8 MSRV matched/middle tests pass, including Unicode/control ordinals,
+semantic dim and warm zero allocation. Independent E/paint-matched/INDEPENDENT-REVIEW.md
+SHA2f1db881…ab3 verifies14 artifact hashes and4160 unchanged plain-paint cases;
+it did not rebuild that observer. ItemRow layout and application visual approval
+remain separate. Stable formatting and full-workspace MSRV Clippy pass.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
