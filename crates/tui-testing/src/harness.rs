@@ -242,6 +242,16 @@ impl<A: App> Harness<A> {
         self.handle(Input::Tick)
     }
 
+    /// Current explicit elapsed time, unchanged by input or drawing.
+    pub fn now(&self) -> junie_tui::Moment {
+        self.rt.now()
+    }
+
+    /// Earliest armed runtime deadline, if any.
+    pub fn next_deadline(&self) -> Option<junie_tui::Moment> {
+        self.rt.next_deadline()
+    }
+
     /// Advance explicit elapsed time and run one due scheduler turn.
     pub fn advance(&mut self, elapsed: core::time::Duration) -> Response<()> {
         self.advance_to(self.rt.now().saturating_add(elapsed))
