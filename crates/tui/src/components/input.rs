@@ -1448,10 +1448,24 @@ impl<'a> TextInput<'a> {
                     .x
                     .saturating_add(cursor_col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16)
                     .min(inner.right());
-                ui.set_cursor(self.id, Position::new(cx, inner.y));
+                if matches!(
+                    self.typing_policy,
+                    crate::TypingPolicy::Fallback { cursor: true }
+                ) {
+                    ui.offer_typing_cursor(self.id, Position::new(cx, inner.y));
+                } else {
+                    ui.set_cursor(self.id, Position::new(cx, inner.y));
+                }
             }
         } else if owns_cursor && self.editable() {
-            ui.set_cursor(self.id, Position::new(inner.x, inner.y));
+            if matches!(
+                self.typing_policy,
+                crate::TypingPolicy::Fallback { cursor: true }
+            ) {
+                ui.offer_typing_cursor(self.id, Position::new(inner.x, inner.y));
+            } else {
+                ui.set_cursor(self.id, Position::new(inner.x, inner.y));
+            }
         }
         let readiness_cell = cell_at(area, area.right().saturating_sub(1));
         if validation_error {

@@ -133,6 +133,10 @@ impl App for Model {
                 self.commands.push(command);
             }
         }
+        // This fixture owns the generic layer/control declarations directly.
+        for owner in [MODAL, MODAL_ROW, NESTED, NESTED_ROW] {
+            for _ in cx.intents(owner) {}
+        }
         for intent in cx.intents(ROW) {
             if let Intent::Key(k) = intent {
                 self.row_keys.push(k.code);
@@ -651,4 +655,97 @@ fn fallback_conflicts_follow_filtered_descriptors_even_when_source_table_and_key
         let _ = rt.handle(Input::Tick).expect("settled published fallback");
     });
     assert_eq!((stats.allocs, stats.bytes), (0, 0));
+}
+
+#[test]
+fn declared_fallback_caret_offers_are_silent_when_complete_frame_selects_no_fallback() {
+    for case in [
+        "popover",
+        "nested",
+        "primary",
+        "readonly-primary",
+        "ambiguous",
+        "removed",
+        "disabled",
+    ] {
+        let (mut rt, mut buf) = runtime();
+        match case {
+            "popover" => {
+                rt.app_mut().popover = true;
+                rt.app_mut().open_modal = true;
+            }
+            "nested" => {
+                rt.app_mut().open_modal = true;
+                rt.app_mut().nested = true;
+            }
+            "primary" | "readonly-primary" => {
+                rt.app_mut().second = true;
+                rt.app_mut().second_readonly = case == "readonly-primary";
+                // The newly mounted editor must be published before direct focus.
+                present(&mut rt, &mut buf);
+                rt.app_mut().request_focus = Some(OTHER);
+            }
+            "ambiguous" => {
+                rt.app_mut().second = true;
+                rt.app_mut().second_fallback = true;
+            }
+            "removed" => rt.app_mut().removed = true,
+            "disabled" => rt.app_mut().disabled = true,
+            _ => unreachable!(),
+        }
+        send(&mut rt, &mut buf, Input::Tick);
+        assert!(
+            !rt.diagnostics()
+                .iter()
+                .any(|d| matches!(d, junie_tui::Diagnostic::CursorRejected { .. })),
+            "{case}: {:?}",
+            rt.diagnostics()
+        );
+        if case == "ambiguous" {
+            assert!(
+                rt.diagnostics()
+                    .iter()
+                    .any(|d| matches!(d, junie_tui::Diagnostic::TypingTargetConflict { .. }))
+            );
+        }
+        if case != "ambiguous" {
+            assert!(
+                rt.diagnostics().is_empty(),
+                "{case}: {:?}",
+                rt.diagnostics()
+            );
+        }
+        if case != "primary" {
+            assert_eq!(rt.cursor_position(), None, "{case}");
+        }
+    }
+}
+
+#[test]
+fn raw_cursor_writes_and_undeclared_typing_offers_keep_rejection_diagnostics() {
+    struct Raw {
+        offer: bool,
+    }
+    impl App for Raw {
+        fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            if self.offer {
+                ui.offer_typing_cursor(QUERY, junie_tui::Position::new(1, 1));
+            } else {
+                ui.set_cursor(QUERY, junie_tui::Position::new(1, 1));
+            }
+        }
+    }
+    for offer in [false, true] {
+        let mut rt = Runtime::new(Raw { offer }, Theme::junie());
+        let _ = rt.initialize();
+        rt.draw_buffer(AREA, &mut Buffer::empty(AREA))
+            .commit_presented();
+        assert!(rt.diagnostics().iter().any(
+            |d| matches!(d, junie_tui::Diagnostic::CursorRejected { owner, .. } if *owner == QUERY)
+        ));
+        assert_eq!(rt.cursor_position(), None);
+    }
 }

@@ -989,6 +989,19 @@ impl<'f> Ui<'f> {
     /// Request the hardware cursor. Complete frame typing/focus ownership and
     /// layer admissibility select the winner after all painters finish.
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
+        self.record_cursor(owner, pos, false);
+    }
+
+    /// Offer a caret conditional on this frame selecting a declared typing owner.
+    ///
+    /// Pair with `publish_typing_target(..., true)` for the same owner and layer.
+    /// Unselected declared offers are silent; an undeclared offer is diagnosed.
+    /// Raw `set_cursor` retains its ordinary ownership/layer rejection rules.
+    pub fn offer_typing_cursor(&mut self, owner: Id, pos: Position) {
+        self.record_cursor(owner, pos, true);
+    }
+
+    fn record_cursor(&mut self, owner: Id, pos: Position, typing_offer: bool) {
         if self.reference.is_some() {
             return;
         }
@@ -997,6 +1010,7 @@ impl<'f> Ui<'f> {
             owner,
             pos,
             inert: self.inert,
+            typing_offer,
         });
     }
 

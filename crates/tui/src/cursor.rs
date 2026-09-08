@@ -20,6 +20,8 @@ pub(crate) struct CursorRequest {
     pub(crate) pos: Position,
     /// The layer was inert (below an `inert_below` layer) when written.
     pub(crate) inert: bool,
+    /// Conditional caret for an explicitly declared typing candidate.
+    pub(crate) typing_offer: bool,
 }
 
 /// The outcome of resolving the frame's cursor requests.
@@ -51,9 +53,30 @@ pub(crate) fn resolve_requests(
     top: LayerId,
     owner: Option<Id>,
     diagnostics: &mut Vec<Diagnostic>,
+    typing: &[crate::runtime::typing::TypingDeclaration],
 ) -> Option<Position> {
     let mut kept: Option<CursorRequest> = None;
     for request in requests {
+        if request.inert {
+            continue;
+        }
+        if request.typing_offer {
+            let declared = typing.iter().any(|candidate| {
+                candidate.owner == request.owner
+                    && candidate.layer == request.layer
+                    && candidate.cursor
+            });
+            if !declared {
+                diagnostics.push(Diagnostic::CursorRejected {
+                    owner: request.owner,
+                    layer: request.layer,
+                });
+                continue;
+            }
+            if request.layer != top || owner != Some(request.owner) {
+                continue;
+            }
+        }
         match resolve(*request, top, owner) {
             CursorDecision::Keep(_) => {
                 if let Some(previous) = kept.replace(*request) {
@@ -82,6 +105,7 @@ mod tests {
             owner: OWNER,
             pos: Position::new(4, 2),
             inert,
+            typing_offer: false,
         }
     }
 
@@ -164,6 +188,7 @@ mod tests {
                 LayerId::PAGE,
                 Some(focused),
                 &mut diagnostics,
+                &frame.typing,
             );
             assert_eq!(
                 kept,

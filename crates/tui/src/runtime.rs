@@ -1561,6 +1561,7 @@ impl<A: App> Runtime<A> {
             self.frame.top,
             self.frame.typing_resolved.cursor,
             &mut self.frame.diagnostics,
+            &self.frame.typing,
         );
     }
 
