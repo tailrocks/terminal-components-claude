@@ -316,3 +316,21 @@ scanning passes; binary identity correctly rejects the missing Holla binary.
 Capture inventory is separate remaining work, not silently approved here.
 Exact test inventory `8b97760` plus feature fix `8ceb281` independently accepted
 and integrated as `551afe8`/`bc7d23c`; historical mappings remain pending.
+
+Latest root checks: all 99 xtask tests and all 10 inventory-tool tests pass.
+Rust 1.88 passes 746 library tests plus 46 focused style/publication/Grid tests
+on `1855573`. Showcase prompt test corrected for initial published focus,
+retaining validation/edit-state assertions and exact outcome; all 29 app
+journeys pass (`showcase-fidelity/root-integrated-app-tests.log`). Shared text
+segmentation is reused by the painter in `10f220f`; all 16 paint/theme tests
+pass without changing width or clipping semantics.
+
+Reviewed Holla CLI and target/operation-bound PostgreSQL simulation review are
+integrated through `5f8ac62`; all 69 package tests pass on Rust 1.88
+(`holla-domain/root-cli-pg-tests.log`), with no production Holla binary claim. Shared typed
+acknowledgement testing found committed/trimmed text could disagree with the
+visible draft. A component owner is fixing exact visible equality without
+exposing secrets, preserving reference Enter-only-arms behavior. List's
+full-row hook remains under final nested-clipping review; Scene remains blocked
+on model-bound cache ownership. Main integration remains gated on all open
+product, architecture, evidence and verification obligations.
