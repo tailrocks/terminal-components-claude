@@ -715,6 +715,10 @@ impl<A: App> Runtime<A> {
         }
         self.focus.set(to);
         self.last.snapshot.focus = to;
+        // Focus transitions change the visible focus paint; every other
+        // visible-state change site already requests a repaint.
+        self.services.repaint = true;
+
         // Detaching a closed owner is not navigation out of surviving layers.
         // The restoration target has no focus authority until publication.
         if via != FocusVia::Restore || self.restore_after_publication.is_none() {
@@ -2975,6 +2979,18 @@ mod tests {
         assert_eq!(rt.focus(), Some(A));
         let _ = step(&mut rt, &mut buf, key(KeyCode::BackTab));
         assert_eq!(rt.focus(), Some(C));
+    }
+
+    #[test]
+    fn focus_move_invalidates_paint() {
+        let (mut rt, mut buf) = runtime(three());
+        assert_eq!(rt.focus(), Some(A));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        let response = deliver(&mut rt, key(KeyCode::Tab));
+
+        assert_eq!(rt.focus(), Some(B));
+        assert_eq!(response.invalidate(), Invalidate::Paint);
     }
 
     #[test]
