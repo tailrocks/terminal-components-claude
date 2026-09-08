@@ -19,6 +19,11 @@ pub use scenario::{Motion, Scenario};
 
 /// Run the launcher, decoding help and argument errors before opening a terminal.
 /// Returns status two for invalid arguments and status one for terminal failures.
+#[expect(
+    clippy::print_stdout,
+    clippy::print_stderr,
+    reason = "CLI help and diagnostics intentionally use standard streams before terminal acquisition or after terminal teardown"
+)]
 pub fn run() -> std::process::ExitCode {
     let args = std::env::args_os()
         .skip(1)

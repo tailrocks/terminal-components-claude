@@ -347,6 +347,10 @@ fn apply_effect(plan: &Plan, world: &mut World) {
 
 /// Complete Docker cleanup: inspection, the containers → images/volumes
 /// chain, builder cache and networks as parallel branches, verification.
+#[expect(
+    clippy::too_many_lines,
+    reason = "The complete declarative Docker DAG remains contiguous for dependency and output review"
+)]
 fn docker_cleanup(w: &World) -> Option<Plan> {
     let d = w.docker.as_ref()?;
     d.validate().ok()?;
@@ -566,6 +570,10 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
 
 /// Upgrade everything on a Debian host: apt branch and mise branch in
 /// parallel, optional cleanup, final verification (CONCEPT §8.16).
+#[expect(
+    clippy::too_many_lines,
+    reason = "The complete declarative upgrade DAG remains contiguous for dependency and output review"
+)]
 fn debian_upgrade(w: &World) -> Option<Plan> {
     let deb = w.debian.as_ref()?;
     deb.validate().ok()?;
@@ -714,7 +722,7 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
             &[1],
         )
         .succeeds_with(vec![Mutation::UpgradeDebian {
-            upgraded: upgraded,
+            upgraded,
             security: deb.security,
             held: deb.held,
         }]),
@@ -770,6 +778,10 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
 /// per child, all parallel off a shared preflight. The primary branch is
 /// resolved per child, never assumed; diverged children fail their pull and
 /// detached children are policy-skipped, shown, never touched.
+#[expect(
+    clippy::too_many_lines,
+    reason = "The per-child declarative Git DAG remains contiguous for dependency and policy review"
+)]
 fn git_sync(w: &World) -> Option<Plan> {
     let git = w.git.as_ref()?;
     if git.children.is_empty() {

@@ -190,7 +190,7 @@ impl World {
             return;
         }
         let distance = target.saturating_sub(self.clock.now_ms);
-        let ticks = distance / 80 + i64::from(distance % 80 != 0);
+        let ticks = (distance / 80).saturating_add(i64::from(distance % 80 != 0));
         self.clock.now_ms = self.clock.now_ms.saturating_add(ticks.saturating_mul(80));
         self.step();
     }

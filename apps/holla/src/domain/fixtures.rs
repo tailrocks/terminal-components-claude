@@ -301,6 +301,10 @@ fn seed_rust_dirty(w: &mut World) {
 
 /// ~/work/monorepo (root or apps/frontend child): namespaced mise tasks,
 /// one untrusted task file, a nested non-submodule child repo.
+#[expect(
+    clippy::too_many_lines,
+    reason = "One pinned fixture keeps related task and repository literals together for source comparison"
+)]
 fn seed_monorepo(w: &mut World, child: bool) {
     let mut tasks = vec![
         task(
@@ -558,6 +562,10 @@ fn seed_disk_cleanup(w: &mut World) {
 }
 
 /// devbox-deb: Debian host, global mise tools, the upgrade-everything plan.
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "The fixed 410 MiB fixture is divided among exactly twelve resources; quotient plus at most one remains below its total"
+)]
 fn seed_upgrade_plan(w: &mut World) {
     w.debian = Some(DebianState {
         orphaned_packages: (0..12)
@@ -668,7 +676,7 @@ fn seed_activities_multi(w: &mut World) {
         "seed db",
         "~/work/monorepo",
         ActivityState::Failed,
-        -hour,
+        hour.saturating_neg(),
     );
     seed.lines = vec![
         "psql: connection to server at \"db.internal\" failed".into(),

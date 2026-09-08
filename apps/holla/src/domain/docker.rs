@@ -78,6 +78,10 @@ pub(crate) struct DockerFixture {
 }
 
 impl DockerFixture {
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Each partition is bounded by its input total; exited is at most container count and stopped size is at most total divided by exited"
+    )]
     pub(crate) fn into_state(mut self) -> DockerState {
         let exited = self
             .containers
@@ -140,6 +144,10 @@ impl DockerFixture {
     }
 }
 
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "Nonzero divisor is guarded; count one has zero remainder, otherwise quotient plus one is at most input bytes"
+)]
 fn share(bytes: u64, count: usize, index: usize) -> u64 {
     if count == 0 {
         return 0;

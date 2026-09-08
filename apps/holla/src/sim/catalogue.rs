@@ -81,6 +81,10 @@ pub(crate) fn sections(w: &World) -> Vec<Section> {
 
 /// Score every action: ring weight, pin/alias/usage memory, live urgency.
 /// Sort is total and deterministic: score, then kind, then title.
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "Closed scope weights and capped usage bound the total score to 390"
+)]
 pub(crate) fn rank(w: &World, actions: &mut [Action]) {
     let score = |a: &Action| -> i32 {
         let mut s = a.scope.weight();
@@ -171,6 +175,10 @@ fn task_reason(t: &crate::domain::mise::MiseTask) -> String {
     r
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "One discovered Git inventory projects its declarative action family together"
+)]
 fn git_actions(w: &World, out: &mut Vec<Action>) {
     if !w.discovered(Domain::Git) {
         return;
@@ -294,6 +302,10 @@ fn git_actions(w: &World, out: &mut Vec<Action>) {
     out.push(status);
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "One discovered Docker inventory projects its declarative action family together"
+)]
 fn docker_actions(w: &World, out: &mut Vec<Action>) {
     if w.discovery_failed(Domain::Docker) {
         out.push(Action::new(

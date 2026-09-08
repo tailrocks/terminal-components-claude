@@ -103,6 +103,10 @@ impl HomeState {
         (text.erase() | navigation.erase(), chosen)
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "One pure Home projection keeps query, scope, rows and discovery geometry together"
+    )]
     pub(crate) fn draw(&self, world: &World, ui: &mut Ui<'_>, area: Rect) {
         if area.is_empty() {
             return;
@@ -295,6 +299,12 @@ fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, r
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::panic,
+    clippy::unwrap_used,
+    clippy::indexing_slicing,
+    reason = "Named fixtures provide known rows and failed fixture assumptions must fail tests"
+)]
 mod tests {
     use super::*;
     use crate::{domain::fixtures, scenario::Scenario};

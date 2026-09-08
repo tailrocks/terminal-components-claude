@@ -203,6 +203,10 @@ fn log_sample(name: &str) -> &'static [&'static str] {
     clippy::unwrap_used,
     reason = "Named deterministic actions must exist in the fixture"
 )]
+#[expect(
+    clippy::panic,
+    reason = "Fixed test fixtures must reach their typed route"
+)]
 mod tests {
     use super::*;
     use crate::domain::{fixtures, ranking::Pin};

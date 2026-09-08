@@ -445,19 +445,17 @@ impl App {
                 },
                 ..
             } = intent
-            {
-                if let Some(id) = self
+                && let Some(id) = self
                     .world
                     .activities
                     .iter()
                     .find(|activity| ItemKey::num(u64::from(activity.id)) == key)
                     .map(|activity| activity.id)
-                {
-                    self.activities.show(id);
-                    self.route = Route::Activity;
-                    cx.focus(activity::output_id(id));
-                    return Response::changed();
-                }
+            {
+                self.activities.show(id);
+                self.route = Route::Activity;
+                cx.focus(activity::output_id(id));
+                return Response::changed();
             }
         }
         Response::ignored()
@@ -703,10 +701,10 @@ impl junie_tui::App for App {
             }
         }
         let response = self.update_controls(cx);
-        if self.motion != Motion::Paused {
-            if let Some(next_due) = self.next_due {
-                cx.request_repaint_at(next_due);
-            }
+        if self.motion != Motion::Paused
+            && let Some(next_due) = self.next_due
+        {
+            cx.request_repaint_at(next_due);
         }
         clock_response | response
     }
@@ -771,6 +769,7 @@ impl junie_tui::App for App {
 #[cfg(test)]
 #[expect(
     clippy::unwrap_used,
+    clippy::indexing_slicing,
     reason = "Deterministic product routes and named fixtures must be present"
 )]
 mod tests {

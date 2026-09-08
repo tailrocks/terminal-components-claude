@@ -287,6 +287,11 @@ impl Plan {
 
     /// The first excluded dependency of a pending step, if any — the
     /// recalculated consequence a reviewer sees before running anything.
+    #[expect(
+        clippy::arithmetic_side_effects,
+        clippy::indexing_slicing,
+        reason = "Requested row is checked first; private validated dependency indexes are earlier rows and prefix length is at most the allocated vector length"
+    )]
     pub(crate) fn blocked_by_exclusion(&self, i: usize) -> Option<String> {
         if !matches!(self.steps.get(i)?.state, StepState::Pending) {
             return None;
@@ -325,6 +330,10 @@ impl Plan {
 
     /// Deterministic execution in declaration order (deps are always
     /// earlier indexes). A failure or skip propagates to dependents.
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "Private Plan construction validates every dependency as an earlier row; execution changes only states and never indexes or vector length"
+    )]
     pub(crate) fn run(&mut self) -> Result<(), PlanError> {
         if self.ran {
             return Err(PlanError::AlreadyRan);

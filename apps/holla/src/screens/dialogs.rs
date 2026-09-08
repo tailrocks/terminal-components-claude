@@ -55,6 +55,10 @@ pub(crate) struct ProductDialog {
     output: ViewportState,
 }
 impl ProductDialog {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "Pure intent-to-dialog projection keeps each pinned fact and action group together; effects live in the separate confirmation reducer"
+    )]
     pub(crate) fn new(intent: Intent, world: &World) -> Self {
         let mut view = Self {
             intent,
@@ -302,48 +306,47 @@ impl ProductDialog {
                     .push(UiAction::new(ActionKey::CONFIRM, "Save alias"));
             }
         }
-        if let Intent::Preview(action) = &view.intent {
-            if let Some(host) = world
+        if let Intent::Preview(action) = &view.intent
+            && let Some(host) = world
                 .ssh
                 .iter()
                 .find(|host| action.intent_id() == Some(format!("ssh:{}", host.alias).as_str()))
-            {
-                view.title = format!("Connect to {}?", host.alias);
-                view.width = 76;
-                view.facts = facts(&[
-                    ("Alias", format!("{} · literal, ~/.ssh/config", host.alias)),
-                    ("HostName", host.host_name.clone()),
-                    ("User", host.user.clone()),
-                    (
-                        "Port",
-                        host.port
-                            .map_or_else(|| "default 22".into(), |port| port.to_string()),
+        {
+            view.title = format!("Connect to {}?", host.alias);
+            view.width = 76;
+            view.facts = facts(&[
+                ("Alias", format!("{} · literal, ~/.ssh/config", host.alias)),
+                ("HostName", host.host_name.clone()),
+                ("User", host.user.clone()),
+                (
+                    "Port",
+                    host.port
+                        .map_or_else(|| "default 22".into(), |port| port.to_string()),
+                ),
+                (
+                    "Identity file",
+                    host.identity_file.as_ref().map_or_else(
+                        || "none · agent or default keys".into(),
+                        |file| format!("{file} · filename only, contents never read"),
                     ),
-                    (
-                        "Identity file",
-                        host.identity_file.as_ref().map_or_else(
-                            || "none · agent or default keys".into(),
-                            |file| format!("{file} · filename only, contents never read"),
-                        ),
-                    ),
-                    ("Jump chain", host.chain()),
-                    ("Host key policy", host.host_key_policy.label().into()),
-                    (
-                        "Multiplexing",
-                        if host.multiplexed {
-                            "active ControlMaster · reuses the connection"
-                        } else {
-                            "not multiplexed · new connection"
-                        }
-                        .into(),
-                    ),
-                ]);
-                view.actions = vec![
-                    UiAction::quiet(ActionKey::CANCEL, "Close"),
-                    UiAction::new(ActionKey::CONFIRM, "Connect (simulated)"),
-                ];
-                view.ssh = Some(host.clone());
-            }
+                ),
+                ("Jump chain", host.chain()),
+                ("Host key policy", host.host_key_policy.label().into()),
+                (
+                    "Multiplexing",
+                    if host.multiplexed {
+                        "active ControlMaster · reuses the connection"
+                    } else {
+                        "not multiplexed · new connection"
+                    }
+                    .into(),
+                ),
+            ]);
+            view.actions = vec![
+                UiAction::quiet(ActionKey::CANCEL, "Close"),
+                UiAction::new(ActionKey::CONFIRM, "Connect (simulated)"),
+            ];
+            view.ssh = Some(host.clone());
         }
         if matches!(view.intent, Intent::Monitor) {
             view.width = 84;
@@ -543,6 +546,10 @@ fn notice(message: impl Into<String>) -> Event {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::panic,
+    reason = "Fixed test fixtures and enum outcomes must be present"
+)]
 mod tests {
     use super::*;
     use crate::{domain::fixtures, scenario::Scenario};

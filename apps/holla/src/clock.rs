@@ -33,11 +33,19 @@ impl Clock {
     }
 
     /// Seconds since the fixture epoch.
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Division by 1000 bounds every i64 clock value before adding the fixed epoch"
+    )]
     pub(crate) fn now_secs(&self) -> i64 {
         EPOCH_SECS + self.now_ms.div_euclid(1000)
     }
 
     /// `HH:MM` for a fixture instant, local to the fixture zone (UTC+7).
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Widened i64 seconds plus a fixed timezone offset fit i128"
+    )]
     pub(crate) fn hhmm(secs: i64) -> String {
         let local = i128::from(secs) + 7 * 3600;
         let day = local.rem_euclid(86_400);
@@ -45,6 +53,10 @@ impl Clock {
     }
 
     /// `2026-09-06 09:14` for a fixture instant.
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "Widened i64 seconds and the fixed timezone offset fit i128"
+    )]
     pub(crate) fn stamp(secs: i64) -> String {
         let local = i128::from(secs) + 7 * 3600;
         let days = local.div_euclid(86_400);
@@ -53,6 +65,10 @@ impl Clock {
     }
 
     /// `9 s ago`, `3 min ago`, `2 h ago`, `yesterday`, `3 d ago`.
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "The difference of two widened i64 timestamps fits i128"
+    )]
     pub(crate) fn ago(&self, then_secs: i64) -> String {
         let delta = (i128::from(self.now_secs()) - i128::from(then_secs)).max(0);
         match delta {
@@ -72,17 +88,26 @@ impl Default for Clock {
 }
 
 /// Howard Hinnant's days-to-civil algorithm.
-fn civil_from_days(z: i128) -> (i128, u32, u32) {
-    let z = z + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "Private calendar algorithm receives only timezone-adjusted i64 seconds divided by 86400; all intermediates fit i128"
+)]
+fn civil_from_days(days: i128) -> (i128, u32, u32) {
+    let shifted_days = days + 719_468;
+    let era = shifted_days.div_euclid(146_097);
+    let cycle_day = shifted_days.rem_euclid(146_097);
+    let cycle_year =
+        (cycle_day - cycle_day / 1460 + cycle_day / 36_524 - cycle_day / 146_096) / 365;
+    let year = cycle_year + era * 400;
+    let ordinal = cycle_day - (365 * cycle_year + cycle_year / 4 - cycle_year / 100);
+    let march_month = (5 * ordinal + 2) / 153;
+    let day = (ordinal - (153 * march_month + 2) / 5 + 1) as u32;
+    let month = if march_month < 10 {
+        march_month + 3
+    } else {
+        march_month - 9
+    } as u32;
+    (if month <= 2 { year + 1 } else { year }, month, day)
 }
 
 /// Human duration with spaced units: `38 s`, `3 min 2 s`, `2 h 14 min`,
