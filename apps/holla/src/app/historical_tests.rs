@@ -238,7 +238,7 @@ fn alias_prompt_saves_and_query_matches_expansion() {
     assert_eq!(h.app().world.memory.alias_for("cargo build"), Some("cb"));
     // the alias query finds the command's row
     let _ = h.key(KeyCode::Esc);
-    h.key(KeyCode::Esc); // clear the old query
+    let _ = h.key(KeyCode::Esc); // clear the old query
     let _ = h.type_str("cb");
     assert!(h.text().contains("cargo build"), "{}", h.text());
 }

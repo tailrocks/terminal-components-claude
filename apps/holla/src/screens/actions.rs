@@ -87,20 +87,15 @@ impl Actions {
             })
             .collect()
     }
+    fn picker(&self) -> Picker<'_, Item<'_>> {
+        Picker::new(PICKER).title(&self.action.title).width(64)
+    }
     pub(crate) fn open(&self, cx: &mut Cx<'_>) {
-        cx.open_layer(
-            PICKER,
-            Picker::new(PICKER)
-                .title(&self.action.title)
-                .layer(cx, &self.items()),
-        );
+        cx.open_layer(PICKER, self.picker().layer(cx, &self.items()));
     }
     pub(crate) fn update(&mut self, cx: &mut Cx<'_>) -> (Response<()>, Option<Choice>, bool) {
         let mut state = std::mem::take(&mut self.state);
-        let mut response =
-            Picker::new(PICKER)
-                .title(&self.action.title)
-                .update(cx, &mut state, &self.items());
+        let mut response = self.picker().update(cx, &mut state, &self.items());
         self.state = state;
         let choice = match response.take_action() {
             Some(PickerAction::Chosen(key)) => CHOICES
@@ -118,9 +113,7 @@ impl Actions {
     }
     pub(crate) fn draw(&self, ui: &mut Ui<'_>) {
         ui.layer(PICKER, |ui, area| {
-            Picker::new(PICKER)
-                .title(&self.action.title)
-                .draw(ui, area, &self.state, &self.items())
+            self.picker().draw(ui, area, &self.state, &self.items())
         });
     }
 }
