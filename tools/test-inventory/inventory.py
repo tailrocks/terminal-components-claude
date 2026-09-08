@@ -49,13 +49,21 @@ def listed(text):
     return sorted(names)
 
 
-def executed(text, names):
+def executed(text, names, status_log=None):
     results = {}
+    if status_log is not None:
+        for line in status_log.splitlines():
+            match = re.fullmatch(r"(ok|failed|ignored(?::[^\r\n]*)?) (\S+)", line)
+            require(match is not None, "unexpected libtest status log")
+            status, name = match.groups()
+            status = status.split(":", 1)[0]
+            require(name in names and name not in results, "unknown/duplicate logged identity")
+            results[name] = "FAILED" if status == "failed" else status
     totals = [0] * 5
     summaries = 0
     for line in text.splitlines():
         match = re.fullmatch(r"test (.+) \.\.\. (ok|FAILED|ignored)(?:, .*)?", line)
-        if match:
+        if match and status_log is None:
             name = match[1]
             # rustdoc execution appends a mode absent from its --list identity.
             if name not in names:
@@ -178,9 +186,9 @@ def capture(root, profiles, output, execute, toolchain):
     commands = []
     cargo = ["cargo"] + (["+" + toolchain] if toolchain else [])
 
-    def run(args):
-        result = subprocess.run(args, cwd=root, env=env, capture_output=True, text=True, timeout=1200)
-        commands.append({"argv": args, "exit": result.returncode,
+    def run(args, cwd=root):
+        result = subprocess.run(args, cwd=cwd, env=env, capture_output=True, text=True, timeout=1200)
+        commands.append({"argv": args, "cwd": str(cwd.resolve()), "exit": result.returncode,
                          "stdout_sha256": digest(result.stdout.encode()),
                          "stderr_sha256": digest(result.stderr.encode())})
         return result
@@ -202,6 +210,7 @@ def capture(root, profiles, output, execute, toolchain):
         for index, profile in enumerate(profiles):
             package = packages.get(profile["package"])
             require(package is not None, "profile package absent from workspace")
+            package_cwd = Path(package["manifest_path"]).parent.resolve()
             flags = ["-p", package["name"]]
             if not profile["default_features"]:
                 flags += ["--no-default-features"]
@@ -234,36 +243,50 @@ def capture(root, profiles, output, execute, toolchain):
                 exe = Path(artifact["executable"])
                 require(exe.resolve().is_relative_to(Path(scratch).resolve()), "artifact outside isolated build")
                 sha = digest(exe.read_bytes())
-                listing = run([str(exe), "--list", "--format", "pretty"])
+                selector = ["--lib"] if key[0] == "lib" else ["--" + key[0], key[1]]
+                execution_command = cargo + ["test", "--locked"] + flags + selector
+                listing = run(execution_command + ["--", "--list", "--format", "pretty"], package_cwd)
                 require(listing.returncode == 0, "libtest listing failed")
                 names = listed(listing.stdout)
                 statuses = None
+                status_sha256 = None
                 if execute:
-                    result = run([str(exe), "--format", "pretty", "--test-threads=1"])
-                    statuses = executed(result.stdout, names)
+                    # The dedicated libtest status file cannot be interleaved by
+                    # subprocess stdout (which can split pretty result lines).
+                    status_path = Path(scratch) / f"statuses-{index}-{len(records)}.txt"
+                    require(not status_path.exists(), "refuse existing libtest status log")
+                    result = run(execution_command + ["--", "--format", "pretty", "--test-threads=1",
+                                                      "--logfile", str(status_path)], package_cwd)
+                    require(status_path.is_file() and not status_path.is_symlink(),
+                            "missing/unsafe libtest status log")
+                    status_bytes = status_path.read_bytes()
+                    status_sha256 = digest(status_bytes)
+                    statuses = executed(result.stdout, names, status_bytes.decode())
                     require((result.returncode == 0) == all(v != "FAILED" for v in statuses.values()),
                             "execution exit status inconsistent")
                 require(digest(exe.read_bytes()) == sha, "executable changed during execution")
                 records.append({"profile": profile["id"], "package": package["name"],
                                 "kind": key[0], "target": key[1], "features": artifact["features"],
-                                "executable_sha256": sha, "listed": names, "executed": statuses})
+                                "executable_sha256": sha, "cwd": str(package_cwd),
+                                "status_log_sha256": status_sha256,
+                                "listed": names, "executed": statuses})
             for target in package["targets"]:
                 if not target["doctest"]:
                     continue
                 require(target["kind"] == ["lib"], "unsupported rustdoc target kind")
-                listing = run(cargo + ["test", "--locked", "--doc"] + flags + ["--", "--list"])
+                listing = run(cargo + ["test", "--locked", "--doc"] + flags + ["--", "--list"], package_cwd)
                 if listing.returncode:
                     blocked.append({"profile": profile["id"], "reason": "rustdoc listing failed"})
                     continue
                 names = listed(listing.stdout)
                 statuses = None
                 if execute:
-                    result = run(cargo + ["test", "--locked", "--doc"] + flags + ["--", "--test-threads=1"])
+                    result = run(cargo + ["test", "--locked", "--doc"] + flags + ["--", "--test-threads=1"], package_cwd)
                     statuses = executed(result.stdout, names)
                     require((result.returncode == 0) == all(v != "FAILED" for v in statuses.values()),
                             "rustdoc exit status inconsistent")
                 records.append({"profile": profile["id"], "package": package["name"],
-                                "kind": "doc", "target": target["name"], "listed": names,
+                                "kind": "doc", "target": target["name"], "cwd": str(package_cwd), "listed": names,
                                 "executed": statuses})
     require(source_fingerprint(root, env) == source, "source changed during capture")
     require(digest((root / "Cargo.lock").read_bytes()) == lock, "lock changed during capture")
@@ -293,6 +316,11 @@ def verify(captured, required, catalog):
     identities = set()
     for target in required["targets"]:
         row = actual[key(target)]
+        require(isinstance(row.get("cwd"), str) and Path(row["cwd"]).is_absolute(),
+                "missing package execution cwd")
+        if row["kind"] != "doc":
+            require(re.fullmatch(r"[0-9a-f]{64}", row.get("status_log_sha256") or "") is not None,
+                    "missing dedicated libtest status attestation")
         unique(target["identities"], "required test identity")
         require(target["identities"] or target.get("empty_reason"), "empty target lacks explicit review")
         require(set(target["identities"]) == set(row["listed"]), "required/listed identities differ")

@@ -48,9 +48,20 @@ Library rustdoc targets are listed and run separately, including compile-fail
 and should-panic modes. Documentation identities retain their actual source
 line: moves require a reviewed mapping, not fuzzy matching.
 
-Each executable is listed with `--list --format pretty` (terse omits the count
-summary on Rust 1.88). Execution uses `--format pretty --test-threads=1`, with no
-filter. Names and statuses must agree with all libtest summaries. Missing,
+Each compiled target is listed and executed through Cargo with its exact
+`--lib`, `--bin NAME`, `--test NAME`, or `--example NAME` selector and the same
+isolated target directory/feature flags. This preserves Cargo's package runtime
+environment as well as package working directory; both command and target record
+the canonical package cwd. Artifact bytes are checked again after execution.
+Listing uses `--list --format pretty` (terse omits the count summary on Rust1.88).
+Execution uses `--format pretty --test-threads=1` with no filter, plus a fresh
+external `--logfile` for exact libtest statuses. This stable-but-deprecated option
+is verified on MSRV/stable; if unavailable, capture fails closed. Its separate
+status channel prevents subprocess stdout from splitting/impersonating pretty
+result lines. Only the status-file hash and parsed identities/statuses survive
+capture; ignored reasons or fixture output are not copied into the evidence.
+Rustdoc uses its normal Cargo-owned listing/execution interface. Names and
+statuses must agree with all libtest summaries. Missing,
 duplicate, measured, filtered or unexecuted names fail. Ignored tests require an
 explicit per-identity reason in the reviewed requirements. Empty targets also
 require an explicit reviewed reason. A compile failure is coverage failure,
@@ -102,3 +113,9 @@ and stale output publication.
 The feature matrix regression covers a real gated integration target both
 disabled and enabled, actual-artifact feature authority, transitive default
 activation without artifacts, duplicate artifacts, and missing enabled targets.
+
+The execution-context regression uses an actual nested workspace package with
+relative input data and runtime Cargo package variables, compares genuine Cargo
+execution, and reproduces child stdout interleaving. Missing/duplicate/unknown
+status-file identities remain failures; using a dedicated status file does not
+permit filtered or empty execution to satisfy required names.

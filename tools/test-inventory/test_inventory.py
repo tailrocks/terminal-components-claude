@@ -30,6 +30,14 @@ class Parsers(unittest.TestCase):
             with self.assertRaises(gate.Invalid):
                 gate.executed(text, ["a"])
 
+
+    def test_dedicated_status_log_rejects_missing_duplicate_and_unknown(self):
+        summary = "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0s"
+        self.assertEqual(gate.executed("test a ... child output\nok\n" + summary, ["a"], "ok a\n"), {"a": "ok"})
+        for statuses in ("", "ok a\nok a\n", "ok other\n", "not a status\n"):
+            with self.assertRaises(gate.Invalid):
+                gate.executed(summary, ["a"], statuses)
+
     def test_duplicate_profile_command_fails(self):
         duplicate = dict(PROFILE, id="renamed")
         with self.assertRaises(gate.Invalid):
@@ -138,6 +146,14 @@ pub fn example() {}
         with self.assertRaises(gate.Invalid):
             gate.verify(cap, self.required, self.catalog)
 
+    def test_legacy_execution_without_package_context_or_status_attestation_fails(self):
+        for field in ("cwd", "status_log_sha256"):
+            cap = copy.deepcopy(self.capture)
+            row = next(r for r in cap["targets"] if r["kind"] == "lib")
+            row.pop(field)
+            with self.assertRaises(gate.Invalid):
+                gate.verify(cap, self.required, self.catalog)
+
     def test_ignored_test_needs_review_and_mapping_cannot_disappear(self):
         required = copy.deepcopy(self.required)
         for row in required["targets"]:
@@ -191,6 +207,49 @@ pub fn example() {}
         finally:
             manifest.write_text(original)
             (self.root / "tests/extra_contract.rs").unlink()
+
+
+class ExecutionContext(unittest.TestCase):
+    def test_nested_package_matches_cargo_cwd_and_child_output_cannot_hide_test(self):
+        with tempfile.TemporaryDirectory(prefix="inventory-context-") as scratch:
+            base = Path(scratch)
+            root = base / "repo"
+            package = root / "nested" / "member"
+            (package / "src").mkdir(parents=True)
+            (root / "Cargo.toml").write_text('[workspace]\nresolver="2"\nmembers=["nested/member"]\n')
+            (package / "Cargo.toml").write_text('[package]\nname="context-fixture"\nversion="0.0.0"\nedition="2021"\n')
+            (package / "data.txt").write_text("package-relative fixture")
+            (package / "src/lib.rs").write_text(r'''#[test] fn package_relative_data() {
+    assert_eq!(std::env::current_dir().unwrap(), std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+    assert_eq!(std::fs::read_to_string("data.txt").unwrap(), "package-relative fixture");
+    assert_eq!(std::env::var("CARGO_MANIFEST_DIR").unwrap(), env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(std::env::var("CARGO_PKG_NAME").unwrap(), "context-fixture");
+}
+#[test] fn child_stdout_interleaves_pretty_result() {
+    assert!(std::process::Command::new("sh").args(["-c", "printf 'child output\n'"]).status().unwrap().success());
+}
+''')
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
+            cargo = ["cargo", "+" + TOOLCHAIN]
+            subprocess.run(cargo + ["generate-lockfile", "--offline"], cwd=root, check=True, capture_output=True)
+            reference = subprocess.run(cargo + ["test", "--locked", "-p", "context-fixture", "--", "--test-threads=1"],
+                                       cwd=root, capture_output=True, text=True)
+            self.assertEqual(reference.returncode, 0, reference.stderr)
+            # Cargo itself runs in the package directory, but child stdout
+            # splits pretty result lines even on a passing test suite.
+            with self.assertRaises(gate.Invalid):
+                gate.executed(reference.stdout, ["package_relative_data", "child_stdout_interleaves_pretty_result"])
+            profile = dict(PROFILE, id="context", package="context-fixture")
+            cap = gate.capture(root, [profile], base / "capture.json", True, TOOLCHAIN)
+            self.assertEqual(cap["blocked"], [])
+            row = next(t for t in cap["targets"] if t["kind"] == "lib")
+            self.assertEqual(row["executed"], {"package_relative_data": "ok", "child_stdout_interleaves_pretty_result": "ok"})
+            self.assertEqual(row["cwd"], str(package.resolve()))
+            self.assertEqual(len(row["status_log_sha256"]), 64)
+            direct = [c for c in cap["commands"] if "--logfile" in c["argv"]]
+            self.assertEqual(len(direct), 1)
+            self.assertEqual(direct[0]["cwd"], str(package.resolve()))
 
 
 if __name__ == "__main__":
