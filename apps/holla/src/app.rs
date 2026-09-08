@@ -946,7 +946,7 @@ impl junie_tui::App for App {
         let base = ui.surface_style();
         ui.fill(area, base);
         if too_small(area) {
-            TooSmall::new(Id::root("holla.too-small"), "holla")
+            TooSmall::new(Id::root("holla.too-small"), "holla❯")
                 .minimum(MIN_WIDTH, MIN_HEIGHT)
                 .draw(ui, area);
             return;
@@ -1965,3 +1965,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod historical_tests;
