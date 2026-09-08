@@ -661,15 +661,21 @@ fn modal_traps_focus_and_restores_it() {
 #[test]
 fn prompt_dialog_validates_and_returns_value() {
     let mut h = harness(PageId::Dialogs);
+    let field = Id::root("showcase_app::pages::dialogs::dialogs.prompt.layer").part(Part::FIELD);
     press(&mut h, KeyCode::Tab);
     press(&mut h, KeyCode::Tab);
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Rename task"));
-    press(&mut h, KeyCode::Enter);
+    assert_eq!(h.focus(), Some(field));
+    assert!(h.state_of(field).contains(StateFlags::EDITING));
+    // Published focus starts editing before the next key reaches the prompt.
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Name cannot be empty"));
+    assert!(!h.state_of(field).contains(StateFlags::EDITING));
     press(&mut h, KeyCode::Enter);
+    assert!(h.state_of(field).contains(StateFlags::EDITING));
     type_text(&mut h, "Ship it");
+    assert!(h.text().contains("Ship it"));
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Task: Ship it"));
 }
