@@ -658,6 +658,9 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
     branch_activation: TreeBranchActivation,
     branch_click: TreeBranchClick,
+    gutter_gap: u16,
+    disclosure_hit_width: u16,
+    cursor_selected: bool,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     query: Option<TreeQuery<'a, T>>,
     disabled: bool,
@@ -704,6 +707,9 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             node: None,
             branch_activation: TreeBranchActivation::Toggle,
             branch_click: TreeBranchClick::Toggle,
+            gutter_gap: 0,
+            disclosure_hit_width: 1,
+            cursor_selected: false,
             disabled_item: None,
             query: None,
             disabled: false,
@@ -760,6 +766,31 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
+    /// Blank cells between the row gutter and its depth-indented prefix.
+    /// Defaults to zero. Applies to default paint and shared disclosure hits.
+    #[must_use]
+    pub const fn gutter_gap(mut self, cells: u16) -> Self {
+        self.gutter_gap = cells;
+        self
+    }
+
+    /// Disclosure hit width, starting at its glyph and clipped to the row.
+    /// Defaults to one; zero disables the disclosure hit without changing paint.
+    #[must_use]
+    pub const fn disclosure_hit_width(mut self, cells: u16) -> Self {
+        self.disclosure_hit_width = cells;
+        self
+    }
+
+    /// Present the cursor row as selected, including while unfocused.
+    /// Defaults to false (the chosen row is selected). Does not change chosen
+    /// identity, actions, focus, or expansion.
+    #[must_use]
+    pub const fn cursor_selected(mut self, enabled: bool) -> Self {
+        self.cursor_selected = enabled;
+        self
+    }
+
     /// A stable key accessor. [`TreeNode::keyed`] overrides it per node.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Tree<'a, T, K2, R> {
         Tree {
@@ -770,6 +801,9 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             node: self.node,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
+            gutter_gap: self.gutter_gap,
+            disclosure_hit_width: self.disclosure_hit_width,
+            cursor_selected: self.cursor_selected,
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
@@ -809,6 +843,9 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             node: self.node,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
+            gutter_gap: self.gutter_gap,
+            disclosure_hit_width: self.disclosure_hit_width,
+            cursor_selected: self.cursor_selected,
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
@@ -1657,7 +1694,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 let index = ui.cache::<TreeIndex>(self.id);
                 (index.query_active, index.has_visible_descendant(d))
             };
-            let row = Self::row_of(
+            let mut row = Self::row_of(
                 st,
                 RowContext {
                     node: flat,
@@ -1668,6 +1705,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     has_visible_descendant,
                 },
             );
+            if self.cursor_selected {
+                row.flags
+                    .set(StateFlags::SELECTED, st.core.cursor() == Some(row.key));
+            }
             self.paint_row(ui, row, indent, item);
         }
         area
@@ -1759,14 +1800,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     renderer(ui, row.rect, row.flags, row.key, item);
                 });
             }
-            let fold = cell_at(
-                row.rect,
-                row.rect
-                    .x
-                    .saturating_add(1)
-                    .saturating_add(row.depth.saturating_mul(indent)),
-            );
-            Self::register_row(ui, self.id, row, fold);
+            self.register_row(ui, row, indent);
             return;
         }
         self.paint_default_row(ui, row, indent, item);
@@ -1801,11 +1835,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 Slot::Inherit | Slot::Clear => ui.fill(gutter, g.style),
             }
         }
-        let fold_x = row
-            .rect
-            .x
-            .saturating_add(1)
-            .saturating_add(row.depth.saturating_mul(indent));
+        let fold_x = self.fold_x(row, indent);
         let fold = cell_at(row.rect, fold_x);
         if let Some(f) = self.ov.slot_for(Part::ICON) {
             f(ui, fold);
@@ -1858,14 +1888,28 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         if ui.is_inert() {
             return;
         }
-        Self::register_row(ui, self.id, row, fold);
+        self.register_row(ui, row, indent);
     }
 
-    fn register_row(ui: &mut Ui<'_>, id: Id, row: Row, fold: Rect) {
-        ui.register_part(id, PartRef::item(Part::ROW, row.key), row.rect);
+    fn fold_x(&self, row: Row, indent: u16) -> u16 {
+        row.rect
+            .x
+            .saturating_add(1)
+            .saturating_add(self.gutter_gap)
+            .saturating_add(row.depth.saturating_mul(indent))
+    }
+
+    fn register_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16) {
+        ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.rect);
         // Disclosure wins hit-testing over the row, including custom painters.
         if row.disclosure.is_some() {
-            ui.register_part(id, PartRef::item(Part::ICON, row.key), fold);
+            let fold = Rect {
+                x: self.fold_x(row, indent),
+                width: self.disclosure_hit_width,
+                ..row.rect
+            }
+            .intersection(row.rect);
+            ui.register_part(self.id, PartRef::item(Part::ICON, row.key), fold);
         }
     }
 
