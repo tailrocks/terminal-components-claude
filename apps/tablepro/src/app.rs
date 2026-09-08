@@ -145,6 +145,7 @@ enum ExplorerNode {
     },
     Object {
         item: ExplorerItem,
+        count: String,
         prefix: &'static str,
     },
 }
@@ -1549,11 +1550,11 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
                 schema: schema.clone(),
                 name: label.to_owned(),
             });
-            nodes.extend(
-                objects
-                    .into_iter()
-                    .map(|item| ExplorerNode::Object { item, prefix }),
-            );
+            nodes.extend(objects.into_iter().map(|item| ExplorerNode::Object {
+                count: compact_count(item.rows),
+                item,
+                prefix,
+            }));
         }
     }
     nodes
@@ -1583,7 +1584,7 @@ fn explorer_node_key(node: &ExplorerNode) -> ItemKey {
         ExplorerNode::Database { name } => stable_key(&["database", name]),
         ExplorerNode::Schema { name } => stable_key(&["schema", name]),
         ExplorerNode::Group { schema, name } => stable_key(&["object-group", schema, name]),
-        ExplorerNode::Object { item, prefix } => {
+        ExplorerNode::Object { item, prefix, .. } => {
             stable_key(&["object", &item.schema, prefix, &item.name])
         }
     }
@@ -1613,14 +1614,17 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
         ExplorerNode::Database { name } => row.label_fmt(format_args!("▣ {name}")),
         ExplorerNode::Schema { name } => row.label_fmt(format_args!("▾ {name}")),
         ExplorerNode::Group { name, .. } => row.label(name),
-        ExplorerNode::Object { item, prefix } => {
+        ExplorerNode::Object {
+            item,
+            prefix,
+            count,
+        } => {
             row.label_spans(&[
                 Span::new(prefix).role(Role::Fg(FgStep::Muted)),
                 Span::new(" "),
                 Span::new(&item.name),
             ]);
-            let count = compact_count(item.rows);
-            row.meta(&count);
+            row.meta(count);
         }
     }
 }
@@ -1952,9 +1956,9 @@ fn draw_header(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
     );
 }
 
-fn footer_spans(app: &TableProApp) -> Vec<Span<'static>> {
+fn with_footer_spans(app: &TableProApp, paint: impl FnOnce(&[Span<'static>])) {
     if app.screen == Screen::Connections {
-        vec![
+        paint(&[
             Span::new(" "),
             Span::new("↑ ↓").bold(),
             Span::new(" "),
@@ -1975,10 +1979,10 @@ fn footer_spans(app: &TableProApp) -> Vec<Span<'static>> {
             Span::new("Tab").bold(),
             Span::new(" "),
             Span::new("Next").role(Role::Fg(FgStep::Muted)),
-        ]
+        ]);
     } else {
         match app.workbench.active() {
-            Some(Tab::Table(_)) => vec![
+            Some(Tab::Table(_)) => paint(&[
                 Span::new(" "),
                 Span::new("↑ ↓←→").bold(),
                 Span::new(" "),
@@ -1999,8 +2003,8 @@ fn footer_spans(app: &TableProApp) -> Vec<Span<'static>> {
                 Span::new("  Tab").bold(),
                 Span::new(" "),
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ],
-            Some(Tab::Query(_)) => vec![
+            ]),
+            Some(Tab::Query(_)) => paint(&[
                 Span::new(" "),
                 Span::new("Enter").bold(),
                 Span::new(" "),
@@ -2017,8 +2021,8 @@ fn footer_spans(app: &TableProApp) -> Vec<Span<'static>> {
                 Span::new("  Tab").bold(),
                 Span::new(" "),
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ],
-            Some(Tab::History(_)) => vec![
+            ]),
+            Some(Tab::History(_)) => paint(&[
                 Span::new(" "),
                 Span::new("↑ ↓").bold(),
                 Span::new(" "),
@@ -2032,8 +2036,8 @@ fn footer_spans(app: &TableProApp) -> Vec<Span<'static>> {
                 Span::new("  Tab").bold(),
                 Span::new(" "),
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ],
-            None => vec![
+            ]),
+            None => paint(&[
                 Span::new(" "),
                 Span::new("Ctrl+N").bold(),
                 Span::new(" "),
@@ -2044,7 +2048,7 @@ fn footer_spans(app: &TableProApp) -> Vec<Span<'static>> {
                 Span::new("  Tab").bold(),
                 Span::new(" "),
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ],
+            ]),
         }
     }
 }
@@ -2052,18 +2056,23 @@ fn footer_spans(app: &TableProApp) -> Vec<Span<'static>> {
 fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     ui.fill(area, base);
-    let spans = footer_spans(app);
-    ui.paint_spans(area, &spans, base);
+    with_footer_spans(app, |spans| {
+        ui.paint_spans(area, spans, base);
+    });
     if app.screen == Screen::Workbench {
-        let right_text = format!("Connected to {}", app.connection.name);
+        let prefix = "Connected to ";
+        let width = junie_tui::width(prefix).saturating_add(junie_tui::width(&app.connection.name));
         let right = junie_tui::Rect {
-            x: area.right().saturating_sub(junie_tui::width(&right_text)),
-            width: junie_tui::width(&right_text),
+            x: area.right().saturating_sub(width),
+            width,
             ..area
         };
         ui.paint_spans(
             right,
-            &[Span::new(&right_text).role(Role::Fg(FgStep::Muted))],
+            &[
+                Span::new(prefix).role(Role::Fg(FgStep::Muted)),
+                Span::new(&app.connection.name).role(Role::Fg(FgStep::Muted)),
+            ],
             base,
         );
     }
