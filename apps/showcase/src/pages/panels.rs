@@ -3,8 +3,8 @@
 use junie_tui::author::PaintStyle;
 use junie_tui::{
     Cx, Family, FgStep, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part, Rect,
-    Response, Role, RowUi, SelectMode, StateFlags, StylePatch, TextViewport, Ui, Variant,
-    ViewportLine, ViewportState, id, layout, wrap,
+    Response, Role, RowUi, SelectMode, SplitAxis, SplitPane, SplitPaneState, StateFlags,
+    StylePatch, TextViewport, Ui, Variant, ViewportLine, ViewportState, id, layout, wrap,
 };
 
 use crate::data::{PROSE, log_lines};
@@ -19,6 +19,7 @@ const LOG_CARD: Id = id!("panels.log_card");
 const PROSE_VIEW: Id = id!("panels.prose");
 const LOG_VIEW: Id = id!("panels.log");
 const NESTED_LIST: Id = id!("panels.nested");
+const WORKBENCH: Id = id!("panels.workbench");
 const PANEL_PARTS: &[(Part, StylePatch)] = &[(
     Part::TITLE,
     StylePatch::new()
@@ -91,6 +92,50 @@ fn log_view_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
         .iter()
         .map(|line| ViewportLine::Plain(line.as_str()))
         .collect()
+}
+
+/// The one constructor per card and pane on this page (§13): both phase paths
+/// build the same props, so no per-phase tweak can go unseen.
+fn titled_card() -> Panel<'static> {
+    Panel::new(TITLED_CARD)
+        .title("Titled card")
+        .meta("surface")
+        .patch_part(PANEL_PARTS)
+}
+
+fn untitled_card() -> Panel<'static> {
+    Panel::new(UNTITLED_CARD).patch_part(PANEL_PARTS)
+}
+
+fn nested_card() -> Panel<'static> {
+    Panel::new(NESTED_CARD)
+        .title("Nested")
+        .patch_part(PANEL_PARTS)
+}
+
+fn framed_pane(meta: &str) -> Panel<'_> {
+    Panel::new(FRAMED_PANE)
+        .kind(PanelKind::Framed)
+        .title("Framed · split pane")
+        .meta(meta)
+        .patch_part(PANEL_PARTS)
+}
+
+fn log_card(meta: &str) -> Panel<'_> {
+    Panel::new(LOG_CARD)
+        .title("Card · scrollable")
+        .meta(meta)
+        .patch_part(PANEL_PARTS)
+}
+
+/// The one split on this page (§13): the seam is focusable and resizable, so
+/// both phases build the same gap and minima.
+fn workbench_split() -> SplitPane<'static> {
+    SplitPane::new(WORKBENCH, SplitAxis::Horizontal)
+        .gap(1)
+        .min_first(10)
+        .min_second(10)
+        .resizable(true)
 }
 
 fn position_label(state: &ViewportState) -> String {
@@ -390,6 +435,7 @@ pub(crate) struct PanelsPage {
     prose_state: ViewportState,
     log_state: ViewportState,
     nested: ListState,
+    split: SplitPaneState,
 }
 
 impl PanelsPage {
@@ -404,6 +450,7 @@ impl PanelsPage {
             prose_state,
             log_state,
             nested: ListState::default(),
+            split: SplitPaneState::new(40),
         }
     }
 }
@@ -427,6 +474,14 @@ impl Page for PanelsPage {
         let log = log_view_lines(&self.log);
         response |= log_view().update(cx, &mut self.log_state, &log).erase();
         response |= nested_list().update(cx, &mut self.nested, TARGETS).erase();
+        response |= workbench_split().update(cx, &mut self.split).erase();
+        // The update pass builds every card and pane it will later draw (§13).
+        let _ = titled_card();
+        let _ = untitled_card();
+        let _ = nested_card();
+        let _ = framed_pane(&position_label(&self.prose_state));
+        let _ = log_card(&position_label(&self.log_state));
+        let _ = workbench_split();
         response.into()
     }
 
@@ -438,37 +493,26 @@ impl Page for PanelsPage {
             "Cards group; a frame only where a pane needs an edge; nothing boxed twice",
             |ui, body| {
                 let (left, right) = columns(body, (body.width / 2).saturating_sub(1), 2);
-                let left_rows = fixed_rows(left, &[7, 1, 6, 1, 7, 0]);
+                let left_rows = fixed_rows(left, &[7, 1, 6, 1, 7, 1, 1, 0]);
 
-                Panel::new(TITLED_CARD)
-                    .title("Titled card")
-                    .meta("surface")
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, left_rows[0], |ui, body| {
-                        wrapped(
-                            ui,
-                            body,
-                            "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.",
-                        );
-                    });
+                titled_card().draw(ui, left_rows[0], |ui, body| {
+                    wrapped(
+                        ui,
+                        body,
+                        "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.",
+                    );
+                });
                 paint_card_meta(ui, left_rows[0], "surface");
 
-                Panel::new(UNTITLED_CARD).patch_part(PANEL_PARTS).draw(
-                    ui,
-                    left_rows[2],
-                    |ui, body| {
-                        wrapped(
-                            ui,
-                            body,
-                            "Untitled card. Same surface, content starts at the padding edge.",
-                        );
-                    },
-                );
+                untitled_card().draw(ui, left_rows[2], |ui, body| {
+                    wrapped(
+                        ui,
+                        body,
+                        "Untitled card. Same surface, content starts at the padding edge.",
+                    );
+                });
 
-                Panel::new(NESTED_CARD)
-                    .title("Nested")
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, left_rows[4], |ui, body| self.draw_nested(ui, body));
+                nested_card().draw(ui, left_rows[4], |ui, body| self.draw_nested(ui, body));
                 let _ = ui.paint_str(
                     Rect {
                         x: left_rows[4].x,
@@ -480,18 +524,35 @@ impl Page for PanelsPage {
                     panel_style(ui, FgStep::Muted),
                 );
 
+                let seam_caption = format!(
+                    "Split · seam at {}% · ← narrower, → wider, Home balances",
+                    self.split.percent()
+                );
+                if let Some(caption) = left_rows.get(6).copied() {
+                    let _ = ui.paint_str(caption, &seam_caption, panel_style(ui, FgStep::Muted));
+                }
+                if let Some(split_area) = left_rows.get(7).copied() {
+                    workbench_split().draw(ui, split_area, &self.split, |ui, first, second| {
+                        wrapped_muted(
+                            ui,
+                            first,
+                            "First pane. Drag the seam, or focus it and press ←/→.",
+                        );
+                        wrapped_muted(
+                            ui,
+                            second,
+                            "Second pane. A double-click on the seam balances both.",
+                        );
+                    });
+                }
+
                 let right_rows = fixed_rows(right, &[right.height / 2, 0]);
                 let prose_meta = position_label(&self.prose_state);
-                let prose_inner = Panel::new(FRAMED_PANE)
-                    .kind(PanelKind::Framed)
-                    .title("Framed · split pane")
-                    .meta(&prose_meta)
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, right_rows[0], |ui, body| {
-                        prose_view().draw(ui, body, &self.prose_state, &self.prose);
-                        paint_legacy_prose(ui, body, &self.prose_state);
-                        body
-                    });
+                let prose_inner = framed_pane(&prose_meta).draw(ui, right_rows[0], |ui, body| {
+                    prose_view().draw(ui, body, &self.prose_state, &self.prose);
+                    paint_legacy_prose(ui, body, &self.prose_state);
+                    body
+                });
                 paint_legacy_frame_header(ui, right_rows[0], "Framed · split pane");
                 paint_legacy_scrollbar(
                     ui,
@@ -509,15 +570,11 @@ impl Page for PanelsPage {
                     height: right_rows[1].height.saturating_sub(1),
                     ..right_rows[1]
                 };
-                let log_inner = Panel::new(LOG_CARD)
-                    .title("Card · scrollable")
-                    .meta(&log_meta)
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, log_area, |ui, body| {
-                        log_view().draw(ui, body, &self.log_state, &log);
-                        paint_legacy_log(ui, body, &self.log_state, &self.log);
-                        body
-                    });
+                let log_inner = log_card(&log_meta).draw(ui, log_area, |ui, body| {
+                    log_view().draw(ui, body, &self.log_state, &log);
+                    paint_legacy_log(ui, body, &self.log_state, &self.log);
+                    body
+                });
                 paint_legacy_scrollbar(
                     ui,
                     legacy_log_area(log_inner),

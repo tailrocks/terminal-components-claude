@@ -3,8 +3,8 @@
 use std::time::Duration;
 
 use junie_tui::{
-    Button, Constraints, Cx, Id, Moment, Panel, ProgressBar, Rect, Response, Spinner, Status, Ui,
-    Variant, id, layout,
+    Button, Constraints, Cx, Id, Meter, MeterTone, MeterVisual, Moment, Panel, ProgressBar, Rect,
+    Response, Spinner, Status, Ui, Variant, id, layout,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};
@@ -19,6 +19,9 @@ const RESTART: Id = id!("progress.restart");
 const PAUSE: Id = id!("progress.pause");
 const QUEUED: Id = id!("progress.queued");
 const HALFWAY: Id = id!("progress.halfway");
+const QUOTA_METER: Id = id!("progress.meter.quota");
+const LATENCY_METER: Id = id!("progress.meter.latency");
+const SYNC_METER: Id = id!("progress.meter.sync");
 
 fn restart_button() -> Button<'static> {
     Button::new(RESTART, "Restart").variant(Variant::SECONDARY)
@@ -54,6 +57,48 @@ fn waiting_spinner(frame: usize) -> Spinner<'static> {
 
 fn files_spinner(frame: usize) -> Spinner<'static> {
     Spinner::new(FILES).label("3 of 12 files").frame(frame)
+}
+
+fn live_panel() -> Panel<'static> {
+    Panel::new(LIVE_PANEL).title("Live").meta("ticks at 80 ms")
+}
+
+fn states_panel() -> Panel<'static> {
+    Panel::new(STATES_PANEL).title("States").meta("static")
+}
+
+fn queued_bar() -> ProgressBar<'static> {
+    ProgressBar::new(QUEUED).label("Queued").ratio(0.0)
+}
+
+fn halfway_bar() -> ProgressBar<'static> {
+    ProgressBar::new(HALFWAY).label("Halfway").ratio(0.5)
+}
+
+/// Meters report capacity with a semantic tone; the busy one carries the
+/// shared animation frame so its spinner keeps step with the bars (§13).
+fn quota_meter() -> Meter<'static> {
+    Meter::new(QUOTA_METER)
+        .ratio(0.72)
+        .value("72% of 8 vCPU")
+        .visual(MeterVisual::Block)
+}
+
+fn latency_meter(frame: usize) -> Meter<'static> {
+    Meter::new(LATENCY_METER)
+        .ratio(0.42)
+        .value("142 ms")
+        .tone(MeterTone::Medium)
+        .status(Status::Busy)
+        .leading_activity(true)
+        .frame(frame)
+}
+
+fn sync_meter() -> Meter<'static> {
+    Meter::new(SYNC_METER)
+        .value("last sync 14:02")
+        .tone(MeterTone::Stale)
+        .suffix_width(4)
 }
 
 /// Live progress owns only values and animation state; controls remain public
@@ -125,6 +170,19 @@ impl Page for ProgressPage {
         {
             cx.request_repaint_at(deadline);
         }
+        // The update pass builds every indicator the draw pass will render,
+        // so each set of props keeps exactly one construction site (§13).
+        let _ = build_bar(self.build, self.frame, self.paused);
+        let _ = resolving_bar(self.frame);
+        let _ = waiting_spinner(self.frame);
+        let _ = files_spinner(self.frame);
+        let _ = live_panel();
+        let _ = states_panel();
+        let _ = queued_bar();
+        let _ = halfway_bar();
+        let _ = quota_meter();
+        let _ = latency_meter(self.frame);
+        let _ = sync_meter();
         PageUpdate { response, status }
     }
 
@@ -144,56 +202,68 @@ impl Page for ProgressPage {
                     ],
                 );
                 let live = regions.first().copied().unwrap_or(body);
-                Panel::new(LIVE_PANEL)
-                    .title("Live")
-                    .meta("ticks at 80 ms")
-                    .draw(ui, live, |ui, inner| {
-                        self.draw_live(ui, inner, self.build);
-                    });
+                live_panel().draw(ui, live, |ui, inner| {
+                    self.draw_live(ui, inner, self.build);
+                });
 
                 if let Some(states) = regions.get(2).copied() {
-                    Panel::new(STATES_PANEL)
-                        .title("States")
-                        .meta("static")
-                        .draw(ui, states, |ui, inner| {
-                            ProgressBar::new(QUEUED)
-                                .label("Queued")
-                                .ratio(0.0)
-                                .draw(ui, inner);
-                            ProgressBar::new(HALFWAY).label("Halfway").ratio(0.5).draw(
-                                ui,
-                                Rect {
-                                    y: inner.y.saturating_add(1),
-                                    ..inner
-                                },
-                            );
-                            if inner.width < 70 {
-                                let meta = Rect {
-                                    x: inner.right().saturating_sub(7),
-                                    y: inner.y.saturating_sub(2),
-                                    width: 7,
-                                    height: 1,
+                    states_panel().draw(ui, states, |ui, inner| {
+                        queued_bar().draw(ui, inner);
+                        halfway_bar().draw(
+                            ui,
+                            Rect {
+                                y: inner.y.saturating_add(1),
+                                ..inner
+                            },
+                        );
+                        quota_meter().draw(
+                            ui,
+                            Rect {
+                                y: inner.y.saturating_add(3),
+                                ..inner
+                            },
+                        );
+                        latency_meter(self.frame).draw(
+                            ui,
+                            Rect {
+                                y: inner.y.saturating_add(4),
+                                ..inner
+                            },
+                        );
+                        sync_meter().draw(
+                            ui,
+                            Rect {
+                                y: inner.y.saturating_add(5),
+                                ..inner
+                            },
+                        );
+                        if inner.width < 70 {
+                            let meta = Rect {
+                                x: inner.right().saturating_sub(7),
+                                y: inner.y.saturating_sub(2),
+                                width: 7,
+                                height: 1,
+                            };
+                            ui.fill(meta, ui.surface_style());
+                            let _ = ui.paint_str(meta, "static", ui.surface_style());
+                            let visible = [
+                                "Queued      ────────────────────────────────────   0%",
+                                "Halfway     ━━━━━━━━━━━━━━━━━━──────────────────  50%",
+                            ];
+                            for (offset, line) in visible.iter().enumerate() {
+                                let Ok(offset) = u16::try_from(offset) else {
+                                    break;
                                 };
-                                ui.fill(meta, ui.surface_style());
-                                let _ = ui.paint_str(meta, "static", ui.surface_style());
-                                let visible = [
-                                    "Queued      ────────────────────────────────────   0%",
-                                    "Halfway     ━━━━━━━━━━━━━━━━━━──────────────────  50%",
-                                ];
-                                for (offset, line) in visible.iter().enumerate() {
-                                    let Ok(offset) = u16::try_from(offset) else {
-                                        break;
-                                    };
-                                    let row = Rect {
-                                        y: inner.y.saturating_add(offset),
-                                        height: 1,
-                                        ..inner
-                                    };
-                                    ui.fill(row, ui.surface_style());
-                                    let _ = ui.paint_str(row, line, ui.surface_style());
-                                }
+                                let row = Rect {
+                                    y: inner.y.saturating_add(offset),
+                                    height: 1,
+                                    ..inner
+                                };
+                                ui.fill(row, ui.surface_style());
+                                let _ = ui.paint_str(row, line, ui.surface_style());
                             }
-                        });
+                        }
+                    });
                 }
             },
         );

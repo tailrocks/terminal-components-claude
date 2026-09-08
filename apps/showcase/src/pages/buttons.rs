@@ -209,6 +209,9 @@ impl Page for ButtonsPage {
         {
             cx.request_repaint_at(deadline);
         }
+        // Both phases build the same two cards (§13).
+        let _ = playground_panel();
+        let _ = matrix_panel();
         PageUpdate { response, status }
     }
 

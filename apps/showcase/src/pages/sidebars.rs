@@ -10,6 +10,16 @@ use super::{Page, PageUpdate, frame, lines};
 const NAV: Id = id!("sidebars.nav");
 const SIDE_PANEL: Id = id!("sidebars.panel");
 const CONTENT_PANEL: Id = id!("sidebars.content");
+
+/// The one side-panel constructor (§13), shared by update and draw.
+fn side_panel() -> Panel<'static> {
+    Panel::new(SIDE_PANEL)
+}
+
+/// The one content-card constructor (§13), keyed by the selected section.
+fn content_panel(title: &'static str) -> Panel<'static> {
+    Panel::new(CONTENT_PANEL).title(title)
+}
 const COLLAPSE: Id = id!("sidebars.collapse");
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -171,6 +181,9 @@ impl Page for SidebarsPage {
         }
         let mut response = result.erase();
         response |= collapse.erase();
+        // Both phases build the same two cards (§13).
+        let _ = side_panel();
+        let _ = content_panel(self.selected);
         response.into()
     }
 
@@ -187,7 +200,7 @@ impl Page for SidebarsPage {
                     height: body.height.min(20),
                     ..body
                 };
-                Panel::new(SIDE_PANEL).draw(ui, side, |ui, _| {
+                side_panel().draw(ui, side, |ui, _| {
                     let inner = Rect {
                         y: side.y.saturating_add(1),
                         height: side.height.saturating_sub(2),
@@ -252,11 +265,9 @@ impl Page for SidebarsPage {
                     width: body.width.saturating_sub(side_width.saturating_add(2)),
                     ..body
                 };
-                Panel::new(CONTENT_PANEL)
-                    .title(self.selected)
-                    .draw(ui, content, |ui, inner| {
-                        Self::draw_content(ui, inner, body.width);
-                    });
+                content_panel(self.selected).draw(ui, content, |ui, inner| {
+                    Self::draw_content(ui, inner, body.width);
+                });
             },
         );
     }

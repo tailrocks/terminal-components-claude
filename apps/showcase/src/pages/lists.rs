@@ -189,24 +189,33 @@ fn single_list() -> List<
         .patch_part(LIST_GUTTER)
 }
 
-fn multi_list()
--> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+/// The one multi-selection list constructor (§13): both phase paths build the
+/// same keyed, patched, disabled-aware list and differ only in the row glyph.
+fn multi_list_with(
+    row: impl Fn(&FileRow, &mut RowUi<'_>),
+) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
     List::new(MULTI)
         .key(file_key)
-        .row(file_row)
+        .row(row)
         .select_mode(SelectMode::Multi)
         .patch_part(LIST_GUTTER)
         .disabled_item(&file_disabled)
 }
 
+fn multi_list()
+-> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+    multi_list_with(file_row)
+}
+
 fn compact_multi_list()
 -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
-    List::new(MULTI)
-        .key(file_key)
-        .row(compact_file_row)
-        .select_mode(SelectMode::Multi)
-        .patch_part(LIST_GUTTER)
-        .disabled_item(&file_disabled)
+    multi_list_with(compact_file_row)
+}
+
+/// The one empty-list constructor (§13): the update path drives it and the
+/// draw path renders it, so the empty state cannot drift between phases.
+fn empty_list(title: &'static str) -> List<'static, &'static str> {
+    List::new(EMPTY).empty(EmptyState::Empty { title, hint: None })
 }
 
 /// Two independent keyed list states; selecting a row never relies on its
@@ -265,12 +274,7 @@ impl Page for ListsPage {
             self.last = "multi selection changed";
         }
         response |= many.erase();
-        let empty = List::new(EMPTY)
-            .empty(EmptyState::Empty {
-                title: "No matches",
-                hint: None,
-            })
-            .update(cx, &mut self.empty, &[] as &[&str]);
+        let empty = empty_list("No matches").update(cx, &mut self.empty, &[] as &[&str]);
         response |= empty.erase();
         response.into()
     }
@@ -339,18 +343,14 @@ impl Page for ListsPage {
                     .title("Search results")
                     .patch_part(PANEL_PARTS)
                     .draw(ui, search, |ui, inner| {
-                        List::new(EMPTY)
-                            .empty(EmptyState::Empty {
-                                title: if body.width < 70 {
-                                    "No results for…"
-                                } else if body.width < 90 {
-                                    "No results for “retr…"
-                                } else {
-                                    "No results for “retry”"
-                                },
-                                hint: None,
-                            })
-                            .draw(ui, inner, &self.empty, &[] as &[&str]);
+                        empty_list(if body.width < 70 {
+                            "No results for…"
+                        } else if body.width < 90 {
+                            "No results for “retr…"
+                        } else {
+                            "No results for “retry”"
+                        })
+                        .draw(ui, inner, &self.empty, &[] as &[&str]);
                         if body.width < 70 {
                             let _ = ui.paint_str(
                                 Rect {

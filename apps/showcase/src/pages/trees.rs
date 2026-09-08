@@ -78,6 +78,15 @@ fn project_tree()
         .patch_part(TREE_GUTTER)
 }
 
+/// The one project-card constructor (§13), shared by update and draw.
+fn project_panel(meta: &str) -> Panel<'_> {
+    Panel::new(PROJECT)
+        .kind(PanelKind::Card)
+        .title("Project")
+        .meta(meta)
+        .patch_part(PANEL_PARTS)
+}
+
 fn position_label(state: &TreeState) -> String {
     let scroll = state.scroll();
     if !scroll.overflows() {
@@ -212,6 +221,7 @@ impl Page for TreesPage {
                 self.chosen = Some(*key);
             }
         }
+        let _ = project_panel(&position_label(&self.state));
         result.erase().into()
     }
 
@@ -227,15 +237,10 @@ impl Page for TreesPage {
                     height: body.height.min(18),
                     ..columns.first().copied().unwrap_or(body)
                 };
-                Panel::new(PROJECT)
-                    .kind(PanelKind::Card)
-                    .title("Project")
-                    .meta(&position_label(&self.state))
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, project, |ui, inner| {
-                        project_tree().draw(ui, inner, &self.state, TREE);
-                        paint_disclosure_glyphs(ui, inner, &self.state);
-                    });
+                project_panel(&position_label(&self.state)).draw(ui, project, |ui, inner| {
+                    project_tree().draw(ui, inner, &self.state, TREE);
+                    paint_disclosure_glyphs(ui, inner, &self.state);
+                });
                 let selection = Rect {
                     height: body.height.min(10),
                     ..columns.get(1).copied().unwrap_or(body)

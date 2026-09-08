@@ -429,6 +429,14 @@ fn table() -> Grid<'static> {
         .patch_part(PART_PATCH)
 }
 
+/// The one checks-card constructor (§13), reached from update and from draw.
+fn checks_panel() -> Panel<'static> {
+    Panel::new(CHECKS)
+        .kind(PanelKind::Card)
+        .title("Checks")
+        .patch_part(PANEL_PARTS)
+}
+
 /// The grid owns only cursor state; the adapter owns row order and domain
 /// comparison, preserving keyed identity through every sort request.
 #[derive(Debug)]
@@ -485,6 +493,7 @@ impl Page for TablesPage {
             // The historical page only changes the sort label for a sort;
             // cursor motion leaves the current header status intact.
         }
+        let _ = checks_panel();
         action.erase().into()
     }
 
@@ -520,45 +529,41 @@ impl Page for TablesPage {
                 });
             paint_card_meta(ui, tasks, &task_meta);
             if let Some(checks) = regions.get(2).copied() {
-                Panel::new(CHECKS)
-                    .kind(PanelKind::Card)
-                    .title("Checks")
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, checks, |ui, inner| {
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: inner.x.saturating_add(3),
-                                width: inner.width.saturating_sub(3),
-                                height: 1,
-                                ..inner
-                            },
-                            "Check",
-                            ui.surface_style(),
-                        );
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: checks.right().saturating_sub(12),
-                                width: 6,
-                                height: 1,
-                                ..inner
-                            },
-                            "Result",
-                            ui.surface_style(),
-                        );
-                        EmptyState::Empty {
-                            title: "No checks have run yet",
-                            hint: None,
-                        }
-                        .draw(
-                            ui,
-                            Rect {
-                                y: inner.y.saturating_add(3),
-                                height: inner.height.saturating_sub(3),
-                                ..inner
-                            },
-                            0,
-                        );
-                    });
+                checks_panel().draw(ui, checks, |ui, inner| {
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: inner.x.saturating_add(3),
+                            width: inner.width.saturating_sub(3),
+                            height: 1,
+                            ..inner
+                        },
+                        "Check",
+                        ui.surface_style(),
+                    );
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: checks.right().saturating_sub(12),
+                            width: 6,
+                            height: 1,
+                            ..inner
+                        },
+                        "Result",
+                        ui.surface_style(),
+                    );
+                    EmptyState::Empty {
+                        title: "No checks have run yet",
+                        hint: None,
+                    }
+                    .draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(3),
+                            height: inner.height.saturating_sub(3),
+                            ..inner
+                        },
+                        0,
+                    );
+                });
             }
         });
     }

@@ -62,6 +62,20 @@ fn commit_field() -> Field<'static, TextArea<'static>> {
     .error(Some("Use the imperative mood and explain why"))
 }
 
+/// Both phase paths build the same two cards (§13).
+fn playground_panel(meta: &'static str) -> Panel<'static> {
+    Panel::new(PLAYGROUND)
+        .kind(PanelKind::Card)
+        .title("Playground")
+        .meta(meta)
+}
+
+fn states_panel() -> Panel<'static> {
+    Panel::new(STATES)
+        .kind(PanelKind::Card)
+        .title("Disabled and error")
+}
+
 fn legacy_field_gutter(ui: &mut Ui<'_>, area: Rect, flags: StateFlags) {
     if area.is_empty() {
         return;
@@ -210,6 +224,14 @@ impl Page for TextAreasPage {
                 TextAction::MoveNext | TextAction::MovePrev => "focus moved",
             };
         }
+        // Both phases build the same cards and reference fields (§13). The
+        // narrow-width meta variant is a paint-budget quirk decided in draw;
+        // update builds the canonical wide form through the same constructor.
+        let _ = playground_panel("Enter Edit · Esc Done · Tab Next ");
+        let _ = states_panel();
+        let _ = notes_field();
+        let _ = transcript_field();
+        let _ = commit_field();
         edit.erase().into()
     }
 
@@ -227,60 +249,56 @@ impl Page for TextAreasPage {
             } else {
                 playground
             };
-            Panel::new(PLAYGROUND)
-                .kind(PanelKind::Card)
-                .title("Playground")
-                .meta(if body.width < 70 {
-                    "Enter Edit · Esc Done · Tab Next"
-                } else {
-                    "Enter Edit · Esc Done · Tab Next "
-                })
-                .draw(ui, playground, |ui, inner| {
-                    let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
-                    let task = {
-                        let area = columns.first().copied().unwrap_or(inner);
-                        Rect {
-                            width: area.width.saturating_sub(1),
-                            ..area
-                        }
-                    };
-                    task_field(&self.value).draw(ui, task, &self.state);
+            playground_panel(if body.width < 70 {
+                "Enter Edit · Esc Done · Tab Next"
+            } else {
+                "Enter Edit · Esc Done · Tab Next "
+            })
+            .draw(ui, playground, |ui, inner| {
+                let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
+                let task = {
+                    let area = columns.first().copied().unwrap_or(inner);
+                    Rect {
+                        width: area.width.saturating_sub(1),
+                        ..area
+                    }
+                };
+                task_field(&self.value).draw(ui, task, &self.state);
+                legacy_field_gutter(
+                    ui,
+                    Rect {
+                        y: task.y.saturating_add(1),
+                        height: 8,
+                        ..task
+                    },
+                    StateFlags::empty(),
+                );
+                legacy_scroll_help(ui, task);
+                let notes = {
+                    let area = columns.get(1).copied().unwrap_or(inner);
+                    Rect {
+                        width: area.width.saturating_sub(u16::from(body.width >= 70)),
+                        ..area
+                    }
+                };
+                ui.reference(None, |ui| {
+                    notes_field().draw(ui, notes, &TextAreaState::default());
+                    legacy_textarea_placeholder(ui, notes, "Anything the agent should know…");
                     legacy_field_gutter(
                         ui,
                         Rect {
-                            y: task.y.saturating_add(1),
+                            y: notes.y.saturating_add(1),
                             height: 8,
-                            ..task
+                            ..notes
                         },
                         StateFlags::empty(),
                     );
-                    legacy_scroll_help(ui, task);
-                    let notes = {
-                        let area = columns.get(1).copied().unwrap_or(inner);
-                        Rect {
-                            width: area.width.saturating_sub(u16::from(body.width >= 70)),
-                            ..area
-                        }
-                    };
-                    ui.reference(None, |ui| {
-                        notes_field().draw(ui, notes, &TextAreaState::default());
-                        legacy_textarea_placeholder(ui, notes, "Anything the agent should know…");
-                        legacy_field_gutter(
-                            ui,
-                            Rect {
-                                y: notes.y.saturating_add(1),
-                                height: 8,
-                                ..notes
-                            },
-                            StateFlags::empty(),
-                        );
-                    });
                 });
+            });
             if let Some(states) = regions.get(2).copied() {
-                Panel::new(STATES)
-                    .kind(PanelKind::Card)
-                    .title("Disabled and error")
-                    .draw(ui, states, Self::draw_states);
+                states_panel().draw(ui, states, |ui, inner| {
+                    Self::draw_states(ui, inner);
+                });
             }
         });
     }

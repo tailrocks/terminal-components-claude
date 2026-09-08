@@ -35,15 +35,27 @@ fn branch_input<'a>() -> TextInput<'a> {
         .blur(BlurPolicy::Commit)
 }
 
+/// The one card constructor for this page (§13): both phase paths build the
+/// same `Panel::new(CARD)` props and vary only the heading text on top.
+fn card_panel() -> Panel<'static> {
+    Panel::new(CARD).kind(PanelKind::Card)
+}
+
 fn fields_panel() -> Panel<'static> {
-    Panel::new(CARD).kind(PanelKind::Card).title("Edit fields")
+    card_panel().title("Edit fields")
 }
 
 fn playground_panel() -> Panel<'static> {
-    Panel::new(CARD)
-        .kind(PanelKind::Card)
+    card_panel()
         .title("Playground")
         .meta("Enter Edit · Esc Cancel · Tab Commit + next ")
+}
+
+fn state_reference_panel() -> Panel<'static> {
+    Panel::new(STATE_REFERENCE)
+        .kind(PanelKind::Card)
+        .title("State reference")
+        .meta("static ")
 }
 
 fn project_field(value: &str) -> Field<'_, TextInput<'_>> {
@@ -182,7 +194,15 @@ impl Page for InputsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
+        // Both phases build the same card and reference-field props (§13); the
+        // draw pass paints the reference fields inside a frozen state scope.
         let _ = fields_panel();
+        let _ = playground_panel();
+        let _ = state_reference_panel();
+        let _ = owner_field();
+        let _ = token_field();
+        let _ = search_field();
+        let _ = api_key_field();
         let name = name_input().update(cx, &mut self.name_state, &mut self.name);
         if let Some(action) = name.action_ref() {
             self.last = match action {
@@ -272,11 +292,9 @@ impl Page for InputsPage {
                 Self::draw_reference_fields(ui, inner, &left_rows, &right_rows, body);
             });
             if let Some(reference_area) = regions.get(2).copied() {
-                Panel::new(STATE_REFERENCE)
-                    .kind(PanelKind::Card)
-                    .title("State reference")
-                    .meta("static ")
-                    .draw(ui, reference_area, Self::draw_state_reference);
+                state_reference_panel().draw(ui, reference_area, |ui, inner| {
+                    Self::draw_state_reference(ui, inner);
+                });
             }
         });
     }

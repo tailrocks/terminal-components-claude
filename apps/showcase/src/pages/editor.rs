@@ -170,6 +170,23 @@ fn diff() -> DiffView<'static> {
     DiffView::new(DIFF, None)
 }
 
+fn editor_panel(meta: &str) -> Panel<'_> {
+    Panel::new(EDITOR_PANEL).title("retry.rs").meta(meta)
+}
+
+fn state_panel() -> Panel<'static> {
+    Panel::new(STATE_PANEL).title("State")
+}
+
+/// Both phases label the editor card from the same live block count (§13).
+fn editor_meta(state: &CodeEditorState) -> String {
+    if state.is_editing() {
+        String::from("running ")
+    } else {
+        format!("{} blocks ", editor().blocks(state).len())
+    }
+}
+
 /// The editor's durable document and semantic spans are initialized from the
 /// historical retry sample.
 #[derive(Debug)]
@@ -217,6 +234,10 @@ impl Page for EditorPage {
             .update_for(EDITOR, cx, &mut self.completion_state, SUGGESTIONS)
             .erase();
         result |= diff().update(cx, &mut self.diff_state).erase();
+        // Both phases build the same two cards (§13); the draw pass reaches
+        // the completion constructor beside them.
+        let _ = editor_panel(&editor_meta(&self.state));
+        let _ = state_panel();
         result.erase().into()
     }
 
@@ -241,15 +262,11 @@ impl Page for EditorPage {
                 } else {
                     layout::split_h(body, left_width)
                 };
+                // The completion list renders through the state panel's readout,
+                // but the draw pass still builds the same props as update (§13).
+                let _ = completion();
                 let blocks = editor().blocks(&self.state).len();
-                let blocks_meta = if self.state.is_editing() {
-                    "running".to_owned()
-                } else {
-                    format!("{blocks} blocks")
-                };
-                Panel::new(EDITOR_PANEL)
-                    .title("retry.rs")
-                    .meta(&format!("{blocks_meta} "))
+                editor_panel(&editor_meta(&self.state))
                     .draw(ui, code_area, |ui, inner| self.draw_code(ui, inner));
 
                 let block = editor()
@@ -294,11 +311,9 @@ impl Page for EditorPage {
                         },
                     ),
                 ];
-                Panel::new(STATE_PANEL)
-                    .title("State")
-                    .draw(ui, state_area, |ui, inner| {
-                        Props::new(&rows).draw(ui, inner);
-                    });
+                state_panel().draw(ui, state_area, |ui, inner| {
+                    Props::new(&rows).draw(ui, inner);
+                });
             },
         );
     }

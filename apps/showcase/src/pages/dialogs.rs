@@ -37,6 +37,14 @@ fn delete_button() -> Button<'static> {
     Button::new(OPEN_DELETE, "Delete branch…").variant(Variant::DANGER)
 }
 
+fn open_panel() -> Panel<'static> {
+    Panel::new(OPEN_PANEL).title("Open a dialog")
+}
+
+fn results_panel() -> Panel<'static> {
+    Panel::new(RESULTS_PANEL).title("Results")
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum OpenDialog {
     None,
@@ -169,6 +177,9 @@ impl Page for DialogsPage {
             }
         }
         response |= action.erase();
+        // Both phases build the same launcher and result cards (§13).
+        let _ = open_panel();
+        let _ = results_panel();
         response.into()
     }
 
@@ -188,72 +199,68 @@ impl Page for DialogsPage {
                     ],
                 );
                 let open = regions.first().copied().unwrap_or(body);
-                Panel::new(OPEN_PANEL)
-                    .title("Open a dialog")
-                    .draw(ui, open, |ui, inner| {
-                        let buttons = [
-                            confirm_button(),
-                            prompt_button(),
-                            choice_button(),
-                            delete_button(),
+                open_panel().draw(ui, open, |ui, inner| {
+                    let buttons = [
+                        confirm_button(),
+                        prompt_button(),
+                        choice_button(),
+                        delete_button(),
+                    ];
+                    let widths: Vec<u16> = buttons
+                        .iter()
+                        .map(|button| {
+                            button
+                                .measure(ui, Constraints::loose(inner.width, 1))
+                                .preferred
+                                .0
+                        })
+                        .collect();
+                    let row = Rect { height: 1, ..inner };
+                    let rects = layout::action_row(row, &widths, 2, junie_tui::RowAlign::Start);
+                    for (button, rect) in buttons.iter().zip(rects) {
+                        button.draw(ui, rect);
+                    }
+                    lines(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(2),
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &[
+                            "Confirm: primary action focused first · y / n answer directly",
+                            "Prompt: editing inside a modal, Enter submits, validation blocks",
+                            "Destructive: Cancel focused first, action in danger style",
+                            "Task: Migrate sessions table",
+                        ],
+                    );
+                    if inner.width < 70 {
+                        let visible = [
+                            "▎Confirm run   ▎Rename task…   ▎Three choices…   ▎Del…",
+                            "",
+                            "Confirm: primary action focused first · y / n answer d…",
+                            "Prompt: editing inside a modal, Enter submits, validat…",
+                            "Destructive: Cancel focused first, action in danger st…",
+                            "Task: Migrate sessions table",
                         ];
-                        let widths: Vec<u16> = buttons
-                            .iter()
-                            .map(|button| {
-                                button
-                                    .measure(ui, Constraints::loose(inner.width, 1))
-                                    .preferred
-                                    .0
-                            })
-                            .collect();
-                        let row = Rect { height: 1, ..inner };
-                        let rects = layout::action_row(row, &widths, 2, junie_tui::RowAlign::Start);
-                        for (button, rect) in buttons.iter().zip(rects) {
-                            button.draw(ui, rect);
-                        }
-                        lines(
-                            ui,
-                            Rect {
-                                y: inner.y.saturating_add(2),
-                                height: inner.height.saturating_sub(2),
+                        for (offset, line) in visible.iter().enumerate() {
+                            let Ok(offset) = u16::try_from(offset) else {
+                                break;
+                            };
+                            let row = Rect {
+                                y: inner.y.saturating_add(offset),
+                                height: 1,
                                 ..inner
-                            },
-                            &[
-                                "Confirm: primary action focused first · y / n answer directly",
-                                "Prompt: editing inside a modal, Enter submits, validation blocks",
-                                "Destructive: Cancel focused first, action in danger style",
-                                "Task: Migrate sessions table",
-                            ],
-                        );
-                        if inner.width < 70 {
-                            let visible = [
-                                "▎Confirm run   ▎Rename task…   ▎Three choices…   ▎Del…",
-                                "",
-                                "Confirm: primary action focused first · y / n answer d…",
-                                "Prompt: editing inside a modal, Enter submits, validat…",
-                                "Destructive: Cancel focused first, action in danger st…",
-                                "Task: Migrate sessions table",
-                            ];
-                            for (offset, line) in visible.iter().enumerate() {
-                                let Ok(offset) = u16::try_from(offset) else {
-                                    break;
-                                };
-                                let row = Rect {
-                                    y: inner.y.saturating_add(offset),
-                                    height: 1,
-                                    ..inner
-                                };
-                                ui.fill(row, ui.surface_style());
-                                let _ = ui.paint_str(row, line, ui.surface_style());
-                            }
+                            };
+                            ui.fill(row, ui.surface_style());
+                            let _ = ui.paint_str(row, line, ui.surface_style());
                         }
-                    });
+                    }
+                });
                 if let Some(results) = regions.get(2).copied() {
-                    Panel::new(RESULTS_PANEL)
-                        .title("Results")
-                        .draw(ui, results, |ui, inner| {
-                            let _ = ui.paint_str(inner, &self.result, ui.surface_style());
-                        });
+                    results_panel().draw(ui, results, |ui, inner| {
+                        let _ = ui.paint_str(inner, &self.result, ui.surface_style());
+                    });
                 }
             },
         );

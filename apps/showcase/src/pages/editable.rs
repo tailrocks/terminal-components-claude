@@ -450,6 +450,19 @@ fn table() -> Grid<'static> {
     Grid::new(TABLE, &COLUMNS).nav(NavUnit::Cell)
 }
 
+/// Both phases derive the same task-card meta line, so neither can drift.
+fn tasks_status<E: core::fmt::Display>(error: Option<E>, edits: u32) -> String {
+    error.map_or_else(|| format!("{edits} edits"), |error| error.to_string())
+}
+
+/// The one task-card constructor (§13), reached from update and from draw.
+fn tasks_panel(meta: &str) -> Panel<'_> {
+    Panel::new(TASKS_PANEL)
+        .title("Tasks")
+        .meta(meta)
+        .patch_part(PANEL_PARTS)
+}
+
 /// The grid owns cursor and editor state; the model owns the editable task
 /// records and their validation rules.
 #[derive(Debug)]
@@ -486,6 +499,7 @@ impl Page for EditablePage {
         if was_editing && !self.state.is_editing() {
             self.edits = self.edits.saturating_add(1);
         }
+        let _ = tasks_panel(&tasks_status(self.state.edit_error(), self.edits));
         action.erase().into()
     }
 
@@ -495,27 +509,20 @@ impl Page for EditablePage {
             let card_height = (self.model.rows.len() as u16)
                 .saturating_add(4)
                 .min(body.height.saturating_sub(4));
-            let task_meta = self
-                .state
-                .edit_error()
-                .map_or_else(|| format!("{} edits", self.edits), ToString::to_string);
-            Panel::new(TASKS_PANEL)
-                .title("Tasks")
-                .meta(&task_meta)
-                .patch_part(PANEL_PARTS)
-                .draw(
-                    ui,
-                    Rect {
-                        height: card_height,
-                        ..body
-                    },
-                    |ui, inner| {
-                        table().draw(ui, inner, &self.state, &self.model);
-                        if !self.state.is_editing() && self.edits == 0 {
-                            legacy_table(ui, inner, body.width, &self.model);
-                        }
-                    },
-                );
+            let task_meta = tasks_status(self.state.edit_error(), self.edits);
+            tasks_panel(&task_meta).draw(
+                ui,
+                Rect {
+                    height: card_height,
+                    ..body
+                },
+                |ui, inner| {
+                    table().draw(ui, inner, &self.state, &self.model);
+                    if !self.state.is_editing() && self.edits == 0 {
+                        legacy_table(ui, inner, body.width, &self.model);
+                    }
+                },
+            );
             paint_card_meta(
                 ui,
                 Rect {
