@@ -22,6 +22,22 @@ use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
+#[derive(Clone, Copy, Debug, Default)]
+enum MetadataOverride<'a> {
+    #[default]
+    Inherit,
+    Set(Option<&'a str>),
+}
+
+impl<'a> MetadataOverride<'a> {
+    fn resolve(self, inherited: Option<&'a str>) -> Option<&'a str> {
+        match self {
+            Self::Inherit => inherited,
+            Self::Set(value) => value,
+        }
+    }
+}
+
 /// The bottom row of hints: a badge, the key hints that fit, and a status
 /// message pinned to the right edge.
 ///
@@ -127,6 +143,8 @@ use crate::ui::{FrameRead, Ui};
 pub struct HintBar<'a> {
     id: Id,
     layer: &'a HintLayer,
+    badge_override: MetadataOverride<'a>,
+    status_text_override: MetadataOverride<'a>,
     variant: Variant,
     status: Status,
     frame: usize,
@@ -167,6 +185,8 @@ impl<'a> HintBar<'a> {
         HintBar {
             id,
             layer,
+            badge_override: MetadataOverride::Inherit,
+            status_text_override: MetadataOverride::Inherit,
             variant: Variant::DEFAULT,
             status: Status::Ready,
             frame: 0,
@@ -184,6 +204,8 @@ impl<'a> HintBar<'a> {
             mode: None,
             screen: None,
             global: None,
+            badge: MetadataOverride::Inherit,
+            status_text: MetadataOverride::Inherit,
         }
     }
 
@@ -283,19 +305,27 @@ impl<'a> HintBar<'a> {
 
     /// Columns the badge occupies, padding included.
     fn badge_width(&self) -> u16 {
-        self.layer
-            .badge
+        self.badge_text()
             .filter(|b| !b.is_empty())
             .map_or(0, |b| width(b).saturating_add(2))
     }
 
     /// Columns the status message occupies, its glyph included.
     fn status_width(&self, ui: &Ui<'_>, live: StateFlags) -> u16 {
-        let Some(s) = self.layer.status.as_deref().filter(|s| !s.is_empty()) else {
+        let Some(s) = self.message().filter(|s| !s.is_empty()) else {
             return 0;
         };
         let glyph = self.status_glyph(ui, live);
         width(s).saturating_add(glyph.map_or(0, |g| width(g).saturating_add(1)))
+    }
+
+    fn badge_text(&self) -> Option<&str> {
+        self.badge_override.resolve(self.layer.badge)
+    }
+
+    fn message(&self) -> Option<&str> {
+        self.status_text_override
+            .resolve(self.layer.status.as_deref())
     }
 
     /// The glyph slot `Part::MARKER` resolves under for **this instance**.
@@ -416,7 +446,7 @@ impl<'a> HintBar<'a> {
                 };
                 x = x.saturating_add(used).saturating_add(1);
             }
-            if let Some(text) = self.layer.status.as_deref() {
+            if let Some(text) = self.message() {
                 let cell = Rect {
                     x,
                     width: area.right().saturating_sub(x),
@@ -435,7 +465,7 @@ impl<'a> HintBar<'a> {
         let mut x = area.x.saturating_add(1);
         let badge_w = self.badge_width();
         if badge_w > 0 && x.saturating_add(badge_w) <= right_limit {
-            if let Some(b) = self.layer.badge {
+            if let Some(b) = self.badge_text() {
                 let cell = Rect {
                     x,
                     width: badge_w,
@@ -530,6 +560,8 @@ pub struct DerivedHintBar<'a> {
     mode: Option<&'a HintLayer>,
     screen: Option<&'a HintLayer>,
     global: Option<&'a HintLayer>,
+    badge: MetadataOverride<'a>,
+    status_text: MetadataOverride<'a>,
 }
 
 impl<'a> DerivedHintBar<'a> {
@@ -561,28 +593,64 @@ impl<'a> DerivedHintBar<'a> {
         self
     }
 
+    /// Override the selected context's status text with a borrowed message.
+    /// `None` explicitly clears it; omitting this builder preserves it.
+    /// Hint selection and the cached context layer remain unchanged.
+    #[must_use]
+    pub const fn status_text(mut self, text: Option<&'a str>) -> Self {
+        self.status_text = MetadataOverride::Set(text);
+        self
+    }
+
+    /// Override the selected context's badge with borrowed text.
+    /// `None` explicitly clears it; omitting this builder preserves it.
+    #[must_use]
+    pub const fn badge(mut self, text: Option<&'a str>) -> Self {
+        self.badge = MetadataOverride::Set(text);
+        self
+    }
+
+    fn draw_layer(&self, ui: &mut Ui<'_>, area: Rect, layer: &HintLayer) -> Rect {
+        let mut bar = HintBar::new(self.id, layer);
+        bar.badge_override = self.badge;
+        bar.status_text_override = self.status_text;
+        bar.draw(ui, area)
+    }
+
     /// Draw the first nonempty layer in top, mode, focused, screen, global
-    /// precedence order.
+    /// precedence order, then apply explicit badge and status text overrides.
+    /// Nonempty explicit metadata also renders when no hint context exists.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if let Some(layer) = self.top.filter(|layer| !layer.is_empty()) {
-            return HintBar::new(self.id, layer).draw(ui, area);
+            return self.draw_layer(ui, area, layer);
         }
         if let Some(layer) = self.mode.filter(|layer| !layer.is_empty()) {
-            return HintBar::new(self.id, layer).draw(ui, area);
+            return self.draw_layer(ui, area, layer);
         }
         if let Some(rect) = ui
             .with_focused_hints(|ui, layer| {
-                (!layer.is_empty()).then(|| HintBar::new(self.id, layer).draw(ui, area))
+                (!layer.is_empty()).then(|| self.draw_layer(ui, area, layer))
             })
             .flatten()
         {
             return rect;
         }
         if let Some(layer) = self.screen.filter(|layer| !layer.is_empty()) {
-            return HintBar::new(self.id, layer).draw(ui, area);
+            return self.draw_layer(ui, area, layer);
         }
         if let Some(layer) = self.global.filter(|layer| !layer.is_empty()) {
-            return HintBar::new(self.id, layer).draw(ui, area);
+            return self.draw_layer(ui, area, layer);
+        }
+        if self
+            .badge
+            .resolve(None)
+            .is_some_and(|text| !text.is_empty())
+            || self
+                .status_text
+                .resolve(None)
+                .is_some_and(|text| !text.is_empty())
+        {
+            return self.draw_layer(ui, area, &HintLayer::empty());
         }
         Rect {
             width: 0,
