@@ -334,12 +334,13 @@ fn production_theme_replacement_invalidates_palette_derived_style_cache() {
             .for_level(ColorLevel::Ansi256)
     }
     let mut runtime = Runtime::new(Page, themed(99));
+    let _ = runtime.initialize();
     let area = Rect::new(0, 0, 1, 1);
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-    runtime.draw_buffer(area, &mut buffer);
-    runtime.draw_buffer(area, &mut buffer);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
     assert_eq!(buffer.cell((0, 0)).map(|c| c.fg), Some(Color::Indexed(99)));
     runtime.set_theme(themed(100));
-    runtime.draw_buffer(area, &mut buffer);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
     assert_eq!(buffer.cell((0, 0)).map(|c| c.fg), Some(Color::Indexed(100)));
 }
