@@ -1,5 +1,6 @@
 //! `TablePro` application shell built only on the public `junie-tui` facade.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     Action, ActionKey, App, Chord, Color, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
     Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridState,
@@ -1183,8 +1184,9 @@ impl TableProApp {
                 connection_node_key,
             );
         });
-        let mut blank = ui.surface_style();
-        blank.fg = Some(ui.theme().color.fg[FgStep::Secondary.index()]);
+        let blank = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
         ui.fill(
             junie_tui::Rect {
                 x: body.x.saturating_add(2),
@@ -1194,8 +1196,9 @@ impl TableProApp {
             },
             blank,
         );
-        let mut field = ui.surface_style();
-        field.bg = Some(ui.theme().color.field);
+        let field = ui.surface_style().patch(
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(junie_tui::Surface::Field))),
+        );
         ui.fill(
             junie_tui::Rect {
                 x: body.right(),
@@ -1696,8 +1699,7 @@ fn paint_legacy_tree_gutters<T>(
     let mut visible_row = 0usize;
     let first_visible = state.scroll().offset();
     let cursor = state.cursor();
-    let mut gutter_style = ui.surface_style();
-    gutter_style.fg = Some(Color::Rgb(0, 0, 0));
+    let gutter_style = ui.surface_style().fg(Color::Rgb(0, 0, 0));
 
     for item in nodes {
         let descriptor = node(item);
@@ -1788,13 +1790,12 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: junie_tui::Rect, text: &str) {
     if area.is_empty() {
         return;
     }
-    let field_bg = ui.theme().color.field;
-    let mut field = ui.surface_style();
-    field.bg = Some(field_bg);
+    let field = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(junie_tui::Surface::Field))));
     ui.fill(area, field);
 
-    let mut gutter = field;
-    gutter.fg = Some(field_bg);
+    let gutter = field.with_fg_from_bg(field);
     ui.paint_str(
         junie_tui::Rect {
             width: 1.min(area.width),
@@ -1805,8 +1806,7 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: junie_tui::Rect, text: &str) {
     );
 
     if area.width > 2 {
-        let mut label = field;
-        label.fg = Some(ui.theme().color.fg[FgStep::Muted.index()]);
+        let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         ui.paint_str(
             junie_tui::Rect {
                 x: area.x.saturating_add(2),
@@ -1823,8 +1823,9 @@ fn paint_panel_tail(ui: &mut Ui<'_>, area: junie_tui::Rect) {
     if area.width < 2 || area.height == 0 {
         return;
     }
-    let mut style = ui.surface_style();
-    style.fg = Some(ui.theme().color.border_strong);
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
     ui.paint_str(
         junie_tui::Rect {
             x: area.right().saturating_sub(2),
@@ -1845,8 +1846,9 @@ fn paint_frame_title_tail(ui: &mut Ui<'_>, area: junie_tui::Rect, title: &str) {
     if x >= area.right().saturating_sub(1) || area.height == 0 {
         return;
     }
-    let mut style = ui.surface_style();
-    style.fg = Some(ui.theme().color.border_strong);
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
     ui.paint_str(
         junie_tui::Rect {
             x,
@@ -1952,10 +1954,8 @@ fn draw_header(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
     );
 }
 
-fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
-    let base = ui.surface_style();
-    ui.fill(area, base);
-    let spans = if app.screen == Screen::Connections {
+fn footer_spans(app: &TableProApp) -> Vec<Span<'static>> {
+    if app.screen == Screen::Connections {
         vec![
             Span::new(" "),
             Span::new("↑ ↓").bold(),
@@ -2048,7 +2048,13 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
             ],
         }
-    };
+    }
+}
+
+fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
+    let base = ui.surface_style();
+    ui.fill(area, base);
+    let spans = footer_spans(app);
     ui.paint_spans(area, &spans, base);
     if app.screen == Screen::Workbench {
         let right_text = format!("Connected to {}", app.connection.name);
@@ -2099,8 +2105,9 @@ fn draw_connection_properties(
 ) {
     let value_x = area.x.saturating_add(13);
     let value_width = area.width.saturating_sub(18).max(1);
-    let mut label_style = ui.surface_style();
-    label_style.fg = Some(ui.theme().color.fg[FgStep::Muted.index()]);
+    let label_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
     let mut y = area.y;
     for (label, value) in properties {
         let value_step = match *label {
@@ -2109,8 +2116,9 @@ fn draw_connection_properties(
             "Last used" => FgStep::Muted,
             _ => FgStep::Primary,
         };
-        let mut value_style = ui.surface_style();
-        value_style.fg = Some(ui.theme().color.fg[value_step.index()]);
+        let value_style = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(value_step))));
         let lines = if *label == "Safe Mode" {
             wrap(value, value_width)
         } else {
@@ -2152,8 +2160,7 @@ fn draw_connection_properties(
         x,
         y,
         "Connect",
-        ui.theme().color.accent,
-        ui.theme().color.on_accent,
+        action_paint(ui, Role::Accent, Role::OnAccent),
         true,
     );
     x = x.saturating_add(11);
@@ -2162,8 +2169,11 @@ fn draw_connection_properties(
         x,
         y,
         "Edit",
-        ui.theme().color.surfaces[3],
-        ui.theme().color.fg[FgStep::Primary.index()],
+        action_paint(
+            ui,
+            Role::Surface(junie_tui::Surface::Overlay),
+            Role::Fg(FgStep::Primary),
+        ),
         false,
     );
     x = x.saturating_add(8);
@@ -2172,8 +2182,11 @@ fn draw_connection_properties(
         x,
         y,
         "Duplicate",
-        ui.theme().color.surfaces[1],
-        ui.theme().color.fg[FgStep::Secondary.index()],
+        action_paint(
+            ui,
+            Role::Surface(junie_tui::Surface::Surface),
+            Role::Fg(FgStep::Secondary),
+        ),
         false,
     );
     x = x.saturating_add(13);
@@ -2182,10 +2195,14 @@ fn draw_connection_properties(
         x,
         y,
         "Delete…",
-        ui.theme().color.surfaces[3],
-        ui.theme().color.danger,
+        action_paint(ui, Role::Surface(junie_tui::Surface::Overlay), Role::Danger),
         false,
     );
+}
+
+fn action_paint(ui: &Ui<'_>, background: Role, foreground: Role) -> PaintStyle {
+    ui.surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_bg(background).set_fg(foreground)))
 }
 
 fn paint_action_button(
@@ -2193,14 +2210,10 @@ fn paint_action_button(
     x: u16,
     y: u16,
     label: &str,
-    background: Color,
-    foreground: Color,
+    mut button: PaintStyle,
     bold: bool,
 ) {
     let width = junie_tui::width(label).saturating_add(2);
-    let mut button = ui.surface_style();
-    button.bg = Some(background);
-    button.fg = Some(foreground);
     if bold {
         button = button.add_modifier(Modifier::BOLD);
     }
@@ -2213,8 +2226,9 @@ fn paint_action_button(
         },
         button,
     );
-    let mut gutter = button.remove_modifier(Modifier::BOLD);
-    gutter.fg = Some(background);
+    let gutter = button
+        .remove_modifier(Modifier::BOLD)
+        .with_fg_from_bg(button);
     ui.paint_str(
         junie_tui::Rect {
             x,

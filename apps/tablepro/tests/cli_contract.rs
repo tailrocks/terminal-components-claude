@@ -11,7 +11,9 @@ fn invoke(args: &[&str]) -> io::Result<Output> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
-    let deadline = Instant::now() + Duration::from_secs(5);
+    let deadline = Instant::now()
+        .checked_add(Duration::from_secs(5))
+        .ok_or_else(|| io::Error::other("five-second CLI deadline is not representable"))?;
     while child.try_wait()?.is_none() {
         if Instant::now() >= deadline {
             child.kill()?;
