@@ -641,6 +641,13 @@ pub(crate) struct FocusedHints {
 }
 
 impl FocusedHints {
+    fn contains_chord(&self, chord: Chord) -> bool {
+        self.layer
+            .hints
+            .iter()
+            .any(|hint| hint.key.physical_chord() == Some(chord))
+    }
+
     pub(crate) fn invalidate(&mut self) {
         self.key = None;
     }
@@ -667,12 +674,7 @@ impl FocusedHints {
             else {
                 continue;
             };
-            if self
-                .layer
-                .hints
-                .iter()
-                .any(|hint| hint.key == HintKey::Chord(chord))
-            {
+            if self.contains_chord(chord) {
                 continue;
             }
             let hint = Hint {
@@ -691,13 +693,39 @@ impl FocusedHints {
     }
 }
 
+/// Display casing for a shortcut's character, independent of its routing identity.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ChordCase {
+    /// Preserve the character supplied by the effective binding.
+    #[default]
+    Preserve,
+    /// Capitalize ASCII letters for display; leave other characters unchanged.
+    UppercaseAscii,
+}
+
 /// The keycap displayed by a hint, distinct from any input routing binding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HintKey {
     /// Format a real keyboard chord using the canonical chord renderer.
     Chord(Chord),
+    /// Format a physical chord with an explicit display-only casing policy.
+    ChordWithCase {
+        /// The unchanged physical chord.
+        chord: Chord,
+        /// Character casing used only for measurement and painting.
+        case: ChordCase,
+    },
     /// A descriptive affordance such as `Type`; declares no routing chord.
     Label(&'static str),
+}
+
+impl HintKey {
+    const fn physical_chord(self) -> Option<Chord> {
+        match self {
+            Self::Chord(chord) | Self::ChordWithCase { chord, .. } => Some(chord),
+            Self::Label(_) => None,
+        }
+    }
 }
 
 /// One hint in the hint bar. Displaying a hint never registers a binding.
@@ -1085,5 +1113,35 @@ mod tests {
             BindingTableId::dynamic(Id::root("wrap"), 1, max),
             BindingTableId::dynamic(Id::root("wrap"), 1, wrapped)
         );
+    }
+    #[test]
+    fn focused_hint_dedup_uses_physical_chord_independent_of_display_case() {
+        let chord = Chord::with(crate::KeyCode::Char('s'), crate::KeyModifiers::CONTROL);
+        for key in [
+            HintKey::Chord(chord),
+            HintKey::ChordWithCase {
+                chord,
+                case: ChordCase::UppercaseAscii,
+            },
+        ] {
+            let mut hints = FocusedHints::default();
+            hints.layer.hints.push(Hint {
+                key,
+                label: "Scope",
+                priority: 1,
+            });
+            assert!(hints.contains_chord(chord));
+            assert!(!hints.contains_chord(Chord::with(
+                crate::KeyCode::Char('S'),
+                crate::KeyModifiers::CONTROL
+            )));
+        }
+        let mut hints = FocusedHints::default();
+        hints.layer.hints.push(Hint {
+            key: HintKey::Label("Ctrl+S"),
+            label: "Label",
+            priority: 1,
+        });
+        assert!(!hints.contains_chord(chord));
     }
 }

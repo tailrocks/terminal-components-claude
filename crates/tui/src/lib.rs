@@ -73,8 +73,8 @@ pub use response::{Activated, Flow, Invalidate, Response, StateFlags};
 pub use action::{Action, ActionKey};
 pub use diagnostics::Diagnostic;
 pub use keymap::{
-    Binding, BindingState, BindingTableId, Bindings, Hint, HintKey, HintLayer, KeyMap, KeyPhase,
-    binding_conflicts,
+    Binding, BindingState, BindingTableId, Bindings, ChordCase, Hint, HintKey, HintLayer, KeyMap,
+    KeyPhase, binding_conflicts,
 };
 // focus, hit, capture, scroll
 pub use capture::Capture;
@@ -124,8 +124,8 @@ pub use components::{
 };
 // components — work package 4G (status, hints, progress and chrome)
 pub use components::{
-    Brand, ChordCase, DerivedHintBar, Emphasis, Empty, Group, HintBar, KeyHint, MAX_ITEMS, Meter,
-    MeterTone, MeterVisual, ProgressBar, Spinner, StatusAction, StatusBar, StatusItem,
+    Brand, DerivedHintBar, Emphasis, Empty, Group, HintBar, KeyHint, MAX_ITEMS, Meter, MeterTone,
+    MeterVisual, ProgressBar, Spinner, StatusAction, StatusBar, StatusItem,
 };
 // components — work packages 4C/4E (tree and containers)
 pub use components::{

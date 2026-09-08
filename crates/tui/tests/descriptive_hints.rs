@@ -135,3 +135,106 @@ fn descriptive_labels_clip_through_the_same_hint_path() {
         );
     }
 }
+
+#[test]
+fn explicit_chord_case_preserves_bare_keys_labels_and_clipping() {
+    for width in [1, 8, 20, 60] {
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    key: HintKey::ChordWithCase {
+                        chord: Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),
+                        case: junie_tui::ChordCase::UppercaseAscii,
+                    },
+                    label: "Scope",
+                    priority: 90,
+                },
+                Hint {
+                    key: HintKey::Chord(Chord::key(KeyCode::Char('q'))),
+                    label: "Quit",
+                    priority: 80,
+                },
+                Hint {
+                    key: HintKey::Label("Type"),
+                    label: "Filter",
+                    priority: 70,
+                },
+            ],
+            ..HintLayer::empty()
+        };
+        let mut h = Harness::new(
+            MixedPage {
+                layer,
+                deliveries: 0,
+            },
+            Theme::junie(),
+            width,
+            2,
+        );
+        if width == 60 {
+            assert!(h.text().contains("Ctrl+S Scope"));
+            assert!(h.text().contains("q Quit"));
+            assert!(h.text().contains("Type Filter"));
+        }
+        let _ = h.ctrl('s');
+        let _ = h.key(KeyCode::Char('q'));
+        assert_eq!(h.app().deliveries, 0);
+        assert_eq!(h.focus(), None);
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+}
+struct CasedPage {
+    case: junie_tui::ChordCase,
+    label: bool,
+}
+impl App for CasedPage {
+    fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let props = if self.label {
+            KeyHint::descriptive(ID, "Type", "Filter")
+        } else {
+            KeyHint::new(
+                ID,
+                Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),
+                "Scope",
+            )
+        };
+        props.chord_case(self.case).draw(ui, ui.full());
+    }
+}
+#[test]
+fn keyhint_case_builder_leaves_labels_literal() {
+    for width in [1, 8, 40] {
+        let a = Harness::new(
+            CasedPage {
+                case: junie_tui::ChordCase::Preserve,
+                label: true,
+            },
+            Theme::junie(),
+            width,
+            1,
+        );
+        let b = Harness::new(
+            CasedPage {
+                case: junie_tui::ChordCase::UppercaseAscii,
+                label: true,
+            },
+            Theme::junie(),
+            width,
+            1,
+        );
+        assert_eq!(a.buffer(), b.buffer());
+    }
+    let h = Harness::new(
+        CasedPage {
+            case: junie_tui::ChordCase::UppercaseAscii,
+            label: false,
+        },
+        Theme::junie(),
+        40,
+        1,
+    );
+    assert!(h.text().contains("Ctrl+S Scope"));
+}

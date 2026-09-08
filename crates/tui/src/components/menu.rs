@@ -5,13 +5,14 @@ use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
 
-use super::keyhint::{ChordCase, ChordText};
+use super::keyhint::ChordText;
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket, shift};
 use crate::action::ActionKey;
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
+use crate::keymap::ChordCase;
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::layer::{Anchor, Dismiss, DismissReason, LayerEvent, LayerSize, LayerSpec};
 use crate::measure::{Constraints, Size};

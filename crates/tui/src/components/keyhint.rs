@@ -8,22 +8,12 @@ use ratatui_core::layout::Rect;
 use super::{PartStyle, SlotFn, shift};
 use crate::event::Chord;
 use crate::id::{Id, Part};
-use crate::keymap::{Hint, HintKey};
+use crate::keymap::{ChordCase, Hint, HintKey};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::Ui;
-
-/// Display casing for a shortcut's character, independent of its routing identity.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum ChordCase {
-    /// Preserve the character supplied by the effective binding.
-    #[default]
-    Preserve,
-    /// Capitalize ASCII letters for display; leave other characters unchanged.
-    UppercaseAscii,
-}
 
 /// Bytes reserved for a rendered chord label. The longest chord the
 /// [`Chord`] `Display` can produce is `Ctrl+Alt+Shift+Backspace` (24 bytes);
@@ -172,6 +162,9 @@ impl HintText {
     pub(super) fn of(key: HintKey) -> Self {
         match key {
             HintKey::Chord(chord) => Self::Chord(ChordText::of(chord)),
+            HintKey::ChordWithCase { chord, case } => {
+                Self::Chord(ChordText::with_case(chord, case))
+            }
             HintKey::Label(label) => Self::Label(label),
         }
     }
@@ -198,6 +191,19 @@ impl fmt::Debug for KeyHint<'_> {
 impl<'a> KeyHint<'a> {
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[Part::KEY, Part::ACTION];
+
+    /// Override chord display casing without changing its physical identity.
+    /// Descriptive labels retain their literal text.
+    #[must_use]
+    pub const fn chord_case(mut self, case: ChordCase) -> Self {
+        self.key = match self.key {
+            HintKey::Chord(chord) | HintKey::ChordWithCase { chord, .. } => {
+                HintKey::ChordWithCase { chord, case }
+            }
+            HintKey::Label(label) => HintKey::Label(label),
+        };
+        self
+    }
 
     /// A hint showing `chord` and `label`.
     pub const fn new(id: Id, chord: Chord, label: &'a str) -> Self {
