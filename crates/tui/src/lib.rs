@@ -147,9 +147,9 @@ pub use components::{
     CompletionState, ContextMenu, EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec,
     FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy, Form, FormAction,
     FormData, FormState, GroupKey, HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection,
-    Item, ItemRow, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Picker, PickerAction,
-    PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState,
-    ScopeKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
+    Item, ItemRow, ItemRowLayout, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Picker,
+    PickerAction, PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,
+    PickerState, ScopeKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
 };
 // components — work package 4I (grid)
 pub use components::{

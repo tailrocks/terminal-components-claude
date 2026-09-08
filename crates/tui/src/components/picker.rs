@@ -3,14 +3,17 @@
 use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::Modifier;
 
 use super::filter_list::{FilterList, FilterListAction, FilterListState, FilterPolicy};
 use super::{Acc, PartStyle, SlotFn};
 use crate::collection::{EmptyState, RowFn, RowUi};
 use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
+use crate::layout::Track;
 use crate::response::{Response, StateFlags};
-use crate::theme::{Family, StylePatch, Variant};
+use crate::text::width;
+use crate::theme::{Family, FgStep, Role, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// Borrowed semantic data shared by picker and completion rows.
@@ -121,6 +124,95 @@ pub trait AsItem {
 impl AsItem for Item<'_> {
     fn as_item(&self) -> Item<'_> {
         *self
+    }
+}
+
+/// Built-in semantic item layout. Custom row callbacks remain authoritative.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum ItemRowLayout {
+    /// Existing compact label with trailing glyph and metadata.
+    #[default]
+    Compact,
+    /// Leading glyph, aligned label/detail/tag/group columns and matched emphasis.
+    Columns,
+}
+
+/// One measurement across the complete semantic projection, not only visible rows.
+#[derive(Default)]
+pub(crate) struct ItemColumns {
+    label: u16,
+    tag: u16,
+    group: u16,
+}
+
+impl ItemColumns {
+    pub(crate) fn measure<'a>(items: impl Iterator<Item = Item<'a>>, row_width: u16) -> Self {
+        let mut columns = Self::default();
+        for item in items {
+            columns.label = columns.label.max(width(item.label));
+            columns.tag = columns.tag.max(width(item.tag.unwrap_or("")));
+            columns.group = columns.group.max(width(item.group.unwrap_or("")));
+        }
+        let limit = u16::try_from(u32::from(row_width).saturating_mul(45) / 100)
+            .unwrap_or(u16::MAX)
+            .max(6);
+        columns.label = columns.label.clamp(6, limit);
+        columns
+    }
+
+    pub(crate) fn paint(&self, item: Item<'_>, show_group: bool, row: &mut RowUi<'_>) {
+        let focused = row.flags().contains(StateFlags::FOCUSED);
+        row.gutter();
+        let mut cells = row.columns_with_gap(
+            &[
+                Track::Fixed(1),
+                Track::Fixed(1),
+                Track::Fixed(self.label),
+                Track::Fixed(2),
+                Track::Flex(1),
+                Track::Fixed(1),
+                Track::Fixed(self.tag),
+                Track::Fixed(if self.tag > 0 { 2 } else { 0 }),
+                Track::Fixed(self.group),
+                Track::Fixed(u16::from(self.group > 0)),
+            ],
+            0,
+        );
+        cells
+            .cell_part(0, Part::ICON)
+            .remove_modifier(Modifier::BOLD)
+            .text(item.glyph)
+            .tone(Role::Fg(if focused {
+                FgStep::Primary
+            } else {
+                FgStep::Muted
+            }));
+        {
+            let mut label = cells.cell_part(2, Part::LABEL);
+            if !focused {
+                label.remove_modifier(Modifier::BOLD);
+            }
+            label.text_matched(item.label, item.matched);
+        }
+        if cells.rect(4).width >= 4 {
+            cells
+                .cell_part(4, Part::META)
+                .remove_modifier(Modifier::BOLD)
+                .text_matched(item.detail, &[])
+                .tone(Role::Fg(FgStep::Muted));
+        }
+        cells
+            .cell_part(6, Part::META)
+            .remove_modifier(Modifier::BOLD)
+            .text(item.tag.unwrap_or(""))
+            .tone(Role::Fg(FgStep::Secondary));
+        if show_group {
+            cells
+                .cell_part(8, Part::META)
+                .remove_modifier(Modifier::BOLD)
+                .text(item.group.unwrap_or(""))
+                .tone(Role::Fg(FgStep::Faint));
+        }
     }
 }
 
@@ -276,6 +368,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     align: Option<ScreenAlign>,
     empty: Option<EmptyState<'a>>,
     row: R,
+    item_layout: ItemRowLayout,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -306,11 +399,21 @@ impl<T> Picker<'_, T, ItemRow> {
             align: None,
             empty: None,
             row: ItemRow,
+            item_layout: ItemRowLayout::Compact,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
             _item: PhantomData,
         }
+    }
+}
+
+impl<T> Picker<'_, T, ItemRow> {
+    /// Opt into aligned semantic columns without replacing the row painter.
+    #[must_use]
+    pub const fn item_layout(mut self, layout: ItemRowLayout) -> Self {
+        self.item_layout = layout;
+        self
     }
 }
 
@@ -398,6 +501,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             align: self.align,
             empty: self.empty,
             row,
+            item_layout: ItemRowLayout::Compact,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -431,7 +535,8 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         let mut list = FilterList::new(self.id)
             .searchable(self.searchable)
             .filter(self.filter)
-            .row(BorrowedRow(&self.row));
+            .row(BorrowedRow(&self.row))
+            .with_item_layout(self.item_layout);
         if let Some(empty) = self.empty {
             list = list.empty(empty);
         }

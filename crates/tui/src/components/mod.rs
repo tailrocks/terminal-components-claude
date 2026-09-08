@@ -81,7 +81,8 @@ pub use meter::{Meter, MeterTone, MeterVisual};
 pub use nav_list::{BadgeFn, NavList, NavListAction, NavListCmd, NavListState, NavMode};
 pub use panel::{Panel, PanelKind};
 pub use picker::{
-    AsItem, CommandPalette, Item, ItemRow, Picker, PickerAction, PickerState, ScopeKey,
+    AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerState,
+    ScopeKey,
 };
 pub use picker_chain::{
     PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,

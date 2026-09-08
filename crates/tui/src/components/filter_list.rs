@@ -301,6 +301,7 @@ impl Reconcile for FilterListState {
 pub struct FilterList<'a, T, R = super::picker::ItemRow> {
     id: Id,
     row: R,
+    item_layout: super::picker::ItemRowLayout,
     empty: Option<EmptyState<'a>>,
     status: Status,
     frame: usize,
@@ -328,6 +329,7 @@ impl<T> FilterList<'_, T, super::picker::ItemRow> {
         Self {
             id,
             row: super::picker::ItemRow,
+            item_layout: super::picker::ItemRowLayout::Compact,
             empty: None,
             status: Status::Ready,
             frame: 0,
@@ -341,7 +343,21 @@ impl<T> FilterList<'_, T, super::picker::ItemRow> {
     }
 }
 
+impl<T> FilterList<'_, T, super::picker::ItemRow> {
+    /// Opt into aligned semantic columns, measured over the filtered projection.
+    #[must_use]
+    pub const fn item_layout(mut self, layout: super::picker::ItemRowLayout) -> Self {
+        self.item_layout = layout;
+        self
+    }
+}
+
 impl<'a, T, R> FilterList<'a, T, R> {
+    pub(crate) const fn with_item_layout(mut self, layout: super::picker::ItemRowLayout) -> Self {
+        self.item_layout = layout;
+        self
+    }
+
     /// Styled parts.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -363,6 +379,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
         FilterList {
             id: self.id,
             row,
+            item_layout: super::picker::ItemRowLayout::Compact,
             empty: self.empty,
             status: self.status,
             frame: self.frame,
@@ -772,6 +789,90 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         acc.finish(self.id)
     }
 
+    fn draw_rows(
+        &self,
+        ui: &mut Ui<'_>,
+        content: Rect,
+        st: &FilterListState,
+        items: &[T],
+        live: StateFlags,
+    ) {
+        let identity = !st.initialized && st.query.is_empty();
+        let visible_len = if identity {
+            items.len()
+        } else {
+            st.matches.len()
+        };
+        let columns = (self.item_layout == super::picker::ItemRowLayout::Columns).then(|| {
+            super::picker::ItemColumns::measure(
+                (0..visible_len).filter_map(|i| {
+                    let source = if identity {
+                        Some(i)
+                    } else {
+                        st.matches.get(i).copied()
+                    };
+                    source
+                        .and_then(|index| items.get(index))
+                        .map(AsItem::as_item)
+                }),
+                content.width,
+            )
+        });
+        let mut last_group = "";
+        let view = ScrollRegion::view(st.core.scroll(), content, visible_len);
+        for (row_i, filtered_i) in view.visible_range().enumerate() {
+            let source = if identity {
+                Some(filtered_i)
+            } else {
+                st.matches.get(filtered_i).copied()
+            };
+            let Some(item) = source.and_then(|index| items.get(index)) else {
+                break;
+            };
+            let semantic = item.as_item();
+            let mut flags = self.status.flags();
+            if st.core.cursor() == Some(semantic.key) {
+                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+                if self.row_is_pressed(ui, semantic.key) {
+                    flags |= StateFlags::PRESSED;
+                }
+            }
+            if semantic.disabled {
+                flags |= StateFlags::DISABLED;
+                flags.remove(StateFlags::PRESSED);
+            }
+            let row = Rect {
+                x: content.x,
+                y: content
+                    .y
+                    .saturating_add(row_i.min(usize::from(u16::MAX)) as u16),
+                width: content.width,
+                height: 1,
+            };
+            let mut row_ui = RowUi::new(
+                ui,
+                self.id,
+                Family::PICKER,
+                Variant::DEFAULT,
+                flags,
+                semantic.key,
+                row,
+            );
+            if let Some(columns) = &columns {
+                let group = semantic.group.unwrap_or("");
+                columns.paint(
+                    semantic,
+                    !group.is_empty() && group != last_group,
+                    &mut row_ui,
+                );
+                last_group = group;
+            } else {
+                self.row.row(item, &mut row_ui);
+            }
+            ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
+        }
+    }
+
     /// Draw the last computed filtered rows.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, items: &[T]) -> Rect {
         if area.is_empty() {
@@ -828,48 +929,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             }
             return area;
         }
-        let view = ScrollRegion::view(st.core.scroll(), content, visible_len);
-        for (row_i, filtered_i) in view.visible_range().enumerate() {
-            let source = if identity {
-                Some(filtered_i)
-            } else {
-                st.matches.get(filtered_i).copied()
-            };
-            let Some(item) = source.and_then(|index| items.get(index)) else {
-                break;
-            };
-            let semantic = item.as_item();
-            let mut flags = self.status.flags();
-            if st.core.cursor() == Some(semantic.key) {
-                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
-                if self.row_is_pressed(ui, semantic.key) {
-                    flags |= StateFlags::PRESSED;
-                }
-            }
-            if semantic.disabled {
-                flags |= StateFlags::DISABLED;
-                flags.remove(StateFlags::PRESSED);
-            }
-            let row = Rect {
-                x: content.x,
-                y: content
-                    .y
-                    .saturating_add(row_i.min(usize::from(u16::MAX)) as u16),
-                width: content.width,
-                height: 1,
-            };
-            let mut row_ui = RowUi::new(
-                ui,
-                self.id,
-                Family::PICKER,
-                Variant::DEFAULT,
-                flags,
-                semantic.key,
-                row,
-            );
-            self.row.row(item, &mut row_ui);
-            ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
-        }
+        self.draw_rows(ui, content, st, items, live);
         area
     }
 }
