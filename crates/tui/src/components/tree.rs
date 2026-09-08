@@ -73,6 +73,7 @@ enum Engagement {
     Activate,
     Choose,
     Click,
+    SelectedClick,
 }
 
 /// What the tree needs to know about one item: its depth, whether it opens,
@@ -370,6 +371,8 @@ pub struct TreeState {
     core: CollectionCore,
     expanded: KeySet,
     chosen: Option<ItemKey>,
+    // Selection transaction only; pointer feedback remains runtime-owned.
+    click_cursor: Option<ItemKey>,
     expand_generation: u64,
     source_generation: u64,
     expand_generation_saturated: bool,
@@ -392,6 +395,7 @@ impl TreeState {
             core: CollectionCore::new(),
             expanded: KeySet::new(),
             chosen: None,
+            click_cursor: None,
             expand_generation: 0,
             source_generation: 0,
             expand_generation_saturated: false,
@@ -658,6 +662,7 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
     branch_activation: TreeBranchActivation,
     branch_click: TreeBranchClick,
+    activate_selected_on_click: bool,
     gutter_gap: u16,
     disclosure_hit_width: u16,
     cursor_selected: bool,
@@ -707,6 +712,7 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             node: None,
             branch_activation: TreeBranchActivation::Toggle,
             branch_click: TreeBranchClick::Toggle,
+            activate_selected_on_click: false,
             gutter_gap: 0,
             disclosure_hit_width: 1,
             cursor_selected: false,
@@ -766,6 +772,17 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
+    /// Activate a row clicked while it was already the cursor at pointer press.
+    /// Defaults to false. When enabled, both single and double clicks use this
+    /// semantic selection rule, independent of the double-click deadline.
+    /// A newly selected row follows `branch_click`; disclosure clicks still
+    /// toggle, and dragging or canceling the press never activates a row.
+    #[must_use]
+    pub const fn activate_selected_on_click(mut self, enabled: bool) -> Self {
+        self.activate_selected_on_click = enabled;
+        self
+    }
+
     /// Blank cells between the row gutter and its depth-indented prefix.
     /// Defaults to zero. Applies to default paint and shared disclosure hits.
     #[must_use]
@@ -801,6 +818,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             node: self.node,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
+            activate_selected_on_click: self.activate_selected_on_click,
             gutter_gap: self.gutter_gap,
             disclosure_hit_width: self.disclosure_hit_width,
             cursor_selected: self.cursor_selected,
@@ -843,6 +861,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             node: self.node,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
+            activate_selected_on_click: self.activate_selected_on_click,
             gutter_gap: self.gutter_gap,
             disclosure_hit_width: self.disclosure_hit_width,
             cursor_selected: self.cursor_selected,
@@ -1243,6 +1262,7 @@ struct RowContext {
 #[derive(Clone, Copy)]
 struct PointerIntent {
     phase: Phase,
+    prior_cursor: Option<ItemKey>,
     part: PartRef,
     hint: Option<usize>,
 }
@@ -1343,6 +1363,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             Engagement::Activate => self.branch_activation == TreeBranchActivation::Toggle,
             Engagement::Choose => true,
             Engagement::Click => self.branch_click == TreeBranchClick::Toggle,
+            Engagement::SelectedClick => false,
         };
         if self.node_of(it).has_children() && toggles_branch {
             let _ = self.toggle_at(st, index, items, d, acc);
@@ -1350,11 +1371,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         let key = row.key;
         st.chosen = Some(key);
-        acc.action(if matches!(engagement, Engagement::Activate) {
-            TreeAction::Activated(key)
-        } else {
-            TreeAction::Chose(key)
-        });
+        acc.action(
+            if matches!(engagement, Engagement::Activate | Engagement::SelectedClick) {
+                TreeAction::Activated(key)
+            } else {
+                TreeAction::Chose(key)
+            },
+        );
     }
 
     /// `←` / `h`: close an open branch, else move to the parent row.
@@ -1454,12 +1477,72 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
+    fn command(
+        &self,
+        st: &mut TreeState,
+        index: &mut TreeIndex,
+        items: &[T],
+        command: TreeCmd,
+        viewport: usize,
+        acc: &mut Acc<TreeAction>,
+    ) {
+        let cur = st.core.cursor_index();
+        match command {
+            TreeCmd::Up => {
+                Self::move_to(st, index, cur.saturating_sub(1), acc);
+            }
+            TreeCmd::Down => {
+                Self::move_to(st, index, cur.saturating_add(1), acc);
+            }
+            TreeCmd::PageUp => {
+                Self::move_to(st, index, cur.saturating_sub(viewport), acc);
+            }
+            TreeCmd::PageDown => {
+                Self::move_to(st, index, cur.saturating_add(viewport), acc);
+            }
+            TreeCmd::Home => Self::move_to(st, index, 0, acc),
+            TreeCmd::End => Self::move_to(st, index, usize::MAX, acc),
+            TreeCmd::Expand => {
+                self.expand_or_descend(st, index, items, cur, acc);
+            }
+            TreeCmd::Collapse => {
+                self.collapse_or_parent(st, index, items, cur, acc);
+            }
+            TreeCmd::Activate => {
+                self.engage(st, index, items, cur, Engagement::Activate, acc);
+            }
+            TreeCmd::Choose => {
+                self.engage(st, index, items, cur, Engagement::Choose, acc);
+            }
+            TreeCmd::ExpandAll => {
+                if index.query_active {
+                    acc.consumed();
+                } else {
+                    st.expand_all();
+                    index.sync(self, st, items);
+                    acc.action(TreeAction::Moved);
+                }
+            }
+            TreeCmd::CollapseAll => {
+                if index.query_active {
+                    acc.consumed();
+                } else {
+                    st.collapse_all();
+                    index.sync(self, st, items);
+                    acc.action(TreeAction::Moved);
+                }
+            }
+        }
+    }
+
     /// The update phase: reconcile over the **visible** rows, then drain
     /// keys, pointer and wheel.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TreeState, items: &[T]) -> Response<TreeAction> {
         if self.disabled {
+            st.click_cursor = None;
             return Response::ignored();
         }
+        let prior_cursor = st.core.cursor();
         let len = {
             let index = cx.cache::<TreeIndex>(self.id);
             index.sync(self, st, items);
@@ -1472,61 +1555,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         let hint_area = cx.area(self.id);
         let (intents, index) = cx.intents_with_cache::<TreeIndex>(self.id);
         let table = self.table_for(index.foldable && !index.query_active);
+        let mut released = false;
         for it in intents {
             match it {
                 Intent::Binding(action) => {
-                    let cur = st.core.cursor_index();
-                    match Binding::command(table, action) {
-                        Some(TreeCmd::Up) => {
-                            Self::move_to(st, index, cur.saturating_sub(1), &mut acc);
-                        }
-                        Some(TreeCmd::Down) => {
-                            Self::move_to(st, index, cur.saturating_add(1), &mut acc);
-                        }
-                        Some(TreeCmd::PageUp) => {
-                            Self::move_to(st, index, cur.saturating_sub(viewport), &mut acc);
-                        }
-                        Some(TreeCmd::PageDown) => {
-                            Self::move_to(st, index, cur.saturating_add(viewport), &mut acc);
-                        }
-                        Some(TreeCmd::Home) => Self::move_to(st, index, 0, &mut acc),
-                        Some(TreeCmd::End) => Self::move_to(st, index, usize::MAX, &mut acc),
-                        Some(TreeCmd::Expand) => {
-                            self.expand_or_descend(st, index, items, cur, &mut acc);
-                        }
-                        Some(TreeCmd::Collapse) => {
-                            self.collapse_or_parent(st, index, items, cur, &mut acc);
-                        }
-                        Some(TreeCmd::Activate) => {
-                            self.engage(st, index, items, cur, Engagement::Activate, &mut acc);
-                        }
-                        Some(TreeCmd::Choose) => {
-                            self.engage(st, index, items, cur, Engagement::Choose, &mut acc);
-                        }
-                        Some(TreeCmd::ExpandAll) => {
-                            if index.query_active {
-                                acc.consumed();
-                            } else {
-                                st.expand_all();
-                                index.sync(self, st, items);
-                                acc.action(TreeAction::Moved);
-                            }
-                        }
-                        Some(TreeCmd::CollapseAll) => {
-                            if index.query_active {
-                                acc.consumed();
-                            } else {
-                                st.collapse_all();
-                                index.sync(self, st, items);
-                                acc.action(TreeAction::Moved);
-                            }
-                        }
-                        None => {}
+                    st.click_cursor = None;
+                    if let Some(command) = Binding::command(table, action) {
+                        self.command(st, index, items, command, viewport, &mut acc);
                     }
                 }
                 Intent::Pointer {
                     phase, part, pos, ..
                 } => {
+                    released |= phase == Phase::Release;
                     let hint = hint_area.map(|a| {
                         let view = ScrollRegion::view(st.core.scroll(), a, len);
                         view.offset()
@@ -1536,12 +1577,20 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                         st,
                         index,
                         items,
-                        PointerIntent { phase, part, hint },
+                        PointerIntent {
+                            phase,
+                            prior_cursor,
+                            part,
+                            hint,
+                        },
                         &mut acc,
                     );
                 }
                 _ => {}
             }
+        }
+        if released {
+            st.click_cursor = None;
         }
         // a toggle changed how many rows there are; the scrollbar must not
         // spend a frame believing the old count
@@ -1594,15 +1643,36 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         pointer: PointerIntent,
         acc: &mut Acc<TreeAction>,
     ) {
-        let PointerIntent { phase, part, hint } = pointer;
+        let PointerIntent {
+            phase,
+            part,
+            hint,
+            prior_cursor,
+        } = pointer;
+        if matches!(phase, Phase::DragStart | Phase::Drag | Phase::DragEnd) {
+            st.click_cursor = None;
+        }
+        if phase == Phase::Press && part.part != Part::ROW {
+            st.click_cursor = None;
+        }
         let Some(key) = part.item else {
             acc.consumed();
             return;
         };
         let Some(d) = index.display_of(key, hint) else {
+            st.click_cursor = None;
             acc.consumed();
             return;
         };
+        if index
+            .row(d)
+            .and_then(|row| items.get(row.source))
+            .is_none_or(|item| self.is_disabled(item))
+        {
+            st.click_cursor = None;
+            acc.consumed();
+            return;
+        }
         if part.part == Part::ICON {
             match phase {
                 Phase::Press => {
@@ -1625,8 +1695,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         match phase {
             Phase::Press => {
+                st.click_cursor =
+                    prior_cursor.filter(|cursor| self.activate_selected_on_click && *cursor == key);
                 st.core.set_cursor(d, key);
                 acc.changed();
+            }
+            Phase::Click | Phase::DoubleClick if self.activate_selected_on_click => {
+                let engagement = if st.click_cursor.take() == Some(key) {
+                    Engagement::SelectedClick
+                } else {
+                    Engagement::Click
+                };
+                self.engage(st, index, items, d, engagement, acc);
             }
             Phase::Click => self.engage(st, index, items, d, Engagement::Click, acc),
             Phase::DoubleClick => self.engage(st, index, items, d, Engagement::Activate, acc),
@@ -1988,9 +2068,13 @@ mod tests {
     use ratatui_core::buffer::{Buffer, Cell as BufferCell};
     use ratatui_core::layout::{Position, Rect};
 
-    use super::{Acc, TABLE, Tree, TreeAction, TreeIndex, TreeNode, TreeState};
+    use super::{
+        Acc, PointerIntent, TABLE, Tree, TreeAction, TreeBranchClick, TreeIndex, TreeNode,
+        TreeState,
+    };
+    use crate::Phase;
     use crate::collection::RowUi;
-    use crate::id::{Id, ItemKey, Part};
+    use crate::id::{Id, ItemKey, Part, PartRef};
     use crate::response::StateFlags;
     use crate::runtime::Runtime;
     use crate::runtime::stub::Stub;
@@ -2031,6 +2115,34 @@ mod tests {
             .filter_map(|d| index.row(d))
             .filter_map(|row| items.get(row.source).map(|n| n.0))
             .collect()
+    }
+
+    #[test]
+    fn selected_click_without_prior_cursor_only_chooses() {
+        let t = tree()
+            .activate_selected_on_click(true)
+            .branch_click(TreeBranchClick::Choose);
+        let items = [N("leaf", 0, false)];
+        let mut st = TreeState::new();
+        let mut index = TreeIndex::default();
+        index.sync(&t, &st, &items);
+        let key = ItemKey::text("leaf");
+        let mut acc = Acc::new();
+        for phase in [Phase::Press, Phase::Release, Phase::Click] {
+            t.pointer(
+                &mut st,
+                &mut index,
+                &items,
+                PointerIntent {
+                    phase,
+                    prior_cursor: None,
+                    part: PartRef::item(Part::ROW, key),
+                    hint: Some(0),
+                },
+                &mut acc,
+            );
+        }
+        assert_eq!(acc.finish(TREE).action_ref(), Some(&TreeAction::Chose(key)));
     }
 
     /// A forest with two roots, each with two children, the second of which
