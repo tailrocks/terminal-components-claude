@@ -178,8 +178,9 @@ pub use crate::measure::{Constraints, Measure, Size};
 // text — curated: `grapheme_width`, `is_word_char` and `thousands` stay
 // internal (Appendix B.4 lists neither)
 pub use crate::text::{
-    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
-    truncate, truncate_middle, width, wrap, wrapped_rows,
+    CursorPos, EditAction, EditOutcome, Extend, FuzzyBoundary, Motion, Span, TextBuffer,
+    TextEditorCore, fuzzy, fuzzy_with_boundary, truncate, truncate_middle, width, wrap,
+    wrapped_rows,
 };
 // collections
 pub use crate::collection::{
