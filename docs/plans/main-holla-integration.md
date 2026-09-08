@@ -45,11 +45,11 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | T03 Baselines/tools | 4, 8–9 | verifiers | Historical 998 missing artifacts reproducibly restored; qualified capture tools acquired; current full product evidence incomplete |
 | T04 Compiler/chrome repair | 5 | integrator | Integrated and independently scoped verified |
 | T05 Runtime/time/identity | 5 | runtime owner | Publication, model-bound Scene and Moment integrated; typing/cursor policy, stationary hover and terminal error cleanup remain |
-| T06 Theme/components | 6 | component owner | Typed paint/defaults/EMPTY/List/Grid hooks integrated; authored capability palettes under review; full customization/family proof incomplete |
+| T06 Theme/components | 6 | component owner | Authored capability palettes and HintBar metadata integrated; scrollbar/NavList/typing consumers in progress; full customization/family proof incomplete |
 | T07 Showcase | 7 | Showcase owner | CLI/shell/sidebar slices integrated; 22-page fidelity, elapsed timing, real builders and remaining geometry in progress |
-| T08 TablePro | 7 | TablePro owner | CLI, tab ownership, inline quit guards and plain-u route integrated; row identity/undo, close/reconnect guards, query cancellation and full fidelity remain |
+| T08 TablePro | 7 | TablePro owner | Stable row records/undo integrated; allocation repair under review; close/reconnect guards, query cancellation and full fidelity remain |
 | T09 Jackin | 7 | integrator/app reviewer | CLI, Mono and lifecycle integrated; timing, full reference journeys and visual inventory still incomplete |
-| T10 Holla | 7 | Holla owner | Domain/CLI/PG integrated; actual App/binary and subsequent safety fixes under review; time/query/footer/scroll and complete fidelity incomplete |
+| T10 Holla | 7 | Holla owner | Actual App/binary, lifecycle, PG guards and coalesced domain cadence integrated; query/footer/scroll/feedback timing and complete fidelity incomplete |
 | T11 Three verification layers | 8 | all reviewers | Pure, behavior and PTY slices exist; full four-app production/reference coverage remains |
 | T12 Gates/inventory/performance | 9 | verifiers/integrator | Pipefail, locked CI, tool provenance and exact test tooling integrated; required 3211 obligation mappings pending; capture/CI four-app expansion and strict style gate unresolved |
 | T13 Independent review | 2, 8, 10 | reviewers | Continuous committed slice review; no blanket baseline approval |
@@ -74,6 +74,15 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | Nightly rustdoc runner | 825bbb6 | Isolated native Cargo bypasses incompatible wrapper target;42 public components checked; strict xtask Clippy passes |
 | Monotonic scheduling | 8f7e1c9 | Independent functional/MSRV/PTY acceptance; root final smoke pending; full strict style measurement remains unresolved |
 | Inline guards/plain-u | ec6569b, 2d43a1c | Independent85stable/27MSRV/7external tests and realPTY accepted; sorted undo identity and other discard paths remain |
+| TablePro row identity | 6058009, 708a072 | Root35MSRV tests pass; independent356 frames:355 exact/one sorted-undo correction; existing16 allocations versus7 gate remains open |
+| Authored capability palettes | 4afca16, 4a9dcab, 2f1e408 | Root747lib+39focused MSRV pass; independent oracle derives26 foreground corrections over32 EMPTY frames; no app baseline blessing |
+| Showcase props/header | a97d7b9 through d633aea | Root31app+2matrix+10sidebar pass; independently verified704 historical hashes,64+16 unchanged frames,352 header geometries and355 source-derived rows |
+| HintBar metadata | 0a60871 | Independent public consumer covers324 width/color comparisons; root four MSRV tests pass; Holla caller migration pending |
+| Four-app authoritative inventory | 7568b8d | Root103xtask tests pass; independent missing-target and CI failure probes pass; capture/build provenance and Holla perf target still required |
+| Holla application adapter | 1c661ce through9135ab3 | Root98MSRV tests, actual binary build, strict Clippy and help0/error2 CLI checks pass; four unique public binaries present; feedback cadence unresolved |
+| Footer alignment/edit mode | e4037a3 | Root10MSRV footer/acknowledgement tests pass; nonsecret editor-mode getter and post-selection alignment preserve cached hints |
+| Showcase elapsed behavior | 37c8a38, 278c183 | Independent root51MSRV tests;34 source hashes and352 frame pairs verified;16 Progress corrections; existing Lists allocation9/159 exceeds1/60 |
+| Full-track scrollbar | 59a2a11 | Root747lib+4MSRV external tests pass; pinned source full-height geometry and pointer endpoints reviewed; typed cap customization retained |
 
 Detailed reports and immutable hashes remain in the external evidence folders:
 publication, theme-contract, scene-final-independent, monotonic-independent,
@@ -82,13 +91,12 @@ showcase-fidelity, historical-regeneration and test-inventory.
 
 ## Immediate work and unresolved acceptance
 
-1. Run integrated Moment/Scene/TablePro smoke, including actual timing callers.
-   Migrate Showcase Buttons2200ms/status/Progress80ms and Holla/Jackin simulation
-   time; arbitrary events and rendering must not advance elapsed time.
-2. Review and fix authored palette conversion chains. Keep the existing EMPTY
-   32-frame digest red until exact changed cells are independently adjudicated;
-   never clear the palette or replace expected hashes merely to pass.
-3. Finish TablePro inseparable stable-key row records/undo/sort/SQL/redaction,
+1. Finish runtime typing diagnostic repair and exact feedback-clock policy;
+   migrate Jackin admitted timing and prove all app timing callers. Arbitrary
+   events and rendering must not advance elapsed time.
+2. Finish shared typing/cursor, full-track scrollbar and NavList scrolling;
+   preserve palette provenance and independently derived EMPTY expectations.
+3. Finish TablePro allocation repair, insert/delete/revert input routes,
    close-tab/reconnect/result-replacement guards and query cancellation.
 4. Finish actual Holla App lifecycle across routes/modals, all eleven scenarios,
    always-armed query/caret, focused hints with status, scrolling and real binary
