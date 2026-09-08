@@ -192,6 +192,62 @@ pub fn bench(warm: usize, iters: usize, f: &mut dyn FnMut()) -> Stats {
     }
 }
 
+/// Accumulates only explicitly measured sections of one benchmark iteration.
+/// Setup between sections is excluded. Clock-read overhead is retained; no
+/// calibration subtraction can make an operation appear faster than measured.
+#[derive(Debug, Default)]
+pub struct Sample {
+    ns: u128,
+    allocs: usize,
+    bytes: usize,
+}
+
+impl Sample {
+    /// Measure one section, including its allocations, and return its result.
+    pub fn measure<T>(&mut self, f: impl FnOnce() -> T) -> T {
+        let a0 = allocs();
+        let b0 = bytes();
+        let t0 = Instant::now();
+        let result = f();
+        self.ns += t0.elapsed().as_nanos();
+        self.allocs += allocs() - a0;
+        self.bytes += bytes() - b0;
+        result
+    }
+}
+
+/// Like [`bench`], but each iteration explicitly marks its measured sections.
+/// Use when a public lifecycle requires untimed setup between operations.
+/// Always retain a separate [`bench`] measurement of the complete lifecycle.
+pub fn bench_sampled(warm: usize, iters: usize, f: &mut dyn FnMut(&mut Sample)) -> Stats {
+    let iters = iters.max(1);
+    for _ in 0..warm {
+        f(&mut Sample::default());
+    }
+    let mut ns_v = Vec::with_capacity(REPS);
+    let mut allocs_v = Vec::with_capacity(REPS);
+    let mut bytes_v = Vec::with_capacity(REPS);
+    for _ in 0..REPS {
+        let mut sample = Sample::default();
+        for _ in 0..iters {
+            f(&mut sample);
+        }
+        ns_v.push(sample.ns / iters as u128);
+        allocs_v.push(sample.allocs.div_ceil(iters));
+        bytes_v.push(sample.bytes.div_ceil(iters));
+    }
+    ns_v.sort_unstable();
+    allocs_v.sort_unstable();
+    bytes_v.sort_unstable();
+    Stats {
+        ns: ns_v[REPS / 2],
+        allocs: allocs_v[REPS / 2],
+        bytes: bytes_v[REPS / 2],
+        hits: None,
+        ring: None,
+    }
+}
+
 /// Measure exactly one execution of `f` (no repetitions, no median).
 pub fn measure_once(f: &mut dyn FnMut()) -> Stats {
     let a0 = allocs();
@@ -448,7 +504,7 @@ pub fn unicode_line(n: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{Entry, Stats, check_regions};
+    use super::{Entry, Stats, bench_sampled, check_regions, count};
 
     const BASE: Entry = Entry {
         ns: 1,
@@ -466,6 +522,24 @@ mod tests {
             hits,
             ring,
         }
+    }
+
+    #[test]
+    fn sampled_sections_exclude_setup_and_include_each_measured_allocation() {
+        let stats = bench_sampled(2, 3, &mut |sample| {
+            count(17);
+            assert_eq!(
+                sample.measure(|| {
+                    count(31);
+                    7
+                }),
+                7
+            );
+            count(19);
+            sample.measure(|| count(37));
+        });
+        assert_eq!(stats.allocs, 2);
+        assert_eq!(stats.bytes, 68);
     }
 
     #[test]

@@ -36,8 +36,8 @@ use junie_tui::{
     ViewportState,
 };
 use junie_tui_testing::perf::{
-    Counting, bench, check_ratio, env_flag, iters, lock, measure_once, report, unicode_line,
-    unicode_line_inline,
+    Counting, bench, bench_sampled, check_ratio, env_flag, iters, lock, measure_once, report,
+    unicode_line, unicode_line_inline,
 };
 use junie_tui_testing::{NoApp, Scene};
 
@@ -706,6 +706,36 @@ fn probe_runtime(n: usize) -> (Runtime<Probes>, ratatui_core::buffer::Buffer) {
     (rt, buf)
 }
 
+// Use the same public presentation/settle lifecycle as deliver_buffer, but
+// allow operation-only benchmarks to keep setup outside measured sections.
+fn publish_for_input<A: App>(rt: &mut Runtime<A>, buf: &mut ratatui_core::buffer::Buffer) {
+    for _ in 0..16 {
+        if rt.needs_settle() {
+            let _ = rt.settle();
+        }
+        if !rt.needs_present() && !rt.needs_settle() {
+            return;
+        }
+        rt.draw_buffer(*buf.area(), buf).commit_presented();
+    }
+    panic!(
+        "benchmark publication did not settle: {:?}",
+        rt.diagnostics()
+    );
+}
+
+fn report_drain_lifecycle(
+    name: &str,
+    rt: &mut Runtime<Probes>,
+    buf: &mut ratatui_core::buffer::Buffer,
+) {
+    let stats = bench(2, iters(200), &mut || {
+        let _ = black_box(junie_tui_testing::deliver_buffer(rt, buf, Input::Tick));
+    });
+    report(name, &stats);
+    assert_eq!(stats.allocs, 0);
+}
+
 /// Adjudication 2.6: a ±10 % wall-clock band on a ~600 ns measurement cannot
 /// detect a regression in the 500 probes it names (they are ≈0.1 % of it). The
 /// binding assertion is a **deterministic probe count**; the ratio is reported
@@ -738,20 +768,30 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
         "probe cost is independent of the component count when the queue is empty"
     );
 
-    let s20 = bench(2, iters(200), &mut || {
-        let _ = black_box(junie_tui_testing::deliver_buffer(
-            &mut small,
-            &mut small_buf,
-            Input::Tick,
-        ));
+    // Original baseline measures handle/update only. Required publication is
+    // setup, while every measured handle still checks real compatibility.
+    let s20 = bench_sampled(2, iters(200), &mut |sample| {
+        publish_for_input(&mut small, &mut small_buf);
+        let _ = sample.measure(|| black_box(small.handle(Input::Tick).expect("published input")));
     });
-    let s500 = bench(2, iters(200), &mut || {
-        let _ = black_box(junie_tui_testing::deliver_buffer(
-            &mut large,
-            &mut large_buf,
-            Input::Tick,
-        ));
+    let s500 = bench_sampled(2, iters(200), &mut |sample| {
+        publish_for_input(&mut large, &mut large_buf);
+        let _ = sample.measure(|| black_box(large.handle(Input::Tick).expect("published input")));
     });
+    let overhead = bench_sampled(2, iters(200), &mut |sample| {
+        sample.measure(|| black_box(()));
+    });
+    println!("PERF sampled_clock_overhead ns={}", overhead.ns);
+    report_drain_lifecycle(
+        "intents_drain_full_lifecycle_20",
+        &mut small,
+        &mut small_buf,
+    );
+    report_drain_lifecycle(
+        "intents_drain_full_lifecycle_500",
+        &mut large,
+        &mut large_buf,
+    );
     report("intents_drain_is_o_1_when_the_queue_is_empty", &s500);
     println!(
         "PERF intents_drain_20_controls ns={} allocs={}",
@@ -1179,8 +1219,40 @@ fn event_dispatch_is_not_o_n() {
         }
         rt.draw_buffer(area, buf).commit_presented();
     };
-    let s_small = bench(2, iters(50), &mut || run(&mut small, &mut small_buf));
-    let s_large = bench(2, iters(50), &mut || run(&mut large, &mut large_buf));
+    // Full lifecycle includes the now-required publication between Down and
+    // Up. Keep this visible separately from the historical two-input/one-draw
+    // operation boundary; no baseline or ratio ceiling is rewritten.
+    let full_small = bench(2, iters(50), &mut || run(&mut small, &mut small_buf));
+    let full_large = bench(2, iters(50), &mut || run(&mut large, &mut large_buf));
+    report("event_dispatch_full_lifecycle_100", &full_small);
+    report("event_dispatch_full_lifecycle_100k", &full_large);
+    assert_eq!(full_small.allocs, 0);
+    assert_eq!(full_large.allocs, 0);
+    check_ratio(
+        "event_dispatch_full_lifecycle_100k_vs_100",
+        full_large.ns,
+        full_small.ns,
+        3.0,
+        env_flag("PERF_STRICT"),
+    );
+    let historical = |rt: &mut Runtime<ListApp>, buf: &mut ratatui_core::buffer::Buffer| {
+        bench_sampled(2, iters(50), &mut |sample| {
+            publish_for_input(rt, buf);
+            sample.measure(|| {
+                for i in rt.app().rows.iter().take(1) {
+                    black_box(i);
+                }
+                let _ = black_box(rt.handle(click(10, 5)[0].clone()).expect("published down"));
+            });
+            publish_for_input(rt, buf);
+            sample.measure(|| {
+                let _ = black_box(rt.handle(click(10, 5)[1].clone()).expect("published up"));
+                rt.draw_buffer(area, buf).commit_presented();
+            });
+        })
+    };
+    let s_small = historical(&mut small, &mut small_buf);
+    let s_large = historical(&mut large, &mut large_buf);
     let s = Stats {
         allocs: s_large.allocs,
         ..s_large
