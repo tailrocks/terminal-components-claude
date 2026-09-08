@@ -5,7 +5,7 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::keyhint::ChordText;
+use super::keyhint::HintText;
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, first_row, shift};
 use crate::event::{Chord, KeyCode};
@@ -524,7 +524,7 @@ impl<'a> HelpOverlay<'a> {
                         ..row
                     };
                     let action = shift(row, 13);
-                    let chord = ChordText::of(hint.chord);
+                    let chord = HintText::of(hint.key);
                     self.paint_text(ui, Part::KEY, key, chord.as_str(), flags);
                     self.paint_text(ui, Part::ACTION, action, hint.label, flags);
                     ui.register_decor(self.id, PartRef::of(Part::KEY), key);

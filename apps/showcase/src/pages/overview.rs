@@ -101,7 +101,7 @@ fn brand() -> Brand<'static> {
 fn inventory_hints() -> HintLayer {
     HintLayer {
         hints: vec![Hint {
-            chord: Chord::key(KeyCode::Char('i')),
+            key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('i'))),
             label: "inspect",
             priority: 50,
         }],

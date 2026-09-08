@@ -1500,17 +1500,20 @@ impl App {
         let pane = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
+                    key: junie_tui::HintKey::Chord(Chord::with(
+                        KeyCode::Char('b'),
+                        KeyModifiers::CONTROL,
+                    )),
                     label: "Prefix commands",
                     priority: 90,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('y')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('y'))),
                     label: "Copy selection",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::PageUp),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::PageUp)),
                     label: "Scrollback",
                     priority: 70,
                 },
@@ -1522,22 +1525,22 @@ impl App {
         let layout = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Char('%')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('%'))),
                     label: "Split right",
                     priority: 90,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('"')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('"'))),
                     label: "Split below",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('h')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('h'))),
                     label: "Focus left",
                     priority: 70,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('z')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('z'))),
                     label: "Zoom pane",
                     priority: 60,
                 },
@@ -1549,27 +1552,30 @@ impl App {
         let session = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Char('c')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('c'))),
                     label: "New tab",
                     priority: 90,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('d')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('d'))),
                     label: "Detach",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char(',')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char(','))),
                     label: "Rename tab",
                     priority: 70,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('&')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('&'))),
                     label: "Close tab",
                     priority: 60,
                 },
                 Hint {
-                    chord: Chord::with(KeyCode::Char('q'), KeyModifiers::CONTROL),
+                    key: junie_tui::HintKey::Chord(Chord::with(
+                        KeyCode::Char('q'),
+                        KeyModifiers::CONTROL,
+                    )),
                     label: "Exit",
                     priority: 50,
                 },
@@ -1581,27 +1587,30 @@ impl App {
         let navigation = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Left),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Left)),
                     label: "Previous tab",
                     priority: 90,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Right),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Right)),
                     label: "Next tab",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::F(10)),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::F(10))),
                     label: "Menu",
                     priority: 70,
                 },
                 Hint {
-                    chord: Chord::with(KeyCode::Char('\\'), KeyModifiers::CONTROL),
+                    key: junie_tui::HintKey::Chord(Chord::with(
+                        KeyCode::Char('\\'),
+                        KeyModifiers::CONTROL,
+                    )),
                     label: "Command palette",
                     priority: 60,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('?')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('?'))),
                     label: "Help",
                     priority: 50,
                 },
@@ -5984,7 +5993,7 @@ impl App {
         let hints = if self.capsule_help_open {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::key(KeyCode::Esc),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                     label: "Close",
                     priority: 90,
                 }],
@@ -5996,17 +6005,17 @@ impl App {
             HintLayer {
                 hints: vec![
                     Hint {
-                        chord: Chord::key(KeyCode::Esc),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                         label: "Close",
                         priority: 90,
                     },
                     Hint {
-                        chord: Chord::key(KeyCode::Enter),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
                         label: "Choose",
                         priority: 80,
                     },
                     Hint {
-                        chord: Chord::key(KeyCode::F(10)),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::F(10))),
                         label: "Menu",
                         priority: 70,
                     },
@@ -6019,12 +6028,12 @@ impl App {
             HintLayer {
                 hints: vec![
                     Hint {
-                        chord: Chord::key(KeyCode::Char('c')),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('c'))),
                         label: "New tab",
                         priority: 90,
                     },
                     Hint {
-                        chord: Chord::key(KeyCode::Char('d')),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('d'))),
                         label: "Detach",
                         priority: 80,
                     },
@@ -6037,12 +6046,12 @@ impl App {
             HintLayer {
                 hints: vec![
                     Hint {
-                        chord: Chord::key(KeyCode::Tab),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Tab)),
                         label: "Open diff",
                         priority: 90,
                     },
                     Hint {
-                        chord: Chord::key(KeyCode::Esc),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                         label: "Close",
                         priority: 80,
                     },
@@ -6054,7 +6063,10 @@ impl App {
         } else {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::with(KeyCode::Char('B'), KeyModifiers::CONTROL),
+                    key: junie_tui::HintKey::Chord(Chord::with(
+                        KeyCode::Char('B'),
+                        KeyModifiers::CONTROL,
+                    )),
                     label: "prefix",
                     priority: 90,
                 }],
@@ -6297,7 +6309,7 @@ impl TuiApp for App {
         let hints = if self.help_open {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::key(KeyCode::Esc),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                     label: "Close",
                     priority: 90,
                 }],
@@ -6308,7 +6320,7 @@ impl TuiApp for App {
         } else {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::key(KeyCode::Enter),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
                     label: "Choose",
                     priority: 90,
                 }],

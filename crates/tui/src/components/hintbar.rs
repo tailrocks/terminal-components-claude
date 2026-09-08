@@ -1,11 +1,10 @@
 //! `HintBar` — the one key-hint surface a shell owns
 //! (`COMPONENT_ARCHITECTURE.md` §13.1, §18.2, Appendix A 4G).
 //!
-//! Hints are **derived**, never hand-written: a component publishes a
-//! `const` [`Binding`](crate::keymap::Binding) table, `HintLayer::from_bindings`
-//! turns its visible entries into a layer ordered by priority, and
-//! [`HintBar::resolve`] picks the topmost layer that exists. A screen
-//! contributes product-level extras only.
+//! Components derive chord hints from `const` [`Binding`](crate::keymap::Binding)
+//! tables through `HintLayer::from_bindings`. Screens can contribute product
+//! affordances, including descriptive keycaps such as `Type`, without creating
+//! routing bindings. [`HintBar::resolve`] picks the topmost contributing layer.
 
 use core::fmt;
 
@@ -683,7 +682,7 @@ mod tests {
             hints: labels
                 .iter()
                 .map(|(l, c)| Hint {
-                    chord: Chord::key(*c),
+                    key: crate::keymap::HintKey::Chord(Chord::key(*c)),
                     label: l,
                     priority: 50,
                 })

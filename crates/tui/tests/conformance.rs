@@ -1806,12 +1806,12 @@ impl Conformance for HintBarCase {
         let layer = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Enter),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
                     label: "Open",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Esc),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                     label: "Close",
                     priority: 70,
                 },

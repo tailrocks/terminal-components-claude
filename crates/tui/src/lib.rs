@@ -73,7 +73,7 @@ pub use response::{Activated, Flow, Invalidate, Response, StateFlags};
 pub use action::{Action, ActionKey};
 pub use diagnostics::Diagnostic;
 pub use keymap::{
-    Binding, BindingState, BindingTableId, Bindings, Hint, HintLayer, KeyMap, KeyPhase,
+    Binding, BindingState, BindingTableId, Bindings, Hint, HintKey, HintLayer, KeyMap, KeyPhase,
     binding_conflicts,
 };
 // focus, hit, capture, scroll

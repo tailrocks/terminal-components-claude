@@ -1088,12 +1088,12 @@ fn draw_hint_bar(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
         } else {
             vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Enter),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
                     label: "Open",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Esc),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                     label: "Close",
                     priority: 70,
                 },
@@ -1363,7 +1363,7 @@ fn draw_menu_bar(st: St, ui: &mut Ui<'_>, area: Rect) {
 fn draw_help_overlay(st: St, ui: &mut Ui<'_>, area: Rect) {
     let layer = HintLayer {
         hints: vec![Hint {
-            chord: Chord::key(KeyCode::Enter),
+            key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
             label: "Choose",
             priority: 80,
         }],

@@ -667,11 +667,16 @@ impl FocusedHints {
             else {
                 continue;
             };
-            if self.layer.hints.iter().any(|hint| hint.chord == chord) {
+            if self
+                .layer
+                .hints
+                .iter()
+                .any(|hint| hint.key == HintKey::Chord(chord))
+            {
                 continue;
             }
             let hint = Hint {
-                chord,
+                key: HintKey::Chord(chord),
                 label: binding.label,
                 priority: binding.priority,
             };
@@ -686,11 +691,20 @@ impl FocusedHints {
     }
 }
 
-/// One hint in the hint bar.
+/// The keycap displayed by a hint, distinct from any input routing binding.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HintKey {
+    /// Format a real keyboard chord using the canonical chord renderer.
+    Chord(Chord),
+    /// A descriptive affordance such as `Type`; declares no routing chord.
+    Label(&'static str),
+}
+
+/// One hint in the hint bar. Displaying a hint never registers a binding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Hint {
-    /// The chord shown.
-    pub chord: Chord,
+    /// The keycap shown.
+    pub key: HintKey,
     /// The label shown.
     pub label: &'static str,
     /// Higher survives width pressure longer.
@@ -736,7 +750,7 @@ impl HintLayer {
             .filter(|b| b.visible)
             .filter_map(|b| b.chord.map(|chord| (b, chord)))
             .map(|(b, chord)| Hint {
-                chord,
+                key: HintKey::Chord(chord),
                 label: b.label,
                 priority: b.priority,
             })

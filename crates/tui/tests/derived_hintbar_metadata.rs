@@ -20,7 +20,7 @@ fn row(scene: &Scene, y: u16) -> String {
 fn layer(label: &'static str) -> HintLayer {
     HintLayer {
         hints: vec![Hint {
-            chord: Chord::key(KeyCode::Esc),
+            key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
             label,
             priority: 50,
         }],
