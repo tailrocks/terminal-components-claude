@@ -373,6 +373,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
     row: R,
+    render_row: Option<ListRowRenderer<'a, T>>,
     select_mode: SelectMode,
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
@@ -388,6 +389,8 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
+
+type ListRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
 
 impl<T, K, R> fmt::Debug for List<'_, T, K, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -407,6 +410,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             id,
             key: ByIndex,
             row: DefaultRow,
+            render_row: None,
             select_mode: SelectMode::Single,
             empty: None,
             disabled_item: None,
@@ -448,6 +452,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             id: self.id,
             key: k,
             row: self.row,
+            render_row: self.render_row,
             select_mode: self.select_mode,
             empty: self.empty,
             disabled_item: self.disabled_item,
@@ -465,6 +470,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             id: self.id,
             key: self.key,
             row: r,
+            render_row: self.render_row,
             select_mode: self.select_mode,
             empty: self.empty,
             disabled_item: self.disabled_item,
@@ -474,6 +480,27 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             ov: self.ov,
             _t: PhantomData,
         }
+    }
+
+    /// Replace the entire visible row's painting, including its chrome.
+    ///
+    /// The borrowed callback receives the authoritative clipped row, final
+    /// interaction flags, stable key and borrowed item. List retains scrolling,
+    /// reconciliation, input and hit registration. No default row painter runs
+    /// first. Instance part patches and slots apply to the default painter;
+    /// custom painters resolve their own semantic parts, as with `NavList`.
+    ///
+    /// Items need not implement `Display`. Installing this renderer replaces
+    /// the default row capability; subsequent `key` and `row` builders retain
+    /// the full-row renderer, and no builder can remove it.
+    #[must_use]
+    pub fn render_row(self, renderer: ListRowRenderer<'a, T>) -> List<'a, T, K, impl RowFn<T>> {
+        // The full-row callback below is installed before this value escapes.
+        // All type-changing builders preserve it and there is no unset API,
+        // so this zero-sized fallback can never paint a row.
+        let mut list = self.row(|_: &T, _: &mut RowUi<'_>| {});
+        list.render_row = Some(renderer);
+        list
     }
 
     /// The selection mode.
@@ -913,6 +940,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 width: content.width,
                 height: 1,
             };
+            if let Some(renderer) = self.render_row {
+                ui.with_area(row, |ui| renderer(ui, row, flags, key, item));
+                if !ui.is_inert() {
+                    ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
+                }
+                continue;
+            }
             let rs = ov.style(
                 ui,
                 id,
