@@ -211,6 +211,12 @@ and targeted Clippy pass. Stable release emitted rust-objcopy missing libLLVM
 warning during stripping; executable still ran all11 tests. Independent strict
 Picker timing remains red on both parent and candidate;
 no timing waiver or performance-completion claim.
+Terminal cleanup integrated8569cf7: construction guard, eager best-effort restore,
+retryable leave. Root6 MSRV unit tests pass; exact integrated binary independently
+executed through success/entryBrokenPipe/leaveBrokenPipe PTYs, all exit0 and restore
+input settings (only macOS transient PENDIN normalized; full values retained).
+Evidence E/terminal-cleanup/root-8569cf7 pins binary7d40b381…ab3c8b. Unwritable
+output cannot guarantee escape delivery; input restoration is proven separately.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
