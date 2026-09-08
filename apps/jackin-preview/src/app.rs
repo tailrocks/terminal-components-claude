@@ -1026,19 +1026,22 @@ impl App {
         self.status = Some("Container info".into());
     }
 
+    fn manager_instances(
+        &self,
+        workspace: Option<crate::domain::workspace::WorkspaceId>,
+    ) -> impl Iterator<Item = &crate::domain::instance::Instance> {
+        self.world
+            .instances
+            .iter()
+            .filter(move |instance| instance.workspace == workspace && !instance.status.hidden())
+    }
+
     fn build_manager_rows(&self) -> Vec<ManagerRow> {
         let mut rows = Vec::new();
         for workspace in &self.world.workspaces {
             let expanded = self.manager.is_expanded(workspace.id);
             let marker = if expanded { "▾" } else { "▸" };
-            let count = self
-                .world
-                .instances
-                .iter()
-                .filter(|instance| {
-                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
-                })
-                .count();
+            let count = self.manager_instances(Some(workspace.id)).count();
             rows.push(ManagerRow::new(
                 ManagerRowKey::Workspace(workspace.id),
                 format!(
@@ -1048,9 +1051,7 @@ impl App {
                 ),
             ));
             if expanded {
-                for instance in self.world.instances.iter().filter(|instance| {
-                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
-                }) {
+                for instance in self.manager_instances(Some(workspace.id)) {
                     rows.push(ManagerRow::new(
                         ManagerRowKey::Instance(instance.id.clone()),
                         format!(
@@ -1068,24 +1069,18 @@ impl App {
             ManagerRowKey::CurrentDirectory,
             format!("Current directory · {}", self.world.home),
         ));
-        rows.extend(
-            self.world
-                .instances
-                .iter()
-                .filter(|instance| instance.workspace.is_none() && !instance.status.hidden())
-                .map(|instance| {
-                    ManagerRow::new(
-                        ManagerRowKey::Instance(instance.id.clone()),
-                        format!(
-                            "{} · {} · run {} · {}",
-                            instance.id,
-                            instance.status.label(),
-                            instance.run_id.short(),
-                            instance.dirty_summary()
-                        ),
-                    )
-                }),
-        );
+        rows.extend(self.manager_instances(None).map(|instance| {
+            ManagerRow::new(
+                ManagerRowKey::Instance(instance.id.clone()),
+                format!(
+                    "{} · {} · run {} · {}",
+                    instance.id,
+                    instance.status.label(),
+                    instance.run_id.short(),
+                    instance.dirty_summary()
+                ),
+            )
+        }));
         rows
     }
 
@@ -3440,12 +3435,7 @@ impl App {
                             self.manager.list.set_cursor(index, row.key);
                             self.manager.select_row(row.domain.clone());
                         }
-                    } else if self
-                        .world
-                        .instances
-                        .iter()
-                        .any(|instance| instance.workspace == Some(workspace))
-                    {
+                    } else if self.manager_instances(Some(workspace)).next().is_some() {
                         self.manager.toggle(workspace);
                         self.ensure_manager_rows();
                     }

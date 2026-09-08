@@ -235,3 +235,45 @@ fn right_on_current_directory_and_empty_workspace_is_noop() -> Result<(), Box<dy
     assert!(!h.app().manager.detail_open());
     Ok(())
 }
+
+#[test]
+fn hidden_only_children_do_not_make_workspace_expandable() -> Result<(), Box<dyn std::error::Error>>
+{
+    use jackin_app::domain::instance::InstanceStatus;
+    for status in [InstanceStatus::Purged, InstanceStatus::Superseded] {
+        let mut h = manager();
+        let selected = h.app().manager.selected().ok_or("workspace")?;
+        for instance in &mut h.app_mut().world.instances {
+            instance.workspace = Some(selected);
+            instance.status = status;
+        }
+        h.app_mut().manager.invalidate_rows();
+        let _ = h.tick();
+        let _ = h.key(KeyCode::Right);
+        assert!(!h.app().manager.is_expanded(selected), "{status:?}");
+        assert_eq!(h.app().manager.selected(), Some(selected));
+    }
+    Ok(())
+}
+
+#[test]
+fn mixed_children_expand_and_enter_first_visible_record() -> Result<(), Box<dyn std::error::Error>>
+{
+    use jackin_app::domain::instance::InstanceStatus;
+    let mut h = manager();
+    let selected = h.app().manager.selected().ok_or("workspace")?;
+    let mut visible = h.app().world.instances.first().ok_or("instance")?.clone();
+    visible.workspace = Some(selected);
+    let expected = jackin_app::screens::manager::ManagerRowKey::Instance(visible.id.clone());
+    let mut hidden = visible.clone();
+    hidden.id = "hidden-first".into();
+    hidden.status = InstanceStatus::Purged;
+    h.app_mut().world.instances = vec![hidden, visible];
+    h.app_mut().manager.invalidate_rows();
+    let _ = h.tick();
+    let _ = h.key(KeyCode::Right);
+    assert!(h.app().manager.is_expanded(selected));
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(h.app().manager.selected_row(), &expected);
+    Ok(())
+}
